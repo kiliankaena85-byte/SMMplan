@@ -16,7 +16,9 @@ services:
 
   app:
     build: .
-    env_file: .env.production
+    env_file:
+      - path: .env.production
+        required: false
     environment:
       - RUN_MIGRATIONS=true
     depends_on:
@@ -32,9 +34,13 @@ services:
           memory: 1G
 
   worker:
-    build: .
-    command: ["npx", "tsx", "src/workers/index.ts"]
-    env_file: .env.production
+    build:
+      context: .
+      target: worker-runner
+    command: ["./node_modules/.bin/tsx", "src/workers/index.ts"]
+    env_file:
+      - path: .env.production
+        required: false
     environment:
       - RUN_MIGRATIONS=false
       - DATABASE_URL=postgresql://${POSTGRES_USER:-smmplan}:${POSTGRES_PASSWORD:-CHANGE_ME}@db:5432/${POSTGRES_DB:-smmplan}?schema=public&connection_limit=20&pool_timeout=30

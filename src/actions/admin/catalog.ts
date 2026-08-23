@@ -5,7 +5,7 @@ import { verifySession } from '@/lib/session';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { db } from '@/lib/db';
 import { adminCatalogService } from '@/services/admin/catalog.service';
-import { catalogQueue } from '@/workers/queues';
+import { catalogQueue } from '@/lib/queue-manager';
 import { revalidatePath } from 'next/cache';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { z } from 'zod';

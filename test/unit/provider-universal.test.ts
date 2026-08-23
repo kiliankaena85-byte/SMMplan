@@ -10,7 +10,7 @@ describe('UniversalProvider - WAF Bypass & V2 Standard', () => {
     // We pass the raw key since our fallback allows raw keys if decryption yields null
     const provider = new UniversalProvider(
         'https://smmprime.com/api/v2',
-        '6833e1ceef531d34e7442d492b8e1021'
+        process.env.PROVIDER_KEY_SMMPRIME || 'test-mock-key-placeholder'
     );
 
     it('should successfully fetch balance bypassing WAF constraints', async () => {

@@ -17,7 +17,9 @@ function createPrismaClient(): PrismaClient {
   const rawPrisma =
     globalForPrisma.prisma ??
     new PrismaClient({
-      log: ['query', 'error', 'warn'],
+      log: process.env.DEBUG_PRISMA === 'true'
+        ? ['query', 'error', 'warn']
+        : ['error', 'warn'],
     });
 
   const guarded = (rawPrisma as unknown as {

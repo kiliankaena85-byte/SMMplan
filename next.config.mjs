@@ -1,11 +1,4 @@
 /** @type {import('next').NextConfig} */
-console.log("=== NEXT BUILD ENV ===", { 
-  NODE_ENV: process.env.NODE_ENV, 
-  APP_ENV: process.env.APP_ENV, 
-  NEXT_PUBLIC_APP_ENV: process.env.NEXT_PUBLIC_APP_ENV, 
-  DATABASE_URL: process.env.DATABASE_URL 
-});
-
 const isProd = process.env.NODE_ENV === 'production';
 
 const nextConfig = {
@@ -56,7 +49,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: wss: https://api.telegram.org https://cloudflareinsights.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self';",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://challenges.cloudflare.com https://yookassa.ru https://auth.robokassa.ru; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; frame-src 'self' https://challenges.cloudflare.com https://yookassa.ru https://auth.robokassa.ru https://pay.crypt.bot; connect-src 'self' https://api.telegram.org https://static.cloudflareinsights.com https://cloudflareinsights.com https://challenges.cloudflare.com https://yookassa.ru https://api.yookassa.ru https://auth.robokassa.ru https://pay.crypt.bot wss:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self';",
           },
           {
             key: 'X-Frame-Options',
@@ -72,7 +65,7 @@ const nextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), payment=()',
+            value: 'camera=(), microphone=(), geolocation=(), payment=(self "https://yookassa.ru" "https://auth.robokassa.ru")',
           },
           {
             key: 'Strict-Transport-Security',

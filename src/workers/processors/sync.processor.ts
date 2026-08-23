@@ -1,7 +1,7 @@
 import { Prisma, Order } from '@prisma/client';
 import { Job } from 'bullmq';
 import { db } from '../../lib/db';
-import { SyncJobPayload } from '../queues';
+import { SyncJobPayload } from '@/lib/queue-manager';
 import { providerService } from '../../services/providers/provider.service';
 import { RefundPolicyService } from '../../services/financial/refund-policy.service';
 import { sendOrderCompletedMail } from '../../lib/smtp';

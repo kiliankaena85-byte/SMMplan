@@ -95,6 +95,7 @@ describe('🔒 SEC-001: Dev Endpoints — Production Guard', () => {
 
     it('SEC-MOCK-003: Allows request with correct env-configured key in dev', async () => {
       vi.stubEnv('NODE_ENV', 'test');
+      vi.stubEnv('ENABLE_DEV_ROUTES', 'true');
       vi.stubEnv('MOCK_PROVIDER_KEY', 'mock-dev-key');
 
       const { POST } = await import(
@@ -110,6 +111,120 @@ describe('🔒 SEC-001: Dev Endpoints — Production Guard', () => {
       expect(response.status).toBe(200);
       const body = await response.json();
       expect(body).toHaveProperty('balance');
+    });
+  });
+
+  describe('GET /api/dev/login-direct', () => {
+    it('SEC-LOGIN-DIRECT-001: Returns 404 in production even with secret and dev flag', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('ENABLE_DEV_ROUTES', 'true');
+
+      const { GET } = await import('@/app/api/dev/login-direct/route');
+      const req = new NextRequest('http://localhost:3000/api/dev/login-direct?email=admin@smmplan.pro&secret=any');
+      const response = await GET(req);
+      expect(response.status).toBe(404);
+    });
+
+    it('SEC-LOGIN-DIRECT-002: Returns 503 if QA_SECRET_KEY is not configured in dev', async () => {
+      vi.stubEnv('NODE_ENV', 'test');
+      vi.stubEnv('ENABLE_DEV_ROUTES', 'true');
+      delete process.env.QA_SECRET_KEY;
+
+      const { GET } = await import('@/app/api/dev/login-direct/route');
+      const req = new NextRequest('http://localhost:3000/api/dev/login-direct?email=admin@smmplan.pro');
+      const response = await GET(req);
+      expect(response.status).toBe(503);
+    });
+
+    it('SEC-LOGIN-DIRECT-003: Rejects host poisoning attack with X-Forwarded-Host: evil.com returning 404 in production without setting cookies', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('ENABLE_DEV_ROUTES', 'true');
+
+      const { GET } = await import('@/app/api/dev/login-direct/route');
+      const req = new NextRequest('http://localhost:3000/api/dev/login-direct?email=admin@smmplan.pro&secret=any', {
+        headers: {
+          'x-forwarded-host': 'evil.com',
+        },
+      });
+      const response = await GET(req);
+      expect(response.status).toBe(404);
+      expect(response.headers.get('set-cookie')).toBeNull();
+    });
+
+    it('SEC-LOGIN-DIRECT-004: Rejects host poisoning attack with X-Forwarded-Host: evil.com returning 503 when QA_SECRET_KEY is not configured', async () => {
+      vi.stubEnv('NODE_ENV', 'test');
+      vi.stubEnv('ENABLE_DEV_ROUTES', 'true');
+      delete process.env.QA_SECRET_KEY;
+
+      const { GET } = await import('@/app/api/dev/login-direct/route');
+      const req = new NextRequest('http://localhost:3000/api/dev/login-direct?email=admin@smmplan.pro', {
+        headers: {
+          'x-forwarded-host': 'evil.com',
+        },
+      });
+      const response = await GET(req);
+      expect(response.status).toBe(503);
+      expect(response.headers.get('set-cookie')).toBeNull();
+    });
+  });
+
+  describe('GET /api/dev/mock-payment', () => {
+    it('SEC-MOCK-PAYMENT-001: Returns 404 in production', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('ENABLE_DEV_ROUTES', 'true');
+
+      const { GET } = await import('@/app/api/dev/mock-payment/route');
+      const req = new NextRequest('http://localhost:3000/api/dev/mock-payment?paymentId=123');
+      const response = await GET(req);
+      expect(response.status).toBe(404);
+    });
+  });
+
+  describe('GET /api/dev/test-magic-link', () => {
+    it('SEC-MAGIC-LINK-001: Returns 404 in production', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('ENABLE_DEV_ROUTES', 'true');
+
+      const { GET } = await import('@/app/api/dev/test-magic-link/route');
+      const req = new NextRequest('http://localhost:3000/api/dev/test-magic-link?email=test@example.com');
+      const response = await GET(req);
+      expect(response.status).toBe(404);
+    });
+  });
+
+  describe('GET /api/dev/test-checkout', () => {
+    it('SEC-TEST-CHECKOUT-001: Returns 404 in production', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('ENABLE_DEV_ROUTES', 'true');
+
+      const { GET } = await import('@/app/api/dev/test-checkout/route');
+      const req = new NextRequest('http://localhost:3000/api/dev/test-checkout');
+      const response = await GET(req);
+      expect(response.status).toBe(404);
+    });
+  });
+
+  describe('GET /api/dev/switch-tenant', () => {
+    it('SEC-SWITCH-TENANT-001: Returns 404 in production', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('ENABLE_DEV_ROUTES', 'true');
+
+      const { GET } = await import('@/app/api/dev/switch-tenant/route');
+      const req = new NextRequest('http://localhost:3000/api/dev/switch-tenant?to=flux');
+      const response = await GET(req);
+      expect(response.status).toBe(404);
+    });
+  });
+
+  describe('GET /api/debug', () => {
+    it('SEC-DEBUG-001: Returns 404 in production', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('ENABLE_DEV_ROUTES', 'true');
+
+      const { GET } = await import('@/app/api/debug/route');
+      const req = new NextRequest('http://localhost:3000/api/debug');
+      const response = await GET(req);
+      expect(response.status).toBe(404);
     });
   });
 });

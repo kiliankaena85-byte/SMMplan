@@ -8,14 +8,17 @@ export const getRedisConnection = (): Redis => {
   if (redisConnection) return redisConnection;
 
   const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+  const redisPassword = process.env.REDIS_PASSWORD || undefined;
   
   redisConnection = new Redis(redisUrl, {
+    password: redisPassword,
     maxRetriesPerRequest: null, // Specific required for BullMQ
     lazyConnect: true // Prevent immediate crash if unavailable during build
   });
 
   redisConnection.on('error', (err) => {
-    console.error('[Redis Core Error]', err);
+    const { redactSensitiveTokens } = require('@/lib/logger/sensitive-data-filter');
+    console.error('[Redis Core Error]', redactSensitiveTokens(err.message));
   });
 
   return redisConnection;
@@ -53,8 +56,8 @@ export const createQueue = <PayloadType>(name: string, defaultOptions?: Partial<
     return new Queue<PayloadType, any, string>(name, {
     connection: getRedisConnection(),
     defaultJobOptions: {
-      removeOnComplete: { count: 50, age: 3600 },
-      removeOnFail: { count: 100, age: 3600 * 24 * 7 },
+      removeOnComplete: { count: 500, age: 3600 },
+      removeOnFail: { count: 1000 },
       attempts: 3,
       backoff: { type: 'exponential', delay: 5000 },
       ...defaultOptions,
@@ -160,6 +163,11 @@ export const bulkQueue = createQueue<Record<string, unknown>>('bulk-queue', {
   attempts: 2,
   backoff: { type: 'exponential', delay: 30000 },
 });
+
+// Explicit named queues for payment, order, and sync operations
+export const queuePayment = criticalQueue;
+export const queueOrder = defaultQueue;
+export const queueSync = bulkQueue;
 
 // Payment Gateway async generation queue payload
 export interface PaymentGatewayJobPayload {

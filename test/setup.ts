@@ -44,7 +44,11 @@ vi.mock('ioredis', () => {
     constructor() {}
     on = vi.fn().mockReturnThis();
     get = vi.fn().mockImplementation(async (key: string) => this.store.get(key) ?? null);
-    set = vi.fn().mockImplementation(async (key: string, value: any) => {
+    set = vi.fn().mockImplementation(async (key: string, value: any, ...options: any[]) => {
+      const isNx = options.includes('NX') || options.includes('nx');
+      if (isNx && this.store.has(key)) {
+        return null;
+      }
       this.store.set(key, value);
       return 'OK';
     });
@@ -70,6 +74,14 @@ vi.mock('ioredis', () => {
     quit = vi.fn().mockResolvedValue(undefined);
     disconnect = vi.fn().mockResolvedValue(undefined);
     eval = vi.fn().mockImplementation(async (script: string, numKeys: number, key: string, ...args: any[]) => {
+      if (script.includes('del') && script.includes('ARGV[1]')) {
+        const stored = this.store.get(key);
+        if (stored === args[0]) {
+          this.store.delete(key);
+          return 1;
+        }
+        return 0;
+      }
       const current = (this.store.get(key) || 0) + 1;
       this.store.set(key, current);
       return current;

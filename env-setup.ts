@@ -15,10 +15,10 @@ async function main() {
       smtpPassword: 'mock_password',
       emailProvider: 'SMTP',
       isTestMode: true,
-      yookassaTestShopId: '1155075',
-      yookassaTestSecretKey: 'test_Bz5eSTzvWGA92wbksyOApJbxi-sfJ67LLgMTZSSOulA',
-      cryptoBotToken: '123456789:TEST_CRYPTO_TOKEN',
-      inboundEmailWebhookSecret: 'secret_inbound_123'
+      yookassaTestShopId: process.env.YOOKASSA_TEST_SHOP_ID || '1155075',
+      yookassaTestSecretKey: process.env.YOOKASSA_TEST_SECRET_KEY || 'test_mock_secret_key',
+      cryptoBotToken: process.env.CRYPTOBOT_TEST_TOKEN || '123456789:TEST_CRYPTO_TOKEN',
+      inboundEmailWebhookSecret: process.env.INBOUND_EMAIL_WEBHOOK_SECRET || 'secret_inbound_123'
     }
   });
   console.log('✅ Settings updated: Mailtrap/Mailpit SMTP and Webhook secrets configured.');

@@ -2,14 +2,14 @@ import { compileServiceMetrics, normalizeGeo } from './src/utils/translation-dic
 import fs from 'fs';
 
 const PROVIDERS = [
-    { name: 'Vexboost', url: 'https://vexboost.ru/api/v2/', key: 'XIXeUVGftzSXwAg8pbBJERcJpMmrg9qujHHM3y95xYvB3Q9VMnAHGYtpGnta' },
-    { name: 'Soc-Rocket', url: 'https://soc-rocket.ru/api/v2/', key: 'emrNjCPOuNMYKmMcxvHb532Xix99uAxM' },
-    { name: 'SmmPrime', url: 'https://smmprime.com/api/v2/', key: '6833e1ceef531d34e7442d492b8e1021' },
-    { name: 'Stream-Promotion', url: 'https://stream-promotion.ru/api/v2/', key: 'fGOsh7PtBk3Ckyq3UmqH6HVNYTC2gGTH' },
-    { name: 'Likedrom', url: 'https://likedrom.com/api/v2/', key: '4f2aa7f20c56399b4790a4cd73f5b8c9' },
-    { name: 'SmmPanelUS', url: 'https://smmpanelus.com/api/v2/', key: '48a6494eb16406d1226dce68f30d631d' },
-    { name: 'Soc-Proof', url: 'https://soc-proof.su/api/v2/', key: 'a465d4013f1265153a2ca12bdd3cad06' },
-    { name: 'Telegram.Shop', url: 'https://telegram.shop/api/v2/', key: 'abcd6e54ff5b77a11dc8077074445e04' }
+    { name: 'Vexboost', url: 'https://vexboost.ru/api/v2/', key: process.env.PROVIDER_KEY_VEXBOOST || '' },
+    { name: 'Soc-Rocket', url: 'https://soc-rocket.ru/api/v2/', key: process.env.PROVIDER_KEY_SOC_ROCKET || '' },
+    { name: 'SmmPrime', url: 'https://smmprime.com/api/v2/', key: process.env.PROVIDER_KEY_SMMPRIME || '' },
+    { name: 'Stream-Promotion', url: 'https://stream-promotion.ru/api/v2/', key: process.env.PROVIDER_KEY_STREAM_PROMOTION || '' },
+    { name: 'Likedrom', url: 'https://likedrom.com/api/v2/', key: process.env.PROVIDER_KEY_LIKEDROM || '' },
+    { name: 'SmmPanelUS', url: 'https://smmpanelus.com/api/v2/', key: process.env.PROVIDER_KEY_SMMPANELUS || '' },
+    { name: 'Soc-Proof', url: 'https://soc-proof.su/api/v2/', key: process.env.PROVIDER_KEY_SOC_PROOF || '' },
+    { name: 'Telegram.Shop', url: 'https://telegram.shop/api/v2/', key: process.env.PROVIDER_KEY_TELEGRAM_SHOP || '' }
 ];
 
 let outputLog = "";

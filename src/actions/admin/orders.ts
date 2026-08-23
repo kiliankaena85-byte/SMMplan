@@ -372,16 +372,21 @@ export async function getFailoverPreview(orderId: string) {
       r => r.providerId !== order.providerId
     );
 
-    const routesWithPreview = await Promise.all(availableRoutes.map(async (route) => {
-      // Fetch rate from Database ShadowService staging table
-      const shadowSvc = await db.shadowService.findUnique({
-        where: {
-          providerId_externalId: {
-            providerId: route.providerId,
-            externalId: String(route.providerServiceId)
-          }
-        }
-      });
+    const shadowConditions = availableRoutes
+      .filter(r => r.providerId && r.providerServiceId)
+      .map(r => ({ providerId: r.providerId, externalId: String(r.providerServiceId) }));
+
+    const allShadowSvcs = shadowConditions.length > 0 ? await db.shadowService.findMany({
+      where: { OR: shadowConditions }
+    }) : [];
+
+    const shadowMap = new Map<string, typeof allShadowSvcs[0]>();
+    for (const s of allShadowSvcs) {
+      shadowMap.set(`${s.providerId}_${s.externalId}`, s);
+    }
+
+    const routesWithPreview = availableRoutes.map((route) => {
+      const shadowSvc = shadowMap.get(`${route.providerId}_${String(route.providerServiceId)}`);
       
       const hasValidPrice = !!shadowSvc && Number.isFinite(shadowSvc.rate) && shadowSvc.rate > 0;
       if (!hasValidPrice) {
@@ -413,7 +418,7 @@ export async function getFailoverPreview(orderId: string) {
         marginPercent,
         isMarginPositive: marginCents > BigInt(0)
       };
-    }));
+    });
 
     return {
       success: true,

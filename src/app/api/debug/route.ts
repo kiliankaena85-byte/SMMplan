@@ -6,24 +6,19 @@ import { db } from '@/lib/db';
 import { SettingsProvider } from '@/lib/settings';
 
 export async function GET(req: NextRequest) {
-  // SD-04 SECURITY FIX: Completely disable in production to prevent session token leakage.
-  // This route exposes raw JWT tokens and all cookies — unacceptable attack surface in prod.
-  if (process.env.NODE_ENV === 'production') {
+  // SD-04 SECURITY FIX: Completely disable in production and require ENABLE_DEV_ROUTES.
+  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEV_ROUTES !== 'true') {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
-  let session: Awaited<ReturnType<typeof verifySession>> = null;
-  const isTest = SettingsProvider.isTestEnvironment();
-  if (!isTest) {
-    session = await verifySession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  const session = await verifySession();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-    const user = await db.user.findUnique({ where: { id: session.userId } });
-    if (!user || (user.role !== 'ADMIN' && user.role !== 'OWNER')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+  const user = await db.user.findUnique({ where: { id: session.userId } });
+  if (!user || (user.role !== 'ADMIN' && user.role !== 'OWNER')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const { searchParams } = new URL(req.url);

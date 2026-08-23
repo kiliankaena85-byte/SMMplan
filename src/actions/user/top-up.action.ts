@@ -18,6 +18,10 @@ export async function createTopUpPaymentAction(
   const isAllowed = await RateLimitService.check(`topup:${session.userId}`, 5, 300);
   if (!isAllowed) throw new Error("Слишком много попыток пополнения. Попробуйте через 5 минут.");
 
+  if (typeof amountRub !== 'number' || isNaN(amountRub) || !isFinite(amountRub) || amountRub <= 0) {
+    throw new Error("Некорректная сумма пополнения");
+  }
+
   const amountCents = Math.round(amountRub * 100);
   if (amountCents < 1000) throw new Error("Минимальная сумма пополнения — 10 ₽");
 
@@ -93,7 +97,7 @@ export async function createTopUpPaymentAction(
       email: dbUser.email,
       successUrl,
       description,
-      isTestMode: isTestMode || dbUser.email === 'e2e-tester@test.com',
+      isTestMode: isTestMode,
       metadata: { type: 'deposit' }
     });
 

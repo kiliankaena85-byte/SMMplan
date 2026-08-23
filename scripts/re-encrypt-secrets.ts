@@ -4,17 +4,22 @@ import { VaultService } from '../src/lib/vault';
 const db = new PrismaClient();
 
 async function main() {
-  console.log('🔒 Starting re-encryption migration...');
+  const isApply = process.argv.includes('--apply');
+  const isDryRun = !isApply;
+
+  console.log(`🔒 Starting re-encryption tool (Mode: ${isDryRun ? 'DRY-RUN (default, no DB changes)' : 'APPLY (writing to DB)'})...`);
 
   // 1. Re-encrypt Provider.apiKey
   const providers = await db.provider.findMany();
   for (const p of providers) {
     if (p.apiKey && p.apiKey.split(':').length !== 3) {
-      console.log(`Re-encrypting provider key for: ${p.name}`);
-      await db.provider.update({
-        where: { id: p.id },
-        data: { apiKey: VaultService.encrypt(p.apiKey) },
-      });
+      console.log(`[DRY-RUN: ${isDryRun}] Re-encrypting unencrypted provider key for: ${p.name}`);
+      if (isApply) {
+        await db.provider.update({
+          where: { id: p.id },
+          data: { apiKey: VaultService.encrypt(p.apiKey) },
+        });
+      }
     }
   }
 
@@ -35,16 +40,18 @@ async function main() {
     for (const field of fields) {
       const val = s[field];
       if (val && typeof val === 'string' && val.trim() !== '' && val.split(':').length !== 3) {
-        console.log(`Re-encrypting SystemSettings field ${field} for tenant ${s.id}`);
-        updateData[field] = VaultService.encrypt(val);
+        console.log(`[DRY-RUN: ${isDryRun}] Re-encrypting SystemSettings field ${field} for tenant ${s.id}`);
+        if (isApply) {
+          updateData[field] = VaultService.encrypt(val);
+        }
       }
     }
-    if (Object.keys(updateData).length > 0) {
+    if (isApply && Object.keys(updateData).length > 0) {
       await db.systemSettings.update({ where: { id: s.id }, data: updateData });
     }
   }
 
-  console.log('✅ Re-encryption complete');
+  console.log(`✅ Re-encryption scan complete (${isDryRun ? 'DRY-RUN: run with --apply to commit' : 'Applied'})`);
 }
 
 main()

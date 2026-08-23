@@ -10,18 +10,33 @@ import { orderService } from '@/services/core/order.service';
  * status (Pending, In progress, Completed, Partial, Canceled)
  * remains
  */
+import crypto from 'crypto';
+
 export async function POST(request: Request) {
   const { searchParams } = new URL(request.url);
-  const secret = searchParams.get('secret');
+  const secretFromHeader = request.headers.get('x-webhook-secret') || request.headers.get('x-vexboost-secret');
+  const secretFromQuery = searchParams.get('secret');
+  const secret = secretFromHeader || secretFromQuery;
 
   // SD-02 SECURITY FIX: Fail-closed — reject all requests if secret is not configured.
-  // NEVER fall back to a hardcoded default. This was the #1 most exploitable vulnerability.
   const expectedSecret = process.env.VEXBOOST_WEBHOOK_SECRET;
   if (!expectedSecret) {
     console.error('[VexBoost Webhook] FATAL: VEXBOOST_WEBHOOK_SECRET is not configured. Rejecting all requests.');
     return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 });
   }
-  if (secret !== expectedSecret) {
+
+  if (!secret) {
+    console.warn('[VexBoost Webhook] Missing webhook secret.');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const secretBuffer = Buffer.from(secret);
+  const expectedBuffer = Buffer.from(expectedSecret);
+
+  if (
+    secretBuffer.length !== expectedBuffer.length ||
+    !crypto.timingSafeEqual(secretBuffer, expectedBuffer)
+  ) {
     console.warn('[VexBoost Webhook] Unauthorized access attempt. Secret mismatch.');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

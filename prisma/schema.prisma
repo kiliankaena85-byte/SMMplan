@@ -292,6 +292,7 @@ model Service {
   updatedAt          DateTime @updatedAt
 
   slug               String?
+  sortOrder          Int       @default(0)
 
   orders         Order[]
   routes         ServiceRoute[]
@@ -303,7 +304,9 @@ model Service {
   @@index([categoryId])
   @@index([providerId])
   @@index([providerId, externalId])
+  @@index([tenantId, categoryId, isActive, sortOrder])
   @@index([tenantId, categoryId, isActive])
+  @@index([tenantId, providerId, isActive])
   @@index([tenantId, isActive, qualityTier])
   @@index([isQuarantined])
   @@index([qualityTier])
@@ -473,6 +476,8 @@ model Order {
   @@index([createdAt]) // P2.2: temporal queries & analytics
   @@index([status, createdAt]) // P2.2: filtered + sorted admin queries
   @@index([userId, status]) // Fast lookup for user orders by status
+  @@index([userId, status, createdAt(sort: Desc)]) // User order history sorted
+  @@index([tenantId, createdAt(sort: Desc)]) // Brand admin sorted
   @@index([tenantId, userId, status, createdAt])
   @@index([paymentId]) // Fast lookup for orders by payment (Order.paymentId foreign key)
   userNotes UserNote[]
@@ -535,6 +540,8 @@ model Payment {
   @@index([tenantId, userId])
   @@index([tenantId, status, createdAt])
   @@index([tenantId, userId, status, createdAt])
+  @@index([userId, status, createdAt(sort: Desc)])
+  @@index([tenantId, createdAt(sort: Desc)])
   @@index([status, createdAt])
   @@index([status])
   @@index([createdAt])

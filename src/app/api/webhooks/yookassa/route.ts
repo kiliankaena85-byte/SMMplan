@@ -84,12 +84,9 @@ export async function POST(req: NextRequest) {
     }
 
     // --- SECURITY GUARD: Yookassa Official IP Range Validation ---
-    const isLocalhost = ip === '::1' || ip === '127.0.0.1' || ip.startsWith('127.0.0.');
-    const hostHeader = req.headers.get('host') || '';
-    const isTestDomain = hostHeader.includes('test.') || hostHeader.includes('stage.') || hostHeader.includes('localhost');
-
     const allowedPrefixes = ['185.75.120.', '185.75.121.', '185.75.122.', '185.75.123.', '185.75.124.', '185.75.125.', '185.75.126.', '185.75.127.', '37.110.12.', '37.110.13.', '37.110.14.', '37.110.15.', '37.110.16.', '37.110.17.', '37.110.18.', '37.110.19.'];
-    const isAllowedIp = isDev || isTestMode || isTestDomain || isLocalhost || allowedPrefixes.some(prefix => ip.startsWith(prefix));
+    const isLocal = ip === '::1' || ip === '127.0.0.1' || ip.startsWith('127.0.0.');
+    const isAllowedIp = isDev ? true : (allowedPrefixes.some(prefix => ip.startsWith(prefix)) || isLocal);
     
     if (!isAllowedIp) {
       console.error(`[YooKassa Webhook] BLOCKED: IP spoofing attempt from ${ip}`);
@@ -98,9 +95,15 @@ export async function POST(req: NextRequest) {
     }
 
     const providedSignature = req.headers.get('x-sha256-signature') || req.headers.get('digest');
-        let rawBody: YooKassaWebhookPayload;
+    let rawBody: YooKassaWebhookPayload;
 
-    if (providedSignature && expectedSecret) {
+    if (expectedSecret) {
+      if (!providedSignature) {
+        console.error('[YooKassa] Webhook missing required signature header');
+        await db.securityEvent.create({ data: { event: 'MISSING_SIGNATURE', severity: 'CRITICAL', ip, details: { gateway: 'yookassa' } } });
+        return NextResponse.json({ error: 'Missing webhook signature' }, { status: 403 });
+      }
+
       const rawText = await req.text();
       if (rawText.length > MAX_BODY_SIZE) {
         console.warn('[Webhook] Oversized payload rejected');
@@ -138,8 +141,8 @@ export async function POST(req: NextRequest) {
       const webhookTime = new Date(webhookCreatedAt).getTime();
       const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000;
       if (webhookTime < thirtyMinutesAgo) {
-         await db.securityEvent.create({ data: { event: 'REPLAY_ATTEMPT', severity: 'CRITICAL', ip, details: { gateway: 'yookassa', webhookTime, gatewayId: rawBody.object?.id } } });
-         return NextResponse.json({ error: 'Stale webhook rejected' }, { status: 400 });
+        await db.securityEvent.create({ data: { event: 'REPLAY_ATTEMPT', severity: 'CRITICAL', ip, details: { gateway: 'yookassa', webhookTime, gatewayId: rawBody.object?.id } } });
+        return NextResponse.json({ error: 'Stale webhook rejected' }, { status: 400 });
       }
     }
 
@@ -226,4 +229,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }
-

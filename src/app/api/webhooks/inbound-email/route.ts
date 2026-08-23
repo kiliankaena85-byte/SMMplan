@@ -58,6 +58,10 @@ export async function POST(req: NextRequest) {
     }
 
     const webhookSecret = await SettingsProvider.getInboundEmailWebhookSecret();
+    if (!webhookSecret) {
+      console.error('[CRITICAL] Inbound email webhook secret is not configured. Rejecting request.');
+      return NextResponse.json({ error: 'Inbound email webhook not configured' }, { status: 503 });
+    }
 
     // 1. Content Length Check to prevent memory exhaustion DoS (OOM)
     const contentLength = req.headers.get('content-length');

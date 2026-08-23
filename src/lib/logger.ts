@@ -18,6 +18,7 @@
 
 import pino from 'pino';
 import { AsyncLocalStorage } from 'async_hooks';
+import { redactSensitiveTokens, sanitizeLogObject } from './logger/sensitive-data-filter';
 
 // ─── Correlation ID Store ──────────────────────────────────────────────────
 
@@ -85,7 +86,12 @@ function createLoggerFromBase(pinoInstance: pino.Logger): Logger {
       ...(store?.component ? { component: store.component } : {}),
       ...extra,
     };
-    pinoInstance[level](merged, message);
+
+    // Auto-redact sensitive credentials and tokens
+    const safeMessage = redactSensitiveTokens(message);
+    const safeContext = sanitizeLogObject(merged);
+
+    pinoInstance[level](safeContext, safeMessage);
   };
 
   return {

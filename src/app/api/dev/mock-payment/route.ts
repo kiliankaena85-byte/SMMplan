@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
           // Simulate queue dispatch
           const order = await tx.order.findUnique({ where: { id: payment.orderId } });
           if (order) {
-            const { ordersQueue } = await import('@/workers/queues');
+            const { ordersQueue } = await import('@/lib/queue-manager');
             await ordersQueue.add('order-dispatch', { orderId: order.id }, { jobId: `dispatch-${order.id}`, delay: 5000 });
           }
         }

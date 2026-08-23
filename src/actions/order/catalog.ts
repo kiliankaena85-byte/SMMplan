@@ -11,53 +11,59 @@ import { sanitizeServiceDescription } from "@/lib/sanitize";
 import { logger } from "@/lib/logger";
 import { SmartAnalyzerLogic } from "@/services/providers/smart-analyzer.logic";
 
-export const getCachedNetworks = (tenantId: string) => unstable_cache(
-  async () => {
-    return await db.network.findMany({
-      where: {
-        isActive: true,
-        tenantId: { in: [tenantId, 'all'] },
-        categories: { some: { services: { some: { isActive: true, isQuarantined: false } } } }
-      },
-      include: {
-        categories: {
-          where: { services: { some: { isActive: true, isQuarantined: false } } },
-          orderBy: { name: 'asc' }
-        }
-      },
-      orderBy: { sort: 'asc' }
-    });
-  },
-  [`public-catalog-networks-v3-${tenantId}`],
-  { revalidate: 60, tags: ['catalog', `catalog-${tenantId}`, `networks-${tenantId}`] }
-)();
+export async function getCachedNetworks(tenantId: string) {
+  return unstable_cache(
+    async () => {
+      return await db.network.findMany({
+        where: {
+          isActive: true,
+          tenantId: { in: [tenantId, 'all'] },
+          categories: { some: { services: { some: { isActive: true, isQuarantined: false } } } }
+        },
+        include: {
+          categories: {
+            where: { services: { some: { isActive: true, isQuarantined: false } } },
+            orderBy: { name: 'asc' }
+          }
+        },
+        orderBy: { sort: 'asc' }
+      });
+    },
+    [`public-catalog-networks-v3-${tenantId}`],
+    { revalidate: 60, tags: ['catalog', `catalog-${tenantId}`, `networks-${tenantId}`] }
+  )();
+}
 
 const PAGE_SIZE = 100;
 
-export const getCachedServicesByCategory = (categoryId: string, tenantId: string = 'smmplan') => unstable_cache(
-  async () => {
-    const services = await db.service.findMany({
-      where: { 
-        categoryId: categoryId, 
-        isActive: true, 
-        isQuarantined: false,
-        tenantId: { in: [tenantId, 'all'] },
-        OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }]
-      },
-      include: { smartConfig: true },
-      orderBy: { rate: 'asc' },
-      take: PAGE_SIZE + 1
-    });
-    if (services.length > PAGE_SIZE) {
-      console.warn(`[catalog] Category ${categoryId} has ${services.length} services, truncating tail to ${PAGE_SIZE}`);
-    }
-    return services.slice(0, PAGE_SIZE);
-  },
-  [`public-services-by-category-v3-${categoryId}-${tenantId}`],
-  { revalidate: 60, tags: ['catalog', 'services', `catalog-${tenantId}`, `category-${categoryId}-${tenantId}`] }
-)();
+export async function getCachedServicesByCategory(categoryId: string, tenantId: string = 'smmplan') {
+  return unstable_cache(
+    async () => {
+      const services = await db.service.findMany({
+        where: { 
+          categoryId: categoryId, 
+          isActive: true, 
+          isQuarantined: false,
+          tenantId: { in: [tenantId, 'all'] },
+          OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }]
+        },
+        include: { smartConfig: true },
+        orderBy: { rate: 'asc' },
+        take: PAGE_SIZE + 1
+      });
+      if (services.length > PAGE_SIZE) {
+        console.warn(`[catalog] Category ${categoryId} has ${services.length} services, truncating tail to ${PAGE_SIZE}`);
+      }
+      return services.slice(0, PAGE_SIZE);
+    },
+    [`public-services-by-category-v3-${categoryId}-${tenantId}`],
+    { revalidate: 60, tags: ['catalog', 'services', `catalog-${tenantId}`, `category-${categoryId}-${tenantId}`] }
+  )();
+}
 
-export const getCachedServices = getCachedServicesByCategory;
+export async function getCachedServices(categoryId: string, tenantId: string = 'smmplan') {
+  return getCachedServicesByCategory(categoryId, tenantId);
+}
 
 export type PublicService = {
   id: string;

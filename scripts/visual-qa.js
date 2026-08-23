@@ -215,7 +215,8 @@ async function main() {
 
   // 1. Авторизуемся через проверенный QA login-direct эндпоинт
   console.log('🔑 Авторизация через /api/dev/login-direct...');
-  await page.goto(`${baseUrl}/api/dev/login-direct?email=art@artmspektr.ru&role=OWNER&secret=smmplan_qa_sec_2026_master_key&redirectTo=/admin/catalog`, {
+  const qaSecret = process.env.QA_SECRET_KEY || process.env.NEXT_PUBLIC_QA_SECRET || '';
+  await page.goto(`${baseUrl}/api/dev/login-direct?email=art@artmspektr.ru&role=OWNER&secret=${qaSecret}&redirectTo=/admin/catalog`, {
     waitUntil: 'networkidle',
     timeout: 30000
   });

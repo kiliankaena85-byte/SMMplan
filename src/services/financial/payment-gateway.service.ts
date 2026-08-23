@@ -272,7 +272,7 @@ class BalanceGateway extends BasePaymentGateway {
   async createPayment(params: PaymentGatewayParams): Promise<PaymentGatewayResult> {
     const amountCents = Math.round(params.amountRub * 100);
     const remoteId = `internal_${Date.now()}`;
-    const { ordersQueue } = await import('@/workers/queues');
+    const { ordersQueue } = await import('@/lib/queue-manager');
 
     // Perform atomic deduction inside the transaction to prevent race condition double-spending
     const updatedOrderIds: string[] = await db.$transaction(async (tx) => {

@@ -1,5 +1,5 @@
 import { Job } from 'bullmq';
-import { CatalogMutationPayload } from '../queues';
+import { CatalogMutationPayload } from '@/lib/queue-manager';
 import { adminCatalogService } from '../../services/admin/catalog.service';
 import { logger } from '../../lib/logger';
 import { triggerCacheRevalidation } from '../../lib/revalidate-cache';
@@ -37,7 +37,7 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
         const { admin } = payload;
         log.info(`[CatalogProcessor] Starting background sync for ALL catalogs...`);
         const { db } = await import('../../lib/db');
-        const { catalogQueue } = await import('../queues');
+        const { catalogQueue } = await import('@/lib/queue-manager');
         const providers = await db.provider.findMany({ where: { isActive: true } });
         
         for (const provider of providers) {

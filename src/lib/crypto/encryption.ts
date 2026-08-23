@@ -10,13 +10,20 @@ const IV_LENGTH = 16;
 const DEFAULT_SALT = 'smmplan_privacy_salt_2026_default_secure_vault';
 
 const getKey = (): Buffer => {
-  const keyStr = process.env.DATA_ENCRYPTION_KEY || process.env.VAULT_MASTER_KEY || 'smmplan_default_32_bytes_data_key_2026';
+  const keyStr = process.env.DATA_ENCRYPTION_KEY || process.env.VAULT_MASTER_KEY || process.env.APP_ENCRYPTION_KEY;
+  if (!keyStr) {
+    throw new Error('[Encryption] DATA_ENCRYPTION_KEY or VAULT_MASTER_KEY must be configured in environment');
+  }
   // Ensure exactly 32 bytes (256 bits)
   return createHash('sha256').update(keyStr).digest();
 };
 
 const getSalt = (): string => {
-  return process.env.DATA_SALT || DEFAULT_SALT;
+  const salt = process.env.DATA_SALT;
+  if (!salt && process.env.NODE_ENV === 'production') {
+    throw new Error('[Encryption] DATA_SALT must be configured in production');
+  }
+  return salt || DEFAULT_SALT;
 };
 
 /**
@@ -65,7 +72,7 @@ export function decrypt(encryptedData: string): string {
     return decrypted;
   } catch (err) {
     console.error('[Encryption] Decryption failed:', err);
-    return encryptedData;
+    throw new Error(`[Encryption] Decryption failed or ciphertext is corrupted: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 

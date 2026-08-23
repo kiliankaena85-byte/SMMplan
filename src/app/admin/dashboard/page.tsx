@@ -5,7 +5,11 @@ import { adminTicketService } from '@/services/admin/ticket.service';
 import { adminCatalogService } from '@/services/admin/catalog.service';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
-import { OrdersChart } from './orders-chart';
+import nextDynamic from 'next/dynamic';
+
+const OrdersChart = nextDynamic(() => import('./orders-chart').then(mod => mod.OrdersChart), {
+  loading: () => <div className="h-64 w-full animate-pulse rounded-xl bg-card/50 border border-border flex items-center justify-center text-xs text-muted-foreground">Загрузка графиков...</div>,
+});
 import { 
   Check, 
   Clock, 

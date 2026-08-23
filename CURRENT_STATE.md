@@ -2,7 +2,7 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-23 | Агент: Antigravity
-## Активный статус: 🚀 Успешный пуш в origin/main. Завершена реализация пакета оптимизации производительности и масштабируемости (Performance & Scalability Overhaul): внедрены высокоэффективные составные индексы в PostgreSQL (Order, Payment, LedgerEntry), L1/L2 кэширование RedisCacheService со сверхнизкой задержкой (<5мс), защита от OOM и принудительная пагинация SafePagination (maxTake=100), приоритизация и сегментация очередей BullMQ (critical, default, bulk), устранение N+1 запросов через Eager Loading, тесты 65/65 passed.
+## Активный статус: 🛡️ АУДИТ DOCKER MULTI-STAGE & NGINX ANTI-SPOOFING ЗАВЕРШЁН. Валидирован `docker compose -f docker-compose.prod.yml config` (Exit Code 0), стейдж `worker-runner` в `Dockerfile` и `docker-compose.prod.yml` переведен на прямой запуск локального `./node_modules/.bin/tsx` (исключены runtime npx-загрузки), в `nginx/default.conf` директивы `proxy_set_header X-Real-IP $remote_addr;` зафиксированы на уровне блока `server {}` и унаследованы/продублированы во всех locations, сборка и проверка типов `npx tsc --noEmit` — 0 ошибок.
 
 
 ---

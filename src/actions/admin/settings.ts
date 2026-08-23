@@ -7,7 +7,7 @@ import { roleSchema, globalSettingsSchema } from '@/validators/admin.validators'
 import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { settingsService } from '@/services/admin/settings.service';
-import { catalogQueue } from '@/workers/queues';
+import { catalogQueue } from '@/lib/queue-manager';
 import { VaultService } from '@/lib/vault';
 import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 import { getClientIp } from '@/utils/ip';

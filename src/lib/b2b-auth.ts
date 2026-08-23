@@ -8,8 +8,13 @@ export async function verifyB2BKey(key?: string | null): Promise<User | null> {
 
   try {
     const hashedKey = crypto.createHash('sha256').update(key).digest('hex');
-    const user = await db.user.findUnique({
-      where: { apiKeyHash: hashedKey }
+    const user = await db.user.findFirst({
+      where: { 
+        apiKeyHash: hashedKey,
+        isActive: true,
+        isDeleted: false,
+        role: { not: 'BANNED' }
+      }
     });
 
     return user;

@@ -25,37 +25,37 @@ export async function middleware(request: NextRequest) {
   if (host.includes('lovable.pro')) {
     return NextResponse.redirect('https://smmflux.ru' + request.nextUrl.pathname, 301);
   }
-  const isTestOrStaging = 
-    process.env.NODE_ENV !== 'production' || 
-    process.env.NEXT_PUBLIC_STAGING === 'true' ||
-    host.includes('test.') ||
-    host.includes('stage.') ||
-    host.includes('localhost') ||
-    host.includes('127.0.0.1') ||
-    host.includes('trycloudflare.com');
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isTestOrStaging = !isProduction;
 
   const fromQuery = isTestOrStaging ? normalizeTenantId(request.nextUrl.searchParams.get('tenant')) : null;
-  const fromCookie = normalizeTenantId(request.cookies.get('x_tenant')?.value);
+  const fromCookie = isTestOrStaging ? normalizeTenantId(request.cookies.get('x_tenant')?.value) : null;
   const fromAdminCookie = normalizeTenantId(request.cookies.get('x_admin_tenant')?.value);
   const fromHost = normalizeTenantId(resolveTenantFromHostEdge(host));
 
   let finalTenantId = 'smmplan';
   let isExplicitTenant = false;
 
-  if (fromQuery) {
-    finalTenantId = fromQuery;
-    isExplicitTenant = true;
-  } else if (fromHost && fromHost !== 'smmplan') {
-    finalTenantId = fromHost;
-  } else if (fromAdminCookie && pathname.startsWith('/admin')) {
-    finalTenantId = fromAdminCookie;
-  } else if (host.includes('smmplan.pro')) {
-    finalTenantId = fromCookie && isTestOrStaging ? fromCookie : 'smmplan';
-  } else if (fromCookie && isTestOrStaging) {
-    finalTenantId = fromCookie;
-    isExplicitTenant = true;
+  if (isProduction) {
+    if (fromAdminCookie && pathname.startsWith('/admin')) {
+      finalTenantId = fromAdminCookie;
+    } else {
+      finalTenantId = fromHost || 'smmplan';
+    }
   } else {
-    finalTenantId = fromHost || 'smmplan';
+    if (fromQuery) {
+      finalTenantId = fromQuery;
+      isExplicitTenant = true;
+    } else if (fromHost && fromHost !== 'smmplan') {
+      finalTenantId = fromHost;
+    } else if (fromAdminCookie && pathname.startsWith('/admin')) {
+      finalTenantId = fromAdminCookie;
+    } else if (fromCookie) {
+      finalTenantId = fromCookie;
+      isExplicitTenant = true;
+    } else {
+      finalTenantId = fromHost || 'smmplan';
+    }
   }
 
   requestHeaders.set('x-tenant-id', finalTenantId);

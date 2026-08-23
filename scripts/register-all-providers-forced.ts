@@ -6,37 +6,37 @@ const PROVIDERS = [
     name: 'Vexboost',
     slug: 'vexboost',
     apiUrl: 'https://vexboost.ru/api/v2/',
-    apiKey: 'XIXeUVGftzSXwAg8pbBJERcJpMmrg9qujHHM3y95xYvB3Q9VMnAHGYtpGnta',
+    apiKey: process.env.PROVIDER_KEY_VEXBOOST || '',
   },
   {
     name: 'Soc-Proof',
     slug: 'soc-proof',
     apiUrl: 'https://soc-proof.su/api/v2/',
-    apiKey: 'a465d4013f1265153a2ca12bdd3cad06',
+    apiKey: process.env.PROVIDER_KEY_SOC_PROOF || '',
   },
   {
     name: 'Stream-Promotion',
     slug: 'stream-promotion',
     apiUrl: 'https://stream-promotion.ru/api/v2/',
-    apiKey: 'fGOsh7PtBk3Ckyq3UmqH6HVNYTC2gGTH',
+    apiKey: process.env.PROVIDER_KEY_STREAM_PROMOTION || '',
   },
   {
     name: 'SMMPrime',
     slug: 'smmprime',
     apiUrl: 'https://smmprime.com/api/v2/',
-    apiKey: '6833e1ceef531d34e7442d492b8e1021',
+    apiKey: process.env.PROVIDER_KEY_SMMPRIME || '',
   },
   {
     name: 'SMMPanelUS',
     slug: 'smmpanelus',
     apiUrl: 'https://smmpanelus.com/api/v2/',
-    apiKey: '48a6494eb16406d1226dce68f30d631d',
+    apiKey: process.env.PROVIDER_KEY_SMMPANELUS || '',
   },
   {
     name: 'Telegram.Shop',
     slug: 'telegram-shop',
     apiUrl: 'https://telegram.shop/api/v2/',
-    apiKey: 'abcd6e54ff5b77a11dc8077074445e04',
+    apiKey: process.env.PROVIDER_KEY_TELEGRAM_SHOP || '',
   },
 ];
 
@@ -44,6 +44,10 @@ async function main() {
   console.log('=== FORCED SMM PROVIDERS REGISTRATION ===\n');
 
   for (const cfg of PROVIDERS) {
+    if (!cfg.apiKey) {
+      console.log(`⚠️ Processing ${cfg.name} SKIPPED (Missing environment API key)`);
+      continue;
+    }
     console.log(`Processing ${cfg.name}...`);
     
     // Encrypt the API key securely

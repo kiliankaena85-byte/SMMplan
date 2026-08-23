@@ -106,6 +106,11 @@ const checkoutSchema = z.object({
 export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
   return createSafeAction(checkoutSchema, input, async (data) => {
     const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway, idempotencyKey, mediaGroupUrl, isLinkOverridden, isSmartDrip, smartDripDays, abVariant, isRequirementsConfirmed } = data;
+    
+    if (gateway === 'balance' && (!idempotencyKey || idempotencyKey.trim().length < 10)) {
+      throw new Error("Параметр idempotencyKey обязателен для оплаты с баланса");
+    }
+    
     const effectiveIdempotencyKey = idempotencyKey || randomUUID();
     const hasMediaGroup = !!(mediaGroupUrl && mediaGroupUrl.trim().length > 5);
 
@@ -657,7 +662,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
 
     // Direct fulfillment for balance payments
     if (gateway === 'balance') {
-      const { ordersQueue } = await import('@/workers/queues');
+      const { ordersQueue } = await import('@/lib/queue-manager');
       await ordersQueue.add('order-dispatch', { orderId: result.orderId }, { jobId: `dispatch-${result.orderId}`, delay: 3 * 60 * 1000 });
       if (result.secondOrderId) {
         await ordersQueue.add('order-dispatch', { orderId: result.secondOrderId }, { jobId: `dispatch-${result.secondOrderId}`, delay: 3 * 60 * 1000 });
@@ -694,7 +699,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         email: email,
         successUrl,
         description: `Оплата заказа #${result.numericId} (сдача зачисляется на баланс)`,
-        isTestMode: isTestMode || email === 'e2e-tester@test.com',
+        isTestMode: isTestMode,
         metadata: { type: 'checkout' }
       });
 
@@ -1016,7 +1021,7 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
 
     // Direct fulfillment for balance retry payments
     if (gateway === 'balance') {
-      const { ordersQueue } = await import('@/workers/queues');
+      const { ordersQueue } = await import('@/lib/queue-manager');
       await ordersQueue.add('order-dispatch', { orderId: order.id }, { jobId: `dispatch-${order.id}`, delay: 3 * 60 * 1000 });
 
       void sendOrderPaidMail(

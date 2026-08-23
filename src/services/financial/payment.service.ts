@@ -243,7 +243,7 @@ export class PaymentService {
       
       // Dispatch paid orders to processing queue
       if (activatedOrders.length > 0) {
-        const { ordersQueue } = await import('@/workers/queues');
+        const { ordersQueue } = await import('@/lib/queue-manager');
         for (const activated of activatedOrders) {
           await ordersQueue.add('order-dispatch', { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: 3 * 60 * 1000 }); // 3 min cooling-off
           
@@ -387,7 +387,7 @@ export class PaymentService {
 
       // Dispatch paid orders to processing queue
       if (activatedOrders.length > 0) {
-        const { ordersQueue } = await import('@/workers/queues');
+        const { ordersQueue } = await import('@/lib/queue-manager');
         for (const activated of activatedOrders) {
           await ordersQueue.add('order-dispatch', { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: 3 * 60 * 1000 }); // 3 min cooling-off
           

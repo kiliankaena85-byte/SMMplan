@@ -14,12 +14,9 @@ export async function runSerializableTransaction<T>(
       const error = (typeof err === 'object' && err !== null ? err : {}) as { code?: string; message?: string };
       const isSerializationError = 
         error.code === 'P2034' || 
-        error.message?.includes('serialization') || 
+        error.message?.includes('could not serialize access') ||
         error.message?.includes('deadlock') ||
-        error.message?.includes('40001') ||
-        error.message?.includes('expired') ||
-        error.message?.includes('closed') ||
-        error.message?.includes('timeout');
+        error.message?.includes('40001');
       
       if (isSerializationError && attempt < maxRetries) {
         console.warn(`[Transaction] Serialization failure on attempt ${attempt}, retrying...`);

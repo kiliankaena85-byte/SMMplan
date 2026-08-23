@@ -1,6 +1,6 @@
 import { Job, UnrecoverableError } from 'bullmq';
 import { db } from '../../lib/db';
-import { RefillJobPayload } from '../queues';
+import { RefillJobPayload } from '@/lib/queue-manager';
 import { providerService } from '../../services/providers/provider.service';
 import { logger } from '../../lib/logger';
 

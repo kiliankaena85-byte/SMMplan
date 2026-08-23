@@ -4,8 +4,8 @@ import { VaultService } from '../src/lib/vault';
 async function main() {
   console.log('--- YooKassa Settings Configuration Script ---');
   
-  const testShopId = '1155075';
-  const testSecretKey = 'test_Bz5eSTzvWGA92wbksyOApJbxi-sfJ67LLgMTZSSOulA';
+  const testShopId = process.env.YOOKASSA_TEST_SHOP_ID || '1155075';
+  const testSecretKey = process.env.YOOKASSA_TEST_SECRET_KEY || 'test_mock_secret_key';
   
   console.log(`Configuring test credentials: Shop ID = ${testShopId}`);
   

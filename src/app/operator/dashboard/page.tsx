@@ -5,7 +5,11 @@ import { adminTicketService } from '@/services/admin/ticket.service';
 import { db } from '@/lib/db';
 import { UrgentTickets } from './components/urgent-tickets';
 import { FailedOrders } from './components/failed-orders';
-import { OrdersChart } from '@/app/admin/dashboard/orders-chart';
+import nextDynamic from 'next/dynamic';
+
+const OrdersChart = nextDynamic(() => import('@/app/admin/dashboard/orders-chart').then(mod => mod.OrdersChart), {
+  loading: () => <div className="h-64 w-full animate-pulse rounded-xl bg-card/50 border border-border flex items-center justify-center text-xs text-muted-foreground">Загрузка графиков...</div>,
+});
 import { LayoutDashboard, MessageSquare, Clock, Package, AlertTriangle, Users } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';

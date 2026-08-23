@@ -7,7 +7,7 @@ class DatabaseOrderError extends Error {
 }
 import { Job, UnrecoverableError } from 'bullmq';
 import { db } from '../../lib/db';
-import { OrderJobPayload } from '../queues';
+import { OrderJobPayload } from '@/lib/queue-manager';
 import { providerService } from '../../services/providers/provider.service';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { WalletService } from '../../services/financial/wallet.service';

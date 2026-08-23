@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { CBRRateService } from '@/services/system/cbr-rate.service';
 import { getRedisConnection } from '@/lib/queue-manager';
-import { catalogQueue } from '@/workers/queues';
+import { catalogQueue } from '@/lib/queue-manager';
 import { db } from '@/lib/db';
 
 /**

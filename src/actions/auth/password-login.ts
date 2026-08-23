@@ -165,7 +165,6 @@ export async function loginWithPasswordAction(prevState: unknown, formData: Form
       if (!twoFactorCode || twoFactorCode.trim().length === 0) {
         return {
           requires2fa: true,
-          userId: user.id,
           error: "Введите 6-значный код из приложения аутентификатора (Google Authenticator / 2FA)",
           success: false,
         };

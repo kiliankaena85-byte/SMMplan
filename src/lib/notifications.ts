@@ -20,7 +20,7 @@ const SEVERITY_EMOJI: Record<AlertSeverity, string> = {
   CRITICAL: '🚨',
 };
 
-import { telegramQueue } from '../workers/queues';
+import { telegramQueue } from '@/lib/queue-manager';
 
 /**
  * Queues a formatted alert to the admin Telegram channel via BullMQ.

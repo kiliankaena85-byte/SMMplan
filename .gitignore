@@ -1,4 +1,4 @@
-﻿node_modules
+node_modules
 .next
 .env
 .env.bak
@@ -77,3 +77,11 @@ Thumbs.db
 dist_patch/
 cloudflared.exe
 scratch/
+__pycache__/
+*.pyc
+*.bak
+catalog-dump*
+all-providers-data.json
+smmtoolbox_enriched.json
+private/uploads/
+visual_audit_assets/

@@ -44,7 +44,7 @@ sudo systemctl enable --now postgresql redis-server
 
 ### Шаг 4: Создание базы данных PostgreSQL
 ```bash
-sudo -u postgres psql -c "CREATE USER smmplan_user WITH PASSWORD 'StrongProdDbPassword2026!';"
+sudo -u postgres psql -c "CREATE USER smmplan_user WITH PASSWORD '<STRONG_DB_PASSWORD>';"
 sudo -u postgres psql -c "CREATE DATABASE smmplan_prod OWNER smmplan_user;"
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE smmplan_prod TO smmplan_user;"
 ```
@@ -71,7 +71,7 @@ npm ci --prefer-offline
 ```env
 NODE_ENV="production"
 PORT=3000
-DATABASE_URL="postgresql://smmplan_user:StrongProdDbPassword2026!@localhost:5432/smmplan_prod?schema=public"
+DATABASE_URL="postgresql://smmplan_user:<STRONG_DB_PASSWORD>@localhost:5432/smmplan_prod?schema=public"
 REDIS_URL="redis://localhost:6379"
 
 JWT_SECRET="GENERATE_WITH_openssl_rand_hex_32"

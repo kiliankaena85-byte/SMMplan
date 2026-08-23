@@ -385,15 +385,49 @@ export async function getProviderComparisonData(serviceId: string) {
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
     const last7Days = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-    const comparisonData = await Promise.all(routes.map(async (route) => {
-      // 1. Fetch SLA and ETA from orders in the last 7 days
-      const routeOrders = await db.order.findMany({
-        where: {
-          serviceId,
-          providerId: route.providerId,
-          createdAt: { gte: last7Days }
-        }
-      });
+    const providerIds = Array.from(new Set(routes.map(r => r.providerId).filter(Boolean)));
+
+    // Batch query 1: Fetch all route orders in a single SQL query
+    const allRouteOrders = providerIds.length > 0 ? await db.order.findMany({
+      where: {
+        serviceId,
+        providerId: { in: providerIds },
+        createdAt: { gte: last7Days }
+      },
+      select: {
+        providerId: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    }) : [];
+
+    // Group orders by providerId in-memory
+    const ordersByProvider = new Map<string, typeof allRouteOrders>();
+    for (const order of allRouteOrders) {
+      if (!order.providerId) continue;
+      const list = ordersByProvider.get(order.providerId) || [];
+      list.push(order);
+      ordersByProvider.set(order.providerId, list);
+    }
+
+    // Batch query 2: Fetch all shadow services in a single SQL query
+    const shadowConditions = routes
+      .filter(r => r.providerId && r.providerServiceId)
+      .map(r => ({ providerId: r.providerId, externalId: String(r.providerServiceId) }));
+
+    const allShadowSvcs = shadowConditions.length > 0 ? await db.shadowService.findMany({
+      where: { OR: shadowConditions }
+    }) : [];
+
+    const shadowMap = new Map<string, typeof allShadowSvcs[0]>();
+    for (const s of allShadowSvcs) {
+      shadowMap.set(`${s.providerId}_${s.externalId}`, s);
+    }
+
+    const comparisonData = routes.map((route) => {
+      // 1. Fetch SLA and ETA from grouped orders
+      const routeOrders = ordersByProvider.get(route.providerId) || [];
 
       const terminalOrders = routeOrders.filter(o => ['COMPLETED', 'PARTIAL', 'CANCELED', 'ERROR'].includes(o.status));
       const totalTerminal = terminalOrders.length;
@@ -410,15 +444,8 @@ export async function getProviderComparisonData(serviceId: string) {
         avgEtaSeconds = Math.round(totalDuration / completedOrders.length);
       }
 
-      // 2. Fetch real-time provider rate and limits from Database ShadowService staging table
-      const shadowSvc = await db.shadowService.findUnique({
-        where: {
-          providerId_externalId: {
-            providerId: route.providerId,
-            externalId: String(route.providerServiceId)
-          }
-        }
-      });
+      // 2. Fetch real-time provider rate from in-memory shadowMap
+      const shadowSvc = shadowMap.get(`${route.providerId}_${String(route.providerServiceId)}`);
       let providerRate: number | null = null;
       let providerMinQty: number | null = null;
       let providerMaxQty: number | null = null;
@@ -488,7 +515,7 @@ export async function getProviderComparisonData(serviceId: string) {
         markupPercent,
         limitsMismatch
       };
-    }));
+    });
 
     return {
       success: true as const,

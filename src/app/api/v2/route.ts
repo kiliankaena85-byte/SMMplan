@@ -91,9 +91,9 @@ export async function POST(request: NextRequest) {
       return sendResponse(NextResponse.json({ error: 'API key is required' }, { status: 400 }));
     }
 
+    const ip = request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
+
     // Rate Limiting (OWASP A04)
-    // W3-4 SECURITY FIX: Do not store raw API keys in Redis. Hash them first.
-    // Limit: 50 requests per 60 seconds per API key
     const crypto = (await import('crypto')).default;
     const hashedKey = crypto.createHash('sha256').update(key).digest('hex');
     currentHashedKey = hashedKey;
@@ -106,6 +106,18 @@ export async function POST(request: NextRequest) {
     // 1. Authenticate User
     const user = await verifyB2BKey(key);
     if (!user) {
+      const isFailedAllowed = await RateLimitService.checkCustomKey(`b2b_failed_auth:${ip}`, 10, 60);
+      await db.securityEvent.create({
+        data: {
+          event: 'B2B_AUTH_FAILED',
+          severity: isFailedAllowed ? 'WARNING' : 'CRITICAL',
+          ip,
+          details: { action, reason: 'Invalid or banned API key' }
+        }
+      }).catch(() => {});
+      if (!isFailedAllowed) {
+        return sendResponse(NextResponse.json({ error: 'Too many failed authentication attempts. Blocked for 60 seconds.' }, { status: 429 }));
+      }
       return sendResponse(NextResponse.json({ error: 'Incorrect request or API key' }, { status: 401 }));
     }
 
@@ -245,7 +257,7 @@ async function handleAdd(user: User, formData: FormData) {
   }
 }
 
-function parseOrders(formData: FormData): unknown[] | null { // Justified: parsing dynamic reseller payload format types
+function parseOrders(formData: FormData): unknown[] | null {
   const ordersStr = formData.get('orders')?.toString();
   if (ordersStr) {
     try {
@@ -256,7 +268,7 @@ function parseOrders(formData: FormData): unknown[] | null { // Justified: parsi
     }
   }
 
-    const ordersMap: Record<number, any> = {}; // Justified: building index map of arbitrary form fields
+  const ordersMap: Record<number, any> = {};
   let hasEntries = false;
   for (const [key, value] of formData.entries()) {
     const match = key.match(/^orders\[(\d+)\]\[(\w+)\]$/);
@@ -279,7 +291,7 @@ function parseOrders(formData: FormData): unknown[] | null { // Justified: parsi
     .map(index => ordersMap[index]);
 }
 
-async function handleAddMulti(user: User, formData: FormData) { // Justified: user object can be any Prisma User model
+async function handleAddMulti(user: User, formData: FormData) {
   const rawOrders = parseOrders(formData);
 
   if (!rawOrders || !Array.isArray(rawOrders) || rawOrders.length === 0) {
@@ -291,7 +303,7 @@ async function handleAddMulti(user: User, formData: FormData) { // Justified: us
     return NextResponse.json({ error: 'Batch size too large (max 50 orders)' }, { status: 400 });
   }
 
-    const results: unknown[] = []; // Justified: dynamic results array containing orders or errors
+  const results: unknown[] = [];
   const userTenantId = user.tenantId || 'smmplan';
 
   for (const rawOrder of rawOrders) {
@@ -354,7 +366,7 @@ async function handleAddMulti(user: User, formData: FormData) { // Justified: us
       });
 
       results.push({ order: createdOrder?.numericId });
-    } catch (err: unknown) { // Justified: catching dynamic database or business logic errors
+    } catch (err: unknown) {
       const errCode = (typeof err === 'object' && err !== null && 'code' in err) ? (err as { code: unknown }).code : undefined;
       if (err instanceof Error && err.message === 'INSUFFICIENT_FUNDS') {
         results.push({ error: 'Not enough funds on balance' });
@@ -492,8 +504,6 @@ async function handleCancel(user: User, formData: FormData) {
 }
 
 async function handleRefill(user: User, formData: FormData) {
-  // Reseller Safety: Automated Refill is completely disabled.
-  // We do not pass refills to upstream automatically to prevent silent failures and provider conflicts.
   return NextResponse.json({ error: 'Refill is only available manually via support ticket for reseller platforms.' }, { status: 400 });
 }
 
@@ -510,7 +520,7 @@ async function handleRefillStatus(user: User, formData: FormData) {
         where: { numericId: { in: ids }, order: { userId: user.id, tenantId: userTenantId } }
       });
       
-            const resultMap: unknown[] = [];
+      const resultMap: unknown[] = [];
       for (const refill of refills) {
         resultMap.push({
            refill: refill.numericId,
@@ -537,5 +547,3 @@ async function handleRefillStatus(user: User, formData: FormData) {
 
   return NextResponse.json({ status: mapRefillStatus(refill.status) });
 }
-
-

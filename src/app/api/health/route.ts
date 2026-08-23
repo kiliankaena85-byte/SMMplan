@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
-import { ordersQueue } from '@/workers/queues';
+import { ordersQueue } from '@/lib/queue-manager';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

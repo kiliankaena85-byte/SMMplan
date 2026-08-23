@@ -19,37 +19,37 @@ const PROVIDERS: ProviderConfig[] = [
     name: 'Soc-Rocket',
     slug: 'soc-rocket',
     apiUrl: 'https://soc-rocket.ru/api/v2/',
-    apiKey: 'emrNjCPOuNMYKmMcxvHb532Xix99uAxM',
+    apiKey: process.env.PROVIDER_KEY_SOC_ROCKET || '',
   },
   {
     name: 'SMMPrime',
     slug: 'smmprime',
     apiUrl: 'https://smmprime.com/api/v2',
-    apiKey: '6833e1ceef531d34e7442d492b8e1021',
+    apiKey: process.env.PROVIDER_KEY_SMMPRIME || '',
   },
   {
     name: 'Stream-Promotion',
     slug: 'stream-promotion',
     apiUrl: 'https://stream-promotion.ru/api/v2',
-    apiKey: 'fGOsh7PtBk3Ckyq3UmqH6HVNYTC2gGTH',
+    apiKey: process.env.PROVIDER_KEY_STREAM_PROMOTION || '',
   },
   {
     name: 'SMMPanelUS',
     slug: 'smmpanelus',
     apiUrl: 'https://smmpanelus.com/api/v2',
-    apiKey: '48a6494eb16406d1226dce68f30d631d',
+    apiKey: process.env.PROVIDER_KEY_SMMPANELUS || '',
   },
   {
     name: 'Soc-Proof',
     slug: 'soc-proof',
     apiUrl: 'https://soc-proof.su/api/v2',
-    apiKey: 'a465d4013f1265153a2ca12bdd3cad06',
+    apiKey: process.env.PROVIDER_KEY_SOC_PROOF || '',
   },
   {
     name: 'Telegram.Shop',
     slug: 'telegram-shop',
     apiUrl: 'https://telegram.shop/api/v2',
-    apiKey: 'abcd6e54ff5b77a11dc8077074445e04',
+    apiKey: process.env.PROVIDER_KEY_TELEGRAM_SHOP || '',
   },
 ];
 
@@ -59,6 +59,11 @@ async function main() {
   const results: { name: string; status: string; balance?: string; services?: number; error?: string }[] = [];
 
   for (const cfg of PROVIDERS) {
+    if (!cfg.apiKey) {
+      console.log(`⚠️ Testing ${cfg.name} SKIPPED (Missing environment API key)`);
+      results.push({ name: cfg.name, status: '⚠️ SKIPPED', error: 'Missing environment API key' });
+      continue;
+    }
     process.stdout.write(`Testing ${cfg.name} (${cfg.apiUrl})... `);
     try {
       const provider = new UniversalProvider(cfg.apiUrl, cfg.apiKey);

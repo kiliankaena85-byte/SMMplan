@@ -115,17 +115,17 @@ describe('Red Team: Checkout Race Conditions & Concurrency', () => {
   it('RED-001: Idempotency Key must prevent double order creation', async () => {
     const input = {
       serviceId: 'svc_123',
-      link: 'https://t.me/test',
+      link: 'https://t.me/testchannel',
       quantity: 100,
       email: 'race@test.com',
       gateway: 'yookassa',
-      idempotencyKey: 'same-key-123'
+      idempotencyKey: 'same-key-123456'
     };
 
     // First call finds nothing, second call finds existing
     vi.mocked(db.service.findUnique).mockResolvedValue({ 
-      id: 'svc_123', isActive: true, externalId: 'ext_1', minQty: 1, maxQty: 1000, providerId: 'p1',
-      category: { network: { name: 'Telegram' } }
+      id: 'svc_123', isActive: true, externalId: 'ext_1', minQty: 1, maxQty: 1000, providerId: 'p1', targetType: 'CHANNEL',
+      category: { name: 'Подписчики', network: { name: 'Telegram', slug: 'telegram' } }
     } as any);
 
     let findUniqueCount = 0;
@@ -134,6 +134,7 @@ describe('Red Team: Checkout Race Conditions & Concurrency', () => {
       if (findUniqueCount <= 2) return null;
       return {
         id: 'order_existing',
+        numericId: 1002,
         paymentId: 'pay_existing',
         payment: { checkoutUrl: 'https://yookassa.ru/checkout' }
       } as any;
@@ -145,7 +146,7 @@ describe('Red Team: Checkout Race Conditions & Concurrency', () => {
         throw new Prisma.PrismaClientKnownRequestError('Unique constraint failed', { code: 'P2002', clientVersion: '5.0.0' });
       }
       isSecondCreate = true;
-      return { id: 'order_new', charge: BigInt(1000) } as any;
+      return { id: 'order_new', numericId: 1001, charge: BigInt(1000) } as any;
     });
     vi.mocked(db.payment.create).mockResolvedValue({ id: 'pay_new' } as any);
     vi.mocked(db.user.upsert).mockResolvedValue({ id: 'user_123', balance: BigInt(5000), totalSpent: BigInt(0), isActive: true, isDeleted: false } as any);
@@ -166,20 +167,21 @@ describe('Red Team: Checkout Race Conditions & Concurrency', () => {
   it.skip('RED-002: Balance Gateway must use Mutex to prevent double spending', async () => {
     const input = {
       serviceId: 'svc_123',
-      link: 'https://t.me/test',
+      link: 'https://t.me/testchannel',
       quantity: 100,
       email: 'race@test.com',
-      gateway: 'balance'
+      gateway: 'balance',
+      idempotencyKey: 'idemp-key-test-12345'
     };
 
     vi.mocked(db.service.findUnique).mockResolvedValue({ 
-      id: 'svc_123', isActive: true, externalId: 'ext_1', minQty: 1, maxQty: 1000, providerId: 'p1',
-      category: { network: { name: 'Telegram' } }
+      id: 'svc_123', isActive: true, externalId: 'ext_1', minQty: 1, maxQty: 1000, providerId: 'p1', targetType: 'CHANNEL',
+      category: { name: 'Подписчики', network: { name: 'Telegram', slug: 'telegram' } }
     } as any);
     vi.mocked(db.user.upsert).mockResolvedValue({ id: 'user_123', balance: BigInt(5000), totalSpent: BigInt(0) } as any);
-    vi.mocked(db.order.create).mockResolvedValue({ id: 'order_1', charge: BigInt(1000) } as any);
+    vi.mocked(db.order.create).mockResolvedValue({ id: 'order_1', numericId: 1001, charge: BigInt(1000) } as any);
     vi.mocked(db.payment.create).mockResolvedValue({ id: 'pay_1' } as any);
-    vi.mocked(db.order.findUnique).mockResolvedValue({ id: 'order_1', charge: BigInt(1000) } as any);
+    vi.mocked(db.order.findUnique).mockResolvedValue({ id: 'order_1', numericId: 1001, charge: BigInt(1000) } as any);
     vi.mocked(db.user.findUnique).mockResolvedValue({ id: 'user_123', email: 'race@test.com' } as any);
     
     // RED-002 FIX: Must mock verifySession so the IDOR check passes
@@ -199,15 +201,16 @@ describe('Red Team: Checkout Race Conditions & Concurrency', () => {
   it('RED-003: Unauthorized user cannot use balance gateway to drain another user\'s balance (IDOR Prevention)', async () => {
     const input = {
       serviceId: 'svc_123',
-      link: 'https://t.me/test',
+      link: 'https://t.me/testchannel',
       quantity: 100,
       email: 'victim@test.com',
-      gateway: 'balance'
+      gateway: 'balance',
+      idempotencyKey: 'idemp-key-test-12345'
     };
 
     vi.mocked(db.service.findUnique).mockResolvedValue({ 
-      id: 'svc_123', isActive: true, externalId: 'ext_1', minQty: 1, maxQty: 1000, providerId: 'p1',
-      category: { network: { name: 'Telegram' } }
+      id: 'svc_123', isActive: true, externalId: 'ext_1', minQty: 1, maxQty: 1000, providerId: 'p1', targetType: 'CHANNEL',
+      category: { name: 'Подписчики', network: { name: 'Telegram', slug: 'telegram' } }
     } as any);
     
     // Attacker tries to use victim's email.
@@ -228,5 +231,20 @@ describe('Red Team: Checkout Race Conditions & Concurrency', () => {
     const res2 = await checkoutAction(input);
     expect(res2.success).toBe(false);
     expect((res2 as any).error).toContain('Оплата с баланса доступна только авторизованным пользователям');
+  });
+
+  it('RED-004: Balance Gateway without idempotencyKey throws validation error', async () => {
+    const input = {
+      serviceId: 'svc_123',
+      link: 'https://t.me/test',
+      quantity: 100,
+      email: 'user@test.com',
+      gateway: 'balance',
+      // No idempotencyKey provided
+    };
+
+    const res = await checkoutAction(input);
+    expect(res.success).toBe(false);
+    expect((res as any).error).toBe('Параметр idempotencyKey обязателен для оплаты с баланса');
   });
 });

@@ -5,7 +5,7 @@ if ! docker compose version > /dev/null 2>&1; then
   exit 1
 fi
 
-domains=(smmplan.pro www.smmplan.pro)
+domains=(smmplan.pro www.smmplan.pro smmflux.ru www.smmflux.ru)
 rsa_key_size=4096
 data_path="./nginx/certbot"
 email="admin@smmplan.pro" # Added contact email

@@ -8,7 +8,7 @@ import { calculatePartialRefund } from '@/utils/refund';
 import { CompensationService } from '@/services/financial/compensation.service';
 import { runSerializableTransaction } from '@/lib/transactions';
 
-import { ordersQueue } from '../../workers/queues';
+import { ordersQueue } from '@/lib/queue-manager';
 
 /**
  * MANDATORY INTEGRITY WARNING:

@@ -15,15 +15,16 @@ export async function POST(
 
   try {
     const rawBody = await request.text();
-    const signature = request.headers.get('x-signature') || request.headers.get('x-hub-signature-256') || '';
-    const timestamp = request.headers.get('x-timestamp') || '';
+    const signature = request.headers.get('x-signature') || request.headers.get('x-hub-signature-256');
+    const timestamp = request.headers.get('x-timestamp');
 
-    // 1. Verify Timestamp Freshness (prevent replay attack within 5 minutes)
-    if (timestamp) {
-      const reqTime = parseInt(timestamp, 10);
-      if (isNaN(reqTime) || Math.abs(Date.now() - reqTime) > 5 * 60 * 1000) {
-        return NextResponse.json({ error: 'Webhook timestamp expired or invalid' }, { status: 403 });
-      }
+    // 1. Mandatory Timestamp Freshness (prevent replay attack within 5 minutes)
+    if (!timestamp) {
+      return NextResponse.json({ error: 'Missing x-timestamp header' }, { status: 403 });
+    }
+    const reqTime = parseInt(timestamp, 10);
+    if (isNaN(reqTime) || Math.abs(Date.now() - reqTime) > 5 * 60 * 1000) {
+      return NextResponse.json({ error: 'Webhook timestamp expired or invalid' }, { status: 403 });
     }
 
     // 2. Fetch Provider
@@ -35,13 +36,23 @@ export async function POST(
       return NextResponse.json({ error: 'Provider inactive or not found' }, { status: 404 });
     }
 
-    // 3. HMAC Signature Verification (if secret key configured)
+    // 3. Mandatory HMAC Signature Verification
     const secret = process.env.PROVIDER_WEBHOOK_SECRET || provider.apiKey;
-    if (signature && secret) {
-      const expectedSig = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-      if (signature !== expectedSig && signature !== `sha256=${expectedSig}`) {
-        return NextResponse.json({ error: 'Invalid HMAC signature' }, { status: 403 });
-      }
+    if (!secret) {
+      return NextResponse.json({ error: 'Provider webhook secret not configured' }, { status: 503 });
+    }
+    if (!signature) {
+      return NextResponse.json({ error: 'Missing x-signature header' }, { status: 403 });
+    }
+
+    const expectedSig = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+    const cleanSig = signature.startsWith('sha256=') ? signature.slice(7) : signature;
+
+    if (
+      cleanSig.length !== expectedSig.length ||
+      !crypto.timingSafeEqual(Buffer.from(cleanSig), Buffer.from(expectedSig))
+    ) {
+      return NextResponse.json({ error: 'Invalid HMAC signature' }, { status: 403 });
     }
 
     const payload = JSON.parse(rawBody);
