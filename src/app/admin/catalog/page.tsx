@@ -81,7 +81,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
     { items: rawServices, nextCursor, hasMore },
     usdToRub,
     categories,
-    quarantineCount,
+    catalogHealth,
     stats,
     markupAnalytics,
     providers,
@@ -103,8 +103,9 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
       tenantId: selectedTenant,
     }),
     SettingsProvider.getExchangeRateUSD(),
-    adminCatalogService.listCategories(),
-    adminCatalogService.getQuarantineCount(selectedTenant),
+    // AUD-05 (3.1): tenant-scoped category filter list
+    adminCatalogService.listCategories(selectedTenant),
+    adminCatalogService.getCatalogHealthCounts(selectedTenant),
     adminCatalogService.getCatalogStats(selectedTenant),
     adminCatalogService.getMarkupAnalytics(selectedTenant),
     adminProviderService.listProviders(),
@@ -171,14 +172,39 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {quarantineCount > 0 && (
+          {/* AUD-14 (3.3): catalog health counters — quarantine / zombies / temporarily hidden */}
+          {catalogHealth.quarantine > 0 && (
             <Link href={`/admin/catalog/quarantine?tenant=${selectedTenant}`}>
               <Button
                 intent="outline"
                 size="sm"
                 className="font-bold h-9 border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"
               >
-                ⚠️ Карантин ({quarantineCount})
+                ⚠️ Карантин ({catalogHealth.quarantine})
+              </Button>
+            </Link>
+          )}
+          {catalogHealth.zombies > 0 && (
+            <Link href={`/admin/catalog?providerStatus=zombie&tenant=${selectedTenant}`}>
+              <Button
+                intent="outline"
+                size="sm"
+                className="font-bold h-9 border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:bg-violet-500/20"
+                title="Услуги, отключённые авто-зомби-логикой (ZOMBIE_AUTO_DISABLED / ZOMBIE_ARCHIVED)"
+              >
+                🧟 Зомби ({catalogHealth.zombies})
+              </Button>
+            </Link>
+          )}
+          {catalogHealth.cooldown > 0 && (
+            <Link href={`/admin/catalog?isActive=true&tenant=${selectedTenant}`}>
+              <Button
+                intent="outline"
+                size="sm"
+                className="font-bold h-9 border-sky-500/30 bg-sky-500/10 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20"
+                title="Активные услуги во временном отстое (cooldown) — скрыты с витрины до окончания срока"
+              >
+                ⏸ На отстое ({catalogHealth.cooldown})
               </Button>
             </Link>
           )}

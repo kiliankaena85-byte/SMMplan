@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { tenantVisibilityFilter } from '@/lib/tenant-scope';
 
 // ── DTOs ──────────────────────────────────────────────────────────────────────
 
@@ -139,9 +140,13 @@ class AdminProviderService {
 
   /**
    * Get category list for import wizard.
+   * AUD-05 (3.1): tenant-scoped — the wizard only offers categories visible
+   * to the current tenant (own + shared 'all'), so imports never silently
+   * retarget taxonomy of another tenant.
    */
-  async listCategories() {
+  async listCategories(tenantId?: string) {
     const rows = await db.category.findMany({
+      where: tenantId ? { tenantId: tenantVisibilityFilter(tenantId) } : undefined,
       orderBy: [{ network: { slug: 'asc' } }, { sort: 'asc' }],
       include: { network: true },
     });

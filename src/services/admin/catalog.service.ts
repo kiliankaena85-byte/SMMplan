@@ -17,12 +17,20 @@ import {
 } from '@/lib/financial-constants';
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
 import { ServiceAuditEngine } from './audit-engine';
+import { tenantVisibilityFilter } from '@/lib/tenant-scope';
 import { z } from 'zod';
 
-export async function ensureTaxonomyTenantAccess(categoryId: string) {
+/**
+ * Ensures a category (and its network) is visible to every tenant targeted by
+ * an import by promoting tenantId to 'all'.
+ *
+ * AUD-05 (3.1): returns the changed category name so callers can REPORT the
+ * visibility change instead of applying it silently.
+ */
+export async function ensureTaxonomyTenantAccess(categoryId: string): Promise<{ categoryName: string } | null> {
   const category = await db.category.findUnique({
     where: { id: categoryId },
-    select: { id: true, tenantId: true, networkId: true }
+    select: { id: true, name: true, tenantId: true, networkId: true }
   });
   if (category && category.tenantId !== 'all') {
     await db.category.update({
@@ -35,7 +43,9 @@ export async function ensureTaxonomyTenantAccess(categoryId: string) {
         data: { tenantId: 'all' }
       });
     }
+    return { categoryName: category.name };
   }
+  return null;
 }
 import { SecuritySanitizer } from '@/utils/security-sanitizer';
 import { SmartAnalyzerLogic } from '@/services/providers/smart-analyzer.logic';
@@ -996,7 +1006,13 @@ class AdminCatalogService {
     const categoryNameMap = new Map(categoriesDb.map(c => [c.id, c.name]));
 
     for (const catId of Array.from(uniqueCategoryIds)) {
-      await ensureTaxonomyTenantAccess(catId);
+      // AUD-05 (3.1): taxonomy sharing is reported, not silent
+      const changed = await ensureTaxonomyTenantAccess(catId);
+      if (changed) {
+        warnings.push(
+          `Категория «${changed.categoryName}» стала общей (tenantId=all): импорт направлен в другой тенант, и категория была открыта для обоих брендов.`
+        );
+      }
     }
 
     const servicesToCreate = [];
@@ -1431,8 +1447,9 @@ class AdminCatalogService {
     return { stats, worstServices: lossList.slice(0, 20), averageMarkup };
   }
 
-  async listCategories() {
+  async listCategories(tenantId?: string) {
     const rows = await db.category.findMany({
+      where: tenantId ? { tenantId: tenantVisibilityFilter(tenantId) } : undefined,
       select: {
         id: true,
         name: true,
@@ -1492,8 +1509,46 @@ class AdminCatalogService {
 
   async getQuarantineCount(tenantId?: string): Promise<number> {
         const where: Prisma.ServiceWhereInput = { isQuarantined: true };
-    if (tenantId) where.tenantId = { in: [tenantId, 'all'] };
+    if (tenantId) where.tenantId = tenantVisibilityFilter(tenantId);
     return db.service.count({ where });
+  }
+
+  /**
+   * AUD-14 (3.3): catalog health counters for the admin header.
+   *
+   * - quarantine: services awaiting admin approval after a price spike
+   * - zombies: services auto-disabled by the zombie eraser (ZOMBIE_*)
+   * - cooldown: active services temporarily hidden from the storefront
+   *   (cooldownUntil in the future, excluding zombies)
+   */
+  async getCatalogHealthCounts(tenantId?: string): Promise<{ quarantine: number; zombies: number; cooldown: number }> {
+    const tenantWhere = tenantId ? tenantVisibilityFilter(tenantId) : undefined;
+    const now = new Date();
+
+    const [quarantine, zombies, cooldown] = await Promise.all([
+      db.service.count({
+        where: {
+          isQuarantined: true,
+          ...(tenantWhere ? { tenantId: tenantWhere } : {}),
+        },
+      }),
+      db.service.count({
+        where: {
+          cooldownReason: { in: ['ZOMBIE_AUTO_DISABLED', 'ZOMBIE_ARCHIVED'] },
+          ...(tenantWhere ? { tenantId: tenantWhere } : {}),
+        },
+      }),
+      db.service.count({
+        where: {
+          isActive: true,
+          cooldownUntil: { gt: now },
+          cooldownReason: { notIn: ['ZOMBIE_AUTO_DISABLED', 'ZOMBIE_ARCHIVED'] },
+          ...(tenantWhere ? { tenantId: tenantWhere } : {}),
+        },
+      }),
+    ]);
+
+    return { quarantine, zombies, cooldown };
   }
 }
 

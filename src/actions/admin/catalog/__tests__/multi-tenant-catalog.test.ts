@@ -161,4 +161,35 @@ describe('Multi-Tenant Catalog Administration (P0)', () => {
     expect(updatedSmmplan?.markup).toBe(2.0); // unchanged
     expect(updatedFlux?.markup).toBe(3.0); // updated
   });
+
+  it('5. getCatalogHealthCounts reports quarantine / zombies / cooldown per tenant (AUD-14)', async () => {
+    const slugSuffix = Date.now();
+    const future = new Date(Date.now() + 60 * 60 * 1000);
+
+    await db.service.createMany({
+      data: [
+        // smmplan: one quarantined, one zombie, one on cooldown
+        { tenantId: 'smmplan', slug: `health-q-${slugSuffix}`, name: 'SMM Quarantined', categoryId: category.id, rate: 10, markup: 2.0, pricePer1000Cents: 2000, minQty: 10, maxQty: 1000, isQuarantined: true, isActive: true },
+        { tenantId: 'smmplan', slug: `health-z-${slugSuffix}`, name: 'SMM Zombie', categoryId: category.id, rate: 10, markup: 2.0, pricePer1000Cents: 2000, minQty: 10, maxQty: 1000, isActive: false, cooldownReason: 'ZOMBIE_AUTO_DISABLED' },
+        { tenantId: 'smmplan', slug: `health-c-${slugSuffix}`, name: 'SMM Cooldown', categoryId: category.id, rate: 10, markup: 2.0, pricePer1000Cents: 2000, minQty: 10, maxQty: 1000, isActive: true, cooldownUntil: future, cooldownReason: 'API_ERROR' },
+        // flux: one zombie (must NOT leak into smmplan counts)
+        { tenantId: 'flux', slug: `health-zf-${slugSuffix}`, name: 'Flux Zombie', categoryId: category.id, rate: 10, markup: 2.0, pricePer1000Cents: 2000, minQty: 10, maxQty: 1000, isActive: false, cooldownReason: 'ZOMBIE_ARCHIVED' },
+      ]
+    });
+
+    try {
+      const smmplanHealth = await adminCatalogService.getCatalogHealthCounts('smmplan');
+      expect(smmplanHealth.quarantine).toBe(1);
+      expect(smmplanHealth.zombies).toBe(1);          // flux zombie NOT counted
+      expect(smmplanHealth.cooldown).toBe(1);         // zombie is not on cooldown
+
+      // Tenant isolation: flux sees only its own zombie
+      const fluxHealth = await adminCatalogService.getCatalogHealthCounts('flux');
+      expect(fluxHealth.zombies).toBe(1);
+      expect(fluxHealth.quarantine).toBe(0);
+      expect(fluxHealth.cooldown).toBe(0);
+    } finally {
+      await db.service.deleteMany({ where: { slug: { in: [`health-q-${slugSuffix}`, `health-z-${slugSuffix}`, `health-c-${slugSuffix}`, `health-zf-${slugSuffix}`] } } });
+    }
+  });
 });

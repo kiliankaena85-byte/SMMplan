@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Check, CheckCircle2, ChevronDown, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
@@ -14,16 +15,36 @@ interface ServiceGridProps {
   checkoutProps?: CheckoutVariantProps;
 }
 
+/**
+ * AUD-07 (3.2): progressive disclosure for large category catalogs.
+ * All services stay available (data layer limit raised to 500), but the DOM
+ * renders in chunks of 24 with a "show more" button — no silent truncation,
+ * no giant first paint.
+ */
+const INITIAL_VISIBLE = 24;
+const VISIBLE_STEP = 24;
+
 export function ServiceGrid({ engine, checkoutMode, checkoutProps }: ServiceGridProps) {
   const { services, selectedService, setSelectedService, networkId, catalog, isLoading } = engine;
   const [isServiceDropdownOpen, setIsServiceDropdownOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
+
+  // Reset chunking when the category changes
+  useEffect(() => {
+    setVisibleCount(INITIAL_VISIBLE);
+  }, [networkId, engine.categoryId]);
 
   const selectedNetworkObj = useMemo(() => {
     return catalog.find(n => n.id === networkId);
   }, [catalog, networkId]);
 
+  const visibleServices = useMemo(
+    () => services.slice(0, visibleCount),
+    [services, visibleCount]
+  );
+
   const desktopGridContent = useMemo(() => {
-    return services.map((srv, i) => {
+    return visibleServices.map((srv, i) => {
       const isSelected = selectedService?.id === srv.id;
       const isQuarantined = srv.cooldownUntil && new Date(srv.cooldownUntil) > new Date();
 
@@ -156,7 +177,7 @@ export function ServiceGrid({ engine, checkoutMode, checkoutProps }: ServiceGrid
         </div>
       );
     });
-  }, [services, selectedService, selectedNetworkObj, setSelectedService, checkoutMode, checkoutProps]);
+  }, [visibleServices, selectedService, selectedNetworkObj, setSelectedService, checkoutMode, checkoutProps]);
 
   if (isLoading) {
     return (
@@ -192,8 +213,26 @@ export function ServiceGrid({ engine, checkoutMode, checkoutProps }: ServiceGrid
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-      {desktopGridContent}
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+        {desktopGridContent}
+      </div>
+      {/* AUD-07 (3.2): "show more" instead of silent truncation at 100 */}
+      {services.length > visibleCount && (
+        <div className="flex flex-col items-center gap-1.5 pt-2 pb-6">
+          <Button
+            intent="outline"
+            onClick={() => setVisibleCount((prev) => prev + VISIBLE_STEP)}
+            className="h-11 px-8 font-bold text-sm"
+          >
+            <ChevronDown className="w-4 h-4" />
+            Показать ещё {Math.min(VISIBLE_STEP, services.length - visibleCount)} из {services.length - visibleCount}
+          </Button>
+          <span className="text-[11px] text-muted-foreground">
+            Показано {visibleCount} из {services.length} услуг
+          </span>
+        </div>
+      )}
     </div>
   );
 }

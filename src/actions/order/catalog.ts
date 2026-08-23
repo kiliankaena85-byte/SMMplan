@@ -6,10 +6,26 @@ import { IntelligencePlatform } from "@/services/analyzer/link-rules";
 import { applyBeautifulRounding } from "@/lib/financial-constants";
 import { SettingsProvider } from "@/lib/settings";
 import { unstable_cache } from "next/cache";
+import { tenantVisibilityFilter } from "@/lib/tenant-scope";
 
 import { sanitizeServiceDescription } from "@/lib/sanitize";
 import { logger } from "@/lib/logger";
 import { SmartAnalyzerLogic } from "@/services/providers/smart-analyzer.logic";
+
+/**
+ * AUD-05 (3.1): shared visibility condition for storefront taxonomy.
+ * A network shows a category only if the category AND at least one of its
+ * active services belong to the current tenant (or are shared as 'all').
+ * Without the tenant check on both levels the tree shows "ghost" categories
+ * that open into an empty services list.
+ */
+function storefrontCategoryVisibility(tenantId: string) {
+  const tenant = tenantVisibilityFilter(tenantId);
+  return {
+    tenantId: tenant,
+    services: { some: { isActive: true, isQuarantined: false, tenantId: tenant } },
+  };
+}
 
 export async function getCachedNetworks(tenantId: string) {
   return unstable_cache(
@@ -17,12 +33,12 @@ export async function getCachedNetworks(tenantId: string) {
       return await db.network.findMany({
         where: {
           isActive: true,
-          tenantId: { in: [tenantId, 'all'] },
-          categories: { some: { services: { some: { isActive: true, isQuarantined: false } } } }
+          tenantId: tenantVisibilityFilter(tenantId),
+          categories: { some: storefrontCategoryVisibility(tenantId) },
         },
         include: {
           categories: {
-            where: { services: { some: { isActive: true, isQuarantined: false } } },
+            where: storefrontCategoryVisibility(tenantId),
             orderBy: { name: 'asc' }
           }
         },
@@ -34,27 +50,32 @@ export async function getCachedNetworks(tenantId: string) {
   )();
 }
 
-const PAGE_SIZE = 100;
+/**
+ * AUD-07 (3.2): hard limit raised from 100 to 500 — realistic provider catalogs
+ * fit without silent truncation; anything above is logged loudly and the
+ * storefront renders progressively (client-side "show more").
+ */
+const CATEGORY_SERVICES_HARD_LIMIT = 500;
 
 export async function getCachedServicesByCategory(categoryId: string, tenantId: string = 'smmplan') {
   return unstable_cache(
     async () => {
       const services = await db.service.findMany({
-        where: { 
-          categoryId: categoryId, 
-          isActive: true, 
+        where: {
+          categoryId: categoryId,
+          isActive: true,
           isQuarantined: false,
-          tenantId: { in: [tenantId, 'all'] },
+          tenantId: tenantVisibilityFilter(tenantId),
           OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }]
         },
         include: { smartConfig: true },
         orderBy: { rate: 'asc' },
-        take: PAGE_SIZE + 1
+        take: CATEGORY_SERVICES_HARD_LIMIT + 1
       });
-      if (services.length > PAGE_SIZE) {
-        console.warn(`[catalog] Category ${categoryId} has ${services.length} services, truncating tail to ${PAGE_SIZE}`);
+      if (services.length > CATEGORY_SERVICES_HARD_LIMIT) {
+        logger.warn(`[catalog] AUD-07: category ${categoryId} exceeds ${CATEGORY_SERVICES_HARD_LIMIT} services (${services.length}); storefront shows the cheapest ${CATEGORY_SERVICES_HARD_LIMIT} — consider splitting the category`, { categoryId, tenantId, count: services.length });
       }
-      return services.slice(0, PAGE_SIZE);
+      return services.slice(0, CATEGORY_SERVICES_HARD_LIMIT);
     },
     [`public-services-by-category-v3-${categoryId}-${tenantId}`],
     { revalidate: 60, tags: ['catalog', 'services', `catalog-${tenantId}`, `category-${categoryId}-${tenantId}`] }
@@ -134,12 +155,12 @@ export async function getPublicCatalogAction(tenantId: string = 'smmplan') {
       ? await db.network.findMany({
           where: {
             isActive: true,
-            tenantId: { in: [tenantId, 'all'] },
-            categories: { some: { services: { some: { isActive: true, isQuarantined: false } } } }
+            tenantId: tenantVisibilityFilter(tenantId),
+            categories: { some: storefrontCategoryVisibility(tenantId) }
           },
           include: {
             categories: {
-              where: { services: { some: { isActive: true, isQuarantined: false } } },
+              where: storefrontCategoryVisibility(tenantId),
               orderBy: { name: 'asc' }
             }
           },
@@ -200,7 +221,7 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
               categoryId: categoryId, 
               isActive: true,
               isQuarantined: false,
-              tenantId: { in: [tenantId, 'all'] },
+              tenantId: tenantVisibilityFilter(tenantId),
               OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }]
             },
             select: {
@@ -244,7 +265,7 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
               }
             },
             orderBy: { rate: 'asc' },
-            take: 100
+            take: CATEGORY_SERVICES_HARD_LIMIT
           })
         : getCachedServices(categoryId, tenantId),
       SettingsProvider.getExchangeRateUSD()

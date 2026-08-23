@@ -41,3 +41,24 @@ export function assertSameTenant(session: TenantSession | null | undefined, enti
     throw new Error(`SECURITY_TENANT_MISMATCH: Cross-tenant access blocked! Session tenant: ${sessionTenantId}, Entity tenant: ${entity?.tenantId || 'NONE'}`);
   }
 }
+
+/**
+ * AUD-05 (3.1): canonical catalog visibility rule.
+ *
+ * A tenant sees catalog taxonomy (Network/Category) and services that belong
+ * to its own tenantId OR are explicitly shared with tenantId = 'all'.
+ *
+ * Apply this filter uniformly in EVERY catalog read path:
+ * storefront network tree, category services list, admin listings and the
+ * import wizard category picker. Divergent filters produce "ghost" or
+ * "empty" categories — the root cause of AUD-05.
+ *
+ * Usage:
+ *   db.category.findMany({ where: { tenantId: tenantVisibilityFilter(tenantId), ... } });
+ */
+export function tenantVisibilityFilter(tenantId: string): { in: string[] } {
+  const normalized = (tenantId || '').trim().toLowerCase();
+  const tenant = normalized === 'all' || normalized === '' ? 'smmplan' : normalized;
+  return { in: [tenant, 'all'] };
+}
+
