@@ -60,46 +60,10 @@ export async function deleteAccountAction(prevState: unknown, formData: FormData
       }
     }
 
-    // Wrap database updates in a Prisma $transaction
-    await db.$transaction(async (tx) => {
-      // Write a USER_ACCOUNT_SOFT_DELETION audit log within the transaction
-      await tx.auditLog.create({
-        data: {
-          userId,
-          action: 'USER_ACCOUNT_SOFT_DELETION',
-          details: `User with email ${user.email} initiated self-service account soft-deletion.`,
-        }
-      });
-
-      // Anonymize user details, clear integration details, billing details, password hash, break referrals, and set deleted/inactive flags
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          email: `deleted_${userId}@smmplan.local`,
-          telegramId: null,
-          phoneHash: null,
-          apiKeyHash: null,
-          referralCode: null,
-          companyName: null,
-          inn: null,
-          kpp: null,
-          legalAddress: null,
-          passwordHash: null,
-          referredById: null,
-          isDeleted: true,
-          isActive: false,
-        }
-      });
-
-      // Delete active DB sessions
-      await tx.session.deleteMany({
-        where: { userId },
-      });
-
-      // Delete auth tokens
-      await tx.authToken.deleteMany({
-        where: { userId },
-      });
+    // Soft delete + anonymization via AccountDeletionService
+    const { AccountDeletionService } = await import('@/services/user/account-deletion.service');
+    await AccountDeletionService.anonymizeAndDeleteAccount(userId, {
+      reason: 'User requested self-service deletion (GDPR Art. 17 / 152-FZ)'
     });
 
     // Outside the transaction, clear the session_token cookie and set explicit_logout cookie

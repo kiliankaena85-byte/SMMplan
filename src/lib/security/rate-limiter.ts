@@ -33,7 +33,7 @@ if current < limit then
   local ttl = math.ceil(window / 1000)
   if ttl < 1 then ttl = 1 end
   redis.call('EXPIRE', key, ttl)
-  return 1
+  return current + 1
 else
   return 0
 end
@@ -56,7 +56,7 @@ export async function checkRateLimit(
 
   try {
     if (redis && typeof redis.eval === 'function' && (redis.status === 'ready' || redis.status === 'connecting')) {
-      const allowed = await redis.eval(
+      const currentCount = (await redis.eval(
         LUA_SLIDING_WINDOW_SCRIPT,
         1,
         key,
@@ -64,13 +64,13 @@ export async function checkRateLimit(
         windowMs,
         now,
         uniqueId
-      );
+      )) as number;
 
-      const isAllowed = allowed === 1;
+      const isAllowed = currentCount > 0 && currentCount <= limit;
       return {
         success: isAllowed,
         limit,
-        remaining: isAllowed ? 1 : 0,
+        remaining: isAllowed ? Math.max(0, limit - currentCount) : 0,
         resetSeconds: windowSeconds,
       };
     }
