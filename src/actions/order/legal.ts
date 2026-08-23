@@ -38,7 +38,8 @@ export async function getLegalDocumentAction(slug: string) {
       .replace(/{{PRIVACY_EMAIL}}/g, privacyEmail)
       .replace(/{{SITE_NAME}}/g, siteName);
 
-    return { success: true, data: { title: post.title, html: finalHtml } };
+    const { sanitizeArticleHtml } = await import('@/lib/sanitize');
+    return { success: true, data: { title: post.title, html: sanitizeArticleHtml(finalHtml) } };
   } catch (e) {
     const err = e as Error;
     return { success: false, error: err.message || "Ошибка загрузки документа" };

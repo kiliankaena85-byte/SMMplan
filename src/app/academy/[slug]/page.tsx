@@ -5,6 +5,7 @@ import { headers } from 'next/headers';
 import { BookOpen, Clock, Eye, ChevronLeft, Calendar, UserCircle, ShoppingCart } from 'lucide-react';
 import { absoluteCanonical, getTenantHost, getTenantSiteName, normalizeTenantId } from '@/lib/seo-helpers';
 import { FluxBadge, FluxButton, FluxCard } from '@/components/ui';
+import { sanitizeArticleHtml } from '@/lib/sanitize';
 
 export const dynamic = 'force-dynamic';
 
@@ -205,7 +206,7 @@ export default async function AcademyArticlePage({ params }: AcademyArticlePageP
         {/* ARTICLE HTML RENDER (Tailwind Typography Prose) */}
         <FluxCard variant="glass" padding="xl" className="prose dark:prose-invert max-w-none prose-base sm:prose-lg leading-relaxed prose-headings:font-extrabold prose-headings:tracking-tight prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-strong:font-black prose-img:rounded-3xl prose-img:border prose-img:border-border/60">
           {article.contentHtml ? (
-            <div dangerouslySetInnerHTML={{ __html: article.contentHtml }} />
+            <div dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(article.contentHtml) }} />
           ) : (
             <p className="text-muted-foreground font-semibold">Статья находится на доработке и скоро будет доступна.</p>
           )}

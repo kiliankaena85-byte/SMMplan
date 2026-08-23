@@ -16,6 +16,7 @@ import { MegaFooter } from "@/components/landing/MegaFooter";
 import { absoluteCanonical, getTenantHost, getTenantSiteName, normalizeTenantId } from "@/lib/seo-helpers";
 import { pillarPages, glossaryTerms, clusterArticles } from "@/data/seo";
 import { FluxArticleReader } from "@/components/knowledge/flux/FluxArticleReader";
+import { sanitizeArticleHtml } from "@/lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -506,7 +507,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                 {/* Content rendering: handles HTML strings and markdown */}
                 <div className="prose max-w-none text-foreground/90 leading-relaxed font-sans border-b border-border/40 pb-6 mb-6">
                   {article.content.trim().startsWith("<") ? (
-                    <div dangerouslySetInnerHTML={{ __html: article.content }} />
+                    <div dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(article.content) }} />
                   ) : (
                     renderMarkdown(article.content)
                   )}
