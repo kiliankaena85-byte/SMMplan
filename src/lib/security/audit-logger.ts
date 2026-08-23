@@ -8,6 +8,12 @@ import { db } from '@/lib/db';
 export type SecurityEventType =
   | 'LOGIN_SUCCESS'
   | 'LOGIN_FAILED'
+  | 'LOGOUT'
+  | 'MAGIC_LINK_INVALID_TOKEN'
+  | 'MAGIC_LINK_EXPIRED_OR_INVALID'
+  | 'MAGIC_LINK_REUSE'
+  | 'MAGIC_LINK_ACCOUNT_BLOCKED'
+  | 'CROSS_TENANT_CREDIT_ATTEMPT'
   | '2FA_ENABLED'
   | '2FA_DISABLED'
   | '2FA_VERIFIED'
@@ -17,7 +23,8 @@ export type SecurityEventType =
   | 'API_KEY_USED'
   | 'API_KEY_ROTATED'
   | 'API_KEY_REVOKED'
-  | 'IDOR_BLOCKED';
+  | 'IDOR_BLOCKED'
+  | (string & {});
 
 export interface SecurityEventPayload {
   event: SecurityEventType;
@@ -27,7 +34,7 @@ export interface SecurityEventPayload {
   userAgent?: string;
   tenantId?: string;
   details?: Record<string, unknown>;
-  severity?: 'INFO' | 'WARNING' | 'CRITICAL';
+  severity?: 'INFO' | 'WARNING' | 'HIGH' | 'CRITICAL';
 }
 
 export class SecurityAuditLogger {

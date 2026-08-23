@@ -167,7 +167,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Confirm failed' }, { status: 400 });
     }
   } catch (error: unknown) {
-    console.error('[Robokassa Webhook] Error:', (error instanceof Error ? error.message : String(error)));
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('[Robokassa Webhook] Error:', errorMsg);
+    try {
+      const { getClientIp } = await import('@/utils/ip');
+      const ip = await getClientIp(req);
+      await SecurityAlertService.record({
+        event: 'WEBHOOK_PROCESSING_ERROR',
+        severity: 'HIGH',
+        ip,
+        details: { gateway: 'robokassa', error: errorMsg },
+      });
+    } catch {
+      // Ignore secondary error
+    }
     return NextResponse.json({ error: 'Webhook execution failed' }, { status: 500 });
   }
 }

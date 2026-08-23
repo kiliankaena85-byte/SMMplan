@@ -249,7 +249,20 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ status: 'Ignored unsupported event' }, { status: 200 });
   } catch (error: unknown) {
-    console.error('Webhook error:', (error instanceof Error ? error.message : String(error)));
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('[YooKassa Webhook] Webhook error:', errorMsg);
+    try {
+      const { getClientIp } = await import('@/utils/ip');
+      const ip = await getClientIp(req);
+      await SecurityAlertService.record({
+        event: 'WEBHOOK_PROCESSING_ERROR',
+        severity: 'HIGH',
+        ip,
+        details: { gateway: 'yookassa', error: errorMsg },
+      });
+    } catch {
+      // Ignore secondary error
+    }
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }

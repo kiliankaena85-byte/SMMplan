@@ -4,6 +4,7 @@ import { createSession } from "@/lib/session";
 import crypto from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { SecurityAuditLogger } from "@/lib/security/audit-logger";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -12,8 +13,18 @@ export async function GET(request: Request) {
   const customRedirect = url.searchParams.get("redirectTo");
 
   const loginBase = tenant === "lovable" ? "/login?tenant=lovable&" : "/login?";
+  const ip = request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const userAgent = request.headers.get('user-agent') || 'unknown';
 
   if (!token) {
+    await SecurityAuditLogger.log({
+      event: 'MAGIC_LINK_INVALID_TOKEN',
+      severity: 'WARNING',
+      ip,
+      userAgent,
+      tenantId: tenant,
+      details: { reason: 'Missing token in query' },
+    });
     redirect(`${loginBase}error=InvalidToken`);
   }
 
@@ -24,6 +35,15 @@ export async function GET(request: Request) {
   });
 
   if (!authToken || authToken.expiresAt < new Date()) {
+    await SecurityAuditLogger.log({
+      event: 'MAGIC_LINK_EXPIRED_OR_INVALID',
+      severity: 'WARNING',
+      ip,
+      userAgent,
+      userId: authToken?.userId,
+      tenantId: tenant,
+      details: { reason: !authToken ? 'Token not found' : 'Token expired' },
+    });
     redirect(`${loginBase}error=ExpiredToken`);
   }
 
@@ -34,11 +54,30 @@ export async function GET(request: Request) {
   });
 
   if (result.count === 0) {
+    // CRITICAL: someone is trying to reuse an already-consumed token — potential replay attack
+    await SecurityAuditLogger.log({
+      event: 'MAGIC_LINK_REUSE',
+      severity: 'CRITICAL',
+      ip,
+      userAgent,
+      userId: authToken.userId,
+      tenantId: tenant,
+      details: { reason: 'Token already used (replay attempt)', tokenId: authToken.id },
+    });
     redirect(`${loginBase}error=AlreadyUsed`);
   }
 
   const user = await db.user.findUnique({ where: { id: authToken.userId } });
   if (!user || user.isDeleted || !user.isActive) {
+    await SecurityAuditLogger.log({
+      event: 'MAGIC_LINK_ACCOUNT_BLOCKED',
+      severity: 'HIGH',
+      ip,
+      userAgent,
+      userId: authToken.userId,
+      tenantId: tenant,
+      details: { reason: !user ? 'User not found' : (user.isDeleted ? 'Account deleted' : 'Account inactive') },
+    });
     redirect(`${loginBase}error=AccountBlocked`);
   }
 
@@ -48,6 +87,16 @@ export async function GET(request: Request) {
 
   const { sessionToken, expiresAt } = await createSession(authToken.userId, true);
   
+  await SecurityAuditLogger.log({
+    event: 'LOGIN_SUCCESS',
+    severity: 'INFO',
+    ip,
+    userAgent,
+    userId: user.id,
+    tenantId: tenant,
+    details: { method: 'magic_link' },
+  });
+
   const cookieStore = await cookies();
   cookieStore.set('session_token', sessionToken, {
     httpOnly: true,

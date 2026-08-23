@@ -27,14 +27,17 @@ export class DataRetentionJob {
       });
       deletedAuditLogs = auditResult.count;
 
-      // 2. Purge old security events
-      const secResult = await db.securityEvent.deleteMany({
-        where: {
-          createdAt: { lt: cutoffDate },
-          severity: { in: ['INFO', 'LOW'] },
-        },
+      // 2. Purge old security events using session bypass for immutability trigger
+      await db.$transaction(async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL smmplan.allow_security_event_cleanup = 'true'");
+        const secResult = await tx.securityEvent.deleteMany({
+          where: {
+            createdAt: { lt: cutoffDate },
+            severity: { in: ['INFO', 'LOW'] },
+          },
+        });
+        deletedSecurityLogs = secResult.count;
       });
-      deletedSecurityLogs = secResult.count;
 
       console.info(`[DataRetention] Purged ${deletedAuditLogs} old audit logs and ${deletedSecurityLogs} security events older than ${retentionDays} days.`);
     } catch (err) {

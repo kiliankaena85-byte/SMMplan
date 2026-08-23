@@ -672,16 +672,16 @@ export async function bulkRefundOrdersAction(ticketId: string, orderIds: string[
     const isB2bClient = !!b2bConfig && b2bConfig.isB2b;
 
     let processedCount = 0;
-    let totalRefundedCents = 0;
+    let totalRefundedCents = BigInt(0);
     const errors: string[] = [];
 
     const { calculatePartialRefund } = await import('@/utils/refund');
 
-    const calculatedRefunds: { order: { id: string; numericId: number; userId: string; remains: number; quantity: number; charge: bigint }; calculatedAmount: number }[] = [];
+    const calculatedRefunds: { order: { id: string; numericId: number; userId: string; remains: number; quantity: number; charge: bigint }; calculatedAmount: bigint }[] = [];
 
     await db.$transaction(async (tx) => {
       // Calculate total refund cents first
-      let totalToRefundCents = 0;
+      let totalToRefundCents = BigInt(0);
 
       for (const orderId of orderIds) {
         const order = await tx.order.findUnique({ where: { id: orderId } });
@@ -691,7 +691,7 @@ export async function bulkRefundOrdersAction(ticketId: string, orderIds: string[
             quantity: order.quantity,
             charge: order.charge
           });
-          if (calculatedAmount > 0) {
+          if (calculatedAmount > BigInt(0)) {
             totalToRefundCents += calculatedAmount;
             calculatedRefunds.push({ order, calculatedAmount });
           }
@@ -708,11 +708,11 @@ export async function bulkRefundOrdersAction(ticketId: string, orderIds: string[
         }
       }
 
-      if (totalToRefundCents > 0 && !isB2bClient) {
+      if (totalToRefundCents > BigInt(0) && !isB2bClient) {
         const currentSpentToday = await getAdminSpentToday(admin.id, tx);
         const limitLeft = admin.supportLimitCents - currentSpentToday;
-        if (totalToRefundCents > limitLeft) {
-          throw new Error(`Превышен суточный лимит компенсаций оператора. Требуется: ${(totalToRefundCents / 100).toFixed(2)} ₽, Осталось: ${(limitLeft / 100).toFixed(2)} ₽`);
+        if (Number(totalToRefundCents) > limitLeft) {
+          throw new Error(`Превышен суточный лимит компенсаций оператора. Требуется: ${(Number(totalToRefundCents) / 100).toFixed(2)} ₽, Осталось: ${(limitLeft / 100).toFixed(2)} ₽`);
         }
       }
 
@@ -755,7 +755,7 @@ export async function bulkRefundOrdersAction(ticketId: string, orderIds: string[
     return { 
       success: true, 
       processedCount, 
-      totalRefundedAmount: (totalRefundedCents / 100).toFixed(2), 
+      totalRefundedAmount: (Number(totalRefundedCents) / 100).toFixed(2), 
       errors 
     };
   });

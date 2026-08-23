@@ -165,8 +165,9 @@ model Session {
   expiresAt      DateTime
   userAgent      String?
   ipAddress      String?
-  impersonatedBy String? // SD-07: Admin ID who initiated Login-As (null = real session)
-  createdAt      DateTime @default(now())
+  impersonatedBy        String? // SD-07: Admin ID who initiated Login-As (null = real session)
+  canResetPasswordUntil DateTime? // H2 SECURITY FIX: 15-minute window for password resets after magic-link login
+  createdAt             DateTime @default(now())
 
   @@index([userId])
 }

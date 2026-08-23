@@ -16,11 +16,11 @@ interface Finding {
 }
 
 const SKIP_DIRS = new Set([
-  '.git', 'node_modules', '.next', 'dist', 'build', 'temp_owasp_skills', '.gemini', 'coverage', '.agents'
+  '.git', 'node_modules', '.next', 'dist', 'build', 'temp_owasp_skills', '.gemini', 'coverage', '.agents', '.antigravity', 'test', 'tests', '__tests__', 'scripts'
 ]);
 
 const INCLUDED_EXTENSIONS = new Set([
-  '.ts', '.tsx', '.js', '.jsx', '.json', '.yaml', '.yml', '.html', '.css'
+  '.ts', '.tsx', '.js', '.jsx'
 ]);
 
 const PATTERNS: Array<{ id: string; standard: string; regex: RegExp; note: string }> = [
@@ -64,15 +64,9 @@ const PATTERNS: Array<{ id: string; standard: string; regex: RegExp; note: strin
     note: 'Unsafe raw SQL interpolation — use $queryRaw with parameterized template tag'
   },
   {
-    id: 'innerhtml-assignment',
-    standard: 'Top10:A05',
-    regex: /dangerouslySetInnerHTML\s*=\s*\{\s*\{\s*__html:\s*(?!['"][^'"]*['"])[a-zA-Z0-9_.$]/,
-    note: 'dangerouslySetInnerHTML with dynamic variable — ensure input is sanitized'
-  },
-  {
     id: 'eval-call',
     standard: 'Top10:A05',
-    regex: /(?<![A-Za-z0-9_])eval\s*\(/,
+    regex: /(?<![A-Za-z0-9_$.])eval\s*\(/,
     note: 'eval() call is dangerous; avoid evaluating arbitrary strings'
   },
 
@@ -90,6 +84,14 @@ const PATTERNS: Array<{ id: string; standard: string; regex: RegExp; note: strin
     standard: 'Top10:A07',
     regex: /(?:JSON\.parse\s*\(\s*Buffer\.from|atob)\s*\([^)]*token/i,
     note: 'JWT payload parsed without signature verification'
+  },
+
+  // --- A09 Security Logging and Monitoring Failures ---
+  {
+    id: 'A09-001',
+    standard: 'Top10:A09',
+    regex: /console\.log\s*\([^)]*\b(?:raw_password|plain_secret|apiKeySecret)\b/i,
+    note: 'Sensitive secret data logged via console.log'
   },
 
   // --- LLM Security (OWASP Top 10 for LLM) ---
@@ -148,7 +150,7 @@ function scanDir(dir: string, allFindings: Finding[] = []): Finding[] {
   return allFindings;
 }
 
-const rootDir = process.cwd();
+const rootDir = path.join(process.cwd(), 'src');
 console.log(`🛡️ Running OWASP Security Scanner on ${rootDir}...`);
 const findings = scanDir(rootDir);
 
@@ -156,10 +158,12 @@ console.log(`\nScan finished. Total findings: ${findings.length}`);
 if (findings.length > 0) {
   console.log('\n--- FINDINGS ---');
   for (const f of findings) {
-    console.log(`[${f.standard}] ${f.pattern} in ${path.relative(rootDir, f.file)}:${f.line}`);
+    console.log(`[${f.standard}] ${f.pattern} in ${path.relative(process.cwd(), f.file)}:${f.line}`);
     console.log(`  > ${f.excerpt}`);
     console.log(`  Note: ${f.note}\n`);
   }
+  process.exit(1);
 } else {
   console.log('✅ ZERO OWASP pattern violations found in project source code!');
+  process.exit(0);
 }

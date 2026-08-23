@@ -83,9 +83,16 @@ ${contentTypeHint ? `Желаемый тип контента: ${contentTypeHint
       const cleaned = firstUrl.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
       const domainMatch = cleaned.match(/^([^/]+)/);
       const domain = domainMatch ? domainMatch[1] : 'example\\.com';
-      const escapedDomain = domain.replace(/\./g, '\\.');
+      // Escape ALL regex meta-characters (not just .)
+      const escapedDomain = domain.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
       const fallbackPattern = `${escapedDomain}\\/([a-zA-Z0-9_.-]+)`;
+
+      // Mandatory safety audit on fallback pattern
+      const audit = SafeRegexValidator.staticAudit(fallbackPattern);
+      if (!audit.isSafe) {
+        throw new Error(`Fallback regex pattern failed safety audit: ${audit.reason}. Original Gemini error: ${err}`);
+      }
 
       return {
         pattern: fallbackPattern,

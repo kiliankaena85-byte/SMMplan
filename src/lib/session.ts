@@ -7,8 +7,21 @@ export { getEncodedKey, decryptSessionToken };
 import { getClientIp } from '@/utils/ip';
 import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
+export async function canResetPassword(sessionId: string): Promise<boolean> {
+  if (!sessionId) return false;
+  const session = await db.session.findUnique({
+    where: { id: sessionId },
+    select: { canResetPasswordUntil: true },
+  });
+  if (!session?.canResetPasswordUntil) return false;
+  return session.canResetPasswordUntil > new Date();
+}
+
 export async function createSession(userId: string, canResetPassword: boolean = false) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 дней
+  const canResetPasswordUntil = canResetPassword
+    ? new Date(Date.now() + 15 * 60 * 1000) // 15 минут для reset capability
+    : null;
   
   let userAgent = 'unknown';
   let ipAddress = '127.0.0.1';
@@ -27,6 +40,7 @@ export async function createSession(userId: string, canResetPassword: boolean = 
       expiresAt,
       userAgent,
       ipAddress,
+      canResetPasswordUntil,
     }
   });
 
@@ -64,7 +78,7 @@ export async function createSession(userId: string, canResetPassword: boolean = 
   return { sessionToken, expiresAt };
 }
 
-export async function verifySession(requiredTenantId?: string): Promise<{ userId: string; canResetPassword?: boolean; role?: string; tenantId?: string } | null> {
+export async function verifySession(requiredTenantId?: string): Promise<{ userId: string; sessionId?: string; canResetPassword?: boolean; role?: string; tenantId?: string } | null> {
   let sessionToken: string | undefined;
   try {
     const cookieStore = await cookies();
@@ -159,6 +173,7 @@ export async function verifySession(requiredTenantId?: string): Promise<{ userId
 
     return { 
       userId: user.id,
+      sessionId,
       canResetPassword: payload.canResetPassword === true,
       role: user.role,
       tenantId: user.tenantId

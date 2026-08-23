@@ -28,12 +28,42 @@ export class SecurityAlertService {
   private static readonly THROTTLE_TTL_SEC = 60; // 1 alert per minute per event+ip pair
   private static readonly STREAM_CHANNEL = 'security:events:stream';
 
+  private static readonly SENSITIVE_KEYS = new Set([
+    'password', 'token', 'secret', 'signature', 'apikey', 'authorization',
+    'cookie', 'sessiontoken', 'refreshtoken', 'privatekey', 'cert',
+  ]);
+
+  private static readonly PII_KEYS = new Set([
+    'email', 'phone', 'userid',
+  ]);
+
+  public static redactDetails(details: Record<string, unknown>): Record<string, unknown> {
+    if (!details || typeof details !== 'object') return {};
+    const redacted: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(details)) {
+      const lowerKey = key.toLowerCase();
+      if (this.SENSITIVE_KEYS.has(lowerKey)) {
+        redacted[key] = '[REDACTED]';
+      } else if (this.PII_KEYS.has(lowerKey) && value) {
+        // Hash PII for correlation without storing raw
+        const crypto = require('crypto');
+        redacted[key] = crypto.createHash('sha256').update(String(value)).digest('hex').slice(0, 16);
+      } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        redacted[key] = this.redactDetails(value as Record<string, unknown>);
+      } else {
+        redacted[key] = value;
+      }
+    }
+    return redacted;
+  }
+
   /**
    * Records a security event to DB, broadcasts via Redis Pub/Sub,
    * and sends an immediate Telegram alert to admins if CRITICAL/HIGH (with anti-flooding).
    */
   static async record(input: SecurityEventInput): Promise<SecurityEvent | null> {
     const { event, severity, ip, tenantId = 'smmplan', details = {} } = input;
+    const cleanDetails = this.redactDetails(details);
 
     let created: SecurityEvent | null = null;
 
@@ -45,7 +75,7 @@ export class SecurityAlertService {
             severity,
             ip: ip || null,
             tenantId: tenantId || 'smmplan',
-            details: details ? (details as unknown as object) : undefined,
+            details: cleanDetails ? (cleanDetails as unknown as object) : undefined,
           },
         });
       }

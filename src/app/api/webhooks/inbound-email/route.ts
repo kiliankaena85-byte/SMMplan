@@ -8,6 +8,8 @@ import { z } from 'zod';
 import { SettingsProvider } from '@/lib/settings';
 import { getMimeType } from '@/lib/mime';
 import { RateLimitService } from '@/services/core/rate-limit.service';
+import { SecurityAlertService } from '@/services/security/security-alert.service';
+import { getClientIp } from '@/utils/ip';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,34 +25,25 @@ function slugifyFileName(name: string): string {
     'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
     'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts',
     'ч': 'ch', 'ш': 'sh', 'щ': 'sch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu',
-    'я': 'ya',
-    'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'Yo', 'Ж': 'Zh',
-    'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N', 'О': 'O',
-    'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U', 'Ф': 'F', 'Х': 'Kh', 'Ц': 'Ts',
-    'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Sch', 'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu',
-    'Я': 'Ya'
+    'я': 'ya'
   };
 
-  // Convert Cyrillic to Latin
-  base = base.split('').map(char => charMap[char] || char).join('');
-
-  // Replace invalid filename characters with hyphens
   base = base
-    .replace(/[^a-zA-Z0-9-_]/g, '-')
+    .toLowerCase()
+    .split('')
+    .map(char => charMap[char] || char)
+    .join('')
+    .replace(/[^a-z0-9]/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
 
-  if (!base) {
-    base = 'attachment';
-  }
-
-  // Cap base length to fit path limits
-  base = base.substring(0, 50);
-
+  if (!base) base = 'attachment';
   return ext ? `${base}.${ext.toLowerCase()}` : base;
 }
 
 export async function POST(req: NextRequest) {
+  const ip = await getClientIp(req);
+
   try {
     const isAllowed = await RateLimitService.check('inboundEmailWebhook', 30, 60);
     if (!isAllowed) {
@@ -60,6 +53,12 @@ export async function POST(req: NextRequest) {
     const webhookSecret = await SettingsProvider.getInboundEmailWebhookSecret();
     if (!webhookSecret) {
       console.error('[CRITICAL] Inbound email webhook secret is not configured. Rejecting request.');
+      await SecurityAlertService.record({
+        event: 'MISSING_SECRET',
+        severity: 'CRITICAL',
+        ip,
+        details: { gateway: 'inbound-email' },
+      });
       return NextResponse.json({ error: 'Inbound email webhook not configured' }, { status: 503 });
     }
 
@@ -67,6 +66,12 @@ export async function POST(req: NextRequest) {
     const contentLength = req.headers.get('content-length');
     if (contentLength && parseInt(contentLength, 10) > 10 * 1024 * 1024) { // 10MB limit
       console.error('[CRITICAL] Webhook request body too large (Content-Length). Rejected to prevent OOM.');
+      await SecurityAlertService.record({
+        event: 'OVERSIZED_PAYLOAD',
+        severity: 'WARNING',
+        ip,
+        details: { gateway: 'inbound-email', size: contentLength },
+      });
       return NextResponse.json({ error: 'Request body too large' }, { status: 413 });
     }
 
@@ -75,6 +80,12 @@ export async function POST(req: NextRequest) {
     const bodyStream = req.body;
     if (!bodyStream) {
       console.error('[CRITICAL] Webhook request body stream is null or unavailable.');
+      await SecurityAlertService.record({
+        event: 'INVALID_REQUEST',
+        severity: 'WARNING',
+        ip,
+        details: { gateway: 'inbound-email', reason: 'body stream unavailable' },
+      });
       return NextResponse.json({ error: 'Request body unavailable' }, { status: 400 });
     }
 
@@ -91,6 +102,12 @@ export async function POST(req: NextRequest) {
           if (totalBytes > 10 * 1024 * 1024) { // 10MB Hard Limit
             console.error('[CRITICAL] Webhook request body too large during stream consumption (spoof protection). Rejected.');
             reader.releaseLock();
+            await SecurityAlertService.record({
+              event: 'OVERSIZED_PAYLOAD',
+              severity: 'WARNING',
+              ip,
+              details: { gateway: 'inbound-email', bytesRead: totalBytes },
+            });
             return NextResponse.json({ error: 'Request body too large' }, { status: 413 });
           }
           rawBody += decoder.decode(value, { stream: true });
@@ -100,6 +117,12 @@ export async function POST(req: NextRequest) {
     } catch (streamError) {
       console.error('Error reading webhook body stream:', streamError);
       reader.releaseLock();
+      await SecurityAlertService.record({
+        event: 'INVALID_REQUEST',
+        severity: 'WARNING',
+        ip,
+        details: { gateway: 'inbound-email', reason: 'stream read error' },
+      });
       return NextResponse.json({ error: 'Failed to read request stream' }, { status: 400 });
     }
 
@@ -116,6 +139,12 @@ export async function POST(req: NextRequest) {
         const ageSeconds = Math.abs(Date.now() - timestampMs) / 1000;
         if (ageSeconds > 300) { // 5 minutes window (replay attack mitigation)
           console.error('[CRITICAL] Webhook request expired (replay protection check failed).');
+          await SecurityAlertService.record({
+            event: 'REPLAY_ATTEMPT',
+            severity: 'HIGH',
+            ip,
+            details: { gateway: 'inbound-email', timestamp: timestampHeader },
+          });
           return NextResponse.json({ error: 'Webhook request expired (replay protection)' }, { status: 400 });
         }
       }
@@ -142,6 +171,12 @@ export async function POST(req: NextRequest) {
                         
       if (!signature) {
         console.error('[CRITICAL] Webhook authorization/signature header missing.');
+        await SecurityAlertService.record({
+          event: 'MISSING_SIGNATURE',
+          severity: 'CRITICAL',
+          ip,
+          details: { gateway: 'inbound-email' },
+        });
         return NextResponse.json({ error: 'Signature header missing' }, { status: 401 });
       }
 
@@ -196,6 +231,12 @@ export async function POST(req: NextRequest) {
         }
 
         console.error(`[CRITICAL] [ACTION REQUIRED] Webhook validation failed. Possible lost email from customer. Signature mismatch. Sender: ${extractedFrom}, TicketID: ${extractedTicketId}`);
+        await SecurityAlertService.record({
+          event: 'INVALID_SIGNATURE',
+          severity: 'CRITICAL',
+          ip,
+          details: { gateway: 'inbound-email', ticketId: extractedTicketId },
+        });
         return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 401 });
       }
     }
@@ -211,6 +252,12 @@ export async function POST(req: NextRequest) {
     const match = toAddress.match(/support\+(.+)@/i);
     if (!match) {
       console.error(`[CRITICAL] [ACTION REQUIRED] Email webhook failed: No ticket ID in To address. To: ${toAddress}, Sender: ${fromAddress}`);
+      await SecurityAlertService.record({
+        event: 'INVALID_REQUEST',
+        severity: 'WARNING',
+        ip,
+        details: { gateway: 'inbound-email', reason: 'No ticket ID in To address' },
+      });
       return NextResponse.json({ error: 'No ticket ID in To address' }, { status: 400 });
     }
     
@@ -221,6 +268,12 @@ export async function POST(req: NextRequest) {
     const parseResult = cuidSchema.safeParse(ticketId);
     if (!parseResult.success) {
       console.error(`[CRITICAL] [ACTION REQUIRED] Email webhook failed: Path Traversal or malformed CUID ticket ID. Ticket ID: ${ticketId}, Sender: ${fromAddress}`);
+      await SecurityAlertService.record({
+        event: 'PATH_TRAVERSAL_ATTEMPT',
+        severity: 'CRITICAL',
+        ip,
+        details: { gateway: 'inbound-email', ticketId },
+      });
       return NextResponse.json({ error: 'Invalid ticket ID format' }, { status: 400 });
     }
     
@@ -232,6 +285,12 @@ export async function POST(req: NextRequest) {
     
     if (!ticket) {
       console.error(`[CRITICAL] [ACTION REQUIRED] Email webhook failed: Ticket not found in database. Ticket ID: ${ticketId}, Sender: ${fromAddress}`);
+      await SecurityAlertService.record({
+        event: 'TICKET_NOT_FOUND',
+        severity: 'INFO',
+        ip,
+        details: { gateway: 'inbound-email', ticketId },
+      });
       return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
     }
     
@@ -244,6 +303,12 @@ export async function POST(req: NextRequest) {
 
     if (!ticket.user.email || extractedFrom !== ticket.user.email.toLowerCase()) {
       console.error(`[CRITICAL] [ACTION REQUIRED] Email webhook failed: Unauthorized sender. Ticket ID: ${ticketId}, Sender: ${extractedFrom}, Ticket Owner: ${ticket.user.email}`);
+      await SecurityAlertService.record({
+        event: 'UNAUTHORIZED_SENDER',
+        severity: 'HIGH',
+        ip,
+        details: { gateway: 'inbound-email', ticketId },
+      });
       return NextResponse.json({ error: 'Unauthorized sender' }, { status: 403 });
     }
     
@@ -294,6 +359,12 @@ export async function POST(req: NextRequest) {
           
           if (!dir.startsWith(uploadBase)) {
             console.error(`[CRITICAL] Path traversal attempt blocked! Dir: ${dir}, Base: ${uploadBase}`);
+            await SecurityAlertService.record({
+              event: 'PATH_TRAVERSAL_ATTEMPT',
+              severity: 'CRITICAL',
+              ip,
+              details: { gateway: 'inbound-email', path: dir },
+            });
             return NextResponse.json({ error: 'Invalid file path' }, { status: 400 });
           }
           
@@ -335,7 +406,14 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json({ success: true });
   } catch (e) {
-    console.error('[Inbound Email Webhook] Error:', e);
+    const errorMsg = e instanceof Error ? e.message : String(e);
+    console.error('[Inbound Email Webhook] Error:', errorMsg);
+    await SecurityAlertService.record({
+      event: 'INTERNAL_ERROR',
+      severity: 'CRITICAL',
+      ip,
+      details: { gateway: 'inbound-email', error: errorMsg },
+    }).catch(() => {});
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

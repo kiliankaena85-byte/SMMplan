@@ -38,17 +38,24 @@ export async function POST(req: Request) {
     const { SecurityAlertService } = await import('@/services/security/security-alert.service');
 
     // 1. Mandatory Timestamp Freshness (prevent replay attack within 5 minutes)
-    if (timestamp) {
-      const reqTime = parseInt(timestamp, 10);
-      if (isNaN(reqTime) || Math.abs(Date.now() - reqTime) > 5 * 60 * 1000) {
-        await SecurityAlertService.record({
-          event: 'REPLAY_ATTEMPT',
-          severity: 'HIGH',
-          ip,
-          details: { gateway: 'provider_default', timestamp },
-        });
-        return NextResponse.json({ error: 'Webhook timestamp expired or invalid' }, { status: 403 });
-      }
+    if (!timestamp) {
+      await SecurityAlertService.record({
+        event: 'MISSING_TIMESTAMP',
+        severity: 'HIGH',
+        ip,
+        details: { gateway: 'provider_default' },
+      });
+      return NextResponse.json({ error: 'Missing x-timestamp header' }, { status: 403 });
+    }
+    const reqTime = parseInt(timestamp, 10);
+    if (isNaN(reqTime) || Math.abs(Date.now() - reqTime) > 5 * 60 * 1000) {
+      await SecurityAlertService.record({
+        event: 'REPLAY_ATTEMPT',
+        severity: 'HIGH',
+        ip,
+        details: { gateway: 'provider_default', timestamp },
+      });
+      return NextResponse.json({ error: 'Webhook timestamp expired or invalid' }, { status: 403 });
     }
     
     // SD-01 SECURITY FIX: Fail-closed — reject all requests if WEBHOOK_SECRET is not configured.

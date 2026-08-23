@@ -616,6 +616,32 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
           paymentUrl: existingOrder.payment?.checkoutUrl || ''
         };
       }
+
+      // Handle lock-acquire-timeout: concurrent attempt likely already processing
+      if (err instanceof Error && (err.message.includes('Failed to acquire lock') || err.message.includes('Lock acquisition timeout'))) {
+        console.warn(`[Checkout] Lock acquisition timeout for user ${user?.id}, checking for existing order.`);
+        if (idempotencyKey) {
+          const existingOrder = await db.order.findUnique({
+            where: { idempotencyKey },
+            include: { payment: true }
+          });
+          if (existingOrder && existingOrder.status !== 'ERROR') {
+            console.info(`[Checkout] Lock timeout but order exists, returning existing order.`);
+            return {
+              orderId: existingOrder.id,
+              paymentId: existingOrder.paymentId,
+              paymentUrl: existingOrder.payment?.checkoutUrl || ''
+            };
+          }
+        }
+        return {
+          orderId: '',
+          paymentId: '',
+          paymentUrl: '',
+          error: 'Concurrent request in progress. Please retry in a few seconds.'
+        };
+      }
+
       const isP2002 = err instanceof Prisma.PrismaClientKnownRequestError ? err.code === 'P2002' : (err && typeof err === 'object' && 'code' in err && (err as { code?: string }).code === 'P2002');
       if (isP2002 && idempotencyKey) {
         const existingOrder = await db.order.findUnique({

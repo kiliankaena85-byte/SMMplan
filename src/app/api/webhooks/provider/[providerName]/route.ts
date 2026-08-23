@@ -84,15 +84,13 @@ export async function POST(
 
     const expectedSigDot = crypto.createHmac('sha256', secret).update(`${timestamp}.${rawBody}`).digest('hex');
     const expectedSigWithTs = crypto.createHmac('sha256', secret).update(`${rawBody}:${timestamp}`).digest('hex');
-    const expectedSigRaw = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
     const cleanSig = signature.startsWith('sha256=') ? signature.slice(7) : signature;
 
     const sigBuffer = Buffer.from(cleanSig);
     const isMatchDot = sigBuffer.length === expectedSigDot.length && crypto.timingSafeEqual(sigBuffer, Buffer.from(expectedSigDot));
     const isMatchWithTs = sigBuffer.length === expectedSigWithTs.length && crypto.timingSafeEqual(sigBuffer, Buffer.from(expectedSigWithTs));
-    const isMatchRaw = sigBuffer.length === expectedSigRaw.length && crypto.timingSafeEqual(sigBuffer, Buffer.from(expectedSigRaw));
 
-    if (!isMatchDot && !isMatchWithTs && !isMatchRaw) {
+    if (!isMatchDot && !isMatchWithTs) {
       await SecurityAlertService.record({
         event: 'INVALID_SIGNATURE',
         severity: 'CRITICAL',

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { jwtVerify } from 'jose';
 import { getEncodedKey } from '@/lib/session';
+import { SecurityAuditLogger } from '@/lib/security/audit-logger';
 
 async function deleteSessionFromDB(token?: string) {
   if (token) {
@@ -24,7 +25,34 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const cookieStore = await cookies();
   const token = cookieStore.get('session_token')?.value;
+
+  const ip = request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const userAgent = request.headers.get('user-agent') || 'unknown';
+
+  let userId: string | undefined;
+  if (token) {
+    try {
+      const { payload } = await jwtVerify(token, getEncodedKey(), { algorithms: ['HS256'] });
+      userId = payload.userId as string | undefined;
+    } catch {
+      // ignore jwt errors
+    }
+  }
+
   await deleteSessionFromDB(token);
+
+  try {
+    await SecurityAuditLogger.log({
+      event: 'LOGOUT',
+      severity: 'INFO',
+      ip,
+      userAgent,
+      userId,
+      details: { method: 'explicit_logout' },
+    });
+  } catch (err) {
+    console.error('[Logout] Failed to log audit event:', err);
+  }
   
   cookieStore.delete('session_token');
   cookieStore.set('explicit_logout', 'true', {

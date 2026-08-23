@@ -444,31 +444,32 @@ export async function runInProgressTTLSweep(): Promise<void> {
 
       const quantity = order.quantity;
       const charge = order.charge;
+      const isProviderCanceled = statusFromProvider === 'canceled' || statusFromProvider === 'error';
 
       let targetStatus: 'COMPLETED' | 'ERROR' | 'PARTIAL';
-      let refundCents = 0;
+      let refundCents = BigInt(0);
       let delivered = 0;
-
       let reasonText = '';
+
       if (statusFromProvider === 'completed') {
         targetStatus = 'COMPLETED';
-        refundCents = 0;
+        refundCents = BigInt(0);
         delivered = quantity;
         reasonText = `Заказ завершён (подтверждено провайдером). Выполнено ${delivered} из ${quantity}.`;
-      } else if (statusFromProvider === 'canceled' || statusFromProvider === 'error') {
+      } else if (isProviderCanceled) {
         targetStatus = 'ERROR';
-        refundCents = Number(charge);
+        refundCents = typeof charge === 'bigint' ? charge : BigInt(charge);
         delivered = 0;
         reasonText = `Заказ отменён провайдером. Стоимость полностью возвращена на баланс.`;
       } else {
         if (remains <= 0) {
           targetStatus = 'COMPLETED';
-          refundCents = 0;
+          refundCents = BigInt(0);
           delivered = quantity;
           reasonText = `Заказ завершён по таймауту (72ч IN_PROGRESS). Выполнено ${delivered} из ${quantity}.`;
         } else if (remains >= quantity) {
           targetStatus = 'ERROR';
-          refundCents = Number(charge);
+          refundCents = typeof charge === 'bigint' ? charge : BigInt(charge);
           delivered = 0;
           reasonText = `Заказ завершён по таймауту (72ч IN_PROGRESS). Выполнено 0 из ${quantity}. Стоимость возвращена на баланс.`;
         } else {
@@ -506,7 +507,7 @@ export async function runInProgressTTLSweep(): Promise<void> {
           }
 
           // Handle refund
-          if (refundCents > 0) {
+          if (refundCents > BigInt(0)) {
             const refundKey = `refund-ttl-${order.id}`;
             const existingLedger = await tx.ledgerEntry.findFirst({
               where: { idempotencyKey: refundKey }
@@ -524,7 +525,7 @@ export async function runInProgressTTLSweep(): Promise<void> {
           }
 
           processedCount++;
-          const refundRub = (refundCents / 100).toFixed(2);
+          const refundRub = (Number(refundCents) / 100).toFixed(2);
           processedDetails.push(
             `• ID: \`${order.id}\` (#${order.numericId}), Юзер: \`${order.userId}\`, Выполнено: ${delivered}/${quantity}, Статус: \`${targetStatus}\`, Возврат: ${refundRub} ₽`
           );

@@ -86,3 +86,6 @@ jobs:
 
       - name: Verify No Secrets in Build Artifacts
         run: node scripts/verify-no-secrets.js
+
+      - name: OWASP Static Security Scan
+        run: npx tsx scripts/owasp-scan.ts

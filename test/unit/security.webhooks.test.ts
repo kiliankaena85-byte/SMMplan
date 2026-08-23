@@ -272,7 +272,10 @@ describe('🔒 SEC-WEBHOOKS: Cryptography & Webhook Access Guards', () => {
       const { POST } = await import('@/app/api/webhooks/provider/route');
       const req = new Request('https://smmplan.pro/api/webhooks/provider?secret=test-webhook-secret-2026&order=123', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-timestamp': String(Date.now()),
+        },
         body: JSON.stringify({ id: '123' })
       });
 
@@ -296,7 +299,8 @@ describe('🔒 SEC-WEBHOOKS: Cryptography & Webhook Access Guards', () => {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'x-webhook-secret': 'test-webhook-secret-2026'
+          'x-webhook-secret': 'test-webhook-secret-2026',
+          'x-timestamp': String(Date.now()),
         },
         body: JSON.stringify({ id: 'non-existent-order-id-test' })
       });
@@ -420,6 +424,26 @@ describe('🔒 SEC-WEBHOOKS: Cryptography & Webhook Access Guards', () => {
       expect(res.status).toBe(401);
       const data = await res.json();
       expect(data.error).toBe('Unauthorized');
+    });
+  });
+
+  describe('Provider Catch-All Webhook (/api/webhooks/provider)', () => {
+    it('SEC-PROV-CATCHALL-001: Returns 403 when x-timestamp header is missing', async () => {
+      vi.stubEnv('WEBHOOK_SECRET', 'test-webhook-secret-2026');
+      const { POST } = await import('@/app/api/webhooks/provider/route');
+      const req = new NextRequest('https://smmplan.pro/api/webhooks/provider', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-webhook-secret': 'test-webhook-secret-2026',
+        },
+        body: JSON.stringify({ id: '123' }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(403);
+      const data = await res.json();
+      expect(data.error).toBe('Missing x-timestamp header');
     });
   });
 

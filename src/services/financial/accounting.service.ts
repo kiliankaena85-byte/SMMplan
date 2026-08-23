@@ -64,7 +64,7 @@ class AccountingService {
     for (const order of refundedOrders) {
       if (order.quantity > 0 && order.remains > 0) {
         const { calculatePartialRefund } = await import('@/utils/refund');
-        refunds += calculatePartialRefund(order);
+        refunds += Number(calculatePartialRefund(order));
       } else if (order.status === 'CANCELED') {
         refunds += Number(order.charge);
       }

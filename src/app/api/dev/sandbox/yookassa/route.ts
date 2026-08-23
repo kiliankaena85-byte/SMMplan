@@ -30,6 +30,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing userId or amount' }, { status: 400 });
     }
 
+    // Cross-tenant protection: non-OWNER staff can only credit users in their own tenant
+    const targetUser = await db.user.findUnique({
+      where: { id: userId },
+      select: { tenantId: true, email: true },
+    });
+    if (!targetUser) {
+      return NextResponse.json({ error: 'Target user not found' }, { status: 404 });
+    }
+
+    const { verifySession } = await import('@/lib/session');
+    const session = await verifySession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const isOwner = session.role === 'OWNER';
+    if (!isOwner && targetUser.tenantId !== session.tenantId) {
+      const { SecurityAlertService } = await import('@/services/security/security-alert.service');
+      const { getClientIp } = await import('@/utils/ip');
+      const ip = await getClientIp(req);
+      await SecurityAlertService.record({
+        event: 'CROSS_TENANT_CREDIT_ATTEMPT',
+        severity: 'HIGH',
+        ip,
+        details: { adminUserId: session.userId, adminTenant: session.tenantId, targetUserId: userId, targetTenant: targetUser.tenantId },
+      });
+      return NextResponse.json({ error: 'Forbidden: cross-tenant credit not allowed' }, { status: 403 });
+    }
+
     const fakeGatewayId = `dev_yookassa_${Date.now()}`;
     const amountCents = Math.round(amount * 100);
 

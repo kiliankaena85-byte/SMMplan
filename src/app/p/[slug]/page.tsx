@@ -2,6 +2,7 @@ import { db as prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { draftMode, headers } from "next/headers";
 import parse, { DOMNode, Element } from "html-react-parser";
+import { sanitizeArticleHtml } from "@/lib/sanitize";
 import Link from "next/link";
 import { absoluteCanonical, getTenantSiteName, normalizeTenantId } from "@/lib/seo-helpers";
 import { FluxBadge, FluxButton, FluxCard } from "@/components/ui";
@@ -195,7 +196,7 @@ export default async function CMSPage({ params }: PageProps) {
         )}
 
         <FluxCard variant="glass" padding="xl" className="prose dark:prose-invert max-w-none text-foreground leading-relaxed text-sm sm:text-base font-normal prose-headings:font-black prose-headings:tracking-tight prose-a:text-purple-600 hover:prose-a:underline">
-          {parse(finalHtml, parserOptions)}
+          {parse(sanitizeArticleHtml(finalHtml), parserOptions)}
         </FluxCard>
       </div>
     </main>

@@ -2,30 +2,35 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-24 | Агент: Antigravity
-## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕНА РЕМЕДИАЦИЯ БЕЗОПАСНОСТИ v4.4 (REMEDIATION_PROMPT_v4.4.md) — 100% PASS
+## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕНА РЕМЕДИАЦИЯ БЕЗОПАСНОСТИ v4.5 (REMEDIATION_PROMPT_v4.5.md) — 100% PASS
 - **P0 (CRITICAL/HIGH) — Завершено 100%**:
-  - `P0.1 & P0.2 VexBoost Webhook`: Mandatory `x-timestamp` (fail-closed, 5 min replay defense), HMAC-SHA256 signature verification over `timestamp.body` / `body:timestamp`.
-  - `P0.3 Provider Catch-all`: `SecurityAlertService.record()` при 401 (mismatch) и 500 (catch), mandatory `x-timestamp`.
-  - `P0.4 & P0.5 Provider/[name]`: Whitelist разрешенных провайдеров (`ALLOWED_PROVIDER_NAMES = new Set(['vexboost', 'smmstone'])`), удален unsafe fallback на `provider.apiKey`, HMAC bound to `timestamp.body`.
-  - `P0.6 Redis Lock Heartbeat`: `MutexManager.withLock` обновлен — автоматическое продление TTL каждые `ttlMs / 3` мс с гарантированной очисткой в `finally`.
-  - `P0.7 WalletOps.refund`: Убран silent clamp `totalSpent` — внедрен fail-fast throw с отменой транзакции при нарушении целостности (`totalSpent < 0`).
-  - `P0.8 Webhook Catch Logging`: `SecurityAlertService.record()` интегрирован во все catch-блоки вебхуков.
+  - `P0.1 Provider Catch-All Fail-Closed`: Требуется обязательный `x-timestamp` (<5 мин), при отсутствии или истечении — отказ `403`.
+  - `P0.2 & P0.3 Stored XSS Protection`: Добавлена `sanitizeArticleHtml` в `LegalPageContent.tsx` (оба макета SMMflux/SMMplan) и `src/app/p/[slug]/page.tsx`.
+  - `P0.4 & P0.5 No Raw-HMAC Fallback`: Удален `expectedSigRaw` в `vexboost/route.ts` и `provider/[providerName]/route.ts`. Поддерживается только криптографическая связка `timestamp.body` / `body:timestamp`.
+  - `P0.6 Lockfile Integrity`: Восстановлена целостность всех пакетов в `package-lock.json` (0 missing integrity).
+  - `P0.7 SecurityEvent Immutability Trigger`: Создан SQL-триггер PostgreSQL, блокирующий `UPDATE` и `DELETE` по таблице `"SecurityEvent"`, с обходом только для `cleanup-pii.job.ts` в транзакции.
+  - `P0.8 & P0.9 Auth Audit Trail`: Полный аудит в `auth/verify/route.ts` и `auth/logout/route.ts` через `SecurityAuditLogger`.
+  - `P0.10 Inbound Email Webhook`: Интеграция `SecurityAlertService.record()` во все пути валидации.
+  - `P0.11 & P1.6 OWASP Static Security Scanner`: Добавлен `owasp:scan` в CI и `package.json`, 0 уязвимостей в `src/`.
 - **P1 / P2 — Завершено 100%**:
-  - `P1.1 CSP Hardening`: Сужен `connect-src` в `nginx/default.conf`, удален `'unsafe-eval'`, добавлены `worker-src 'self'`, `frame-src 'none'`.
-  - `P1.2 Staging Hardening`: Добавлен `security_opt: [no-new-privileges:true]` для всех сервисов в `docker-compose.staging.yml`.
-  - `P1.3 Redis Config Sync`: Синхронизированы `maxmemory-policy noeviction` и `appendonly yes` в `docker/redis.conf` и compose.
-  - `P1.4 maskProviderKey`: Добавлен `try/catch` wrapper, предотвращающий падение UI при некорректных шифротекстах.
-  - `P1.5 encryption.ts`: Логирование ошибок в `decrypt()` ограничено `err.message` без утечки внутренностей стека.
-  - `P1.7 mock-provider`: Сравнение API-ключа переведено на `crypto.timingSafeEqual`.
-  - `P2.4 re-encrypt-secrets.ts`: Удалено ghost-поле `webhookSecret`.
-  - `P2.5 verify-no-secrets.js`: Regex-сканер обновлен и протестирован.
+  - `P1.1 canResetPasswordUntil`: 15-минутный TTL в модели `Session` и в базе данных для сброса пароля.
+  - `P1.2 Unified Password Policy`: Единая `passwordPolicySchema` применена в `password-settings.ts`.
+  - `P1.3 BigInt Refund Pipeline`: `refund.ts`, `refund-policy.service.ts`, `orders.ts`, `ticket.ts`, `order.service.ts`, `cleanup.processor.ts` переведены на строгую `BigInt` арифметику.
+  - `P1.4 Lock Acquire Timeout`: Грациозный fallback с поиском заказа по `idempotencyKey` в `checkout.ts`.
+  - `P1.5 Sensitive Data Redaction`: Автоматическое маскирование паролей, токенов, ключей и хэширование PII в `SecurityAlertService.record()`.
+  - `P1.7 Crypto Webhook IP Whitelist`: Внедрен hook с валидацией IP и аудит-трейлом при подмене.
+  - `P1.8 Mock Payment QA_SECRET_KEY`: Добавлена timing-safe проверка `QA_SECRET_KEY`.
+  - `P1.9 Sandbox YooKassa Cross-Tenant Guard`: Проверка соответствия тенанта администратора и пользователя.
+  - `P2.1 Container Hardening`: `cap_drop: [ALL]`, `read_only: true`, `tmpfs` в `docker-compose.prod.yml`.
+  - `P2.3 & P2.4 CSP & Frame Protection`: Унифицирован заголовок `X-Frame-Options: DENY` и согласован `connect-src` в Nginx и Next.js.
+  - `P2.6 500 Catch Alerting`: Запись `WEBHOOK_PROCESSING_ERROR` в `yookassa`, `robokassa`, `crypto`.
+  - `P2.7 AI Regex Fallback Audit`: Экранирование спецсимволов и статический аудит `SafeRegexValidator.staticAudit` в fallback-ветке.
 - **Верификация**:
   - `npx tsc --noEmit` — 0 ошибок типов (100% PASS).
-  - `npm run test -- test/unit/security.webhooks.test.ts` — 22/22 PASS.
-  - `npm run test -- src/actions/order/__tests__/checkout.test.ts` — 4/4 PASS.
-  - `npm run test -- test/unit/security-alert.service.test.ts test/unit/wallet.race.test.ts test/unit/marketing.test.ts` — 13/13 PASS.
+  - `npm run test -- test/unit/security.webhooks.test.ts test/unit/sanitize.test.ts test/unit/security-alert.service.test.ts` — 32/32 PASS (100%).
+  - `npx tsx scripts/owasp-scan.ts` — 0 findings (PASS).
   - `node scripts/verify-no-secrets.js` — PASS (0 leaked secrets).
-  - `npm run build` — Next.js build success!
+  - `npm run build` — Next.js production build success!
 
 
 ---

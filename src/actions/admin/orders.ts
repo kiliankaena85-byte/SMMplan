@@ -117,11 +117,11 @@ export async function setOrderStatusAction(
 
       const TERMINAL_REFUNDED_STATUSES = ['COMPLETED', 'CANCELED', 'ERROR', 'PARTIAL'];
 
-      let refundCents = 0;
+      let refundCents = BigInt(0);
       if (['CANCELED', 'ERROR', 'COMPLETED'].includes(newStatus) && !TERMINAL_REFUNDED_STATUSES.includes(oldStatus)) {
         if (['PENDING', 'AWAITING_PAYMENT', 'PENDING_CHECK'].includes(oldStatus)) {
           // Marking a pending order as COMPLETED means it was manually fulfilled. No refund.
-          refundCents = newStatus === 'COMPLETED' ? 0 : Number(order.charge);
+          refundCents = newStatus === 'COMPLETED' ? BigInt(0) : BigInt(order.charge);
         } else {
           refundCents = calculatePartialRefund(order);
         }
@@ -141,7 +141,7 @@ export async function setOrderStatusAction(
         },
       });
 
-      if (refundCents > 0) {
+      if (refundCents > BigInt(0)) {
         await WalletOps.refund(tx, order.userId, refundCents,
           `Ручная смена статуса заказа #${order.numericId}: ${oldStatus}→${newStatus}`,
           { adminId: admin.id, idempotencyKey: `refund_${order.id}_${newStatus}` }
@@ -164,7 +164,7 @@ export async function setOrderStatusAction(
 
     revalidatePath('/admin/orders');
     CompensationService.trackCompensation(validatedOrderId).catch(err => console.error('[AdminOrders] Failed to track compensation', err));
-    return { success: true as const, refundCents: result.refundCents, numericId: result.numericId };
+    return { success: true as const, refundCents: Number(result.refundCents), numericId: result.numericId };
   });
 }
 
@@ -247,7 +247,7 @@ export async function bulkCancelOrdersAction(
       where: { id: { in: targetIds }, tenantId: admin.tenantId ?? 'smmplan' },
     });
 
-    let totalRefunded = 0;
+    let totalRefunded = BigInt(0);
     let count = 0;
 
     for (const order of orders) {
@@ -261,7 +261,7 @@ export async function bulkCancelOrdersAction(
             if (!safeOrder || ['COMPLETED', 'CANCELED', 'ERROR'].includes(safeOrder.status)) return;
 
             const refundCents = (['PENDING', 'AWAITING_PAYMENT', 'PENDING_CHECK'].includes(safeOrder.status))
-              ? Number(safeOrder.charge)
+              ? (typeof safeOrder.charge === 'bigint' ? safeOrder.charge : BigInt(safeOrder.charge))
               : calculatePartialRefund(safeOrder);
 
             await tx.order.update({
@@ -269,7 +269,7 @@ export async function bulkCancelOrdersAction(
               data: { status: 'CANCELED' },
             });
 
-            if (refundCents > 0) {
+            if (refundCents > BigInt(0)) {
               await WalletOps.refund(tx, safeOrder.userId, refundCents,
                 `Массовая отмена заказа #${safeOrder.numericId}${reason ? ` (${reason})` : ''}`,
                 { adminId: admin.id, idempotencyKey: `refund_${safeOrder.id}_CANCELED` }
@@ -300,7 +300,7 @@ export async function bulkCancelOrdersAction(
       success: true as const, 
       cancelledCount: count,
       skippedCount,
-      totalRefundCents: totalRefunded 
+      totalRefundCents: Number(totalRefunded) 
     };
   });
 }

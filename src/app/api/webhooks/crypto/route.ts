@@ -11,7 +11,22 @@ const MAX_BODY_SIZE = 1024 * 64; // 64KB
 export async function POST(request: NextRequest) {
   try {
     const { getClientIp } = await import('@/utils/ip');
-    const ip = await getClientIp();
+    const ip = await getClientIp(request);
+
+    // IP whitelist for CryptoBot (if published by CryptoBot docs)
+    // Note: CryptoBot does not publish official static IP ranges — relying on SHA256 HMAC signature.
+    // If official IPs are obtained, add them to this array to activate gateway IP filtering.
+    const CRYPTOBOT_IP_PREFIXES: string[] = [];
+
+    if (CRYPTOBOT_IP_PREFIXES.length > 0 && !CRYPTOBOT_IP_PREFIXES.some(prefix => ip.startsWith(prefix))) {
+      await SecurityAlertService.record({
+        event: 'SPOOFED_IP_WEBHOOK',
+        severity: 'CRITICAL',
+        ip,
+        details: { gateway: 'cryptobot' },
+      });
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const signature = request.headers.get('crypto-pay-api-signature');
     if (!signature) {
@@ -168,7 +183,20 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error: unknown) {
-    console.error('[Webhook] Processing error:', error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('[Webhook] Processing error:', errorMsg);
+    try {
+      const { getClientIp } = await import('@/utils/ip');
+      const ip = await getClientIp(request);
+      await SecurityAlertService.record({
+        event: 'WEBHOOK_PROCESSING_ERROR',
+        severity: 'HIGH',
+        ip,
+        details: { gateway: 'crypto', error: errorMsg },
+      });
+    } catch {
+      // Ignore secondary error
+    }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

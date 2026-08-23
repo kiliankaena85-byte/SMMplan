@@ -13,7 +13,22 @@ export async function GET(req: NextRequest) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
+    // Additional QA secret required for financial dev mutations (matches /api/dev/login-direct pattern)
     const { searchParams } = new URL(req.url);
+    const providedSecret = searchParams.get("secret") || req.headers.get("x-qa-secret");
+    const expectedSecret = process.env.QA_SECRET_KEY;
+    if (!expectedSecret) {
+      return new NextResponse("Service Unavailable: QA secret key is not configured.", { status: 503 });
+    }
+    
+    // Timing-safe comparison
+    const { timingSafeEqual } = await import('crypto');
+    const providedBuf = Buffer.from(providedSecret || '');
+    const expectedBuf = Buffer.from(expectedSecret);
+    if (providedBuf.length !== expectedBuf.length || !timingSafeEqual(providedBuf, expectedBuf)) {
+      return new NextResponse("Forbidden: Valid QA secret required.", { status: 403 });
+    }
+
     const paymentId = searchParams.get("paymentId");
 
     if (!paymentId) {

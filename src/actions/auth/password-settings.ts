@@ -1,13 +1,14 @@
 'use server';
 
-import { verifySession } from '@/lib/session';
+import { verifySession, canResetPassword as checkResetCapability } from '@/lib/session';
 import { db } from '@/lib/db';
 import { hashPassword, verifyPassword } from '@/lib/auth/password';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
+import { passwordPolicySchema } from '@/validators/password-policy';
 
 const setPasswordSchema = z.object({
-  password: z.string().min(8, "Пароль должен состоять как минимум из 8 символов"),
+  password: passwordPolicySchema,
   confirmPassword: z.string()
 }).refine(data => data.password === data.confirmPassword, {
   message: "Пароли не совпадают",
@@ -16,7 +17,7 @@ const setPasswordSchema = z.object({
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().optional(),
-  newPassword: z.string().min(8, "Новый пароль должен состоять как минимум из 8 символов"),
+  newPassword: passwordPolicySchema,
   confirmPassword: z.string()
 }).refine(data => data.newPassword === data.confirmPassword, {
   message: "Пароли не совпадают",
@@ -62,10 +63,11 @@ export async function setPasswordAction(formData: FormData) {
     });
 
     revalidatePath('/dashboard/settings');
+    revalidatePath('/settings');
     return { success: true };
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('Failed to set password:', error);
-    return { success: false, error: 'Ошибка сервера при установке пароля' };
+    return { success: false, error: 'Не удалось установить пароль. Попробуйте позже.' };
   }
 }
 
@@ -86,10 +88,10 @@ export async function changePasswordAction(formData: FormData) {
 
   const { currentPassword, newPassword } = parsed.data;
 
-  // Проверяем, авторизовался ли пользователь через Magic Link недавно
-  const canResetPassword = session.canResetPassword === true;
+  // H2: Проверяем, авторизовался ли пользователь через Magic Link недавно (<15 мин TTL)
+  const canReset = session.sessionId ? await checkResetCapability(session.sessionId) : false;
 
-  if (!canResetPassword && !currentPassword) {
+  if (!canReset && !currentPassword) {
     return { success: false, error: 'Введите текущий пароль' };
   }
 
@@ -107,9 +109,9 @@ export async function changePasswordAction(formData: FormData) {
       return { success: false, error: 'У вас не установлен пароль. Пожалуйста, сначала установите пароль.' };
     }
 
-    if (!canResetPassword) {
-      const isMatch = await verifyPassword(currentPassword as string, user.passwordHash);
-      if (!isMatch) {
+    if (!canReset) {
+      const isValid = await verifyPassword(currentPassword!, user.passwordHash);
+      if (!isValid) {
         return { success: false, error: 'Неверный текущий пароль' };
       }
     }
@@ -121,26 +123,19 @@ export async function changePasswordAction(formData: FormData) {
       data: { passwordHash: hashed }
     });
 
-    // W3-2 SECURITY FIX: Invalidate all existing sessions on password change
-    await db.session.deleteMany({
-      where: { userId: session.userId }
-    });
-
-    // Create a new session for the current device (and clear canResetPassword flag)
-    const { sessionToken, expiresAt } = await import('@/lib/session').then(m => m.createSession(session.userId, false));
-    const cookieStore = await import('next/headers').then(m => m.cookies());
-    cookieStore.set('session_token', sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      expires: expiresAt,
-      sameSite: 'lax',
-      path: '/',
-    });
+    // Clear reset capability after successful change
+    if (session.sessionId) {
+      await db.session.update({
+        where: { id: session.sessionId },
+        data: { canResetPasswordUntil: null },
+      }).catch(() => {});
+    }
 
     revalidatePath('/dashboard/settings');
+    revalidatePath('/settings');
     return { success: true };
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('Failed to change password:', error);
-    return { success: false, error: 'Ошибка сервера при смене пароля' };
+    return { success: false, error: 'Не удалось сменить пароль. Попробуйте позже.' };
   }
 }

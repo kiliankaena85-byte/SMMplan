@@ -364,13 +364,13 @@ class OrderService {
            return { success: true, orderId: order.id, status: order.status };
         }
 
-        let refundCents = 0;
+        let refundCents = BigInt(0);
         
         // 3. Calculate Refund if status is terminal and non-complete
         // We only refund if transition is TO a terminal state FROM a non-terminal state
         if (internalStatus === 'PARTIAL' || internalStatus === 'CANCELED') {
            if (internalStatus === 'CANCELED' && (remains <= 0 || order.quantity <= 0)) {
-              refundCents = Number(order.charge);
+              refundCents = typeof order.charge === 'bigint' ? order.charge : BigInt(order.charge || 0);
            } else {
               refundCents = calculatePartialRefund({ remains, quantity: order.quantity, charge: order.charge });
            }
@@ -396,7 +396,7 @@ class OrderService {
         }
 
         // 5. Apply Refund if needed
-        if (refundCents > 0) {
+        if (refundCents > BigInt(0)) {
           // Use a deterministic idempotency key to prevent double-crediting
           const refundKey = `refund-order-${order.id}`;
           
@@ -406,7 +406,7 @@ class OrderService {
           });
 
           if (!existingLedger) {
-            await WalletOps.refund(tx, order.userId, Number(refundCents),
+            await WalletOps.refund(tx, order.userId, refundCents,
               `Системный возврат за заказ #${order.numericId} (Статус: ${internalStatus}, Остаток: ${remains})`,
               { idempotencyKey: refundKey }
             );

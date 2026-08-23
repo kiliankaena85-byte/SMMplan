@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, ShieldAlert, Sparkles, ShieldCheck } from 'lucide-react';
 import parse from 'html-react-parser';
+import { sanitizeArticleHtml } from '@/lib/sanitize';
 import { headers } from 'next/headers';
 import { normalizeTenantId } from '@/lib/seo-helpers';
 
@@ -131,7 +132,7 @@ export async function LegalPageContent({ slug }: LegalPageContentProps) {
             )}
             
             <div className="prose dark:prose-invert max-w-none text-foreground leading-relaxed text-sm sm:text-base font-normal">
-              {parse(rendered)}
+              {parse(sanitizeArticleHtml(rendered))}
             </div>
           </article>
         </div>
@@ -165,7 +166,7 @@ export async function LegalPageContent({ slug }: LegalPageContentProps) {
           )}
           
           <div className="space-y-6 text-muted-foreground leading-relaxed text-sm">
-            {parse(rendered)}
+            {parse(sanitizeArticleHtml(rendered))}
           </div>
         </article>
       </div>
