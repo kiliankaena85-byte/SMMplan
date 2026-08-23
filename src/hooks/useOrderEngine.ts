@@ -707,8 +707,8 @@ export function useOrderEngine(
   const activePlatform = manualPlatform || platform;
   const isMatchingAutodetected = activeNetwork && activePlatform && activePlatform !== IntelligencePlatform.OTHER && activeNetwork.slug.toLowerCase().includes(activePlatform.toLowerCase());
 
-  if (isMatchingAutodetected && suggestedCategories.length > 0) {
-    const filteredCats = availableCategories.filter(c => matchesSuggestedCategory(c.name, suggestedCategories));
+  if (isMatchingAutodetected && (suggestedCategories.length > 0 || detectedType)) {
+    const filteredCats = availableCategories.filter(c => matchesSuggestedCategory(c.name, suggestedCategories, c.analyzerTags, detectedType));
     if (filteredCats.length > 0) {
       const currentCat = activeNetwork?.categories.find(c => c.id === categoryId);
       if (currentCat && !filteredCats.some(c => c.id === categoryId)) {

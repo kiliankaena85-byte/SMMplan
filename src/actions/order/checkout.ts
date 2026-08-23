@@ -17,7 +17,7 @@ import { getBaseUrlSync } from "@/utils/get-base-url";
 import { featureFlagService } from "@/services/system/feature-flag.service";
 import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
 import { validateProhibitedContent } from '@/validators/prohibited-content';
-import { inferTargetTypeFromCategory } from '@/utils/target-type';
+import { inferTargetTypeFromCategory, normalizeTargetType, TargetTypeEnum } from '@/utils/target-type';
 import { safeUrlForLog } from '@/lib/log-safe';
 import { SmartDripService } from '@/services/dripfeed/smart-drip.service';
 import { randomUUID } from 'crypto';
@@ -252,11 +252,11 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         throw new Error("Неверный формат ссылки.", { cause: e });
       }
     } else {
-      const targetType = service.targetType === 'POST'
-        ? inferTargetTypeFromCategory(service.category?.name)
-        : (service.targetType || inferTargetTypeFromCategory(service.category?.name));
+      const resolvedTargetType = service.targetType
+        ? normalizeTargetType(service.targetType)
+        : inferTargetTypeFromCategory(service.category?.name);
 
-      if (targetType === 'CUSTOM' || service.targetType === 'CUSTOM') {
+      if (resolvedTargetType === TargetTypeEnum.CUSTOM || service.targetType === 'CUSTOM') {
         const { getCustomValidator } = await import('@/validators/link-mutators');
         const customValidator = getCustomValidator(service.customDataType);
         const customValue = customData || link;
@@ -266,10 +266,10 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         }
       } else {
         // 1. Clean the link according to provider rules
-        normalizedLink = mutateLink(link, platformSlug, targetType);
+        normalizedLink = mutateLink(link, platformSlug, resolvedTargetType);
 
         // 2. Validate the cleaned link
-        const validator = getLinkValidator(platformSlug, targetType);
+        const validator = getLinkValidator(platformSlug, resolvedTargetType);
         const linkResult = validator.safeParse(normalizedLink);
         
         if (!linkResult.success) {
