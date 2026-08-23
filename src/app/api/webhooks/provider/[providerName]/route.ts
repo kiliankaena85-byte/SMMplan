@@ -50,7 +50,7 @@ export async function POST(
     if (!ALLOWED_PROVIDER_NAMES.has(providerName.toLowerCase())) {
       await SecurityAlertService.record({
         event: 'UNKNOWN_PROVIDER',
-        severity: 'MEDIUM',
+        severity: 'WARNING',
         ip,
         details: { provider: providerName },
       });
