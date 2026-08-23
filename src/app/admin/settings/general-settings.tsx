@@ -511,12 +511,21 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
         </div>
       </Card>
 
-      {/* Save Button */}
-      <div className="flex justify-end pt-2">
-        <Button disabled={isPending} type="submit" className="font-bold uppercase tracking-widest text-xs h-12 px-8 shadow-md">
-          {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-          Сохранить все настройки
-        </Button>
+      {/* Sticky Bottom Action Bar */}
+      <div className="sticky bottom-4 z-20 flex items-center justify-between gap-4 p-4 rounded-2xl bg-card/95 backdrop-blur-md border border-border shadow-lg">
+        <div className="text-xs text-muted-foreground hidden sm:block">
+          Не забудьте сохранить изменения перед переходом в другие разделы
+        </div>
+        <div className="flex items-center gap-3 ml-auto">
+          <Button
+            disabled={isPending}
+            type="submit"
+            className="font-bold uppercase tracking-widest text-xs h-11 px-8 shadow-md cursor-pointer"
+          >
+            {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            Сохранить все настройки
+          </Button>
+        </div>
       </div>
     </form>
   );

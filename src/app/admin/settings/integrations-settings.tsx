@@ -439,11 +439,11 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
                 <Input
                   name="geminiProxy"
                   defaultValue={settings.geminiProxy || ''}
-                  placeholder="http://127.0.0.1:7890"
+                  placeholder="http://proxy.smmplan.pro:7890"
                   className="font-mono text-xs"
                 />
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  Для локального Clash Verge укажите порт <code>http://127.0.0.1:7890</code>. Для внешнего сервера: <code>http://user:pass@host:port</code>.
+                  Для внешнего защищенного прокси укажите: <code>http://proxy-host:port</code> или <code>http://user:pass@host:port</code>.
                 </p>
               </div>
             </div>
@@ -461,7 +461,7 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
 
             <div className="pt-4 border-t border-border flex justify-between items-center">
               <p className="text-[10px] text-muted-foreground">Если поля не заполнены, используются настройки из .env</p>
-              <Button disabled={isPending} type="submit" className="font-bold uppercase tracking-widest text-xs h-10 shadow-md">
+              <Button disabled={isPending} type="submit" className="font-bold uppercase tracking-widest text-xs h-10 shadow-md cursor-pointer">
                 {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Сохранить настройки Gemini
               </Button>

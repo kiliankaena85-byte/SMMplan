@@ -220,6 +220,66 @@ export async function updateGlobalSettings(formData: FormData) {
       dataToUpdate.geminiApiKeys = VaultService.encrypt(rawGeminiKeys.trim());
     }
 
+    // SECURITY RBAC (P0): Only OWNER can change critical financial gateways, safety floors, and payment credentials
+    const isOwnerOnlyChange = Boolean(
+      rawYookassaSecret ||
+      rawYookassaTestSecret ||
+      rawRobokassaPassword ||
+      rawRobokassaWebhookPassword ||
+      rawCryptoBotToken ||
+      formData.has('yookassaShopId') ||
+      formData.has('yookassaTestShopId') ||
+      formData.has('robokassaLogin') ||
+      formData.has('safetyFloor') ||
+      formData.has('taxRate') ||
+      formData.has('opexMonthly')
+    );
+
+    if (isOwnerOnlyChange && user.role !== 'OWNER') {
+      return {
+        success: false as const,
+        errors: {
+          _form: ['Только Владелец (OWNER) имеет права на изменение платёжных шлюзов, налогов и порогов безопасности.'],
+        },
+      };
+    }
+
+    // SSRF DEFENSE (P0): Validate SMTP host and Gemini Proxy to block internal / loopback destinations
+    const { isPublicHost } = await import('@/lib/ssrf-guard');
+    if (smtpHost && smtpHost.trim()) {
+      const isSafe = await isPublicHost(smtpHost.trim());
+      if (!isSafe) {
+        return {
+          success: false as const,
+          errors: {
+            smtpHost: ['Указанный SMTP хост недопустим (локальные и приватные адреса запрещены)'],
+          },
+        };
+      }
+    }
+
+    if (geminiProxy && geminiProxy.trim()) {
+      try {
+        const url = new URL(geminiProxy.trim());
+        const isSafe = await isPublicHost(url.hostname);
+        if (!isSafe) {
+          return {
+            success: false as const,
+            errors: {
+              geminiProxy: ['Указанный прокси недопустим (локальные и приватные адреса запрещены)'],
+            },
+          };
+        }
+      } catch {
+        return {
+          success: false as const,
+          errors: {
+            geminiProxy: ['Некорректный URL прокси'],
+          },
+        };
+      }
+    }
+
     await settingsService.updateSystemSettings(dataToUpdate as Parameters<typeof settingsService.updateSystemSettings>[0]);
 
     // Atomic Re-pricing: trigger background sync if rate changed
@@ -247,7 +307,7 @@ export async function updateGlobalSettings(formData: FormData) {
       }
     }
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: user.id,
       adminEmail: user.email,
       action: 'SYSTEM_SETTINGS_UPDATE',

@@ -2,7 +2,7 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-23 | Агент: Antigravity
-## Активный статус: 🚀 Успешный пуш в origin/main. Завершен рефакторинг интерфейса каталога: универсальный компонент Pagination с A11y, CatalogGrid, ServiceCard с XSS-санитизацией и line-clamp, ServiceForm с live-калькулятором наценки/прибыли и валидацией URL, тесты 38/38 passed.
+## Активный статус: 🚀 Успешный пуш в origin/main. Завершена защита и модернизация «Системных Настроек» (/admin/settings): маскирование секретов (Secret Masking), защита от SSRF для SMTP/прокси, OWNER-only RBAC на платёжные шлюзы, фиксация safetyFloor >= 1.05 (+5%), липкая панель Sticky Action Bar и awaitable audit logging, тесты 44/44 passed.
 
 ---
 
@@ -27,7 +27,7 @@
 | **Провайдеры & Шлюзы** | `/admin/providers` | ✅ ЗАВЕРШЁН (100% Viewport Width Fit, Zero Column Clipping, Mobile Bento Cards, интерактивный 1-клик refresh глобальной ликвидности) |
 | **Гарантийные Докрутки** | `/admin/refills` | ✅ |
 | **Биллинг & 54-ФЗ** | `/admin/finance` | ✅ |
-| **Системные Настройки** | `/admin/settings` | ✅ АУДИТ ЗАВЕРШЁН |
+| **Системные Настройки** | `/admin/settings` | ✅ ЗАВЕРШЁН (Secret Masking, SSRF Guard, OWNER RBAC, SafetyFloor >= 1.05, Sticky Save Bar, Awaitable Audit) |
 | **Маркетинг & Промо** | `/admin/marketing` | ✅ АУДИТ ЗАВЕРШЁН |
 | **CMS & Страницы** | `/admin/cms`, `/admin/pages` | ✅ АУДИТ ЗАВЕРШЁН |
 | **База Знаний & Блог** | `/admin/knowledge` | ✅ АУДИТ ЗАВЕРШЁН |
