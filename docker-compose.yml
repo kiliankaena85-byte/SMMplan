@@ -41,8 +41,7 @@ services:
     working_dir: /app
     volumes:
       - ./:/app
-      - /app/node_modules
-    command: sh -c "npm install && npx tsx watch src/workers/index.ts"
+    command: ./node_modules/.bin/tsx src/workers/index.ts
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/smmplan_lite?schema=public&connection_limit=5&pool_timeout=30
       - REDIS_URL=redis://redis:6379
@@ -55,7 +54,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.standalone
     container_name: smmplan_web
     restart: always
     environment:

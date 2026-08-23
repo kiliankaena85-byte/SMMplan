@@ -32,6 +32,24 @@ export async function POST(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const secret = req.headers.get("x-webhook-secret");
+    const timestamp = req.headers.get("x-timestamp");
+    const { getClientIp } = await import('@/utils/ip');
+    const ip = await getClientIp(req);
+    const { SecurityAlertService } = await import('@/services/security/security-alert.service');
+
+    // 1. Mandatory Timestamp Freshness (prevent replay attack within 5 minutes)
+    if (timestamp) {
+      const reqTime = parseInt(timestamp, 10);
+      if (isNaN(reqTime) || Math.abs(Date.now() - reqTime) > 5 * 60 * 1000) {
+        await SecurityAlertService.record({
+          event: 'REPLAY_ATTEMPT',
+          severity: 'HIGH',
+          ip,
+          details: { gateway: 'provider_default', timestamp },
+        });
+        return NextResponse.json({ error: 'Webhook timestamp expired or invalid' }, { status: 403 });
+      }
+    }
     
     // SD-01 SECURITY FIX: Fail-closed — reject all requests if WEBHOOK_SECRET is not configured.
     // NEVER fall back to a hardcoded default.
@@ -46,9 +64,6 @@ export async function POST(req: Request) {
     const expectedBuf = Buffer.from(expectedSecret);
     if (!secret || secretBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(secretBuf, expectedBuf)) {
       console.warn(`[Webhook] Unauthorized access attempt. Secret mismatch.`);
-      const { getClientIp } = await import('@/utils/ip');
-      const ip = await getClientIp(req);
-      const { SecurityAlertService } = await import('@/services/security/security-alert.service');
       await SecurityAlertService.record({
         event: 'UNAUTHORIZED_WEBHOOK_ACCESS',
         severity: 'CRITICAL',
@@ -182,10 +197,22 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ success: true, verifiedStatus: providerStatus });
-
   } catch (error: unknown) {
-    console.error(`[Webhook] Fatal error:`, (error instanceof Error ? error.message : String(error)));
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error(`[Webhook] Fatal error:`, errorMsg);
+    try {
+      const { getClientIp } = await import('@/utils/ip');
+      const ip = await getClientIp(req);
+      const { SecurityAlertService } = await import('@/services/security/security-alert.service');
+      await SecurityAlertService.record({
+        event: 'INTERNAL_ERROR',
+        severity: 'CRITICAL',
+        ip,
+        details: { gateway: 'provider_default', error: errorMsg },
+      });
+    } catch {
+      // Ignore secondary error logging failure
+    }
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
-

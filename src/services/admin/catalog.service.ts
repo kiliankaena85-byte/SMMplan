@@ -1,5 +1,7 @@
+import crypto from 'crypto';
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
+import { redis } from '@/lib/redis';
 import { logger } from '@/lib/logger';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 import { auditAdmin } from '@/lib/admin-audit';
@@ -336,13 +338,36 @@ class AdminCatalogService {
       throw new Error("API провайдера вернуло пустой список или ошибку. Синхронизация прервана (защита).");
     }
 
+    // 0. Content-Hash Check (smm-cost-cache-optimizer): Skip heavy DB wipe & re-write if raw catalog is unchanged
+    const catalogHash = crypto
+      .createHash('sha256')
+      .update(JSON.stringify(rawServices))
+      .digest('hex');
+
+    const cacheKey = `provider:${providerId}:catalog:hash`;
+    try {
+      const cachedHash = await redis.get(cacheKey);
+      const currentShadowCount = await db.shadowService.count({ where: { providerId: providerDbRecord.id } });
+      if (cachedHash === catalogHash && currentShadowCount > 0) {
+        logger.debug('Shadow catalog unchanged (hash match), skipping heavy DB re-creation', {
+          providerId,
+          hash: catalogHash.slice(0, 12),
+          count: currentShadowCount
+        });
+        return currentShadowCount;
+      }
+    } catch (cacheErr) {
+      // Non-blocking: continue if Redis is temporarily offline
+      console.warn('[CatalogService] Redis hash cache lookup error:', cacheErr);
+    }
+
     // Fetch exchange settings
     const settings = await db.systemSettings.findUnique({ where: { id: "global" }, select: { exchangeRateUSD: true } });
     const usdRate = settings?.exchangeRateUSD || 90.0;
     const currency = providerDbRecord.balanceCurrency || 'USD';
 
     // Filter raw services using Zod Schema
-        const validRawServices: z.infer<typeof rawServiceSchema>[] = [];
+    const validRawServices: z.infer<typeof rawServiceSchema>[] = [];
     let invalidCount = 0;
 
     for (const s of rawServices) {
@@ -359,7 +384,7 @@ class AdminCatalogService {
     }
 
     // Data Intelligence: Normalize services using SmartAnalyzerLogic
-        const services = validRawServices.map((s) => {
+    const services = validRawServices.map((s) => {
       const rawRate = typeof s.rate === "number" ? s.rate : parseFloat(String(s.rate)) || 0;
       const basePriceUsd = currency === 'RUB' ? rawRate / usdRate : rawRate;
       const analyzed = SmartAnalyzerLogic.detectSync(s.name, s.description || '', s.category || '', undefined, basePriceUsd);
@@ -379,7 +404,7 @@ class AdminCatalogService {
       };
     });
 
-        const servicesToCreate = services.map((s) => {
+    const servicesToCreate = services.map((s) => {
       const rawRate = typeof s.rate === "number" ? s.rate : parseFloat(String(s.rate)) || 0;
       const rateRub = currency === 'USD' ? rawRate * usdRate : rawRate;
 
@@ -448,6 +473,13 @@ class AdminCatalogService {
         data: chunk,
         skipDuplicates: true
       });
+    }
+
+    // Cache the successful catalog content-hash in Redis (TTL 24 hours)
+    try {
+      await redis.set(cacheKey, catalogHash, 'EX', 86400);
+    } catch {
+      // Ignore cache write error
     }
 
     return servicesToCreate.length;

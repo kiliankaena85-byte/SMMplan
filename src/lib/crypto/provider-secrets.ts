@@ -31,8 +31,12 @@ export function decryptProviderSecret(cipherText: string): string {
  * Masks provider API key for safe UI and logs display.
  */
 export function maskProviderKey(key: string): string {
-  if (!key || key.length < 8) return '••••••••';
-  const clean = key.includes(':') ? decryptProviderSecret(key) : key;
-  if (clean.length <= 8) return '••••••••';
-  return `••••••••${clean.slice(-4)}`;
+  try {
+    if (!key || typeof key !== 'string' || key.length < 8) return '••••••••';
+    const clean = key.includes(':') ? decryptProviderSecret(key) : key;
+    if (clean.length <= 8) return '••••••••';
+    return `••••••••${clean.slice(-4)}`;
+  } catch {
+    return '••••••••';
+  }
 }

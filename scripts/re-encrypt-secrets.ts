@@ -20,17 +20,13 @@ async function main() {
   console.log(`🔒 Starting re-encryption tool (Mode: ${isDryRun ? 'DRY-RUN (default, no DB changes)' : 'APPLY (writing to DB)'})...`);
 
   await db.$transaction(async (tx) => {
-    // 1. Re-encrypt Provider credentials (apiKey, webhookSecret)
+    // 1. Re-encrypt Provider credentials (apiKey)
     const providers = await tx.provider.findMany();
     for (const p of providers) {
-      const updates: { apiKey?: string; webhookSecret?: string } = {};
+      const updates: { apiKey?: string } = {};
       if (p.apiKey && !isAlreadyEncrypted(p.apiKey)) {
         console.log(`[DRY-RUN: ${isDryRun}] Re-encrypting unencrypted provider apiKey for: ${p.name}`);
         updates.apiKey = VaultService.encrypt(p.apiKey.trim());
-      }
-      if (p.webhookSecret && !isAlreadyEncrypted(p.webhookSecret)) {
-        console.log(`[DRY-RUN: ${isDryRun}] Re-encrypting unencrypted provider webhookSecret for: ${p.name}`);
-        updates.webhookSecret = VaultService.encrypt(p.webhookSecret.trim());
       }
       if (isApply && Object.keys(updates).length > 0) {
         await tx.provider.update({

@@ -27,10 +27,12 @@ services:
     volumes:
       - staging_redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=${REDIS_PASSWORD} redis-cli ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    security_opt:
+      - no-new-privileges:true
 
   app:
     build:
@@ -62,6 +64,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
 
   bot:
     image: smmplan_staging_app:latest
@@ -79,6 +83,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
 
   worker:
     image: smmplan_staging_app:latest
@@ -95,6 +101,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
   staging_postgres_data:

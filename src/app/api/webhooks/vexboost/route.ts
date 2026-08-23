@@ -18,55 +18,88 @@ export async function POST(request: NextRequest) {
     }
 
     const secret = request.headers.get('x-webhook-secret') || request.headers.get('x-vexboost-secret');
+    const signature = request.headers.get('x-signature') || request.headers.get('x-vexboost-signature');
     const timestamp = request.headers.get('x-timestamp');
 
-    // 1. Replay defense check
-    if (timestamp) {
-      const reqTime = parseInt(timestamp, 10);
-      if (isNaN(reqTime) || Math.abs(Date.now() - reqTime) > 5 * 60 * 1000) {
-        await SecurityAlertService.record({
-          event: 'REPLAY_ATTEMPT',
-          severity: 'HIGH',
-          ip,
-          details: { gateway: 'vexboost', timestamp },
-        });
-        return NextResponse.json({ error: 'Webhook timestamp expired or invalid' }, { status: 403 });
-      }
+    // 1. Replay defense check (Mandatory timestamp)
+    if (!timestamp) {
+      await SecurityAlertService.record({
+        event: 'MISSING_TIMESTAMP',
+        severity: 'HIGH',
+        ip,
+        details: { gateway: 'vexboost' },
+      });
+      return NextResponse.json({ error: 'Missing x-timestamp header' }, { status: 403 });
     }
 
-    // 2. Secret validation
+    const reqTime = parseInt(timestamp, 10);
+    if (isNaN(reqTime) || Math.abs(Date.now() - reqTime) > 5 * 60 * 1000) {
+      await SecurityAlertService.record({
+        event: 'REPLAY_ATTEMPT',
+        severity: 'HIGH',
+        ip,
+        details: { gateway: 'vexboost', timestamp },
+      });
+      return NextResponse.json({ error: 'Webhook timestamp expired or invalid' }, { status: 403 });
+    }
+
+    // 2. Secret / Signature validation
     const expectedSecret = process.env.VEXBOOST_WEBHOOK_SECRET;
     if (!expectedSecret) {
       console.error('[VexBoost Webhook] FATAL: VEXBOOST_WEBHOOK_SECRET is not configured. Rejecting all requests.');
       return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 });
     }
 
-    if (!secret) {
-      console.warn('[VexBoost Webhook] Missing webhook secret.');
-      await SecurityAlertService.record({
-        event: 'MISSING_SECRET',
-        severity: 'WARNING',
-        ip,
-        details: { gateway: 'vexboost' },
-      });
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Support HMAC signature if provided, or fallback to header secret
+    if (signature) {
+      const rawText = await request.clone().text().catch(() => '');
+      const expectedSigDot = crypto.createHmac('sha256', expectedSecret).update(`${timestamp}.${rawText}`).digest('hex');
+      const expectedSigWithTs = crypto.createHmac('sha256', expectedSecret).update(`${rawText}:${timestamp}`).digest('hex');
+      const expectedSigRaw = crypto.createHmac('sha256', expectedSecret).update(rawText).digest('hex');
+      const cleanSig = signature.startsWith('sha256=') ? signature.slice(7) : signature;
 
-    const secretBuffer = Buffer.from(secret);
-    const expectedBuffer = Buffer.from(expectedSecret);
+      const sigBuffer = Buffer.from(cleanSig);
+      const isMatchDot = sigBuffer.length === expectedSigDot.length && crypto.timingSafeEqual(sigBuffer, Buffer.from(expectedSigDot));
+      const isMatchWithTs = sigBuffer.length === expectedSigWithTs.length && crypto.timingSafeEqual(sigBuffer, Buffer.from(expectedSigWithTs));
+      const isMatchRaw = sigBuffer.length === expectedSigRaw.length && crypto.timingSafeEqual(sigBuffer, Buffer.from(expectedSigRaw));
 
-    if (
-      secretBuffer.length !== expectedBuffer.length ||
-      !crypto.timingSafeEqual(secretBuffer, expectedBuffer)
-    ) {
-      console.warn('[VexBoost Webhook] Unauthorized access attempt. Secret mismatch.');
-      await SecurityAlertService.record({
-        event: 'UNAUTHORIZED_WEBHOOK_ACCESS',
-        severity: 'CRITICAL',
-        ip,
-        details: { gateway: 'vexboost' },
-      });
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      if (!isMatchDot && !isMatchWithTs && !isMatchRaw) {
+        await SecurityAlertService.record({
+          event: 'INVALID_SIGNATURE',
+          severity: 'CRITICAL',
+          ip,
+          details: { gateway: 'vexboost' },
+        });
+        return NextResponse.json({ error: 'Invalid HMAC signature' }, { status: 403 });
+      }
+    } else {
+      if (!secret) {
+        console.warn('[VexBoost Webhook] Missing webhook secret.');
+        await SecurityAlertService.record({
+          event: 'MISSING_SECRET',
+          severity: 'WARNING',
+          ip,
+          details: { gateway: 'vexboost' },
+        });
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      const secretBuffer = Buffer.from(secret);
+      const expectedBuffer = Buffer.from(expectedSecret);
+
+      if (
+        secretBuffer.length !== expectedBuffer.length ||
+        !crypto.timingSafeEqual(secretBuffer, expectedBuffer)
+      ) {
+        console.warn('[VexBoost Webhook] Unauthorized access attempt. Secret mismatch.');
+        await SecurityAlertService.record({
+          event: 'UNAUTHORIZED_WEBHOOK_ACCESS',
+          severity: 'CRITICAL',
+          ip,
+          details: { gateway: 'vexboost' },
+        });
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
 
     let externalId: string | undefined;
@@ -156,7 +189,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, verifiedStatus, orderId: order.id });
   } catch (error: unknown) {
-    console.error('[VexBoost Webhook] Error:', (error instanceof Error ? error.message : String(error)));
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error('[VexBoost Webhook] Error:', errorMsg);
+    await SecurityAlertService.record({
+      event: 'INTERNAL_ERROR',
+      severity: 'CRITICAL',
+      ip,
+      details: { gateway: 'vexboost', error: errorMsg },
+    }).catch(() => {});
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

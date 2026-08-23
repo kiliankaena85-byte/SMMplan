@@ -77,7 +77,7 @@ export function decrypt(encryptedData: string): string {
 
     return decrypted;
   } catch (err) {
-    console.error('[Encryption] Decryption failed:', err);
+    console.error('[Encryption] Decryption failed:', err instanceof Error ? err.message : String(err));
     throw new Error(`[Encryption] Decryption failed or ciphertext is corrupted: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
   }
 }

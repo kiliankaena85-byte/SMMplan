@@ -29,12 +29,12 @@ const FORBIDDEN_PATTERNS = [
 ];
 
 const FORBIDDEN_REGEXES = [
-  /-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----(?:\\n|\n|\r\n|\s)[A-Za-z0-9+/=]{30,}/,
+  /-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----(?:\\n|\n|\r\n|\s)[A-Za-z0-9+/=]{30,}/i,
   /ghp_[0-9a-zA-Z]{36}/,
   /xoxb-[0-9]{11,13}-[0-9]{11,13}-[a-zA-Z0-9]{24}/,
   /AKIA[0-9A-Z]{16}/,
-  /sk_live_[0-9a-zA-Z]{24,}/,
-  /rk_live_[0-9a-zA-Z]{24,}/
+  /sk_live_[0-9a-zA-Z]{24,}/i,
+  /rk_live_[0-9a-zA-Z]{24,}/i
 ];
 
 function scanDirectory(dir) {

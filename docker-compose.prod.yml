@@ -13,6 +13,8 @@ services:
         condition: service_healthy
     restart: unless-stopped
     networks: [frontend]
+    security_opt:
+      - no-new-privileges:true
 
   app:
     build: .
@@ -81,6 +83,8 @@ services:
       retries: 5
     restart: unless-stopped
     networks: [backend]
+    security_opt:
+      - no-new-privileges:true
     # БЕЗ публикации портов наружу
 
   redis:
@@ -93,12 +97,14 @@ services:
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=${REDIS_PASSWORD} redis-cli ping"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
     networks: [backend]
+    security_opt:
+      - no-new-privileges:true
     # БЕЗ публикации портов наружу
 
 volumes:

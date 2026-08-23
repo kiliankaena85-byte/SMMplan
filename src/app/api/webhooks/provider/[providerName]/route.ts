@@ -40,6 +40,23 @@ export async function POST(
       return NextResponse.json({ error: 'Webhook timestamp expired or invalid' }, { status: 403 });
     }
 
+    // Whitelist of provider names allowed to receive webhooks.
+    // Add new providers here ONLY after integration testing.
+    const ALLOWED_PROVIDER_NAMES = new Set([
+      'vexboost',
+      'smmstone',
+    ]);
+
+    if (!ALLOWED_PROVIDER_NAMES.has(providerName.toLowerCase())) {
+      await SecurityAlertService.record({
+        event: 'UNKNOWN_PROVIDER',
+        severity: 'MEDIUM',
+        ip,
+        details: { provider: providerName },
+      });
+      return NextResponse.json({ error: 'Provider not supported' }, { status: 404 });
+    }
+
     // 2. Fetch Provider
     const provider = await db.provider.findUnique({
       where: { name: providerName },
@@ -50,8 +67,9 @@ export async function POST(
     }
 
     // 3. Mandatory HMAC Signature Verification
-    const secret = process.env.PROVIDER_WEBHOOK_SECRET || provider.apiKey;
+    const secret = process.env.PROVIDER_WEBHOOK_SECRET;
     if (!secret) {
+      console.error(`[ProviderWebhook:${providerName}] FATAL: PROVIDER_WEBHOOK_SECRET is not configured.`);
       return NextResponse.json({ error: 'Provider webhook secret not configured' }, { status: 503 });
     }
     if (!signature) {
@@ -64,13 +82,17 @@ export async function POST(
       return NextResponse.json({ error: 'Missing x-signature header' }, { status: 403 });
     }
 
-    const expectedSig = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+    const expectedSigDot = crypto.createHmac('sha256', secret).update(`${timestamp}.${rawBody}`).digest('hex');
+    const expectedSigWithTs = crypto.createHmac('sha256', secret).update(`${rawBody}:${timestamp}`).digest('hex');
+    const expectedSigRaw = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
     const cleanSig = signature.startsWith('sha256=') ? signature.slice(7) : signature;
 
-    if (
-      cleanSig.length !== expectedSig.length ||
-      !crypto.timingSafeEqual(Buffer.from(cleanSig), Buffer.from(expectedSig))
-    ) {
+    const sigBuffer = Buffer.from(cleanSig);
+    const isMatchDot = sigBuffer.length === expectedSigDot.length && crypto.timingSafeEqual(sigBuffer, Buffer.from(expectedSigDot));
+    const isMatchWithTs = sigBuffer.length === expectedSigWithTs.length && crypto.timingSafeEqual(sigBuffer, Buffer.from(expectedSigWithTs));
+    const isMatchRaw = sigBuffer.length === expectedSigRaw.length && crypto.timingSafeEqual(sigBuffer, Buffer.from(expectedSigRaw));
+
+    if (!isMatchDot && !isMatchWithTs && !isMatchRaw) {
       await SecurityAlertService.record({
         event: 'INVALID_SIGNATURE',
         severity: 'CRITICAL',
@@ -161,6 +183,12 @@ export async function POST(
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     console.error(`[ProviderWebhook:${providerName}] Error processing webhook:`, errorMsg);
+    await SecurityAlertService.record({
+      event: 'INTERNAL_ERROR',
+      severity: 'CRITICAL',
+      ip,
+      details: { provider: providerName, error: errorMsg },
+    }).catch(() => {});
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

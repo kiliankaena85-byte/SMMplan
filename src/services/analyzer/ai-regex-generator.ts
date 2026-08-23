@@ -64,6 +64,7 @@ ${contentTypeHint ? `Желаемый тип контента: ${contentTypeHint
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         jsonMode: true,
         temperature: 0.1,
+        maxOutputTokens: 500,
       });
 
       const parsed = JSON.parse(responseText.trim()) as GeneratedRegexResult;

@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 
 /**
  * Mock Provider Endpoint (SMM API V2 Sandbox & Chaos Engine)
@@ -155,7 +156,9 @@ export async function POST(req: NextRequest) {
         { status: 503 }
       );
     }
-    if (key !== expectedKey) {
+    const keyBuf = Buffer.from(key || '');
+    const expectedBuf = Buffer.from(expectedKey);
+    if (keyBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(keyBuf, expectedBuf)) {
       return NextResponse.json({ error: 'Incorrect API key' }, { status: 403 });
     }
 

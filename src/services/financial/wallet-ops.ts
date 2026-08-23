@@ -324,13 +324,11 @@ export const WalletOps = {
       select: { balance: true, totalSpent: true, tenantId: true }
     });
 
-    // Safety guard: if totalSpent became negative due to race or edge cases, auto-clamp to 0
+    // Accounting integrity check: negative totalSpent indicates a bug (more refunds than charges).
+    // Do NOT silently clamp — fail fast and alert ops.
     if (updatedUser.totalSpent < BigInt(0)) {
-      console.warn(`[WalletOps.refund] Accounting anomaly detected: totalSpent for user ${userId} was negative (${updatedUser.totalSpent.toString()}), clamped to 0.`);
-      await tx.user.update({
-        where: { id: userId },
-        data: { totalSpent: BigInt(0) }
-      });
+      console.error(`[WalletOps.refund] CRITICAL: Accounting anomaly — totalSpent for user ${userId} went negative (${updatedUser.totalSpent.toString()}). Refund amount: ${rawCents}. This indicates a double-refund or accounting bug. Throwing to abort transaction.`);
+      throw new Error(`[WalletOps.refund] Accounting integrity violation: totalSpent went negative for user ${userId}. Transaction aborted.`);
     }
 
     const entry = await tx.ledgerEntry.create({

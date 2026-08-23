@@ -54,6 +54,15 @@ export class SafeRegexValidator {
    * Compiles and safely tests a regex with execution time measurement
    */
   static testPattern(patternString: string, sampleUrl: string, flags: string = 'i'): ValidationResult {
+    // 0. Input payload length guard (prevents event-loop freezing on massive strings)
+    if (sampleUrl && sampleUrl.length > 512) {
+      return {
+        isValid: false,
+        isSafe: false,
+        error: 'Длина проверяемой ссылки превышает лимит безопасности (максимум 512 символов)'
+      };
+    }
+
     // 1. Static security audit
     const audit = this.staticAudit(patternString);
     if (!audit.isSafe) {
@@ -127,14 +136,14 @@ export class SafeRegexValidator {
     // Escape dots and slashes
     escaped = escaped.replace(/\./g, '\\.').replace(/\//g, '\\/');
 
-    // Replace placeholders with regex groups
+    // Replace placeholders with regex groups using safe character class placement
     escaped = escaped
-      .replace(/\{username\}/gi, '([a-zA-Z0-9_.-]+)')
-      .replace(/\{channel\}/gi, '([a-zA-Z0-9_.-]+)')
+      .replace(/\{username\}/gi, '([-_a-zA-Z0-9.]+)')
+      .replace(/\{channel\}/gi, '([-_a-zA-Z0-9.]+)')
       .replace(/\{postId\}/gi, '(\\d+)')
-      .replace(/\{id\}/gi, '([a-zA-Z0-9_-]+)')
-      .replace(/\{videoId\}/gi, '([a-zA-Z0-9_-]{6,15})')
-      .replace(/\{slug\}/gi, '([a-zA-Z0-9_-]+)');
+      .replace(/\{id\}/gi, '([-_a-zA-Z0-9]+)')
+      .replace(/\{videoId\}/gi, '([-_a-zA-Z0-9]{6,15})')
+      .replace(/\{slug\}/gi, '([-_a-zA-Z0-9]+)');
 
     return escaped;
   }

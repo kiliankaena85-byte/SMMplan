@@ -2,22 +2,30 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-24 | Агент: Antigravity
-## Активный статус: 🛡️ РЕАЛИЗОВАН REAL-TIME МОНИТОРИНГ АЛЕРТОВ БЕЗОПАСНОСТИ & АНТИФРОДА (100% PASS).
-- **SecurityAlertService & Anti-Flooding**: Разработан централизованный сервис `SecurityAlertService` (`src/services/security/security-alert.service.ts`), объединяющий запись инцидентов в `SecurityEvent`, мгновенную отправку Telegram-алертов через `sendAdminAlert()` при CRITICAL/HIGH угрозах, Redis Pub/Sub стрим (`security:events:stream`) и Redis-троттлинг против флуда/DDoS (60s TTL ключ per event+IP).
-- **Сквозная интеграция вебхуков и API v2**:
-  - `/api/webhooks/vexboost`, `/api/webhooks/provider/[providerName]`, `/api/webhooks/provider`
-  - `/api/webhooks/yookassa`, `/api/webhooks/robokassa`, `/api/webhooks/crypto`
-  - `/api/v2` (B2B API: несанкционированный доступ, кросс-тенантные атаки, подделки заказов)
-- **Админ-панель Real-Time Security & Anti-Fraud Center (`/admin/fraud-monitor`)**:
-  - Вкладка `🛡️ Real-Time Webhook & Security Monitor` с live pulse индикатором (авто-обновление 5с).
-  - 4 Live KPI карточки: Всего алертов за 24ч, Критические атаки (P0), Высокий риск (P1), Уникальные IP атакующих.
-  - Фильтры по критичности (`CRITICAL`, `HIGH`, `WARNING`, `INFO`), живой поиск по IP адресу.
-  - Интерактивная таблица инцидентов со 100% Viewport Width Fit (Zero Column Clipping), копированием IP в 1 клик и модальным инспектором JSON Payload.
+## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕНА РЕМЕДИАЦИЯ БЕЗОПАСНОСТИ v4.4 (REMEDIATION_PROMPT_v4.4.md) — 100% PASS
+- **P0 (CRITICAL/HIGH) — Завершено 100%**:
+  - `P0.1 & P0.2 VexBoost Webhook`: Mandatory `x-timestamp` (fail-closed, 5 min replay defense), HMAC-SHA256 signature verification over `timestamp.body` / `body:timestamp`.
+  - `P0.3 Provider Catch-all`: `SecurityAlertService.record()` при 401 (mismatch) и 500 (catch), mandatory `x-timestamp`.
+  - `P0.4 & P0.5 Provider/[name]`: Whitelist разрешенных провайдеров (`ALLOWED_PROVIDER_NAMES = new Set(['vexboost', 'smmstone'])`), удален unsafe fallback на `provider.apiKey`, HMAC bound to `timestamp.body`.
+  - `P0.6 Redis Lock Heartbeat`: `MutexManager.withLock` обновлен — автоматическое продление TTL каждые `ttlMs / 3` мс с гарантированной очисткой в `finally`.
+  - `P0.7 WalletOps.refund`: Убран silent clamp `totalSpent` — внедрен fail-fast throw с отменой транзакции при нарушении целостности (`totalSpent < 0`).
+  - `P0.8 Webhook Catch Logging`: `SecurityAlertService.record()` интегрирован во все catch-блоки вебхуков.
+- **P1 / P2 — Завершено 100%**:
+  - `P1.1 CSP Hardening`: Сужен `connect-src` в `nginx/default.conf`, удален `'unsafe-eval'`, добавлены `worker-src 'self'`, `frame-src 'none'`.
+  - `P1.2 Staging Hardening`: Добавлен `security_opt: [no-new-privileges:true]` для всех сервисов в `docker-compose.staging.yml`.
+  - `P1.3 Redis Config Sync`: Синхронизированы `maxmemory-policy noeviction` и `appendonly yes` в `docker/redis.conf` и compose.
+  - `P1.4 maskProviderKey`: Добавлен `try/catch` wrapper, предотвращающий падение UI при некорректных шифротекстах.
+  - `P1.5 encryption.ts`: Логирование ошибок в `decrypt()` ограничено `err.message` без утечки внутренностей стека.
+  - `P1.7 mock-provider`: Сравнение API-ключа переведено на `crypto.timingSafeEqual`.
+  - `P2.4 re-encrypt-secrets.ts`: Удалено ghost-поле `webhookSecret`.
+  - `P2.5 verify-no-secrets.js`: Regex-сканер обновлен и протестирован.
 - **Верификация**:
-  - Юнит-тесты `test/unit/security-alert.service.test.ts` (5/5 PASS).
-  - Проверка типов `npx tsc --noEmit` (0 ошибок).
-  - Линтер `npx eslint` (0 предупреждений/ошибок).
-  - Продакшн-сборка `npm run build` (Next.js 16.2 App Router Turbopack — УСПЕШНО).
+  - `npx tsc --noEmit` — 0 ошибок типов (100% PASS).
+  - `npm run test -- test/unit/security.webhooks.test.ts` — 22/22 PASS.
+  - `npm run test -- src/actions/order/__tests__/checkout.test.ts` — 4/4 PASS.
+  - `npm run test -- test/unit/security-alert.service.test.ts test/unit/wallet.race.test.ts test/unit/marketing.test.ts` — 13/13 PASS.
+  - `node scripts/verify-no-secrets.js` — PASS (0 leaked secrets).
+  - `npm run build` — Next.js build success!
 
 
 ---

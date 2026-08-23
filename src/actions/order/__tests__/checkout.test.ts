@@ -114,9 +114,14 @@ vi.mock('@/validators/link-mutators', () => ({
   })),
 }));
 
-vi.mock('@/utils/target-type', () => ({
-  inferTargetTypeFromCategory: vi.fn().mockReturnValue('POST'),
-}));
+vi.mock('@/utils/target-type', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/utils/target-type')>();
+  return {
+    ...actual,
+    inferTargetTypeFromCategory: vi.fn().mockReturnValue('POST'),
+    isCompatible: vi.fn().mockReturnValue(true),
+  };
+});
 
 vi.mock('@/services/financial/payment-gateway.service', () => ({
   PaymentGatewayFactory: {
@@ -162,9 +167,10 @@ describe('checkoutAction', () => {
 
   const validData = {
     serviceId: 'service-1',
-    link: 'https://t.me/durov',
+    link: 'https://t.me/durov/123',
     quantity: 100,
     email: 'test@test.com',
+    idempotencyKey: 'idemp-test-checkout-123',
   };
 
   it('1. Successful balance payment', async () => {

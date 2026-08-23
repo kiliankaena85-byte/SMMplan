@@ -32,6 +32,7 @@ export interface GeminiCallOptions {
   contents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }>;
   jsonMode?: boolean;
   temperature?: number;
+  maxOutputTokens?: number;
   timeoutMs?: number;
 }
 
@@ -284,10 +285,11 @@ export class GeminiClient {
               };
             }
 
-            if (payload.jsonMode || payload.temperature !== undefined) {
+            if (payload.jsonMode || payload.temperature !== undefined || payload.maxOutputTokens !== undefined) {
               body.generationConfig = {
                 ...(payload.jsonMode ? { response_mime_type: 'application/json' } : {}),
                 ...(payload.temperature !== undefined ? { temperature: payload.temperature } : {}),
+                ...(payload.maxOutputTokens !== undefined ? { maxOutputTokens: payload.maxOutputTokens } : {}),
               };
             }
 

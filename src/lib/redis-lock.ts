@@ -73,6 +73,7 @@ export class MutexManager {
 
   /**
    * Wrapper execute function that ensures mutual exclusion on a specific key.
+   * Periodically extends the lock TTL in the background while the task executes.
    */
   static async withLock<T>(key: string, ttlMs: number, maxWaitMs: number, fn: () => Promise<T>): Promise<T> {
     const token = await this.acquireLock(key, ttlMs, maxWaitMs);
@@ -80,9 +81,19 @@ export class MutexManager {
       throw new Error(`Failed to acquire lock for key: ${key}`);
     }
 
+    const intervalMs = Math.max(100, Math.floor(ttlMs / 3));
+    const heartbeatTimer = setInterval(async () => {
+      try {
+        await this.extendLock(key, token, ttlMs);
+      } catch {
+        // Ignore background extension error
+      }
+    }, intervalMs);
+
     try {
       return await fn();
     } finally {
+      clearInterval(heartbeatTimer);
       await this.releaseLock(key, token);
     }
   }

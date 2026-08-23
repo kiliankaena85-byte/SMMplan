@@ -126,6 +126,7 @@ describe('🔒 SEC-WEBHOOKS: Cryptography & Webhook Access Guards', () => {
     });
 
     it('SEC-PROV-003: Returns 403 Forbidden when x-signature header is missing', async () => {
+      vi.stubEnv('PROVIDER_WEBHOOK_SECRET', 'test-provider-secret-2026');
       vi.doMock('@/lib/db', () => ({
         db: {
           provider: {
@@ -156,6 +157,7 @@ describe('🔒 SEC-WEBHOOKS: Cryptography & Webhook Access Guards', () => {
     });
 
     it('SEC-PROV-004: Returns 403 Forbidden when HMAC signature is invalid', async () => {
+      vi.stubEnv('PROVIDER_WEBHOOK_SECRET', 'test-provider-secret-2026');
       vi.doMock('@/lib/db', () => ({
         db: {
           provider: {
@@ -184,6 +186,37 @@ describe('🔒 SEC-WEBHOOKS: Cryptography & Webhook Access Guards', () => {
       expect(res.status).toBe(403);
       const data = await res.json();
       expect(data.error).toBe('Invalid HMAC signature');
+    });
+
+    it('SEC-PROV-005: Returns 503 Service Unavailable when PROVIDER_WEBHOOK_SECRET is not configured', async () => {
+      vi.doMock('@/lib/db', () => ({
+        db: {
+          provider: {
+            findUnique: vi.fn().mockResolvedValue({
+              name: 'vexboost',
+              isActive: true,
+              apiKey: 'test-provider-key',
+            }),
+          },
+        },
+      }));
+
+      const { POST } = await import('@/app/api/webhooks/provider/[providerName]/route');
+      const freshTimestamp = String(Date.now());
+      const req = new NextRequest('https://smmplan.pro/api/webhooks/provider/vexboost', {
+        method: 'POST',
+        body: JSON.stringify({ orderId: '123', status: 'COMPLETED' }),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-timestamp': freshTimestamp,
+          'x-signature': 'test-signature',
+        },
+      });
+
+      const res = await POST(req, { params: Promise.resolve({ providerName: 'vexboost' }) });
+      expect(res.status).toBe(503);
+      const data = await res.json();
+      expect(data.error).toBe('Provider webhook secret not configured');
     });
   });
 
@@ -297,6 +330,122 @@ describe('🔒 SEC-WEBHOOKS: Cryptography & Webhook Access Guards', () => {
       const { MutexManager } = await import('@/lib/redis-lock');
       // When token is empty, immediately returns false
       expect(await MutexManager.extendLock('test-key', '', 5000)).toBe(false);
+    });
+
+    it('SEC-LOCK-002: MutexManager.withLock executes task and cleans up heartbeat timer and lock', async () => {
+      const { MutexManager } = await import('@/lib/redis-lock');
+      let executed = false;
+      const res = await MutexManager.withLock('unit-test-lock-key', 500, 1000, async () => {
+        executed = true;
+        return 'success';
+      });
+      expect(res).toBe('success');
+      expect(executed).toBe(true);
+    });
+  });
+
+  describe('VexBoost Webhook (/api/webhooks/vexboost)', () => {
+    it('SEC-VEX-001: Returns 403 Forbidden when x-timestamp header is missing (fail-closed replay defense)', async () => {
+      vi.stubEnv('VEXBOOST_WEBHOOK_SECRET', 'test-vexboost-secret-2026');
+      const { POST } = await import('@/app/api/webhooks/vexboost/route');
+      const req = new NextRequest('https://smmplan.pro/api/webhooks/vexboost', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-webhook-secret': 'test-vexboost-secret-2026',
+        },
+        body: JSON.stringify({ id: '123' }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(403);
+      const data = await res.json();
+      expect(data.error).toBe('Missing x-timestamp header');
+    });
+
+    it('SEC-VEX-002: Returns 403 Forbidden when x-timestamp is expired (> 5 minutes)', async () => {
+      vi.stubEnv('VEXBOOST_WEBHOOK_SECRET', 'test-vexboost-secret-2026');
+      const { POST } = await import('@/app/api/webhooks/vexboost/route');
+      const staleTimestamp = String(Date.now() - 10 * 60 * 1000);
+      const req = new NextRequest('https://smmplan.pro/api/webhooks/vexboost', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-webhook-secret': 'test-vexboost-secret-2026',
+          'x-timestamp': staleTimestamp,
+        },
+        body: JSON.stringify({ id: '123' }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(403);
+      const data = await res.json();
+      expect(data.error).toBe('Webhook timestamp expired or invalid');
+    });
+
+    it('SEC-VEX-003: Returns 401 Unauthorized when secret is missing', async () => {
+      vi.stubEnv('VEXBOOST_WEBHOOK_SECRET', 'test-vexboost-secret-2026');
+      const { POST } = await import('@/app/api/webhooks/vexboost/route');
+      const freshTimestamp = String(Date.now());
+      const req = new NextRequest('https://smmplan.pro/api/webhooks/vexboost', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-timestamp': freshTimestamp,
+        },
+        body: JSON.stringify({ id: '123' }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(401);
+      const data = await res.json();
+      expect(data.error).toBe('Unauthorized');
+    });
+
+    it('SEC-VEX-004: Returns 401 Unauthorized when secret does not match', async () => {
+      vi.stubEnv('VEXBOOST_WEBHOOK_SECRET', 'test-vexboost-secret-2026');
+      const { POST } = await import('@/app/api/webhooks/vexboost/route');
+      const freshTimestamp = String(Date.now());
+      const req = new NextRequest('https://smmplan.pro/api/webhooks/vexboost', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-webhook-secret': 'wrong-secret-value-attempt',
+          'x-timestamp': freshTimestamp,
+        },
+        body: JSON.stringify({ id: '123' }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(401);
+      const data = await res.json();
+      expect(data.error).toBe('Unauthorized');
+    });
+  });
+
+  describe('Wallet Integrity (src/services/financial/wallet-ops.ts)', () => {
+    it('SEC-REFUND-001: Throws and aborts transaction if refund would cause totalSpent to become negative', async () => {
+      const { WalletOps } = await import('@/services/financial/wallet-ops');
+      
+      const mockTx = {
+        user: {
+          update: vi.fn().mockResolvedValue({
+            balance: BigInt(2000),
+            totalSpent: BigInt(-100), // Negative totalSpent
+            tenantId: 'smmplan',
+          }),
+        },
+        ledgerEntry: {
+          findFirst: vi.fn().mockResolvedValue(null),
+          create: vi.fn().mockResolvedValue({ id: 'ledger-test' }),
+        },
+      } as any;
+
+      await expect(
+        WalletOps.refund(mockTx, 'user-123', 500, 'Refund reason', {
+          idempotencyKey: 'idemp-refund-test-negative',
+        })
+      ).rejects.toThrow(/Accounting integrity violation: totalSpent went negative/);
     });
   });
 });
