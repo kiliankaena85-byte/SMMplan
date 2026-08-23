@@ -108,6 +108,8 @@ export class RedisCacheService {
         if (keys.length > 0) {
           await redis.del(...keys);
         }
+        // Broadcast invalidation to all sibling Node.js instances via Redis Pub/Sub
+        await redis.publish('cache:invalidation:channel', pattern).catch(() => {});
       }
     } catch (err) {
       console.warn(`[RedisCacheService] Invalidation failed for pattern ${pattern}:`, err);

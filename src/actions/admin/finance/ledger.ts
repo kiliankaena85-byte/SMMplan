@@ -84,7 +84,10 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
       } : {}),
     };
 
-    const pageSize = p.pageSize;
+    const { SafePagination } = await import('@/lib/pagination/safe-pagination');
+    const pagination = SafePagination.sanitize({ pageSize: p.pageSize, cursor: p.cursor });
+    const pageSize = pagination.take;
+
     const entries = await db.ledgerEntry.findMany({
       where,
       orderBy: { createdAt: 'desc' },
@@ -98,20 +101,18 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
         reason: true,
         status: true,
         createdAt: true,
+        tenantId: true,
+        user: {
+          select: {
+            email: true,
+            tenantId: true,
+          },
+        },
       },
     });
 
     const hasMore = entries.length > pageSize;
     const page = hasMore ? entries.slice(0, pageSize) : entries;
-
-    // Enrich with user email
-    const uIds = Array.from(new Set(page.map(e => e.userId)));
-    const users = await db.user.findMany({
-      where: { id: { in: uIds } },
-      select: { id: true, email: true, tenantId: true },
-    });
-    const emailMap = new Map(users.map(u => [u.id, u.email]));
-    const tenantMap = new Map(users.map(u => [u.id, u.tenantId]));
 
     // Totals for the same where clause (summary strip)
     const [approvedAgg, quarantineAgg, refundsAgg] = await Promise.all([
@@ -124,13 +125,13 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
       items: page.map(e => ({
         id: e.id,
         userId: e.userId,
-        userEmail: emailMap.get(e.userId) ?? e.userId,
+        userEmail: e.user?.email ?? e.userId,
         adminId: e.adminId,
         amount: Number(e.amount), // BigInt → number at DTO boundary
         reason: e.reason,
         status: e.status,
         createdAt: e.createdAt.toISOString(),
-        tenantId: tenantMap.get(e.userId) ?? 'smmplan',
+        tenantId: e.tenantId ?? e.user?.tenantId ?? 'smmplan',
       })),
       nextCursor: hasMore ? page[page.length - 1].id : null,
       hasMore,

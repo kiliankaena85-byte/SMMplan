@@ -473,7 +473,7 @@ model Order {
   @@index([createdAt]) // P2.2: temporal queries & analytics
   @@index([status, createdAt]) // P2.2: filtered + sorted admin queries
   @@index([userId, status]) // Fast lookup for user orders by status
-  @@index([userId, status, createdAt])
+  @@index([tenantId, userId, status, createdAt])
   @@index([paymentId]) // Fast lookup for orders by payment (Order.paymentId foreign key)
   userNotes UserNote[]
 }
@@ -534,7 +534,7 @@ model Payment {
   @@index([tenantId])
   @@index([tenantId, userId])
   @@index([tenantId, status, createdAt])
-  @@index([userId, status, createdAt])
+  @@index([tenantId, userId, status, createdAt])
   @@index([status, createdAt])
   @@index([status])
   @@index([createdAt])
@@ -878,8 +878,8 @@ model LedgerEntry {
   @@index([adminId])
   @@index([adminId, createdAt])
   @@index([tenantId])
-  @@index([userId, createdAt])
-  @@index([transactionType, createdAt])
+  @@index([tenantId, userId, createdAt])
+  @@index([tenantId, transactionType, createdAt])
   @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
   @@index([createdAt(sort: Desc), id(sort: Desc)])
   @@index([userId, createdAt(sort: Desc), id(sort: Desc)])

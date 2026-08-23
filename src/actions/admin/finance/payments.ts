@@ -86,7 +86,10 @@ export async function getPaymentsAction(params: Partial<PaymentsParams>): Promis
       } : {}),
     };
 
-    const pageSize = p.pageSize;
+    const { SafePagination } = await import('@/lib/pagination/safe-pagination');
+    const pagination = SafePagination.sanitize({ pageSize: p.pageSize, cursor: p.cursor });
+    const pageSize = pagination.take;
+
     const payments = await db.payment.findMany({
       where,
       orderBy: { createdAt: 'desc' },

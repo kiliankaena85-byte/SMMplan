@@ -147,6 +147,20 @@ export const refillQueue = createQueue<RefillJobPayload>('refillQueue', {
   }
 });
 
+// Tiered prioritized queues
+export const criticalQueue = createQueue<Record<string, unknown>>('critical-queue', {
+  attempts: 5,
+  backoff: { type: 'exponential', delay: 1000 },
+});
+export const defaultQueue = createQueue<Record<string, unknown>>('default-queue', {
+  attempts: 3,
+  backoff: { type: 'exponential', delay: 5000 },
+});
+export const bulkQueue = createQueue<Record<string, unknown>>('bulk-queue', {
+  attempts: 2,
+  backoff: { type: 'exponential', delay: 30000 },
+});
+
 // Payment Gateway async generation queue payload
 export interface PaymentGatewayJobPayload {
   paymentId: string;
