@@ -2,7 +2,7 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-23 | Агент: Antigravity
-## Активный статус: 🚀 Успешный пуш в origin/main. Завершена защита и модернизация «Системных Настроек» (/admin/settings): маскирование секретов (Secret Masking), защита от SSRF (validateUrlNoSSRF), OWNER-only RBAC на платёжные шлюзы, фиксация safetyFloor >= 1.05 (+5%), интерактивные Dry-Run тесты соединений (SMTP, Gemini, Telegram), липкая панель Sticky Action Bar и awaitable audit logging, тесты 45/45 passed.
+## Активный статус: 🚀 Успешный пуш в origin/main. Завершена реализация «Железного купола» для финансов (FinTech Iron Dome): блокировка Race Conditions через Serializable изоляцию и WalletOps с lock, защита вебхуков YooKassa с HMAC/Redis-мьютексом и идемпотентностью, мульти-тенантная изоляция балансов, целостность LedgerEntry, BigInt-расчет НДС (54-ФЗ), тесты 45/45 passed.
 
 ---
 

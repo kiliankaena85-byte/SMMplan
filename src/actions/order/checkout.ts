@@ -443,7 +443,8 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         // 5.1 If gateway is balance, atomically deduct balance first
         if (gateway === 'balance' && user) {
           await WalletOps.charge(tx, user.id, finalTotalCents, `Оплата заказа с баланса`, {
-            idempotencyKey: `balance-charge-${effectiveIdempotencyKey}`
+            idempotencyKey: `balance-charge-${effectiveIdempotencyKey}`,
+            tenantId
           });
         }
 
