@@ -457,6 +457,34 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
     }
   };
 
+  // Incompatible services computation for safety validation
+  const incompatibleIds = useMemo(() => {
+    const set = new Set<string>();
+    selectedIds.forEach((id) => {
+      const svc = services.find((s) => String(s.service) === id);
+      const catId = selectedCategories[id] || autoMappedCategories[id];
+      if (svc && catId) {
+        const cat = categories.find((c) => c.id === catId);
+        if (cat) {
+          const serviceType = inferTargetTypeFromName(svc.name);
+          const catType = inferTargetTypeFromCategory(cat.name);
+          if (!isTargetTypeCompatible(serviceType, catType)) {
+            set.add(id);
+          }
+        }
+      }
+    });
+    return set;
+  }, [selectedIds, services, selectedCategories, autoMappedCategories, categories]);
+
+  const handleExcludeIncompatible = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      incompatibleIds.forEach((id) => next.delete(id));
+      return next;
+    });
+  };
+
   return (
     <div className="flex flex-col gap-6">
       {/* Top Controls & Summary */}
@@ -521,6 +549,11 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
+            )}
+            {incompatibleIds.size > 0 && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
+                ⚠️ {incompatibleIds.size} конфликт типов
+              </span>
             )}
           </div>
 
@@ -616,6 +649,8 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
         isPending={isPending}
         targetTenant={targetTenant}
         onTargetTenantChange={setTargetTenant}
+        incompatibleCount={incompatibleIds.size}
+        onExcludeIncompatible={handleExcludeIncompatible}
       />
     </div>
   );

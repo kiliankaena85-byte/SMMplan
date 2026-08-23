@@ -20,6 +20,8 @@ interface ConfirmationModalProps {
   isPending: boolean;
   targetTenant: 'smmplan' | 'flux' | 'both';
   onTargetTenantChange: (tenant: 'smmplan' | 'flux' | 'both') => void;
+  incompatibleCount?: number;
+  onExcludeIncompatible?: () => void;
 }
 
 export function ConfirmationModal({
@@ -32,6 +34,8 @@ export function ConfirmationModal({
   isPending,
   targetTenant,
   onTargetTenantChange,
+  incompatibleCount = 0,
+  onExcludeIncompatible,
 }: ConfirmationModalProps) {
   if (!isOpen) return null;
 
@@ -75,7 +79,7 @@ export function ConfirmationModal({
                 <button
                   key={t.id}
                   type="button"
-                                    onClick={() => onTargetTenantChange(t.id as "smmplan" | "flux" | "both")}
+                  onClick={() => onTargetTenantChange(t.id as "smmplan" | "flux" | "both")}
                   className={`py-2 px-3 text-xs font-extrabold rounded-lg border transition-all cursor-pointer ${
                     targetTenant === t.id
                       ? 'bg-primary text-primary-foreground border-primary shadow-sm'
@@ -104,6 +108,27 @@ export function ConfirmationModal({
               Наценка: <span className="font-bold text-foreground">{markup}%</span>
             </p>
           </div>
+
+          {/* Incompatible Warning Alert */}
+          {incompatibleCount > 0 && (
+            <div className="flex flex-col gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-[10px]">
+              <div className="flex items-start gap-2 text-xs font-medium text-amber-800 dark:text-amber-300">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  Обнаружено <strong className="font-bold">{incompatibleCount}</strong> услуг с возможным несоответствием типа цели (например, услуга для постов в категории каналов).
+                </div>
+              </div>
+              {onExcludeIncompatible && (
+                <button
+                  type="button"
+                  onClick={onExcludeIncompatible}
+                  className="self-end text-[11px] font-bold text-amber-700 dark:text-amber-300 hover:underline cursor-pointer"
+                >
+                  Исключить несовместимые из выбора
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Platform Breakdown */}
           {platformBreakdown.length > 0 && (

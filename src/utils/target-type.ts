@@ -14,6 +14,17 @@ export {
   type ServiceTargetType
 };
 
+/**
+ * Checks compatibility between Service Target Type and Link Target Type.
+ * Complies with strict signature isCompatible(serviceType, linkType).
+ */
+export function isCompatible(
+  serviceType: TargetTypeEnum | string | null | undefined,
+  linkType: TargetTypeEnum | string | null | undefined
+): boolean {
+  return isTargetTypeCompatible(linkType, serviceType);
+}
+
 export function inferTargetTypeFromCategory(categoryName: string | null | undefined): TargetTypeEnum {
   return inferTargetTypeFromName(categoryName);
 }
