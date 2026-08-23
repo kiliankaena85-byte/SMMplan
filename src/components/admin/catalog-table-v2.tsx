@@ -9,7 +9,6 @@ import {
   ArrowDown,
   Layers,
   Plus,
-  Eye,
   Pencil,
   ShoppingCart,
   Trash2,
@@ -37,7 +36,6 @@ import {
   type FilterNetworkItem,
   formatCleanActivityName,
 } from './catalog/catalog-filters';
-import { AdminPricingIntelligenceModal } from './catalog/AdminPricingIntelligenceModal';
 
 const SAFETY_MULTIPLIER = (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
 
@@ -148,7 +146,6 @@ export function ArchiveButton({
 
 export function EditServiceModal({
   service,
-  onSuccess,
 }: {
   service: CatalogServiceDTO;
   categories?: unknown[];
@@ -156,41 +153,16 @@ export function EditServiceModal({
   onSuccess?: () => void;
   usdToRub?: number;
 }) {
-  const [openPricingModal, setOpenPricingModal] = useState(false);
-
   return (
-    <>
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => setOpenPricingModal(true)}
-          title="ML Юнит-экономика и параметры"
-          aria-label={`Юнит-экономика для ${service.name}`}
-          className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 transition-all duration-200 cursor-pointer"
-        >
-          <Eye className="w-4 h-4" />
-        </button>
-
-        <Link
-          href={`/admin/catalog/${service.id}`}
-          aria-label={`Редактировать услугу ${service.name}`}
-          className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200 cursor-pointer"
-        >
-          <Pencil className="w-3.5 h-3.5" />
-        </Link>
-      </div>
-
-      {openPricingModal && (
-        <AdminPricingIntelligenceModal
-          serviceId={service.id}
-          isOpen={openPricingModal}
-          onClose={() => {
-            setOpenPricingModal(false);
-            if (onSuccess) onSuccess();
-          }}
-        />
-      )}
-    </>
+    <div className="flex items-center gap-1">
+      <Link
+        href={`/admin/catalog/${service.id}`}
+        aria-label={`Редактировать услугу ${service.name}`}
+        className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200 cursor-pointer"
+      >
+        <Pencil className="w-3.5 h-3.5" />
+      </Link>
+    </div>
   );
 }
 
@@ -234,7 +206,6 @@ export function CatalogTable({
   const [rowMarkups, setRowMarkups] = useState<Record<string, number>>({});
   const [rowPrices, setRowPrices] = useState<Record<string, string>>({});
   const [rowActive, setRowActive] = useState<Record<string, boolean>>({});
-  const [pricingModalServiceId, setPricingModalServiceId] = useState<string | null>(null);
 
   // Sorting from URL
   const currentSortBy = searchParams.get('sortBy');
@@ -431,7 +402,7 @@ export function CatalogTable({
         </div>
       </div>
 
-      {/* ─── DATA TABLE (DIRECT Table.Row RENDERING FOR REACT ARIA) ─── */}
+      {/* ─── DATA TABLE ─── */}
       <div className="bg-card/70 backdrop-blur-md border border-border rounded-xl shadow-2xs overflow-hidden w-full">
         <Table.ScrollContainer>
           <Table aria-label="Таблица услуг каталога" className="w-full">
@@ -448,7 +419,7 @@ export function CatalogTable({
                 />
               </Table.Column>
 
-              {/* 2. ID (isRowHeader mandatory for HeroUI / React Aria) */}
+              {/* 2. ID */}
               <Table.Column isRowHeader className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-2 py-2 w-12">
                 {renderSortableHeader('numericId', 'ID')}
               </Table.Column>
@@ -494,7 +465,7 @@ export function CatalogTable({
               </Table.Column>
 
               {/* 11. Actions */}
-              <Table.Column className={canEdit ? "w-20 px-2 py-2 text-right" : "hidden"}>
+              <Table.Column className={canEdit ? "w-16 px-2 py-2 text-right" : "hidden"}>
                 ДЕЙСТВИЯ
               </Table.Column>
             </Table.Header>
@@ -526,7 +497,6 @@ export function CatalogTable({
                 return (
                   <Table.Row
                     key={s.id}
-                    id={s.id}
                     className={`border-b border-border/40 hover:bg-muted/40 transition-colors ${
                       isChecked ? 'bg-primary/5' : ''
                     } ${!currentIsActive ? 'opacity-60' : ''}`}
@@ -687,22 +657,13 @@ export function CatalogTable({
                     {/* 11. ДЕЙСТВИЯ */}
                     <Table.Cell className={canEdit ? "py-2 px-2 text-right" : "hidden"}>
                       <div className="flex items-center gap-1 justify-end">
-                        <button
-                          type="button"
-                          onClick={() => setPricingModalServiceId(s.id)}
-                          title="ML Юнит-экономика и параметры"
-                          aria-label={`Юнит-экономика для ${s.name}`}
-                          className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 transition-all cursor-pointer"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </button>
-
                         <Link
                           href={`/admin/catalog/${s.id}`}
+                          title="Редактировать услугу"
                           aria-label={`Редактировать услугу ${s.name}`}
                           className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all cursor-pointer"
                         >
-                          <Pencil className="w-3 h-3" />
+                          <Pencil className="w-3.5 h-3.5" />
                         </Link>
 
                         <ArchiveButton service={s} onDeleted={handleServiceDeleted} />
@@ -715,14 +676,6 @@ export function CatalogTable({
           </Table>
         </Table.ScrollContainer>
       </div>
-
-      {pricingModalServiceId && (
-        <AdminPricingIntelligenceModal
-          serviceId={pricingModalServiceId}
-          isOpen={Boolean(pricingModalServiceId)}
-          onClose={() => setPricingModalServiceId(null)}
-        />
-      )}
     </div>
   );
 }
