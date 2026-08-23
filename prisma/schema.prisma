@@ -339,6 +339,25 @@ model Provider {
   shadowServices  ShadowService[]
 }
 
+model ProviderOutbox {
+  id              String    @id @default(cuid())
+  orderId         String
+  providerId      String
+  idempotencyKey  String    @unique
+  status          String    @default("PENDING") // PENDING, SENT, FAILED, RETRY
+  providerOrderId String?
+  payload         Json
+  responseBody    Json?
+  error           String?
+  attempts        Int       @default(0)
+  lastAttemptAt   DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([orderId])
+  @@index([providerId, status])
+}
+
 model ShadowService {
   id                String   @id @default(cuid())
   providerId        String
