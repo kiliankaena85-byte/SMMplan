@@ -61,39 +61,21 @@ export class RateLimitService {
         console.warn("[RATE_LIMIT:REDIS] Redis check failed, falling back to PostgreSQL:", (redisError as Error).message);
       }
 
-      // 2. Fallback to Postgres (if Redis is down or not configured)
-
-      const existingRecord = await db.rateLimit.findUnique({
-        where: { ip_endpoint: { ip, endpoint } }
-      });
-
-      let record;
+      // 2. Fallback to Postgres with atomic UPSERT (Zero Race Condition)
       const newExpiry = new Date(now.getTime() + windowSeconds * 1000);
+      const rows = await db.$queryRaw<Array<{ hits: number }>>`
+        INSERT INTO "RateLimit" ("id", "ip", "endpoint", "hits", "expiresAt", "createdAt", "updatedAt")
+        VALUES (gen_random_uuid()::text, ${ip}, ${endpoint}, 1, ${newExpiry}, NOW(), NOW())
+        ON CONFLICT ("ip", "endpoint") DO UPDATE SET
+          "hits" = CASE WHEN "RateLimit"."expiresAt" <= NOW() THEN 1 ELSE "RateLimit"."hits" + 1 END,
+          "expiresAt" = CASE WHEN "RateLimit"."expiresAt" <= NOW() THEN ${newExpiry} ELSE "RateLimit"."expiresAt" END,
+          "updatedAt" = NOW()
+        RETURNING "hits";
+      `;
 
-      if (existingRecord && existingRecord.expiresAt <= now) {
-         // Expired: Reset the counter instead of banned permanently
-         record = await db.rateLimit.update({
-            where: { id: existingRecord.id },
-            data: { hits: 1, expiresAt: newExpiry }
-         });
-      } else {
-         // We use upsert to prevent unique constraint violation race conditions when two concurrent requests try to create a record simultaneously
-         record = await db.rateLimit.upsert({
-            where: { ip_endpoint: { ip, endpoint } },
-            update: {
-               hits: { increment: 1 }
-            },
-            create: {
-               ip,
-               endpoint,
-               hits: 1,
-               expiresAt: newExpiry
-            }
-         });
-      }
-
-      if (record.hits > maxHits) {
-         console.warn(`[RATE_LIMIT:PG] Blocked ${ip} on ${endpoint} (${record.hits}/${maxHits})`);
+      const hits = rows[0]?.hits ?? 1;
+      if (hits > maxHits) {
+         console.warn(`[RATE_LIMIT:PG] Blocked ${ip} on ${endpoint} (${hits}/${maxHits})`);
          return false;
       }
 
@@ -157,33 +139,23 @@ export class RateLimitService {
         console.warn("[RATE_LIMIT_CUSTOM:REDIS] Redis check failed, falling back to PostgreSQL:", (redisError as Error).message);
       }
 
-      // 2. Fallback to Postgres
-
-      // We'll store it as ip: 'CUSTOM_KEY', endpoint: key
+      // 2. Fallback to Postgres with atomic UPSERT (Zero Race Condition)
       const ip = "CUSTOM_KEY";
       const endpoint = key;
-      const existingRecord = await db.rateLimit.findUnique({
-        where: { ip_endpoint: { ip, endpoint } }
-      });
-
-      let record;
       const newExpiry = new Date(now.getTime() + windowSeconds * 1000);
+      const rows = await db.$queryRaw<Array<{ hits: number }>>`
+        INSERT INTO "RateLimit" ("id", "ip", "endpoint", "hits", "expiresAt", "createdAt", "updatedAt")
+        VALUES (gen_random_uuid()::text, ${ip}, ${endpoint}, 1, ${newExpiry}, NOW(), NOW())
+        ON CONFLICT ("ip", "endpoint") DO UPDATE SET
+          "hits" = CASE WHEN "RateLimit"."expiresAt" <= NOW() THEN 1 ELSE "RateLimit"."hits" + 1 END,
+          "expiresAt" = CASE WHEN "RateLimit"."expiresAt" <= NOW() THEN ${newExpiry} ELSE "RateLimit"."expiresAt" END,
+          "updatedAt" = NOW()
+        RETURNING "hits";
+      `;
 
-      if (existingRecord && existingRecord.expiresAt <= now) {
-         record = await db.rateLimit.update({
-            where: { id: existingRecord.id },
-            data: { hits: 1, expiresAt: newExpiry }
-         });
-      } else {
-         record = await db.rateLimit.upsert({
-            where: { ip_endpoint: { ip, endpoint } },
-            update: { hits: { increment: 1 } },
-            create: { ip, endpoint, hits: 1, expiresAt: newExpiry }
-         });
-      }
-
-      if (record.hits > maxHits) {
-         console.warn(`[RATE_LIMIT_CUSTOM:PG] Blocked key ${key} (${record.hits}/${maxHits})`);
+      const hits = rows[0]?.hits ?? 1;
+      if (hits > maxHits) {
+         console.warn(`[RATE_LIMIT_CUSTOM:PG] Blocked key ${key} (${hits}/${maxHits})`);
          return false;
       }
       return true;

@@ -1,18 +1,13 @@
 /**
  * (c) 2026 SMMplan.
- * Distributed Sliding Window Rate Limiter (2026 Anti-Brute-Force Standard).
- *
- * Protects critical endpoints:
- * - Auth (/login, /register, magic links): 5 req / 60s
- * - Order checkout: 10 req / 60s
- * - Password reset / SMS: 3 req / 900s
- * - Public APIs: 120 req / 60s
+ * Distributed Sliding Window Rate Limiter with Atomic Redis Lua Script (Anti-Brute-Force Standard).
  */
 
 import { redis } from '@/lib/redis';
+import crypto from 'crypto';
 
 export interface RateLimitConfig {
-  limit: number;      // Maximum allowed requests in window
+  limit: number;         // Maximum allowed requests in window
   windowSeconds: number; // Duration of window in seconds
 }
 
@@ -22,6 +17,27 @@ export interface RateLimitResult {
   remaining: number;
   resetSeconds: number;
 }
+
+const LUA_SLIDING_WINDOW_SCRIPT = `
+local key = KEYS[1]
+local limit = tonumber(ARGV[1])
+local window = tonumber(ARGV[2])
+local now = tonumber(ARGV[3])
+local unique_id = ARGV[4]
+
+redis.call('ZREMRANGEBYSCORE', key, 0, now - window)
+local current = redis.call('ZCARD', key)
+
+if current < limit then
+  redis.call('ZADD', key, now, unique_id)
+  local ttl = math.ceil(window / 1000)
+  if ttl < 1 then ttl = 1 end
+  redis.call('EXPIRE', key, ttl)
+  return 1
+else
+  return 0
+end
+`;
 
 // In-memory fallback sliding window for test / offline environments
 const inMemoryStore = new Map<string, number[]>();
@@ -36,44 +52,46 @@ export async function checkRateLimit(
   const windowMs = windowSeconds * 1000;
   const clearBefore = now - windowMs;
   const key = `ratelimit:${prefix}:${identifier}`;
+  const uniqueId = `${now}-${crypto.randomBytes(4).toString('hex')}`;
 
   try {
-    if (redis && typeof redis.zadd === 'function') {
-      // Redis Sliding Window implementation via Sorted Sets (ZSET)
-      const pipeline = redis.pipeline();
-      pipeline.zremrangebyscore(key, 0, clearBefore);
-      pipeline.zadd(key, now, `${now}-${Math.random()}`);
-      pipeline.zcard(key);
-      pipeline.expire(key, windowSeconds);
-
-      const results = await pipeline.exec();
-      const currentCount = (results?.[2]?.[1] as number) || 1;
-
-      const success = currentCount <= limit;
-      const remaining = Math.max(0, limit - currentCount);
-
-      return {
-        success,
+    if (redis && typeof redis.eval === 'function' && (redis.status === 'ready' || redis.status === 'connecting')) {
+      const allowed = await redis.eval(
+        LUA_SLIDING_WINDOW_SCRIPT,
+        1,
+        key,
         limit,
-        remaining,
+        windowMs,
+        now,
+        uniqueId
+      );
+
+      const isAllowed = allowed === 1;
+      return {
+        success: isAllowed,
+        limit,
+        remaining: isAllowed ? 1 : 0,
         resetSeconds: windowSeconds,
       };
     }
   } catch (err) {
-    console.warn('[RateLimiter] Redis unavailable, falling back to memory store:', err);
+    console.warn('[RateLimiter] Redis Lua evaluation failed, falling back to memory store:', err);
   }
 
   // Fallback: In-memory sliding window
   const timestamps = (inMemoryStore.get(key) || []).filter((ts) => ts > clearBefore);
-  timestamps.push(now);
-  inMemoryStore.set(key, timestamps);
+  const isAllowed = timestamps.length < limit;
+
+  if (isAllowed) {
+    timestamps.push(now);
+    inMemoryStore.set(key, timestamps);
+  }
 
   const currentCount = timestamps.length;
-  const success = currentCount <= limit;
   const remaining = Math.max(0, limit - currentCount);
 
   return {
-    success,
+    success: isAllowed,
     limit,
     remaining,
     resetSeconds: windowSeconds,

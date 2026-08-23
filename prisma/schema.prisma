@@ -48,6 +48,11 @@ model User {
   // Personal AI API Key (Encrypted AES-256) for staff actions
   geminiApiKey       String?
 
+  // Two-Factor Authentication (TOTP 2FA)
+  twoFactorEnabled     Boolean  @default(false)
+  twoFactorSecret      String?  // Base32 TOTP secret or encrypted
+  twoFactorBackupCodes String[] @default([])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

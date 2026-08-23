@@ -14,6 +14,7 @@ const log = logger.child({ component: 'PasswordLogin' });
 const schema = z.object({
   email: z.string().email("Введите корректный email"),
   password: z.string().min(1, "Введите пароль"),
+  twoFactorCode: z.string().optional(),
 });
 
 /** @public Public user login action */
@@ -26,14 +27,22 @@ export async function loginWithPasswordAction(prevState: unknown, formData: Form
     return { error: parsed.error.errors[0].message, success: false };
   }
 
-  const { email, password } = parsed.data;
+  const { email, password, twoFactorCode } = parsed.data;
   const cleanEmail = email.toLowerCase().trim();
 
   try {
+    const { SecurityAuditLogger } = await import('@/lib/security/audit-logger');
+
     // 1. IP-level Rate Limit (Max 20 attempts per hour)
     const isIpAllowed = await RateLimitService.check('auth:password:ip', 20, 3600, true);
     if (!isIpAllowed) {
       log.warn('Password login IP rate limit exceeded', { email: cleanEmail });
+      await SecurityAuditLogger.log({
+        event: 'BRUTE_FORCE_BLOCKED',
+        email: cleanEmail,
+        severity: 'WARNING',
+        details: { reason: 'IP rate limit exceeded' },
+      });
       return { error: "Слишком много попыток входа с этого IP-адреса. Пожалуйста, подождите 1 час.", success: false };
     }
 
@@ -41,6 +50,12 @@ export async function loginWithPasswordAction(prevState: unknown, formData: Form
     const isEmailAllowed = await RateLimitService.checkCustomKey(`password-attempts:${cleanEmail}`, 5, 900, true);
     if (!isEmailAllowed) {
       log.warn('Password login email rate limit exceeded', { email: cleanEmail });
+      await SecurityAuditLogger.log({
+        event: 'BRUTE_FORCE_BLOCKED',
+        email: cleanEmail,
+        severity: 'WARNING',
+        details: { reason: 'Email brute force rate limit exceeded' },
+      });
       return { error: "Аккаунт временно заблокирован из-за большого числа неверных попыток. Попробуйте через 15 минут.", success: false };
     }
 
@@ -54,7 +69,18 @@ export async function loginWithPasswordAction(prevState: unknown, formData: Form
         email: cleanEmail,
         tenantId
       },
-      select: { id: true, tenantId: true, passwordHash: true, role: true, isActive: true, isDeleted: true, isEmailVerified: true }
+      select: { 
+        id: true, 
+        tenantId: true, 
+        passwordHash: true, 
+        role: true, 
+        isActive: true, 
+        isDeleted: true, 
+        isEmailVerified: true,
+        twoFactorEnabled: true,
+        twoFactorSecret: true,
+        twoFactorBackupCodes: true
+      }
     });
 
     // Fallback: Global Admin/Owner login across any tenant
@@ -65,18 +91,42 @@ export async function loginWithPasswordAction(prevState: unknown, formData: Form
           role: { in: ["OWNER", "ADMIN"] },
           isDeleted: false
         },
-        select: { id: true, tenantId: true, passwordHash: true, role: true, isActive: true, isDeleted: true, isEmailVerified: true }
+        select: { 
+          id: true, 
+          tenantId: true, 
+          passwordHash: true, 
+          role: true, 
+          isActive: true, 
+          isDeleted: true, 
+          isEmailVerified: true,
+          twoFactorEnabled: true,
+          twoFactorSecret: true,
+          twoFactorBackupCodes: true
+        }
       });
     }
 
     if (!user) {
       // Anti-Enumeration: return standard error so attackers don't know if email exists
       log.warn('Password login: User not found', { email: cleanEmail, tenantId });
+      await SecurityAuditLogger.log({
+        event: 'LOGIN_FAILED',
+        email: cleanEmail,
+        tenantId,
+        details: { reason: 'User not found' }
+      });
       return { error: "Неверный email или пароль", success: false };
     }
 
     if (user.isDeleted || !user.isActive) {
       log.warn('Password login attempted for blocked/deleted account', { email: cleanEmail });
+      await SecurityAuditLogger.log({
+        event: 'LOGIN_FAILED',
+        userId: user.id,
+        email: cleanEmail,
+        tenantId,
+        details: { reason: 'Account disabled or deleted' }
+      });
       return { error: "Неверный email или пароль", success: false };
     }
 
@@ -100,7 +150,60 @@ export async function loginWithPasswordAction(prevState: unknown, formData: Form
     const isMatch = await verifyPassword(password, user.passwordHash);
     if (!isMatch) {
       log.warn('Password login: Invalid password', { email: cleanEmail });
+      await SecurityAuditLogger.log({
+        event: 'LOGIN_FAILED',
+        userId: user.id,
+        email: cleanEmail,
+        tenantId,
+        details: { reason: 'Invalid password' }
+      });
       return { error: "Неверный email или пароль", success: false };
+    }
+
+    // 5. Two-Factor Authentication (2FA) Verification
+    if (user.twoFactorEnabled && user.twoFactorSecret) {
+      if (!twoFactorCode || twoFactorCode.trim().length === 0) {
+        return {
+          requires2fa: true,
+          userId: user.id,
+          error: "Введите 6-значный код из приложения аутентификатора (Google Authenticator / 2FA)",
+          success: false,
+        };
+      }
+
+      const { verifyTotpToken, verifyAndConsumeBackupCode } = await import('@/lib/auth/2fa');
+      const isTotpValid = verifyTotpToken(user.twoFactorSecret, twoFactorCode.trim());
+
+      if (!isTotpValid) {
+        // Try backup recovery code
+        const backupResult = verifyAndConsumeBackupCode(twoFactorCode.trim(), user.twoFactorBackupCodes || []);
+        if (!backupResult.valid) {
+          log.warn('Password login: Invalid 2FA TOTP or backup code', { userId: user.id });
+          await SecurityAuditLogger.log({
+            event: '2FA_FAILED',
+            userId: user.id,
+            email: cleanEmail,
+            tenantId,
+            details: { reason: 'Invalid TOTP/backup token' },
+            severity: 'WARNING',
+          });
+          return { error: "Неверный код 2FA или резервный код", success: false, requires2fa: true };
+        }
+
+        // Consume backup code
+        await db.user.update({
+          where: { id: user.id },
+          data: { twoFactorBackupCodes: backupResult.remainingHashedCodes },
+        });
+        log.info('2FA backup recovery code consumed', { userId: user.id });
+      }
+
+      await SecurityAuditLogger.log({
+        event: '2FA_VERIFIED',
+        userId: user.id,
+        email: cleanEmail,
+        tenantId,
+      });
     }
 
     // P-1: Auto-rehash legacy password hashes (salt:key format N=16384) to $s2$65536$... format
@@ -118,8 +221,15 @@ export async function loginWithPasswordAction(prevState: unknown, formData: Form
       }
     }
 
-    // 5. Create Session
+    // 6. Create Session
     await createSession(user.id);
+
+    await SecurityAuditLogger.log({
+      event: 'LOGIN_SUCCESS',
+      userId: user.id,
+      email: cleanEmail,
+      tenantId,
+    });
 
     log.info('Password login successful', { email: cleanEmail, userId: user.id });
 
