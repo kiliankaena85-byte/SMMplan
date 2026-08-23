@@ -2,36 +2,22 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-24 | Агент: Antigravity
-## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕНА РЕМЕДИАЦИЯ БЕЗОПАСНОСТИ v4.5 (REMEDIATION_PROMPT_v4.5.md) — 100% PASS
-- **P0 (CRITICAL/HIGH) — Завершено 100%**:
-  - `P0.1 Provider Catch-All Fail-Closed`: Требуется обязательный `x-timestamp` (<5 мин), при отсутствии или истечении — отказ `403`.
-  - `P0.2 & P0.3 Stored XSS Protection`: Добавлена `sanitizeArticleHtml` в `LegalPageContent.tsx` (оба макета SMMflux/SMMplan) и `src/app/p/[slug]/page.tsx`.
-  - `P0.4 & P0.5 No Raw-HMAC Fallback`: Удален `expectedSigRaw` в `vexboost/route.ts` и `provider/[providerName]/route.ts`. Поддерживается только криптографическая связка `timestamp.body` / `body:timestamp`.
-  - `P0.6 Lockfile Integrity`: Восстановлена целостность всех пакетов в `package-lock.json` (0 missing integrity).
-  - `P0.7 SecurityEvent Immutability Trigger`: Создан SQL-триггер PostgreSQL, блокирующий `UPDATE` и `DELETE` по таблице `"SecurityEvent"`, с обходом только для `cleanup-pii.job.ts` в транзакции.
-  - `P0.8 & P0.9 Auth Audit Trail`: Полный аудит в `auth/verify/route.ts` и `auth/logout/route.ts` через `SecurityAuditLogger`.
-  - `P0.10 Inbound Email Webhook`: Интеграция `SecurityAlertService.record()` во все пути валидации.
-  - `P0.11 & P1.6 OWASP Static Security Scanner`: Добавлен `owasp:scan` в CI и `package.json`, 0 уязвимостей в `src/`.
-- **P1 / P2 — Завершено 100%**:
-  - `P1.1 canResetPasswordUntil`: 15-минутный TTL в модели `Session` и в базе данных для сброса пароля.
-  - `P1.2 Unified Password Policy`: Единая `passwordPolicySchema` применена в `password-settings.ts`.
-  - `P1.3 BigInt Refund Pipeline`: `refund.ts`, `refund-policy.service.ts`, `orders.ts`, `ticket.ts`, `order.service.ts`, `cleanup.processor.ts` переведены на строгую `BigInt` арифметику.
-  - `P1.4 Lock Acquire Timeout`: Грациозный fallback с поиском заказа по `idempotencyKey` в `checkout.ts`.
-  - `P1.5 Sensitive Data Redaction`: Автоматическое маскирование паролей, токенов, ключей и хэширование PII в `SecurityAlertService.record()`.
-  - `P1.7 Crypto Webhook IP Whitelist`: Внедрен hook с валидацией IP и аудит-трейлом при подмене.
-  - `P1.8 Mock Payment QA_SECRET_KEY`: Добавлена timing-safe проверка `QA_SECRET_KEY`.
-  - `P1.9 Sandbox YooKassa Cross-Tenant Guard`: Проверка соответствия тенанта администратора и пользователя.
-  - `P2.1 Container Hardening`: `cap_drop: [ALL]`, `read_only: true`, `tmpfs` в `docker-compose.prod.yml`.
-  - `P2.3 & P2.4 CSP & Frame Protection`: Унифицирован заголовок `X-Frame-Options: DENY` и согласован `connect-src` в Nginx и Next.js.
-  - `P2.6 500 Catch Alerting`: Запись `WEBHOOK_PROCESSING_ERROR` в `yookassa`, `robokassa`, `crypto`.
-  - `P2.7 AI Regex Fallback Audit`: Экранирование спецсимволов и статический аудит `SafeRegexValidator.staticAudit` в fallback-ветке.
+## Активный статус: 🚀 УСПЕШНО ЗАВЕРШЕНА МОДЕРНИЗАЦИЯ ПРОВАЙДЕРОВ И МАСТЕРА ИМПОРТА УСЛУГ (SMMpanel 1.0)
+- **Управление провайдерами (`/admin/providers`)**:
+  - Реализован `deleteProviderAction(rawId)` с защитой от удаления при активных заказах (`PENDING`, `PROVISIONING`, `IN_PROGRESS`), транзакционной очисткой маршрутов (`ServiceRoute`), теневого каталога (`ShadowService`), отвязкой услуг (`providerId: null, isActive: false`) и аудитом `PROVIDER_DELETE`.
+  - Добавлены кнопки «Импорт» и «Удалить» с модальным окном подтверждения `ConfirmModal` в таблице (`client-table.tsx`) и форме (`provider-form.tsx`).
+- **Мастер импорта услуг (`/admin/providers/import`)**:
+  - **Выбор провайдера:** Интерактивный `<Select>` селектор провайдера с бейджами статуса и счетчиками услуг, поддержка `?providerId=...` из URL.
+  - **Редактирование перед импортом (`ServiceEditModal`):** модальный инспектор карточки услуги для настройки витринного названия (`cleanName`), типа ссылки (`targetType`), категории каталога, индивидуальной наценки/цены, лимитов (min/max), описания и живого предпросмотра на сайте.
+  - **Справочник типов ссылок (`target-type-config.ts`):** 10 типов ссылок (📢 Канал, 📝 Пост, 👤 Профиль, 🎬 Видео/Reels, ⏱️ Сториз, 📊 Опрос, 💬 Комментарии, 🤖 Бот, 🔄 Авто-посты, ⚙️ Своя) с понятными описаниями и живыми примерами URL.
+  - **Массовые операции:** тулбар массовой смены категории и типа ссылки в 1 клик для выбранных услуг.
+  - **Упрощение таблицы (`ServicesTable`):** 6 сбалансированных колонок (Viewport 100% Fit, Zero Column Clipping) с инлайн-селектором типа ссылки.
+  - **Инвалидация кэша Next.js:** исправлены пути инвалидации на `/admin/catalog`, `/admin/catalog/tree`, `/admin/catalog/categories`.
+  - **Стойкость Live-Check:** безопасный fallback на теневой кэш при сбоях внешних API провайдеров.
 - **Верификация**:
-  - `npx tsc --noEmit` — 0 ошибок типов (100% PASS).
-  - `npm run test -- test/unit/security.webhooks.test.ts test/unit/sanitize.test.ts test/unit/security-alert.service.test.ts` — 32/32 PASS (100%).
-  - `npx tsx scripts/owasp-scan.ts` — 0 findings (PASS).
-  - `node scripts/verify-no-secrets.js` — PASS (0 leaked secrets).
-  - `npm run build` — Next.js production build success!
-
+  - `npx tsc --noEmit` — 0 ошибок (100% PASS).
+  - `npm run test -- src/__tests__/provider-gateway-resilience.test.ts src/services/admin/__tests__/provider-diagnostic.test.ts` — 16/16 PASS (100%).
+  - `npx next build` — Next.js 16 Production Build Success!
 
 ---
 
@@ -47,13 +33,13 @@
 | Карантин аномалий | `/admin/catalog/quarantine` | ✅ АУДИТ ЗАВЕРШЁН |
 | Синхронизация каталогов | `/admin/catalog/sync` | ✅ АУДИТ ЗАВЕРШЁН |
 | Разведка рынка (Радар) | `/admin/intel` | ✅ АУДИТ ЗАВЕРШЁН |
-| Мастер Cherry-Pick Импорта | `/admin/providers/import` | ✅ АУДИТ ЗАВЕРШЁН |
+| **Мастер Cherry-Pick Импорта** | `/admin/providers/import` | ✅ ЗАВЕРШЁН (Интерактивный селектор провайдера, редактирование перед импортом, сопоставление типов ссылок, массовый тип, Hero пустой кэш, фикс кэша каталога) |
 | **Тикеты & Поддержка** | `/admin/tickets` | ✅ ЗАВЕРШЁН (Live-синхронизация Telegram: инлайн-редактирование, удаление из чата, CSAT-оценка ⭐ 1-5 при закрытии) |
 | Бренды & Домены | `/admin/tenants` | ✅ |
 | Клиенты (CRM) | `/admin/clients` | ✅ |
 | **Сотрудники, Графики & Зарплата** | `/admin/staff` | ✅ ЗАВЕРШЁН (График смен 1..31, автозаполнение 2/2 и 5/2, подмены, отпуска, расчет ЗП, табель CSV) |
 | **Мастер-Руководство & Академия** | `/admin/manual` | ✅ ЗАВЕРШЁН (Светлый холст, инженерный разбор всех 18 экранов SMMpanel 1.0, столбцы, кнопки, чек-лист MVP + 13 симуляторов) |
-| **Провайдеры & Шлюзы** | `/admin/providers` | ✅ ЗАВЕРШЁН (100% Viewport Width Fit, Zero Column Clipping, Mobile Bento Cards, интерактивный 1-клик refresh глобальной ликвидности) |
+| **Провайдеры & Шлюзы** | `/admin/providers` | ✅ ЗАВЕРШЁН (Полный CRUD с каскадным удалением, отвязкой услуг, 1-click импортом и 100% Viewport Width Fit) |
 | **Гарантийные Докрутки** | `/admin/refills` | ✅ |
 | **Биллинг & 54-ФЗ** | `/admin/finance` | ✅ |
 | **Системные Настройки** | `/admin/settings` | ✅ ЗАВЕРШЁН (Secret Masking, SSRF Guard, OWNER RBAC, SafetyFloor >= 1.05, Sticky Save Bar, Awaitable Audit) |

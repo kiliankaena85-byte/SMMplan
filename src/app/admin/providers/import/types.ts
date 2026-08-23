@@ -2,6 +2,9 @@ export interface ExternalServiceMetrics {
   platform?: string | null;
   category?: string | null;
   targetCategory?: string | null;
+  targetType?: string | null;
+  customDataType?: string | null;
+  isMediaGroupAware?: boolean | null;
   confidence?: number;
   priceAnomaly?: boolean;
   pricePerUnit?: number;
@@ -14,6 +17,7 @@ export interface ExternalServiceMetrics {
 export interface ExternalServiceItem {
   service: string | number;
   name: string;
+  desc?: string | null;
   type?: string;
   category?: string;
   rate?: number;
@@ -47,6 +51,9 @@ export interface ProviderItem {
   name: string;
   url?: string;
   status?: string;
+  isActive?: boolean;
+  serviceCount?: number;
+  balanceCurrency?: string;
 }
 
 export interface FilterState {

@@ -64,7 +64,7 @@ export async function batchEnrichExistingServicesAction(serviceIds: string[]) {
         updatedCount++;
       }
 
-      revalidatePath('/admin/services');
+      revalidatePath('/admin/catalog');
       revalidatePath('/');
       revalidatePath('/dashboard/new-order');
 

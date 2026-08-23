@@ -7,18 +7,41 @@ import { CATALOG_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-
 
 export const dynamic = 'force-dynamic';
 
-export default async function ImportProvidersPage() {
+interface ImportPageProps {
+  searchParams: Promise<{
+    providerId?: string;
+    tenant?: string;
+  }>;
+}
+
+export default async function ImportProvidersPage({ searchParams }: ImportPageProps) {
+  const { providerId, tenant } = await searchParams;
+
   // Fetch categories via service
   const categories = await adminProviderService.listCategories();
   
-  // Fetch all active providers
+  // Fetch all providers
   const providers = await adminProviderService.listProviders();
-  const activeProviders = providers.filter(p => p.isActive);
 
   let errorMsg: string | null = null;
-  if (activeProviders.length === 0) {
-    errorMsg = 'Нет активных провайдеров для импорта';
+  if (providers.length === 0) {
+    errorMsg = 'Нет зарегистрированных провайдеров для импорта';
   }
+
+  // Determine initial provider: query param match > first active provider > first provider
+  const initialProvider = 
+    (providerId && providers.find(p => p.id === providerId)) ||
+    providers.find(p => p.isActive) ||
+    providers[0];
+
+  const providerItems = providers.map(p => ({
+    id: p.id,
+    name: p.name,
+    url: p.apiUrl,
+    isActive: p.isActive,
+    serviceCount: p.serviceCount,
+    balanceCurrency: p.balanceCurrency,
+  }));
 
   return (
     <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
@@ -45,7 +68,12 @@ export default async function ImportProvidersPage() {
           </Link>
         </div>
       ) : (
-        <ImportWizard categories={categories} providers={activeProviders} />
+        <ImportWizard 
+          categories={categories} 
+          providers={providerItems} 
+          initialProviderId={initialProvider?.id}
+          initialTenant={tenant}
+        />
       )}
     </div>
   );

@@ -25,6 +25,7 @@ export interface ImportCherryPickFilters {
     minPrice?: string | number;
     maxPrice?: string | number;
     activityType?: string;
+    targetTenant?: 'smmplan' | 'flux' | 'both';
 }
 
 // --- Pagination & Filtering API ---
@@ -49,12 +50,20 @@ export async function fetchPaginatedExternalServices(
             const currency = provider?.balanceCurrency || 'USD';
             const usdRate = settings?.exchangeRateUSD || 90.0;
 
-            // 1. Fetch imported map for "alreadyImported" status
+            // 1. Fetch imported map for "alreadyImported" status for target tenant
+            const tenantFilter = filters.targetTenant && filters.targetTenant !== 'both'
+                ? filters.targetTenant
+                : undefined;
+
             const existingServices = await db.service.findMany({
-                where: { providerId, externalId: { not: null } },
-                select: { id: true, externalId: true }
+                where: { 
+                    providerId, 
+                    externalId: { not: null },
+                    ...(tenantFilter ? { tenantId: tenantFilter } : {})
+                },
+                select: { id: true, externalId: true, tenantId: true }
             });
-            const existingMap = new Map(existingServices.map((s: {id: string; externalId: string | null}) => [s.externalId!, s.id]));
+            const existingMap = new Map(existingServices.map((s: {id: string; externalId: string | null; tenantId: string}) => [s.externalId!, s.id]));
             const importedExternalIds = existingServices.map(s => s.externalId).filter(Boolean) as string[];
 
             // 2. Build where conditions
@@ -357,8 +366,22 @@ export async function fetchExternalServices(providerId?: string, forceRefresh = 
   });
 }
 
+const serviceOverrideItemSchema = z.object({
+  cleanName: z.string().optional(),
+  categoryId: z.string().optional(),
+  targetType: z.string().optional(),
+  customMarkup: z.number().optional(),
+  minQty: z.number().optional(),
+  maxQty: z.number().optional(),
+  description: z.string().optional(),
+});
+
+export type ServiceOverrideInput = z.infer<typeof serviceOverrideItemSchema>;
+
 const importServicesSchema = z.object({
-  externalIds: z.array(z.string().min(1)).min(1, "Выберите хотя бы одну услугу"),
+  externalIds: z.array(z.string().min(1))
+    .min(1, "Выберите хотя бы одну услугу")
+    .max(500, "Максимум 500 услуг за один импорт"),
   categoryId: z.string().min(1, "Категория обязательна"),
   defaultMarkup: z.coerce.number().refine(val => val === 0 || (val >= 1.0 && val <= 10.0), {
     message: "Наценка должна быть 0 (автокалькуляция) или от 1.0 (0%) до 10.0 (900%)"
@@ -366,7 +389,11 @@ const importServicesSchema = z.object({
   providerId: z.string().min(1, "ID провайдера обязателен"),
   categoryIdMap: z.record(z.string()).optional(),
   targetTenantId: z.enum(["smmplan", "flux", "both"]).default("smmplan"),
-});
+  serviceOverrides: z.record(serviceOverrideItemSchema).optional(),
+}).refine(data => {
+  const uniqueIds = new Set(data.externalIds);
+  return uniqueIds.size === data.externalIds.length;
+}, { message: "Обнаружены дубликаты услуг в запросе на импорт" });
 
 export async function importSelectedServices(
   externalIds: string[], 
@@ -374,11 +401,20 @@ export async function importSelectedServices(
   defaultMarkup: number, 
   providerId: string,
   categoryIdMap?: Record<string, string>,
-  targetTenantId: 'smmplan' | 'flux' | 'both' = 'smmplan'
+  targetTenantId: 'smmplan' | 'flux' | 'both' = 'smmplan',
+  serviceOverrides?: Record<string, ServiceOverrideInput>
 ) {
     return requireStaffPermission('catalog', 'edit', async (admin) => {
         try {
-            const parsed = importServicesSchema.safeParse({ externalIds, categoryId, defaultMarkup, providerId, categoryIdMap, targetTenantId });
+            const parsed = importServicesSchema.safeParse({ 
+              externalIds, 
+              categoryId, 
+              defaultMarkup, 
+              providerId, 
+              categoryIdMap, 
+              targetTenantId,
+              serviceOverrides,
+            });
             if (!parsed.success) {
                 return { success: false, error: 'Ошибка валидации: ' + parsed.error.errors.map(e => e.message).join(', ') };
             }
@@ -390,12 +426,16 @@ export async function importSelectedServices(
                 admin,
                 parsed.data.providerId,
                 parsed.data.categoryIdMap,
-                parsed.data.targetTenantId
+                parsed.data.targetTenantId,
+                parsed.data.serviceOverrides
             );
             
             // SDLC Gate 4: Обязательная инвалидация кэша после мутации
+            revalidatePath('/admin/catalog');
+            revalidatePath('/admin/catalog/categories');
+            revalidatePath('/admin/catalog/tree');
             revalidatePath('/admin/providers/import');
-            revalidatePath('/admin/services');
+            revalidatePath('/admin/providers');
             
             return { success: true, imported: res.importedCount };
         } catch (e: unknown) {

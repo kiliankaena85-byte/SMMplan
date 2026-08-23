@@ -1,5 +1,6 @@
 'use server';
 import type { ApiMappingDTO } from '@/services/providers/universal.provider';
+import { revalidatePath } from 'next/cache';
 
 import { db } from "@/lib/db";
 import { requireStaffPermission } from "@/lib/server/rbac";
@@ -550,3 +551,97 @@ export async function createMockProviderPresetAction() {
     }
   });
 }
+
+/**
+ * 🗑️ Delete Provider Action: Safe deletion with cleanup and audit.
+ */
+export async function deleteProviderAction(rawId: string) {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
+    try {
+      const id = idSchema.parse(rawId);
+
+      const provider = await db.provider.findUnique({
+        where: { id },
+        include: {
+          _count: {
+            select: {
+              services: true,
+              Order: true,
+              shadowServices: true,
+            },
+          },
+        },
+      });
+
+      if (!provider) {
+        return { success: false as const, error: "Провайдер не найден" };
+      }
+
+      // Check if there are active pending orders associated with this provider
+      const pendingOrdersCount = await db.order.count({
+        where: {
+          providerId: id,
+          status: { in: ['PENDING', 'PROVISIONING', 'IN_PROGRESS'] },
+        },
+      });
+
+      if (pendingOrdersCount > 0) {
+        return {
+          success: false as const,
+          error: `Невозможно удалить провайдера: ${pendingOrdersCount} активных заказов находятся в обработке. Дождитесь их завершения или отмените вручную.`,
+        };
+      }
+
+      // Execute deletion within a transaction
+      await db.$transaction(async (tx) => {
+        // 1. Delete routing rules referencing this provider
+        await tx.serviceRoute.deleteMany({
+          where: { providerId: id },
+        });
+
+        // 2. Unlink services from this provider (set providerId: null)
+        await tx.service.updateMany({
+          where: { providerId: id },
+          data: { providerId: null, isActive: false },
+        });
+
+        // 3. Delete shadow services (cached catalog)
+        await tx.shadowService.deleteMany({
+          where: { providerId: id },
+        });
+
+        // 4. Delete the provider itself
+        await tx.provider.delete({
+          where: { id },
+        });
+      });
+
+      await auditAdminAwaitable({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: "PROVIDER_DELETE",
+        target: id,
+        targetType: "PROVIDER",
+        oldValue: {
+          name: provider.name,
+          apiUrl: provider.apiUrl,
+          servicesCount: provider._count.services,
+          ordersCount: provider._count.Order,
+        },
+      });
+
+      revalidatePath('/admin/providers');
+      revalidatePath('/admin/providers/import');
+      revalidatePath('/admin/catalog');
+
+      return {
+        success: true as const,
+        message: `Провайдер «${provider.name}» успешно удалён. Связанные услуги (${provider._count.services}) переведены в ручной режим.`,
+      };
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      return { success: false as const, error: errMsg || "Ошибка при удалении провайдера" };
+    }
+  });
+}
+

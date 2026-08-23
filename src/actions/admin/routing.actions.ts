@@ -177,7 +177,7 @@ export async function executeHotSwap(input: z.infer<typeof swapSchema>) {
     });
 
     revalidatePath(`/admin/services/${serviceId}/routing`);
-    revalidatePath('/admin/services');
+    revalidatePath('/admin/catalog');
     return { success: true };
   });
 }
@@ -243,7 +243,7 @@ export async function addServiceRoute(input: z.infer<typeof addRouteSchema>) {
     });
 
     revalidatePath(`/admin/services/${serviceId}/routing`);
-    revalidatePath('/admin/services');
+    revalidatePath('/admin/catalog');
     return { success: true };
   });
 }

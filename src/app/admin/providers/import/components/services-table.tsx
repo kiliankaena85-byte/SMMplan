@@ -1,35 +1,20 @@
 'use client';
 
-import { inferTargetTypeFromName, inferTargetTypeFromCategory, isTargetTypeCompatible, TargetTypeEnum } from '@/utils/target-type';
-import type { ExternalServiceItem, CategoryItem, FilterState } from "../types";
-
-import React from "react";
-import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import React from 'react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Settings2, Sparkles, CheckCircle2, AlertTriangle, ShieldCheck, HelpCircle } from 'lucide-react';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { formatPricePerUnit } from "@/utils/format-price";
-
-interface ServiceItem {
-  service: string | number;
-  name: string;
-  cleanName?: string | null;
-  pricePerUnitProcurementRub?: number;
-  alreadyImported?: boolean;
-  min?: string;
-  refill?: boolean;
-  metrics?: {
-    platform?: string;
-    geo?: string;
-    warranty?: number;
-    anomalyScore?: number;
-  };
-  [key: string]: unknown;
-}
+} from '@/components/ui/select';
+import { formatPricePerUnit } from '@/utils/format-price';
+import { inferTargetTypeFromName, inferTargetTypeFromCategory, isTargetTypeCompatible } from '@/utils/target-type';
+import { TargetTypeSelector } from './target-type-selector';
+import { getTargetTypeMeta } from '../lib/target-type-config';
+import type { ExternalServiceItem, CategoryItem, FilterState } from '../types';
+import type { ServiceOverride } from './service-edit-modal';
 
 interface ServicesTableProps {
   services: ExternalServiceItem[];
@@ -48,51 +33,9 @@ interface ServicesTableProps {
   aiConfidence?: Record<string, boolean>;
   showCategoryColumn?: boolean;
   validationErrors?: Set<string>;
-}
-
-const platformMap: Record<string, { name: string; color: string; icon: string }> = {
-  INSTAGRAM: { name: "Instagram", color: "bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20", icon: "📸" },
-  IN: { name: "Instagram", color: "bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20", icon: "📸" },
-  TELEGRAM: { name: "Telegram", color: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20", icon: "✈️" },
-  TG: { name: "Telegram", color: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20", icon: "✈️" },
-  VK: { name: "ВКонтакте", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20", icon: "💙" },
-  YOUTUBE: { name: "YouTube", color: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20", icon: "▶️" },
-  YT: { name: "YouTube", color: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20", icon: "▶️" },
-  TIKTOK: { name: "TikTok", color: "bg-muted text-foreground border-border", icon: "🎵" },
-  TT: { name: "TikTok", color: "bg-muted text-foreground border-border", icon: "🎵" },
-  TWITTER: { name: "Twitter (X)", color: "bg-muted text-foreground border-border", icon: "𝕏" },
-  X: { name: "Twitter (X)", color: "bg-muted text-foreground border-border", icon: "𝕏" },
-};
-
-const getPlatformDisplay = (code: string) => {
-  const map = platformMap[code.toUpperCase()];
-  if (map) return map;
-  return { name: code, color: "bg-muted text-foreground border-border", icon: "🌐" };
-};
-
-
-const targetTypeBadges: Record<string, { label: string; color: string; icon: string }> = {
-  POST: { label: 'Пост', color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20', icon: '📝' },
-  CHANNEL: { label: 'Канал', color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20', icon: '📢' },
-  PROFILE: { label: 'Профиль', color: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20', icon: '👤' },
-  VIDEO: { label: 'Видео', color: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20', icon: '🎬' },
-  STORY: { label: 'Сториз', color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20', icon: '⏱️' },
-  CHANNEL_POSTS: { label: 'Авто-посты', color: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20', icon: '🤖' },
-  POLL: { label: 'Опрос', color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20', icon: '📊' },
-  COMMENTS: { label: 'Отзывы', color: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20', icon: '💬' },
-  BOT: { label: 'Бот', color: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20', icon: '🤖' },
-  CUSTOM: { label: 'Свой', color: 'bg-muted text-foreground border-border', icon: '⚙️' },
-};
-
-export function TargetTypeBadge({ name }: { name: string }) {
-  const targetType = inferTargetTypeFromName(name);
-  const badge = targetTypeBadges[targetType] || targetTypeBadges.CUSTOM;
-  return (
-    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${badge.color}`}>
-      <span>{badge.icon}</span>
-      <span>{badge.label}</span>
-    </span>
-  );
+  serviceOverrides?: Record<string, ServiceOverride>;
+  onTargetTypeChange?: (serviceId: string, targetType: string) => void;
+  onOpenEditModal?: (service: ExternalServiceItem) => void;
 }
 
 export function ServicesTable({
@@ -104,17 +47,20 @@ export function ServicesTable({
   filters,
   setFilters,
   pagination,
-  markup = 0,
+  markup = 50,
   categories = [],
   selectedCategories = {},
   onCategoryChange,
   autoMappedCategories = {},
   aiConfidence = {},
-  showCategoryColumn = false,
+  showCategoryColumn = true,
   validationErrors = new Set<string>(),
+  serviceOverrides = {},
+  onTargetTypeChange,
+  onOpenEditModal,
 }: ServicesTableProps) {
   const handleSort = (field: string) => {
-    let newSort = "none";
+    let newSort = 'none';
     if (filters.sortBy !== `${field}_asc` && filters.sortBy !== `${field}_desc`) {
       newSort = `${field}_asc`;
     } else if (filters.sortBy === `${field}_asc`) {
@@ -124,8 +70,10 @@ export function ServicesTable({
   };
 
   const getSortIcon = (field: string) => {
-    if (filters.sortBy === `${field}_asc`) return <ArrowUp className="w-3.5 h-3.5 text-primary animate-in fade-in zoom-in-75 duration-200" />;
-    if (filters.sortBy === `${field}_desc`) return <ArrowDown className="w-3.5 h-3.5 text-primary animate-in fade-in zoom-in-75 duration-200" />;
+    if (filters.sortBy === `${field}_asc`)
+      return <ArrowUp className="w-3.5 h-3.5 text-primary animate-in fade-in zoom-in-75 duration-200" />;
+    if (filters.sortBy === `${field}_desc`)
+      return <ArrowDown className="w-3.5 h-3.5 text-primary animate-in fade-in zoom-in-75 duration-200" />;
     return <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground/30 group-hover:text-muted-foreground/80 transition-colors" />;
   };
 
@@ -134,406 +82,335 @@ export function ServicesTable({
   const isAllPageSelected = importableIds.length > 0 && importableIds.every((id) => selectedIds.has(id));
   const isCheckboxDisabled = importableIds.length === 0;
 
-  // Dynamic column count
-  // Dynamic grid template columns based on category column visibility
-  // On mobile: 1 column. On desktop: 4 or 5 columns
-  const gridTemplate = showCategoryColumn 
-    ? "grid-cols-[40px_minmax(0,1.5fr)_minmax(0,1.5fr)_150px_200px_80px]" 
-    : "grid-cols-[40px_minmax(0,1.5fr)_minmax(0,1.5fr)_150px_80px]";
+  // Grid column definition: 6 balanced columns fitting 100% viewport width
+  const gridTemplate = 'grid-cols-[44px_minmax(200px,2fr)_minmax(140px,1.2fr)_minmax(160px,1.4fr)_130px_90px]';
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 bg-card border border-border/60 ring-1 ring-border/5 rounded-xl shadow-sm overflow-hidden">
-      <div className="flex-1 w-full overflow-hidden">
-        {/* Desktop Header */}
-        <div className={`hidden lg:grid ${gridTemplate} gap-4 bg-muted/30 border-b border-border/60 sticky top-0 z-10 select-none items-center backdrop-blur-sm`}>
-          <div className="px-4 py-3 pl-6">
-            <input
-              type="checkbox"
-              onChange={toggleAll}
-              checked={isAllPageSelected}
-              disabled={isCheckboxDisabled}
-              className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-            />
-          </div>
-          <div
-            className="py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest cursor-pointer hover:text-foreground transition-all duration-200"
-            onClick={() => handleSort("name")}
-          >
-            <div className="flex items-center gap-1.5">
-              <span>Услуга</span>
-              {getSortIcon("name")}
-            </div>
-          </div>
-          <div
-            className="py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest cursor-pointer hover:text-foreground transition-all duration-200"
-            onClick={() => handleSort("platform")}
-          >
-            <div className="flex items-center gap-1.5">
-              <span>Платформа и теги</span>
-              {getSortIcon("platform")}
-            </div>
-          </div>
-          <div
-            className="py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest cursor-pointer hover:text-foreground transition-all duration-200"
-            onClick={() => handleSort("price")}
-          >
-            <div className="flex items-center gap-1.5">
-              <span>Стоимость</span>
-              {getSortIcon("price")}
-            </div>
-          </div>
-          {showCategoryColumn && (
-            <div className="py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-              Категория
-            </div>
-          )}
-          <div className="py-3 pr-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-            Статус
+    <div className="flex-1 flex flex-col min-w-0 bg-card border border-border/70 rounded-2xl shadow-sm overflow-hidden ring-1 ring-border/5">
+      {/* Desktop Header */}
+      <div className={`hidden lg:grid ${gridTemplate} gap-3 bg-muted/40 border-b border-border/70 select-none items-center px-3 py-2.5 backdrop-blur-sm`}>
+        <div className="flex items-center justify-center">
+          <input
+            type="checkbox"
+            onChange={toggleAll}
+            checked={isAllPageSelected}
+            disabled={isCheckboxDisabled}
+            className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+          />
+        </div>
+        <div
+          className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors"
+          onClick={() => handleSort('name')}
+        >
+          <div className="flex items-center gap-1.5">
+            <span>Услуга и Название для магазина</span>
+            {getSortIcon('name')}
           </div>
         </div>
-        
-        {/* Mobile Select All */}
-        <div className="lg:hidden flex items-center justify-between p-4 border-b border-border bg-muted/30">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              onChange={toggleAll}
-              checked={isAllPageSelected}
-              disabled={isCheckboxDisabled}
-              className="rounded border-border text-primary focus:ring-primary h-4 w-4"
-            />
-            <span className="text-sm font-semibold text-foreground">Выбрать все на странице</span>
-          </label>
+        <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+          <span>Тип ссылки</span>
+          <span title="Какой тип ссылки клиент должен вставить в форму заказа" className="cursor-help">
+            <HelpCircle className="w-3 h-3 text-muted-foreground/60" />
+          </span>
         </div>
+        <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+          Категория каталога
+        </div>
+        <div
+          className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors text-right pr-2"
+          onClick={() => handleSort('price')}
+        >
+          <div className="flex items-center justify-end gap-1.5">
+            <span>Стоимость</span>
+            {getSortIcon('price')}
+          </div>
+        </div>
+        <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-center">
+          Настройка
+        </div>
+      </div>
 
-        <div className="bg-card flex flex-col divide-y divide-border">
-            {loading ? (
-              <div className="p-16 text-center text-sm text-muted-foreground">
-                <div className="flex justify-center items-center gap-2">
-                  <span className="animate-spin text-xl">⏳</span> Загрузка каталога...
-                </div>
-              </div>
-            ) : services.length === 0 ? (
-              <div className="p-16 text-center text-sm text-muted-foreground">
-                Услуги по заданным критериям не найдены.
-              </div>
-            ) : (
-              services.map((s) => {
-                const metrics = s.metrics || {};
-                const hasAnomaly = Number(metrics.anomalyScore || 0) > 0;
-                const pricePerUnitProcurement = s.pricePerUnitProcurementRub || 0;
-                const pricePerUnitRetail = pricePerUnitProcurement * (1 + markup / 100);
-                const isFreeProcurement = pricePerUnitProcurement <= 0;
-                const isDisabled = s.alreadyImported || isFreeProcurement;
-                const isSelected = selectedIds.has(String(s.service));
+      {/* Mobile Select All */}
+      <div className="lg:hidden flex items-center justify-between p-4 border-b border-border bg-muted/30">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            onChange={toggleAll}
+            checked={isAllPageSelected}
+            disabled={isCheckboxDisabled}
+            className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+          />
+          <span className="text-sm font-semibold text-foreground">Выбрать все на странице</span>
+        </label>
+      </div>
 
-                const handleRowClick = (e: React.MouseEvent) => {
-                  const target = e.target as HTMLElement;
-                  if (target.closest("button") || target.closest("select") || target.closest("a") || target.closest('[role="combobox"]') || target.closest("input")) return;
-                  if (!isDisabled) toggleSelection(String(s.service));
-                };
+      {/* Rows Container */}
+      <div className="bg-card flex flex-col divide-y divide-border/50">
+        {loading ? (
+          <div className="p-16 text-center text-sm text-muted-foreground">
+            <div className="flex justify-center items-center gap-2 font-medium">
+              <span className="animate-spin text-xl">⏳</span> Загрузка услуг из каталога...
+            </div>
+          </div>
+        ) : services.length === 0 ? (
+          <div className="p-16 text-center text-sm text-muted-foreground">
+            Услуги по заданным критериям не найдены.
+          </div>
+        ) : (
+          services.map((s) => {
+            const svcId = String(s.service);
+            const override = serviceOverrides[svcId];
+            const hasOverride = !!override;
 
-                return (
-                  <div
-                    key={s.service}
-                    onClick={handleRowClick}
-                    className={`transition-colors duration-200 cursor-pointer p-4 lg:p-0 border-b border-border/40 last:border-0 ${
-                      s.alreadyImported
-                        ? "bg-muted/40 opacity-75 cursor-not-allowed"
-                        : isFreeProcurement
-                        ? "bg-destructive/5 hover:bg-destructive/10"
-                        : isSelected
-                        ? "bg-primary/5 hover:bg-primary/10"
-                        : "hover:bg-muted/30 even:bg-muted/10"
-                    }`}
-                  >
-                    {/* Desktop Layout */}
-                    <div className={`hidden lg:grid ${gridTemplate} gap-4 items-center min-h-[72px]`}>
-                      <div className="px-4 pl-6">
-                        <input
-                          type="checkbox"
-                          disabled={isDisabled}
-                          checked={isSelected}
-                          onChange={() => toggleSelection(String(s.service))}
-                          className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                        />
-                      </div>
+            const effectiveName = override?.cleanName || s.cleanName || s.name;
+            const effectiveTargetType = override?.targetType || (s.metrics?.targetType as string) || inferTargetTypeFromName(s.name);
+            const effectiveCategoryId = override?.categoryId || selectedCategories[svcId] || autoMappedCategories[svcId] || '';
+            const effectiveMarkup = override?.customMarkup !== undefined ? override.customMarkup : markup;
 
-                      <div className="flex flex-col gap-0.5 py-3 pr-2 min-w-0">
-                        <span className="text-sm font-semibold text-foreground truncate block w-full" title={s.cleanName || s.name}>
-                          {s.cleanName || s.name}
+            const priceProcurement = s.pricePerUnitProcurementRub || 0;
+            const priceRetail = priceProcurement * (1 + effectiveMarkup / 100);
+            const isFreeProcurement = priceProcurement <= 0;
+            const isDisabled = s.alreadyImported || isFreeProcurement;
+            const isSelected = selectedIds.has(svcId);
+
+            const targetMeta = getTargetTypeMeta(effectiveTargetType);
+            const selectedCat = categories.find((c) => c.id === effectiveCategoryId);
+
+            // Check target type / category conflict
+            const catType = selectedCat ? inferTargetTypeFromCategory(selectedCat.name) : null;
+            const hasTypeConflict = selectedCat && !isTargetTypeCompatible(effectiveTargetType, catType);
+
+            return (
+              <div
+                key={svcId}
+                className={`transition-colors duration-150 p-3 lg:p-0 ${
+                  s.alreadyImported
+                    ? 'bg-muted/30 opacity-70'
+                    : isFreeProcurement
+                    ? 'bg-destructive/5'
+                    : isSelected
+                    ? 'bg-primary/5 hover:bg-primary/8'
+                    : 'hover:bg-muted/30 even:bg-muted/10'
+                }`}
+              >
+                {/* Desktop Row */}
+                <div className={`hidden lg:grid ${gridTemplate} gap-3 items-center min-h-[64px] px-3 py-2`}>
+                  {/* Checkbox */}
+                  <div className="flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      disabled={isDisabled}
+                      checked={isSelected}
+                      onChange={() => toggleSelection(svcId)}
+                      className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  {/* Service Title & Info */}
+                  <div className="flex flex-col gap-0.5 min-w-0 pr-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span
+                        className="text-xs font-bold text-foreground truncate cursor-pointer hover:text-primary transition-colors"
+                        title={effectiveName}
+                        onClick={() => onOpenEditModal?.(s)}
+                      >
+                        {effectiveName}
+                      </span>
+                      {hasOverride && (
+                        <span className="text-[9px] font-bold bg-primary/10 text-primary border border-primary/20 px-1.5 py-0.2 rounded shrink-0">
+                          ✏️ Изменено
                         </span>
-                        <span className="text-[10px] text-muted-foreground font-medium truncate block w-full" title={`#${s.service} • ${s.name}`}>
-                          #{s.service} • {s.name}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1 py-3 pr-2 items-center">
-                        <TargetTypeBadge name={s.name} />
-                        {metrics.platform && (() => {
-                          const pData = getPlatformDisplay(metrics.platform);
-                          return (
-                            <span className={`${pData.color} px-2 py-0.5 rounded-[6px] text-[10px] font-semibold border flex items-center gap-1 select-none whitespace-nowrap`}>
-                              <span>{pData.icon}</span>
-                              <span>{pData.name}</span>
-                            </span>
-                          );
-                        })()}
-                        {(() => {
-                          const selectedCatId = selectedCategories[String(s.service)] || autoMappedCategories[String(s.service)];
-                          if (!selectedCatId) return null;
-                          const cat = categories.find(c => c.id === selectedCatId);
-                          if (!cat) return null;
-                          const serviceType = inferTargetTypeFromName(s.name);
-                          const catType = inferTargetTypeFromCategory(cat.name);
-                          if (!isTargetTypeCompatible(serviceType, catType)) {
-                            return (
-                              <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold select-none whitespace-nowrap" title={`Конфликт: тип услуги (${serviceType}) не подходит к категории «${cat.name}» (${catType})`}>
-                                ⚠️ Конфликт
-                              </span>
-                            );
-                          }
-                          return null;
-                        })()}
-                        {metrics.geo && (
-                          <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none whitespace-nowrap">
-                            {metrics.geo}
-                          </span>
-                        )}
-                        {(s.refill || (metrics.warranty !== undefined && metrics.warranty > 0)) && (
-                          <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none whitespace-nowrap" title="Гарантия">
-                            ♻️ {metrics.warranty || 30}D
-                          </span>
-                        )}
-                        {hasAnomaly && (
-                          <span className="bg-warning/10 text-warning border border-warning/20 px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none whitespace-nowrap" title={`Anomaly: ${metrics.anomalyScore}`}>
-                            ⚠️ {metrics.anomalyScore}
-                          </span>
-                        )}
-                        {parseInt(String(s.min || '0'), 10) > 0 && (
-                          <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none whitespace-nowrap" title="Минимальный заказ">
-                            от {s.min} шт
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex flex-col gap-0.5 py-3 pr-2 font-mono min-w-0">
-                        <span className="text-foreground font-bold text-xs truncate block w-full tabular-nums tracking-tight">
-                          {formatPricePerUnit(pricePerUnitRetail)} ₽
-                          <span className="text-[10px] text-muted-foreground font-sans ml-1 font-medium select-none tracking-normal">розн.</span>
-                        </span>
-                        <span className="text-muted-foreground font-medium text-[10px] truncate block w-full tabular-nums tracking-tight">
-                          {formatPricePerUnit(pricePerUnitProcurement)} ₽
-                          <span className="font-sans ml-0.5 select-none tracking-normal">закуп.</span>
-                        </span>
-                        {isFreeProcurement && (
-                          <span className="text-[10px] text-destructive font-bold bg-destructive/10 border border-destructive/20 px-1.5 py-0.5 rounded-[4px] w-fit mt-1">
-                            ОШИБКА: 0 ₽
-                          </span>
-                        )}
-                      </div>
-
-                      {showCategoryColumn && (
-                        <div className="py-3 pr-2 min-w-0">
-                          {s.alreadyImported ? (
-                            <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 select-none bg-muted px-2 py-1.5 rounded-[8px] border border-border w-fit max-w-full truncate">
-                              📦 Импортировано
-                            </span>
-                          ) : (
-                            <div className="flex flex-col gap-1 w-full min-w-0">
-                              <Select
-                                value={selectedCategories[String(s.service)] || ""}
-                                onValueChange={(val) => onCategoryChange?.(String(s.service), val || "")}
-                              >
-                                <SelectTrigger size="sm" className={`w-full bg-background text-xs rounded-[8px] border h-9 py-1 px-2 ${validationErrors.has(String(s.service)) ? 'border-destructive ring-1 ring-destructive' : 'border-border'}`}>
-                                  <SelectValue placeholder="Выберите">
-                                    {(value: string) => {
-                                      if (!value) return "Выберите";
-                                      const cat = categories.find((c) => c.id === value);
-                                      return cat ? `${(cat.network?.name || "")} • ${cat.name}` : value;
-                                    }}
-                                  </SelectValue>
-                                </SelectTrigger>
-                                <SelectContent className="bg-popover text-popover-foreground border border-border rounded-[8px] max-h-60 w-[220px]">
-                                  {categories.map((c) => (
-                                    <SelectItem key={c.id} value={c.id} className="text-xs cursor-pointer">
-                                      {(c.network?.name || "")} • {c.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              {aiConfidence[String(s.service)] ? (
-                                <span className="text-[10px] font-semibold text-success mt-1 block select-none">
-                                  🪄 Автоопределение ИИ
-                                </span>
-                              ) : validationErrors.has(String(s.service)) ? (
-                                <span className="text-[10px] font-bold text-destructive mt-1 block select-none">
-                                  ❌ Необходима категория
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-semibold text-warning mt-1 block select-none">
-                                  ⚠️ Выберите вручную
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
                       )}
-
-                      <div className="py-3 pr-4">
-                        {s.alreadyImported ? (
-                          <span className="text-[10px] text-muted-foreground bg-muted px-2 py-1 rounded-[6px] border border-border font-semibold select-none">
-                            📦
-                          </span>
-                        ) : isFreeProcurement ? (
-                          <span className="text-[10px] text-destructive bg-destructive/10 px-2 py-1 rounded-[6px] border border-destructive/20 font-bold select-none">
-                            ❌
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-success bg-success/10 px-2 py-1 rounded-[6px] border border-success/20 font-bold select-none">
-                            ✅
-                          </span>
-                        )}
-                      </div>
                     </div>
-
-                    {/* Mobile Layout */}
-                    <div className="lg:hidden flex flex-col gap-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3">
-                          <input
-                            type="checkbox"
-                            disabled={isDisabled}
-                            checked={isSelected}
-                            onChange={() => toggleSelection(String(s.service))}
-                            className="mt-1 rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
-                          />
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-sm font-semibold text-foreground line-clamp-2">
-                              {s.cleanName || s.name}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground font-medium line-clamp-1">
-                              #{s.service} • {s.name}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="shrink-0">
-                          {s.alreadyImported ? (
-                            <span className="text-[10px] text-muted-foreground bg-muted px-2 py-1 rounded-[6px] border border-border font-semibold select-none">📦</span>
-                          ) : isFreeProcurement ? (
-                            <span className="text-[10px] text-destructive bg-destructive/10 px-2 py-1 rounded-[6px] border border-destructive/20 font-bold select-none">❌</span>
-                          ) : (
-                            <span className="text-[10px] text-success bg-success/10 px-2 py-1 rounded-[6px] border border-success/20 font-bold select-none">✅</span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1 ml-7">
-                        {metrics.platform && (() => {
-                          const pData = getPlatformDisplay(metrics.platform);
-                          return (
-                            <span className={`${pData.color} px-2 py-0.5 rounded-[6px] text-[10px] font-semibold border flex items-center gap-1 select-none`}>
-                              <span>{pData.icon}</span>
-                              <span>{pData.name}</span>
-                            </span>
-                          );
-                        })()}
-                        {metrics.geo && <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none">{metrics.geo}</span>}
-                        {(s.refill || (metrics.warranty !== undefined && metrics.warranty > 0)) && <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none">♻️ {metrics.warranty || 30}D</span>}
-                        {hasAnomaly && <span className="bg-warning/10 text-warning border border-warning/20 px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none">⚠️ {metrics.anomalyScore}</span>}
-                        {parseInt(String(s.min || '0'), 10) > 0 && <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none">от {s.min} шт</span>}
-                      </div>
-
-                      <div className="flex justify-between items-end ml-7 pt-2 border-t border-border/40 mt-2">
-                        <div className="flex flex-col font-mono">
-                          <span className="text-foreground font-bold text-sm tabular-nums tracking-tight">
-                            {formatPricePerUnit(pricePerUnitRetail)} ₽
-                            <span className="text-[10px] text-muted-foreground font-sans ml-1 font-medium tracking-normal">розница</span>
-                          </span>
-                          <span className="text-muted-foreground font-medium text-[11px] tabular-nums tracking-tight">
-                            {formatPricePerUnit(pricePerUnitProcurement)} ₽
-                            <span className="font-sans ml-0.5 tracking-normal">закупка</span>
-                          </span>
-                        </div>
-                      </div>
-
-                      {showCategoryColumn && (
-                        <div className="ml-7 pt-2">
-                          {s.alreadyImported ? (
-                            <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 select-none bg-muted px-2 py-1.5 rounded-[8px] border border-border w-fit">
-                              📦 Уже импортировано
-                            </span>
-                          ) : (
-                            <div className="flex flex-col gap-1 w-full">
-                              <Select value={selectedCategories[String(s.service)] || ""} onValueChange={(val) => onCategoryChange?.(String(s.service), val || "")}>
-                                <SelectTrigger size="sm" className={`w-full bg-background text-xs rounded-[8px] border h-10 px-3 ${validationErrors.has(String(s.service)) ? 'border-destructive ring-1 ring-destructive' : 'border-border'}`}>
-                                  <SelectValue placeholder="Выберите категорию">
-                                    {(value: string) => {
-                                      if (!value) return "Выберите категорию";
-                                      const cat = categories.find((c) => c.id === value);
-                                      return cat ? `${(cat.network?.name || "")} • ${cat.name}` : value;
-                                    }}
-                                  </SelectValue>
-                                </SelectTrigger>
-                                <SelectContent className="bg-popover text-popover-foreground border border-border rounded-[8px] max-h-60 w-[90vw] max-w-[400px]">
-                                  {categories.map((c) => (
-                                    <SelectItem key={c.id} value={c.id} className="text-xs cursor-pointer py-2">
-                                      {(c.network?.name || "")} • {c.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              {aiConfidence[String(s.service)] ? (
-                                <span className="text-[10px] font-semibold text-success mt-1">🪄 Автоопределение ИИ</span>
-                              ) : validationErrors.has(String(s.service)) ? (
-                                <span className="text-[10px] font-bold text-destructive mt-1">❌ Ошибка: Выберите категорию</span>
-                              ) : (
-                                <span className="text-[10px] font-semibold text-warning mt-1">⚠️ Выберите вручную</span>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-mono truncate">
+                      <span>ID: #{svcId}</span>
+                      <span className="truncate max-w-[200px]" title={s.name}>
+                        • {s.name}
+                      </span>
+                      {s.refill && (
+                        <span className="bg-muted px-1 rounded text-[9px] font-sans text-emerald-600 dark:text-emerald-400 font-bold shrink-0">
+                          ♻️ Рефилл
+                        </span>
                       )}
                     </div>
                   </div>
-                );
-              })
-            )}
-          </div>
-      </div>
 
-      {/* Pagination Footer */}
-      {!loading && pagination.totalPages > 1 && (
-        <div className="bg-muted/30 border-t border-border px-4 py-3.5 flex items-center justify-between sm:px-6">
-          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <p className="text-xs font-semibold text-muted-foreground">
-              Показано{" "}
-              <span className="font-bold text-foreground">{(pagination.page - 1) * pagination.pageSize + 1}</span> -{" "}
-              <span className="font-bold text-foreground">{Math.min(pagination.page * pagination.pageSize, pagination.total)}</span> из{" "}
-              <span className="font-bold text-foreground">{pagination.total}</span>
-            </p>
-            <nav className="relative z-0 inline-flex rounded-[8px] shadow-sm -space-x-px border border-border overflow-hidden" aria-label="Пагинация">
-              <button
-                onClick={() => setFilters({ ...filters, page: Math.max(1, pagination.page - 1) })}
-                disabled={pagination.page === 1}
-                className="relative inline-flex items-center px-3 py-2 bg-card text-xs font-semibold text-muted-foreground hover:bg-muted disabled:opacity-50 transition-all duration-200 select-none border-r border-border/60 cursor-pointer active:scale-95"
-              >
-                ← Пред.
-              </button>
-              <span className="relative inline-flex items-center px-4 py-2 bg-card text-xs font-bold text-foreground select-none border-r border-border/60 tabular-nums">
-                {pagination.page} / {pagination.totalPages}
-              </span>
-              <button
-                onClick={() => setFilters({ ...filters, page: Math.min(pagination.totalPages, pagination.page + 1) })}
-                disabled={pagination.page === pagination.totalPages}
-                className="relative inline-flex items-center px-3 py-2 bg-card text-xs font-semibold text-muted-foreground hover:bg-muted disabled:opacity-50 transition-all duration-200 select-none cursor-pointer active:scale-95"
-              >
-                След. →
-              </button>
-            </nav>
-          </div>
-        </div>
-      )}
+                  {/* Target Link Type (Interactive Selector) */}
+                  <div className="min-w-0">
+                    <TargetTypeSelector
+                      value={effectiveTargetType}
+                      onChange={(newType) => onTargetTypeChange?.(svcId, newType)}
+                      compact={true}
+                    />
+                    {hasTypeConflict && (
+                      <span
+                        className="text-[9px] font-bold text-amber-600 dark:text-amber-400 mt-0.5 block truncate"
+                        title={`Несоответствие: услуга (${targetMeta.shortLabel}) не совпадает с категорией (${selectedCat?.name})`}
+                      >
+                        ⚠️ Несовпадение типа
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Category Selection */}
+                  <div className="min-w-0">
+                    {s.alreadyImported ? (
+                      <span className="text-[11px] text-muted-foreground font-semibold flex items-center gap-1 bg-muted px-2 py-1 rounded-lg border border-border w-fit">
+                        📦 Уже в каталоге
+                      </span>
+                    ) : (
+                      <div className="flex flex-col gap-0.5">
+                        <Select
+                          value={effectiveCategoryId}
+                          onValueChange={(val) => onCategoryChange?.(svcId, val || '')}
+                        >
+                          <SelectTrigger
+                            size="sm"
+                            className={`h-8 text-xs bg-background rounded-lg border ${
+                              validationErrors.has(svcId)
+                                ? 'border-destructive ring-1 ring-destructive'
+                                : 'border-border'
+                            }`}
+                          >
+                            <SelectValue placeholder="Выберите категорию">
+                              {(val: string) => {
+                                const cat = categories.find((c) => c.id === val);
+                                return cat
+                                  ? `${cat.network?.name ? `${cat.network.name} • ` : ''}${cat.name}`
+                                  : 'Выберите...';
+                              }}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent className="max-h-60 w-[240px]">
+                            {categories.map((c) => (
+                              <SelectItem key={c.id} value={c.id} className="text-xs">
+                                {c.network?.name ? `${c.network.name} • ` : ''}
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {aiConfidence[svcId] && !validationErrors.has(svcId) && (
+                          <span className="text-[9px] font-medium text-emerald-600 dark:text-emerald-400 pl-0.5">
+                            🪄 Авто-ИИ
+                          </span>
+                        )}
+                        {validationErrors.has(svcId) && (
+                          <span className="text-[9px] font-bold text-destructive pl-0.5">
+                            ❌ Выберите категорию
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Price (Retail & Procurement) */}
+                  <div className="flex flex-col items-end gap-0.5 pr-2 font-mono min-w-0">
+                    <span className="text-foreground font-extrabold text-xs tabular-nums tracking-tight">
+                      {formatPricePerUnit(priceRetail)} ₽
+                      <span className="text-[10px] font-sans font-normal text-muted-foreground ml-0.5">
+                        / шт
+                      </span>
+                    </span>
+                    <span className="text-muted-foreground text-[10px] tabular-nums">
+                      зак. {formatPricePerUnit(priceProcurement)} ₽
+                    </span>
+                  </div>
+
+                  {/* Actions / Configure */}
+                  <div className="flex items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={() => onOpenEditModal?.(s)}
+                      className="p-1.5 rounded-lg border border-border/80 bg-background text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all duration-150 cursor-pointer shadow-2xs"
+                      title="Настроить название, тип ссылки, наценку и описание"
+                    >
+                      <Settings2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Mobile Layout */}
+                <div className="lg:hidden flex flex-col gap-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-2.5 min-w-0">
+                      <input
+                        type="checkbox"
+                        disabled={isDisabled}
+                        checked={isSelected}
+                        onChange={() => toggleSelection(svcId)}
+                        className="mt-1 rounded border-border text-primary focus:ring-primary h-4 w-4 shrink-0"
+                      />
+                      <div className="flex flex-col min-w-0">
+                        <span
+                          className="text-xs font-bold text-foreground leading-snug cursor-pointer hover:text-primary"
+                          onClick={() => onOpenEditModal?.(s)}
+                        >
+                          {effectiveName}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground font-mono truncate">
+                          #{svcId} • {s.name}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => onOpenEditModal?.(s)}
+                      className="p-1.5 rounded-lg border border-border bg-background text-muted-foreground hover:text-primary shrink-0"
+                    >
+                      <Settings2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pl-6">
+                    <div>
+                      <label className="text-[9px] font-bold text-muted-foreground uppercase">
+                        Тип ссылки:
+                      </label>
+                      <TargetTypeSelector
+                        value={effectiveTargetType}
+                        onChange={(newType) => onTargetTypeChange?.(svcId, newType)}
+                        compact={true}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-bold text-muted-foreground uppercase">
+                        Категория:
+                      </label>
+                      <Select
+                        value={effectiveCategoryId}
+                        onValueChange={(val) => onCategoryChange?.(svcId, val || '')}
+                      >
+                        <SelectTrigger size="sm" className="h-8 text-xs bg-background">
+                          <SelectValue placeholder="Категория" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((c) => (
+                            <SelectItem key={c.id} value={c.id} className="text-xs">
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pl-6 pt-1.5 border-t border-border/40 font-mono text-xs">
+                    <span className="text-muted-foreground text-[10px]">
+                      Закупка: {formatPricePerUnit(priceProcurement)} ₽
+                    </span>
+                    <span className="font-extrabold text-foreground">
+                      {formatPricePerUnit(priceRetail)} ₽ <span className="text-[9px] font-sans font-normal text-muted-foreground">/ шт</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }

@@ -16,7 +16,11 @@ import {
   Search,
   X,
   ExternalLink,
+  Trash2,
+  Download,
 } from 'lucide-react';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
+import Link from 'next/link';
 import {
   createProvider,
   updateProvider,
@@ -24,6 +28,7 @@ import {
   probeProviderAction,
   getProviderCatalogPreviewAction,
   inferProviderSchema,
+  deleteProviderAction,
 } from '@/actions/admin/providers/crud';
 import type { ApiMappingDTO, ProviderDetailDTO } from '@/services/admin/provider.service';
 import type { ProviderProbeResult } from '@/services/admin/provider-diagnostic.service';
@@ -94,6 +99,27 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
   const [inferLoading, setInferLoading] = useState(false);
   const [inferredSchema, setInferredSchema] = useState<InferredSchema | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteProvider = async () => {
+    if (!initialData) return;
+    setIsDeleting(true);
+    try {
+      const res = await deleteProviderAction(initialData.id);
+      if (res.success) {
+        toast.success(res.message);
+        setIsDeleteModalOpen(false);
+        router.push('/admin/providers');
+      } else {
+        toast.error('Не удалось удалить провайдера', { description: res.error });
+      }
+    } catch {
+      toast.error('Сетевая ошибка при удалении провайдера');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const isInitiallyCustom = !!initialData?.mapping;
 
@@ -1106,8 +1132,28 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
             </button>
           </div>
 
-          {/* Form Submit & Cancel */}
-          <div className="flex items-center gap-3">
+          {/* Form Submit & Cancel & Delete */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {initialData && (
+              <>
+                <Link
+                  href={`/admin/providers/import?providerId=${initialData.id}`}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-200 shadow-xs"
+                >
+                  <Download className="w-4 h-4" />
+                  Импорт услуг
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteModalOpen(true)}
+                  disabled={loading || isDeleting}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 transition-all duration-200 disabled:opacity-50 cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Удалить
+                </button>
+              </>
+            )}
             <button
               type="button"
               onClick={() => router.push('/admin/providers')}
@@ -1128,6 +1174,28 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal for Provider Deletion */}
+      {initialData && (
+        <ConfirmModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleDeleteProvider}
+          title="Удаление SMM-провайдера"
+          isDanger={true}
+          confirmText={isDeleting ? "Удаление..." : "Удалить провайдера"}
+          cancelText="Отмена"
+        >
+          <div className="space-y-2">
+            <p>
+              Вы уверены, что хотите удалить поставщика <strong>«{formData.name || initialData.name}»</strong>?
+            </p>
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-[11px] font-medium leading-relaxed">
+              ⚠️ Связанный кэш услуг и правила маршрутизации будут удалены. Привязанные услуги будут переведены в ручной режим без потери истории заказов.
+            </div>
+          </div>
+        </ConfirmModal>
+      )}
 
       {/* Shadow Catalog Preview Modal */}
       {isPreviewOpen && (

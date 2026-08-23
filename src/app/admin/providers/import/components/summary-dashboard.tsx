@@ -1,9 +1,17 @@
 'use client';
 
 import React from "react";
-import { Package, Sparkles, AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
+import { Package, Sparkles, AlertTriangle, CheckCircle2, RefreshCw, ChevronDown, Layers, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { ProviderItem } from "../types";
 
 interface SummaryDashboardProps {
   totalInCache: number;
@@ -19,7 +27,11 @@ interface SummaryDashboardProps {
   importDisabled: boolean;
   syncing: boolean;
   importProgress: { current: number; total: number } | null;
-  providerName: string;
+  providers: ProviderItem[];
+  selectedProviderId: string;
+  onProviderChange: (providerId: string) => void;
+  targetTenant: 'smmplan' | 'flux' | 'both';
+  onTargetTenantChange: (tenant: 'smmplan' | 'flux' | 'both') => void;
 }
 
 export function SummaryDashboard({
@@ -36,8 +48,13 @@ export function SummaryDashboard({
   importDisabled,
   syncing,
   importProgress,
-  providerName,
+  providers,
+  selectedProviderId,
+  onProviderChange,
+  targetTenant,
+  onTargetTenantChange,
 }: SummaryDashboardProps) {
+  const currentProvider = providers.find(p => p.id === selectedProviderId) || providers[0];
   const stats = [
     {
       label: "Всего в каталоге",
@@ -74,29 +91,68 @@ export function SummaryDashboard({
       {/* Premium Backdrop Pattern */}
       <div className="absolute inset-0 z-0 opacity-70 premium-dot-grid pointer-events-none" />
 
-      {/* Provider Name + Resync */}
-      <div className="relative z-10 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-            <Package className="w-4.5 h-4.5 text-primary" />
+      {/* Provider Selector + Resync */}
+      <div className="relative z-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Package className="w-5 h-5" />
           </div>
-          <div>
-            <h3 className="text-sm font-bold text-foreground">{providerName}</h3>
-            <p className="text-[11px] text-muted-foreground">
-              {alreadyImported > 0 && `${alreadyImported} услуг уже импортировано`}
-            </p>
+          
+          {/* Provider Select Dropdown */}
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-0.5">
+              Источник услуг (Провайдер API)
+            </label>
+            <div className="flex items-center gap-2">
+              <Select value={selectedProviderId} onValueChange={(val) => val && onProviderChange(val)}>
+                <SelectTrigger className="w-[260px] sm:w-[320px] h-9 text-xs font-bold bg-background/90 border-border/80 shadow-xs">
+                  <SelectValue placeholder="Выберите провайдера..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {providers.map((p) => (
+                    <SelectItem key={p.id} value={p.id} className="text-xs font-medium py-2">
+                      <div className="flex items-center justify-between w-full gap-3">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`w-2 h-2 rounded-full shrink-0 ${
+                              p.isActive ? 'bg-success animate-pulse' : 'bg-muted-foreground/40'
+                            }`}
+                          />
+                          <span className="font-bold text-foreground truncate max-w-[170px]">{p.name}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0 text-[10px] font-mono text-muted-foreground">
+                          {p.balanceCurrency && (
+                            <span className="bg-muted px-1.5 py-0.5 rounded text-[9px] font-bold">{p.balanceCurrency}</span>
+                          )}
+                          <span>{p.serviceCount ?? 0} услуг</span>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {alreadyImported > 0 && (
+                <span className="text-[11px] font-medium text-muted-foreground bg-muted/60 px-2.5 py-1.5 rounded-xl border border-border/40 whitespace-nowrap">
+                  Импортировано: <b className="text-foreground">{alreadyImported}</b>
+                </span>
+              )}
+            </div>
           </div>
         </div>
-        <Button
-          intent="outline"
-          size="sm"
-          onClick={onResync}
-          disabled={syncing}
-          className="flex items-center gap-1.5 text-xs font-semibold"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
-          {syncing ? "Синхронизация..." : "Обновить каталог"}
-        </Button>
+
+        <div className="flex items-center gap-2 self-end sm:self-center">
+          <Button
+            intent="outline"
+            size="sm"
+            onClick={onResync}
+            disabled={syncing}
+            className="flex items-center gap-1.5 text-xs font-semibold h-9"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Синхронизация..." : "Обновить каталог API"}
+          </Button>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -120,26 +176,52 @@ export function SummaryDashboard({
       </div>
 
       {/* Action Bar */}
-      <div className="relative z-10 flex flex-wrap items-end gap-4 pt-2 border-t border-border/50">
-        <div className="space-y-1.5">
-          <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-0.5">
-            Наценка (%)
-          </label>
-          <Input
-            type="number"
-            step="1"
-            min="0"
-            value={markup}
-            onChange={(e) => onMarkupChange(e.target.value)}
-            className="w-28 h-10 text-sm tabular-nums"
-          />
+      <div className="relative z-10 flex flex-wrap items-end justify-between gap-4 pt-3 border-t border-border/50">
+        <div className="flex flex-wrap items-end gap-3">
+          {/* Target Tenant Selector */}
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-0.5">
+              Целевой сайт (Бренд)
+            </label>
+            <Select value={targetTenant} onValueChange={(val) => val && onTargetTenantChange(val as 'smmplan' | 'flux' | 'both')}>
+              <SelectTrigger className="w-[200px] h-10 text-xs font-bold bg-background">
+                <SelectValue placeholder="Выберите бренд..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="smmplan" className="text-xs font-semibold">
+                  🟦 SMMplan (smmplan.pro)
+                </SelectItem>
+                <SelectItem value="flux" className="text-xs font-semibold">
+                  🟣 SMMflux (smmflux.ru)
+                </SelectItem>
+                <SelectItem value="both" className="text-xs font-semibold">
+                  🌐 Оба бренда (SMMplan + SMMflux)
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Markup */}
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-0.5">
+              Наценка (%)
+            </label>
+            <Input
+              type="number"
+              step="1"
+              min="0"
+              value={markup}
+              onChange={(e) => onMarkupChange(e.target.value)}
+              className="w-28 h-10 text-sm font-bold tabular-nums bg-background"
+            />
+          </div>
         </div>
 
         <Button
           intent="primary"
           onClick={onImport}
           disabled={importDisabled}
-          className="h-10 px-6 font-semibold text-sm"
+          className="h-10 px-6 font-bold text-sm shadow-sm"
         >
           {importProgress !== null ? (
             <>

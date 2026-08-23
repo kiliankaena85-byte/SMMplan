@@ -28,14 +28,18 @@ import {
   Server,
   Activity,
   Layers,
+  Trash2,
+  Download,
 } from 'lucide-react';
 import type { ProviderListDTO } from '@/services/admin/provider.service';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { ProviderBalanceCell } from './components/provider-balance-cell';
 import { SyncProviderButton } from './components/sync-provider-button';
 import {
   toggleProviderActiveAction,
   resetProviderErrorsAction,
   createMockProviderPresetAction,
+  deleteProviderAction,
 } from '@/actions/admin/providers/crud';
 
 export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) {
@@ -45,6 +49,28 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [isPresetPending, startPresetTransition] = useTransition();
+  const [providerToDelete, setProviderToDelete] = useState<ProviderListDTO | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Delete Provider execution
+  const handleDeleteProvider = async () => {
+    if (!providerToDelete) return;
+    setIsDeleting(true);
+    try {
+      const res = await deleteProviderAction(providerToDelete.id);
+      if (res.success) {
+        toast.success(res.message);
+        setProviderToDelete(null);
+        router.refresh();
+      } else {
+        toast.error('Не удалось удалить провайдера', { description: res.error });
+      }
+    } catch {
+      toast.error('Сетевая ошибка при удалении провайдера');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Filtered providers
   const filtered = useMemo(() => {
@@ -471,6 +497,14 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                         {/* 6. Actions */}
                         <TableCell className="py-2.5 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                            <Link
+                              href={`/admin/providers/import?providerId=${provider.id}`}
+                              title="Импорт услуг от этого провайдера"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-200 shadow-xs active:scale-95 whitespace-nowrap"
+                            >
+                              <Download className="w-3 h-3" />
+                              Импорт
+                            </Link>
                             <SyncProviderButton providerId={provider.id} />
                             <Link
                               href={`/admin/providers/${provider.id}`}
@@ -478,6 +512,15 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                             >
                               Настроить
                             </Link>
+                            <button
+                              type="button"
+                              onClick={() => setProviderToDelete(provider)}
+                              title="Удалить провайдера"
+                              aria-label={`Удалить провайдера ${provider.name}`}
+                              className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all duration-200 cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -624,15 +667,30 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
 
                     {/* Actions footer */}
                     <div className="flex items-center gap-2 pt-2 border-t border-border/40">
+                      <Link
+                        href={`/admin/providers/import?providerId=${provider.id}`}
+                        className="py-1.5 px-2.5 text-center text-xs font-bold rounded-xl border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-200 shadow-xs active:scale-95 flex items-center justify-center gap-1"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        Импорт
+                      </Link>
                       <div className="flex-1">
                         <SyncProviderButton providerId={provider.id} />
                       </div>
                       <Link
                         href={`/admin/providers/${provider.id}`}
-                        className="flex-1 py-1.5 px-3 text-center text-xs font-bold rounded-xl border border-border/60 bg-background/50 hover:bg-muted text-foreground transition-all duration-200 shadow-xs active:scale-95"
+                        className="py-1.5 px-3 text-center text-xs font-bold rounded-xl border border-border/60 bg-background/50 hover:bg-muted text-foreground transition-all duration-200 shadow-xs active:scale-95"
                       >
                         Настроить
                       </Link>
+                      <button
+                        type="button"
+                        onClick={() => setProviderToDelete(provider)}
+                        title="Удалить провайдера"
+                        className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all duration-200 cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 );
@@ -641,6 +699,28 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
           </>
         )}
       </div>
+
+      {/* Confirmation Modal for Provider Deletion */}
+      <ConfirmModal
+        isOpen={!!providerToDelete}
+        onClose={() => setProviderToDelete(null)}
+        onConfirm={handleDeleteProvider}
+        title="Удаление SMM-провайдера"
+        isDanger={true}
+        confirmText={isDeleting ? "Удаление..." : "Удалить провайдера"}
+        cancelText="Отмена"
+      >
+        {providerToDelete && (
+          <div className="space-y-2">
+            <p>
+              Вы уверены, что хотите удалить поставщика <strong>«{providerToDelete.name}»</strong> ({providerToDelete.apiUrl})?
+            </p>
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-[11px] font-medium leading-relaxed">
+              ⚠️ Связанный кэш услуг и правила маршрутизации будут удалены. Услуги ({providerToDelete.serviceCount}), привязанные к этой панели, будут отключены и переведены в ручной режим без удаления истории заказов.
+            </div>
+          </div>
+        )}
+      </ConfirmModal>
     </div>
   );
 }

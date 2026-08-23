@@ -18,7 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Download, Search, SlidersHorizontal, RotateCcw } from "lucide-react";
+import { Download, Search, SlidersHorizontal, RotateCcw, RefreshCw, Link2 } from "lucide-react";
+import { ServiceEditModal, type ServiceOverride } from "./service-edit-modal";
+import { TARGET_TYPE_OPTIONS } from "../lib/target-type-config";
 import type { ExternalServiceItem, CategoryItem, ProviderItem } from "../types";
 
 /* ── AI Auto-Mapping ── */
@@ -140,12 +142,24 @@ const DEFAULT_FILTERS = {
 };
 
 /* ── Main Component ── */
-export function ImportWizard({ categories, providers }: { categories: CategoryItem[]; providers: ProviderItem[] }) {
+export function ImportWizard({ 
+  categories, 
+  providers,
+  initialProviderId,
+  initialTenant,
+}: { 
+  categories: CategoryItem[]; 
+  providers: ProviderItem[];
+  initialProviderId?: string;
+  initialTenant?: string;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   // Core state
-  const [providerId, setProviderId] = useState<string>(providers[0]?.id || "");
+  const [providerId, setProviderId] = useState<string>(
+    initialProviderId || providers.find(p => p.isActive)?.id || providers[0]?.id || ""
+  );
   const [missingCategoryIds, setMissingCategoryIds] = useState<Set<string>>(new Set());
   // Bulk assigner state
   const [bulkCategory, setBulkCategory] = useState<string>("");
@@ -162,7 +176,71 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
   const [autoMappedCategories, setAutoMappedCategories] = useState<Record<string, string>>({});
   const [aiConfidence, setAiConfidence] = useState<Record<string, boolean>>({});
   const [markup, setMarkup] = useState<string>("50");
-  const [targetTenant, setTargetTenant] = useState<'smmplan' | 'flux' | 'both'>('smmplan');
+  const [targetTenant, setTargetTenant] = useState<'smmplan' | 'flux' | 'both'>(
+    (initialTenant === 'flux' || initialTenant === 'smmplan' || initialTenant === 'both') ? initialTenant : 'smmplan'
+  );
+
+  // Pre-import customization & overrides
+  const [serviceOverrides, setServiceOverrides] = useState<Record<string, ServiceOverride>>({});
+  const [editingService, setEditingService] = useState<ExternalServiceItem | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [bulkTargetType, setBulkTargetType] = useState<string>("");
+
+  const handleSaveOverride = (svcId: string, override: ServiceOverride) => {
+    setServiceOverrides((prev) => ({
+      ...prev,
+      [svcId]: { ...prev[svcId], ...override },
+    }));
+    if (override.categoryId) {
+      setSelectedCategories((prev) => ({ ...prev, [svcId]: override.categoryId! }));
+      setMissingCategoryIds((prev) => {
+        const next = new Set(prev);
+        next.delete(svcId);
+        return next;
+      });
+    }
+  };
+
+  const handleTargetTypeChange = (svcId: string, targetType: string) => {
+    setServiceOverrides((prev) => ({
+      ...prev,
+      [svcId]: { ...prev[svcId], targetType },
+    }));
+  };
+
+  const handleBulkTargetType = () => {
+    if (!bulkTargetType) return;
+    const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : services.map((s) => String(s.service));
+    setServiceOverrides((prev) => {
+      const next = { ...prev };
+      targetIds.forEach((id) => {
+        next[id] = { ...next[id], targetType: bulkTargetType };
+      });
+      return next;
+    });
+  };
+
+  const handleOpenEditModal = (service: ExternalServiceItem) => {
+    setEditingService(service);
+    setIsEditModalOpen(true);
+  };
+
+  const handleProviderChange = (newProviderId: string) => {
+    setProviderId(newProviderId);
+    setSelectedIds(new Set());
+    setSelectedCategories({});
+    setAutoMappedCategories({});
+    setServiceOverrides({});
+    setError(null);
+    setSuccess(null);
+    setFilters((prev) => ({ ...prev, page: 1 }));
+    
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('providerId', newProviderId);
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
 
   // Filters
   const [activeTab, setActiveTab] = useState<"ready" | "attention">("ready");
@@ -241,7 +319,7 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
       const { page: _p, pageSize: _ps, ...restFilters } = filters;
       const res = await fetchPaginatedExternalServices(
         providerId,
-        restFilters,
+        { ...restFilters, targetTenant },
         filters.page,
         filters.pageSize
       );
@@ -264,7 +342,7 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
     } finally {
       setLoading(false);
     }
-  }, [providerId, filters]);
+  }, [providerId, filters, targetTenant]);
 
   useEffect(() => {
     loadServices();
@@ -439,12 +517,14 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
         parseFloat(markup) || 50,
         providerId,
         categoryIdMap,
-        targetTenant
+        targetTenant,
+        serviceOverrides
       );
 
       if (res.success) {
         setSuccess(`Успешно импортировано ${("imported" in res && res.imported !== undefined ? res.imported : externalIds.length)} услуг!`);
         setSelectedIds(new Set());
+        setServiceOverrides({});
         await loadServices();
         router.refresh();
       } else {
@@ -461,12 +541,12 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
   const incompatibleIds = useMemo(() => {
     const set = new Set<string>();
     selectedIds.forEach((id) => {
-      const svc = services.find((s) => String(s.service) === id);
-      const catId = selectedCategories[id] || autoMappedCategories[id];
-      if (svc && catId) {
+      const s = services.find((srv) => String(srv.service) === id);
+      if (s) {
+        const catId = selectedCategories[id] || autoMappedCategories[id];
         const cat = categories.find((c) => c.id === catId);
         if (cat) {
-          const serviceType = inferTargetTypeFromName(svc.name);
+          const serviceType = serviceOverrides[id]?.targetType || (s.metrics?.targetType as string) || inferTargetTypeFromName(s.name);
           const catType = inferTargetTypeFromCategory(cat.name);
           if (!isTargetTypeCompatible(serviceType, catType)) {
             set.add(id);
@@ -475,7 +555,7 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
       }
     });
     return set;
-  }, [selectedIds, services, selectedCategories, autoMappedCategories, categories]);
+  }, [selectedIds, services, selectedCategories, autoMappedCategories, categories, serviceOverrides]);
 
   const handleExcludeIncompatible = () => {
     setSelectedIds((prev) => {
@@ -502,7 +582,11 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
         importDisabled={selectedIds.size === 0 || syncing}
         syncing={syncing}
         importProgress={importProgress}
-        providerName={providers.find(p => p.id === providerId)?.name || "Провайдер"}
+        providers={providers}
+        selectedProviderId={providerId}
+        onProviderChange={handleProviderChange}
+        targetTenant={targetTenant}
+        onTargetTenantChange={setTargetTenant}
       />
 
       {/* Notifications */}
@@ -517,11 +601,37 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
         </div>
       )}
 
+      {/* Empty Cache Hero State */}
+      {isEmptyCache && !loading && (
+        <div className="bg-card/60 backdrop-blur-md border border-border/60 rounded-[24px] p-8 text-center max-w-xl mx-auto space-y-4 shadow-sm my-4 animate-in fade-in zoom-in-95 duration-300">
+          <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
+            <Download className="w-7 h-7" />
+          </div>
+          <div>
+            <h3 className="text-base font-black text-foreground">
+              Каталог «{providers.find(p => p.id === providerId)?.name || 'Провайдер'}» не загружен
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+              Для безопасного выбора и Cherry-Pick импорта услуги поставщика буферизуются в теневой каталог. Загрузите список услуг в один клик через официальный API шлюза.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleSyncCache}
+            disabled={syncing}
+            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 shadow-md active:scale-95 text-xs cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Синхронизация каталога через API...' : '⚡ Загрузить каталог поставщика (API)'}
+          </button>
+        </div>
+      )}
+
       {/* Main Table / Grid Container */}
       <div className="flex flex-col gap-4">
         {/* Search & Platform Filter Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-2 flex-1 max-w-md">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-1 min-w-[280px] max-w-md">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
@@ -557,27 +667,56 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
             )}
           </div>
 
-          {/* Bulk Category Assigner */}
-          <div className="flex items-center gap-2">
-            <Select value={bulkCategory} onValueChange={(val) => setBulkCategory(val || "")}>
-              <SelectTrigger className="w-[200px] h-9 text-xs">
-                <SelectValue placeholder="Массовая категория..." />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id} className="text-xs">
-                    {(cat.network?.name || "") ? `${cat.network?.name} - ${cat.name}` : cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <button
-              onClick={handleApplyBulkCategory}
-              disabled={!bulkCategory}
-              className="px-3 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 text-xs font-semibold rounded-lg transition-colors"
-            >
-              Назначить ({selectedIds.size || services.length})
-            </button>
+          {/* Bulk Assigners: Category & Target Type */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Bulk Target Type */}
+            <div className="flex items-center gap-1.5 bg-muted/40 p-1 rounded-xl border border-border/60">
+              <Select value={bulkTargetType} onValueChange={(val) => setBulkTargetType(val || "")}>
+                <SelectTrigger className="w-[155px] h-8 text-xs bg-background">
+                  <SelectValue placeholder="Тип ссылки..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-60 w-[240px]">
+                  {TARGET_TYPE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.type} value={opt.type} className="text-xs py-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <span>{opt.icon}</span>
+                        <span className="font-medium">{opt.shortLabel}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <button
+                onClick={handleBulkTargetType}
+                disabled={!bulkTargetType}
+                className="px-2.5 py-1.5 bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 text-[11px] font-bold rounded-lg transition-colors cursor-pointer"
+              >
+                Задать тип
+              </button>
+            </div>
+
+            {/* Bulk Category */}
+            <div className="flex items-center gap-1.5 bg-muted/40 p-1 rounded-xl border border-border/60">
+              <Select value={bulkCategory} onValueChange={(val) => setBulkCategory(val || "")}>
+                <SelectTrigger className="w-[170px] h-8 text-xs bg-background">
+                  <SelectValue placeholder="Категория..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-60 w-[240px]">
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id} className="text-xs">
+                      {(cat.network?.name || "") ? `${cat.network?.name} • ${cat.name}` : cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <button
+                onClick={handleApplyBulkCategory}
+                disabled={!bulkCategory}
+                className="px-2.5 py-1.5 bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 text-[11px] font-bold rounded-lg transition-colors cursor-pointer"
+              >
+                Задать кат. ({selectedIds.size || services.length})
+              </button>
+            </div>
           </div>
         </div>
 
@@ -635,8 +774,23 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
           aiConfidence={aiConfidence}
           showCategoryColumn={true}
           validationErrors={missingCategoryIds}
+          serviceOverrides={serviceOverrides}
+          onTargetTypeChange={handleTargetTypeChange}
+          onOpenEditModal={handleOpenEditModal}
         />
       </div>
+
+      {/* Service Pre-Import Edit Modal */}
+      <ServiceEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        service={editingService}
+        categories={categories}
+        defaultMarkup={parseFloat(markup) || 50}
+        initialOverride={editingService ? serviceOverrides[String(editingService.service)] : undefined}
+        onSaveOverride={handleSaveOverride}
+        targetTenant={targetTenant}
+      />
 
       {/* Confirmation Modal */}
       <ConfirmationModal

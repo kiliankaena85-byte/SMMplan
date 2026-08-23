@@ -806,7 +806,16 @@ class AdminCatalogService {
     admin: { id: string; email: string },
     providerId: string,
     categoryIdMap?: Record<string, string>,
-    targetTenantId: 'smmplan' | 'flux' | 'both' = 'smmplan'
+    targetTenantId: 'smmplan' | 'flux' | 'both' = 'smmplan',
+    serviceOverrides?: Record<string, {
+      cleanName?: string;
+      categoryId?: string;
+      targetType?: string;
+      customMarkup?: number;
+      minQty?: number;
+      maxQty?: number;
+      description?: string;
+    }>
   ) {
     // 1. Fetch from Shadow Catalog (ShadowService staging table) to get the AI-normalized names and metrics
     const shadowServices = await db.shadowService.findMany({
@@ -847,11 +856,15 @@ class AdminCatalogService {
     // 2. LIVE-CHECK: Fetch fresh prices from Provider API to prevent Cache Poisoning
     const providerDbRecord = await db.provider.findUnique({ where: { id: providerId } });
     if (!providerDbRecord) throw new Error('Провайдер не найден');
-    const providerInstance = await providerService.getProviderInstance(providerDbRecord);
-    const liveServices = await providerInstance.getServices();
     
-    // Map live services for O(1) lookup
-        const liveMap = new Map(liveServices.map((s) => [s.service.toString(), s]));
+    let liveMap = new Map<string, any>();
+    try {
+      const providerInstance = await providerService.getProviderInstance(providerDbRecord);
+      const liveServices = await providerInstance.getServices();
+      liveMap = new Map(liveServices.map((s) => [s.service.toString(), s]));
+    } catch (liveErr) {
+      console.warn(`[Live-Check] Provider API live check failed (${providerDbRecord.name}), falling back to cached shadow catalog:`, liveErr);
+    }
 
     const tenantsToImport: ('smmplan' | 'flux')[] = targetTenantId === 'both' ? ['smmplan', 'flux'] : [targetTenantId];
 
@@ -870,8 +883,25 @@ class AdminCatalogService {
     const uniqueCategoryIds = new Set<string>();
     if (categoryId) uniqueCategoryIds.add(categoryId);
     if (categoryIdMap) {
-      Object.values(categoryIdMap).forEach(id => uniqueCategoryIds.add(id));
+      Object.values(categoryIdMap).forEach(id => {
+        if (id) uniqueCategoryIds.add(id);
+      });
     }
+    if (serviceOverrides) {
+      Object.values(serviceOverrides).forEach(ov => {
+        if (ov?.categoryId) uniqueCategoryIds.add(ov.categoryId);
+      });
+    }
+
+    // Fallback: If no category specified, find default category
+    if (uniqueCategoryIds.size === 0) {
+      const defaultCat = await db.category.findFirst({ select: { id: true } });
+      if (defaultCat) {
+        uniqueCategoryIds.add(defaultCat.id);
+        categoryId = defaultCat.id;
+      }
+    }
+
     const categoriesDb = await db.category.findMany({
       where: { id: { in: Array.from(uniqueCategoryIds) } },
       select: { id: true, name: true }
@@ -887,20 +917,16 @@ class AdminCatalogService {
     
     for (const shadowExt of toImportShadow) {
       const extId = shadowExt.service.toString();
+      const override = serviceOverrides?.[extId];
       
-      // 3. Live Price Check
+      // 3. Live Price Check or Shadow Fallback
       const liveExt = liveMap.get(extId);
-      if (!liveExt) {
-        // Service was removed by provider between caching and importing!
-        console.warn(`[Live-Check] Service ${shadowExt.service} was removed by provider. Skipping.`);
-        continue;
-      }
-
-      // Use the LIVE rate, not the cached one
-      const rawRate = parseFloat(liveExt.rate);
+      
+      // Use the LIVE rate if available, otherwise shadow rate
+      const rawRate = liveExt ? parseFloat(liveExt.rate) : shadowExt.rate;
       
       if (isNaN(rawRate) || rawRate <= 0) {
-        console.warn(`[Live-Check] Service ${shadowExt.service} has invalid rate: ${liveExt.rate}. Skipping import.`);
+        console.warn(`[Live-Check] Service ${shadowExt.service} has invalid rate: ${rawRate}. Skipping import.`);
         continue;
       }
       
@@ -908,10 +934,12 @@ class AdminCatalogService {
       const providerCurrency = providerDbRecord.balanceCurrency || 'USD';
       const exchangeRate = providerCurrency === 'RUB' ? 1.0 : globalUsdToRub;
 
-      let effectiveMarkup = defaultMarkup;
+      let effectiveMarkup = override?.customMarkup !== undefined && override.customMarkup >= 0
+        ? override.customMarkup
+        : defaultMarkup;
       
       // Auto-pricing engine
-      if (defaultMarkup <= 0) {
+      if (effectiveMarkup <= 0) {
         const retailFromLadder = applyPricingLadder(rawRate * exchangeRate);
         effectiveMarkup = rawRate > 0 ? Math.round((retailFromLadder / (rawRate * exchangeRate)) * 100) / 100 : 3.0;
       }
@@ -921,9 +949,13 @@ class AdminCatalogService {
         effectiveMarkup = SAFETY_FLOOR_MARKUP;
       }
 
-      const importedName = shadowExt.cleanName || liveExt.name;
-      const importedDesc = liveExt.desc || null;
+      const importedName = override?.cleanName || shadowExt.cleanName || liveExt?.name || shadowExt.name;
+      const importedDesc = override?.description || liveExt?.desc || null;
       const stableSlug = importedName.toLowerCase().trim().replace(/[^a-z0-9а-яё]+/gi, '-').replace(/^-+|-+$/g, '') || `service-${extId}`;
+      const targetCatId = override?.categoryId || categoryIdMap?.[extId] || categoryId;
+      const effectiveTargetType = override?.targetType || shadowExt.metrics?.targetType || inferTargetTypeFromCategory(categoryNameMap.get(targetCatId)) || 'POST';
+      const effectiveMinQty = override?.minQty !== undefined ? override.minQty : (parseInt(liveExt?.min || shadowExt.min, 10) || 10);
+      const effectiveMaxQty = override?.maxQty !== undefined ? override.maxQty : (parseInt(liveExt?.max || shadowExt.max, 10) || 10000);
 
       for (const tId of tenantsToImport) {
         // Skip if already exists for this tenant
@@ -935,23 +967,23 @@ class AdminCatalogService {
           name: ServiceAuditEngine.cleanText(importedName), // Use AI Clean Name with sanitization
           description: importedDesc ? sanitizeServiceDescription(ServiceAuditEngine.cleanText(importedDesc)) : null,
           externalId: extId,
-          categoryId: categoryIdMap?.[extId] || categoryId,
+          categoryId: targetCatId,
           providerId: providerDbRecord.id,
           providerCurrency: providerCurrency,
-          rate: rawRate, // Live provider rate
+          rate: rawRate, // Live provider rate or cached shadow rate
           markup: effectiveMarkup,
           pricePer1000Cents: Math.round(applyBeautifulRounding(rawRate * effectiveMarkup * exchangeRate) * 100),
-          minQty: parseInt(liveExt.min, 10) || 10,
-          maxQty: parseInt(liveExt.max, 10) || 10000,
+          minQty: effectiveMinQty,
+          maxQty: effectiveMaxQty,
           features: shadowExt.metrics || {}, // Store AI ProcurementMetrics in JSON
           anomalyScore: shadowExt.metrics?.anomalyScore || 0,
-          targetType: shadowExt.metrics?.targetType || inferTargetTypeFromCategory(categoryNameMap.get(categoryIdMap?.[extId] || categoryId)),
+          targetType: effectiveTargetType,
           customDataType: shadowExt.metrics?.customDataType || 'NONE',
           isMediaGroupAware: shadowExt.metrics?.isMediaGroupAware || false,
           isActive: true,
-          isDripFeedEnabled: Boolean(liveExt.dripfeed),
-          isRefillEnabled: Boolean(liveExt.refill),
-          isCancelEnabled: Boolean(liveExt.cancel),
+          isDripFeedEnabled: Boolean(liveExt?.dripfeed || shadowExt.dripfeed),
+          isRefillEnabled: Boolean(liveExt?.refill || shadowExt.refill),
+          isCancelEnabled: Boolean(liveExt?.cancel || shadowExt.cancel),
           lastSeenAt: new Date(),
         });
       }
