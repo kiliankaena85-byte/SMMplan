@@ -7,6 +7,8 @@
  * Этот модуль нормализует оба формата в каноническую форму и делает fuzzy match.
  */
 
+import { normalizeTargetType, isTargetTypeCompatible, inferTargetTypeFromCategory } from '@/utils/target-type';
+
 // Каноническая таблица: короткое имя → все возможные DB-варианты (substring match)
 const CANONICAL_MAP: Record<string, string[]> = {
   'Подписчики':      ['Подписчики', 'Участники', 'Subscriber', 'Follow', 'Members'],
@@ -23,7 +25,7 @@ const CANONICAL_MAP: Record<string, string[]> = {
   'Сохранения':      ['Сохранен', 'Save', 'Bookmark', 'Закладк'],
   'Трафик':          ['Трафик', 'Traffic', 'Посещен', 'Organic', 'Keyword'],
   'Жалобы':          ['Жалоб', 'Report', 'Complaint', 'Репорт'],
-  'Автоактивности':  ['Подписк', 'Auto', 'Авто', 'Будущ'], // Legacy if needed
+  'Автоактивности':  ['Подписк', 'Auto', 'Авто', 'Будущ'],
   'Premium':         ['Premium', 'Премиум'],
   'Прослушивания':   ['Прослуш', 'Play', 'Listen'],
   'Статистика':      ['Стат', 'Impression', 'Reach', 'Впечатлен'],
@@ -42,7 +44,6 @@ const CANONICAL_MAP: Record<string, string[]> = {
 function isAutoService(name: string): boolean {
   const n = name.toLowerCase();
   
-  // Russian prefixes/words
   if (
     n.includes('автопросмотр') ||
     n.includes('автолайк') ||
@@ -57,7 +58,6 @@ function isAutoService(name: string): boolean {
     return true;
   }
   
-  // English combinations
   if (
     n.includes('auto view') ||
     n.includes('auto-view') ||
@@ -87,7 +87,6 @@ function isAutoService(name: string): boolean {
     return true;
   }
 
-  // Russian future/subscription patterns
   if (
     (n.includes('будущие') || n.includes('подписка на') || n.includes('автоподписка')) &&
     (n.includes('просмотр') || n.includes('лайк') || n.includes('реакци') || n.includes('репост') || n.includes('коммент') || n.includes('охват'))
@@ -112,9 +111,26 @@ export function matchesSuggestedCategory(
   analyzerTags?: string | null,
   detectedType?: string | null
 ): boolean {
+  // 1. Enforce Link Target Compatibility if detectedType is provided
+  if (detectedType) {
+    const categoryTargetType = inferTargetTypeFromCategory(dbCategoryName);
+    if (!isTargetTypeCompatible(detectedType, categoryTargetType)) {
+      if (analyzerTags) {
+        const tags = analyzerTags.split(',').map(t => t.trim().toLowerCase());
+        const normalized = normalizeTargetType(detectedType).toLowerCase();
+        if (!tags.includes(normalized) && !tags.includes(detectedType.toLowerCase())) {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    }
+  }
+
   if (detectedType && analyzerTags) {
     const tags = analyzerTags.split(',').map(t => t.trim().toLowerCase());
-    if (tags.includes(detectedType.toLowerCase())) {
+    const normalized = normalizeTargetType(detectedType).toLowerCase();
+    if (tags.includes(normalized) || tags.includes(detectedType.toLowerCase())) {
       return true;
     }
   }
@@ -145,31 +161,26 @@ export function matchesSuggestedCategory(
     // 2. Contains match (dbName includes suggested)
     if (dbNameNormalized.includes(suggestedNormalized)) return true;
 
-    // 3. Contains match (suggested includes dbName - word bounded to prevent "автопросмотры" matching "просмотры")
-    // Use regex to ensure dbNameNormalized is matched as a whole word/phrase within suggestedNormalized
+    // 3. Contains match (suggested includes dbName)
     try {
       const escaped = escapeRegex(dbNameNormalized);
-      const regex = new RegExp(`(^|[\\s/,-])${escaped}([\\s/,-]|$)`, 'i');
+      const regex = new RegExp('(^|[\\s/,-])' + escaped + '([\\s/,-]|$)', 'i');
       if (regex.test(suggestedNormalized)) return true;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch(e) {
-      // Fallback if dbNameNormalized has unexpected syntax
+    } catch {
       if (suggestedNormalized === dbNameNormalized) return true;
     }
     
     // 4. Canonical map lookup
-    // Since suggestedCategories might be "Подписчики / Участники", we need to check if any key in CANONICAL_MAP is in suggested.
     for (const [key, synonyms] of Object.entries(CANONICAL_MAP)) {
       try {
         const escapedKey = escapeRegex(key.toLowerCase());
-        const keyRegex = new RegExp(`(^|[\\s/,-])${escapedKey}([\\s/,-]|$)`, 'i');
+        const keyRegex = new RegExp('(^|[\\s/,-])' + escapedKey + '([\\s/,-]|$)', 'i');
         if (keyRegex.test(suggestedNormalized)) {
           for (const syn of synonyms) {
             if (dbNameNormalized.includes(syn.toLowerCase())) return true;
           }
         }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (e) {
+      } catch {
         if (suggestedNormalized.includes(key.toLowerCase())) {
           for (const syn of synonyms) {
             if (dbNameNormalized.includes(syn.toLowerCase())) return true;
@@ -179,19 +190,5 @@ export function matchesSuggestedCategory(
     }
   }
 
-  try {
-    import('@/lib/admin-audit').then(({ auditAdmin }) => {
-      auditAdmin({
-        adminId: 'system',
-        adminEmail: 'system@smmplan.pro',
-        action: 'CATEGORY_UNMAPPED',
-        target: dbCategoryName,
-        targetType: 'CATEGORY',
-      });
-    }).catch(() => {});
-  } catch {
-    // Non-blocking observability alert
-  }
-  
   return false;
 }
