@@ -11,7 +11,9 @@ import {
 import { ServicesTable } from "./services-table";
 import { SummaryDashboard } from "./summary-dashboard";
 import { ConfirmationModal } from "./confirmation-modal";
+import { ImportReportCard } from "./import-report-card";
 import { Button } from "@/components/ui/button";
+import type { ImportServicesResult } from "@/services/admin/catalog.service";
 import {
   Select,
   SelectContent,
@@ -175,6 +177,8 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
   const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  // AUD-04: post-import transparency report
+  const [importReport, setImportReport] = useState<ImportServicesResult | null>(null);
 
   // Check if any filters are active (excluding page/pageSize)
   const isFiltersActive = useMemo(() => {
@@ -311,6 +315,7 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
     setIsEmptyCache(false);
     setError(null);
     setSuccess(null);
+    setImportReport(null);
   };
 
   // Selection handlers
@@ -369,26 +374,21 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
     }
   };
 
+  // AUD-15 (2.5): bulk-assign covers ALL selected services across pages, not just the current one
   const handleApplyBulkCategory = () => {
     if (!bulkCategory) return;
+    const targets = selectedIds.size > 0
+      ? Array.from(selectedIds)
+      : services.map((s) => String(s.service));
+
     setSelectedCategories((prev) => {
       const next = { ...prev };
-      services.forEach((s) => {
-        const id = String(s.service);
-        if (selectedIds.has(id) || selectedIds.size === 0) {
-          next[id] = bulkCategory;
-        }
-      });
+      targets.forEach((id) => { next[id] = bulkCategory; });
       return next;
     });
     setMissingCategoryIds((prev) => {
       const next = new Set(prev);
-      services.forEach((s) => {
-        const id = String(s.service);
-        if (selectedIds.has(id) || selectedIds.size === 0) {
-          next.delete(id);
-        }
-      });
+      targets.forEach((id) => next.delete(id));
       return next;
     });
   };
@@ -444,6 +444,7 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
     setShowConfirmModal(false);
     setImportProgress({ current: 0, total: selectedIds.size });
     setError(null);
+    setImportReport(null);
 
     const externalIds = Array.from(selectedIds);
     const firstCatId = selectedCategories[externalIds[0]] || autoMappedCategories[externalIds[0]] || "";
@@ -468,11 +469,15 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
       );
 
       if (res.success) {
+        // AUD-04: capture the transparency report (skips, markup adjustments, price source)
+        if ('report' in res && res.report) {
+          setImportReport(res.report);
+        }
         const importedCount = "imported" in res && res.imported !== undefined ? res.imported : externalIds.length;
         const skippedCount = externalIds.length - importedCount;
         setSuccess(
           skippedCount > 0
-            ? `Импортировано ${importedCount} из ${externalIds.length} услуг. ${skippedCount} пропущено (дубликаты или изменения у провайдера).`
+            ? `Импортировано ${importedCount} из ${externalIds.length} услуг. ${skippedCount} пропущено — подробности в отчёте ниже.`
             : `Успешно импортировано ${importedCount} услуг!`
         );
         setSelectedIds(new Set());
@@ -568,13 +573,41 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
       {/* Notifications */}
       {error && (
         <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium">
-          {error}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>{error}</span>
+            {/* AUD-15 (2.5): one-click fix — assign the bulk-selected category to all unmapped services */}
+            {missingCategoryIds.size > 0 && bulkCategory && (
+              <button
+                type="button"
+                onClick={() => {
+                  const ids = Array.from(missingCategoryIds);
+                  const catName = categories.find((c) => c.id === bulkCategory)?.name || 'выбранная категория';
+                  setSelectedCategories((prev) => {
+                    const next = { ...prev };
+                    ids.forEach((id) => { next[id] = bulkCategory; });
+                    return next;
+                  });
+                  setMissingCategoryIds(new Set());
+                  setError(null);
+                  setSuccess(`Категория «${catName}» назначена ${ids.length} нераспределённым услугам.`);
+                }}
+                className="px-3 py-1.5 rounded-lg bg-destructive text-white text-xs font-bold hover:opacity-90 transition-all active:scale-95 whitespace-nowrap"
+              >
+                Назначить всем нераспределённым ({missingCategoryIds.size})
+              </button>
+            )}
+          </div>
         </div>
       )}
       {success && (
         <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-sm font-medium">
           {success}
         </div>
+      )}
+
+      {/* AUD-04: post-import transparency report */}
+      {importReport && (
+        <ImportReportCard report={importReport} onClose={() => setImportReport(null)} />
       )}
 
       {/* Main Table / Grid Container */}
@@ -634,9 +667,10 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
             <button
               onClick={handleApplyBulkCategory}
               disabled={!bulkCategory}
+              title="Категория будет назначена всем выбранным услугам (включая выбранные на других страницах)"
               className="px-3 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 text-xs font-semibold rounded-lg transition-colors"
             >
-              Назначить ({selectedIds.size || services.length})
+              Назначить выбранным ({selectedIds.size || services.length})
             </button>
           </div>
         </div>

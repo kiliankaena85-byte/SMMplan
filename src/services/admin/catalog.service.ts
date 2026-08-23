@@ -103,6 +103,55 @@ type ProviderExternalService = {
   cancel?: boolean;
 };
 
+// ── Import transparency types (AUD-04 / AUD-11 / AUD-13) ──
+
+export type ImportSkipReason =
+  | 'ALREADY_EXISTS'
+  | 'REMOVED_BY_PROVIDER'
+  | 'INVALID_RATE'
+  | 'NOT_IN_SHADOW_CATALOG';
+
+export type ImportSkippedItem = {
+  externalId: string;
+  name: string | null;
+  reason: ImportSkipReason;
+  /** Tenants where the service already exists (for cross-tenant imports) */
+  tenantIds?: string[];
+};
+
+export type ImportMarkupAdjustment = {
+  externalId: string;
+  name: string | null;
+  requestedMarkup: number;
+  appliedMarkup: number;
+};
+
+export type ImportServicesResult = {
+  importedCount: number;
+  totalRequested: number;
+  /** Services that were NOT imported, with a reason for each (AUD-04) */
+  skipped: ImportSkippedItem[];
+  /** Markups silently raised to the safety floor (AUD-13) */
+  markupAdjustments: ImportMarkupAdjustment[];
+  /** true = prices taken from the live provider API; false = fresh shadow catalog fallback (AUD-11) */
+  usedLivePrices: boolean;
+  shadowCatalogAgeHours: number | null;
+  warnings: string[];
+};
+
+/** Normalized shape used for live-check lookups (live API rows or shadow fallback rows) */
+type LiveCatalogEntry = {
+  service: string;
+  name: string;
+  rate: string;
+  min: string;
+  max: string;
+  dripfeed?: boolean;
+  refill?: boolean;
+  cancel?: boolean;
+  desc?: string;
+};
+
 // ── Service ──
 
 class AdminCatalogService {
@@ -799,6 +848,15 @@ class AdminCatalogService {
     return syncResult;
   }
 
+  /**
+   * AUD-04/11/13: Cherry-pick import with a fully transparent result report.
+   *
+   * - Reports every skipped service with a reason (duplicates, removed by provider,
+   *   invalid rate, stale selection) instead of silently dropping rows.
+   * - Resolves slug collisions with suffixes instead of relying on skipDuplicates.
+   * - Records safety-floor markup adjustments instead of bumping them silently.
+   * - Falls back to a fresh shadow catalog when the provider API is unavailable.
+   */
   async importServices(
     externalIds: string[],
     categoryId: string,
@@ -807,7 +865,7 @@ class AdminCatalogService {
     providerId: string,
     categoryIdMap?: Record<string, string>,
     targetTenantId: 'smmplan' | 'flux' | 'both' = 'smmplan'
-  ) {
+  ): Promise<ImportServicesResult> {
     // 1. Fetch from Shadow Catalog (ShadowService staging table) to get the AI-normalized names and metrics
     const shadowServices = await db.shadowService.findMany({
       where: {
@@ -816,42 +874,93 @@ class AdminCatalogService {
       }
     });
 
-    const toImportShadow = shadowServices.map((s) => ({
-      service: s.externalId,
-      name: s.name,
-      type: s.type || undefined,
-      category: s.category || undefined,
-      rate: s.rate,
-      min: String(s.min),
-      max: String(s.max),
-      refill: s.refill,
-      cancel: s.cancel,
-      dripfeed: s.dripfeed,
-      cleanName: s.cleanName || undefined,
-      metrics: {
-        platform: s.platform,
-        category: s.normalizedCategory,
-        targetType: s.targetType,
-        customDataType: s.customDataType,
-        isMediaGroupAware: s.isMediaGroupAware,
-        isPrivate: s.isPrivate,
-        warranty: s.warranty,
-        geo: s.geo,
-        velocity: s.velocity,
-        anomalyScore: s.anomalyScore
+    if (shadowServices.length === 0) throw new Error('Не найдены услуги для импорта в теневом каталоге (Обновите каталог)');
+
+    // AUD-04: report requested services that vanished from the shadow catalog (stale selection)
+    const shadowByExtId = new Map(shadowServices.map(s => [s.externalId, s]));
+    const skipped: ImportSkippedItem[] = [];
+    for (const extId of externalIds.map(String)) {
+      if (!shadowByExtId.has(extId)) {
+        skipped.push({ externalId: extId, name: null, reason: 'NOT_IN_SHADOW_CATALOG' });
       }
-    }));
+    }
 
-    if (toImportShadow.length === 0) throw new Error('Не найдены услуги для импорта в теневом каталоге (Обновите каталог)');
-
-    // 2. LIVE-CHECK: Fetch fresh prices from Provider API to prevent Cache Poisoning
+    // 2. LIVE-CHECK: fetch fresh prices from the Provider API to prevent Cache Poisoning.
+    //    AUD-11 (2.4): if the provider API is unavailable, fall back to a FRESH shadow catalog
+    //    instead of failing the whole import.
     const providerDbRecord = await db.provider.findUnique({ where: { id: providerId } });
     if (!providerDbRecord) throw new Error('Провайдер не найден');
-    const providerInstance = await providerService.getProviderInstance(providerDbRecord);
-    const liveServices = await providerInstance.getServices();
-    
-    // Map live services for O(1) lookup
-        const liveMap = new Map(liveServices.map((s) => [s.service.toString(), s]));
+
+    const warnings: string[] = [];
+    let usedLivePrices = true;
+    let shadowCatalogAgeHours: number | null = null;
+    const liveMap = new Map<string, LiveCatalogEntry>();
+
+    const loadLiveCatalog = async (): Promise<LiveCatalogEntry[]> => {
+      const providerInstance = await providerService.getProviderInstance(providerDbRecord);
+      const liveServices = await providerInstance.getServices();
+      // Provider APIs return loose types (flags may come as numbers) — normalize to booleans
+      return liveServices.map((s) => ({
+        service: s.service.toString(),
+        name: s.name,
+        rate: String(s.rate),
+        min: String(s.min),
+        max: String(s.max),
+        dripfeed: s.dripfeed === undefined ? undefined : Boolean(s.dripfeed),
+        refill: s.refill === undefined ? undefined : Boolean(s.refill),
+        cancel: s.cancel === undefined ? undefined : Boolean(s.cancel),
+        desc: s.desc,
+      }));
+    };
+
+    try {
+      const liveEntries = await loadLiveCatalog();
+      if (liveEntries.length === 0) {
+        // An empty live catalog is treated as a provider failure — do not wipe the selection silently
+        throw new Error('API провайдера вернул пустой каталог');
+      }
+      for (const entry of liveEntries) {
+        liveMap.set(entry.service, entry);
+      }
+    } catch (liveErr) {
+      const errMsg = liveErr instanceof Error ? liveErr.message : String(liveErr);
+      const latestShadow = await db.shadowService.findFirst({
+        where: { providerId },
+        orderBy: { updatedAt: 'desc' },
+        select: { updatedAt: true },
+      });
+      shadowCatalogAgeHours = latestShadow
+        ? (Date.now() - latestShadow.updatedAt.getTime()) / 3_600_000
+        : null;
+
+      const SHADOW_FALLBACK_MAX_AGE_HOURS = 24;
+      if (
+        shadowServices.length > 0 &&
+        shadowCatalogAgeHours !== null &&
+        shadowCatalogAgeHours <= SHADOW_FALLBACK_MAX_AGE_HOURS
+      ) {
+        usedLivePrices = false;
+        warnings.push(
+          `Провайдер недоступен (${errMsg}). Импорт выполнен по ценам теневого каталога (возраст: ${shadowCatalogAgeHours.toFixed(1)} ч). После восстановления связи выполните синхронизацию цен.`
+        );
+        for (const s of shadowServices) {
+          liveMap.set(s.externalId, {
+            service: s.externalId,
+            name: s.name,
+            rate: String(s.rate),
+            min: String(s.min),
+            max: String(s.max),
+            dripfeed: s.dripfeed,
+            refill: s.refill,
+            cancel: s.cancel,
+          });
+        }
+      } else {
+        throw new Error(
+          `Провайдер недоступен (${errMsg}), а теневой каталог ${shadowCatalogAgeHours === null ? 'пуст' : `устарел (${shadowCatalogAgeHours.toFixed(1)} ч назад)`}. Нажмите «Обновить каталог» и повторите импорт.`
+        );
+      }
+    }
 
     const tenantsToImport: ('smmplan' | 'flux')[] = targetTenantId === 'both' ? ['smmplan', 'flux'] : [targetTenantId];
 
@@ -859,12 +968,20 @@ class AdminCatalogService {
     const existingServices = await db.service.findMany({
       where: {
         providerId: providerDbRecord.id,
-        externalId: { in: toImportShadow.map(s => s.service.toString()) },
+        externalId: { in: shadowServices.map(s => s.externalId) },
         tenantId: { in: tenantsToImport }
       },
       select: { externalId: true, tenantId: true }
     });
     const existingSet = new Set(existingServices.map(s => `${s.tenantId}:${s.externalId}`));
+
+    // AUD-04 (2.2): fetch taken slugs per tenant to resolve collisions with suffixes
+    // instead of relying on silent skipDuplicates drops
+    const takenSlugRows = await db.service.findMany({
+      where: { tenantId: { in: tenantsToImport }, slug: { not: null } },
+      select: { tenantId: true, slug: true },
+    });
+    const takenSlugs = new Set(takenSlugRows.map(s => `${s.tenantId}:${s.slug}`));
 
     // Fetch category names for target type inference and ensure tenant access taxonomy
     const uniqueCategoryIds = new Set<string>();
@@ -883,51 +1000,78 @@ class AdminCatalogService {
     }
 
     const servicesToCreate = [];
+    const markupAdjustments: ImportMarkupAdjustment[] = [];
     const globalUsdToRub = await SettingsProvider.getExchangeRateUSD();
-    
-    for (const shadowExt of toImportShadow) {
-      const extId = shadowExt.service.toString();
-      
+
+    for (const shadowExt of shadowServices) {
+      const extId = shadowExt.externalId;
+
       // 3. Live Price Check
       const liveExt = liveMap.get(extId);
       if (!liveExt) {
         // Service was removed by provider between caching and importing!
-        console.warn(`[Live-Check] Service ${shadowExt.service} was removed by provider. Skipping.`);
+        skipped.push({ externalId: extId, name: shadowExt.cleanName || shadowExt.name, reason: 'REMOVED_BY_PROVIDER' });
         continue;
       }
 
       // Use the LIVE rate, not the cached one
       const rawRate = parseFloat(liveExt.rate);
-      
       if (isNaN(rawRate) || rawRate <= 0) {
-        console.warn(`[Live-Check] Service ${shadowExt.service} has invalid rate: ${liveExt.rate}. Skipping import.`);
+        skipped.push({ externalId: extId, name: shadowExt.cleanName || shadowExt.name, reason: 'INVALID_RATE' });
         continue;
       }
-      
+
       // Handle Currency Conversion (Avoid double-conversion for RUB providers)
       const providerCurrency = providerDbRecord.balanceCurrency || 'USD';
       const exchangeRate = providerCurrency === 'RUB' ? 1.0 : globalUsdToRub;
 
       let effectiveMarkup = defaultMarkup;
-      
+
       // Auto-pricing engine
       if (defaultMarkup <= 0) {
         const retailFromLadder = applyPricingLadder(rawRate * exchangeRate);
         effectiveMarkup = rawRate > 0 ? Math.round((retailFromLadder / (rawRate * exchangeRate)) * 100) / 100 : 3.0;
       }
-      
-      // Safety Floor Check
+
+      // AUD-13 (2.3): Safety Floor Check — record the adjustment instead of bumping silently
       if (effectiveMarkup < SAFETY_FLOOR_MARKUP) {
+        markupAdjustments.push({
+          externalId: extId,
+          name: shadowExt.cleanName || shadowExt.name,
+          requestedMarkup: effectiveMarkup,
+          appliedMarkup: SAFETY_FLOOR_MARKUP,
+        });
         effectiveMarkup = SAFETY_FLOOR_MARKUP;
       }
 
       const importedName = shadowExt.cleanName || liveExt.name;
       const importedDesc = liveExt.desc || null;
-      const stableSlug = importedName.toLowerCase().trim().replace(/[^a-z0-9а-яё]+/gi, '-').replace(/^-+|-+$/g, '') || `service-${extId}`;
+      const baseSlug = importedName.toLowerCase().trim().replace(/[^a-z0-9а-яё]+/gi, '-').replace(/^-+|-+$/g, '') || `service-${extId}`;
+
+      const skippedTenants: ('smmplan' | 'flux')[] = [];
 
       for (const tId of tenantsToImport) {
         // Skip if already exists for this tenant
-        if (existingSet.has(`${tId}:${extId}`)) continue;
+        if (existingSet.has(`${tId}:${extId}`)) {
+          skippedTenants.push(tId);
+          continue;
+        }
+
+        // AUD-04 (2.2): collision-safe slug — base → base-extId → base-extId-N
+        let stableSlug = baseSlug;
+        if (takenSlugs.has(`${tId}:${stableSlug}`)) {
+          stableSlug = `${baseSlug}-${extId}`;
+          let n = 2;
+          while (takenSlugs.has(`${tId}:${stableSlug}`)) {
+            stableSlug = `${baseSlug}-${extId}-${n}`;
+            n++;
+            if (n > 50) {
+              stableSlug = `${baseSlug}-${Date.now()}`;
+              break;
+            }
+          }
+        }
+        takenSlugs.add(`${tId}:${stableSlug}`);
 
         servicesToCreate.push({
           tenantId: tId,
@@ -938,21 +1082,41 @@ class AdminCatalogService {
           categoryId: categoryIdMap?.[extId] || categoryId,
           providerId: providerDbRecord.id,
           providerCurrency: providerCurrency,
-          rate: rawRate, // Live provider rate
+          rate: rawRate, // Live provider rate (or fresh shadow rate on fallback)
           markup: effectiveMarkup,
           pricePer1000Cents: Math.round(applyBeautifulRounding(rawRate * effectiveMarkup * exchangeRate) * 100),
           minQty: parseInt(liveExt.min, 10) || 10,
           maxQty: parseInt(liveExt.max, 10) || 10000,
-          features: shadowExt.metrics || {}, // Store AI ProcurementMetrics in JSON
-          anomalyScore: shadowExt.metrics?.anomalyScore || 0,
-          targetType: shadowExt.metrics?.targetType || inferTargetTypeFromCategory(categoryNameMap.get(categoryIdMap?.[extId] || categoryId)),
-          customDataType: shadowExt.metrics?.customDataType || 'NONE',
-          isMediaGroupAware: shadowExt.metrics?.isMediaGroupAware || false,
+          features: {
+            platform: shadowExt.platform,
+            category: shadowExt.normalizedCategory,
+            targetType: shadowExt.targetType,
+            customDataType: shadowExt.customDataType,
+            isMediaGroupAware: shadowExt.isMediaGroupAware,
+            isPrivate: shadowExt.isPrivate,
+            warranty: shadowExt.warranty,
+            geo: shadowExt.geo,
+            velocity: shadowExt.velocity,
+            anomalyScore: shadowExt.anomalyScore
+          },
+          anomalyScore: shadowExt.anomalyScore || 0,
+          targetType: shadowExt.targetType || inferTargetTypeFromCategory(categoryNameMap.get(categoryIdMap?.[extId] || categoryId)),
+          customDataType: shadowExt.customDataType || 'NONE',
+          isMediaGroupAware: shadowExt.isMediaGroupAware || false,
           isActive: true,
           isDripFeedEnabled: Boolean(liveExt.dripfeed),
           isRefillEnabled: Boolean(liveExt.refill),
           isCancelEnabled: Boolean(liveExt.cancel),
           lastSeenAt: new Date(),
+        });
+      }
+
+      if (skippedTenants.length > 0) {
+        skipped.push({
+          externalId: extId,
+          name: shadowExt.cleanName || shadowExt.name,
+          reason: 'ALREADY_EXISTS',
+          tenantIds: skippedTenants,
         });
       }
     }
@@ -964,6 +1128,13 @@ class AdminCatalogService {
            skipDuplicates: true
        });
        importedCount = result.count;
+
+       // AUD-04: slug dedup should make DB-level skips nearly impossible — surface any leftovers
+       if (result.count < servicesToCreate.length) {
+         warnings.push(
+           `${servicesToCreate.length - result.count} услуг пропущено на уровне БД (уникальные ограничения). Проверьте каталог после импорта.`
+         );
+       }
 
        // Record initial price history for newly imported services
        const createdServices = await db.service.findMany({
@@ -989,10 +1160,33 @@ class AdminCatalogService {
       action: 'SERVICES_IMPORT',
       target: categoryId,
       targetType: 'SERVICE',
-      newValue: { importedCount, externalIds, providerId },
+      newValue: {
+        importedCount,
+        totalRequested: externalIds.length,
+        skippedCount: skipped.length,
+        markupAdjustedCount: markupAdjustments.length,
+        usedLivePrices,
+        providerId,
+      },
     });
 
-    return { importedCount, totalRequested: externalIds.length };
+    logger.info(`[ImportReport] imported=${importedCount}/${externalIds.length} skipped=${skipped.length} markupAdjusted=${markupAdjustments.length} livePrices=${usedLivePrices}`, {
+      providerId,
+      skipReasons: skipped.reduce<Record<string, number>>((acc, s) => {
+        acc[s.reason] = (acc[s.reason] || 0) + 1;
+        return acc;
+      }, {}),
+    });
+
+    return {
+      importedCount,
+      totalRequested: externalIds.length,
+      skipped,
+      markupAdjustments,
+      usedLivePrices,
+      shadowCatalogAgeHours,
+      warnings,
+    };
   }
 
   /**

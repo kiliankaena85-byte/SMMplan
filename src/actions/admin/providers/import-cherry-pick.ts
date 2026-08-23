@@ -3,6 +3,7 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { requireStaffPermission } from "@/lib/server/rbac";
 import { adminCatalogService } from "@/services/admin/catalog.service";
+import type { ImportServicesResult } from "@/services/admin/catalog.service";
 import { db } from "@/lib/db";
 import { handleServerError } from "@/utils/error-handler";
 import { z } from 'zod';
@@ -368,6 +369,13 @@ const importServicesSchema = z.object({
   targetTenantId: z.enum(["smmplan", "flux", "both"]).default("smmplan"),
 });
 
+export type ImportSelectedServicesSuccess = {
+  success: true;
+  imported: number;
+  /** AUD-04: full transparency report (skips, markup adjustments, price source) */
+  report: ImportServicesResult;
+};
+
 export async function importSelectedServices(
   externalIds: string[], 
   categoryId: string, 
@@ -375,7 +383,7 @@ export async function importSelectedServices(
   providerId: string,
   categoryIdMap?: Record<string, string>,
   targetTenantId: 'smmplan' | 'flux' | 'both' = 'smmplan'
-) {
+): Promise<ImportSelectedServicesSuccess | { success: false; error: string }> {
     return requireStaffPermission('catalog', 'edit', async (admin) => {
         try {
             const parsed = importServicesSchema.safeParse({ externalIds, categoryId, defaultMarkup, providerId, categoryIdMap, targetTenantId });
@@ -400,7 +408,7 @@ export async function importSelectedServices(
             revalidateTag('catalog', 'default');
             revalidateTag('services', 'default');
             
-            return { success: true, imported: res.importedCount };
+            return { success: true, imported: res.importedCount, report: res };
         } catch (e: unknown) {
              const localized = handleServerError(e);
              return { success: false, error: localized.message };

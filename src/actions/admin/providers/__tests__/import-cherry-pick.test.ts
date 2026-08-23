@@ -359,4 +359,193 @@ describe('Cherry-Pick Service Import & Shadow Catalog Tests', () => {
     expect(paginated2.data.length).toBe(1);
     expect(paginated2.data[0].service).toBe('202');
   });
+
+  it('should return a transparency report: skip reasons, slug dedup and safety floor (AUD-04/13)', async () => {
+    vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
+
+    // Shadow: 101 (valid), 103 (duplicate clean name of 101 -> slug collision), 102 (broken live rate)
+    await db.shadowService.createMany({
+      data: [
+        {
+          providerId: providerA.id,
+          externalId: '101',
+          name: 'Telegram Subscribers Fast',
+          type: 'default',
+          category: 'Telegram Subscribers',
+          rate: 0.50,
+          rateRub: 50.0,
+          min: 10,
+          max: 5000,
+          cleanName: 'Subscribers Fast',
+          platform: 'telegram',
+          normalizedCategory: 'SUBSCRIBERS',
+          targetType: 'CHANNEL',
+          anomalyScore: 0.1,
+          refill: false,
+          cancel: false,
+          dripfeed: false
+        },
+        {
+          providerId: providerA.id,
+          externalId: '103',
+          name: 'Telegram Subscribers Fast v2',
+          type: 'default',
+          category: 'Telegram Subscribers',
+          rate: 0.55,
+          rateRub: 55.0,
+          min: 10,
+          max: 5000,
+          cleanName: 'Subscribers Fast', // same clean name -> slug collision with 101
+          platform: 'telegram',
+          normalizedCategory: 'SUBSCRIBERS',
+          targetType: 'CHANNEL',
+          anomalyScore: 0.1,
+          refill: false,
+          cancel: false,
+          dripfeed: false
+        },
+        {
+          providerId: providerA.id,
+          externalId: '102',
+          name: 'Instagram Likes HQ',
+          type: 'default',
+          category: 'Instagram Likes',
+          rate: 0.15,
+          rateRub: 15.0,
+          min: 50,
+          max: 2000,
+          cleanName: 'Likes HQ',
+          platform: 'instagram',
+          normalizedCategory: 'LIKES',
+          targetType: 'POST',
+          anomalyScore: 0.0,
+          refill: false,
+          cancel: false,
+          dripfeed: false
+        }
+      ]
+    });
+
+    // Live: 101 OK, 103 OK (same name, different extId), 102 has invalid rate, 999 requested but absent everywhere
+    mockGetServices.mockResolvedValue([
+      { service: '101', name: 'Telegram Subscribers Fast', rate: '0.60', min: '10', max: '5000', category: 'Telegram Subscribers' },
+      { service: '103', name: 'Telegram Subscribers Fast v2', rate: '0.65', min: '10', max: '5000', category: 'Telegram Subscribers' },
+      { service: '102', name: 'Instagram Likes HQ', rate: '0', min: '50', max: '2000', category: 'Instagram Likes' } // invalid rate!
+    ]);
+
+    // Markup 1.5 (150%) is below the safety floor -> must be raised to 3.0 with an adjustment entry
+    const importRes = await importSelectedServices(['101', '103', '102', '999'], category.id, 1.5, providerA.id);
+    const res = importRes as { success: true; imported: number; report: any };
+
+    expect(res.success).toBe(true);
+    expect(res.imported).toBe(2); // 101 + 103 imported; 102 invalid rate; 999 not in shadow
+
+    // AUD-04: transparency report is present and accurate
+    expect(res.report.usedLivePrices).toBe(true);
+    expect(res.report.skipped.length).toBe(2);
+    expect(res.report.skipped.find((s: any) => s.externalId === '102')?.reason).toBe('INVALID_RATE');
+    expect(res.report.skipped.find((s: any) => s.externalId === '999')?.reason).toBe('NOT_IN_SHADOW_CATALOG');
+
+    // AUD-13: safety floor adjustment is reported, not silent
+    expect(res.report.markupAdjustments.length).toBe(2);
+    expect(res.report.markupAdjustments[0]).toMatchObject({ requestedMarkup: 1.5, appliedMarkup: 3.0 });
+
+    // AUD-04 (2.2): slug dedup — two services with the same clean name BOTH exist with distinct slugs
+    const services = await db.service.findMany({
+      where: { providerId: providerA.id },
+      select: { externalId: true, slug: true, markup: true }
+    });
+    expect(services.length).toBe(2); // no silent skipDuplicates drop
+    const slugs = services.map(s => s.slug);
+    expect(new Set(slugs).size).toBe(2);
+    expect(services.every(s => s.markup === 3.0)).toBe(true); // bumped to safety floor
+  });
+
+  it('should report ALREADY_EXISTS when re-importing the same service (AUD-04)', async () => {
+    vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
+
+    await db.shadowService.create({
+      data: {
+        providerId: providerA.id,
+        externalId: '101',
+        name: 'Telegram Subscribers Fast',
+        type: 'default',
+        category: 'Telegram Subscribers',
+        rate: 0.50,
+        rateRub: 50.0,
+        min: 10,
+        max: 5000,
+        cleanName: 'Subscribers Fast',
+        platform: 'telegram',
+        normalizedCategory: 'SUBSCRIBERS',
+        targetType: 'CHANNEL',
+        anomalyScore: 0.1,
+        refill: false,
+        cancel: false,
+        dripfeed: false
+      }
+    });
+
+    mockGetServices.mockResolvedValue([
+      { service: '101', name: 'Telegram Subscribers Fast', rate: '0.60', min: '10', max: '5000', category: 'Telegram Subscribers' }
+    ]);
+
+    const first = await importSelectedServices(['101'], category.id, 3.0, providerA.id);
+    expect((first as { success: true; imported: number }).imported).toBe(1);
+
+    // Re-import the same service -> skipped with an explicit reason instead of a silent "success 0"
+    const second = await importSelectedServices(['101'], category.id, 3.0, providerA.id);
+    const secondRes = second as { success: true; imported: number; report: any };
+    expect(secondRes.imported).toBe(0);
+    expect(secondRes.report.skipped.length).toBe(1);
+    expect(secondRes.report.skipped[0]).toMatchObject({ externalId: '101', reason: 'ALREADY_EXISTS' });
+  });
+
+  it('should fall back to the fresh shadow catalog when the provider API is unavailable (AUD-11)', async () => {
+    vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
+
+    await db.shadowService.create({
+      data: {
+        providerId: providerA.id,
+        externalId: '101',
+        name: 'Telegram Subscribers Fast',
+        type: 'default',
+        category: 'Telegram Subscribers',
+        rate: 0.50,
+        rateRub: 50.0,
+        min: 10,
+        max: 5000,
+        cleanName: 'Subscribers Fast',
+        platform: 'telegram',
+        normalizedCategory: 'SUBSCRIBERS',
+        targetType: 'CHANNEL',
+        anomalyScore: 0.1,
+        refill: false,
+        cancel: false,
+        dripfeed: false
+      }
+    });
+
+    // Provider API is down
+    mockGetServices.mockRejectedValue(new Error('ECONNREFUSED network down'));
+
+    const importRes = await importSelectedServices(['101'], category.id, 3.0, providerA.id);
+    const res = importRes as { success: true; imported: number; report: any };
+
+    expect(res.success).toBe(true);
+    expect(res.imported).toBe(1);
+
+    // AUD-11: fallback is reported instead of failing the import
+    expect(res.report.usedLivePrices).toBe(false);
+    expect(res.report.shadowCatalogAgeHours).not.toBeNull();
+    expect(res.report.shadowCatalogAgeHours).toBeLessThan(1);
+    expect(res.report.warnings.length).toBe(1);
+    expect(res.report.warnings[0]).toContain('теневого каталога');
+
+    // Imported with the SHADOW rate (0.50), since no live rate is available
+    const importedService = await db.service.findFirst({
+      where: { providerId: providerA.id, externalId: '101' }
+    });
+    expect(importedService?.rate).toBe(0.50);
+  });
 });
