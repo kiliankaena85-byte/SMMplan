@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
 import { logger } from '@/lib/logger';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
-import { auditAdmin } from '@/lib/admin-audit';
+import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 import { sendAdminAlert } from '@/lib/notifications';
 import { providerService } from '@/services/providers/provider.service';
 import { SettingsProvider } from '@/lib/settings';
@@ -912,7 +912,7 @@ class AdminCatalogService {
       await ensureTaxonomyTenantAccess(catId);
     }
 
-    const servicesToCreate = [];
+    const servicesToCreate: Prisma.ServiceCreateManyInput[] = [];
     const globalUsdToRub = await SettingsProvider.getExchangeRateUSD();
     
     for (const shadowExt of toImportShadow) {
@@ -991,31 +991,33 @@ class AdminCatalogService {
 
     let importedCount = 0;
     if (servicesToCreate.length > 0) {
-       const result = await db.service.createMany({
-           data: servicesToCreate,
-           skipDuplicates: true
-       });
-       importedCount = result.count;
+      await db.$transaction(async (tx) => {
+        const result = await tx.service.createMany({
+          data: servicesToCreate,
+          skipDuplicates: true
+        });
+        importedCount = result.count;
 
-       // Record initial price history for newly imported services
-       const createdServices = await db.service.findMany({
-         where: {
-           providerId: providerDbRecord.id,
-           externalId: { in: servicesToCreate.map(s => s.externalId) }
-         },
-         select: { id: true, rate: true }
-       });
-       if (createdServices.length > 0) {
-         await db.servicePriceHistory.createMany({
-           data: createdServices.map(cs => ({
-             serviceId: cs.id,
-             rate: cs.rate
-           }))
-         });
-       }
+        // Record initial price history for newly imported services
+        const createdServices = await tx.service.findMany({
+          where: {
+            providerId: providerDbRecord.id,
+            externalId: { in: servicesToCreate.map(s => s.externalId).filter((id): id is string => Boolean(id)) }
+          },
+          select: { id: true, rate: true }
+        });
+        if (createdServices.length > 0) {
+          await tx.servicePriceHistory.createMany({
+            data: createdServices.map(cs => ({
+              serviceId: cs.id,
+              rate: cs.rate
+            }))
+          });
+        }
+      });
     }
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'SERVICES_IMPORT',

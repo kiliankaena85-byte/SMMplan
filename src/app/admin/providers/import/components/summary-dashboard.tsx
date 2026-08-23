@@ -233,6 +233,25 @@ export function SummaryDashboard({
           )}
         </Button>
       </div>
+
+      {/* Visual Progress Bar during import */}
+      {importProgress !== null && (
+        <div className="space-y-1.5 pt-2 border-t border-border/40 animate-in fade-in">
+          <div className="flex items-center justify-between text-xs font-semibold text-primary">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              Пакетный импорт в базу данных... ({importProgress.current} из {importProgress.total})
+            </span>
+            <span className="font-mono text-xs">{Math.min(100, Math.round((importProgress.current / Math.max(importProgress.total, 1)) * 100))}%</span>
+          </div>
+          <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-300 rounded-full"
+              style={{ width: `${Math.min(100, Math.round((importProgress.current / Math.max(importProgress.total, 1)) * 100))}%` }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

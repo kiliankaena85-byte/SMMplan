@@ -49,8 +49,10 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [isPresetPending, startPresetTransition] = useTransition();
+  const [currentPage, setCurrentPage] = useState(1);
   const [providerToDelete, setProviderToDelete] = useState<ProviderListDTO | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const pageSize = 12;
 
   // Delete Provider execution
   const handleDeleteProvider = async () => {
@@ -88,6 +90,11 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
       return true;
     });
   }, [providers, search, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated = useMemo(() => {
+    return filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  }, [filtered, currentPage, pageSize]);
 
   // Counts for tabs
   const counts = useMemo(() => {
@@ -339,7 +346,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-border/40">
-                  {filtered.map((provider) => {
+                  {paginated.map((provider) => {
                     const isPending = pendingIds.has(provider.id);
                     return (
                       <TableRow
@@ -532,7 +539,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
 
             {/* -- 2. Mobile / Tablet Card View (< 1024px) -- */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 lg:hidden">
-              {filtered.map((provider) => {
+              {paginated.map((provider) => {
                 const isPending = pendingIds.has(provider.id);
                 return (
                   <div
@@ -696,6 +703,38 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                 );
               })}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-border/40 bg-muted/20 text-xs">
+                <div className="text-muted-foreground">
+                  Показано {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} из {filtered.length} провайдеров
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    intent="outline"
+                    size="sm"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    className="h-7 px-2.5 text-xs font-semibold"
+                  >
+                    Назад
+                  </Button>
+                  <span className="px-2 text-xs font-bold text-foreground font-mono">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <Button
+                    intent="outline"
+                    size="sm"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    className="h-7 px-2.5 text-xs font-semibold"
+                  >
+                    Вперед
+                  </Button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
