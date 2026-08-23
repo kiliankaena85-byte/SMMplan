@@ -614,7 +614,7 @@ export function TeamManagement({
                                   perm.canView ? 'bg-primary border-primary/80' : 'bg-muted/80 border-border'
                                 }`}
                               >
-                                <div className={`w-4.5 h-4.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                                <div className={`w-4.5 h-4.5 rounded-full bg-background shadow-sm transition-transform duration-200 ${
                                   perm.canView ? 'translate-x-5' : 'translate-x-0'
                                 } flex items-center justify-center`}>
                                   {perm.canView && <Check className="w-2.5 h-2.5 text-primary" />}
@@ -632,7 +632,7 @@ export function TeamManagement({
                                   perm.canEdit ? 'bg-primary border-primary/80' : 'bg-muted/80 border-border'
                                 }`}
                               >
-                                <div className={`w-4.5 h-4.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                                <div className={`w-4.5 h-4.5 rounded-full bg-background shadow-sm transition-transform duration-200 ${
                                   perm.canEdit ? 'translate-x-5' : 'translate-x-0'
                                 } flex items-center justify-center`}>
                                   {perm.canEdit && <Check className="w-2.5 h-2.5 text-primary" />}

@@ -118,7 +118,7 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex justify-end bg-background/80 backdrop-blur-xs">
       <div className="w-full max-w-lg bg-card border-l border-border h-full p-6 overflow-y-auto flex flex-col justify-between shadow-2xl">
         <div>
           <div className="flex items-center justify-between pb-4 mb-4 border-b border-border">
@@ -139,7 +139,7 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-500 text-sm rounded-lg">
+            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg">
               {error}
             </div>
           )}
@@ -151,7 +151,7 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
                 <span className={`font-semibold px-2 py-0.5 rounded text-xs ${
                   adjustment.status === "EXECUTED" ? "bg-emerald-500/10 text-emerald-500" :
                   adjustment.status === "PENDING_APPROVAL" ? "bg-amber-500/10 text-amber-500" :
-                  adjustment.status === "REJECTED" ? "bg-red-500/10 text-red-500" : "bg-muted text-muted-foreground"
+                  adjustment.status === "REJECTED" ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
                 }`}>
                   {adjustment.status}
                 </span>
@@ -159,7 +159,7 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
 
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Направление:</span>
-                <span className={`font-bold ${adjustment.direction === "CREDIT" ? "text-emerald-500" : "text-red-500"}`}>
+                <span className={`font-bold ${adjustment.direction === "CREDIT" ? "text-emerald-500" : "text-destructive"}`}>
                   {adjustment.direction === "CREDIT" ? "+ Начисление" : "- Списание"}
                 </span>
               </div>
@@ -211,8 +211,8 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
 
               {adjustment.rejectionReason && (
                 <div>
-                  <span className="text-xs text-red-500 font-medium">Причина отклонения:</span>
-                  <p className="p-3 bg-red-500/5 border border-red-500/20 text-red-500 text-xs rounded-lg mt-1">
+                  <span className="text-xs text-destructive font-medium">Причина отклонения:</span>
+                  <p className="p-3 bg-destructive/5 border border-destructive/20 text-destructive text-xs rounded-lg mt-1">
                     {adjustment.rejectionReason}
                   </p>
                 </div>
@@ -243,7 +243,7 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
                   <button
                     onClick={handleReject}
                     disabled={loading}
-                    className="flex-1 py-2 bg-red-500 text-white rounded-lg text-xs font-semibold hover:bg-red-600"
+                    className="flex-1 py-2 bg-destructive text-destructive-foreground rounded-lg text-xs font-semibold hover:bg-destructive/90"
                   >
                     Подтвердить отклонение
                   </button>
@@ -261,7 +261,7 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
                   <button
                     onClick={handleApprove}
                     disabled={loading}
-                    className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors"
+                    className="flex-1 py-2.5 bg-emerald-600 text-primary-foreground rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors"
                   >
                     ✓ Утвердить и исполнить
                   </button>
@@ -271,7 +271,7 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
                   <button
                     onClick={() => setShowRejectInput(true)}
                     disabled={loading}
-                    className="py-2.5 px-4 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg text-xs font-semibold hover:bg-red-500/20 transition-colors"
+                    className="py-2.5 px-4 bg-destructive/10 text-destructive border border-destructive/20 rounded-lg text-xs font-semibold hover:bg-red-500/20 transition-colors"
                   >
                     ✕ Отклонить
                   </button>

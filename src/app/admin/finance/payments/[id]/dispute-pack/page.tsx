@@ -148,10 +148,10 @@ export default async function PaymentDisputePackPage({ params }: Props) {
       {/* LEFT: Operator Preview Workspace (Slightly gray shadow box) */}
       <div className="flex-1 p-4 md:p-8 lg:p-12 overflow-y-auto no-print flex justify-center items-start">
         {/* print: белый фон для печати */}
-        <div className="w-full max-w-[800px] bg-white text-slate-900 rounded-3xl shadow-2xl p-8 md:p-12 border border-slate-200/60 print-document select-text">
+        <div className="w-full max-w-[800px] bg-card text-foreground rounded-3xl shadow-2xl p-8 md:p-12 border border-border/60 print-document select-text print:bg-white print:text-black">
           
           {/* Header */}
-          <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-8 text-[11px] font-medium leading-relaxed font-serif">
+          <div className="flex justify-between items-start border-b-2 border-border print:border-black pb-6 mb-8 text-[11px] font-medium leading-relaxed font-serif">
             <div className="space-y-1">
               <span className="font-bold uppercase text-[12px] block tracking-wide">ООО «СММПЛАН»</span>
               <p>ИНН 7724491024 / КПП 772401001</p>
@@ -161,17 +161,17 @@ export default async function PaymentDisputePackPage({ params }: Props) {
             <div className="text-right space-y-1">
               <p className="font-bold text-[12px]">АО «БАНК ЭКВАЙЕР»</p>
               <p>В отдел оспаривания операций клиентов</p>
-              <p>Исходящий №: <code className="font-mono text-[10px] bg-slate-100 px-1 py-0.5 rounded font-semibold text-slate-800">{payment.gatewayId || payment.id}</code></p>
+              <p>Исходящий №: <code className="font-mono text-[10px] bg-muted px-1 py-0.5 rounded font-semibold text-foreground print:bg-slate-100 print:text-black">{payment.gatewayId || payment.id}</code></p>
               <p>Дата: {new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })} г.</p>
             </div>
           </div>
 
           {/* Title */}
           <div className="text-center space-y-2 mb-8 font-serif">
-            <h1 className="text-base md:text-lg font-black uppercase tracking-wider text-slate-950">
+            <h1 className="text-base md:text-lg font-black uppercase tracking-wider text-foreground print:text-black">
               ОТЗЫВ НА ПРЕТЕНЗИЮ И ПАКЕТ ДОКАЗАТЕЛЬСТВ
             </h1>
-            <p className="text-xs font-bold text-slate-600">
+            <p className="text-xs font-bold text-muted-foreground print:text-slate-600">
               О правомерности транзакции и согласии Держателя карты с правилами публичной оферты
             </p>
           </div>
@@ -184,7 +184,7 @@ export default async function PaymentDisputePackPage({ params }: Props) {
 
             {/* Section 1 */}
             <div className="space-y-2">
-              <span className="font-bold text-slate-950 uppercase text-[12px] block tracking-wide">1. Правовое обоснование соглашения (согласно ГК РФ)</span>
+              <span className="font-bold text-foreground print:text-black uppercase text-[12px] block tracking-wide">1. Правовое обоснование соглашения (согласно ГК РФ)</span>
               <p>
                 Пользовательское соглашение и Правила предоставления услуг Сервиса, опубликованные в открытом доступе на сайте, представляют собой публичную оферту согласно <strong>п. 2 ст. 437 Гражданского кодекса РФ</strong>.
               </p>
@@ -198,44 +198,44 @@ export default async function PaymentDisputePackPage({ params }: Props) {
 
             {/* Section 2 */}
             <div className="space-y-2 print-no-break">
-              <span className="font-bold text-slate-950 uppercase text-[12px] block tracking-wide">2. Логи Согласия и Параметры транзакции (Clickwrap Audit Log)</span>
+              <span className="font-bold text-foreground print:text-black uppercase text-[12px] block tracking-wide">2. Логи Согласия и Параметры транзакции (Clickwrap Audit Log)</span>
               <table className="w-full text-left border-collapse my-4">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-900">
-                    <th className="p-2 font-bold text-slate-900 border border-slate-300">Параметр аудита</th>
-                    <th className="p-2 font-bold text-slate-900 border border-slate-300">Значение из логов базы данных</th>
+                  <tr className="bg-muted/40 print:bg-slate-50 border-b border-slate-900">
+                    <th className="p-2 font-bold text-foreground print:text-black border border-border print:border-slate-300">Параметр аудита</th>
+                    <th className="p-2 font-bold text-foreground print:text-black border border-border print:border-slate-300">Значение из логов базы данных</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr className="border-b border-slate-200">
-                    <td className="p-2 border border-slate-300 font-semibold">Email учетной записи</td>
-                    <td className="p-2 border border-slate-300 font-mono">{clientUser.email}</td>
+                    <td className="p-2 border border-border print:border-slate-300 font-semibold">Email учетной записи</td>
+                    <td className="p-2 border border-border print:border-slate-300 font-mono">{clientUser.email}</td>
                   </tr>
                   <tr className="border-b border-slate-200">
-                    <td className="p-2 border border-slate-300 font-semibold">IP-адрес при согласии</td>
-                    <td className="p-2 border border-slate-300 font-mono">{payment.consentIp || 'Зафиксировано шлюзом'}</td>
+                    <td className="p-2 border border-border print:border-slate-300 font-semibold">IP-адрес при согласии</td>
+                    <td className="p-2 border border-border print:border-slate-300 font-mono">{payment.consentIp || 'Зафиксировано шлюзом'}</td>
                   </tr>
                   <tr className="border-b border-slate-200">
-                    <td className="p-2 border border-slate-300 font-semibold">User-Agent (Браузер)</td>
-                    <td className="p-2 border border-slate-300 font-mono text-[10px] max-w-[200px] truncate" title={payment.consentUserAgent || ''}>
+                    <td className="p-2 border border-border print:border-slate-300 font-semibold">User-Agent (Браузер)</td>
+                    <td className="p-2 border border-border print:border-slate-300 font-mono text-[10px] max-w-[200px] truncate" title={payment.consentUserAgent || ''}>
                       {payment.consentUserAgent || 'Зафиксировано шлюзом'}
                     </td>
                   </tr>
                   <tr className="border-b border-slate-200">
-                    <td className="p-2 border border-slate-300 font-semibold">Идентификатор транзакции</td>
-                    <td className="p-2 border border-slate-300 font-mono">{payment.id}</td>
+                    <td className="p-2 border border-border print:border-slate-300 font-semibold">Идентификатор транзакции</td>
+                    <td className="p-2 border border-border print:border-slate-300 font-mono">{payment.id}</td>
                   </tr>
                   <tr className="border-b border-slate-200">
-                    <td className="p-2 border border-slate-300 font-semibold">ID в платежной системе</td>
-                    <td className="p-2 border border-slate-300 font-mono">{payment.gatewayId || 'Тестовый платеж'}</td>
+                    <td className="p-2 border border-border print:border-slate-300 font-semibold">ID в платежной системе</td>
+                    <td className="p-2 border border-border print:border-slate-300 font-mono">{payment.gatewayId || 'Тестовый платеж'}</td>
                   </tr>
                   <tr className="border-b border-slate-200">
-                    <td className="p-2 border border-slate-300 font-semibold">Метод подтверждения платежа</td>
-                    <td className="p-2 border border-slate-300 font-sans">3-D Secure (СМС/Push-код от банка-эмитента, liability shift)</td>
+                    <td className="p-2 border border-border print:border-slate-300 font-semibold">Метод подтверждения платежа</td>
+                    <td className="p-2 border border-border print:border-slate-300 font-sans">3-D Secure (СМС/Push-код от банка-эмитента, liability shift)</td>
                   </tr>
                   <tr className="border-b border-slate-200">
-                    <td className="p-2 border border-slate-300 font-semibold">Дата и время операции</td>
-                    <td className="p-2 border border-slate-300 font-mono">{paymentDate}</td>
+                    <td className="p-2 border border-border print:border-slate-300 font-semibold">Дата и время операции</td>
+                    <td className="p-2 border border-border print:border-slate-300 font-mono">{paymentDate}</td>
                   </tr>
                 </tbody>
               </table>
@@ -243,7 +243,7 @@ export default async function PaymentDisputePackPage({ params }: Props) {
 
             {/* Section 3 */}
             <div className="space-y-2 print-page-break">
-              <span className="font-bold text-slate-950 uppercase text-[12px] block tracking-wide">3. Аудит фактического оказания цифровых услуг (Proof of Delivery)</span>
+              <span className="font-bold text-foreground print:text-black uppercase text-[12px] block tracking-wide">3. Аудит фактического оказания цифровых услуг (Proof of Delivery)</span>
               <p>
                 Зачисленные на личный баланс Пользователя денежные средства в размере <strong>{formattedAmount}</strong> были в полном объеме или частично израсходованы им в личном кабинете на покупку услуг продвижения. Ниже приведена подробная выгрузка выполненных заказов продвижения в социальных сетях, инициированных данным клиентом сразу после проведения спорной транзакции:
               </p>
@@ -251,33 +251,33 @@ export default async function PaymentDisputePackPage({ params }: Props) {
               {orders.length > 0 ? (
                 <table className="w-full text-left border-collapse my-4 print-no-break">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-900">
-                      <th className="p-2 font-bold text-slate-900 border border-slate-300 text-[10px]">ID Заказа</th>
-                      <th className="p-2 font-bold text-slate-900 border border-slate-300 text-[10px]">Дата создания</th>
-                      <th className="p-2 font-bold text-slate-900 border border-slate-300 text-[10px]">Услуга продвижения</th>
-                      <th className="p-2 font-bold text-slate-900 border border-slate-300 text-[10px]">Целевая ссылка</th>
-                      <th className="p-2 font-bold text-slate-900 border border-slate-300 text-[10px] text-right">Кол-во</th>
-                      <th className="p-2 font-bold text-slate-900 border border-slate-300 text-[10px] text-right">Стоимость</th>
-                      <th className="p-2 font-bold text-slate-900 border border-slate-300 text-[10px] text-center">Статус</th>
+                    <tr className="bg-muted/40 print:bg-slate-50 border-b border-slate-900">
+                      <th className="p-2 font-bold text-foreground print:text-black border border-border print:border-slate-300 text-[10px]">ID Заказа</th>
+                      <th className="p-2 font-bold text-foreground print:text-black border border-border print:border-slate-300 text-[10px]">Дата создания</th>
+                      <th className="p-2 font-bold text-foreground print:text-black border border-border print:border-slate-300 text-[10px]">Услуга продвижения</th>
+                      <th className="p-2 font-bold text-foreground print:text-black border border-border print:border-slate-300 text-[10px]">Целевая ссылка</th>
+                      <th className="p-2 font-bold text-foreground print:text-black border border-border print:border-slate-300 text-[10px] text-right">Кол-во</th>
+                      <th className="p-2 font-bold text-foreground print:text-black border border-border print:border-slate-300 text-[10px] text-right">Стоимость</th>
+                      <th className="p-2 font-bold text-foreground print:text-black border border-border print:border-slate-300 text-[10px] text-center">Статус</th>
                     </tr>
                   </thead>
                   <tbody>
                     {orders.map(o => (
                       <tr key={o.id} className="border-b border-slate-200 text-[10px]">
-                        <td className="p-2 border border-slate-300 font-mono text-[9px]">#{o.numericId}</td>
-                        <td className="p-2 border border-slate-300 font-mono whitespace-nowrap">
+                        <td className="p-2 border border-border print:border-slate-300 font-mono text-[9px]">#{o.numericId}</td>
+                        <td className="p-2 border border-border print:border-slate-300 font-mono whitespace-nowrap">
                           {new Date(o.createdAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                         </td>
-                        <td className="p-2 border border-slate-300 font-medium max-w-[120px] truncate" title={o.serviceName}>
+                        <td className="p-2 border border-border print:border-slate-300 font-medium max-w-[120px] truncate" title={o.serviceName}>
                           {o.serviceName}
                         </td>
-                        <td className="p-2 border border-slate-300 font-mono text-[9px] max-w-[140px] truncate" title={o.link}>
+                        <td className="p-2 border border-border print:border-slate-300 font-mono text-[9px] max-w-[140px] truncate" title={o.link}>
                           {o.link}
                         </td>
-                        <td className="p-2 border border-slate-300 text-right font-mono font-semibold">{o.quantity}</td>
-                        <td className="p-2 border border-slate-300 text-right font-mono font-semibold">{(o.charge / 100).toFixed(2)} ₽</td>
-                        <td className="p-2 border border-slate-300 text-center font-bold">
-                          <span className={o.status === 'COMPLETED' ? 'text-emerald-700' : 'text-slate-600'}>
+                        <td className="p-2 border border-border print:border-slate-300 text-right font-mono font-semibold">{o.quantity}</td>
+                        <td className="p-2 border border-border print:border-slate-300 text-right font-mono font-semibold">{(o.charge / 100).toFixed(2)} ₽</td>
+                        <td className="p-2 border border-border print:border-slate-300 text-center font-bold">
+                          <span className={o.status === 'COMPLETED' ? 'text-emerald-700' : 'text-muted-foreground print:text-slate-600'}>
                             {o.status === 'COMPLETED' && o.remains === 0 ? 'ВЫПОЛНЕН (100%)' : o.status}
                           </span>
                         </td>
@@ -286,7 +286,7 @@ export default async function PaymentDisputePackPage({ params }: Props) {
                   </tbody>
                 </table>
               ) : (
-                <div className="p-4 bg-slate-50 border border-slate-300 rounded-xl my-4 text-center text-slate-600 italic">
+                <div className="p-4 bg-muted/40 print:bg-slate-50 border border-border print:border-slate-300 rounded-xl my-4 text-center text-muted-foreground print:text-slate-600 italic">
                   На момент формирования отчета зачисленные средства остаются на балансе личного кабинета Пользователя и находятся в его единоличном распоряжении согласно п. 4.2 Оферты. Услуги не списывались, возврат не запрашивался.
                 </div>
               )}
@@ -298,7 +298,7 @@ export default async function PaymentDisputePackPage({ params }: Props) {
 
             {/* Section 4 */}
             <div className="space-y-2 print-no-break">
-              <span className="font-bold text-slate-950 uppercase text-[12px] block tracking-wide">4. Резюме для финансовой организации</span>
+              <span className="font-bold text-foreground print:text-black uppercase text-[12px] block tracking-wide">4. Резюме для финансовой организации</span>
               <p>
                 На основании изложенного, согласно правилам Международных платежных систем (МПС) и регламенту платежной системы МИР, интернет-магазин полностью исполнил свои обязательства перед покупателем. Мы просим АО «БАНК ЭКВАЙЕР» отклонить неправомерные требования Держателя карты об оспаривании операции (chargeback) и сохранить списание средств в пользу ТСП.
               </p>
@@ -306,15 +306,15 @@ export default async function PaymentDisputePackPage({ params }: Props) {
           </div>
 
           {/* Signatures */}
-          <div className="mt-12 flex justify-between items-end border-t border-slate-300 pt-8 text-[12px] font-serif print-no-break">
+          <div className="mt-12 flex justify-between items-end border-t border-border print:border-slate-300 pt-8 text-[12px] font-serif print-no-break">
             <div className="space-y-4">
-              <p className="font-bold text-slate-950">Генеральный директор ООО «СММПЛАН»</p>
+              <p className="font-bold text-foreground print:text-black">Генеральный директор ООО «СММПЛАН»</p>
               <div className="flex gap-2 items-end">
                 <span className="border-b border-slate-900 w-32 h-6 block" />
                 <span>/ Килиан К. А. /</span>
               </div>
             </div>
-            <div className="text-right text-[10px] text-slate-400 italic">
+            <div className="text-right text-[10px] text-muted-foreground italic">
               М.П. (Место для печати организации)
             </div>
           </div>
@@ -323,13 +323,13 @@ export default async function PaymentDisputePackPage({ params }: Props) {
       </div>
 
       {/* RIGHT: Modern Sidebar Action Control Center (Slate aesthetic, responsive) */}
-      <div className="w-full lg:w-[400px] bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-800 p-8 flex flex-col justify-between shrink-0 no-print z-20">
+      <div className="w-full lg:w-[400px] bg-slate-900 border-t lg:border-t-0 lg:border-l border-border/60 p-8 flex flex-col justify-between shrink-0 no-print z-20">
         <div className="space-y-8">
           
           {/* Back button */}
           <Link
             href="/admin/finance"
-            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-slate-100 transition-colors"
+            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Вернуться к биллингу</span>
@@ -341,8 +341,8 @@ export default async function PaymentDisputePackPage({ params }: Props) {
               <ShieldCheck className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-100">Генератор Dispute Pack</h2>
-              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+              <h2 className="text-lg font-bold text-foreground">Генератор Dispute Pack</h2>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                 Документ автоматически собран на основе логов интернет-акцепта (Простая электронная подпись) и логов выполнения заказов на провайдерах.
               </p>
             </div>
@@ -353,11 +353,11 @@ export default async function PaymentDisputePackPage({ params }: Props) {
 
           {/* Quick instructions checklist */}
           <div className="space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
               <HelpCircle className="w-4 h-4 text-sky-400" />
               <span>Инструкция по отправке</span>
             </h3>
-            <ol className="space-y-3 text-xs text-slate-400 list-decimal list-inside leading-relaxed">
+            <ol className="space-y-3 text-xs text-muted-foreground list-decimal list-inside leading-relaxed">
               <li>
                 Нажмите большую кнопку ниже <strong>«Печать / Сохранить в PDF»</strong>.
               </li>
@@ -379,7 +379,7 @@ export default async function PaymentDisputePackPage({ params }: Props) {
         <div className="mt-8 space-y-4">
           <PrintButton />
           
-          <div className="p-4 bg-slate-800/40 rounded-xl border border-slate-800 flex gap-3 text-[10px] text-slate-400 leading-relaxed font-medium">
+          <div className="p-4 bg-muted/30 rounded-xl border border-border/60 flex gap-3 text-[10px] text-muted-foreground leading-relaxed font-medium">
             <span>🛡️</span>
             <span>Данные логов IP и User-Agent криптографически закреплены за номером транзакции на стороне шлюза YooKassa. Модификация логов запрещена правилами безопасности.</span>
           </div>

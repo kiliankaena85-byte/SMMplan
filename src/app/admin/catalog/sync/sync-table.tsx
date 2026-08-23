@@ -239,7 +239,7 @@ export function SyncTable({ rows, stats }: SyncTableProps) {
             <button
               disabled={isPending}
               onClick={() => handleCopy('smmplan', 'flux')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 transition-all active:scale-95 cursor-pointer shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-primary-foreground disabled:opacity-50 transition-all active:scale-95 cursor-pointer shadow-xs"
             >
               {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
               Скопировать SMMplan → SMMflux

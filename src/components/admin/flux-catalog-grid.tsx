@@ -37,7 +37,7 @@ function getNetworkBadgeClass(slug: string | null) {
     return 'bg-rose-600/10 text-rose-600 dark:text-rose-400 border-rose-600/20';
   }
   if (s.includes('tt') || s.includes('tiktok')) {
-    return 'bg-zinc-900/10 text-zinc-900 dark:bg-zinc-100/10 dark:text-zinc-100 border-zinc-900/20';
+    return 'bg-muted text-foreground border-border';
   }
   return 'bg-primary/10 text-primary border-primary/20';
 }

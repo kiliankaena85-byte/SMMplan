@@ -127,7 +127,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
         {tenantId === "flux" ? (
           <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
             {/* ── SMMFLUX VIBRANT HERO BACKGROUND (Full Bleed - GPU Optimized Static Layer) ── */}
-            <div className="absolute top-0 inset-x-0 h-[2500px] z-0 pointer-events-none overflow-hidden select-none bg-white dark:bg-zinc-950 transform-gpu contain-paint">
+            <div className="absolute top-0 inset-x-0 h-[2500px] z-0 pointer-events-none overflow-hidden select-none bg-background transform-gpu contain-paint">
               <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
@@ -161,7 +161,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
             </div>
 
             {/* Solid Underlay for lower page section */}
-            <div className="relative z-10 bg-white dark:bg-content1 mx-2 sm:mx-4 lg:mx-6 rounded-t-[32px] md:rounded-t-[48px] shadow-[0_-8px_30px_rgb(0,0,0,0.04)] pt-12 pb-16">
+            <div className="relative z-10 bg-card mx-2 sm:mx-4 lg:mx-6 rounded-t-[32px] md:rounded-t-[48px] shadow-[0_-8px_30px_rgb(0,0,0,0.04)] pt-12 pb-16">
               <FluxWhyUs companyName={siteName} />
               <FluxReviews />
               <FluxFAQ companyName={siteName} />

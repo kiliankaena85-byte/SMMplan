@@ -72,7 +72,7 @@ export default async function AdminClientsPage({ searchParams }: Props) {
         title="Клиенты платформы"
         description={
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground font-medium text-xs">
-            <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>Всего: {stats.total}</span>
+            <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full"></div>Всего: {stats.total}</span>
             <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-success rounded-full"></div>Активные: {stats.active}</span>
             <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-destructive rounded-full"></div>Забанены: {stats.banned}</span>
             {canSeeFinances && (

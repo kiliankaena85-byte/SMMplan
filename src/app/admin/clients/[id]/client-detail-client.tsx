@@ -655,7 +655,7 @@ export function ClientDetailClient({ user, loginLogs, payments, orders, canSeeFi
                   <button
                     type="submit"
                     disabled={isPendingBalance || isOverdraft || parsedAmountRub <= 0}
-                    className={`w-full h-12 text-sm font-black rounded-xl shadow-sm active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2 text-white disabled:opacity-50 disabled:cursor-not-allowed ${
+                    className={`w-full h-12 text-sm font-black rounded-xl shadow-sm active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2 text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed ${
                       direction === 'CREDIT'
                         ? 'bg-emerald-600 hover:bg-emerald-700'
                         : 'bg-rose-600 hover:bg-rose-700'

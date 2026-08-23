@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 import Link from 'next/link';
 import { Toaster } from '@/components/ui/sonner';
 import { AdminSidebar } from '@/components/admin/sidebar';
+import { MobileNavDrawer } from '@/components/admin/mobile-nav-drawer';
 import { CommandPalette } from '@/components/admin/command-palette';
 import { ShortcutsProvider } from '@/components/admin/shortcuts-provider';
 import { AdminProfileDropdown } from '@/components/admin/admin-profile-dropdown';
@@ -116,25 +117,17 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           roleInfo={roleInfo}
           navigation={navigation}
         />
-        
-        {/* Mobile static nav fallback */}
-        <aside className="md:hidden w-full bg-primary border-b border-slate-800 text-primary-foreground p-4 z-10 shadow-md">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-sky-400 flex items-center gap-1.5">
-              SMMpanel
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/20 text-white">
-                1.0
-              </span>
-            </h2>
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">{roleInfo.label}</span>
-          </div>
-        </aside>
 
         {/* Floating Main Content Area */}
         <div className="flex-1 max-h-screen overflow-hidden p-0 md:p-3.5 z-10 relative flex flex-col">
-          {/* Top Header Bar with Global Site Switcher & Profile Dropdown */}
+          {/* Top Header Bar with Mobile Drawer, Global Site Switcher & Profile Dropdown */}
           <header className="mb-2 px-3 md:px-1 flex items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
+              <MobileNavDrawer
+                userEmail={user.email}
+                roleInfo={roleInfo}
+                navigation={navigation}
+              />
               <GlobalSiteSwitcher />
             </div>
             <div className="flex items-center gap-2">

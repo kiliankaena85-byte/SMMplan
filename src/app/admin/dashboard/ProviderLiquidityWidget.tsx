@@ -192,7 +192,7 @@ export function ProviderLiquidityWidget() {
           >
             <span>Управление провайдерами ({data.activeCount})</span>
             {data.criticalCount + data.errorCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded text-[10px] font-extrabold bg-rose-600 text-white">
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-extrabold bg-destructive text-destructive-foreground">
                 {data.criticalCount + data.errorCount}
               </span>
             )}

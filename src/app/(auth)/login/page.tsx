@@ -104,7 +104,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
     return (
       <div className="min-h-screen bg-background text-foreground font-sans flex flex-col justify-center items-center relative overflow-x-clip p-4 md:p-8">
         {/* SMMFLUX RADIANT AURORA BACKGROUND */}
-        <div className="absolute top-0 inset-x-0 h-screen z-0 pointer-events-none overflow-hidden select-none bg-white dark:bg-default-50">
+        <div className="absolute top-0 inset-x-0 h-screen z-0 pointer-events-none overflow-hidden select-none bg-background">
           <div
             className="absolute inset-0 pointer-events-none"
             style={{

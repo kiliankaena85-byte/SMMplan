@@ -425,7 +425,7 @@ export function StaffClient({
 
       {/* ── PERSONAL AUDIT LOGS DRAWER ── */}
       {isLogsDrawerOpen && selectedStaff && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex justify-end bg-background/80 backdrop-blur-xs transition-opacity animate-in fade-in duration-200">
           <div 
             className="w-full max-w-xl bg-card border-l border-border h-full shadow-2xl flex flex-col p-0 animate-in slide-in-from-right duration-200"
             onClick={(e) => e.stopPropagation()}
@@ -531,7 +531,7 @@ export function StaffClient({
 
       {/* ── EDIT ROLE & LIMIT MODAL ── */}
       {editingStaff && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-xs p-4">
           <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between border-b border-border/60 pb-3">
               <div>

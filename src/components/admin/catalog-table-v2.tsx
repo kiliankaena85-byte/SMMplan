@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition, useMemo } from 'react';
+import React, { useState, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Table } from '@heroui/react';
 import {
@@ -218,6 +218,7 @@ export function CatalogTable({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
   // Currency & Volume state
   const [currency, setCurrency] = useState<'RUB' | 'USD'>('RUB');
@@ -228,6 +229,12 @@ export function CatalogTable({
   
   // ⚡ Optimistic deletion state (instantly hides deleted IDs)
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
+
+  // Local state maps for inline edits
+  const [rowMarkups, setRowMarkups] = useState<Record<string, number>>({});
+  const [rowPrices, setRowPrices] = useState<Record<string, string>>({});
+  const [rowActive, setRowActive] = useState<Record<string, boolean>>({});
+  const [pricingModalServiceId, setPricingModalServiceId] = useState<string | null>(null);
 
   // Sorting from URL
   const currentSortBy = searchParams.get('sortBy');
@@ -294,6 +301,58 @@ export function CatalogTable({
   const handleServiceDeleted = (deletedId: string) => {
     setDeletedIds(prev => [...prev, deletedId]);
     setSelectedIds(prev => prev.filter(id => id !== deletedId));
+  };
+
+  const handleToggleActive = (id: string, currentStatus: boolean) => {
+    const next = rowActive[id] !== undefined ? !rowActive[id] : !currentStatus;
+    setRowActive(prev => ({ ...prev, [id]: next }));
+
+    startTransition(async () => {
+      const res = await toggleServiceActiveAction(id, next);
+      if (!res.success) {
+        setRowActive(prev => ({ ...prev, [id]: !next }));
+        toast.error(res.error || 'Ошибка смены статуса');
+      } else {
+        toast.success('Статус услуги обновлен');
+      }
+    });
+  };
+
+  const handlePercentChange = (s: CatalogServiceDTO, val: string) => {
+    const num = parseFloat(val);
+    if (!isNaN(num)) {
+      const newMultiplier = 1 + num / 100;
+      setRowMarkups(prev => ({ ...prev, [s.id]: newMultiplier }));
+      setRowPrices(prev => ({ ...prev, [s.id]: String(calcDisplayPrice(s.rate, newMultiplier, usdToRub, currency, volume)) }));
+    }
+  };
+
+  const handlePriceChange = (s: CatalogServiceDTO, val: string) => {
+    setRowPrices(prev => ({ ...prev, [s.id]: val }));
+    const p = parseFloat(val);
+    if (!isNaN(p) && p > 0 && s.rate > 0) {
+      let targetRate = s.rate;
+      if (currency === 'RUB') targetRate = s.rate * usdToRub;
+      if (volume === 'UNIT') targetRate = targetRate / 1000;
+      const newMarkup = p / targetRate;
+      setRowMarkups(prev => ({ ...prev, [s.id]: newMarkup }));
+    }
+  };
+
+  const saveMarkup = (s: CatalogServiceDTO) => {
+    const currentMarkup = rowMarkups[s.id] ?? s.markup;
+    if (currentMarkup === s.markup) return;
+
+    startTransition(async () => {
+      const res = await updateServiceMarkupAction(s.id, currentMarkup);
+      if (res.success) {
+        toast.success('Наценка обновлена');
+        router.refresh();
+      } else {
+        setRowMarkups(prev => ({ ...prev, [s.id]: s.markup }));
+        toast.error(res.error || 'Ошибка обновления наценки');
+      }
+    });
   };
 
   return (
@@ -372,7 +431,7 @@ export function CatalogTable({
         </div>
       </div>
 
-      {/* ─── DATA TABLE ─── */}
+      {/* ─── DATA TABLE (DIRECT Table.Row RENDERING FOR REACT ARIA) ─── */}
       <div className="bg-card/70 backdrop-blur-md border border-border rounded-xl shadow-2xs overflow-hidden w-full">
         <Table.ScrollContainer>
           <Table aria-label="Таблица услуг каталога" className="w-full">
@@ -446,323 +505,224 @@ export function CatalogTable({
                 <p className="text-sm">Услуги по выбранным критериям не найдены</p>
               </div>
             )}>
-              {visibleServices.map(service => (
-                <RowItem
-                  key={service.id}
-                  service={service}
-                  usdToRub={usdToRub}
-                  canEdit={canEdit}
-                  canEditFinance={canEditFinance}
-                  canSeeRates={canSeeRates}
-                  isChecked={selectedIds.includes(service.id)}
-                  onToggle={() => handleToggleRow(service.id)}
-                  categories={categories}
-                  providers={providers}
-                  currency={currency}
-                  volume={volume}
-                  onDeleted={handleServiceDeleted}
-                />
-              ))}
+              {visibleServices.map(s => {
+                const isChecked = selectedIds.includes(s.id);
+                const currentIsActive = rowActive[s.id] !== undefined ? rowActive[s.id] : s.isActive;
+                const currentMarkup = rowMarkups[s.id] !== undefined ? rowMarkups[s.id] : s.markup;
+                const currentPrice = rowPrices[s.id] !== undefined 
+                  ? rowPrices[s.id] 
+                  : String(calcDisplayPrice(s.rate, currentMarkup, usdToRub, currency, volume));
+
+                const categoryObj = categories.find(c => c.id === s.categoryId);
+                const networkName = categoryObj?.network?.name || s.networkName;
+                const networkSlug = categoryObj?.network?.slug || s.networkSlug || 'telegram';
+                const cleanActivityName = formatCleanActivityName(categoryObj?.name || s.categoryName, networkName || undefined);
+                const providerObj = providers.find(p => p.id === s.providerId);
+                const providerName = providerObj?.name || (s.providerId ? 'Провайдер' : '—');
+
+                const isBelowSafety = currentMarkup < SAFETY_MULTIPLIER;
+                const isZombie = Boolean(s.cooldownReason && s.cooldownReason.includes('ZOMBIE'));
+
+                return (
+                  <Table.Row
+                    key={s.id}
+                    id={s.id}
+                    className={`border-b border-border/40 hover:bg-muted/40 transition-colors ${
+                      isChecked ? 'bg-primary/5' : ''
+                    } ${!currentIsActive ? 'opacity-60' : ''}`}
+                  >
+                    {/* 1. CHECKBOX */}
+                    <Table.Cell className={canEdit ? "py-2 px-2 text-center" : "hidden"}>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleToggleRow(s.id)}
+                        aria-label={`Выбрать ${s.name}`}
+                        className="rounded border-border text-primary focus:ring-primary cursor-pointer w-4 h-4"
+                      />
+                    </Table.Cell>
+
+                    {/* 2. ID */}
+                    <Table.Cell className="py-2 px-2 font-mono text-xs font-bold text-muted-foreground tabular-nums">
+                      #{s.numericId || s.id.slice(-4)}
+                    </Table.Cell>
+
+                    {/* 3. НАЗВАНИЕ */}
+                    <Table.Cell className="py-2 px-2 max-w-[180px]">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-semibold text-xs text-foreground truncate block" title={s.name}>
+                          {s.name}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {s.qualityTier && (
+                            <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-muted text-muted-foreground font-bold">
+                              {s.qualityTier}
+                            </span>
+                          )}
+                          {s.ordersCount > 0 && (
+                            <span className="text-[9px] font-mono text-muted-foreground">
+                              {s.ordersCount} зак.
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </Table.Cell>
+
+                    {/* 4. СОЦСЕТЬ */}
+                    <Table.Cell className="py-2 px-2">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                        {networkSlug && <SocialIcon slug={networkSlug} size={14} />}
+                        <span className="truncate max-w-[80px]">{networkName || '—'}</span>
+                      </div>
+                    </Table.Cell>
+
+                    {/* 5. КАТЕГОРИЯ */}
+                    <Table.Cell className="py-2 px-2">
+                      <span className="text-xs text-muted-foreground font-medium truncate max-w-[120px] block" title={cleanActivityName}>
+                        {cleanActivityName}
+                      </span>
+                    </Table.Cell>
+
+                    {/* 6. ПРОВАЙДЕР */}
+                    <Table.Cell className="py-2 px-2 max-w-[160px]">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-semibold text-foreground truncate" title={providerName}>
+                          {providerName}
+                        </span>
+                        {s.externalId && (
+                          <span className="text-[10px] font-mono text-muted-foreground">
+                            ID: {s.externalId}
+                          </span>
+                        )}
+                      </div>
+                    </Table.Cell>
+
+                    {/* 7. СТАТУС УСЛУГИ */}
+                    <Table.Cell className="py-2 px-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleActive(s.id, s.isActive)}
+                        disabled={!canEdit || isPending}
+                        className={`px-2 py-0.5 text-[10px] font-bold rounded-full transition-all cursor-pointer ${
+                          currentIsActive 
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20' 
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80 border border-border'
+                        }`}
+                      >
+                        {currentIsActive ? 'Активна' : 'Откл.'}
+                      </button>
+                    </Table.Cell>
+
+                    {/* 8. СТАТУС ПРОВАЙДЕРА */}
+                    <Table.Cell className="py-2 px-2 text-center">
+                      {isZombie ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-destructive/10 text-destructive border border-destructive/20" title="Удалена у провайдера">
+                          <AlertCircle className="w-2.5 h-2.5" /> Zombie
+                        </span>
+                      ) : s.providerId ? (
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                          Active
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-muted-foreground">
+                          Manual
+                        </span>
+                      )}
+                    </Table.Cell>
+
+                    {/* 9. НАЦЕНКА */}
+                    <Table.Cell className="py-2 px-2 text-center">
+                      {canEditFinance && s.providerId ? (
+                        <div className="relative inline-flex items-center justify-center">
+                          <span className="absolute left-1 text-[10px] text-muted-foreground pointer-events-none font-bold">+</span>
+                          <input
+                            type="number"
+                            value={currentMarkup > 0 ? ((currentMarkup - 1) * 100).toFixed(0) : "0"}
+                            onChange={e => handlePercentChange(s, e.target.value)}
+                            onBlur={() => saveMarkup(s)}
+                            onKeyDown={e => e.key === 'Enter' && saveMarkup(s)}
+                            disabled={isPending || !canEditFinance}
+                            className={`w-14 pl-2.5 pr-1 py-0.5 text-xs font-mono font-bold rounded-lg border outline-none transition-all tabular-nums text-center ${
+                              isBelowSafety
+                                ? 'border-rose-400 bg-destructive/10 text-rose-700 focus:ring-2 focus:ring-rose-500/20'
+                                : 'border-border/80 bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20'
+                            } disabled:opacity-50`}
+                          />
+                          <span className="ml-0.5 text-[10px] text-muted-foreground font-black">%</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs font-mono font-bold text-muted-foreground">
+                          {s.providerId ? `+${((currentMarkup - 1) * 100).toFixed(0)}%` : '—'}
+                        </span>
+                      )}
+                    </Table.Cell>
+
+                    {/* 10. ЦЕНА */}
+                    <Table.Cell className="py-2 px-2 text-right">
+                      {canEdit ? (
+                        <div className="inline-flex items-center justify-end">
+                          <input
+                            type="number"
+                            step={volume === '1K' ? '1' : '0.0001'}
+                            value={currentPrice}
+                            onChange={e => handlePriceChange(s, e.target.value)}
+                            onBlur={() => saveMarkup(s)}
+                            onKeyDown={e => e.key === 'Enter' && saveMarkup(s)}
+                            disabled={isPending || !canEditFinance}
+                            className={`w-18 px-1.5 py-0.5 text-xs font-mono font-black rounded-lg border outline-none transition-all tabular-nums text-right ${
+                              isBelowSafety
+                                ? 'border-rose-400 bg-destructive/10 text-rose-700 focus:ring-2 focus:ring-rose-500/20'
+                                : 'border-border/80 bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20'
+                            } disabled:opacity-50`}
+                          />
+                          <span className="ml-0.5 text-xs text-muted-foreground font-bold">{currency === 'RUB' ? '₽' : '$'}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs font-mono font-black text-foreground tabular-nums">
+                          {currentPrice} {currency === 'RUB' ? '₽' : '$'}
+                        </span>
+                      )}
+                    </Table.Cell>
+
+                    {/* 11. ДЕЙСТВИЯ */}
+                    <Table.Cell className={canEdit ? "py-2 px-2 text-right" : "hidden"}>
+                      <div className="flex items-center gap-1 justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setPricingModalServiceId(s.id)}
+                          title="ML Юнит-экономика и параметры"
+                          aria-label={`Юнит-экономика для ${s.name}`}
+                          className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 transition-all cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+
+                        <Link
+                          href={`/admin/catalog/${s.id}`}
+                          aria-label={`Редактировать услугу ${s.name}`}
+                          className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all cursor-pointer"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </Link>
+
+                        <ArchiveButton service={s} onDeleted={handleServiceDeleted} />
+                      </div>
+                    </Table.Cell>
+                  </Table.Row>
+                );
+              })}
             </Table.Body>
           </Table>
         </Table.ScrollContainer>
       </div>
-    </div>
-  );
-}
 
-// ─── Inline Row Item that returns direct Table.Row ──────────────────────────
-function RowItem({
-  service: s,
-  usdToRub,
-  canEdit,
-  canEditFinance,
-  canSeeRates,
-  isChecked,
-  onToggle,
-  categories,
-  providers,
-  currency,
-  volume,
-  onDeleted,
-}: {
-  service: CatalogServiceDTO;
-  usdToRub: number;
-  canEdit: boolean;
-  canEditFinance: boolean;
-  canSeeRates: boolean;
-  isChecked: boolean;
-  onToggle: (e: React.MouseEvent | React.ChangeEvent) => void;
-  categories: FilterCategoryItem[];
-  providers: FilterProviderItem[];
-  currency: 'RUB' | 'USD';
-  volume: 'UNIT' | '1K';
-  onDeleted?: (id: string) => void;
-}) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [markup, setMarkup] = useState<number>(s.markup);
-  const [isActive, setIsActive] = useState<boolean>(s.isActive);
-  const [localPrice, setLocalPrice] = useState<string>(() =>
-    String(calcDisplayPrice(s.rate, s.markup, usdToRub, currency, volume))
-  );
-  const [openPricingModal, setOpenPricingModal] = useState(false);
-
-  useMemo(() => {
-    setLocalPrice(String(calcDisplayPrice(s.rate, markup, usdToRub, currency, volume)));
-  }, [s.rate, markup, usdToRub, currency, volume]);
-
-  const categoryObj = categories.find(c => c.id === s.categoryId);
-  const networkName = categoryObj?.network?.name || s.networkName;
-  const networkSlug = categoryObj?.network?.slug || s.networkSlug || 'telegram';
-  const cleanActivityName = formatCleanActivityName(categoryObj?.name || s.categoryName, networkName || undefined);
-  const providerObj = providers.find(p => p.id === s.providerId);
-  const providerName = providerObj?.name || (s.providerId ? 'Провайдер' : '—');
-
-  const isBelowSafety = markup < SAFETY_MULTIPLIER;
-  const isZombie = Boolean(s.cooldownReason && s.cooldownReason.includes('ZOMBIE'));
-
-  function handleToggleActive() {
-    const next = !isActive;
-    setIsActive(next);
-    startTransition(async () => {
-      const res = await toggleServiceActiveAction(s.id, next);
-      if (!res.success) {
-        setIsActive(!next);
-        toast.error(res.error || 'Ошибка смены статуса');
-      } else {
-        toast.success('Статус услуги обновлен');
-      }
-    });
-  }
-
-  function handlePercentChange(val: string) {
-    const num = parseFloat(val);
-    if (!isNaN(num)) {
-      const newMultiplier = 1 + num / 100;
-      setMarkup(newMultiplier);
-      setLocalPrice(String(calcDisplayPrice(s.rate, newMultiplier, usdToRub, currency, volume)));
-    }
-  }
-
-  function handlePriceChange(val: string) {
-    setLocalPrice(val);
-    const p = parseFloat(val);
-    if (!isNaN(p) && p > 0 && s.rate > 0) {
-      let targetRate = s.rate;
-      if (currency === 'RUB') targetRate = s.rate * usdToRub;
-      if (volume === 'UNIT') targetRate = targetRate / 1000;
-      const newMarkup = p / targetRate;
-      setMarkup(newMarkup);
-    }
-  }
-
-  function save() {
-    if (markup === s.markup) return;
-    startTransition(async () => {
-      const res = await updateServiceMarkupAction(s.id, markup);
-      if (res.success) {
-        toast.success('Наценка обновлена');
-        router.refresh();
-      } else {
-        setMarkup(s.markup);
-        toast.error(res.error || 'Ошибка обновления наценки');
-      }
-    });
-  }
-
-  return (
-    <Table.Row
-      id={s.id}
-      className={`border-b border-border/40 hover:bg-muted/40 transition-colors ${
-        isChecked ? 'bg-primary/5' : ''
-      } ${!isActive ? 'opacity-60' : ''}`}
-    >
-      {/* 1. CHECKBOX */}
-      <Table.Cell className={canEdit ? "py-2 px-2 text-center" : "hidden"}>
-        <input
-          type="checkbox"
-          checked={isChecked}
-          onChange={onToggle}
-          aria-label={`Выбрать ${s.name}`}
-          className="rounded border-border text-primary focus:ring-primary cursor-pointer w-4 h-4"
+      {pricingModalServiceId && (
+        <AdminPricingIntelligenceModal
+          serviceId={pricingModalServiceId}
+          isOpen={Boolean(pricingModalServiceId)}
+          onClose={() => setPricingModalServiceId(null)}
         />
-      </Table.Cell>
-
-      {/* 2. ID */}
-      <Table.Cell className="py-2 px-2 font-mono text-xs font-bold text-muted-foreground tabular-nums">
-        #{s.numericId || s.id.slice(-4)}
-      </Table.Cell>
-
-      {/* 3. НАЗВАНИЕ */}
-      <Table.Cell className="py-2 px-2 max-w-[180px]">
-        <div className="flex flex-col gap-0.5">
-          <span className="font-semibold text-xs text-foreground truncate block" title={s.name}>
-            {s.name}
-          </span>
-          <div className="flex items-center gap-1">
-            {s.qualityTier && (
-              <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-muted text-muted-foreground font-bold">
-                {s.qualityTier}
-              </span>
-            )}
-            {s.ordersCount > 0 && (
-              <span className="text-[9px] font-mono text-muted-foreground">
-                {s.ordersCount} зак.
-              </span>
-            )}
-          </div>
-        </div>
-      </Table.Cell>
-
-      {/* 4. СОЦСЕТЬ */}
-      <Table.Cell className="py-2 px-2">
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-          {networkSlug && <SocialIcon slug={networkSlug} size={14} />}
-          <span className="truncate max-w-[80px]">{networkName || '—'}</span>
-        </div>
-      </Table.Cell>
-
-      {/* 5. КАТЕГОРИЯ */}
-      <Table.Cell className="py-2 px-2">
-        <span className="text-xs text-muted-foreground font-medium truncate max-w-[120px] block" title={cleanActivityName}>
-          {cleanActivityName}
-        </span>
-      </Table.Cell>
-
-      {/* 6. ПРОВАЙДЕР */}
-      <Table.Cell className="py-2 px-2 max-w-[160px]">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-semibold text-foreground truncate" title={providerName}>
-            {providerName}
-          </span>
-          {s.externalId && (
-            <span className="text-[10px] font-mono text-muted-foreground">
-              ID: {s.externalId}
-            </span>
-          )}
-        </div>
-      </Table.Cell>
-
-      {/* 7. СТАТУС УСЛУГИ */}
-      <Table.Cell className="py-2 px-2 text-center">
-        <button
-          type="button"
-          onClick={handleToggleActive}
-          disabled={!canEdit || isPending}
-          className={`px-2 py-0.5 text-[10px] font-bold rounded-full transition-all cursor-pointer ${
-            isActive 
-              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20' 
-              : 'bg-muted text-muted-foreground hover:bg-muted/80 border border-border'
-          }`}
-        >
-          {isActive ? 'Активна' : 'Откл.'}
-        </button>
-      </Table.Cell>
-
-      {/* 8. СТАТУС ПРОВАЙДЕРА */}
-      <Table.Cell className="py-2 px-2 text-center">
-        {isZombie ? (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-destructive/10 text-destructive border border-destructive/20" title="Удалена у провайдера">
-            <AlertCircle className="w-2.5 h-2.5" /> Zombie
-          </span>
-        ) : s.providerId ? (
-          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-            Active
-          </span>
-        ) : (
-          <span className="text-[10px] font-bold text-muted-foreground">
-            Manual
-          </span>
-        )}
-      </Table.Cell>
-
-      {/* 9. НАЦЕНКА */}
-      <Table.Cell className="py-2 px-2 text-center">
-        {canEditFinance && s.providerId ? (
-          <div className="relative inline-flex items-center justify-center">
-            <span className="absolute left-1 text-[10px] text-muted-foreground pointer-events-none font-bold">+</span>
-            <input
-              type="number"
-              value={markup > 0 ? ((markup - 1) * 100).toFixed(0) : "0"}
-              onChange={e => handlePercentChange(e.target.value)}
-              onBlur={save}
-              onKeyDown={e => e.key === 'Enter' && save()}
-              disabled={isPending || !canEditFinance}
-              className={`w-14 pl-2.5 pr-1 py-0.5 text-xs font-mono font-bold rounded-lg border outline-none transition-all tabular-nums text-center ${
-                isBelowSafety
-                  ? 'border-rose-400 bg-destructive/10 text-rose-700 focus:ring-2 focus:ring-rose-500/20'
-                  : 'border-border/80 bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20'
-              } disabled:opacity-50`}
-            />
-            <span className="ml-0.5 text-[10px] text-muted-foreground font-black">%</span>
-          </div>
-        ) : (
-          <span className="text-xs font-mono font-bold text-muted-foreground">
-            {s.providerId ? `+${((markup - 1) * 100).toFixed(0)}%` : '—'}
-          </span>
-        )}
-      </Table.Cell>
-
-      {/* 10. ЦЕНА */}
-      <Table.Cell className="py-2 px-2 text-right">
-        {canEdit ? (
-          <div className="inline-flex items-center justify-end">
-            <input
-              type="number"
-              step={volume === '1K' ? '1' : '0.0001'}
-              value={localPrice}
-              onChange={e => handlePriceChange(e.target.value)}
-              onBlur={save}
-              onKeyDown={e => e.key === 'Enter' && save()}
-              disabled={isPending || !canEditFinance}
-              className={`w-18 px-1.5 py-0.5 text-xs font-mono font-black rounded-lg border outline-none transition-all tabular-nums text-right ${
-                isBelowSafety
-                  ? 'border-rose-400 bg-destructive/10 text-rose-700 focus:ring-2 focus:ring-rose-500/20'
-                  : 'border-border/80 bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20'
-              } disabled:opacity-50`}
-            />
-            <span className="ml-0.5 text-xs text-muted-foreground font-bold">{currency === 'RUB' ? '₽' : '$'}</span>
-          </div>
-        ) : (
-          <span className="text-xs font-mono font-black text-foreground tabular-nums">
-            {localPrice} {currency === 'RUB' ? '₽' : '$'}
-          </span>
-        )}
-      </Table.Cell>
-
-      {/* 11. ДЕЙСТВИЯ */}
-      <Table.Cell className={canEdit ? "py-2 px-2 text-right" : "hidden"}>
-        <div className="flex items-center gap-1 justify-end">
-          <button
-            type="button"
-            onClick={() => setOpenPricingModal(true)}
-            title="ML Юнит-экономика и параметры"
-            aria-label={`Юнит-экономика для ${s.name}`}
-            className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 transition-all cursor-pointer"
-          >
-            <Eye className="w-3.5 h-3.5" />
-          </button>
-
-          <Link
-            href={`/admin/catalog/${s.id}`}
-            aria-label={`Редактировать услугу ${s.name}`}
-            className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all cursor-pointer"
-          >
-            <Pencil className="w-3 h-3" />
-          </Link>
-
-          <ArchiveButton service={s} onDeleted={onDeleted} />
-        </div>
-
-        {openPricingModal && (
-          <AdminPricingIntelligenceModal
-            serviceId={s.id}
-            isOpen={openPricingModal}
-            onClose={() => setOpenPricingModal(false)}
-          />
-        )}
-      </Table.Cell>
-    </Table.Row>
+      )}
+    </div>
   );
 }

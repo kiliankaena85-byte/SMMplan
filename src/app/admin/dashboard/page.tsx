@@ -453,7 +453,7 @@ async function SystemHealthBanner() {
           </div>
         </div>
       </div>
-      <Link href="/admin/catalog/quarantine" className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-md text-xs font-bold transition-colors">
+      <Link href="/admin/catalog/quarantine" className="shrink-0 bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-md text-xs font-bold transition-colors">
         Центр аномалий
       </Link>
     </div>

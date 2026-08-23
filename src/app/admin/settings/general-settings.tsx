@@ -209,7 +209,7 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
                 onChange={(e) => setMaintenance(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-12 h-6.5 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
+              <div className="w-12 h-6.5 bg-muted-foreground/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-background after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
             </label>
           </div>
         </div>
