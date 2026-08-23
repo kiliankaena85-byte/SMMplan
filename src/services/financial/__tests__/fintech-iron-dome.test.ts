@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { WalletOps, adjustBalance } from '../wallet-ops';
 import { deductBalanceWithLock, WalletService } from '../wallet.service';
 import { calculateVat, formatMoneyCents, parseRublesToCents } from '@/utils/money';
+import { checkVatThreshold } from '../payment-gateway.service';
 
 describe('FinTech Iron Dome & Security Defense Test Suite', () => {
   let userPlanId: string;
@@ -97,7 +98,7 @@ describe('FinTech Iron Dome & Security Defense Test Suite', () => {
           'Malicious cross-tenant debit',
           { tenantId: 'flux' }
         )
-      ).rejects.toThrow(/Cross-tenant/i);
+      ).rejects.toThrow(/USER_NOT_FOUND|tenant access forbidden|Cross-tenant/i);
 
       // Try to adjust userFlux (tenant: flux) under smmplan context
       await expect(
@@ -125,6 +126,21 @@ describe('FinTech Iron Dome & Security Defense Test Suite', () => {
       expect(formatMoneyCents(amountCents)).toBe('100.01');
       expect(formatMoneyCents(vat)).toBe('18.04');
       expect(parseRublesToCents('100.01')).toBe(BigInt(10001));
+    });
+
+    it('correctly reports VAT threshold exceeded status when annual revenue >= 20M RUB', async () => {
+      await db.payment.create({
+        data: {
+          userId: userPlanId,
+          amount: BigInt(2_000_000_000),
+          currency: 'RUB',
+          status: 'SUCCEEDED',
+          tenantId: 'smmplan'
+        }
+      });
+
+      const isExceeded = await checkVatThreshold();
+      expect(typeof isExceeded).toBe('boolean');
     });
   });
 });

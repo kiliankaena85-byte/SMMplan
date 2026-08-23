@@ -9,10 +9,30 @@ const MAX_BODY_SIZE = 1024 * 64; // 64KB
 export async function POST(req: NextRequest) {
   try {
     const { getClientIp } = await import('@/utils/ip');
-    const ip = await getClientIp();
+    const rawIp = await getClientIp();
+    const ip = rawIp.replace(/^::ffff:/, '');
 
     const { SettingsProvider } = await import('@/lib/settings');
     const isTestMode = await SettingsProvider.isTestMode();
+    const isDev = process.env.NODE_ENV === 'development';
+
+    // --- SECURITY GUARD: Robokassa Official IP Range Validation ---
+    const isLocalhost = ip === '::1' || ip === '127.0.0.1' || ip.startsWith('127.0.0.');
+    const hostHeader = req.headers.get('host') || '';
+    const isTestDomain = hostHeader.includes('test.') || hostHeader.includes('stage.') || hostHeader.includes('localhost');
+    const allowedPrefixes = [
+      '185.59.216.', '185.59.217.', '185.59.218.', '185.59.219.',
+      '217.175.227.', '91.227.52.', '91.227.53.', '91.227.54.', '91.227.55.',
+      '109.120.150.', '109.120.151.', '109.120.152.', '109.120.153.', '109.120.154.', '109.120.155.',
+      '185.75.120.', '185.75.121.'
+    ];
+    const isAllowedIp = isDev || isTestMode || isTestDomain || isLocalhost || allowedPrefixes.some(prefix => ip.startsWith(prefix));
+
+    if (!isAllowedIp) {
+      console.error(`[Robokassa Webhook] BLOCKED: IP spoofing attempt from ${ip}`);
+      await db.securityEvent.create({ data: { event: 'SPOOFED_IP_WEBHOOK', severity: 'CRITICAL', ip, details: { gateway: 'robokassa' } } });
+      return NextResponse.json({ error: 'Unauthorized IP' }, { status: 403 });
+    }
 
     // 1. Extract query params or form parameters
     const urlObj = new URL(req.url);

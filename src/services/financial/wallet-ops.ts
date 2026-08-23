@@ -15,7 +15,7 @@ export class WalletInsufficientFundsError extends Error {
 export class WalletUserNotFoundError extends Error {
   readonly code = 'USER_NOT_FOUND';
   constructor(userId: string) {
-    super(`User ${userId} not found.`);
+    super(`User ${userId} not found or tenant access forbidden.`);
     this.name = 'WalletUserNotFoundError';
   }
 }
@@ -54,6 +54,17 @@ export const WalletOps = {
 
     const { idempotencyKey, adminId, tenantId } = opts || {};
 
+    // Strict Cross-Tenant Guard
+    if (tenantId) {
+      const userCheck = await tx.user.findUnique({
+        where: { id: userId },
+        select: { tenantId: true }
+      });
+      if (!userCheck || userCheck.tenantId !== tenantId) {
+        throw new WalletUserNotFoundError(userId);
+      }
+    }
+
     if (idempotencyKey) {
       const existing = await tx.ledgerEntry.findFirst({
         where: { idempotencyKey },
@@ -85,7 +96,7 @@ export const WalletOps = {
         throw new WalletUserNotFoundError(userId);
       }
       if (tenantId && checkUser.tenantId !== tenantId) {
-        throw new Error(`Cross-tenant access forbidden: user is in ${checkUser.tenantId}, expected ${tenantId}`);
+        throw new WalletUserNotFoundError(userId);
       }
       throw new WalletInsufficientFundsError(rawCents, checkUser.balance);
     }
@@ -129,25 +140,22 @@ export const WalletOps = {
 
     const { idempotencyKey, adminId, tenantId } = opts || {};
 
+    if (tenantId) {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { id: true, tenantId: true }
+      });
+      if (!user || user.tenantId !== tenantId) {
+        throw new WalletUserNotFoundError(userId);
+      }
+    }
+
     if (idempotencyKey) {
       const existing = await tx.ledgerEntry.findFirst({
         where: { idempotencyKey },
       });
       if (existing) {
         return { success: true, balance: null, cached: true, entry: existing };
-      }
-    }
-
-    if (tenantId) {
-      const user = await tx.user.findUnique({
-        where: { id: userId },
-        select: { id: true, tenantId: true }
-      });
-      if (!user) {
-        throw new WalletUserNotFoundError(userId);
-      }
-      if (user.tenantId !== tenantId) {
-        throw new Error(`Cross-tenant credit forbidden: user is in ${user.tenantId}, expected ${tenantId}`);
       }
     }
 
@@ -206,25 +214,22 @@ export const WalletOps = {
 
     const { idempotencyKey, adminId, tenantId } = opts || {};
 
+    if (tenantId) {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { id: true, tenantId: true }
+      });
+      if (!user || user.tenantId !== tenantId) {
+        throw new WalletUserNotFoundError(userId);
+      }
+    }
+
     if (idempotencyKey) {
       const existing = await tx.ledgerEntry.findFirst({
         where: { idempotencyKey },
       });
       if (existing) {
         return { success: true, balance: null, cached: true, entry: existing };
-      }
-    }
-
-    if (tenantId) {
-      const user = await tx.user.findUnique({
-        where: { id: userId },
-        select: { id: true, tenantId: true }
-      });
-      if (!user) {
-        throw new WalletUserNotFoundError(userId);
-      }
-      if (user.tenantId !== tenantId) {
-        throw new Error(`Cross-tenant adjust forbidden: user is in ${user.tenantId}, expected ${tenantId}`);
       }
     }
 
@@ -267,25 +272,22 @@ export const WalletOps = {
 
     const { idempotencyKey, adminId, tenantId } = opts || {};
 
+    if (tenantId) {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { id: true, tenantId: true }
+      });
+      if (!user || user.tenantId !== tenantId) {
+        throw new WalletUserNotFoundError(userId);
+      }
+    }
+
     if (idempotencyKey) {
       const existing = await tx.ledgerEntry.findFirst({
         where: { idempotencyKey },
       });
       if (existing) {
         return { success: true, balance: null, cached: true, entry: existing };
-      }
-    }
-
-    if (tenantId) {
-      const user = await tx.user.findUnique({
-        where: { id: userId },
-        select: { id: true, tenantId: true }
-      });
-      if (!user) {
-        throw new WalletUserNotFoundError(userId);
-      }
-      if (user.tenantId !== tenantId) {
-        throw new Error(`Cross-tenant refund forbidden: user is in ${user.tenantId}, expected ${tenantId}`);
       }
     }
 
@@ -336,6 +338,16 @@ export const WalletOps = {
     const { idempotencyKey, adminId, tenantId } = opts || {};
     const rawCents = typeof amountCents === 'bigint' ? amountCents : BigInt(amountCents);
     const absAmount = rawCents < BigInt(0) ? -rawCents : rawCents;
+
+    if (tenantId) {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { id: true, tenantId: true }
+      });
+      if (!user || user.tenantId !== tenantId) {
+        throw new WalletUserNotFoundError(userId);
+      }
+    }
 
     const user = await tx.user.update({
       where: { id: userId },

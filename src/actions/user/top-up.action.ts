@@ -9,7 +9,8 @@ import { RateLimitService } from "@/services/core/rate-limit.service";
 
 export async function createTopUpPaymentAction(
   amountRub: number,
-  gateway: 'yookassa' | 'cryptobot' | 'robokassa' | 'sbp' = 'yookassa'
+  gateway: 'yookassa' | 'cryptobot' | 'robokassa' | 'sbp' = 'yookassa',
+  idempotencyKey?: string
 ) {
   const session = await verifySession();
   if (!session) throw new Error("Unauthorized");
@@ -31,7 +32,24 @@ export async function createTopUpPaymentAction(
     }
   }
 
+  // Check for existing pending payment with same key or created within the last 60 seconds (anti-double-click)
+  const twoMinutesAgo = new Date(Date.now() - 60 * 1000);
+  const existingPayment = await db.payment.findFirst({
+    where: {
+      userId: session.userId,
+      amount: amountCents,
+      gateway,
+      status: 'PENDING',
+      createdAt: { gte: twoMinutesAgo },
+      checkoutUrl: { not: null }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
 
+  if (existingPayment && existingPayment.checkoutUrl) {
+    console.info(`[TopUp] Idempotency hit: returning existing pending payment ${existingPayment.id}`);
+    return { success: true, paymentUrl: existingPayment.checkoutUrl };
+  }
 
   const reqHeaders = await headers();
   const consentIp = await getClientIp();
@@ -46,6 +64,7 @@ export async function createTopUpPaymentAction(
   const payment = await db.payment.create({
     data: {
       userId: session.userId,
+      tenantId: dbUser.tenantId || 'smmplan',
       amount: amountCents,
       currency: "RUB",
       status: "PENDING",

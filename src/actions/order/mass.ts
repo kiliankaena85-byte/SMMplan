@@ -11,7 +11,8 @@ import { headers } from 'next/headers';
 import { getClientIp } from '@/utils/ip';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { SettingsManager } from '@/lib/settings';
-import { WalletInsufficientFundsError, WalletUserNotFoundError, WalletInvalidAmountError } from '@/services/financial/wallet-ops';
+import { WalletOps, WalletInsufficientFundsError, WalletUserNotFoundError, WalletInvalidAmountError } from '@/services/financial/wallet-ops';
+import { runSerializableTransaction } from '@/lib/transactions';
 import crypto from 'crypto';
 import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
@@ -325,19 +326,30 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
       throw new Error('Криптовалюта доступна для пополнений до 15 000 ₽. Для больших сумм используйте карту.');
     }
 
-    if (gateway === 'balance' && user.balance < totalCents) {
-      throw new Error("Недостаточно средств на балансе");
-    }
+    // Create Payment and Orders in Serializable Transaction (TOCTOU & Race Condition Defense)
+    const isBalancePayment = gateway === 'balance';
 
-    // Create Payment and Orders in Transaction
-    const result = await db.$transaction(async (tx) => {
+    const result = await runSerializableTransaction(async (tx) => {
+      if (isBalancePayment) {
+        await WalletOps.charge(
+          tx,
+          user.id,
+          totalCents,
+          `Массовый заказ (${orders.length} шт.)`,
+          {
+            idempotencyKey: idempotencyKey ? `mass-charge-${idempotencyKey}` : undefined,
+            tenantId: user.tenantId
+          }
+        );
+      }
+
       const payment = await tx.payment.create({
         data: {
           userId: user.id,
           tenantId: user.tenantId,
           amount: paymentAmount,
           currency: 'RUB',
-          status: 'PENDING',
+          status: isBalancePayment ? 'SUCCEEDED' : 'PENDING',
           gateway,
           consentIp,
           consentUserAgent
@@ -346,7 +358,11 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
 
       // We assign paymentId directly in the bulk create
       await tx.order.createMany({
-        data: orderCreationData.map(o => ({ ...o, paymentId: payment.id }))
+        data: orderCreationData.map(o => ({
+          ...o,
+          paymentId: payment.id,
+          status: isBalancePayment ? ('PENDING' as const) : ('AWAITING_PAYMENT' as const)
+        }))
       });
 
       return { paymentId: payment.id };

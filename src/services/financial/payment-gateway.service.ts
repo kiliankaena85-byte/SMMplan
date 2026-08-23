@@ -6,6 +6,32 @@ import { WalletOps } from './wallet-ops';
 import { MutexManager } from '@/lib/redis-lock';
 import crypto from 'crypto';
 
+let vatThresholdCache: { result: boolean; expiresAt: number } | null = null;
+
+/**
+ * 54-ФЗ Fiscalization: Checks whether annual revenue exceeded 20M RUB across all tenants (tax exempt threshold).
+ * Cached for 1 hour to reduce database aggregate load.
+ */
+export async function checkVatThreshold(): Promise<boolean> {
+  const now = Date.now();
+  if (vatThresholdCache && vatThresholdCache.expiresAt > now) {
+    return vatThresholdCache.result;
+  }
+
+  const currentYear = new Date().getFullYear();
+  const annualRevenue = await db.payment.aggregate({
+    _sum: { amount: true },
+    where: {
+      status: 'SUCCEEDED',
+      createdAt: { gte: new Date(currentYear, 0, 1) }
+    }
+  }).then(res => Number(res._sum.amount || 0));
+
+  const isExceeded = annualRevenue >= 2000000000; // 20M RUB (2,000,000,000 cents)
+  vatThresholdCache = { result: isExceeded, expiresAt: now + 3600 * 1000 };
+  return isExceeded;
+}
+
 
 export interface PaymentGatewayResult {
   paymentUrl: string;
@@ -81,16 +107,7 @@ class YooKassaGateway extends BasePaymentGateway {
     };
 
     // 54-ФЗ Fiscalization Receipt (Included in both live & test mode for universal YooKassa compatibility)
-    const currentYear = new Date().getFullYear();
-    const annualRevenue = await db.payment.aggregate({
-      _sum: { amount: true },
-      where: {
-        status: 'SUCCEEDED',
-        createdAt: { gte: new Date(currentYear, 0, 1) }
-      }
-    }).then(res => Number(res._sum.amount || 0));
-
-    const isVatThresholdExceeded = annualRevenue >= 2000000000; // 20 млн рублей (Порог освобождения от НДС на УСН ст. 145 НК РФ)
+    const isVatThresholdExceeded = await checkVatThreshold();
     const vatCode = isVatThresholdExceeded ? 10 : 1; // 10 = НДС 22% (п. 3 ст. 164 НК РФ), 1 = Без НДС
 
     payload.receipt = {
@@ -387,16 +404,7 @@ class RobokassaGateway extends BasePaymentGateway {
     const signature = crypto.createHash('sha256').update(sigStr).digest('hex');
 
     // Подсчитываем оборот за год для переключения НДС 22% (ФЗ № 425-ФЗ, ФЗ № 176-ФЗ, ст. 145, 164 НК РФ)
-    const currentYear = new Date().getFullYear();
-    const annualRevenue = await db.payment.aggregate({
-      _sum: { amount: true },
-      where: {
-        status: 'SUCCEEDED',
-        createdAt: { gte: new Date(currentYear, 0, 1) }
-      }
-    }).then(res => Number(res._sum.amount || 0));
-
-    const isVatThresholdExceeded = annualRevenue >= 2000000000; // 20 млн рублей (Порог освобождения от НДС на УСН ст. 145 НК РФ)
+    const isVatThresholdExceeded = await checkVatThreshold();
     const taxRate = isVatThresholdExceeded ? "vat22" : "none"; // vat22 = 22% (п. 3 ст. 164 НК РФ), none = без НДС
 
     const receipt = {
