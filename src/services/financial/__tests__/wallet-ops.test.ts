@@ -10,11 +10,7 @@ describe('WalletOps Unit Tests', () => {
   let userId: string;
 
   beforeEach(async () => {
-    await db.tenant.upsert({
-      where: { id: 'smmplan' },
-      update: {},
-      create: { id: 'smmplan', name: 'SMMplan', slug: 'smmplan', domain: 'smmplan.local', vaultSalt: 'test-salt' },
-    });
+    
 
     const user = await db.user.create({
       data: {

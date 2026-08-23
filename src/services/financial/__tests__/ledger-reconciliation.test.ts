@@ -15,11 +15,7 @@ describe('LedgerReconciliationService Tests', () => {
   describe('getSummary', () => {
     it('should report 100% integrity when all accounts match ledger entries', async () => {
       const tenant = `sum-match-${Date.now()}`;
-      await db.tenant.upsert({
-        where: { id: tenant },
-        update: {},
-        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
-      });
+      
 
       // Create clean users
       const u1 = await db.user.create({
@@ -60,11 +56,7 @@ describe('LedgerReconciliationService Tests', () => {
 
     it('should detect discrepancies when user balances are inflated or deflated', async () => {
       const tenant = `sum-disc-${Date.now()}`;
-      await db.tenant.upsert({
-        where: { id: tenant },
-        update: {},
-        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
-      });
+      
 
       // Clean user
       const cleanUser = await db.user.create({
@@ -115,11 +107,7 @@ describe('LedgerReconciliationService Tests', () => {
 
     it('should strictly exclude quarantine and rejected ledger entries from approved sum', async () => {
       const tenant = `sum-quar-${Date.now()}`;
-      await db.tenant.upsert({
-        where: { id: tenant },
-        update: {},
-        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
-      });
+      
 
       const user = await db.user.create({
         data: {
@@ -152,16 +140,8 @@ describe('LedgerReconciliationService Tests', () => {
       const tenantA = `filter-a-${Date.now()}`;
       const tenantB = `filter-b-${Date.now()}`;
 
-      await db.tenant.upsert({
-        where: { id: tenantA },
-        update: {},
-        create: { id: tenantA, name: tenantA, slug: tenantA, domain: `${tenantA}.local`, vaultSalt: 'test-salt' },
-      });
-      await db.tenant.upsert({
-        where: { id: tenantB },
-        update: {},
-        create: { id: tenantB, name: tenantB, slug: tenantB, domain: `${tenantB}.local`, vaultSalt: 'test-salt' },
-      });
+      
+      
 
       const smmplanUser = await db.user.create({
         data: { email: `smmplan_${Date.now()}@test.com`, balance: BigInt(1000), tenantId: tenantA },
@@ -190,11 +170,7 @@ describe('LedgerReconciliationService Tests', () => {
   describe('getAccounts', () => {
     it('should return paginated accounts with anomalies sorted first', async () => {
       const tenant = `acc-sort-${Date.now()}`;
-      await db.tenant.upsert({
-        where: { id: tenant },
-        update: {},
-        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
-      });
+      
 
       const clean = await db.user.create({
         data: { email: `aaa_clean_${Date.now()}@test.com`, balance: BigInt(1000), tenantId: tenant },
@@ -244,11 +220,7 @@ describe('LedgerReconciliationService Tests', () => {
 
     it('should filter by onlyAnomalies', async () => {
       const tenant = `acc-anom-${Date.now()}`;
-      await db.tenant.upsert({
-        where: { id: tenant },
-        update: {},
-        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
-      });
+      
 
       const clean = await db.user.create({
         data: { email: `clean_${Date.now()}@test.com`, balance: BigInt(1000), tenantId: tenant },
@@ -276,11 +248,7 @@ describe('LedgerReconciliationService Tests', () => {
 
     it('should filter by search query', async () => {
       const tenant = `acc-search-${Date.now()}`;
-      await db.tenant.upsert({
-        where: { id: tenant },
-        update: {},
-        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
-      });
+      
 
       await db.user.create({
         data: { email: `target_client_${Date.now()}@example.com`, balance: BigInt(500), tenantId: tenant },
@@ -302,11 +270,7 @@ describe('LedgerReconciliationService Tests', () => {
   describe('getUserAuditTimeline', () => {
     it('should sequentially compute running balance and return entries in reverse order', async () => {
       const tenant = `time-run-${Date.now()}`;
-      await db.tenant.upsert({
-        where: { id: tenant },
-        update: {},
-        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
-      });
+      
 
       const user = await db.user.create({
         data: {
@@ -401,11 +365,7 @@ describe('LedgerReconciliationService Tests', () => {
   describe('remediateUser', () => {
     it('should lock an anomalous user and create an audit log', async () => {
       const tenant = `rem-lock-${Date.now()}`;
-      await db.tenant.upsert({
-        where: { id: tenant },
-        update: {},
-        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
-      });
+      
 
       const user = await db.user.create({
         data: {
@@ -445,11 +405,7 @@ describe('LedgerReconciliationService Tests', () => {
 
     it('should automatically balance discrepancies via compensating ledger entry and audit log', async () => {
       const tenant = `rem-adjust-${Date.now()}`;
-      await db.tenant.upsert({
-        where: { id: tenant },
-        update: {},
-        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
-      });
+      
 
       // User with balance 3000, but ledger approved entries sum to only 2000 (diff = +1000)
       const user = await db.user.create({
@@ -522,11 +478,7 @@ describe('LedgerReconciliationService Tests', () => {
 
     it('should be a no-op if account is already balanced', async () => {
       const tenant = `rem-noop-${Date.now()}`;
-      await db.tenant.upsert({
-        where: { id: tenant },
-        update: {},
-        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
-      });
+      
 
       const user = await db.user.create({
         data: { email: `balanced_${Date.now()}@test.com`, balance: BigInt(1000), tenantId: tenant },
@@ -550,11 +502,7 @@ describe('LedgerReconciliationService Tests', () => {
 
     it('should handle accounts with 0 entries cleanly in getUserAuditTimeline', async () => {
       const tenant = `time-zero-${Date.now()}`;
-      await db.tenant.upsert({
-        where: { id: tenant },
-        update: {},
-        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
-      });
+      
 
       const user = await db.user.create({
         data: { email: `no_entries_${Date.now()}@test.com`, balance: BigInt(2500), tenantId: tenant },
@@ -581,11 +529,7 @@ describe('LedgerReconciliationService Tests', () => {
 
     it('should prevent double compensation when AUTO_ADJUST is called consecutively (idempotency guard)', async () => {
       const tenant = `rem-double-${Date.now()}`;
-      await db.tenant.upsert({
-        where: { id: tenant },
-        update: {},
-        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
-      });
+      
 
       const user = await db.user.create({
         data: {

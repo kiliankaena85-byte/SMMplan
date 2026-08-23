@@ -1,5 +1,6 @@
 import { db } from '../../lib/db';
 import { WalletOps } from './wallet-ops';
+import { runSerializableTransaction } from '@/lib/transactions';
 
 export class WalletService {
   /**
@@ -8,16 +9,15 @@ export class WalletService {
    */
   static async charge(
     userId: string,
-    amountCents: number,
+    amountCents: number | bigint,
     reason: string,
     idempotencyKey?: string,
-    adminId?: string
+    adminId?: string,
+    tenantId?: string
   ) {
     try {
-      return await db.$transaction(
-        async (tx) => WalletOps.charge(tx, userId, amountCents, reason, { idempotencyKey, adminId }),
-        // Maximum isolation to prevent concurrent writes stealing balance
-        { isolationLevel: 'Serializable' }
+      return await runSerializableTransaction(async (tx) =>
+        WalletOps.charge(tx, userId, amountCents, reason, { idempotencyKey, adminId, tenantId })
       );
     } catch (e: unknown) {
       return { success: false, error: (e instanceof Error ? e.message : String(e)) || 'Transaction failed', balance: null, cached: false };
@@ -29,15 +29,15 @@ export class WalletService {
    */
   static async credit(
     userId: string,
-    amountCents: number,
+    amountCents: number | bigint,
     reason: string,
     idempotencyKey?: string,
-    adminId?: string
+    adminId?: string,
+    tenantId?: string
   ) {
     try {
-      return await db.$transaction(
-        async (tx) => WalletOps.credit(tx, userId, amountCents, reason, { idempotencyKey, adminId }),
-        { isolationLevel: 'Serializable' }
+      return await runSerializableTransaction(async (tx) =>
+        WalletOps.credit(tx, userId, amountCents, reason, { idempotencyKey, adminId, tenantId })
       );
     } catch (e: unknown) {
       return { success: false, error: (e instanceof Error ? e.message : String(e)) || 'Transaction failed', balance: null, cached: false };
@@ -49,24 +49,44 @@ export class WalletService {
    * 
    * ARCHITECTURE CONTRACT: Единственный способ оформить возврат клиенту.
    * Гарантирует: идемпотентность, Serializable isolation, ledger audit trail.
-   * 
-   * ВАЖНО: В отличие от credit(), этот метод УМЕНЬШАЕТ totalSpent,
-   * что необходимо для корректной бухгалтерии (P&L).
    */
   static async refund(
     userId: string,
-    amountCents: number,
+    amountCents: number | bigint,
     reason: string,
     idempotencyKey?: string,
-    adminId?: string
+    adminId?: string,
+    tenantId?: string
   ) {
     try {
-      return await db.$transaction(
-        async (tx) => WalletOps.refund(tx, userId, amountCents, reason, { idempotencyKey, adminId }),
-        { isolationLevel: 'Serializable' }
+      return await runSerializableTransaction(async (tx) =>
+        WalletOps.refund(tx, userId, typeof amountCents === 'bigint' ? Number(amountCents) : amountCents, reason, { idempotencyKey, adminId, tenantId })
       );
     } catch (e: unknown) {
       return { success: false, error: (e instanceof Error ? e.message : String(e)) || 'Refund transaction failed', balance: null, cached: false };
     }
   }
+}
+
+/**
+ * Atomic balance deduction with strict Serializable isolation and tenant guard.
+ */
+export async function deductBalanceWithLock(
+  userId: string,
+  amountCents: bigint | number,
+  reason: string,
+  opts?: { orderId?: string; idempotencyKey?: string; tenantId?: string }
+) {
+  return await runSerializableTransaction(async (tx) => {
+    return await WalletOps.charge(
+      tx,
+      userId,
+      amountCents,
+      reason,
+      {
+        idempotencyKey: opts?.idempotencyKey || (opts?.orderId ? `order-${opts.orderId}` : undefined),
+        tenantId: opts?.tenantId
+      }
+    );
+  });
 }

@@ -43,11 +43,7 @@ describe('Compensation Service Unit Tests', () => {
 
   beforeEach(async () => {
     // Upsert tenant
-    await db.tenant.upsert({
-      where: { id: 'smmplan' },
-      update: {},
-      create: { id: 'smmplan', name: 'SMMplan', slug: 'smmplan', domain: 'smmplan.local', vaultSalt: 'test-salt' },
-    });
+    
 
     staffUser = await db.user.create({
       data: {

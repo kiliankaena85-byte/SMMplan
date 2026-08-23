@@ -13,11 +13,7 @@ describe('YooKassa Payment Integration & Webhook Lifecycle', () => {
     vi.clearAllMocks();
 
     // Seed test tenant & system settings
-    await db.tenant.upsert({
-      where: { id: 'smmplan' },
-      update: {},
-      create: { id: 'smmplan', name: 'SMMplan', slug: 'smmplan', domain: 'smmplan.pro', vaultSalt: 'test-salt' },
-    });
+    
 
     await db.systemSettings.upsert({
       where: { id: 'smmplan' },

@@ -1,4 +1,6 @@
 import { Prisma } from '@prisma/client';
+import { db } from '@/lib/db';
+import { runSerializableTransaction } from '@/lib/transactions';
 
 type PrismaTx = Omit<Prisma.TransactionClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">;
 
@@ -26,6 +28,12 @@ export class WalletInvalidAmountError extends Error {
   }
 }
 
+export interface WalletOpsOptions {
+  idempotencyKey?: string;
+  adminId?: string;
+  tenantId?: string;
+}
+
 export const WalletOps = {
   /**
    * Safe charge mechanism without creating a new transaction.
@@ -36,7 +44,7 @@ export const WalletOps = {
     userId: string,
     amountCents: number | bigint,
     reason: string,
-    opts?: { idempotencyKey?: string; adminId?: string }
+    opts?: WalletOpsOptions
   ) {
     const rawCents = typeof amountCents === 'bigint' ? amountCents : BigInt(amountCents);
     const MAX_SINGLE_CHARGE_CENTS = BigInt(100_000_000); // 1M RUB safety cap
@@ -44,7 +52,7 @@ export const WalletOps = {
       throw new WalletInvalidAmountError('Charge');
     }
 
-    const { idempotencyKey, adminId } = opts || {};
+    const { idempotencyKey, adminId, tenantId } = opts || {};
 
     if (idempotencyKey) {
       const existing = await tx.ledgerEntry.findFirst({
@@ -59,7 +67,8 @@ export const WalletOps = {
     const updatedUserBatch = await tx.user.updateMany({
       where: { 
         id: userId,
-        balance: { gte: rawCents }
+        balance: { gte: rawCents },
+        ...(tenantId ? { tenantId } : {})
       },
       data: {
         balance: { decrement: rawCents },
@@ -70,27 +79,32 @@ export const WalletOps = {
     if (updatedUserBatch.count === 0) {
       const checkUser = await tx.user.findUnique({
         where: { id: userId },
-        select: { id: true, balance: true },
+        select: { id: true, balance: true, tenantId: true },
       });
       if (!checkUser) {
         throw new WalletUserNotFoundError(userId);
+      }
+      if (tenantId && checkUser.tenantId !== tenantId) {
+        throw new Error(`Cross-tenant access forbidden: user is in ${checkUser.tenantId}, expected ${tenantId}`);
       }
       throw new WalletInsufficientFundsError(rawCents, checkUser.balance);
     }
 
     const finalUser = await tx.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { balance: true }
+      select: { balance: true, tenantId: true }
     });
 
     const entry = await tx.ledgerEntry.create({
       data: {
         userId,
+        tenantId: tenantId || finalUser.tenantId || 'smmplan',
         adminId,
         amount: -rawCents,
         reason,
         status: 'APPROVED',
         idempotencyKey,
+        transactionType: 'PAYMENT'
       }
     });
 
@@ -105,7 +119,7 @@ export const WalletOps = {
     userId: string,
     amountCents: number | bigint,
     reason: string,
-    opts?: { idempotencyKey?: string; adminId?: string }
+    opts?: WalletOpsOptions
   ) {
     const rawCents = typeof amountCents === 'bigint' ? amountCents : BigInt(amountCents);
     const MAX_SINGLE_CREDIT_CENTS = BigInt(100_000_000); // 1M RUB safety cap
@@ -113,7 +127,7 @@ export const WalletOps = {
       throw new WalletInvalidAmountError('Credit');
     }
 
-    const { idempotencyKey, adminId } = opts || {};
+    const { idempotencyKey, adminId, tenantId } = opts || {};
 
     if (idempotencyKey) {
       const existing = await tx.ledgerEntry.findFirst({
@@ -124,15 +138,30 @@ export const WalletOps = {
       }
     }
 
+    if (tenantId) {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { id: true, tenantId: true }
+      });
+      if (!user) {
+        throw new WalletUserNotFoundError(userId);
+      }
+      if (user.tenantId !== tenantId) {
+        throw new Error(`Cross-tenant credit forbidden: user is in ${user.tenantId}, expected ${tenantId}`);
+      }
+    }
+
     try {
       const entry = await tx.ledgerEntry.create({
         data: {
           userId,
+          tenantId: tenantId || 'smmplan',
           adminId,
           amount: rawCents,
           reason,
           status: 'APPROVED',
           idempotencyKey,
+          transactionType: 'PAYMENT'
         }
       });
 
@@ -153,8 +182,6 @@ export const WalletOps = {
         'meta' in error && 
         typeof (error as { meta?: { target?: string[] } }).meta?.target === 'object'
       ) {
-        // In a Serializable transaction, the transaction is already aborted here.
-        // We throw the error so the caller can handle it gracefully.
         throw error;
       }
       throw error;
@@ -168,15 +195,16 @@ export const WalletOps = {
   async adminAdjust(
     tx: PrismaTx,
     userId: string,
-    amountCents: number,
+    amountCents: number | bigint,
     reason: string,
-    opts?: { idempotencyKey?: string; adminId?: string }
+    opts?: WalletOpsOptions
   ) {
-    if (!Number.isFinite(amountCents) || amountCents === 0) {
+    const rawCents = typeof amountCents === 'bigint' ? amountCents : BigInt(amountCents);
+    if (rawCents === BigInt(0)) {
       throw new WalletInvalidAmountError('Adjustment');
     }
 
-    const { idempotencyKey, adminId } = opts || {};
+    const { idempotencyKey, adminId, tenantId } = opts || {};
 
     if (idempotencyKey) {
       const existing = await tx.ledgerEntry.findFirst({
@@ -187,21 +215,35 @@ export const WalletOps = {
       }
     }
 
-    const rawCents = BigInt(amountCents);
+    if (tenantId) {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { id: true, tenantId: true }
+      });
+      if (!user) {
+        throw new WalletUserNotFoundError(userId);
+      }
+      if (user.tenantId !== tenantId) {
+        throw new Error(`Cross-tenant adjust forbidden: user is in ${user.tenantId}, expected ${tenantId}`);
+      }
+    }
+
     const updatedUser = await tx.user.update({
       where: { id: userId },
       data: { balance: { increment: rawCents } },
-      select: { balance: true }
+      select: { balance: true, tenantId: true }
     });
 
     const entry = await tx.ledgerEntry.create({
       data: {
         userId,
+        tenantId: tenantId || updatedUser.tenantId || 'smmplan',
         adminId,
         amount: rawCents, 
         reason,
         status: 'APPROVED',
         idempotencyKey,
+        transactionType: 'COMPENSATION'
       }
     });
 
@@ -210,25 +252,20 @@ export const WalletOps = {
 
   /**
    * Refund user balance: increments balance, decrements totalSpent, creates ledger entry.
-   * 
-   * ARCHITECTURE CONTRACT: Единственный способ оформить возврат клиенту.
-   * Гарантирует: идемпотентность, Serializable isolation, ledger audit trail.
-   * 
-   * ВАЖНО: В отличие от credit(), этот метод УМЕНЬШАЕТ totalSpent,
-   * что необходимо для корректной бухгалтерии (P&L).
    */
   async refund(
     tx: PrismaTx,
     userId: string,
-    amountCents: number,
+    amountCents: number | bigint,
     reason: string,
-    opts?: { idempotencyKey?: string; adminId?: string }
+    opts?: WalletOpsOptions
   ) {
-    if (!Number.isFinite(amountCents) || amountCents <= 0) {
+    const rawCents = typeof amountCents === 'bigint' ? amountCents : BigInt(amountCents);
+    if (rawCents <= BigInt(0)) {
       throw new WalletInvalidAmountError('Refund');
     }
 
-    const { idempotencyKey, adminId } = opts || {};
+    const { idempotencyKey, adminId, tenantId } = opts || {};
 
     if (idempotencyKey) {
       const existing = await tx.ledgerEntry.findFirst({
@@ -239,16 +276,27 @@ export const WalletOps = {
       }
     }
 
+    if (tenantId) {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { id: true, tenantId: true }
+      });
+      if (!user) {
+        throw new WalletUserNotFoundError(userId);
+      }
+      if (user.tenantId !== tenantId) {
+        throw new Error(`Cross-tenant refund forbidden: user is in ${user.tenantId}, expected ${tenantId}`);
+      }
+    }
+
     // Execute atomic balance increment and totalSpent decrement in single Prisma update step
-    const rawCents = BigInt(amountCents);
     const updatedUser = await tx.user.update({
       where: { id: userId },
       data: {
         balance: { increment: rawCents },
-        // Atomic totalSpent decrement: ensure totalSpent does not go negative
         totalSpent: { decrement: rawCents }
       },
-      select: { balance: true, totalSpent: true }
+      select: { balance: true, totalSpent: true, tenantId: true }
     });
 
     // Safety guard: if totalSpent became negative due to race or edge cases, auto-clamp to 0
@@ -262,6 +310,7 @@ export const WalletOps = {
     const entry = await tx.ledgerEntry.create({
       data: {
         userId,
+        tenantId: tenantId || updatedUser.tenantId || 'smmplan',
         adminId,
         amount: rawCents,
         reason,
@@ -280,27 +329,30 @@ export const WalletOps = {
   async quarantineAdd(
     tx: PrismaTx,
     userId: string,
-    amountCents: number,
+    amountCents: number | bigint,
     reason: string,
-    opts?: { idempotencyKey?: string; adminId?: string }
+    opts?: WalletOpsOptions
   ) {
-    const { idempotencyKey, adminId } = opts || {};
-    const absAmount = BigInt(Math.abs(amountCents));
-    const rawCents = BigInt(amountCents);
+    const { idempotencyKey, adminId, tenantId } = opts || {};
+    const rawCents = typeof amountCents === 'bigint' ? amountCents : BigInt(amountCents);
+    const absAmount = rawCents < BigInt(0) ? -rawCents : rawCents;
 
-    await tx.user.update({
+    const user = await tx.user.update({
       where: { id: userId },
-      data: { quarantineBalance: { increment: absAmount } }
+      data: { quarantineBalance: { increment: absAmount } },
+      select: { tenantId: true }
     });
 
     return await tx.ledgerEntry.create({
       data: {
         userId,
+        tenantId: tenantId || user.tenantId || 'smmplan',
         adminId,
         amount: rawCents,
         reason,
         status: 'QUARANTINE',
-        idempotencyKey
+        idempotencyKey,
+        transactionType: 'COMPENSATION'
       }
     });
   },
@@ -311,9 +363,10 @@ export const WalletOps = {
   async quarantineRelease(
     tx: PrismaTx,
     userId: string,
-    amountCents: number
+    amountCents: number | bigint
   ) {
-    const absAmount = BigInt(Math.abs(amountCents));
+    const rawCents = typeof amountCents === 'bigint' ? amountCents : BigInt(amountCents);
+    const absAmount = rawCents < BigInt(0) ? -rawCents : rawCents;
     const updated = await tx.user.updateMany({
       where: { id: userId, quarantineBalance: { gte: absAmount } },
       data: { quarantineBalance: { decrement: absAmount } }
@@ -327,3 +380,33 @@ export const WalletOps = {
     }
   }
 };
+
+/**
+ * Direct balance adjustment with mandatory tenant context and serializable transaction.
+ */
+export async function adjustBalance(
+  userId: string, 
+  amountCents: bigint | number, 
+  context: { actorId: string; tenantId: string; reason: string }
+) {
+  const user = await db.user.findFirst({
+    where: {
+      id: userId,
+      tenantId: context.tenantId
+    }
+  });
+
+  if (!user) {
+    throw new Error(`User ${userId} not found in tenant ${context.tenantId} or access denied`);
+  }
+
+  return await runSerializableTransaction(async (tx) => {
+    return await WalletOps.adminAdjust(
+      tx,
+      userId,
+      amountCents,
+      context.reason,
+      { adminId: context.actorId, tenantId: context.tenantId }
+    );
+  });
+}

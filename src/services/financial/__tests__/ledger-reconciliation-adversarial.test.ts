@@ -19,11 +19,7 @@ describe('Adversarial Challenger Suite: Ledger Reconciliation Guard', () => {
   describe('1. Multi-Currency, Negative Balances, Zero Balances & Extreme Values', () => {
     it('should correctly handle zero-balance accounts with 0 transactions and matching 0-sum transactions', async () => {
       const tenant = `adv-zero-${Date.now()}`;
-      await db.tenant.upsert({
-        where: { id: tenant },
-        update: {},
-        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
-      });
+      
 
       // User 1: 0 balance, 0 transactions
       const uZeroEmpty = await db.user.create({
@@ -89,11 +85,7 @@ describe('Adversarial Challenger Suite: Ledger Reconciliation Guard', () => {
 
     it('should correctly reconcile negative balances (overdraft / chargeback) and auto-remediate negative discrepancies', async () => {
       const tenant = `adv-neg-${Date.now()}`;
-      await db.tenant.upsert({
-        where: { id: tenant },
-        update: {},
-        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
-      });
+      
 
       // User with negative balance (-4500 cents = -45.00 RUB) matching negative ledger entries
       const uNegBalanced = await db.user.create({
@@ -155,11 +147,7 @@ describe('Adversarial Challenger Suite: Ledger Reconciliation Guard', () => {
 
     it('should handle large balances (100M+ RUB in cents) without integer overflow or float truncation', async () => {
       const tenant = `adv-whale-${Date.now()}`;
-      await db.tenant.upsert({
-        where: { id: tenant },
-        update: {},
-        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
-      });
+      
 
       const HUGE_BALANCE_CENTS = BigInt(10_000_000_000); // 100,000,000.00 RUB = 10 Billion cents
 
@@ -197,11 +185,7 @@ describe('Adversarial Challenger Suite: Ledger Reconciliation Guard', () => {
   describe('2. Massive Ledger History (500+ Transactions Stress Test)', () => {
     it('should accurately compute running balance for an account with 550+ ledger entries in under 100ms', async () => {
       const tenant = `adv-heavy-${Date.now()}`;
-      await db.tenant.upsert({
-        where: { id: tenant },
-        update: {},
-        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
-      });
+      
 
       const TOTAL_ENTRIES = 550;
       let expectedBalance = BigInt(0);
@@ -304,11 +288,7 @@ describe('Adversarial Challenger Suite: Ledger Reconciliation Guard', () => {
   describe('3. Strict Isolation of Quarantine & Multi-Status Entries', () => {
     it('should strictly exclude QUARANTINE, REJECTED, and PENDING entries from reconciliation sum and auto-adjustment', async () => {
       const tenant = `adv-quarantine-${Date.now()}`;
-      await db.tenant.upsert({
-        where: { id: tenant },
-        update: {},
-        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
-      });
+      
 
       const user = await db.user.create({
         data: {
@@ -360,11 +340,7 @@ describe('Adversarial Challenger Suite: Ledger Reconciliation Guard', () => {
   describe('4. Concurrency & Race Condition Resistance (Locking / Remediation vs Active Operations)', () => {
     it('should maintain strict serializability and integrity when remediation races with wallet charges/credits', async () => {
       const tenant = `adv-race-${Date.now()}`;
-      await db.tenant.upsert({
-        where: { id: tenant },
-        update: {},
-        create: { id: tenant, name: tenant, slug: tenant, domain: `${tenant}.local`, vaultSalt: 'test-salt' },
-      });
+      
 
       const user = await db.user.create({
         data: {
