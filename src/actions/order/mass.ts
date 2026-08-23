@@ -111,11 +111,23 @@ const parseMassOrderText = async (text: string) => {
       try {
         const platformSlug = service.category?.network?.slug?.toUpperCase() || '';
         const { inferTargetTypeFromCategory } = await import('@/utils/target-type');
-        const targetType = service.targetType === 'POST'
-          ? inferTargetTypeFromCategory(service.category?.name)
-          : (service.targetType || inferTargetTypeFromCategory(service.category?.name));
-        const normalizedLink = mutateLink(order.link, platformSlug, targetType);
-        const validator = getLinkValidator(platformSlug, targetType);
+        const { isLinkServiceCompatible, getCompatibilityError, normalizeServiceTargetType } = await import('@/constants/link-service-compatibility');
+        const { IntelligenceLinkAnalyzer } = await import('@/services/analyzer/link-analyzer');
+        
+        const analyzer = new IntelligenceLinkAnalyzer();
+        const analysis = await analyzer.analyze(order.link.trim());
+        const detectedLinkType = analysis?.type || 'generic_link';
+        const resolvedTargetType = service.targetType || inferTargetTypeFromCategory(service.category?.name);
+        const serviceTargetType = normalizeServiceTargetType(resolvedTargetType);
+
+        if (!isLinkServiceCompatible(detectedLinkType, serviceTargetType)) {
+          const errorMsg = getCompatibilityError(detectedLinkType, serviceTargetType, service.name);
+          errors.push({ line: i + 1, text: `${order.numericId} | ${order.link} | ${order.quantity}`, error: errorMsg });
+          continue;
+        }
+
+        const normalizedLink = mutateLink(order.link, platformSlug, resolvedTargetType);
+        const validator = getLinkValidator(platformSlug, resolvedTargetType);
         const linkResult = validator.safeParse(normalizedLink);
 
         if (!linkResult.success) {

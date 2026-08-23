@@ -18,6 +18,7 @@ import { featureFlagService } from "@/services/system/feature-flag.service";
 import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
 import { validateProhibitedContent } from '@/validators/prohibited-content';
 import { inferTargetTypeFromCategory, normalizeTargetType, TargetTypeEnum } from '@/utils/target-type';
+import { isLinkServiceCompatible, getCompatibilityError, normalizeServiceTargetType } from '@/constants/link-service-compatibility';
 import { safeUrlForLog } from '@/lib/log-safe';
 import { SmartDripService } from '@/services/dripfeed/smart-drip.service';
 import { randomUUID } from 'crypto';
@@ -255,6 +256,18 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       const resolvedTargetType = service.targetType
         ? normalizeTargetType(service.targetType)
         : inferTargetTypeFromCategory(service.category?.name);
+
+      // Deep Domain Compatibility Check (Backend Defense Guard)
+      const { IntelligenceLinkAnalyzer } = await import('@/services/analyzer/link-analyzer');
+      const analyzer = new IntelligenceLinkAnalyzer();
+      const analysis = await analyzer.analyze(link.trim());
+      const detectedLinkType = analysis?.type || 'generic_link';
+      const serviceTargetType = normalizeServiceTargetType(resolvedTargetType);
+
+      if (!isLinkServiceCompatible(detectedLinkType, serviceTargetType)) {
+        const errorMsg = getCompatibilityError(detectedLinkType, serviceTargetType, service.name);
+        throw new Error(errorMsg);
+      }
 
       if (resolvedTargetType === TargetTypeEnum.CUSTOM || service.targetType === 'CUSTOM') {
         const { getCustomValidator } = await import('@/validators/link-mutators');

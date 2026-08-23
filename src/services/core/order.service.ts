@@ -69,14 +69,16 @@ class OrderService {
           where: { id: input.serviceId },
           select: {
             id: true,
+            name: true,
             providerId: true,
             externalId: true,
             tenantId: true,
+            targetType: true,
             isActive: true,
             minQty: true,
             maxQty: true,
             category: {
-              select: { tenantId: true }
+              select: { name: true, tenantId: true }
             }
           }
         });
@@ -91,6 +93,22 @@ class OrderService {
 
         if (!service.isActive) {
           throw new Error('SERVICE_INACTIVE');
+        }
+
+        // 2a.1 Link-Service Domain Compatibility Check
+        if (!input.isLinkOverridden) {
+          const { isLinkServiceCompatible, getCompatibilityError, normalizeServiceTargetType } = await import('@/constants/link-service-compatibility');
+          const { IntelligenceLinkAnalyzer } = await import('@/services/analyzer/link-analyzer');
+          const analyzer = new IntelligenceLinkAnalyzer();
+          const analysis = await analyzer.analyze(input.link.trim());
+          const detectedLinkType = analysis?.type || 'generic_link';
+          const resolvedTargetType = service.targetType || (service.category?.name ? (await import('@/utils/target-type')).inferTargetTypeFromCategory(service.category.name) : 'POST');
+          const serviceTargetType = normalizeServiceTargetType(resolvedTargetType);
+
+          if (!isLinkServiceCompatible(detectedLinkType, serviceTargetType)) {
+            const errorMsg = getCompatibilityError(detectedLinkType, serviceTargetType, service.name);
+            throw new Error(`LINK_SERVICE_MISMATCH: ${errorMsg}`);
+          }
         }
 
         const serviceTenantId = service.tenantId;

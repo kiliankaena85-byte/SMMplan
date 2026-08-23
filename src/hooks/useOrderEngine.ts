@@ -13,10 +13,16 @@ import { matchesSuggestedCategory } from "@/services/analyzer/category-matcher";
 import {
   inferTargetTypeFromCategory,
   inferTargetTypeFromName,
-  isTargetTypeCompatible,
   normalizeTargetType,
   TargetTypeEnum
 } from "@/utils/target-type";
+import {
+  isLinkServiceCompatible,
+  getCompatibilityError,
+  normalizeServiceTargetType,
+  LinkType,
+  ServiceTargetType
+} from "@/constants/link-service-compatibility";
 import { toast } from "sonner";
 
 export type OrderEngine = ReturnType<typeof useOrderEngine>;
@@ -437,7 +443,7 @@ export function useOrderEngine(
         let finalSvcs = sortedSvcs;
         if (detectedType) {
           const compatibleSvcs = sortedSvcs.filter(s =>
-            isTargetTypeCompatible(detectedType, s.targetType || inferTargetTypeFromName(s.name))
+            isLinkServiceCompatible(detectedType, s.targetType || inferTargetTypeFromName(s.name))
           );
           if (compatibleSvcs.length > 0) {
             finalSvcs = compatibleSvcs;
@@ -645,12 +651,21 @@ export function useOrderEngine(
       });
     }
 
-    // Override generic URL error with strict targetType error if applicable
-    if (selectedService && activePlatform && currentUrl && !isLinkOverridden) {
+    // Strict Domain TargetType Compatibility Guard (Frontend Defense)
+    if (selectedService && detectedType && !isLinkOverridden) {
+      const activeCat2 = catalog.flatMap(n => n.categories).find(c => c.id === selectedService.categoryId);
+      const serviceTargetType = normalizeServiceTargetType(
+        selectedService.targetType || inferTargetTypeFromCategory(activeCat2?.name)
+      );
+      if (!isLinkServiceCompatible(detectedType, serviceTargetType)) {
+        errors['link'] = getCompatibilityError(detectedType, serviceTargetType, selectedService.name);
+      }
+    }
+
+    // Advanced Link Format Regex Validator
+    if (selectedService && activePlatform && currentUrl && !isLinkOverridden && !errors['link']) {
        const activeCat2 = catalog.flatMap(n => n.categories).find(c => c.id === selectedService.categoryId);
-       const targetType = selectedService.targetType === 'POST'
-         ? inferTargetTypeFromCategory(activeCat2?.name)
-         : (selectedService.targetType || inferTargetTypeFromCategory(activeCat2?.name));
+       const targetType = selectedService.targetType || inferTargetTypeFromCategory(activeCat2?.name);
        const validator = getLinkValidator(activePlatform, targetType);
        const linkResult = validator.safeParse(currentUrl);
        
@@ -720,6 +735,18 @@ export function useOrderEngine(
   
   const displayCatalog = catalog;
 
+  const compatibilityWarning = useMemo(() => {
+    if (!selectedService || !detectedType || isLinkOverridden) return null;
+    const activeCat = catalog.flatMap(n => n.categories).find(c => c.id === selectedService.categoryId);
+    const serviceTargetType = normalizeServiceTargetType(
+      selectedService.targetType || inferTargetTypeFromCategory(activeCat?.name)
+    );
+    if (!isLinkServiceCompatible(detectedType, serviceTargetType)) {
+      return getCompatibilityError(detectedType, serviceTargetType, selectedService.name);
+    }
+    return null;
+  }, [selectedService, detectedType, isLinkOverridden, catalog]);
+
   return {
     // State
     url, setUrl: handleSetUrl,
@@ -762,6 +789,7 @@ export function useOrderEngine(
     isCalculating,
     error,
     validationErrors,
+    compatibilityWarning,
     urlMutatedTrigger,
     
     // Mass Mode
