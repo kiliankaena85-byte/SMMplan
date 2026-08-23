@@ -9,8 +9,8 @@ export interface TenantLegalConfig {
   name: string;
   inn: string;
   ogrn: string;
-  address: string;
   email: string;
+  address?: string;
   supportPhone?: string;
 }
 
@@ -31,10 +31,9 @@ export const TENANT_CONFIG: Record<string, TenantConfig> = {
     domain: 'smmplan.pro',
     url: 'https://smmplan.pro',
     legal: {
-      name: 'ООО "СММ План"',
-      inn: '7724491024',
-      ogrn: '1207700381920',
-      address: 'г. Москва, вн.тер.г. муниципальный округ Нагорный, Варшавское ш., д. 26',
+      name: 'ИП Соколов А. А.',
+      inn: '772401001012',
+      ogrn: '321774600123456',
       email: 'support@smmplan.pro'
     }
   },
@@ -48,8 +47,7 @@ export const TENANT_CONFIG: Record<string, TenantConfig> = {
       name: 'ИП Соколов А. А.',
       inn: '772401001012',
       ogrn: '321774600123456',
-      address: 'г. Москва, пр. Вернадского, д. 29',
-      email: 'help@smmflux.ru'
+      email: 'support@smmplan.pro' // Единый контактный ящик домена
     }
   }
 };
