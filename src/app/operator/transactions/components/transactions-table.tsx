@@ -28,7 +28,7 @@ export function TransactionsTable({ data }: TransactionsTableProps) {
     <Table.ScrollContainer>
       <Table aria-label="Таблица транзакций Ledger">
         <Table.Header>
-          <Table.Column>ID Транзакции</Table.Column>
+          <Table.Column isRowHeader>ID Транзакции</Table.Column>
           <Table.Column>Клиент</Table.Column>
           <Table.Column className="text-right">Сумма</Table.Column>
           <Table.Column>Тип</Table.Column>

@@ -114,6 +114,7 @@ class AdminCatalogService {
     categoryId?: string;
     providerId?: string;
     isActive?: boolean;
+    hideDeleted?: boolean;
     providerStatus?: string;
     externalId?: string;
     pageSize?: number;
@@ -122,7 +123,7 @@ class AdminCatalogService {
     networkSlug?: string;
     tenantId?: string;
   }): Promise<PaginatedResult<CatalogRow>> {
-        const where: Prisma.ServiceWhereInput = {};
+    const where: Prisma.ServiceWhereInput = {};
 
     if (params.tenantId) {
       where.tenantId = { in: [params.tenantId, 'all'] };
@@ -136,6 +137,11 @@ class AdminCatalogService {
 
     if (params.providerId) {
       where.providerId = params.providerId === 'none' ? null : params.providerId;
+    }
+
+    if (params.hideDeleted) {
+      where.isActive = true;
+      where.cooldownReason = { notIn: ['ZOMBIE_AUTO_DISABLED', 'ZOMBIE_ARCHIVED'] };
     }
 
     if (params.isActive !== undefined) {

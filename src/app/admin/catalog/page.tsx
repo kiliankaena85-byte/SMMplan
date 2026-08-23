@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { CATALOG_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { CatalogTable } from '@/components/admin/catalog-table-v2';
+import { CatalogPagination } from '@/components/admin/catalog/catalog-pagination';
 
 import {
   TOTAL_MANDATORY_DEDUCTIONS,
@@ -34,6 +35,7 @@ type Props = {
     category?: string;
     providerId?: string;
     isActive?: string;
+    hideDeleted?: string;
     providerStatus?: string;
     externalId?: string;
     sortBy?: string;
@@ -66,6 +68,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
   const providerId = params.providerId || undefined;
   const isActiveStr = params.isActive || undefined;
   const isActive = isActiveStr === 'true' ? true : isActiveStr === 'false' ? false : undefined;
+  const hideDeleted = params.hideDeleted === 'true';
   const providerStatus = params.providerStatus || undefined;
   const externalId = params.externalId || undefined;
   const sortBy = params.sortBy || undefined;
@@ -87,6 +90,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
       categoryId,
       providerId,
       isActive,
+      hideDeleted,
       providerStatus,
       externalId,
       cursor,
@@ -209,14 +213,14 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
         networks={networks}
       />
       
-      {/* Pagination / Load More */}
-      {hasMore && (
-         <div className="flex justify-center pt-4">
-           <Link href={`/admin/catalog?tenant=${selectedTenant}&cursor=${nextCursor}${categoryId ? `&category=${categoryId}` : ''}${search ? `&q=${search}` : ''}${sortBy ? `&sortBy=${sortBy}` : ''}${sortOrder ? `&sortOrder=${sortOrder}` : ''}`}>
-             <Button intent="outline" size="sm" className="bg-background min-h-[40px]">Загрузить ещё...</Button>
-           </Link>
-         </div>
-      )}
+      {/* Modular Pagination with Progress & Active Filters */}
+      <CatalogPagination
+        totalCount={stats.totalServices}
+        currentCount={services.length}
+        hasMore={hasMore}
+        nextCursor={nextCursor}
+        selectedTenant={selectedTenant}
+      />
     </div>
   );
 }

@@ -70,8 +70,8 @@ export function LTVCharts({ ltv }: LTVChartsProps) {
           <CardTitle className="text-sm font-bold uppercase tracking-widest text-foreground">Распределение LTV (чел.)</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[240px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="h-[240px] w-full min-w-0">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
               <BarChart data={ltv.buckets} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis 

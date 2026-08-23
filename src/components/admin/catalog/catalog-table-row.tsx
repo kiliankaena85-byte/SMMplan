@@ -1,24 +1,13 @@
 'use client';
 
 import React, { useState, useTransition, useMemo } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Table } from '@heroui/react';
-import {
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  Layers,
-  Plus,
-  Eye,
-  Pencil,
-  ShoppingCart,
-  Trash2,
-  AlertCircle,
-} from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Table } from '@heroui/react';
 import { toast } from 'sonner';
-import type { CatalogServiceDTO } from '@/types/catalog.dto';
+import { Trash2, Pencil, AlertCircle, Eye } from 'lucide-react';
 import { SocialIcon } from '@/components/ui/SocialIcon';
+import type { CatalogServiceDTO } from '@/types/catalog.dto';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import {
   toggleServiceActiveAction,
@@ -29,20 +18,10 @@ import {
   SAFETY_FLOOR_MARKUP,
   TOTAL_MANDATORY_DEDUCTIONS,
 } from '@/lib/financial-constants';
-import { BatchActionBar } from './catalog/batch-action-bar';
-import {
-  CatalogFilters,
-  type FilterCategoryItem,
-  type FilterProviderItem,
-  type FilterNetworkItem,
-  formatCleanActivityName,
-} from './catalog/catalog-filters';
-import { AdminPricingIntelligenceModal } from './catalog/AdminPricingIntelligenceModal';
+import { AdminPricingIntelligenceModal } from './AdminPricingIntelligenceModal';
+import { formatCleanActivityName, type FilterCategoryItem, type FilterProviderItem } from './catalog-filters';
 
 const SAFETY_MULTIPLIER = (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
-
-export type { FilterCategoryItem as CatalogTableCategory, FilterProviderItem as CatalogTableProvider, FilterNetworkItem as CatalogTableNetwork };
-export { formatCleanActivityName };
 
 export function calcDisplayPrice(rate: number, markup: number, usdToRub: number, curr: 'RUB' | 'USD', vol: 'UNIT' | '1K') {
   if (vol === '1K') {
@@ -62,18 +41,6 @@ export function calcDisplayCost(rate: number, usdToRub: number, curr: 'RUB' | 'U
   } else {
     return curr === 'USD' ? rate / 1000 : (rate * usdToRub) / 1000;
   }
-}
-
-export function CreateServiceButton() {
-  return (
-    <Link
-      href="/admin/catalog/new"
-      className="inline-flex items-center justify-center gap-1.5 min-h-[36px] px-4 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/95 transition-all duration-200 cursor-pointer shadow-xs active:scale-95 text-xs"
-    >
-      <Plus className="w-4 h-4" />
-      Создать услугу
-    </Link>
-  );
 }
 
 // ─── Archive / Delete Button with Optimistic UI & Rollback ───────────────────
@@ -109,9 +76,9 @@ export function ArchiveButton({
           router.refresh();
         } else {
           toast.error(r.error || 'Ошибка удаления услуги');
-          router.refresh();
+          router.refresh(); // Refresh on failure to restore state
         }
-      } catch {
+      } catch (err) {
         toast.error('Сетевой сбой при удалении');
         router.refresh();
       }
@@ -146,333 +113,8 @@ export function ArchiveButton({
   );
 }
 
-export function EditServiceModal({
-  service,
-  onSuccess,
-}: {
-  service: CatalogServiceDTO;
-  categories?: unknown[];
-  providers?: unknown[];
-  onSuccess?: () => void;
-  usdToRub?: number;
-}) {
-  const [openPricingModal, setOpenPricingModal] = useState(false);
-
-  return (
-    <>
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => setOpenPricingModal(true)}
-          title="ML Юнит-экономика и параметры"
-          aria-label={`Юнит-экономика для ${service.name}`}
-          className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 transition-all duration-200 cursor-pointer"
-        >
-          <Eye className="w-4 h-4" />
-        </button>
-
-        <Link
-          href={`/admin/catalog/${service.id}`}
-          aria-label={`Редактировать услугу ${service.name}`}
-          className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200 cursor-pointer"
-        >
-          <Pencil className="w-3.5 h-3.5" />
-        </Link>
-      </div>
-
-      {openPricingModal && (
-        <AdminPricingIntelligenceModal
-          serviceId={service.id}
-          isOpen={openPricingModal}
-          onClose={() => {
-            setOpenPricingModal(false);
-            if (onSuccess) onSuccess();
-          }}
-        />
-      )}
-    </>
-  );
-}
-
-interface CatalogTableProps {
-  services: CatalogServiceDTO[];
-  usdToRub: number;
-  canEdit: boolean;
-  canEditFinance: boolean;
-  canSeeRates: boolean;
-  categories: FilterCategoryItem[];
-  providers: FilterProviderItem[];
-  networks?: FilterNetworkItem[];
-}
-
-export function CatalogTable({
-  services,
-  usdToRub,
-  canEdit,
-  canEditFinance,
-  canSeeRates,
-  categories,
-  providers,
-  networks,
-}: CatalogTableProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  // Currency & Volume state
-  const [currency, setCurrency] = useState<'RUB' | 'USD'>('RUB');
-  const [volume, setVolume] = useState<'UNIT' | '1K'>('1K');
-
-  // Selected checkboxes for batch operations
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  
-  // ⚡ Optimistic deletion state (instantly hides deleted IDs)
-  const [deletedIds, setDeletedIds] = useState<string[]>([]);
-
-  // Sorting from URL
-  const currentSortBy = searchParams.get('sortBy');
-  const currentSortOrder = searchParams.get('sortOrder') as 'asc' | 'desc' | null;
-
-  const handleSort = (column: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete('cursor'); // Reset cursor on sort
-
-    if (currentSortBy === column) {
-      if (currentSortOrder === 'asc') {
-        params.set('sortOrder', 'desc');
-      } else if (currentSortOrder === 'desc') {
-        params.delete('sortBy');
-        params.delete('sortOrder');
-      }
-    } else {
-      params.set('sortBy', column);
-      params.set('sortOrder', 'asc');
-    }
-
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  };
-
-  const renderSortableHeader = (column: string, label: string) => {
-    const isActive = currentSortBy === column;
-    return (
-      <button
-        type="button"
-        onClick={() => handleSort(column)}
-        className="flex items-center gap-1 hover:text-foreground transition-colors group cursor-pointer"
-      >
-        <span>{label}</span>
-        {isActive ? (
-          currentSortOrder === 'asc' ? (
-            <ArrowUp className="w-3 h-3 text-primary" />
-          ) : (
-            <ArrowDown className="w-3 h-3 text-primary" />
-          )
-        ) : (
-          <ArrowUpDown className="w-2.5 h-2.5 opacity-40 group-hover:opacity-100 transition-opacity" />
-        )}
-      </button>
-    );
-  };
-
-  const visibleServices = services.filter(s => !deletedIds.includes(s.id));
-  const isAllSelected = visibleServices.length > 0 && visibleServices.every(s => selectedIds.includes(s.id));
-
-  const handleSelectAll = () => {
-    if (isAllSelected) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(visibleServices.map(s => s.id));
-    }
-  };
-
-  const handleToggleRow = (id: string) => {
-    setSelectedIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
-  };
-
-  const handleServiceDeleted = (deletedId: string) => {
-    setDeletedIds(prev => [...prev, deletedId]);
-    setSelectedIds(prev => prev.filter(id => id !== deletedId));
-  };
-
-  return (
-    <div className="space-y-3.5 w-full">
-      {/* ─── FILTERS 2X4 (DEBOUNCED & MODULAR) ─── */}
-      <CatalogFilters
-        categories={categories}
-        providers={providers}
-        networks={networks}
-      />
-
-      {/* ─── TOP CONTROLS & BATCH ACTION BAR ─── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-card/60 backdrop-blur-md border border-border p-2.5 sm:p-3 rounded-xl shadow-2xs">
-        <div className="flex items-center gap-2">
-          {selectedIds.length > 0 && canEdit && (
-            <BatchActionBar
-              selectedIds={selectedIds}
-              categories={categories}
-              canEditFinance={canEditFinance}
-              onClear={() => setSelectedIds([])}
-            />
-          )}
-          {selectedIds.length === 0 && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
-              <Layers className="w-3.5 h-3.5 text-primary" />
-              <span>Показано: <strong className="text-foreground">{visibleServices.length}</strong> услуг</span>
-            </div>
-          )}
-        </div>
-
-        {/* Currency & Unit switches */}
-        <div className="flex items-center gap-2 self-end sm:self-auto">
-          {/* Unit / 1K Switch */}
-          <div className="flex items-center bg-muted/60 p-0.5 rounded-lg border border-border/60 text-[11px] font-bold">
-            <button
-              type="button"
-              onClick={() => setVolume('UNIT')}
-              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                volume === 'UNIT' ? 'bg-background text-foreground shadow-2xs' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              За 1 шт
-            </button>
-            <button
-              type="button"
-              onClick={() => setVolume('1K')}
-              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                volume === '1K' ? 'bg-background text-foreground shadow-2xs' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              За 1000 шт
-            </button>
-          </div>
-
-          {/* Currency Switch */}
-          <div className="flex items-center bg-muted/60 p-0.5 rounded-lg border border-border/60 text-[11px] font-bold">
-            <button
-              type="button"
-              onClick={() => setCurrency('RUB')}
-              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                currency === 'RUB' ? 'bg-background text-foreground shadow-2xs' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              RUB (₽)
-            </button>
-            <button
-              type="button"
-              onClick={() => setCurrency('USD')}
-              className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                currency === 'USD' ? 'bg-background text-foreground shadow-2xs' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              USD ($)
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── DATA TABLE ─── */}
-      <div className="bg-card/70 backdrop-blur-md border border-border rounded-xl shadow-2xs overflow-hidden w-full">
-        <Table.ScrollContainer>
-          <Table aria-label="Таблица услуг каталога" className="w-full">
-            <Table.Header className="bg-muted/40 border-b border-border">
-              {/* 1. Checkbox */}
-              <Table.Column className={canEdit ? "w-8 px-2 py-2 text-center" : "hidden"}>
-                <input
-                  type="checkbox"
-                  checked={isAllSelected}
-                  onChange={handleSelectAll}
-                  aria-label="Выбрать все услуги"
-                  className="rounded border-border text-primary focus:ring-primary cursor-pointer w-4 h-4"
-                  disabled={!canEdit || visibleServices.length === 0}
-                />
-              </Table.Column>
-
-              {/* 2. ID (isRowHeader mandatory for HeroUI / React Aria) */}
-              <Table.Column isRowHeader className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-2 py-2 w-12">
-                {renderSortableHeader('numericId', 'ID')}
-              </Table.Column>
-
-              {/* 3. Name */}
-              <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-2 py-2 max-w-[180px]">
-                {renderSortableHeader('name', 'УСЛУГА / ТАРИФ')}
-              </Table.Column>
-
-              {/* 4. Network */}
-              <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-2 py-2">
-                СОЦСЕТЬ
-              </Table.Column>
-
-              {/* 5. Category */}
-              <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-2 py-2">
-                КАТЕГОРИЯ
-              </Table.Column>
-
-              {/* 6. Provider */}
-              <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-2 py-2 max-w-[160px]">
-                ПРОВАЙДЕР
-              </Table.Column>
-
-              {/* 7. Status */}
-              <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-2 py-2 text-center">
-                СТАТУС
-              </Table.Column>
-
-              {/* 8. Provider Status */}
-              <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-2 py-2 text-center">
-                ПОСТАВЩИК
-              </Table.Column>
-
-              {/* 9. Markup */}
-              <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-2 py-2 text-center w-20">
-                {renderSortableHeader('markup', 'НАЦЕНКА')}
-              </Table.Column>
-
-              {/* 10. Price */}
-              <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-2 py-2 text-right w-24">
-                {renderSortableHeader('price', 'ЦЕНА')}
-              </Table.Column>
-
-              {/* 11. Actions */}
-              <Table.Column className={canEdit ? "w-20 px-2 py-2 text-right" : "hidden"}>
-                ДЕЙСТВИЯ
-              </Table.Column>
-            </Table.Header>
-
-            <Table.Body renderEmptyState={() => (
-              <div className="py-12 flex flex-col items-center justify-center text-muted-foreground gap-2">
-                <ShoppingCart className="w-8 h-8 opacity-20" />
-                <p className="text-sm">Услуги по выбранным критериям не найдены</p>
-              </div>
-            )}>
-              {visibleServices.map(service => (
-                <RowItem
-                  key={service.id}
-                  service={service}
-                  usdToRub={usdToRub}
-                  canEdit={canEdit}
-                  canEditFinance={canEditFinance}
-                  canSeeRates={canSeeRates}
-                  isChecked={selectedIds.includes(service.id)}
-                  onToggle={() => handleToggleRow(service.id)}
-                  categories={categories}
-                  providers={providers}
-                  currency={currency}
-                  volume={volume}
-                  onDeleted={handleServiceDeleted}
-                />
-              ))}
-            </Table.Body>
-          </Table>
-        </Table.ScrollContainer>
-      </div>
-    </div>
-  );
-}
-
-// ─── Inline Row Item that returns direct Table.Row ──────────────────────────
-function RowItem({
+// ─── Table Row Component ───────────────────────────────────────────────────
+export function CatalogTableRow({
   service: s,
   usdToRub,
   canEdit,
@@ -508,6 +150,7 @@ function RowItem({
   );
   const [openPricingModal, setOpenPricingModal] = useState(false);
 
+  // Sync display price when currency/volume changes
   useMemo(() => {
     setLocalPrice(String(calcDisplayPrice(s.rate, markup, usdToRub, currency, volume)));
   }, [s.rate, markup, usdToRub, currency, volume]);

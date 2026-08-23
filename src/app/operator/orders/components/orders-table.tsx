@@ -85,7 +85,7 @@ export function OrdersTable({ data }: OrdersTableProps) {
     <Table.ScrollContainer>
       <Table aria-label="Таблица заказов оператора">
         <Table.Header>
-          <Table.Column>ID</Table.Column>
+          <Table.Column isRowHeader>ID</Table.Column>
           <Table.Column>Клиент</Table.Column>
           <Table.Column>Услуга / Соцсеть</Table.Column>
           <Table.Column className="text-right">Цена</Table.Column>
