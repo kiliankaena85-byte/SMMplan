@@ -11,7 +11,7 @@ import { sanitizeServiceDescription } from "@/lib/sanitize";
 import { logger } from "@/lib/logger";
 import { SmartAnalyzerLogic } from "@/services/providers/smart-analyzer.logic";
 
-const getCachedNetworks = (tenantId: string) => unstable_cache(
+export const getCachedNetworks = (tenantId: string) => unstable_cache(
   async () => {
     return await db.network.findMany({
       where: {
@@ -29,16 +29,16 @@ const getCachedNetworks = (tenantId: string) => unstable_cache(
     });
   },
   [`public-catalog-networks-v3-${tenantId}`],
-  { revalidate: 60, tags: ['catalog', `catalog-${tenantId}`] }
+  { revalidate: 60, tags: ['catalog', `catalog-${tenantId}`, `networks-${tenantId}`] }
 )();
 
 const PAGE_SIZE = 100;
 
-const getCachedServices = (catId: string, tenantId: string = 'smmplan') => unstable_cache(
+export const getCachedServicesByCategory = (categoryId: string, tenantId: string = 'smmplan') => unstable_cache(
   async () => {
     const services = await db.service.findMany({
       where: { 
-        categoryId: catId, 
+        categoryId: categoryId, 
         isActive: true, 
         isQuarantined: false,
         tenantId: { in: [tenantId, 'all'] },
@@ -49,13 +49,15 @@ const getCachedServices = (catId: string, tenantId: string = 'smmplan') => unsta
       take: PAGE_SIZE + 1
     });
     if (services.length > PAGE_SIZE) {
-      console.warn(`[catalog] Category ${catId} has ${services.length} services, truncating tail to ${PAGE_SIZE}`);
+      console.warn(`[catalog] Category ${categoryId} has ${services.length} services, truncating tail to ${PAGE_SIZE}`);
     }
     return services.slice(0, PAGE_SIZE);
   },
-  [`public-services-by-category-v3-${catId}-${tenantId}`],
-  { revalidate: 60, tags: ['catalog', 'services', `catalog-${tenantId}`] }
+  [`public-services-by-category-v3-${categoryId}-${tenantId}`],
+  { revalidate: 60, tags: ['catalog', 'services', `catalog-${tenantId}`, `category-${categoryId}-${tenantId}`] }
 )();
+
+export const getCachedServices = getCachedServicesByCategory;
 
 export type PublicService = {
   id: string;

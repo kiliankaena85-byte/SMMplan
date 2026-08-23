@@ -36,6 +36,7 @@ export async function middleware(request: NextRequest) {
 
   const fromQuery = isTestOrStaging ? normalizeTenantId(request.nextUrl.searchParams.get('tenant')) : null;
   const fromCookie = normalizeTenantId(request.cookies.get('x_tenant')?.value);
+  const fromAdminCookie = normalizeTenantId(request.cookies.get('x_admin_tenant')?.value);
   const fromHost = normalizeTenantId(resolveTenantFromHostEdge(host));
 
   let finalTenantId = 'smmplan';
@@ -46,6 +47,8 @@ export async function middleware(request: NextRequest) {
     isExplicitTenant = true;
   } else if (fromHost && fromHost !== 'smmplan') {
     finalTenantId = fromHost;
+  } else if (fromAdminCookie && pathname.startsWith('/admin')) {
+    finalTenantId = fromAdminCookie;
   } else if (host.includes('smmplan.pro')) {
     finalTenantId = fromCookie && isTestOrStaging ? fromCookie : 'smmplan';
   } else if (fromCookie && isTestOrStaging) {
@@ -58,6 +61,7 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set('x-tenant-id', finalTenantId);
 
   const applyStickyCookie = (res: NextResponse) => {
+    res.headers.set('x-tenant-id', finalTenantId);
     if (isExplicitTenant) {
       res.cookies.set('x_tenant', finalTenantId, {
         path: '/',
@@ -157,7 +161,7 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Inject enterprise security headers (2026 standard)
+  response.headers.set('x-tenant-id', finalTenantId);
   response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
   response.headers.set('X-Frame-Options', 'SAMEORIGIN');
   response.headers.set('X-Content-Type-Options', 'nosniff');

@@ -92,7 +92,7 @@ export async function addTicketMessage(formData: FormData) {
   if (!session) throw new Error('Unauthorized');
 
   // Rate Limit: Prevent message flooding (max 60 messages per 1 minute)
-  const isAllowedUser = await RateLimitService.checkCustomKey(`add_message_user:${session.userId}`, 60, 60);
+  const isAllowedUser = await RateLimitService.checkCustomKey(`add_message_user:${session.tenantId || 'smmplan'}:${session.userId}`, 60, 60);
   const isAllowedIp = await RateLimitService.check('add_message_ip', 100, 60);
   if (!isAllowedUser || !isAllowedIp) {
     throw new Error('Слишком много сообщений. Пожалуйста, подождите перед следующим ответом.');

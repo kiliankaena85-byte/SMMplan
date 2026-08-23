@@ -12,7 +12,8 @@ export async function cancelOrderCoolingOffAction(orderId: string) {
       return { success: false, error: 'Unauthorized' };
     }
 
-    const isAllowed = await RateLimitService.check(`cancel-order:${session.userId}`, 20, 60);
+    const tenant = session.tenantId || 'smmplan';
+    const isAllowed = await RateLimitService.check(`cancel-order:${tenant}:${session.userId}`, 20, 60);
     if (!isAllowed) {
       return { success: false, error: 'Слишком частые запросы на отмену. Подождите.' };
     }
