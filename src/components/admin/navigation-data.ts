@@ -13,14 +13,10 @@ export const FINANCE_TABS = [
 
 export const CATALOG_TABS = [
   { label: 'Каталог услуг', href: '/admin/catalog' },
-  { label: 'Дерево структуры', href: '/admin/catalog/tree' },
-  { label: 'Категории', href: '/admin/catalog/categories' },
-  { label: 'Анализатор ссылок', href: '/admin/catalog/patterns' },
-  { label: 'Разведка рынка', href: '/admin/intel' },
-  { label: 'Синхронизация', href: '/admin/catalog/sync' },
-  { label: 'Карантин цен', href: '/admin/catalog/quarantine' },
-  { label: 'Провайдеры API', href: '/admin/providers' },
   { label: 'Импорт услуг', href: '/admin/providers/import' },
+  { label: 'Провайдеры API', href: '/admin/providers' },
+  { label: 'Категории & Соцсети', href: '/admin/catalog/categories' },
+  { label: 'Карантин & Дрифт цен', href: '/admin/catalog/quarantine' },
 ];
 
 export const SYSTEM_TABS = [

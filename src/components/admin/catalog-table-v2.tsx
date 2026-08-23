@@ -65,11 +65,11 @@ export function calcDisplayCost(rate: number, usdToRub: number, curr: 'RUB' | 'U
 export function CreateServiceButton() {
   return (
     <Link
-      href="/admin/catalog/new"
+      href="/admin/providers/import"
       className="inline-flex items-center justify-center gap-1.5 min-h-[36px] px-4 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/95 transition-all duration-200 cursor-pointer shadow-xs active:scale-95 text-xs"
     >
       <Plus className="w-4 h-4" />
-      Создать услугу
+      Добавить услугу
     </Link>
   );
 }

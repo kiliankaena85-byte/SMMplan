@@ -2,7 +2,7 @@ import { db } from '@/lib/db';
 import { verifySession } from '@/lib/session';
 import { notFound, redirect } from 'next/navigation';
 import { SettingsProvider } from '@/lib/settings';
-import { ServiceStudioForm } from '../components/service-studio-form';
+import { ServiceEditForm } from '../components/service-edit-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,37 +68,27 @@ export default async function AdminEditServicePage({ params }: Props) {
     id: service.id,
     name: service.name,
     description: service.description,
-    categoryId: service.categoryId,
-    networkId: service.category.networkId || undefined,
-    rate: service.rate,
-    markup: service.markup,
+    categoryId: service.categoryId || '',
+    rate: service.rate || 0.01,
+    markup: service.markup || 1.5,
     minQty: service.minQty,
     maxQty: service.maxQty,
     providerId: service.providerId,
     externalId: service.externalId,
     targetType: service.targetType,
-    qualityTier: service.qualityTier,
-    linkPlaceholder: service.linkPlaceholder,
-    linkHint: service.linkHint,
-    linkValidatorRegex: service.linkValidatorRegex,
-    requiresBotAdmin: service.requiresBotAdmin,
-    isMediaGroupAware: service.isMediaGroupAware,
-    customDataType: service.customDataType,
-    customDataLabel: service.customDataLabel,
     isActive: service.isActive,
     isDripFeedEnabled: service.isDripFeedEnabled,
     isRefillEnabled: service.isRefillEnabled,
-    isCancelEnabled: service.isCancelEnabled
+    isCancelEnabled: service.isCancelEnabled,
   };
 
   return (
     <div className="p-6 md:p-8 space-y-6">
-      <ServiceStudioForm
+      <ServiceEditForm
         initialData={initialData}
         networks={networks}
         providers={providers}
         exchangeRateUsd={exchangeRateUsd || 90.0}
-        isEditMode={true}
       />
     </div>
   );
