@@ -10,7 +10,13 @@ import { mutateLink, getLinkValidator } from "@/validators/link-mutators";
 import { formatCents } from "@/lib/utils";
 import { orderFormSchema } from "@/validators/order.validators";
 import { matchesSuggestedCategory } from "@/services/analyzer/category-matcher";
-import { inferTargetTypeFromCategory } from "@/utils/target-type";
+import {
+  inferTargetTypeFromCategory,
+  inferTargetTypeFromName,
+  isTargetTypeCompatible,
+  normalizeTargetType,
+  TargetTypeEnum
+} from "@/utils/target-type";
 import { toast } from "sonner";
 
 export type OrderEngine = ReturnType<typeof useOrderEngine>;
@@ -418,7 +424,7 @@ export function useOrderEngine(
         const svcs = await getServicesByCategoryAction(categoryId);
         if (stale) return; // Category changed while we were fetching — discard result
         
-        // WAVE 4.1: Marketing UX Sorting
+        // WAVE 4.1: Marketing UX Sorting & TargetType Compatibility Prioritization
         const sortedSvcs = [...svcs].sort((a, b) => {
             const aQuarantined = a.cooldownUntil && new Date(a.cooldownUntil) > new Date();
             const bQuarantined = b.cooldownUntil && new Date(b.cooldownUntil) > new Date();
@@ -427,10 +433,21 @@ export function useOrderEngine(
             return 0;
         });
 
-        setServices(sortedSvcs);
+        // If detectedType is active, prioritize or filter compatible services
+        let finalSvcs = sortedSvcs;
+        if (detectedType) {
+          const compatibleSvcs = sortedSvcs.filter(s =>
+            isTargetTypeCompatible(detectedType, s.targetType || inferTargetTypeFromName(s.name))
+          );
+          if (compatibleSvcs.length > 0) {
+            finalSvcs = compatibleSvcs;
+          }
+        }
+
+        setServices(finalSvcs);
         
         if (initialServiceId && !selectedServiceRef.current) {
-           const found = sortedSvcs.find(s => s.id === initialServiceId);
+           const found = finalSvcs.find(s => s.id === initialServiceId);
            if (found) {
               setSelectedService(found);
            } else {
