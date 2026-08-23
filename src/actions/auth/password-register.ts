@@ -71,11 +71,23 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
         return { type: 'exists' as const };
       }
 
-      // Handle referral code if present in cookies
+      // Handle referral code with Anti-Fraud Validation (Self-referral & cycle ban)
       let referredById = null;
       if (refCode) {
         const referrer = await tx.user.findUnique({ where: { referralCode: refCode } });
-        if (referrer) referredById = referrer.id;
+        if (referrer) {
+          const { ReferralValidatorService } = await import('@/services/referral/referral-validator.service');
+          const validation = await ReferralValidatorService.validateReferralLink(referrer.id, null, {
+            inviteeEmail: cleanEmail,
+            ip: clientIp,
+            tenantId
+          });
+          if (validation.valid && validation.riskLevel !== 'CRITICAL') {
+            referredById = referrer.id;
+          } else {
+            log.warn('Referral rejected by Anti-Fraud shield', { refCode, email: cleanEmail, reason: validation.reason });
+          }
+        }
       }
 
       // Auto-bootstrap: First user is OWNER

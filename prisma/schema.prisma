@@ -766,6 +766,42 @@ model Commission {
   @@index([referrerId])
 }
 
+// ── Anti-Fraud & Bonus Security Models ──
+
+model ProcessedBonusEvent {
+  id          String   @id @default(cuid())
+  eventType   String   // 'FIRST_DEPOSIT', 'REFERRAL_SIGNUP', 'ORDER_COMPLETE', 'PROMO_CODE'
+  eventId     String   // Unique event ID (PaymentID, OrderID, etc.)
+  userId      String
+  amountCents BigInt
+  status      String   @default("PROCESSED") // 'PROCESSED', 'REJECTED', 'PENDING'
+  createdAt   DateTime @default(now())
+
+  @@unique([eventType, eventId])
+  @@index([userId])
+}
+
+model BonusRedemptionLog {
+  id                 String    @id @default(cuid())
+  userId             String
+  bonusType          String    // 'FIRST_DEPOSIT', 'REFERRAL_COMMISSION', 'PROMO_CODE'
+  amountCents        BigInt
+  paymentFingerprint String?   // Hash of card BIN + last4 or crypto address
+  ipAddress          String?
+  userAgent          String?
+  status             String    @default("GRANTED") // 'GRANTED', 'LOCKED', 'REJECTED', 'CONFISCATED'
+  unlockAt           DateTime? // Vesting unlock date (72h)
+  reason             String?
+  tenantId           String?   @default("smmplan")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([paymentFingerprint, bonusType])
+  @@index([userId])
+  @@index([status, unlockAt])
+  @@index([tenantId])
+}
+
 // Security: Rate Limit
 model RateLimit {
   id        String   @id @default(cuid())
