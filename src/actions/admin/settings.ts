@@ -351,7 +351,7 @@ export async function generateInboundSecretAction() {
 
     const ipAddress = await getClientIp();
 
-    auditAdmin({
+    await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'INBOUND_SECRET_GENERATE',
@@ -375,6 +375,150 @@ export async function generateInboundSecretAction() {
     throw new Error(result.error);
   }
   return result;
+}
+
+// ── Get Masked Settings Action (P0 Secret Protection) ──
+export async function getSettingsAction() {
+  return requireStaffPermission('settings', 'view', async () => {
+    const settings = await settingsService.getSystemSettings();
+    return {
+      ...settings,
+      yookassaSecretKey: settings.yookassaSecretKey ? '••••••••' + (settings.yookassaSecretKey.length >= 4 ? settings.yookassaSecretKey.slice(-4) : '') : '',
+      yookassaTestSecretKey: settings.yookassaTestSecretKey ? '••••••••' + (settings.yookassaTestSecretKey.length >= 4 ? settings.yookassaTestSecretKey.slice(-4) : '') : '',
+      robokassaPassword: settings.robokassaPassword ? '••••••••' : '',
+      robokassaWebhookPassword: settings.robokassaWebhookPassword ? '••••••••' : '',
+      geminiApiKeys: settings.geminiApiKeys ? '••••••••' : '',
+      smtpPassword: settings.smtpPassword ? '••••••••' : '',
+      cryptoBotToken: settings.cryptoBotToken ? '••••••••' : '',
+      resendApiKey: settings.resendApiKey ? '••••••••' : '',
+      inboundEmailWebhookSecret: settings.inboundEmailWebhookSecret ? '••••••••' : '',
+      _hasYookassaSecret: Boolean(settings.yookassaSecretKey),
+      _hasYookassaTestSecret: Boolean(settings.yookassaTestSecretKey),
+      _hasRobokassaPassword: Boolean(settings.robokassaPassword),
+      _hasCryptoBotToken: Boolean(settings.cryptoBotToken),
+      _hasSmtpPassword: Boolean(settings.smtpPassword),
+      _hasResendApiKey: Boolean(settings.resendApiKey),
+      _hasGeminiKeys: Boolean(settings.geminiApiKeys),
+    };
+  });
+}
+
+// ── Dry Run Integration Test Actions ──
+
+export async function testSmtpConnectionAction(host?: string, port?: number, user?: string, pass?: string) {
+  return requireStaffPermission('settings', 'view', async () => {
+    const { isPublicHost } = await import('@/lib/ssrf-guard');
+    const settings = await settingsService.getSystemSettings();
+
+    const targetHost = host || settings.smtpHost;
+    const targetPort = port || settings.smtpPort || 465;
+    const targetUser = user || settings.smtpUser;
+    const targetPass = pass && !pass.includes('•••') ? pass : (settings.smtpPassword ? VaultService.decrypt(settings.smtpPassword) : '');
+
+    if (!targetHost) {
+      return { success: false, message: 'SMTP хост не настроен' };
+    }
+
+    const isSafe = await isPublicHost(targetHost);
+    if (!isSafe) {
+      return { success: false, message: 'SSRF защита: хост недопустим (локальный или приватный)' };
+    }
+
+    try {
+      const nodemailer = await import('nodemailer');
+      const transporter = nodemailer.createTransport({
+        host: targetHost,
+        port: targetPort,
+        secure: targetPort === 465,
+        auth: targetUser && targetPass ? { user: targetUser, pass: targetPass } : undefined,
+        connectionTimeout: 5000,
+        greetingTimeout: 5000,
+      });
+
+      await transporter.verify();
+      return { success: true, message: `SMTP соединение с ${targetHost}:${targetPort} успешно подтверждено` };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { success: false, message: `Ошибка SMTP: ${msg}` };
+    }
+  });
+}
+
+export async function testGeminiAiConnectionAction(apiKey?: string, proxy?: string) {
+  return requireStaffPermission('settings', 'view', async () => {
+    const { isPublicHost } = await import('@/lib/ssrf-guard');
+    const settings = await settingsService.getSystemSettings();
+
+    let targetKey = apiKey;
+    if (!targetKey || targetKey.includes('•••')) {
+      if (settings.geminiApiKeys) {
+        const decrypted = VaultService.decrypt(settings.geminiApiKeys);
+        targetKey = decrypted.split(',')[0].trim();
+      } else {
+        targetKey = process.env.GEMINI_API_KEY;
+      }
+    }
+
+    if (!targetKey) {
+      return { success: false, message: 'API-ключ Gemini не найден' };
+    }
+
+    const targetProxy = proxy || settings.geminiProxy;
+    if (targetProxy) {
+      try {
+        const url = new URL(targetProxy);
+        if (!await isPublicHost(url.hostname)) {
+          return { success: false, message: 'SSRF защита: прокси указывает на приватный хост' };
+        }
+      } catch {
+        return { success: false, message: 'Некорректный URL прокси' };
+      }
+    }
+
+    try {
+      const { GeminiClient } = await import('@/services/ai/gemini-client');
+      const startTime = Date.now();
+      const response = await GeminiClient.generateContent({
+        customApiKey: targetKey,
+        contents: [{ role: 'user', parts: [{ text: 'ping' }] }],
+        timeoutMs: 8000,
+      });
+      const pingMs = Date.now() - startTime;
+      if (response && typeof response === 'string') {
+        return { success: true, message: `Gemini API (gemini-3-flash) отвечает штатно (${pingMs}ms)` };
+      }
+      return { success: true, message: `Gemini API доступен (${pingMs}ms)` };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { success: false, message: `Ошибка Gemini API: ${msg}` };
+    }
+  });
+}
+
+export async function testTelegramBotConnectionAction() {
+  return requireStaffPermission('settings', 'view', async () => {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token || token === 'dummy_token') {
+      return { success: false, message: 'TELEGRAM_BOT_TOKEN не задан в .env' };
+    }
+
+    try {
+      const startTime = Date.now();
+      const res = await fetch(`https://api.telegram.org/bot${token}/getMe`, { cache: 'no-store' });
+      const pingMs = Date.now() - startTime;
+      const data = await res.json();
+      if (data.ok && data.result) {
+        return {
+          success: true,
+          message: `Бот @${data.result.username} онлайн (${pingMs}ms, ID: ${data.result.id})`,
+        };
+      }
+      return { success: false, message: data.description || 'Ошибка Telegram Bot API' };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { success: false, message: `Ошибка связи: ${msg}` };
+    }
+  });
 }
 
 // ── Staff Personal Gemini API Key Update ──

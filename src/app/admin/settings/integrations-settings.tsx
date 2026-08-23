@@ -6,10 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { updateGlobalSettings, generateInboundSecretAction } from '@/actions/admin/settings';
+import { 
+  updateGlobalSettings, 
+  generateInboundSecretAction,
+  testSmtpConnectionAction,
+  testGeminiAiConnectionAction,
+  testTelegramBotConnectionAction,
+} from '@/actions/admin/settings';
 import { toast } from 'sonner';
-import { useActionState, useEffect } from 'react';
-import { Loader2, Eye, EyeOff, Key, Sparkles, Bot, ShieldCheck } from 'lucide-react';
+import { useActionState, useEffect, useState } from 'react';
+import { Loader2, Eye, EyeOff, Key, Sparkles, Bot, ShieldCheck, Radio, CheckCircle, AlertCircle } from 'lucide-react';
 import { SystemSettings } from '@prisma/client';
 
 interface IntegrationsSettingsProps {
@@ -17,6 +23,71 @@ interface IntegrationsSettingsProps {
 }
 
 export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
+  const [testingSmtp, setTestingSmtp] = useState(false);
+  const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const [testingGemini, setTestingGemini] = useState(false);
+  const [geminiTestResult, setGeminiTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const [testingTelegram, setTestingTelegram] = useState(false);
+  const [telegramTestResult, setTelegramTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleTestSmtp = async () => {
+    setTestingSmtp(true);
+    setSmtpTestResult(null);
+    try {
+      const res = await testSmtpConnectionAction();
+      const message = 'message' in res ? res.message : res.error;
+      setSmtpTestResult({ success: res.success, message });
+      if (res.success) {
+        toast.success(message);
+      } else {
+        toast.error(message);
+      }
+    } catch (err) {
+      toast.error(String(err));
+    } finally {
+      setTestingSmtp(false);
+    }
+  };
+
+  const handleTestGemini = async () => {
+    setTestingGemini(true);
+    setGeminiTestResult(null);
+    try {
+      const res = await testGeminiAiConnectionAction();
+      const message = 'message' in res ? res.message : res.error;
+      setGeminiTestResult({ success: res.success, message });
+      if (res.success) {
+        toast.success(message);
+      } else {
+        toast.error(message);
+      }
+    } catch (err) {
+      toast.error(String(err));
+    } finally {
+      setTestingGemini(false);
+    }
+  };
+
+  const handleTestTelegram = async () => {
+    setTestingTelegram(true);
+    setTelegramTestResult(null);
+    try {
+      const res = await testTelegramBotConnectionAction();
+      const message = 'message' in res ? res.message : res.error;
+      setTelegramTestResult({ success: res.success, message });
+      if (res.success) {
+        toast.success(message);
+      } else {
+        toast.error(message);
+      }
+    } catch (err) {
+      toast.error(String(err));
+    } finally {
+      setTestingTelegram(false);
+    }
+  };
   const [state, formAction, isPending] = useActionState(
     async (prevState: unknown, formData: FormData) => {
       try {
@@ -97,8 +168,26 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
                 rows={4}
               />
             </div>
-            <div className="flex justify-end">
-              <Button disabled={isPending} type="submit" intent="outline" className="font-bold uppercase tracking-widest text-xs h-9">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  intent="secondary"
+                  size="sm"
+                  onClick={handleTestTelegram}
+                  disabled={testingTelegram}
+                  className="font-bold uppercase tracking-widest text-[11px] h-9 cursor-pointer"
+                >
+                  {testingTelegram ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Bot className="w-3.5 h-3.5 mr-1.5" />}
+                  Тест Telegram API
+                </Button>
+                {telegramTestResult && (
+                  <span className={`text-xs font-semibold ${telegramTestResult.success ? 'text-success' : 'text-destructive'}`}>
+                    {telegramTestResult.message}
+                  </span>
+                )}
+              </div>
+              <Button disabled={isPending} type="submit" intent="outline" className="font-bold uppercase tracking-widest text-xs h-9 cursor-pointer">
                 {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Обновить контент бота
               </Button>
@@ -379,9 +468,26 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-border flex justify-between items-center">
-              <p className="text-[10px] text-muted-foreground">Если поля SMTP пустые, используются настройки из .env (fallback)</p>
-              <Button disabled={isPending} type="submit" className="font-bold uppercase tracking-widest text-xs h-10 shadow-md">
+            <div className="pt-4 border-t border-border flex flex-wrap justify-between items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  intent="secondary"
+                  size="sm"
+                  onClick={handleTestSmtp}
+                  disabled={testingSmtp}
+                  className="font-bold uppercase tracking-widest text-[11px] h-9 cursor-pointer"
+                >
+                  {testingSmtp ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Radio className="w-3.5 h-3.5 mr-1.5" />}
+                  Тест SMTP соединения
+                </Button>
+                {smtpTestResult && (
+                  <span className={`text-xs font-semibold ${smtpTestResult.success ? 'text-success' : 'text-destructive'}`}>
+                    {smtpTestResult.message}
+                  </span>
+                )}
+              </div>
+              <Button disabled={isPending} type="submit" className="font-bold uppercase tracking-widest text-xs h-10 shadow-md cursor-pointer">
                 {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Сохранить настройки почты
               </Button>
@@ -459,8 +565,25 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-border flex justify-between items-center">
-              <p className="text-[10px] text-muted-foreground">Если поля не заполнены, используются настройки из .env</p>
+            <div className="pt-4 border-t border-border flex flex-wrap justify-between items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  intent="secondary"
+                  size="sm"
+                  onClick={handleTestGemini}
+                  disabled={testingGemini}
+                  className="font-bold uppercase tracking-widest text-[11px] h-9 cursor-pointer"
+                >
+                  {testingGemini ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1.5" />}
+                  Тест Gemini AI
+                </Button>
+                {geminiTestResult && (
+                  <span className={`text-xs font-semibold ${geminiTestResult.success ? 'text-success' : 'text-destructive'}`}>
+                    {geminiTestResult.message}
+                  </span>
+                )}
+              </div>
               <Button disabled={isPending} type="submit" className="font-bold uppercase tracking-widest text-xs h-10 shadow-md cursor-pointer">
                 {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Сохранить настройки Gemini

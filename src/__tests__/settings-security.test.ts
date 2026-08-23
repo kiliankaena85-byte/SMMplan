@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { globalSettingsSchema } from '@/validators/admin.validators';
 import { isPublicHost } from '@/lib/ssrf-guard';
+import { validateUrlNoSSRF } from '@/lib/security';
 
 describe('Settings Security, RBAC & FinTech Rules', () => {
 
@@ -31,7 +32,7 @@ describe('Settings Security, RBAC & FinTech Rules', () => {
     });
   });
 
-  describe('2. SSRF Protection on SMTP & Proxies', () => {
+  describe('2. SSRF Protection on SMTP & Proxies (validateUrlNoSSRF)', () => {
     it('blocks localhost and internal hosts', async () => {
       expect(await isPublicHost('localhost')).toBe(false);
       expect(await isPublicHost('127.0.0.1')).toBe(false);
@@ -39,9 +40,17 @@ describe('Settings Security, RBAC & FinTech Rules', () => {
       expect(await isPublicHost('internal.local')).toBe(false);
     });
 
-    it('allows valid public hosts', async () => {
+    it('validateUrlNoSSRF blocks dangerous loopback/metadata URLs', async () => {
+      expect(await validateUrlNoSSRF('http://127.0.0.1:8080/webhook')).toBe(false);
+      expect(await validateUrlNoSSRF('http://169.254.169.254/latest/meta-data/')).toBe(false);
+      expect(await validateUrlNoSSRF('http://localhost:3000')).toBe(false);
+      expect(await validateUrlNoSSRF('127.0.0.1')).toBe(false);
+    });
+
+    it('allows valid public hosts and URLs', async () => {
       expect(await isPublicHost('smtp.yandex.ru')).toBe(true);
       expect(await isPublicHost('smtp.gmail.com')).toBe(true);
+      expect(await validateUrlNoSSRF('https://api.telegram.org/bot12345/webhook')).toBe(true);
     });
   });
 
@@ -50,6 +59,7 @@ describe('Settings Security, RBAC & FinTech Rules', () => {
       const isPlaceholder = (val?: string | null) => !val || val.trim() === '' || val.includes('•••');
       
       expect(isPlaceholder('••••••••••••••••')).toBe(true);
+      expect(isPlaceholder('••••••••abcd')).toBe(true);
       expect(isPlaceholder('')).toBe(true);
       expect(isPlaceholder(null)).toBe(true);
       expect(isPlaceholder('live_sec_1234567890abcdef')).toBe(false);
@@ -57,3 +67,4 @@ describe('Settings Security, RBAC & FinTech Rules', () => {
     });
   });
 });
+

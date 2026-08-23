@@ -113,10 +113,10 @@ export function CatalogSettings({ settings }: CatalogSettingsProps) {
               name="globalMarkup"
               type="number"
               step="0.05"
-              min="1"
+              min="1.05"
               max="100"
               value={liveMarkup}
-              onChange={(e) => setLiveMarkup(parseFloat(e.target.value) || 1)}
+              onChange={(e) => setLiveMarkup(parseFloat(e.target.value) || 1.05)}
               placeholder="3.0"
               className={`font-mono font-bold text-sm ${formState?.errors?.globalMarkup ? 'border-destructive focus-visible:ring-destructive' : ''}`}
             />
@@ -124,7 +124,7 @@ export function CatalogSettings({ settings }: CatalogSettingsProps) {
               <p className="text-xs font-bold text-destructive mt-1">{formState.errors.globalMarkup[0]}</p>
             )}
             <p className="text-[11px] text-muted-foreground leading-normal">
-              Множитель по умолчанию для новых услуг (например, 2.5, 3.0, 3.85).
+              Множитель по умолчанию для новых услуг (мин. 1.05 = +5%).
             </p>
           </div>
 
@@ -136,16 +136,16 @@ export function CatalogSettings({ settings }: CatalogSettingsProps) {
               name="safetyFloor"
               type="number"
               step="0.05"
-              min="1"
+              min="1.05"
               max="100"
-              defaultValue={settings.safetyFloor || 1.0}
+              defaultValue={settings.safetyFloor || 1.05}
               className={`font-mono font-bold text-sm ${formState?.errors?.safetyFloor ? 'border-destructive focus-visible:ring-destructive' : ''}`}
             />
             {formState?.errors?.safetyFloor && (
               <p className="text-xs font-bold text-destructive mt-1">{formState.errors.safetyFloor[0]}</p>
             )}
             <p className="text-[11px] text-muted-foreground leading-normal">
-              Нижний порог множителя (1.0 = защита от продажи в убыток).
+              Нижний порог множителя (мин. 1.05 = защита от продажи в убыток).
             </p>
           </div>
 
@@ -281,12 +281,21 @@ export function CatalogSettings({ settings }: CatalogSettingsProps) {
         </div>
       </Card>
 
-      {/* Save Button */}
-      <div className="flex justify-end pt-2">
-        <Button disabled={isPending} type="submit" className="font-bold uppercase tracking-widest text-xs h-12 px-8 shadow-md">
-          {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-          Сохранить настройки каталога
-        </Button>
+      {/* Sticky Bottom Action Bar */}
+      <div className="sticky bottom-4 z-20 flex items-center justify-between gap-4 p-4 rounded-2xl bg-card/95 backdrop-blur-md border border-border shadow-lg">
+        <div className="text-xs text-muted-foreground hidden sm:block">
+          Настройки цен и синхронизации курсов применяются ко всем новым заказам
+        </div>
+        <div className="flex items-center gap-3 ml-auto">
+          <Button
+            disabled={isPending}
+            type="submit"
+            className="font-bold uppercase tracking-widest text-xs h-11 px-8 shadow-md cursor-pointer"
+          >
+            {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            Сохранить настройки каталога
+          </Button>
+        </div>
       </div>
     </form>
   );

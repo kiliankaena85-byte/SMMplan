@@ -2,7 +2,7 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-23 | Агент: Antigravity
-## Активный статус: 🚀 Успешный пуш в origin/main. Завершена защита и модернизация «Системных Настроек» (/admin/settings): маскирование секретов (Secret Masking), защита от SSRF для SMTP/прокси, OWNER-only RBAC на платёжные шлюзы, фиксация safetyFloor >= 1.05 (+5%), липкая панель Sticky Action Bar и awaitable audit logging, тесты 44/44 passed.
+## Активный статус: 🚀 Успешный пуш в origin/main. Завершена защита и модернизация «Системных Настроек» (/admin/settings): маскирование секретов (Secret Masking), защита от SSRF (validateUrlNoSSRF), OWNER-only RBAC на платёжные шлюзы, фиксация safetyFloor >= 1.05 (+5%), интерактивные Dry-Run тесты соединений (SMTP, Gemini, Telegram), липкая панель Sticky Action Bar и awaitable audit logging, тесты 45/45 passed.
 
 ---
 
