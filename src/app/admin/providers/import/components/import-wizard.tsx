@@ -11,6 +11,7 @@ import {
 import { ServicesTable } from "./services-table";
 import { SummaryDashboard } from "./summary-dashboard";
 import { ConfirmationModal } from "./confirmation-modal";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -18,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Download, Search, SlidersHorizontal, RotateCcw } from "lucide-react";
+import { Download, Search, SlidersHorizontal, RotateCcw, Package } from "lucide-react";
 import type { ExternalServiceItem, CategoryItem, ProviderItem } from "../types";
 
 /* ── AI Auto-Mapping ── */
@@ -161,7 +162,7 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
   const [selectedCategories, setSelectedCategories] = useState<Record<string, string>>({});
   const [autoMappedCategories, setAutoMappedCategories] = useState<Record<string, string>>({});
   const [aiConfidence, setAiConfidence] = useState<Record<string, boolean>>({});
-  const [markup, setMarkup] = useState<string>("50");
+  const [markup, setMarkup] = useState<string>("200"); // AUD-03: percent (200% = ×3.0 safety floor default); 0 = auto-pricing
   const [targetTenant, setTargetTenant] = useState<'smmplan' | 'flux' | 'both'>('smmplan');
 
   // Filters
@@ -293,6 +294,25 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
     }
   };
 
+  // AUD-02: switch import source provider — resets selection, mapping and filters
+  const handleProviderChange = (nextId: string | null) => {
+    if (!nextId || nextId === providerId) return;
+    setProviderId(nextId);
+    setSelectedIds(new Set());
+    setSelectedCategories({});
+    setAutoMappedCategories({});
+    setAiConfidence({});
+    setMissingCategoryIds(new Set());
+    setFilters({ ...DEFAULT_FILTERS });
+    setLocalSearch("");
+    setPagination({ page: 1, totalPages: 1, total: 0, pageSize: 50 });
+    setPlatformCounts({});
+    setProviderCategories([]);
+    setIsEmptyCache(false);
+    setError(null);
+    setSuccess(null);
+  };
+
   // Selection handlers
   const toggleSelection = (id: string) => {
     setSelectedIds((prev) => {
@@ -403,7 +423,7 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
   // Import Execution
   const handleStartImport = async () => {
     if (selectedIds.size === 0) return;
-    
+
     // Check for missing category mappings
     const missing = new Set<string>();
     selectedIds.forEach((id) => {
@@ -436,14 +456,25 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
       const res = await importSelectedServices(
         externalIds,
         firstCatId,
-        parseFloat(markup) || 50,
+        (() => {
+          const p = parseFloat(markup);
+          if (isNaN(p) || p < 0) return 3.0;
+          if (p === 0) return 0;
+          return Math.round((1 + p / 100) * 100) / 100;
+        })(),
         providerId,
         categoryIdMap,
         targetTenant
       );
 
       if (res.success) {
-        setSuccess(`Успешно импортировано ${("imported" in res && res.imported !== undefined ? res.imported : externalIds.length)} услуг!`);
+        const importedCount = "imported" in res && res.imported !== undefined ? res.imported : externalIds.length;
+        const skippedCount = externalIds.length - importedCount;
+        setSuccess(
+          skippedCount > 0
+            ? `Импортировано ${importedCount} из ${externalIds.length} услуг. ${skippedCount} пропущено (дубликаты или изменения у провайдера).`
+            : `Успешно импортировано ${importedCount} услуг!`
+        );
         setSelectedIds(new Set());
         await loadServices();
         router.refresh();
@@ -487,6 +518,35 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
 
   return (
     <div className="flex flex-col gap-6">
+      {/* AUD-02: Provider selector — switch import source without workarounds */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl px-4 py-3 shadow-sm">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <Package className="w-4 h-4 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Источник импорта</div>
+            <div className="text-xs text-muted-foreground truncate">
+              Каталог загружается с выбранной панели{providers.length > 0 ? ` (доступно: ${providers.length})` : ''}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Select value={providerId} onValueChange={handleProviderChange}>
+            <SelectTrigger className="w-[260px] h-10 text-sm font-semibold" aria-label="Выбор провайдера для импорта">
+              <SelectValue placeholder="Выберите провайдера..." />
+            </SelectTrigger>
+            <SelectContent>
+              {providers.map((p) => (
+                <SelectItem key={p.id} value={p.id} className="text-sm">
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       {/* Top Controls & Summary */}
       <SummaryDashboard
         totalInCache={pagination.total}
@@ -611,31 +671,61 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
         </div>
 
         {/* Services Table */}
-        <ServicesTable
-          services={activeTab === "ready" ? readyServices : attentionServices}
-          selectedIds={selectedIds}
-          toggleSelection={toggleSelection}
-          toggleAll={toggleAll}
-          loading={loading}
-          filters={filters}
-          setFilters={setFilters}
-          pagination={pagination}
-          markup={parseFloat(markup) || 50}
-          categories={categories}
-          selectedCategories={selectedCategories}
-          onCategoryChange={(svcId, catId) => {
-            setSelectedCategories((prev) => ({ ...prev, [svcId]: catId }));
-            setMissingCategoryIds((prev) => {
-              const next = new Set(prev);
-              next.delete(svcId);
-              return next;
-            });
-          }}
-          autoMappedCategories={autoMappedCategories}
-          aiConfidence={aiConfidence}
-          showCategoryColumn={true}
-          validationErrors={missingCategoryIds}
-        />
+        {isEmptyCache ? (
+          /* AUD-06: visible empty-cache state instead of a blank screen */
+          <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-8 shadow-sm flex flex-col items-center justify-center text-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <Download className="w-6 h-6 text-primary" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="text-base font-bold text-foreground">Каталог провайдера пуст</h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                Теневой каталог выбранного провайдера ещё не загружен в базу. Нажмите «Загрузить каталог»,
+                чтобы синхронизироваться с API панели — после этого здесь появится список услуг для выбора.
+              </p>
+            </div>
+            <Button
+              intent="primary"
+              onClick={handleSyncCache}
+              disabled={syncing}
+              className="h-10 px-6 font-semibold text-sm"
+            >
+              <Download className="w-4 h-4" />
+              {syncing ? "Загрузка каталога..." : "Загрузить каталог"}
+            </Button>
+          </div>
+        ) : (
+          <ServicesTable
+            services={activeTab === "ready" ? readyServices : attentionServices}
+            selectedIds={selectedIds}
+            toggleSelection={toggleSelection}
+            toggleAll={toggleAll}
+            loading={loading}
+            filters={filters}
+            setFilters={setFilters}
+            pagination={pagination}
+            markup={(() => {
+              const p = parseFloat(markup);
+              if (isNaN(p) || p < 0) return 3.0;
+              if (p === 0) return 3.0;
+              return Math.round((1 + p / 100) * 100) / 100;
+            })()}
+            categories={categories}
+            selectedCategories={selectedCategories}
+            onCategoryChange={(svcId, catId) => {
+              setSelectedCategories((prev) => ({ ...prev, [svcId]: catId }));
+              setMissingCategoryIds((prev) => {
+                const next = new Set(prev);
+                next.delete(svcId);
+                return next;
+              });
+            }}
+            autoMappedCategories={autoMappedCategories}
+            aiConfidence={aiConfidence}
+            showCategoryColumn={true}
+            validationErrors={missingCategoryIds}
+          />
+        )}
       </div>
 
       {/* Confirmation Modal */}

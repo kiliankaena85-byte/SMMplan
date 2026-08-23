@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { requireStaffPermission } from "@/lib/server/rbac";
 import { adminCatalogService } from "@/services/admin/catalog.service";
 import { db } from "@/lib/db";
@@ -361,7 +361,7 @@ const importServicesSchema = z.object({
   externalIds: z.array(z.string().min(1)).min(1, "Выберите хотя бы одну услугу"),
   categoryId: z.string().min(1, "Категория обязательна"),
   defaultMarkup: z.coerce.number().refine(val => val === 0 || (val >= 1.0 && val <= 10.0), {
-    message: "Наценка должна быть 0 (автокалькуляция) или от 1.0 (0%) до 10.0 (900%)"
+    message: "Наценка должна быть 0 (автокалькуляция) или множителем от 1.0 (0%) до 10.0 (900%). В поле ввода указывается процент: 75% = 1.75"
   }),
   providerId: z.string().min(1, "ID провайдера обязателен"),
   categoryIdMap: z.record(z.string()).optional(),
@@ -394,8 +394,11 @@ export async function importSelectedServices(
             );
             
             // SDLC Gate 4: Обязательная инвалидация кэша после мутации
+            // AUD-08: invalidate the real catalog admin route and public storefront cache tags
             revalidatePath('/admin/providers/import');
-            revalidatePath('/admin/services');
+            revalidatePath('/admin/catalog');
+            revalidateTag('catalog', 'default');
+            revalidateTag('services', 'default');
             
             return { success: true, imported: res.importedCount };
         } catch (e: unknown) {

@@ -7,6 +7,8 @@ import { VaultService } from "@/lib/vault";
 import { auditAdminAwaitable } from "@/lib/admin-audit";
 import { providerService } from "@/services/providers/provider.service";
 import { getBaseUrlAsync } from "@/utils/get-base-url";
+import { Prisma } from "@prisma/client";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 const apiMappingSchema = z.object({
@@ -62,6 +64,110 @@ const providerSchema = z.object({
 });
 
 const idSchema = z.string().min(1);
+
+/**
+ * Maps low-level Prisma errors to human-readable Russian messages (AUD-10).
+ */
+function mapProviderDbError(err: unknown): string {
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === 'P2002') {
+      const target = Array.isArray(err.meta?.target) ? (err.meta!.target as string[]).join(', ') : String(err.meta?.target ?? '');
+      if (target.includes('name') || target.includes('Provider_name_key')) {
+        return 'Панель с таким названием уже подключена. Укажите другое имя.';
+      }
+      return `Нарушение уникальности данных (${target || err.code}). Проверьте заполненные поля.`;
+    }
+    if (err.code === 'P2025') {
+      return 'Провайдер не найден (возможно, он уже был удалён). Обновите список.';
+    }
+    if (err.code === 'P2003') {
+      return 'Удаление заблокировано: у провайдера есть связанные записи (маршруты). Сначала удалите маршруты.';
+    }
+  }
+  return err instanceof Error ? err.message : String(err);
+}
+
+/**
+ * AUD-01: Pre-delete summary for the confirmation modal.
+ * Counts everything that will be affected by provider deletion.
+ */
+export async function getProviderDeleteInfoAction(rawId: string) {
+  return requireStaffPermission('catalog', 'view', async () => {
+    try {
+      const id = idSchema.parse(rawId);
+      const provider = await db.provider.findUnique({
+        where: { id },
+        select: { id: true, name: true, isActive: true },
+      });
+      if (!provider) {
+        return { success: false as const, error: 'Провайдер не найден' };
+      }
+
+      const [services, routes, orders, shadowServices] = await Promise.all([
+        db.service.count({ where: { providerId: id } }),
+        db.serviceRoute.count({ where: { providerId: id } }),
+        db.order.count({ where: { providerId: id } }),
+        db.shadowService.count({ where: { providerId: id } }),
+      ]);
+
+      return {
+        success: true as const,
+        provider: { id: provider.id, name: provider.name, isActive: provider.isActive },
+        counts: { services, routes, orders, shadowServices },
+      };
+    } catch (err) {
+      return { success: false as const, error: mapProviderDbError(err) };
+    }
+  });
+}
+
+/**
+ * AUD-01: Safe provider deletion.
+ *
+ * Data lifecycle on delete:
+ * - ServiceRoute rows for this provider are removed first (FK onDelete: Restrict)
+ * - Service.providerId / Order.providerId become NULL (onDelete: SetNull) — rows survive
+ * - ShadowService rows are removed automatically (onDelete: Cascade)
+ * - Historical order snapshots (providerServiceId, providerCost) are preserved
+ */
+export async function deleteProviderAction(rawId: string) {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
+    try {
+      const id = idSchema.parse(rawId);
+
+      const provider = await db.provider.findUnique({
+        where: { id },
+        select: { id: true, name: true },
+      });
+      if (!provider) {
+        return { success: false as const, error: 'Провайдер не найден (возможно, он уже был удалён).' };
+      }
+
+      const deleted = await db.$transaction(async (tx) => {
+        // 1. Remove routing rules first (they Restrict provider deletion)
+        await tx.serviceRoute.deleteMany({ where: { providerId: id } });
+        // 2. Delete provider itself. Cascades: ShadowService. SetNull: Service.providerId, Order.providerId.
+        return tx.provider.delete({ where: { id } });
+      });
+
+      await auditAdminAwaitable({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: "PROVIDER_DELETE",
+        target: deleted.id,
+        targetType: "PROVIDER",
+        oldValue: { name: deleted.name, apiUrl: deleted.apiUrl },
+        newValue: { deleted: true },
+      });
+
+      revalidatePath('/admin/providers');
+
+      return { success: true as const, deletedName: deleted.name };
+    } catch (err) {
+      return { success: false as const, error: mapProviderDbError(err) };
+    }
+  });
+}
 
 export async function createProvider(rawData: {
   name: string;
@@ -120,8 +226,7 @@ export async function createProvider(rawData: {
 
       return { success: true as const, error: undefined, providerId: provider.id };
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      return { success: false as const, error: errorMsg || 'Ошибка сервера при создании провайдера' };
+      return { success: false as const, error: mapProviderDbError(err) || 'Ошибка сервера при создании провайдера' };
     }
   });
 }
@@ -158,13 +263,27 @@ export async function updateProvider(rawId: string, rawData: {
       const { assertSafeUrl } = await import('@/utils/ssrf-guard');
       await assertSafeUrl(normalizedApiUrl);
 
+      const existing = await db.provider.findUnique({
+        where: { id },
+        select: { id: true, metadata: true },
+      });
+      if (!existing) {
+        return { success: false as const, error: 'Провайдер не найден (возможно, он уже был удалён). Обновите страницу.' };
+      }
+
+      // AUD-10: merge metadata instead of overwriting — preserve foreign keys set by other subsystems
+      const existingMeta = (existing.metadata && typeof existing.metadata === 'object'
+        ? (existing.metadata as Record<string, unknown>)
+        : {}) as Record<string, unknown>;
+
       const updateData: Record<string, unknown> = {
         name: data.name,
         apiUrl: normalizedApiUrl,
         isActive: data.isActive,
         balanceCurrency: data.balanceCurrency,
         metadata: {
-           mapping: data.mapping || null
+           ...existingMeta,
+           mapping: data.mapping || null,
         },
         ticketUrl: data.ticketUrl || null,
       };
@@ -189,8 +308,7 @@ export async function updateProvider(rawId: string, rawData: {
 
       return { success: true as const, error: undefined };
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      return { success: false as const, error: errorMsg || 'Ошибка сервера при обновлении провайдера' };
+      return { success: false as const, error: mapProviderDbError(err) || 'Ошибка сервера при обновлении провайдера' };
     }
   });
 }

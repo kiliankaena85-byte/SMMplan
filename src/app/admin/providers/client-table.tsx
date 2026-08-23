@@ -28,15 +28,24 @@ import {
   Server,
   Activity,
   Layers,
+  Trash2,
 } from 'lucide-react';
 import type { ProviderListDTO } from '@/services/admin/provider.service';
 import { ProviderBalanceCell } from './components/provider-balance-cell';
 import { SyncProviderButton } from './components/sync-provider-button';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 import {
   toggleProviderActiveAction,
   resetProviderErrorsAction,
   createMockProviderPresetAction,
+  deleteProviderAction,
+  getProviderDeleteInfoAction,
 } from '@/actions/admin/providers/crud';
+
+type DeleteInfo = {
+  provider: { id: string; name: string };
+  counts: { services: number; routes: number; orders: number; shadowServices: number };
+};
 
 export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) {
   const router = useRouter();
@@ -45,6 +54,46 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [isPresetPending, startPresetTransition] = useTransition();
+  const [deleteInfo, setDeleteInfo] = useState<DeleteInfo | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [isDeleting, startDeleteTransition] = useTransition();
+
+  /**
+   * AUD-01: Safe delete flow — fetch impact counts, show confirmation modal, then delete.
+   */
+  const handleDeleteRequest = async (providerId: string) => {
+    setDeleteLoading(true);
+    try {
+      const res = await getProviderDeleteInfoAction(providerId);
+      if (res.success && res.provider && res.counts) {
+        setDeleteInfo({ provider: res.provider, counts: res.counts });
+      } else {
+        toast.error('Не удалось подготовить удаление', { description: res.error });
+      }
+    } catch {
+      toast.error('Не удалось подготовить удаление провайдера');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteInfo) return;
+    const targetId = deleteInfo.provider.id;
+    const targetName = deleteInfo.provider.name;
+    startDeleteTransition(async () => {
+      const res = await deleteProviderAction(targetId);
+      if (res.success) {
+        toast.success(`Провайдер «${res.deletedName || targetName}» удалён`, {
+          description: 'Услуги и заказы сохранены (отвязаны от провайдера). Теневой каталог очищен.',
+        });
+        setDeleteInfo(null);
+        router.refresh();
+      } else {
+        toast.error('Не удалось удалить провайдера', { description: res.error });
+      }
+    });
+  };
 
   // Filtered providers
   const filtered = useMemo(() => {
@@ -478,6 +527,16 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                             >
                               Настроить
                             </Link>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRequest(provider.id)}
+                              disabled={deleteLoading || isDeleting}
+                              title="Удалить провайдера"
+                              aria-label={`Удалить провайдера ${provider.name}`}
+                              className="p-1.5 rounded-lg border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 text-destructive transition-all duration-200 shadow-xs active:scale-95 disabled:opacity-50"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -633,6 +692,15 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
                       >
                         Настроить
                       </Link>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteRequest(provider.id)}
+                        disabled={deleteLoading || isDeleting}
+                        aria-label={`Удалить провайдера ${provider.name}`}
+                        className="p-2 rounded-xl border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 text-destructive transition-all duration-200 shadow-xs active:scale-95 disabled:opacity-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 );
@@ -641,6 +709,47 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
           </>
         )}
       </div>
+
+      {/* AUD-01: Delete confirmation modal */}
+      <ConfirmModal
+        isOpen={deleteInfo !== null}
+        onClose={() => setDeleteInfo(null)}
+        onConfirm={handleConfirmDelete}
+        title={`Удалить провайдера «${deleteInfo?.provider.name ?? ''}»?`}
+        confirmText={isDeleting ? 'Удаление...' : 'Да, удалить'}
+        cancelText="Отмена"
+        isDanger
+      >
+        {deleteInfo && (
+          <div className="space-y-3">
+            <p>
+              Провайдер будет удалён вместе с подключением (API-ключ, настройки маппинга, теневой каталог
+              {' '}{deleteInfo.counts.shadowServices > 0 ? `: ${deleteInfo.counts.shadowServices} поз.` : ''}).
+            </p>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-lg border border-border/50 bg-muted/40 px-2 py-1.5">
+                <div className="text-[10px] font-bold uppercase text-muted-foreground">Услуг</div>
+                <div className="font-bold text-foreground tabular-nums">{deleteInfo.counts.services}</div>
+                <div className="text-[9px] text-muted-foreground">сохранятся (отвяжутся)</div>
+              </div>
+              <div className="rounded-lg border border-border/50 bg-muted/40 px-2 py-1.5">
+                <div className="text-[10px] font-bold uppercase text-muted-foreground">Заказов</div>
+                <div className="font-bold text-foreground tabular-nums">{deleteInfo.counts.orders}</div>
+                <div className="text-[9px] text-muted-foreground">сохранятся</div>
+              </div>
+              <div className="rounded-lg border border-border/50 bg-muted/40 px-2 py-1.5">
+                <div className="text-[10px] font-bold uppercase text-muted-foreground">Маршрутов</div>
+                <div className="font-bold text-foreground tabular-nums">{deleteInfo.counts.routes}</div>
+                <div className="text-[9px] text-muted-foreground">будут удалены</div>
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Услуги каталога и исторические заказы не удаляются — они лишь теряют привязку к этому провайдеру.
+              Новые заказы на отвязанные услуги размещаться не будут, пока вы не переназначите им провайдера.
+            </p>
+          </div>
+        )}
+      </ConfirmModal>
     </div>
   );
 }

@@ -129,10 +129,14 @@ export function SummaryDashboard({
             type="number"
             step="1"
             min="0"
+            max="900"
             value={markup}
             onChange={(e) => onMarkupChange(e.target.value)}
             className="w-28 h-10 text-sm tabular-nums"
           />
+          <p className="text-[10px] text-muted-foreground">
+            200% = ×3.0 · 0 — авто
+          </p>
         </div>
 
         <Button
