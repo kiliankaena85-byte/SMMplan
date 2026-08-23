@@ -1,6 +1,6 @@
 'use client';
 
-import { inferTargetTypeFromName, TargetTypeEnum } from '@/utils/target-type';
+import { inferTargetTypeFromName, inferTargetTypeFromCategory, isTargetTypeCompatible, TargetTypeEnum } from '@/utils/target-type';
 import type { ExternalServiceItem, CategoryItem, FilterState } from "../types";
 
 import React from "react";
@@ -268,7 +268,8 @@ export function ServicesTable({
                         </span>
                       </div>
 
-                      <div className="flex flex-wrap gap-1 py-3 pr-2">
+                      <div className="flex flex-wrap gap-1 py-3 pr-2 items-center">
+                        <TargetTypeBadge name={s.name} />
                         {metrics.platform && (() => {
                           const pData = getPlatformDisplay(metrics.platform);
                           return (
@@ -277,6 +278,22 @@ export function ServicesTable({
                               <span>{pData.name}</span>
                             </span>
                           );
+                        })()}
+                        {(() => {
+                          const selectedCatId = selectedCategories[String(s.service)] || autoMappedCategories[String(s.service)];
+                          if (!selectedCatId) return null;
+                          const cat = categories.find(c => c.id === selectedCatId);
+                          if (!cat) return null;
+                          const serviceType = inferTargetTypeFromName(s.name);
+                          const catType = inferTargetTypeFromCategory(cat.name);
+                          if (!isTargetTypeCompatible(serviceType, catType)) {
+                            return (
+                              <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold select-none whitespace-nowrap" title={`Конфликт: тип услуги (${serviceType}) не подходит к категории «${cat.name}» (${catType})`}>
+                                ⚠️ Конфликт
+                              </span>
+                            );
+                          }
+                          return null;
                         })()}
                         {metrics.geo && (
                           <span className="bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-[6px] text-[10px] font-semibold select-none whitespace-nowrap">
