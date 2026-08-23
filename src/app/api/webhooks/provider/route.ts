@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const secret = req.headers.get("x-webhook-secret") || searchParams.get("secret");
+    const secret = req.headers.get("x-webhook-secret");
     
     // SD-01 SECURITY FIX: Fail-closed — reject all requests if WEBHOOK_SECRET is not configured.
     // NEVER fall back to a hardcoded default.

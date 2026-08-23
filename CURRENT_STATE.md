@@ -2,13 +2,15 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-23 | Агент: Antigravity
-## Активный статус: 🛡️ ПОЛНАЯ РЕМЕДИАЦИЯ ЗАМЕЧАНИЙ ВНЕШНЕГО СТАТИЧЕСКОГО АУДИТА (P0/P1) ЗАВЕРШЕНА.
-- Унифицировано шифрование на базе `VaultService`, удалены хардкод-ключи и соли, включен fail-fast.
-- Вебхуки переведены на fail-closed (`503` при отсутствии секрета), исправлен IP whitelist YooKassa/Robokassa, запрещен секрет в query params, внедрен `timingSafeEqual`.
-- Финансовый контур: `MutexManager.withLock` активирован в `checkout.ts`, порядок проверки идемпотентности переставлен до списания, исправлен `catch`-блок в `WalletOps.credit`.
-- Защита от Host Header Poisoning в `getBaseUrlAsync`, санитизация IP и dev-роутов, внедрен `resolveAdminTenantContext` в админ-страницах.
-- CI и инфраструктура: блокирующий gitleaks и npm audit, Content-Security-Policy (CSP) и выделенный rate-limit вебхуков в Nginx, non-root `nextjs` пользователь в standalone Docker.
-- Все проверки пройдены: `npx tsc --noEmit` (0 ошибок), unit/security тесты 24/24 PASS, `verify-no-secrets.js` PASS, `npm run build` PASS.
+## Активный статус: 🛡️ ПОЛНАЯ РЕМЕДИАЦИЯ ВСЕХ 65 ПУНКТОВ АУДИТА (REMEDIATION_AUDIT_REPORT.md) ЗАВЕРШЕНА (100% PASS).
+- **Криптография & Безопасность**: Полная ликвидация любых fallback-ключей и dev-солей (`encryption.ts`, `provider-secrets.ts`), унификация на `VaultService`, fail-fast валидация входных строк, сохранение error cause.
+- **Zero-Trust Вебхуки**: В `/api/webhooks/vexboost` и `/api/webhooks/provider/[providerName]` статус не принимается на веру — выполняется обязательный синхронный запрос к API провайдера перед любым изменением статуса и возвратом средств (`RefundPolicyService`), внедрена защита от Replay-атак (окно 5 мин `x-timestamp`), логирование `db.securityEvent`, удален прием секретов из query string (`x-webhook-secret` header only).
+- **Парсинг IP & Прокси-Инварианты**: В `src/utils/ip.ts` внедрен Node.js `net.isIP`, нормализация IPv4-mapped IPv6 (`::ffff:`), выбор правого валидного хопа в `x-forwarded-for` и безопасный fallback `0.0.0.0` (защита от обхода rate limiting через localhost spoofing).
+- **Dev-роуты & Финансовая изоляция**: `/api/dev/mock-payment` защищен сессионной проверкой роли `['OWNER', 'ADMIN']` и принадлежности платежа `userId`. В `WalletOps` обработка P2002 переведена на root `db` pool (защита от Transaction Aborted), добавлен аудит списаний из карантина (`quarantineRelease`), лог аномалий `totalSpent < 0`.
+- **Redis & Распределенные блокировки**: В `MutexManager` добавлен метод `extendLock` на атомарном Lua-скрипте с верификацией владения токеном.
+- **Скрипты миграции & Сканеры**: `re-encrypt-secrets.ts` обновлен: валидация через `VaultService.decrypt`, полный список полей (включая `geminiApiKeys`, `inboundEmailWebhookSecret`, `provider.webhookSecret`) и транзакционность. Сканер `verify-no-secrets.js` расширен на CI-токены и regex живых API-ключей (`sk_live_`, `rk_live_`).
+- **Инфраструктура & Docker**: В `docker-compose.staging.yml` и `prod.yml` удалены небезопасные дефолты (`:-postgres`), Redis защищен паролем (`--requirepass`), снята публикация порта 6380, `npx tsx` заменен на прямой запуск бинарника `./node_modules/.bin/tsx`, добавлен `security_opt: [no-new-privileges:true]`. В `Dockerfile` добавлен `--chown=nextjs:nodejs`, в `docker-entrypoint.sh` удален fallback `npx prisma`, в `nginx` усилен CSP (`object-src 'none'; base-uri 'self'; form-action 'self'`), в `.dockerignore` исключены тестовые скрипты и отчеты аудита.
+- **Верификация**: `npx tsc --noEmit` (0 ошибок), `npx eslint` (0 warnings/errors), Vitest `security.webhooks.test.ts` (15/15 PASS), `npm run build` (Успешная сборка Next.js 16 App Router), `verify-no-secrets.js` (PASS).
 
 
 ---

@@ -1,10 +1,9 @@
-/**
- * (c) 2024-2026 SMMplan. All rights reserved.
- * Provider Webhook Receiver with HMAC Signature & Replay Defense.
- */
-
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { providerService } from '@/services/providers/provider.service';
+import { RefundPolicyService } from '@/services/financial/refund-policy.service';
+import { runSerializableTransaction } from '@/lib/transactions';
+import { getClientIp } from '@/utils/ip';
 import crypto from 'crypto';
 
 export async function POST(
@@ -12,6 +11,7 @@ export async function POST(
   { params }: { params: Promise<{ providerName: string }> }
 ) {
   const { providerName } = await params;
+  const ip = await getClientIp(request);
 
   try {
     const rawBody = await request.text();
@@ -20,10 +20,16 @@ export async function POST(
 
     // 1. Mandatory Timestamp Freshness (prevent replay attack within 5 minutes)
     if (!timestamp) {
+      await db.securityEvent?.create({
+        data: { event: 'MISSING_TIMESTAMP', severity: 'HIGH', ip, details: { provider: providerName } }
+      }).catch(() => {});
       return NextResponse.json({ error: 'Missing x-timestamp header' }, { status: 403 });
     }
     const reqTime = parseInt(timestamp, 10);
     if (isNaN(reqTime) || Math.abs(Date.now() - reqTime) > 5 * 60 * 1000) {
+      await db.securityEvent?.create({
+        data: { event: 'REPLAY_ATTEMPT', severity: 'HIGH', ip, details: { provider: providerName, timestamp } }
+      }).catch(() => {});
       return NextResponse.json({ error: 'Webhook timestamp expired or invalid' }, { status: 403 });
     }
 
@@ -42,6 +48,9 @@ export async function POST(
       return NextResponse.json({ error: 'Provider webhook secret not configured' }, { status: 503 });
     }
     if (!signature) {
+      await db.securityEvent?.create({
+        data: { event: 'MISSING_SIGNATURE', severity: 'HIGH', ip, details: { provider: providerName } }
+      }).catch(() => {});
       return NextResponse.json({ error: 'Missing x-signature header' }, { status: 403 });
     }
 
@@ -52,32 +61,90 @@ export async function POST(
       cleanSig.length !== expectedSig.length ||
       !crypto.timingSafeEqual(Buffer.from(cleanSig), Buffer.from(expectedSig))
     ) {
+      await db.securityEvent?.create({
+        data: { event: 'INVALID_SIGNATURE', severity: 'CRITICAL', ip, details: { provider: providerName } }
+      }).catch(() => {});
       return NextResponse.json({ error: 'Invalid HMAC signature' }, { status: 403 });
     }
 
-    const payload = JSON.parse(rawBody);
-    const { orderId, providerOrderId, status } = payload;
+    let payload: Record<string, unknown> = {};
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+    }
 
-    if (!orderId && !providerOrderId) {
+    const externalId = String(payload.providerOrderId || payload.orderId || payload.id || payload.order || '');
+    if (!externalId) {
       return NextResponse.json({ error: 'Missing order identifiers' }, { status: 400 });
     }
 
-    // 4. Update Order Status
-    const targetStatus = status === 'COMPLETED' ? 'COMPLETED' : status === 'CANCELED' ? 'CANCELED' : 'IN_PROGRESS';
-
-    const updated = await db.order.updateMany({
+    // 4. Zero-Trust Verification: Query Provider Instance directly
+    const order = await db.order.findFirst({
       where: {
+        status: { in: ['IN_PROGRESS', 'AWAITING_PAYMENT', 'PENDING', 'PENDING_CHECK'] },
         OR: [
-          orderId ? { id: String(orderId) } : {},
-          providerOrderId ? { externalId: String(providerOrderId) } : {},
-        ],
+          { externalId },
+          { id: externalId },
+          { dripExternalIds: { has: externalId } }
+        ]
       },
-      data: {
-        status: targetStatus,
-      },
+      include: { service: true, user: { select: { email: true } } }
     });
 
-    return NextResponse.json({ success: true, count: updated.count });
+    if (!order) {
+      return NextResponse.json({ message: 'Order not found or not active' }, { status: 200 });
+    }
+
+    const providerInstance = await providerService.getWorkerProviderInstance(provider);
+    const lookupId = order.externalId || externalId;
+    const statuses = await providerInstance.getMultiOrderStatus([lookupId]);
+    const s = statuses[lookupId];
+
+    if (!s || typeof s === 'string') {
+      return NextResponse.json({ error: 'Provider API returned invalid status during verification' }, { status: 400 });
+    }
+
+    const verifiedStatus = s.status.toUpperCase();
+    const parsedRemains = parseInt(s.remains || '0', 10);
+
+    if (['CANCELED', 'CANCELLED'].includes(verifiedStatus)) {
+      await runSerializableTransaction(async (tx) => {
+        const updated = await tx.order.updateMany({
+          where: { id: order.id, status: { in: ['PENDING', 'IN_PROGRESS', 'PENDING_CHECK'] } },
+          data: { status: 'CANCELED', remains: parsedRemains }
+        });
+        if (updated.count > 0) {
+          const freshOrder = await tx.order.findUniqueOrThrow({ where: { id: order.id } });
+          await RefundPolicyService.processRefund({ ...freshOrder, charge: Number(freshOrder.charge) }, `(Отмена на стороне провайдера ${providerName})`, tx);
+        }
+      });
+    } else if (['PARTIAL'].includes(verifiedStatus)) {
+      await runSerializableTransaction(async (tx) => {
+        const updated = await tx.order.updateMany({
+          where: { id: order.id, status: { in: ['PENDING', 'IN_PROGRESS', 'PENDING_CHECK'] } },
+          data: { status: 'PARTIAL', remains: parsedRemains }
+        });
+        if (updated.count > 0) {
+          const freshOrder = await tx.order.findUniqueOrThrow({ where: { id: order.id } });
+          await RefundPolicyService.processRefund({ ...freshOrder, charge: Number(freshOrder.charge) }, '', tx);
+        }
+      });
+    } else if (['COMPLETED'].includes(verifiedStatus)) {
+      await runSerializableTransaction(async (tx) => {
+        await tx.order.updateMany({
+          where: { id: order.id, status: { in: ['PENDING', 'IN_PROGRESS', 'PENDING_CHECK'] } },
+          data: { status: 'COMPLETED', remains: 0 }
+        });
+      });
+    } else {
+      await db.order.updateMany({
+        where: { id: order.id, status: { in: ['PENDING', 'IN_PROGRESS', 'PENDING_CHECK'] } },
+        data: { remains: parsedRemains }
+      });
+    }
+
+    return NextResponse.json({ success: true, verifiedStatus, orderId: order.id });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     console.error(`[ProviderWebhook:${providerName}] Error processing webhook:`, errorMsg);

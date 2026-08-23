@@ -28,6 +28,8 @@ services:
         condition: service_healthy
     restart: unless-stopped
     networks: [frontend, backend]
+    security_opt:
+      - no-new-privileges:true
     deploy:
       resources:
         limits:
@@ -57,6 +59,8 @@ services:
       start_period: 15s
     restart: unless-stopped
     networks: [backend]
+    security_opt:
+      - no-new-privileges:true
     deploy:
       resources:
         limits:

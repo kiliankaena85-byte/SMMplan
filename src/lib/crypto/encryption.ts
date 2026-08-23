@@ -22,8 +22,11 @@ const getSalt = (): string => {
     if (process.env.NODE_ENV === 'production') {
       throw new Error('[Encryption] DATA_SALT must be configured in production');
     }
-    // In dev/test, derive deterministic salt from encryption key if available
-    const keyStr = process.env.APP_ENCRYPTION_KEY || process.env.DATA_ENCRYPTION_KEY || 'smmplan_dev_salt_seed';
+    // In dev/test, derive deterministic salt from encryption key only
+    const keyStr = process.env.APP_ENCRYPTION_KEY || process.env.DATA_ENCRYPTION_KEY || process.env.VAULT_MASTER_KEY;
+    if (!keyStr) {
+      throw new Error('[Encryption] DATA_SALT or APP_ENCRYPTION_KEY must be configured');
+    }
     return createHash('sha256').update(`${keyStr}:salt_derive`).digest('hex');
   }
   return salt;
@@ -75,7 +78,7 @@ export function decrypt(encryptedData: string): string {
     return decrypted;
   } catch (err) {
     console.error('[Encryption] Decryption failed:', err);
-    throw new Error(`[Encryption] Decryption failed or ciphertext is corrupted: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(`[Encryption] Decryption failed or ciphertext is corrupted: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
   }
 }
 

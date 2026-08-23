@@ -3,11 +3,6 @@
  * Provider API Key Encryption at Rest (AES-256-GCM).
  */
 
-import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'crypto';
-
-const ALGORITHM = 'aes-256-gcm';
-const IV_LENGTH = 16;
-
 import { VaultService } from '@/lib/vault';
 
 /**
@@ -15,7 +10,9 @@ import { VaultService } from '@/lib/vault';
  * Format: iv:authTag:cipherHex
  */
 export function encryptProviderSecret(plainSecret: string): string {
-  if (!plainSecret || typeof plainSecret !== 'string') return plainSecret;
+  if (!plainSecret || typeof plainSecret !== 'string' || !plainSecret.trim()) {
+    throw new Error('[ProviderSecrets] plainSecret must be a non-empty string');
+  }
   return VaultService.encrypt(plainSecret.trim());
 }
 
@@ -24,7 +21,9 @@ export function encryptProviderSecret(plainSecret: string): string {
  * Strictly throws on invalid payload or decryption failure.
  */
 export function decryptProviderSecret(cipherText: string): string {
-  if (!cipherText || typeof cipherText !== 'string') return cipherText;
+  if (!cipherText || typeof cipherText !== 'string' || !cipherText.trim()) {
+    throw new Error('[ProviderSecrets] cipherText must be a non-empty string');
+  }
   return VaultService.decrypt(cipherText);
 }
 

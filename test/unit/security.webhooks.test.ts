@@ -219,5 +219,84 @@ describe('🔒 SEC-WEBHOOKS: Cryptography & Webhook Access Guards', () => {
       expect(maskEmail('a@b.com')).toBe('a*@b.com');
       expect(maskEmail('')).toBe('••••••••');
     });
+
+    it('SEC-CRYPTO-004: encryptProviderSecret and decryptProviderSecret fail-fast on empty inputs', async () => {
+      vi.stubEnv('VAULT_MASTER_KEY', 'master-encryption-key-for-test-32b');
+      const { encryptProviderSecret, decryptProviderSecret } = await import('@/lib/crypto/provider-secrets');
+
+      expect(() => encryptProviderSecret('')).toThrow(/plainSecret must be a non-empty string/);
+      expect(() => encryptProviderSecret('   ')).toThrow(/plainSecret must be a non-empty string/);
+      expect(() => decryptProviderSecret('')).toThrow(/cipherText must be a non-empty string/);
+
+      const secret = 'valid-provider-token-12345';
+      const encrypted = encryptProviderSecret(secret);
+      expect(encrypted).not.toBe(secret);
+      expect(decryptProviderSecret(encrypted)).toBe(secret);
+    });
+
+    it('SEC-CRYPTO-005: Provider Webhook (/api/webhooks/provider) rejects secret from query string', async () => {
+      vi.stubEnv('WEBHOOK_SECRET', 'test-webhook-secret-2026');
+      const { POST } = await import('@/app/api/webhooks/provider/route');
+      const req = new Request('https://smmplan.pro/api/webhooks/provider?secret=test-webhook-secret-2026&order=123', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: '123' })
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(401);
+      const data = await res.json();
+      expect(data.error).toBe('Unauthorized');
+    });
+
+    it('SEC-CRYPTO-006: Provider Webhook (/api/webhooks/provider) accepts valid x-webhook-secret header', async () => {
+      vi.stubEnv('WEBHOOK_SECRET', 'test-webhook-secret-2026');
+      vi.doMock('@/lib/db', () => ({
+        db: {
+          order: {
+            findFirst: vi.fn().mockResolvedValue(null),
+          },
+        },
+      }));
+      const { POST } = await import('@/app/api/webhooks/provider/route');
+      const req = new Request('https://smmplan.pro/api/webhooks/provider', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-webhook-secret': 'test-webhook-secret-2026'
+        },
+        body: JSON.stringify({ id: 'non-existent-order-id-test' })
+      });
+
+      const res = await POST(req);
+      // Order not found returns 200 with message (authorized)
+      expect(res.status).toBe(200);
+    });
+
+    it('SEC-IP-001: getClientIp safely parses IPv4, IPv6, IPv4-mapped IPv6, and X-Forwarded-For', async () => {
+      const { getClientIp } = await vi.importActual<typeof import('@/utils/ip')>('@/utils/ip');
+
+      // 1. x-real-ip precedence
+      const h1 = new Headers({ 'x-real-ip': '185.75.120.10', 'x-forwarded-for': '203.0.113.1' });
+      expect(await getClientIp(h1)).toBe('185.75.120.10');
+
+      // 2. IPv4-mapped IPv6 normalization
+      const h2 = new Headers({ 'x-real-ip': '::ffff:185.75.120.10' });
+      expect(await getClientIp(h2)).toBe('185.75.120.10');
+
+      // 3. Rightmost valid hop from X-Forwarded-For
+      const h3 = new Headers({ 'x-forwarded-for': '203.0.113.1, 198.51.100.2, 185.75.120.5' });
+      expect(await getClientIp(h3)).toBe('185.75.120.5');
+
+      // 4. Invalid IP fallback
+      const h4 = new Headers({ 'x-real-ip': '999.999.999.999' });
+      expect(await getClientIp(h4, '0.0.0.0')).toBe('0.0.0.0');
+    });
+
+    it('SEC-LOCK-001: MutexManager.extendLock verifies token ownership before extending TTL', async () => {
+      const { MutexManager } = await import('@/lib/redis-lock');
+      // When token is empty, immediately returns false
+      expect(await MutexManager.extendLock('test-key', '', 5000)).toBe(false);
+    });
   });
 });

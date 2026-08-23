@@ -7,8 +7,11 @@ export async function GET(req: NextRequest) {
     return new Response('Not Found', { status: 404 });
   }
   try {
-    // BUG-004 FIX: Жёстко блокируем в production — isTestMode НЕ должен открывать этот endpoint
-    
+    const { verifySession } = await import('@/lib/session');
+    const session = await verifySession();
+    if (!session || !session.userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
 
     const { searchParams } = new URL(req.url);
     const paymentId = searchParams.get("paymentId");
@@ -23,6 +26,11 @@ export async function GET(req: NextRequest) {
 
     if (!payment) {
       return new NextResponse("Payment not found", { status: 404 });
+    }
+
+    const isStaff = ['OWNER', 'ADMIN'].includes(session.role || '');
+    if (payment.userId !== session.userId && !isStaff) {
+      return new NextResponse("Forbidden: You do not own this payment", { status: 403 });
     }
 
     // Simulate successful payment processing

@@ -106,20 +106,39 @@ export const WalletOps = {
       select: { balance: true, tenantId: true }
     });
 
-    const entry = await tx.ledgerEntry.create({
-      data: {
-        userId,
-        tenantId: tenantId || finalUser.tenantId || 'smmplan',
-        adminId,
-        amount: -rawCents,
-        reason,
-        status: 'APPROVED',
-        idempotencyKey,
-        transactionType: 'PAYMENT'
-      }
-    });
+    try {
+      const entry = await tx.ledgerEntry.create({
+        data: {
+          userId,
+          tenantId: tenantId || finalUser.tenantId || 'smmplan',
+          adminId,
+          amount: -rawCents,
+          reason,
+          status: 'APPROVED',
+          idempotencyKey,
+          transactionType: 'PAYMENT'
+        }
+      });
 
-    return { success: true, balance: finalUser.balance, cached: false, entry };
+      return { success: true, balance: finalUser.balance, cached: false, entry };
+    } catch (error: unknown) {
+      if (
+        idempotencyKey &&
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code: string }).code === 'P2002'
+      ) {
+        const existing = await db.ledgerEntry.findFirst({
+          where: { idempotencyKey },
+        });
+        if (existing) {
+          const user = await db.user.findUnique({ where: { id: userId }, select: { balance: true } });
+          return { success: true, balance: user?.balance ?? null, cached: true, entry: existing };
+        }
+      }
+      throw error;
+    }
   },
 
   /**
@@ -188,11 +207,11 @@ export const WalletOps = {
         'code' in error && 
         (error as { code: string }).code === 'P2002'
       ) {
-        const existing = await tx.ledgerEntry.findFirst({
+        const existing = await db.ledgerEntry.findFirst({
           where: { idempotencyKey },
         });
         if (existing) {
-          const user = await tx.user.findUnique({ where: { id: userId }, select: { balance: true } });
+          const user = await db.user.findUnique({ where: { id: userId }, select: { balance: true } });
           return { success: true, balance: user?.balance ?? null, cached: true, entry: existing };
         }
       }
@@ -307,6 +326,7 @@ export const WalletOps = {
 
     // Safety guard: if totalSpent became negative due to race or edge cases, auto-clamp to 0
     if (updatedUser.totalSpent < BigInt(0)) {
+      console.warn(`[WalletOps.refund] Accounting anomaly detected: totalSpent for user ${userId} was negative (${updatedUser.totalSpent.toString()}), clamped to 0.`);
       await tx.user.update({
         where: { id: userId },
         data: { totalSpent: BigInt(0) }
@@ -379,10 +399,13 @@ export const WalletOps = {
   async quarantineRelease(
     tx: PrismaTx,
     userId: string,
-    amountCents: number | bigint
+    amountCents: number | bigint,
+    opts?: WalletOpsOptions & { reason?: string }
   ) {
     const rawCents = typeof amountCents === 'bigint' ? amountCents : BigInt(amountCents);
     const absAmount = rawCents < BigInt(0) ? -rawCents : rawCents;
+    const { idempotencyKey, adminId, tenantId, reason } = opts || {};
+
     const updated = await tx.user.updateMany({
       where: { id: userId, quarantineBalance: { gte: absAmount } },
       data: { quarantineBalance: { decrement: absAmount } }
@@ -394,6 +417,24 @@ export const WalletOps = {
         data: { quarantineBalance: BigInt(0) }
       });
     }
+
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { tenantId: true }
+    });
+
+    return await tx.ledgerEntry.create({
+      data: {
+        userId,
+        tenantId: tenantId || user?.tenantId || 'smmplan',
+        adminId,
+        amount: -absAmount,
+        reason: reason || 'Снятие / разблокировка средств из карантина',
+        status: 'APPROVED',
+        idempotencyKey,
+        transactionType: 'COMPENSATION'
+      }
+    });
   }
 };
 

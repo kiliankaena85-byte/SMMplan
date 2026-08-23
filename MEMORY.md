@@ -10,6 +10,11 @@
   - *Решение:* Отказ от распределенных Redis-блокировок (`MutexManager`) в финансовых операциях (`WalletOps`) в пользу нативной транзакционной изоляции PostgreSQL Serializable с автоматическим retry при serialization failure.
   - *Причина:* Предотвращение Race Conditions и дрейфа баланса без накладных расходов на Redis lock management.
 
+- **Zero-Trust Provider Webhooks & Cryptographic Isolation:**
+  - *Решение:* Вебхуки провайдеров (`/api/webhooks/vexboost`, `/api/webhooks/provider/[providerName]`) никогда не принимают статус заказа и параметры возврата средств на веру из входящего HTTP payload. Обработчик проверяет HMAC/секрет (`timingSafeEqual`) и свежесть `x-timestamp` (5 мин), после чего выполняет синхронный запрос к API провайдера (`getMultiOrderStatus`) и применяет статус в транзакции через `RefundPolicyService`.
+  - *Причина:* Защита от фальсификации вебхуков, подделки возвратов и манипуляции балансом.
+  - *IP Extraction:* Извлечение IP клиента (`src/utils/ip.ts`) нормализует IPv4-mapped IPv6, выбирает правый доверенный хоп из `x-forwarded-for` и использует `0.0.0.0` в качестве fallback.
+
 - **Shadow Catalog (Cherry-Pick Architecture):**
   - *Решение:* Каталоги провайдеров (5000+ сырых услуг) буферизуются во временный Redis-кэш (`provider:{id}:catalog`). В таблицу `Service` PostgreSQL импортируются ТОЛЬКО вручную одобренные администратором услуги с авто-пересчетом маржи по кросс-курсу ЦБ РФ.
   - *Причина:* Защита базы данных от мусора и рассинхронизации.
@@ -46,10 +51,11 @@
     1. Устранены все хардкоды API-ключей провайдеров и тестовых ключей эквайринга в пользу строгого чтения из `process.env` с `fail-closed` проверкой.
     2. Ликвидированы бэкдоры dev-эндпоинтов (`/api/dev/*`, `/api/debug`): в production-окружении возвращается 404/403, устранены `host.includes` обходы и дефолтные мастер-ключи.
     3. Вебхуки провайдеров (`/api/webhooks/provider/[providerName]`, `/api/webhooks/yookassa`, `/api/webhooks/inbound-email`) переведены в режим `fail-closed` с обязательной валидацией HMAC/SHA-256 подписей и `crypto.timingSafeEqual`.
-    4. Шифрование (`encryption.ts`) переведено на fail-fast (выброс исключения при отсутствии мастер-ключа или повреждении ciphertext вместо возврата открытого текста).
+    4. Шифрование (`encryption.ts`) переведено на fail-fast (выброс исключения при отсутствии мастер-ключа или повреждении ciphertext вместо возврата открытого текста). Удален fallback `smmplan_dev_salt_seed`: соль деривируется строго из ключа шифрования либо `DATA_SALT`. `encryptProviderSecret` и `decryptProviderSecret` строго валидируют непустые входные строки.
     5. Распределенный `MutexManager` переписан на безопасную модель Redlock с уникальным UUID-токеном владельца и Lua compare-and-delete релизом для исключения случайного снятия чужих блокировок после истечения TTL.
     6. В B2B API (`/api/v2`) внедрена проверка активного статуса пользователя (`isActive`, `!isDeleted`, role != BANNED) и per-IP rate-limiting на неудачные попытки авторизации с фиксацией `SecurityEvent`.
     7. Multi-stage Dockerfile дополнен таргетом `worker-runner`, исключающим скачивание пакетов на лету в проде.
+    8. Сканер `verify-no-secrets.js` расширен для одновременного сканирования `.next/static` и `.next/server` с фильтрацией библиотечных сигнатур и проверкой реальных RSA/EC ключей. В вебхуке `/api/webhooks/provider` запрещен секрет в query params `?secret=`.
 
 ---
 

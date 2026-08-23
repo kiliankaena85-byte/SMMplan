@@ -9,6 +9,14 @@ else
 end
 `;
 
+const EXTEND_LOCK_LUA = `
+if redis.call("get", KEYS[1]) == ARGV[1] then
+    return redis.call("pexpire", KEYS[1], ARGV[2])
+else
+    return 0
+end
+`;
+
 export class MutexManager {
   /**
    * Acquires a lock in Redis with a unique owner token.
@@ -32,6 +40,20 @@ export class MutexManager {
     }
     
     return null;
+  }
+
+  /**
+   * Extends the TTL of an active lock if and only if the caller owns the lock token.
+   */
+  static async extendLock(key: string, token: string, extraTtlMs: number): Promise<boolean> {
+    if (!token) return false;
+    const lockKey = `lock:${key}`;
+    try {
+      const result = await redis.eval(EXTEND_LOCK_LUA, 1, lockKey, token, extraTtlMs);
+      return result === 1;
+    } catch {
+      return false;
+    }
   }
 
   /**

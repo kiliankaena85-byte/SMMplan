@@ -3,53 +3,71 @@ import { VaultService } from '../src/lib/vault';
 
 const db = new PrismaClient();
 
+function isAlreadyEncrypted(val: string): boolean {
+  if (!val || typeof val !== 'string' || !val.trim()) return true;
+  try {
+    VaultService.decrypt(val.trim());
+    return true; // Successfully decrypted with current key
+  } catch {
+    return false; // Plaintext or encrypted with old key
+  }
+}
+
 async function main() {
   const isApply = process.argv.includes('--apply');
   const isDryRun = !isApply;
 
   console.log(`🔒 Starting re-encryption tool (Mode: ${isDryRun ? 'DRY-RUN (default, no DB changes)' : 'APPLY (writing to DB)'})...`);
 
-  // 1. Re-encrypt Provider.apiKey
-  const providers = await db.provider.findMany();
-  for (const p of providers) {
-    if (p.apiKey && p.apiKey.split(':').length !== 3) {
-      console.log(`[DRY-RUN: ${isDryRun}] Re-encrypting unencrypted provider key for: ${p.name}`);
-      if (isApply) {
-        await db.provider.update({
+  await db.$transaction(async (tx) => {
+    // 1. Re-encrypt Provider credentials (apiKey, webhookSecret)
+    const providers = await tx.provider.findMany();
+    for (const p of providers) {
+      const updates: { apiKey?: string; webhookSecret?: string } = {};
+      if (p.apiKey && !isAlreadyEncrypted(p.apiKey)) {
+        console.log(`[DRY-RUN: ${isDryRun}] Re-encrypting unencrypted provider apiKey for: ${p.name}`);
+        updates.apiKey = VaultService.encrypt(p.apiKey.trim());
+      }
+      if (p.webhookSecret && !isAlreadyEncrypted(p.webhookSecret)) {
+        console.log(`[DRY-RUN: ${isDryRun}] Re-encrypting unencrypted provider webhookSecret for: ${p.name}`);
+        updates.webhookSecret = VaultService.encrypt(p.webhookSecret.trim());
+      }
+      if (isApply && Object.keys(updates).length > 0) {
+        await tx.provider.update({
           where: { id: p.id },
-          data: { apiKey: VaultService.encrypt(p.apiKey) },
+          data: updates,
         });
       }
     }
-  }
 
-  // 2. Re-encrypt SystemSettings payment secrets
-  const settings = await db.systemSettings.findMany();
-  for (const s of settings) {
-    const fields = [
-      'yookassaSecretKey',
-      'yookassaTestSecretKey',
-      'cryptoBotToken',
-      'robokassaPassword',
-      'robokassaWebhookPassword',
-      'smtpPassword',
-      'resendApiKey',
-    ] as const;
+    // 2. Re-encrypt SystemSettings payment and API secrets
+    const settings = await tx.systemSettings.findMany();
+    for (const s of settings) {
+      const fields = [
+        'yookassaSecretKey',
+        'yookassaTestSecretKey',
+        'cryptoBotToken',
+        'robokassaPassword',
+        'robokassaWebhookPassword',
+        'smtpPassword',
+        'resendApiKey',
+        'inboundEmailWebhookSecret',
+        'geminiApiKeys',
+      ] as const;
 
-    const updateData: Record<string, string> = {};
-    for (const field of fields) {
-      const val = s[field];
-      if (val && typeof val === 'string' && val.trim() !== '' && val.split(':').length !== 3) {
-        console.log(`[DRY-RUN: ${isDryRun}] Re-encrypting SystemSettings field ${field} for tenant ${s.id}`);
-        if (isApply) {
-          updateData[field] = VaultService.encrypt(val);
+      const updateData: Record<string, string> = {};
+      for (const field of fields) {
+        const val = s[field as keyof typeof s];
+        if (val && typeof val === 'string' && val.trim() !== '' && !isAlreadyEncrypted(val)) {
+          console.log(`[DRY-RUN: ${isDryRun}] Re-encrypting SystemSettings field ${field} for tenant ${s.id}`);
+          updateData[field] = VaultService.encrypt(val.trim());
         }
       }
+      if (isApply && Object.keys(updateData).length > 0) {
+        await tx.systemSettings.update({ where: { id: s.id }, data: updateData });
+      }
     }
-    if (isApply && Object.keys(updateData).length > 0) {
-      await db.systemSettings.update({ where: { id: s.id }, data: updateData });
-    }
-  }
+  });
 
   console.log(`✅ Re-encryption scan complete (${isDryRun ? 'DRY-RUN: run with --apply to commit' : 'Applied'})`);
 }

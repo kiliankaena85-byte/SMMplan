@@ -1,73 +1,150 @@
-import { NextResponse } from 'next/server';
-import { orderService } from '@/services/core/order.service';
-
-/**
- * VexBoost / SMM Panel Standard Webhook Handler
- * Endpoint: /api/webhooks/vexboost?secret=YOUR_SECRET
- * 
- * VexBoost often sends POST data with:
- * id (external order ID)
- * status (Pending, In progress, Completed, Partial, Canceled)
- * remains
- */
+import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/db';
+import { providerService } from '@/services/providers/provider.service';
+import { RefundPolicyService } from '@/services/financial/refund-policy.service';
+import { runSerializableTransaction } from '@/lib/transactions';
+import { RateLimitService } from '@/services/core/rate-limit.service';
+import { getClientIp } from '@/utils/ip';
 import crypto from 'crypto';
 
-export async function POST(request: Request) {
-  const secret = request.headers.get('x-webhook-secret') || request.headers.get('x-vexboost-secret');
-
-  // SD-02 SECURITY FIX: Fail-closed — reject all requests if secret is not configured.
-  const expectedSecret = process.env.VEXBOOST_WEBHOOK_SECRET;
-  if (!expectedSecret) {
-    console.error('[VexBoost Webhook] FATAL: VEXBOOST_WEBHOOK_SECRET is not configured. Rejecting all requests.');
-    return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 });
-  }
-
-  if (!secret) {
-    console.warn('[VexBoost Webhook] Missing webhook secret.');
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const secretBuffer = Buffer.from(secret);
-  const expectedBuffer = Buffer.from(expectedSecret);
-
-  if (
-    secretBuffer.length !== expectedBuffer.length ||
-    !crypto.timingSafeEqual(secretBuffer, expectedBuffer)
-  ) {
-    console.warn('[VexBoost Webhook] Unauthorized access attempt. Secret mismatch.');
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export async function POST(request: NextRequest) {
+  const ip = await getClientIp(request);
 
   try {
-    const data = await request.formData();
-    const externalId = data.get('id')?.toString();
-    const status = data.get('status')?.toString();
-    const remains = parseInt(data.get('remains')?.toString() || '0', 10);
+    const isAllowed = await RateLimitService.check('vexboostWebhook', 60, 60);
+    if (!isAllowed) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
 
-    if (!externalId || !status) {
-      // Fallback to JSON if not FormData
-      const jsonData = await request.json().catch(() => ({}));
-      const extId = jsonData.id || jsonData.order;
-      const st = jsonData.status;
-      const rem = parseInt(jsonData.remains || '0', 10);
-      
-      if (extId && st) {
-         await orderService.processStatusUpdate(extId.toString(), st, rem);
-         return NextResponse.json({ success: true });
+    const secret = request.headers.get('x-webhook-secret') || request.headers.get('x-vexboost-secret');
+    const timestamp = request.headers.get('x-timestamp');
+
+    // 1. Replay defense check
+    if (timestamp) {
+      const reqTime = parseInt(timestamp, 10);
+      if (isNaN(reqTime) || Math.abs(Date.now() - reqTime) > 5 * 60 * 1000) {
+        await db.securityEvent?.create({
+          data: { event: 'REPLAY_ATTEMPT', severity: 'HIGH', ip, details: { gateway: 'vexboost', timestamp } }
+        }).catch(() => {});
+        return NextResponse.json({ error: 'Webhook timestamp expired or invalid' }, { status: 403 });
       }
-
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Process the update
-    const result = await orderService.processStatusUpdate(externalId, status, remains);
+    // 2. Secret validation
+    const expectedSecret = process.env.VEXBOOST_WEBHOOK_SECRET;
+    if (!expectedSecret) {
+      console.error('[VexBoost Webhook] FATAL: VEXBOOST_WEBHOOK_SECRET is not configured. Rejecting all requests.');
+      return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 });
+    }
 
-    if (result.success) {
-      return NextResponse.json({ success: true, orderId: result.orderId });
+    if (!secret) {
+      console.warn('[VexBoost Webhook] Missing webhook secret.');
+      await db.securityEvent?.create({
+        data: { event: 'MISSING_SECRET', severity: 'WARNING', ip, details: { gateway: 'vexboost' } }
+      }).catch(() => {});
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const secretBuffer = Buffer.from(secret);
+    const expectedBuffer = Buffer.from(expectedSecret);
+
+    if (
+      secretBuffer.length !== expectedBuffer.length ||
+      !crypto.timingSafeEqual(secretBuffer, expectedBuffer)
+    ) {
+      console.warn('[VexBoost Webhook] Unauthorized access attempt. Secret mismatch.');
+      await db.securityEvent?.create({
+        data: { event: 'UNAUTHORIZED_WEBHOOK_ACCESS', severity: 'CRITICAL', ip, details: { gateway: 'vexboost' } }
+      }).catch(() => {});
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    let externalId: string | undefined;
+    try {
+      const data = await request.formData();
+      externalId = data.get('id')?.toString() || data.get('order')?.toString();
+    } catch {
+      const jsonData = await request.json().catch(() => ({}));
+      externalId = jsonData.id?.toString() || jsonData.order?.toString();
+    }
+
+    if (!externalId) {
+      return NextResponse.json({ error: 'Missing order ID in payload' }, { status: 400 });
+    }
+
+    // 3. Zero-Trust Verification: Find order and fetch genuine status from Provider API
+    const order = await db.order.findFirst({
+      where: {
+        status: { in: ['IN_PROGRESS', 'AWAITING_PAYMENT', 'PENDING', 'PENDING_CHECK'] },
+        OR: [
+          { externalId },
+          { dripExternalIds: { has: externalId } }
+        ]
+      },
+      include: { service: true, user: { select: { email: true } } }
+    });
+
+    if (!order) {
+      return NextResponse.json({ message: 'Order not found or not active' }, { status: 200 });
+    }
+
+    if (!order.providerId) {
+      return NextResponse.json({ error: 'Order has no assigned provider' }, { status: 400 });
+    }
+
+    const providerDef = await db.provider.findUnique({ where: { id: order.providerId } });
+    if (!providerDef) {
+      return NextResponse.json({ error: 'Provider not found' }, { status: 400 });
+    }
+
+    const providerInstance = await providerService.getWorkerProviderInstance(providerDef);
+    const statuses = await providerInstance.getMultiOrderStatus([externalId]);
+    const s = statuses[externalId];
+
+    if (!s || typeof s === 'string') {
+      return NextResponse.json({ error: 'Provider API returned invalid status during verification' }, { status: 400 });
+    }
+
+    const verifiedStatus = s.status.toUpperCase();
+    const parsedRemains = parseInt(s.remains || '0', 10);
+
+    if (['CANCELED', 'CANCELLED'].includes(verifiedStatus)) {
+      await runSerializableTransaction(async (tx) => {
+        const updated = await tx.order.updateMany({
+          where: { id: order.id, status: { in: ['PENDING', 'IN_PROGRESS', 'PENDING_CHECK'] } },
+          data: { status: 'CANCELED', remains: parsedRemains }
+        });
+        if (updated.count > 0) {
+          const freshOrder = await tx.order.findUniqueOrThrow({ where: { id: order.id } });
+          await RefundPolicyService.processRefund({ ...freshOrder, charge: Number(freshOrder.charge) }, '(Отмена на стороне провайдера VexBoost)', tx);
+        }
+      });
+    } else if (['PARTIAL'].includes(verifiedStatus)) {
+      await runSerializableTransaction(async (tx) => {
+        const updated = await tx.order.updateMany({
+          where: { id: order.id, status: { in: ['PENDING', 'IN_PROGRESS', 'PENDING_CHECK'] } },
+          data: { status: 'PARTIAL', remains: parsedRemains }
+        });
+        if (updated.count > 0) {
+          const freshOrder = await tx.order.findUniqueOrThrow({ where: { id: order.id } });
+          await RefundPolicyService.processRefund({ ...freshOrder, charge: Number(freshOrder.charge) }, '', tx);
+        }
+      });
+    } else if (['COMPLETED'].includes(verifiedStatus)) {
+      await runSerializableTransaction(async (tx) => {
+        await tx.order.updateMany({
+          where: { id: order.id, status: { in: ['PENDING', 'IN_PROGRESS', 'PENDING_CHECK'] } },
+          data: { status: 'COMPLETED', remains: 0 }
+        });
+      });
     } else {
-      // Return 200 anyway to prevent provider retries if order is just not found
-      return NextResponse.json({ success: false, message: 'Order not found' });
+      await db.order.updateMany({
+        where: { id: order.id, status: { in: ['PENDING', 'IN_PROGRESS', 'PENDING_CHECK'] } },
+        data: { remains: parsedRemains }
+      });
     }
+
+    return NextResponse.json({ success: true, verifiedStatus, orderId: order.id });
   } catch (error: unknown) {
     console.error('[VexBoost Webhook] Error:', (error instanceof Error ? error.message : String(error)));
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
