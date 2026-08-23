@@ -2,7 +2,7 @@
 
 import React, { useState, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Table } from '@heroui/react';
+import { Table } from '@/components/admin/hero-ui';
 import {
   ArrowUpDown,
   ArrowUp,
