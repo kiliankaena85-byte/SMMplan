@@ -2,7 +2,7 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-23 | Агент: Antigravity
-## Активный статус: 🚀 Успешный пуш в origin/main. Завершена реализация шлюза интеграции с провайдерами (Provider Gateway & Reliability Layer): паттерн Circuit Breaker (CLOSED/OPEN/HALF_OPEN), сквозное AES-256-GCM шифрование API-ключей провайдеров, детерминированная генерация Idempotency Keys с Outbox паттерном, маскировка секретов в логах, верификация HMAC вебхуков и фоновая синхронизация зависших заказов (ProviderStatusSyncJob), дэшборды Provider Health Monitor и Vault Keys, тесты 58/58 passed.
+## Активный статус: 🚀 Успешный пуш в origin/main. Завершена реализация пакета оптимизации производительности и масштабируемости (Performance & Scalability Overhaul): внедрены высокоэффективные составные индексы в PostgreSQL (Order, Payment, LedgerEntry), L1/L2 кэширование RedisCacheService со сверхнизкой задержкой (<5мс), защита от OOM и принудительная пагинация SafePagination (maxTake=100), приоритизация и сегментация очередей BullMQ (critical, default, bulk), устранение N+1 запросов через Eager Loading, тесты 65/65 passed.
 
 
 ---
