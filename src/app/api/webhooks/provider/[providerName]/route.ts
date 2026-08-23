@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { providerService } from '@/services/providers/provider.service';
 import { RefundPolicyService } from '@/services/financial/refund-policy.service';
 import { runSerializableTransaction } from '@/lib/transactions';
+import { SecurityAlertService } from '@/services/security/security-alert.service';
 import { getClientIp } from '@/utils/ip';
 import crypto from 'crypto';
 
@@ -20,16 +21,22 @@ export async function POST(
 
     // 1. Mandatory Timestamp Freshness (prevent replay attack within 5 minutes)
     if (!timestamp) {
-      await db.securityEvent?.create({
-        data: { event: 'MISSING_TIMESTAMP', severity: 'HIGH', ip, details: { provider: providerName } }
-      }).catch(() => {});
+      await SecurityAlertService.record({
+        event: 'MISSING_TIMESTAMP',
+        severity: 'HIGH',
+        ip,
+        details: { provider: providerName },
+      });
       return NextResponse.json({ error: 'Missing x-timestamp header' }, { status: 403 });
     }
     const reqTime = parseInt(timestamp, 10);
     if (isNaN(reqTime) || Math.abs(Date.now() - reqTime) > 5 * 60 * 1000) {
-      await db.securityEvent?.create({
-        data: { event: 'REPLAY_ATTEMPT', severity: 'HIGH', ip, details: { provider: providerName, timestamp } }
-      }).catch(() => {});
+      await SecurityAlertService.record({
+        event: 'REPLAY_ATTEMPT',
+        severity: 'HIGH',
+        ip,
+        details: { provider: providerName, timestamp },
+      });
       return NextResponse.json({ error: 'Webhook timestamp expired or invalid' }, { status: 403 });
     }
 
@@ -48,9 +55,12 @@ export async function POST(
       return NextResponse.json({ error: 'Provider webhook secret not configured' }, { status: 503 });
     }
     if (!signature) {
-      await db.securityEvent?.create({
-        data: { event: 'MISSING_SIGNATURE', severity: 'HIGH', ip, details: { provider: providerName } }
-      }).catch(() => {});
+      await SecurityAlertService.record({
+        event: 'MISSING_SIGNATURE',
+        severity: 'HIGH',
+        ip,
+        details: { provider: providerName },
+      });
       return NextResponse.json({ error: 'Missing x-signature header' }, { status: 403 });
     }
 
@@ -61,9 +71,12 @@ export async function POST(
       cleanSig.length !== expectedSig.length ||
       !crypto.timingSafeEqual(Buffer.from(cleanSig), Buffer.from(expectedSig))
     ) {
-      await db.securityEvent?.create({
-        data: { event: 'INVALID_SIGNATURE', severity: 'CRITICAL', ip, details: { provider: providerName } }
-      }).catch(() => {});
+      await SecurityAlertService.record({
+        event: 'INVALID_SIGNATURE',
+        severity: 'CRITICAL',
+        ip,
+        details: { provider: providerName },
+      });
       return NextResponse.json({ error: 'Invalid HMAC signature' }, { status: 403 });
     }
 

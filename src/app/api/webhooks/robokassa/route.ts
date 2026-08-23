@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { paymentService } from '@/services/financial/payment.service';
 import { db } from '@/lib/db';
 import { timingSafeEqual } from 'crypto';
+import { SecurityAlertService } from '@/services/security/security-alert.service';
 
 const MAX_BODY_SIZE = 1024 * 64; // 64KB
 
@@ -27,7 +28,12 @@ export async function POST(req: NextRequest) {
 
     if (!isAllowedIp) {
       console.error(`[Robokassa Webhook] BLOCKED: IP spoofing attempt from ${ip}`);
-      await db.securityEvent.create({ data: { event: 'SPOOFED_IP_WEBHOOK', severity: 'CRITICAL', ip, details: { gateway: 'robokassa' } } });
+      await SecurityAlertService.record({
+        event: 'SPOOFED_IP_WEBHOOK',
+        severity: 'CRITICAL',
+        ip,
+        details: { gateway: 'robokassa' },
+      });
       return NextResponse.json({ error: 'Unauthorized IP' }, { status: 403 });
     }
 
@@ -44,6 +50,12 @@ export async function POST(req: NextRequest) {
         const text = await req.text();
         if (text.length > MAX_BODY_SIZE) {
           console.warn('[Webhook] Oversized Robokassa payload rejected');
+          await SecurityAlertService.record({
+            event: 'OVERSIZED_PAYLOAD',
+            severity: 'WARNING',
+            ip,
+            details: { gateway: 'robokassa', size: text.length },
+          });
           return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
         }
         const body = new URLSearchParams(text);
@@ -96,13 +108,11 @@ export async function POST(req: NextRequest) {
     if (!isMatch) {
       console.error(`[Robokassa Webhook] Cryptographic signature mismatch for payment ${shp_paymentId}`);
       if (ip) {
-        await db.securityEvent.create({
-          data: {
-            event: 'SIGNATURE_FAILED',
-            severity: 'CRITICAL',
-            ip,
-            details: { gateway: 'robokassa', paymentId: shp_paymentId }
-          }
+        await SecurityAlertService.record({
+          event: 'SIGNATURE_FAILED',
+          severity: 'CRITICAL',
+          ip,
+          details: { gateway: 'robokassa', paymentId: shp_paymentId },
         });
       }
       return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });

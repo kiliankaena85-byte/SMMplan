@@ -4,6 +4,7 @@ import { providerService } from '@/services/providers/provider.service';
 import { RefundPolicyService } from '@/services/financial/refund-policy.service';
 import { runSerializableTransaction } from '@/lib/transactions';
 import { RateLimitService } from '@/services/core/rate-limit.service';
+import { SecurityAlertService } from '@/services/security/security-alert.service';
 import { getClientIp } from '@/utils/ip';
 import crypto from 'crypto';
 
@@ -23,9 +24,12 @@ export async function POST(request: NextRequest) {
     if (timestamp) {
       const reqTime = parseInt(timestamp, 10);
       if (isNaN(reqTime) || Math.abs(Date.now() - reqTime) > 5 * 60 * 1000) {
-        await db.securityEvent?.create({
-          data: { event: 'REPLAY_ATTEMPT', severity: 'HIGH', ip, details: { gateway: 'vexboost', timestamp } }
-        }).catch(() => {});
+        await SecurityAlertService.record({
+          event: 'REPLAY_ATTEMPT',
+          severity: 'HIGH',
+          ip,
+          details: { gateway: 'vexboost', timestamp },
+        });
         return NextResponse.json({ error: 'Webhook timestamp expired or invalid' }, { status: 403 });
       }
     }
@@ -39,9 +43,12 @@ export async function POST(request: NextRequest) {
 
     if (!secret) {
       console.warn('[VexBoost Webhook] Missing webhook secret.');
-      await db.securityEvent?.create({
-        data: { event: 'MISSING_SECRET', severity: 'WARNING', ip, details: { gateway: 'vexboost' } }
-      }).catch(() => {});
+      await SecurityAlertService.record({
+        event: 'MISSING_SECRET',
+        severity: 'WARNING',
+        ip,
+        details: { gateway: 'vexboost' },
+      });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -53,9 +60,12 @@ export async function POST(request: NextRequest) {
       !crypto.timingSafeEqual(secretBuffer, expectedBuffer)
     ) {
       console.warn('[VexBoost Webhook] Unauthorized access attempt. Secret mismatch.');
-      await db.securityEvent?.create({
-        data: { event: 'UNAUTHORIZED_WEBHOOK_ACCESS', severity: 'CRITICAL', ip, details: { gateway: 'vexboost' } }
-      }).catch(() => {});
+      await SecurityAlertService.record({
+        event: 'UNAUTHORIZED_WEBHOOK_ACCESS',
+        severity: 'CRITICAL',
+        ip,
+        details: { gateway: 'vexboost' },
+      });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

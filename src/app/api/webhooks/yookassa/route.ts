@@ -30,6 +30,7 @@ import { timingSafeEqual } from 'crypto';
 import { paymentService } from '@/services/financial/payment.service';
 import { db } from '@/lib/db';
 import { MutexManager } from '@/lib/redis-lock';
+import { SecurityAlertService } from '@/services/security/security-alert.service';
 
 const MAX_BODY_SIZE = 1024 * 64; // 64KB
 
@@ -83,7 +84,12 @@ export async function POST(req: NextRequest) {
     
     if (!isAllowedIp) {
       console.error(`[YooKassa Webhook] BLOCKED: IP spoofing attempt from ${ip}`);
-      await db.securityEvent.create({ data: { event: 'SPOOFED_IP_WEBHOOK', severity: 'CRITICAL', ip, details: { gateway: 'yookassa' } } });
+      await SecurityAlertService.record({
+        event: 'SPOOFED_IP_WEBHOOK',
+        severity: 'CRITICAL',
+        ip,
+        details: { gateway: 'yookassa' },
+      });
       return NextResponse.json({ error: 'Unauthorized IP' }, { status: 403 });
     }
 
@@ -96,14 +102,24 @@ export async function POST(req: NextRequest) {
     const providedSignature = req.headers.get('x-sha256-signature') || req.headers.get('digest');
     if (!providedSignature) {
       console.error('[YooKassa] Webhook missing required signature header');
-      await db.securityEvent.create({ data: { event: 'MISSING_SIGNATURE', severity: 'CRITICAL', ip, details: { gateway: 'yookassa' } } });
+      await SecurityAlertService.record({
+        event: 'MISSING_SIGNATURE',
+        severity: 'CRITICAL',
+        ip,
+        details: { gateway: 'yookassa' },
+      });
       return NextResponse.json({ error: 'Missing webhook signature' }, { status: 403 });
     }
 
     const rawText = await req.text();
     if (rawText.length > MAX_BODY_SIZE) {
       console.warn('[Webhook] Oversized payload rejected');
-      await db.securityEvent.create({ data: { event: 'OVERSIZED_PAYLOAD', severity: 'WARNING', ip, details: { gateway: 'yookassa', size: rawText.length } } });
+      await SecurityAlertService.record({
+        event: 'OVERSIZED_PAYLOAD',
+        severity: 'WARNING',
+        ip,
+        details: { gateway: 'yookassa', size: rawText.length },
+      });
       return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
     }
 
@@ -117,13 +133,23 @@ export async function POST(req: NextRequest) {
     const HEX_REGEX = /^[0-9a-f]{64}$/i;
     
     if (!HEX_REGEX.test(signatureHex)) {
-      await db.securityEvent.create({ data: { event: 'INVALID_SIGNATURE_FORMAT', severity: 'CRITICAL', ip, details: { gateway: 'yookassa', signature: providedSignature } } });
+      await SecurityAlertService.record({
+        event: 'INVALID_SIGNATURE_FORMAT',
+        severity: 'CRITICAL',
+        ip,
+        details: { gateway: 'yookassa', signature: providedSignature },
+      });
       return NextResponse.json({ error: 'Invalid signature format' }, { status: 403 });
     }
 
     if (!safeCompare(expectedSig, signatureHex)) {
       console.error('[YooKassa] HMAC signature mismatch — possible webhook forgery attempt');
-      await db.securityEvent.create({ data: { event: 'SIGNATURE_FAILED', severity: 'CRITICAL', ip, details: { gateway: 'yookassa' } } });
+      await SecurityAlertService.record({
+        event: 'SIGNATURE_FAILED',
+        severity: 'CRITICAL',
+        ip,
+        details: { gateway: 'yookassa' },
+      });
       return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
     }
 
@@ -134,7 +160,12 @@ export async function POST(req: NextRequest) {
       const webhookTime = new Date(webhookCreatedAt).getTime();
       const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000;
       if (webhookTime < thirtyMinutesAgo) {
-        await db.securityEvent.create({ data: { event: 'REPLAY_ATTEMPT', severity: 'CRITICAL', ip, details: { gateway: 'yookassa', webhookTime, gatewayId: rawBody.object?.id } } });
+        await SecurityAlertService.record({
+          event: 'REPLAY_ATTEMPT',
+          severity: 'CRITICAL',
+          ip,
+          details: { gateway: 'yookassa', webhookTime, gatewayId: rawBody.object?.id },
+        });
         return NextResponse.json({ error: 'Stale webhook rejected' }, { status: 400 });
       }
     }

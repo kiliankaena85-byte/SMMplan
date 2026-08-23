@@ -5,6 +5,7 @@ import { verifyB2BKey } from '@/lib/b2b-auth';
 import { marketingService } from '@/services/marketing.service';
 import { orderService } from '@/services/core/order.service';
 import { RateLimitService } from '@/services/core/rate-limit.service';
+import { SecurityAlertService } from '@/services/security/security-alert.service';
 import { z } from 'zod';
 import { type User } from '@prisma/client';
 
@@ -107,14 +108,12 @@ export async function POST(request: NextRequest) {
     const user = await verifyB2BKey(key);
     if (!user) {
       const isFailedAllowed = await RateLimitService.checkCustomKey(`b2b_failed_auth:${ip}`, 10, 60);
-      await db.securityEvent.create({
-        data: {
-          event: 'B2B_AUTH_FAILED',
-          severity: isFailedAllowed ? 'WARNING' : 'CRITICAL',
-          ip,
-          details: { action, reason: 'Invalid or banned API key' }
-        }
-      }).catch(() => {});
+      await SecurityAlertService.record({
+        event: 'B2B_AUTH_FAILED',
+        severity: isFailedAllowed ? 'WARNING' : 'CRITICAL',
+        ip,
+        details: { action, reason: 'Invalid or banned API key' }
+      });
       if (!isFailedAllowed) {
         return sendResponse(NextResponse.json({ error: 'Too many failed authentication attempts. Blocked for 60 seconds.' }, { status: 429 }));
       }
@@ -206,12 +205,11 @@ async function handleAdd(user: User, formData: FormData) {
   });
 
   if (!service) {
-    await db.securityEvent.create({
-      data: {
-        event: 'API_V2_CROSS_TENANT_SERVICE_ATTEMPT',
-        severity: 'CRITICAL',
-        details: { userId: user.id, userTenantId, serviceNumericId }
-      }
+    await SecurityAlertService.record({
+      event: 'API_V2_CROSS_TENANT_SERVICE_ATTEMPT',
+      severity: 'CRITICAL',
+      details: { userId: user.id, userTenantId, serviceNumericId },
+      tenantId: userTenantId,
     });
     return NextResponse.json({ error: 'Incorrect service ID' }, { status: 400 });
   }
@@ -326,12 +324,11 @@ async function handleAddMulti(user: User, formData: FormData) {
       });
 
       if (!service) {
-        await db.securityEvent.create({
-          data: {
-            event: 'API_V2_CROSS_TENANT_SERVICE_ATTEMPT',
-            severity: 'CRITICAL',
-            details: { userId: user.id, userTenantId, serviceNumericId }
-          }
+        await SecurityAlertService.record({
+          event: 'API_V2_CROSS_TENANT_SERVICE_ATTEMPT',
+          severity: 'CRITICAL',
+          details: { userId: user.id, userTenantId, serviceNumericId },
+          tenantId: userTenantId,
         });
         results.push({ error: 'Incorrect service ID' });
         continue;
@@ -395,12 +392,11 @@ async function handleStatus(user: User, formData: FormData) {
     });
 
     if (!order) {
-      await db.securityEvent.create({
-        data: {
-          event: 'API_V2_UNAUTHORIZED_ORDER_ACCESS',
-          severity: 'WARNING',
-          details: { userId: user.id, userTenantId, numericId }
-        }
+      await SecurityAlertService.record({
+        event: 'API_V2_UNAUTHORIZED_ORDER_ACCESS',
+        severity: 'WARNING',
+        details: { userId: user.id, userTenantId, numericId },
+        tenantId: userTenantId,
       });
       return NextResponse.json({ error: 'Incorrect order ID' }, { status: 400 });
     }

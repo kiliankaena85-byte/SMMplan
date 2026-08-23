@@ -46,6 +46,15 @@ export async function POST(req: Request) {
     const expectedBuf = Buffer.from(expectedSecret);
     if (!secret || secretBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(secretBuf, expectedBuf)) {
       console.warn(`[Webhook] Unauthorized access attempt. Secret mismatch.`);
+      const { getClientIp } = await import('@/utils/ip');
+      const ip = await getClientIp(req);
+      const { SecurityAlertService } = await import('@/services/security/security-alert.service');
+      await SecurityAlertService.record({
+        event: 'UNAUTHORIZED_WEBHOOK_ACCESS',
+        severity: 'CRITICAL',
+        ip,
+        details: { gateway: 'provider_default' },
+      });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

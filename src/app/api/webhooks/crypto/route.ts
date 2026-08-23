@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { db } from '@/lib/db';
 import { paymentService } from '@/services/financial/payment.service';
 import { SettingsManager } from '@/lib/settings';
+import { SecurityAlertService } from '@/services/security/security-alert.service';
 
 const MAX_BODY_SIZE = 1024 * 64; // 64KB
 
@@ -14,14 +15,24 @@ export async function POST(request: NextRequest) {
 
     const signature = request.headers.get('crypto-pay-api-signature');
     if (!signature) {
-      await db.securityEvent.create({ data: { event: 'MISSING_SIGNATURE', severity: 'CRITICAL', ip, details: { gateway: 'cryptobot' } } });
+      await SecurityAlertService.record({
+        event: 'MISSING_SIGNATURE',
+        severity: 'CRITICAL',
+        ip,
+        details: { gateway: 'cryptobot' },
+      });
       return NextResponse.json({ error: 'Missing signature' }, { status: 401 });
     }
 
     const payload = await request.text();
     if (payload.length > MAX_BODY_SIZE) {
       console.warn('[Webhook] Oversized payload rejected');
-      await db.securityEvent.create({ data: { event: 'OVERSIZED_PAYLOAD', severity: 'WARNING', ip, details: { gateway: 'cryptobot', size: payload.length } } });
+      await SecurityAlertService.record({
+        event: 'OVERSIZED_PAYLOAD',
+        severity: 'WARNING',
+        ip,
+        details: { gateway: 'cryptobot', size: payload.length },
+      });
       return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
     }
 
@@ -38,7 +49,12 @@ export async function POST(request: NextRequest) {
 
     const HEX_REGEX = /^[0-9a-f]{64}$/i;
     if (!HEX_REGEX.test(signature)) {
-      await db.securityEvent.create({ data: { event: 'INVALID_SIGNATURE_FORMAT', severity: 'CRITICAL', ip, details: { gateway: 'cryptobot', signature } } });
+      await SecurityAlertService.record({
+        event: 'INVALID_SIGNATURE_FORMAT',
+        severity: 'CRITICAL',
+        ip,
+        details: { gateway: 'cryptobot', signature },
+      });
       return NextResponse.json({ error: 'Invalid signature format' }, { status: 403 });
     }
 
@@ -47,7 +63,12 @@ export async function POST(request: NextRequest) {
 
     if (expectedBuf.length !== providedBuf.length || !crypto.timingSafeEqual(expectedBuf, providedBuf)) {
        console.error('[Webhook] Invalid CryptoBot signature');
-       await db.securityEvent.create({ data: { event: 'SIGNATURE_FAILED', severity: 'CRITICAL', ip, details: { gateway: 'cryptobot' } } });
+       await SecurityAlertService.record({
+         event: 'SIGNATURE_FAILED',
+         severity: 'CRITICAL',
+         ip,
+         details: { gateway: 'cryptobot' },
+       });
        return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
     }
 
@@ -59,7 +80,12 @@ export async function POST(request: NextRequest) {
       const webhookTime = new Date(webhookCreatedAt).getTime();
       const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000;
       if (webhookTime < thirtyMinutesAgo) {
-         await db.securityEvent.create({ data: { event: 'REPLAY_ATTEMPT', severity: 'CRITICAL', ip, details: { gateway: 'cryptobot', webhookTime, gatewayId: data.payload?.invoice_id } } });
+         await SecurityAlertService.record({
+           event: 'REPLAY_ATTEMPT',
+           severity: 'CRITICAL',
+           ip,
+           details: { gateway: 'cryptobot', webhookTime, gatewayId: data.payload?.invoice_id },
+         });
          return NextResponse.json({ error: 'Stale webhook rejected' }, { status: 400 });
       }
     }
