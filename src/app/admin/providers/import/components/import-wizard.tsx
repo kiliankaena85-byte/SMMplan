@@ -1,5 +1,6 @@
 'use client';
 
+import { inferTargetTypeFromName, inferTargetTypeFromCategory, isTargetTypeCompatible } from '@/utils/target-type';
 import { useState, useEffect, useCallback, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -25,6 +26,7 @@ const autoMapCategory = (s: ExternalServiceItem, categories: CategoryItem[]): { 
   const platform = (s.metrics?.platform || "").toUpperCase();
   const category = (s.metrics?.category || "").toUpperCase();
   const serviceName = (s.name || "").toLowerCase();
+  const serviceTargetType = inferTargetTypeFromName(s.name);
 
   // 1. Filter categories for this platform
   const platformCategories = categories.filter(c => {
@@ -45,13 +47,19 @@ const autoMapCategory = (s: ExternalServiceItem, categories: CategoryItem[]): { 
     STORIES: ['story', 'stories', 'сторис']
   };
 
-  // Find the best category by scoring
   let bestCategory: CategoryItem | null = null;
   let maxScore = -1;
 
   for (const c of targetCategories) {
     const catSlug = ((c.slug || c.id) || "").toUpperCase();
     const catName = (c.name || "").toLowerCase();
+    const catTargetType = inferTargetTypeFromCategory(c.name);
+
+    // CRITICAL: Strict target-type compatibility check
+    if (!isTargetTypeCompatible(serviceTargetType, catTargetType)) {
+      continue;
+    }
+
     let score = 0;
 
     // A. Direct metric category match (highest weight)
@@ -72,7 +80,6 @@ const autoMapCategory = (s: ExternalServiceItem, categories: CategoryItem[]): { 
           score += 15;
         }
         
-        // Count matching words
         words.forEach((w: string) => {
           if (serviceName.includes(w) && (catName.includes(w) || catSlug.includes(w.toUpperCase()))) {
             score += 5;
@@ -100,7 +107,6 @@ const autoMapCategory = (s: ExternalServiceItem, categories: CategoryItem[]): { 
     return { id: bestCategory.id, confident: true };
   }
 
-  // No confident match - return empty string to force manual mapping
   return { id: "", confident: false };
 };
 

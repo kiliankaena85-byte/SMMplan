@@ -1,4 +1,6 @@
 'use client';
+
+import { inferTargetTypeFromName, TargetTypeEnum } from '@/utils/target-type';
 import type { ExternalServiceItem, CategoryItem, FilterState } from "../types";
 
 import React from "react";
@@ -67,6 +69,31 @@ const getPlatformDisplay = (code: string) => {
   if (map) return map;
   return { name: code, color: "bg-muted text-foreground border-border", icon: "🌐" };
 };
+
+
+const targetTypeBadges: Record<string, { label: string; color: string; icon: string }> = {
+  POST: { label: 'Пост', color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20', icon: '📝' },
+  CHANNEL: { label: 'Канал', color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20', icon: '📢' },
+  PROFILE: { label: 'Профиль', color: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20', icon: '👤' },
+  VIDEO: { label: 'Видео', color: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20', icon: '🎬' },
+  STORY: { label: 'Сториз', color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20', icon: '⏱️' },
+  CHANNEL_POSTS: { label: 'Авто-посты', color: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20', icon: '🤖' },
+  POLL: { label: 'Опрос', color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20', icon: '📊' },
+  COMMENTS: { label: 'Отзывы', color: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20', icon: '💬' },
+  BOT: { label: 'Бот', color: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20', icon: '🤖' },
+  CUSTOM: { label: 'Свой', color: 'bg-muted text-foreground border-border', icon: '⚙️' },
+};
+
+export function TargetTypeBadge({ name }: { name: string }) {
+  const targetType = inferTargetTypeFromName(name);
+  const badge = targetTypeBadges[targetType] || targetTypeBadges.CUSTOM;
+  return (
+    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${badge.color}`}>
+      <span>{badge.icon}</span>
+      <span>{badge.label}</span>
+    </span>
+  );
+}
 
 export function ServicesTable({
   services,

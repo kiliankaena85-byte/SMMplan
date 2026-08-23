@@ -4,6 +4,19 @@
  * and ServiceTargetType / SmartAnalyzerLogic (uppercase DB types).
  */
 
+export enum TargetTypeEnum {
+  CHANNEL = 'CHANNEL',
+  POST = 'POST',
+  PROFILE = 'PROFILE',
+  STORY = 'STORY',
+  VIDEO = 'VIDEO',
+  CHANNEL_POSTS = 'CHANNEL_POSTS',
+  POLL = 'POLL',
+  COMMENTS = 'COMMENTS',
+  BOT = 'BOT',
+  CUSTOM = 'CUSTOM',
+}
+
 export type ServiceTargetType =
   | 'CHANNEL'
   | 'POST'
@@ -17,18 +30,18 @@ export type ServiceTargetType =
   | 'CUSTOM';
 
 /**
- * Normalizes any detected link type string into canonical uppercase ServiceTargetType.
- * Handles casing ('channel' -> 'CHANNEL', 'post' -> 'POST', 'video' -> 'VIDEO').
+ * Normalizes any detected link type string into canonical uppercase TargetTypeEnum.
+ * Handles casing ("channel" -> CHANNEL, "post" -> POST, "video" -> VIDEO).
  */
-export function normalizeTargetType(rawType: string | null | undefined): ServiceTargetType {
-  if (!rawType) return 'CUSTOM';
+export function normalizeTargetType(rawType: string | null | undefined): TargetTypeEnum {
+  if (!rawType) return TargetTypeEnum.CUSTOM;
   const clean = rawType.trim().toUpperCase();
 
   switch (clean) {
     case 'CHANNEL':
     case 'GROUP':
     case 'CHAT':
-      return 'CHANNEL';
+      return TargetTypeEnum.CHANNEL;
 
     case 'POST':
     case 'PRIVATE_POST':
@@ -36,12 +49,12 @@ export function normalizeTargetType(rawType: string | null | undefined): Service
     case 'WALL':
     case 'TWEET':
     case 'STATUS':
-      return 'POST';
+      return TargetTypeEnum.POST;
 
     case 'PROFILE':
     case 'USER':
     case 'ACCOUNT':
-      return 'PROFILE';
+      return TargetTypeEnum.PROFILE;
 
     case 'VIDEO':
     case 'SHORT_VIDEO':
@@ -52,44 +65,111 @@ export function normalizeTargetType(rawType: string | null | undefined): Service
     case 'VK_VIDEO':
     case 'VK_CLIP':
     case 'VK_PLAY':
-      return 'VIDEO';
+      return TargetTypeEnum.VIDEO;
 
     case 'STORY':
     case 'STORIES':
-      return 'STORY';
+      return TargetTypeEnum.STORY;
 
     case 'POLL':
     case 'VOTE':
-      return 'POLL';
+      return TargetTypeEnum.POLL;
 
     case 'COMMENT':
     case 'COMMENTS':
-      return 'COMMENTS';
+      return TargetTypeEnum.COMMENTS;
 
     case 'BOT':
-      return 'BOT';
+      return TargetTypeEnum.BOT;
 
     case 'CHANNEL_POSTS':
     case 'AUTO_POSTS':
     case 'AUTO':
-      return 'CHANNEL_POSTS';
+      return TargetTypeEnum.CHANNEL_POSTS;
 
     default:
-      return 'CUSTOM';
+      return TargetTypeEnum.CUSTOM;
   }
 }
 
 /**
+ * Infers TargetTypeEnum directly from service/package name.
+ */
+export function inferTargetTypeFromName(name: string | null | undefined): TargetTypeEnum {
+  if (!name) return TargetTypeEnum.POST;
+  const n = name.toLowerCase();
+
+  // Auto / Future / Subscription services
+  if (
+    n.includes('автопросмотр') ||
+    n.includes('автолайк') ||
+    n.includes('автореакци') ||
+    n.includes('авторепост') ||
+    n.includes('будущие просмотры') ||
+    n.includes('массовые просмотры') ||
+    n.includes('подписка на') ||
+    n.includes('auto view') ||
+    n.includes('future view') ||
+    n.includes('channel posts')
+  ) {
+    return TargetTypeEnum.CHANNEL_POSTS;
+  }
+
+  // Channel / Group / Subscribers
+  if (
+    n.includes('подписчик') ||
+    n.includes('участник') ||
+    n.includes('фолловер') ||
+    n.includes('subscriber') ||
+    n.includes('member') ||
+    n.includes('follower') ||
+    n.includes('канал') ||
+    n.includes('channel') ||
+    n.includes('групп') ||
+    n.includes('group') ||
+    n.includes('буст') ||
+    n.includes('boost') ||
+    n.includes('инвайт') ||
+    n.includes('invite')
+  ) {
+    return TargetTypeEnum.CHANNEL;
+  }
+
+  // Stories
+  if (n.includes('стори') || n.includes('story') || n.includes('stories') || n.includes('истори')) {
+    return TargetTypeEnum.STORY;
+  }
+
+  // Video / Shorts / Reels
+  if (n.includes('видео') || n.includes('video') || n.includes('shorts') || n.includes('reels') || n.includes('clip') || n.includes('клип') || n.includes('стрим') || n.includes('stream') || n.includes('зрител')) {
+    return TargetTypeEnum.VIDEO;
+  }
+
+  // Profile / Friends / Visits
+  if (n.includes('профиль') || n.includes('profile') || n.includes('аккаунт') || n.includes('друг') || n.includes('friend')) {
+    return TargetTypeEnum.PROFILE;
+  }
+
+  // Polls / Votes
+  if (n.includes('опрос') || n.includes('голос') || n.includes('poll') || n.includes('vote')) {
+    return TargetTypeEnum.POLL;
+  }
+
+  // Comments
+  if (n.includes('коммент') || n.includes('comment') || n.includes('отзыв') || n.includes('review')) {
+    return TargetTypeEnum.COMMENTS;
+  }
+
+  // Bots / Referrals
+  if (n.includes('бот') || n.includes('bot') || n.includes('реферал') || n.includes('referral')) {
+    return TargetTypeEnum.BOT;
+  }
+
+  return TargetTypeEnum.POST;
+}
+
+/**
  * Checks whether a detected URL link target type is compatible with a Service target type.
- *
- * Compatibility Matrix:
- * - CHANNEL URL -> compatible with CHANNEL (subscribers) and CHANNEL_POSTS (auto-views on future posts) and PROFILE.
- * - POST URL -> compatible ONLY with POST, VIDEO, COMMENTS. NEVER with CHANNEL or CHANNEL_POSTS.
- * - PROFILE URL -> compatible with PROFILE, CHANNEL (followers), but NOT with POST.
- * - VIDEO URL -> compatible with VIDEO, POST.
- * - STORY URL -> compatible with STORY.
- * - POLL URL -> compatible with POLL, POST.
- * - Fallback: If either is 'CUSTOM' or missing, returns true.
  */
 export function isTargetTypeCompatible(
   detectedLinkType: string | null | undefined,
@@ -100,41 +180,47 @@ export function isTargetTypeCompatible(
   const detected = normalizeTargetType(detectedLinkType);
   const service = normalizeTargetType(serviceTargetType);
 
-  // Wildcard / Custom is always compatible
-  if (detected === 'CUSTOM' || service === 'CUSTOM') return true;
-
-  // Exact match is always compatible
+  if (detected === TargetTypeEnum.CUSTOM || service === TargetTypeEnum.CUSTOM) return true;
   if (detected === service) return true;
 
   switch (detected) {
-    case 'CHANNEL':
-      // A channel URL can receive subscribers (CHANNEL) or auto-monitoring on future posts (CHANNEL_POSTS) or profile followers
-      return service === 'CHANNEL' || service === 'CHANNEL_POSTS' || service === 'PROFILE';
+    case TargetTypeEnum.CHANNEL:
+      return (
+        service === TargetTypeEnum.CHANNEL ||
+        service === TargetTypeEnum.CHANNEL_POSTS ||
+        service === TargetTypeEnum.PROFILE
+      );
 
-    case 'POST':
-      // A post URL can ONLY receive post engagement (likes, views, comments, reposts).
-      // It CANNOT receive channel subscribers or channel-wide auto-monitoring.
-      return service === 'POST' || service === 'VIDEO' || service === 'COMMENTS';
+    case TargetTypeEnum.POST:
+      return (
+        service === TargetTypeEnum.POST ||
+        service === TargetTypeEnum.VIDEO ||
+        service === TargetTypeEnum.COMMENTS
+      );
 
-    case 'PROFILE':
-      // A profile URL can receive followers (PROFILE or CHANNEL), but NOT individual post likes.
-      return service === 'PROFILE' || service === 'CHANNEL';
+    case TargetTypeEnum.PROFILE:
+      return (
+        service === TargetTypeEnum.PROFILE ||
+        service === TargetTypeEnum.CHANNEL
+      );
 
-    case 'VIDEO':
-      // A video URL can receive video metrics or standard post metrics (likes, comments).
-      return service === 'VIDEO' || service === 'POST';
+    case TargetTypeEnum.VIDEO:
+      return (
+        service === TargetTypeEnum.VIDEO ||
+        service === TargetTypeEnum.POST
+      );
 
-    case 'STORY':
-      return service === 'STORY';
+    case TargetTypeEnum.STORY:
+      return service === TargetTypeEnum.STORY;
 
-    case 'POLL':
-      return service === 'POLL' || service === 'POST';
+    case TargetTypeEnum.POLL:
+      return service === TargetTypeEnum.POLL || service === TargetTypeEnum.POST;
 
-    case 'BOT':
-      return service === 'BOT' || service === 'CHANNEL';
+    case TargetTypeEnum.BOT:
+      return service === TargetTypeEnum.BOT || service === TargetTypeEnum.CHANNEL;
 
-    case 'CHANNEL_POSTS':
-      return service === 'CHANNEL_POSTS' || service === 'CHANNEL';
+    case TargetTypeEnum.CHANNEL_POSTS:
+      return service === TargetTypeEnum.CHANNEL_POSTS || service === TargetTypeEnum.CHANNEL;
 
     default:
       return true;
