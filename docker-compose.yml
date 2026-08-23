@@ -57,13 +57,28 @@ services:
       dockerfile: Dockerfile.standalone
     container_name: smmplan_web
     restart: always
+    # Load all secrets from .env (local dev keys, API tokens, etc.)
+    # DATABASE_URL and REDIS_URL are overridden below to use Docker service names
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
+      # Override to use Docker internal service DNS (not localhost)
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/smmplan_lite?schema=public&connection_limit=5&pool_timeout=30
       - REDIS_URL=redis://redis:6379
       - RUN_MIGRATIONS=false
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
     ports:
       - "3000:3000"
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
     depends_on:
       db:
         condition: service_healthy
