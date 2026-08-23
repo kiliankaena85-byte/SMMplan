@@ -69,7 +69,9 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   const userId = params.userId || '';
   const editOrderId = params.edit_order_id || '';
   const networkSlug = params.networkSlug || '';
-  const tenantFilter = params.tenant && params.tenant !== 'all' ? params.tenant : undefined;
+  const { resolveAdminTenantContext } = await import('@/utils/admin-tenant');
+  const resolvedTenant = resolveAdminTenantContext(user, params.tenant);
+  const tenantFilter = resolvedTenant !== 'all' ? resolvedTenant : undefined;
 
   const networks = await db.network.findMany({
     select: { 

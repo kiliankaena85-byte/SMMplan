@@ -97,7 +97,7 @@ export async function GET(request: Request) {
 
   // Redirect
   const redirectParam = url.searchParams.get("redirect");
-  if (redirectParam && redirectParam.startsWith("/")) {
+  if (redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//") && !redirectParam.startsWith("/\\")) {
     redirect(redirectParam);
   }
 

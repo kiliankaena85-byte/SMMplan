@@ -74,10 +74,13 @@ export async function GET(req: NextRequest) {
       }
     });
 
+    const { getBaseUrlAsync } = await import('@/utils/get-base-url');
+    const baseUrl = await getBaseUrlAsync();
+
     if (payment.orderId) {
-      return NextResponse.redirect(new URL(`/success?orderId=${payment.orderId}`, req.url));
+      return NextResponse.redirect(new URL(`/success?orderId=${payment.orderId}`, baseUrl));
     } else {
-      return NextResponse.redirect(new URL(`/dashboard/add-funds?success=1`, req.url));
+      return NextResponse.redirect(new URL(`/dashboard/add-funds?success=1`, baseUrl));
     }
   } catch (error: unknown) {
     console.error("[MockPayment] Error:", error);

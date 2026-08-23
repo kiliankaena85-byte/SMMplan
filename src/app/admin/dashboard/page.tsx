@@ -57,7 +57,9 @@ export default async function AdminDashboardPage({
 
   const resolvedSearchParams = await searchParams;
   const period = resolvedSearchParams.period || 'all';
-  const tenantFilter = resolvedSearchParams.tenant;
+  const { resolveAdminTenantContext } = await import('@/utils/admin-tenant');
+  const resolvedTenant = resolveAdminTenantContext(user, resolvedSearchParams.tenant);
+  const tenantFilter = resolvedTenant !== 'all' ? resolvedTenant : undefined;
 
   // Calculate start and end date boundaries in local timezone
   const now = new Date();

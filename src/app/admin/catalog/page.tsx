@@ -61,7 +61,9 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
   const canEditFinance = isSuperAdmin || permissions.some(p => p.section.toUpperCase() === 'FINANCE' && p.canEdit);
 
   const params = await searchParams;
-  const selectedTenant = params.tenant || normalizeTenantId(reqHeaders.get('x-tenant-id')) || 'smmplan';
+  const { resolveAdminTenantContext } = await import('@/utils/admin-tenant');
+  const resolvedTenant = resolveAdminTenantContext(user, params.tenant);
+  const selectedTenant = resolvedTenant !== 'all' ? resolvedTenant : normalizeTenantId(reqHeaders.get('x-tenant-id')) || 'smmplan';
   const search = params.q || '';
   const cursor = params.cursor || undefined;
   const categoryId = params.category || undefined;

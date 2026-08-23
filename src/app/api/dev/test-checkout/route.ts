@@ -34,5 +34,5 @@ export async function GET(req: Request) {
     gateway: "yookassa"
   });
   
-  return NextResponse.json({ secrets: { shopId: secrets.yookassaShopId, secret: secrets.yookassaSecretKey?.substring(0,5) }, isTest, res });
+  return NextResponse.json({ isConfigured: Boolean(secrets.yookassaShopId), isTest, res });
 }

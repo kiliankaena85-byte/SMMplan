@@ -2,7 +2,13 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-23 | Агент: Antigravity
-## Активный статус: 🛡️ АУДИТ DOCKER MULTI-STAGE & NGINX ANTI-SPOOFING ЗАВЕРШЁН. Валидирован `docker compose -f docker-compose.prod.yml config` (Exit Code 0), стейдж `worker-runner` в `Dockerfile` и `docker-compose.prod.yml` переведен на прямой запуск локального `./node_modules/.bin/tsx` (исключены runtime npx-загрузки), в `nginx/default.conf` директивы `proxy_set_header X-Real-IP $remote_addr;` зафиксированы на уровне блока `server {}` и унаследованы/продублированы во всех locations, сборка и проверка типов `npx tsc --noEmit` — 0 ошибок.
+## Активный статус: 🛡️ ПОЛНАЯ РЕМЕДИАЦИЯ ЗАМЕЧАНИЙ ВНЕШНЕГО СТАТИЧЕСКОГО АУДИТА (P0/P1) ЗАВЕРШЕНА.
+- Унифицировано шифрование на базе `VaultService`, удалены хардкод-ключи и соли, включен fail-fast.
+- Вебхуки переведены на fail-closed (`503` при отсутствии секрета), исправлен IP whitelist YooKassa/Robokassa, запрещен секрет в query params, внедрен `timingSafeEqual`.
+- Финансовый контур: `MutexManager.withLock` активирован в `checkout.ts`, порядок проверки идемпотентности переставлен до списания, исправлен `catch`-блок в `WalletOps.credit`.
+- Защита от Host Header Poisoning в `getBaseUrlAsync`, санитизация IP и dev-роутов, внедрен `resolveAdminTenantContext` в админ-страницах.
+- CI и инфраструктура: блокирующий gitleaks и npm audit, Content-Security-Policy (CSP) и выделенный rate-limit вебхуков в Nginx, non-root `nextjs` пользователь в standalone Docker.
+- Все проверки пройдены: `npx tsc --noEmit` (0 ошибок), unit/security тесты 24/24 PASS, `verify-no-secrets.js` PASS, `npm run build` PASS.
 
 
 ---

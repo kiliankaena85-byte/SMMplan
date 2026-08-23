@@ -1,9 +1,26 @@
 import { headers } from "next/headers";
 
+const ALLOWED_HOST_DOMAINS = [
+  'smmplan.pro',
+  'www.smmplan.pro',
+  'test.smmplan.pro',
+  'smmflux.ru',
+  'www.smmflux.ru',
+  'test.smmflux.ru',
+  'localhost',
+  '127.0.0.1'
+];
+
+function isAllowedHost(host: string): boolean {
+  if (!host) return false;
+  const cleanHost = host.split(':')[0].toLowerCase();
+  return ALLOWED_HOST_DOMAINS.includes(cleanHost) || cleanHost.endsWith('.smmplan.pro') || cleanHost.endsWith('.smmflux.ru');
+}
+
 export async function getBaseUrlAsync(reqHost?: string | null, reqProto?: string | null): Promise<string> {
   const envUrl = process.env.WEBAPP_URL || process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
 
-  // 1. Fallback to Host header if inside a request context
+  // 1. Check inside a request context with Host whitelist validation
   try {
     const headersList = await headers();
     let host = headersList.get("x-forwarded-host") || headersList.get("host");
@@ -11,10 +28,12 @@ export async function getBaseUrlAsync(reqHost?: string | null, reqProto?: string
 
     if (host) {
       if (host.includes("0.0.0.0")) host = host.replace("0.0.0.0", "localhost");
-      return `${proto}://${host}`;
+      if (isAllowedHost(host)) {
+        return `${proto}://${host}`;
+      }
     }
   } catch {
-    // We are outside of a Next.js request context (e.g. background worker)
+    // Outside of a Next.js request context
   }
 
   // 2. If we have a valid URL in env, use it.
@@ -22,15 +41,17 @@ export async function getBaseUrlAsync(reqHost?: string | null, reqProto?: string
     return envUrl.endsWith("/") ? envUrl.slice(0, -1) : envUrl;
   }
 
-  // 3. Fallback to provided reqHost
+  // 3. Fallback to provided reqHost with whitelist check
   if (reqHost) {
     let host = reqHost;
     if (host.includes("0.0.0.0")) host = host.replace("0.0.0.0", "localhost");
-    const proto = reqProto || (process.env.NODE_ENV === "production" ? "https" : "http");
-    return `${proto}://${host}`;
+    if (isAllowedHost(host)) {
+      const proto = reqProto || (process.env.NODE_ENV === "production" ? "https" : "http");
+      return `${proto}://${host}`;
+    }
   }
 
-  // 4. Absolute fallback
+  // 4. Absolute canonical fallback
   return process.env.NODE_ENV === "production" ? "https://smmplan.pro" : "http://localhost:3000";
 }
 
@@ -44,8 +65,10 @@ export function getBaseUrlSync(reqHost?: string | null, reqProto?: string | null
   if (reqHost) {
     let host = reqHost;
     if (host.includes("0.0.0.0")) host = host.replace("0.0.0.0", "localhost");
-    const proto = reqProto || (process.env.NODE_ENV === "production" ? "https" : "http");
-    return `${proto}://${host}`;
+    if (isAllowedHost(host)) {
+      const proto = reqProto || (process.env.NODE_ENV === "production" ? "https" : "http");
+      return `${proto}://${host}`;
+    }
   }
 
   if (envUrl) {

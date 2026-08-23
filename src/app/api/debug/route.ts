@@ -57,11 +57,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ tokenSet, tgResult, tgError });
   }
 
-  const cookieStore = await cookies();
-  
   return NextResponse.json({
-    allCookies: cookieStore.getAll(),
-    sessionToken: cookieStore.get('session_token')?.value,
-    verifiedSession: session
+    authenticated: true,
+    userRole: user.role,
+    tenantId: user.tenantId,
+    verifiedSessionId: session.userId
   });
 }

@@ -9,12 +9,16 @@ export async function GET(req: Request) {
   
   const session = await verifySession();
   
-  if (!session) {
-    return NextResponse.redirect(new URL('/login', req.url));
+  const { getBaseUrlAsync } = await import('@/utils/get-base-url');
+  const baseUrl = await getBaseUrlAsync();
+
+  if (!session || !['OWNER', 'ADMIN'].includes(session.role || '')) {
+    return NextResponse.redirect(new URL('/login', baseUrl));
   }
 
   const { searchParams } = new URL(req.url);
-  const targetTenant = searchParams.get('to') || 'lovable';
+  const rawTarget = searchParams.get('to') || 'flux';
+  const targetTenant = rawTarget === 'flux' || rawTarget === 'smmflux' ? 'flux' : 'smmplan';
 
   try {
     await db.user.update({
@@ -23,33 +27,12 @@ export async function GET(req: Request) {
     });
   } catch (error: unknown) {
     if ((error as { code?: string })?.code === 'P2002') {
-      // Find the current user to get their email
-      const currentUser = await db.user.findUnique({ where: { id: session.userId } });
-      if (currentUser && currentUser.email) {
-        // Move the colliding account out of the way
-        await db.user.update({
-          where: {
-            email_tenantId: {
-              email: currentUser.email,
-              tenantId: targetTenant,
-            }
-          },
-          data: {
-            email: currentUser.email + '_duplicate_' + Date.now(),
-          }
-        });
-        // Try again
-        await db.user.update({
-          where: { id: session.userId },
-          data: { tenantId: targetTenant },
-        });
-        return NextResponse.redirect(new URL('/dashboard', req.url));
-      }
+      return new NextResponse('Conflict: An account with this email already exists in the target tenant.', { status: 409 });
     }
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Failed to switch tenant:', error);
     return new NextResponse('Failed to switch tenant. ' + errorMessage, { status: 400 });
   }
 
-  return NextResponse.redirect(new URL('/dashboard', req.url));
+  return NextResponse.redirect(new URL('/dashboard', baseUrl));
 }

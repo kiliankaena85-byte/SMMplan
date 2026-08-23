@@ -18,15 +18,12 @@ export async function POST(req: NextRequest) {
 
     // --- SECURITY GUARD: Robokassa Official IP Range Validation ---
     const isLocalhost = ip === '::1' || ip === '127.0.0.1' || ip.startsWith('127.0.0.');
-    const hostHeader = req.headers.get('host') || '';
-    const isTestDomain = hostHeader.includes('test.') || hostHeader.includes('stage.') || hostHeader.includes('localhost');
     const allowedPrefixes = [
       '185.59.216.', '185.59.217.', '185.59.218.', '185.59.219.',
       '217.175.227.', '91.227.52.', '91.227.53.', '91.227.54.', '91.227.55.',
-      '109.120.150.', '109.120.151.', '109.120.152.', '109.120.153.', '109.120.154.', '109.120.155.',
-      '185.75.120.', '185.75.121.'
+      '109.120.150.', '109.120.151.', '109.120.152.', '109.120.153.', '109.120.154.', '109.120.155.'
     ];
-    const isAllowedIp = isDev || isTestMode || isTestDomain || isLocalhost || allowedPrefixes.some(prefix => ip.startsWith(prefix));
+    const isAllowedIp = isDev || isTestMode || isLocalhost || allowedPrefixes.some(prefix => ip.startsWith(prefix));
 
     if (!isAllowedIp) {
       console.error(`[Robokassa Webhook] BLOCKED: IP spoofing attempt from ${ip}`);

@@ -81,7 +81,6 @@ export async function calculatePriceAction(
  */
 import { z } from 'zod';
 import { createSafeAction } from '@/lib/safe-action';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { MutexManager } from '@/lib/redis-lock';
 
 const checkoutSchema = z.object({
@@ -444,42 +443,41 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
     let transactionCompleted = false;
     let result;
     try {
-      result = await runSerializableTransaction(async (tx) => {
-        // 5.1 If gateway is balance, atomically deduct balance first
-        if (gateway === 'balance' && user) {
-          await WalletOps.charge(tx, user.id, finalTotalCents, `Оплата заказа с баланса`, {
-            idempotencyKey: `balance-charge-${effectiveIdempotencyKey}`,
-            tenantId
-          });
-        }
-
-        const orderStatus = gateway === 'balance' ? 'PENDING' : 'AWAITING_PAYMENT';
-        const paymentStatus = gateway === 'balance' ? 'SUCCEEDED' : 'PENDING';
-
-
-        
-        // 1. Check idempotency beforehand to avoid aborting the Postgres transaction block on P2002 constraint error
-        let existingOrder = null;
-        if (effectiveIdempotencyKey) {
-          existingOrder = await tx.order.findUnique({
-            where: { idempotencyKey: effectiveIdempotencyKey },
-            include: { payment: true }
-          });
-        }
-
-        if (existingOrder) {
-          if (existingOrder.status !== 'ERROR') {
-            throw new IdempotencyConflictError(existingOrder);
-          } else {
-            // Free up the unique constraint on the failed order to allow the new check to proceed
-            await tx.order.update({
-              where: { id: existingOrder.id },
-              data: { idempotencyKey: `${effectiveIdempotencyKey}_failed_${existingOrder.id}` }
+      const executeTransaction = async () => {
+        return await runSerializableTransaction(async (tx) => {
+          // 1. Check idempotency beforehand to avoid duplicate charge and constraint errors
+          let existingOrder = null;
+          if (effectiveIdempotencyKey) {
+            existingOrder = await tx.order.findUnique({
+              where: { idempotencyKey: effectiveIdempotencyKey },
+              include: { payment: true }
             });
           }
-        }
 
-        const isDripFeedOrder = Boolean(runs && runs > 1);
+          if (existingOrder) {
+            if (existingOrder.status !== 'ERROR') {
+              throw new IdempotencyConflictError(existingOrder);
+            } else {
+              // Free up the unique constraint on the failed order to allow the new check to proceed
+              await tx.order.update({
+                where: { id: existingOrder.id },
+                data: { idempotencyKey: `${effectiveIdempotencyKey}_failed_${existingOrder.id}` }
+              });
+            }
+          }
+
+          // 2. If gateway is balance, atomically deduct balance
+          if (gateway === 'balance' && user) {
+            await WalletOps.charge(tx, user.id, finalTotalCents, `Оплата заказа с баланса`, {
+              idempotencyKey: `balance-charge-${effectiveIdempotencyKey}`,
+              tenantId
+            });
+          }
+
+          const orderStatus = gateway === 'balance' ? 'PENDING' : 'AWAITING_PAYMENT';
+          const paymentStatus = gateway === 'balance' ? 'SUCCEEDED' : 'PENDING';
+
+          const isDripFeedOrder = Boolean(runs && runs > 1);
 
         // Create primary Order (first media / main link)
         const newOrder = await tx.order.create({
@@ -601,7 +599,14 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         transactionCompleted = true;
         return { orderId: newOrder.id, paymentId: payment.id, numericId: newOrder.numericId, secondOrderId };
       });
-    } catch (err: unknown) {
+    };
+
+    if (gateway === 'balance' && user) {
+      result = await MutexManager.withLock(`user_balance_${user.id}`, 15000, 10000, executeTransaction);
+    } else {
+      result = await executeTransaction();
+    }
+  } catch (err: unknown) {
       if (err instanceof IdempotencyConflictError) {
         const existingOrder = err.existingOrder as { id: string; paymentId?: string; payment?: { checkoutUrl?: string } };
         console.info(`[Checkout] Idempotency hit for key ${idempotencyKey}, returning existing order.`);

@@ -30,12 +30,18 @@ export async function getClientIp(
       reqHeaders = await headers();
     }
 
+    const IP_REGEX = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$|^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::1$/;
+
     const realIp = reqHeaders.get('x-real-ip');
-    if (realIp) return realIp.trim();
+    if (realIp && IP_REGEX.test(realIp.trim())) return realIp.trim();
 
     const forwardedFor = reqHeaders.get('x-forwarded-for');
     if (forwardedFor) {
-      return forwardedFor.split(',')[0].trim();
+      const hops = forwardedFor.split(',').map(s => s.trim()).filter(s => IP_REGEX.test(s));
+      if (hops.length > 0) {
+        // Take rightmost valid hop (closest to trusted reverse proxy)
+        return hops[hops.length - 1];
+      }
     }
     return effectiveFallback;
   } catch {

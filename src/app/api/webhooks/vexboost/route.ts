@@ -13,10 +13,7 @@ import { orderService } from '@/services/core/order.service';
 import crypto from 'crypto';
 
 export async function POST(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const secretFromHeader = request.headers.get('x-webhook-secret') || request.headers.get('x-vexboost-secret');
-  const secretFromQuery = searchParams.get('secret');
-  const secret = secretFromHeader || secretFromQuery;
+  const secret = request.headers.get('x-webhook-secret') || request.headers.get('x-vexboost-secret');
 
   // SD-02 SECURITY FIX: Fail-closed — reject all requests if secret is not configured.
   const expectedSecret = process.env.VEXBOOST_WEBHOOK_SECRET;

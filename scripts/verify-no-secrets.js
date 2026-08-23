@@ -15,20 +15,36 @@ const FORBIDDEN_PATTERNS = [
   'StrongProdDbPassword2026',
   'test_Bz5e',
   'emrNjCPOuNMYKmMcxvHb532Xix99uAxM',
-  '6833e1ceef531d34e7442d492b8e1021'
+  '6833e1ceef531d34e7442d492b8e1021',
+  'smmplan_provider_vault_key',
+  'smmplan_privacy_salt'
+];
+
+const FORBIDDEN_REGEXES = [
+  /-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----/,
+  /ghp_[0-9a-zA-Z]{36}/,
+  /xoxb-[0-9]{11,13}-[0-9]{11,13}-[a-zA-Z0-9]{24}/,
+  /AKIA[0-9A-Z]{16}/
 ];
 
 function scanDirectory(dir) {
+  if (!fs.existsSync(dir)) return;
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       scanDirectory(fullPath);
-    } else if (entry.isFile() && (entry.name.endsWith('.js') || entry.name.endsWith('.json') || entry.name.endsWith('.html'))) {
+    } else if (entry.isFile() && (entry.name.endsWith('.js') || entry.name.endsWith('.json') || entry.name.endsWith('.html') || entry.name.endsWith('.map'))) {
       const content = fs.readFileSync(fullPath, 'utf8');
       for (const pattern of FORBIDDEN_PATTERNS) {
         if (content.includes(pattern)) {
-          console.error(`❌ CRITICAL: Leaked secret '${pattern}' found in ${fullPath}!`);
+          console.error(`❌ CRITICAL: Leaked secret string '${pattern}' found in ${fullPath}!`);
+          process.exit(1);
+        }
+      }
+      for (const regex of FORBIDDEN_REGEXES) {
+        if (regex.test(content)) {
+          console.error(`❌ CRITICAL: Leaked secret matching regex ${regex} found in ${fullPath}!`);
           process.exit(1);
         }
       }
@@ -37,4 +53,4 @@ function scanDirectory(dir) {
 }
 
 scanDirectory(buildDir);
-console.log('✅ PASS: No leaked secrets found in .next/static/ client bundles!');
+console.log('✅ PASS: No leaked secrets found in build artifacts!');

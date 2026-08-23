@@ -73,18 +73,11 @@ export async function POST(req: NextRequest) {
 
     const isDev = process.env.NODE_ENV === 'development';
 
-    // VULN-025 Mitigation: Check webhook secret if explicitly configured
-    const secret = req.nextUrl.searchParams.get('secret');
-    const expectedSecret = process.env.YOOKASSA_WEBHOOK_SECRET;
-
-    if (expectedSecret && secret && !safeCompare(secret, expectedSecret)) {
-      console.error(`[YooKassa Webhook] BLOCKED: Invalid secret parameter from IP ${ip}`);
-      await db.securityEvent.create({ data: { event: 'INVALID_WEBHOOK_SECRET', severity: 'CRITICAL', ip, details: { gateway: 'yookassa' } } });
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
-
-    // --- SECURITY GUARD: Yookassa Official IP Range Validation ---
-    const allowedPrefixes = ['185.75.120.', '185.75.121.', '185.75.122.', '185.75.123.', '185.75.124.', '185.75.125.', '185.75.126.', '185.75.127.', '37.110.12.', '37.110.13.', '37.110.14.', '37.110.15.', '37.110.16.', '37.110.17.', '37.110.18.', '37.110.19.'];
+    // --- SECURITY GUARD: Yookassa Official IP Range Validation (185.75.120.0/22 and 37.110.12.0/21) ---
+    const allowedPrefixes = [
+      '185.75.120.', '185.75.121.', '185.75.122.', '185.75.123.',
+      '37.110.12.', '37.110.13.', '37.110.14.', '37.110.15.', '37.110.16.', '37.110.17.', '37.110.18.', '37.110.19.'
+    ];
     const isLocal = ip === '::1' || ip === '127.0.0.1' || ip.startsWith('127.0.0.');
     const isAllowedIp = isDev ? true : (allowedPrefixes.some(prefix => ip.startsWith(prefix)) || isLocal);
     
@@ -94,47 +87,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized IP' }, { status: 403 });
     }
 
-    const providedSignature = req.headers.get('x-sha256-signature') || req.headers.get('digest');
-    let rawBody: YooKassaWebhookPayload;
-
-    if (expectedSecret) {
-      if (!providedSignature) {
-        console.error('[YooKassa] Webhook missing required signature header');
-        await db.securityEvent.create({ data: { event: 'MISSING_SIGNATURE', severity: 'CRITICAL', ip, details: { gateway: 'yookassa' } } });
-        return NextResponse.json({ error: 'Missing webhook signature' }, { status: 403 });
-      }
-
-      const rawText = await req.text();
-      if (rawText.length > MAX_BODY_SIZE) {
-        console.warn('[Webhook] Oversized payload rejected');
-        await db.securityEvent.create({ data: { event: 'OVERSIZED_PAYLOAD', severity: 'WARNING', ip, details: { gateway: 'yookassa', size: rawText.length } } });
-        return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
-      }
-
-      const crypto = (await import('crypto')).default;
-      const expectedSig = crypto
-        .createHmac('sha256', expectedSecret)
-        .update(rawText, 'utf8')
-        .digest('hex');
-
-      const signatureHex = providedSignature.replace(/^sha256=/i, '');
-      const HEX_REGEX = /^[0-9a-f]{64}$/i;
-      
-      if (!HEX_REGEX.test(signatureHex)) {
-        await db.securityEvent.create({ data: { event: 'INVALID_SIGNATURE_FORMAT', severity: 'CRITICAL', ip, details: { gateway: 'yookassa', signature: providedSignature } } });
-        return NextResponse.json({ error: 'Invalid signature format' }, { status: 403 });
-      }
-
-      if (!safeCompare(expectedSig, signatureHex)) {
-        console.error('[YooKassa] HMAC signature mismatch — possible webhook forgery attempt');
-        await db.securityEvent.create({ data: { event: 'SIGNATURE_FAILED', severity: 'CRITICAL', ip, details: { gateway: 'yookassa' } } });
-        return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
-      }
-
-      rawBody = JSON.parse(rawText);
-    } else {
-      rawBody = await req.json();
+    const expectedSecret = process.env.YOOKASSA_WEBHOOK_SECRET;
+    if (!expectedSecret) {
+      console.error('[YooKassa] Webhook secret (YOOKASSA_WEBHOOK_SECRET) is not configured on the server.');
+      return NextResponse.json({ error: 'Gateway webhook secret not configured' }, { status: 503 });
     }
+
+    const providedSignature = req.headers.get('x-sha256-signature') || req.headers.get('digest');
+    if (!providedSignature) {
+      console.error('[YooKassa] Webhook missing required signature header');
+      await db.securityEvent.create({ data: { event: 'MISSING_SIGNATURE', severity: 'CRITICAL', ip, details: { gateway: 'yookassa' } } });
+      return NextResponse.json({ error: 'Missing webhook signature' }, { status: 403 });
+    }
+
+    const rawText = await req.text();
+    if (rawText.length > MAX_BODY_SIZE) {
+      console.warn('[Webhook] Oversized payload rejected');
+      await db.securityEvent.create({ data: { event: 'OVERSIZED_PAYLOAD', severity: 'WARNING', ip, details: { gateway: 'yookassa', size: rawText.length } } });
+      return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
+    }
+
+    const crypto = (await import('crypto')).default;
+    const expectedSig = crypto
+      .createHmac('sha256', expectedSecret)
+      .update(rawText, 'utf8')
+      .digest('hex');
+
+    const signatureHex = providedSignature.replace(/^sha256=/i, '');
+    const HEX_REGEX = /^[0-9a-f]{64}$/i;
+    
+    if (!HEX_REGEX.test(signatureHex)) {
+      await db.securityEvent.create({ data: { event: 'INVALID_SIGNATURE_FORMAT', severity: 'CRITICAL', ip, details: { gateway: 'yookassa', signature: providedSignature } } });
+      return NextResponse.json({ error: 'Invalid signature format' }, { status: 403 });
+    }
+
+    if (!safeCompare(expectedSig, signatureHex)) {
+      console.error('[YooKassa] HMAC signature mismatch — possible webhook forgery attempt');
+      await db.securityEvent.create({ data: { event: 'SIGNATURE_FAILED', severity: 'CRITICAL', ip, details: { gateway: 'yookassa' } } });
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
+    }
+
+    const rawBody: YooKassaWebhookPayload = JSON.parse(rawText);
     
     const webhookCreatedAt = rawBody.object?.created_at || rawBody.created_at;
     if (webhookCreatedAt) {

@@ -186,11 +186,15 @@ export const WalletOps = {
         typeof error === 'object' && 
         error !== null && 
         'code' in error && 
-        (error as { code: string }).code === 'P2002' && 
-        'meta' in error && 
-        typeof (error as { meta?: { target?: string[] } }).meta?.target === 'object'
+        (error as { code: string }).code === 'P2002'
       ) {
-        throw error;
+        const existing = await tx.ledgerEntry.findFirst({
+          where: { idempotencyKey },
+        });
+        if (existing) {
+          const user = await tx.user.findUnique({ where: { id: userId }, select: { balance: true } });
+          return { success: true, balance: user?.balance ?? null, cached: true, entry: existing };
+        }
       }
       throw error;
     }

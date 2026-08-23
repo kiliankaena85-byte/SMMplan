@@ -53,10 +53,9 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
 
       - name: Run Dependency Security Audit
-        run: npm audit --audit-level=high || true
+        run: npm audit --audit-level=high
 
       - name: Generate Prisma Client
         run: npx prisma generate

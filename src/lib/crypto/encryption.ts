@@ -7,12 +7,10 @@ import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'crypt
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
-const DEFAULT_SALT = 'smmplan_privacy_salt_2026_default_secure_vault';
-
 const getKey = (): Buffer => {
-  const keyStr = process.env.DATA_ENCRYPTION_KEY || process.env.VAULT_MASTER_KEY || process.env.APP_ENCRYPTION_KEY;
+  const keyStr = process.env.APP_ENCRYPTION_KEY || process.env.DATA_ENCRYPTION_KEY || process.env.VAULT_MASTER_KEY;
   if (!keyStr) {
-    throw new Error('[Encryption] DATA_ENCRYPTION_KEY or VAULT_MASTER_KEY must be configured in environment');
+    throw new Error('[Encryption] APP_ENCRYPTION_KEY or DATA_ENCRYPTION_KEY must be configured in environment');
   }
   // Ensure exactly 32 bytes (256 bits)
   return createHash('sha256').update(keyStr).digest();
@@ -20,10 +18,15 @@ const getKey = (): Buffer => {
 
 const getSalt = (): string => {
   const salt = process.env.DATA_SALT;
-  if (!salt && process.env.NODE_ENV === 'production') {
-    throw new Error('[Encryption] DATA_SALT must be configured in production');
+  if (!salt) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('[Encryption] DATA_SALT must be configured in production');
+    }
+    // In dev/test, derive deterministic salt from encryption key if available
+    const keyStr = process.env.APP_ENCRYPTION_KEY || process.env.DATA_ENCRYPTION_KEY || 'smmplan_dev_salt_seed';
+    return createHash('sha256').update(`${keyStr}:salt_derive`).digest('hex');
   }
-  return salt || DEFAULT_SALT;
+  return salt;
 };
 
 /**
@@ -47,14 +50,14 @@ export function encrypt(text: string): string {
 
 /**
  * Decrypts AES-256-GCM ciphertext in iv:authTag:cipherHex format.
+ * Fail-fast: throws on malformed payload or authentication tag mismatch.
  */
 export function decrypt(encryptedData: string): string {
   if (!encryptedData || typeof encryptedData !== 'string') return encryptedData;
 
   const parts = encryptedData.split(':');
   if (parts.length !== 3) {
-    // If not in encrypted format, return as is (fallback for unencrypted legacy fields)
-    return encryptedData;
+    throw new Error('[Encryption] Plaintext or malformed ciphertext payload detected. Access denied.');
   }
 
   try {

@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const secret = searchParams.get("secret");
+    const secret = req.headers.get("x-webhook-secret") || searchParams.get("secret");
     
     // SD-01 SECURITY FIX: Fail-closed — reject all requests if WEBHOOK_SECRET is not configured.
     // NEVER fall back to a hardcoded default.
@@ -40,7 +40,11 @@ export async function POST(req: Request) {
       console.error('[Webhook] FATAL: WEBHOOK_SECRET is not configured. Rejecting all requests.');
       return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 });
     }
-    if (secret !== expectedSecret) {
+    
+    const crypto = (await import('crypto')).default;
+    const secretBuf = Buffer.from(secret || '');
+    const expectedBuf = Buffer.from(expectedSecret);
+    if (!secret || secretBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(secretBuf, expectedBuf)) {
       console.warn(`[Webhook] Unauthorized access attempt. Secret mismatch.`);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
