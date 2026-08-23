@@ -11,3 +11,4 @@ export * from "./Confetti";
 
 // SMMplan B2B Classic Arsenal
 export * from "./plan";
+export * from "./Pagination";

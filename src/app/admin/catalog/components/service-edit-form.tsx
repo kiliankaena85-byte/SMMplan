@@ -387,6 +387,12 @@ export function ServiceEditForm({
                 <span className="text-muted-foreground">Розница за 1000:</span>
                 <span className="font-bold text-foreground font-mono">{retailPricePer1000Rub.toFixed(2)} ₽</span>
               </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Прибыль (с 1000 шт):</span>
+                <span className="font-bold text-green-600 dark:text-green-400 font-mono">
+                  +{(retailPricePer1000Rub - costPer1000Rub).toFixed(2)} ₽
+                </span>
+              </div>
               <div className="flex items-center justify-between text-xs pt-1 border-t border-border/60">
                 <span className="font-semibold text-foreground">Розница за 1 шт:</span>
                 <span className="font-extrabold text-primary font-mono text-sm">{retailPricePerUnitRub} ₽</span>
