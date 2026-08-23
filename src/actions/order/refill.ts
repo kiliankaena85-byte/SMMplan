@@ -29,6 +29,7 @@ export async function requestClientRefillAction(input: string | { orderId: strin
       where: {
         id: orderId,
         userId: session.userId,
+        tenantId: session.tenantId,
       },
       include: {
         service: {

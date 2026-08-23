@@ -17,7 +17,7 @@ export async function cancelOrderCoolingOffAction(orderId: string) {
       return { success: false, error: 'Слишком частые запросы на отмену. Подождите.' };
     }
 
-    const result = await orderService.cancelPendingOrderClient(orderId, session.userId);
+    const result = await orderService.cancelPendingOrderClient(orderId, session.userId, session.tenantId);
 
     if (result.success) {
       revalidatePath('/dashboard/orders');

@@ -64,7 +64,7 @@ export async function createSession(userId: string, canResetPassword: boolean = 
   return { sessionToken, expiresAt };
 }
 
-export async function verifySession(): Promise<{ userId: string; canResetPassword?: boolean; role?: string; tenantId?: string } | null> {
+export async function verifySession(requiredTenantId?: string): Promise<{ userId: string; canResetPassword?: boolean; role?: string; tenantId?: string } | null> {
   let sessionToken: string | undefined;
   try {
     const cookieStore = await cookies();
@@ -108,13 +108,17 @@ export async function verifySession(): Promise<{ userId: string; canResetPasswor
     }
 
     const reqHeaders = await headers();
-    const currentTenantId = normalizeTenantId(reqHeaders.get("x-tenant-id")) || "smmplan";
+    const currentTenantId = normalizeTenantId(requiredTenantId || reqHeaders.get("x-tenant-id")) || "smmplan";
     const userTenantId = normalizeTenantId(user.tenantId) || "smmplan";
     
     // Staff roles (OWNER, ADMIN, MANAGER, SUPPORT) have global multi-tenant access
     const isStaffRole = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'].includes(user.role);
     if (!isStaffRole && userTenantId !== currentTenantId) {
       console.warn(`[verifySession] null because: user tenant "${user.tenantId}" does not match request tenant "${currentTenantId}"`);
+      try {
+        const cookieStore = await cookies();
+        cookieStore.delete('session_token');
+      } catch {}
       return null;
     }
 

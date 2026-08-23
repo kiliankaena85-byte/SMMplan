@@ -79,7 +79,7 @@ export async function createTicket(formData: FormData) {
   if (!parsed.success) throw new Error('Данные тикета заполнены неверно');
   const { subject, message } = parsed.data;
 
-  const ticket = await ticketService.getOrCreateTicket(session.userId, subject);
+  const ticket = await ticketService.getOrCreateTicket(session.userId, subject, 'WEB', session.tenantId);
   await ticketService.addMessage(ticket.id, 'USER', message);
 
   revalidatePath('/dashboard/tickets');
@@ -106,7 +106,7 @@ export async function addTicketMessage(formData: FormData) {
   const ticket = isStaff
     ? await db.ticket.findUnique({ where: { id: ticketId } })
     : await db.ticket.findFirst({
-        where: { id: ticketId, userId: session.userId }
+        where: { id: ticketId, userId: session.userId, tenantId: session.tenantId }
       });
   if (!ticket) throw new Error('Ticket not found or access denied');
 

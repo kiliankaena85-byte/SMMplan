@@ -240,15 +240,15 @@ class OrderService {
    * Stage 2: Cooling-off Period Cancellation
    * Client-facing cancellation for PENDING orders to preserve revenue internally.
    */
-  async cancelPendingOrderClient(orderId: string, userId: string): Promise<{ success: boolean; error?: string }> {
+  async cancelPendingOrderClient(orderId: string, userId: string, tenantId?: string): Promise<{ success: boolean; error?: string }> {
     try {
       return await runSerializableTransaction(async (tx) => {
         const order = await tx.order.findUnique({
           where: { id: orderId }
         });
 
-        if (!order || order.userId !== userId) {
-          return { success: false, error: 'Заказ не найден' };
+        if (!order || order.userId !== userId || (tenantId && order.tenantId !== tenantId)) {
+          return { success: false, error: 'Заказ не найден или доступ ограничен' };
         }
 
         if (order.status !== 'PENDING' && order.status !== 'AWAITING_PAYMENT') {
@@ -260,7 +260,12 @@ class OrderService {
 
         // 1. Cancel the order atomically
         const updated = await tx.order.updateMany({
-          where: { id: order.id, status: { in: ['PENDING', 'AWAITING_PAYMENT'] } },
+          where: {
+            id: order.id,
+            userId,
+            ...(tenantId ? { tenantId } : {}),
+            status: { in: ['PENDING', 'AWAITING_PAYMENT'] }
+          },
           data: { status: 'CANCELED' }
         });
 
@@ -282,7 +287,7 @@ class OrderService {
           if (!existingLedger) {
             await WalletOps.refund(tx, userId, Number(charge),
               `Отмена заказа #${order.numericId} клиентом (Store Credit)`,
-              { idempotencyKey: refundKey }
+              { idempotencyKey: refundKey, tenantId: order.tenantId }
             );
           }
         }

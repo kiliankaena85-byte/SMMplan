@@ -3,7 +3,7 @@ import { getPublicCatalogAction, getServicesByCategoryAction } from '@/actions/o
 import { headers } from 'next/headers';
 import { db } from '@/lib/db';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { normalizeTenantId, absoluteCanonical } from '@/lib/seo-helpers';
+import { normalizeTenantId, getTenantHost, absoluteCanonical } from '@/lib/seo-helpers';
 
 // sitemap.ts uses headers() -> force-dynamic
 export const dynamic = 'force-dynamic';
@@ -11,13 +11,13 @@ export const dynamic = 'force-dynamic';
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const reqHeaders = await headers();
   const rawHost = reqHeaders.get('host') || 'smmplan.pro';
-  const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
+  const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id') || (rawHost.includes('flux') ? 'flux' : 'smmplan'));
   
   // For production: use canonical host based on tenant, not raw request host
   // For localhost dev: use http://localhost:3000 style for testing
   const isLocalhost = rawHost.includes('localhost') || rawHost.includes('127.0.0.1');
   const protocol = isLocalhost ? 'http' : 'https';
-  const baseUrl = isLocalhost ? `${protocol}://${rawHost}` : `https://${rawHost}`;
+  const baseUrl = isLocalhost ? `${protocol}://${rawHost}` : `https://${getTenantHost(tenantId)}`;
 
   const routes: MetadataRoute.Sitemap = [
     {

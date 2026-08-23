@@ -18,22 +18,23 @@ interface AddMessageOptions {
 }
 
 class TicketService {
-  async getOrCreateTicket(userId: string, subject: string, source: TicketSource = 'WEB') {
+  async getOrCreateTicket(userId: string, subject: string, source: TicketSource = 'WEB', tenantId?: string) {
     return await db.$transaction(async (tx) => {
+      const user = await tx.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: { tenantId: true }
+      });
+      const resolvedTenant = tenantId || user.tenantId || 'smmplan';
+
       const existing = await tx.ticket.findFirst({
-        where: { userId, status: { not: 'CLOSED' } },
+        where: { userId, tenantId: resolvedTenant, status: { not: 'CLOSED' } },
         orderBy: { updatedAt: 'desc' }
       });
 
       if (existing) return existing;
 
-      const user = await tx.user.findUniqueOrThrow({
-        where: { id: userId },
-        select: { tenantId: true }
-      });
-
       return tx.ticket.create({
-        data: { userId, subject, source, tenantId: user.tenantId }
+        data: { userId, subject, source, tenantId: resolvedTenant }
       });
     }, {
       isolationLevel: 'Serializable'
