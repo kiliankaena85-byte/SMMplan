@@ -5,6 +5,7 @@ import { changeTicketStatus, adminReplyTicket } from '@/actions/support/ticket';
 import { banUserAction, updateBalanceAction, loginAsAction } from '@/actions/admin/users';
 import { approveBalanceAdjustmentAction, rejectBalanceAdjustmentAction } from '@/actions/admin/balance-adjustments';
 import { BALANCE_ADJUSTMENT_STATUS, BALANCE_ADJUSTMENT_DIRECTION } from '@/constants/balance-adjustments';
+import { enforceSectionAccess, enforceAnySectionAccess } from '@/lib/server/rbac';
 
 // Mock headers and cookies
 const mockCookieStore = {
@@ -301,6 +302,28 @@ describe('RBAC Stage A Matrix: Support, Manager, Cashier, Owner permissions', ()
       const res = await banUserAction(banForm);
       expect(res.success).toBe(false);
       expect((res as any).error).toContain('Forbidden');
+    });
+
+    it('Cashier UI access: opens balance-requests but is blocked from finance main dashboard (ADM-03 patch 0006)', async () => {
+      vi.mocked(verifySession).mockResolvedValue({ userId: cashierUser.id });
+
+      // 1. Passes Finance Layout coarse gate
+      const layoutUser = await enforceAnySectionAccess(['finance', 'balance_requests', 'balance_stats']);
+      expect(layoutUser.id).toBe(cashierUser.id);
+
+      // 2. Passes /admin/finance/balance-requests page gate
+      const balanceRequestsUser = await enforceSectionAccess('balance_requests');
+      expect(balanceRequestsUser.id).toBe(cashierUser.id);
+
+      // 3. Passes /admin/finance/balance-requests/stats page gate
+      const statsUser = await enforceSectionAccess('balance_stats');
+      expect(statsUser.id).toBe(cashierUser.id);
+
+      // 4. Blocked from /admin/finance (main dashboard)
+      await expect(enforceSectionAccess('finance')).rejects.toThrow();
+
+      // 5. Blocked from /admin/finance/support-review
+      await expect(enforceSectionAccess('finance')).rejects.toThrow();
     });
   });
 
