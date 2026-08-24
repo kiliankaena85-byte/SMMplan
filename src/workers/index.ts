@@ -37,6 +37,7 @@ import paymentGatewayProcessor from './processors/payment-gateway.processor';
 import refillProcessor from './processors/refill.processor';
 import articlePublishProcessor from './processors/article-publish.processor';
 import { orderService } from '../services/core/order.service';
+import { trackEtaFailure, resetEtaFailureStreak } from './eta-alerts';
 
 const log = logger.child({ component: 'WorkerManager' });
 log.info('🚀 Starting BullMQ workers...');
@@ -165,29 +166,12 @@ paymentGatewayWorker.on('failed', (job, err) => { handleDeadLetter('paymentGatew
 refillWorker.on('failed', (job, err) => { handleDeadLetter('refillQueue', job, err); });
 articlePublishWorker.on('failed', (job, err) => { handleDeadLetter('articlePublishQueue', job, err); });
 // WRK-04: alert on consecutive ETA failures
-let etaFailureStreak = 0;
-const ETA_ALERT_THRESHOLD = 5;
-
 etaWorker.on('failed', (job, err) => {
-  etaFailureStreak++;
-  log.error('[etaWorker] Job failed', {
-    jobId: job?.id,
-    jobName: job?.name,
-    error: err?.message,
-    consecutiveFailures: etaFailureStreak,
-  });
-
-  if (etaFailureStreak >= ETA_ALERT_THRESHOLD) {
-    etaFailureStreak = 0; // reset to avoid alert flood
-    sendAdminAlert(
-      `⚠️ ETA Worker: ${ETA_ALERT_THRESHOLD} подряд проваленных джоб. ETA-статистика на витрине устаревает — проверьте воркеры и Redis.`,
-      'WARNING'
-    );
-  }
+  trackEtaFailure(job, err);
 });
 
 etaWorker.on('completed', () => {
-  etaFailureStreak = 0; // reset on success
+  resetEtaFailureStreak();
 });
 
 // ── P0.3: Worker heartbeat (Redis key, renewed every 60s) ─────────────────────

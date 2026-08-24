@@ -2,16 +2,19 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-24 | Агент: Antigravity
-## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕН ЭТАП E1 «Гигиена воркеров» (AUDIT-WORKERS.md / STAGE_E1_PROMPT.md)
-- **Ветка**: `fix/workers-stage-e1-hygiene`
+## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕН ЭТАП E2 «Приёмочное тестирование воркеров» (AUDIT-WORKERS.md §5)
+- **Ветка**: `fix/workers-stage-e2-acceptance-tests`
 - **Завершено**:
-  - `E1.1 (WRK-05)`: В `sync.processor.ts` добавлен `log.warn` при усечении выборки заказов до `MAX_SYNC_PER_PROVIDER` (1000): `"sync truncated to 1000 orders (oldest first) — remaining orders will sync next tick"`.
-  - `E1.2 (WRK-04)`: В `workers/index.ts` на уровне модуля добавлен счетчик `etaFailureStreak` и порог `ETA_ALERT_THRESHOLD = 5`. При ≥5 подряд проваленных джоб `etaWorker` отправляется алерт `sendAdminAlert(WARNING)`, а при успехе (`etaWorker.on('completed')`) счетчик сбрасывается в 0.
-  - `E1.3 (WRK-06)`: Статус `PROVISIONING` сохранен (отображается в 7 UI-файлах) и задокументирован комментариями в `prisma/schema.prisma` и `OrderStatusBadge.tsx` как зарезервированный для будущего состояния `"dispatched but not started"`.
+  - `E2.1 (Пункт чек-листа 1, WRK-01)`: Интеграционный тест `test/integration/payment-sync-stale-basket.test.ts` на реальной PostgreSQL (сценарий stale 24ч платежа Robokassa + 2 заказа корзины `AWAITING_PAYMENT` -> оба `CANCELED`, плюс регресс-гвард на нетронутый `PENDING`).
+  - `E2.2 (Пункт чек-листа 2, WRK-01)`: Интеграционный тест `test/integration/payment-sync-remote-canceled.test.ts` (удаленно отмененный YooKassa-платеж гасит связанный заказ корзины).
+  - `E2.3 (Пункт чек-листа 3, WRK-03)`: Интеграционный тест `test/integration/pending-check-hourly-tick.test.ts` (PENDING_CHECK заказ >6ч разрешается через статус провайдера; заказ <6ч не тронут).
+  - `E2.4 (Пункт чек-листа 4, WRK-02)`: Интеграционный тест `test/integration/zero-start-escalation.test.ts` (IN_PROGRESS без прогресса за час -> PENDING_CHECK + WARNING-алерт; заказы с прогрессом и drip-feed не тронуты).
+  - `E2.5 (Пункт чек-листа 5, WRK-04)`: Интеграционный тест `test/integration/eta-failure-streak-alert.test.ts` + helper `src/workers/eta-alerts.ts` (5 подряд провалов etaWorker -> WARNING-алерт; сброс счетчика при успехе).
+  - `E2.6 (Пункт чек-листа 6)`: Полный сводный прогон 12 сьютов (33/33 тестов green).
 - **Верификация**:
   - `npx tsc --noEmit` — 0 ошибок типов (100% PASS).
-  - `npm run build` — 100% SUCCESS (28.2s, exit code 0).
-  - Vitest: 6 сьютов, 19/19 PASS (100%).
+  - `npm run build` — 100% SUCCESS (27.7s, exit code 0).
+  - Vitest: 12 сьютов, 33/33 PASS (100%).
 
 
 ---
