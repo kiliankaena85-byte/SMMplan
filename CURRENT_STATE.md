@@ -36,6 +36,11 @@
   - `npx tsc --noEmit` — 0 ошибок (100% PASS)
   - `npm run build` — 100% SUCCESS (`next build --webpack`, скомпилированы 100+ роутов)
   - `docker-compose up -d web` — Up (healthy), HTTP 200 OK на `/api/health` и главной странице
+  - `vitest run` — **25/25 PASS (100%)** для критических сьютов:
+    - `telegram-enterprise-feedback.test.ts` (10 тестов: меню, CSAT тиры, переменные шаблонов, БД, идемпотентность)
+    - `telegram-bot-actions.test.ts` (8 тестов: RBAC, валидация экшенов, расчет CSAT статистики и списков)
+    - `multitenant-isolation.test.ts` (4 теста: изоляция кэша, лимиты, x_admin_tenant)
+    - `rub-to-kopecks.test.ts` (3 теста: финансовая математика в копейках BigInt)
 - **Ветка**: `main`
 
 
