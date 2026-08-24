@@ -45,6 +45,34 @@ const MSG_SENDER_STYLES: Record<string, { bubble: string; text: string; align: s
   },
 };
 
+const formatChatDateDivider = (dateStr: string | Date) => {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  if (d.toDateString() === today.toDateString()) {
+    return 'Сегодня';
+  }
+  if (d.toDateString() === yesterday.toDateString()) {
+    return 'Вчера';
+  }
+  return d.toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: d.getFullYear() !== today.getFullYear() ? 'numeric' : undefined,
+  });
+};
+
+const isDifferentChatDay = (d1Str?: string | Date, d2Str?: string | Date) => {
+  if (!d1Str || !d2Str) return true;
+  const d1 = new Date(d1Str);
+  const d2 = new Date(d2Str);
+  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return false;
+  return d1.toDateString() !== d2.toDateString();
+};
+
 export function TicketChat({ ticket }: TicketChatProps) {
   const [replyText, setReplyText] = React.useState('');
   const [isInternal, setIsInternal] = React.useState(false);
@@ -99,27 +127,25 @@ export function TicketChat({ ticket }: TicketChatProps) {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-background border border-border/40 rounded-2xl ring-1 ring-border/5 overflow-hidden shadow-sm">
-      {/* Header Info */}
-      <div className="p-4 border-b border-border/40 bg-muted/10 flex flex-wrap items-center justify-between gap-4">
+    <div className="flex flex-col h-full bg-card border border-border/60 rounded-3xl overflow-hidden shadow-sm">
+      {/* Ticket Chat Header */}
+      <div className="p-4 border-b border-border/40 flex items-center justify-between gap-4 bg-muted/20">
         <div>
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5 font-sans">
-            <MessageSquare className="w-4 h-4 text-muted-foreground" />
-            {ticket.subject}
-          </h3>
-          <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
-            Клиент:
-            <Link
-              href={`/operator/users/${ticket.user.id}`}
-              className="text-primary hover:underline font-mono"
-            >
-              {ticket.user.email}
-            </Link>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs font-bold text-muted-foreground">
+              #{ticket.id.slice(-6)}
+            </span>
+            <h2 className="font-bold text-sm text-foreground truncate max-w-sm">
+              {ticket.subject}
+            </h2>
           </div>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Клиент: <span className="font-medium text-foreground">{ticket.user?.email || 'Неизвестно'}</span>
+          </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          {ticket.status !== 'CLOSED' ? (
+        <div className="flex items-center gap-2">
+          {ticket.status === 'OPEN' || ticket.status === 'PENDING' ? (
             <Button
               size="sm"
               intent="ghost"
@@ -148,23 +174,44 @@ export function TicketChat({ ticket }: TicketChatProps) {
       {/* Messages Scroll Box */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {ticket.messages.length > 0 ? (
-          ticket.messages.map((m) => {
+          ticket.messages.map((m, index) => {
             const style = MSG_SENDER_STYLES[m.sender] || MSG_SENDER_STYLES.USER;
+            const isNewDay = index === 0 || isDifferentChatDay(ticket.messages[index - 1]?.createdAt, m.createdAt);
+            const fullDateTooltip = new Date(m.createdAt).toLocaleString('ru-RU', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+
             return (
-              <div key={m.id} className={`flex ${style.align}`}>
-                <div className={`${style.bubble} max-w-[70%] p-4 text-xs`}>
-                  <p className={`${style.text} leading-relaxed break-words font-sans whitespace-pre-wrap`}>
-                    {m.text}
-                  </p>
-                  <div className="text-[9px] opacity-75 font-mono text-right mt-1.5 flex items-center justify-end gap-1.5 select-none">
-                    <span>
-                      {m.sender === 'USER' ? 'Клиент' : m.sender === 'STAFF' ? 'Служба поддержки' : 'Внутренняя заметка'}
+              <React.Fragment key={m.id}>
+                {isNewDay && (
+                  <div className="flex justify-center my-3 pointer-events-none select-none sticky top-2 z-10">
+                    <span className="bg-card/90 backdrop-blur-md text-foreground/80 dark:text-foreground/90 text-[11px] font-bold px-3.5 py-1 rounded-full shadow-xs border border-border/70 tracking-wide">
+                      {formatChatDateDivider(m.createdAt)}
                     </span>
-                    <span>•</span>
-                    <span>{new Date(m.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                )}
+                <div className={`flex ${style.align}`}>
+                  <div className={`${style.bubble} max-w-[70%] p-4 text-xs`}>
+                    <p className={`${style.text} leading-relaxed break-words font-sans whitespace-pre-wrap`}>
+                      {m.text}
+                    </p>
+                    <div 
+                      className="text-[9px] opacity-75 font-mono text-right mt-1.5 flex items-center justify-end gap-1.5 select-none cursor-default"
+                      title={fullDateTooltip}
+                    >
+                      <span>
+                        {m.sender === 'USER' ? 'Клиент' : m.sender === 'STAFF' ? 'Служба поддержки' : 'Внутренняя заметка'}
+                      </span>
+                      <span>•</span>
+                      <span>{new Date(m.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </React.Fragment>
             );
           })
         ) : (

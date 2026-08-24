@@ -39,6 +39,34 @@ const getInitials = (sender: string, email?: string) => {
   return 'OP';
 };
 
+const formatChatDateDivider = (dateStr: string | Date) => {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  if (d.toDateString() === today.toDateString()) {
+    return 'Сегодня';
+  }
+  if (d.toDateString() === yesterday.toDateString()) {
+    return 'Вчера';
+  }
+  return d.toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: d.getFullYear() !== today.getFullYear() ? 'numeric' : undefined,
+  });
+};
+
+const isDifferentChatDay = (d1Str?: string | Date, d2Str?: string | Date) => {
+  if (!d1Str || !d2Str) return true;
+  const d1 = new Date(d1Str);
+  const d2 = new Date(d2Str);
+  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return false;
+  return d1.toDateString() !== d2.toDateString();
+};
+
 interface ChatMessageListProps {
   messages: Message[];
   messageKeysRef: React.MutableRefObject<Record<string, string>>;
@@ -186,6 +214,7 @@ export function ChatMessageList({
             const avatarInitial = isStaff ? getInitials(msg.sender, clientEmail) : 'OP';
             const avatarGradient = isStaff ? getAvatarGradient(clientEmail || 'client') : 'from-blue-600 to-indigo-600';
             const avatarTitle = isStaff ? 'Клиент' : 'Поддержка';
+            const isNewDay = index === 0 || isDifferentChatDay(messages[index - 1]?.createdAt, msg.createdAt);
 
             return (
               <motion.div
@@ -196,6 +225,14 @@ export function ChatMessageList({
                 exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
                 transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               >
+                {/* ── Telegram-style Sticky Date Divider ── */}
+                {isNewDay && (
+                  <div className="flex justify-center my-3 pointer-events-none select-none sticky top-2 z-10">
+                    <span className="bg-card/90 backdrop-blur-md text-foreground/85 dark:text-foreground/95 text-[11px] font-bold px-3.5 py-1 rounded-full shadow-xs border border-border/70 tracking-wide">
+                      {formatChatDateDivider(msg.createdAt)}
+                    </span>
+                  </div>
+                )}
                 {showSeparator && (
                   <div className="flex items-center justify-center my-6 opacity-50">
                     <div className="h-px bg-divider flex-1 max-w-[50px] mx-4"></div>
@@ -748,7 +785,12 @@ export function ChatMessageList({
                                 изм.
                               </span>
                             )}
-                            <ClientDate date={msg.createdAt} format="time" />
+                            <span 
+                              title={new Date(msg.createdAt).toLocaleString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              className="cursor-default"
+                            >
+                              <ClientDate date={msg.createdAt} format="time" />
+                            </span>
                             {msg.isHistorical && (
                               <span className="text-[8px] opacity-75">(Архив)</span>
                             )}
