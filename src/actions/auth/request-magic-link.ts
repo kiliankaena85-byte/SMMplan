@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { sendMagicLink, sendWelcomeLetter } from "@/lib/smtp";
+import { RateLimitService } from "@/services/core/rate-limit.service";
 import { logger } from "@/lib/logger";
 import crypto from "crypto";
 import { cookies, headers } from "next/headers";
