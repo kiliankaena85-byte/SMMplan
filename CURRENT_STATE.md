@@ -2,19 +2,24 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-24 | Агент: Antigravity
-## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕН ЭТАП E2 «Приёмочное тестирование воркеров» (AUDIT-WORKERS.md §5)
-- **Ветка**: `fix/workers-stage-e2-acceptance-tests`
+## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕН ЭТАП B «Управляемость прав» (ADM-06/07/08)
+- **Ветка**: `fix/admin-stage-b-rbac-management`
 - **Завершено**:
-  - `E2.1 (Пункт чек-листа 1, WRK-01)`: Интеграционный тест `test/integration/payment-sync-stale-basket.test.ts` на реальной PostgreSQL (сценарий stale 24ч платежа Robokassa + 2 заказа корзины `AWAITING_PAYMENT` -> оба `CANCELED`, плюс регресс-гвард на нетронутый `PENDING`).
-  - `E2.2 (Пункт чек-листа 2, WRK-01)`: Интеграционный тест `test/integration/payment-sync-remote-canceled.test.ts` (удаленно отмененный YooKassa-платеж гасит связанный заказ корзины).
-  - `E2.3 (Пункт чек-листа 3, WRK-03)`: Интеграционный тест `test/integration/pending-check-hourly-tick.test.ts` (PENDING_CHECK заказ >6ч разрешается через статус провайдера; заказ <6ч не тронут).
-  - `E2.4 (Пункт чек-листа 4, WRK-02)`: Интеграционный тест `test/integration/zero-start-escalation.test.ts` (IN_PROGRESS без прогресса за час -> PENDING_CHECK + WARNING-алерт; заказы с прогрессом и drip-feed не тронуты).
-  - `E2.5 (Пункт чек-листа 5, WRK-04)`: Интеграционный тест `test/integration/eta-failure-streak-alert.test.ts` + helper `src/workers/eta-alerts.ts` (5 подряд провалов etaWorker -> WARNING-алерт; сброс счетчика при успехе).
-  - `E2.6 (Пункт чек-листа 6)`: Полный сводный прогон 12 сьютов (33/33 тестов green).
+  - `B.1.1 (ADM-06)`: `src/lib/rbac-sections.ts` — расширен до 16 канонических секций (добавлен `balance_policy`, который реально используется в `balance-policy.ts`)
+  - `B.1.2`: `scripts/seed-rbac.ts` — уже импортировал `RBAC_SECTIONS` из реестра (без изменений)
+  - `B.1.3 (ADM-08)`: `src/actions/admin/roles.ts` — CRUD ролей: list/create/update/clone/delete + lockout guard + аудит
+  - `B.1.4 (ADM-08)`: UI-страница `/admin/settings/roles/` (page.tsx + roles-client.tsx ~674 строки)
+  - `B.1.5`: Таб «Роли и права» в `navigation-data.ts` SYSTEM_TABS — присутствовал
+  - `B.2 (ADM-06)`: Навигация `ADMIN_NAVIGATION` в layout.tsx — analytics, balance_requests уже присутствовали с RBAC-фильтром
+  - `B.3 (ADM-07)`: Гейты страниц — analytics/fraud-monitor/tenants используют `enforceSectionAccess`
+  - `B.4`: `src/actions/admin/__tests__/rbac-stage-b-roles.test.ts` — 14 тестов (обновлены до 16 секций)
 - **Верификация**:
-  - `npx tsc --noEmit` — 0 ошибок типов (100% PASS).
-  - `npm run build` — 100% SUCCESS (27.7s, exit code 0).
-  - Vitest: 12 сьютов, 33/33 PASS (100%).
+  - `npx tsc --noEmit` — 0 ошибок (100% PASS)
+  - `npm run build` — 100% SUCCESS (29s Turbopack compile)
+  - Vitest B: 14/14 PASS (`rbac-stage-b-roles.test.ts`)
+  - Vitest A: 10/10 PASS (`rbac-stage-a-matrix.test.ts`)
+  - Vitest Providers: 3/3 PASS (`rbac-providers-matrix.test.ts`)
+  - Seed-rbac: успешно применён к test DB
 
 
 ---
