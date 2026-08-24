@@ -50,7 +50,28 @@ export async function findAvailableProvider(
     });
   }
 
-  // 2. Backup providers from ProviderServiceBackup
+  // 2. Backup routes from ServiceRoute table (configured via Admin Routing UI)
+  const serviceRoutes = await db.serviceRoute.findMany({
+    where: {
+      serviceId,
+      isActive: true,
+      providerId: { notIn: excludeProviderIds },
+    },
+    orderBy: { priority: 'asc' },
+  });
+
+  for (const sr of serviceRoutes) {
+    if (!candidates.some(c => c.providerId === sr.providerId)) {
+      candidates.push({
+        providerId: sr.providerId,
+        externalServiceId: sr.providerServiceId,
+        isBackup: !sr.isPrimary,
+        priority: sr.priority,
+      });
+    }
+  }
+
+  // 3. Backup providers from ProviderServiceBackup
   const backups = await db.providerServiceBackup.findMany({
     where: {
       serviceId,
@@ -61,12 +82,14 @@ export async function findAvailableProvider(
   });
 
   for (const b of backups) {
-    candidates.push({
-      providerId: b.backupProviderId,
-      externalServiceId: b.backupExternalId || undefined,
-      isBackup: true,
-      priority: b.priority,
-    });
+    if (!candidates.some(c => c.providerId === b.backupProviderId)) {
+      candidates.push({
+        providerId: b.backupProviderId,
+        externalServiceId: b.backupExternalId || undefined,
+        isBackup: true,
+        priority: b.priority,
+      });
+    }
   }
 
   // Evaluate circuit breakers in priority order

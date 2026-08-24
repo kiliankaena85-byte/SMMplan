@@ -172,6 +172,14 @@ export function ServiceEditForm({
         </div>
 
         <div className="flex items-center gap-2">
+          {initialData.id && (
+            <Link
+              href={`/admin/services/${initialData.id}/routing`}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-all border border-primary/20"
+            >
+              <span>⚡</span> Маршрутизация & Резерв
+            </Link>
+          )}
           <Button
             type="button"
             onClick={() => router.push('/admin/catalog')}
@@ -432,6 +440,21 @@ export function ServiceEditForm({
                 className="w-full px-3 py-2 rounded-xl border border-border bg-background text-foreground text-xs font-mono font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
               />
             </div>
+
+            {initialData.id && (
+              <div className="pt-3 border-t border-border/60">
+                <Link
+                  href={`/admin/services/${initialData.id}/routing`}
+                  className="flex items-center justify-between p-3 rounded-xl bg-primary/5 hover:bg-primary/10 border border-primary/20 text-primary text-xs font-semibold transition-all group"
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="text-sm">⚡</span>
+                    <span>Резервные маршруты (Failover)</span>
+                  </span>
+                  <span className="text-[11px] underline group-hover:translate-x-0.5 transition-transform">Настроить &rarr;</span>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>
