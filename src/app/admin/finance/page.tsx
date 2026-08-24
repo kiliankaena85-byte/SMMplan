@@ -5,6 +5,7 @@ import { getPaymentsAction } from '@/actions/admin/finance/payments';
 import { getReconciliationSummaryAction } from '@/actions/admin/finance/reconciliation';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { FINANCE_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
+import { enforceSectionAccess } from '@/lib/server/rbac';
 import { FinanceClient } from './finance-client';
 import { QuarantineList } from './quarantine-list';
 import { FinanceSettingsForm } from './finance-settings-form';
@@ -26,6 +27,9 @@ const fmt = (n: number) =>
   new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB' }).format(n / 100);
 
 export default async function FinanceDashboard({ searchParams }: Props) {
+  // ADM-03 follow-up: the finance layout is now a coarse gate (finance OR balance-*),
+  // so the main dashboard enforces 'finance' on its own.
+  await enforceSectionAccess('finance');
   const session = await verifySession();
   const user = session ? await db.user.findUnique({ 
     where: { id: session.userId },
