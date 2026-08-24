@@ -24,20 +24,16 @@
     3. **Telegram Bot Control Center**: Выделена отдельная вкладка `/admin/settings?tab=telegram` (3-состоятельный статус-бейдж, пинг в ms, хранение токена в БД с шифрованием AES-256-GCM, выбор режима Polling/Webhook, редактор `{siteName}`/`{userName}`/`{balance}`, live iOS Dark симулятор, сброс очереди и тестовые алерты).
     4. **Вкладка Team**: Добавлен поиск по email сотрудника, фильтр по ролям и группам, пагинация по 25 сотрудников (на десктопе и мобильных), устранение горизонтального скролла и вылетов колонок.
   - `TICKETS-TIMESTAMPS-01`: В чатах тикетов поддержки (`ChatMessageList.tsx` и `ticket-chat.tsx`) добавлены плавающие Telegram-style разделители дат («Сегодня», «Вчера», «24 августа 2026») и всплывающие подсказки (Tooltips) с полной датой и временем при наведении на отметку времени сообщения.
-  - `TELEGRAM-PATCH-ENTERPRISE-01`: Комплексная синергетическая интеграция патча Telegram Enterprise с сохранением CSAT/CRM функционала:
-    1. **OWASP Top 10 2025 Security Defense**:
-       - `A03 Injection Defense`: `escapeHtml()` санитизация всех входящих и исходящих сообщений бота.
-       - `A07 Identification Failures`: HMAC `x-telegram-bot-api-secret-token` валидация через `VaultService` AES-256-GCM.
-       - `A10 SSRF Protection`: Белый список хостов (`api.telegram.org`) в `safeTelegramFetch`.
-       - `A05 Security Misconfiguration`: IP-адресный фильтр доверенных подсетей Telegram CIDR (`149.154.160.0/20`, `91.108.4.0/22`).
-    2. **Prisma Enterprise Models & Migrations**:
-       - `TelegramButton`: Управление кнопками с сеткой (row/col), сортировкой, URL, auth guard и стилями (`default`/`primary`/`danger`).
-       - `TelegramTemplate`: Версионированные шаблоны с категориями, HTML/Markdown parseMode и динамическими переменными.
-       - `TelegramProxy`: Поддержка HTTP/HTTPS/SOCKS5 прокси с AES-256-GCM шифрованием учетных данных и пинг-диагностикой.
-       - `TelegramErrorLog`: Системный трекинг сбоев и исключений Telegraf/Telegram API с уровнями (`ERROR`/`WARN`/`FATAL`), контекстом и массовым закрытием.
-       - `TelegramDailyStat`: Агрегация суточной статистики (сообщения, команды, новые пользователи, ошибки, средняя задержка).
-    3. **UI Console (9 Вкладок & Live Simulator)**:
-       - «Диагностика», «Приветствие», «Кнопки меню», «Шаблоны ответов», «CSAT Оценки», «Журнал отзывов», «Прокси-серверы», «Статистика», «Ошибки & Логи», «Безопасность (OWASP)».
+  - `PROVIDER-PROXY-ENTERPRISE-01`: Внедрена Enterprise система управления пулом прокси-серверов для поставщиков API (`patch-provider-proxy`):
+    1. **Prisma Модели**: `ProviderProxy` и `ProviderProxyLog` с FK `Provider.proxyId`. Поддержка протоколов `http`, `https`, `socks5`, геолокации, ротирующихся IP, тегов и счетчиков отказов.
+    2. **OWASP Top 10 2025 Безопасность**:
+       - `A02 Cryptographic Failures`: Пароли прокси шифруются на уровне БД через `VaultService` (AES-256-GCM) и никогда не утекают на клиент.
+       - `A03 Injection`: Zod-валидация (`createProxySchema`, `updateProxySchema`, `assignProxySchema`) с валидацией портов (1-65535) и хостов.
+       - `A09 Security Logging`: Все мутации фиксируются в `AdminAuditLog` через `await auditAdminAwaitable()`.
+       - `A10 SSRF Guard`: Запросы тестирования и проксирования проходят валидацию через `assertSafeOutboundUrl` (блокировка loopback, cloud metadata `169.254.169.254`, приватных подсетей).
+    3. **HTTP & SOCKS5 Диспетчер**: `src/lib/http/proxy-fetch.ts` с поддержкой нативного `undici.ProxyAgent` и `socks-proxy-agent` через кастомный коннектор. Внедрено в `UniversalProvider` и фабрику `ProviderService`.
+    4. **Админский интерфейс**: Вкладка «Прокси провайдеров» в `/admin/settings?tab=proxy` с мониторингом метрик пула (всего, активных, с ошибками, avg latency, распределение по провайдерам), живым тестированием задержки, быстрым назначением/отвязкой провайдеров и поиском/фильтрами.
+    5. **Верификация**: 7/7 интеграционных тестов (`src/__tests__/provider-proxy.test.ts`), 46/46 тестов проекта пройдены успешно, 0 ошибок TypeScript, успешная production-сборка `next build --webpack` и обновление Docker-контейнера.
        - Интерактивный Live iPhone Simulator с синхронизацией в реальном времени.
     4. **Строгий Next.js 16 App Router Server Action контракт**:
        - Разделение `'use server'` экшенов и констант/типов (перенесены в `src/types/telegram.ts`), строго типизированные ответы `TelegramActionResponse`.
