@@ -2,24 +2,20 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-24 | Агент: Antigravity
-## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕН ЭТАП B «Управляемость прав» (ADM-06/07/08)
-- **Ветка**: `fix/admin-stage-b-rbac-management`
+## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕН ЭТАП C «Качество и устойчивость» (ADM-12..17)
+- **Ветка**: `fix/admin-stage-c-resilience`
 - **Завершено**:
-  - `B.1.1 (ADM-06)`: `src/lib/rbac-sections.ts` — расширен до 16 канонических секций (добавлен `balance_policy`, который реально используется в `balance-policy.ts`)
-  - `B.1.2`: `scripts/seed-rbac.ts` — уже импортировал `RBAC_SECTIONS` из реестра (без изменений)
-  - `B.1.3 (ADM-08)`: `src/actions/admin/roles.ts` — CRUD ролей: list/create/update/clone/delete + lockout guard + аудит
-  - `B.1.4 (ADM-08)`: UI-страница `/admin/settings/roles/` (page.tsx + roles-client.tsx ~674 строки)
-  - `B.1.5`: Таб «Роли и права» в `navigation-data.ts` SYSTEM_TABS — присутствовал
-  - `B.2 (ADM-06)`: Навигация `ADMIN_NAVIGATION` в layout.tsx — analytics, balance_requests уже присутствовали с RBAC-фильтром
-  - `B.3 (ADM-07)`: Гейты страниц — analytics/fraud-monitor/tenants используют `enforceSectionAccess`
-  - `B.4`: `src/actions/admin/__tests__/rbac-stage-b-roles.test.ts` — 14 тестов (обновлены до 16 секций)
+  - `C.1 (ADM-13)`: Error-границы (`error.tsx`) внедрены во все 26+ подразделов админки на базе унифицированного компонента `AdminSectionError`.
+  - `C.2 (ADM-16)`: Кэш счётчика аномалий каталога в `src/app/admin/layout.tsx` через `unstable_cache` (60s TTL, теги `catalog`, `anomaly-count`).
+  - `C.3 (ADM-15)`: `canSeeRates` переведён на RBAC-секцию `finance:view` с сохранением superadmin bypass (`OWNER`/`ADMIN`).
+  - `C.4 (ADM-14)`: Идемпотентный экшен `ensurePrimaryRouteAction` с аудитом `ROUTE_ENSURE_PRIMARY` и UI-баннером в `RoutingPanelClient.tsx` (GET-страница роутинга избавлена от побочных эффектов записи).
+  - `C.5 (ADM-12)`: Декомпозиция god-компонентов: `finance-client.tsx` (с 780 до 141 строк) и вкладок `client-detail-client.tsx` (`balance-tab`, `security-tab`, `payments-tab`), все новые подкомпоненты строго ≤ 300 строк.
+  - `C.6 (ADM-17)`: Справка `src/app/admin/manual/page.tsx` полностью открыта для саппорта (снят гейт `settings`).
 - **Верификация**:
   - `npx tsc --noEmit` — 0 ошибок (100% PASS)
-  - `npm run build` — 100% SUCCESS (29s Turbopack compile)
-  - Vitest B: 14/14 PASS (`rbac-stage-b-roles.test.ts`)
-  - Vitest A: 10/10 PASS (`rbac-stage-a-matrix.test.ts`)
-  - Vitest Providers: 3/3 PASS (`rbac-providers-matrix.test.ts`)
-  - Seed-rbac: успешно применён к test DB
+  - `npx eslint` на Stage C файлах — 0 ошибок
+  - `npm run build` — 100% SUCCESS (29.9s Turbopack compile)
+  - Vitest: 4 сьюта, 36/36 PASS (`rbac-stage-b-roles`, `rbac-stage-a-matrix`, `routing-ensure-primary`, `rbac-providers-matrix`)
 
 
 ---

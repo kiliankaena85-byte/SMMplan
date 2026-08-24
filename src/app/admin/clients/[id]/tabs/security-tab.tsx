@@ -4,23 +4,21 @@ import React, { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import {
   adminChangeUserPasswordAction,
-  adminChangeUserEmailAction,
   adminGenerateMagicLinkAction,
   adminRevokeUserSessionsAction,
 } from '@/actions/admin/users';
 import {
-  Shield,
   Check,
   Copy,
   KeyRound,
   Sparkles,
-  X,
   Mail,
   Link as LinkIcon,
   LogOut,
-  Edit3,
 } from 'lucide-react';
 import { UserDTO, LoginLogDTO } from './types';
+import { SecurityEmailModal } from './security-email-modal';
+import { SecurityLoginLogs } from './security-login-logs';
 
 interface SecurityTabProps {
   user: UserDTO;
@@ -39,13 +37,8 @@ export function SecurityTab({ user, loginLogs }: SecurityTabProps) {
   // Revoke sessions handler
   const [isPendingRevoke, startRevokeTransition] = useTransition();
 
-  // Email Change Modal State & Handler
+  // Email Change Modal State
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [editEmail, setEditEmail] = useState(user.email);
-  const [emailReason, setEmailReason] = useState(
-    'Опечатка при регистрации / Обращение в чат'
-  );
-  const [isPendingEmailChange, startEmailChangeTransition] = useTransition();
 
   function generateRandomPassword() {
     const chars =
@@ -119,27 +112,6 @@ export function SecurityTab({ user, loginLogs }: SecurityTabProps) {
     });
   }
 
-  function handleSaveEmail(e: React.FormEvent) {
-    e.preventDefault();
-    if (!editEmail || !editEmail.includes('@')) {
-      toast.error('Введите корректный email');
-      return;
-    }
-    if (!emailReason.trim() || emailReason.trim().length < 3) {
-      toast.error('Укажите причину изменения (мин. 3 символа)');
-      return;
-    }
-    startEmailChangeTransition(async () => {
-      const res = await adminChangeUserEmailAction(user.id, editEmail, emailReason);
-      if (res.success) {
-        toast.success(res.message);
-        setShowEmailModal(false);
-      } else {
-        toast.error(res.error || 'Ошибка смены email');
-      }
-    });
-  }
-
   return (
     <>
       <div className="space-y-5 max-w-5xl">
@@ -182,10 +154,7 @@ export function SecurityTab({ user, loginLogs }: SecurityTabProps) {
 
               <button
                 type="button"
-                onClick={() => {
-                  setEditEmail(user.email);
-                  setShowEmailModal(true);
-                }}
+                onClick={() => setShowEmailModal(true)}
                 className="w-full h-9 rounded-xl text-xs font-bold bg-muted text-foreground border border-border/60 hover:bg-muted/80 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Mail className="w-3.5 h-3.5 text-muted-foreground" />
@@ -273,149 +242,16 @@ export function SecurityTab({ user, loginLogs }: SecurityTabProps) {
           </div>
 
           {/* Card 3: Security Log */}
-          <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-5 ring-1 ring-border/5 space-y-3.5 md:col-span-2 lg:col-span-1">
-            <h3 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
-              <span className="bg-primary/10 text-primary p-1 rounded-md">
-                <Shield className="w-3.5 h-3.5" />
-              </span>
-              Журнал авторизаций (Logs)
-            </h3>
-            {loginLogs.length === 0 ? (
-              <p className="text-xs text-muted-foreground/60 italic py-3">
-                Логи авторизации отсутствуют
-              </p>
-            ) : (
-              <div className="overflow-x-auto scrollbar-hide max-h-[160px] overflow-y-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-border/60 text-[9px] uppercase font-bold tracking-wider text-muted-foreground">
-                      <th className="pb-2 pr-2">Дата</th>
-                      <th className="pb-2 px-1">IP</th>
-                      <th className="pb-2 pl-1 text-right">Статус</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/40 text-xs">
-                    {loginLogs.map(log => (
-                      <tr key={log.id} className="hover:bg-muted/10 transition-colors">
-                        <td className="py-1.5 pr-2 font-mono tabular-nums text-muted-foreground text-[10px]">
-                          {new Date(log.createdAt).toLocaleString('ru-RU', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </td>
-                        <td className="py-1.5 px-1 font-mono text-foreground text-[10px]">
-                          {log.ipAddress}
-                        </td>
-                        <td className="py-1.5 pl-1 text-right">
-                          {log.success ? (
-                            <span className="inline-flex items-center text-[8px] font-bold uppercase text-emerald-700 bg-success/15 px-1.5 py-0.2 rounded-full">
-                              OK
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center text-[8px] font-bold uppercase text-rose-700 bg-destructive/15 px-1.5 py-0.2 rounded-full">
-                              Сбой
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <SecurityLoginLogs loginLogs={loginLogs} />
         </div>
       </div>
 
       {/* MODAL: Change Client Email */}
-      {showEmailModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-card border border-border shadow-2xl rounded-2xl w-full max-w-md p-6 space-y-4 relative">
-            <button
-              type="button"
-              onClick={() => setShowEmailModal(false)}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1 rounded-lg transition-colors cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="flex items-center gap-3">
-              <span className="p-2 rounded-xl bg-primary/10 text-primary">
-                <Edit3 className="w-5 h-5" />
-              </span>
-              <div>
-                <h3 className="text-base font-bold text-foreground">Замена Email клиента</h3>
-                <p className="text-xs text-muted-foreground">
-                  Текущий адрес:{' '}
-                  <span className="font-mono text-foreground font-semibold">
-                    {user.email}
-                  </span>
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handleSaveEmail} className="space-y-3.5 pt-2">
-              <div>
-                <label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1 block">
-                  Новый адрес Email
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={editEmail}
-                  onChange={e => setEditEmail(e.target.value)}
-                  placeholder="ivan@gmail.com"
-                  className="w-full h-9 text-xs font-mono px-3 rounded-xl border border-border/60 bg-background/50 text-foreground outline-none focus:border-primary shadow-sm"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1 block">
-                  Обоснование смены (для аудита 152-ФЗ)
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={emailReason}
-                  onChange={e => setEmailReason(e.target.value)}
-                  placeholder="Опечатка при регистрации / Сверен чек ЮKassa"
-                  className="w-full h-9 text-xs px-3 rounded-xl border border-border/60 bg-background/50 text-foreground outline-none focus:border-primary shadow-sm"
-                />
-              </div>
-
-              <div className="p-3 bg-muted/40 border border-border/40 rounded-xl text-[11px] text-muted-foreground space-y-1">
-                <p className="font-semibold text-foreground flex items-center gap-1.5">
-                  <Shield className="w-3.5 h-3.5 text-primary" /> Протокол безопасности:
-                </p>
-                <p>• Все активные сессии со старого адреса будут сброшены.</p>
-                <p>
-                  • Баланс ({((user.balance || 0) / 100).toFixed(2)} ₽) и история заказов
-                  полностью сохранятся.
-                </p>
-              </div>
-
-              <div className="flex gap-2 justify-end pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowEmailModal(false)}
-                  className="px-4 h-9 rounded-xl text-xs font-medium text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
-                >
-                  Отмена
-                </button>
-                <button
-                  type="submit"
-                  disabled={isPendingEmailChange}
-                  className="px-4 h-9 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-xs hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
-                >
-                  {isPendingEmailChange ? 'Сохранение...' : 'Перенести аккаунт'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <SecurityEmailModal
+        user={user}
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+      />
     </>
   );
 }

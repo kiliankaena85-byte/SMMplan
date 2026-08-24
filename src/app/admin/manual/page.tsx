@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import { enforceSectionAccess } from '@/lib/server/rbac';
 import { AcademyClient } from './academy-client';
 
 export const dynamic = 'force-dynamic';
@@ -67,14 +66,14 @@ export default async function AdminManualPage() {
   const adminManualPath = path.join(process.cwd(), 'project-docs', 'admin_master_manual_2026.md');
   const supportManualPath = path.join(process.cwd(), 'project-docs', 'support_training_manual.md');
 
-  let adminManualContent = '';
+  let adminManualContent: string;
   try {
     adminManualContent = fs.readFileSync(adminManualPath, 'utf8');
   } catch {
     adminManualContent = '# Руководство Администратора\nНе удалось загрузить мастер-руководство.';
   }
 
-  let supportManualContent = '';
+  let supportManualContent: string;
   try {
     supportManualContent = fs.readFileSync(supportManualPath, 'utf8');
   } catch {

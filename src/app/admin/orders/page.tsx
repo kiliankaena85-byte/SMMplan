@@ -6,20 +6,8 @@ import { OrderClient } from './components/order-client';
 import { OrdersFilterForm } from './components/orders-filter-form';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
-import type { OrderColumn } from './components/columns';
 
 export const dynamic = 'force-dynamic';
-
-const STATUS_LABELS: Record<string, string> = {
-  ALL: 'Все',
-  AWAITING_PAYMENT: 'Ожидает оплату',
-  PENDING: 'В очереди',
-  IN_PROGRESS: 'В работе',
-  COMPLETED: 'Выполнен',
-  PARTIAL: 'Частичный',
-  CANCELED: 'Отменён',
-  ERROR: 'Ошибка',
-};
 
 type Props = {
   searchParams: Promise<{
@@ -61,7 +49,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
 
   const isSuperAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
   const permissions = user?.staffRole?.permissions || [];
-  const canSeeRates = isSuperAdmin || permissions.some(p => p.section.toUpperCase() === 'FINANCE' && (p.canView || p.canEdit));
+  const canSeeRates = isSuperAdmin || permissions.some(p => p.section.toLowerCase() === 'finance' && (p.canView || p.canEdit));
 
   const params = await searchParams;
   const query = params.q || '';
