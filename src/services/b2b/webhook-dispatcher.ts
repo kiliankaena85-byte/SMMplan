@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { safeFetch } from '@/lib/security/ssrf-guard';
 import crypto from 'crypto';
 
 const log = logger.child({ component: 'B2bWebhookDispatcher' });
@@ -61,7 +62,7 @@ export class B2bWebhookDispatcher {
         headers['X-SMMplan-Signature'] = signature;
       }
 
-      const response = await fetch(b2bConfig.webhookUrl, {
+      const response = await safeFetch(b2bConfig.webhookUrl, {
         method: 'POST',
         headers,
         body: payload,

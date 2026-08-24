@@ -131,7 +131,7 @@ export class UniversalProvider implements BaseProvider {
           }
         }
 
-        const response = await fetch(finalUrl, {
+        const response = await safeFetch(finalUrl, {
           method: httpMethod,
           headers,
           body,

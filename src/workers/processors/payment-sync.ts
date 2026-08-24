@@ -4,6 +4,7 @@ import { SyncJobPayload } from '../../lib/queue-manager';
 import { SettingsManager } from '../../lib/settings';
 import { paymentService } from '../../services/financial/payment.service';
 import { logger } from '../../lib/logger';
+import { safeFetch } from '../../lib/security/ssrf-guard';
 
 const log = logger.child({ component: 'PaymentSyncProcessor' });
 
@@ -106,7 +107,7 @@ export default async function paymentSyncProcessor(job: Job<SyncJobPayload>) {
     try {
       log.info(`Checking remote status for payment ${payment.id} (YooKassa ID: ${payment.gatewayId})...`);
 
-      const response = await fetch(`https://api.yookassa.ru/v3/payments/${payment.gatewayId}`, {
+      const response = await safeFetch(`https://api.yookassa.ru/v3/payments/${payment.gatewayId}`, {
         method: 'GET',
         headers: {
           'Authorization': authHeader
