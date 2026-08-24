@@ -92,7 +92,7 @@ function mapProviderDbError(err: unknown): string {
  * Counts everything that will be affected by provider deletion.
  */
 export async function getProviderDeleteInfoAction(rawId: string) {
-  return requireStaffPermission('catalog', 'view', async () => {
+  return requireStaffPermission('providers', 'view', async () => {
     try {
       const id = idSchema.parse(rawId);
       const provider = await db.provider.findUnique({
@@ -131,7 +131,7 @@ export async function getProviderDeleteInfoAction(rawId: string) {
  * - Historical order snapshots (providerServiceId, providerCost) are preserved
  */
 export async function deleteProviderAction(rawId: string) {
-  return requireStaffPermission('catalog', 'edit', async (admin) => {
+  return requireStaffPermission('providers', 'edit', async (admin) => {
     try {
       const id = idSchema.parse(rawId);
 
@@ -178,7 +178,7 @@ export async function createProvider(rawData: {
   ticketUrl?: string;
   mapping?: ApiMappingDTO | null;
 }) {
-  return requireStaffPermission('catalog', 'edit', async (admin) => {
+  return requireStaffPermission('providers', 'edit', async (admin) => {
     try {
       const parsed = providerSchema.safeParse(rawData);
       if (!parsed.success) {
@@ -240,7 +240,7 @@ export async function updateProvider(rawId: string, rawData: {
   ticketUrl?: string;
   mapping?: ApiMappingDTO | null;
 }) {
-  return requireStaffPermission('catalog', 'edit', async (admin) => {
+  return requireStaffPermission('providers', 'edit', async (admin) => {
     try {
       const id = idSchema.parse(rawId);
       
@@ -314,7 +314,7 @@ export async function updateProvider(rawId: string, rawData: {
 }
 
 export async function checkProviderConnection(rawId: string) {
-    return requireStaffPermission('catalog', 'view', async () => {
+    return requireStaffPermission('providers', 'view', async () => {
         try {
             const id = idSchema.parse(rawId);
             const providerRecord = await db.provider.findUnique({ where: { id } });
@@ -360,7 +360,7 @@ export async function probeProviderAction(params: {
   apiKey?: string;
   mapping?: ApiMappingDTO | null;
 }) {
-  return requireStaffPermission('catalog', 'view', async () => {
+  return requireStaffPermission('providers', 'view', async () => {
     const { ProviderDiagnosticService } = await import('@/services/admin/provider-diagnostic.service');
     
     let targetUrl = params.apiUrl || '';
@@ -390,7 +390,7 @@ export async function getProviderCatalogPreviewAction(params: {
   apiKey?: string;
   mapping?: ApiMappingDTO | null;
 }) {
-  return requireStaffPermission('catalog', 'view', async () => {
+  return requireStaffPermission('providers', 'view', async () => {
     let targetUrl = params.apiUrl || '';
     let targetKey = params.apiKey || '';
     let mapping = params.mapping as ApiMappingDTO | undefined;
@@ -445,7 +445,7 @@ export async function getProviderCatalogPreviewAction(params: {
 }
 
 export async function getGlobalProviderLiquidity(forceRefresh = false) {
-  return requireStaffPermission('catalog', 'view', async () => {
+  return requireStaffPermission('providers', 'view', async () => {
     try {
       const { providerBalanceService } = await import('@/services/admin/provider-balance.service');
       const summary = await providerBalanceService.getGlobalLiquiditySummary(forceRefresh);
@@ -474,7 +474,7 @@ export async function getGlobalProviderLiquidity(forceRefresh = false) {
  * Triggers a manual synchronization of the provider's catalog to find deleted/reappeared services.
  */
 export async function syncProviderCatalogAction(rawId: string) {
-    return requireStaffPermission('catalog', 'edit', async (admin) => {
+    return requireStaffPermission('providers', 'edit', async (admin) => {
         try {
             const id = idSchema.parse(rawId);
             const { adminCatalogService } = await import('@/services/admin/catalog.service');
@@ -493,7 +493,7 @@ export async function syncProviderCatalogAction(rawId: string) {
 }
 
 export async function inferProviderSchema(apiUrl: string, apiKey: string, httpMethod: "GET" | "POST", contentType: "form" | "json", authConfig: ApiMappingDTO["auth"], providerId?: string) {
-    return requireStaffPermission('catalog', 'edit', async () => {
+    return requireStaffPermission('providers', 'edit', async () => {
         try {
             let finalApiKey = apiKey;
             if (!finalApiKey && providerId) {
@@ -564,7 +564,7 @@ export async function inferProviderSchema(apiUrl: string, apiKey: string, httpMe
  * ⚡ Quick Action: Toggle provider active status directly from table.
  */
 export async function toggleProviderActiveAction(providerId: string, isActive: boolean) {
-  return requireStaffPermission('catalog', 'edit', async (admin) => {
+  return requireStaffPermission('providers', 'edit', async (admin) => {
     try {
       const id = idSchema.parse(providerId);
       const provider = await db.provider.update({
@@ -593,7 +593,7 @@ export async function toggleProviderActiveAction(providerId: string, isActive: b
  * 🧹 Quick Action: Reset provider 5-minute error counter back to 0.
  */
 export async function resetProviderErrorsAction(providerId: string) {
-  return requireStaffPermission('catalog', 'edit', async (admin) => {
+  return requireStaffPermission('providers', 'edit', async (admin) => {
     try {
       const id = idSchema.parse(providerId);
       const provider = await db.provider.update({
@@ -622,7 +622,7 @@ export async function resetProviderErrorsAction(providerId: string) {
  * 🧪 Quick Action: Connect local Mock Provider in 1 click for instant safe testing.
  */
 export async function createMockProviderPresetAction() {
-  return requireStaffPermission('catalog', 'edit', async (admin) => {
+  return requireStaffPermission('providers', 'edit', async (admin) => {
     try {
       const existing = await db.provider.findFirst({
         where: { apiUrl: { contains: 'mock-provider' } },

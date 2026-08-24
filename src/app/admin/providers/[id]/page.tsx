@@ -3,6 +3,7 @@ import { ProviderForm } from '../components/provider-form';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { enforceSectionAccess } from '@/lib/server/rbac';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,9 @@ export default async function EditProviderPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  // AUD-09 (4.1): provider management requires the 'providers' section
+  await enforceSectionAccess('providers');
+
   const { id } = await params;
 
   // DTO — never includes raw encrypted apiKey

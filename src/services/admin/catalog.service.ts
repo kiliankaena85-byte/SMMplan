@@ -522,17 +522,25 @@ class AdminCatalogService {
       throw new Error('PROVIDER_CATALOG_SHRUNK_ABNORMALLY');
     }
 
-    // Perform atomic wipe and write in chunks
-    await db.shadowService.deleteMany({ where: { providerId: providerDbRecord.id } });
-
-    const chunkSize = 1000;
-    for (let i = 0; i < servicesToCreate.length; i += chunkSize) {
-      const chunk = servicesToCreate.slice(i, i + chunkSize);
-      await db.shadowService.createMany({
-        data: chunk,
-        skipDuplicates: true
-      });
-    }
+    // AUD-11 (4.3): atomic wipe-and-rewrite inside a single transaction.
+    // If any chunk fails (DB timeout, constraint, restart), the OLD catalog
+    // stays fully intact instead of leaving a half-synced shadow that the
+    // shrink-guard would then block with PROVIDER_CATALOG_SHRUNK_ABNORMALLY.
+    const CHUNK_SIZE = 1000;
+    await db.$transaction(
+      async (tx) => {
+        await tx.shadowService.deleteMany({ where: { providerId: providerDbRecord.id } });
+        for (let i = 0; i < servicesToCreate.length; i += CHUNK_SIZE) {
+          const chunk = servicesToCreate.slice(i, i + CHUNK_SIZE);
+          await tx.shadowService.createMany({
+            data: chunk,
+            skipDuplicates: true
+          });
+        }
+      },
+      // Large catalogs (10k+ rows) need room beyond the default 5s
+      { timeout: 60_000, maxWait: 10_000 }
+    );
 
     // Cache the successful catalog content-hash in Redis (TTL 24 hours)
     try {

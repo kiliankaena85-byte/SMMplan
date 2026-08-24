@@ -548,4 +548,70 @@ describe('Cherry-Pick Service Import & Shadow Catalog Tests', () => {
     });
     expect(importedService?.rate).toBe(0.50);
   });
+
+  it('keeps the old shadow catalog intact when the sync transaction fails (AUD-11)', async () => {
+    vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
+
+    // Old catalog: 2 valid rows
+    await db.shadowService.createMany({
+      data: [
+        {
+          providerId: providerA.id,
+          externalId: '101',
+          name: 'Telegram Subscribers Fast',
+          type: 'default',
+          category: 'Telegram Subscribers',
+          rate: 0.50,
+          rateRub: 50.0,
+          min: 10,
+          max: 5000,
+          cleanName: 'Subscribers Fast',
+          platform: 'telegram',
+          normalizedCategory: 'SUBSCRIBERS',
+          targetType: 'CHANNEL',
+          anomalyScore: 0.1,
+          refill: false,
+          cancel: false,
+          dripfeed: false
+        },
+        {
+          providerId: providerA.id,
+          externalId: '102',
+          name: 'Instagram Likes HQ',
+          type: 'default',
+          category: 'Instagram Likes',
+          rate: 0.15,
+          rateRub: 15.0,
+          min: 50,
+          max: 2000,
+          cleanName: 'Likes HQ',
+          platform: 'instagram',
+          normalizedCategory: 'LIKES',
+          targetType: 'POST',
+          anomalyScore: 0.0,
+          refill: false,
+          cancel: false,
+          dripfeed: false
+        }
+      ]
+    });
+
+    // Fresh catalog from the API contains a row that overflows the Int column
+    // (min: 99999999999 > int4 max) -> the INSERT inside the transaction fails
+    mockGetServices.mockResolvedValue([
+      { service: '101', name: 'Telegram Subscribers Fast', rate: '0.60', min: '99999999999', max: '5000', category: 'Telegram Subscribers' }
+    ]);
+
+    const result = await fetchExternalServices(providerA.id, true);
+    expect(result.success).toBe(false); // sync failed
+
+    // AUD-11 (4.3): atomicity — the transaction rolled back and the OLD
+    // catalog survived intact (no half-synced state, shrink-guard not tripped)
+    const shadowRows = await db.shadowService.findMany({
+      where: { providerId: providerA.id },
+      select: { externalId: true }
+    });
+    expect(shadowRows.length).toBe(2);
+    expect(shadowRows.map(r => r.externalId).sort()).toEqual(['101', '102']);
+  });
 });

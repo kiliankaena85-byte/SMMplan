@@ -6,10 +6,14 @@ import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { CATALOG_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { ProvidersTable } from './client-table';
 import { LiquidityDashboard } from './components/liquidity-dashboard';
+import { enforceSectionAccess } from '@/lib/server/rbac';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ProvidersAdminPage() {
+  // AUD-09 (4.1): provider management requires the 'providers' section
+  await enforceSectionAccess('providers');
+
   const [providers, liquidity] = await Promise.all([
     adminProviderService.listProviders(),
     providerBalanceService.getGlobalLiquiditySummary(),

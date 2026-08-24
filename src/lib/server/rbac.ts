@@ -155,7 +155,7 @@ export async function enforcePageRole(allowedRoles: string[]) {
  */
 export async function enforceSectionAccess(section: string) {
   const userId = await getSessionUserId();
-  
+
   if (!userId) {
     redirect('/login');
   }
@@ -186,6 +186,55 @@ export async function enforceSectionAccess(section: string) {
   const permission = user.staffRole.permissions.find(p => p.section.toUpperCase() === normalizedSection);
 
   if (!permission || (!permission.canView && !permission.canEdit)) {
+    redirect('/admin/forbidden');
+  }
+
+  return user;
+}
+
+/**
+ * AUD-09 (4.1): coarse layout gate — passes if the user has access to ANY of
+ * the given sections. Individual pages under the layout then enforce their own
+ * specific section (e.g. /admin/providers/** requires 'providers', while the
+ * nested import wizard requires 'catalog').
+ *
+ * OWNER & ADMIN bypass as usual.
+ */
+export async function enforceAnySectionAccess(sections: string[]) {
+  const userId = await getSessionUserId();
+
+  if (!userId) {
+    redirect('/login');
+  }
+
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    include: {
+      staffRole: {
+        include: { permissions: true }
+      }
+    }
+  });
+
+  if (!user || user.role === 'BANNED' || user.role === 'USER' || user.isDeleted || !user.isActive) {
+    redirect('/login');
+  }
+
+  // OWNER & ADMIN bypass
+  if (user.role === 'OWNER' || user.role === 'ADMIN') {
+    return user;
+  }
+
+  if (!user.staffRole) {
+    redirect('/admin/forbidden');
+  }
+
+  const normalizedSections = sections.map(s => s.toUpperCase());
+  const hasAny = user.staffRole.permissions.some(p =>
+    normalizedSections.includes(p.section.toUpperCase()) && (p.canView || p.canEdit)
+  );
+
+  if (!hasAny) {
     redirect('/admin/forbidden');
   }
 

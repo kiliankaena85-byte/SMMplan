@@ -1,8 +1,12 @@
 import { ProviderForm } from "../components/provider-form";
+import { enforceSectionAccess } from '@/lib/server/rbac';
 
 export const dynamic = "force-dynamic";
 
-export default function NewProviderPage() {
+export default async function NewProviderPage() {
+  // AUD-09 (4.1): provider management requires the 'providers' section
+  await enforceSectionAccess('providers');
+
   return (
     <div className="space-y-6">
       <div>

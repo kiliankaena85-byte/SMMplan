@@ -9,6 +9,7 @@ import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 import { resolveAdminTenantContext } from '@/utils/admin-tenant';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
+import { enforceSectionAccess } from '@/lib/server/rbac';
 
 type ImportPageProps = {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -17,6 +18,10 @@ type ImportPageProps = {
 export const dynamic = 'force-dynamic';
 
 export default async function ImportProvidersPage({ searchParams }: ImportPageProps) {
+  // AUD-09 (4.1): the import wizard is a CATALOG operation (it creates services),
+  // not a provider-management one — catalog-only staff must keep access.
+  await enforceSectionAccess('catalog');
+
   // AUD-05 (3.1): resolve tenant context the same way the admin catalog does —
   // ?tenant= for global operators (clamped to their own tenant for non-global ones),
   // x-tenant-id domain fallback, 'smmplan' as the last resort.

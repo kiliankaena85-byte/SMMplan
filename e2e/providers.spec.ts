@@ -1,6 +1,5 @@
 import { test, expect } from './fixtures/auth.fixture';
 import { PrismaClient } from '@prisma/client';
-import { Redis } from 'ioredis';
 
 test.describe('Providers Integration Flow', () => {
   let previouslyActiveProviderIds: string[] = [];
@@ -151,7 +150,7 @@ test.describe('Providers Integration Flow', () => {
       }
     });
 
-    const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+    const prisma = new PrismaClient();
 
     try {
       // Delete any service in Postgres with externalId '100' or name 'Mock Telegram Followers'
@@ -164,9 +163,9 @@ test.describe('Providers Integration Flow', () => {
         }
       });
 
-      // Delete the redis key provider:${provider.id}:catalog
-      const cacheKey = `provider:${provider.id}:catalog`;
-      await redis.del(cacheKey);
+      // AUD-12: the shadow catalog lives in the ShadowService table now —
+      // clear it so the wizard shows the 'Каталог провайдера пуст' empty state
+      await prisma.shadowService.deleteMany({ where: { providerId: provider.id } });
 
       // Navigate to /admin/providers/import
       await adminPage.goto('/admin/providers/import');
@@ -211,19 +210,17 @@ test.describe('Providers Integration Flow', () => {
       expect(service!.markup).toBe(1.75);
       expect(service!.categoryId).toBe(category.id);
     } finally {
-      // Cleanup: delete the imported service, the provider, and the redis cache key
+      // Cleanup: delete the imported service, the provider, and the shadow catalog
       await prisma.service.deleteMany({
         where: {
           externalId: '100',
           providerId: provider.id
         }
       });
+      await prisma.shadowService.deleteMany({ where: { providerId: provider.id } });
       await prisma.provider.delete({
         where: { id: provider.id }
       });
-      const cacheKey = `provider:${provider.id}:catalog`;
-      await redis.del(cacheKey);
-      await redis.quit();
       await prisma.$disconnect();
     }
   });
@@ -303,13 +300,48 @@ test.describe('Providers Integration Flow', () => {
       });
       expect(updateAuditLog).not.toBeNull();
 
+      // c. Delete Provider (AUD-01/AUD-12): delete button + confirmation modal with impact counts
+      const editRow = adminPage.locator('tr', { hasText: editedProviderName });
+      await editRow.locator('button[title="Удалить провайдера"]').click();
+
+      // Confirmation modal appears with the provider name and counters
+      const confirmDialog = adminPage.getByText(`Удалить провайдера «${editedProviderName}»?`);
+      await expect(confirmDialog).toBeVisible();
+      await expect(adminPage.getByText('Услуг').first()).toBeVisible();
+      await expect(adminPage.getByText('Заказов').first()).toBeVisible();
+
+      await adminPage.getByRole('button', { name: 'Да, удалить' }).click();
+
+      // Provider is gone from the database
+      await expect
+        .poll(async () => {
+          const stillExists = await prisma.provider.findUnique({ where: { id: createdProvider!.id } });
+          return stillExists === null;
+        }, { timeout: 10000 })
+        .toBe(true);
+
+      // PROVIDER_DELETE audit entry is written
+      const deleteAuditLog = await prisma.adminAuditLog.findFirst({
+        where: {
+          action: 'PROVIDER_DELETE',
+          targetType: 'PROVIDER',
+          target: createdProvider!.id
+        }
+      });
+      expect(deleteAuditLog).not.toBeNull();
+
     } finally {
-      // c. Cleanup
+      // d. Cleanup
+      await prisma.service.updateMany({
+        where: { providerId: createdProvider?.id ?? 'nonexistent' },
+        data: { providerId: null }
+      }).catch(() => {});
+      await prisma.serviceRoute.deleteMany({ where: { providerId: createdProvider?.id ?? 'nonexistent' } });
       await prisma.provider.deleteMany({ where: { name: { in: [providerName, editedProviderName] } } });
       await prisma.adminAuditLog.deleteMany({
         where: {
           targetType: 'PROVIDER',
-          action: { in: ['PROVIDER_CREATE', 'PROVIDER_UPDATE'] }
+          action: { in: ['PROVIDER_CREATE', 'PROVIDER_UPDATE', 'PROVIDER_DELETE'] }
         }
       });
       await prisma.$disconnect();
@@ -368,7 +400,7 @@ test.describe('Providers Integration Flow', () => {
       await prisma.adminAuditLog.deleteMany({
         where: {
           targetType: 'PROVIDER',
-          action: { in: ['PROVIDER_CREATE', 'PROVIDER_UPDATE'] },
+          action: { in: ['PROVIDER_CREATE', 'PROVIDER_UPDATE', 'PROVIDER_DELETE'] },
         }
       });
     } finally {
