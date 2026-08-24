@@ -1,6 +1,6 @@
 import { settingsService } from '@/services/admin/settings.service';
 import { db } from '@/lib/db';
-import { Settings, Globe, Link as LinkIcon, Users, History, MessageSquare, Database, Bot } from 'lucide-react';
+import { Settings, Globe, Link as LinkIcon, Users, History, MessageSquare, Database, Bot, Server } from 'lucide-react';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { SYSTEM_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { TestModePanel } from '@/components/admin/test-mode-panel';
@@ -9,6 +9,7 @@ import { CatalogSettings } from './catalog-settings';
 import { IntegrationsSettings } from './integrations-settings';
 import { TelegramBotSettings } from './telegram-bot-settings';
 import { TeamManagement } from './team-management';
+import { ProviderProxyManager } from './provider-proxy-manager';
 
 import { SupportTemplatesSettings } from './support-templates';
 import { DataTable } from '@/components/ui/data-table';
@@ -17,7 +18,7 @@ import Link from 'next/link';
 import { enforceSectionAccess } from '@/lib/server/rbac';
 import { SettingsProvider } from '@/lib/settings';
 import { SystemHealthOverview } from '@/components/admin/settings/system-health-overview';
-import { AdminAuditLog, StaffRole, StaffPermission, SupportTemplate, SystemSettings } from '@prisma/client';
+import { AdminAuditLog, StaffRole, StaffPermission, SupportTemplate, SystemSettings, Provider } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +29,7 @@ interface SettingsPageData {
   recentLogs: AdminAuditLog[];
   staffRoles: (StaffRole & { permissions: StaffPermission[] })[];
   templates: SupportTemplate[];
+  providers: Provider[];
 }
 
 export default async function AdminSettingsPage({
@@ -44,22 +46,23 @@ export default async function AdminSettingsPage({
   let pageData: SettingsPageData;
 
   try {
-    const [staffUsers, users, settings, recentLogs, staffRoles, templates] = await Promise.all([
+    const [staffUsers, users, settings, recentLogs, staffRoles, templates, providers] = await Promise.all([
       settingsService.listStaffUsers(),
       searchQuery ? settingsService.listUsers(searchQuery) : Promise.resolve([]),
       settingsService.getSystemSettings(),
       db.adminAuditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 50 }),
       db.staffRole.findMany({ include: { permissions: true }, orderBy: { name: 'asc' } }),
       db.supportTemplate.findMany({ orderBy: { sort: 'asc' } }),
+      db.provider.findMany({ orderBy: { name: 'asc' } }),
     ]);
 
-    pageData = { staffUsers, users, settings, recentLogs, staffRoles, templates };
+    pageData = { staffUsers, users, settings, recentLogs, staffRoles, templates, providers };
   } catch (error) {
     console.error('[AdminSettingsPage] Failed to load settings data:', error);
     throw new Error('Не удалось загрузить данные настроек. Попробуйте обновить страницу.');
   }
 
-  const { staffUsers, users, settings, recentLogs, staffRoles, templates } = pageData;
+  const { staffUsers, users, settings, recentLogs, staffRoles, templates, providers } = pageData;
 
   const sanitizedSettings = {
     ...settings,
@@ -83,6 +86,7 @@ export default async function AdminSettingsPage({
     { id: 'catalog', label: 'Каталог', icon: Database },
     { id: 'integrations', label: 'Интеграции', icon: LinkIcon },
     { id: 'telegram', label: 'Telegram Бот', icon: Bot },
+    { id: 'proxy', label: 'Прокси провайдеров', icon: Server },
     { id: 'team', label: 'Команда', icon: Users },
     { id: 'templates', label: 'Шаблоны', icon: MessageSquare },
     { id: 'audit', label: 'Аудит', icon: History },
@@ -102,12 +106,12 @@ export default async function AdminSettingsPage({
       <SystemHealthOverview settings={sanitizedSettings} />
 
       {/* ── Custom URL-based Tabs ── */}
-      <div className="flex gap-1 border-b border-border">
+      <div className="flex gap-1 border-b border-border overflow-x-auto">
         {tabs.map((t) => (
           <Link
             key={t.id}
             href={`?tab=${t.id}`}
-            className={`flex items-center gap-2 py-3 px-6 transition-all -mb-px text-[11px] font-black uppercase tracking-widest border-b-2 ${
+            className={`flex items-center gap-2 py-3 px-6 transition-all -mb-px text-[11px] font-black uppercase tracking-widest border-b-2 whitespace-nowrap ${
               activeTab === t.id
                 ? 'border-primary text-primary bg-card rounded-t-xl'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -149,6 +153,13 @@ export default async function AdminSettingsPage({
           </div>
         )}
 
+        {/* ── TAB 2.8: PROVIDER PROXIES ── */}
+        {activeTab === 'proxy' && (
+          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-400">
+            <ProviderProxyManager providers={providers} />
+          </div>
+        )}
+
         {/* ── TAB 3: TEAM ── */}
         {activeTab === 'team' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-400">
@@ -168,7 +179,6 @@ export default async function AdminSettingsPage({
             <SupportTemplatesSettings initialTemplates={templates} />
           </div>
         )}
-
 
         {/* ── TAB 4: AUDIT ── */}
         {activeTab === 'audit' && (

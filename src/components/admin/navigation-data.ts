@@ -16,6 +16,7 @@ export const CATALOG_TABS = [
   { label: 'Паттерны ссылок', href: '/admin/catalog/patterns' },
   { label: 'Импорт услуг', href: '/admin/providers/import' },
   { label: 'Провайдеры API', href: '/admin/providers' },
+  { label: 'Прокси провайдеров', href: '/admin/settings?tab=proxy' },
   { label: 'Категории & Соцсети', href: '/admin/catalog/categories' },
   { label: 'Карантин & Дрифт цен', href: '/admin/catalog/quarantine' },
 ];
@@ -23,6 +24,7 @@ export const CATALOG_TABS = [
 export const SYSTEM_TABS = [
   { label: 'Глобальные настройки', href: '/admin/settings' },
   { label: 'Telegram Бот', href: '/admin/settings?tab=telegram' },
+  { label: 'Прокси провайдеров', href: '/admin/settings?tab=proxy' },
   { label: 'Роли и права', href: '/admin/settings/roles' },
   { label: 'Бренды & Домены', href: '/admin/tenants' },
   { label: 'CMS Страницы', href: '/admin/pages' },

@@ -1,4 +1,3 @@
-// W0-4: VaultService import removed — decryption now happens in ProviderService before passing key here
 import { 
   BaseProvider, 
   OrderCreationParams, 
@@ -11,7 +10,8 @@ import {
 import { ApiMappingDTO } from '../admin/provider.service';
 import { CircuitBreaker } from '@/lib/circuit-breaker';
 import { assertSafeUrl } from '@/utils/ssrf-guard';
-import { safeFetch } from '@/lib/security/ssrf-guard';
+import { proxiedFetch } from '@/lib/http/proxy-fetch';
+import type { ProxyConfig } from '@/types/provider-proxy';
 import { z } from 'zod';
 
 export type { ApiMappingDTO };
@@ -37,12 +37,16 @@ export class UniversalProvider implements BaseProvider {
   private apiUrl: string;
   private apiKey: string;
   private mapping: ApiMappingDTO | null = null;
+  private proxyConfig: ProxyConfig | null = null;
 
-  constructor(apiUrl: string, apiKey: string, metadata?: Record<string, unknown> | null) {
+  constructor(apiUrl: string, apiKey: string, metadata?: Record<string, unknown> | null, proxyConfig?: ProxyConfig | null) {
     this.apiUrl = apiUrl;
     this.apiKey = apiKey;
     if (metadata && typeof metadata === 'object' && metadata.mapping) {
       this.mapping = metadata.mapping as ApiMappingDTO;
+    }
+    if (proxyConfig) {
+      this.proxyConfig = proxyConfig;
     }
   }
 
@@ -132,12 +136,13 @@ export class UniversalProvider implements BaseProvider {
           }
         }
 
-        const response = await safeFetch(finalUrl, {
+        const response = await proxiedFetch(finalUrl, {
           method: httpMethod,
           headers,
           body,
           redirect: 'error',
-          signal: controller.signal
+          signal: controller.signal,
+          proxy: this.proxyConfig,
         });
 
         const contentLength = response.headers.get('content-length');

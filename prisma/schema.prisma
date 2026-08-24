@@ -349,6 +349,61 @@ model Provider {
   ServiceRoute    ServiceRoute[]
   smartExecutions SmartExecution[]
   shadowServices  ShadowService[]
+
+  proxyId         String?           @unique
+  proxy           ProviderProxy?    @relation(fields: [proxyId], references: [id], onDelete: SetNull)
+  proxyLogs       ProviderProxyLog[]
+}
+
+model ProviderProxy {
+  id                  String             @id @default(cuid())
+  label               String
+  description         String             @default("")
+  protocol            String             @default("https")
+  host                String
+  port                Int
+  username            String?
+  passwordEncrypted   String?
+  isActive            Boolean            @default(true)
+  isRotating          Boolean            @default(false)
+  geoCountry          String?
+  tags                String             @default("[]")
+  lastTestAt          DateTime?
+  lastTestLatencyMs   Int?
+  lastTestSuccess     Boolean?
+  errorCount          Int                @default(0)
+  lastErrorAt         DateTime?
+  consecutiveFailures Int                @default(0)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  providers           Provider[]
+  logs                ProviderProxyLog[]
+
+  @@index([isActive])
+  @@index([protocol])
+}
+
+model ProviderProxyLog {
+  id             String        @id @default(cuid())
+  proxyId        String
+  providerId     String?
+  action         String
+  url            String?
+  method         String?
+  statusCode     Int?
+  latencyMs      Int?
+  error          String?
+  bytesSent      Int           @default(0)
+  bytesReceived  Int           @default(0)
+  createdAt      DateTime      @default(now())
+
+  proxy          ProviderProxy @relation(fields: [proxyId], references: [id], onDelete: Cascade)
+  provider       Provider?     @relation(fields: [providerId], references: [id], onDelete: SetNull)
+
+  @@index([proxyId])
+  @@index([providerId])
+  @@index([createdAt])
 }
 
 model ProviderOutbox {

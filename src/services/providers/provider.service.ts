@@ -6,6 +6,7 @@ import { SettingsManager } from '@/lib/settings';
 import { UniversalProvider } from './universal.provider';
 import { VaultService } from '@/lib/vault';
 import { redis } from '@/lib/redis';
+import type { ProxyConfig } from '@/types/provider-proxy';
 
 export class ProviderService {
   /**
@@ -16,11 +17,44 @@ export class ProviderService {
   }
 
   /**
-   * Main Factory Method
-   * Returns instance of BaseProvider based on provider config
+   * Resolves proxy config from DB for a given provider
+   */
+  private async resolveProxyConfig(provider: Provider): Promise<ProxyConfig | null> {
+    if (!provider.proxyId) return null;
+    try {
+      const proxy = await db.providerProxy.findUnique({
+        where: { id: provider.proxyId, isActive: true },
+      });
+      if (!proxy) return null;
+
+      // Decrypt password in memory
+      let password: string | undefined;
+      if (proxy.passwordEncrypted) {
+        try {
+          password = VaultService.decrypt(proxy.passwordEncrypted);
+        } catch {
+          console.warn(`[Proxy] Failed to decrypt password for proxy ${proxy.id}, falling back to direct`);
+          return null;
+        }
+      }
+
+      return {
+        protocol: proxy.protocol as 'http' | 'https' | 'socks5',
+        host: proxy.host,
+        port: proxy.port,
+        username: proxy.username || undefined,
+        password,
+      };
+    } catch (err) {
+      console.warn(`[Proxy] Error resolving proxy for provider ${provider.id}:`, err);
+      return null;
+    }
+  }
+
+  /**
+   * Main Factory Method — resolves and passes proxy config to UniversalProvider
    */
   async getProviderInstance(config: Provider): Promise<BaseProvider> {
-    // Decrypt the API Key before passing it to the provider
     let decryptedKey: string;
     try {
       decryptedKey = VaultService.decrypt(config.apiKey);
@@ -28,7 +62,14 @@ export class ProviderService {
       decryptedKey = config.apiKey;
     }
 
-        return new UniversalProvider(config.apiUrl, decryptedKey || config.apiKey, (config.metadata as Record<string, unknown> | undefined));
+    const proxyConfig = await this.resolveProxyConfig(config);
+
+    return new UniversalProvider(
+      config.apiUrl,
+      decryptedKey || config.apiKey,
+      (config.metadata as Record<string, unknown> | undefined),
+      proxyConfig,
+    );
   }
 
   /**
@@ -68,9 +109,6 @@ export class ProviderService {
    * Factory for background workers (order/sync processors).
    * In test mode, redirects ALL provider traffic to the internal mock-provider API.
    * This protects real provider balance from being charged during QA testing.
-   * 
-   * IMPORTANT: Do NOT use this for admin functions (catalog import, balance check).
-   * Those must always hit the real provider — use getProviderInstance() instead.
    */
   async getWorkerProviderInstance(config: Provider): Promise<BaseProvider> {
     const isTest = await SettingsManager.isTestMode();
@@ -80,26 +118,38 @@ export class ProviderService {
         throw new Error('MOCK_PROVIDER_KEY is not set. Configure it in .env to use test mode.');
       }
       const baseUrl = await getBaseUrlAsync();
-            return new UniversalProvider(`${baseUrl}/api/dev/mock-provider`, mockKey, (config.metadata as Record<string, unknown> | undefined));
+      return new UniversalProvider(
+        `${baseUrl}/api/dev/mock-provider`,
+        mockKey,
+        (config.metadata as Record<string, unknown> | undefined),
+      );
     }
-    // Production path: decrypt and use real provider
+
     let decryptedKey: string;
     try {
       decryptedKey = VaultService.decrypt(config.apiKey);
     } catch {
       decryptedKey = config.apiKey;
     }
-        return new UniversalProvider(config.apiUrl, decryptedKey || config.apiKey, (config.metadata as Record<string, unknown> | undefined));
+
+    const proxyConfig = await this.resolveProxyConfig(config);
+
+    return new UniversalProvider(
+      config.apiUrl,
+      decryptedKey || config.apiKey,
+      (config.metadata as Record<string, unknown> | undefined),
+      proxyConfig,
+    );
   }
 
   /**
-   * Auto-resolves the default provider (for SMMplan, we usually have one)
+   * Auto-resolves the default provider
    */
   async getDefaultProvider(): Promise<BaseProvider> {
     const provider = await db.provider.findFirst({
-      where: { isActive: true }
+      where: { isActive: true },
     });
-    
+
     if (!provider) {
       throw new Error('No active providers found in the database. Please add one (e.g., Vexboost).');
     }

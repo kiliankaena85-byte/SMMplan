@@ -1,0 +1,174 @@
+// ==============================================================
+// Proxy-aware HTTP fetch for provider API connections
+// Supports: HTTP, HTTPS, SOCKS5 proxies
+// ==============================================================
+// OWASP A10: SSRF — target URL validation via ssrf-guard
+// OWASP A02: Proxy credentials encrypted at rest, decrypted only in memory
+// ==============================================================
+
+import type { ProxyConfig, ProxyProtocol } from '@/types/provider-proxy';
+import { assertSafeOutboundUrl } from '@/lib/security/ssrf-guard';
+
+export async function createProxyDispatcher(proxy: ProxyConfig) {
+  const { ProxyAgent, Agent } = await import('undici');
+
+  const auth = proxy.username
+    ? `${encodeURIComponent(proxy.username)}:${encodeURIComponent(proxy.password || '')}@`
+    : '';
+
+  if (proxy.protocol === 'socks5') {
+    const { SocksProxyAgent } = await import('socks-proxy-agent');
+    const socksUrl = `socks5://${auth}${proxy.host}:${proxy.port}`;
+    const socksAgent = new SocksProxyAgent(socksUrl);
+
+    // Custom connector for undici to route via SOCKS5
+    const connectFn = (opts: unknown, callback: (err: Error | null, socket: unknown) => void) => {
+      try {
+        const rawConnect = socksAgent.connect.bind(socksAgent);
+        (rawConnect as unknown as (req: unknown, opts: unknown, cb: (err: Error | null, socket: unknown) => void) => void)(
+          {},
+          opts,
+          (err: Error | null, socket: unknown) => {
+            if (err) return callback(err, null);
+            callback(null, socket || null);
+          },
+        );
+      } catch (err: unknown) {
+        callback(err instanceof Error ? err : new Error(String(err)), null);
+      }
+    };
+
+    return new Agent({
+      connect: connectFn as unknown as NonNullable<ConstructorParameters<typeof Agent>[0]>['connect'],
+    });
+  }
+
+  // http and https proxies use undici's native ProxyAgent
+  const proxyUrl = `${proxy.protocol}://${auth}${proxy.host}:${proxy.port}`;
+  return new ProxyAgent(proxyUrl);
+}
+
+/**
+ * Main entry point: proxiedFetch
+ * Drop-in replacement for safeFetch() that routes through a proxy.
+ *
+ * Usage:
+ *   const resp = await proxiedFetch(targetUrl, { method: 'POST', body, proxy: proxyConfig });
+ */
+export async function proxiedFetch(
+  url: string,
+  init?: RequestInit & { proxy?: ProxyConfig | null },
+): Promise<Response> {
+  const proxy = init?.proxy;
+  const cleanInit = { ...init };
+  delete (cleanInit as Record<string, unknown>).proxy;
+
+  // OWASP A10: Always validate target URL
+  const ssrfCheck = await assertSafeOutboundUrl(url);
+  if (!ssrfCheck.ok) {
+    throw new Error(`SSRF blocked: ${ssrfCheck.reason} for URL ${url}`);
+  }
+
+  if (!proxy) {
+    // No proxy — direct connection
+    return fetch(url, cleanInit);
+  }
+
+  const dispatcher = await createProxyDispatcher(proxy);
+  const { fetch: undiciFetch } = await import('undici');
+
+  return undiciFetch(url, {
+    method: cleanInit.method,
+    headers: cleanInit.headers as unknown as Record<string, string>,
+    body: cleanInit.body as unknown as string | Buffer,
+    signal: cleanInit.signal as unknown as AbortSignal,
+    dispatcher: dispatcher as unknown as NonNullable<Parameters<typeof undiciFetch>[1]>['dispatcher'],
+  }) as unknown as Promise<Response>;
+}
+
+/**
+ * Build proxy config from decrypted DB record
+ */
+export function buildProxyConfig(record: {
+  protocol: string;
+  host: string;
+  port: number;
+  username?: string | null;
+  password?: string | null;
+}): ProxyConfig | null {
+  if (!record.host || !record.port) return null;
+  return {
+    protocol: record.protocol as ProxyProtocol,
+    host: record.host,
+    port: record.port,
+    username: record.username || undefined,
+    password: record.password || undefined,
+  };
+}
+
+/**
+ * Test proxy connectivity by making a request to a target URL
+ */
+export async function testProxyConnection(
+  proxy: ProxyConfig,
+  targetUrl: string = 'https://httpbin.org/ip',
+  timeoutMs: number = 15000,
+): Promise<{
+  success: boolean;
+  latencyMs: number;
+  statusCode?: number;
+  resolvedIp?: string;
+  error?: string;
+}> {
+  const start = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const ssrfCheck = await assertSafeOutboundUrl(targetUrl);
+    if (!ssrfCheck.ok) {
+      return { success: false, latencyMs: 0, error: `SSRF: ${ssrfCheck.reason}` };
+    }
+
+    const dispatcher = await createProxyDispatcher(proxy);
+    const { fetch: undiciFetch } = await import('undici');
+
+    const response = await undiciFetch(targetUrl, {
+      method: 'GET',
+      signal: controller.signal,
+      dispatcher: dispatcher as unknown as NonNullable<Parameters<typeof undiciFetch>[1]>['dispatcher'],
+      headers: {
+        'User-Agent': 'SMMplan-ProxyTest/1.0',
+      },
+    });
+
+    const latencyMs = Date.now() - start;
+    const text = await response.text();
+
+    let resolvedIp: string | undefined;
+    try {
+      const data = JSON.parse(text);
+      resolvedIp = data.origin || data.ip;
+    } catch {
+      // non-JSON response
+    }
+
+    return {
+      success: response.ok,
+      latencyMs,
+      statusCode: response.status,
+      resolvedIp,
+      error: response.ok ? undefined : `HTTP ${response.status}`,
+    };
+  } catch (err) {
+    const latencyMs = Date.now() - start;
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      success: false,
+      latencyMs,
+      error: msg.includes('abort') ? `Таймаут (${timeoutMs}ms)` : msg,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
