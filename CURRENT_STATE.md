@@ -2,18 +2,15 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-24 | Агент: Antigravity
-## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕН ЭТАП D0 «Горячие правки контура денег» (AUDIT-CHECKOUT.md / STAGE_D0_PROMPT.md)
-- **Ветка**: `fix/checkout-stage-d0-hotfixes`
+## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕН ЭТАП D1 «Гигиена контура денег» (AUDIT-CHECKOUT.md / STAGE_D1_PROMPT.md)
+- **Ветка**: `fix/checkout-stage-d1-hygiene`
 - **Завершено**:
-  - `D0.1 (CHK-01, P1)`: Полный откат при сбое шлюза в `src/actions/order/checkout.ts` переводит ВСЕ связанные заказы (`updateMany({ where: { paymentId } })`) в статус `ERROR`. Написан тест `checkout-rollback.test.ts` (проверены одиночный заказ и mediaGroup split).
-  - `D0.2 (CHK-02, P2)`: Добавлен passwordHash-щит в оба гостевых пути массовых заказов в `src/actions/order/mass.ts` (`massOrderCheckoutAction` и `structuredMassOrderCheckoutAction`). Написан тест `mass-guest-shield.test.ts`.
-  - `D0.3 (CHK-04, P2)`: Удалена магическая проверка email `'e2e-tester@test.com'` из `src/actions/order/mass.ts`. В `src/` осталось ровно 0 упоминаний.
-  - `D0.4 (CHK-05, P2)`: Добавлен Rate Limit на публичный расчёт цены `calculatePriceAction` (`RateLimitService.check("priceCalc", 60, 60, true)`). Протестировано в `checkout-rollback.test.ts`.
-  - `D0.5 (CHK-03+08, P2)`: Добавлен guard на `createDemoPaymentAction` (отказ в production без `isTestMode`), удален `DEMO_USER_NO_PASSWORD`, страница `/client-demo` превращена в тонкий server-wrapper с проверкой режима и клиентом `client-demo-client.tsx`. Написан тест `demo-payment-guard.test.ts`.
+  - `D1.1 (CHK-06, переосмыслен)`: Тест-фиксация retry-сценария (`src/services/financial/__tests__/retry-payment-activation.test.ts`) подтвердила, что single-order ветка в `payment.service.ts` достижима через `retryCheckoutAction`, не вызывает дублей списания (взаимоисключение через статус `AWAITING_PAYMENT` -> `PENDING`), создает ровно 1 кредит и 1 списание в Ledger и полностью идемпотентна. Добавлен документирующий комментарий в `payment.service.ts` и уточнение в `AUDIT-CHECKOUT.md`.
+  - `D1.2 (CHK-07)`: Регистронезависимая нормализация промокодов `.trim().toUpperCase()` внедрена на входе в `checkoutAction` (включая проверку флагов, расчет цены, поиск в БД, `consumePromoCode` и `rollback`-блок), в `marketing.service.ts` (`calculatePrice` и `consumePromoCode`). В `mass.ts` поле промокодов отсутствует. Написан тест `src/actions/order/__tests__/promo-case-normalization.test.ts`.
 - **Верификация**:
   - `npx tsc --noEmit` — 0 ошибок типов (100% PASS).
-  - `npm run build` — 100% SUCCESS.
-  - Vitest: 5 сьютов, 18/18 PASS (100%).
+  - `npm run build` — 100% SUCCESS (31.0s, exit code 0).
+  - Vitest: 6 сьютов, 15/15 PASS (100%).
 
 
 ---

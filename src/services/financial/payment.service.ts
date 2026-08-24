@@ -154,6 +154,12 @@ export class PaymentService {
         // Referral commissions are now awarded in order.service.ts based on order margin.
 
         // Assign funds locally
+        // NOTE (CHK-06 audit clarification): this single-order branch is REACHABLE via
+        // retryCheckoutAction (it creates Payment with orderId set). It is mutually
+        // exclusive with the basket branch below: this branch flips the order to PENDING,
+        // so the basket findMany (AWAITING_PAYMENT only) never sees it again. Do NOT
+        // remove. Idempotency keys: credit matches the basket branch
+        // (gateway-credit-${paymentId}); charge is per-order (gateway-charge-${orderId}).
         if (isOrderPayment && linkedOrderId) {
           // Activate linked order
           const order = await tx.order.findUnique({ 

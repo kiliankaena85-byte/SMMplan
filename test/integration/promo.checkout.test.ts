@@ -73,7 +73,7 @@ describe('Checkout Voucher Rejection', () => {
     // Call checkoutAction
     const result = await checkoutAction({
       serviceId: service.id,
-      link: 'https://instagram.com/test',
+      link: 'https://instagram.com/p/test12345',
       quantity: 100,
       email: `${userId}@example.com`,
       promoCodeStr: promoCodeStr

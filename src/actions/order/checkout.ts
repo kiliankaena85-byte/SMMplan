@@ -110,6 +110,7 @@ const checkoutSchema = z.object({
 export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
   return createSafeAction(checkoutSchema, input, async (data) => {
     const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway, idempotencyKey, mediaGroupUrl, isLinkOverridden, isSmartDrip, smartDripDays, abVariant, isRequirementsConfirmed } = data;
+    const normalizedPromo = promoCodeStr ? promoCodeStr.trim().toUpperCase() : undefined;
     
     if (gateway === 'balance' && (!idempotencyKey || idempotencyKey.trim().length < 10)) {
       throw new Error("Параметр idempotencyKey обязателен для оплаты с баланса");
@@ -119,7 +120,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
     const hasMediaGroup = !!(mediaGroupUrl && mediaGroupUrl.trim().length > 5);
 
     // Feature Flags Validation
-    if (promoCodeStr) {
+    if (normalizedPromo) {
       const isPromoEnabled = await featureFlagService.isEnabled('promo_codes');
       if (!isPromoEnabled) {
         throw new Error("Использование промокодов временно отключено");
@@ -391,12 +392,12 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
     }
 
     const userIdForCalc = user ? user.id : null;
-    const pricing = await marketingService.calculatePrice(userIdForCalc, serviceId, totalQuantity, promoCodeStr, { service });
+    const pricing = await marketingService.calculatePrice(userIdForCalc, serviceId, totalQuantity, normalizedPromo, { service });
     
     let promoCodeId: string | null = null;
-    if (promoCodeStr) {
+    if (normalizedPromo) {
       const promo = await db.promoCode.findUnique({
-        where: { code: promoCodeStr },
+        where: { code: normalizedPromo },
         select: { id: true }
       });
       if (promo) {
@@ -546,8 +547,8 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         }
 
         // Consume Promo Code if used
-        if (promoCodeStr) {
-          await marketingService.consumePromoCode(tx, promoCodeStr);
+        if (normalizedPromo) {
+          await marketingService.consumePromoCode(tx, normalizedPromo);
         }
 
         // Create linked Payment (covers both orders if media group)
@@ -741,11 +742,11 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         })).catch(e => console.error('[Checkout] Failed to error orders:', e))
       ];
 
-      if (promoCodeStr && transactionCompleted) {
+      if (normalizedPromo && transactionCompleted) {
         // Atomic rollback: only decrement if uses > 0 to prevent negative counters
         rollbackPromises.push(
           db.promoCode.updateMany({
-             where: { code: promoCodeStr, uses: { gt: 0 } },
+             where: { code: normalizedPromo, uses: { gt: 0 } },
              data: { uses: { decrement: 1 } }
           }).catch(e => console.error('[Checkout] Failed to rollback promo:', e))
         );

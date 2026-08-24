@@ -55,8 +55,11 @@ class MarketingService {
     serviceId: string,
     quantity: number,
     promoCodeStr?: string | null,
-        preloadedContext?: { user?: Prisma.UserGetPayload<object> | null, service?: Prisma.ServiceGetPayload<object> | null }
+    preloadedContext?: { user?: Prisma.UserGetPayload<object> | null, service?: Prisma.ServiceGetPayload<object> | null }
   ): Promise<PricingResult> {
+    // CHK-07: Case-insensitive promo code normalization
+    promoCodeStr = promoCodeStr ? promoCodeStr.trim().toUpperCase() : null;
+
     let user = null;
     if (userId) {
       user = preloadedContext && preloadedContext.user !== undefined 
@@ -162,7 +165,10 @@ class MarketingService {
   async consumePromoCode(tx: Prisma.TransactionClient, promoCodeStr?: string | null) {
     if (!promoCodeStr) return;
 
-    const promo = await tx.promoCode.findUnique({ where: { code: promoCodeStr } });
+    // CHK-07: Case-insensitive promo code normalization
+    const normalizedCode = promoCodeStr.trim().toUpperCase();
+
+    const promo = await tx.promoCode.findUnique({ where: { code: normalizedCode } });
     
     if (!promo || !promo.isActive) {
       throw new Error('Промокод недействителен');
@@ -194,7 +200,7 @@ class MarketingService {
    * Evaluates volume discount for an array of services and formats them for B2B API Standards.
    * Protects pricing from dropping below the safety floor.
    */
-    async getB2BFormattedServices(
+  async getB2BFormattedServices(
     user: { totalSpent: number | bigint; personalDiscount?: number | null },
     services: {
       numericId: number;
@@ -253,8 +259,4 @@ class MarketingService {
   }
 }
 
-
 export const marketingService = new MarketingService();
-
-
-
