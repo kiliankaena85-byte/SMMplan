@@ -2,15 +2,16 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-24 | Агент: Antigravity
-## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕН ЭТАП D1 «Гигиена контура денег» (AUDIT-CHECKOUT.md / STAGE_D1_PROMPT.md)
-- **Ветка**: `fix/checkout-stage-d1-hygiene`
+## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕН ЭТАП E0 «Горячие правки воркеров» (AUDIT-WORKERS.md / STAGE_E0_PROMPT.md)
+- **Ветка**: `fix/workers-stage-e0-hotfixes`
 - **Завершено**:
-  - `D1.1 (CHK-06, переосмыслен)`: Тест-фиксация retry-сценария (`src/services/financial/__tests__/retry-payment-activation.test.ts`) подтвердила, что single-order ветка в `payment.service.ts` достижима через `retryCheckoutAction`, не вызывает дублей списания (взаимоисключение через статус `AWAITING_PAYMENT` -> `PENDING`), создает ровно 1 кредит и 1 списание в Ledger и полностью идемпотентна. Добавлен документирующий комментарий в `payment.service.ts` и уточнение в `AUDIT-CHECKOUT.md`.
-  - `D1.2 (CHK-07)`: Регистронезависимая нормализация промокодов `.trim().toUpperCase()` внедрена на входе в `checkoutAction` (включая проверку флагов, расчет цены, поиск в БД, `consumePromoCode` и `rollback`-блок), в `marketing.service.ts` (`calculatePrice` и `consumePromoCode`). В `mass.ts` поле промокодов отсутствует. Написан тест `src/actions/order/__tests__/promo-case-normalization.test.ts`.
+  - `E0.1 (WRK-01, P1)`: Stale-путь (24 ч) и ветка remote-canceled в `payment-sync.ts` теперь каскадно отменяют корзинные заказы через `Order.paymentId` со статусом `AWAITING_PAYMENT` (сохраняя legacy-ветку `payment.orderId`). Добавлены 3 теста в `payment-sync.test.ts`.
+  - `E0.2 (WRK-03, P2)`: PENDING_CHECK-разрешение вынесено из суточного cleanup в экспортируемую функцию `runPendingCheckResolution()` и подключено к часовому крону `ensurePendingCheckCron` (`0 * * * *`) в `queue-manager.ts` и диспетчеру `cleanupWorker` (`job.name === 'resolve-pending-check'`). Создан сьют тестов `pending-check-resolution.test.ts` (3 теста).
+  - `E0.3 (WRK-02, P2)`: В `sync.processor.ts` внедрен детектор нулевого старта: заказы `IN_PROGRESS`, у которых истек `waitingUntil`, `remains === quantity`, `isDripFeed: false` и есть `externalId`, эскалируются в `PENDING_CHECK` с отправкой WARNING-алерта. Создан сьют тестов `zero-start-detector.test.ts` (3 теста).
 - **Верификация**:
   - `npx tsc --noEmit` — 0 ошибок типов (100% PASS).
-  - `npm run build` — 100% SUCCESS (31.0s, exit code 0).
-  - Vitest: 6 сьютов, 15/15 PASS (100%).
+  - `npm run build` — 100% SUCCESS (28.7s, exit code 0).
+  - Vitest: 6 сьютов, 19/19 PASS (100%).
 
 
 ---

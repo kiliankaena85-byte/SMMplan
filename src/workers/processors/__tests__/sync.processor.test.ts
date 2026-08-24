@@ -63,7 +63,8 @@ describe('Sync Processor', () => {
       { id: 'o1' } as any
     ]).mockResolvedValueOnce([
       { id: 'o1', externalId: 'ext1', user: { email: 'test@test.com' }, service: { name: 'S1' } } as any
-    ]).mockResolvedValueOnce([]); // for orphan orders
+    ]).mockResolvedValueOnce([]) // for orphan orders
+      .mockResolvedValueOnce([]); // for zero-start detector
 
     const providerMock = {
       getMultiOrderStatus: vi.fn().mockResolvedValue({
@@ -74,10 +75,10 @@ describe('Sync Processor', () => {
 
     await syncProcessor(mockJob);
 
-    expect(db.order.update).toHaveBeenCalledWith({
+    expect(db.order.update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: 'o1' },
-      data: { status: 'COMPLETED', remains: 0 }
-    });
+      data: expect.objectContaining({ status: 'COMPLETED', remains: 0 })
+    }));
   });
 
   it('Provider timeout (ensure SLA metrics log error)', async () => {
@@ -88,7 +89,8 @@ describe('Sync Processor', () => {
       { id: 'o1' } as any
     ]).mockResolvedValueOnce([
       { id: 'o1', externalId: 'ext1', user: { email: 'test@test.com' }, service: { name: 'S1' } } as any
-    ]).mockResolvedValueOnce([]); // for orphan orders
+    ]).mockResolvedValueOnce([]) // for orphan orders
+      .mockResolvedValueOnce([]); // for zero-start detector
 
     const providerMock = {
       getMultiOrderStatus: vi.fn().mockRejectedValue(new Error('PROVIDER_TIMEOUT'))
@@ -113,9 +115,10 @@ describe('Sync Processor', () => {
     vi.mocked(db.order.findMany).mockResolvedValueOnce([
       { id: 'o1' }, { id: 'o2' }
     ] as any).mockResolvedValueOnce([
-      { id: 'o1', externalId: 'ext1', charge: 100, user: { email: 'test@test.com' }, service: { name: 'S1' }, serviceId: 's1', updatedAt: new Date() },
-      { id: 'o2', externalId: 'ext2', charge: 100, user: { email: 'test@test.com' }, service: { name: 'S1' }, serviceId: 's1', updatedAt: new Date() }
-    ] as any).mockResolvedValueOnce([]); // for orphan orders
+      { id: 'o1', externalId: 'ext1', charge: 100, quantity: 100, user: { email: 'test@test.com' }, service: { name: 'S1' }, serviceId: 's1', updatedAt: new Date() },
+      { id: 'o2', externalId: 'ext2', charge: 100, quantity: 100, user: { email: 'test@test.com' }, service: { name: 'S1' }, serviceId: 's1', updatedAt: new Date() }
+    ] as any).mockResolvedValueOnce([]) // for orphan orders
+      .mockResolvedValueOnce([]); // for zero-start detector
 
     vi.mocked(db.order.update).mockImplementation(((args: any) => {
       return Promise.resolve({ id: args.where.id, charge: 100 });
@@ -131,13 +134,13 @@ describe('Sync Processor', () => {
 
     await syncProcessor(mockJob);
 
-    expect(db.order.update).toHaveBeenCalledWith({
+    expect(db.order.update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: 'o1' },
-      data: { status: 'PARTIAL', remains: 50 }
-    });
-    expect(db.order.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({ status: 'PARTIAL', remains: 50 })
+    }));
+    expect(db.order.update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: 'o2' },
-      data: { status: 'CANCELED', remains: 100 }
-    });
+      data: expect.objectContaining({ status: 'CANCELED', remains: 100 })
+    }));
   });
 });

@@ -42,6 +42,11 @@ export default async function paymentSyncProcessor(job: Job<SyncJobPayload>) {
               data: { status: 'CANCELED', error: 'Оплата не поступила в течение 24ч (auto-expire)' }
             });
           }
+          // WRK-01: basket orders (current architecture — Order.paymentId) must be expired too
+          await tx.order.updateMany({
+            where: { paymentId: payment.id, status: 'AWAITING_PAYMENT' },
+            data: { status: 'CANCELED', error: 'Оплата не поступила в течение 24ч (auto-expire)' }
+          });
         });
         log.info(`Stale non-YooKassa payment ${payment.id} expired successfully.`);
       } catch (err) {
@@ -143,7 +148,12 @@ export default async function paymentSyncProcessor(job: Job<SyncJobPayload>) {
           where: { id: payment.id },
           data: { status: 'CANCELED' }
         });
-        log.info(`Successfully marked payment ${payment.id} as CANCELED.`);
+        // WRK-01: cascade cancellation to basket orders awaiting this payment
+        await db.order.updateMany({
+          where: { paymentId: payment.id, status: 'AWAITING_PAYMENT' },
+          data: { status: 'CANCELED', error: 'Платёж отменён на стороне шлюза (auto-sync)' }
+        });
+        log.info(`Successfully marked payment ${payment.id} and linked orders as CANCELED.`);
       }
     } catch (err: unknown) {
       log.error(`Exception while syncing payment ${payment.id}: ${(err instanceof Error ? err.message : String(err))}`, { cause: err });

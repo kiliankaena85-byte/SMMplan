@@ -265,4 +265,42 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
     const errMsg = err instanceof Error ? err.message : String(err);
     log.error('[SyncProcessor] SmartFeedbackLoop tick failed', { error: errMsg });
   }
+
+  // WRK-02: Zero-start detector — provider hasn't started the order within the
+  // waiting window (remains == full quantity). Escalate to PENDING_CHECK so the
+  // existing 6h auto-resolution asks the provider directly.
+  try {
+    const candidates = await db.order.findMany({
+      where: {
+        status: 'IN_PROGRESS',
+        waitingUntil: { lt: new Date() },
+        externalId: { not: null },
+        isDripFeed: false,
+      },
+      select: { id: true, numericId: true, serviceId: true, quantity: true, remains: true },
+      take: 50
+    });
+
+    const zeroStartOrders = candidates.filter(o => o.remains === o.quantity);
+
+    for (const order of zeroStartOrders) {
+      await db.order.update({
+        where: { id: order.id },
+        data: {
+          status: 'PENDING_CHECK',
+          error: 'Авто-эскалация: провайдер не начал выполнение в течение часа (zero-start detector)'
+        }
+      });
+      log.warn(`[SyncProcessor] Zero-start escalation for Order #${order.numericId} → PENDING_CHECK`);
+
+      const { sendAdminAlert } = await import('@/lib/notifications');
+      sendAdminAlert(
+        `⏱ [ZERO-START] Заказ #${order.numericId}: провайдер не начал выполнение за час. Переведён в PENDING_CHECK для сверки со статусом провайдера.`,
+        'WARNING'
+      );
+    }
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    log.error('[SyncProcessor] Zero-start detector failed', { error: errMsg });
+  }
 }

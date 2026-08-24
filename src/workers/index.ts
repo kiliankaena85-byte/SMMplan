@@ -11,6 +11,7 @@ import {
   ensurePaymentSyncCron, 
   ensureDripfeedCron,
   ensureArticlePublishCron,
+  ensurePendingCheckCron,
   dlqQueue, 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   cleanupQueue, 
@@ -28,7 +29,7 @@ import {
 import { sendAdminAlert, sendAdminAlertSync } from '../lib/notifications';
 import orderProcessor from './processors/order.processor';
 import syncProcessor from './processors/sync.processor';
-import { runCleanup, runOrphanSweep } from './processors/cleanup.processor';
+import { runCleanup, runOrphanSweep, runPendingCheckResolution } from './processors/cleanup.processor';
 import { runETARecalculation } from './processors/eta.processor';
 import catalogProcessor from './processors/catalog.processor';
 import paymentSyncProcessor from './processors/payment-sync';
@@ -66,6 +67,8 @@ const catalogWorker = new Worker('catalogQueue', catalogProcessor, workerConfig)
 const cleanupWorker = new Worker('cleanup', async (job) => { 
   if (job.name === 'sweep-orphans') {
     await runOrphanSweep();
+  } else if (job.name === 'resolve-pending-check') {
+    await runPendingCheckResolution();
   } else {
     await runCleanup(); 
   }
@@ -194,6 +197,7 @@ ensureOrphanSweepCron().catch(e => log.error('Failed to setup Orphan Sweep Cron'
 ensurePaymentSyncCron().catch(e => log.error('Failed to setup Payment Sync Cron', { error: (e as Error).message }));
 ensureDripfeedCron().catch(e => log.error('Failed to setup Dripfeed Cron', { error: (e as Error).message }));
 ensureArticlePublishCron().catch(e => log.error('Failed to setup Article Publish Cron', { error: (e as Error).message }));
+ensurePendingCheckCron().catch(e => log.error('Failed to setup PendingCheck Cron', { error: (e as Error).message }));
 
 log.info('All workers started', { queues: ['ordersQueue', 'refillQueue', 'syncQueue', 'catalogQueue', 'cleanup', 'paymentSyncQueue', 'articlePublishQueue'] });
 

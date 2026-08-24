@@ -277,6 +277,23 @@ export async function ensureOrphanSweepCron() {
   );
 }
 
+/**
+ * WRK-03: Schedule PENDING_CHECK auto-resolution hourly.
+ * Prevents client funds from being held up to 27 hours in daily cleanup.
+ */
+export async function ensurePendingCheckCron() {
+  await cleanupQueue.add(
+    'resolve-pending-check',
+    { timestamp: Date.now() },
+    {
+      repeat: {
+        pattern: '0 * * * *' // Hourly
+      },
+      jobId: 'resolve-pending-check-singleton'
+    }
+  );
+}
+
 export async function ensurePaymentSyncCron() {
   await paymentSyncQueue.add(
     'payment-sync-tick',
