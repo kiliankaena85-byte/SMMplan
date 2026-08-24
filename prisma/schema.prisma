@@ -1598,4 +1598,20 @@ model PiiAccessLog {
   @@index([targetType, targetId])
 }
 
+model ProviderServiceBackup {
+  id                String   @id @default(cuid())
+  serviceId         String   @map("service_id")
+  primaryProviderId String   @map("primary_provider_id")
+  backupProviderId  String   @map("backup_provider_id")
+  backupExternalId  String?  @map("backup_external_id")
+  priority          Int      @default(1)
+  isActive          Boolean  @default(true) @map("is_active")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@unique([serviceId, backupProviderId])
+  @@index([serviceId, priority])
+  @@map("provider_service_backup")
+}
+
+
 
