@@ -2,18 +2,21 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-24 | Агент: Antigravity
-## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕН ЭТАП P0 «Premortem Hardening» (PREM-01..04)
-- **Ветка**: `fix/premortem-p0-hardening`
+## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕН ЭТАП P1 «Resilience & Infrastructure Hardening» (PREM-05..11)
+- **Ветка**: `fix/premortem-p1-resilience`
 - **Завершено**:
-  - `PREM-01`: SSRF Protection в workers и provider API (`ssrf-guard.ts` с защитой от RFC1918, link-local, AWS/GCP metadata 169.254.169.254, loopback, IPv6 и DNS rebinding; интеграция в `universal.provider.ts`, `provider.service.ts`, `b2b/webhook-dispatcher.ts`, `payment-sync.ts`).
-  - `PREM-02`: Magic Link Hardening (`AuthToken` model single-use atomic CAS, `usedAt`, `ipIssued`, `ipUsed`, `userAgentIssued`, `userAgentUsed`, SHA-256 token hashing, `rateLimit` 5/ч email и 20/ч IP, `login-anomaly-detector.ts`).
-  - `PREM-03`: Silent Checkout Failure Alerting (`webhook-health.ts` с детекцией 0 событий/час, воркер `payment-reconciliation.ts` для PENDING > 30 мин, бейдж `STALE 30+ мин` в админке, клиентский экшен `reportPaymentIssueAction`).
-  - `PREM-04`: PCI-DSS Anti-Fraud Swarm (`velocity-check.ts` для IP/Email/Device, `geo-check.ts` для детекции расхождения стран, `manual-review-queue.ts` со статусом `FRAUD_HOLD` и операторской модерацией).
+  - `PREM-05`: NPM Supply Chain Hardening (`.npmrc` с `ignore-scripts=true`, CI workflow `.github/workflows/supply-chain.yml`, SBOM генератор, `scripts/audit-deps.ts`, `.github/dependabot.yml`).
+  - `PREM-06`: PII Read-Access Audit Trail (`PiiAccessLog` модель в Prisma, `src/lib/audit/pii-access-log.ts` с маскированием email, телефонов, ИНН, адресов, админский экшен `getPiiAccessLogsAction`).
+  - `PREM-07`: Provider Rate Change Pre-Flight & Circuit Breaker (`circuit-breaker.ts` с Redis и memory fallback, `rate-change-detector.ts` с блокировкой при скачке тарифов > 20% или отрицательной марже).
+  - `PREM-08`: Provider Fallback Router (`ProviderServiceBackup` модель, каскадная маршрутизация `fallback-router.ts` при сбоях основного поставщика).
+  - `PREM-09`: Real-time SSE Order Status (`src/app/api/orders/[id]/events/route.ts`, паблишер `realtime-status.ts`, авто-разрешение споров `autoResolveOrderDisputes` при статусе COMPLETED).
+  - `PREM-10`: Immutable Ledger & Tax Audit (`LedgerPeriod` заморозка периодов, `dailyReconciliation` 3-сторонняя сверка Банк ↔ DB ↔ Ledger, `RevenueRecognition` и реверсивные проводки).
+  - `PREM-11`: Disaster Recovery Runbook & Automated Restore Test (`docs/runbooks/disaster-recovery.md` RTO 2h / RPO 5m, скрипт `dr-restore-test.ts`, workflow `.github/workflows/dr-test.yml`).
 - **Верификация**:
   - `npx tsc --noEmit` — 0 ошибок (100% PASS)
   - `npm run build` — 100% SUCCESS
-  - Vitest: 5 сьютов, 30/30 PASS (`ssrf-guard`, `magic-link-hardening`, `payment-reconciliation`, `velocity`, `geo-check`)
-  - Все коммиты запушены в `origin/fix/premortem-p0-hardening`
+  - Vitest: 6 сьютов, 21/21 PASS (`pii-access-log`, `rate-change-circuit-breaker`, `fallback-router`, `realtime-status`, `immutable-ledger-reconciliation`, `dr-restore`)
+  - Ветка запушена в `origin/fix/premortem-p1-resilience`
 
 
 ---
