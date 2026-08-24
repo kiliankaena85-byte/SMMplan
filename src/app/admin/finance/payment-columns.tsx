@@ -139,16 +139,30 @@ export const columns: ColumnDef<PaymentDTO>[] = [
     cell: ({ row }) => {
       const status = row.original.status;
       const gatewayLabel = GATEWAY_LABELS[row.original.gateway] || row.original.gateway;
+      const isPending = status === 'PENDING';
+      const isStale = isPending && (Date.now() - new Date(row.original.createdAt).getTime() > 30 * 60 * 1000);
+
       return (
         <div className="flex flex-col items-start gap-1">
-          <Badge
-            className={cn(
-              "uppercase font-bold tracking-wider text-[10px] py-0 px-2 h-5 rounded-md",
-              STATUS_CLASSES[status] || 'bg-muted text-muted-foreground border-border'
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Badge
+              className={cn(
+                "uppercase font-bold tracking-wider text-[10px] py-0 px-2 h-5 rounded-md",
+                STATUS_CLASSES[status] || 'bg-muted text-muted-foreground border-border'
+              )}
+            >
+              {STATUS_LABELS[status] || status}
+            </Badge>
+            {isStale && (
+              <Badge
+                intent="outline"
+                className="bg-destructive/15 text-destructive border-destructive/30 text-[9px] font-bold py-0 px-1.5 h-4"
+                title="Платёж ожидает подтверждения более 30 минут"
+              >
+                STALE 30+ мин
+              </Badge>
             )}
-          >
-            {STATUS_LABELS[status] || status}
-          </Badge>
+          </div>
           <span className="text-[10px] text-muted-foreground/75 font-medium ml-1">
             {gatewayLabel}
           </span>
