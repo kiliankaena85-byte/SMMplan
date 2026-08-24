@@ -3,7 +3,7 @@ const isProd = process.env.NODE_ENV === 'production';
 
 const nextConfig = {
   output: "standalone",
-  serverExternalPackages: ["@blocknote/core", "@blocknote/react", "@blocknote/server-util", "bullmq", "ioredis", "sanitize-html"],
+  serverExternalPackages: ["@blocknote/core", "@blocknote/react", "@blocknote/server-util"],
 
   typescript: { ignoreBuildErrors: false },
 
