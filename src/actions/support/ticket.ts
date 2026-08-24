@@ -23,7 +23,7 @@ import { CompensationService } from '@/services/financial/compensation.service';
 // ... (rest of imports)
 
 export async function generateSmartReplyAction(ticketId: string) {
-  return requireStaffPermission('orders', 'view', async (admin) => {
+  return requireStaffPermission('tickets', 'view', async (admin) => {
     try {
       const reply = await aiSupportService.generateReply(ticketId, admin.tenantId ?? 'smmplan');
       return { success: true, reply };
@@ -160,7 +160,7 @@ export async function addTicketMessage(formData: FormData) {
 }
 
 export async function adminReplyTicket(formData: FormData) {
-  return requireStaffPermission('support', 'edit', async (admin) => {
+  return requireStaffPermission('tickets', 'edit', async (admin) => {
     const parsed = adminReplySchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) throw new Error('Ошибка валидации сообщения');
     const { ticketId, message, isInternal, mediaUrl, mediaType, replyToId, orderId } = parsed.data;
@@ -241,7 +241,7 @@ const changeStatusSchema = z.object({
 });
 
 export async function changeTicketStatus(formData: FormData) {
-  return requireStaffPermission('support', 'edit', async (admin) => {
+  return requireStaffPermission('tickets', 'edit', async (admin) => {
     const parsed = changeStatusSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) throw new Error('Неверный статус');
     const { ticketId, status } = parsed.data;
@@ -293,7 +293,7 @@ const editMessageSchema = z.object({
 });
 
 export async function editTicketMessage(formData: FormData) {
-  return requireStaffPermission('support', 'edit', async (user) => {
+  return requireStaffPermission('tickets', 'edit', async (user) => {
     const parsed = editMessageSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) throw new Error('Ошибка редактирования сообщения');
     const { messageId, newText } = parsed.data;
@@ -354,7 +354,7 @@ const deleteMessageSchema = z.object({
 });
 
 export async function deleteTicketMessage(formData: FormData) {
-  return requireStaffPermission('support', 'edit', async (user) => {
+  return requireStaffPermission('tickets', 'edit', async (user) => {
     const parsed = deleteMessageSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) throw new Error('Ошибка удаления сообщения');
     const { messageId } = parsed.data;
@@ -411,7 +411,7 @@ const requestBindSchema = z.object({
 });
 
 export async function requestTelegramBind(formData: FormData) {
-  return requireStaffPermission('orders', 'edit', async (admin) => {
+  return requireStaffPermission('tickets', 'edit', async (admin) => {
     try {
       console.info('[requestTelegramBind] Action started');
       const parsed = requestBindSchema.safeParse(Object.fromEntries(formData.entries()));
@@ -457,7 +457,7 @@ const manualBindSchema = z.object({
 });
 
 export async function adminManualTelegramBind(formData: FormData) {
-  return requireStaffPermission('orders', 'edit', async (admin) => {
+  return requireStaffPermission('tickets', 'edit', async (admin) => {
     try {
       // W6-5: SUPPORT cannot call manual bind
       if (!['ADMIN', 'OWNER'].includes(admin.role)) throw new Error('Forbidden: Only ADMIN or OWNER can manually bind Telegram accounts');
@@ -568,7 +568,7 @@ export async function adminManualTelegramBind(formData: FormData) {
 }
 
 export async function bulkRefillOrdersAction(ticketId: string, orderIds: string[]) {
-  return requireStaffPermission('orders', 'edit', async (admin) => {
+  return requireStaffPermission('tickets', 'edit', async (admin) => {
     const ticket = await db.ticket.findFirst({
       where: { id: ticketId, tenantId: admin.tenantId ?? 'smmplan' }
     });
@@ -658,7 +658,7 @@ export async function bulkRefillOrdersAction(ticketId: string, orderIds: string[
 }
 
 export async function bulkRefundOrdersAction(ticketId: string, orderIds: string[]) {
-  return requireStaffPermission('orders', 'edit', async (admin) => {
+  return requireStaffPermission('tickets', 'edit', async (admin) => {
     const ticket = await db.ticket.findFirst({ 
       where: { id: ticketId, tenantId: admin.tenantId ?? 'smmplan' },
       include: { user: true }

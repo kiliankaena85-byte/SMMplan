@@ -23,7 +23,8 @@ export type StaffPermissionSection =
   | 'balance_requests'
   | 'balance_approvals'
   | 'balance_stats'
-  | 'balance_policy';
+  | 'balance_policy'
+  | 'tickets';
 
 /**
  * Strict RBAC Wrapper for Server Actions

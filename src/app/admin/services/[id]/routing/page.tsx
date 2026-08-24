@@ -5,7 +5,7 @@ import { RoutingPanelClient } from '@/components/admin/routing/RoutingPanelClien
 import { getProviderComparisonData } from '@/actions/admin/routing.actions';
 
 export default async function ServiceRoutingPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireStaffPermission('services', 'view', async () => {});
+  await requireStaffPermission('catalog', 'view', async () => {});
   const { id } = await params;
 
   const service = await db.service.findUnique({

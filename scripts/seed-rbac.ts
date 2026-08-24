@@ -13,8 +13,8 @@ const prisma = new PrismaClient();
 
 const ALL_SECTIONS = [
   'dashboard', 'clients', 'orders', 'refills', 'catalog', 'quarantine', 
-  'tickets', 'finance', 'providers', 'marketing', 'pages', 'settings', 
-  'features', 'queues'
+  'tickets', 'finance', 'providers', 'marketing', 'content', 'settings', 
+  'features', 'queues', 'balance_requests', 'balance_approvals', 'balance_stats'
 ];
 
 async function main() {
@@ -40,6 +40,12 @@ async function main() {
       create: { name: 'Support', description: 'Старший модератор/Саппорт', isSystem: true }
     });
 
+    const cashierRole = await prisma.staffRole.upsert({
+      where: { name: 'Cashier' },
+      update: {},
+      create: { name: 'Cashier', description: 'Кассир (согласование балансовых заявок)', isSystem: true }
+    });
+
     // 2. Map Permissions (Idempotently)
 
     // ADMIN: All sections EDIT
@@ -62,7 +68,7 @@ async function main() {
       { section: 'providers', canView: true, canEdit: true },
       { section: 'tickets', canView: true, canEdit: true },
       { section: 'marketing', canView: true, canEdit: true },
-      { section: 'pages', canView: true, canEdit: true },
+      { section: 'content', canView: true, canEdit: true },
     ];
     for (const p of managerPermissions) {
       await prisma.staffPermission.upsert({
@@ -85,6 +91,21 @@ async function main() {
         where: { roleId_section: { roleId: supportRole.id, section: p.section } },
         update: { canView: p.canView, canEdit: p.canEdit },
         create: { roleId: supportRole.id, section: p.section, canView: p.canView, canEdit: p.canEdit }
+      });
+    }
+
+    // CASHIER (ADM-03): Balance Requests, Approvals, Stats, Dashboard
+    const cashierPermissions = [
+      { section: 'dashboard', canView: true, canEdit: false },
+      { section: 'balance_requests', canView: true, canEdit: true },
+      { section: 'balance_approvals', canView: true, canEdit: true },
+      { section: 'balance_stats', canView: true, canEdit: false },
+    ];
+    for (const p of cashierPermissions) {
+      await prisma.staffPermission.upsert({
+        where: { roleId_section: { roleId: cashierRole.id, section: p.section } },
+        update: { canView: p.canView, canEdit: p.canEdit },
+        create: { roleId: cashierRole.id, section: p.section, canView: p.canView, canEdit: p.canEdit }
       });
     }
 

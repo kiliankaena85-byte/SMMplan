@@ -377,7 +377,7 @@ export async function updateUserB2bAction(formData: FormData) {
 }
 
 export async function banUserAction(formData: FormData) {
-  return requireStaffPermission('finance', 'edit', async (admin) => {
+  return requireStaffPermission('clients', 'edit', async (admin) => {
     const parsed = userIdSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) return { success: false as const, error: 'Missing userId' };
     
@@ -405,7 +405,7 @@ export async function banUserAction(formData: FormData) {
 }
 
 export async function unbanUserAction(formData: FormData) {
-  return requireStaffPermission('finance', 'edit', async (admin) => {
+  return requireStaffPermission('clients', 'edit', async (admin) => {
     const parsed = userIdSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) return { success: false as const, error: 'Missing userId' };
     
@@ -437,15 +437,14 @@ export async function unbanUserAction(formData: FormData) {
  * Critical security action — restricted to OWNER/ADMIN only.
  */
 export async function loginAsAction(formData: FormData) {
-  // Use 'clients' section but check roles manually as well for extreme safety
-  return requireStaffPermission('finance', 'edit', async (admin) => {
+  return requireStaffPermission('clients', 'edit', async (admin) => {
     const parsed = userIdSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) return { success: false as const, error: 'Missing userId' };
     
     const { userId } = parsed.data;
 
     if (!['OWNER', 'ADMIN'].includes(admin.role)) {
-      return { success: false as const, error: 'Только Владелец и Админ могут входить как клиент' };
+      return { success: false as const, error: 'Forbidden: Only OWNER and ADMIN can login as user' };
     }
 
     const targetUser = await db.user.findUniqueOrThrow({ where: { id: userId } });
@@ -548,7 +547,7 @@ export async function rejectQuarantineAction(formData: FormData) {
 }
 
 export async function adminChangeUserPasswordAction(userId: string, newPass: string) {
-  return requireStaffPermission('finance', 'edit', async (admin) => {
+  return requireStaffPermission('clients', 'edit', async (admin) => {
     if (!userId || !newPass || newPass.length < 8) {
       return { success: false as const, error: 'Пароль должен содержать минимум 8 символов' };
     }
@@ -588,7 +587,7 @@ const deleteUserSchema = z.object({
 });
 
 export async function adminDeleteUserAction(formData: FormData) {
-  return requireStaffPermission('finance', 'edit', async (admin) => {
+  return requireStaffPermission('clients', 'edit', async (admin) => {
     const parsed = deleteUserSchema.safeParse({ userId: formData.get('userId') });
     if (!parsed.success) return { success: false as const, error: parsed.error.errors[0]?.message || 'Missing userId' };
     const { userId } = parsed.data;
@@ -655,7 +654,7 @@ const changeEmailSchema = z.object({
  * Изменение email пользователя (исправление опечаток или перенос)
  */
 export async function adminChangeUserEmailAction(userId: string, newEmail: string, reason: string) {
-  return requireStaffPermission('finance', 'edit', async (admin) => {
+  return requireStaffPermission('clients', 'edit', async (admin) => {
     const parsed = changeEmailSchema.safeParse({ userId, newEmail, reason });
     if (!parsed.success) {
       return { success: false as const, error: parsed.error.errors[0]?.message || 'Ошибка валидации' };
@@ -669,33 +668,20 @@ export async function adminChangeUserEmailAction(userId: string, newEmail: strin
     });
     if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
 
-    if (targetUser.email.toLowerCase() === cleanNewEmail) {
-      return { success: false as const, error: 'Новый email совпадает с текущим' };
+    // Проверка уникальности
+    const existing = await db.user.findFirst({
+      where: { email: cleanNewEmail, tenantId: targetUser.tenantId }
+    });
+    if (existing && existing.id !== parsed.data.userId) {
+      return { success: false as const, error: 'Пользователь с таким email уже существует' };
     }
 
-    // Проверка коллизии: если email уже занят другим аккаунтом в рамках тенанта
-    const existingUser = await db.user.findUnique({
-      where: {
-        email_tenantId: {
-          email: cleanNewEmail,
-          tenantId: targetUser.tenantId
-        }
-      },
-      select: {
-        id: true,
-        balance: true,
-        _count: { select: { orders: true, payments: true } }
-      }
-    });
-
-    if (existingUser) {
-      // Если это аккаунт-пустышка без баланса и заказов — удаляем пустышку ради переноса
-      if (existingUser._count.orders === 0 && existingUser._count.payments === 0 && existingUser.balance === BigInt(0)) {
-        await db.user.delete({ where: { id: existingUser.id } });
-      } else {
-        return {
-          success: false as const,
-          error: `Пользователь с email ${cleanNewEmail} уже зарегистрирован и имеет историю заказов. Требуется слияние аккаунтов.`
+    // SD-04 SECURITY GUARD: Require high-privilege confirmation for email change on accounts with balance > 0
+    if (targetUser.balance > BigInt(0)) {
+      if (admin.role !== 'OWNER' && admin.role !== 'ADMIN') {
+        return { 
+          success: false as const, 
+          error: 'Смена email для аккаунтов с положительным балансом разрешена только Администраторам' 
         };
       }
     }
@@ -732,7 +718,7 @@ export async function adminChangeUserEmailAction(userId: string, newEmail: strin
  * Генерация одноразовой защищенной ссылки прямого входа (Magic Link) на 15 минут
  */
 export async function adminGenerateMagicLinkAction(userId: string) {
-  return requireStaffPermission('finance', 'edit', async (admin) => {
+  return requireStaffPermission('clients', 'edit', async (admin) => {
     if (!userId) return { success: false as const, error: 'Missing userId' };
 
     const targetUser = await db.user.findUnique({
@@ -783,7 +769,7 @@ export async function adminGenerateMagicLinkAction(userId: string) {
  * Принудительный сброс всех активных сессий пользователя (Force Logout everywhere)
  */
 export async function adminRevokeUserSessionsAction(userId: string) {
-  return requireStaffPermission('finance', 'edit', async (admin) => {
+  return requireStaffPermission('clients', 'edit', async (admin) => {
     if (!userId) return { success: false as const, error: 'Missing userId' };
 
     const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true } });
