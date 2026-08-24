@@ -342,10 +342,7 @@ export async function updateGlobalSettings(formData: FormData) {
   });
 
   if (result && typeof result === 'object' && 'success' in result && !result.success) {
-    if ('errors' in result) {
-      return result;
-    }
-    throw new Error('error' in result ? (result as Record<string, unknown>).error as string : 'Unknown error');
+    return result;
   }
   return result;
 }

@@ -18,7 +18,7 @@ import { requireStaffPermission } from '@/lib/server/rbac';
 async function updateMarkupAction(formData: FormData) {
   const result = await requireStaffPermission('finance', 'edit', async (admin) => {
     const parsed = updateMarkupSchema.safeParse(Object.fromEntries(formData.entries()));
-    if (!parsed.success) throw new Error('serviceId и markup обязательны');
+    if (!parsed.success) return { success: false, error: 'serviceId и markup обязательны' };
     const { serviceId, markup } = parsed.data;
 
     await adminCatalogService.updateMarkup(serviceId, markup, {
@@ -36,18 +36,20 @@ async function updateMarkupAction(formData: FormData) {
     });
 
     revalidatePath('/admin/catalog');
+    return { success: true };
   });
 
   if (result && typeof result === 'object' && 'success' in result && !result.success) {
-    throw new Error(result.error);
+    return result;
   }
+  return result;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function toggleServiceAction(formData: FormData) {
   const result = await requireStaffPermission('catalog', 'edit', async (admin) => {
     const parsed = toggleServiceSchema.safeParse(Object.fromEntries(formData.entries()));
-    if (!parsed.success) throw new Error('Missing serviceId');
+    if (!parsed.success) return { success: false, error: 'Missing serviceId' };
     const { serviceId, isActive } = parsed.data;
 
     await adminCatalogService.toggleService(serviceId, isActive, {
@@ -64,11 +66,13 @@ async function toggleServiceAction(formData: FormData) {
     });
 
     revalidatePath('/admin/catalog');
+    return { success: true };
   });
 
   if (result && typeof result === 'object' && 'success' in result && !result.success) {
-    throw new Error(result.error);
+    return result;
   }
+  return result;
 }
 
 /**
@@ -79,7 +83,7 @@ export async function bulkUpdateMarkupAction(formData: FormData) {
   const result = await requireStaffPermission('finance', 'edit', async (admin) => {
     const parsed = bulkUpdateMarkupSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) {
-      throw new Error('Наценка должна быть в диапазоне 1.0–151.0');
+      return { success: false, error: 'Наценка должна быть в диапазоне 1.0–151.0' };
     }
     const { categoryId, platform, markup, tenantId } = parsed.data;
 
@@ -107,11 +111,13 @@ export async function bulkUpdateMarkupAction(formData: FormData) {
     });
 
     revalidatePath('/admin/catalog');
+    return { success: true };
   });
 
   if (result && typeof result === 'object' && 'success' in result && !result.success) {
-    throw new Error(result.error);
+    return result;
   }
+  return result;
 }
 
 /**
