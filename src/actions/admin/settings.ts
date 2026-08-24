@@ -80,9 +80,12 @@ export async function updateGlobalSettings(formData: FormData) {
       siteName,
       siteDescription,
       usnScheme,
+      telegramBotToken: rawTelegramBotToken,
+      telegramBotMode,
       welcomeMessage,
       yookassaShopId,
       yookassaSecretKey: rawYookassaSecret,
+      yookassaWebhookSecret: rawYookassaWebhookSecret,
       yookassaTestShopId,
       yookassaTestSecretKey: rawYookassaTestSecret,
       cryptoBotToken: rawCryptoBotToken,
@@ -192,8 +195,12 @@ export async function updateGlobalSettings(formData: FormData) {
     const isPlaceholder = (val?: string | null) => !val || val.trim() === '' || val.includes('•••');
 
     // Only update secrets if they are provided (prevent overwriting with empty or placeholders)
+    if (rawTelegramBotToken && !isPlaceholder(rawTelegramBotToken)) dataToUpdate.telegramBotToken = VaultService.encrypt(rawTelegramBotToken.trim());
+    if (formData.has('telegramBotMode') && telegramBotMode) dataToUpdate.telegramBotMode = telegramBotMode;
+
     if (formData.has('yookassaShopId')) dataToUpdate.yookassaShopId = yookassaShopId;
     if (rawYookassaSecret && !isPlaceholder(rawYookassaSecret)) dataToUpdate.yookassaSecretKey = VaultService.encrypt(rawYookassaSecret);
+    if (rawYookassaWebhookSecret && !isPlaceholder(rawYookassaWebhookSecret)) dataToUpdate.yookassaWebhookSecret = VaultService.encrypt(rawYookassaWebhookSecret.trim());
     if (formData.has('yookassaTestShopId')) dataToUpdate.yookassaTestShopId = yookassaTestShopId;
     if (rawYookassaTestSecret && !isPlaceholder(rawYookassaTestSecret)) dataToUpdate.yookassaTestSecretKey = VaultService.encrypt(rawYookassaTestSecret);
     if (rawCryptoBotToken && !isPlaceholder(rawCryptoBotToken)) dataToUpdate.cryptoBotToken = VaultService.encrypt(rawCryptoBotToken);
@@ -517,6 +524,36 @@ export async function testTelegramBotConnectionAction() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       return { success: false, message: `Ошибка связи: ${msg}` };
+    }
+  });
+}
+
+export async function testYooKassaConnectionAction() {
+  return requireStaffPermission('settings', 'view', async () => {
+    const { SettingsManager } = await import('@/lib/settings');
+    const secrets = await SettingsManager.getPaymentSecrets();
+    if (!secrets.yookassaShopId || !secrets.yookassaSecretKey) {
+      return { success: false, message: 'Ключи ЮKassa (Shop ID / Secret Key) не заполнены в БД или .env' };
+    }
+
+    try {
+      const startTime = Date.now();
+      const authHeader = 'Basic ' + Buffer.from(`${secrets.yookassaShopId}:${secrets.yookassaSecretKey}`).toString('base64');
+      const res = await fetch('https://api.yookassa.ru/v3/payments?limit=1', {
+        headers: { Authorization: authHeader },
+        signal: AbortSignal.timeout(8000),
+        cache: 'no-store'
+      });
+      const pingMs = Date.now() - startTime;
+
+      if (res.ok) {
+        return { success: true, message: `ЮKassa API отвечает штатно (${pingMs}ms, Shop ID: ${secrets.yookassaShopId})` };
+      }
+      const body = await res.text();
+      return { success: false, message: `ЮKassa API отклонил запрос: HTTP ${res.status} — ${body.slice(0, 150)}` };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { success: false, message: `Ошибка связи с ЮKassa API: ${msg}` };
     }
   });
 }

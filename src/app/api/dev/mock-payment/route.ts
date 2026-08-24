@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { WalletOps } from "@/services/financial/wallet-ops";
 
 export async function GET(req: NextRequest) {
-  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEV_ROUTES !== 'true') {
+  if (process.env.ENABLE_DEV_ROUTES !== 'true') {
     return new Response('Not Found', { status: 404 });
   }
   try {

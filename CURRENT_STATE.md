@@ -12,10 +12,21 @@
   - `PREM-09`: Real-time SSE Order Status (`src/app/api/orders/[id]/events/route.ts`, паблишер `realtime-status.ts`, авто-разрешение споров `autoResolveOrderDisputes` при статусе COMPLETED).
   - `PREM-10`: Immutable Ledger & Tax Audit (`LedgerPeriod` заморозка периодов, `dailyReconciliation` 3-сторонняя сверка Банк ↔ DB ↔ Ledger, `RevenueRecognition` и реверсивные проводки).
   - `PREM-11`: Disaster Recovery Runbook & Automated Restore Test (`docs/runbooks/disaster-recovery.md` RTO 2h / RPO 5m, скрипт `dr-restore-test.ts`, workflow `.github/workflows/dr-test.yml`).
+  - `AUDIT-FIX-01`: Исправлены дефекты внешнего аудита. DS-01 (удалены сырые стили text-white, bg-black), CRO-01 (убраны disabled кнопки в формах логина, внедрен animate-shake), ERG-01 (модалка EmployeeConsent адаптирована под 100% viewport).
+  - `BUG-FIX-LINK-01`: Устранен ложный сбой распознавания ссылок («Не удалось определить платформу автоматически»). Удален избыточный сетевой SSRF DNS-запрос из in-memory анализатора `analyzeUrl`, скорректирован SSRF-фильтр для поддержки Fake-IP прокси/VPN диапазонов (`198.18.0.0/15`).
+  - `QA-DOCK-01`: Включен плавающий виджет `FloatingQADock` («QA Dock») в левом нижнем углу для быстрого переключения брендов (SMMplan / SMMflux), ролей (Владелец / Клиент / Гость) и генерации мобильных QR-кодов.
+  - `QA-PROVIDERS-01`: В БД добавлены и зашифрованы ключи для 8 провайдеров (Soc-Rocket, SMM Prime, Stream-Promotion, Likedrom, SMMPanelUS, Soc-Proof, Telegram Shop, VexBoost) + тестовые реквизиты ЮKassa (Shop ID 1155075).
+  - `BUG-FIX-PAY-01`: Устранена ошибка оформления заказа `UNKNOWN_GATEWAY_ERROR` (исправлены SQL-запросы в `RateLimitService`, убран несуществующий столбец `updatedAt` и включен авто-коннект Redis).
+  - `BUG-FIX-TENANT-01`: Исправлено переключение тенантов в `middleware.ts` на тестовых доменах (`test.*`, `localhost`) по параметру `?tenant=` и куке `x_tenant`.
+  - `PROD-DEFECTS-FIX-01`: Устранены 4 критических производственных дефекта:
+    1. **Telegram Бот**: Добавлен сервис `bot` в `docker-compose.prod.yml` и `staging.yml`, удалены локальные Windows-пути, реализован неблокирующий запуск с Redis heartbeat (`bot:heartbeat` каждые 30с) и создан эндпоинт `/api/webhooks/telegram`.
+    2. **YooKassa**: Устранен тихий 404 mock fallback в проде, расширен IP allowlist всеми официальными подсетями (`185.75.120.0/22`, `37.110.12.0/22`, `37.110.16.0/22`, `193.106.92.0/22`, `91.232.108.0/22`), добавлен fallback на env, секрет вебхука в БД и кнопка «Проверить YooKassa API».
+    3. **Telegram Bot Control Center**: Выделена отдельная вкладка `/admin/settings?tab=telegram` (3-состоятельный статус-бейдж, пинг в ms, хранение токена в БД с шифрованием AES-256-GCM, выбор режима Polling/Webhook, редактор `{siteName}`/`{userName}`/`{balance}`, live iOS Dark симулятор, сброс очереди и тестовые алерты).
+    4. **Вкладка Team**: Добавлен поиск по email сотрудника, фильтр по ролям и группам, пагинация по 25 сотрудников (на десктопе и мобильных), устранение горизонтального скролла и вылетов колонок.
 - **Верификация**:
   - `npx tsc --noEmit` — 0 ошибок (100% PASS)
-  - `npm run build` — 100% SUCCESS
-  - Vitest: 6 сьютов, 21/21 PASS (`pii-access-log`, `rate-change-circuit-breaker`, `fallback-router`, `realtime-status`, `immutable-ledger-reconciliation`, `dr-restore`)
+  - `npm run build` — 100% SUCCESS (все 100+ роутов скомпилированы)
+  - Redis Heartbeat `bot:heartbeat` — ACTIVE (Age < 15s)
   - Ветка запушена в `origin/fix/premortem-p1-resilience`
 
 

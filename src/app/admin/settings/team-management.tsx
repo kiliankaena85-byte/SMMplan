@@ -117,6 +117,22 @@ export function TeamManagement({
   const [staffGeminiKeys, setStaffGeminiKeys] = useState<Record<string, string>>({});
   const [savingKeyForUserId, setSavingKeyForUserId] = useState<string | null>(null);
 
+  // Search, Role Filter & Pagination state
+  const [searchEmail, setSearchEmail] = useState('');
+  const [filterRole, setFilterRole] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
+
+  const filteredStaffUsers = staffUsers.filter((u) => {
+    const matchesEmail = u.email.toLowerCase().includes(searchEmail.toLowerCase().trim());
+    const matchesRole = filterRole === 'ALL' || u.role === filterRole || u.staffRoleId === filterRole;
+    return matchesEmail && matchesRole;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filteredStaffUsers.length / itemsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedStaff = filteredStaffUsers.slice((safePage - 1) * itemsPerPage, safePage * itemsPerPage);
+
   const isOwner = currentAdminRole === 'OWNER';
 
   async function handleSaveStaffGeminiKey(userId: string) {
@@ -227,53 +243,113 @@ export function TeamManagement({
       {/* ── SECTION 1: Staff List & Escrow Guard ── */}
       <Card className="rounded-2xl border-border shadow-sm bg-card overflow-hidden">
         <CardContent className="p-4 sm:p-8 space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-destructive/15 text-destructive rounded-xl border border-destructive/20">
-              <ShieldAlert className="w-5 h-5" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-destructive/15 text-destructive rounded-xl border border-destructive/20 shrink-0">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Команда и Escrow Guard</h3>
+                <p className="text-[11px] text-muted-foreground font-medium mt-0.5">Системные роли, лимиты компенсаций и наборы прав.</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Команда и Escrow Guard</h3>
-              <p className="text-[11px] text-muted-foreground font-medium mt-0.5">Системные роли, лимиты компенсаций и наборы прав.</p>
+
+            {/* Quick Badge */}
+            <div className="flex items-center gap-2">
+              <Badge intent="outline" className="text-xs font-mono font-bold px-3 py-1">
+                Всего сотрудников: {filteredStaffUsers.length}
+              </Badge>
             </div>
           </div>
 
+          {/* Filter & Search Toolbar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-3 bg-muted/20 rounded-xl border border-border/60">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+              <Input
+                placeholder="Поиск по email сотрудника..."
+                value={searchEmail}
+                onChange={(e) => {
+                  setSearchEmail(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="pl-9 h-10 text-xs bg-background"
+              />
+            </div>
+            
+            <div className="w-full sm:w-48">
+              <select
+                value={filterRole}
+                onChange={(e) => {
+                  setFilterRole(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full h-10 bg-background border border-border rounded-xl px-3 text-xs font-medium focus:ring-1 focus:ring-primary focus:outline-none"
+              >
+                <option value="ALL">Все роли и группы</option>
+                <option value="OWNER">Владелец (OWNER)</option>
+                <option value="ADMIN">Администратор (ADMIN)</option>
+                <option value="MANAGER">Менеджер (MANAGER)</option>
+                <option value="SUPPORT">Поддержка (SUPPORT)</option>
+                {staffRoles.map(r => (
+                  <option key={r.id} value={r.id}>Группа: {r.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {(searchEmail || filterRole !== 'ALL') && (
+              <Button
+                type="button"
+                intent="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchEmail('');
+                  setFilterRole('ALL');
+                  setCurrentPage(1);
+                }}
+                className="text-xs font-bold text-muted-foreground hover:text-foreground h-10 px-3 cursor-pointer shrink-0"
+              >
+                Сбросить
+              </Button>
+            )}
+          </div>
+
           {/* Desktop Table View */}
-          <div className="hidden md:block rounded-xl border border-border overflow-hidden w-full overflow-x-auto scrollbar-hide">
-            <Table aria-label="Список активных членов команды саппорта">
+          <div className="hidden md:block rounded-xl border border-border overflow-hidden w-full">
+            <Table aria-label="Список активных членов команды саппорта" className="w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="px-6 py-4">EMAIL</TableHead>
-                  <TableHead className="px-6 py-4">НАЗНАЧЕНИЕ РОЛИ И ПРАВ</TableHead>
-                  <TableHead className="px-6 py-4">ПЕРСОНАЛЬНЫЙ GEMINI AI КЛЮЧ</TableHead>
-                  <TableHead className="px-6 py-4 text-right">ДНЕВНОЙ ЛИМИТ (₽) И ДЕЙСТВИЕ</TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold w-[22%]">EMAIL</TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold w-[38%]">НАЗНАЧЕНИЕ РОЛИ И ПРАВ</TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold w-[22%]">GEMINI AI КЛЮЧ</TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold text-right w-[18%]">ДНЕВНОЙ ЛИМИТ (₽)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {staffUsers.length === 0 ? (
+                {paginatedStaff.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="h-28 text-center text-xs text-muted-foreground">
-                      Сотрудников нет
+                      Сотрудники не найдены
                     </TableCell>
                   </TableRow>
                 ) : (
-                  staffUsers.map((u) => {
+                  paginatedStaff.map((u) => {
                     const supportLimitRub = limits[u.id] ? Math.round(parseFloat(limits[u.id]) * 100) : 0;
                     const hasKey = Boolean(u.geminiApiKey);
                     const isSaving = savingKeyForUserId === u.id;
                     return (
                       <TableRow key={u.id} className="hover:bg-muted/10 transition-colors">
-                        <TableCell className="px-6 py-5">
-                          <span className="font-mono text-xs font-bold text-foreground bg-muted/40 px-2 py-1.5 rounded-lg border border-border/30 truncate max-w-[180px] inline-block" title={u.email}>{u.email}</span>
+                        <TableCell className="px-4 py-3">
+                          <span className="font-mono text-xs font-bold text-foreground bg-muted/40 px-2 py-1 rounded-lg border border-border/30 truncate max-w-[170px] inline-block" title={u.email}>{u.email}</span>
                         </TableCell>
-                        <TableCell className="px-6 py-5">
-                          <form action={handleUpdateRole} className="flex flex-col sm:flex-row gap-4 items-center">
+                        <TableCell className="px-4 py-3">
+                          <form action={handleUpdateRole} className="flex items-center gap-2">
                             <input type="hidden" name="userId" value={u.id} />
                             
                             {/* System Role Selection */}
-                            <div className="flex flex-col gap-1 w-full sm:w-auto">
-                              <span className="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-wider">Роль</span>
+                            <div className="flex flex-col gap-0.5">
                               <Select name="role" defaultValue={u.role}>
-                                <SelectTrigger className="w-full sm:w-32 h-11 bg-background text-xs font-bold rounded-xl" size="default">
+                                <SelectTrigger className="w-28 h-9 bg-background text-[11px] font-bold rounded-lg" size="default">
                                   <SelectValue>
                                     {(value: string) => value || 'Выбрать'}
                                   </SelectValue>
@@ -287,10 +363,9 @@ export function TeamManagement({
                             </div>
 
                             {/* Custom Staff Role Selection */}
-                            <div className="flex flex-col gap-1 w-full sm:w-auto">
-                              <span className="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-wider">Группа прав</span>
+                            <div className="flex flex-col gap-0.5">
                               <Select name="staffRoleId" defaultValue={u.staffRoleId || 'NONE'}>
-                                <SelectTrigger className="w-full sm:w-44 h-11 bg-background text-xs font-bold rounded-xl" size="default">
+                                <SelectTrigger className="w-36 h-9 bg-background text-[11px] font-bold rounded-lg" size="default">
                                   <SelectValue>
                                     {(value: string) => {
                                       if (!value || value === 'NONE') return 'Все права (OWNER)';
@@ -307,59 +382,56 @@ export function TeamManagement({
                               </Select>
                             </div>
 
-                            <div className="pt-5 w-full sm:w-auto">
-                              <SubmitButton label="Сменить" className="w-full sm:w-auto" />
-                            </div>
+                            <SubmitButton label="Сменить" className="h-9 px-2.5 min-w-[70px]" />
                           </form>
                         </TableCell>
-                        <TableCell className="px-6 py-5">
-                          <div className="flex flex-col gap-1.5 min-w-[200px]">
+                        <TableCell className="px-4 py-3">
+                          <div className="flex flex-col gap-1 max-w-[200px]">
                             <div className="flex items-center justify-between">
-                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Ключ сотрудника</span>
                               {hasKey ? (
-                                <Badge intent="outline" className="text-[9px] py-0 px-1.5 border-emerald-500/30 text-emerald-500 bg-emerald-500/10">
+                                <Badge intent="outline" className="text-[9px] py-0 px-1 border-emerald-500/30 text-emerald-500 bg-emerald-500/10">
                                   🟢 Свой ключ
                                 </Badge>
                               ) : (
                                 <span className="text-[9px] text-muted-foreground">⚪️ Общий пул</span>
                               )}
                             </div>
-                            <div className="flex gap-1.5 items-center">
+                            <div className="flex gap-1 items-center">
                               <Input
                                 type="password"
-                                placeholder={hasKey ? '••••••••••••••••' : 'AIzaSy... (Личный ключ)'}
+                                placeholder={hasKey ? '••••••••••••••••' : 'Личный AI ключ'}
                                 value={staffGeminiKeys[u.id] ?? ''}
                                 onChange={(e) => setStaffGeminiKeys(prev => ({ ...prev, [u.id]: e.target.value }))}
-                                className="h-9 font-mono text-xs rounded-lg"
+                                className="h-8 font-mono text-[11px] rounded-lg"
                               />
                               <Button
                                 size="sm"
                                 intent="outline"
                                 disabled={isSaving}
                                 onClick={() => handleSaveStaffGeminiKey(u.id)}
-                                className="h-9 px-2.5 font-bold text-[10px] uppercase tracking-wider shrink-0"
+                                className="h-8 px-2 font-bold text-[10px] uppercase tracking-wider shrink-0"
                               >
                                 {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : 'OK'}
                               </Button>
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="px-6 py-5">
-                          <form action={handleUpdateLimit} className="flex gap-2 items-center justify-end">
+                        <TableCell className="px-4 py-3">
+                          <form action={handleUpdateLimit} className="flex gap-1.5 items-center justify-end">
                             <input type="hidden" name="userId" value={u.id} />
                             <Input 
                               type="number" 
                               step="0.01"
                               value={limits[u.id] ?? ''} 
                               onChange={e => setLimits(prev => ({ ...prev, [u.id]: e.target.value }))}
-                              className="w-28 h-11 text-right font-mono font-bold text-xs rounded-xl"
+                              className="w-20 h-9 text-right font-mono font-bold text-xs rounded-lg"
                             />
                             <input 
                               type="hidden" 
                               name="limit" 
                               value={supportLimitRub} 
                             />
-                            <SubmitButton label="Сохранить" />
+                            <SubmitButton label="Сохранить" className="h-9 px-2 min-w-[70px]" />
                           </form>
                         </TableCell>
                       </TableRow>
@@ -368,14 +440,48 @@ export function TeamManagement({
                 )}
               </TableBody>
             </Table>
+
+            {/* Pagination controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/10">
+                <p className="text-xs text-muted-foreground font-medium">
+                  Показано {(safePage - 1) * itemsPerPage + 1} - {Math.min(safePage * itemsPerPage, filteredStaffUsers.length)} из {filteredStaffUsers.length}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    intent="outline"
+                    size="sm"
+                    disabled={safePage <= 1}
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    className="h-8 px-3 text-xs font-bold"
+                  >
+                    ← Назад
+                  </Button>
+                  <span className="px-2 text-xs font-mono font-bold text-foreground">
+                    {safePage} / {totalPages}
+                  </span>
+                  <Button
+                    type="button"
+                    intent="outline"
+                    size="sm"
+                    disabled={safePage >= totalPages}
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    className="h-8 px-3 text-xs font-bold"
+                  >
+                    Вперед →
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Mobile Card Feed View */}
           <div className="block md:hidden divide-y divide-border/30 bg-card/30 rounded-xl border border-border overflow-hidden">
-            {staffUsers.length === 0 ? (
-              <p className="text-center py-8 text-xs text-muted-foreground italic">Сотрудников нет</p>
+            {paginatedStaff.length === 0 ? (
+              <p className="text-center py-8 text-xs text-muted-foreground italic">Сотрудники не найдены</p>
             ) : (
-              staffUsers.map((u) => {
+              paginatedStaff.map((u) => {
                 const supportLimitRub = limits[u.id] ? Math.round(parseFloat(limits[u.id]) * 100) : 0;
                 const hasKey = Boolean(u.geminiApiKey);
                 const isSaving = savingKeyForUserId === u.id;
@@ -487,6 +593,37 @@ export function TeamManagement({
               })
             )}
           </div>
+
+          {/* Mobile Pagination controls */}
+          {totalPages > 1 && (
+            <div className="flex md:hidden items-center justify-between p-3 border border-border rounded-xl bg-muted/10">
+              <p className="text-xs text-muted-foreground font-medium">
+                {safePage} / {totalPages}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  intent="outline"
+                  size="sm"
+                  disabled={safePage <= 1}
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  className="h-8 px-3 text-xs font-bold"
+                >
+                  ← Назад
+                </Button>
+                <Button
+                  type="button"
+                  intent="outline"
+                  size="sm"
+                  disabled={safePage >= totalPages}
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  className="h-8 px-3 text-xs font-bold"
+                >
+                  Вперед →
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

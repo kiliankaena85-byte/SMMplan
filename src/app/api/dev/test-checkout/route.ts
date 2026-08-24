@@ -6,7 +6,7 @@ import { SettingsManager } from "@/lib/settings";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(req: Request) {
-  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEV_ROUTES !== 'true') {
+  if (process.env.ENABLE_DEV_ROUTES !== 'true') {
     return new Response('Not Found', { status: 404 });
   }
   // W0-1 SECURITY FIX: Block in production — this endpoint leaks payment secrets

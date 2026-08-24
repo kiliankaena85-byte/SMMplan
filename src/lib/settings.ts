@@ -10,6 +10,7 @@ const CACHE_TTL_MS = 60 * 1000; // 1 minute cache for workers
 export interface DecryptedPaymentSecrets {
   yookassaShopId: string | null;
   yookassaSecretKey: string | null;
+  yookassaWebhookSecret: string | null;
   cryptoBotToken: string | null;
   robokassaLogin: string | null;
   robokassaPassword: string | null;
@@ -270,6 +271,19 @@ export class SettingsProvider {
       secretKeyRaw = settings.yookassaTestSecretKey;
     }
 
+    // Environment variables fallback
+    const envShopId = useTestKeys
+      ? (process.env.YOOKASSA_TEST_SHOP_ID ?? process.env.YOOKASSA_SHOP_ID ?? null)
+      : (process.env.YOOKASSA_SHOP_ID ?? null);
+    const envSecretKey = useTestKeys
+      ? (process.env.YOOKASSA_TEST_SECRET_KEY ?? process.env.YOOKASSA_SECRET_KEY ?? null)
+      : (process.env.YOOKASSA_SECRET_KEY ?? null);
+    const envCryptoToken = process.env.CRYPTO_BOT_TOKEN ?? process.env.CRYPTOBOT_TOKEN ?? null;
+    const envWebhookSecret = process.env.YOOKASSA_WEBHOOK_SECRET ?? null;
+
+    if (!shopId) shopId = envShopId;
+    if (!secretKeyRaw) secretKeyRaw = envSecretKey;
+
     const decryptSafe = (val: string | null | undefined): string | null => {
       if (!val || val.trim() === '') return null;
       try {
@@ -278,6 +292,7 @@ export class SettingsProvider {
         if (SettingsProvider.isTestEnvironment() || useTestKeys || process.env.NODE_ENV === 'test') {
           return val;
         }
+        console.error('[SettingsManager] CRITICAL: Failed to decrypt secret with current APP_ENCRYPTION_KEY:', err);
         return null;
       }
     };
@@ -285,7 +300,8 @@ export class SettingsProvider {
     return {
       yookassaShopId: shopId,
       yookassaSecretKey: decryptSafe(secretKeyRaw),
-      cryptoBotToken: decryptSafe(settings.cryptoBotToken),
+      yookassaWebhookSecret: decryptSafe(settings.yookassaWebhookSecret) ?? envWebhookSecret,
+      cryptoBotToken: decryptSafe(settings.cryptoBotToken) ?? envCryptoToken,
       robokassaLogin: settings.robokassaLogin ?? null,
       robokassaPassword: decryptSafe(settings.robokassaPassword),
       robokassaWebhookPassword: decryptSafe(settings.robokassaWebhookPassword)

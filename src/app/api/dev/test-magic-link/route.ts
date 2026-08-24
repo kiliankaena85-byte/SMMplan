@@ -2,7 +2,7 @@ import { requestMagicLink } from "@/actions/auth/request-magic-link";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
-  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEV_ROUTES !== 'true') {
+  if (process.env.ENABLE_DEV_ROUTES !== 'true') {
     return new Response('Not Found', { status: 404 });
   }
   

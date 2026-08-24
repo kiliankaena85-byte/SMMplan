@@ -1,12 +1,13 @@
 import { settingsService } from '@/services/admin/settings.service';
 import { db } from '@/lib/db';
-import { Settings, Globe, Link as LinkIcon, Users, History, MessageSquare, Database } from 'lucide-react';
+import { Settings, Globe, Link as LinkIcon, Users, History, MessageSquare, Database, Bot } from 'lucide-react';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { SYSTEM_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { TestModePanel } from '@/components/admin/test-mode-panel';
 import { GeneralSettings } from './general-settings';
 import { CatalogSettings } from './catalog-settings';
 import { IntegrationsSettings } from './integrations-settings';
+import { TelegramBotSettings } from './telegram-bot-settings';
 import { TeamManagement } from './team-management';
 
 import { SupportTemplatesSettings } from './support-templates';
@@ -62,7 +63,9 @@ export default async function AdminSettingsPage({
 
   const sanitizedSettings = {
     ...settings,
+    telegramBotToken: settings.telegramBotToken ? '••••••••••••••••' : null,
     yookassaSecretKey: settings.yookassaSecretKey ? '••••••••••••••••' : null,
+    yookassaWebhookSecret: settings.yookassaWebhookSecret ? '••••••••••••••••' : null,
     yookassaTestSecretKey: settings.yookassaTestSecretKey ? '••••••••••••••••' : null,
     cryptoBotToken: settings.cryptoBotToken ? '••••••••••••••••' : null,
     resendApiKey: settings.resendApiKey ? '••••••••••••••••' : null,
@@ -79,6 +82,7 @@ export default async function AdminSettingsPage({
     { id: 'system', label: 'Система', icon: Globe },
     { id: 'catalog', label: 'Каталог', icon: Database },
     { id: 'integrations', label: 'Интеграции', icon: LinkIcon },
+    { id: 'telegram', label: 'Telegram Бот', icon: Bot },
     { id: 'team', label: 'Команда', icon: Users },
     { id: 'templates', label: 'Шаблоны', icon: MessageSquare },
     { id: 'audit', label: 'Аудит', icon: History },
@@ -135,6 +139,13 @@ export default async function AdminSettingsPage({
         {activeTab === 'integrations' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-400">
             <IntegrationsSettings settings={sanitizedSettings} />
+          </div>
+        )}
+
+        {/* ── TAB 2.5: TELEGRAM BOT ── */}
+        {activeTab === 'telegram' && (
+          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-400">
+            <TelegramBotSettings settings={sanitizedSettings} />
           </div>
         )}
 

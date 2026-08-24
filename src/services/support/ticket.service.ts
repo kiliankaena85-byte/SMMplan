@@ -132,22 +132,9 @@ class TicketService {
           resolvedMediaType || undefined
         );
         if (tgId) telegramMsgId = tgId;
-        try {
-          const fs = await import('fs');
-          fs.appendFileSync('d:/SMM_plan_2/telegram_dispatch.log', `[${new Date().toISOString()}] ticketId=${ticketId} tgUser=${ticketToUpdate.user.telegramId} tgId=${tgId}\n`);
-        } catch { /* ignore */ }
       } catch (e) {
         console.error('[TicketService] Error sending to telegram:', e);
-        try {
-          const fs = await import('fs');
-          fs.appendFileSync('d:/SMM_plan_2/telegram_dispatch.log', `[${new Date().toISOString()}] ERROR: ${e instanceof Error ? e.stack : e}\n`);
-        } catch { /* ignore */ }
       }
-    } else {
-      try {
-        const fs = await import('fs');
-        fs.appendFileSync('d:/SMM_plan_2/telegram_dispatch.log', `[${new Date().toISOString()}] SKIPPED sender=${sender} userTg=${ticketToUpdate.user.telegramId}\n`);
-      } catch { /* ignore */ }
     }
 
     const message = await db.ticketMessage.create({

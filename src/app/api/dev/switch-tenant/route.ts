@@ -3,7 +3,8 @@ import { db } from '@/lib/db';
 import { verifySession } from '@/lib/session';
 
 export async function GET(req: Request) {
-  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEV_ROUTES !== 'true') {
+  // Strict Gate: Require explicit ENABLE_DEV_ROUTES (Allows testing in Staging Docker containers where NODE_ENV=production)
+  if (process.env.ENABLE_DEV_ROUTES !== 'true') {
     return new Response('Not Found', { status: 404 });
   }
   

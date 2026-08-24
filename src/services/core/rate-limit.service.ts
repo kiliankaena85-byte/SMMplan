@@ -39,6 +39,9 @@ export class RateLimitService {
 
       // 1. Try Redis First
       try {
+        if (redis.status === 'wait') {
+          await redis.connect();
+        }
         if (redis.status === 'ready' || redis.status === 'connecting') {
           // Lua script for atomic INCR + EXPIRE
           const script = `
@@ -64,12 +67,11 @@ export class RateLimitService {
       // 2. Fallback to Postgres with atomic UPSERT (Zero Race Condition)
       const newExpiry = new Date(now.getTime() + windowSeconds * 1000);
       const rows = await db.$queryRaw<Array<{ hits: number }>>`
-        INSERT INTO "RateLimit" ("id", "ip", "endpoint", "hits", "expiresAt", "createdAt", "updatedAt")
-        VALUES (gen_random_uuid()::text, ${ip}, ${endpoint}, 1, ${newExpiry}, NOW(), NOW())
+        INSERT INTO "RateLimit" ("id", "ip", "endpoint", "hits", "expiresAt", "createdAt")
+        VALUES (gen_random_uuid()::text, ${ip}, ${endpoint}, 1, ${newExpiry}, NOW())
         ON CONFLICT ("ip", "endpoint") DO UPDATE SET
           "hits" = CASE WHEN "RateLimit"."expiresAt" <= NOW() THEN 1 ELSE "RateLimit"."hits" + 1 END,
-          "expiresAt" = CASE WHEN "RateLimit"."expiresAt" <= NOW() THEN ${newExpiry} ELSE "RateLimit"."expiresAt" END,
-          "updatedAt" = NOW()
+          "expiresAt" = CASE WHEN "RateLimit"."expiresAt" <= NOW() THEN ${newExpiry} ELSE "RateLimit"."expiresAt" END
         RETURNING "hits";
       `;
 
@@ -120,6 +122,9 @@ export class RateLimitService {
 
       // 1. Try Redis First
       try {
+        if (redis.status === 'wait') {
+          await redis.connect();
+        }
         if (redis.status === 'ready' || redis.status === 'connecting') {
           const script = `
             local current = redis.call('INCR', KEYS[1])
@@ -144,12 +149,11 @@ export class RateLimitService {
       const endpoint = key;
       const newExpiry = new Date(now.getTime() + windowSeconds * 1000);
       const rows = await db.$queryRaw<Array<{ hits: number }>>`
-        INSERT INTO "RateLimit" ("id", "ip", "endpoint", "hits", "expiresAt", "createdAt", "updatedAt")
-        VALUES (gen_random_uuid()::text, ${ip}, ${endpoint}, 1, ${newExpiry}, NOW(), NOW())
+        INSERT INTO "RateLimit" ("id", "ip", "endpoint", "hits", "expiresAt", "createdAt")
+        VALUES (gen_random_uuid()::text, ${ip}, ${endpoint}, 1, ${newExpiry}, NOW())
         ON CONFLICT ("ip", "endpoint") DO UPDATE SET
           "hits" = CASE WHEN "RateLimit"."expiresAt" <= NOW() THEN 1 ELSE "RateLimit"."hits" + 1 END,
-          "expiresAt" = CASE WHEN "RateLimit"."expiresAt" <= NOW() THEN ${newExpiry} ELSE "RateLimit"."expiresAt" END,
-          "updatedAt" = NOW()
+          "expiresAt" = CASE WHEN "RateLimit"."expiresAt" <= NOW() THEN ${newExpiry} ELSE "RateLimit"."expiresAt" END
         RETURNING "hits";
       `;
 

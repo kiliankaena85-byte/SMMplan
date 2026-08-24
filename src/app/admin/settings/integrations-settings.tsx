@@ -12,6 +12,7 @@ import {
   testSmtpConnectionAction,
   testGeminiAiConnectionAction,
   testTelegramBotConnectionAction,
+  testYooKassaConnectionAction,
 } from '@/actions/admin/settings';
 import { toast } from 'sonner';
 import { useActionState, useEffect, useState } from 'react';
@@ -31,6 +32,28 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
 
   const [testingTelegram, setTestingTelegram] = useState(false);
   const [telegramTestResult, setTelegramTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const [testingYooKassa, setTestingYooKassa] = useState(false);
+  const [yooKassaTestResult, setYooKassaTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleTestYooKassa = async () => {
+    setTestingYooKassa(true);
+    setYooKassaTestResult(null);
+    try {
+      const res = await testYooKassaConnectionAction();
+      const message = 'message' in res ? res.message : res.error;
+      setYooKassaTestResult({ success: res.success, message });
+      if (res.success) {
+        toast.success(message);
+      } else {
+        toast.error(message);
+      }
+    } catch (err) {
+      toast.error(String(err));
+    } finally {
+      setTestingYooKassa(false);
+    }
+  };
 
   const handleTestSmtp = async () => {
     setTestingSmtp(true);
@@ -152,44 +175,130 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
   return (
     <div className="space-y-6">
       {/* Telegram */}
-      <Card className="rounded-2xl border-border shadow-sm bg-primary/5 backdrop-blur-xl">
+      <Card className="rounded-2xl border-border shadow-sm bg-card backdrop-blur-xl">
         <div className="p-5 sm:p-8 space-y-6">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="p-1 px-2.5 bg-primary/20 text-primary rounded-md text-[10px] font-bold">TG</span>
-            <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Telegram Бот</h3>
+          <div className="flex items-center justify-between border-b border-border pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-primary/10 text-primary rounded-xl border border-primary/20">
+                <Bot className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-foreground">Telegram Бот Поддержки & Продаж</h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-success/20 text-success border border-success/30">
+                    Smart Bind Ready
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Единый бот для оформления заказов, пополнения баланса и сквозной техподдержки клиентов.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                intent="secondary"
+                size="sm"
+                onClick={handleTestTelegram}
+                disabled={testingTelegram}
+                className="font-bold uppercase tracking-widest text-[11px] h-9 cursor-pointer"
+              >
+                {testingTelegram ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />}
+                Тест связи с Bot API
+              </Button>
+            </div>
           </div>
+
+          {telegramTestResult && (
+            <div className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center gap-2 ${
+              telegramTestResult.success 
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' 
+                : 'bg-destructive/10 border-destructive/30 text-destructive'
+            }`}>
+              {telegramTestResult.success ? <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+              <span>{telegramTestResult.message}</span>
+            </div>
+          )}
           
-          <form action={formAction} className="space-y-4">
+          <form action={formAction} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Юзернейм бота (без @)
+                </Label>
+                <Input
+                  name="contactTelegramBot"
+                  defaultValue={settings.contactTelegramBot || 'SMMplansapport_bot'}
+                  placeholder="SMMplansapport_bot"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Клиенты в интерфейсе и письмах видят ссылку: <span className="font-mono text-primary font-bold">t.me/{settings.contactTelegramBot || 'SMMplansapport_bot'}</span>
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Telegram Канал новостей / акций (@канал)
+                </Label>
+                <Input
+                  name="contactTelegramChannel"
+                  defaultValue={settings.contactTelegramChannel || ''}
+                  placeholder="@smmplan_news"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Официальный информационный канал платформы для клиентов.
+                </p>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Приветственное сообщение (/start)</Label>
               <Textarea
                 name="welcomeMessage"
                 defaultValue={settings.welcomeMessage || ''}
-                rows={4}
+                rows={3}
+                placeholder="Добро пожаловать в SMMplan! Ваш персональный кабинет готов к работе."
               />
+              <p className="text-[11px] text-muted-foreground">
+                Текст, отправляемый пользователю при первом запуске бота или команде /start.
+              </p>
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  intent="secondary"
-                  size="sm"
-                  onClick={handleTestTelegram}
-                  disabled={testingTelegram}
-                  className="font-bold uppercase tracking-widest text-[11px] h-9 cursor-pointer"
-                >
-                  {testingTelegram ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Bot className="w-3.5 h-3.5 mr-1.5" />}
-                  Тест Telegram API
-                </Button>
-                {telegramTestResult && (
-                  <span className={`text-xs font-semibold ${telegramTestResult.success ? 'text-success' : 'text-destructive'}`}>
-                    {telegramTestResult.message}
-                  </span>
-                )}
+
+            {/* Smart Bind Features Box */}
+            <div className="p-4 rounded-xl bg-muted/20 border border-border/80 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="space-y-1">
+                <p className="font-bold text-foreground flex items-center gap-1.5">
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                  Smart Bind Protocol
+                </p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Безопасная привязка Telegram-аккаунта к сайту без передачи номеров телефонов.
+                </p>
               </div>
-              <Button disabled={isPending} type="submit" intent="outline" className="font-bold uppercase tracking-widest text-xs h-9 cursor-pointer">
+              <div className="space-y-1">
+                <p className="font-bold text-foreground flex items-center gap-1.5">
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                  Сквозная поддержка
+                </p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Сообщения клиентов из бота мгновенно попадают в тикет-систему админки.
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="font-bold text-foreground flex items-center gap-1.5">
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                  CSAT Оценки
+                </p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Клиент оценивает работу оператора прямо в боте (1-5 звезд) при закрытии тикета.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-border flex justify-end">
+              <Button disabled={isPending} type="submit" className="font-bold uppercase tracking-widest text-xs h-10 shadow-md cursor-pointer">
                 {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Обновить контент бота
+                Сохранить настройки бота
               </Button>
             </div>
           </form>
@@ -207,7 +316,33 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
           <form action={formAction} className="space-y-8">
             {/* YooKassa section */}
             <div className="space-y-6">
-              <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground border-b border-border pb-1">YooKassa (Fiat)</div>
+              <div className="flex items-center justify-between border-b border-border pb-2">
+                <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">YooKassa (Fiat)</div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    intent="secondary"
+                    size="sm"
+                    onClick={handleTestYooKassa}
+                    disabled={testingYooKassa}
+                    className="font-bold uppercase tracking-widest text-[10px] h-8 cursor-pointer gap-1.5"
+                  >
+                    {testingYooKassa ? <Loader2 className="w-3 h-3 animate-spin" /> : <Radio className="w-3 h-3 text-primary" />}
+                    <span>Проверить YooKassa API</span>
+                  </Button>
+                </div>
+              </div>
+
+              {yooKassaTestResult && (
+                <div className={`p-3 rounded-xl border text-xs font-semibold flex items-center gap-2 ${
+                  yooKassaTestResult.success 
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' 
+                    : 'bg-destructive/10 border-destructive/30 text-destructive'
+                }`}>
+                  {yooKassaTestResult.success ? <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                  <span>{yooKassaTestResult.message}</span>
+                </div>
+              )}
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* TEST KEYS */}
@@ -265,6 +400,26 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Webhook Configuration */}
+              <div className="p-4 rounded-xl bg-muted/20 border border-border/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Секрет HTTP-уведомлений Webhook (Опционально)
+                  </Label>
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    URL: /api/webhooks/yookassa
+                  </span>
+                </div>
+                <Input
+                  name="yookassaWebhookSecret"
+                  type="password"
+                  placeholder={settings.yookassaWebhookSecret ? '••••••••••••••••' : 'Секрет из ЛК ЮKassa (или fallback на Secret Key)'}
+                />
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  Зарегистрируйте URL <span className="font-mono text-primary font-bold">https://&lt;домен&gt;/api/webhooks/yookassa</span> в личном кабинете ЮKassa (Настройки → HTTP-уведомления).
+                </p>
               </div>
 
               <p className="text-[10px] text-muted-foreground leading-relaxed">

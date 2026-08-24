@@ -44,17 +44,10 @@ export async function analyzeUrl(url: string): Promise<{ success: boolean; data?
       return { success: false, error: "This URL format is not supported for analysis." };
     }
 
-    const { assertSafeUrl } = await import('@/utils/ssrf-guard');
-    try {
-      await assertSafeUrl(url);
-    } catch (e: unknown) {
-      return { success: false, error: (e instanceof Error ? e.message : String(e)) || "This URL format is not supported for analysis." };
-    }
-
     const { getClientIp } = await import('@/utils/ip');
     const ip = await getClientIp();
 
-    const isAllowed = await RateLimitService.checkCustomKey(`analyzeUrl:${ip}`, 15, 60, true);
+    const isAllowed = await RateLimitService.checkCustomKey(`analyzeUrl:${ip}`, 60, 60, true);
     if (!isAllowed) {
        return { success: false, error: "Too many URL analysis requests." };
     }

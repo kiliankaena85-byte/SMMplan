@@ -61,22 +61,22 @@ export function EmployeeConsentModalGuard({ children }: { children: React.ReactN
       {children}
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-card border border-border text-card-foreground rounded-xl shadow-2xl max-w-2xl w-full p-6 space-y-4">
-            <div className="flex items-center gap-3 text-lg font-semibold border-b border-border pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border text-card-foreground rounded-xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh]">
+            <div className="flex items-center gap-3 text-lg font-semibold border-b border-border p-6 pb-4 shrink-0">
               <ShieldAlert className="w-6 h-6 text-primary shrink-0" />
               Юридический регламент финансовой ответственности сотрудников
             </div>
             
-            <div className="space-y-4">
-              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-400">
+            <div className="p-6 py-4 overflow-y-auto min-h-0 space-y-4">
+              <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+                <p className="text-xs text-warning">
                   Для получения доступа к финансовым операциям (компенсациям, списаниям и докрутам) необходимо ознакомиться и подтвердить согласие с регламентом персональной материальной ответственности в соответствии с законодательством РФ.
                 </p>
               </div>
 
-              <div className="p-4 bg-muted/50 text-foreground text-xs leading-relaxed max-h-60 overflow-y-auto border border-border rounded-lg">
+              <div className="p-4 bg-muted/50 text-foreground text-xs leading-relaxed border border-border rounded-lg">
                 <div className="font-mono text-[10px] text-muted-foreground mb-2">
                   Версия: {docDetails?.documentVersion} | Hash SHA-256: {docDetails?.documentHash.substring(0, 16)}...
                 </div>
@@ -97,7 +97,7 @@ export function EmployeeConsentModalGuard({ children }: { children: React.ReactN
               </div>
             </div>
 
-            <div className="flex justify-end pt-3 border-t border-border">
+            <div className="flex justify-end p-6 pt-4 border-t border-border shrink-0">
               <button
                 disabled={!isChecked || loading}
                 onClick={handleAccept}

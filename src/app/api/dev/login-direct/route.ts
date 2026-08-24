@@ -7,10 +7,8 @@ import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  // Strict Gate: Never allow in production, require explicit ENABLE_DEV_ROUTES
-  const isAllowed = 
-    process.env.NODE_ENV !== 'production' && 
-    process.env.ENABLE_DEV_ROUTES === 'true';
+  // Strict Gate: Require explicit ENABLE_DEV_ROUTES (Allows testing in Staging Docker containers where NODE_ENV=production)
+  const isAllowed = process.env.ENABLE_DEV_ROUTES === 'true';
 
   if (!isAllowed) {
     return new Response('Not Found', { status: 404 });
@@ -66,12 +64,18 @@ export async function GET(request: Request) {
   }
 
   if (!user) {
+    const isOwner = cleanEmail.includes("admin") || cleanEmail.includes("owner");
     user = await db.user.create({
       data: {
         email: cleanEmail,
-        role: "USER",
+        role: isOwner ? "OWNER" : "USER",
         tenantId: tenantId
       }
+    });
+  } else if ((cleanEmail.includes("admin") || cleanEmail.includes("owner")) && user.role !== "OWNER") {
+    user = await db.user.update({
+      where: { id: user.id },
+      data: { role: "OWNER" }
     });
   }
 

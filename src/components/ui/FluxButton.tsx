@@ -32,7 +32,7 @@ export function FluxButton({
 
   const variantClasses = {
     primary:
-      "bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-black shadow-[0_4px_18px_rgba(168,85,247,0.35)] hover:shadow-[0_6px_24px_rgba(236,72,153,0.45)] hover:-translate-y-0.5 active:scale-[0.98] border-transparent",
+      "bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-primary-foreground font-black shadow-[0_4px_18px_rgba(168,85,247,0.35)] hover:shadow-[0_6px_24px_rgba(236,72,153,0.45)] hover:-translate-y-0.5 active:scale-[0.98] border-transparent",
     secondary:
       "bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 font-bold border border-purple-500/25 hover:border-purple-500/40 shadow-sm",
     outline:

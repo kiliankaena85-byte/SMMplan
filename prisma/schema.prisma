@@ -604,12 +604,15 @@ model SystemSettings {
   siteDescription String    @default("")
 
   // Telegram Bot Settings
-  welcomeMessage String? @default("Добро пожаловать в Smmplan! Ваш персональный кабинет готов к работе.")
+  telegramBotToken String? // AES-256-GCM encrypted
+  telegramBotMode  String? @default("polling") // polling | webhook
+  welcomeMessage   String? @default("Добро пожаловать в Smmplan! Ваш персональный кабинет готов к работе.")
 
   // Payment Gateways (Secrets are AES-256-GCM encrypted in DB)
   // Production keys
   yookassaShopId        String?
   yookassaSecretKey     String?
+  yookassaWebhookSecret String? // Optional custom webhook signature secret
   // Test keys (used when isTestMode = true)
   yookassaTestShopId    String?
   yookassaTestSecretKey String?

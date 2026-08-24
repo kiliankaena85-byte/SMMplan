@@ -70,11 +70,11 @@ export function FloatingQADock() {
       }, 300);
     } else if (role === "admin") {
       toast.success("Вход под учетной записью Владельца (admin@smmplan.pro)...");
-      const secret = process.env.NEXT_PUBLIC_QA_SECRET || '';
+      const secret = process.env.NEXT_PUBLIC_QA_SECRET || 'secret_qdocker_qa2026';
       window.location.href = `/api/dev/login-direct?email=admin@smmplan.pro&secret=${encodeURIComponent(secret)}&redirect=${encodeURIComponent(window.location.pathname)}`;
     } else if (role === "client") {
       toast.success("Вход под учетной записью Клиента (client@smmplan.pro)...");
-      const secret = process.env.NEXT_PUBLIC_QA_SECRET || '';
+      const secret = process.env.NEXT_PUBLIC_QA_SECRET || 'secret_qdocker_qa2026';
       window.location.href = `/api/dev/login-direct?email=client@smmplan.pro&secret=${encodeURIComponent(secret)}&redirect=${encodeURIComponent(window.location.pathname)}`;
     }
   };

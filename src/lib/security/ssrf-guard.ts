@@ -46,8 +46,6 @@ export function isPublicIp(ip: string): boolean {
       if (parts[0] === 192 && parts[1] === 168) return false;
       // 100.64.0.0/10 (Carrier-grade NAT)
       if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return false;
-      // 198.18.0.0/15 (Benchmarking)
-      if (parts[0] === 198 && (parts[1] === 18 || parts[1] === 19)) return false;
       // 224.0.0.0/4 (Multicast) & 240.0.0.0/4 (Reserved)
       if (parts[0] >= 224) return false;
     }

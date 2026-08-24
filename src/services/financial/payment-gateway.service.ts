@@ -70,6 +70,10 @@ class YooKassaGateway extends BasePaymentGateway {
     const isDummyKeys = !shopId || !secretKey || shopId === 'test_shop_id' || shopId === 'test_shop_id_test' || secretKey === 'test_secret' || secretKey === 'test_secret_key';
 
     if (isDummyKeys) {
+      if (process.env.NODE_ENV === 'production' && !params.isTestMode && process.env.ENABLE_DEV_ROUTES !== 'true') {
+        console.error('[YooKassaGateway] YooKassa credentials missing or invalid in production — refusing payment creation', { paymentId: params.paymentId });
+        throw new Error('Платёжный шлюз ЮKassa не настроен. Пожалуйста, укажите валидные ключи в панели управления (Настройки → Интеграции).');
+      }
       return {
         paymentUrl: `${await getBaseUrlAsync()}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
         remoteGatewayId: `mock_${Date.now()}`
@@ -193,9 +197,13 @@ class CryptoBotGateway extends BasePaymentGateway {
     const secrets = await SettingsManager.getPaymentSecrets();
     const cryptoToken = secrets.cryptoBotToken;
 
-    const isDummyKeys = params.isTestMode || !cryptoToken || cryptoToken === 'test_token' || cryptoToken === 'test_shop_id' || cryptoToken === 'test_login' || cryptoToken.startsWith('test_') || process.env.NODE_ENV === 'development';
+    const isDummyKeys = !cryptoToken || cryptoToken === 'test_token' || cryptoToken === 'test_shop_id' || cryptoToken === 'test_login' || cryptoToken.startsWith('test_');
 
     if (isDummyKeys) {
+      if (process.env.NODE_ENV === 'production' && !params.isTestMode && process.env.ENABLE_DEV_ROUTES !== 'true') {
+        console.error('[CryptoBotGateway] CryptoBot API token missing in production', { paymentId: params.paymentId });
+        throw new Error('Платёжный шлюз CryptoBot не настроен. Пожалуйста, укажите API токен в панели управления.');
+      }
       return {
         paymentUrl: `${await getBaseUrlAsync()}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
         remoteGatewayId: `mock_${Date.now()}`

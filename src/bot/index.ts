@@ -10,7 +10,8 @@
  * Uses: db from @/lib/db, single-bot mode via TELEGRAM_BOT_TOKEN
  */
 import * as dotenv from 'dotenv';
-dotenv.config();
+import path from 'path';
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 import { Scenes, session, Telegraf, Markup } from 'telegraf';
 import { db } from '@/lib/db';
@@ -616,17 +617,72 @@ bot.on(['text', 'photo', 'voice', 'document', 'video', 'sticker', 'video_note', 
 });
 
 // ── LAUNCH ──
-if (process.env.NODE_ENV !== 'test' && !process.env.NEXT_PHASE && process.env.SKIP_BOT !== 'true') {
-  if (TOKEN && TOKEN !== 'dummy_token') {
-    // Delete any lingering webhook (prevents 409 Conflict on polling restart)
-    bot.telegram.deleteWebhook({ drop_pending_updates: true })
-      .then(() => bot.launch({ dropPendingUpdates: true }))
-      .then(() => {
-        console.info('[Bot] ✅ Telegram bot launched successfully');
-      }).catch((e: unknown) => {
-        console.error('[Bot] ❌ Failed to launch:', e instanceof Error ? e.message : String(e));
-      });
+let isBotLaunched = false;
+
+export async function launchBot() {
+  if (isBotLaunched) {
+    console.info('[Bot] Bot instance is already running.');
+    return;
   }
+
+  let activeToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!activeToken || activeToken === 'dummy_token') {
+    try {
+      const { VaultService } = await import('@/lib/vault');
+      const settings = await db.systemSettings.findFirst();
+      if (settings?.telegramBotToken) {
+        const decrypted = VaultService.decrypt(settings.telegramBotToken);
+        if (decrypted && decrypted.trim().length > 10) {
+          activeToken = decrypted.trim();
+          process.env.TELEGRAM_BOT_TOKEN = activeToken;
+          (bot as unknown as { token: string }).token = activeToken;
+          (bot.telegram as unknown as { token: string }).token = activeToken;
+        }
+      }
+    } catch (dbErr) {
+      console.warn('[Bot] Failed to read token from DB:', dbErr);
+    }
+  }
+
+  if (!activeToken || activeToken === 'dummy_token') {
+    console.warn('[Bot] TELEGRAM_BOT_TOKEN not set in .env or DB. Telegram bot will NOT start.');
+    return;
+  }
+
+  isBotLaunched = true;
+
+  try {
+    console.info('[Bot] Deleting any lingering webhook...');
+    await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+    
+    const me = await bot.telegram.getMe();
+    console.info(`[Bot] ✅ Telegram bot @${me.username} (ID: ${me.id}) initialized.`);
+
+    // Heartbeat for Docker healthcheck and Admin UI status monitor
+    try {
+      const { redis } = await import('@/lib/redis');
+      await redis.set('bot:heartbeat', Date.now(), 'EX', 60).catch(() => {});
+      setInterval(() => {
+        redis.set('bot:heartbeat', Date.now(), 'EX', 60).catch(() => {});
+      }, 30_000);
+    } catch (redisErr) {
+      console.warn('[Bot] Redis heartbeat setup skipped:', redisErr);
+    }
+
+    bot.launch({ dropPendingUpdates: true }).then(() => {
+      console.info('[Bot] Polling terminated.');
+    }).catch((e: unknown) => {
+      console.error('[Bot] ❌ Polling loop error:', e instanceof Error ? e.message : String(e));
+    });
+
+    console.info(`[Bot] 🚀 Telegram bot @${me.username} is now actively polling for updates!`);
+  } catch (e: unknown) {
+    console.error('[Bot] ❌ Failed to launch:', e instanceof Error ? e.message : String(e));
+  }
+}
+
+if (process.env.NODE_ENV !== 'test' && !process.env.NEXT_PHASE && process.env.SKIP_BOT !== 'true') {
+  launchBot();
 }
 
 /**

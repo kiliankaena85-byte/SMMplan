@@ -17,6 +17,7 @@ export function LoginForm({ isFlux = false }: { isFlux?: boolean }) {
   const [activeTab, setActiveTab] = useState<'magic' | 'password' | 'register'>('password'); // Password by default
   const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [shakeKey, setShakeKey] = useState(0);
 
   const submitBtnCls = isFlux
     ? 'w-full flex items-center justify-center gap-2.5 h-12 py-3 px-5 rounded-full text-sm font-black bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-[0_4px_18px_rgba(168,85,247,0.35)] hover:shadow-[0_6px_24px_rgba(236,72,153,0.45)] hover:-translate-y-0.5 disabled:opacity-50 transition-all duration-200 cursor-pointer active:scale-[0.98]'
@@ -220,8 +221,16 @@ export function LoginForm({ isFlux = false }: { isFlux?: boolean }) {
 
           <button
             type="submit"
-            disabled={isPending || !email || !password}
-            className={submitBtnCls}
+            onClick={(e) => {
+              if (!email || !password) {
+                e.preventDefault();
+                setShakeKey(Date.now());
+                toast.error('Пожалуйста, заполните Email и пароль');
+              }
+            }}
+            disabled={isPending}
+            key={`btn-pass-${shakeKey}`}
+            className={`${submitBtnCls} ${shakeKey ? 'animate-shake' : ''}`}
           >
             {isPending ? (
               <>
@@ -282,8 +291,17 @@ export function LoginForm({ isFlux = false }: { isFlux?: boolean }) {
 
           <button
             type="submit"
+            onClick={(e) => {
+              const emailInput = document.getElementById('login-email-magic') as HTMLInputElement;
+              if (!emailInput?.value) {
+                e.preventDefault();
+                setShakeKey(Date.now());
+                toast.error('Пожалуйста, введите Email');
+              }
+            }}
             disabled={magicPending}
-            className={submitBtnCls}
+            key={`btn-magic-${shakeKey}`}
+            className={`${submitBtnCls} ${shakeKey ? 'animate-shake' : ''}`}
           >
             {magicPending ? (
               <>
@@ -362,8 +380,17 @@ export function LoginForm({ isFlux = false }: { isFlux?: boolean }) {
 
           <button
             type="submit"
-            disabled={registerPending || !registerEmail || registerPassword.length < 8}
-            className={submitBtnCls}
+            onClick={(e) => {
+              if (!registerEmail || registerPassword.length < 8) {
+                e.preventDefault();
+                setShakeKey(Date.now());
+                if (!registerEmail) toast.error('Пожалуйста, введите Email');
+                else if (registerPassword.length < 8) toast.error('Пароль должен быть не менее 8 символов');
+              }
+            }}
+            disabled={registerPending}
+            key={`btn-reg-${shakeKey}`}
+            className={`${submitBtnCls} ${shakeKey ? 'animate-shake' : ''}`}
           >
             {registerPending ? (
               <>

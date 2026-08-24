@@ -18,6 +18,14 @@ COPY --chown=nextjs:nodejs public          ./public
 
 # Copy Prisma query engine and schema
 COPY --chown=nextjs:nodejs node_modules/.prisma  ./node_modules/.prisma
+COPY --chown=nextjs:nodejs node_modules/@prisma  ./node_modules/@prisma
+RUN for d in .next/node_modules/@prisma/client-*; do \
+      if [ -e "$d" ] || [ -L "$d" ]; then \
+        rm -rf "$d"; \
+        cp -r node_modules/@prisma/client "$d"; \
+        chown -R nextjs:nodejs "$d"; \
+      fi \
+    done
 
 USER nextjs
 

@@ -26,6 +26,18 @@ export async function register() {
         console.error('[Instrumentation] FATAL: APP_ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes).');
         if (process.env.NODE_ENV === 'production') process.exit(1);
       }
+
+      // Auto-launch Telegram Bot Daemon in Node runtime if not skipped
+      if (process.env.SKIP_BOT !== 'true') {
+        try {
+          const { launchBot } = await import('@/bot');
+          launchBot().catch((botErr) => {
+            console.warn('[Instrumentation] Telegram bot startup error:', botErr);
+          });
+        } catch (botImportErr) {
+          console.warn('[Instrumentation] Failed to load bot module:', botImportErr);
+        }
+      }
     }
   }
 }

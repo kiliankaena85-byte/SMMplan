@@ -1,4 +1,4 @@
-﻿export const OPERATIONS_TABS = [
+export const OPERATIONS_TABS = [
   { label: 'Сводка дашборда', href: '/admin/dashboard' },
   { label: 'Заказы клиентов', href: '/admin/orders' },
   { label: 'Заявки на докрутку', href: '/admin/refills' },
@@ -22,6 +22,7 @@ export const CATALOG_TABS = [
 
 export const SYSTEM_TABS = [
   { label: 'Глобальные настройки', href: '/admin/settings' },
+  { label: 'Telegram Бот', href: '/admin/settings?tab=telegram' },
   { label: 'Роли и права', href: '/admin/settings/roles' },
   { label: 'Бренды & Домены', href: '/admin/tenants' },
   { label: 'CMS Страницы', href: '/admin/pages' },

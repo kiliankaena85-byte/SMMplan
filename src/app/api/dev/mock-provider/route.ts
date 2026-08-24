@@ -137,7 +137,7 @@ function calculateOrderStatus(orderId: string): MockStatusResult {
 
 export async function POST(req: NextRequest) {
   // ── 1. Security & Staging Guard ──────────────────────────────────────────
-  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEV_ROUTES !== 'true') {
+  if (process.env.ENABLE_DEV_ROUTES !== 'true') {
     return new Response('Not Found', { status: 404 });
   }
 
