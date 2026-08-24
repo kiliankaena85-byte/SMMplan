@@ -884,6 +884,9 @@ model LedgerEntry {
   status          String   @default("APPROVED") // APPROVED, QUARANTINE, REJECTED
   idempotencyKey  String?
   transactionType String   @default("PAYMENT") // PAYMENT | REFUND | REROUTE | COMPENSATION
+  immutable       Boolean  @default(false)
+  periodId        String?
+  period          LedgerPeriod? @relation(fields: [periodId], references: [id], onDelete: SetNull)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -1612,6 +1615,54 @@ model ProviderServiceBackup {
   @@index([serviceId, priority])
   @@map("provider_service_backup")
 }
+
+model LedgerPeriod {
+  id        String        @id @default(cuid())
+  month     String        @unique // e.g. "2026-08"
+  startDate DateTime      @map("start_date")
+  endDate   DateTime      @map("end_date")
+  frozen    Boolean       @default(false)
+  frozenAt  DateTime?     @map("frozen_at")
+  frozenBy  String?       @map("frozen_by")
+  entries   LedgerEntry[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("ledger_period")
+}
+
+model RevenueRecognition {
+  id             String    @id @default(cuid())
+  orderId        String    @unique @map("order_id")
+  amount         BigInt    // Amount in Kopecks
+  recognizedAt   DateTime  @default(now()) @map("recognized_at")
+  reversed       Boolean   @default(false)
+  reversedAt     DateTime? @map("reversed_at")
+  reversalReason String?   @map("reversal_reason")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("revenue_recognition")
+}
+
+model ReconciliationReport {
+  id              String   @id @default(cuid())
+  date            DateTime
+  bankTotal       BigInt   @map("bank_total")
+  dbTotal         BigInt   @map("db_total")
+  ledgerTotal     BigInt   @map("ledger_total")
+  deltaBankVsDb   BigInt   @map("delta_bank_vs_db")
+  deltaDbVsLedger BigInt   @map("delta_db_vs_ledger")
+  status          String   @default("OK") // OK, MISMATCH
+  details         Json?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([date])
+  @@map("reconciliation_report")
+}
+
 
 
 
