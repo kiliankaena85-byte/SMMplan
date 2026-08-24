@@ -62,6 +62,17 @@
     7. Multi-stage Dockerfile дополнен таргетом `worker-runner`, исключающим скачивание пакетов на лету в проде.
     8. Сканер `verify-no-secrets.js` расширен для одновременного сканирования `.next/static` и `.next/server` с фильтрацией библиотечных сигнатур и проверкой реальных RSA/EC ключей. В вебхуке `/api/webhooks/provider` запрещен секрет в query params `?secret=`.
 
+- **Next.js 16 Standalone Bundling & Webpack Reliability:**
+  - *Решение:* Для standalone-образа в Docker используется сборка через Webpack (`next build --webpack`), а из `serverExternalPackages` в `next.config.mjs` исключены стандартные JS-библиотеки (`ioredis`, `sanitize-html`, `bullmq`).
+  - *Причина:* Turbopack в Next.js 16 при наличии внешних зависимостей генерирует хэшированные имена модулей (`module-<hash>`), вызывая фатальный `500 Internal Server Error: Cannot find module` в изолированном контейнере.
+
+- **Server Action Safe Error Response Contract:**
+  - *Решение:* Запрет `throw new Error(...)` в Server Actions. Все экшены возвращают структурированный `{ success: false, error: '...' }`.
+  - *Причина:* Next.js в production маскирует все необработанные исключения в `"An unexpected response was received from the server."`, скрывая полезный текст ошибки от пользователя и оператора.
+
+- **Task & Polling Daemon Hygiene:**
+  - *Решение:* Автоматический запуск бота перенесен внутрь Next.js рантайма через `instrumentation.ts` в контейнере `smmplan_web`. Локальные фоновые процессы бота на хосте принудительно останавливаются, чтобы не создавать конфликт поллинга `409 Conflict`. Все временные отладочные команды завершаются немедленно.
+
 ---
 
 ## 2. 🗺️ Реестр статуса модулей и экранов (Episodic Progress State)

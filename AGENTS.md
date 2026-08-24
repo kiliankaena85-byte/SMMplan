@@ -41,10 +41,14 @@
 
 ## 2. Архитектурные границы и безопасность (CRITICAL)
 
-### Server/Client Boundary
+### Server/Client Boundary & Error Handling
 - **Server Components** по умолчанию. `'use client'` только при наличии React hooks или Browser APIs.
 - **Server Actions** строго в `src/actions/` с обязательным guard `requireAdmin()` или `requireStaffPermission()`.
 - ❌ **КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО** ставить `"use server"` в Page Components (`page.tsx`) — вызывает краш приложения.
+- ❌ **ЗАПРЕЩЕНО** выбрасывать необработанные `throw new Error(...)` внутри Server Actions (Next.js в production маскирует их в `"An unexpected response was received from the server."`).
+- ✅ Все Server Actions обязаны возвращать типизированный результат: `return { success: false, error: 'Понятное сообщение' }`.
+- ❌ **ЗАПРЕЩЕНО** добавлять стандартные библиотеки (`ioredis`, `sanitize-html`, `bullmq`) в `serverExternalPackages` в `next.config.mjs` (вызывает сбой поиска хэшированных модулей в standalone).
+- ✅ **Standalone Сборка:** Для сборки продакшен-бандла использовать `next build --webpack`. Перед перезапуском Docker (`docker-compose up -d --build web`) всегда запускать `npm run build` на хосте.
 
 ### Multi-Tenant Rules & SMMpanel 1.0
 - Проект обслуживает СТРОГО 2 бренда: **SMMplan** (`smmplan.pro`) и **SMMflux** (`smmflux.ru`).
