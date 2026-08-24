@@ -58,6 +58,8 @@ async function main() {
       { section: 'orders', canView: true, canEdit: true },
       { section: 'refills', canView: true, canEdit: true },
       { section: 'catalog', canView: true, canEdit: true },
+      // ADM-00: required by Stage-4 fix (provider CRUD actions moved from 'catalog' to 'providers')
+      { section: 'providers', canView: true, canEdit: true },
       { section: 'tickets', canView: true, canEdit: true },
       { section: 'marketing', canView: true, canEdit: true },
       { section: 'pages', canView: true, canEdit: true },
