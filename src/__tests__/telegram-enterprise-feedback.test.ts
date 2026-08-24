@@ -4,11 +4,11 @@ import {
   DEFAULT_TELEGRAM_MENU_BUTTONS,
   DEFAULT_TELEGRAM_RATING_REASONS,
   DEFAULT_TELEGRAM_MESSAGE_TEMPLATES,
-  TelegramMenuButton,
-  TelegramRatingReasonsConfig,
-  TelegramMessageTemplatesConfig,
-  TelegramMenuButtonAction
-} from '@/actions/admin/telegram-bot';
+  type TelegramMenuButton,
+  type TelegramRatingReasonsConfig,
+  type TelegramMessageTemplatesConfig,
+  type TelegramMenuButtonAction
+} from '@/types/telegram';
 
 describe('Enterprise Telegram Bot & Feedback Ecosystem Test Suite', () => {
 
@@ -127,21 +127,17 @@ describe('Enterprise Telegram Bot & Feedback Ecosystem Test Suite', () => {
   describe('4. Database Models & Ticket Feedback Persistence', () => {
     let testUser: { id: string; email: string };
     let testTicket: { id: string };
+    let createdUserIds: string[] = [];
 
     beforeEach(async () => {
-      // Clean previous test data
-      await db.ticketFeedback.deleteMany();
-      await db.ticketMessage.deleteMany();
-      await db.ticket.deleteMany();
-      await db.user.deleteMany();
-
       testUser = await db.user.create({
         data: {
-          email: `test_csat_${Date.now()}@smmplan.pro`,
+          email: `test_csat_${Date.now()}_${Math.random().toString(36).slice(2, 6)}@smmplan.pro`,
           telegramId: '123456789',
           tenantId: 'smmplan'
         }
       });
+      createdUserIds.push(testUser.id);
 
       testTicket = await db.ticket.create({
         data: {
@@ -240,7 +236,9 @@ describe('Enterprise Telegram Bot & Feedback Ecosystem Test Suite', () => {
         ]
       });
 
-      const all = await db.ticketFeedback.findMany();
+      const all = await db.ticketFeedback.findMany({
+        where: { userId: { in: [testUser.id, user2.id] } }
+      });
       expect(all).toHaveLength(3);
 
       const totalScore = all.reduce((sum, f) => sum + f.score, 0);

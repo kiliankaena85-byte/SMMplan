@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { db } from '@/lib/db';
 import { 
   saveTelegramMenuConfigAction,
@@ -6,11 +6,13 @@ import {
   saveTelegramTemplatesAction,
   getTicketFeedbackStatsAction,
   getTicketFeedbackListAction,
+} from '@/actions/admin/telegram-bot';
+import {
   DEFAULT_TELEGRAM_MENU_BUTTONS,
   DEFAULT_TELEGRAM_RATING_REASONS,
   DEFAULT_TELEGRAM_MESSAGE_TEMPLATES,
-  TelegramMenuButton
-} from '@/actions/admin/telegram-bot';
+  type TelegramMenuButton
+} from '@/types/telegram';
 
 // Mock RBAC to simulate staff session
 vi.mock('@/lib/server/rbac', () => ({

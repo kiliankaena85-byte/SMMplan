@@ -611,6 +611,15 @@ model SystemSettings {
   telegramMenuConfig      Json?   // Custom dynamic reply keyboard & inline buttons
   telegramTemplates       Json?   // Canned response message templates by scenario
   telegramRatingReasons   Json?   // Configurable reason tags for 1-2, 3, 4-5 stars CSAT ratings
+  telegramWebhookSecret   String? // HMAC secret for webhook verification (OWASP A08)
+  telegramAllowedIps      String? @default("[]") // JSON array of allowed IPs for webhook
+  telegramRateLimitPerMin Int?    @default(30) // Rate limit per user per minute (OWASP A05)
+  telegramMaxMessageLength Int?   @default(4096) // Max outbound message length
+  telegramProxyId         String? // FK to active proxy
+  telegramMaintenanceMode Boolean @default(false) // Bot maintenance mode
+  telegramLogErrors       Boolean @default(true) // Enable error logging
+  telegramEnableCsat      Boolean @default(true) // CSAT after ticket close
+  telegramEnableSmartBind Boolean @default(true) // Smart bind protocol
 
   // Payment Gateways (Secrets are AES-256-GCM encrypted in DB)
   // Production keys
@@ -1690,6 +1699,119 @@ model ReconciliationReport {
   @@index([date])
   @@map("reconciliation_report")
 }
+
+// ── Telegram Enterprise Models ──
+
+model TelegramButton {
+  id           String   @id @default(cuid())
+  tenantId     String   @default("smmplan")
+  label        String
+  emoji        String   @default("")
+  command      String
+  description  String   @default("")
+  row          Int      @default(0)
+  col          Int      @default(0)
+  sortOrder    Int      @default(0)
+  isVisible    Boolean  @default(true)
+  isNew        Boolean  @default(false)
+  requiresAuth Boolean  @default(false)
+  openUrl      String?
+  style        String   @default("default") // default | primary | danger
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([sortOrder])
+}
+
+model TelegramTemplate {
+  id          String   @id @default(cuid())
+  tenantId    String   @default("smmplan")
+  name        String
+  slug        String
+  description String   @default("")
+  body        String
+  parseMode   String   @default("HTML") // HTML | Markdown | MarkdownV2
+  category    String   @default("general") // general | order | payment | support | notification | error
+  variables   String   @default("[]") // JSON array of variable names
+  isActive    Boolean  @default(true)
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([slug, tenantId])
+  @@index([tenantId])
+  @@index([category])
+  @@index([slug])
+}
+
+model TelegramProxy {
+  id                String    @id @default(cuid())
+  tenantId          String    @default("smmplan")
+  label             String
+  protocol          String    @default("socks5") // socks5 | http | https
+  host              String
+  port              Int
+  username          String?
+  passwordEncrypted String?   // AES-256-GCM encrypted
+  isActive          Boolean   @default(false)
+  lastTestAt        DateTime?
+  lastTestLatencyMs Int?
+  lastTestSuccess   Boolean?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([tenantId])
+}
+
+model TelegramErrorLog {
+  id              String    @id @default(cuid())
+  tenantId        String    @default("smmplan")
+  level           String    @default("ERROR") // ERROR | WARN | FATAL
+  source          String    // webhook | polling | command | callback_query | scene
+  errorCode       String?   // Telegram API error code
+  errorMessage    String
+  stackTrace      String?
+  updateData      String?   // JSON: raw Telegram update for debugging
+  userId          String?   // affected user if any
+  chatId          String?
+  isResolved      Boolean   @default(false)
+  resolvedBy      String?
+  resolvedAt      DateTime?
+  occurrenceCount Int       @default(1)
+  firstSeenAt     DateTime  @default(now())
+  lastSeenAt      DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([level])
+  @@index([source])
+  @@index([isResolved])
+  @@index([lastSeenAt])
+  @@index([errorCode])
+}
+
+model TelegramDailyStat {
+  id               String   @id @default(cuid())
+  tenantId         String   @default("smmplan")
+  date             DateTime @db.Date
+  messagesReceived Int      @default(0)
+  messagesSent     Int      @default(0)
+  commandsHandled  Int      @default(0)
+  callbacksHandled Int      @default(0)
+  newUsers         Int      @default(0)
+  ordersCreated    Int      @default(0)
+  ticketsCreated   Int      @default(0)
+  errorsCount      Int      @default(0)
+  avgLatencyMs     Int?
+  p99LatencyMs     Int?
+  createdAt        DateTime @default(now())
+
+  @@unique([date, tenantId])
+  @@index([tenantId])
+  @@index([date])
+}
+
 
 
 

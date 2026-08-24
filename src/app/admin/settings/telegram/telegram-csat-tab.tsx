@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
 import { Card } from '@/components/ui/card';
@@ -19,11 +19,11 @@ import {
   Sparkles,
   Info 
 } from 'lucide-react';
+import { saveTelegramRatingReasonsAction } from '@/actions/admin/telegram-bot';
 import { 
-  TelegramRatingReasonsConfig, 
+  type TelegramRatingReasonsConfig, 
   DEFAULT_TELEGRAM_RATING_REASONS,
-  saveTelegramRatingReasonsAction 
-} from '@/actions/admin/telegram-bot';
+} from '@/types/telegram';
 
 interface TelegramCsatTabProps {
   initialReasons: TelegramRatingReasonsConfig;

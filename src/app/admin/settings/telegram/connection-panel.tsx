@@ -1,0 +1,169 @@
+'use client';
+
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { useActionState, useTransition, useState } from 'react';
+import { Loader2, Send, RotateCcw, Radio, ExternalLink, Key, ShieldCheck, CheckCircle, AlertCircle, Wifi, WifiOff, Server } from 'lucide-react';
+import { updateGlobalSettings } from '@/actions/admin/settings';
+import { sendTelegramTestAlertAction } from '@/actions/admin/telegram-bot';
+import type { TelegramBotDiagnostics } from '@/types/telegram';
+import type { SystemSettings } from '@prisma/client';
+
+interface Props {
+  settings: SystemSettings;
+  diagnostics: TelegramBotDiagnostics | null;
+  onRefresh: () => void;
+}
+
+export function ConnectionPanel({ settings, diagnostics, onRefresh }: Props) {
+  const [isPendingReset, startTransitionReset] = useTransition();
+  const [isPendingTestMsg, startTransitionTestMsg] = useTransition();
+  const [testChatId, setTestChatId] = useState('');
+  const [testMsgText, setTestMsgText] = useState('Проверка доставки уведомлений из панели управления.');
+
+  const [state, formAction, isPendingSave] = useActionState(
+    async (prevState: unknown, formData: FormData) => {
+      try {
+        const res = await updateGlobalSettings(formData);
+        if (res && typeof res === 'object' && 'success' in res && !res.success) return res;
+        return { success: true };
+      } catch (err) {
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
+      }
+    }, null
+  );
+  const formState = state as { success?: boolean; error?: string } | null;
+
+  useState(() => {
+    if (formState?.success) { toast.success('Настройки подключения сохранены'); onRefresh(); }
+    else if (formState?.error) { toast.error(formState.error); }
+  });
+
+  const handleSendTestMessage = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    startTransitionTestMsg(async () => {
+      try {
+        const res = await sendTelegramTestAlertAction(formData);
+        toast[ res.success ? 'success' : 'error'](res.success ? res.message! : res.error!);
+      } catch (err) { toast.error(String(err)); }
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <form action={formAction} className="space-y-6">
+        {/* Auth & Secrets */}
+        <Card className="rounded-3xl border border-border/80 shadow-sm bg-card p-6 space-y-5">
+          <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
+            <span className="p-1 px-2.5 bg-primary/10 text-primary rounded-md text-[10px] font-bold">AUTH</span>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Идентификаторы и Секреты</h3>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Юзернейм бота (без @)</Label>
+              <Input name="contactTelegramBot" defaultValue={settings.contactTelegramBot || ''} placeholder="SMMplansapport_bot" className="font-mono text-xs" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Официальный канал</Label>
+              <Input name="contactTelegramChannel" defaultValue={settings.contactTelegramChannel || ''} placeholder="@smmplan_news" className="font-mono text-xs" />
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-2 border-t border-border/40">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Токен Telegram Бота
+              </Label>
+              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                AES-256-GCM Vault
+              </span>
+            </div>
+            <Input name="telegramBotToken" type="password"
+              placeholder={settings.telegramBotToken ? '••••••••••••••••' : 'Вставьте токен от @BotFather'}
+              className="font-mono text-xs" autoComplete="new-password" />
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              Токен шифруется в БД (AES-256-GCM) и имеет приоритет над .env
+            </p>
+          </div>
+
+          <div className="space-y-2 pt-2 border-t border-border/40">
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Режим работы</Label>
+            <select name="telegramBotMode" defaultValue={settings.telegramBotMode || 'polling'}
+              className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs font-medium focus:ring-1 focus:ring-primary focus:outline-none">
+              <option value="polling">Long Polling (Демон)</option>
+              <option value="webhook">Webhook (HTTP POST)</option>
+            </select>
+          </div>
+
+          {/* Connection Status Detail */}
+          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/40">
+            <div className="p-3 rounded-2xl bg-muted/20 border border-border/60 space-y-1">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                <Server className="w-3 h-3 text-blue-400" /> Daemon
+              </span>
+              <div className="flex items-center gap-1.5">
+                {diagnostics?.daemonRunning ? (
+                  <><Wifi className="w-4 h-4 text-emerald-400" /><span className="text-xs font-bold text-emerald-400">Active ({diagnostics.heartbeatAgeMs}ms)</span></>
+                ) : (
+                  <><WifiOff className="w-4 h-4 text-rose-400" /><span className="text-xs font-bold text-rose-400">Stopped</span></>
+                )}
+              </div>
+            </div>
+            <div className="p-3 rounded-2xl bg-muted/20 border border-border/60 space-y-1">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                <Key className="w-3 h-3 text-amber-400" /> Proxy
+              </span>
+              <div className="flex items-center gap-1.5">
+                {diagnostics?.proxy?.isActive ? (
+                  <><ShieldCheck className="w-4 h-4 text-emerald-400" /><span className="text-xs font-bold text-emerald-400">{diagnostics.proxy.label} ({diagnostics.proxy.protocol})</span></>
+                ) : (
+                  <><AlertCircle className="w-4 h-4 text-zinc-500" /><span className="text-xs font-bold text-zinc-400">Direct</span></>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Button type="submit" disabled={isPendingSave} className="font-bold uppercase tracking-widest text-xs h-11 px-6 shadow-lg shadow-primary/20 cursor-pointer">
+              {isPendingSave && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Сохранить подключение
+            </Button>
+          </div>
+        </Card>
+      </form>
+
+      {/* Test Message Dispatcher */}
+      <Card className="rounded-3xl border border-border/80 shadow-sm bg-card p-6 space-y-4">
+        <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
+          <span className="p-1 px-2.5 bg-purple-500/10 text-purple-400 rounded-md text-[10px] font-bold">TEST</span>
+          <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Тестовое сообщение</h3>
+          <span className="text-[10px] text-muted-foreground ml-auto">Лимит: 5 / 10 мин</span>
+        </div>
+        <form onSubmit={handleSendTestMessage} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Chat ID</Label>
+              <Input name="chatId" value={testChatId} onChange={(e) => setTestChatId(e.target.value)}
+                placeholder="123456789" className="font-mono text-xs" required />
+            </div>
+            <div className="sm:col-span-2 space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Текст</Label>
+              <Input name="message" value={testMsgText} onChange={(e) => setTestMsgText(e.target.value)} className="text-xs" required />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button type="submit" intent="secondary" size="sm" disabled={isPendingTestMsg} className="font-bold text-xs h-9 gap-1.5 cursor-pointer">
+              {isPendingTestMsg ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+              Отправить
+            </Button>
+          </div>
+        </form>
+      </Card>
+    </div>
+  );
+}

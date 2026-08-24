@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
 import { Card } from '@/components/ui/card';
@@ -17,11 +17,13 @@ import {
   Filter
 } from 'lucide-react';
 import { 
-  TicketFeedbackStats, 
-  TicketFeedbackItem, 
   getTicketFeedbackStatsAction, 
   getTicketFeedbackListAction 
 } from '@/actions/admin/telegram-bot';
+import type { 
+  TicketFeedbackStats, 
+  TicketFeedbackItem, 
+} from '@/types/telegram';
 import Link from 'next/link';
 
 export function TelegramFeedbackListTab() {

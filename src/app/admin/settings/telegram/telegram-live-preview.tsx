@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
 import { Card } from '@/components/ui/card';
@@ -21,13 +21,13 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { 
-  TelegramMenuButton, 
-  TelegramRatingReasonsConfig, 
-  TelegramMessageTemplatesConfig,
+  type TelegramMenuButton, 
+  type TelegramRatingReasonsConfig, 
+  type TelegramMessageTemplatesConfig,
   DEFAULT_TELEGRAM_MENU_BUTTONS,
   DEFAULT_TELEGRAM_RATING_REASONS,
   DEFAULT_TELEGRAM_MESSAGE_TEMPLATES
-} from '@/actions/admin/telegram-bot';
+} from '@/types/telegram';
 
 export type PreviewSimulatorState = 'WELCOME_MENU' | 'SUPPORT_CHAT' | 'CSAT_POLL' | 'REASONS_PICKER' | 'FEEDBACK_SUCCESS';
 

@@ -123,9 +123,13 @@ vi.mock('@/validators/link-mutators', async () => {
   };
 });
 
-vi.mock('@/utils/target-type', () => ({
-  inferTargetTypeFromCategory: vi.fn().mockReturnValue('POST'),
-}));
+vi.mock('@/utils/target-type', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/utils/target-type')>();
+  return {
+    ...actual,
+    inferTargetTypeFromCategory: vi.fn().mockReturnValue('POST'),
+  };
+});
 
 vi.mock('@/services/financial/payment-gateway.service', () => ({
   PaymentGatewayFactory: {

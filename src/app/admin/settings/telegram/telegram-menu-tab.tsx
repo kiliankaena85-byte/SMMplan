@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
 import { Card } from '@/components/ui/card';
@@ -27,12 +27,12 @@ import {
   CheckCircle2,
   XCircle
 } from 'lucide-react';
+import { saveTelegramMenuConfigAction } from '@/actions/admin/telegram-bot';
 import { 
-  TelegramMenuButton, 
-  TelegramMenuButtonAction, 
+  type TelegramMenuButton, 
+  type TelegramMenuButtonAction, 
   DEFAULT_TELEGRAM_MENU_BUTTONS,
-  saveTelegramMenuConfigAction 
-} from '@/actions/admin/telegram-bot';
+} from '@/types/telegram';
 
 interface TelegramMenuTabProps {
   initialButtons: TelegramMenuButton[];

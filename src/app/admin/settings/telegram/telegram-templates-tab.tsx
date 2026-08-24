@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import * as React from 'react';
 import { Card } from '@/components/ui/card';
@@ -19,11 +19,11 @@ import {
   RefreshCw, 
   Coins 
 } from 'lucide-react';
+import { saveTelegramTemplatesAction } from '@/actions/admin/telegram-bot';
 import { 
-  TelegramMessageTemplatesConfig, 
+  type TelegramMessageTemplatesConfig, 
   DEFAULT_TELEGRAM_MESSAGE_TEMPLATES,
-  saveTelegramTemplatesAction 
-} from '@/actions/admin/telegram-bot';
+} from '@/types/telegram';
 
 interface TelegramTemplatesTabProps {
   initialTemplates: TelegramMessageTemplatesConfig;

@@ -39,14 +39,16 @@ const buttonVariants = cva(
 interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
-  asChild?: boolean
+  asChild?: boolean;
+  variant?: VariantProps<typeof buttonVariants>['intent'];
 }
 
-const Button = ({ className, intent, size, isAnimated, asChild = false, ref, ...props }: ButtonProps & { ref?: React.Ref<HTMLButtonElement> }) => {
+const Button = ({ className, intent, variant, size, isAnimated, asChild = false, ref, ...props }: ButtonProps & { ref?: React.Ref<HTMLButtonElement> }) => {
   const Comp = asChild ? Slot : "button"
+  const resolvedIntent = intent || variant || "primary"
   return (
     <Comp
-      className={cn(buttonVariants({ intent, size, isAnimated, className }))}
+      className={cn(buttonVariants({ intent: resolvedIntent, size, isAnimated, className }))}
       ref={ref}
       {...props}
     />

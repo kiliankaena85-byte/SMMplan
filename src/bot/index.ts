@@ -45,11 +45,22 @@ const stage = new Scenes.Stage<BotContext>([
 bot.use(session());
 bot.use(stage.middleware());
 
+// ── OWASP A03 / XSS DEFENSE HELPER ──
+function escapeHtml(text: string): string {
+  if (!text) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 // ── ERROR HANDLER ──
 bot.catch(async (err: unknown, ctx: unknown) => {
   try {
-    const errorObj = err as { response?: { description?: string }; message?: string };
+    const errorObj = err as { response?: { description?: string; error_code?: number }; message?: string; stack?: string };
     const description = errorObj?.response?.description || errorObj?.message || '';
+    const errorCode = errorObj?.response?.error_code ? String(errorObj.response.error_code) : undefined;
     // Ignore common non-critical Telegram errors
     if (
       description.includes('query is too old') ||
@@ -62,8 +73,27 @@ bot.catch(async (err: unknown, ctx: unknown) => {
       return;
     }
 
-    const contextObj = ctx as { updateType?: string; reply?: (text: string) => Promise<unknown> };
+    const contextObj = ctx as { 
+      updateType?: string; 
+      reply?: (text: string) => Promise<unknown>;
+      from?: { id?: number };
+      chat?: { id?: number };
+    };
     console.error(`[Bot] ERROR [${contextObj?.updateType || 'unknown'}]:`, err);
+
+    // Asynchronously log to TelegramErrorLog in database
+    try {
+      const { logTelegramError } = await import('@/actions/admin/telegram-bot');
+      await logTelegramError({
+        level: 'ERROR',
+        source: (contextObj?.updateType as 'command' | 'callback_query' | 'webhook' | 'polling') || 'polling',
+        errorCode,
+        errorMessage: description || 'Unknown bot error',
+        stackTrace: errorObj?.stack?.slice(0, 1000),
+        userId: contextObj?.from?.id ? String(contextObj.from.id) : undefined,
+        chatId: contextObj?.chat?.id ? String(contextObj.chat.id) : undefined,
+      });
+    } catch { /* error logging must never crash the bot */ }
 
     if (contextObj && typeof contextObj.reply === 'function') {
       await contextObj.reply('⚠️ Произошла техническая ошибка. Мы уже исправляем её.').catch(() => {});
@@ -243,8 +273,8 @@ bot.start(async (ctx: BotContext) => {
   } catch { /* use default */ }
 
   const formattedWelcome = welcomeTpl
-    .replace(/{siteName}/g, botSiteName)
-    .replace(/{userName}/g, user.email?.split('@')[0] || 'Пользователь')
+    .replace(/{siteName}/g, escapeHtml(botSiteName))
+    .replace(/{userName}/g, escapeHtml(user.email?.split('@')[0] || 'Пользователь'))
     .replace(/{balance}/g, (Number(user.balance) / 100).toFixed(2));
 
   const keyboard = await getDynamicKeyboard();
@@ -713,10 +743,10 @@ bot.action(/^fb_rsn:([^:]+):(\d+)$/, async (ctx: BotContext) => {
 
     thanksText = thanksText
       .replace(/{stars}/g, '⭐'.repeat(5))
-      .replace(/{reasons}/g, selectedReason);
+      .replace(/{reasons}/g, escapeHtml(selectedReason));
 
     await ctx.editMessageText(
-      `✅ <b>Отзыв принят: «${selectedReason}»</b>\n\n${thanksText}`,
+      `✅ <b>Отзыв принят: «${escapeHtml(selectedReason)}»</b>\n\n${thanksText}`,
       { parse_mode: 'HTML' }
     ).catch(() => {});
   } catch (e) {
