@@ -7,11 +7,7 @@ import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { FINANCE_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { enforceSectionAccess } from '@/lib/server/rbac';
 import { FinanceClient } from './finance-client';
-import { QuarantineList } from './quarantine-list';
-import { FinanceSettingsForm } from './finance-settings-form';
-import { VatThresholdWidget } from './vat-threshold-widget';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Wallet, TrendingUp, TrendingDown, DollarSign, PieChart, Calculator, AlertTriangle } from 'lucide-react';
+import { Wallet, AlertTriangle } from 'lucide-react';
 
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
@@ -22,9 +18,6 @@ export const dynamic = 'force-dynamic';
 type Props = {
   searchParams: Promise<{ period?: string; tenant?: string }>;
 };
-
-const fmt = (n: number) =>
-  new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB' }).format(n / 100);
 
 export default async function FinanceDashboard({ searchParams }: Props) {
   // ADM-03 follow-up: the finance layout is now a coarse gate (finance OR balance-*),
@@ -52,17 +45,14 @@ export default async function FinanceDashboard({ searchParams }: Props) {
   else if (period === 'week') { periodStart = new Date(Date.now() - 7*86400000); }
   else if (period === 'month') { periodStart = new Date(Date.now() - 30*86400000); }
 
-  const [metrics, settings, quarantineList, ledgerResult, paymentsResult, reconciliationSummaryResult, tenants] = await Promise.all([
+  const [metrics, settings, quarantineList, ledgerResult, paymentsResult, reconciliationSummaryResult] = await Promise.all([
     accountingService.getMetrics(periodStart, periodStart ? new Date() : undefined, activeTenantId),
     accountingService.getSettings(activeTenantId),
     escrowService.getQuarantineEntries(),
     getLedgerAction({ period, pageSize: 50, tenantId: activeTenantId }),
     getPaymentsAction({ period, pageSize: 50, tenantId: activeTenantId }),
     getReconciliationSummaryAction(activeTenantId),
-    db.tenant.findMany({ where: { isActive: true }, select: { id: true, name: true, slug: true } }),
   ]);
-
-  const showTenantSelector = isOwner || user?.role === 'ADMIN' || user?.tenantId === 'all';
 
   if ('error' in ledgerResult) {
     return (
@@ -90,41 +80,6 @@ export default async function FinanceDashboard({ searchParams }: Props) {
 
   const initialLedger = ledgerResult;
   const initialPayments = paymentsResult;
-
-  const KPI = [
-    {
-      label: 'Выручка (Gross)',
-      value: fmt(metrics.revenueGross),
-      sub: 'Все поступления',
-      icon: DollarSign,
-      color: 'bg-success',
-      textColor: 'text-success',
-    },
-    {
-      label: 'Возвраты',
-      value: metrics.refunds > 0 ? `-${fmt(metrics.refunds)}` : fmt(0),
-      sub: 'Отмены и частичные',
-      icon: TrendingDown,
-      color: 'bg-destructive',
-      textColor: 'text-destructive',
-    },
-    {
-      label: 'Закупка (COGS)',
-      value: metrics.cogs > 0 ? `-${fmt(metrics.cogs)}` : fmt(0),
-      sub: 'Расход провайдерам',
-      icon: TrendingDown,
-      color: 'bg-warning',
-      textColor: 'text-warning',
-    },
-    {
-      label: 'Валовая маржа',
-      value: fmt(metrics.marginGross),
-      sub: `${metrics.marginPercentage.toFixed(1)}% эффективность`,
-      icon: TrendingUp,
-      color: 'bg-primary',
-      textColor: 'text-primary',
-    },
-  ];
 
   return (
     <div className="space-y-6 pb-10 w-full animate-in fade-in duration-300">

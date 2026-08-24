@@ -26,7 +26,7 @@ const getCachedAnomalyCount = unstable_cache(
     }
   }),
   ['admin-catalog-anomaly-count-v1'],
-  { revalidate: 60, tags: ['catalog'] }
+  { revalidate: 60, tags: ['catalog', 'anomaly-count'] }
 );
 
 // RBAC: Allowed roles for admin panel access

@@ -366,4 +366,44 @@ describe('RBAC Stage B: Canonical Registry & StaffRole Management', () => {
       await expect(enforceSectionAccess('settings')).rejects.toThrow('NEXT_REDIRECT');
     });
   });
+
+  describe('C.3 canSeeRates via FINANCE:view permission (ADM-15)', () => {
+    function computeCanSeeRates(user: any) {
+      const isSuperAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
+      const permissions = user?.staffRole?.permissions || [];
+      return isSuperAdmin || permissions.some((p: any) => p.section.toLowerCase() === 'finance' && (p.canView || p.canEdit));
+    }
+
+    it('denies rates visibility for Support staff without finance:view', () => {
+      expect(computeCanSeeRates(cashierUser)).toBe(false);
+    });
+
+    it('denies rates visibility for Manager without finance:view (even with catalog:edit)', () => {
+      expect(computeCanSeeRates(managerUser)).toBe(false);
+    });
+
+    it('grants rates visibility for user with finance:view permission', () => {
+      const financeUser = {
+        role: 'SUPPORT',
+        staffRole: {
+          permissions: [
+            { section: 'finance', canView: true, canEdit: false }
+          ]
+        }
+      };
+      expect(computeCanSeeRates(financeUser)).toBe(true);
+    });
+
+    it('grants rates visibility for OWNER automatically via super admin bypass', () => {
+      const ownerUser = {
+        role: 'OWNER',
+        staffRole: null
+      };
+      expect(computeCanSeeRates(ownerUser)).toBe(true);
+    });
+
+    it('grants rates visibility for ADMIN automatically via super admin bypass', () => {
+      expect(computeCanSeeRates(adminUser)).toBe(true);
+    });
+  });
 });
