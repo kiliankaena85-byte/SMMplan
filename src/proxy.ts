@@ -14,7 +14,7 @@ const legacyRedirects: Record<string, string> = {
   '/p/faq': ROUTES.FAQ,
 };
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 0. Strip any client-supplied x-tenant-id to prevent spoofing

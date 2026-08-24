@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { NextRequest } from 'next/server';
 import { RateLimitService } from '@/services/core/rate-limit.service';
-import { middleware } from '@/middleware';
+import { proxy as middleware } from '@/proxy';
 
 describe('Multi-Tenant Isolation Enhancements', () => {
 
