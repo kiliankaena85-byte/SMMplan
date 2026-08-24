@@ -38,6 +38,9 @@ pin.html
 .gemini/
 .agent/
 .agents/
+# Skills are shared team knowledge — tracked by git
+!.agents/skills/
+!.agents/skills/**
 .planning/audits/
 teamwork_projects/
 lovable_ui_spec.md
