@@ -1582,3 +1582,20 @@ model StaffShift {
   @@index([userId, date])
 }
 
+model PiiAccessLog {
+  id         String   @id @default(cuid())
+  staffId    String
+  staffEmail String
+  action     String   // 'view-client', 'view-payment-detail', 'export-csv', etc.
+  targetId   String   // client ID / order ID / payment ID
+  targetType String   // 'client' | 'order' | 'payment'
+  fields     String[] // ['email', 'phone', 'address', 'inn']
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([staffId, createdAt])
+  @@index([targetType, targetId])
+}
+
+
