@@ -2,20 +2,18 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-24 | Агент: Antigravity
-## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕН ЭТАП C «Качество и устойчивость» (ADM-12..17)
-- **Ветка**: `fix/admin-stage-c-resilience`
+## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕН ЭТАП P0 «Premortem Hardening» (PREM-01..04)
+- **Ветка**: `fix/premortem-p0-hardening`
 - **Завершено**:
-  - `C.1 (ADM-13)`: Error-границы (`error.tsx`) внедрены во все 26+ подразделов админки на базе унифицированного компонента `AdminSectionError`.
-  - `C.2 (ADM-16)`: Кэш счётчика аномалий каталога в `src/app/admin/layout.tsx` через `unstable_cache` (60s TTL, теги `catalog`, `anomaly-count`).
-  - `C.3 (ADM-15)`: `canSeeRates` переведён на RBAC-секцию `finance:view` с сохранением superadmin bypass (`OWNER`/`ADMIN`).
-  - `C.4 (ADM-14)`: Идемпотентный экшен `ensurePrimaryRouteAction` с аудитом `ROUTE_ENSURE_PRIMARY` и UI-баннером в `RoutingPanelClient.tsx` (GET-страница роутинга избавлена от побочных эффектов записи).
-  - `C.5 (ADM-12)`: Декомпозиция god-компонентов: `finance-client.tsx` (с 780 до 141 строк) и вкладок `client-detail-client.tsx` (`balance-tab`, `security-tab`, `payments-tab`), все новые подкомпоненты строго ≤ 300 строк.
-  - `C.6 (ADM-17)`: Справка `src/app/admin/manual/page.tsx` полностью открыта для саппорта (снят гейт `settings`).
+  - `PREM-01`: SSRF Protection в workers и provider API (`ssrf-guard.ts` с защитой от RFC1918, link-local, AWS/GCP metadata 169.254.169.254, loopback, IPv6 и DNS rebinding; интеграция в `universal.provider.ts`, `provider.service.ts`, `b2b/webhook-dispatcher.ts`, `payment-sync.ts`).
+  - `PREM-02`: Magic Link Hardening (`AuthToken` model single-use atomic CAS, `usedAt`, `ipIssued`, `ipUsed`, `userAgentIssued`, `userAgentUsed`, SHA-256 token hashing, `rateLimit` 5/ч email и 20/ч IP, `login-anomaly-detector.ts`).
+  - `PREM-03`: Silent Checkout Failure Alerting (`webhook-health.ts` с детекцией 0 событий/час, воркер `payment-reconciliation.ts` для PENDING > 30 мин, бейдж `STALE 30+ мин` в админке, клиентский экшен `reportPaymentIssueAction`).
+  - `PREM-04`: PCI-DSS Anti-Fraud Swarm (`velocity-check.ts` для IP/Email/Device, `geo-check.ts` для детекции расхождения стран, `manual-review-queue.ts` со статусом `FRAUD_HOLD` и операторской модерацией).
 - **Верификация**:
   - `npx tsc --noEmit` — 0 ошибок (100% PASS)
-  - `npx eslint` на Stage C файлах — 0 ошибок
-  - `npm run build` — 100% SUCCESS (29.9s Turbopack compile)
-  - Vitest: 4 сьюта, 36/36 PASS (`rbac-stage-b-roles`, `rbac-stage-a-matrix`, `routing-ensure-primary`, `rbac-providers-matrix`)
+  - `npm run build` — 100% SUCCESS
+  - Vitest: 5 сьютов, 30/30 PASS (`ssrf-guard`, `magic-link-hardening`, `payment-reconciliation`, `velocity`, `geo-check`)
+  - Все коммиты запушены в `origin/fix/premortem-p0-hardening`
 
 
 ---
