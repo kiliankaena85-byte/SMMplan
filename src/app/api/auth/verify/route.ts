@@ -27,10 +27,18 @@ export async function GET(request: Request) {
     redirect(`${loginBase}error=ExpiredToken`);
   }
 
+  const ipUsed = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "127.0.0.1";
+  const userAgentUsed = request.headers.get("user-agent") || "Unknown";
+
   // Atomic race-condition guard
   const result = await db.authToken.updateMany({
     where: { id: authToken.id, used: false },
-    data: { used: true },
+    data: {
+      used: true,
+      usedAt: new Date(),
+      ipUsed,
+      userAgentUsed,
+    },
   });
 
   if (result.count === 0) {

@@ -3,10 +3,10 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { sendMagicLink, sendWelcomeLetter } from "@/lib/smtp";
-import { RateLimitService } from "@/services/core/rate-limit.service";
 import { logger } from "@/lib/logger";
 import crypto from "crypto";
 import { cookies, headers } from "next/headers";
+import { rateLimit } from "@/lib/security/rate-limit";
 import { getClientIp } from "@/utils/ip";
 import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
 
@@ -29,25 +29,22 @@ export async function requestMagicLink(prevState: unknown, formData: FormData) {
   const cleanEmail = parsed.data.email.toLowerCase();
 
   try {
-    const isIpAllowed = await RateLimitService.check('auth:magic-link:ip', 15, 3600, true);
-    if (!isIpAllowed) {
-      log.warn('Magic link rate limit exceeded IP', { email: cleanEmail });
-      try {
-        const clientIp = await getClientIp().catch(() => '127.0.0.1');
-        const { redis } = await import('@/lib/redis');
-        const alertLockKey = `alert:bruteforce:${clientIp}`;
-        const acquired = await redis.set(alertLockKey, '1', 'EX', 600, 'NX');
-        if (acquired) {
-          const { sendAdminAlert } = await import('@/lib/notifications');
-          await sendAdminAlert(
-            `🚨 Auth brute-force: ${clientIp} → 15+ attempts in 1h`,
-            'CRITICAL'
-          );
-        }
-      } catch (err) {
-        log.error('Failed to send bruteforce admin alert', { error: err });
-      }
-      return { error: "Слишком много запросов. Пожалуйста, подождите 1 час перед новым запросом.", success: false };
+    const clientIp = await getClientIp().catch(() => '127.0.0.1');
+    const headerStore = await headers();
+    const userAgent = headerStore.get('user-agent') || 'Unknown';
+
+    // Rate limit by IP (20 per hour)
+    const ipLimit = await rateLimit(`ml:ip:${clientIp}`, 20, 3600);
+    if (!ipLimit.ok) {
+      log.warn('Magic link rate limit exceeded IP', { ip: clientIp, email: cleanEmail });
+      return { error: "Слишком много запросов с вашего IP. Пожалуйста, подождите перед новым запросом.", success: false };
+    }
+
+    // Rate limit by email (5 per hour)
+    const emailLimit = await rateLimit(`ml:email:${cleanEmail}`, 5, 3600);
+    if (!emailLimit.ok) {
+      log.warn('Magic link rate limit exceeded email', { email: cleanEmail });
+      return { error: "Слишком много запросов Magic Link на этот email. Пожалуйста, подождите перед новым запросом.", success: false };
     }
 
     const cookieStore = await cookies();
@@ -108,6 +105,8 @@ export async function requestMagicLink(prevState: unknown, formData: FormData) {
           userId: user.id,
           token: hashedToken,
           expiresAt,
+          ipIssued: clientIp,
+          userAgentIssued: userAgent,
         },
       });
 

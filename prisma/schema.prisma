@@ -149,13 +149,21 @@ model PromoCode {
 }
 
 model AuthToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  used      Boolean  @default(false)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id              String    @id @default(cuid())
+  token           String    @unique
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  used            Boolean   @default(false)
+  usedAt          DateTime?
+  expiresAt       DateTime
+  ipIssued        String?
+  ipUsed          String?
+  userAgentIssued String?
+  userAgentUsed   String?
+  createdAt       DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
 }
 
 model Session {
