@@ -73,7 +73,52 @@
 - **Task & Polling Daemon Hygiene:**
   - *Решение:* Автоматический запуск бота перенесен внутрь Next.js рантайма через `instrumentation.ts` в контейнере `smmplan_web`. Локальные фоновые процессы бота на хосте принудительно останавливаются, чтобы не создавать конфликт поллинга `409 Conflict`. Все временные отладочные команды завершаются немедленно.
 
+- **`middleware.ts` → `proxy.ts` Migration (Next.js 16, официальная документация):**
+  - *Решение:* `middleware.ts` официально устарел в Next.js 16. Файл переименован в `proxy.ts`, функция — из `middleware()` в `proxy()`. Автоматическая миграция: `npx @next/codemod@latest middleware-to-proxy`.
+  - *Правило:* В проекте SMMplan пока используется `middleware.ts` с deprecation-предупреждением. Миграцию выполнить при ближайшем удобном обновлении.
+
 ---
+
+## 1.1 📰 Официальный дайджест знаний — август 2026
+
+### Next.js 16.3 (вышел 3 августа 2026 г.)
+| Новшество | Описание |
+|---|---|
+| **Cache Components + Partial Prefetching** | SPA-навигация при сохранении преимуществ Server Components. Немедленная реакция на переходы. |
+| **Dev RAM −90%** | Длительные dev-сессии потребляют значительно меньше памяти. |
+| **Repeat builds cache** | Повторные сборки читают артефакты из кэша — выраженное ускорение CI/CD. |
+| **TypeScript 7 Support** | `next build` поддерживает TS 7 для ускоренного тайпчека. |
+| **Root Params** | Параметры вида `[lang]` доступны в любом Server Component без дополнительной передачи через props. |
+| **Custom Error Boundaries** | Приложение может восстанавливаться от серверных ошибок через повторный fetch. |
+| **SSR +22% throughput** | Сервер обрабатывает на 22% больше запросов под нагрузкой. |
+
+> ⚠️ **Критический патч безопасности Next.js 16.3.3 запланирован на 26 августа 2026 г.**
+> Уязвимость высокого приоритета в Next.js 16.3 и Next.js 15.5. Версии: **16.3.3** и **15.5.24**.
+> Обновить как только патч выйдет: `npm install next@16.3.3`.
+
+### Официальные инварианты по сборке (Turbopack vs Webpack — август 2026)
+- **Статус:** Turbopack — дефолтный компилятор в Next.js 16 для dev и prod. Однако standalone-сборка через Turbopack имеет **регрессию**: внешние зависимости в `serverExternalPackages` получают хэшированные имена (`module-<hash>`), которые не разрешаются в Docker-контейнере (Issue подтвержден Vercel).
+- **Официальная рекомендация:** Использовать `next build --webpack` до исправления Turbopack в standalone-режиме.
+- **Паттерн `package.json`:**
+  ```json
+  { "scripts": { "build": "next build --webpack" } }
+  ```
+
+### Официальный паттерн обработки ошибок в Server Actions (React 19 + Next.js 16)
+- **Правило:** «Ожидаемые» ошибки (валидация, авторизация, ошибки БД) — всегда **возвращать** `{ success: false, error: '...' }`, а не `throw`.
+- **Правило:** `throw` применяется только для неожиданных катастрофических сбоев, либо для `redirect()` / `notFound()` из `next/navigation` (они сами кидают исключения — это штатное поведение).
+- **`useActionState`** (не `useFormState` — устарел в React 19!) — официальный хук для Server Action форм.
+- **Причина:** `throw new Error(...)` в продакшене маскируется Next.js в `"An unexpected response was received from the server."`.
+
+### Миграция `middleware.ts` → `proxy.ts`
+```bash
+# Автоматическая миграция (рекомендовано)
+npx @next/codemod@latest middleware-to-proxy
+```
+- `middleware()` → `proxy()`; конфиг `skipMiddlewareUrlNormalize` → `skipProxyUrlNormalize`
+- `proxy.ts` работает в Node.js runtime (не Edge), что даёт больше гибкости и доступа к Node.js API.
+
+
 
 ## 2. 🗺️ Реестр статуса модулей и экранов (Episodic Progress State)
 
