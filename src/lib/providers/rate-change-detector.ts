@@ -31,8 +31,9 @@ export async function preFlightRateCheck(params: RateCheckParams): Promise<RateC
       select: {
         id: true,
         providerId: true,
-        providerPrice: true,
-        pricePerUnitRub: true,
+        rate: true,
+        markup: true,
+        pricePer1000Cents: true,
       },
     });
 
@@ -40,7 +41,7 @@ export async function preFlightRateCheck(params: RateCheckParams): Promise<RateC
       return { ok: false, expectedRate, reason: 'Service record not found' };
     }
 
-    const currentRate = current.providerPrice ?? expectedRate;
+    const currentRate = current.rate;
     const deltaPct = expectedRate > 0 ? ((currentRate - expectedRate) / expectedRate) * 100 : 0;
 
     // 1. Check for rate surge (> 20% price increase)
@@ -62,7 +63,7 @@ export async function preFlightRateCheck(params: RateCheckParams): Promise<RateC
     }
 
     // 2. Check for negative margin (provider rate > retail customer price)
-    const retailPrice = customerPriceRub ?? current.service?.pricePerUnitRub ?? 0;
+    const retailPrice = customerPriceRub ?? (current.rate * (current.markup || 1));
     if (retailPrice > 0 && currentRate > retailPrice) {
       log.error('Negative margin detected', { currentRate, retailPrice });
 

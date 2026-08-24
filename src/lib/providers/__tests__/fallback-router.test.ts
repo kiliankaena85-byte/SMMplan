@@ -42,7 +42,7 @@ describe('PREM-08: Provider Fallback Router', () => {
       externalId: 'ext_123',
     } as any);
 
-    vi.spyOn(db.providerServiceBackup, 'findMany').mockImplementation(async (args: any) => {
+    (vi.spyOn(db.providerServiceBackup, 'findMany') as any).mockImplementation(async (args: any) => {
       const excluded = args?.where?.backupProviderId?.notIn || [];
       if (excluded.includes('provider_backup_reliable')) return [];
       return [

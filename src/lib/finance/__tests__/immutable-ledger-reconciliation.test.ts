@@ -11,11 +11,13 @@ describe('PREM-10: Immutable Ledger, Period Close & Tax Audit Reconciliation', (
   beforeEach(async () => {
     await db.reconciliationReport.deleteMany({ where: { status: { in: ['OK', 'MISMATCH'] } } });
     await db.revenueRecognition.deleteMany({});
+    await db.ledgerPeriod.deleteMany({ where: { month: testMonth } });
   });
 
   afterEach(async () => {
     await db.reconciliationReport.deleteMany({ where: { status: { in: ['OK', 'MISMATCH'] } } });
     await db.revenueRecognition.deleteMany({});
+    await db.ledgerPeriod.deleteMany({ where: { month: testMonth } });
   });
 
   describe('Period Close & Immutability', () => {

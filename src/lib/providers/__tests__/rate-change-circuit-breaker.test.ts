@@ -39,8 +39,8 @@ describe('PREM-07: Provider Circuit Breaker & Rate Change Pre-Flight', () => {
       vi.spyOn(db.service, 'findUnique').mockResolvedValueOnce({
         id: 'ps_test_1',
         providerId: 'prov_1',
-        providerPrice: 15.0, // 15.0 RUB
-        pricePerUnitRub: 20.0,
+        rate: 15.0, // 15.0 RUB
+        markup: 1.5,
       } as any);
 
       // Expected was 10.0 RUB, but current is 15.0 RUB (+50% increase)
@@ -59,8 +59,8 @@ describe('PREM-07: Provider Circuit Breaker & Rate Change Pre-Flight', () => {
       vi.spyOn(db.service, 'findUnique').mockResolvedValueOnce({
         id: 'ps_test_2',
         providerId: 'prov_2',
-        providerPrice: 25.0, // Provider charges 25 RUB
-        pricePerUnitRub: 20.0, // Customer paid 20 RUB
+        rate: 25.0, // Provider charges 25 RUB
+        markup: 1.0,
       } as any);
 
       const res = await preFlightRateCheck({
@@ -77,8 +77,8 @@ describe('PREM-07: Provider Circuit Breaker & Rate Change Pre-Flight', () => {
       vi.spyOn(db.service, 'findUnique').mockResolvedValueOnce({
         id: 'ps_test_3',
         providerId: 'prov_3',
-        providerPrice: 10.5,
-        pricePerUnitRub: 20.0,
+        rate: 10.5,
+        markup: 2.0,
       } as any);
 
       const res = await preFlightRateCheck({

@@ -33,7 +33,7 @@ export async function GET(
 
   // Authorization check: User must own the order or be Staff/Admin
   const isOwner = order.userId === session.userId;
-  const isStaff = ['ADMIN', 'OWNER', 'SUPPORT', 'OPERATOR'].includes(session.role);
+  const isStaff = ['ADMIN', 'OWNER', 'SUPPORT', 'OPERATOR'].includes((session.role as string) || '');
 
   if (!isOwner && !isStaff) {
     return new Response(JSON.stringify({ error: 'Forbidden' }), {
