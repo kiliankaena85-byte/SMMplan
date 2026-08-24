@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "lint:debt": "npx knip",
     "typecheck": "tsc --noEmit",
+    "audit:deps": "tsx scripts/audit-deps.ts",
     "postinstall": "prisma generate",
     "test": "dotenv -e .env.test -- vitest run",
     "test:ci": "dotenv -e .env.test -- vitest run --coverage",
