@@ -143,11 +143,11 @@ describe('RBAC Stage B: Canonical Registry & StaffRole Management', () => {
   });
 
   describe('B.1 Canonical Section Registry', () => {
-    it('contains exactly 15 canonical sections with unique ids', () => {
-      expect(RBAC_SECTIONS.length).toBe(15);
+    it('contains exactly 16 canonical sections with unique ids', () => {
+      expect(RBAC_SECTIONS.length).toBe(16);
       const ids = RBAC_SECTIONS.map(s => s.id);
       const uniqueIds = new Set(ids);
-      expect(uniqueIds.size).toBe(15);
+      expect(uniqueIds.size).toBe(16);
 
       for (const section of RBAC_SECTIONS) {
         expect(section.id).toBeDefined();
@@ -162,7 +162,7 @@ describe('RBAC Stage B: Canonical Registry & StaffRole Management', () => {
         'dashboard', 'clients', 'orders', 'refills', 'tickets',
         'catalog', 'providers', 'marketing', 'content', 'finance',
         'balance_requests', 'balance_approvals', 'balance_stats',
-        'analytics', 'settings'
+        'balance_policy', 'analytics', 'settings'
       ];
       const actualIds = RBAC_SECTIONS.map(s => s.id);
       for (const req of required) {
