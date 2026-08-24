@@ -1033,7 +1033,7 @@ enum OrderStatus {
   AWAITING_PAYMENT
   PENDING
   PENDING_CHECK
-  PROVISIONING
+  PROVISIONING // WRK-06: displayed in UI (OrderStatusBadge/ProgressBar/Kanban) but never set in business logic. Retained for future "dispatched but not started" state.
   IN_PROGRESS
   COMPLETED
   PARTIAL

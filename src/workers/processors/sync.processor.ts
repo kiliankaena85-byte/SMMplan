@@ -58,6 +58,10 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
         orderBy: { updatedAt: 'asc' }
       });
 
+      if (activeOrderIds.length >= MAX_SYNC_PER_PROVIDER) {
+        log.warn(`[SyncProcessor] Provider ${providerDef.name}: sync truncated to ${MAX_SYNC_PER_PROVIDER} orders (oldest first) — remaining orders will sync next tick`);
+      }
+
       if (activeOrderIds.length === 0) return;
 
       const provider = await providerService.getWorkerProviderInstance(providerDef);

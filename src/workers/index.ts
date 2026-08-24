@@ -164,12 +164,30 @@ paymentSyncWorker.on('failed', (job, err) => { handleDeadLetter('paymentSyncQueu
 paymentGatewayWorker.on('failed', (job, err) => { handleDeadLetter('paymentGatewayQueue', job, err); });
 refillWorker.on('failed', (job, err) => { handleDeadLetter('refillQueue', job, err); });
 articlePublishWorker.on('failed', (job, err) => { handleDeadLetter('articlePublishQueue', job, err); });
+// WRK-04: alert on consecutive ETA failures
+let etaFailureStreak = 0;
+const ETA_ALERT_THRESHOLD = 5;
+
 etaWorker.on('failed', (job, err) => {
+  etaFailureStreak++;
   log.error('[etaWorker] Job failed', {
     jobId: job?.id,
     jobName: job?.name,
     error: err?.message,
+    consecutiveFailures: etaFailureStreak,
   });
+
+  if (etaFailureStreak >= ETA_ALERT_THRESHOLD) {
+    etaFailureStreak = 0; // reset to avoid alert flood
+    sendAdminAlert(
+      `⚠️ ETA Worker: ${ETA_ALERT_THRESHOLD} подряд проваленных джоб. ETA-статистика на витрине устаревает — проверьте воркеры и Redis.`,
+      'WARNING'
+    );
+  }
+});
+
+etaWorker.on('completed', () => {
+  etaFailureStreak = 0; // reset on success
 });
 
 // ── P0.3: Worker heartbeat (Redis key, renewed every 60s) ─────────────────────

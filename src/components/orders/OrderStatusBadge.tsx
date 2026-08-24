@@ -19,6 +19,8 @@ export function OrderStatusBadge({
 }: OrderStatusBadgeProps) {
   const config = getStatusConfig(status);
   const normalized = (status || '').toUpperCase();
+  // WRK-06: PROVISIONING is displayed but never assigned by any worker/action.
+  // Kept for future "dispatched, awaiting provider acceptance" state.
   const isLive = normalized === 'IN_PROGRESS' || normalized === 'PROVISIONING';
 
   return (
