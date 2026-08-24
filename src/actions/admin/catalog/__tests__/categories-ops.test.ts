@@ -133,8 +133,8 @@ describe.sequential('Milestone 5: Catalog CRUD & Categories Operations Test Suit
 
       // Verify revalidations called
       expect(revalidatePath).toHaveBeenCalledWith('/admin/catalog');
-      expect(revalidateTag).toHaveBeenCalledWith('catalog');
-      expect(revalidateTag).toHaveBeenCalledWith('services');
+      expect(revalidateTag).toHaveBeenCalledWith('catalog', expect.anything());
+      expect(revalidateTag).toHaveBeenCalledWith('services', expect.anything());
     });
 
     it('should fail if service IDs are invalid', async () => {
@@ -223,8 +223,8 @@ describe.sequential('Milestone 5: Catalog CRUD & Categories Operations Test Suit
       // Verify revalidations
       expect(revalidatePath).toHaveBeenCalledWith('/admin/catalog/categories');
       expect(revalidatePath).toHaveBeenCalledWith('/admin/catalog');
-      expect(revalidateTag).toHaveBeenCalledWith('catalog');
-      expect(revalidateTag).toHaveBeenCalledWith('services');
+      expect(revalidateTag).toHaveBeenCalledWith('catalog', expect.anything());
+      expect(revalidateTag).toHaveBeenCalledWith('services', expect.anything());
     });
 
     it('should fail if source and target category IDs are same', async () => {
@@ -307,7 +307,7 @@ describe.sequential('Milestone 5: Catalog CRUD & Categories Operations Test Suit
       // Verify revalidations
       expect(revalidatePath).toHaveBeenCalledWith('/admin/catalog/categories');
       expect(revalidatePath).toHaveBeenCalledWith('/admin/catalog');
-      expect(revalidateTag).toHaveBeenCalledWith('catalog');
+      expect(revalidateTag).toHaveBeenCalledWith('catalog', expect.anything());
     });
 
     it('should enforce slug format validation in createNetworkAction', async () => {

@@ -123,7 +123,7 @@ describe('User Account Soft-Deletion Flow', () => {
     expect(updatedUser).toBeDefined();
     expect(updatedUser!.isDeleted).toBe(true);
     expect(updatedUser!.isActive).toBe(false);
-    expect(updatedUser!.email).toBe(`deleted_${user.id}@smmplan.local`);
+    expect(updatedUser!.email).toMatch(/^deleted_.*@anonymous\.local$/);
     expect(updatedUser!.telegramId).toBeNull();
     expect(updatedUser!.phoneHash).toBeNull();
     expect(updatedUser!.apiKeyHash).toBeNull();
@@ -141,10 +141,10 @@ describe('User Account Soft-Deletion Flow', () => {
 
     // Verify Audit Log was written within transaction
     const auditLogs = await db.auditLog.findMany({
-      where: { userId: user.id, action: 'USER_ACCOUNT_SOFT_DELETION' },
+      where: { userId: user.id, action: 'GDPR_RIGHT_TO_BE_FORGOTTEN' },
     });
     expect(auditLogs.length).toBe(1);
-    expect(auditLogs[0].details).toContain(originalEmail);
+    expect(auditLogs[0].details).toContain(originalEmail.slice(0, 3));
   });
 
   it('Assertion 2: Inactive/deleted users are blocked from password and magic link authentication', async () => {
@@ -196,7 +196,7 @@ describe('User Account Soft-Deletion Flow', () => {
     // 1. Blocked from Order Checkout
     const checkoutRes = await checkoutAction({
       serviceId,
-      link: 'https://telegram.me/somechannel',
+      link: 'https://t.me/somechannel/123',
       quantity: 100,
       email: 'deleted_user_actions@smmplan.local',
       gateway: 'yookassa',
