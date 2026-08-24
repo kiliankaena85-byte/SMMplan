@@ -194,6 +194,31 @@ export async function toggleTenantStatusAction(id: string, isActive: boolean) {
   });
 }
 
+export async function toggleTenantMaintenanceAction(id: string, maintenanceMode: boolean) {
+  return requireStaffPermission('settings', 'edit', async (staffUser) => {
+    try {
+      const { SettingsProvider } = await import('@/lib/settings');
+      await SettingsProvider.setMaintenanceMode(maintenanceMode, id);
+
+      await auditAdminAwaitable({
+        adminId: staffUser.id,
+        adminEmail: staffUser.email,
+        action: 'TENANT_MAINTENANCE_TOGGLE',
+        target: id,
+        targetType: 'Tenant',
+        newValue: { maintenanceMode },
+      });
+
+      revalidatePath('/admin/tenants');
+      revalidatePath('/', 'layout');
+      return { success: true };
+    } catch (error) {
+      console.error('[TenantsAction] Failed to toggle tenant maintenance:', error);
+      return { success: false, error: 'Ошибка переключения режима техработ' };
+    }
+  });
+}
+
 export async function deleteTenantAction(id: string) {
   const session = await verifySession();
   if (!session || session.role !== 'OWNER') {

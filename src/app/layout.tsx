@@ -83,12 +83,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const pathname = reqHeaders.get('x-pathname') || '';
   
   const normalized = pathname.toLowerCase();
+  const isStaticFile = /\.(png|jpg|jpeg|gif|webp|svg|ico|css|js|woff|woff2|ttf|map|json|xml|txt)$/i.test(normalized);
   const isExcluded = 
     normalized.startsWith('/admin') ||
     normalized.startsWith('/api') ||
     normalized === '/login' ||
     normalized.startsWith('/_next') ||
-    normalized.includes('.');
+    isStaticFile;
 
   const settings = await SettingsProvider.get();
   const isMaintenanceMode = settings.maintenanceMode;

@@ -24,12 +24,13 @@ export function MaintenanceGuardian({
   const isExcluded = React.useMemo(() => {
     if (!pathname) return true;
     const normalized = pathname.toLowerCase();
+    const isStaticFile = /\.(png|jpg|jpeg|gif|webp|svg|ico|css|js|woff|woff2|ttf|map|json|xml|txt)$/i.test(normalized);
     return (
       normalized.startsWith('/admin') ||
       normalized.startsWith('/api') ||
       normalized === '/login' ||
       normalized.startsWith('/_next') ||
-      normalized.includes('.') // files with extensions (e.g. favicon.ico, logo.png)
+      isStaticFile
     );
   }, [pathname]);
 

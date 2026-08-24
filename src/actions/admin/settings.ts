@@ -325,10 +325,14 @@ export async function updateGlobalSettings(formData: FormData) {
       ipAddress
     });
 
-    // Invalidate the SettingsProvider cache so changes apply instantly (SMTP, Keys, Rates)
+    // Invalidate the SettingsProvider cache so changes apply instantly (SMTP, Keys, Rates, Maintenance)
     try {
-      const { revalidateTag } = (await import('next/cache')) as unknown as { revalidateTag: (tag: string) => unknown };
+      const { revalidateTag, revalidatePath } = (await import('next/cache')) as unknown as { 
+        revalidateTag: (tag: string) => unknown; 
+        revalidatePath: (path: string, type?: 'layout' | 'page') => unknown; 
+      };
       revalidateTag('settings');
+      revalidatePath('/', 'layout');
       revalidatePath('/admin/settings');
     } catch (cacheErr) {
       console.error('[SettingsAction] Warning: Failed to invalidate cache tag:', cacheErr);
