@@ -11,6 +11,7 @@ import {
 import { ApiMappingDTO } from '../admin/provider.service';
 import { CircuitBreaker } from '@/lib/circuit-breaker';
 import { assertSafeUrl } from '@/utils/ssrf-guard';
+import { safeFetch } from '@/lib/security/ssrf-guard';
 import { z } from 'zod';
 
 export type { ApiMappingDTO };
@@ -131,7 +132,7 @@ export class UniversalProvider implements BaseProvider {
           }
         }
 
-        const response = await fetch(finalUrl, {
+        const response = await safeFetch(finalUrl, {
           method: httpMethod,
           headers,
           body,

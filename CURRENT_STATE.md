@@ -2,20 +2,21 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-24 | Агент: Antigravity
-## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕН ЭТАП C «Качество и устойчивость» (ADM-12..17)
-- **Ветка**: `fix/admin-stage-c-resilience`
+## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕН ЭТАП P1 «Resilience & Infrastructure Hardening» (PREM-05..11)
+- **Ветка**: `fix/premortem-p1-resilience`
 - **Завершено**:
-  - `C.1 (ADM-13)`: Error-границы (`error.tsx`) внедрены во все 26+ подразделов админки на базе унифицированного компонента `AdminSectionError`.
-  - `C.2 (ADM-16)`: Кэш счётчика аномалий каталога в `src/app/admin/layout.tsx` через `unstable_cache` (60s TTL, теги `catalog`, `anomaly-count`).
-  - `C.3 (ADM-15)`: `canSeeRates` переведён на RBAC-секцию `finance:view` с сохранением superadmin bypass (`OWNER`/`ADMIN`).
-  - `C.4 (ADM-14)`: Идемпотентный экшен `ensurePrimaryRouteAction` с аудитом `ROUTE_ENSURE_PRIMARY` и UI-баннером в `RoutingPanelClient.tsx` (GET-страница роутинга избавлена от побочных эффектов записи).
-  - `C.5 (ADM-12)`: Декомпозиция god-компонентов: `finance-client.tsx` (с 780 до 141 строк) и вкладок `client-detail-client.tsx` (`balance-tab`, `security-tab`, `payments-tab`), все новые подкомпоненты строго ≤ 300 строк.
-  - `C.6 (ADM-17)`: Справка `src/app/admin/manual/page.tsx` полностью открыта для саппорта (снят гейт `settings`).
+  - `PREM-05`: NPM Supply Chain Hardening (`.npmrc` с `ignore-scripts=true`, CI workflow `.github/workflows/supply-chain.yml`, SBOM генератор, `scripts/audit-deps.ts`, `.github/dependabot.yml`).
+  - `PREM-06`: PII Read-Access Audit Trail (`PiiAccessLog` модель в Prisma, `src/lib/audit/pii-access-log.ts` с маскированием email, телефонов, ИНН, адресов, админский экшен `getPiiAccessLogsAction`).
+  - `PREM-07`: Provider Rate Change Pre-Flight & Circuit Breaker (`circuit-breaker.ts` с Redis и memory fallback, `rate-change-detector.ts` с блокировкой при скачке тарифов > 20% или отрицательной марже).
+  - `PREM-08`: Provider Fallback Router (`ProviderServiceBackup` модель, каскадная маршрутизация `fallback-router.ts` при сбоях основного поставщика).
+  - `PREM-09`: Real-time SSE Order Status (`src/app/api/orders/[id]/events/route.ts`, паблишер `realtime-status.ts`, авто-разрешение споров `autoResolveOrderDisputes` при статусе COMPLETED).
+  - `PREM-10`: Immutable Ledger & Tax Audit (`LedgerPeriod` заморозка периодов, `dailyReconciliation` 3-сторонняя сверка Банк ↔ DB ↔ Ledger, `RevenueRecognition` и реверсивные проводки).
+  - `PREM-11`: Disaster Recovery Runbook & Automated Restore Test (`docs/runbooks/disaster-recovery.md` RTO 2h / RPO 5m, скрипт `dr-restore-test.ts`, workflow `.github/workflows/dr-test.yml`).
 - **Верификация**:
   - `npx tsc --noEmit` — 0 ошибок (100% PASS)
-  - `npx eslint` на Stage C файлах — 0 ошибок
-  - `npm run build` — 100% SUCCESS (29.9s Turbopack compile)
-  - Vitest: 4 сьюта, 36/36 PASS (`rbac-stage-b-roles`, `rbac-stage-a-matrix`, `routing-ensure-primary`, `rbac-providers-matrix`)
+  - `npm run build` — 100% SUCCESS
+  - Vitest: 6 сьютов, 21/21 PASS (`pii-access-log`, `rate-change-circuit-breaker`, `fallback-router`, `realtime-status`, `immutable-ledger-reconciliation`, `dr-restore`)
+  - Ветка запушена в `origin/fix/premortem-p1-resilience`
 
 
 ---

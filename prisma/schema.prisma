@@ -149,13 +149,21 @@ model PromoCode {
 }
 
 model AuthToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  used      Boolean  @default(false)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id              String    @id @default(cuid())
+  token           String    @unique
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  used            Boolean   @default(false)
+  usedAt          DateTime?
+  expiresAt       DateTime
+  ipIssued        String?
+  ipUsed          String?
+  userAgentIssued String?
+  userAgentUsed   String?
+  createdAt       DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
 }
 
 model Session {
@@ -876,6 +884,9 @@ model LedgerEntry {
   status          String   @default("APPROVED") // APPROVED, QUARANTINE, REJECTED
   idempotencyKey  String?
   transactionType String   @default("PAYMENT") // PAYMENT | REFUND | REROUTE | COMPENSATION
+  immutable       Boolean  @default(false)
+  periodId        String?
+  period          LedgerPeriod? @relation(fields: [periodId], references: [id], onDelete: SetNull)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -1573,4 +1584,85 @@ model StaffShift {
   @@index([date, status])
   @@index([userId, date])
 }
+
+model PiiAccessLog {
+  id         String   @id @default(cuid())
+  staffId    String
+  staffEmail String
+  action     String   // 'view-client', 'view-payment-detail', 'export-csv', etc.
+  targetId   String   // client ID / order ID / payment ID
+  targetType String   // 'client' | 'order' | 'payment'
+  fields     String[] // ['email', 'phone', 'address', 'inn']
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([staffId, createdAt])
+  @@index([targetType, targetId])
+}
+
+model ProviderServiceBackup {
+  id                String   @id @default(cuid())
+  serviceId         String   @map("service_id")
+  primaryProviderId String   @map("primary_provider_id")
+  backupProviderId  String   @map("backup_provider_id")
+  backupExternalId  String?  @map("backup_external_id")
+  priority          Int      @default(1)
+  isActive          Boolean  @default(true) @map("is_active")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@unique([serviceId, backupProviderId])
+  @@index([serviceId, priority])
+  @@map("provider_service_backup")
+}
+
+model LedgerPeriod {
+  id        String        @id @default(cuid())
+  month     String        @unique // e.g. "2026-08"
+  startDate DateTime      @map("start_date")
+  endDate   DateTime      @map("end_date")
+  frozen    Boolean       @default(false)
+  frozenAt  DateTime?     @map("frozen_at")
+  frozenBy  String?       @map("frozen_by")
+  entries   LedgerEntry[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("ledger_period")
+}
+
+model RevenueRecognition {
+  id             String    @id @default(cuid())
+  orderId        String    @unique @map("order_id")
+  amount         BigInt    // Amount in Kopecks
+  recognizedAt   DateTime  @default(now()) @map("recognized_at")
+  reversed       Boolean   @default(false)
+  reversedAt     DateTime? @map("reversed_at")
+  reversalReason String?   @map("reversal_reason")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("revenue_recognition")
+}
+
+model ReconciliationReport {
+  id              String   @id @default(cuid())
+  date            DateTime
+  bankTotal       BigInt   @map("bank_total")
+  dbTotal         BigInt   @map("db_total")
+  ledgerTotal     BigInt   @map("ledger_total")
+  deltaBankVsDb   BigInt   @map("delta_bank_vs_db")
+  deltaDbVsLedger BigInt   @map("delta_db_vs_ledger")
+  status          String   @default("OK") // OK, MISMATCH
+  details         Json?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([date])
+  @@map("reconciliation_report")
+}
+
+
+
 

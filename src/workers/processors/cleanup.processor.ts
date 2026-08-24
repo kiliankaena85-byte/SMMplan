@@ -73,6 +73,18 @@ export async function runCleanup(): Promise<void> {
   // ── 3.6. Orders: Auto-resolve stale PENDING_CHECK (older than 6 hours) ──────
   await runPendingCheckResolution();
 
+  // ── 3.7. Payments: Reconcile stale PENDING payments & Webhook health ───────
+  try {
+    const { reconcileStalePayments } = await import('../payment-reconciliation');
+    const { checkWebhookHealth } = await import('@/lib/alerts/webhook-health');
+    const { detectLoginAnomalies } = await import('@/lib/security/login-anomaly-detector');
+    await reconcileStalePayments();
+    await checkWebhookHealth();
+    await detectLoginAnomalies();
+  } catch (err) {
+    log.error('Failed to run periodic payment reconciliation / health checks', { error: err });
+  }
+
   // ── 4. Orders: Zombie AWAITING_PAYMENT ────────────────────────────────────
   // W2-1 FIX: Don't blindly cancel — check if a payment was recently confirmed.
   // YooKassa webhooks can arrive up to 5 minutes late. Cancelling a paid order
