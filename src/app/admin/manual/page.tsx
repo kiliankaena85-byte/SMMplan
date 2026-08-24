@@ -64,8 +64,6 @@ function mdToHtml(md: string): string {
 }
 
 export default async function AdminManualPage() {
-  await enforceSectionAccess('settings');
-
   const adminManualPath = path.join(process.cwd(), 'project-docs', 'admin_master_manual_2026.md');
   const supportManualPath = path.join(process.cwd(), 'project-docs', 'support_training_manual.md');
 

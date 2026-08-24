@@ -43,6 +43,11 @@ export async function calculatePriceAction(
   runs?: number
 ): Promise<{ success: boolean; data?: PricingResult; error?: string }> {
   try {
+    const isAllowed = await RateLimitService.check("priceCalc", 60, 60, true);
+    if (!isAllowed) {
+      return { success: false, error: "Слишком много запросов. Попробуйте через минуту." };
+    }
+
     const service = await db.service.findUnique({ where: { id: serviceId } });
     if (!service || !service.isActive) {
       return { success: false, error: "Услуга не найдена или неактивна" };
@@ -730,10 +735,10 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
           data: { status: 'CANCELED' }
         })).catch(e => console.error('[Checkout] Failed to cancel payment:', e)),
         
-        Promise.resolve(db.order.update({
-          where: { id: result.orderId },
+        Promise.resolve(db.order.updateMany({
+          where: { paymentId: result.paymentId },
           data: { status: 'ERROR', error: (gatewayErr instanceof Error ? gatewayErr.message : String(gatewayErr)) || 'Ошибка генерации платежа' }
-        })).catch(e => console.error('[Checkout] Failed to error order:', e))
+        })).catch(e => console.error('[Checkout] Failed to error orders:', e))
       ];
 
       if (promoCodeStr && transactionCompleted) {

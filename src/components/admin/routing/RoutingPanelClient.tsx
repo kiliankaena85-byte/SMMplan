@@ -2,9 +2,10 @@
 // audit-disable STR-002
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, Button, Modal, ModalHeader, ModalBody, ModalFooter, Checkbox, Chip, Alert, Input, Switch } from '@heroui/react';
 import { Table } from '@/components/admin/hero-ui';
-import { previewHotSwap, executeHotSwap, addServiceRoute, toggleRouteStatus, changeRoutePriority, deleteServiceRoute } from '@/actions/admin/routing.actions';
+import { previewHotSwap, executeHotSwap, addServiceRoute, toggleRouteStatus, changeRoutePriority, deleteServiceRoute, ensurePrimaryRouteAction } from '@/actions/admin/routing.actions';
 import { toast } from 'sonner';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { ProviderComparisonHub } from './ProviderComparisonHub';
@@ -78,9 +79,11 @@ export interface RoutingPanelClientProps {
   auditLogs: RoutingAuditLog[];
   activeProviders: RoutingProvider[];
   comparisonData: RoutingComparisonItem[];
+  needsRouteSeed?: boolean;
 }
 
-export function RoutingPanelClient({ service, routes, auditLogs, activeProviders, comparisonData }: RoutingPanelClientProps) {
+export function RoutingPanelClient({ service, routes, auditLogs, activeProviders, comparisonData, needsRouteSeed }: RoutingPanelClientProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const onOpen = () => setIsOpen(true);
   const onClose = () => setIsOpen(false);
@@ -91,12 +94,30 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
   const [reason, setReason] = useState("");
   const [understood, setUnderstood] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [isSeedingRoute, setIsSeedingRoute] = useState(false);
 
   const [newProviderId, setNewProviderId] = useState("");
   const [newExternalId, setNewExternalId] = useState("");
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [routeIdToDelete, setRouteIdToDelete] = useState<string | null>(null);
+
+  const handleEnsurePrimaryRoute = async () => {
+    setIsSeedingRoute(true);
+    try {
+      const res = await ensurePrimaryRouteAction(service.id);
+      if (res.success) {
+        toast.success(res.created ? "Первичный маршрут успешно создан" : "Маршрут уже существует");
+        router.refresh();
+      } else {
+        toast.error(res.error || "Не удалось создать маршрут");
+      }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsSeedingRoute(false);
+    }
+  };
 
   const handleOpenSwap = async (route: RoutingServiceRoute) => {
     setSelectedRoute(route);
@@ -209,6 +230,26 @@ export function RoutingPanelClient({ service, routes, auditLogs, activeProviders
 
   return (
     <div className="space-y-6">
+      {/* SEED PRIMARY ROUTE BANNER */}
+      {needsRouteSeed && (
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h4 className="font-semibold text-amber-600 dark:text-amber-400">Маршруты не настроены</h4>
+            <p className="text-sm text-muted-foreground">
+              Создать первичный маршрут из текущего провайдера и внешнего ID услуги?
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            onPress={handleEnsurePrimaryRoute}
+            isPending={isSeedingRoute}
+            className="font-medium shrink-0"
+          >
+            Создать первичный маршрут
+          </Button>
+        </div>
+      )}
       
       {/* ADD ROUTE FORM */}
       <Card className="p-6 shadow-sm border-l-4 border-l-default-400 bg-background">

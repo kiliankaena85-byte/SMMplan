@@ -1,22 +1,15 @@
 import React from 'react';
-import { verifySession } from '@/lib/session';
-import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
+import { enforceSectionAccess } from '@/lib/server/rbac';
 import { TenantsManager } from './tenants-manager';
-
-const ADMIN_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'];
-
-export const dynamic = 'force-dynamic';
-
 import { Globe } from 'lucide-react';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { SYSTEM_TABS } from '@/components/admin/navigation-data';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminTenantsPage() {
-  const session = await verifySession();
-  if (!session?.role || !ADMIN_ROLES.includes(session.role)) {
-    redirect('/dashboard/new-order');
-  }
+  await enforceSectionAccess('settings');
 
   const tenants = await db.tenant.findMany({
     orderBy: { createdAt: 'asc' },

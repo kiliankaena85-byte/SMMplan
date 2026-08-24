@@ -2,11 +2,13 @@
 
 import { z } from 'zod';
 import { db } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { revalidatePath } from 'next/cache';
 import { SettingsProvider } from '@/lib/settings';
 import { applyBeautifulRounding } from '@/lib/financial-constants';
 import { providerService } from '@/services/providers/provider.service';
+import { auditAdminAwaitable } from '@/lib/admin-audit';
 
 const swapSchema = z.object({
   serviceId: z.string(),
@@ -177,7 +179,7 @@ export async function executeHotSwap(input: z.infer<typeof swapSchema>) {
     });
 
     revalidatePath(`/admin/services/${serviceId}/routing`);
-    revalidatePath('/admin/services');
+    revalidatePath('/admin/catalog');
     return { success: true };
   });
 }
@@ -243,7 +245,7 @@ export async function addServiceRoute(input: z.infer<typeof addRouteSchema>) {
     });
 
     revalidatePath(`/admin/services/${serviceId}/routing`);
-    revalidatePath('/admin/services');
+    revalidatePath('/admin/catalog');
     return { success: true };
   });
 }
@@ -523,4 +525,52 @@ export async function getProviderComparisonData(serviceId: string) {
     };
   });
 }
+
+export async function ensurePrimaryRouteAction(serviceId: string) {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
+    const service = await db.service.findUnique({
+      where: { id: serviceId },
+      select: { id: true, providerId: true, externalId: true, name: true }
+    });
+    if (!service) return { success: false as const, error: 'Услуга не найдена' };
+    if (!service.providerId || !service.externalId) {
+      return { success: false as const, error: 'У услуги не задан провайдер или внешний ID' };
+    }
+
+    const existing = await db.serviceRoute.findFirst({ where: { serviceId } });
+    if (existing) return { success: true as const, created: false, routeId: existing.id };
+
+    // Идемпотентно: параллельное открытие двумя вкладками → уникальный constraint,
+    // ловим P2002 и возвращаем существующий маршрут
+    try {
+      const route = await db.serviceRoute.create({
+        data: {
+          serviceId,
+          providerId: service.providerId,
+          providerServiceId: service.externalId,
+          isPrimary: true,
+          isActive: true,
+          priority: 0,
+          failoverMode: 'manual'
+        }
+      });
+      await auditAdminAwaitable({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: 'ROUTE_ENSURE_PRIMARY',
+        target: serviceId,
+        targetType: 'SERVICE',
+        newValue: { routeId: route.id, providerId: service.providerId }
+      });
+      return { success: true as const, created: true, routeId: route.id };
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        const existingRoute = await db.serviceRoute.findFirst({ where: { serviceId } });
+        return { success: true as const, created: false, routeId: existingRoute?.id };
+      }
+      throw e;
+    }
+  });
+}
+
 

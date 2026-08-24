@@ -3,12 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { BarChart as BarChartIcon, Clock, TrendingDown, Download } from 'lucide-react';
 import Link from 'next/link';
+import { enforceSectionAccess } from '@/lib/server/rbac';
 import { LTVCharts } from './ltv-charts';
 import { TopServicesTable, ProfitCategoriesTable, ProfitServicesTable } from './tables';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AnalyticsPage({ searchParams }: { searchParams: Promise<{ p?: string }> }) {
+  await enforceSectionAccess('analytics');
   const params = await searchParams;
   const period = params.p === '1' ? 1 : 7;
   

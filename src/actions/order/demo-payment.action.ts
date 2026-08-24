@@ -25,6 +25,19 @@ export async function createDemoPaymentAction({
     throw new Error("Минимальная сумма к оплате — 10 ₽");
   }
 
+  // CHK-03: demo payments must never reach real gateways in production
+  const isProd = process.env.NODE_ENV === 'production';
+  let isTestMode = false;
+  try {
+    const { SettingsManager } = await import('@/lib/settings');
+    isTestMode = await SettingsManager.isTestMode();
+  } catch {
+    // settings unavailable — treat as production
+  }
+  if (isProd && !isTestMode) {
+    throw new Error('Демо-платежи доступны только в тестовом режиме');
+  }
+
   // Find or create demo user
   let demoUser = await db.user.findFirst({
     where: { email: email.trim().toLowerCase() }
@@ -34,7 +47,6 @@ export async function createDemoPaymentAction({
     demoUser = await db.user.create({
       data: {
         email: email.trim().toLowerCase(),
-        passwordHash: "DEMO_USER_NO_PASSWORD",
         balance: BigInt(0),
         role: "USER"
       }

@@ -12,6 +12,22 @@ import { ShortcutsProvider } from '@/components/admin/shortcuts-provider';
 import { AdminProfileDropdown } from '@/components/admin/admin-profile-dropdown';
 import { GlobalSiteSwitcher } from '@/components/admin/tenant-switcher';
 import { SettingsManager } from '@/lib/settings';
+import { unstable_cache } from 'next/cache';
+
+// ADM-16: catalog anomaly badge — cached for 60s instead of a COUNT on every admin page load
+const getCachedAnomalyCount = unstable_cache(
+  async () => db.service.count({
+    where: {
+      OR: [
+        { isQuarantined: true },
+        { cooldownReason: 'ZOMBIE_AUTO_DISABLED', isActive: false },
+        { cooldownUntil: { gt: new Date() }, cooldownReason: { not: 'ZOMBIE_AUTO_DISABLED' } },
+      ]
+    }
+  }),
+  ['admin-catalog-anomaly-count-v1'],
+  { revalidate: 60, tags: ['catalog'] }
+);
 
 // RBAC: Allowed roles for admin panel access
 const ADMIN_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'];
@@ -21,14 +37,16 @@ const ADMIN_NAVIGATION = [
   {
     group: 'Главное управление',
     items: [
-      { href: '/admin/dashboard',          icon: 'Home',          label: 'Дашборд',              section: 'dashboard' },
-      { href: '/admin/orders',             icon: 'Package',       label: 'Заказы',               section: 'orders' },
-      { href: '/admin/catalog',            icon: 'ShoppingCart',  label: 'Каталог услуг',        section: 'catalog' },
-      { href: '/admin/providers',          icon: 'Link',          label: 'Провайдеры',           section: 'providers' },
-      { href: '/admin/tickets',            icon: 'MessageSquare', label: 'Поддержка',            section: 'tickets' },
-      { href: '/admin/clients',            icon: 'Users',         label: 'Клиенты',              section: 'clients' },
-      { href: '/admin/finance',            icon: 'CreditCard',    label: 'Финансы & Касса',      section: 'finance' },
-      { href: '/admin/settings',           icon: 'Settings',      label: 'Настройки',            section: 'settings' },
+      { href: '/admin/dashboard',                 icon: 'Home',          label: 'Дашборд',              section: 'dashboard' },
+      { href: '/admin/orders',                    icon: 'Package',       label: 'Заказы',               section: 'orders' },
+      { href: '/admin/catalog',                   icon: 'ShoppingCart',  label: 'Каталог услуг',        section: 'catalog' },
+      { href: '/admin/providers',                 icon: 'Link',          label: 'Провайдеры',           section: 'providers' },
+      { href: '/admin/tickets',                   icon: 'MessageSquare', label: 'Поддержка',            section: 'tickets' },
+      { href: '/admin/clients',                   icon: 'Users',         label: 'Клиенты',              section: 'clients' },
+      { href: '/admin/finance',                   icon: 'CreditCard',    label: 'Финансы & Касса',      section: 'finance' },
+      { href: '/admin/finance/balance-requests',  icon: 'Inbox',         label: 'Заявки на баланс',     section: 'balance_requests' },
+      { href: '/admin/analytics',                 icon: 'BarChart3',     label: 'Аналитика',            section: 'analytics' },
+      { href: '/admin/settings',                  icon: 'Settings',      label: 'Настройки',            section: 'settings' },
     ]
   }
 ];
@@ -56,51 +74,24 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     redirect('/dashboard/new-order');
   }
 
-  const anomalyCount = await db.service.count({
-    where: {
-      OR: [
-        { isQuarantined: true },
-        { cooldownReason: 'ZOMBIE_AUTO_DISABLED', isActive: false },
-        { cooldownUntil: { gt: new Date() }, cooldownReason: { not: 'ZOMBIE_AUTO_DISABLED' } },
-      ]
-    }
-  });
+  const anomalyCount = await getCachedAnomalyCount();
 
-  // Map UI sections to StaffRole permissions
-  const SECTION_MAP: Record<string, string> = {
-    'dashboard': 'dashboard',
-    'orders': 'orders',
-    'refills': 'refills',
-    'tickets': 'tickets',
-    'clients': 'clients',
-    'finance': 'finance',
-    'marketing': 'marketing',
-    'balance_requests': 'balance_requests',
-    'balance_stats': 'balance_stats',
-    'balance_policy': 'balance_policy',
-    'catalog': 'catalog',
-    'quarantine': 'catalog',
-    'providers': 'providers',
-    'content': 'content',
-    'pages': 'content',
-    'settings': 'settings',
-    'features': 'settings',
-    'queues': 'settings',
-  };
-
-  // Filter navigation based on RBAC
+  // Filter navigation based on canonical RBAC sections
   const navigation = ADMIN_NAVIGATION.map(group => ({
     ...group,
     items: group.items.map(item => {
-      if (item.section === 'quarantine' && anomalyCount > 0) {
+      if (item.section === 'catalog' && anomalyCount > 0) {
         return { ...item, badge: anomalyCount };
       }
       return item;
     }).filter(item => {
       if (user.role === 'OWNER' || user.role === 'ADMIN') return true;
       if (!user.staffRole) return false;
-      const requiredPerm = SECTION_MAP[item.section] || item.section;
-            return user.staffRole.permissions.some((p: { section: string; canView: boolean }) => p.section === requiredPerm && p.canView);
+      const normalizedSection = item.section.toLowerCase();
+      return user.staffRole.permissions.some(
+        (p: { section: string; canView: boolean; canEdit: boolean }) =>
+          p.section.toLowerCase() === normalizedSection && (p.canView || p.canEdit)
+      );
     })
   })).filter(group => group.items.length > 0);
 

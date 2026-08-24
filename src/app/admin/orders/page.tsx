@@ -59,8 +59,9 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
     include: { staffRole: { include: { permissions: true } } }
   }) : null;
 
-  const isOwner = user?.role === 'OWNER';
-  const canSeeRates = isOwner || (user?.role !== 'SUPPORT');
+  const isSuperAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
+  const permissions = user?.staffRole?.permissions || [];
+  const canSeeRates = isSuperAdmin || permissions.some(p => p.section.toUpperCase() === 'FINANCE' && (p.canView || p.canEdit));
 
   const params = await searchParams;
   const query = params.q || '';

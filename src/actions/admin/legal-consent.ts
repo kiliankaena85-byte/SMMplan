@@ -108,7 +108,7 @@ export async function revokeEmployeeConsentAction(formData: FormData) {
       ipAddress
     });
 
-    revalidatePath('/admin/legal/responsibility');
+    revalidatePath('/admin');
     return { success: true as const };
   });
 }

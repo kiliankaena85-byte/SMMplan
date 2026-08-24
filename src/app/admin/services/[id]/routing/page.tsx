@@ -15,33 +15,13 @@ export default async function ServiceRoutingPage({ params }: { params: Promise<{
 
   if (!service) notFound();
 
-  // If there are no routes, we should conceptually create the first primary one 
-  // from the current service data (Self-healing legacy data)
-  let routes = await db.serviceRoute.findMany({
+  const routes = await db.serviceRoute.findMany({
     where: { serviceId: id },
     include: { provider: true },
     orderBy: { priority: 'asc' }
   });
 
-  if (routes.length === 0 && service.providerId && service.externalId) {
-    await db.serviceRoute.create({
-      data: {
-        serviceId: id,
-        providerId: service.providerId,
-        providerServiceId: service.externalId,
-        isPrimary: true,
-        isActive: true,
-        priority: 0,
-        failoverMode: "manual"
-      }
-    });
-    // Reload routes
-    routes = await db.serviceRoute.findMany({
-      where: { serviceId: id },
-      include: { provider: true },
-      orderBy: { priority: 'asc' }
-    });
-  }
+  const needsRouteSeed = routes.length === 0 && !!service.providerId && !!service.externalId;
 
   const auditLogs = await db.routingAuditLog.findMany({
     where: { serviceId: id },
@@ -73,6 +53,7 @@ export default async function ServiceRoutingPage({ params }: { params: Promise<{
         auditLogs={auditLogs} 
         activeProviders={activeProviders}
         comparisonData={comparisonData}
+        needsRouteSeed={needsRouteSeed}
       />
     </div>
   );

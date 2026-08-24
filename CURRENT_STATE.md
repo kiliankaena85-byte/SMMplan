@@ -2,30 +2,18 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-24 | Агент: Antigravity
-## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕНА РЕМЕДИАЦИЯ БЕЗОПАСНОСТИ v4.4 (REMEDIATION_PROMPT_v4.4.md) — 100% PASS
-- **P0 (CRITICAL/HIGH) — Завершено 100%**:
-  - `P0.1 & P0.2 VexBoost Webhook`: Mandatory `x-timestamp` (fail-closed, 5 min replay defense), HMAC-SHA256 signature verification over `timestamp.body` / `body:timestamp`.
-  - `P0.3 Provider Catch-all`: `SecurityAlertService.record()` при 401 (mismatch) и 500 (catch), mandatory `x-timestamp`.
-  - `P0.4 & P0.5 Provider/[name]`: Whitelist разрешенных провайдеров (`ALLOWED_PROVIDER_NAMES = new Set(['vexboost', 'smmstone'])`), удален unsafe fallback на `provider.apiKey`, HMAC bound to `timestamp.body`.
-  - `P0.6 Redis Lock Heartbeat`: `MutexManager.withLock` обновлен — автоматическое продление TTL каждые `ttlMs / 3` мс с гарантированной очисткой в `finally`.
-  - `P0.7 WalletOps.refund`: Убран silent clamp `totalSpent` — внедрен fail-fast throw с отменой транзакции при нарушении целостности (`totalSpent < 0`).
-  - `P0.8 Webhook Catch Logging`: `SecurityAlertService.record()` интегрирован во все catch-блоки вебхуков.
-- **P1 / P2 — Завершено 100%**:
-  - `P1.1 CSP Hardening`: Сужен `connect-src` в `nginx/default.conf`, удален `'unsafe-eval'`, добавлены `worker-src 'self'`, `frame-src 'none'`.
-  - `P1.2 Staging Hardening`: Добавлен `security_opt: [no-new-privileges:true]` для всех сервисов в `docker-compose.staging.yml`.
-  - `P1.3 Redis Config Sync`: Синхронизированы `maxmemory-policy noeviction` и `appendonly yes` в `docker/redis.conf` и compose.
-  - `P1.4 maskProviderKey`: Добавлен `try/catch` wrapper, предотвращающий падение UI при некорректных шифротекстах.
-  - `P1.5 encryption.ts`: Логирование ошибок в `decrypt()` ограничено `err.message` без утечки внутренностей стека.
-  - `P1.7 mock-provider`: Сравнение API-ключа переведено на `crypto.timingSafeEqual`.
-  - `P2.4 re-encrypt-secrets.ts`: Удалено ghost-поле `webhookSecret`.
-  - `P2.5 verify-no-secrets.js`: Regex-сканер обновлен и протестирован.
+## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕН ЭТАП D0 «Горячие правки контура денег» (AUDIT-CHECKOUT.md / STAGE_D0_PROMPT.md)
+- **Ветка**: `fix/checkout-stage-d0-hotfixes`
+- **Завершено**:
+  - `D0.1 (CHK-01, P1)`: Полный откат при сбое шлюза в `src/actions/order/checkout.ts` переводит ВСЕ связанные заказы (`updateMany({ where: { paymentId } })`) в статус `ERROR`. Написан тест `checkout-rollback.test.ts` (проверены одиночный заказ и mediaGroup split).
+  - `D0.2 (CHK-02, P2)`: Добавлен passwordHash-щит в оба гостевых пути массовых заказов в `src/actions/order/mass.ts` (`massOrderCheckoutAction` и `structuredMassOrderCheckoutAction`). Написан тест `mass-guest-shield.test.ts`.
+  - `D0.3 (CHK-04, P2)`: Удалена магическая проверка email `'e2e-tester@test.com'` из `src/actions/order/mass.ts`. В `src/` осталось ровно 0 упоминаний.
+  - `D0.4 (CHK-05, P2)`: Добавлен Rate Limit на публичный расчёт цены `calculatePriceAction` (`RateLimitService.check("priceCalc", 60, 60, true)`). Протестировано в `checkout-rollback.test.ts`.
+  - `D0.5 (CHK-03+08, P2)`: Добавлен guard на `createDemoPaymentAction` (отказ в production без `isTestMode`), удален `DEMO_USER_NO_PASSWORD`, страница `/client-demo` превращена в тонкий server-wrapper с проверкой режима и клиентом `client-demo-client.tsx`. Написан тест `demo-payment-guard.test.ts`.
 - **Верификация**:
   - `npx tsc --noEmit` — 0 ошибок типов (100% PASS).
-  - `npm run test -- test/unit/security.webhooks.test.ts` — 22/22 PASS.
-  - `npm run test -- src/actions/order/__tests__/checkout.test.ts` — 4/4 PASS.
-  - `npm run test -- test/unit/security-alert.service.test.ts test/unit/wallet.race.test.ts test/unit/marketing.test.ts` — 13/13 PASS.
-  - `node scripts/verify-no-secrets.js` — PASS (0 leaked secrets).
-  - `npm run build` — Next.js build success!
+  - `npm run build` — 100% SUCCESS.
+  - Vitest: 5 сьютов, 18/18 PASS (100%).
 
 
 ---

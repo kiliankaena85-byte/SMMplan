@@ -8,14 +8,11 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { RBAC_SECTIONS } from '../src/lib/rbac-sections';
 
 const prisma = new PrismaClient();
 
-const ALL_SECTIONS = [
-  'dashboard', 'clients', 'orders', 'refills', 'catalog', 'quarantine', 
-  'tickets', 'finance', 'providers', 'marketing', 'content', 'settings', 
-  'features', 'queues', 'balance_requests', 'balance_approvals', 'balance_stats'
-];
+const ALL_SECTIONS = RBAC_SECTIONS.map(s => s.id);
 
 async function main() {
   console.log('🌱 Starting RBAC seeding...');
@@ -57,7 +54,7 @@ async function main() {
       });
     }
 
-    // MANAGER: Most things EDIT, but exclude Finance, Security, Dev features
+    // MANAGER: Most things EDIT, but exclude Finance, Security, Dev features; Analytics VIEW
     const managerPermissions = [
       { section: 'dashboard', canView: true, canEdit: false },
       { section: 'clients', canView: true, canEdit: true },
@@ -69,6 +66,7 @@ async function main() {
       { section: 'tickets', canView: true, canEdit: true },
       { section: 'marketing', canView: true, canEdit: true },
       { section: 'content', canView: true, canEdit: true },
+      { section: 'analytics', canView: true, canEdit: false },
     ];
     for (const p of managerPermissions) {
       await prisma.staffPermission.upsert({

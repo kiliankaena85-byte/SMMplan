@@ -221,6 +221,10 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
        if (user && (user.isDeleted === true || user.isActive === false)) {
          throw new Error("Ваш аккаунт заблокирован или удален");
        }
+       // CHK-02: prevent guest orders binding to existing password-protected accounts (same guard as checkout.ts)
+       if (user?.passwordHash) {
+         throw new Error("Этот email уже зарегистрирован в системе. Пожалуйста, войдите в свой аккаунт для оформления заказа.");
+       }
        if (!user) {
          user = await db.user.create({
            data: { email: lowerEmail, tenantId, role: 'USER' }
@@ -405,7 +409,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
         email: user.email,
         successUrl,
         description: `Массовый заказ (Payment #${result.paymentId})`,
-        isTestMode: isTestMode || user.email === 'e2e-tester@test.com',
+        isTestMode: isTestMode,
         gateway: (gateway || 'yookassa') as "yookassa" | "cryptobot" | "robokassa",
         metadata: { type: 'checkout' }
       });
@@ -470,6 +474,10 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
        let user = await db.user.findUnique({ where: { email_tenantId: { email: lowerEmail, tenantId } } });
        if (user && (user.isDeleted === true || user.isActive === false)) {
          throw new Error("Ваш аккаунт заблокирован или удален");
+       }
+       // CHK-02: prevent guest orders binding to existing password-protected accounts (same guard as checkout.ts)
+       if (user?.passwordHash) {
+         throw new Error("Этот email уже зарегистрирован в системе. Пожалуйста, войдите в свой аккаунт для оформления заказа.");
        }
        if (!user) {
          user = await db.user.create({
@@ -657,7 +665,7 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
         email: user.email,
         successUrl,
         description: `Массовый заказ (Payment #${result.paymentId})`,
-        isTestMode: isTestMode || user.email === 'e2e-tester@test.com',
+        isTestMode: isTestMode,
         gateway: (gateway || 'yookassa') as "yookassa" | "cryptobot" | "robokassa",
         metadata: { type: 'checkout' }
       });
