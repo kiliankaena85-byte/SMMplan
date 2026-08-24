@@ -288,9 +288,20 @@ class SupportBotService {
    */
   async sendTicketClosedRating(telegramId: string, ticketId: string): Promise<string | null> {
     try {
+      let ratingText = '✅ <b>Ваш вопрос решён и тикет #{ticketId} закрыт.</b>\n\nПожалуйста, оцените качество работы службы поддержки:';
+      try {
+        const settings = await db.systemSettings.findFirst({ select: { telegramTemplates: true } });
+        const templates = settings?.telegramTemplates as Record<string, string> | null;
+        if (templates?.ticketClosedRating) {
+          ratingText = templates.ticketClosedRating;
+        }
+      } catch { /* use default */ }
+
+      ratingText = ratingText.replace(/{ticketId}/g, ticketId.slice(-6).toUpperCase());
+
       const res = await this.tgCall('sendMessage', {
         chat_id: telegramId,
-        text: '✅ <b>Ваш вопрос решён и тикет закрыт.</b>\n\nПожалуйста, оцените работу службы поддержки:',
+        text: ratingText,
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [

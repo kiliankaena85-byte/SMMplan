@@ -102,6 +102,7 @@ model User {
   targetFinancialActions     SupportFinancialAction[]        @relation("targetFinancialActions")
   staffShifts                StaffShift[]                    @relation("UserStaffShifts")
   substituteStaffShifts      StaffShift[]                    @relation("ShiftSubstitute")
+  feedbacks                  TicketFeedback[]
 
   tenantId String @default("smmplan")
 
@@ -604,9 +605,12 @@ model SystemSettings {
   siteDescription String    @default("")
 
   // Telegram Bot Settings
-  telegramBotToken String? // AES-256-GCM encrypted
-  telegramBotMode  String? @default("polling") // polling | webhook
-  welcomeMessage   String? @default("Добро пожаловать в Smmplan! Ваш персональный кабинет готов к работе.")
+  telegramBotToken        String? // AES-256-GCM encrypted
+  telegramBotMode         String? @default("polling") // polling | webhook
+  welcomeMessage          String? @default("Добро пожаловать в Smmplan! Ваш персональный кабинет готов к работе.")
+  telegramMenuConfig      Json?   // Custom dynamic reply keyboard & inline buttons
+  telegramTemplates       Json?   // Canned response message templates by scenario
+  telegramRatingReasons   Json?   // Configurable reason tags for 1-2, 3, 4-5 stars CSAT ratings
 
   // Payment Gateways (Secrets are AES-256-GCM encrypted in DB)
   // Production keys
@@ -704,6 +708,7 @@ model Ticket {
 
   messages TicketMessage[]
   userNotes UserNote[]
+  feedback  TicketFeedback?
 
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
@@ -720,6 +725,26 @@ model Ticket {
   @@index([paymentId])
   @@index([status])
   @@index([status, createdAt])
+}
+
+model TicketFeedback {
+  id        String       @id @default(cuid())
+  ticketId  String       @unique
+  ticket    Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score     Int          // 1 to 5
+  reasons   String[]     @default([])
+  comment   String?
+  source    TicketSource @default(TELEGRAM)
+  tenantId  String       @default("smmplan")
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([score])
+  @@index([tenantId, score])
+  @@index([tenantId, createdAt])
 }
 
 model TicketMessage {

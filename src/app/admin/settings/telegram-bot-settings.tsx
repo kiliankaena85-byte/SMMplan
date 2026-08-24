@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import * as React from 'react';
 import { Card } from '@/components/ui/card';
@@ -11,6 +11,13 @@ import {
   getTelegramBotDiagnosticsAction, 
   resetTelegramWebhookAction, 
   sendTelegramTestAlertAction,
+  getTelegramEnterpriseConfigAction,
+  TelegramMenuButton,
+  TelegramRatingReasonsConfig,
+  TelegramMessageTemplatesConfig,
+  DEFAULT_TELEGRAM_MENU_BUTTONS,
+  DEFAULT_TELEGRAM_RATING_REASONS,
+  DEFAULT_TELEGRAM_MESSAGE_TEMPLATES,
   type TelegramBotDiagnostics 
 } from '@/actions/admin/telegram-bot';
 import { toast } from 'sonner';
@@ -18,43 +25,55 @@ import { useActionState, useEffect, useState, useTransition } from 'react';
 import { 
   Loader2, 
   Bot, 
-  ShieldCheck, 
-  CheckCircle, 
-  AlertCircle, 
-  Sparkles, 
-  Send, 
   RotateCcw, 
   Users, 
   Headphones, 
   ShoppingBag, 
   Smartphone, 
   ExternalLink,
-  MessageSquare,
-  Zap,
-  Info,
-  Radio
+  MessageSquare, 
+  Zap, 
+  Radio,
+  Send,
+  Star,
+  Settings2,
+  BarChart3
 } from 'lucide-react';
 import { SystemSettings } from '@prisma/client';
+
+import { TelegramMenuTab } from './telegram/telegram-menu-tab';
+import { TelegramTemplatesTab } from './telegram/telegram-templates-tab';
+import { TelegramCsatTab } from './telegram/telegram-csat-tab';
+import { TelegramFeedbackListTab } from './telegram/telegram-feedback-list-tab';
+import { TelegramLivePreview } from './telegram/telegram-live-preview';
 
 interface TelegramBotSettingsProps {
   settings: SystemSettings;
 }
 
+type TelegramSubTab = 'general' | 'menu' | 'templates' | 'csat' | 'feedback';
+
 export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
+  const [activeTab, setActiveTab] = useState<TelegramSubTab>('general');
   const [diagnostics, setDiagnostics] = useState<TelegramBotDiagnostics | null>(null);
   const [loadingDiag, setLoadingDiag] = useState(false);
   const [isPendingReset, startTransitionReset] = useTransition();
   const [isPendingTestMsg, startTransitionTestMsg] = useTransition();
 
-  // Content Preview States
+  // General Settings State
   const [botUsername, setBotUsername] = useState(settings.contactTelegramBot || 'SMMplansapport_bot');
   const [newsChannel, setNewsChannel] = useState(settings.contactTelegramChannel || '@smmplan_news');
-  const [welcomeText, setWelcomeText] = useState(
-    settings.welcomeMessage ||
-    '👋 <b>Добро пожаловать в {siteName}!</b>\n\nПлатформа автоматического продвижения в социальных сетях.\n\n💰 Ваш баланс: <b>{balance} ₽</b>\n\nВыберите действие в меню ниже:'
+
+  // Enterprise Config States for Live Preview Synchronization
+  const [menuButtons, setMenuButtons] = useState<TelegramMenuButton[]>(
+    (settings.telegramMenuConfig as unknown as TelegramMenuButton[]) || DEFAULT_TELEGRAM_MENU_BUTTONS
   );
-  const [testChatId, setTestChatId] = useState('');
-  const [testMsgText, setTestMsgText] = useState('Проверка доставки уведомлений из панели управления SMMpanel 1.0.');
+  const [ratingReasons, setRatingReasons] = useState<TelegramRatingReasonsConfig>(
+    (settings.telegramRatingReasons as unknown as TelegramRatingReasonsConfig) || DEFAULT_TELEGRAM_RATING_REASONS
+  );
+  const [templates, setTemplates] = useState<TelegramMessageTemplatesConfig>(
+    (settings.telegramTemplates as unknown as TelegramMessageTemplatesConfig) || DEFAULT_TELEGRAM_MESSAGE_TEMPLATES
+  );
 
   const fetchDiagnostics = async () => {
     setLoadingDiag(true);
@@ -73,8 +92,20 @@ export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
     }
   };
 
+  const loadEnterpriseConfig = async () => {
+    try {
+      const res = await getTelegramEnterpriseConfigAction();
+      if (res.success && res.config) {
+        if (res.config.menuButtons) setMenuButtons(res.config.menuButtons);
+        if (res.config.ratingReasons) setRatingReasons(res.config.ratingReasons);
+        if (res.config.templates) setTemplates(res.config.templates);
+      }
+    } catch { /* ignore */ }
+  };
+
   useEffect(() => {
     fetchDiagnostics();
+    loadEnterpriseConfig();
   }, []);
 
   const handleResetWebhook = () => {
@@ -130,20 +161,12 @@ export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
 
   useEffect(() => {
     if (formState?.success) {
-      toast.success('Настройки Telegram-бота успешно сохранены в базе данных');
+      toast.success('Параметры подключения Telegram-бота успешно сохранены');
       fetchDiagnostics();
     } else if (formState?.error) {
       toast.error(formState.error);
     }
   }, [formState]);
-
-  // Live formatted text for simulator
-  const renderSimulatedText = () => {
-    return welcomeText
-      .replace(/{siteName}/g, settings.siteName || 'SMMplan')
-      .replace(/{userName}/g, 'Артём')
-      .replace(/{balance}/g, '1 500.00');
-  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -156,7 +179,7 @@ export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
             </div>
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2.5">
-                <h2 className="text-xl font-extrabold text-foreground tracking-tight">Telegram Bot Control Center</h2>
+                <h2 className="text-xl font-extrabold text-foreground tracking-tight">Telegram Enterprise Control Center</h2>
                 {diagnostics?.success ? (
                   diagnostics.daemonRunning ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
@@ -166,7 +189,7 @@ export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
                   ) : (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-500/15 text-amber-400 border border-amber-500/30">
                       <span className="w-2 h-2 rounded-full bg-amber-500" />
-                      Токен валиден • Процесс Polling остановлен
+                      Токен валиден • Polling перезапускается
                     </span>
                   )
                 ) : (
@@ -177,7 +200,7 @@ export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
                 )}
               </div>
               <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
-                Глобальный узел интеграции с Telegram: каталог услуг, прием тикетов поддержки, Smart Bind слияние аккаунтов и CSAT-оценки.
+                Комплексное управление экосистемой Telegram: кастомизация кнопок меню, шаблоны автоответов, причины оценок (1–5 ⭐) и журнал отзывов CSAT.
               </p>
             </div>
           </div>
@@ -265,320 +288,238 @@ export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
         </div>
       </Card>
 
-      {/* ── 2. MAIN CONFIGURATION & LIVE SIMULATOR TWO-COLUMN LAYOUT ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Form Settings (7 cols) */}
+      {/* ── 2. INNER NAVIGATION TABS ── */}
+      <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-2xl bg-muted/30 border border-border/60">
+        <button
+          type="button"
+          onClick={() => setActiveTab('general')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'general'
+              ? 'bg-card text-foreground shadow-sm border border-border/80'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Settings2 className="w-3.5 h-3.5" />
+          <span>1. Подключение & Статус</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('menu')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'menu'
+              ? 'bg-card text-foreground shadow-sm border border-border/80'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Smartphone className="w-3.5 h-3.5 text-primary" />
+          <span>2. Кнопки Меню</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('templates')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'templates'
+              ? 'bg-card text-foreground shadow-sm border border-border/80'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <MessageSquare className="w-3.5 h-3.5 text-blue-400" />
+          <span>3. Шаблоны Ответов</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('csat')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'csat'
+              ? 'bg-card text-foreground shadow-sm border border-border/80'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+          <span>4. Причины Оценок</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('feedback')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'feedback'
+              ? 'bg-card text-foreground shadow-sm border border-border/80'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
+          <span>5. Журнал Отзывов & CSAT</span>
+        </button>
+      </div>
+
+      {/* ── 3. TWO-COLUMN WORKSPACE: TAB CONTENT (7 cols) + LIVE SIMULATOR (5 cols) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
-          <form action={formAction} className="space-y-6">
-            {/* Card: Connection Secrets & Identifiers */}
-            <Card className="rounded-3xl border border-border/80 shadow-sm bg-card p-6 space-y-5">
-              <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
-                <span className="p-1 px-2.5 bg-primary/10 text-primary rounded-md text-[10px] font-bold">AUTH</span>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Идентификаторы и Секреты</h3>
-              </div>
+          {/* TAB 1: GENERAL SETTINGS */}
+          {activeTab === 'general' && (
+            <form action={formAction} className="space-y-6">
+              <Card className="rounded-3xl border border-border/80 shadow-sm bg-card p-6 space-y-5">
+                <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
+                  <span className="p-1 px-2.5 bg-primary/10 text-primary rounded-md text-[10px] font-bold">AUTH</span>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Идентификаторы и Секреты</h3>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Юзернейм бота (без @)
-                  </Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Юзернейм бота (без @)
+                    </Label>
+                    <Input
+                      name="contactTelegramBot"
+                      value={botUsername}
+                      onChange={(e) => setBotUsername(e.target.value)}
+                      placeholder="SMMplansapport_bot"
+                      className="font-mono text-xs"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Основной бот: <span className="font-bold text-foreground font-mono">@{botUsername}</span>
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Официальный канал (@канал)
+                    </Label>
+                    <Input
+                      name="contactTelegramChannel"
+                      value={newsChannel}
+                      onChange={(e) => setNewsChannel(e.target.value)}
+                      placeholder="@smmplan_news"
+                      className="font-mono text-xs"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Ссылка на новости в меню профиля
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-border/40">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Токен Telegram Бота (TELEGRAM_BOT_TOKEN)
+                    </Label>
+                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                      AES-256-GCM Vault
+                    </span>
+                  </div>
                   <Input
-                    name="contactTelegramBot"
-                    value={botUsername}
-                    onChange={(e) => setBotUsername(e.target.value)}
-                    placeholder="SMMplansapport_bot"
+                    name="telegramBotToken"
+                    type="password"
+                    placeholder={settings.telegramBotToken ? '••••••••••••••••' : 'Вставьте токен от @BotFather (или оставьте пустым для .env)'}
                     className="font-mono text-xs"
                   />
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    Токен надежно шифруется в базе данных и имеет приоритет над переменной <code>.env</code>.
+                  </p>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-border/40">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Режим работы бота
+                  </Label>
+                  <select
+                    name="telegramBotMode"
+                    defaultValue={settings.telegramBotMode || 'polling'}
+                    className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs font-medium focus:ring-1 focus:ring-primary focus:outline-none"
+                  >
+                    <option value="polling">Long Polling (Автономный демон / Docker сервис bot)</option>
+                    <option value="webhook">Webhook (HTTP POST /api/webhooks/telegram)</option>
+                  </select>
                   <p className="text-[10px] text-muted-foreground">
-                    Основной бот: <span className="font-bold text-foreground font-mono">@{botUsername}</span>
+                    По умолчанию используется отказоустойчивый Long Polling.
                   </p>
                 </div>
+              </Card>
 
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Официальный канал (@канал)
-                  </Label>
-                  <Input
-                    name="contactTelegramChannel"
-                    value={newsChannel}
-                    onChange={(e) => setNewsChannel(e.target.value)}
-                    placeholder="@smmplan_news"
-                    className="font-mono text-xs"
-                  />
-                  <p className="text-[10px] text-muted-foreground">
-                    Ссылка на новости в меню профиля
-                  </p>
+              {/* Card: Test Alert Message */}
+              <Card className="rounded-3xl border border-border/80 shadow-sm bg-card p-6 space-y-4">
+                <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
+                  <span className="p-1 px-2.5 bg-amber-500/10 text-amber-400 rounded-md text-[10px] font-bold">TEST</span>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Отправка тестового сообщения</h3>
                 </div>
-              </div>
 
-              <div className="space-y-2 pt-2 border-t border-border/40">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Токен Telegram Бота (TELEGRAM_BOT_TOKEN)
-                  </Label>
-                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                    AES-256-GCM Vault
-                  </span>
-                </div>
-                <Input
-                  name="telegramBotToken"
-                  type="password"
-                  placeholder={settings.telegramBotToken ? '••••••••••••••••' : 'Вставьте токен от @BotFather (или оставьте пустым для .env)'}
-                  className="font-mono text-xs"
-                />
-                <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  Токен надежно шифруется в базе данных и имеет приоритет над переменной <code>.env</code>.
-                </p>
-              </div>
-
-              <div className="space-y-2 pt-2 border-t border-border/40">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Режим работы бота
-                </Label>
-                <select
-                  name="telegramBotMode"
-                  defaultValue={settings.telegramBotMode || 'polling'}
-                  className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs font-medium focus:ring-1 focus:ring-primary focus:outline-none"
-                >
-                  <option value="polling">Long Polling (Автономный демон / Docker сервис bot)</option>
-                  <option value="webhook">Webhook (HTTP POST /api/support/telegram)</option>
-                </select>
-                <p className="text-[10px] text-muted-foreground">
-                  По умолчанию используется Long Polling.
-                </p>
-              </div>
-            </Card>
-
-            {/* Card: Message Templates & Content Engine */}
-            <Card className="rounded-3xl border border-border/80 shadow-sm bg-card p-6 space-y-5">
-              <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
-                <span className="p-1 px-2.5 bg-blue-500/10 text-blue-400 rounded-md text-[10px] font-bold">MSG</span>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Приветствие и Шаблоны</h3>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Приветственное сообщение (/start)
-                  </Label>
-                  <span className="text-[10px] text-muted-foreground font-mono">HTML Format</span>
-                </div>
-                <Textarea
-                  name="welcomeMessage"
-                  value={welcomeText}
-                  onChange={(e) => setWelcomeText(e.target.value)}
-                  rows={5}
-                  className="font-mono text-xs leading-relaxed"
-                />
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  <span className="text-[10px] text-muted-foreground">Переменные:</span>
-                  {['{siteName}', '{userName}', '{balance}'].map((placeholder) => (
-                    <button
-                      key={placeholder}
-                      type="button"
-                      onClick={() => setWelcomeText(prev => `${prev} ${placeholder}`)}
-                      className="text-[10px] font-mono font-bold bg-muted/60 hover:bg-muted text-primary px-1.5 py-0.5 rounded border border-border transition-colors cursor-pointer"
-                    >
-                      {placeholder}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </Card>
-
-            {/* Card: Advanced Engine Flags */}
-            <Card className="rounded-3xl border border-border/80 shadow-sm bg-card p-6 space-y-4">
-              <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
-                <span className="p-1 px-2.5 bg-emerald-500/10 text-emerald-400 rounded-md text-[10px] font-bold">ENGINE</span>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Продвинутые функции экосистемы</h3>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
-                <div className="p-3.5 rounded-2xl bg-muted/20 border border-border/60 space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold text-foreground">
-                    <CheckCircle className="w-4 h-4 text-emerald-400" />
-                    Smart Bind Protocol 2.0
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-bold uppercase text-muted-foreground">Chat ID получателя</Label>
+                    <Input
+                      name="testChatId"
+                      placeholder="123456789"
+                      className="font-mono text-xs"
+                    />
                   </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Одноразовые токены <code>/start tg_bind_...</code> для мгновенного объединения балансов и истории без SMS.
-                  </p>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-muted/20 border border-border/60 space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold text-foreground">
-                    <CheckCircle className="w-4 h-4 text-emerald-400" />
-                    Сквозная поддержка (Desk)
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <Label className="text-[10px] font-bold uppercase text-muted-foreground">Текст сообщения</Label>
+                    <Input
+                      name="testMessage"
+                      defaultValue="Проверка доставки уведомлений из SMMpanel 1.0."
+                      className="text-xs"
+                    />
                   </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Сообщения, голосовые заметки и скриншоты клиентов из Telegram мгновенно попадают в тикеты операторов.
-                  </p>
                 </div>
+              </Card>
 
-                <div className="p-3.5 rounded-2xl bg-muted/20 border border-border/60 space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold text-foreground">
-                    <CheckCircle className="w-4 h-4 text-emerald-400" />
-                    CSAT Рейтинг (1-5 ⭐)
-                  </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Интерактивные кнопки оценки работы саппорта при закрытии тикета с авто-тегом <code>CSAT_5_STAR</code>.
-                  </p>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-muted/20 border border-border/60 space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold text-foreground">
-                    <CheckCircle className="w-4 h-4 text-emerald-400" />
-                    Розничный прайс (₽ / шт)
-                  </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Каталог услуг в боте строго соблюдает единую ценовую политику: розничные цены за 1 единицу.
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            <div className="flex justify-end pt-2">
-              <Button
-                type="submit"
-                disabled={isPendingSave}
-                className="font-bold uppercase tracking-widest text-xs h-11 px-6 shadow-lg shadow-primary/20 cursor-pointer"
-              >
-                {isPendingSave && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Сохранить параметры бота
-              </Button>
-            </div>
-          </form>
-
-          {/* Card: Test Message Dispatcher */}
-          <Card className="rounded-3xl border border-border/80 shadow-sm bg-card p-6 space-y-4">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
-              <span className="p-1 px-2.5 bg-purple-500/10 text-purple-400 rounded-md text-[10px] font-bold">TEST</span>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Отправка тестового сообщения</h3>
-            </div>
-
-            <form onSubmit={handleSendTestMessage} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Telegram Chat ID
-                  </Label>
-                  <Input
-                    name="chatId"
-                    value={testChatId}
-                    onChange={(e) => setTestChatId(e.target.value)}
-                    placeholder="Например: 123456789"
-                    className="font-mono text-xs"
-                    required
-                  />
-                  <p className="text-[10px] text-muted-foreground">Ваш числовой ID в Telegram</p>
-                </div>
-
-                <div className="sm:col-span-2 space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Текст сообщения
-                  </Label>
-                  <Input
-                    name="message"
-                    value={testMsgText}
-                    onChange={(e) => setTestMsgText(e.target.value)}
-                    className="text-xs"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-1">
+              <div className="flex justify-end pt-2">
                 <Button
                   type="submit"
-                  intent="secondary"
-                  size="sm"
-                  disabled={isPendingTestMsg}
-                  className="font-bold text-xs h-9 gap-1.5 cursor-pointer"
+                  disabled={isPendingSave}
+                  className="font-bold uppercase tracking-widest text-xs h-11 px-6 shadow-lg shadow-primary/20 cursor-pointer"
                 >
-                  {isPendingTestMsg ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5 text-primary" />}
-                  <span>Отправить тестовый алерт</span>
+                  {isPendingSave && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Сохранить параметры подключения
                 </Button>
               </div>
             </form>
-          </Card>
+          )}
+
+          {/* TAB 2: MENU BUILDER */}
+          {activeTab === 'menu' && (
+            <TelegramMenuTab
+              initialButtons={menuButtons}
+              onButtonsChange={setMenuButtons}
+            />
+          )}
+
+          {/* TAB 3: MESSAGE TEMPLATES */}
+          {activeTab === 'templates' && (
+            <TelegramTemplatesTab
+              initialTemplates={templates}
+              onTemplatesChange={setTemplates}
+            />
+          )}
+
+          {/* TAB 4: CSAT RATING REASONS */}
+          {activeTab === 'csat' && (
+            <TelegramCsatTab
+              initialReasons={ratingReasons}
+              onReasonsChange={setRatingReasons}
+            />
+          )}
+
+          {/* TAB 5: FEEDBACK CRM */}
+          {activeTab === 'feedback' && (
+            <TelegramFeedbackListTab />
+          )}
         </div>
 
-        {/* Right Column: Live Telegram Mobile Simulator (5 cols) */}
-        <div className="lg:col-span-5 space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Smartphone className="w-4 h-4 text-primary" />
-              Live Telegram Simulator
-            </span>
-            <span className="text-[10px] font-mono text-muted-foreground">iOS Dark Style</span>
-          </div>
-
-          {/* Smartphone Bezel Mock */}
-          <div className="w-full max-w-[380px] mx-auto rounded-[40px] border-[6px] border-zinc-800 bg-zinc-950 p-3 shadow-2xl relative overflow-hidden">
-            {/* Top Notch */}
-            <div className="w-28 h-4 bg-zinc-800 rounded-full mx-auto mb-3" />
-
-            {/* Telegram Header */}
-            <div className="bg-zinc-900/90 rounded-2xl p-3 flex items-center justify-between border border-zinc-800/80 mb-3 shadow-sm">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
-                  S
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white leading-tight">{settings.siteName || 'SMMplan'}</h4>
-                  <p className="text-[10px] text-blue-400 font-mono">бот</p>
-                </div>
-              </div>
-              <span className="text-[10px] text-zinc-400 font-mono">12:00</span>
-            </div>
-
-            {/* Chat Area */}
-            <div className="space-y-3 min-h-[320px] p-2 flex flex-col justify-end">
-              {/* User Command */}
-              <div className="self-end bg-blue-600 text-white rounded-2xl rounded-br-sm px-3.5 py-2 text-xs max-w-[80%] shadow-md">
-                /start
-              </div>
-
-              {/* Bot Welcome Message */}
-              <div className="self-start bg-zinc-900 text-zinc-100 rounded-2xl rounded-bl-sm p-3.5 text-xs max-w-[95%] border border-zinc-800/90 shadow-md space-y-2">
-                <div 
-                  className="leading-relaxed whitespace-pre-wrap font-sans text-zinc-200"
-                  dangerouslySetInnerHTML={{ __html: renderSimulatedText() }}
-                />
-                <div className="text-[9px] text-zinc-500 text-right font-mono">12:00 ✓✓</div>
-              </div>
-            </div>
-
-            {/* Telegram Custom Keyboard */}
-            <div className="pt-3 border-t border-zinc-800/80 space-y-1.5">
-              <div className="grid grid-cols-2 gap-1.5">
-                <div className="p-2.5 rounded-xl bg-zinc-850 hover:bg-zinc-800 text-white text-[11px] font-bold text-center border border-zinc-700/60 shadow-xs cursor-default">
-                  🛍 Каталог услуг
-                </div>
-                <div className="p-2.5 rounded-xl bg-zinc-850 hover:bg-zinc-800 text-white text-[11px] font-bold text-center border border-zinc-700/60 shadow-xs cursor-default">
-                  📦 Мои заказы
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                <div className="p-2.5 rounded-xl bg-zinc-850 hover:bg-zinc-800 text-white text-[11px] font-bold text-center border border-zinc-700/60 shadow-xs cursor-default">
-                  💰 Пополнить
-                </div>
-                <div className="p-2.5 rounded-xl bg-zinc-850 hover:bg-zinc-800 text-white text-[11px] font-bold text-center border border-zinc-700/60 shadow-xs cursor-default">
-                  👤 Профиль
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                <div className="p-2.5 rounded-xl bg-zinc-850 hover:bg-zinc-800 text-white text-[11px] font-bold text-center border border-zinc-700/60 shadow-xs cursor-default">
-                  🆘 Поддержка
-                </div>
-                <div className="p-2.5 rounded-xl bg-zinc-850 hover:bg-zinc-800 text-white text-[11px] font-bold text-center border border-zinc-700/60 shadow-xs cursor-default">
-                  👥 Рефералы
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Home Indicator */}
-            <div className="w-32 h-1 bg-zinc-700 rounded-full mx-auto mt-4" />
-          </div>
+        {/* Right Column: Live Interactive iPhone Dark Simulator (5 cols) */}
+        <div className="lg:col-span-5 sticky top-6">
+          <TelegramLivePreview
+            botUsername={botUsername}
+            siteName={settings.siteName || 'SMMplan'}
+            menuButtons={menuButtons}
+            ratingReasons={ratingReasons}
+            templates={templates}
+          />
         </div>
       </div>
     </div>

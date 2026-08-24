@@ -226,21 +226,76 @@ bot.start(async (ctx: BotContext) => {
     }
   }
 
-  const welcomeText =
-    `👋 <b>Добро пожаловать в ${botSiteName}!</b>\n\n` +
+  let welcomeTpl =
+    `👋 <b>Добро пожаловать в {siteName}!</b>\n\n` +
     `Платформа автоматического продвижения в социальных сетях.\n\n` +
-    `💰 Ваш баланс: <b>${(Number(user.balance) / 100).toFixed(2)} ₽</b>\n\n` +
+    `💰 Ваш баланс: <b>{balance} ₽</b>\n\n` +
     `Выберите действие в меню ниже:`;
 
-  return ctx.reply(welcomeText, {
+  try {
+    const settings = await db.systemSettings.findFirst({ select: { telegramTemplates: true, welcomeMessage: true } });
+    const templates = settings?.telegramTemplates as { welcome?: string } | null;
+    if (templates?.welcome) {
+      welcomeTpl = templates.welcome;
+    } else if (settings?.welcomeMessage) {
+      welcomeTpl = settings.welcomeMessage;
+    }
+  } catch { /* use default */ }
+
+  const formattedWelcome = welcomeTpl
+    .replace(/{siteName}/g, botSiteName)
+    .replace(/{userName}/g, user.email?.split('@')[0] || 'Пользователь')
+    .replace(/{balance}/g, (Number(user.balance) / 100).toFixed(2));
+
+  const keyboard = await getDynamicKeyboard();
+  return ctx.reply(formattedWelcome, {
     parse_mode: 'HTML',
-    ...Markup.keyboard([
-      ['🛍 Каталог услуг', '📦 Мои заказы'],
-      ['💰 Пополнить', '👤 Профиль'],
-      ['🆘 Поддержка', '👥 Рефералы']
-    ]).resize()
+    ...keyboard
   });
 });
+
+interface DynamicMenuBtn {
+  id: string;
+  label: string;
+  action: string;
+  row: number;
+  col: number;
+  value?: string;
+  isActive: boolean;
+}
+
+async function getDynamicKeyboard() {
+  try {
+    const settings = await db.systemSettings.findFirst({ select: { telegramMenuConfig: true } });
+    const buttons = settings?.telegramMenuConfig as unknown as DynamicMenuBtn[] | null;
+    if (Array.isArray(buttons) && buttons.length > 0) {
+      const active = buttons.filter(b => b.isActive !== false);
+      if (active.length > 0) {
+        const rowMap = new Map<number, DynamicMenuBtn[]>();
+        for (const btn of active) {
+          const r = btn.row ?? 0;
+          if (!rowMap.has(r)) rowMap.set(r, []);
+          rowMap.get(r)!.push(btn);
+        }
+        const sortedRows = Array.from(rowMap.keys()).sort((a, b) => a - b);
+        const grid: string[][] = [];
+        for (const r of sortedRows) {
+          const rowBtns = rowMap.get(r)!.sort((a, b) => (a.col ?? 0) - (b.col ?? 0));
+          grid.push(rowBtns.map(b => b.label));
+        }
+        if (grid.length > 0) {
+          return Markup.keyboard(grid).resize();
+        }
+      }
+    }
+  } catch { /* use default fallback */ }
+
+  return Markup.keyboard([
+    ['🛍 Каталог услуг', '📦 Мои заказы'],
+    ['💰 Пополнить', '👤 Профиль'],
+    ['🆘 Поддержка', '👥 Рефералы']
+  ]).resize();
+}
 
 bot.command('shop', async (ctx: BotContext) => {
   try {
@@ -555,9 +610,9 @@ bot.hears('📦 Мои заказы', async (ctx: BotContext) => {
 bot.action(/^rate:([^:]+):(\d+)$/, async (ctx: BotContext) => {
   if (!ctx.match) return;
   try {
-    await ctx.answerCbQuery('Спасибо за вашу оценку!').catch(() => {});
+    await ctx.answerCbQuery('Оценка принята!').catch(() => {});
     const ticketId = ctx.match[1];
-    const score = Number(ctx.match[2]);
+    const score = Math.max(1, Math.min(5, Number(ctx.match[2])));
 
     try {
       const ticket = await db.ticket.findUnique({ where: { id: ticketId } });
@@ -567,18 +622,123 @@ bot.action(/^rate:([^:]+):(\d+)$/, async (ctx: BotContext) => {
           where: { id: ticketId },
           data: { tags: newTags }
         });
+
+        await db.ticketFeedback.upsert({
+          where: { ticketId },
+          create: {
+            ticketId,
+            userId: ticket.userId,
+            score,
+            source: 'TELEGRAM',
+            tenantId: ticket.tenantId || botTenantId,
+            reasons: []
+          },
+          update: {
+            score
+          }
+        });
       }
     } catch (dbErr) {
-      console.error('[Bot] Error saving CSAT rating to DB:', dbErr);
+      console.error('[Bot] Error saving CSAT feedback to DB:', dbErr);
+    }
+
+    // Determine reason options
+    let reasonList: string[] = [];
+    try {
+      const settings = await db.systemSettings.findFirst({ select: { telegramRatingReasons: true } });
+      const cfg = settings?.telegramRatingReasons as { negative?: string[]; neutral?: string[]; positive?: string[] } | null;
+      if (score <= 2) reasonList = cfg?.negative || ['Долгий ответ', 'Проблема не решена', 'Грубость оператора', 'Технический сбой'];
+      else if (score === 3) reasonList = cfg?.neutral || ['Долго решали', 'Неполный ответ', 'Сложный процесс', 'Мало информации'];
+      else reasonList = cfg?.positive || ['Быстрый ответ', 'Вежливый оператор', 'Проблема решена на 100%', 'Понятная инструкция', 'Отличный сервис'];
+    } catch {
+      reasonList = score <= 2 ? ['Долгий ответ', 'Проблема не решена'] : ['Быстро и вежливо', 'Вопрос решен'];
     }
 
     const stars = '⭐'.repeat(score);
+    const reasonButtons = reasonList.slice(0, 4).map((r, idx) => [
+      Markup.button.callback(r, `fb_rsn:${ticketId}:${idx}`)
+    ]);
+    reasonButtons.push([Markup.button.callback('✨ Пропустить', `fb_done:${ticketId}`)]);
+
     await ctx.editMessageText(
-      `✅ <b>Тикет закрыт.</b>\n\nСпасибо за вашу оценку: ${stars} (${score}/5)!\nЕсли у вас возникнут новые вопросы, просто напишите в этот чат.`,
-      { parse_mode: 'HTML' }
+      `⭐ <b>Спасибо за оценку ${stars} (${score}/5)!</b>\n\nУточните, пожалуйста, что именно повлияло на вашу оценку:`,
+      {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard(reasonButtons)
+      }
     ).catch(() => {});
   } catch (e) {
     console.error('[Bot] Rating action error:', e);
+  }
+});
+
+// ── CSAT REASON CALLBACK ──
+bot.action(/^fb_rsn:([^:]+):(\d+)$/, async (ctx: BotContext) => {
+  if (!ctx.match) return;
+  try {
+    await ctx.answerCbQuery('Принято!').catch(() => {});
+    const ticketId = ctx.match[1];
+    const reasonIdx = Number(ctx.match[2]);
+
+    let selectedReason = 'Качественный сервис';
+    let thanksText = '⭐ <b>Спасибо за ваш отзыв!</b>\n\nВаш отзыв помогает нам становиться лучше. Если у вас возникнут новые вопросы, просто напишите в этот чат.';
+
+    try {
+      const settings = await db.systemSettings.findFirst({ select: { telegramRatingReasons: true, telegramTemplates: true } });
+      const fb = await db.ticketFeedback.findUnique({ where: { ticketId } });
+      const cfg = settings?.telegramRatingReasons as { negative?: string[]; neutral?: string[]; positive?: string[] } | null;
+      const tpl = settings?.telegramTemplates as { ratingThanks?: string } | null;
+      if (tpl?.ratingThanks) thanksText = tpl.ratingThanks;
+
+      const score = fb?.score || 5;
+      let reasonList: string[] = [];
+      if (score <= 2) reasonList = cfg?.negative || [];
+      else if (score === 3) reasonList = cfg?.neutral || [];
+      else reasonList = cfg?.positive || [];
+
+      if (reasonList[reasonIdx]) {
+        selectedReason = reasonList[reasonIdx];
+      }
+
+      if (fb) {
+        const updatedReasons = Array.from(new Set([...(fb.reasons || []), selectedReason]));
+        await db.ticketFeedback.update({
+          where: { ticketId },
+          data: { reasons: updatedReasons }
+        });
+      }
+    } catch (err) {
+      console.error('[Bot] Error saving feedback reason:', err);
+    }
+
+    thanksText = thanksText
+      .replace(/{stars}/g, '⭐'.repeat(5))
+      .replace(/{reasons}/g, selectedReason);
+
+    await ctx.editMessageText(
+      `✅ <b>Отзыв принят: «${selectedReason}»</b>\n\n${thanksText}`,
+      { parse_mode: 'HTML' }
+    ).catch(() => {});
+  } catch (e) {
+    console.error('[Bot] Reason action error:', e);
+  }
+});
+
+// ── CSAT SKIP REASON CALLBACK ──
+bot.action(/^fb_done:([^:]+)$/, async (ctx: BotContext) => {
+  if (!ctx.match) return;
+  try {
+    await ctx.answerCbQuery().catch(() => {});
+    let thanksText = '⭐ <b>Спасибо за вашу оценку!</b>\n\nЕсли у вас возникнут новые вопросы, просто напишите в этот чат.';
+    try {
+      const settings = await db.systemSettings.findFirst({ select: { telegramTemplates: true } });
+      const tpl = settings?.telegramTemplates as { ratingThanks?: string } | null;
+      if (tpl?.ratingThanks) thanksText = tpl.ratingThanks.replace(/{stars}/g, '⭐⭐⭐⭐⭐');
+    } catch { /* use default */ }
+
+    await ctx.editMessageText(thanksText, { parse_mode: 'HTML' }).catch(() => {});
+  } catch (e) {
+    console.error('[Bot] Done action error:', e);
   }
 });
 
