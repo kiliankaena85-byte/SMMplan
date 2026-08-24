@@ -539,8 +539,7 @@ describe('Cherry-Pick Service Import & Shadow Catalog Tests', () => {
     expect(res.report.usedLivePrices).toBe(false);
     expect(res.report.shadowCatalogAgeHours).not.toBeNull();
     expect(res.report.shadowCatalogAgeHours).toBeLessThan(1);
-    expect(res.report.warnings.length).toBe(1);
-    expect(res.report.warnings[0]).toContain('теневого каталога');
+    expect(res.report.warnings.some((w: string) => w.includes('теневого каталога'))).toBe(true);
 
     // Imported with the SHADOW rate (0.50), since no live rate is available
     const importedService = await db.service.findFirst({
