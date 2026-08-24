@@ -1,10 +1,27 @@
 # CURRENT_STATE.md — 🚀 Дэшборд Активной Сессии SMMplan
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
-## Последнее обновление: 2026-08-24 | Агент: Antigravity
-## Активный статус: 🛡️ УСПЕШНО ВЫПОЛНЕН ЭТАП P1 «Resilience & Infrastructure Hardening» (PREM-05..11)
-- **Ветка**: `fix/premortem-p1-resilience`
+## Последнее обновление: 2026-08-25 | Агент: Antigravity
+## Активный статус: 🛡️ УСПЕШНО РЕАЛИЗОВАНА СИСТЕМА «Services Lifecycle Management» (ENTERPRISE EDITION)
+- **Ветка**: `feature/services-lifecycle-management`
 - **Завершено**:
+  - `SERVICES-LIFECYCLE-01`: Внедрена Enterprise-система полного жизненного цикла услуг:
+    1. **Prisma Модели**:
+       - `CustomerGroup`: Группы заказчиков B2B/VIP с тенантами и индивидуальными скидками.
+       - `ServiceCustomerAccess`: Many-to-Many матрица видимости с поддержкой кастомных цен (`customPriceRub`).
+       - `ServiceDraft`: Черновики услуг с 4-фазным воркфлоу (`DRAFT` → `TESTING` → `PUBLISHED` → `ARCHIVED`).
+       - `ServiceLinkCheck`: Журнал проверок сетевой доступности ссылок и совместимости типов.
+       - `ServiceEditHistory`: Неизменяемый журнал гранулярного аудита изменений (Diff: `oldValue` → `newValue`).
+    2. **Сервисный слой (`src/services/admin/services-lifecycle.service.ts`)**:
+       - Авто-калькуляция цен с защитой от деления на 0 и отрицательных наценок (`calculateRetailPrice`).
+       - Network Link Verifier с `AbortController` (4000мс таймаут) и SSRF защитой (`assertSafeOutboundUrl`).
+       - Атомарная публикация через `db.$transaction` с фиксацией в `AdminAuditLog` (`auditAdminAwaitable`).
+       - Контроль доступа к услугам по группам клиентов (`isServiceAccessibleForUser`).
+    3. **Server Actions (`src/actions/admin/services-lifecycle.ts`)**:
+       - Guard `requireStaffPermission('catalog', 'edit')` / `'view'`.
+    4. **Документация и Тесты**:
+       - Создан `SERVICES_LIFECYCLE_IMPLEMENTATION.md`.
+       - Написан интеграционный сьют `src/__tests__/services-lifecycle.test.ts` (8/8 тестов passed, 100%).
   - `PREM-05`: NPM Supply Chain Hardening (`.npmrc` с `ignore-scripts=true`, CI workflow `.github/workflows/supply-chain.yml`, SBOM генератор, `scripts/audit-deps.ts`, `.github/dependabot.yml`).
   - `PREM-06`: PII Read-Access Audit Trail (`PiiAccessLog` модель в Prisma, `src/lib/audit/pii-access-log.ts` с маскированием email, телефонов, ИНН, адресов, админский экшен `getPiiAccessLogsAction`).
   - `PREM-07`: Provider Rate Change Pre-Flight & Circuit Breaker (`circuit-breaker.ts` с Redis и memory fallback, `rate-change-detector.ts` с блокировкой при скачке тарифов > 20% или отрицательной марже).

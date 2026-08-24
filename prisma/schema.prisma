@@ -104,10 +104,15 @@ model User {
   substituteStaffShifts      StaffShift[]                    @relation("ShiftSubstitute")
   feedbacks                  TicketFeedback[]
 
+  // Customer Group (Lifecycle & Access Control)
+  customerGroupId            String?
+  customerGroup              CustomerGroup?                  @relation("CustomerGroupUsers", fields: [customerGroupId], references: [id], onDelete: SetNull)
+
   tenantId String @default("smmplan")
 
   @@unique([email, tenantId])
   @@index([tenantId])
+  @@index([customerGroupId])
   @@index([createdAt(sort: Desc), id(sort: Desc)])
   @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
 }
@@ -308,6 +313,12 @@ model Service {
   smartCampaigns SmartCampaign[]
   smartConfig    ServiceSmartConfig?
   priceHistory   ServicePriceHistory[]
+
+  // Lifecycle Management Relations
+  customerAccess ServiceCustomerAccess[]
+  draft          ServiceDraft?
+  linkChecks     ServiceLinkCheck[]
+  editHistory    ServiceEditHistory[]
 
   @@unique([tenantId, slug])
   @@index([categoryId])
@@ -1866,6 +1877,116 @@ model TelegramDailyStat {
   @@index([tenantId])
   @@index([date])
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// SERVICES LIFECYCLE MANAGEMENT & ACCESS CONTROL (Enterprise Wave)
+// ═══════════════════════════════════════════════════════════════════
+
+model CustomerGroup {
+  id              String                  @id @default(cuid())
+  name            String
+  slug            String
+  description     String?
+  tenantId        String                  @default("smmplan")
+  isDefault       Boolean                 @default(false)
+  discountPercent Float                   @default(0.0)
+  users           User[]                  @relation("CustomerGroupUsers")
+  serviceAccess   ServiceCustomerAccess[]
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+}
+
+model ServiceCustomerAccess {
+  id              String        @id @default(cuid())
+  serviceId       String
+  customerGroupId String
+  isCustomPrice   Boolean       @default(false)
+  customPriceRub  Float?
+  service         Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  customerGroup   CustomerGroup @relation(fields: [customerGroupId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([serviceId, customerGroupId])
+  @@index([serviceId])
+  @@index([customerGroupId])
+}
+
+model ServiceDraft {
+  id                  String               @id @default(cuid())
+  serviceId           String?              @unique
+  providerId          String?
+  externalId          String?
+  tenantId            String               @default("smmplan")
+  name                String
+  cleanName           String?
+  description         String?
+  categoryId          String?
+  targetType          String               @default("POST")
+  status              String               @default("DRAFT") // DRAFT, TESTING, PUBLISHED, ARCHIVED
+  procurementRate     Float                @default(0.0)
+  procurementCurrency String               @default("USD")
+  markup              Float                @default(3.0)
+  retailPriceRub      Float                @default(0.0)
+  minQty              Int                  @default(10)
+  maxQty              Int                  @default(100000)
+  validationStatus    String               @default("PENDING") // PENDING, PASSED, FAILED
+  linkCheckStatus     String               @default("UNCHECKED") // UNCHECKED, VALID, INVALID, TIMEOUT
+  payload             Json?
+  adminId             String?
+  service             Service?             @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  editHistory         ServiceEditHistory[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([status])
+  @@index([tenantId])
+  @@index([providerId, externalId])
+}
+
+model ServiceLinkCheck {
+  id             String    @id @default(cuid())
+  serviceId      String?
+  targetType     String
+  testUrl        String
+  isSuccess      Boolean   @default(false)
+  statusCode     Int?
+  responseTimeMs Int?
+  errorMessage   String?
+  checkedBy      String?
+  service        Service?  @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  checkedAt      DateTime  @default(now())
+
+  @@index([serviceId])
+  @@index([targetType])
+  @@index([checkedAt])
+}
+
+model ServiceEditHistory {
+  id         String        @id @default(cuid())
+  serviceId  String?
+  draftId    String?
+  adminId    String?
+  adminEmail String?
+  changeType String        @default("UPDATE") // CREATE, UPDATE, STATUS_CHANGE, PRICE_CHANGE, PUBLISH, ARCHIVE
+  field      String?
+  oldValue   String?
+  newValue   String?
+  comment    String?
+  ipAddress  String?
+  service    Service?      @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  draft      ServiceDraft? @relation(fields: [draftId], references: [id], onDelete: SetNull)
+  createdAt  DateTime      @default(now())
+
+  @@index([serviceId])
+  @@index([draftId])
+  @@index([adminId])
+  @@index([createdAt])
+}
+
 
 
 

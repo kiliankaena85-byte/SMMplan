@@ -314,7 +314,7 @@ async function resetTestDb() {
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      await db.$executeRawUnsafe(`TRUNCATE TABLE "LedgerEntry", "SupportLimitUsage", "SupportHourlyUsage", "SupportFinancialAction", "ManualBalanceAdjustment", "EmployeeResponsibilityConsent", "BalanceAdjustmentPolicy", "Order", "Payment", "TicketMessage", "Ticket", "Commission", "SmartTask", "SmartCampaign", "ServiceSmartConfig", "ServiceRoute", "Service", "Category", "Provider", "Article", "RateLimit", "AuditLog", "LoginLog", "Invoice", "User", "Network", "UrlPattern" CASCADE;`);
+      await db.$executeRawUnsafe(`TRUNCATE TABLE "LedgerEntry", "SupportLimitUsage", "SupportHourlyUsage", "SupportFinancialAction", "ManualBalanceAdjustment", "EmployeeResponsibilityConsent", "BalanceAdjustmentPolicy", "Order", "Payment", "TicketMessage", "Ticket", "Commission", "SmartTask", "SmartCampaign", "ServiceSmartConfig", "ServiceRoute", "Service", "Category", "Provider", "Article", "RateLimit", "AuditLog", "LoginLog", "Invoice", "User", "Network", "UrlPattern", "CustomerGroup", "ServiceDraft", "ServiceCustomerAccess", "ServiceLinkCheck", "ServiceEditHistory" CASCADE;`);
 
       for (const tId of ["smmplan", "lovable", "global"]) {
         await db.tenant.upsert({
@@ -383,7 +383,8 @@ beforeEach(async () => {
         'smart-analyzer',
         'abtest',
         'ab-test',
-        'client-crm-balance'
+        'client-crm-balance',
+        'services-lifecycle'
       ];
       if (skipPatterns.some(pattern => testPath.toLowerCase().includes(pattern.toLowerCase()))) {
         shouldReset = false;
