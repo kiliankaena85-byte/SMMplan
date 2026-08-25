@@ -12,6 +12,17 @@
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { CompensationService } from '@/services/financial/compensation.service';
+import { LoyaltyService } from '@/services/users/loyalty.service';
+import { sendAdminAlert } from '@/lib/notifications';
+import { sendOrderCanceledMail } from '@/lib/smtp';
+import { providerService } from '@/services/providers/provider.service';
+import { orderService } from '@/services/core/order.service';
+import { ordersQueue } from '@/lib/queue-manager';
+import { WalletOps } from '@/services/financial/wallet-ops';
+import { calculatePartialRefund } from '@/utils/refund';
+import { reconcileStalePayments } from '../payment-reconciliation';
+import { checkWebhookHealth } from '@/lib/alerts/webhook-health';
+import { detectLoginAnomalies } from '@/lib/security/login-anomaly-detector';
 
 /**
  * MANDATORY INTEGRITY WARNING:
@@ -75,9 +86,6 @@ export async function runCleanup(): Promise<void> {
 
   // ── 3.7. Payments: Reconcile stale PENDING payments & Webhook health ───────
   try {
-    const { reconcileStalePayments } = await import('../payment-reconciliation');
-    const { checkWebhookHealth } = await import('@/lib/alerts/webhook-health');
-    const { detectLoginAnomalies } = await import('@/lib/security/login-anomaly-detector');
     await reconcileStalePayments();
     await checkWebhookHealth();
     await detectLoginAnomalies();
@@ -100,9 +108,6 @@ export async function runCleanup(): Promise<void> {
   let hasMore = true;
   const MAX_ITERATIONS = 20; // 20 × 50 = 1000 zombies max
   let iterations = 0;
-
-  const { LoyaltyService } = await import('@/services/users/loyalty.service');
-  const { sendAdminAlert } = await import('@/lib/notifications');
 
   while (hasMore && iterations < MAX_ITERATIONS) {
     iterations++;
@@ -159,7 +164,6 @@ export async function runCleanup(): Promise<void> {
       });
 
       if (shouldSendEmail && zombie.user?.email && zombie.service?.name) {
-        const { sendOrderCanceledMail } = await import('@/lib/smtp');
         sendOrderCanceledMail(
           zombie.user.email,
           zombie.numericId.toString(),
@@ -230,9 +234,6 @@ export async function runPendingCheckResolution(): Promise<void> {
   });
 
   if (stalePendingCheck.length > 0) {
-    const { providerService } = await import('@/services/providers/provider.service');
-    const { orderService } = await import('@/services/core/order.service');
-
     for (const pOrder of stalePendingCheck) {
       try {
         if (pOrder.service?.provider && pOrder.externalId) {
@@ -270,9 +271,6 @@ export async function runOrphanSweep(): Promise<void> {
   });
 
   if (orphans.length > 0) {
-    const { sendAdminAlert } = await import('@/lib/notifications');
-    const { ordersQueue } = await import('../../lib/queue-manager');
-    
     let sweptCount = 0;
     const sweptDetails: string[] = [];
     const criticalAlerts: string[] = [];
@@ -311,7 +309,6 @@ export async function runOrphanSweep(): Promise<void> {
         if (jobState === 'failed') {
           // Attempt auto-recovery via failOrderTerminal
           try {
-            const { orderService } = await import('@/services/core/order.service');
             await orderService.failOrderTerminal(
               orphan.id,
               'Автовосстановление: Dead-letter job failed, recovered by orphan sweep',
@@ -396,11 +393,6 @@ export async function runInProgressTTLSweep(): Promise<void> {
   let processedCount = 0;
   const processedDetails: string[] = [];
 
-  const { LoyaltyService } = await import('@/services/users/loyalty.service');
-  const { WalletOps } = await import('@/services/financial/wallet-ops');
-  const { calculatePartialRefund } = await import('@/utils/refund');
-  const { sendAdminAlert } = await import('@/lib/notifications');
-
   log.info('InProgress TTL sweep started', { threshold: threshold.toISOString() });
 
   while (hasMore && iterations < MAX_ITERATIONS) {
@@ -439,7 +431,6 @@ export async function runInProgressTTLSweep(): Promise<void> {
 
       if (order.externalId && order.service.provider) {
         try {
-          const { providerService } = await import('@/services/providers/provider.service');
           const provider = await providerService.getWorkerProviderInstance(order.service.provider);
           const providerStatus = await provider.getOrderStatus(order.externalId);
           statusFromProvider = providerStatus.status?.toLowerCase() || null;
@@ -603,10 +594,6 @@ async function runPendingCheckTTLSweep(): Promise<void> {
 
   if (stuckOrders.length === 0) return;
 
-  const { WalletOps } = await import('@/services/financial/wallet-ops');
-  const { LoyaltyService } = await import('@/services/users/loyalty.service');
-  const { sendAdminAlert } = await import('@/lib/notifications');
-
   let processedCount = 0;
 
   for (const order of stuckOrders) {
@@ -614,7 +601,6 @@ async function runPendingCheckTTLSweep(): Promise<void> {
 
     if (order.externalId && order.service.provider) {
       try {
-        const { providerService } = await import('@/services/providers/provider.service');
         const provider = await providerService.getWorkerProviderInstance(order.service.provider);
         const providerStatus = await provider.getOrderStatus(order.externalId);
         statusFromProvider = providerStatus.status?.toLowerCase() || null;
