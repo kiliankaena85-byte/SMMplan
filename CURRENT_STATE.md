@@ -2,8 +2,8 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-25 | Агент: Antigravity
-## Активный статус: 🛡️ УСПЕШНО РЕАЛИЗОВАНА СИСТЕМА «Services Lifecycle Management» (ENTERPRISE EDITION)
-- **Ветка**: `feature/services-lifecycle-management`
+## Активный статус: 🛡️ УСПЕШНО СЛИТО В MAIN: «Services Lifecycle Management» (ENTERPRISE EDITION)
+- **Ветка**: `main`
 - **Завершено**:
   - `SERVICES-LIFECYCLE-01`: Внедрена Enterprise-система полного жизненного цикла услуг:
     1. **Prisma Модели**:
