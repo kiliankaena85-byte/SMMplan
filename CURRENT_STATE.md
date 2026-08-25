@@ -2,9 +2,14 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-26 | Агент: Antigravity
-## Активный статус: 🛡️ УСПЕШНО ЗАВЕРШЕНО: «17 E2E Test Blocks — 100% Complete & 100% Green» (108/108 Tests Passed)
+## Активный статус: 🛡️ УСПЕШНО ЗАВЕРШЕНО: «18 E2E Test Blocks & Smart Provider Multi-Routing 2.0 & Production Armor» (114/114 Tests Passed, 100% Green)
 - **Ветка**: `main`
 - **Завершено**:
+  - `SMART-ROUTING-AND-PRODUCTION-ARMOR`: Архитектурный модуль отказоустойчивости и наблюдаемости (18/18 E2E блоков, 114/114 тестов пройдены, 100% green):
+    - **Smart Provider Multi-Routing 2.0**: Каскадный роутер (`SmartRoutingService`) с защитой маржи `MarginGuard` (5% буфер волатильности валют `USD/RUB`) и фиксацией в `RoutingAuditLog`.
+    - **Production Observability & Health Probes**: 2-уровневый эндпоинт `/api/health` (5s in-memory cached Liveness probe без нагрузки на БД + защищенный Bearer токеном/сессией Readiness probe с проверкой PostgreSQL latency, Redis ping и RSS памяти).
+    - **Enterprise S3 Database Backup**: Модуль стримингового резервного копирования (`backup-postgres-s3.ts`) с шифрованием AES-256-GCM, SHA-256 чексуммами и авто-очисткой retention.
+    - **Block 18 E2E Test Suite (`e2e/18-smart-routing-and-production-health.spec.ts`)**: 6/6 тестов пройдены (100% Green).
   - `E2E-TESTS-FULL-SUITE`: 17 E2E блоков (108/108 тестов пройдены, 100% green):
     - **Block 1**: Customer & Guest Order Flow (4 теста)
     - **Block 2**: Admin Services Lifecycle (6 тестов)

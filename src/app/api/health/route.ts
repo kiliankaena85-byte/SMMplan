@@ -1,114 +1,139 @@
 import { NextResponse } from 'next/server';
+import crypto from 'node:crypto';
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
-import { ordersQueue } from '@/lib/queue-manager';
+import { verifySession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const WORKER_HEARTBEAT_KEY = 'worker:heartbeat';
-const WORKER_STALE_THRESHOLD_MS = 130_000; // 130s: 60s interval + 70s tolerance
+interface CachedHealth {
+  status: 'healthy';
+  service: string;
+  timestamp: string;
+}
+
+let cachedPublicProbe: CachedHealth | null = null;
+let lastCacheTime = 0;
+const PUBLIC_CACHE_TTL_MS = 5000;
+
+function verifyBearerToken(authHeader: string | null, secret: string | undefined): boolean {
+  if (!secret || !authHeader || !authHeader.startsWith('Bearer ')) {
+    return false;
+  }
+  const token = authHeader.slice(7).trim();
+  const tokenBuf = Buffer.from(token);
+  const secretBuf = Buffer.from(secret);
+  if (tokenBuf.length !== secretBuf.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(tokenBuf, secretBuf);
+}
+
+async function isAuthorizedCaller(req: Request): Promise<boolean> {
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.get('authorization');
+  if (verifyBearerToken(authHeader, cronSecret)) {
+    return true;
+  }
+
+  try {
+    const session = await verifySession();
+    if (session && (session.role === 'ADMIN' || session.role === 'OWNER')) {
+      return true;
+    }
+  } catch {
+    // Session verification failed or outside request context
+  }
+
+  return false;
+}
 
 export async function GET(req: Request) {
-  const authHeader = req.headers.get('authorization');
-  const secret = authHeader?.replace('Bearer ', '') || '';
-  const cronSecret = process.env.CRON_SECRET || '';
-  
-  let isAuthorized = false;
-  if (cronSecret && secret.length === cronSecret.length) {
-    const crypto = await import('crypto');
-    isAuthorized = crypto.timingSafeEqual(Buffer.from(secret), Buffer.from(cronSecret));
-  }
+  const { searchParams } = new URL(req.url);
+  const isDetailed = searchParams.get('detailed') === '1';
 
-  const startTime = Date.now();
-
-  // ── 1. Database ──────────────────────────────────────────────────────────
-  let dbStatus: 'connected' | 'error' = 'error';
-  let dbLatencyMs = 0;
-  try {
-    const dbStart = Date.now();
-    await db.$queryRaw`SELECT 1`;
-    dbLatencyMs = Date.now() - dbStart;
-    dbStatus = 'connected';
-  } catch (err) {
-    console.warn('[HealthCheck] DB check failed:', err);
-    // dbStatus remains 'error'
-  }
-
-  // ── 2. Redis ─────────────────────────────────────────────────────────────
-  let redisStatus: 'connected' | 'error' = 'error';
-  let redisLatencyMs = 0;
-  try {
-    const redisStart = Date.now();
-    await redis.ping();
-    redisLatencyMs = Date.now() - redisStart;
-    redisStatus = 'connected';
-  } catch (err) {
-    console.warn('[HealthCheck] Redis check failed:', err);
-    // redisStatus remains 'error'
-  }
-
-  // ── 3. Worker Heartbeat ───────────────────────────────────────────────────
-  let workerStatus: 'alive' | 'stale' | 'missing' = 'missing';
-  let workerLastSeenMs: number | null = null;
-  if (redisStatus === 'connected') {
-    try {
-      const heartbeat = await redis.get(WORKER_HEARTBEAT_KEY);
-      if (heartbeat) {
-        workerLastSeenMs = Date.now() - parseInt(heartbeat, 10);
-        workerStatus = workerLastSeenMs < WORKER_STALE_THRESHOLD_MS ? 'alive' : 'stale';
-      }
-    } catch (err) {
-      console.warn('[HealthCheck] Worker heartbeat check failed:', err);
-      // workerStatus remains 'missing'
+  // 1. Fast Public Liveness Probe (Zero DB/Redis queries, 5s in-memory cache)
+  if (!isDetailed) {
+    const now = Date.now();
+    if (!cachedPublicProbe || now - lastCacheTime >= PUBLIC_CACHE_TTL_MS) {
+      cachedPublicProbe = {
+        status: 'healthy',
+        service: 'smmplan',
+        timestamp: new Date(now).toISOString(),
+      };
+      lastCacheTime = now;
     }
+
+    return NextResponse.json(cachedPublicProbe, {
+      status: 200,
+      headers: {
+        'Cache-Control': 'public, max-age=5, s-maxage=5',
+      },
+    });
   }
 
-  // ── 4. Queue Depth ────────────────────────────────────────────────────────
-  let queueDepth: number | null = null;
-  if (redisStatus === 'connected') {
-    try {
-      queueDepth = await ordersQueue.getWaitingCount();
-    } catch (err) {
-      console.warn('[HealthCheck] Queue depth check failed:', err);
-      // non-critical, leave as null
-    }
-  }
-
-  // ── Health determination ──────────────────────────────────────────────────
-  const isCritical = dbStatus === 'error' || redisStatus === 'error';
-  const isDegraded = workerStatus === 'stale' || workerStatus === 'missing' || (queueDepth !== null && queueDepth > 100);
-  const overallStatus = isCritical ? 'unhealthy' : isDegraded ? 'degraded' : 'healthy';
-  const httpStatus = isCritical ? 503 : 200;
-
+  // 2. Protected Readiness Probe (Auth required)
+  const isAuthorized = await isAuthorizedCaller(req);
   if (!isAuthorized) {
-    // SD-14 SECURITY FIX: Unauthenticated callers always see { status: 'ok' }.
-    // Returning 'unhealthy' or 'degraded' to the public leaks internal state
-    // and aids reconnaissance by external actors.
     return NextResponse.json(
-      { status: 'ok' },
-      { status: 200 }
+      { error: 'Unauthorized: Admin session or valid Bearer token required' },
+      { status: 401 }
     );
   }
 
+  // Database Check
+  let dbStatus: 'connected' | 'error' = 'error';
+  let dbLatencyMs = 0;
+  try {
+    const dbStart = performance.now();
+    await db.$queryRaw`SELECT 1`;
+    dbLatencyMs = Math.round(performance.now() - dbStart);
+    dbStatus = 'connected';
+  } catch {
+    dbStatus = 'error';
+  }
+
+  // Redis Check
+  let redisStatus: 'connected' | 'error' = 'error';
+  let redisLatencyMs = 0;
+  try {
+    const redisStart = performance.now();
+    await redis.ping();
+    redisLatencyMs = Math.round(performance.now() - redisStart);
+    redisStatus = 'connected';
+  } catch {
+    redisStatus = 'error';
+  }
+
+  // Process Memory Usage
+  const mem = process.memoryUsage();
+  const memoryUsage = {
+    rssBytes: mem.rss,
+    heapTotalBytes: mem.heapTotal,
+    heapUsedBytes: mem.heapUsed,
+    externalBytes: mem.external,
+    heapUsedMB: Math.round((mem.heapUsed / (1024 * 1024)) * 100) / 100,
+    rssMB: Math.round((mem.rss / (1024 * 1024)) * 100) / 100,
+  };
+
+  const isHealthy = dbStatus === 'connected' && redisStatus === 'connected';
+  const httpStatus = isHealthy ? 200 : 503;
+
   return NextResponse.json(
     {
-      status: overallStatus,
-      services: {
-        database: { status: dbStatus, latency_ms: dbLatencyMs },
-        redis: { status: redisStatus, latency_ms: redisLatencyMs },
-        worker: {
-          status: workerStatus,
-          last_seen_ms: workerLastSeenMs,
-        },
-        queue: {
-          orders_waiting: queueDepth,
-          status: queueDepth !== null && queueDepth > 100 ? 'backlogged' : 'normal',
-        },
-      },
+      status: isHealthy ? 'healthy' : 'unhealthy',
       timestamp: new Date().toISOString(),
-      total_latency_ms: Date.now() - startTime,
-      uptime_s: Math.round(process.uptime()),
+      database: {
+        status: dbStatus,
+        latencyMs: dbLatencyMs,
+      },
+      redis: {
+        status: redisStatus,
+        latencyMs: redisLatencyMs,
+      },
+      memory: memoryUsage,
+      uptimeSeconds: Math.round(process.uptime()),
     },
     { status: httpStatus }
   );

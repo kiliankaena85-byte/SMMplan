@@ -9,11 +9,10 @@ import { Job, UnrecoverableError } from 'bullmq';
 import { db } from '../../lib/db';
 import { OrderJobPayload } from '@/lib/queue-manager';
 import { providerService } from '../../services/providers/provider.service';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { WalletService } from '../../services/financial/wallet.service';
 import { SettingsManager } from '../../lib/settings';
 import { getRedisConnection } from '../../lib/queue-manager';
 import { logger } from '../../lib/logger';
+import { SmartRoutingService, MarginGuard, PrioritizedRoute } from '../../services/providers/smart-routing.service';
 
 const log = logger.child({ component: 'OrderProcessor' });
 
@@ -27,7 +26,7 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     log.error(`[OrderProcessor] Invalid job payload for job ${job.id}`, { cause: zodErr });
     throw new UnrecoverableError('Invalid job payload');
   }
-  
+
   const order = await db.order.findUnique({
     where: { id: orderId },
     include: {
@@ -57,18 +56,13 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     return;
   }
 
-  if (!order.service.provider) {
-    log.warn(`[OrderProcessor] Order ${orderId} missing provider.`);
-    return;
-  }
-
   // Double execution guard
   if (order.status !== 'PENDING') {
     log.warn(`[OrderProcessor] Order ${orderId} is not PENDING. Skip.`);
     return;
   }
 
-  // TEST ORDER GUARD — предотвращает отправку тестового заказа реальному провайдеру
+  // TEST ORDER GUARD — prevents dispatching test orders to real providers
   const isTestMode = await SettingsManager.isTestMode();
   if (order.isTest && !isTestMode) {
     log.error(`[OrderProcessor] CRITICAL: Test order ${orderId} picked up in production mode. Failing safely.`);
@@ -86,161 +80,286 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     return;
   }
 
-  const providerDef = order.service.provider;
-  if (!providerDef.apiUrl || !providerDef.apiKey) {
-    throw new UnrecoverableError('Provider missing API URL or Encrypted Key');
+  // R2-003: Redis-level Mutex to prevent duplicate dispatch during DB write crashes or BullMQ job retries
+  const connection = getRedisConnection();
+  const redisKey = `order:dispatched:${order.id}`;
+  const alreadyDispatched = await connection.get(redisKey);
+
+  if (alreadyDispatched) {
+    log.warn(`[OrderProcessor] Duplicate Dispatch Guard: Order ${order.id} was already dispatched to provider but DB write failed previously. Shifting to PENDING_CHECK.`);
+
+    await db.order.update({
+      where: { id: order.id },
+      data: {
+        status: 'PENDING_CHECK',
+        error: 'Попытка повторной отправки заблокирована: заказ уже был отправлен провайдеру.'
+      }
+    });
+
+    try {
+      const { sendAdminAlert } = await import('@/lib/notifications');
+      await sendAdminAlert(
+        `🚨 [DUPLICATE DISPATCH PREVENTED] Заказ #${order.numericId} (Услуга: ${order.service.name})\n` +
+        `Обнаружен повторный запуск джобы BullMQ после отправки провайдеру.\n` +
+        `Заказ переведен в PENDING_CHECK. Проверьте статус у провайдера вручную во избежание двойного списания!`,
+        'CRITICAL'
+      );
+    } catch { /* ignore */ }
+
+    throw new UnrecoverableError(`Duplicate dispatch prevented: already sent to provider.`);
   }
 
+  // 1. Fetch prioritized candidate routes via SmartRoutingService
+  let candidateRoutes: PrioritizedRoute[] = [];
   try {
-    const provider = await providerService.getWorkerProviderInstance(providerDef);
-    
-    // If the order is Drip-Feed, we delegate it fully to the upstream provider.
-    // In V2 API, 'quantity' is per run, not total.
-    const runQty = (order.isDripFeed && order.runs && order.runs > 0) 
-        ? Math.max(1, Math.floor(order.quantity / order.runs)) 
-        : order.quantity;
-    
-    // API Parameter Mapping for V2 APIs
-    const serviceName = order.service.name.toLowerCase();
-        const payload: Record<string, unknown> = {
-      service: order.providerServiceId || order.service.externalId || '',
-      link: order.link,
-      quantity: runQty,
-      ref: order.id, // Idempotency key for providers that support 'ref'
-      custom_id: order.id // Idempotency key for providers that support 'custom_id'
-    };
+    candidateRoutes = await SmartRoutingService.getPrioritizedRoutes(order.serviceId);
+  } catch (routeErr) {
+    log.warn(`[OrderProcessor] Failed to query prioritized routes, falling back to service provider`, { routeErr });
+  }
 
-    if (order.isDripFeed && order.runs && order.interval) {
-        payload.runs = order.runs;
-        payload.interval = order.interval;
+  if (candidateRoutes.length === 0 && order.service?.provider) {
+    candidateRoutes = [
+      {
+        id: 'fallback_primary',
+        serviceId: order.serviceId,
+        providerId: order.service.provider.id,
+        providerServiceId: order.providerServiceId || order.service.externalId || '',
+        isPrimary: true,
+        isActive: true,
+        priority: 0,
+        failoverMode: 'manual',
+        provider: order.service.provider,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+    ];
+  }
+
+  if (candidateRoutes.length === 0) {
+    const noRoutesMsg = 'Нет доступных активных маршрутов или провайдеров для выполнения заказа.';
+    log.warn(`[OrderProcessor] Order ${orderId}: ${noRoutesMsg}`);
+    try {
+      const { QuarantineService } = await import('../../services/providers/quarantine.service');
+      await QuarantineService.evaluateTriggerA(order.serviceId, noRoutesMsg);
+    } catch { /* ignore */ }
+    const { orderService } = await import('../../services/core/order.service');
+    await orderService.failOrderTerminalFast(order.id, noRoutesMsg);
+    throw new UnrecoverableError(`Fail-Fast: ${noRoutesMsg}`);
+  }
+
+  const primaryProviderId = candidateRoutes.find(r => r.isPrimary)?.providerId || candidateRoutes[0]?.providerId;
+  let dispatched = false;
+  let lastError = '';
+
+  for (let i = 0; i < candidateRoutes.length; i++) {
+    const route = candidateRoutes[i];
+    const nextRoute = candidateRoutes[i + 1];
+
+    if (!route.provider?.apiUrl || !route.provider?.apiKey) {
+      lastError = `Провайдер ${route.provider?.name || route.providerId} не имеет валидного API URL или ключа`;
+      log.warn(`[OrderProcessor] Route ${route.id} skipped: ${lastError}`);
+      continue;
     }
 
-    if (order.customData) {
-      const cType = order.service.customDataType;
-      if (cType === 'NUMBER' || (serviceName.includes('опрос') && !serviceName.includes('просмотр')) || serviceName.includes('голосование') || serviceName.includes('poll')) {
-        payload.answers_number = order.customData;
-      } else {
-        payload.comments = order.customData;
+    // ShadowService check for candidate route limits & capabilities
+    let shadowSvc = null;
+    try {
+      if (db.shadowService) {
+        shadowSvc = await db.shadowService.findUnique({
+          where: {
+            providerId_externalId: {
+              providerId: route.providerId,
+              externalId: String(route.providerServiceId)
+            }
+          }
+        });
+      }
+    } catch {
+      shadowSvc = null;
+    }
+
+    // Capability verification: Drip-Feed
+    if (order.isDripFeed) {
+      const supportsDrip = shadowSvc ? shadowSvc.dripfeed : (route.providerId === order.service?.providerId ? order.service.isDripFeedEnabled : true);
+      if (!supportsDrip) {
+        lastError = `Маршрут ${route.provider.name} не поддерживает Drip-Feed`;
+        log.info(`[OrderProcessor] Route ${route.id} skipped: ${lastError}`);
+        continue;
       }
     }
 
-    // R2-003: Redis-level Mutex to prevent duplicate dispatch during DB write crashes or BullMQ job retries
-    const connection = getRedisConnection();
-    const redisKey = `order:dispatched:${order.id}`;
-    const alreadyDispatched = await connection.get(redisKey);
-
-    if (alreadyDispatched) {
-      log.warn(`[OrderProcessor] Duplicate Dispatch Guard: Order ${order.id} was already dispatched to provider but DB write failed previously. Shifting to PENDING_CHECK.`);
-      
-      await db.order.update({
-        where: { id: order.id },
-        data: { 
-          status: 'PENDING_CHECK', 
-          error: `Попытка повторной отправки заблокирована: заказ уже был отправлен провайдеру.` 
-        }
-      });
-
-      try {
-        const { sendAdminAlert } = await import('@/lib/notifications');
-        await sendAdminAlert(
-          `🚨 [DUPLICATE DISPATCH PREVENTED] Заказ #${order.numericId} (Услуга: ${order.service.name})\n` +
-          `Обнаружен повторный запуск джобы BullMQ после отправки провайдеру.\n` +
-          `Заказ переведен в PENDING_CHECK. Проверьте статус у провайдера вручную во избежание двойного списания!`,
-          'CRITICAL'
-        );
-      } catch { /* ignore */ }
-
-      throw new UnrecoverableError(`Duplicate dispatch prevented: already sent to provider.`);
+    // Capability verification: CustomData
+    if (order.customData) {
+      const customType = shadowSvc ? shadowSvc.customDataType : (route.providerId === order.service?.providerId ? order.service.customDataType : 'NONE');
+      if (customType === 'NONE' && shadowSvc) {
+        lastError = `Маршрут ${route.provider.name} не поддерживает customData`;
+        log.info(`[OrderProcessor] Route ${route.id} skipped: ${lastError}`);
+        continue;
+      }
     }
 
-    // Set the dispatch lock in Redis
-    await connection.set(redisKey, '1', 'EX', 3600);
+    // MarginGuard check with 5% currency volatility buffer
+    const providerRate = shadowSvc?.rate ?? (route.providerId === order.service?.providerId ? order.service.rate : 0);
+    const providerCurrency = route.provider.balanceCurrency || (route.providerId === order.service?.providerId ? order.service.providerCurrency : 'USD');
 
-    const response = await provider.createOrder(payload as Parameters<typeof provider.createOrder>[0]);
+    if (providerRate > 0 && order.charge && order.charge > BigInt(0)) {
+      const marginCheck = await MarginGuard.checkMargin(
+        order.charge,
+        order.quantity,
+        providerRate,
+        providerCurrency,
+        0.05
+      );
 
-    if (response.error && !response.order) {
-      throw new Error(response.error);
+      if (!marginCheck.isProfitable) {
+        lastError = marginCheck.reason || 'Маржа маршрута отрицательна с учетом буфера 5%';
+        log.warn(`[OrderProcessor] Margin rejected for route ${route.provider.name}: ${lastError}`);
+        await SmartRoutingService.recordFailoverEvent({
+          serviceId: order.serviceId,
+          action: 'MARGIN_REJECTED',
+          fromProviderId: primaryProviderId,
+          toProviderId: route.providerId,
+          reason: lastError
+        });
+        continue;
+      }
     }
 
-    // Success
-    const extId = response.order ? response.order.toString() : '';
-    // Set 60 minutes Wait limit
-    const waitingUntil = new Date(Date.now() + 60 * 60 * 1000);
-    
-    // Update order with External ID from provider
     try {
-      await db.order.update({
-        where: { id: order.id },
-        data: {
-          externalId: extId,
-          status: 'IN_PROGRESS',
-          waitingUntil
+      const provider = await providerService.getWorkerProviderInstance(route.provider as unknown as import('@prisma/client').Provider);
+
+      const runQty = (order.isDripFeed && order.runs && order.runs > 0)
+        ? Math.max(1, Math.floor(order.quantity / order.runs))
+        : order.quantity;
+
+      const serviceName = order.service?.name?.toLowerCase() || '';
+      const payload: Record<string, unknown> = {
+        service: route.providerServiceId,
+        link: order.link,
+        quantity: runQty,
+        ref: order.id,
+        custom_id: order.id
+      };
+
+      if (order.isDripFeed && order.runs && order.interval) {
+        payload.runs = order.runs;
+        payload.interval = order.interval;
+      }
+
+      if (order.customData) {
+        const cType = shadowSvc?.customDataType || order.service?.customDataType;
+        if (cType === 'NUMBER' || (serviceName.includes('опрос') && !serviceName.includes('просмотр')) || serviceName.includes('голосование') || serviceName.includes('poll')) {
+          payload.answers_number = order.customData;
+        } else {
+          payload.comments = order.customData;
         }
-      });
-    } catch (dbError) {
-            throw new DatabaseOrderError(dbError instanceof Error ? dbError.message : String(dbError));
-      throw dbError;
-    }
+      }
 
-    log.info(`[OrderProcessor] Dispatched Order ${order.id} | External ID: ${extId}. Waiting until ${waitingUntil.toISOString()}`);
+      await connection.set(redisKey, '1', 'EX', 3600);
 
-  } catch (error: unknown) {
-    if (error instanceof DatabaseOrderError || (typeof error === "object" && error !== null && "isDatabaseError" in error)) {
-      throw error;
-    }
-    // === AMBIGUOUS TIMEOUT PROTECTION (P0) ===
-    // If the error is a network timeout (not an explicit API rejection), the provider 
-    // MIGHT have accepted the order but failed to respond. A fail-fast refund here
-    // would result in a free delivery at our expense.
-    const errMsg = (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)).toLowerCase();
-    const isNetworkTimeout = errMsg.includes('timeout') || 
-                             errMsg.includes('etimedout') ||
-                             errMsg.includes('econnreset') ||
-                             errMsg.includes('socket hang up') ||
-                             errMsg.includes('eai_again');
+      const response = await provider.createOrder(payload as Parameters<typeof provider.createOrder>[0]);
 
-    if (isNetworkTimeout) {
-      log.warn(`[OrderProcessor] AMBIGUOUS TIMEOUT for Order ${order.id}. Moving to PENDING_CHECK.`);
-      
-      await db.order.update({
-        where: { id: order.id },
-        data: { 
-          status: 'PENDING_CHECK', 
-          error: `Сетевой таймаут при отправке: ${(error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))}` 
-        }
-      });
+      if (response.error && !response.order) {
+        throw new Error(response.error);
+      }
 
-      // Send critical alert to Admin for manual verification
+      const extId = response.order ? response.order.toString() : '';
+      const waitingUntil = new Date(Date.now() + 60 * 60 * 1000);
+
       try {
-        const { sendAdminAlert } = await import('@/lib/notifications');
-        sendAdminAlert(
-          `⚠️ [AMBIGUOUS TIMEOUT] Заказ #${order.numericId} (Услуга: ${order.service.name})\n` +
-          `Провайдер не ответил (таймаут). Заказ переведен в PENDING_CHECK.\n` +
-          `Требуется ручная проверка на стороне провайдера во избежание двойной поставки!`,
-          'CRITICAL'
-        );
-      } catch { /* ignore */ }
+        await db.order.update({
+          where: { id: order.id },
+          data: {
+            externalId: extId,
+            providerId: route.providerId,
+            providerServiceId: route.providerServiceId,
+            status: 'IN_PROGRESS',
+            waitingUntil
+          }
+        });
+      } catch (dbError) {
+        throw new DatabaseOrderError(dbError instanceof Error ? dbError.message : String(dbError));
+      }
 
-      throw new UnrecoverableError(`Ambiguous Timeout: ${(error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))}`);
+      if (route.providerId !== primaryProviderId) {
+        await SmartRoutingService.recordFailoverEvent({
+          serviceId: order.serviceId,
+          action: 'FAILOVER_SWAP',
+          fromProviderId: primaryProviderId,
+          toProviderId: route.providerId,
+          reason: `Failover to ${route.provider.name} succeeded. Previous error: ${lastError}`
+        });
+      }
+
+      log.info(`[OrderProcessor] Dispatched Order ${order.id} | Provider: ${route.provider.name} | External ID: ${extId}`);
+      dispatched = true;
+      break;
+
+    } catch (error: unknown) {
+      if (error instanceof DatabaseOrderError || (typeof error === 'object' && error !== null && 'isDatabaseError' in error)) {
+        throw error;
+      }
+
+      const errMsg = (error instanceof Error ? error.message : String(error)).toLowerCase();
+      const isNetworkTimeout = errMsg.includes('timeout') ||
+        errMsg.includes('etimedout') ||
+        errMsg.includes('econnreset') ||
+        errMsg.includes('socket hang up') ||
+        errMsg.includes('eai_again');
+
+      if (isNetworkTimeout) {
+        log.warn(`[OrderProcessor] AMBIGUOUS TIMEOUT for Order ${order.id}. Moving to PENDING_CHECK.`);
+
+        await db.order.update({
+          where: { id: order.id },
+          data: {
+            status: 'PENDING_CHECK',
+            error: `Сетевой таймаут при отправке: ${error instanceof Error ? error.message : String(error)}`
+          }
+        });
+
+        try {
+          const { sendAdminAlert } = await import('@/lib/notifications');
+          sendAdminAlert(
+            `⚠️ [AMBIGUOUS TIMEOUT] Заказ #${order.numericId} (Услуга: ${order.service?.name || ''})\n` +
+            `Провайдер ${route.provider.name} не ответил (таймаут). Заказ переведен в PENDING_CHECK.\n` +
+            `Требуется ручная проверка на стороне провайдера во избежание двойной поставки!`,
+            'CRITICAL'
+          );
+        } catch { /* ignore */ }
+
+        throw new UnrecoverableError(`Ambiguous Timeout: ${error instanceof Error ? error.message : String(error)}`);
+      }
+
+      const originalError = error instanceof Error ? error.message : String(error);
+      lastError = originalError;
+      log.error(`[OrderProcessor] Provider error on route ${route.provider.name} for order ${order.id}: ${originalError}`);
+
+      if (nextRoute) {
+        await SmartRoutingService.recordFailoverEvent({
+          serviceId: order.serviceId,
+          action: 'FAILOVER_SWAP',
+          fromProviderId: route.providerId,
+          toProviderId: nextRoute.providerId,
+          reason: `Provider ${route.provider.name} failed: ${originalError}. Cascading to ${nextRoute.provider.name}`
+        });
+      }
     }
+  }
 
-    // === FAIL-FAST ARCHITECTURE ===
-    // Any explicit provider error (API rejection, bad credentials, insufficient funds)
-    // instantly cancels the order and refunds the client. Zero retries.
-    log.error(`[OrderProcessor] FAIL-FAST for Order ${order.id}: ${(error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))}`);
+  if (!dispatched) {
+    log.error(`[OrderProcessor] FAIL-FAST for Order ${order.id}: ${lastError}`);
 
     try {
       const { QuarantineService } = await import('../../services/providers/quarantine.service');
-      await QuarantineService.evaluateTriggerA(order.serviceId, (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)));
+      await QuarantineService.evaluateTriggerA(order.serviceId, lastError);
     } catch (quarantineErr: unknown) {
-      log.error(`[OrderProcessor] Quarantine evaluation failed: ${(quarantineErr instanceof Error ? quarantineErr.message : String(quarantineErr))}`);
+      log.error(`[OrderProcessor] Quarantine evaluation failed: ${quarantineErr instanceof Error ? quarantineErr.message : String(quarantineErr)}`);
     }
 
     const { orderService } = await import('../../services/core/order.service');
-    await orderService.failOrderTerminalFast(order.id, (error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error)));
+    await orderService.failOrderTerminalFast(order.id, lastError);
 
-    // UnrecoverableError tells BullMQ to NOT retry this job
-    throw new UnrecoverableError(`Fail-Fast: ${(error instanceof Error ? (error instanceof Error ? error.message : String(error)) : String(error))}`);
+    throw new UnrecoverableError(`Fail-Fast: ${lastError}`);
   }
 }
-
