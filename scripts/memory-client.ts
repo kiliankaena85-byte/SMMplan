@@ -96,6 +96,7 @@ export class SmmplanMemoryClient {
       const res = await fetch(`${this.baseUrl}/api/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(3000),
         body: JSON.stringify({
           query,
           collections,
@@ -154,6 +155,7 @@ export class SmmplanMemoryClient {
       const res = await fetch(`${this.baseUrl}/api/knowledge`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(3000),
         body: JSON.stringify({
           title: `[Episodic:${entry.agentRole}] ${entry.task.slice(0, 60)}`,
           content: JSON.stringify(payload, null, 2),
@@ -189,6 +191,7 @@ export class SmmplanMemoryClient {
       const res = await fetch(`${this.baseUrl}/api/decision`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(3000),
         body: JSON.stringify(payload),
       });
       if (res.ok) {
@@ -277,11 +280,15 @@ export class SmmplanMemoryClient {
     try {
       let cache: { decisions: ArchitecturalDecisionEntry[] } = { decisions: [] };
       if (fs.existsSync(this.offlineCacheFile)) {
-        cache = JSON.parse(fs.readFileSync(this.offlineCacheFile, 'utf-8'));
+        const raw = fs.readFileSync(this.offlineCacheFile, 'utf-8').trim();
+        if (raw) {
+          cache = JSON.parse(raw);
+        }
       }
       cache.decisions = cache.decisions || [];
       cache.decisions.push(decision);
       fs.writeFileSync(this.offlineCacheFile, JSON.stringify(cache, null, 2), 'utf-8');
+      console.log(`💾 [MemoryClient] Decision saved to offline cache: "${decision.title}"`);
     } catch (e) {
       console.error('Failed to save offline decision:', e);
     }
@@ -291,7 +298,10 @@ export class SmmplanMemoryClient {
     try {
       let registry: { decays: TemporalDecayEntry[] } = { decays: [] };
       if (fs.existsSync(this.offlineDecayFile)) {
-        registry = JSON.parse(fs.readFileSync(this.offlineDecayFile, 'utf-8'));
+        const raw = fs.readFileSync(this.offlineDecayFile, 'utf-8').trim();
+        if (raw) {
+          registry = JSON.parse(raw);
+        }
       }
       registry.decays = registry.decays || [];
       registry.decays.push(decay);

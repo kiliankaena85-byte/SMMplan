@@ -22,6 +22,39 @@
     4. **Документация и Тесты**:
        - Создан `SERVICES_LIFECYCLE_IMPLEMENTATION.md`.
        - Написан интеграционный сьют `src/__tests__/services-lifecycle.test.ts` (8/8 тестов passed, 100%).
+  - `E2E-TESTS-FULL-SUITE`: Проведена полная реорганизация и стандартизация E2E тестовой базы (Все 6 блоков, 26/26 тестов пройдены, 100% green):
+    - **Изоляция устаревших тестов**: 35+ устаревших spec-файлов перенесены в `e2e/_legacy/`, `playwright.config.ts` обновлен правилом `testIgnore: ['**/_legacy/**', '**/utils/**', '**/fixtures/**']`.
+    - **Block 1 (`e2e/01-customer-order-flow.spec.ts`, 4 теста)**:
+      - Scenario 1: Гостевой заказ через витрину и мастер оформления заказа.
+      - Scenario 2: Заказ авторизованного клиента с мгновенным списанием баланса через `WalletOps.credit/charge` и статусом `PENDING`.
+      - Scenario 3: UX обработки нулевого баланса (кнопка активна, валидационный алерт/тост, блокировка неоплаченного заказа).
+    - **Block 2 (`e2e/02-admin-services-lifecycle.spec.ts`, 6 тестов)**:
+      - Scenario 1: Добавление API провайдера через UI с шифрованием AES-256 Vault ключей.
+      - Scenario 2: Cherry-Pick поштучный импорт в `ServiceDraft` (статус `DRAFT`, запись в `ServiceEditHistory`).
+      - Scenario 3: Редактирование черновика с фиксацией аудита дифов (`markup`, `minQty`, `maxQty`, `description`).
+      - Scenario 4: Валидатор сетевых ссылок с SSRF защитой и логами `ServiceLinkCheck`.
+      - Scenario 5: Полный воркфлоу промоушена `DRAFT` → `TESTING` → `PUBLISHED` с созданием `Service` и `AdminAuditLog`.
+      - Scenario 6: B2B изоляция групп клиентов (`CustomerGroup` & `ServiceCustomerAccess`) с кастомными ценами.
+    - **Block 3 (`e2e/03-billing-and-payments.spec.ts`, 4 теста)**:
+      - Scenario 1: Клиентский UI-депозит `/dashboard/finance?tab=deposit` и создание `Payment` со статусом `PENDING`.
+      - Scenario 2: Идемпотентность вебхуков (YooKassa) и атомарное начисление баланса через `WalletOps.credit()` без дублирования.
+      - Scenario 3: Соответствие 54-ФЗ и расчет НДС 2026 (базовая ставка 22% / УСН без НДС `vat_code: 1`).
+      - Scenario 4: Обработка криптовалютных платежей через CryptoBot.
+    - **Block 4 (`e2e/04-orders-fulfillment-queue.spec.ts`, 4 теста)**:
+      - Scenario 1: Создание заказа и готовность к асинхронной отправке провайдеру со статусом `IN_PROGRESS` и `externalId`.
+      - Scenario 2: Пропорциональный частичный возврат (`PARTIAL`, `remains / qty * charge`) через `RefundPolicyService` и `WalletOps.refund()`.
+      - Scenario 3: Полная отмена заказа (`CANCELED`) со 100% авто-возвратом на баланс и проверкой идемпотентности.
+      - Scenario 4: Модель каскадного резервного провайдера (`ProviderServiceBackup`).
+    - **Block 5 (`e2e/05-support-and-tickets.spec.ts`, 4 теста)**:
+      - Scenario 1: Создание тикета клиентом и добавление первого сообщения (sender `USER`).
+      - Scenario 2: Ответ сотрудника поддержки (sender `STAFF`) и смена статуса на `ANSWERED`.
+      - Scenario 3: Закрытие тикета со статусом `CLOSED`.
+      - Scenario 4: Строгая мульти-тенантная изоляция тикетов (`smmplan` vs `flux`).
+    - **Block 6 (`e2e/06-rbac-and-security.spec.ts`, 4 теста)**:
+      - Scenario 1: Иерархия ролей RBAC и блокировка неавторизованных `USER` от административных действий.
+      - Scenario 2: Сквозное шифрование/дешифрование секретов провайдеров AES-256-GCM Vault (`iv:authTag:ciphertext`).
+      - Scenario 3: Неизменяемый журнал аудита администраторов `AdminAuditLog` со скраббингом токенов/ключей (`safeSerialize`).
+      - Scenario 4: Изоляция границ данных тенантов на уровне запросов к БД.
   - `PREM-05`: NPM Supply Chain Hardening (`.npmrc` с `ignore-scripts=true`, CI workflow `.github/workflows/supply-chain.yml`, SBOM генератор, `scripts/audit-deps.ts`, `.github/dependabot.yml`).
   - `PREM-06`: PII Read-Access Audit Trail (`PiiAccessLog` модель в Prisma, `src/lib/audit/pii-access-log.ts` с маскированием email, телефонов, ИНН, адресов, админский экшен `getPiiAccessLogsAction`).
   - `PREM-07`: Provider Rate Change Pre-Flight & Circuit Breaker (`circuit-breaker.ts` с Redis и memory fallback, `rate-change-detector.ts` с блокировкой при скачке тарифов > 20% или отрицательной марже).

@@ -13,6 +13,7 @@ if (fs.existsSync(path.resolve(process.cwd(), '.env.test'))) {
 
 export default defineConfig({
   testDir: './e2e',
+  testIgnore: ['**/_legacy/**', '**/utils/**', '**/fixtures/**'],
   globalTeardown: './e2e/utils/db-cleaner.ts',
   timeout: 60 * 1000,
   expect: {

@@ -3,6 +3,7 @@ import { WalletOps } from './wallet-ops';
 import { WalletService } from './wallet.service';
 import { calculatePartialRefund } from '@/utils/refund';
 import { Prisma } from '@prisma/client';
+import { LoyaltyService } from '../users/loyalty.service';
 
 export class RefundPolicyService {
   /**
@@ -20,7 +21,6 @@ export class RefundPolicyService {
 
     // Process referral commission adjustments
     try {
-      const { LoyaltyService } = await import('../users/loyalty.service');
       if (order.status === 'CANCELED' || order.status === 'ERROR') {
         await LoyaltyService.reverseCommission(txClient, order.id);
       } else if (order.status === 'PARTIAL') {

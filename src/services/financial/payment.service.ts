@@ -4,6 +4,7 @@ import { WalletOps } from './wallet-ops';
 import { revalidatePath } from 'next/cache';
 import { sendOrderPaidMail } from '@/lib/smtp';
 import { logPromoCodeUsageIfNeeded } from '@/services/marketing-utils';
+import { PromoAutomationService } from '../users/promo-automation.service';
 
 function safeRevalidatePath(path: string, type?: 'layout' | 'page') {
   try {
@@ -264,9 +265,7 @@ export class PaymentService {
       }
 
       // Check and issue promotional loyalty rewards based on new total spent
-      import('@/services/users/promo-automation.service').then(mod => {
-        mod.PromoAutomationService.checkAndIssueLoyalty(userId).catch(console.error);
-      });
+      PromoAutomationService.checkAndIssueLoyalty(userId).catch(console.error);
 
       return true;
     } catch (e: unknown) {
@@ -408,9 +407,7 @@ export class PaymentService {
       }
 
       if (capturedUserId) {
-        import('@/services/users/promo-automation.service').then(mod => {
-          mod.PromoAutomationService.checkAndIssueLoyalty(capturedUserId!).catch(console.error);
-        });
+        PromoAutomationService.checkAndIssueLoyalty(capturedUserId).catch(console.error);
       }
 
       return true;

@@ -48,6 +48,18 @@
   - *Решение:* Поддержка двойного режима Telegram: Long Polling демон в контейнере `bot` (`docker-compose.prod.yml` / `staging.yml`) с Redis heartbeat (`bot:heartbeat` каждые 30с) + резервный HTTP Webhook эндпоинт `/api/webhooks/telegram` с проверкой `x-telegram-bot-api-secret-token`. Токен бота хранится зашифрованным в `SystemSettings.telegramBotToken` (AES-256-GCM) с fallback на `.env`.
   - *Причина:* Полная автономность бота в продакшене без зависаний, отсутствие крашей из-за хардкодных путей Windows и возможность настройки токена прямо из UI.
 
+- **E2E Test Suite Golden Standard Architecture (Blocks 1–6):**
+  - *Решение:* Полная реорганизация сквозных тестов Playwright:
+    1. 35+ устаревших spec-файлов изолированы в `e2e/_legacy/` с исключением из раннера (`testIgnore`).
+    2. Реализована чистая модульная структура с 6 основными блоками:
+       - `01-customer-order-flow.spec.ts`: Оформление гостем и авторизованным клиентом, списание баланса через `WalletOps`, Zero-Defect UX при нехватке средств.
+       - `02-admin-services-lifecycle.spec.ts`: Добавление провайдера с шифрованием ключей Vault, поштучный импорт в черновики, diff-аудит, SSRF-защита ссылок, воркфлоу промоушена и B2B скидки.
+       - `03-billing-and-payments.spec.ts`: UI-депозит, идемпотентность вебхуков YooKassa/CryptoBot, расчет НДС 2026 (22% / УСН без НДС `vat_code: 1`).
+       - `04-orders-fulfillment-queue.spec.ts`: Очереди выполнения, 100% авто-возврат при `CANCELED`, пропорциональный возврат при `PARTIAL` (`remains / qty * charge`), модель резервных провайдеров.
+       - `05-support-and-tickets.spec.ts`: Создание тикетов, треды сообщений USER ↔ STAFF, закрытие и строгая мульти-тенантная изоляция (`smmplan` vs `flux`).
+       - `06-rbac-and-security.spec.ts`: Иерархия ролей RBAC, раундтрип шифрования AES-256-GCM Vault (`iv:authTag:ciphertext`), неизменяемый журнал `AdminAuditLog` со скраббингом ключей, изоляция границ данных.
+    3. Все 26 тестов работают стабильно и проходят на 100% в изолированном тестовом окружении.
+
 - **YooKassa Fail-Safe Security & Signature Verification:**
   - *Решение:* Запрет скрытого fallback на mock-payment в продакшене (выброс явного диагностического исключения). Fallback чтения ключей из `.env` при пустой БД. Расширение IP allowlist всеми 5 официальными подсетями YooKassa (`185.75.120.0/22`, `37.110.12.0/22`, `37.110.16.0/22`, `193.106.92.0/22`, `91.232.108.0/22`) и поддержка HMAC-SHA256 проверки вебхуков `x-content-signature`.
 

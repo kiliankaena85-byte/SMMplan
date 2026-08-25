@@ -177,6 +177,15 @@ export class ServicesLifecycleService {
     if (input.categoryId && input.categoryId !== existing.categoryId) {
       diffEntries.push({ field: 'categoryId', oldValue: String(existing.categoryId || ''), newValue: input.categoryId });
     }
+    if (input.minQty !== undefined && input.minQty !== existing.minQty) {
+      diffEntries.push({ field: 'minQty', oldValue: String(existing.minQty), newValue: String(input.minQty) });
+    }
+    if (input.maxQty !== undefined && input.maxQty !== existing.maxQty) {
+      diffEntries.push({ field: 'maxQty', oldValue: String(existing.maxQty), newValue: String(input.maxQty) });
+    }
+    if (input.description !== undefined && input.description !== existing.description) {
+      diffEntries.push({ field: 'description', oldValue: String(existing.description || ''), newValue: String(input.description || '') });
+    }
 
     const updated = await db.serviceDraft.update({
       where: { id: draftId },
@@ -218,6 +227,26 @@ export class ServicesLifecycleService {
       // 1. SSRF Guard
       const ssrfCheck = await assertSafeOutboundUrl(cleanUrl);
       if (!ssrfCheck.ok) {
+        await db.serviceLinkCheck.create({
+          data: {
+            serviceId: serviceId || null,
+            targetType,
+            testUrl: cleanUrl,
+            isSuccess: false,
+            statusCode: 400,
+            responseTimeMs: Date.now() - startTime,
+            errorMessage: `SSRF blocked: ${ssrfCheck.reason}`,
+            checkedBy: admin?.email || admin?.id || 'system',
+          },
+        }).catch(() => {});
+
+        if (draftId) {
+          await db.serviceDraft.update({
+            where: { id: draftId },
+            data: { linkCheckStatus: 'INVALID' },
+          }).catch(() => {});
+        }
+
         return {
           isSuccess: false,
           statusCode: 400,

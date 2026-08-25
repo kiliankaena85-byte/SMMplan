@@ -1,0 +1,17 @@
+{
+  "decisions": [
+    {
+      "title": "Services Lifecycle Management & Customer Group RBAC",
+      "context": "Need enterprise-grade lifecycle for services (DRAFT->TESTING->PUBLISHED->ARCHIVED) and customer group access control",
+      "decision": "Implemented ServiceDraft, CustomerGroup, ServiceCustomerAccess, ServiceLinkCheck, ServiceEditHistory with strict transactions and SSRF-guarded link verifier",
+      "rationale": "Prevents corrupt services on storefront, protects pricing integrity, enables VIP/B2B tier isolation",
+      "tags": [
+        "lifecycle",
+        "catalog",
+        "rbac",
+        "customer-groups"
+      ]
+    },
+    "E2E Test Suite Standardization (Blocks 1-6)"
+  ]
+}
