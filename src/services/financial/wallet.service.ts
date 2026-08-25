@@ -60,7 +60,7 @@ export class WalletService {
   ) {
     try {
       return await runSerializableTransaction(async (tx) =>
-        WalletOps.refund(tx, userId, typeof amountCents === 'bigint' ? Number(amountCents) : amountCents, reason, { idempotencyKey, adminId, tenantId })
+        WalletOps.refund(tx, userId, amountCents, reason, { idempotencyKey, adminId, tenantId })
       );
     } catch (e: unknown) {
       return { success: false, error: (e instanceof Error ? e.message : String(e)) || 'Refund transaction failed', balance: null, cached: false };

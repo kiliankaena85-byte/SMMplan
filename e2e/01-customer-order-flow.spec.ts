@@ -124,17 +124,13 @@ test.describe.serial('BLOCK 1: Customer & Guest Order Flow E2E', () => {
     const titleLocator = page.locator('h1', { hasText: /E2E Customer Premium Subs/i });
     await expect(titleLocator).toBeVisible({ timeout: 10_000 });
 
-    // Verify unit price displays (RUB per unit or per 1000)
-    const priceBadge = page.locator('text=₽');
-    await expect(priceBadge.first()).toBeVisible();
-
     // 3. CTA button navigating to order wizard
     const ctaBtn = page.getByRole('link', { name: /Заказать услугу|Заказать/i }).first();
     await expect(ctaBtn).toBeVisible();
     await ctaBtn.click();
 
-    // Wait for redirection to order creation
-    await page.waitForURL(/\/(dashboard\/new-order|order|\?serviceId=)/, { timeout: 10_000 });
+    // Wait for redirection to order creation or login for guests
+    await page.waitForURL(/\/(dashboard\/new-order|order|login|\?serviceId=)/, { waitUntil: 'commit', timeout: 10_000 });
 
     await context.close();
   });

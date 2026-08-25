@@ -182,11 +182,11 @@ export class PaymentService {
               serviceName: order.service?.name ?? null,
               numericId: order.numericId 
             });
-            await WalletOps.credit(tx, targetUserId, Number(creditAmount),
+            await WalletOps.credit(tx, targetUserId, creditAmount,
               `Оплата заказа #${order.numericId} через шлюз`,
               { idempotencyKey: `gateway-credit-${processedPaymentId}` }
             );
-            await WalletOps.charge(tx, targetUserId, Number(order.charge),
+            await WalletOps.charge(tx, targetUserId, order.charge,
               `Списание за заказ #${order.numericId}`,
               { idempotencyKey: `gateway-charge-${order.id}` }
             );
@@ -218,13 +218,13 @@ export class PaymentService {
            }
 
             // Credit full expected paid amount first to currentPayment.userId
-            await WalletOps.credit(tx, targetUserId, Number(creditAmount),
+            await WalletOps.credit(tx, targetUserId, creditAmount,
               `Оплата корзины заказов через шлюз`,
               { idempotencyKey: `gateway-credit-${processedPaymentId}` }
             );
 
             // Batch deduct total charge and log ledger entries
-            const totalChargeCents = basketOrders.reduce((sum, order) => sum + Number(order.charge), 0);
+            const totalChargeCents = basketOrders.reduce((sum, order) => sum + order.charge, BigInt(0));
             
             await WalletOps.charge(
               tx,
@@ -238,7 +238,7 @@ export class PaymentService {
 
         if (!isOrderPayment && basketOrders.length === 0) {
           // Direct top-up (Deposit) - Increment User Balance securely via targetUserId and expected creditAmount!
-          await WalletOps.credit(tx, targetUserId, Number(creditAmount),
+          await WalletOps.credit(tx, targetUserId, creditAmount,
             `Пополнение баланса через ${gatewayType}`,
             { idempotencyKey: `deposit-${processedPaymentId}` }
           );
@@ -367,7 +367,7 @@ export class PaymentService {
             );
 
             // Batch deduct total charge and log ledger entries
-            const totalChargeCents = basketOrders.reduce((sum, order) => sum + Number(order.charge), 0);
+            const totalChargeCents = basketOrders.reduce((sum, order) => sum + order.charge, BigInt(0));
             
             await WalletOps.charge(
               tx,

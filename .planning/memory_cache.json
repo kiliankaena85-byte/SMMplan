@@ -12,6 +12,18 @@
         "customer-groups"
       ]
     },
-    "E2E Test Suite Standardization (Blocks 1-6)"
+    "E2E Test Suite Standardization (Blocks 1-6)",
+    {
+      "title": "External Audit Fixes & 11 E2E Blocks 100% Green",
+      "context": "Audit findings and 5 new E2E test suites",
+      "decision": "Fixed C-1 mass checkout balance deduction, C-2/C-3 float precision BigInt, C-02 IDOR tenant scoping, H-4 quarantine release throw, and integrated Blocks 7-11 E2E tests passing 75/75",
+      "rationale": "Fintech level data integrity, multi-tenant isolation, and zero-defect QA guarantees",
+      "tags": [
+        "audit",
+        "security",
+        "e2e",
+        "fintech"
+      ]
+    }
   ]
 }

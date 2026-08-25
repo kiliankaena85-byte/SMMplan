@@ -1,4 +1,5 @@
 import { getRedisConnection } from './queue-manager';
+import { metrics } from './metrics';
 
 class CircuitBreakerOpenException extends Error {
   constructor(providerHost: string) {
@@ -92,7 +93,6 @@ export class CircuitBreaker {
   private static async trip(host: string) {
     const redis = getRedisConnection();
     
-    const { metrics } = await import('./metrics');
     metrics.recordCircuitBreakerTrip(host);
     console.warn(`[CircuitBreaker] 🔴 TRIPPED for ${host}. Failing fast for ${this.COOL_DOWN_SEC}s`);
     

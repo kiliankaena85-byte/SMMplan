@@ -609,14 +609,32 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
       throw new Error("Недостаточно средств на балансе");
     }
 
-    const result = await db.$transaction(async (tx) => {
+    const isBalancePayment = gateway === 'balance';
+
+    // C-1 FIX: Use runSerializableTransaction for TOCTOU protection and
+    // actually deduct balance when gateway is 'balance', matching the
+    // pattern from massOrderCheckoutAction.
+    const result = await runSerializableTransaction(async (tx) => {
+      if (isBalancePayment) {
+        await WalletOps.charge(
+          tx,
+          user.id,
+          totalCents,
+          `Структурированный массовый заказ (${rawOrders.length} шт.)`,
+          {
+            idempotencyKey: idempotencyKey ? `structured-mass-charge-${idempotencyKey}` : undefined,
+            tenantId: user.tenantId
+          }
+        );
+      }
+
       const payment = await tx.payment.create({
         data: {
           userId: user.id,
           tenantId: user.tenantId,
           amount: paymentAmount,
           currency: 'RUB',
-          status: 'PENDING',
+          status: isBalancePayment ? 'SUCCEEDED' : 'PENDING',
           gateway,
           consentIp,
           consentUserAgent
@@ -624,7 +642,11 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
       });
 
       await tx.order.createMany({
-        data: orderCreationData.map(o => ({ ...o, paymentId: payment.id }))
+        data: orderCreationData.map(o => ({
+          ...o,
+          paymentId: payment.id,
+          status: isBalancePayment ? ('PENDING' as const) : ('AWAITING_PAYMENT' as const)
+        }))
       });
 
       return { paymentId: payment.id };

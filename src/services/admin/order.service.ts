@@ -335,13 +335,14 @@ class AdminOrderService {
    * Partial refund: if order is IN_PROGRESS/PARTIAL with remains > 0,
    * refund only the undelivered portion.
    */
-  async cancelOrder(orderId: string, admin: { id: string; email: string }) {
+  // C-02 FIX: Accept tenantId for cross-tenant order isolation
+  async cancelOrder(orderId: string, admin: { id: string; email: string; tenantId?: string }) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const orderBefore = await db.order.findUniqueOrThrow({ where: { id: orderId } });
+    const orderBefore = await db.order.findFirstOrThrow({ where: { id: orderId, tenantId: admin.tenantId } });
 
     const result = await runSerializableTransaction(async (tx) => {
-      const order = await tx.order.findUniqueOrThrow({
-        where: { id: orderId },
+      const order = await tx.order.findFirstOrThrow({
+        where: { id: orderId, tenantId: admin.tenantId },
         include: { user: true, service: true },
       });
 
@@ -413,10 +414,11 @@ class AdminOrderService {
    * Restart a failed/error order by resetting it to PENDING.
    * The provision worker will pick it up on next cycle.
    */
-  async restartOrder(orderId: string, admin: { id: string; email: string }) {
+  // C-02 FIX: Accept tenantId for cross-tenant order isolation
+  async restartOrder(orderId: string, admin: { id: string; email: string; tenantId?: string }) {
     const result = await runSerializableTransaction(async (tx) => {
-      const order = await tx.order.findUniqueOrThrow({
-        where: { id: orderId },
+      const order = await tx.order.findFirstOrThrow({
+        where: { id: orderId, tenantId: admin.tenantId },
         include: { user: true }
       });
 

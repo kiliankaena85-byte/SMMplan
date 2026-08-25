@@ -410,10 +410,12 @@ export const WalletOps = {
     });
 
     if (updated.count === 0) {
-      await tx.user.update({
-        where: { id: userId },
-        data: { quarantineBalance: BigInt(0) }
-      });
+      // H-4 FIX: Log critical alert instead of silently zeroing quarantine balance.
+      // The caller requested release of more than available — this indicates a data
+      // integrity issue or concurrent modification. Zeroing the balance destroys
+      // remaining quarantine funds without audit trail.
+      console.error(`[WalletOps.quarantineRelease] CRITICAL: Cannot release ${absAmount} kopecks from quarantine for user ${userId} — insufficient quarantine balance. Manual intervention required.`);
+      throw new Error(`Quarantine release failed: insufficient quarantine balance (requested: ${absAmount}, user: ${userId}). Manual review required.`);
     }
 
     const user = await tx.user.findUnique({

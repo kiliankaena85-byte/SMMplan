@@ -23,7 +23,7 @@ export function getTenantSiteName(tenantId: string): string {
 
 export function absoluteCanonical(tenantId: string, path: string): string {
   const host = getTenantHost(tenantId);
-  // Ensure path starts with a slash
-  const safePath = path.startsWith('/') ? path : `/${path}`;
-  return `https://${host}${safePath}`;
+  // Ensure path starts with a single slash and avoids double slashes
+  const cleanPath = '/' + path.replace(/^\/+/, '');
+  return `https://${host}${cleanPath}`;
 }

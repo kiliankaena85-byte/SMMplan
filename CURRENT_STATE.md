@@ -2,9 +2,28 @@
 <!-- АГЕНТ: Обновляй этот файл после КАЖДОЙ завершённой задачи. Это твоя главная точка восстановления контекста. -->
 
 ## Последнее обновление: 2026-08-25 | Агент: Antigravity
-## Активный статус: 🛡️ УСПЕШНО СЛИТО В MAIN: «Services Lifecycle Management» (ENTERPRISE EDITION)
+## Активный статус: 🛡️ УСПЕШНО ЗАВЕРШЕНО: «External Audit Fixes & 11 E2E Test Blocks» (75/75 Green, 100% Pass)
 - **Ветка**: `main`
 - **Завершено**:
+  - `AUDIT-FIXES-2026-08-25`: Применены и верифицированы все исправления уязвимостей внешнего аудита:
+    1. **Массовые заказы (`src/actions/order/mass.ts`, Fix C-1)**: Балансовые заказы обернуты в `runSerializableTransaction` с `WalletOps.charge()` и проверкой достаточности средств.
+    2. **Финансовая точность (`src/services/financial/wallet.service.ts` & `payment.service.ts`, Fix C-2/C-3)**: Исключены любые `Number()` касты для `amountCents` и `totalChargeCents`, сохранена чистая `BigInt` арифметика в копейках.
+    3. **Карантин кошельков (`src/services/financial/wallet-ops.ts`, Fix H-4)**: Устранено тихое обнуление карантина — внедрен явный throw и логирование критических ошибок.
+    4. **Мульти-тенант IDOR (`src/services/admin/order.service.ts`, Fix C-02)**: Добавлены проверки `tenantId` в `cancelOrder` и `restartOrder`.
+    5. **Канонические ссылки (`src/lib/seo-helpers.ts`)**: Устранено дублирование слешей в `absoluteCanonical`.
+    6. **Circuit Breaker (`src/lib/circuit-breaker.ts`)**: Статический импорт метрик и полнофункциональное Redis/Memory состояние.
+  - `E2E-TESTS-FULL-SUITE`: 11 E2E блоков (75/75 тестов пройдены, 100% green):
+    - **Block 1**: Customer & Guest Order Flow (4 теста)
+    - **Block 2**: Admin Services Lifecycle (6 тестов)
+    - **Block 3**: Billing & Payments & 54-FZ (4 теста)
+    - **Block 4**: Orders Fulfillment Queue & Cascade Backups (4 теста)
+    - **Block 5**: Support & Tickets Isolation (4 теста)
+    - **Block 6**: RBAC, Security & Vault Encryption (4 теста)
+    - **Block 7**: Mass Orders & B2B API v2 (10 тестов)
+    - **Block 8**: Drip-Feed & Auto-Refills (11 тестов)
+    - **Block 9**: Referrals & Multi-Tier Loyalty (10 тестов)
+    - **Block 10**: Proxy Pool & Provider Resilience (10 тестов)
+    - **Block 11**: Multi-Tenant SEO Isolation & Sitemap Scoping (12 тестов)
   - `SERVICES-LIFECYCLE-01`: Внедрена Enterprise-система полного жизненного цикла услуг:
     1. **Prisma Модели**:
        - `CustomerGroup`: Группы заказчиков B2B/VIP с тенантами и индивидуальными скидками.
