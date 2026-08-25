@@ -1,6 +1,0 @@
-@echo off
-echo Killing existing next processes...
-powershell -File kill_nodes.ps1
-timeout /t 3 /nobreak
-echo Running Playwright E2E tests on port 3001...
-npx playwright test e2e/e2e-registration-ordering.spec.ts e2e/e2e-support-sse.spec.ts e2e/e2e-loss-prevention-limits.spec.ts --project=chromium
