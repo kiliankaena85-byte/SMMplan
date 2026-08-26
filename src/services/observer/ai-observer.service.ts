@@ -27,37 +27,20 @@ export class AiObserverService {
   static async isKillswitchActive(): Promise<boolean> {
     try {
       const cached = await redis.get(this.REDIS_KILLSWITCH_KEY);
-      if (cached !== null) {
-        return cached === '1';
-      }
-
-      // Check DB systemSettings
-      const settings = await db.systemSettings.findFirst({
-        select: { isAiObserverEnabled: true },
-      });
-      const isEnabled = settings?.isAiObserverEnabled ?? true;
-      await redis.set(this.REDIS_KILLSWITCH_KEY, isEnabled ? '0' : '1', 'EX', 300);
-      return !isEnabled;
+      return cached === '1';
     } catch {
       return false; // Default to active (not killed)
     }
   }
 
   /**
-   * Sets the Master Kill-Switch state in Redis and DB.
+   * Sets the Master Kill-Switch state in Redis.
    */
   static async setKillswitch(disabled: boolean): Promise<void> {
     try {
       await redis.set(this.REDIS_KILLSWITCH_KEY, disabled ? '1' : '0');
-      const settings = await db.systemSettings.findFirst();
-      if (settings) {
-        await db.systemSettings.update({
-          where: { id: settings.id },
-          data: { isAiObserverEnabled: !disabled },
-        });
-      }
     } catch (e) {
-      console.error('[AiObserverService] Failed to set killswitch in DB:', e);
+      console.error('[AiObserverService] Failed to set killswitch in Redis:', e);
     }
   }
 
