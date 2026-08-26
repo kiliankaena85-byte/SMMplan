@@ -15,6 +15,7 @@ export interface BugReportPayload {
   userAgent: string;
   checkoutMode?: string;
   consoleLogs?: string[];
+  screenshot?: string; // Base64 data URL
 }
 
 export async function submitBugReportAction(payload: BugReportPayload) {
