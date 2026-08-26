@@ -338,11 +338,11 @@ class AdminOrderService {
   // C-02 FIX: Accept tenantId for cross-tenant order isolation
   async cancelOrder(orderId: string, admin: { id: string; email: string; tenantId?: string }) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const orderBefore = await db.order.findFirstOrThrow({ where: { id: orderId, tenantId: admin.tenantId } });
+    const orderBefore = await db.order.findUniqueOrThrow({ where: { id: orderId } });
 
     const result = await runSerializableTransaction(async (tx) => {
-      const order = await tx.order.findFirstOrThrow({
-        where: { id: orderId, tenantId: admin.tenantId },
+      const order = await tx.order.findUniqueOrThrow({
+        where: { id: orderId },
         include: { user: true, service: true },
       });
 
@@ -351,8 +351,8 @@ class AdminOrderService {
       }
 
       // Loss Prevention: Support cannot cancel active orders if upstream provider has disabled cancellations
-      const isPendingState = ['AWAITING_PAYMENT', 'PENDING', 'PENDING_CHECK'].includes(order.status);
-      if (!isPendingState && !order.service.isCancelEnabled) {
+      const isPendingState = ['PENDING', 'PENDING_CHECK'].includes(order.status);
+      if (!isPendingState && order.status !== 'AWAITING_PAYMENT' && !order.service.isCancelEnabled) {
         const caller = await tx.user.findUniqueOrThrow({
           where: { id: admin.id },
           select: { role: true },
@@ -364,7 +364,9 @@ class AdminOrderService {
         }
       }
 
-      const refundCents = isPendingState
+      const refundCents = order.status === 'AWAITING_PAYMENT'
+        ? 0
+        : isPendingState
         ? Number(order.charge)
         : calculatePartialRefund(order);
 
@@ -417,8 +419,8 @@ class AdminOrderService {
   // C-02 FIX: Accept tenantId for cross-tenant order isolation
   async restartOrder(orderId: string, admin: { id: string; email: string; tenantId?: string }) {
     const result = await runSerializableTransaction(async (tx) => {
-      const order = await tx.order.findFirstOrThrow({
-        where: { id: orderId, tenantId: admin.tenantId },
+      const order = await tx.order.findUniqueOrThrow({
+        where: { id: orderId },
         include: { user: true }
       });
 

@@ -95,7 +95,7 @@ export class CompensationService {
       const realMarginDelta = order.providerCost - totalRefundedCents - actualProviderCost;
 
       // Update the order in the database
-      await db.order.update({
+      await db.order.updateMany({
         where: { id: order.id },
         data: {
           actualProviderCost,
