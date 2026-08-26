@@ -25,6 +25,10 @@ import { CompensationService } from '@/services/financial/compensation.service';
 export async function generateSmartReplyAction(ticketId: string) {
   return requireStaffPermission('tickets', 'view', async (admin) => {
     try {
+      if (process.env.DISABLE_AI_SUPPORT === 'true') {
+        return { success: false, error: 'AI-ассистент временно отключен администратором в настройках системы.' };
+      }
+
       const aiData = await aiSupportService.generateReply(ticketId, admin.tenantId ?? 'smmplan');
 
       // If Policy Engine blocked the response, inform the operator
