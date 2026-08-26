@@ -368,13 +368,13 @@ export class SettingsProvider {
     
     let defaultSiteName = 'SMMplan';
     let defaultDomain = 'smmplan.pro';
-    let defaultTgBot = 'smmplan_support_bot';
+    let defaultTgBot = process.env.TELEGRAM_SUPPORT_BOT || process.env.TELEGRAM_BOT_USERNAME || 'SMMplansapport_bot';
     let defaultTgChannel = 'smmplan_support';
 
     if (activeTenantId === 'flux' || activeTenantId === 'lovable') {
       defaultSiteName = 'SMMflux';
       defaultDomain = 'smmflux.ru';
-      defaultTgBot = 'smmflux_support_bot';
+      defaultTgBot = process.env.FLUX_TELEGRAM_BOT || 'SMMplansapport_bot';
       defaultTgChannel = 'smmflux_support';
     }
 

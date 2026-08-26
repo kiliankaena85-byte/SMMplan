@@ -58,7 +58,7 @@ export async function LegalPageContent({ slug }: LegalPageContentProps) {
     '{{SUPPORT_EMAIL}}': isFlux ? 'support@smmflux.ru' : (settings.SUPPORT_EMAIL || 'support@smmplan.pro'),
     '{{PRIVACY_EMAIL}}': isFlux ? 'privacy@smmflux.ru' : (settings.PRIVACY_EMAIL || 'privacy@smmplan.pro'),
     '{{SITE_NAME}}': isFlux ? 'SMMflux' : (settings.SITE_NAME || 'SMMplan'),
-    '{{TELEGRAM_BOT}}': settings.TELEGRAM_SUPPORT_BOT || '@smmplan_support_bot',
+    '{{TELEGRAM_BOT}}': settings.TELEGRAM_SUPPORT_BOT ? (settings.TELEGRAM_SUPPORT_BOT.startsWith('@') ? settings.TELEGRAM_SUPPORT_BOT : `@${settings.TELEGRAM_SUPPORT_BOT}`) : '@SMMplansapport_bot',
   };
 
   let rendered = contentHtml;

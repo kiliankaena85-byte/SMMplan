@@ -49,7 +49,7 @@ export default function TelegramCard({
   // Modal / QR Deep Link State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deepLink, setDeepLink] = useState<string>('');
-  const [botUsername, setBotUsername] = useState<string>('smmplan_support_bot');
+  const [botUsername, setBotUsername] = useState<string>('SMMplansapport_bot');
   const [copied, setCopied] = useState(false);
   const [isLoadingDeepLink, setIsLoadingDeepLink] = useState(false);
   const [confirmUnbind, setConfirmUnbind] = useState(false);
