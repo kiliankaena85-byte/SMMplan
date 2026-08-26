@@ -24,6 +24,7 @@ const SEVERITY_EMOJI: Record<AlertSeverity, string> = {
 };
 
 import { telegramQueue } from '@/lib/queue-manager';
+import { EmergencyEmailService } from '@/lib/emergency-email';
 
 /**
  * Queues or dispatches a formatted alert to the admin Telegram channel.
@@ -32,6 +33,14 @@ import { telegramQueue } from '@/lib/queue-manager';
 export function sendAdminAlert(message: string, severity: AlertSeverity = 'INFO') {
   const { token, chatId } = getTelegramConfig();
   if (!token || !chatId) {
+    // If Telegram not configured, send directly via Email for CRITICAL/WARNING
+    if (severity === 'CRITICAL' || severity === 'WARNING') {
+      EmergencyEmailService.sendAlert({
+        severity,
+        title: `[${severity}] SMMpanel Alert (Telegram Unset)`,
+        details: message,
+      }).catch(() => {});
+    }
     return;
   }
   
@@ -46,6 +55,18 @@ export function sendAdminAlert(message: string, severity: AlertSeverity = 'INFO'
  */
 export async function sendAdminAlertSync(message: string, severity: AlertSeverity = 'INFO') {
   const { token, chatId } = getTelegramConfig();
+  
+  // Multi-Channel Cascade: Always send emergency email for CRITICAL incidents
+  if (severity === 'CRITICAL') {
+    EmergencyEmailService.sendAlert({
+      severity: 'CRITICAL',
+      title: 'P0 Critical Incident Detected',
+      details: message,
+    }).catch((err) => {
+      console.error('[NotificationService] Emergency email cascade failed:', err);
+    });
+  }
+
   if (!token || !chatId) return;
 
   const emoji = SEVERITY_EMOJI[severity];
@@ -64,8 +85,21 @@ export async function sendAdminAlertSync(message: string, severity: AlertSeverit
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
       console.error(`[NotificationService] Telegram API error (${res.status}):`, errBody);
+
+      // Failover to Email if Telegram API rejected or blocked the message
+      EmergencyEmailService.sendAlert({
+        severity: severity === 'CRITICAL' ? 'CRITICAL' : 'WARNING',
+        title: `Telegram Delivery Failed (${res.status})`,
+        details: `${message}\n\nTelegram Error Details: ${errBody}`,
+      }).catch(() => {});
     }
   } catch (err) {
     console.error('[NotificationService] Telegram alert sync failed:', err);
+    // Failover to Email if network to Telegram failed
+    EmergencyEmailService.sendAlert({
+      severity: severity === 'CRITICAL' ? 'CRITICAL' : 'WARNING',
+      title: 'Telegram Network Connection Error',
+      details: `${message}\n\nNetwork Error: ${(err as Error).message}`,
+    }).catch(() => {});
   }
 }

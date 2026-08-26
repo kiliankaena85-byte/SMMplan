@@ -11,6 +11,7 @@ import { CommandPalette } from '@/components/admin/command-palette';
 import { ShortcutsProvider } from '@/components/admin/shortcuts-provider';
 import { AdminProfileDropdown } from '@/components/admin/admin-profile-dropdown';
 import { GlobalSiteSwitcher } from '@/components/admin/tenant-switcher';
+import { SystemEmergencyBanner } from '@/components/admin/system-emergency-banner';
 import { SettingsManager } from '@/lib/settings';
 import { unstable_cache } from 'next/cache';
 
@@ -112,6 +113,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
         {/* Floating Main Content Area */}
         <div className="flex-1 max-h-screen overflow-hidden p-0 md:p-3.5 z-10 relative flex flex-col">
+          <SystemEmergencyBanner />
           {/* Top Header Bar with Mobile Drawer, Global Site Switcher & Profile Dropdown */}
           <header className="mb-2 px-3 md:px-1 flex items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-2 md:gap-3">
