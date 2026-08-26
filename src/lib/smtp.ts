@@ -1,8 +1,14 @@
 import nodemailer from 'nodemailer';
+import dns from 'dns';
 import { SettingsProvider } from '@/lib/settings';
 import { Resend } from 'resend';
 import { logger } from '@/lib/logger';
 import { getBaseUrlAsync, getBaseUrlSync } from '@/utils/get-base-url';
+
+// Force IPv4 DNS resolution first to avoid ENETUNREACH on dual-stack environments without IPv6 routing
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 const log = logger.child({ component: 'SMTP' });
 
@@ -47,8 +53,9 @@ async function getTransporter(): Promise<TransporterResult | null> {
     auth: {
       user: s.smtpUser,
       pass: s.smtpPassword,
-    }
-  });
+    },
+    family: 4, // Force IPv4 to prevent ENETUNREACH on systems without IPv6 routing
+  } as any);
 
   return { provider: 'SMTP', transporter, smtpUser: s.smtpUser, fromEmail: s.smtpUser };
 }
