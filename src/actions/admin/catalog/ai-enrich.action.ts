@@ -44,7 +44,7 @@ export async function batchEnrichExistingServicesAction(serviceIds: string[]) {
           description: srv.description,
           categoryName: srv.category?.name,
           networkName: srv.category?.network?.name,
-          rateUsd: srv.rate,
+          rateUsd: srv.providerCurrency === 'RUB' ? Number((srv.rate / 90).toFixed(4)) : srv.rate,
           minQty: srv.minQty,
           maxQty: srv.maxQty,
           isRefillEnabled: srv.isRefillEnabled,

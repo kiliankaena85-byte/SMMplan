@@ -15,6 +15,7 @@ const BLOCKED_PHRASES_RU = [
   'на карту', 'на сбербанк', 'на банковск', 'вывод средств', 'вывести на карту',
   'возместим ущерб', 'компенсируем полностью',
   'судебн', 'обратитесь в суд',
+  'т-банк', 'тинькофф', 'тиньков', 'юмани', 'юmoney', 'usdt', 'trc20', 'криптовалют', 'stars', 'наличными',
 ];
 
 const BLOCKED_PHRASES_EN = [
@@ -37,6 +38,7 @@ export interface PolicyViolation {
 export function scanDraftReply(
   draft: string,
   balanceFromDb: string,
+  allowedContextAmounts: Array<number | string> = [],
 ): PolicyViolation[] {
   const violations: PolicyViolation[] = [];
   const lower = draft.toLowerCase();
@@ -53,15 +55,32 @@ export function scanDraftReply(
   }
 
   // Rule 2: Financial claim validator — AI must not invent monetary amounts
+  // Normalize allowed amounts from DB (balance + order charges in ticket context)
+  const allowedNumeric: number[] = [];
+  const parsedDbBalance = parseFloat(balanceFromDb.replace(/[^\d.,]/g, '').replace(',', '.'));
+  if (!isNaN(parsedDbBalance)) {
+    allowedNumeric.push(parsedDbBalance);
+  }
+  for (const item of allowedContextAmounts) {
+    const num = typeof item === 'number' ? item : parseFloat(String(item).replace(/[^\d.,]/g, '').replace(',', '.'));
+    if (!isNaN(num)) {
+      allowedNumeric.push(num);
+    }
+  }
+
   const moneyMatches = draft.match(/(\d[\d\s,.]*)\s*(₽|руб|rub)/gi) || [];
   for (const match of moneyMatches) {
     const digits = match.replace(/[^\d.,]/g, '').replace(',', '.');
-    if (digits !== balanceFromDb && parseFloat(digits) > 0) {
-      violations.push({
-        rule: 'UNVERIFIED_FINANCIAL_CLAIM',
-        detail: `AI указал сумму "${digits}", но реальный баланс из БД: ${balanceFromDb} ₽`,
-        severity: 'WARN',
-      });
+    const claimVal = parseFloat(digits);
+    if (!isNaN(claimVal) && claimVal > 0) {
+      const isAllowed = allowedNumeric.some((allowed) => Math.abs(allowed - claimVal) < 0.01);
+      if (!isAllowed) {
+        violations.push({
+          rule: 'UNVERIFIED_FINANCIAL_CLAIM',
+          detail: `AI указал сумму "${digits}", но реальный баланс из БД: ${balanceFromDb} ₽`,
+          severity: 'WARN',
+        });
+      }
     }
   }
 

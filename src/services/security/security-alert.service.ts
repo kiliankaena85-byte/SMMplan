@@ -169,17 +169,22 @@ export class SecurityAlertService {
   /**
    * Returns aggregated statistics for security events in the past 24 hours.
    */
-  static async getSecurityDashboardStats(): Promise<SecurityStatsSummary> {
+  static async getSecurityDashboardStats(tenantId?: string): Promise<SecurityStatsSummary> {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const isSingleTenant = tenantId && tenantId !== 'all';
+    const whereClause: Record<string, unknown> = { createdAt: { gte: since } };
+    if (isSingleTenant) {
+      whereClause.tenantId = tenantId;
+    }
 
     try {
       const [total24h, critical24h, high24h, warning24h, recentEvents] = await Promise.all([
-        db.securityEvent.count({ where: { createdAt: { gte: since } } }),
-        db.securityEvent.count({ where: { createdAt: { gte: since }, severity: 'CRITICAL' } }),
-        db.securityEvent.count({ where: { createdAt: { gte: since }, severity: 'HIGH' } }),
-        db.securityEvent.count({ where: { createdAt: { gte: since }, severity: 'WARNING' } }),
+        db.securityEvent.count({ where: whereClause }),
+        db.securityEvent.count({ where: { ...whereClause, severity: 'CRITICAL' } }),
+        db.securityEvent.count({ where: { ...whereClause, severity: 'HIGH' } }),
+        db.securityEvent.count({ where: { ...whereClause, severity: 'WARNING' } }),
         db.securityEvent.findMany({
-          where: { createdAt: { gte: since } },
+          where: whereClause,
           select: { event: true, ip: true },
           take: 1000,
         }),

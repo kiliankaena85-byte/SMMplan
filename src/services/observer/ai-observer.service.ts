@@ -79,15 +79,17 @@ export class AiObserverService {
       if (o.status === 'CANCELED' || o.status === 'ERROR') canceledOrders++;
 
       if (o.status !== 'AWAITING_PAYMENT' && o.status !== 'PENDING' && o.status !== 'ERROR') {
+        if (o.status === 'CANCELED') {
+          // Canceled orders produce zero recognized revenue and zero COGS
+          continue;
+        }
+
         let rev = Number(o.charge);
         let cost = Number(o.providerCost);
         if (o.quantity > 0 && o.remains !== null && o.remains > 0) {
           const delivered = Math.max(0, o.quantity - o.remains);
           rev = Math.round((delivered / o.quantity) * rev);
           cost = Math.round((delivered / o.quantity) * cost);
-        } else if (o.status === 'CANCELED') {
-          rev = 0;
-          cost = 0;
         }
         grossRevenueCents += rev;
         cogsCents += cost;
@@ -150,7 +152,7 @@ export class AiObserverService {
     let criticalEvents = 0;
     let uniqueAttackIpsCount = 0;
     try {
-      const secStats = await SecurityAlertService.getSecurityDashboardStats();
+      const secStats = await SecurityAlertService.getSecurityDashboardStats(tenantId);
       blockedIntrusions24h = secStats.total24h;
       criticalEvents = secStats.critical24h;
       uniqueAttackIpsCount = secStats.uniqueIpsCount;
