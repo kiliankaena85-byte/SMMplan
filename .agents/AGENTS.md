@@ -111,4 +111,13 @@
 - ✅ **Idempotent Telegram Polling:** Всегда сбрасывать вебхуки через `await bot.telegram.deleteWebhook({ drop_pending_updates: true })` перед `bot.launch({ dropPendingUpdates: true })` для предотвращения ошибки `409 Conflict`.
 - ✅ **Optimistic UI:** Любое оптимистичное сообщение/мутация с `temp-id` ОБЯЗАНА иметь 10-12s TTL таймер авто-очистки и немедленный откат стейта с возвратом текста при ошибке `{ success: false }`.
 
+## 12. Zero-Trust, RBAC & Lifecycle Boundaries (CRITICAL INVARIANTS)
+- ❌ **ЗАПРЕЩЕНО** писать проверки IDOR вида `if (sessionUser && item.userId !== sessionUser.id)` без обработки гостевого контекста.
+- ✅ **Guest-Proof IDOR:** Если сущность принадлежит пользователю (`item.userId`), доступ разрешается СТРОГО при `if (item.userId && (!sessionUser || item.userId !== sessionUser.id)) { return { error: 'Access denied' }; }`.
+- ❌ **ЗАПРЕЩЕНО** включать статусы неоплаченных заказов (`AWAITING_PAYMENT`, `PENDING`) в фильтры поиска вебхуков провайдеров (`src/app/api/webhooks/provider/`). Провайдерские вебхуки могут модифицировать СТРОГО заказы со статусами `IN_PROGRESS` или `PENDING_CHECK`.
+- ❌ **ЗАПРЕЩЕНО** интерполировать переменные в Cypher-запросы Neo4j без проверки по белому списку `VALID_LABELS = {'class', 'module', 'function', 'file'}`.
+- ❌ **ЗАПРЕЩЕНО** позволять сотрудникам назначать роли самим себе (`admin.id === targetUserId`) или выдавать права, превышающие их собственный набор полномочий (`Grant Ceiling`).
+- ❌ **ЗАПРЕЩЕНО** переименовывать `src/proxy.ts` в `src/middleware.ts` — в Next.js 16 App Router для платформы зафиксирован `src/proxy.ts`.
+
+
 

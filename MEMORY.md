@@ -17,6 +17,9 @@
     3. Разрешение `tenantId` в финансовых операциях строго через цепочку: `tenantId || user?.tenantId || 'smmplan'`.
     4. Все вебхуки (YooKassa, Telegram, Provider) переведены в строгий `fail-closed` режим со сравнением секретов через `timingSafeEqual`.
     5. Исключены любые fallback-секреты для `NEXT_PUBLIC_*` переменных во избежание утечки в клиентские JS-бандлы.
+    6. **Guest-Proof IDOR Shield:** При проверке прав доступа на объекты с `userId`, если объект принадлежит пользователю, неавторизованные гости безусловно отсекаются: `if (item.userId && (!sessionUser || item.userId !== sessionUser.id))`.
+    7. **Provider Webhook State Boundary:** Вебхуки провайдеров имеют право обновлять только оплаченные заказы (`IN_PROGRESS`, `PENDING_CHECK`), исключая `AWAITING_PAYMENT` и `PENDING`.
+    8. **Next.js 16 Routing Convention:** Использовать строго `src/proxy.ts`. Попытки вернуть `src/middleware.ts` блокируются как устаревшие для Next.js 16.
   - *Причина:* Гарантия финансовой консистентности, соблюдение OWASP Top 10 2026 и исключение возможности подделки вебхуков или дрейфа баланса.
 
 - **Zero-Trust Provider Webhooks & Cryptographic Isolation:**
