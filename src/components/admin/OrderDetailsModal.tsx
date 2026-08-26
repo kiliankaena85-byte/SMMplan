@@ -173,14 +173,14 @@ export function OrderDetailsModal({
       setIsLoadingDetails(true);
       getOrderDetailsAction(order.id)
         .then((res) => {
-          if (res) {
+          if (res && typeof res === 'object' && 'id' in res) {
             setFullOrder(res as unknown as OrderModalColumn);
           } else {
             setFullOrder(order);
           }
         })
         .catch((err) => {
-          toast.error(`Ошибка загрузки: ${err.message}`);
+          console.warn('[OrderDetailsModal] Load error:', err);
           setFullOrder(order);
         })
         .finally(() => {
@@ -234,11 +234,22 @@ export function OrderDetailsModal({
 
   const currentOrder = fullOrder || order;
 
-  // Price & Margin Calculations
+  // Safe Price & Margin Calculations
   const quantity = currentOrder.quantity ?? 0;
-  const chargeRub = Number(BigInt(currentOrder.charge || 0)) / 100;
+  const parseAmountRub = (val: number | string | undefined | null): number => {
+    if (val === undefined || val === null) return 0;
+    if (typeof val === 'number') {
+      return val > 1000 && Number.isInteger(val) ? val / 100 : val;
+    }
+    const str = String(val).replace(/,/g, '.').trim();
+    const num = parseFloat(str);
+    if (!Number.isFinite(num)) return 0;
+    return num > 1000 && Number.isInteger(num) ? num / 100 : num;
+  };
+
+  const chargeRub = parseAmountRub(currentOrder.charge);
   const pricePerUnitRub = quantity > 0 ? chargeRub / quantity : 0;
-  const costRub = Number(BigInt(currentOrder.providerCost ?? 0)) / 100;
+  const costRub = parseAmountRub(currentOrder.providerCost);
   const marginRub = chargeRub - costRub;
   const marginPercent = chargeRub > 0 ? Math.round((marginRub / chargeRub) * 100) : 0;
 
@@ -836,12 +847,9 @@ export function OrderDetailsModal({
         </div>
 
         {/* BOTTOM ACTION BAR */}
-        <div className="px-6 py-4 border-t border-border/70 bg-muted/40 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+        <div className="px-6 py-4 border-t border-border/70 bg-muted/30 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-2 text-xs text-muted-foreground w-full sm:w-auto justify-between sm:justify-start">
-            <span className="font-semibold">Быстрые действия:</span>
-            <span className="hidden md:inline text-[10px] bg-muted px-2 py-0.5 rounded border border-border/40 font-mono">
-              Alt+R (Рестарт) · Alt+C (Отмена) · Alt+M (Failover)
-            </span>
+            <span className="font-semibold text-foreground">Действия с заказом #{currentOrder.numericId}:</span>
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">

@@ -109,9 +109,9 @@ export function TicketsSidebar({
             <Headphones className="w-5 h-5 text-primary" />
             <span>Список диалогов</span>
           </h1>
-          {stats.criticalOpen > 0 && (
+          {stats.open > 0 && (
             <div className="text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2.5 py-0.5 rounded-full border border-rose-500/20 animate-pulse">
-              {stats.criticalOpen} ожидает
+              {stats.open} требуют ответа
             </div>
           )}
         </div>
@@ -129,8 +129,8 @@ export function TicketsSidebar({
         <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
           {[
             { label: 'Все', value: 'ALL', count: stats.total },
-            { label: 'Открытые', value: 'OPEN', count: stats.open },
-            { label: 'Ожидают', value: 'PENDING', count: stats.pending },
+            { label: 'В работе', value: 'OPEN', count: stats.open },
+            { label: 'Ждут клиента', value: 'PENDING', count: stats.pending },
             { label: 'Закрытые', value: 'CLOSED', count: stats.closed }
           ].map((pill) => {
             const isActive = currentStatus === pill.value;
@@ -280,8 +280,25 @@ export function TicketsSidebar({
           );
         })}
         {tickets.length === 0 && (
-          <div className="p-8 text-center text-xs text-muted-foreground">
-            Диалоги не найдены
+          <div className="p-8 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-3 my-auto">
+            <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center text-muted-foreground border border-border/40">
+              <Headphones className="w-6 h-6 opacity-60 text-primary" />
+            </div>
+            <div className="space-y-1">
+              <p className="font-semibold text-foreground text-sm">В этой категории нет диалогов</p>
+              <p className="text-[11px] text-muted-foreground">
+                {currentStatus === 'PENDING' ? 'Все ожидающие тикеты были отвечены или закрыты.' : 'Нет тикетов, соответствующих выбранному фильтру.'}
+              </p>
+            </div>
+            {currentStatus !== 'ALL' && (
+              <button
+                type="button"
+                onClick={() => handleStatusFilter('ALL')}
+                className="mt-1 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary font-bold rounded-xl text-xs transition-colors cursor-pointer border border-primary/20"
+              >
+                Показать все диалоги ({stats.total})
+              </button>
+            )}
           </div>
         )}
       </div>
