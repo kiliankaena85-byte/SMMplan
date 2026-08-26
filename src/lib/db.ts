@@ -57,8 +57,17 @@ function createPrismaClient(): PrismaClient {
         },
       },
       ledgerEntry: {
+        async delete() {
+          throw new Error('🚨 [SAFE-GUARD] LedgerEntry delete is strictly forbidden (Financial Audit Trail)!');
+        },
         async deleteMany() {
           throw new Error('🚨 [SAFE-GUARD] LedgerEntry deletion is strictly forbidden (Financial Audit Trail)!');
+        },
+        async update() {
+          throw new Error('🚨 [SAFE-GUARD] LedgerEntry update is strictly forbidden (Financial Audit Trail)!');
+        },
+        async updateMany() {
+          throw new Error('🚨 [SAFE-GUARD] LedgerEntry update is strictly forbidden (Financial Audit Trail)!');
         },
       },
     },

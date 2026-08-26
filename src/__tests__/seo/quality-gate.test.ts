@@ -99,9 +99,9 @@ describe('SEO Quality Gate Sitemap Integration Tests', () => {
     const urls = routes.map((r) => r.url);
 
     // Should include the category URL
-    expect(urls).toContain('https://smmplan.local/services/telegram/subscribers');
+    expect(urls).toContain('https://smmplan.pro/services/telegram/subscribers');
     // Should include the service URLs
-    expect(urls).toContain('https://smmplan.local/services/telegram/subscribers/subs-1');
+    expect(urls).toContain('https://smmplan.pro/services/telegram/subscribers/subs-1');
   });
 
   it('Category with < 3 active services fails Quality Gate (noindex / omitted)', async () => {
@@ -132,7 +132,7 @@ describe('SEO Quality Gate Sitemap Integration Tests', () => {
     const routes = await sitemap();
     const urls = routes.map((r) => r.url);
 
-    expect(urls).not.toContain('https://smmplan.local/services/telegram/subscribers');
+    expect(urls).not.toContain('https://smmplan.pro/services/telegram/subscribers');
   });
 
   it('Category with quarantined services fails Quality Gate if active ones are < 3', async () => {
@@ -172,7 +172,7 @@ describe('SEO Quality Gate Sitemap Integration Tests', () => {
     const routes = await sitemap();
     const urls = routes.map((r) => r.url);
 
-    expect(urls).not.toContain('https://smmplan.local/services/telegram/subscribers');
+    expect(urls).not.toContain('https://smmplan.pro/services/telegram/subscribers');
   });
 
   it('Category with cooldown services fails Quality Gate if active ones are < 3', async () => {
@@ -213,7 +213,7 @@ describe('SEO Quality Gate Sitemap Integration Tests', () => {
     const routes = await sitemap();
     const urls = routes.map((r) => r.url);
 
-    expect(urls).not.toContain('https://smmplan.local/services/telegram/subscribers');
+    expect(urls).not.toContain('https://smmplan.pro/services/telegram/subscribers');
   });
 
   it('Category with rate = 0 fails Quality Gate if all positive price active ones are < 3', async () => {
@@ -251,7 +251,7 @@ describe('SEO Quality Gate Sitemap Integration Tests', () => {
     });
 
     const routes1 = await sitemap();
-    expect(routes1.map((r) => r.url)).not.toContain('https://smmplan.local/services/telegram/subscribers');
+    expect(routes1.map((r) => r.url)).not.toContain('https://smmplan.pro/services/telegram/subscribers');
 
     // Clean services
     await db.service.deleteMany({ where: { categoryId } });
@@ -290,6 +290,6 @@ describe('SEO Quality Gate Sitemap Integration Tests', () => {
     });
 
     const routes2 = await sitemap();
-    expect(routes2.map((r) => r.url)).not.toContain('https://smmplan.local/services/telegram/subscribers');
+    expect(routes2.map((r) => r.url)).not.toContain('https://smmplan.pro/services/telegram/subscribers');
   });
 });

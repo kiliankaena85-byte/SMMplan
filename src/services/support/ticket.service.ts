@@ -189,7 +189,7 @@ class TicketService {
       const companyName = settings.COMPANY_NAME || "SMMplan";
       const replyToAddress = `support+${message.ticket.id}@${supportDomain}`;
       
-      const escapeHtml = (unsafe: string) => unsafe
+      const escapeHtml = (unsafe?: string | null) => (unsafe ?? '')
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
