@@ -93,6 +93,23 @@ export async function runCleanup(): Promise<void> {
     log.error('Failed to run periodic payment reconciliation / health checks', { error: err });
   }
 
+  // ── 3.8. ProviderProxyLog: older than 30 days (Storage Optimization) ────────
+  try {
+    const proxyLogThreshold = new Date(now);
+    proxyLogThreshold.setDate(proxyLogThreshold.getDate() - 30);
+
+    const proxyLogResult = await db.providerProxyLog.deleteMany({
+      where: { createdAt: { lt: proxyLogThreshold } },
+    });
+
+    log.info('ProviderProxyLog cleanup done', {
+      deleted: proxyLogResult.count,
+      olderThan: proxyLogThreshold.toISOString(),
+    });
+  } catch (err) {
+    log.error('Failed to prune old ProviderProxyLog records', { error: err });
+  }
+
   // ── 4. Orders: Zombie AWAITING_PAYMENT ────────────────────────────────────
   // W2-1 FIX: Don't blindly cancel — check if a payment was recently confirmed.
   // YooKassa webhooks can arrive up to 5 minutes late. Cancelling a paid order

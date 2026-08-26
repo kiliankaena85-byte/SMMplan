@@ -38,6 +38,7 @@ export const WalletOps = {
   /**
    * Safe charge mechanism without creating a new transaction.
    * Modifying balances using this guarantees no double-spending.
+   * Strictly enforces Ledger-First Principle (LedgerEntry created BEFORE balance mutation).
    */
   async charge(
     tx: PrismaTx,
@@ -54,63 +55,43 @@ export const WalletOps = {
 
     const { idempotencyKey, adminId, tenantId } = opts || {};
 
-    // Strict Cross-Tenant Guard
-    if (tenantId) {
-      const userCheck = await tx.user.findUnique({
-        where: { id: userId },
-        select: { tenantId: true }
-      });
-      if (!userCheck || userCheck.tenantId !== tenantId) {
-        throw new WalletUserNotFoundError(userId);
-      }
+    // 1. Validate User existence and tenant isolation
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { id: true, balance: true, tenantId: true }
+    });
+
+    if (!user) {
+      throw new WalletUserNotFoundError(userId);
     }
 
+    if (tenantId && user.tenantId !== tenantId) {
+      throw new WalletUserNotFoundError(userId);
+    }
+
+    if (user.balance < rawCents) {
+      throw new WalletInsufficientFundsError(rawCents, user.balance);
+    }
+
+    const resolvedTenantId = tenantId || user.tenantId || 'smmplan';
+
+    // 2. Idempotency pre-check
     if (idempotencyKey) {
       const existing = await tx.ledgerEntry.findFirst({
         where: { idempotencyKey },
       });
       
       if (existing) {
-        return { success: true, balance: null, cached: true, entry: existing };
+        return { success: true, balance: user.balance, cached: true, entry: existing };
       }
     }
 
-    const updatedUserBatch = await tx.user.updateMany({
-      where: { 
-        id: userId,
-        balance: { gte: rawCents },
-        ...(tenantId ? { tenantId } : {})
-      },
-      data: {
-        balance: { decrement: rawCents },
-        totalSpent: { increment: rawCents }
-      }
-    });
-
-    if (updatedUserBatch.count === 0) {
-      const checkUser = await tx.user.findUnique({
-        where: { id: userId },
-        select: { id: true, balance: true, tenantId: true },
-      });
-      if (!checkUser) {
-        throw new WalletUserNotFoundError(userId);
-      }
-      if (tenantId && checkUser.tenantId !== tenantId) {
-        throw new WalletUserNotFoundError(userId);
-      }
-      throw new WalletInsufficientFundsError(rawCents, checkUser.balance);
-    }
-
-    const finalUser = await tx.user.findUniqueOrThrow({
-      where: { id: userId },
-      select: { balance: true, tenantId: true }
-    });
-
+    // 3. LEDGER-FIRST INVARIANT: Create LedgerEntry FIRST before updating User.balance
     try {
       const entry = await tx.ledgerEntry.create({
         data: {
           userId,
-          tenantId: tenantId || finalUser.tenantId || 'smmplan',
+          tenantId: resolvedTenantId,
           adminId,
           amount: -rawCents,
           reason,
@@ -118,6 +99,32 @@ export const WalletOps = {
           idempotencyKey,
           transactionType: 'PAYMENT'
         }
+      });
+
+      // 4. Atomically mutate balance with concurrency check
+      const updatedUserBatch = await tx.user.updateMany({
+        where: { 
+          id: userId,
+          balance: { gte: rawCents },
+          ...(tenantId ? { tenantId } : {})
+        },
+        data: {
+          balance: { decrement: rawCents },
+          totalSpent: { increment: rawCents }
+        }
+      });
+
+      if (updatedUserBatch.count === 0) {
+        const checkUser = await tx.user.findUnique({
+          where: { id: userId },
+          select: { id: true, balance: true },
+        });
+        throw new WalletInsufficientFundsError(rawCents, checkUser?.balance ?? BigInt(0));
+      }
+
+      const finalUser = await tx.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: { balance: true }
       });
 
       return { success: true, balance: finalUser.balance, cached: false, entry };
@@ -129,13 +136,12 @@ export const WalletOps = {
         'code' in error &&
         (error as { code: string }).code === 'P2002'
       ) {
-        // Bug fixed: use tx.* instead of db.* to stay within transaction isolation boundary
         const existing = await tx.ledgerEntry.findFirst({
           where: { idempotencyKey },
         });
         if (existing) {
-          const user = await tx.user.findUnique({ where: { id: userId }, select: { balance: true } });
-          return { success: true, balance: user?.balance ?? null, cached: true, entry: existing };
+          const userCurrent = await tx.user.findUnique({ where: { id: userId }, select: { balance: true } });
+          return { success: true, balance: userCurrent?.balance ?? null, cached: true, entry: existing };
         }
       }
       throw error;
