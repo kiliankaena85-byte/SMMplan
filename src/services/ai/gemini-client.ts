@@ -2,13 +2,14 @@ import { ProxyAgent } from 'undici';
 import { db } from '@/lib/db';
 import { VaultService } from '@/lib/vault';
 
-// Приоритетный каскад моделей на случай недоступности или смены версий Google API
+// Приоритетный каскад проверенных рабочих моделей (актуализировано по live Google API)
 const FALLBACK_MODEL_CASCADES = [
+  'gemini-3.6-flash',
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
   'gemini-3-flash-preview',
-  'gemini-3-flash',
   'gemini-2.5-flash',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
 ];
 
 interface CachedModelRegistry {
@@ -64,7 +65,12 @@ export class GeminiClient {
       .filter((p) => p.startsWith('http://') || p.startsWith('https://') || p.startsWith('socks5://'));
 
     if (proxyUrls.length === 0) {
-      return [undefined]; // Прямое соединение без прокси
+      // Прямое соединение + fallback на локальные Clash/V2Ray порты
+      return [
+        new ProxyAgent('http://127.0.0.1:7897'),
+        new ProxyAgent('http://127.0.0.1:7890'),
+        undefined,
+      ];
     }
 
     return proxyUrls.map((url) => new ProxyAgent(url));

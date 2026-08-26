@@ -36,6 +36,22 @@
         "walletops",
         "audit"
       ]
+    },
+    {
+      "title": "AI Ecosystem & Monitoring Architecture (Support, Finance, Alerts)",
+      "context": "Consolidation of AI services: GeminiClient multi-proxy failover, AiSupportService defense-in-depth RAG, StormDetectorService, LedgerReconciliationService, and SecurityAlertService",
+      "decision": "Documented unified architecture: 5-layer AI support copilot, deterministic ledger reconciliation, 24h rolling storm detector, and real-time security alerting with telegram dispatch",
+      "rationale": "Ensures single source of truth for all autonomous agents regarding AI, financial audits, operational health, and monitoring capabilities in SMMplan/SMMflux",
+      "tags": [
+        "ai",
+        "gemini",
+        "support",
+        "finance",
+        "ledger",
+        "alerts",
+        "monitoring",
+        "architecture"
+      ]
     }
   ]
 }

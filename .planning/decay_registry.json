@@ -35,6 +35,19 @@
         "refund",
         "court-practice"
       ]
+    },
+    {
+      "title": "Deprecated Gemini Models (gemini-2.5-pro, gemini-1.5-pro, gemini-1.5-flash)",
+      "deprecatedNorm": "gemini-2.5-pro, gemini-1.5-pro, gemini-1.5-flash",
+      "activeReplacement": "gemini-3.6-flash, gemini-3.5-flash, gemini-3.5-flash-lite, gemini-3.1-flash-lite, gemini-3-flash-preview, gemini-2.5-flash",
+      "decayFactor": 1,
+      "reason": "Google Generative Language API returned 404 for gemini-2.5-pro. Live probe validated gemini-3.6-flash (2.6s), gemini-3.5-flash (4.2s), and gemini-3.5-flash-lite (726ms) as the active production models in August 2026.",
+      "tags": [
+        "gemini",
+        "models",
+        "temporal_decay",
+        "ai_models_2026"
+      ]
     }
   ]
 }
