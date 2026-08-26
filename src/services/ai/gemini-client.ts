@@ -4,8 +4,10 @@ import { VaultService } from '@/lib/vault';
 
 // Приоритетный каскад проверенных рабочих моделей (актуализировано по live Google API)
 const FALLBACK_MODEL_CASCADES = [
-  'gemini-3.6-flash',
+  'gemini-flash-latest', // Официальный динамический алиас Google -> gemini-3.7-flash
+  'gemini-3.6-flash',    // Стабильный Flash с субсекундной скоростью
   'gemini-3.5-flash',
+  'gemini-flash-lite-latest', // Официальный легковесный динамический алиас -> gemini-3.5-flash-lite
   'gemini-3.5-flash-lite',
   'gemini-3.1-flash-lite',
   'gemini-3-flash-preview',
