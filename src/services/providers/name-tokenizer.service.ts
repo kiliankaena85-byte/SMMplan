@@ -72,8 +72,37 @@ export class NameTokenizerService {
             }
         }
 
-        // 4. Refill Detection
-        if (lowerName.includes('refill') || lowerName.includes('♻️') || lowerName.includes('гарант') || lowerName.match(/(\d+)\s*(?:дней|дня|день|day|d)/i)) {
+        // 4. Refill & Warranty Detection (with Strict Anti-Contradiction Negative Guard)
+        const hasExplicitNoRefill =
+            lowerName.includes('без гарантии') ||
+            lowerName.includes('без гарантий') ||
+            lowerName.includes('без автодокрутки') ||
+            lowerName.includes('no refill') ||
+            lowerName.includes('no-refill') ||
+            lowerName.includes('norefill') ||
+            /\b0\s*(?:d|day|days)\s*refill/i.test(lowerName) ||
+            /\bnon[\s-]refill/i.test(lowerName) ||
+            lowerName.includes('no warranty') ||
+            lowerName.includes('without warranty') ||
+            lowerName.includes('no drop guarantee') ||
+            lowerName.includes('no drop protection') ||
+            lowerName.includes('без восстановления');
+
+        if (hasExplicitNoRefill) {
+            hasRefill = false;
+        } else if (
+            lowerName.includes('с гарантией') ||
+            lowerName.includes('гарантия') ||
+            lowerName.includes('гарантией') ||
+            lowerName.includes('автодокрутка') ||
+            lowerName.includes('докрутк') ||
+            lowerName.includes('refill') ||
+            lowerName.includes('re-fill') ||
+            lowerName.includes('auto-refill') ||
+            lowerName.includes('warranty') ||
+            lowerName.includes('♻️') ||
+            lowerName.match(/(\d+)\s*(?:дней|дня|день|day|d|days)\s*(?:refill|гарант|warranty)?/i)
+        ) {
             hasRefill = true;
         }
 

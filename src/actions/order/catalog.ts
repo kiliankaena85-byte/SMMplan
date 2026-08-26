@@ -237,6 +237,7 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
               isDripFeedEnabled: true,
               isRefillEnabled: true,
               targetType: true,
+              qualityTier: true,
               customDataType: true,
               customDataLabel: true,
               clientRequirement: true,
@@ -272,31 +273,71 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
     ]);
 
     return services.map(s => {
-       let badge = "";
-       // Names are strictly "Category Name • Tier"
+       const lowerName = s.name.toLowerCase();
+       const isExplicitNoRefill =
+          lowerName.includes('без гарантии') ||
+          lowerName.includes('без гарантий') ||
+          lowerName.includes('без автодокрутки') ||
+          lowerName.includes('no refill') ||
+          lowerName.includes('no-refill') ||
+          lowerName.includes('norefill') ||
+          /\b0\s*(?:d|day|days)\s*refill/i.test(lowerName) ||
+          /\bnon[\s-]refill/i.test(lowerName) ||
+          lowerName.includes('no warranty') ||
+          lowerName.includes('without warranty') ||
+          lowerName.includes('без восстановления');
+
+       // 4-Tier Hybrid Execution Metrics
+       const feat = (s.features && typeof s.features === 'object' ? s.features : {}) as Record<string, unknown>;
+       const fallbackAnalysis = (!feat.speedText || !feat.startTime)
+         ? SmartAnalyzerLogic.detectSync(s.name, s.description || '')
+         : null;
+
+       const isRefillActive = !isExplicitNoRefill && Boolean(
+          s.isRefillEnabled ||
+          (feat.hasRefill) ||
+          (typeof feat.warrantyDays === 'number' && feat.warrantyDays > 0) ||
+          (fallbackAnalysis?.warranty && fallbackAnalysis.warranty > 0)
+       );
+
+       const warrantyDays = isExplicitNoRefill
+         ? null
+         : ((typeof feat.warrantyDays === 'number' ? feat.warrantyDays : undefined) ?? fallbackAnalysis?.warranty ?? (isRefillActive ? 30 : null));
+
+       // Names are strictly "Category Name • Tier" or custom
        const parts = s.name.split('•');
        const tierName = parts.length > 1 ? parts[parts.length - 1].trim().toLowerCase() : "";
 
-       if (tierName === 'премиум') badge = "ПРЕМИУМ";
-       else if (tierName === 'эконом') badge = "ЭКОНОМ";
-       else if (tierName === 'живые') badge = "ЖИВЫЕ";
-       else if (tierName === 'стандарт') badge = "СТАНДАРТ";
-       else if (s.name.toLowerCase().includes('гарант')) badge = "ГАРАНТИЯ";
-       else if (s.rate < 0.1) badge = "ХИТ";
+       // Explicit admin badge from features metadata (if set by admin in catalog)
+       const rawCustomBadge = (feat.badge as string | undefined)?.trim();
+       let badge = "";
+
+       if (rawCustomBadge) {
+          const upperBadge = rawCustomBadge.toUpperCase();
+          if (upperBadge === 'ГАРАНТИЯ' && (!isRefillActive || isExplicitNoRefill)) {
+             // Anti-Contradiction Guard: Cannot have 'ГАРАНТИЯ' badge on no-refill service!
+             badge = lowerName.includes('быстр') ? "БЫСТРЫЕ" : (s.rate < 0.1 ? "ХИТ" : "");
+          } else if (upperBadge !== 'NONE' && upperBadge !== 'НЕТ' && upperBadge !== 'AUTO') {
+             badge = upperBadge;
+          }
+       }
+
+       if (!badge) {
+          if (tierName === 'премиум' || s.qualityTier === 'PREMIUM') badge = "ПРЕМИУМ";
+          else if (tierName === 'эконом' || s.qualityTier === 'ECONOMY') badge = "ЭКОНОМ";
+          else if (tierName === 'живые') badge = "ЖИВЫЕ";
+          else if (tierName === 'стандарт') badge = "СТАНДАРТ";
+          else if (isRefillActive && (warrantyDays && warrantyDays > 0) && !isExplicitNoRefill) badge = "ГАРАНТИЯ";
+          else if (lowerName.includes('быстр') || lowerName.includes('instant') || lowerName.includes('мгновен')) badge = "БЫСТРЫЕ";
+          else if (s.rate < 0.1) badge = "ХИТ";
+       }
 
        const pricePer1kRub = applyBeautifulRounding(s.rate * s.markup * (s.providerCurrency === 'RUB' ? 1.0 : usdToRub));
        const pricePerUnitRub = pricePer1kRub / 1000;
 
-        // 4-Tier Hybrid Execution Metrics
-        const feat = (s.features && typeof s.features === 'object' ? s.features : {}) as Record<string, unknown>;
-        const fallbackAnalysis = (!feat.speedText || !feat.startTime)
-          ? SmartAnalyzerLogic.detectSync(s.name, s.description || '')
-          : null;
-
-        const startTime = (feat.startTime as string | undefined) || fallbackAnalysis?.startTime || '5–15 мин';
-        const speedDisplay = (feat.speedText as string | undefined) || fallbackAnalysis?.speedText || (s.name.toLowerCase().includes('быстр') ? 'Быстрая' : 'Стандартная');
-        const warrantyDays = (typeof feat.warrantyDays === 'number' ? feat.warrantyDays : undefined) ?? fallbackAnalysis?.warranty ?? (s.isRefillEnabled ? 30 : null);
-        const qualityLabel = (feat.qualityLabel as string | undefined) || fallbackAnalysis?.qualityLabel || (badge || 'Стандарт');
+       const startTime = (feat.startTime as string | undefined) || fallbackAnalysis?.startTime || '5–15 мин';
+       const speedDisplay = (feat.speedText as string | undefined) || fallbackAnalysis?.speedText || (lowerName.includes('быстр') ? 'Быстрая' : 'Стандартная');
+       const qualityLabel = (feat.qualityLabel as string | undefined) || fallbackAnalysis?.qualityLabel || (badge || 'Стандарт');
 
        return {
           id: s.id,
@@ -316,7 +357,7 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
           qualityLabel,
           badge,
           isDripFeedEnabled: s.isDripFeedEnabled,
-          isRefillEnabled: Boolean(s.isRefillEnabled || (warrantyDays && warrantyDays > 0)),
+          isRefillEnabled: isRefillActive,
           targetType: s.targetType,
           customDataType: s.customDataType,
           customDataLabel: s.customDataLabel,

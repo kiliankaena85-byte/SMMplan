@@ -259,7 +259,7 @@ export const SmartAnalyzerLogic = class {
         const catInputLower = safeCategoryInput.toLowerCase();
         const fullContent = (name + ' ' + sanitizedDescription + ' ' + safeCategoryInput).toLowerCase();
 
-        // 0. Detect Geo & Warranty
+        // 0. Detect Geo & Warranty (with Strict Anti-Contradiction Negative Guard)
         let geo = 'WORLDWIDE';
         for (const [code, keywords] of Object.entries(GEO_MAP)) {
             if (keywords.some(k => fullContent.includes(k))) {
@@ -268,12 +268,29 @@ export const SmartAnalyzerLogic = class {
             }
         }
 
+        const isExplicitNoWarranty =
+            fullContent.includes('без гарантии') ||
+            fullContent.includes('без гарантий') ||
+            fullContent.includes('без автодокрутки') ||
+            fullContent.includes('no refill') ||
+            fullContent.includes('no-refill') ||
+            fullContent.includes('norefill') ||
+            /\b0\s*(?:d|day|days)\s*refill/i.test(fullContent) ||
+            /\bnon[\s-]refill/i.test(fullContent) ||
+            fullContent.includes('no warranty') ||
+            fullContent.includes('without warranty') ||
+            fullContent.includes('no drop guarantee') ||
+            fullContent.includes('no drop protection') ||
+            fullContent.includes('без восстановления');
+
         let warranty = 0;
-        const warrantyMatch = name.match(/(\d+)\s*(?:дней|дня|день|day|d)/i);
-        if (warrantyMatch) {
-            warranty = parseInt(warrantyMatch[1]);
-        } else if (fullContent.includes('♻️') || fullContent.includes('гарант')) {
-            warranty = 30; // Default warranty if icon present
+        if (!isExplicitNoWarranty) {
+            const warrantyMatch = name.match(/(\d+)\s*(?:дней|дня|день|day|d|days)/i);
+            if (warrantyMatch) {
+                warranty = parseInt(warrantyMatch[1], 10);
+            } else if (fullContent.includes('♻️') || fullContent.includes('с гарантией') || fullContent.includes('гарантия') || fullContent.includes('гарантией')) {
+                warranty = 30; // Default warranty if icon present or positive guarantee text
+            }
         }
 
         // 1. Detect Platform
@@ -581,9 +598,11 @@ export const SmartAnalyzerLogic = class {
             detectedSpeedText = catDefaults.speedText;
         }
 
-        // Warranty & Refill
-        const finalWarranty = metricsCompiler.warrantyDays || warranty || catDefaults.warranty;
-        const hasRefillBadge = metricsCompiler.isRefill || warranty > 0 || tokenized.metrics?.hasRefill || false;
+        // Warranty & Refill (with Strict Anti-Contradiction Negative Guard)
+        const finalWarranty = isExplicitNoWarranty
+            ? 0
+            : (metricsCompiler.warrantyDays || warranty || catDefaults.warranty);
+        const hasRefillBadge = !isExplicitNoWarranty && (metricsCompiler.isRefill || warranty > 0 || tokenized.metrics?.hasRefill || catDefaults.warranty > 0);
 
         // Quality Label
         const qualityMap: Record<string, string> = {

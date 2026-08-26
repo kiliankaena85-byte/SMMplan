@@ -97,6 +97,25 @@ export function ServiceEditForm({
   const [isRefillEnabled, setIsRefillEnabled] = useState(Boolean(initialData.isRefillEnabled));
   const [isCancelEnabled, setIsCancelEnabled] = useState(Boolean(initialData.isCancelEnabled));
 
+  // Anti-Contradiction & Semantic Badge Detection
+  const lowerName = name.toLowerCase();
+  const hasRefillContradiction = (lowerName.includes('без гарант') || lowerName.includes('no refill') || lowerName.includes('no-refill')) && isRefillEnabled;
+  const hasMissingRefillWarning = (lowerName.includes('гарантия 30') || lowerName.includes('с гарантией') || lowerName.includes('30d refill')) && !isRefillEnabled;
+
+  const previewBadge = useMemo(() => {
+    if (lowerName.includes('без гарант') || lowerName.includes('no refill') || lowerName.includes('no-refill')) {
+      return lowerName.includes('быстр') ? 'БЫСТРЫЕ' : (rate < 0.1 ? 'ХИТ' : '');
+    }
+    if (isRefillEnabled) return 'ГАРАНТИЯ';
+    if (lowerName.includes('премиум')) return 'ПРЕМИУМ';
+    if (lowerName.includes('эконом')) return 'ЭКОНОМ';
+    if (lowerName.includes('живые')) return 'ЖИВЫЕ';
+    if (lowerName.includes('стандарт')) return 'СТАНДАРТ';
+    if (lowerName.includes('быстр') || lowerName.includes('instant')) return 'БЫСТРЫЕ';
+    if (rate < 0.1) return 'ХИТ';
+    return '';
+  }, [lowerName, isRefillEnabled, rate]);
+
   // Find active category
   const selectedCat = useMemo(() => {
     return networks.flatMap(n => n.categories).find(c => c.id === categoryId);
@@ -323,14 +342,18 @@ export function ServiceEditForm({
                 <span className="text-xs font-semibold text-foreground">Активна</span>
               </label>
 
-              <label className="flex items-center gap-2 p-2.5 rounded-xl border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors">
+              <label className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-colors ${
+                hasRefillContradiction ? 'border-destructive/50 bg-destructive/10' : 'border-border bg-muted/20 hover:bg-muted/40'
+              }`}>
                 <input
                   type="checkbox"
                   checked={isRefillEnabled}
                   onChange={e => setIsRefillEnabled(e.target.checked)}
                   className="rounded text-primary focus:ring-primary"
                 />
-                <span className="text-xs font-semibold text-foreground">Гарантия (Refill)</span>
+                <span className={`text-xs font-semibold ${hasRefillContradiction ? 'text-destructive font-bold' : 'text-foreground'}`}>
+                  Гарантия (Refill)
+                </span>
               </label>
 
               <label className="flex items-center gap-2 p-2.5 rounded-xl border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors">
@@ -343,11 +366,69 @@ export function ServiceEditForm({
                 <span className="text-xs font-semibold text-foreground">Отмена (Cancel)</span>
               </label>
             </div>
+
+            {/* Semantic Contradiction Warning */}
+            {hasRefillContradiction && (
+              <div className="flex items-start gap-2.5 p-3.5 bg-destructive/10 border border-destructive/30 rounded-xl text-xs text-destructive animate-in fade-in duration-200">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div>
+                  <strong>Критическое противоречие:</strong> В названии услуги указано «Без гарантии» / «No Refill», но включен чекбокс «Гарантия (Refill)». На клиентском сайте бейдж «ГАРАНТИЯ» будет автоматически заблокирован во избежание юридических рисков и претензий клиентов (ЗоЗПП РФ ст. 10/12). Отключите чекбокс «Гарантия» или измените название.
+                </div>
+              </div>
+            )}
+
+            {hasMissingRefillWarning && (
+              <div className="flex items-start gap-2.5 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-800 dark:text-amber-300">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <strong>Подсказка:</strong> В названии указана гарантия, но чекбокс «Гарантия (Refill)» выключен. Рекомендуется включить его, чтобы клиенты получили возможность автодокрутки.
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Pricing Sidebar */}
+        {/* Pricing Sidebar & Live Card Preview */}
         <div className="space-y-5">
+          {/* Live Card Preview */}
+          <div className="bg-card border border-border rounded-2xl p-5 space-y-3 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <span>👁️</span> Вид в каталоге
+              </h2>
+              {previewBadge ? (
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide border ${
+                  previewBadge === 'ГАРАНТИЯ' 
+                    ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
+                    : previewBadge === 'ХИТ'
+                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                    : 'bg-primary/10 text-primary border-primary/20'
+                }`}>
+                  Бейдж: {previewBadge}
+                </span>
+              ) : (
+                <span className="text-[10px] text-muted-foreground">Без бейджа</span>
+              )}
+            </div>
+
+            <div className="p-3.5 rounded-xl border border-border bg-muted/20 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="text-xs font-bold text-foreground line-clamp-2">
+                  {name || 'Название услуги'}
+                </div>
+                {previewBadge && (
+                  <span className="shrink-0 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-primary/15 text-primary border border-primary/25">
+                    {previewBadge}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-baseline justify-between text-xs pt-1">
+                <span className="text-muted-foreground text-[11px]">Цена розница:</span>
+                <span className="font-extrabold text-foreground font-mono">{retailPricePerUnitRub} ₽ / шт</span>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-card border border-border rounded-2xl p-5 space-y-4 shadow-2xs">
             <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
               <span>💰</span> Ценообразование

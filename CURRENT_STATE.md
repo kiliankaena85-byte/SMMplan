@@ -44,10 +44,11 @@
 | **HS** | **Operational Routing & Hot-Swap** | ✅ 100% | `src/__tests__/operational-routing-hot-swap.test.ts` (8/8 PASS) |
 | **MG** | **Margin Guard & Currency Buffer** | ✅ 100% | `src/__tests__/smart-routing-margin.test.ts` (6/6 PASS) |
 | **ORD**| **Order Lifecycle & Support Refunds** | ✅ 100% | `src/__tests__/order-actions-and-support-ops.test.ts` (7/7 PASS) |
+| **BDG**| **Badge & Warranty Semantic Coherence** | ✅ 100% | `src/__tests__/badge-and-warranty-anti-contradiction.test.ts` (22/22 PASS) |
 
 ---
 
-## 8 Критических Правил и Инвариантов Проекта
+## 9 Критических Правил и Инвариантов Проекта
 1. **Multi-Tenant (Строго 2 бренда):** `smmplan` (`smmplan.pro`) и `flux` (`smmflux.ru`). Переключение в шапке через `<GlobalSiteSwitcher />` (кука `x_admin_tenant`).
 2. **UI Pricing Contract:** Цена за 1 штуку (`pricePerUnitRub`) с подписью `₽ / шт`. Запрещено умножать на 1000 на клиенте.
 3. **Shadow Catalog & Cherry-Pick:** Сырые каталоги (5000+ услуг) буферизуются в Redis (`provider:{id}:catalog`). В PostgreSQL `Service` попадают только проверенные услуги.
@@ -56,3 +57,4 @@
 6. **Financial Trust Boundary:** Все операции с балансом — строго через `WalletOps`, `BigInt` (копейки) с `idempotencyKey` и `await auditAdminAwaitable()`.
 7. **Idempotent Telegram Polling:** Сброс вебхуков через `deleteWebhook({ drop_pending_updates: true })` перед `bot.launch()`.
 8. **Cloudflare Tunnel Exclusivity:** Официальный туннель Cloudflare (`scripts/start-tunnel.ps1`) на домене `test.smmplan.pro`.
+9. **Badge Zero-Contradiction Invariant:** Услуга с признаком «Без гарантии» / `isRefillEnabled = false` КАТЕГОРИЧЕСКИ НЕ МОЖЕТ иметь бейдж «ГАРАНТИЯ» в UI. Автоматическая санитизация бейджа на уровне каталога и валидация в админке.
