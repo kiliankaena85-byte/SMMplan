@@ -1456,8 +1456,9 @@ class AdminCatalogService {
   }
 
   async listCategories(tenantId?: string) {
+    const tenantFilter = tenantId && tenantId !== 'all' ? { in: [tenantId, 'all'] } : undefined;
     const rows = await db.category.findMany({
-      where: tenantId ? { tenantId: tenantVisibilityFilter(tenantId) } : undefined,
+      where: tenantId && tenantId !== 'all' ? { tenantId: tenantVisibilityFilter(tenantId) } : undefined,
       select: {
         id: true,
         name: true,
@@ -1468,7 +1469,13 @@ class AdminCatalogService {
             slug: true,
           }
         },
-        _count: { select: { services: true } },
+        _count: {
+          select: {
+            services: {
+              where: tenantFilter ? { tenantId: tenantFilter } : undefined
+            }
+          }
+        },
       },
       orderBy: { name: 'asc' },
     });

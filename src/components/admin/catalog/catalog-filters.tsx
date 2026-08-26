@@ -50,9 +50,10 @@ interface CatalogFiltersProps {
   categories: FilterCategoryItem[];
   providers: FilterProviderItem[];
   networks?: FilterNetworkItem[];
+  selectedTenant?: string;
 }
 
-export function CatalogFilters({ categories, providers }: CatalogFiltersProps) {
+export function CatalogFilters({ categories, providers, selectedTenant }: CatalogFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -152,7 +153,7 @@ export function CatalogFilters({ categories, providers }: CatalogFiltersProps) {
     hideDel?: boolean;
   }) => {
     const params = new URLSearchParams();
-    const currentTenant = searchParams.get('tenant');
+    const currentTenant = searchParams.get('tenant') || selectedTenant;
     if (currentTenant) params.set('tenant', currentTenant);
 
     const s = overrides?.search !== undefined ? overrides.search : localSearch;

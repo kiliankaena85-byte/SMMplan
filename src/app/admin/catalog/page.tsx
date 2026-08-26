@@ -19,7 +19,7 @@ import type { CatalogServiceDTO } from '@/types/catalog.dto';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 import { TenantSwitcher } from '@/components/admin/tenant-switcher';
 
@@ -47,6 +47,7 @@ type Props = {
 
 export default async function AdminCatalogPage({ searchParams }: Props) {
   const reqHeaders = await headers();
+  const cookieStore = await cookies();
   const session = await verifySession();
   const user = session ? await db.user.findUnique({ 
     where: { id: session.userId },
@@ -62,8 +63,16 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
 
   const params = await searchParams;
   const { resolveAdminTenantContext } = await import('@/utils/admin-tenant');
-  const resolvedTenant = resolveAdminTenantContext(user, params.tenant);
-  const selectedTenant = resolvedTenant !== 'all' ? resolvedTenant : normalizeTenantId(reqHeaders.get('x-tenant-id')) || 'smmplan';
+
+  // 1. Search param has top priority
+  // 2. Admin cookie x_admin_tenant has secondary priority (from header switcher)
+  // 3. Domain header or default smmplan
+  const cookieTenant = cookieStore.get('x_admin_tenant')?.value;
+  const headerTenant = normalizeTenantId(reqHeaders.get('x-tenant-id'));
+  const effectiveParamTenant = params.tenant || cookieTenant;
+
+  const resolvedTenant = resolveAdminTenantContext(user, effectiveParamTenant);
+  const selectedTenant = resolvedTenant !== 'all' ? resolvedTenant : (headerTenant || 'smmplan');
   const search = params.q || '';
   const cursor = params.cursor || undefined;
   const categoryId = params.category || undefined;
@@ -239,6 +248,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
         categories={categories}
         providers={providers}
         networks={networks}
+        selectedTenant={selectedTenant}
       />
       
       {/* Modular Pagination with Progress & Active Filters */}

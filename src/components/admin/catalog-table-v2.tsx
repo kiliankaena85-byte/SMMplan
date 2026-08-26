@@ -175,6 +175,7 @@ interface CatalogTableProps {
   categories: FilterCategoryItem[];
   providers: FilterProviderItem[];
   networks?: FilterNetworkItem[];
+  selectedTenant?: string;
 }
 
 export function CatalogTable({
@@ -186,6 +187,7 @@ export function CatalogTable({
   categories,
   providers,
   networks,
+  selectedTenant,
 }: CatalogTableProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -333,6 +335,7 @@ export function CatalogTable({
         categories={categories}
         providers={providers}
         networks={networks}
+        selectedTenant={selectedTenant}
       />
 
       {/* ─── TOP CONTROLS & BATCH ACTION BAR ─── */}

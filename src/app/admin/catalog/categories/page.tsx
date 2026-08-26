@@ -4,17 +4,51 @@ import { Layers } from "lucide-react";
 import { AdminTabbedHeader } from "@/components/admin/tabbed-header";
 import { CATALOG_TABS, ONBOARDING_CONFIGS } from "@/components/admin/navigation-data";
 
+import { headers, cookies } from "next/headers";
+import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
+import { verifySession } from "@/lib/session";
+
 export const dynamic = "force-dynamic";
 
-export default async function CategoriesAdminPage() {
+type Props = {
+  searchParams?: Promise<{ tenant?: string }>;
+};
+
+export default async function CategoriesAdminPage({ searchParams }: Props) {
+  const reqHeaders = await headers();
+  const cookieStore = await cookies();
+  const session = await verifySession();
+  const user = session ? await db.user.findUnique({ 
+    where: { id: session.userId },
+    select: { id: true, role: true, tenantId: true }
+  }) : null;
+
+  const params = searchParams ? await searchParams : {};
+  const { resolveAdminTenantContext } = await import('@/utils/admin-tenant');
+
+  const cookieTenant = cookieStore.get('x_admin_tenant')?.value;
+  const headerTenant = normalizeTenantId(reqHeaders.get('x-tenant-id'));
+  const effectiveParamTenant = params.tenant || cookieTenant;
+
+  const resolvedTenant = resolveAdminTenantContext(user as unknown as import('@prisma/client').User, effectiveParamTenant);
+  const selectedTenant = resolvedTenant !== 'all' ? resolvedTenant : (headerTenant || 'smmplan');
+  const tenantFilter = selectedTenant ? { in: [selectedTenant, 'all'] } : undefined;
+
   const categories = await db.category.findMany({
+    where: selectedTenant ? { tenantId: { in: [selectedTenant, 'all'] } } : undefined,
     orderBy: [
       { network: { slug: 'asc' } },
       { sort: 'asc' }
     ],
     include: {
       network: true,
-      _count: { select: { services: true } }
+      _count: {
+        select: {
+          services: {
+            where: tenantFilter ? { tenantId: tenantFilter } : undefined
+          }
+        }
+      }
     }
   });
 
