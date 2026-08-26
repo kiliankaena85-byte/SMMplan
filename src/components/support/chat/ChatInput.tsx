@@ -106,6 +106,15 @@ export function ChatInput({
     return () => clearTimeout(timer);
   }, [text, ticketId]);
 
+  // 2.1 Dynamic auto-resize of textarea for multi-line AI replies & templates
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      const targetHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 44), 280);
+      textareaRef.current.style.height = `${targetHeight}px`;
+    }
+  }, [text]);
+
   // 3. Online/Offline network connection tracking
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -801,7 +810,7 @@ export function ChatInput({
               onChange={handleTextChange}
               onKeyDown={handleKeyDown}
               placeholder={isStaff ? "Введите ответ или выберите шаблон (напишите /)..." : "Опишите вашу проблему..."}
-              className="flex-1 min-w-0 bg-transparent px-3 py-2.5 max-h-40 min-h-[44px] resize-none outline-none text-sm text-foreground placeholder:text-muted-foreground/70"
+              className="flex-1 min-w-0 bg-transparent px-3 py-2.5 max-h-[280px] min-h-[44px] resize-none outline-none text-sm text-foreground placeholder:text-muted-foreground/70 leading-relaxed font-sans scrollbar-thin"
               rows={1}
             />
             

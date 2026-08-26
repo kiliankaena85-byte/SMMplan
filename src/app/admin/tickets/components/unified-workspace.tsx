@@ -107,9 +107,6 @@ export function UnifiedTicketsWorkspace({
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
-    if (typeof window !== 'undefined' && window.innerWidth >= 1280) {
-      setShowProfile(true);
-    }
   }, []);
   const isDark = mounted ? (theme?.includes('dark') || theme === 'dark') : true;
 

@@ -79,36 +79,44 @@ export function useChatSSE({
       }
     };
 
-    const handleVisibilityChange = () => {
-      if (!document.hidden && titleTimer) {
-        clearInterval(titleTimer);
-        titleTimer = null;
-        document.title = originalTitle;
+    const checkNewMessagesNow = async () => {
+      try {
+        const res = await fetch(
+          `/api/support/messages?ticketId=${ticketId}&after=${encodeURIComponent(
+            lastCheckedRef.current
+          )}`
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.messages && data.messages.length > 0) {
+          handleIncomingNewMessages(data.messages);
+          lastCheckedRef.current = data.messages[data.messages.length - 1].createdAt;
+        }
+      } catch {
+        /* silent */
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    const handleFocusOrVisible = () => {
+      if (!document.hidden) {
+        if (titleTimer) {
+          clearInterval(titleTimer);
+          titleTimer = null;
+          document.title = originalTitle;
+        }
+        void checkNewMessagesNow();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleFocusOrVisible);
+    window.addEventListener('focus', handleFocusOrVisible);
 
     const startPollingFallback = () => {
       if (fallbackInterval) return;
       fallbackInterval = setInterval(async () => {
         if (document.hidden) return;
-        try {
-          const res = await fetch(
-            `/api/support/messages?ticketId=${ticketId}&after=${encodeURIComponent(
-              lastCheckedRef.current
-            )}`
-          );
-          if (!res.ok) return;
-          const data = await res.json();
-          if (data.messages && data.messages.length > 0) {
-            handleIncomingNewMessages(data.messages);
-            lastCheckedRef.current = data.messages[data.messages.length - 1].createdAt;
-          }
-        } catch {
-          /* silent */
-        }
-      }, 5000);
+        await checkNewMessagesNow();
+      }, 3000);
     };
 
     const connectSSE = () => {
@@ -122,11 +130,6 @@ export function useChatSSE({
 
         eventSource.onopen = () => {
           failCount = 0; // Reset on successful connection
-          // Stop fallback polling if SSE recovered
-          if (fallbackInterval) {
-            clearInterval(fallbackInterval);
-            fallbackInterval = null;
-          }
         };
 
         eventSource.onmessage = (event) => {
@@ -164,13 +167,15 @@ export function useChatSSE({
     };
 
     connectSSE();
+    startPollingFallback(); // Dual-mode: instantaneous SSE push + 3s sync safety net
 
     return () => {
       if (eventSource) eventSource.close();
       if (reconnectTimer) clearTimeout(reconnectTimer);
       if (fallbackInterval) clearInterval(fallbackInterval);
       if (titleTimer) clearInterval(titleTimer);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('visibilitychange', handleFocusOrVisible);
+      window.removeEventListener('focus', handleFocusOrVisible);
       if (typeof document !== 'undefined') document.title = originalTitle;
     };
   }, [ticketId, isClosed, addNewMessages, lastCheckedRef]);

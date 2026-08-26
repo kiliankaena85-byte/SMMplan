@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { sendMail } from '@/lib/smtp';
 import { SettingsProvider } from '@/lib/settings';
+import { publishMessageSSE } from './sse.service';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { TicketSource, TicketStatus, MessageSender } from '@prisma/client';
 import { getMimeType } from '@/lib/mime';
@@ -242,6 +243,11 @@ class TicketService {
         </div>
       `, replyToAddress);
     }
+
+    // Realtime SSE broadcast to all active live chat tabs
+    void publishMessageSSE(ticketId, message.id).catch((err) => {
+      console.error('[TicketService] SSE broadcast error:', err);
+    });
 
     return message;
   }

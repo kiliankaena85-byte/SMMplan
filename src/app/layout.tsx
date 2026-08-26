@@ -190,9 +190,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <FloatingQADock />
         </Providers>
         <Toaster
+          position="top-right"
           richColors
           closeButton
-          duration={4000}
+          duration={3500}
         />
       </body>
     </html>
