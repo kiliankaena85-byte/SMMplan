@@ -85,8 +85,8 @@ describe('NIST SI-4 & ISO 25010 (2026) System Monitoring & Capacity Resilience',
     vi.mocked(redis.get).mockResolvedValueOnce(null);
     const run1 = await SystemTelemetryService.evaluateAndAlertAdmins();
 
-    // Second run within cooldown: redis.get returns "1" -> Alert is suppressed
-    vi.mocked(redis.get).mockResolvedValueOnce('1');
+    // Second run within cooldown: redis.get returns "1" for all keys -> Alert is suppressed
+    vi.mocked(redis.get).mockResolvedValue('1');
     const run2 = await SystemTelemetryService.evaluateAndAlertAdmins();
 
     expect(run2.alertsSent).toBe(0);
