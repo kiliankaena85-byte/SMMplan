@@ -187,9 +187,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                {children}
              </MaintenanceGuardian>
           </NetworkAwareProvider>
-          {process.env.NEXT_PUBLIC_ENABLE_QA_DOCK === 'true' && (
-            <FloatingQADock />
-          )}
+          <FloatingQADock />
         </Providers>
         <Toaster
           richColors

@@ -21,12 +21,25 @@ import { BugReportModal } from "./BugReportModal";
 export function FloatingQADock() {
   const [isOpen, setIsOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [isEnabled, setIsEnabled] = useState(false);
   const [currentTenant, setCurrentTenant] = useState<"smmplan" | "flux">("smmplan");
   const [showQR, setShowQR] = useState(false);
   const [showBugReportModal, setShowBugReportModal] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
+
+    const isEnvEnabled = process.env.NEXT_PUBLIC_ENABLE_QA_DOCK === 'true' || process.env.NODE_ENV === 'development';
+    const hasQaParam = window.location.search.includes('qa=1') || window.location.search.includes('qodocker=1') || window.location.search.includes('tester=1');
+    const hasQaCookie = document.cookie.includes('smm_qa_dock=1') || document.cookie.includes('x_staff=1');
+
+    if (hasQaParam) {
+      document.cookie = 'smm_qa_dock=1; path=/; max-age=604800; SameSite=Lax';
+    }
+
+    if (isEnvEnabled || hasQaParam || hasQaCookie) {
+      setIsEnabled(true);
+    }
 
     // Определение текущего тенанта
     const match = document.cookie.match(/x_tenant=([^;]+)/);
@@ -51,7 +64,7 @@ export function FloatingQADock() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  if (!isClient) return null;
+  if (!isClient || !isEnabled) return null;
 
   const handleSwitchTenant = (tenant: "smmplan" | "flux") => {
     document.cookie = `x_tenant=${tenant}; path=/; max-age=2592000; SameSite=Lax`;

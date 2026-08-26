@@ -49,7 +49,7 @@ describe('BLOCK 23: Zero-Downtime Dynamic API Key Hot-Reload (No Server Restart)
     const providerRecord = await prisma.provider.findUnique({ where: { id: providerId } });
     expect(providerRecord).toBeDefined();
 
-    const instance = await providerService.getProviderInstance(providerRecord!);
+    const instance = (await providerService.getProviderInstance(providerRecord!)) as unknown as { apiKey: string };
     expect(instance.apiKey).toBe('old_api_key_v1');
   });
 
@@ -73,7 +73,7 @@ describe('BLOCK 23: Zero-Downtime Dynamic API Key Hot-Reload (No Server Restart)
     expect(freshRecord).toBeDefined();
 
     // Verify instance gets new key dynamically in 0ms!
-    const newInstance = await providerService.getProviderInstance(freshRecord!);
+    const newInstance = (await providerService.getProviderInstance(freshRecord!)) as unknown as { apiKey: string };
     expect(newInstance.apiKey).toBe('fresh_new_live_api_key_v2');
     expect(newInstance.apiKey).not.toBe('old_api_key_v1');
   });

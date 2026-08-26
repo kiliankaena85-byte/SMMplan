@@ -127,6 +127,6 @@ describe('BLOCK 20: Chaos Resilience & Cascading Failures Suite', () => {
     const highPaidCents = BigInt(25000);
     const marginHigh = await MarginGuard.checkMargin(highPaidCents, quantity, providerRateUsd, 'USD');
     expect(marginHigh.isProfitable).toBe(true);
-    expect(marginHigh.costCents).toBeGreaterThan(0n);
+    expect(marginHigh.costCents).toBeGreaterThan(BigInt(0));
   });
 });
