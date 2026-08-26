@@ -8,6 +8,7 @@ import { generateSmartReplyAction, changeTicketStatus } from '@/actions/support/
 import { Message } from './useChatMessages';
 import { ChatTemplateManager, type SupportTemplateDTO } from './ChatTemplateManager';
 import { incrementTemplateUsage } from '@/actions/support/template';
+import { OperatorVerificationGuard } from '@/services/admin/operator-verification-guard.service';
 
 
 export interface ChatInputOrder {
@@ -360,6 +361,16 @@ export function ChatInput({
       return;
     }
     if ((!text.trim() && !file) || sending) return;
+
+    // Anti-Automation Bias: Block unedited placeholders
+    if (isStaff) {
+      const placeholders = OperatorVerificationGuard.findUneditedPlaceholders(text);
+      if (placeholders.length > 0) {
+        toast.error(`⛔ В тексте ответа остался блок для оператора: ${placeholders.join(', ')}. Отредактируйте текст перед отправкой!`);
+        return;
+      }
+    }
+
     setSending(true);
 
     const tempId = `temp-${Date.now()}`;
