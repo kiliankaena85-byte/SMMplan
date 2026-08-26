@@ -6,7 +6,6 @@ import { providerService } from '../../services/providers/provider.service';
 import { RefundPolicyService } from '../../services/financial/refund-policy.service';
 import { sendOrderCompletedMail } from '../../lib/smtp';
 import { logger } from '../../lib/logger';
-import { CompensationService } from '../../services/financial/compensation.service';
 
 const log = logger.child({ component: 'SyncProcessor' });
 

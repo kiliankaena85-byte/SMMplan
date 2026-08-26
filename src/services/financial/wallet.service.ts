@@ -1,4 +1,3 @@
-import { db } from '../../lib/db';
 import { WalletOps } from './wallet-ops';
 import { runSerializableTransaction } from '@/lib/transactions';
 

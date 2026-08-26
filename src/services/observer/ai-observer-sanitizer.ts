@@ -53,7 +53,7 @@ export class AiObserverSanitizer {
       // Strip API keys / Bearer tokens / hex keys (24+ hex or base64)
       .replace(/\b(?:Bearer\s+)?[a-zA-Z0-9_=-]{24,}\b/gi, '[TOKEN_REDACTED]')
       // Strip provider secrets / pass
-      .replace(/(?:password|secret|key|token|auth)\s*[:=]\s*['\"][^'\"]+['\"]/gi, '$1=[REDACTED]');
+      .replace(/(?:password|secret|key|token|auth)\s*[:=]\s*['"][^'"]+['"]/gi, '$1=[REDACTED]');
   }
 
   /**

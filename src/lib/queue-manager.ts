@@ -1,5 +1,6 @@
 import { Queue, QueueOptions } from 'bullmq';
 import { Redis } from 'ioredis';
+import { redactSensitiveTokens } from '@/lib/logger/sensitive-data-filter';
 
 // Singleton Redis connection pattern
 let redisConnection: Redis | null = null;
@@ -17,7 +18,6 @@ export const getRedisConnection = (): Redis => {
   });
 
   redisConnection.on('error', (err) => {
-    const { redactSensitiveTokens } = require('@/lib/logger/sensitive-data-filter');
     console.error('[Redis Core Error]', redactSensitiveTokens(err.message));
   });
 
@@ -53,7 +53,7 @@ export const createQueue = <PayloadType>(name: string, defaultOptions?: Partial<
   }
 
 
-    return new Queue<PayloadType, any, string>(name, {
+    return new Queue<PayloadType, unknown, string>(name, {
     connection: getRedisConnection(),
     defaultJobOptions: {
       removeOnComplete: { count: 500, age: 3600 },

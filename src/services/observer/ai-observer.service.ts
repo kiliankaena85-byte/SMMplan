@@ -107,7 +107,7 @@ export class AiObserverService {
       const ledgerSummary = await LedgerReconciliationService.getSummary(tenantId);
       ledgerDiscrepanciesCount = ledgerSummary.discrepancyUsersCount;
     } catch {
-      ledgerDiscrepanciesCount = 0;
+      // Keep default 0
     }
 
     // 3. Storm Radar check
@@ -122,7 +122,7 @@ export class AiObserverService {
         failureRate: a.failureRate,
       }));
     } catch {
-      stormAlertsCount = 0;
+      // Keep default 0
     }
 
     // 4. Support Tickets
@@ -142,7 +142,7 @@ export class AiObserverService {
       closedTickets = closed;
       escalatedCount = escalated;
     } catch {
-      openedTickets = 0;
+      // Keep defaults
     }
 
     // 5. Security Stats
@@ -155,7 +155,7 @@ export class AiObserverService {
       criticalEvents = secStats.critical24h;
       uniqueAttackIpsCount = secStats.uniqueIpsCount;
     } catch {
-      blockedIntrusions24h = 0;
+      // Keep defaults
     }
 
     const now = new Date();
@@ -257,7 +257,7 @@ export class AiObserverService {
     const rawMetrics = await this.collect24hMetrics(tenantId);
     const safeMetrics = AiObserverSanitizer.sanitizePayload(rawMetrics);
 
-    let digestText = '';
+    let digestText: string;
     let source: 'AI_GEMINI' | 'DETERMINISTIC_FALLBACK' = 'DETERMINISTIC_FALLBACK';
 
     // 3. Generate AI Executive Summary via Gemini
