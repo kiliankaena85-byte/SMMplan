@@ -26,10 +26,21 @@ export async function generateSmartReplyAction(ticketId: string) {
   return requireStaffPermission('tickets', 'view', async (admin) => {
     try {
       const aiData = await aiSupportService.generateReply(ticketId, admin.tenantId ?? 'smmplan');
-      
-      // Append warning to the draft if escalation is required
-      const draft = aiData.escalate_to_senior 
-        ? `[⚠️ ИНСАЙТ AI: ${aiData.internal_reasoning}]\n\n${aiData.draft_reply}` 
+
+      // If Policy Engine blocked the response, inform the operator
+      if (aiData.blocked) {
+        const violationsSummary = aiData.policy_violations
+          .map((v) => `[${v.severity}] ${v.rule}: ${v.detail}`)
+          .join('\n');
+        return {
+          success: true,
+          reply: `⛔ AI-ответ заблокирован системой безопасности.\n\nНарушения:\n${violationsSummary}\n\nНапишите ответ вручную.`,
+        };
+      }
+
+      // Append escalation warning if needed
+      const draft = aiData.escalate_to_senior
+        ? `[⚠️ ИНСАЙТ AI (${aiData.client_sentiment}): ${aiData.internal_reasoning}]\n\n${aiData.draft_reply}`
         : aiData.draft_reply;
 
       return { success: true, reply: draft };
