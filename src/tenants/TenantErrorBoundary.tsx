@@ -13,14 +13,31 @@ interface State {
   error?: Error;
 }
 
+function isNextInternalControlFlow(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const err = error as { message?: string; digest?: string };
+  if (err.message === 'NEXT_NOT_FOUND' || err.message === 'NEXT_REDIRECT') return true;
+  if (typeof err.digest === 'string' && (err.digest.startsWith('NEXT_NOT_FOUND') || err.digest.startsWith('NEXT_REDIRECT'))) {
+    return true;
+  }
+  return false;
+}
+
 export class TenantErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false };
 
   static getDerivedStateFromError(error: Error): State {
+    if (isNextInternalControlFlow(error)) {
+      // Allow Next.js navigation flow to bubble up
+      throw error;
+    }
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error) {
+    if (isNextInternalControlFlow(error)) {
+      return;
+    }
     console.error(`[Tenant:${this.props.tenantId}] Render error:`, error);
   }
 

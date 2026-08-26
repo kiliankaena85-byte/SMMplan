@@ -45,7 +45,9 @@ export default async function ClientTicketChatPage({
     },
   });
 
-  if (!ticket || ticket.userId !== session.userId) return notFound();
+  if (!ticket || ticket.userId !== session.userId) {
+    redirect('/dashboard/tickets');
+  }
 
   // 1. Fetch user's 3 most recent CLOSED tickets (excluding the active one)
   const historicalTickets = await db.ticket.findMany({
