@@ -64,11 +64,20 @@
 - ✅ **ВСЕГДА** использовать официальный Cloudflare Tunnel (`cloudflared.exe tunnel`) через скрипт `scripts/start-tunnel.ps1` для домена `test.smmplan.pro`.
 - ✅ **Сетевой биндинг:** Сервер Next.js обязан запускаться с `HOSTNAME="0.0.0.0"` и `PORT="3000"`, обеспечивая доступ для Docker-коннектора с `host.docker.internal:3000` без ошибки 502 Bad Gateway.
 
-### Финансовая безопасность (Trust Boundary)
+### Финансовая безопасность (Trust Boundary) & Ledger Invariants
 - ❌ **ЗАПРЕЩЕНО** менять `User.balance` напрямую или доверять ценам из клиентского UI.
-- ✅ Все операции с балансом — ТОЛЬКО через `WalletOps.credit()`, `WalletOps.debit()`, `WalletOps.refund()`.
+- ✅ Все операции с балансом — ТОЛЬКО через `WalletOps.credit()`, `WalletOps.debit()`, `WalletOps.refund()`, `WalletOps.charge()`, `WalletOps.adminAdjust()`.
+- ❌ **КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО** Transaction Escape: использовать глобальный инстанс `db.*` (PrismaClient) внутри методов, принимающих `tx: PrismaTx`. Все вызовы и catch-блоки обязаны использовать `tx.*`.
+- ✅ **Ledger-First Principle:** Запись в `tx.ledgerEntry.create()` ОБЯЗАНА создаваться ДО мутации `tx.user.update({ balance: ... })`.
+- ✅ **Multi-Tenant Fallback:** В финансовых операциях tenantId обязан разрешаться строго через цепочку: `tenantId || user?.tenantId || 'smmplan'`.
 - ✅ Все денежные суммы — строго в `BigInt` (копейки). Все финансовые логи — через `await auditAdminAwaitable()`.
 - ✅ Каждая финансовая транзакция обязана содержать уникальный `idempotencyKey`.
+
+### Безопасность секретов и Вебхуков (Fail-Closed & Timing-Safe)
+- ❌ **ЗАПРЕЩЕНО** писать Fail-Open проверки вебхуков вида `if (secret && signature) { verify() }`.
+- ✅ **Fail-Closed:** Если секрет вебхука не настроен — немедленный 500 error; если подпись отсутствует или не совпадает — немедленный 401/403 с алертом в `SecurityAlertService`.
+- ✅ Сравнение любых токенов, HMAC-подписей и секретов — СТРОГО через `crypto.timingSafeEqual`.
+- ❌ **ЗАПРЕЩЕНО** использовать fallback-секреты для `NEXT_PUBLIC_*` (`process.env.NEXT_PUBLIC_SECRET || 'fallback'`). Секреты не должны попадать в клиентский бандл.
 
 ### Каталог и провайдеры (Shadow Catalog)
 - ❌ **ЗАПРЕЩЕНО** импортировать сырые каталоги провайдеров (5000+ позиций) напрямую в PostgreSQL `Service`.

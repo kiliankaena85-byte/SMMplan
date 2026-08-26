@@ -29,9 +29,20 @@ export async function POST(req: NextRequest) {
     }
 
     const providedToken = req.headers.get('x-telegram-bot-api-secret-token');
-    if (expectedSecret && providedToken !== expectedSecret) {
-      console.warn('[Telegram Webhook] Unauthorized request: secret token mismatch');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // P1-14 FIX: Use timingSafeEqual to prevent timing attacks (all other webhooks already do this)
+    if (expectedSecret) {
+      if (!providedToken) {
+        console.warn('[Telegram Webhook] Unauthorized request: missing secret token');
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      const { timingSafeEqual } = await import('crypto');
+      const expected = Buffer.from(expectedSecret, 'utf8');
+      const provided = Buffer.from(providedToken, 'utf8');
+      if (expected.length !== provided.length || !timingSafeEqual(expected, provided)) {
+        console.warn('[Telegram Webhook] Unauthorized request: secret token mismatch');
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
 
     // OWASP A07: IP Allowlist check if configured

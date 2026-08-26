@@ -16,7 +16,7 @@ export default {
     "!src/**/*.spec.ts"
   ],
   vitest: {
-    configFile: "vitest.config.mts"
+    configFile: "vitest.config.ts"
   },
   thresholds: {
     high: 95,

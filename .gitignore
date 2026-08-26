@@ -5,6 +5,8 @@ node_modules
 .env.local
 .env.production
 .env.development
+.env.test
+.env.test.local
 *.tsbuildinfo
 
 # ── Staging env (contains real secrets — treat as compromised) ──

@@ -385,6 +385,12 @@ model ProviderProxy {
   errorCount          Int                @default(0)
   lastErrorAt         DateTime?
   consecutiveFailures Int                @default(0)
+  category            String             @default("PAID_PREMIUM")
+  subscriptionUrl     String?
+  expiresAt           DateTime?
+  trafficUsedBytes    BigInt?
+  trafficTotalBytes   BigInt?
+  lastSyncAt          DateTime?
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
 
@@ -393,6 +399,8 @@ model ProviderProxy {
 
   @@index([isActive])
   @@index([protocol])
+  @@index([category])
+  @@index([expiresAt])
 }
 
 model ProviderProxyLog {

@@ -14,12 +14,12 @@ const nextConfig = {
       bodySizeLimit: '2mb',
       allowedOrigins: isProd
         ? ['smmplan.pro', 'www.smmplan.pro', 'test.smmplan.pro', 'stage.smmplan.pro', 'smmflux.ru', 'www.smmflux.ru']
-        : ['smmplan.pro', 'www.smmplan.pro', 'test.smmplan.pro', 'localhost:3000', '127.0.0.1:3000', 'localhost:3001', '127.0.0.1:3001', '192.168.10.244:3000', '192.168.10.244:3001', '*.pinggy.io', '*.pinggy-free.link'],
+        : ['smmplan.pro', 'www.smmplan.pro', 'test.smmplan.pro', 'localhost:3000', '127.0.0.1:3000', 'localhost:3001', '127.0.0.1:3001'],
     },
   },
   allowedDevOrigins: isProd
     ? []
-    : ["127.0.0.1:3001", "localhost:3001", "127.0.0.1", "localhost", "192.168.10.244", "192.168.10.244:3000", "eukyx-185-67-125-116.run.pinggy-free.link", "*.pinggy.io", "*.pinggy-free.link"],
+    : ["127.0.0.1:3001", "localhost:3001", "127.0.0.1", "localhost"],
   
   // OSAD-V2: Distributed Cache Sync for Redis (Disabled for standalone container portability)
   cacheHandler: undefined,
@@ -50,10 +50,6 @@ const nextConfig = {
           {
             key: 'Content-Security-Policy',
             value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://challenges.cloudflare.com https://yookassa.ru https://auth.robokassa.ru; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; frame-src 'self' https://challenges.cloudflare.com https://yookassa.ru https://auth.robokassa.ru https://pay.crypt.bot; connect-src 'self' https://api.telegram.org https://static.cloudflareinsights.com https://cloudflareinsights.com https://challenges.cloudflare.com https://yookassa.ru https://api.yookassa.ru https://auth.robokassa.ru https://pay.crypt.bot wss:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self';",
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN',
           },
           {
             key: 'X-Content-Type-Options',

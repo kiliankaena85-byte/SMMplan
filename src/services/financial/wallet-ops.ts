@@ -129,11 +129,12 @@ export const WalletOps = {
         'code' in error &&
         (error as { code: string }).code === 'P2002'
       ) {
-        const existing = await db.ledgerEntry.findFirst({
+        // Bug fixed: use tx.* instead of db.* to stay within transaction isolation boundary
+        const existing = await tx.ledgerEntry.findFirst({
           where: { idempotencyKey },
         });
         if (existing) {
-          const user = await db.user.findUnique({ where: { id: userId }, select: { balance: true } });
+          const user = await tx.user.findUnique({ where: { id: userId }, select: { balance: true } });
           return { success: true, balance: user?.balance ?? null, cached: true, entry: existing };
         }
       }
@@ -159,15 +160,21 @@ export const WalletOps = {
 
     const { idempotencyKey, adminId, tenantId } = opts || {};
 
+    // Fetch user once for both tenant-check and tenantId fallback
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { id: true, tenantId: true }
+    });
+
     if (tenantId) {
-      const user = await tx.user.findUnique({
-        where: { id: userId },
-        select: { id: true, tenantId: true }
-      });
       if (!user || user.tenantId !== tenantId) {
         throw new WalletUserNotFoundError(userId);
       }
+    } else if (!user) {
+      throw new WalletUserNotFoundError(userId);
     }
+
+    const resolvedTenantId = tenantId || user?.tenantId || 'smmplan';
 
     if (idempotencyKey) {
       const existing = await tx.ledgerEntry.findFirst({
@@ -182,7 +189,7 @@ export const WalletOps = {
       const entry = await tx.ledgerEntry.create({
         data: {
           userId,
-          tenantId: tenantId || 'smmplan',
+          tenantId: resolvedTenantId,  // Bug #3 fixed: was tenantId || 'smmplan', missing user.tenantId fallback
           adminId,
           amount: rawCents,
           reason,
@@ -207,12 +214,13 @@ export const WalletOps = {
         'code' in error && 
         (error as { code: string }).code === 'P2002'
       ) {
-        const existing = await db.ledgerEntry.findFirst({
+        // Bug #1 fixed: use tx.* instead of db.* to stay within transaction isolation boundary
+        const existing = await tx.ledgerEntry.findFirst({
           where: { idempotencyKey },
         });
         if (existing) {
-          const user = await db.user.findUnique({ where: { id: userId }, select: { balance: true } });
-          return { success: true, balance: user?.balance ?? null, cached: true, entry: existing };
+          const updatedUser = await tx.user.findUnique({ where: { id: userId }, select: { balance: true } });
+          return { success: true, balance: updatedUser?.balance ?? null, cached: true, entry: existing };
         }
       }
       throw error;
@@ -256,23 +264,32 @@ export const WalletOps = {
       }
     }
 
-    const updatedUser = await tx.user.update({
+    // Fetch user tenantId for ledger entry (also validates user existence)
+    const userRecord = await tx.user.findUnique({
       where: { id: userId },
-      data: { balance: { increment: rawCents } },
-      select: { balance: true, tenantId: true }
+      select: { tenantId: true }
     });
+    if (!userRecord) throw new WalletUserNotFoundError(userId);
 
+    // Bug fixed: create ledger entry FIRST, then update balance
+    // (matches immutable ledger pattern — if ledger.create fails, balance stays unchanged)
     const entry = await tx.ledgerEntry.create({
       data: {
         userId,
-        tenantId: tenantId || updatedUser.tenantId || 'smmplan',
+        tenantId: tenantId || userRecord.tenantId || 'smmplan',
         adminId,
-        amount: rawCents, 
+        amount: rawCents,
         reason,
         status: 'APPROVED',
         idempotencyKey,
         transactionType: 'COMPENSATION'
       }
+    });
+
+    const updatedUser = await tx.user.update({
+      where: { id: userId },
+      data: { balance: { increment: rawCents } },
+      select: { balance: true }
     });
 
     return { success: true, balance: updatedUser.balance, cached: false, entry };

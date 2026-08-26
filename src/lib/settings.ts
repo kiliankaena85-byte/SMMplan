@@ -409,7 +409,6 @@ export class SettingsProvider {
 
   static async isTestMode(tenantId?: string): Promise<boolean> {
     const activeTenantId = tenantId || await this.getTenantId();
-    if (SettingsProvider.isTestEnvironment()) return true;
     try {
       const { redis } = await import('./redis');
       const cachedVal = await redis.get(`settings:${activeTenantId}:isTestMode`);
@@ -420,7 +419,11 @@ export class SettingsProvider {
       console.warn('[SettingsProvider] Redis is unavailable in isTestMode:', err instanceof Error ? err.message : String(err));
     }
     const settings = await this.get(activeTenantId);
-    return settings.isTestMode;
+    if (settings && typeof settings.isTestMode === 'boolean') {
+      return settings.isTestMode;
+    }
+    if (SettingsProvider.isTestEnvironment()) return true;
+    return false;
   }
 
   static async isMaintenanceMode(tenantId?: string): Promise<boolean> {

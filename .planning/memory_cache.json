@@ -24,6 +24,18 @@
         "e2e",
         "fintech"
       ]
+    },
+    {
+      "title": "Financial & Security Invariants Hardening (Zero-Escape & Ledger-First)",
+      "context": "Audit remediation and wallet-ops transactional hardening",
+      "decision": "Enforced tx-only boundaries, ledger-first balance mutations, fail-closed webhooks, and secure tenant fallback",
+      "rationale": "Eliminates race conditions, cross-tenant leaks, and webhook forgery",
+      "tags": [
+        "security",
+        "financial",
+        "walletops",
+        "audit"
+      ]
     }
   ]
 }

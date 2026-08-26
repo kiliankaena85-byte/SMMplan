@@ -114,7 +114,7 @@ describe('Admin Panel Exhaustive Backend Audit — 33 Subtabs & Action Handlers'
     });
 
     it('getOrderStats aggregates status counts cleanly', async () => {
-      const stats = await adminOrderService.getOrderStats('smmplan');
+      const stats = await adminOrderService.getOrderStats(undefined, undefined, 'smmplan');
       expect(stats).toHaveProperty('total');
       expect(stats).toHaveProperty('pending');
       expect(stats).toHaveProperty('inProgress');

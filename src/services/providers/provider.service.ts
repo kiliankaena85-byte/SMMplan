@@ -20,12 +20,18 @@ export class ProviderService {
    * Resolves proxy config from DB for a given provider
    */
   private async resolveProxyConfig(provider: Provider): Promise<ProxyConfig | null> {
-    if (!provider.proxyId) return null;
+    if (!provider.proxyId) {
+      const { ProxyPoolService } = await import('./proxy-pool.service');
+      return ProxyPoolService.getHealthyProxy(provider.id);
+    }
     try {
       const proxy = await db.providerProxy.findUnique({
         where: { id: provider.proxyId, isActive: true },
       });
-      if (!proxy) return null;
+      if (!proxy) {
+        const { ProxyPoolService } = await import('./proxy-pool.service');
+        return ProxyPoolService.getHealthyProxy(provider.id);
+      }
 
       // Decrypt password in memory
       let password: string | undefined;
@@ -33,8 +39,9 @@ export class ProviderService {
         try {
           password = VaultService.decrypt(proxy.passwordEncrypted);
         } catch {
-          console.warn(`[Proxy] Failed to decrypt password for proxy ${proxy.id}, falling back to direct`);
-          return null;
+          console.warn(`[Proxy] Failed to decrypt password for proxy ${proxy.id}, falling back to pool`);
+          const { ProxyPoolService } = await import('./proxy-pool.service');
+          return ProxyPoolService.getHealthyProxy(provider.id);
         }
       }
 
@@ -47,7 +54,8 @@ export class ProviderService {
       };
     } catch (err) {
       console.warn(`[Proxy] Error resolving proxy for provider ${provider.id}:`, err);
-      return null;
+      const { ProxyPoolService } = await import('./proxy-pool.service');
+      return ProxyPoolService.getHealthyProxy(provider.id);
     }
   }
 

@@ -114,7 +114,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
     }
 
-    if (expectedSecret && providedSignature) {
+    // P1-10 FIX: Fail-closed webhook verification
+    // BEFORE: if (expectedSecret && providedSignature) — accepted without verification when either was missing
+    // AFTER: always verify; reject if secret not configured or signature missing
+    if (!expectedSecret) {
+      console.error('[YooKassa] FATAL: YOOKASSA_WEBHOOK_SECRET is not configured — rejecting request');
+      await SecurityAlertService.record({
+        event: 'MISCONFIGURED_WEBHOOK_SECRET',
+        severity: 'CRITICAL',
+        ip,
+        details: { gateway: 'yookassa' },
+      });
+      return NextResponse.json({ error: 'Webhook verification not configured' }, { status: 500 });
+    }
+
+    if (!providedSignature) {
+      await SecurityAlertService.record({
+        event: 'MISSING_SIGNATURE',
+        severity: 'CRITICAL',
+        ip,
+        details: { gateway: 'yookassa' },
+      });
+      return NextResponse.json({ error: 'Missing webhook signature' }, { status: 401 });
+    }
+
+    {
       const crypto = (await import('crypto')).default;
       const expectedSig = crypto
         .createHmac('sha256', expectedSecret)
@@ -123,7 +147,7 @@ export async function POST(req: NextRequest) {
 
       const signatureHex = providedSignature.replace(/^sha256=/i, '');
       const HEX_REGEX = /^[0-9a-f]{64}$/i;
-      
+
       if (!HEX_REGEX.test(signatureHex)) {
         await SecurityAlertService.record({
           event: 'INVALID_SIGNATURE_FORMAT',

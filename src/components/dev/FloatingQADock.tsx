@@ -82,12 +82,20 @@ export function FloatingQADock() {
         window.location.href = window.location.pathname;
       }, 300);
     } else if (role === "admin") {
+      const secret = process.env.NEXT_PUBLIC_QA_SECRET;
+      if (!secret) {
+        toast.error("QA: NEXT_PUBLIC_QA_SECRET не задан — вход недоступен");
+        return;
+      }
       toast.success("Вход под учетной записью Владельца (admin@smmplan.pro)...");
-      const secret = process.env.NEXT_PUBLIC_QA_SECRET || 'secret_qdocker_qa2026';
       window.location.href = `/api/dev/login-direct?email=admin@smmplan.pro&secret=${encodeURIComponent(secret)}&redirect=${encodeURIComponent(window.location.pathname)}`;
     } else if (role === "client") {
+      const secret = process.env.NEXT_PUBLIC_QA_SECRET;
+      if (!secret) {
+        toast.error("QA: NEXT_PUBLIC_QA_SECRET не задан — вход недоступен");
+        return;
+      }
       toast.success("Вход под учетной записью Клиента (client@smmplan.pro)...");
-      const secret = process.env.NEXT_PUBLIC_QA_SECRET || 'secret_qdocker_qa2026';
       window.location.href = `/api/dev/login-direct?email=client@smmplan.pro&secret=${encodeURIComponent(secret)}&redirect=${encodeURIComponent(window.location.pathname)}`;
     }
   };

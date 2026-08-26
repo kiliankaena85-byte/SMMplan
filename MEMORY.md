@@ -10,6 +10,15 @@
   - *Решение:* Отказ от распределенных Redis-блокировок (`MutexManager`) в финансовых операциях (`WalletOps`) в пользу нативной транзакционной изоляции PostgreSQL Serializable с автоматическим retry при serialization failure.
   - *Причина:* Предотвращение Race Conditions и дрейфа баланса без накладных расходов на Redis lock management.
 
+- **Ledger-First Transaction Integrity & Zero-Escape Security Invariants:**
+  - *Решение:* 
+    1. Исключены Transaction Escapes в `WalletOps` — все операции, включая catch-блоки duplicate key P2002, выполняются строго через `tx: PrismaTx`, никогда не переключаясь на глобальный `db`.
+    2. Внедрен инвариант `Ledger-First` — запись в `LedgerEntry` создается ДО мутации баланса `User.balance`.
+    3. Разрешение `tenantId` в финансовых операциях строго через цепочку: `tenantId || user?.tenantId || 'smmplan'`.
+    4. Все вебхуки (YooKassa, Telegram, Provider) переведены в строгий `fail-closed` режим со сравнением секретов через `timingSafeEqual`.
+    5. Исключены любые fallback-секреты для `NEXT_PUBLIC_*` переменных во избежание утечки в клиентские JS-бандлы.
+  - *Причина:* Гарантия финансовой консистентности, соблюдение OWASP Top 10 2026 и исключение возможности подделки вебхуков или дрейфа баланса.
+
 - **Zero-Trust Provider Webhooks & Cryptographic Isolation:**
   - *Решение:* Вебхуки провайдеров (`/api/webhooks/vexboost`, `/api/webhooks/provider/[providerName]`) никогда не принимают статус заказа и параметры возврата средств на веру из входящего HTTP payload. Обработчик проверяет HMAC/секрет (`timingSafeEqual`) и свежесть `x-timestamp` (5 мин), после чего выполняет синхронный запрос к API провайдера (`getMultiOrderStatus`) и применяет статус в транзакции через `RefundPolicyService`.
   - *Причина:* Защита от фальсификации вебхуков, подделки возвратов и манипуляции балансом.
@@ -18,6 +27,17 @@
 - **Shadow Catalog (Cherry-Pick Architecture):**
   - *Решение:* Каталоги провайдеров (5000+ сырых услуг) буферизуются во временный Redis-кэш (`provider:{id}:catalog`). В таблицу `Service` PostgreSQL импортируются ТОЛЬКО вручную одобренные администратором услуги с авто-пересчетом маржи по кросс-курсу ЦБ РФ.
   - *Причина:* Защита базы данных от мусора и рассинхронизации.
+
+- **Adaptive Relay Proxy Chaining & Latency Arbiter (Mihomo/Clash Dial-Proxy Style):**
+  - *Решение:* Реализовано двухуровневое каскадное туннелирование SOCKS5-over-SOCKS5 (`ChainedProxyService`): `Сервер в РФ -> Hop 1 (Quattro VPN Europe) -> Hop 2 (Free Public USA/Global) -> Target Provider API / Telegram`.
+  - *Причина:* Полный обход блокировок ТСПУ/РКН и доступ к зарубежным прокси/сервисам, недоступным напрямую из РФ, с расширением пула адресов до 5000+ бесплатных нод.
+  - *Dynamic Latency Matrix:* `ProxyPingMatrixService` отслеживает пинг цепочек в Redis, блокирует деградировавшие узлы ($T > 350\text{ms}$) и реализует `Sticky Route Affinity` (5 мин) с мгновенным переключением при сбоях (Circuit Breaker).
+  - *Chaos & Socket Safety:* 100% изоляция сокетов с обязательным `socket.destroy()` в `finally`, защита от утечек дескрипторов при 100 concurrent requests, строгая валидация TLS (`rejectUnauthorized: true`).
+
+- **Dual-Brand Customer Funnel & Drip-Feed Allocation Armor:**
+  - *Решение:* Полное разделение воронок оформления заказов для SMMplan (B2B оптовый портал) и SMMflux (Aurora 1-Click розничный UI) с сохранением сквозного ценообразования за единицу (`₽ / шт`) и финансовой защиты через `WalletOps.charge()` / `WalletOps.refund()`.
+  - *Drip-Feed Allocation:* Алгоритм `SmartDripService.generateTaskDistribution` производит математическое квантование общего объёма на случайные чанки в границах `[minChunk, maxChunk]` с равномерно-случайным распределением по времени.
+  - *Partial Refunds:* При досрочной отмене Drip-Feed кампании средства за невыполненные запуски автоматически возвращаются на баланс пользователя в копейках (`BigInt`) с уникальным `idempotencyKey`.
 
 - **UI Pricing Contract:**
   - *Решение:* В UI всегда выводится цена за 1 штуку (`pricePerUnitRub` = `pricePer1kRub / 1000`), подпись строго: `₽ / шт`.

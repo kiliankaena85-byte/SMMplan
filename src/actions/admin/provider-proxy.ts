@@ -44,6 +44,7 @@ export async function listProviderProxiesAction(): Promise<
     return rawList.map((p) => ({
       ...p,
       protocol: p.protocol as 'http' | 'https' | 'socks5',
+      category: (p.category as 'PAID_PREMIUM' | 'FREE_PUBLIC' | 'BACKUP_RESERVE') || 'PAID_PREMIUM',
       tags: typeof p.tags === 'string' ? (JSON.parse(p.tags) as string[]) : (p.tags as unknown as string[]),
     }));
   });
@@ -109,6 +110,7 @@ export async function createProviderProxyAction(raw: Record<string, unknown>) {
         label: data.label,
         description: data.description,
         protocol: data.protocol,
+        category: data.category || 'PAID_PREMIUM',
         host: data.host,
         port: data.port,
         username: data.username,
@@ -116,8 +118,16 @@ export async function createProviderProxyAction(raw: Record<string, unknown>) {
         isRotating: data.isRotating,
         geoCountry: data.geoCountry,
         tags: JSON.stringify(data.tags),
+        subscriptionUrl: data.subscriptionUrl || null,
+        expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
       },
     });
+
+    // Auto-sync subscription if URL was supplied
+    if (proxy.subscriptionUrl) {
+      const { SubscriptionSyncService } = await import('@/services/providers/subscription-sync.service');
+      await SubscriptionSyncService.syncSubscription(proxy.id);
+    }
 
     await auditAdminAwaitable({
       adminId: admin.id,
@@ -126,7 +136,7 @@ export async function createProviderProxyAction(raw: Record<string, unknown>) {
       target: proxy.id,
       targetType: 'PROVIDER_PROXY',
       ipAddress: await getClientIp(),
-      newValue: JSON.stringify({ label: data.label, protocol: data.protocol, host: data.host }),
+      newValue: JSON.stringify({ label: data.label, protocol: data.protocol, host: data.host, category: data.category }),
     });
 
     revalidatePath('/admin/providers');
@@ -141,7 +151,7 @@ export async function updateProviderProxyAction(raw: Record<string, unknown>) {
     const parsed = updateProxySchema.safeParse(raw);
     if (!parsed.success) return { success: false as const, error: parsed.error.issues[0]?.message };
 
-    const { id, password, tags, ...data } = parsed.data;
+    const { id, password, tags, expiresAt, ...data } = parsed.data;
 
     const existing = await db.providerProxy.findUnique({ where: { id } });
     if (!existing) return { success: false as const, error: 'Прокси не найден' };
@@ -164,10 +174,17 @@ export async function updateProviderProxyAction(raw: Record<string, unknown>) {
       where: { id },
       data: {
         ...data,
+        ...(expiresAt !== undefined && { expiresAt: expiresAt ? new Date(expiresAt) : null }),
         ...(tags !== undefined && { tags: JSON.stringify(tags) }),
         ...(passwordEncrypted !== undefined && { passwordEncrypted }),
       },
     });
+
+    // Auto-sync if subscription URL was updated
+    if (data.subscriptionUrl && data.subscriptionUrl !== existing.subscriptionUrl) {
+      const { SubscriptionSyncService } = await import('@/services/providers/subscription-sync.service');
+      await SubscriptionSyncService.syncSubscription(id);
+    }
 
     await auditAdminAwaitable({
       adminId: admin.id,
@@ -183,6 +200,67 @@ export async function updateProviderProxyAction(raw: Record<string, unknown>) {
     revalidatePath('/admin/providers');
     revalidatePath('/admin/settings');
     return { success: true as const, message: `Прокси "${data.label || existing.label}" обновлён` };
+  });
+}
+
+// ── SYNC SUBSCRIPTION ACTION ──
+export async function syncSubscriptionAction(proxyId: string) {
+  return requireStaffPermission('providers', 'edit', async (admin) => {
+    if (!proxyId) return { success: false as const, error: 'ID обязателен' };
+
+    const { SubscriptionSyncService } = await import('@/services/providers/subscription-sync.service');
+    const res = await SubscriptionSyncService.syncSubscription(proxyId);
+
+    if (res.success) {
+      await auditAdminAwaitable({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: 'PROVIDER_PROXY_SUBSCRIPTION_SYNC',
+        target: proxyId,
+        targetType: 'PROVIDER_PROXY',
+        ipAddress: await getClientIp(),
+        newValue: JSON.stringify(res.info),
+      });
+
+      revalidatePath('/admin/providers');
+      revalidatePath('/admin/settings');
+      return {
+        success: true as const,
+        message: 'Подписка успешно синхронизирована',
+        data: res.info,
+      };
+    } else {
+      return {
+        success: false as const,
+        error: res.error || 'Ошибка синхронизации подписки',
+      };
+    }
+  });
+}
+
+// ── HARVEST FREE PROXIES ACTION ──
+export async function harvestFreeProxiesAction() {
+  return requireStaffPermission('providers', 'edit', async (admin) => {
+    const { FreeProxyHarvesterService } = await import('@/services/providers/free-proxy-harvester.service');
+    const res = await FreeProxyHarvesterService.harvestAndRefreshPool();
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'PROVIDER_PROXY_HARVEST_FREE',
+      target: 'free-proxy-harvester',
+      targetType: 'SYSTEM',
+      ipAddress: await getClientIp(),
+      newValue: JSON.stringify({ tested: res.tested, added: res.addedOrUpdated }),
+    });
+
+    revalidatePath('/admin/providers');
+    revalidatePath('/admin/settings');
+    return {
+      success: true as const,
+      message: `Проверено: ${res.tested}, добавлено/обновлено: ${res.addedOrUpdated} бесплатных SOCKS5`,
+      data: res,
+    };
   });
 }
 

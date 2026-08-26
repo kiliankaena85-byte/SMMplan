@@ -17,6 +17,7 @@ export const createProxySchema = z.object({
   label: safeString(128, 'Название').min(1, 'Название обязательно'),
   description: safeString(512, 'Описание').default(''),
   protocol: z.enum(['http', 'https', 'socks5']).default('https'),
+  category: z.enum(['PAID_PREMIUM', 'FREE_PUBLIC', 'BACKUP_RESERVE']).default('PAID_PREMIUM'),
   host: proxyHostSchema,
   port: z.number().int().min(1).max(65535, 'Порт: 1-65535'),
   username: safeString(128, 'Имя пользователя').nullable().optional(),
@@ -24,6 +25,8 @@ export const createProxySchema = z.object({
   isRotating: z.boolean().default(false),
   geoCountry: z.string().length(2).nullable().optional(),
   tags: z.array(z.string().max(32)).max(10, 'Максимум 10 тегов').default([]),
+  subscriptionUrl: z.string().url('Некорректный URL подписки').max(2048).nullable().optional().or(z.literal('')),
+  expiresAt: z.string().datetime().nullable().optional().or(z.date().nullable().optional()),
 });
 
 export const updateProxySchema = createProxySchema.partial().extend({

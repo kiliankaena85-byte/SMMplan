@@ -257,6 +257,10 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
 
       await connection.set(redisKey, '1', 'EX', 3600);
 
+      // Adaptive Rate Limiting to prevent HTTP 429 from provider
+      const { AdaptiveRateLimiterService } = await import('../../services/providers/adaptive-rate-limiter.service');
+      await AdaptiveRateLimiterService.acquireToken(route.providerId);
+
       const response = await provider.createOrder(payload as Parameters<typeof provider.createOrder>[0]);
 
       if (response.error && !response.order) {

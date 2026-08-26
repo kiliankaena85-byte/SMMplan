@@ -8,10 +8,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { useState, useEffect, useTransition, useCallback } from 'react';
 import {
-  Plus, Trash2, Edit3, Save, X, Globe, Zap, CheckCircle,
-  Loader2, AlertTriangle, Link2, Unlink,
+  Plus, Trash2, Edit3, Save, Globe, Zap, CheckCircle,
+  Loader2, AlertTriangle, Link2,
   ChevronDown, ChevronUp, RefreshCw, Search,
-  Radio, Database,
+  Radio, Database, ShieldCheck, Sparkles,
 } from 'lucide-react';
 import {
   listProviderProxiesAction,
@@ -20,10 +20,11 @@ import {
   deleteProviderProxyAction,
   testProviderProxyAction,
   assignProxyToProviderAction,
-  toggleProxyActiveAction,
   getProxyHealthSummaryAction,
+  syncSubscriptionAction,
+  harvestFreeProxiesAction,
 } from '@/actions/admin/provider-proxy';
-import type { ProviderProxyWithUsage, ProxyHealthSummary, ProxyProtocol } from '@/types/provider-proxy';
+import type { ProviderProxyWithUsage, ProxyHealthSummary, ProxyProtocol, ProxyCategory } from '@/types/provider-proxy';
 import { GEO_OPTIONS, PROXY_PROTOCOL_LABELS } from '@/types/provider-proxy';
 import type { Provider } from '@prisma/client';
 
@@ -31,6 +32,7 @@ interface FormData {
   label: string;
   description: string;
   protocol: ProxyProtocol;
+  category: ProxyCategory;
   host: string;
   port: string;
   username: string;
@@ -38,19 +40,24 @@ interface FormData {
   isRotating: boolean;
   geoCountry: string;
   tags: string[];
+  subscriptionUrl: string;
+  expiresAt?: string;
 }
 
 const EMPTY_FORM: FormData = {
   label: '',
   description: '',
-  protocol: 'https',
+  protocol: 'socks5',
+  category: 'PAID_PREMIUM',
   host: '',
-  port: '3128',
+  port: '7891',
   username: '',
   password: '',
   isRotating: false,
   geoCountry: '',
   tags: [],
+  subscriptionUrl: '',
+  expiresAt: '',
 };
 
 interface Props {
@@ -66,8 +73,11 @@ export function ProviderProxyManager({ providers = [] }: Props) {
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [isPending, startTransition] = useTransition();
   const [testingId, setTestingId] = useState<string | null>(null);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [isHarvesting, setIsHarvesting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterProtocol, setFilterProtocol] = useState<string>('');
+  const [filterCategory, setFilterCategory] = useState<string>('');
   const [expandedProxyId, setExpandedProxyId] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState('');
   const [testUrl, setTestUrl] = useState('https://httpbin.org/ip');
@@ -162,6 +172,34 @@ export function ProviderProxyManager({ providers = [] }: Props) {
     });
   };
 
+  const handleSyncSubscription = (id: string) => {
+    setSyncingId(id);
+    startTransition(async () => {
+      const res = await syncSubscriptionAction(id);
+      if (res.success) {
+        toast.success(res.message);
+        loadData();
+      } else {
+        toast.error(res.error || 'Ошибка синхронизации подписки');
+      }
+      setSyncingId(null);
+    });
+  };
+
+  const handleHarvestFree = () => {
+    setIsHarvesting(true);
+    startTransition(async () => {
+      const res = await harvestFreeProxiesAction();
+      if (res.success) {
+        toast.success(res.message);
+        loadData();
+      } else {
+        toast.error(res.error || 'Ошибка сбора прокси');
+      }
+      setIsHarvesting(false);
+    });
+  };
+
   const handleAssign = (providerId: string, proxyId: string | null) => {
     startTransition(async () => {
       const res = await assignProxyToProviderAction({ providerId, proxyId });
@@ -174,24 +212,13 @@ export function ProviderProxyManager({ providers = [] }: Props) {
     });
   };
 
-  const handleToggle = (id: string, isActive: boolean) => {
-    startTransition(async () => {
-      const res = await toggleProxyActiveAction(id, isActive);
-      if (res.success) {
-        toast.success(res.message);
-        loadData();
-      } else {
-        toast.error(res.error || 'Ошибка смены статуса');
-      }
-    });
-  };
-
   const startEdit = (p: ProviderProxyWithUsage) => {
     setEditingId(p.id);
     setForm({
       label: p.label,
       description: p.description,
       protocol: p.protocol,
+      category: p.category || 'PAID_PREMIUM',
       host: p.host,
       port: String(p.port),
       username: p.username || '',
@@ -199,6 +226,8 @@ export function ProviderProxyManager({ providers = [] }: Props) {
       isRotating: p.isRotating,
       geoCountry: p.geoCountry || '',
       tags: p.tags,
+      subscriptionUrl: p.subscriptionUrl || '',
+      expiresAt: p.expiresAt ? new Date(p.expiresAt).toISOString().split('T')[0] : '',
     });
   };
 
@@ -213,15 +242,32 @@ export function ProviderProxyManager({ providers = [] }: Props) {
     setTagInput('');
   };
 
-  const filtered = proxies.filter((p) =>
-    (!searchQuery || p.label.toLowerCase().includes(searchQuery.toLowerCase()) || p.host.includes(searchQuery)) &&
-    (!filterProtocol || p.protocol === filterProtocol),
-  );
+  const filtered = proxies.filter((p) => {
+    const matchesSearch =
+      !searchQuery ||
+      p.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.host.includes(searchQuery);
+    const matchesProtocol = !filterProtocol || p.protocol === filterProtocol;
+    const matchesCategory = !filterCategory || p.category === filterCategory;
+    return matchesSearch && matchesProtocol && matchesCategory;
+  });
 
   const isEditing = editingId !== null;
   const getProxyLabel = (proxyId: string | null) => {
     if (!proxyId) return null;
     return proxies.find((p) => p.id === proxyId)?.label || null;
+  };
+
+  const formatTraffic = (bytes: bigint | null | undefined) => {
+    if (!bytes || bytes === BigInt(0)) return '0 GB';
+    const gb = Number(bytes) / (1024 * 1024 * 1024);
+    return `${gb.toFixed(1)} GB`;
+  };
+
+  const getDaysLeft = (expiresAt: Date | null | undefined) => {
+    if (!expiresAt) return null;
+    const diff = new Date(expiresAt).getTime() - Date.now();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 
   return (
@@ -231,16 +277,16 @@ export function ProviderProxyManager({ providers = [] }: Props) {
         <Card className="rounded-3xl border border-border/80 shadow-sm bg-card p-6">
           <div className="flex items-center gap-2.5 pb-4 border-b border-border/60">
             <span className="p-1 px-2.5 bg-primary/10 text-primary rounded-md text-[10px] font-bold">OVERVIEW</span>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Сводка по прокси</h3>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Сводка по прокси и подпискам</h3>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-4">
             {[
               { label: 'Всего прокси', value: health.total, icon: Globe, color: 'text-primary' },
               { label: 'Активных', value: health.active, icon: CheckCircle, color: 'text-emerald-500' },
               { label: 'С ошибками', value: health.withErrors, icon: AlertTriangle, color: 'text-rose-500' },
-              { label: 'Провайдеров через прокси', value: health.providersUsingProxy, icon: Link2, color: 'text-indigo-400' },
-              { label: 'Прямое подкл.', value: health.providersDirect, icon: Radio, color: 'text-cyan-400' },
-              { label: 'Avg Latency', value: health.avgLatencyMs ? `${Math.round(health.avgLatencyMs)}ms` : '—', icon: Zap, color: 'text-amber-400' },
+              { label: 'Провайдеров через прокси', value: health.providersUsingProxy, icon: Link2, color: 'text-primary' },
+              { label: 'Прямое подкл.', value: health.providersDirect, icon: Radio, color: 'text-muted-foreground' },
+              { label: 'Avg Latency', value: health.avgLatencyMs ? `${Math.round(health.avgLatencyMs)}ms` : '—', icon: Zap, color: 'text-amber-500' },
             ].map((m) => (
               <div key={m.label} className="p-3 rounded-xl bg-muted/30 border border-border/60 space-y-1">
                 <m.icon className={`w-3.5 h-3.5 ${m.color}`} />
@@ -252,14 +298,25 @@ export function ProviderProxyManager({ providers = [] }: Props) {
         </Card>
       )}
 
-      {/* ── TOOLBAR ── */}
+      {/* ── TOOLBAR & TABS ── */}
       <Card className="rounded-3xl border border-border/80 shadow-sm bg-card p-6 space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <span className="p-1 px-2.5 bg-primary/10 text-primary rounded-md text-[10px] font-bold">PROXY</span>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Пул прокси-серверов</h3>
+            <span className="p-1 px-2.5 bg-primary/10 text-primary rounded-md text-[10px] font-bold">PROXY POOL</span>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Пул прокси-серверов и подписок</h3>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleHarvestFree}
+              disabled={isHarvesting}
+              className="font-bold text-xs h-8 gap-1.5 cursor-pointer"
+            >
+              {isHarvesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-primary" />}
+              Собрать бесплатные SOCKS5
+            </Button>
             <Button
               type="button"
               variant="secondary"
@@ -280,7 +337,30 @@ export function ProviderProxyManager({ providers = [] }: Props) {
           </div>
         </div>
 
-        {/* Search & Filter */}
+        {/* Categories Tabs */}
+        <div className="flex gap-2 border-b border-border/40 pb-3 flex-wrap">
+          {[
+            { id: '', label: `Все (${proxies.length})` },
+            { id: 'PAID_PREMIUM', label: `💎 Платные Quattro VPN (${proxies.filter(p => p.category === 'PAID_PREMIUM').length})` },
+            { id: 'FREE_PUBLIC', label: `🌿 Бесплатные пулы (${proxies.filter(p => p.category === 'FREE_PUBLIC').length})` },
+            { id: 'BACKUP_RESERVE', label: `🛡️ Резерв (${proxies.filter(p => p.category === 'BACKUP_RESERVE').length})` },
+          ].map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setFilterCategory(cat.id)}
+              className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                filterCategory === cat.id
+                  ? 'bg-primary/10 text-primary border-primary/30 shadow-sm'
+                  : 'border-border/60 text-muted-foreground hover:bg-muted/40'
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Search & Protocol Filter */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -292,7 +372,7 @@ export function ProviderProxyManager({ providers = [] }: Props) {
             />
           </div>
           <div className="flex gap-1.5 flex-wrap">
-            {['', 'http', 'https', 'socks5'].map((p) => (
+            {['', 'socks5', 'http', 'https'].map((p) => (
               <button
                 key={p}
                 type="button"
@@ -303,7 +383,7 @@ export function ProviderProxyManager({ providers = [] }: Props) {
                     : 'border-border text-muted-foreground hover:bg-muted'
                 }`}
               >
-                {p ? PROXY_PROTOCOL_LABELS[p as ProxyProtocol] : 'Все'}
+                {p ? PROXY_PROTOCOL_LABELS[p as ProxyProtocol] : 'Все протоколы'}
               </button>
             ))}
           </div>
@@ -314,12 +394,14 @@ export function ProviderProxyManager({ providers = [] }: Props) {
       {filtered.length === 0 && !loading && (
         <Card className="rounded-2xl p-8 text-center bg-card border border-border">
           <Globe className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-          <p className="text-xs text-muted-foreground">Прокси не настроены. Добавьте первый прокси-сервер.</p>
+          <p className="text-xs text-muted-foreground">Прокси не найдены в выбранной категории.</p>
         </Card>
       )}
 
       {filtered.map((p) => {
         const isExpanded = expandedProxyId === p.id;
+        const daysLeft = getDaysLeft(p.expiresAt);
+
         return (
           <Card
             key={p.id}
@@ -332,25 +414,42 @@ export function ProviderProxyManager({ providers = [] }: Props) {
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div
                   className={`w-10 h-10 rounded-xl flex items-center justify-center text-primary-foreground text-xs font-bold shrink-0 ${
-                    p.protocol === 'socks5' ? 'bg-indigo-600' : 'bg-primary'
+                    p.category === 'PAID_PREMIUM'
+                      ? 'bg-primary'
+                      : p.category === 'FREE_PUBLIC'
+                      ? 'bg-emerald-600'
+                      : 'bg-muted-foreground'
                   }`}
                 >
-                  {p.protocol === 'socks5' ? 'S5' : p.protocol.toUpperCase().substring(0, 2)}
+                  {p.category === 'PAID_PREMIUM' ? '💎' : p.category === 'FREE_PUBLIC' ? '🌿' : '🛡️'}
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="text-xs font-bold text-foreground">{p.label}</h4>
                     <span className="text-[9px] font-mono text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded border border-border/40">
                       {p.protocol.toUpperCase()}
                     </span>
+                    {p.category === 'PAID_PREMIUM' && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/30">
+                        PREMIUM
+                      </span>
+                    )}
+                    {daysLeft !== null && (
+                      <span
+                        className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
+                          daysLeft > 14
+                            ? 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30'
+                            : daysLeft > 2
+                            ? 'bg-amber-500/15 text-amber-500 border-amber-500/30'
+                            : 'bg-rose-500/15 text-rose-500 border-rose-500/30'
+                        }`}
+                      >
+                        {daysLeft > 0 ? `Осталось ${daysLeft} дн.` : 'Истекла'}
+                      </span>
+                    )}
                     {p.geoCountry && (
                       <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground border border-border/40">
                         {p.geoCountry}
-                      </span>
-                    )}
-                    {p.isRotating && (
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                        ROTATING
                       </span>
                     )}
                     {p._count?.providers ? (
@@ -362,6 +461,29 @@ export function ProviderProxyManager({ providers = [] }: Props) {
                   <p className="text-[11px] font-mono text-muted-foreground mt-0.5">
                     {p.host}:{p.port}
                   </p>
+
+                  {/* Traffic bar if present */}
+                  {p.trafficTotalBytes && p.trafficTotalBytes > BigInt(0) && (
+                    <div className="flex items-center gap-2 mt-1.5 max-w-xs">
+                      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary rounded-full transition-all"
+                          style={{
+                            width: `${Math.min(
+                              100,
+                              Math.round(
+                                (Number(p.trafficUsedBytes || BigInt(0)) / Number(p.trafficTotalBytes)) * 100
+                              )
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                      <span className="text-[9px] font-mono text-muted-foreground">
+                        {formatTraffic(p.trafficUsedBytes)} / {formatTraffic(p.trafficTotalBytes)}
+                      </span>
+                    </div>
+                  )}
+
                   {p.tags.length > 0 && (
                     <div className="flex gap-1 mt-1 flex-wrap">
                       {p.tags.map((t) => (
@@ -384,6 +506,17 @@ export function ProviderProxyManager({ providers = [] }: Props) {
                     <p className="text-[9px] text-muted-foreground">{new Date(p.lastTestAt).toLocaleString('ru-RU')}</p>
                   </div>
                 )}
+                {p.subscriptionUrl && (
+                  <button
+                    type="button"
+                    onClick={() => handleSyncSubscription(p.id)}
+                    disabled={syncingId === p.id}
+                    className="p-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors"
+                    title="Синхронизировать подписку"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 text-primary ${syncingId === p.id ? 'animate-spin' : ''}`} />
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setExpandedProxyId(isExpanded ? null : p.id)}
@@ -399,7 +532,7 @@ export function ProviderProxyManager({ providers = [] }: Props) {
                   className="p-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors"
                   title="Тест подключения"
                 >
-                  {testingId === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" /> : <Zap className="w-3.5 h-3.5 text-amber-400" />}
+                  {testingId === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" /> : <Zap className="w-3.5 h-3.5 text-amber-500" />}
                 </button>
                 <button
                   type="button"
@@ -448,17 +581,17 @@ export function ProviderProxyManager({ providers = [] }: Props) {
                             <button
                               type="button"
                               onClick={() => handleAssign(pr.id, null)}
-                              className="text-[10px] font-bold px-2 py-1 rounded-lg bg-rose-500/10 text-rose-500 border border-rose-500/30 hover:bg-rose-500/20 cursor-pointer flex items-center gap-1 transition-colors"
+                              className="text-[10px] font-bold text-rose-400 hover:text-rose-300 cursor-pointer"
                             >
-                              <Unlink className="w-3 h-3" /> Прямое
+                              Отвязать
                             </button>
                           ) : (
                             <button
                               type="button"
                               onClick={() => handleAssign(pr.id, p.id)}
-                              className="text-[10px] font-bold px-2 py-1 rounded-lg bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 cursor-pointer flex items-center gap-1 transition-colors"
+                              className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
                             >
-                              <Link2 className="w-3 h-3" /> Назначить
+                              Привязать
                             </button>
                           )}
                         </div>
@@ -472,31 +605,37 @@ export function ProviderProxyManager({ providers = [] }: Props) {
         );
       })}
 
-      {/* ── CREATE / EDIT FORM ── */}
+      {/* ── CREATE / EDIT MODAL ── */}
       {(showCreate || isEditing) && (
-        <Card className="rounded-3xl border border-primary/30 shadow-lg bg-card p-6 space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-border/60">
+        <Card className="rounded-3xl border border-border/80 shadow-sm bg-card p-6 space-y-6">
+          <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
-              {isEditing ? 'Редактировать прокси' : 'Новый прокси'}
+              {isEditing ? `Редактирование прокси` : 'Новый прокси-сервер или подписка'}
             </h3>
-            <button
-              type="button"
-              onClick={() => { setShowCreate(false); setEditingId(null); setForm(EMPTY_FORM); }}
-              className="p-1.5 rounded-lg hover:bg-muted cursor-pointer transition-colors"
-            >
-              <X className="w-4 h-4 text-muted-foreground" />
-            </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Название *</Label>
               <Input
                 value={form.label}
                 onChange={(e) => setForm((prev) => ({ ...prev, label: e.target.value }))}
-                placeholder="EU Proxy Amsterdam"
+                placeholder="Quattro VPN - Основной"
+                className="text-xs"
                 maxLength={128}
               />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Категория</Label>
+              <select
+                value={form.category}
+                onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value as ProxyCategory }))}
+                className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs font-medium focus:ring-1 focus:ring-primary focus:outline-none"
+              >
+                <option value="PAID_PREMIUM">💎 Платный Premium (Quattro VPN)</option>
+                <option value="FREE_PUBLIC">🌿 Бесплатный публичный пул</option>
+                <option value="BACKUP_RESERVE">🛡️ Резервный канал</option>
+              </select>
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Протокол</Label>
@@ -505,7 +644,7 @@ export function ProviderProxyManager({ providers = [] }: Props) {
                 onChange={(e) => setForm((prev) => ({ ...prev, protocol: e.target.value as ProxyProtocol }))}
                 className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs font-medium focus:ring-1 focus:ring-primary focus:outline-none"
               >
-                {(['https', 'http', 'socks5'] as const).map((pr) => (
+                {(['socks5', 'https', 'http'] as const).map((pr) => (
                   <option key={pr} value={pr}>
                     {PROXY_PROTOCOL_LABELS[pr]} {pr === 'socks5' ? '(рекомендуется для РФ)' : ''}
                   </option>
@@ -526,11 +665,11 @@ export function ProviderProxyManager({ providers = [] }: Props) {
               </select>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Хост *</Label>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Хост / IP *</Label>
               <Input
                 value={form.host}
                 onChange={(e) => setForm((prev) => ({ ...prev, host: e.target.value }))}
-                placeholder="proxy.example.com"
+                placeholder="127.0.0.1 или IP"
                 className="font-mono text-xs"
                 maxLength={253}
               />
@@ -546,13 +685,15 @@ export function ProviderProxyManager({ providers = [] }: Props) {
                 className="font-mono text-xs"
               />
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Описание</Label>
+            <div className="space-y-2 sm:col-span-2">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                URL подписки (Subscription-Userinfo)
+              </Label>
               <Input
-                value={form.description}
-                onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-                placeholder="Опционально"
-                maxLength={512}
+                value={form.subscriptionUrl}
+                onChange={(e) => setForm((prev) => ({ ...prev, subscriptionUrl: e.target.value }))}
+                placeholder="https://quattro-tech.ru/sub/... (для авто-продления срока)"
+                className="font-mono text-xs"
               />
             </div>
             <div className="space-y-2">
@@ -575,15 +716,6 @@ export function ProviderProxyManager({ providers = [] }: Props) {
                 className="text-xs"
                 autoComplete="new-password"
               />
-            </div>
-            <div className="flex items-end gap-4">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  checked={form.isRotating}
-                  onCheckedChange={(c) => setForm((prev) => ({ ...prev, isRotating: !!c }))}
-                />
-                <span className="text-xs text-foreground">Ротирующийся IP</span>
-              </div>
             </div>
           </div>
 
@@ -621,7 +753,7 @@ export function ProviderProxyManager({ providers = [] }: Props) {
                     <button
                       type="button"
                       onClick={() => setForm((prev) => ({ ...prev, tags: prev.tags.filter((x) => x !== t) }))}
-                      className="text-rose-400 hover:text-rose-300 cursor-pointer"
+                      className="text-rose-500 hover:text-rose-400 cursor-pointer"
                     >
                       x
                     </button>
@@ -631,24 +763,9 @@ export function ProviderProxyManager({ providers = [] }: Props) {
             )}
           </div>
 
-          {/* Test URL config */}
-          <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
-            <div className="flex gap-2 items-center">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-                URL для теста
-              </Label>
-              <Input
-                value={testUrl}
-                onChange={(e) => setTestUrl(e.target.value)}
-                className="font-mono text-xs flex-1"
-                placeholder="https://httpbin.org/ip"
-              />
-            </div>
-          </div>
-
-          <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
-            <p className="text-[10px] text-amber-400 leading-relaxed">
-              <b>Безопасность:</b> Пароли шифруются AES-256-GCM. Прокси-данные не возвращаются в клиентские ответы. Все действия логируются в AdminAuditLog.
+          <div className="p-3 rounded-xl bg-primary/5 border border-primary/20">
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              <b className="text-foreground">Безопасность OWASP 2026:</b> Пароли шифруются AES-256-GCM. При заполнении URL подписки дата окончания тарифа и объем трафика подтягиваются автоматически.
             </p>
           </div>
 

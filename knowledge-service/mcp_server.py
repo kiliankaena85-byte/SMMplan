@@ -1,7 +1,9 @@
 import os
+import hmac
 import logging
 from typing import List, Dict, Any, Optional
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException, Body, Security, Depends
+from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 
@@ -12,6 +14,18 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("graphrag-mcp")
 
 engine: Optional[GraphRAGEngine] = None
+
+# Optional API Key guard for Write endpoints
+api_key_header = APIKeyHeader(name="X-Knowledge-API-Key", auto_error=False)
+
+def verify_knowledge_api_key(api_key: Optional[str] = Security(api_key_header)):
+    expected = os.getenv("KNOWLEDGE_API_KEY")
+    if not expected:
+        return True # If not configured in local/dev, allow
+    if not api_key or not hmac.compare_digest(api_key.encode(), expected.encode()):
+        raise HTTPException(status_code=403, detail="Forbidden: Invalid or missing X-Knowledge-API-Key")
+    return True
+
 
 # List of all knowledge base collections
 KNOWLEDGE_COLLECTIONS = [
@@ -263,14 +277,14 @@ def api_search(request: SearchRequest):
     return engine.query(question=request.query, collections=request.collections, vector_top_k=request.top_k)
 
 @app.post("/api/knowledge")
-def api_add_knowledge(entry: KnowledgeEntry):
+def api_add_knowledge(entry: KnowledgeEntry, _: bool = Depends(verify_knowledge_api_key)):
     if not engine:
         raise HTTPException(status_code=500, detail="Engine not initialized")
     engine.ingest_knowledge_entry(entry.model_dump())
     return {"status": "created", "title": entry.title}
 
 @app.post("/api/decision")
-def api_log_decision(log: DecisionLog):
+def api_log_decision(log: DecisionLog, _: bool = Depends(verify_knowledge_api_key)):
     if not engine:
         raise HTTPException(status_code=500, detail="Engine not initialized")
     

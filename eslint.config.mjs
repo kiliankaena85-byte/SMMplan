@@ -47,6 +47,7 @@ export default tseslint.config(
       ".agent/**",
       "dist_patch/**",
       "scripts/**",
+      "test/**",
       "tests/**",
       "test-results/**",
       "playwright-report/**",

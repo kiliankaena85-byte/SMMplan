@@ -1,8 +1,17 @@
 import { PrismaClient } from '@prisma/client';
 import { hashPassword } from '../src/lib/auth/password';
 import { VaultService } from '../src/lib/vault';
+import { randomBytes } from 'crypto';
+
+// ⛔ PRODUCTION GUARD — seed.ts must NEVER run in production
+if (process.env.NODE_ENV === 'production') {
+  console.error('❌ FATAL: seed.ts cannot run in production! NODE_ENV=production detected.');
+  console.error('   This script is for development/testing only.');
+  process.exit(1);
+}
 
 const prisma = new PrismaClient();
+
 
 async function ensureSeedLedger(userId: string, amount: number) {
   if (amount <= 0) return;
@@ -70,7 +79,7 @@ async function main() {
   console.log('Upserted Provider Vexboost');
 
   // 3. Admin User
-  const adminRawId = 'art@artmspektr.ru';
+  const adminRawId = process.env.SEED_ADMIN_EMAIL || 'admin@example.com';
   let adminUser = await prisma.user.findFirst({ where: { email: adminRawId } });
   if (adminUser) {
     adminUser = await prisma.user.update({
@@ -91,7 +100,7 @@ async function main() {
 
   // Test Admin (Owner)
   const testAdminEmail = 'admin@smmplan.test';
-  const testAdminHash = await hashPassword('AdminSecurePassword2026!');
+  const testAdminHash = await hashPassword(process.env.SEED_ADMIN_PASSWORD || randomBytes(16).toString('hex'));
   let testAdminUser = await prisma.user.findFirst({ where: { email: testAdminEmail } });
   if (testAdminUser) {
     testAdminUser = await prisma.user.update({
@@ -108,7 +117,7 @@ async function main() {
 
   // Test Client (User) - KYC verified with Telegram ID
   const testClientEmail = 'client@smmplan.test';
-  const testClientHash = await hashPassword('ClientSecurePassword2026!');
+  const testClientHash = await hashPassword(process.env.SEED_CLIENT_PASSWORD || randomBytes(16).toString('hex'));
   let testClientUser = await prisma.user.findFirst({ where: { email: testClientEmail } });
   if (testClientUser) {
     testClientUser = await prisma.user.update({

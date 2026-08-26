@@ -165,7 +165,7 @@ export async function verifySession(requiredTenantId?: string): Promise<{ userId
     };
   } catch (err) {
     console.warn('[verifySession] JWT verification failed:', err instanceof Error ? err.message : 'Unknown error');
-    return handleDevAutoLogin();
+    return null;
   }
 }
 

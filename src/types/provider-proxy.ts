@@ -4,6 +4,16 @@
 // ==============================================================
 
 export type ProxyProtocol = 'http' | 'https' | 'socks5';
+export type ProxyCategory = 'PAID_PREMIUM' | 'FREE_PUBLIC' | 'BACKUP_RESERVE';
+
+export interface SubscriptionInfo {
+  uploadBytes: bigint;
+  downloadBytes: bigint;
+  totalBytes: bigint;
+  expiresAt: Date | null;
+  daysLeft: number | null;
+  rawHeader?: string;
+}
 
 export interface ProviderProxy {
   id: string;
@@ -18,6 +28,12 @@ export interface ProviderProxy {
   isRotating: boolean;
   geoCountry?: string | null;
   tags: string[];
+  category: ProxyCategory;
+  subscriptionUrl?: string | null;
+  expiresAt?: Date | null;
+  trafficUsedBytes?: bigint | null;
+  trafficTotalBytes?: bigint | null;
+  lastSyncAt?: Date | null;
   lastTestAt?: Date | null;
   lastTestLatencyMs?: number | null;
   lastTestSuccess?: boolean | null;
@@ -60,11 +76,15 @@ export interface ProxyConnectionLog {
 }
 
 export interface ProxyConfig {
+  id?: string;
   protocol: ProxyProtocol;
   host: string;
   port: number;
   username?: string;
   password?: string;
+  lastTestLatencyMs?: number | null;
+  category?: ProxyCategory;
+  isActive?: boolean;
 }
 
 export interface ProxyHealthSummary {
