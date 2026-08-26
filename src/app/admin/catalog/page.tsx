@@ -73,18 +73,18 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
 
   const resolvedTenant = resolveAdminTenantContext(user, effectiveParamTenant);
   const selectedTenant = resolvedTenant !== 'all' ? resolvedTenant : (headerTenant || 'smmplan');
-  const search = params.q || '';
+  const search = params.q?.trim() || undefined;
   const cursor = params.cursor || undefined;
-  const categoryId = params.category || undefined;
-  const providerId = params.providerId || undefined;
-  const isActiveStr = params.isActive || undefined;
-  const isActive = isActiveStr === 'true' ? true : isActiveStr === 'false' ? false : undefined;
+  const categoryId = (params.category && params.category !== 'all') ? params.category : undefined;
+  const providerId = (params.providerId && params.providerId !== 'all') ? params.providerId : undefined;
+  const isActiveStr = params.isActive;
+  const isActive = (isActiveStr === 'true') ? true : (isActiveStr === 'false') ? false : undefined;
   const hideDeleted = params.hideDeleted === 'true';
-  const providerStatus = params.providerStatus || undefined;
-  const externalId = params.externalId || undefined;
+  const providerStatus = (params.providerStatus && params.providerStatus !== 'all') ? params.providerStatus : undefined;
+  const externalId = params.externalId?.trim() || undefined;
   const sortBy = params.sortBy || undefined;
   const sortOrder = (params.sortOrder === 'asc' || params.sortOrder === 'desc') ? (params.sortOrder as 'asc' | 'desc') : undefined;
-  const platform = params.platform || undefined;
+  const platform = (params.platform && params.platform !== 'ALL' && params.platform !== 'all') ? params.platform : undefined;
 
   const [
     { items: rawServices, nextCursor, hasMore },

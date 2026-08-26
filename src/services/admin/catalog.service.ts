@@ -184,44 +184,55 @@ class AdminCatalogService {
     networkSlug?: string;
     tenantId?: string;
   }): Promise<PaginatedResult<CatalogRow>> {
-    const where: Prisma.ServiceWhereInput = {};
+    const andConditions: Prisma.ServiceWhereInput[] = [];
 
-    if (params.tenantId) {
-      where.tenantId = { in: [params.tenantId, 'all'] };
+    if (params.tenantId && params.tenantId !== 'all') {
+      andConditions.push({ tenantId: { in: [params.tenantId, 'all'] } });
     }
 
-    if (params.categoryId) {
-      where.categoryId = params.categoryId;
-    } else if (params.networkSlug) {
-      where.category = { network: { slug: params.networkSlug } };
+    if (params.categoryId && params.categoryId !== 'all') {
+      andConditions.push({ categoryId: params.categoryId });
+    } else if (params.networkSlug && params.networkSlug !== 'ALL' && params.networkSlug !== 'all') {
+      andConditions.push({ category: { network: { slug: params.networkSlug } } });
     }
 
-    if (params.providerId) {
-      where.providerId = params.providerId === 'none' ? null : params.providerId;
+    if (params.providerId && params.providerId !== 'all') {
+      andConditions.push({ providerId: params.providerId === 'none' ? null : params.providerId });
     }
 
     if (params.hideDeleted) {
-      where.isActive = true;
-      where.cooldownReason = { notIn: ['ZOMBIE_AUTO_DISABLED', 'ZOMBIE_ARCHIVED'] };
+      andConditions.push({
+        isActive: true,
+        OR: [
+          { cooldownReason: null },
+          { cooldownReason: { notIn: ['ZOMBIE_AUTO_DISABLED', 'ZOMBIE_ARCHIVED'] } },
+        ],
+      });
     }
 
     if (params.isActive !== undefined) {
-      where.isActive = params.isActive;
+      andConditions.push({ isActive: params.isActive });
     }
 
-    if (params.providerStatus) {
+    if (params.providerStatus && params.providerStatus !== 'all') {
       if (params.providerStatus === 'active') {
-        where.providerId = { not: null };
-        where.cooldownReason = null;
+        andConditions.push({
+          providerId: { not: null },
+          cooldownReason: null,
+        });
       } else if (params.providerStatus === 'zombie') {
-        where.cooldownReason = { in: ['ZOMBIE_AUTO_DISABLED', 'ZOMBIE_ARCHIVED'] };
+        andConditions.push({
+          cooldownReason: { in: ['ZOMBIE_AUTO_DISABLED', 'ZOMBIE_ARCHIVED'] },
+        });
       } else if (params.providerStatus === 'manual') {
-        where.providerId = null;
+        andConditions.push({
+          providerId: null,
+        });
       }
     }
 
     if (params.externalId?.trim()) {
-      where.externalId = params.externalId.trim();
+      andConditions.push({ externalId: params.externalId.trim() });
     }
 
     if (params.search?.trim()) {
@@ -229,7 +240,7 @@ class AdminCatalogService {
       const lowerQ = q.toLowerCase();
       const numId = parseInt(q, 10);
       const isPureNumber = !isNaN(numId) && q === String(numId);
-            const orConditions: Prisma.ServiceWhereInput[] = [];
+      const orConditions: Prisma.ServiceWhereInput[] = [];
 
       // Vector 1: Numeric ID Match
       if (isPureNumber) {
@@ -259,8 +270,10 @@ class AdminCatalogService {
         orConditions.push({ category: { networkId: matchedNetwork.id } });
       }
 
-      where.OR = orConditions;
+      andConditions.push({ OR: orConditions });
     }
+
+    const where: Prisma.ServiceWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
     let orderBy: Record<string, 'asc' | 'desc'> = { numericId: 'asc' };
     if (params.sortBy) {

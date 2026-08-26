@@ -152,6 +152,26 @@ test.describe('BLOCK 25: Master Services & Providers Management E2E Synergy Suit
     const createServiceBtn = page.getByRole('link', { name: /\+ Создать услугу/i });
     await expect(createServiceBtn).toBeVisible();
 
+    // Assert that table has visible rows by default
+    const rows = page.locator('table tbody tr');
+    await expect(rows.first()).toBeVisible({ timeout: 10000 });
+    const initialRowCount = await rows.count();
+    expect(initialRowCount).toBeGreaterThan(0);
+
+    // CLICK "Скрыть удаленные / архив" button
+    const hideDeletedBtn = page.locator('button:has-text("Скрыть удаленные")');
+    if (await hideDeletedBtn.isVisible()) {
+      await hideDeletedBtn.click();
+      // Wait for table update
+      await page.waitForTimeout(1000);
+      
+      // CRITICAL ASSERTION: Active services MUST NOT disappear!
+      const activeRows = page.locator('table tbody tr');
+      await expect(activeRows.first()).toBeVisible();
+      const filteredRowCount = await activeRows.count();
+      expect(filteredRowCount).toBeGreaterThan(0);
+    }
+
     // Check zero horizontal scroll
     const hasHorizontalOverflow = await page.evaluate(() => {
       return document.documentElement.scrollWidth > window.innerWidth + 5;
