@@ -81,7 +81,9 @@ export function ChatInput({
         setText(saved);
         setDraftSavedAt('восстановлен');
       }
-    } catch {}
+    } catch (err) {
+      void err;
+    }
   }, [ticketId]);
 
   // 2. Draft auto-save on text change (isolated per ticketId)
@@ -97,7 +99,9 @@ export function ChatInput({
           localStorage.removeItem(`smmplan_draft_ticket_${ticketId}`);
           setDraftSavedAt(null);
         }
-      } catch {}
+      } catch (err) {
+        void err;
+      }
     }, 300);
     return () => clearTimeout(timer);
   }, [text, ticketId]);
@@ -447,7 +451,9 @@ export function ChatInput({
     try {
       localStorage.removeItem(`smmplan_draft_ticket_${ticketId}`);
       setDraftSavedAt(null);
-    } catch {}
+    } catch (err) {
+      void err;
+    }
 
     setText('');
     setFile(null);
