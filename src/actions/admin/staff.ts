@@ -319,6 +319,11 @@ const updateStaffSchema = z.object({
  */
 export async function updateStaffMemberAction(input: z.infer<typeof updateStaffSchema>) {
   return requireStaffPermission('settings', 'edit', async (admin) => {
+    // Prevent self-role-assignment
+    if (admin.id === input.userId && input.role !== admin.role) {
+      return { success: false as const, error: 'Запрещено изменять собственную роль' };
+    }
+
     // Only OWNER can promote to ADMIN/OWNER
     if (['ADMIN', 'OWNER'].includes(input.role) && admin.role !== 'OWNER') {
       return { success: false as const, error: 'Только Владелец может назначать Администраторов' };

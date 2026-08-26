@@ -117,7 +117,7 @@ export async function POST(
     // 4. Zero-Trust Verification: Query Provider Instance directly
     const order = await db.order.findFirst({
       where: {
-        status: { in: ['IN_PROGRESS', 'AWAITING_PAYMENT', 'PENDING', 'PENDING_CHECK'] },
+        status: { in: ['IN_PROGRESS', 'PENDING_CHECK'] },
         OR: [
           { externalId },
           { id: externalId },

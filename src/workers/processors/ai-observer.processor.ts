@@ -29,7 +29,6 @@ export default async function aiObserverProcessor(job: Job) {
     };
   } catch (error) {
     log.error(`[${job.id}] Critical error in AI Observer worker: ${(error as Error).message}`);
-    // We return graceful status instead of throwing to prevent crashing the worker daemon
-    return { success: false, error: (error as Error).message };
+    throw error;
   }
 }

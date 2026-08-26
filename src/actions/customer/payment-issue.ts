@@ -45,8 +45,8 @@ export async function reportPaymentIssueAction(paymentId: string): Promise<Repor
       return { success: false, message: 'Платёж не найден в системе' };
     }
 
-    // Security check: if user is logged in, ensure payment belongs to user
-    if (sessionUser && payment.userId !== sessionUser.userId) {
+    // Security check: if payment belongs to a user account, require caller to be that authenticated user
+    if (payment.userId && (!sessionUser || payment.userId !== sessionUser.userId)) {
       return { success: false, message: 'Доступ ограничен' };
     }
 

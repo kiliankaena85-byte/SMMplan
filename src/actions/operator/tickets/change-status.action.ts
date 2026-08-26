@@ -27,10 +27,10 @@ export async function changeTicketStatusAction(data: {
 
       const oldTicket = await db.ticket.findUnique({
         where: { id: ticketId },
-        select: { status: true },
+        select: { status: true, tenantId: true },
       });
-      if (!oldTicket) {
-        throw new Error('Обращение не найдено');
+      if (!oldTicket || (admin.tenantId && oldTicket.tenantId && admin.tenantId !== 'smmplan' && oldTicket.tenantId !== admin.tenantId)) {
+        throw new Error('Обращение не найдено или доступ ограничен');
       }
 
       await db.ticket.update({

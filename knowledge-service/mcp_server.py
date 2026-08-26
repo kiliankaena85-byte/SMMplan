@@ -21,7 +21,9 @@ api_key_header = APIKeyHeader(name="X-Knowledge-API-Key", auto_error=False)
 def verify_knowledge_api_key(api_key: Optional[str] = Security(api_key_header)):
     expected = os.getenv("KNOWLEDGE_API_KEY")
     if not expected:
-        return True # If not configured in local/dev, allow
+        if os.getenv("KNOWLEDGE_ENV") == "production" or os.getenv("NODE_ENV") == "production":
+            raise HTTPException(status_code=500, detail="KNOWLEDGE_API_KEY not configured in production")
+        return True
     if not api_key or not hmac.compare_digest(api_key.encode(), expected.encode()):
         raise HTTPException(status_code=403, detail="Forbidden: Invalid or missing X-Knowledge-API-Key")
     return True

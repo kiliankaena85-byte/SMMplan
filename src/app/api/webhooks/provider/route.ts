@@ -94,7 +94,7 @@ export async function POST(req: Request) {
     // 1. Find the order
     const order = await db.order.findFirst({
       where: {
-        status: { in: ["IN_PROGRESS", "AWAITING_PAYMENT", "PENDING"] },
+        status: { in: ["IN_PROGRESS", "PENDING_CHECK"] },
         OR: [
           { externalId },
           { dripExternalIds: { has: externalId } }

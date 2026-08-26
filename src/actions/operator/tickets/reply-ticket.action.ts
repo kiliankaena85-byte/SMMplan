@@ -32,10 +32,10 @@ export async function replyTicketAction(data: {
 
       const ticket = await db.ticket.findUnique({
         where: { id: ticketId },
-        select: { id: true, userId: true },
+        select: { id: true, userId: true, tenantId: true },
       });
-      if (!ticket) {
-        throw new Error('Обращение не найдено');
+      if (!ticket || (admin.tenantId && ticket.tenantId && admin.tenantId !== 'smmplan' && ticket.tenantId !== admin.tenantId)) {
+        throw new Error('Обращение не найдено или доступ ограничен');
       }
 
       const sender = isInternal ? 'INTERNAL' : 'STAFF';

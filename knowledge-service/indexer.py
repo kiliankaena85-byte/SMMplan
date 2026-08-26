@@ -222,29 +222,50 @@ class IncrementalIndexer:
                         mod_id=module_id
                     )
                 elif chunk.chunk_type == "function":
-                    # Determine parent (module or class)
+                    # Determine parent (module or class) with allowlist validation
                     parent_id = f"{filepath}::class::{chunk.class_name}" if chunk.class_name else module_id
-                    parent_label = "class" if chunk.class_name else "module"
+                    safe_label = "class" if chunk.class_name else "module"
                     
-                    session.run(
-                        f"""
-                        MERGE (f:CodeEntity:function {{id: $id}})
-                        SET f.name = $name,
-                            f.file_path = $filepath,
-                            f.entity_type = 'function',
-                            f.start_line = $start,
-                            f.end_line = $end
-                        WITH f
-                        MATCH (p:CodeEntity:{parent_label} {{id: $parent_id}})
-                        MERGE (f)-[:DEFINED_IN]->(p)
-                        """,
-                        id=chunk.id,
-                        name=chunk.function_name,
-                        filepath=filepath,
-                        start=chunk.start_line,
-                        end=chunk.end_line,
-                        parent_id=parent_id
-                    )
+                    if safe_label == "class":
+                        session.run(
+                            """
+                            MERGE (f:CodeEntity:function {id: $id})
+                            SET f.name = $name,
+                                f.file_path = $filepath,
+                                f.entity_type = 'function',
+                                f.start_line = $start,
+                                f.end_line = $end
+                            WITH f
+                            MATCH (p:CodeEntity:class {id: $parent_id})
+                            MERGE (f)-[:DEFINED_IN]->(p)
+                            """,
+                            id=chunk.id,
+                            name=chunk.function_name,
+                            filepath=filepath,
+                            start=chunk.start_line,
+                            end=chunk.end_line,
+                            parent_id=parent_id
+                        )
+                    else:
+                        session.run(
+                            """
+                            MERGE (f:CodeEntity:function {id: $id})
+                            SET f.name = $name,
+                                f.file_path = $filepath,
+                                f.entity_type = 'function',
+                                f.start_line = $start,
+                                f.end_line = $end
+                            WITH f
+                            MATCH (p:CodeEntity:module {id: $parent_id})
+                            MERGE (f)-[:DEFINED_IN]->(p)
+                            """,
+                            id=chunk.id,
+                            name=chunk.function_name,
+                            filepath=filepath,
+                            start=chunk.start_line,
+                            end=chunk.end_line,
+                            parent_id=parent_id
+                        )
 
     def _delete_file_vectors(self, collection: str, filepath: str):
         try:

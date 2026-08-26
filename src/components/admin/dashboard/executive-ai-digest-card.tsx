@@ -143,10 +143,9 @@ export function ExecutiveAiDigestCard() {
           </div>
 
           {/* Formatted Text Box */}
-          <div
-            className="p-4 rounded-lg bg-muted/40 border border-border text-xs leading-relaxed font-sans text-foreground whitespace-pre-wrap select-text"
-            dangerouslySetInnerHTML={{ __html: digestData.digestMarkdown }}
-          />
+          <div className="p-4 rounded-lg bg-muted/40 border border-border text-xs leading-relaxed font-sans text-foreground whitespace-pre-wrap select-text">
+            {digestData.digestMarkdown}
+          </div>
         </div>
       ) : (
         <div className="py-6 text-center text-xs text-muted-foreground space-y-2">

@@ -76,6 +76,23 @@ export async function createRoleAction(input: z.infer<typeof createRoleSchema>) 
       return { success: false, error: 'Роль с таким названием существует' };
     }
 
+    // Privilege escalation prevention: staff cannot grant permissions they do not possess
+    if (staffUser.role !== 'OWNER' && staffUser.staffRoleId) {
+      const creatorRole = await db.staffRole.findUnique({
+        where: { id: staffUser.staffRoleId },
+        include: { permissions: true },
+      });
+      const creatorPermKeys = new Set(creatorRole?.permissions.map(p => `${p.section}:${p.canEdit ? 'edit' : 'view'}`) || []);
+      for (const p of permissions) {
+        if (p.canView && !creatorPermKeys.has(`${p.section}:view`) && !creatorPermKeys.has(`${p.section}:edit`)) {
+          return { success: false, error: `Нельзя предоставить право ${p.section}:view, которым вы не обладаете` };
+        }
+        if (p.canEdit && !creatorPermKeys.has(`${p.section}:edit`)) {
+          return { success: false, error: `Нельзя предоставить право ${p.section}:edit, которым вы не обладаете` };
+        }
+      }
+    }
+
     // Normalize permissions: canEdit implies canView
     const normalizedPermissions = permissions.map(p => ({
       section: p.section,
