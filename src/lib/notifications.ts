@@ -9,8 +9,11 @@
  * 4. Set ADMIN_ALERT_BOT_TOKEN and ADMIN_ALERT_CHAT_ID in .env
  */
 
-const TELEGRAM_BOT_TOKEN = process.env.ADMIN_ALERT_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_CHAT_ID = process.env.ADMIN_ALERT_CHAT_ID;
+function getTelegramConfig() {
+  const token = process.env.ADMIN_ALERT_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.ADMIN_ALERT_CHAT_ID || '268747191';
+  return { token, chatId };
+}
 
 type AlertSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
 
@@ -23,16 +26,18 @@ const SEVERITY_EMOJI: Record<AlertSeverity, string> = {
 import { telegramQueue } from '@/lib/queue-manager';
 
 /**
- * Queues a formatted alert to the admin Telegram channel via BullMQ.
+ * Queues or dispatches a formatted alert to the admin Telegram channel.
  * Non-blocking (fire-and-forget). Never throws.
  */
 export function sendAdminAlert(message: string, severity: AlertSeverity = 'INFO') {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+  const { token, chatId } = getTelegramConfig();
+  if (!token || !chatId) {
     return;
   }
   
-  telegramQueue.add('admin-alert', { message, severity }).catch(err => {
-    console.error('[NotificationService] Failed to queue Telegram alert:', err);
+  // Direct async dispatch ensures alerts arrive immediately even if BullMQ worker is paused
+  sendAdminAlertSync(message, severity).catch((err) => {
+    console.error('[NotificationService] Failed to dispatch Telegram alert:', err);
   });
 }
 
@@ -40,21 +45,26 @@ export function sendAdminAlert(message: string, severity: AlertSeverity = 'INFO'
  * Worker-only method to actually execute the HTTP request to Telegram.
  */
 export async function sendAdminAlertSync(message: string, severity: AlertSeverity = 'INFO') {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+  const { token, chatId } = getTelegramConfig();
+  if (!token || !chatId) return;
 
   const emoji = SEVERITY_EMOJI[severity];
   const text = `${emoji} <b>SMMplan [${severity}]</b>\n\n${message}\n\n<i>${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}</i>`;
 
   try {
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
+        chat_id: chatId,
         text,
         parse_mode: 'HTML',
       }),
     });
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      console.error(`[NotificationService] Telegram API error (${res.status}):`, errBody);
+    }
   } catch (err) {
     console.error('[NotificationService] Telegram alert sync failed:', err);
   }

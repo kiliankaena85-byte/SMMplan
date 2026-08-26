@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { SecurityAlertService } from '@/services/security/security-alert.service';
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
