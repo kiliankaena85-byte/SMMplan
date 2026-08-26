@@ -65,4 +65,17 @@ describe('BLOCK 26: RAG Knowledge Retriever & AI Grounding Suite', () => {
     expect(snippet).not.toBeNull();
     expect(snippet).toContain('База Знаний');
   });
+
+  // -----------------------------------------------------------------------
+  // 6. Instagram Flag for Review Cancellation Grounding
+  // -----------------------------------------------------------------------
+  it('RAG 6: Retrieves Instagram Flag for Review article when Instagram order is canceled', () => {
+    const snippet = aiKnowledgeRetriever.findRelevantKnowledge(
+      'Почему постоянно отменяется накрутка подписчиков в инстаграм, хотя аккаунт открыт?',
+      ['Instagram Подписчики (Живые)', 'status: CANCELED']
+    );
+
+    expect(snippet).not.toBeNull();
+    expect(snippet?.toLowerCase()).toMatch(/(instagram|инстаграм|проверк|flag for review|отмен)/);
+  });
 });
