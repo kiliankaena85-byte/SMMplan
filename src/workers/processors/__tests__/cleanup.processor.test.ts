@@ -4,10 +4,13 @@ import { db } from '../../../lib/db';
 
 vi.mock('../../../lib/db', () => ({
   db: {
-    authToken: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+    authToken: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }), findMany: vi.fn().mockResolvedValue([]) },
     analyticsEvent: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     rateLimit: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     loginLog: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+    providerProxyLog: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+    securityEvent: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+    payment: { findMany: vi.fn().mockResolvedValue([]) },
     order: { findMany: vi.fn().mockResolvedValue([]), updateMany: vi.fn().mockResolvedValue({ count: 0 }), update: vi.fn(), findUnique: vi.fn() },
     ledgerEntry: { findFirst: vi.fn().mockResolvedValue(null) },
     $transaction: vi.fn(async (cb: any) => cb(db))
