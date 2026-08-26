@@ -110,6 +110,27 @@ export async function runCleanup(): Promise<void> {
     log.error('Failed to prune old ProviderProxyLog records', { error: err });
   }
 
+  // ── 3.9. SecurityEvent: INFO / WARNING older than 90 days (Storage Optimization) ───
+  // Note: CRITICAL security events are kept indefinitely for audit integrity.
+  try {
+    const securityEventThreshold = new Date(now);
+    securityEventThreshold.setDate(securityEventThreshold.getDate() - 90);
+
+    const securityEventResult = await db.securityEvent.deleteMany({
+      where: {
+        createdAt: { lt: securityEventThreshold },
+        severity: { in: ['INFO', 'WARNING'] },
+      },
+    });
+
+    log.info('SecurityEvent (low severity) cleanup done', {
+      deleted: securityEventResult.count,
+      olderThan: securityEventThreshold.toISOString(),
+    });
+  } catch (err) {
+    log.error('Failed to prune old low-severity SecurityEvent records', { error: err });
+  }
+
   // ── 4. Orders: Zombie AWAITING_PAYMENT ────────────────────────────────────
   // W2-1 FIX: Don't blindly cancel — check if a payment was recently confirmed.
   // YooKassa webhooks can arrive up to 5 minutes late. Cancelling a paid order

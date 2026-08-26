@@ -3,6 +3,8 @@ const isProd = process.env.NODE_ENV === 'production';
 
 const nextConfig = {
   output: "standalone",
+  compress: true,
+  poweredByHeader: false,
   serverExternalPackages: ["@blocknote/core", "@blocknote/react", "@blocknote/server-util"],
 
   typescript: { ignoreBuildErrors: false },
@@ -44,6 +46,15 @@ const nextConfig = {
   },
   async headers() {
     return [
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
       {
         source: '/:path*',
         headers: [

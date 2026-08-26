@@ -57,7 +57,7 @@ export const createQueue = <PayloadType>(name: string, defaultOptions?: Partial<
     connection: getRedisConnection(),
     defaultJobOptions: {
       removeOnComplete: { count: 500, age: 3600 },
-      removeOnFail: { count: 1000 },
+      removeOnFail: { count: 1000, age: 86400 },
       attempts: 3,
       backoff: { type: 'exponential', delay: 5000 },
       ...defaultOptions,
