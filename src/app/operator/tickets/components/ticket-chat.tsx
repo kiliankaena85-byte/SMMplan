@@ -4,8 +4,9 @@ import * as React from 'react';
 import Link from 'next/link';
 import { replyTicketAction } from '@/actions/operator/tickets/reply-ticket.action';
 import { changeTicketStatusAction } from '@/actions/operator/tickets/change-status.action';
+import { generateTicketCoPilotDraftAction } from '@/actions/operator/tickets/ai-copilot.action';
 import { Button } from '@/components/ui/button';
-import { FileText, Send, MessageSquare, Check, X } from 'lucide-react';
+import { FileText, Send, MessageSquare, Check, X, Sparkles, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Message {
@@ -76,8 +77,33 @@ const isDifferentChatDay = (d1Str?: string | Date, d2Str?: string | Date) => {
 export function TicketChat({ ticket }: TicketChatProps) {
   const [replyText, setReplyText] = React.useState('');
   const [isInternal, setIsInternal] = React.useState(false);
+  const [isGeneratingCoPilot, setIsGeneratingCoPilot] = React.useState(false);
   const [isPending, startTransition] = React.useTransition();
   const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  const handleGenerateCoPilot = async () => {
+    setIsGeneratingCoPilot(true);
+    try {
+      const res = await generateTicketCoPilotDraftAction({ ticketId: ticket.id });
+      if (res.success && res.draftText) {
+        setReplyText(res.draftText);
+        setIsInternal(false);
+        if (res.warnings && res.warnings.length > 0) {
+          toast.warning(res.warnings.join('. '));
+        } else {
+          toast.success(
+            `✨ Черновик AI Co-Pilot сформирован (${res.confidence === 'HIGH' ? 'высокая точность' : 'детерминированный режим'})`
+          );
+        }
+      } else {
+        toast.error(res.error || 'Не удалось сгенерировать черновик');
+      }
+    } catch {
+      toast.error('Сбой обращения к AI Co-Pilot');
+    } finally {
+      setIsGeneratingCoPilot(false);
+    }
+  };
 
   // Automatically scroll message window to bottom
   const scrollToBottom = () => {
@@ -224,6 +250,39 @@ export function TicketChat({ ticket }: TicketChatProps) {
       {/* Input Message Form */}
       <div className="p-4 border-t border-border/40 bg-muted/10">
         <form onSubmit={handleSendReply} className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleGenerateCoPilot}
+                disabled={isPending || isGeneratingCoPilot}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-semibold bg-primary/10 hover:bg-primary/20 text-primary transition-all border border-primary/20 hover:border-primary/40 disabled:opacity-50 select-none cursor-pointer"
+                title="Сгенерировать безопасный черновик ответа на основе базы знаний"
+              >
+                {isGeneratingCoPilot ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                    <span>AI думает...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5 text-primary" />
+                    <span>✨ AI Co-Pilot</span>
+                  </>
+                )}
+              </button>
+            </div>
+            {replyText && (
+              <button
+                type="button"
+                onClick={() => setReplyText('')}
+                className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Очистить черновик
+              </button>
+            )}
+          </div>
+
           <textarea
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}

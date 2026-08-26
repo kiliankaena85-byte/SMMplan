@@ -9,7 +9,7 @@
  * 4. Set ADMIN_ALERT_BOT_TOKEN and ADMIN_ALERT_CHAT_ID in .env
  */
 
-const TELEGRAM_BOT_TOKEN = process.env.ADMIN_ALERT_BOT_TOKEN;
+const TELEGRAM_BOT_TOKEN = process.env.ADMIN_ALERT_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.ADMIN_ALERT_CHAT_ID;
 
 type AlertSeverity = 'INFO' | 'WARNING' | 'CRITICAL';

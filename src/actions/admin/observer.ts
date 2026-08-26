@@ -98,3 +98,39 @@ export async function toggleAiObserverKillswitchAction(enabled: boolean): Promis
     }
   });
 }
+
+export async function sendExecutiveDigestToTelegramAction(options?: {
+  tenantId?: string;
+}): Promise<{
+  success: boolean;
+  message?: string;
+  error?: string;
+}> {
+  return requireStaffPermission('analytics', 'edit', async (staffUser) => {
+    try {
+      const result = await AiObserverService.runObserverPipeline({
+        tenantId: options?.tenantId || 'smmplan',
+        sendTelegram: true,
+        forceRun: true,
+      });
+
+      await auditAdminAwaitable({
+        adminId: staffUser.id,
+        adminEmail: staffUser.email,
+        action: 'AI_OBSERVER_TELEGRAM_DISPATCH',
+        target: 'AI_OBSERVER',
+        targetType: 'SYSTEM',
+        oldValue: null,
+        newValue: { tenantId: options?.tenantId, generatedAt: result.generatedAt },
+      });
+
+      return {
+        success: true,
+        message: 'AI-Дайджест успешно сформирован и поставлен в очередь отправки Telegram',
+      };
+    } catch (e) {
+      return { success: false, error: (e as Error).message };
+    }
+  });
+}
+
