@@ -42,6 +42,7 @@ import { StormRadarWidget } from './StormRadarWidget';
 import { stormDetectorService } from '@/services/admin/storm-detector.service';
 import { CollapsibleWaveChart } from './CollapsibleWaveChart';
 import { PeriodSelector } from './PeriodSelector';
+import { ExecutiveAiDigestCard } from '@/components/admin/dashboard/executive-ai-digest-card';
 import { formatEta } from '@/utils/format-eta';
 import { formatKopecks } from '@/utils/format-kopecks';
 
@@ -376,6 +377,9 @@ export default async function AdminDashboardPage({
           </div>
         </div>
       )}
+
+      {/* ── 7.5. EXECUTIVE AI OBSERVER & DAILY DIGEST ── */}
+      <ExecutiveAiDigestCard />
 
       {/* ── 8. TECHNICAL METRICS & REFUND MONITOR (6 + 6 GRID) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">

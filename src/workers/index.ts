@@ -12,6 +12,7 @@ import {
   ensureDripfeedCron,
   ensureArticlePublishCron,
   ensurePendingCheckCron,
+  ensureAiObserverCron,
   dlqQueue, 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   cleanupQueue, 
@@ -24,7 +25,9 @@ import {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   refillQueue,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  articlePublishQueue
+  articlePublishQueue,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  aiObserverQueue
 } from '../lib/queue-manager';
 import { sendAdminAlert, sendAdminAlertSync } from '../lib/notifications';
 import orderProcessor from './processors/order.processor';
@@ -36,6 +39,7 @@ import paymentSyncProcessor from './processors/payment-sync';
 import paymentGatewayProcessor from './processors/payment-gateway.processor';
 import refillProcessor from './processors/refill.processor';
 import articlePublishProcessor from './processors/article-publish.processor';
+import aiObserverProcessor from './processors/ai-observer.processor';
 import { orderService } from '../services/core/order.service';
 import { trackEtaFailure, resetEtaFailureStreak } from './eta-alerts';
 
@@ -88,6 +92,7 @@ const paymentSyncWorker = new Worker('paymentSyncQueue', paymentSyncProcessor, w
 const paymentGatewayWorker = new Worker('paymentGatewayQueue', paymentGatewayProcessor, workerConfig);
 const refillWorker = new Worker('refillQueue', refillProcessor, workerConfig);
 const articlePublishWorker = new Worker('articlePublishQueue', articlePublishProcessor, workerConfig);
+const aiObserverWorker = new Worker('aiObserverQueue', aiObserverProcessor, workerConfig);
 
 // ── P2.1: DLQ — Dead Letter Queue handler ────────────────────────────────────
 const MAX_ATTEMPTS = 3; // Must match createQueue defaults
@@ -200,8 +205,9 @@ ensurePaymentSyncCron().catch(e => log.error('Failed to setup Payment Sync Cron'
 ensureDripfeedCron().catch(e => log.error('Failed to setup Dripfeed Cron', { error: (e as Error).message }));
 ensureArticlePublishCron().catch(e => log.error('Failed to setup Article Publish Cron', { error: (e as Error).message }));
 ensurePendingCheckCron().catch(e => log.error('Failed to setup PendingCheck Cron', { error: (e as Error).message }));
+ensureAiObserverCron().catch(e => log.error('Failed to setup AI Observer Cron', { error: (e as Error).message }));
 
-log.info('All workers started', { queues: ['ordersQueue', 'refillQueue', 'syncQueue', 'catalogQueue', 'cleanup', 'paymentSyncQueue', 'articlePublishQueue'] });
+log.info('All workers started', { queues: ['ordersQueue', 'refillQueue', 'syncQueue', 'catalogQueue', 'cleanup', 'paymentSyncQueue', 'articlePublishQueue', 'aiObserverQueue'] });
 
 // ── Graceful Shutdown (12-Factor App) ────────────────────────────────────────
 const shutdown = async () => {
@@ -219,6 +225,7 @@ const shutdown = async () => {
     paymentSyncWorker.close(),
     paymentGatewayWorker.close(),
     articlePublishWorker.close(),
+    aiObserverWorker.close(),
   ]);
   await db.$disconnect();
   if (connection) await connection.quit();

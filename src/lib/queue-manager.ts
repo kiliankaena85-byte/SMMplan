@@ -339,6 +339,31 @@ export async function ensureArticlePublishCron() {
   );
 }
 
+export interface AiObserverJobPayload {
+  timestamp: number;
+  tenantId?: string;
+}
+export const aiObserverQueue = createQueue<AiObserverJobPayload>('aiObserverQueue', {
+  attempts: 2,
+  backoff: { type: 'fixed', delay: 30000 },
+});
+
+/**
+ * AI Observer: Run daily executive digest at 08:00 AM MSK (05:00 UTC)
+ */
+export async function ensureAiObserverCron() {
+  await aiObserverQueue.add(
+    'ai-observer-daily-digest',
+    { timestamp: Date.now(), tenantId: 'smmplan' },
+    {
+      repeat: {
+        pattern: '0 5 * * *', // 05:00 UTC = 08:00 MSK
+      },
+      jobId: 'ai-observer-daily-singleton',
+    }
+  );
+}
+
 export const closeQueues = async () => {
     await ordersQueue.close();
     await syncQueue.close();
@@ -351,5 +376,6 @@ export const closeQueues = async () => {
     await paymentGatewayQueue.close();
     await paymentSyncQueue.close();
     await articlePublishQueue.close();
+    await aiObserverQueue.close();
     if (redisConnection) await redisConnection.quit();
 };
