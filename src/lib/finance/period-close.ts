@@ -56,19 +56,14 @@ export async function closePeriod(
       });
     }
 
-    // Freeze entries in transaction
+    // Count entries and freeze period in transaction (LedgerEntry rows are strictly immutable and never mutated)
     const updateResult = await db.$transaction(async (tx) => {
-      const { count } = await tx.ledgerEntry.updateMany({
+      const count = await tx.ledgerEntry.count({
         where: {
           createdAt: {
             gte: startDate,
             lte: endDate,
           },
-          immutable: false,
-        },
-        data: {
-          immutable: true,
-          periodId: period.id,
         },
       });
 
@@ -101,11 +96,12 @@ export async function closePeriod(
       frozenEntriesCount: updateResult,
     };
   } catch (err) {
-    log.error('Failed to close financial period', { month, error: err });
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    log.error('Failed to close financial period', { month, error: errorMsg, stack: err instanceof Error ? err.stack : undefined });
     return {
       success: false,
       frozenEntriesCount: 0,
-      message: err instanceof Error ? err.message : String(err),
+      message: errorMsg,
     };
   }
 }

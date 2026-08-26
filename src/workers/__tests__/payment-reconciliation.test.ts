@@ -4,6 +4,7 @@ import { checkWebhookHealth } from '@/lib/alerts/webhook-health';
 import { reconcileStalePayments } from '../payment-reconciliation';
 import { reportPaymentIssueAction } from '@/actions/customer/payment-issue';
 import * as ssrfGuard from '@/lib/security/ssrf-guard';
+import * as sessionModule from '@/lib/session';
 
 describe('PREM-03: Silent Checkout Failure & Payment Reconciliation', () => {
   let testUserId: string;
@@ -16,6 +17,7 @@ describe('PREM-03: Silent Checkout Failure & Payment Reconciliation', () => {
       update: {},
     });
     testUserId = user.id;
+    vi.spyOn(sessionModule, 'verifySession').mockResolvedValue({ userId: testUserId } as any);
   });
 
   describe('Webhook Health Monitor', () => {
