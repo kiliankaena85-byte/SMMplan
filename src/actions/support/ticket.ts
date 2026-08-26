@@ -25,8 +25,14 @@ import { CompensationService } from '@/services/financial/compensation.service';
 export async function generateSmartReplyAction(ticketId: string) {
   return requireStaffPermission('tickets', 'view', async (admin) => {
     try {
-      const reply = await aiSupportService.generateReply(ticketId, admin.tenantId ?? 'smmplan');
-      return { success: true, reply };
+      const aiData = await aiSupportService.generateReply(ticketId, admin.tenantId ?? 'smmplan');
+      
+      // Append warning to the draft if escalation is required
+      const draft = aiData.escalate_to_senior 
+        ? `[⚠️ ИНСАЙТ AI: ${aiData.internal_reasoning}]\n\n${aiData.draft_reply}` 
+        : aiData.draft_reply;
+
+      return { success: true, reply: draft };
     } catch (err: unknown) {
       return { success: false, error: (err instanceof Error ? err.message : String(err)) };
     }
