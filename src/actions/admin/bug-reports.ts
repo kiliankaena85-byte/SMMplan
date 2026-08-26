@@ -18,6 +18,56 @@ export interface BugReportPayload {
   screenshot?: string; // Base64 data URL
 }
 
+/**
+ * Sends bug report and screenshot directly to admin Telegram chat
+ */
+async function sendBugReportToTelegram(payload: BugReportPayload) {
+  try {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+    if (!botToken || !adminChatId) return;
+
+    const caption = `🚨 <b>НОВЫЙ БАГ-РЕПОРТ С ТЕСТОВОГО СТЕНДА!</b>\n\n` +
+      `<b>📌 Заголовок:</b> ${payload.title}\n` +
+      `<b>Приоритет:</b> ${payload.priority === 'CRITICAL' ? '🔴 КРИТИЧЕСКИЙ' : payload.priority === 'NORMAL' ? '🟡 СРЕДНИЙ' : '🟢 МИНОРНЫЙ'}\n` +
+      `<b>🌐 URL:</b> <code>${payload.url}</code>\n` +
+      `<b>🏢 Бренд:</b> <code>${payload.tenantId.toUpperCase()}</code>\n` +
+      `<b>👤 Роль:</b> ${payload.role}\n` +
+      `<b>📱 Экран:</b> ${payload.viewport}\n\n` +
+      `<b>📝 Описание:</b>\n${payload.description.slice(0, 700)}`;
+
+    if (payload.screenshot && payload.screenshot.startsWith('data:image/')) {
+      const base64Data = payload.screenshot.split(',')[1];
+      const buffer = Buffer.from(base64Data, 'base64');
+      const formData = new FormData();
+      formData.append('chat_id', adminChatId);
+      formData.append('caption', caption);
+      formData.append('parse_mode', 'HTML');
+      const blob = new Blob([buffer], { type: 'image/png' });
+      formData.append('photo', blob, 'screenshot.png');
+
+      await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+        method: 'POST',
+        body: formData,
+        signal: AbortSignal.timeout(5000),
+      }).catch(() => null);
+    } else {
+      await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: adminChatId,
+          text: caption,
+          parse_mode: 'HTML',
+        }),
+        signal: AbortSignal.timeout(5000),
+      }).catch(() => null);
+    }
+  } catch (err) {
+    console.error('[BugReport] Failed to send Telegram alert:', err);
+  }
+}
+
 export async function submitBugReportAction(payload: BugReportPayload) {
   try {
     const session = await verifySession();
@@ -33,6 +83,7 @@ export async function submitBugReportAction(payload: BugReportPayload) {
 **Разрешение экрана:** ${payload.viewport}
 **Режим чекаута:** ${payload.checkoutMode || 'Не указан'}
 **User-Agent:** ${payload.userAgent}
+**Скриншот:** ${payload.screenshot ? 'Прикреплен' : 'Отсутствует'}
 
 #### Описание проблемы:
 ${payload.description}
@@ -40,7 +91,7 @@ ${payload.description}
 ${payload.consoleLogs && payload.consoleLogs.length > 0 ? `#### Ошибки консоли JS:\n\`\`\`\n${payload.consoleLogs.join('\n')}\n\`\`\`` : ''}
     `.trim();
 
-    // 1. Audit Admin log
+    // 1. Audit Admin log in PostgreSQL
     if (userId) {
       auditAdmin({
         adminId: userId,
@@ -48,11 +99,14 @@ ${payload.consoleLogs && payload.consoleLogs.length > 0 ? `#### Ошибки к�
         action: 'BUG_REPORT',
         target: payload.url,
         targetType: 'BugReport',
-        newValue: { title: payload.title, priority: payload.priority, url: payload.url },
+        newValue: { title: payload.title, priority: payload.priority, url: payload.url, hasScreenshot: Boolean(payload.screenshot) },
       });
     }
 
-    // 2. Sync to GraphRAG Memory if reachable
+    // 2. Direct Telegram Alert to Admin
+    sendBugReportToTelegram(payload).catch(() => null);
+
+    // 3. Sync to GraphRAG Memory if reachable
     try {
       await fetch('http://localhost:8100/api/knowledge', {
         method: 'POST',
@@ -70,7 +124,7 @@ ${payload.consoleLogs && payload.consoleLogs.length > 0 ? `#### Ошибки к�
 
     return {
       success: true,
-      message: 'Баг-репорт успешно сохранен и отправлен в журнал инцидентов!',
+      message: 'Баг-репорт со скриншотом сохранен и отправлен администратору в Telegram!',
       markdown: formattedContent,
     };
   } catch (error) {
