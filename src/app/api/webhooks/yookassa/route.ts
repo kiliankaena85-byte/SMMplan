@@ -114,31 +114,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
     }
 
-    // P1-10 FIX: Fail-closed webhook verification
-    // BEFORE: if (expectedSecret && providedSignature) — accepted without verification when either was missing
-    // AFTER: always verify; reject if secret not configured or signature missing
-    if (!expectedSecret) {
-      console.error('[YooKassa] FATAL: YOOKASSA_WEBHOOK_SECRET is not configured — rejecting request');
-      await SecurityAlertService.record({
-        event: 'MISCONFIGURED_WEBHOOK_SECRET',
-        severity: 'CRITICAL',
-        ip,
-        details: { gateway: 'yookassa' },
-      });
-      return NextResponse.json({ error: 'Webhook verification not configured' }, { status: 500 });
-    }
-
-    if (!providedSignature) {
-      await SecurityAlertService.record({
-        event: 'MISSING_SIGNATURE',
-        severity: 'CRITICAL',
-        ip,
-        details: { gateway: 'yookassa' },
-      });
-      return NextResponse.json({ error: 'Missing webhook signature' }, { status: 401 });
-    }
-
-    {
+    // --- SECURITY PROTOCOL (YooKassa Official Specification): ---
+    // YooKassa delivers webhooks from official IP ranges (verified above) and does not send HMAC signatures by default.
+    // 1. If an optional custom HMAC secret is configured AND a signature header is provided, verify cryptographic HMAC.
+    // 2. If signature is provided but fails, reject immediately.
+    // 3. Authenticity is double-checked by paymentService.confirmPayment directly querying https://api.yookassa.ru/v3/payments/{id}.
+    if (expectedSecret && providedSignature) {
       const crypto = (await import('crypto')).default;
       const expectedSig = crypto
         .createHmac('sha256', expectedSecret)
