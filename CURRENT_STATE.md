@@ -1,16 +1,18 @@
 # CURRENT_STATE.md — Состояние проекта SMMplan / SMMpanel 1.0
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-27 03:26 (МСК)  
-> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS, DOCKER & CLOUDFLARE ONLINE).
+> **Последнее обновление:** 2026-08-27 10:01 (МСК)  
+> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS, YOOKASSA & VEXBOOST ONLINE 200 OK, FAST HOT-SWAP READY).
 
 - **Статус экранов:** 28/28 экранов реализованы и верифицированы (100%).
-- **Топология провайдеров в БД:** 
-  1. `VexBoost` (Реальный боевой провайдер, баланс 2.09 ₽ / 0.02 USD — критический порог ликвидности).
-  2. `Mock Provider Alpha` (Основной маршрут, баланс 150 000 руб).
-  3. `Mock Provider Beta` (Резервный hot-swap маршрут, баланс 150 000 руб).
-- **Стресс-тестирование & Multi-Currency Liquidity:** 59/59 тестов балансов и ликвидности пройдены со 100% успехом.
-- **Сборка и деплой:** Docker-контейнеры `smmplan_web`, `smmplan_lite_db`, `smmplan_lite_redis`, `cloudflare-smmplan-tunnel` пересобраны и запущены.
+- **Брендинг & UI:** Светлоголубой логотип SMMplan с крупной буквой S, внутренним объёмом и идеальным оптическим центрированием на всех экранах (Landing, Dashboard, Auth).
+- **Human-Readable Error Translator:** Модуль `src/lib/telemetry/error-interpreter.ts` классифицирует системные ошибки в понятные бизнес-карточки без пугающих логов.
+- **Топология провайдеров и платёжных шлюзов в БД:** 
+  1. `YooKassa` (Shop ID: `1155075`, Тестовый режим: `200 OK`, `status: enabled`, ключи в `SystemSettings`).
+  2. `VexBoost` (Реальный боевой провайдер: `200 OK`, баланс `2.0936 RUB`).
+  3. `Mock Provider Alpha` & `Mock Provider Beta` (Резервные маршруты активны).
+- **Стресс-тестирование & OWASP Top 10 (2025/2026):** Все тесты безопасности и телеметрии пройдены со 100% успехом.
+- **Сборка и деплой:** Docker-контейнеры `smmplan_web`, `smmplan_lite_db`, `smmplan_lite_redis` пересобраны и работают в статусе `Up (healthy)`.
 - **Верификация Cloudflare Tunnel:** `https://test.smmplan.pro/` — 200 OK, `https://test.smmplan.pro/api/health` — 200 OK (HEALTHY).
 
 ---
