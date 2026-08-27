@@ -52,17 +52,16 @@ async function main() {
   console.log('✔ User Finance Transactions (Mobile) captured:', mobileFinanceShot);
 
   // --------------------------------------------------------------------------
-  // 3. ADMIN PANEL: Finance & Payments Registry (/admin/finance)
+  // 4. LANDING PAGE HEADER & FOOTER: SMMplan (1440x900)
   // --------------------------------------------------------------------------
-  console.log('3. Authenticating & Capturing Admin Panel Finance & Payments Registry (1440x900)...');
-  const adminPage = await desktopContext.newPage();
-  const adminLoginUrl = `http://localhost:3000/api/dev/login-direct?email=admin@smmplan.ru&secret=${QA_SECRET}&redirect=/admin/finance`;
-  await adminPage.goto(adminLoginUrl, { waitUntil: 'networkidle', timeout: 30000 });
-  await adminPage.waitForTimeout(2000);
+  console.log('4. Capturing Landing Page Header & Footer (1440x900)...');
+  const landingPage = await desktopContext.newPage();
+  await landingPage.goto('http://localhost:3000', { waitUntil: 'networkidle', timeout: 30000 });
+  await landingPage.waitForTimeout(2000);
 
-  const adminFinanceShot = path.join(artifactDir, 'admin_finance_payments_registry.png');
-  await adminPage.screenshot({ path: adminFinanceShot, fullPage: false });
-  console.log('✔ Admin Finance Payments Registry captured:', adminFinanceShot);
+  const landingShot = path.join(artifactDir, 'smmplan_landing_header_logo.png');
+  await landingPage.screenshot({ path: landingShot, fullPage: false });
+  console.log('✔ SMMplan Landing captured:', landingShot);
 
   await browser.close();
   console.log('🎉 Visual E2E Screenshot Capture Completed Successfully!');

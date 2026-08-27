@@ -65,11 +65,8 @@ export function SidebarNav({
       {/* Logo Header */}
       <div className="p-5 border-b border-border/70 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5 group" aria-label="На главную">
-          <TenantLogo tenantId="smmplan" className="w-8 h-8 group-hover:scale-105 transition-transform" iconClassName="w-4 h-4" />
-          <div className="flex flex-col">
-            <span className="font-black text-foreground text-base tracking-tight leading-none">SMMplan</span>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">B2B Platform</span>
-          </div>
+          <TenantLogo tenantId="smmplan" className="w-8 h-8 group-hover:scale-105 transition-transform" iconClassName="text-sm" />
+          <span className="font-black text-foreground text-lg tracking-tight leading-none">SMMplan</span>
         </Link>
       </div>
 

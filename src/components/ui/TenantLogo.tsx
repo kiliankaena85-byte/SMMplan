@@ -8,21 +8,20 @@ interface TenantLogoProps {
   iconClassName?: string;
 }
 
-export function TenantLogo({ tenantId, className = "w-8 h-8", iconClassName = "w-4 h-4" }: TenantLogoProps) {
+export function TenantLogo({ tenantId, className = "w-8 h-8", iconClassName = "text-sm" }: TenantLogoProps) {
   const isFlux = normalizeTenantId(tenantId) === 'flux';
 
   if (isFlux) {
     return (
-      <div className={`bg-gradient-to-br from-purple-500/20 via-fuchsia-500/15 to-pink-500/20 rounded-xl flex items-center justify-center border border-purple-500/35 shadow-[0_2px_14px_rgba(168,85,247,0.25)] relative group ${className}`}>
-        <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/30 to-pink-500/30 rounded-xl blur-sm opacity-50 group-hover:opacity-100 transition-opacity pointer-events-none" />
-        <Sparkles className={`${iconClassName} text-purple-400 dark:text-purple-300 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] relative z-10`} />
+      <div className={`rounded-xl bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 text-white flex items-center justify-center font-black shadow-md shadow-purple-500/20 select-none shrink-0 ${className}`}>
+        <span className={`font-black ${iconClassName}`}>F</span>
       </div>
     );
   }
 
   return (
-    <div className={`bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20 shadow-[0_2px_10px] shadow-primary/10 ${className}`}>
-      <Zap className={`${iconClassName} text-primary fill-current`} />
+    <div className={`rounded-xl bg-gradient-to-tr from-primary via-indigo-600 to-pink-500 text-white flex items-center justify-center font-black shadow-md shadow-primary/25 select-none shrink-0 ${className}`}>
+      <span className={`font-black ${iconClassName}`}>S</span>
     </div>
   );
 }

@@ -54,11 +54,11 @@ export function MegaFooter({
         {/* Column 1: Brand & Payments */}
         <div className="md:col-span-5 space-y-6 pr-4">
           <div className="flex items-center gap-3">
-            <TenantLogo tenantId={tenantConfig.id} className="w-10 h-10" iconClassName="w-5 h-5" />
+            <TenantLogo tenantId={tenantConfig.id} className="w-10 h-10" iconClassName="text-base" />
             <span className="text-2xl font-black tracking-tight text-foreground">{brandName}</span>
           </div>
           <p className="text-sm sm:text-base text-foreground/80 font-medium leading-relaxed max-w-sm">
-            Платформа нового поколения для B2B продвижения. Мгновенный запуск, строгая конфиденциальность и официальная работа с гарантиями.
+            Платформа нового поколения для продвижения в социальных сетях. Мгновенный запуск, строгая конфиденциальность и официальная работа с гарантиями.
           </p>
           <div className="pt-4 flex flex-wrap items-center gap-5 text-foreground/60 select-none border-t border-border/20 max-w-sm">
             {/* SBP */}
