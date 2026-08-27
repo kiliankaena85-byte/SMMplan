@@ -69,11 +69,13 @@ export async function sendAdminAlertSync(message: string, severity: AlertSeverit
 
   if (!token || !chatId) return;
 
-  const emoji = SEVERITY_EMOJI[severity];
-  const text = `${emoji} <b>SMMplan [${severity}]</b>\n\n${message}\n\n<i>${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}</i>`;
+  import('@/lib/telemetry/error-interpreter').then(({ ErrorInterpreter }) => {
+    // If message is already preformatted P0 alert, keep structure, otherwise format as incident card
+    const text = message.startsWith('🚨 <b>[P0 CRITICAL:')
+      ? message
+      : ErrorInterpreter.formatTelegramMessage(message, severity);
 
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -81,27 +83,35 @@ export async function sendAdminAlertSync(message: string, severity: AlertSeverit
         text,
         parse_mode: 'HTML',
       }),
-    });
-    if (!res.ok) {
-      const errBody = await res.text().catch(() => '');
-      console.error(`[NotificationService] Telegram API error (${res.status}):`, errBody);
+    }).then(async (res) => {
+      if (!res.ok) {
+        const errBody = await res.text().catch(() => '');
+        console.error(`[NotificationService] Telegram API error (${res.status}):`, errBody);
 
-      // Failover to Email if Telegram API rejected or blocked the message
+        EmergencyEmailService.sendAlert({
+          severity: severity === 'CRITICAL' ? 'CRITICAL' : 'WARNING',
+          title: `Telegram Delivery Failed (${res.status})`,
+          details: `${message}\n\nTelegram Error Details: ${errBody}`,
+        }).catch(() => {});
+      }
+    }).catch((err) => {
+      console.error('[NotificationService] Telegram alert sync failed:', err);
       EmergencyEmailService.sendAlert({
         severity: severity === 'CRITICAL' ? 'CRITICAL' : 'WARNING',
-        title: `Telegram Delivery Failed (${res.status})`,
-        details: `${message}\n\nTelegram Error Details: ${errBody}`,
+        title: 'Telegram Network Connection Error',
+        details: `${message}\n\nNetwork Error: ${(err as Error).message}`,
       }).catch(() => {});
-    }
-  } catch (err) {
-    console.error('[NotificationService] Telegram alert sync failed:', err);
-    // Failover to Email if network to Telegram failed
-    EmergencyEmailService.sendAlert({
-      severity: severity === 'CRITICAL' ? 'CRITICAL' : 'WARNING',
-      title: 'Telegram Network Connection Error',
-      details: `${message}\n\nNetwork Error: ${(err as Error).message}`,
+    });
+  }).catch(() => {
+    // Fallback if import fails
+    const emoji = SEVERITY_EMOJI[severity];
+    const text = `${emoji} <b>SMMplan [${severity}]</b>\n\n${message}\n\n<i>${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}</i>`;
+    fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
     }).catch(() => {});
-  }
+  });
 }
 
 export interface P0EmergencyAlertPayload {

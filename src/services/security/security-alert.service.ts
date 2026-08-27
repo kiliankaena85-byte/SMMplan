@@ -107,23 +107,32 @@ export class SecurityAlertService {
       // If Redis fails, continue sending alert to ensure safety
     }
 
-    const gateway = details?.gateway || details?.provider || 'api';
+    const gateway = String(details?.gateway || details?.provider || 'api');
     const moscowTime = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
     const emoji = severity === 'CRITICAL' ? '🚨' : '⚠️';
 
     const safeDetailsStr = JSON.stringify(details, null, 2);
     const truncatedDetails = safeDetailsStr.length > 500 ? `${safeDetailsStr.slice(0, 500)}...` : safeDetailsStr;
 
+    const isConfigWarning = event === 'MISCONFIGURED_WEBHOOK_SECRET';
+    const alertTitle = isConfigWarning
+      ? `[${severity}] ТРЕБУЕТСЯ НАСТРОЙКА: Секретный ключ ${gateway.toUpperCase()}`
+      : `[${severity}] ПРЕДУПРЕЖДЕНИЕ БЕЗОПАСНОСТИ: ${event}`;
+
     const message = [
-      `${emoji} <b>[${severity}] SECURITY INTRUSION ATTEMPT</b>`,
+      `${emoji} <b>${alertTitle}</b>`,
       '',
-      `<b>Event:</b> <code>${event}</code>`,
-      `<b>Gateway/Module:</b> <code>${gateway}</code>`,
-      `<b>Attacker IP:</b> <code>${cleanIp}</code>`,
-      `<b>Tenant:</b> <code>${tenantId || 'smmplan'}</code>`,
-      `<b>Details:</b> <pre>${truncatedDetails}</pre>`,
+      `<b>Событие:</b> <code>${event}</code>`,
+      `<b>Шлюз/Модуль:</b> <code>${gateway}</code>`,
+      `<b>IP источника:</b> <code>${cleanIp}</code>`,
+      `<b>Сайт/Тенант:</b> <code>${tenantId || 'smmplan'}</code>`,
+      `<b>Детали:</b> <pre>${truncatedDetails}</pre>`,
       '',
-      `<i>Detected at: ${moscowTime}</i>`,
+      isConfigWarning
+        ? '💡 <i>Для автоматического зачисления платежей укажите секретный ключ вебхука в настройках.</i>'
+        : '🛡️ <i>Запрос отклонен системой защиты.</i>',
+      '',
+      `<i>Фиксация: ${moscowTime}</i>`,
     ].join('\n');
 
     sendAdminAlert(message, severity === 'CRITICAL' ? 'CRITICAL' : 'WARNING');

@@ -97,8 +97,66 @@ export function TenantLogo({ tenantId, className = "w-8 h-8", iconClassName = "t
   }
 
   return (
-    <div className={`rounded-xl bg-gradient-to-tr from-primary via-indigo-600 to-pink-500 text-white flex items-center justify-center font-black shadow-md shadow-primary/25 select-none shrink-0 ${className}`}>
-      <span className={`font-black ${iconClassName}`}>S</span>
+    <div className={`relative flex items-center justify-center select-none shrink-0 ${className}`}>
+      <svg
+        viewBox="0 0 100 100"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full h-full drop-shadow-[0_4px_12px_rgba(37,99,235,0.35)] transition-transform duration-300 hover:scale-105"
+      >
+        <defs>
+          <linearGradient id="planSquircleGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#2563EB" />
+            <stop offset="45%" stopColor="#4F46E5" />
+            <stop offset="100%" stopColor="#EC4899" />
+          </linearGradient>
+          <filter id="planLetterShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="#000000" floodOpacity="0.25" />
+          </filter>
+        </defs>
+
+        {/* Super-ellipse / Squircle Badge */}
+        <rect
+          x="4"
+          y="4"
+          width="92"
+          height="92"
+          rx="26"
+          fill="url(#planSquircleGrad)"
+        />
+
+        {/* Top subtle highlight */}
+        <path
+          d="M 28 8 Q 50 16 72 8"
+          stroke="#FFFFFF"
+          strokeWidth="3"
+          strokeLinecap="round"
+          opacity="0.3"
+        />
+
+        {/* Precision Geometric Vector S (Centered at [50, 50], Bounding Box: 48x64) */}
+        <path
+          d="M 68 36
+             C 68 25, 59 18, 50 18
+             C 40 18, 32 25, 32 35
+             C 32 44, 40 48, 48 51
+             L 53 53
+             C 61 56, 68 61, 68 70
+             C 68 80, 59 87, 50 87
+             C 38 87, 30 79, 30 68
+             L 43 68
+             C 43 73, 46 76, 50 76
+             C 54 76, 57 73, 57 69
+             C 57 63, 52 60, 45 57
+             L 40 55
+             C 31 52, 21 46, 21 35
+             C 21 22, 33 13, 50 13
+             C 63 13, 77 22, 77 36
+             Z"
+          fill="#FFFFFF"
+          filter="url(#planLetterShadow)"
+        />
+      </svg>
     </div>
   );
 }
