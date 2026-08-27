@@ -23,7 +23,8 @@ export function DrawerQuantityCard({
   engine
 }: DrawerQuantityCardProps) {
   if (!selectedService) return null;
-  const min = selectedService.minQty || 10;
+  const dripMultiplier = engine.dripFeedEnabled ? engine.runs : (engine.isSmartDrip ? engine.smartDripDays : 1);
+  const min = (selectedService.minQty || 10) * dripMultiplier;
   const max = selectedService.maxQty || 100000;
 
   const { isCustomComments } = getServiceFlags(selectedService);
@@ -35,13 +36,13 @@ export function DrawerQuantityCard({
 
   const handleIncrement = () => {
     if (isCustomComments) return;
-    const step = quantity >= 1000 ? 500 : (quantity >= 100 ? 50 : 10);
+    const step = quantity >= 1000 ? 500 : (quantity >= 100 ? 50 : (dripMultiplier > 1 ? dripMultiplier : 10));
     setQuantity(Math.min(max, quantity + step));
   };
 
   const handleDecrement = () => {
     if (isCustomComments) return;
-    const step = quantity > 1000 ? 500 : (quantity > 100 ? 50 : 10);
+    const step = quantity > 1000 ? 500 : (quantity > 100 ? 50 : (dripMultiplier > 1 ? dripMultiplier : 10));
     setQuantity(Math.max(min, quantity - step));
   };
 
@@ -123,7 +124,14 @@ export function DrawerQuantityCard({
 
       {/* Compact limits hint */}
       <div className="flex items-center justify-between text-[11px] text-muted-foreground font-medium px-1">
-        <span>Мин: <strong className="text-foreground font-mono">{min.toLocaleString("ru-RU")}</strong></span>
+        <span>
+          Мин: <strong className="text-foreground font-mono">{min.toLocaleString("ru-RU")}</strong>
+          {dripMultiplier > 1 && (
+            <span className="text-primary font-normal text-[10px] ml-1">
+              ({selectedService.minQty} × {dripMultiplier} зап.)
+            </span>
+          )}
+        </span>
         <span>Макс: <strong className="text-foreground font-mono">{max.toLocaleString("ru-RU")}</strong></span>
       </div>
     </div>

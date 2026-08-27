@@ -11,7 +11,8 @@ import { headers } from 'next/headers';
 export async function generateMetadata(): Promise<Metadata> {
   const reqHeaders = await headers();
   const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
-  const host = reqHeaders.get('host') || '';
+  const rawHost = reqHeaders.get('x-forwarded-host') || reqHeaders.get('host') || getTenantHost(tenantId);
+  const host = (rawHost.includes('0.0.0.0') || rawHost.includes('host.docker.internal')) ? getTenantHost(tenantId) : rawHost;
   const protocol = host.includes('localhost') ? 'http' : 'https';
   const metadataBase = new URL(`${protocol}://${host}`);
 

@@ -103,7 +103,14 @@ export class ProviderBalanceService {
       latencyMs = Date.now() - startTime;
 
       const rawBalance = balanceData.balance ?? '0';
-      const numBalance = parseFloat(rawBalance) || 0;
+      let numBalance = 0;
+      if (typeof rawBalance === 'number') {
+        numBalance = isNaN(rawBalance) ? 0 : rawBalance;
+      } else {
+        const str = String(rawBalance).trim();
+        const parsed = parseFloat(str.replace(/,/g, '.'));
+        numBalance = isNaN(parsed) ? 0 : parsed;
+      }
       const currency = (balanceData.currency || provider.balanceCurrency || 'USD').toUpperCase().trim();
 
       // Normalize exchange rate
@@ -172,9 +179,28 @@ export class ProviderBalanceService {
             const { sendAdminAlert } = await import('@/lib/notifications');
             const emoji = status === 'critical' ? '🚨' : '⚠️';
             const level = status === 'critical' ? 'CRITICAL' : 'WARNING';
-            const threshold = status === 'critical' ? '$10' : '$50';
+            const thresholdUsd = status === 'critical' ? 10 : 50;
+            const thresholdRub = thresholdUsd * usdRate;
+
+            let formattedBalance = '';
+            let formattedThreshold = '';
+
+            if (currency === 'RUB') {
+              formattedBalance = `${numBalance.toFixed(2)} ₽ (~$${balanceUsd.toFixed(2)})`;
+              formattedThreshold = `${thresholdRub.toLocaleString('ru-RU')} ₽ ($${thresholdUsd}.00)`;
+            } else if (currency === 'USD') {
+              formattedBalance = `$${numBalance.toFixed(2)} (~${balanceRub.toFixed(2)} ₽)`;
+              formattedThreshold = `$${thresholdUsd}.00 (~${thresholdRub.toLocaleString('ru-RU')} ₽)`;
+            } else if (currency === 'EUR') {
+              formattedBalance = `€${numBalance.toFixed(2)} (~$${balanceUsd.toFixed(2)} / ~${balanceRub.toFixed(2)} ₽)`;
+              formattedThreshold = `€${(thresholdUsd / 1.08).toFixed(2)} ($${thresholdUsd}.00 / ${thresholdRub.toLocaleString('ru-RU')} ₽)`;
+            } else {
+              formattedBalance = `${numBalance.toFixed(2)} ${currency} (~$${balanceUsd.toFixed(2)} / ~${balanceRub.toFixed(2)} ₽)`;
+              formattedThreshold = `$${thresholdUsd}.00 (~${thresholdRub.toLocaleString('ru-RU')} ₽)`;
+            }
+
             await sendAdminAlert(
-              `${emoji} Баланс провайдера "${provider.name}" = $${balanceUsd.toFixed(2)} (${currency}) — ниже ${threshold}. Пополните депозит!`,
+              `${emoji} Баланс провайдера "${provider.name}" = ${formattedBalance} — ниже порога ${formattedThreshold}. Пополните депозит!`,
               level
             );
             // Deduplicate: suppress repeat alerts for 1 hour

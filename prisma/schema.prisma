@@ -104,6 +104,12 @@ model User {
   substituteStaffShifts      StaffShift[]                    @relation("ShiftSubstitute")
   feedbacks                  TicketFeedback[]
 
+  // AI Economic Optimization & Sentinel CX Relations
+  optimizationSnapshotsApplied EconomicOptimizationSnapshot[] @relation("AppliedOptimizationSnapshots")
+  orderRecoveryIncidents       OrderRecoveryIncident[]
+  cxCompensations              CxApologyCompensation[]
+  bonusBalance                 BigInt                        @default(0) // Strictly non-withdrawable CX/promotional credit in Cents
+
   // Customer Group (Lifecycle & Access Control)
   customerGroupId            String?
   customerGroup              CustomerGroup?                  @relation("CustomerGroupUsers", fields: [customerGroupId], references: [id], onDelete: SetNull)
@@ -319,6 +325,7 @@ model Service {
   draft          ServiceDraft?
   linkChecks     ServiceLinkCheck[]
   editHistory    ServiceEditHistory[]
+  aiRecommendations AiPricingRecommendation[] @relation("ServiceAiRecommendations")
 
   @@unique([tenantId, slug])
   @@index([categoryId])
@@ -564,6 +571,8 @@ model Order {
   @@index([tenantId, userId, status, createdAt])
   @@index([paymentId]) // Fast lookup for orders by payment (Order.paymentId foreign key)
   userNotes UserNote[]
+  orderRecoveryIncidents OrderRecoveryIncident[]
+  cxCompensations        CxApologyCompensation[]
 }
 
 model Refill {
@@ -1994,6 +2003,126 @@ model ServiceEditHistory {
   @@index([adminId])
   @@index([createdAt])
 }
+
+// ============================================================================
+// AI ECONOMIC OPTIMIZATION & SENTINEL CX MODELS (Stages 2, 3, 4, 5)
+// ============================================================================
+
+enum OptimizationSnapshotStatus {
+  GENERATED
+  APPLIED
+  PARTIALLY_APPLIED
+  REJECTED
+  EXPIRED
+  ARCHIVED
+}
+
+enum RecommendationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  AUTO_APPLIED
+}
+
+model EconomicOptimizationSnapshot {
+  id                   String                     @id @default(cuid())
+  tenantId             String                     @default("smmplan")
+  analyzedPeriodDays   Int                        @default(30)
+  totalLeakageRub      Float                      @default(0.0)
+  leakingServicesCount Int                        @default(0)
+  executiveSummary     String                     @db.Text
+  toolExecutionTrace   Json?                      // Full audit trace of tool calls and invariant metrics
+  status               OptimizationSnapshotStatus @default(GENERATED)
+  appliedBy            String?                    // User.id of operator who executed bulk apply
+  appliedAt            DateTime?
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+
+  recommendations      AiPricingRecommendation[]
+  appliedByUser        User?                      @relation("AppliedOptimizationSnapshots", fields: [appliedBy], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([status])
+  @@index([tenantId, status])
+  @@index([appliedBy])
+}
+
+model AiPricingRecommendation {
+  id                      String                       @id @default(cuid())
+  snapshotId              String
+  snapshot                EconomicOptimizationSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  serviceId               String
+  service                 Service                      @relation("ServiceAiRecommendations", fields: [serviceId], references: [id], onDelete: Cascade)
+  currentPriceRub         Float
+  proposedPriceRub        Float
+  currentMarkup           Float
+  proposedMarkup          Float
+  projectedMonthlyGainRub Float                        @default(0.0)
+  confidenceScore         Float                        @default(1.0)
+  status                  RecommendationStatus         @default(PENDING)
+  rejectionReason         String?
+  appliedAt               DateTime?
+  createdAt               DateTime                     @default(now())
+  updatedAt               DateTime                     @updatedAt
+
+  @@index([snapshotId])
+  @@index([serviceId])
+  @@index([status])
+  @@index([confidenceScore])
+  @@index([snapshotId, status])
+}
+
+model SlaTelemetrySnapshot {
+  id                 String   @id @default(cuid())
+  providerId         String
+  serviceId          String?
+  p50Seconds         Int
+  p90Seconds         Int
+  p99Seconds         Int
+  sampleCount        Int
+  isDegraded         Boolean  @default(false)
+  createdAt          DateTime @default(now())
+
+  @@index([providerId, createdAt(sort: Desc)])
+  @@index([createdAt])
+}
+
+model OrderRecoveryIncident {
+  id                 String   @id @default(cuid())
+  orderId            String
+  userId             String
+  originalProviderId String
+  swappedProviderId  String
+  absorbedDeltaCents BigInt   @default(0)
+  reason             String
+  status             String   @default("EXECUTED")
+  createdAt          DateTime @default(now())
+
+  order              Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model CxApologyCompensation {
+  id          String   @id @default(cuid())
+  userId      String
+  orderId     String
+  amountCents BigInt
+  reason      String
+  status      String   @default("GRANTED")
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([orderId])
+  @@index([status])
+}
+
 
 
 

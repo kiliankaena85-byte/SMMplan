@@ -69,7 +69,8 @@ services:
   web:
     build:
       context: .
-      dockerfile: Dockerfile.standalone
+      dockerfile: Dockerfile
+      target: runner
     container_name: smmplan_web
     restart: always
     # Load all secrets from .env (local dev keys, API tokens, etc.)

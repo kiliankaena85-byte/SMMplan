@@ -76,10 +76,15 @@ export function FloatingQADock() {
 
   const handleQuickAuth = (role: "guest" | "admin" | "client") => {
     if (role === "guest") {
-      document.cookie = "auth_token=; path=/; max-age=0";
+      document.cookie = "session_token=; path=/; max-age=0; SameSite=Lax";
+      document.cookie = "auth_token=; path=/; max-age=0; SameSite=Lax";
+      document.cookie = "explicit_logout=true; path=/; max-age=31536000; SameSite=Lax";
       toast.info("Вы вышли из аккаунта (Режим: Анонимный гость)");
       setTimeout(() => {
-        window.location.href = window.location.pathname;
+        const isProtectedPath = window.location.pathname.startsWith('/admin') || 
+                                window.location.pathname.startsWith('/dashboard') || 
+                                window.location.pathname.startsWith('/operator');
+        window.location.href = isProtectedPath ? '/login' : window.location.pathname;
       }, 300);
     } else if (role === "admin") {
       const secret = process.env.NEXT_PUBLIC_QA_SECRET;

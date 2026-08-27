@@ -14,6 +14,7 @@ const ALLOWED_HOST_DOMAINS = [
 function isAllowedHost(host: string): boolean {
   if (!host) return false;
   const cleanHost = host.split(':')[0].toLowerCase();
+  if (cleanHost === '0.0.0.0' || cleanHost === 'host.docker.internal') return false;
   return ALLOWED_HOST_DOMAINS.includes(cleanHost) || cleanHost.endsWith('.smmplan.pro') || cleanHost.endsWith('.smmflux.ru');
 }
 
@@ -27,7 +28,11 @@ export async function getBaseUrlAsync(reqHost?: string | null, reqProto?: string
     const proto = headersList.get("x-forwarded-proto") || (process.env.NODE_ENV === "production" ? "https" : "http");
 
     if (host) {
-      if (host.includes("0.0.0.0")) host = host.replace("0.0.0.0", "localhost");
+      if (host.includes("0.0.0.0") || host.includes("host.docker.internal")) {
+        host = process.env.NODE_ENV === "production" 
+          ? (process.env.APP_URL ? new URL(process.env.APP_URL).host : "test.smmplan.pro") 
+          : "localhost:3000";
+      }
       if (isAllowedHost(host)) {
         return `${proto}://${host}`;
       }
@@ -44,7 +49,11 @@ export async function getBaseUrlAsync(reqHost?: string | null, reqProto?: string
   // 3. Fallback to provided reqHost with whitelist check
   if (reqHost) {
     let host = reqHost;
-    if (host.includes("0.0.0.0")) host = host.replace("0.0.0.0", "localhost");
+    if (host.includes("0.0.0.0") || host.includes("host.docker.internal")) {
+      host = process.env.NODE_ENV === "production" 
+        ? (process.env.APP_URL ? new URL(process.env.APP_URL).host : "test.smmplan.pro") 
+        : "localhost:3000";
+    }
     if (isAllowedHost(host)) {
       const proto = reqProto || (process.env.NODE_ENV === "production" ? "https" : "http");
       return `${proto}://${host}`;
@@ -52,7 +61,7 @@ export async function getBaseUrlAsync(reqHost?: string | null, reqProto?: string
   }
 
   // 4. Absolute canonical fallback
-  return process.env.NODE_ENV === "production" ? "https://smmplan.pro" : "http://localhost:3000";
+  return process.env.NODE_ENV === "production" ? "https://test.smmplan.pro" : "http://localhost:3000";
 }
 
 /**
@@ -64,7 +73,11 @@ export function getBaseUrlSync(reqHost?: string | null, reqProto?: string | null
 
   if (reqHost) {
     let host = reqHost;
-    if (host.includes("0.0.0.0")) host = host.replace("0.0.0.0", "localhost");
+    if (host.includes("0.0.0.0") || host.includes("host.docker.internal")) {
+      host = process.env.NODE_ENV === "production" 
+        ? (process.env.APP_URL ? new URL(process.env.APP_URL).host : "test.smmplan.pro") 
+        : "localhost:3000";
+    }
     if (isAllowedHost(host)) {
       const proto = reqProto || (process.env.NODE_ENV === "production" ? "https" : "http");
       return `${proto}://${host}`;
@@ -75,5 +88,5 @@ export function getBaseUrlSync(reqHost?: string | null, reqProto?: string | null
     return envUrl.endsWith("/") ? envUrl.slice(0, -1) : envUrl;
   }
 
-  return process.env.NODE_ENV === "production" ? "https://smmplan.pro" : "http://localhost:3000";
+  return process.env.NODE_ENV === "production" ? "https://test.smmplan.pro" : "http://localhost:3000";
 }

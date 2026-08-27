@@ -63,6 +63,7 @@ export class ProviderService {
    * Main Factory Method — resolves and passes proxy config to UniversalProvider
    */
   async getProviderInstance(config: Provider): Promise<BaseProvider> {
+    let apiUrl = config.apiUrl;
     let decryptedKey: string;
     try {
       decryptedKey = VaultService.decrypt(config.apiKey);
@@ -70,10 +71,23 @@ export class ProviderService {
       decryptedKey = config.apiKey;
     }
 
+    // Auto-route internal mock provider URLs or mock provider records to local mock-provider route
+    if (apiUrl.includes('mock.smmplan.internal') || apiUrl.includes('mock-provider') || config.name.toLowerCase().includes('mock provider')) {
+      const port = process.env.PORT || '3000';
+      const internalUrl = `http://127.0.0.1:${port}/api/dev/mock-provider`;
+      decryptedKey = process.env.MOCK_PROVIDER_KEY || decryptedKey || 'mock_master_key_2026';
+      return new UniversalProvider(
+        internalUrl,
+        decryptedKey,
+        (config.metadata as Record<string, unknown> | undefined),
+        null,
+      );
+    }
+
     const proxyConfig = await this.resolveProxyConfig(config);
 
     return new UniversalProvider(
-      config.apiUrl,
+      apiUrl,
       decryptedKey || config.apiKey,
       (config.metadata as Record<string, unknown> | undefined),
       proxyConfig,
@@ -125,9 +139,9 @@ export class ProviderService {
       if (!mockKey) {
         throw new Error('MOCK_PROVIDER_KEY is not set. Configure it in .env to use test mode.');
       }
-      const baseUrl = await getBaseUrlAsync();
+      const port = process.env.PORT || '3000';
       return new UniversalProvider(
-        `${baseUrl}/api/dev/mock-provider`,
+        `http://127.0.0.1:${port}/api/dev/mock-provider`,
         mockKey,
         (config.metadata as Record<string, unknown> | undefined),
       );

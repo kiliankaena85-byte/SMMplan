@@ -60,8 +60,9 @@
 
 *Метаданные плана должны содержать `request_feedback: true` для явного подтверждения пользователем.*
 
-## 4. UI Pricing Policy
+## 4. UI Pricing Policy & Drip-Feed Floor Invariant
 - **CRITICAL**: В UI пользователь ВСЕГДА видит цену за 1 штуку (pricePerUnitRub), подпись: "₽ / шт". ЗАПРЕЩЕНО писать в UI "/ 1000 шт" или умножать цену на 1000 при отображении.
+- **CRITICAL Drip-Feed Floor Invariant**: При оформлении Drip-Feed ($N$ запусков) или Smart Drip ($D$ дней) объем на один запуск $\lfloor \text{quantity} / \text{runs} \rfloor$ **НЕ МОЖЕТ быть меньше** `service.minQty`. Минимальный общий объем заказа в UI и на бэкенде **СТРОГО** $\ge \text{service.minQty} \times N$. При переключении Drip-Feed степпер и значение объема обязаны автоматически масштабироваться до этого минимума.
 
 ---
 
@@ -118,6 +119,13 @@
 - ❌ **ЗАПРЕЩЕНО** интерполировать переменные в Cypher-запросы Neo4j без проверки по белому списку `VALID_LABELS = {'class', 'module', 'function', 'file'}`.
 - ❌ **ЗАПРЕЩЕНО** позволять сотрудникам назначать роли самим себе (`admin.id === targetUserId`) или выдавать права, превышающие их собственный набор полномочий (`Grant Ceiling`).
 - ❌ **ЗАПРЕЩЕНО** переименовывать `src/proxy.ts` в `src/middleware.ts` — в Next.js 16 App Router для платформы зафиксирован `src/proxy.ts`.
+
+## 13. Adversarial Red Team & Pre-Mortem Quality Gate (CRITICAL)
+- ❌ **ЗАПРЕЩЕНО** сдавать задачи, затрагивающие финансовый баланс (`WalletOps`, `pricing`), заказы (`Drip-Feed`), обратный прокси (`src/proxy.ts`, `auth`) или очереди (`BullMQ`, `Redis`), без состязательного аудита `npm run audit:swarm`.
+- ✅ **Planning Pre-Mortem:** В каждом плане реализации агент обязан формулировать минимум 3 сценария гипотетических отказов (Премортем) с конкретными защитными механизмами.
+- ✅ **ExactMath Invariant:** Все денежные вычисления сумм заказов обязаны использовать `ExactMath.calculateOrderCostKopecks()` с банковским округлением (Half-Even), базисными пунктами наценок и защитным порогом $\ge 1$ коп.
+
+
 
 
 

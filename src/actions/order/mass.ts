@@ -373,7 +373,12 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
     });
 
 
-    const host = reqHeaders.get("host") || new URL(getBaseUrlSync()).host;
+    const fwdHost = reqHeaders.get("x-forwarded-host");
+    const hostHeader = reqHeaders.get("host");
+    let host = fwdHost || hostHeader || new URL(getBaseUrlSync()).host;
+    if (host.includes("0.0.0.0") || host.includes("host.docker.internal")) {
+      host = process.env.NODE_ENV === "production" ? "test.smmplan.pro" : "localhost:3000";
+    }
     const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
     const origin = getBaseUrlSync(host, protocol);
     let successUrl = `${origin}/success?paymentId=${result.paymentId}`;
@@ -653,7 +658,12 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
     });
 
     let paymentUrl: string | undefined;
-    const host = reqHeaders.get("host") || new URL(getBaseUrlSync()).host;
+    const fwdHost = reqHeaders.get("x-forwarded-host");
+    const hostHeader = reqHeaders.get("host");
+    let host = fwdHost || hostHeader || new URL(getBaseUrlSync()).host;
+    if (host.includes("0.0.0.0") || host.includes("host.docker.internal")) {
+      host = process.env.NODE_ENV === "production" ? "test.smmplan.pro" : "localhost:3000";
+    }
     const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
     const origin = getBaseUrlSync(host, protocol);
     let successUrl = `${origin}/success?paymentId=${result.paymentId}`;

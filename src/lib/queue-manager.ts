@@ -364,6 +364,38 @@ export async function ensureAiObserverCron() {
   );
 }
 
+export interface AiEconomicOptimizerJobPayload {
+  timestamp: number;
+  tenantId?: string;
+  forceRun?: boolean;
+  analyzedPeriodDays?: number;
+}
+
+export const aiEconomicOptimizerQueue = createQueue<AiEconomicOptimizerJobPayload>(
+  'aiEconomicOptimizerQueue',
+  {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 10000 },
+  }
+);
+
+/**
+ * Nightly Cron: AI Economic Optimizer Daemon
+ * Runs at 04:30 AM MSK (01:30 AM UTC) daily.
+ */
+export async function ensureAiEconomicOptimizerCron(): Promise<void> {
+  await aiEconomicOptimizerQueue.add(
+    'ai-economic-optimizer-nightly',
+    { timestamp: Date.now(), tenantId: 'all', analyzedPeriodDays: 30 },
+    {
+      repeat: {
+        pattern: '30 1 * * *', // 01:30 UTC = 04:30 MSK
+      },
+      jobId: 'ai-economic-optimizer-singleton',
+    }
+  );
+}
+
 export const closeQueues = async () => {
     await ordersQueue.close();
     await syncQueue.close();
@@ -377,5 +409,6 @@ export const closeQueues = async () => {
     await paymentSyncQueue.close();
     await articlePublishQueue.close();
     await aiObserverQueue.close();
+    await aiEconomicOptimizerQueue.close();
     if (redisConnection) await redisConnection.quit();
 };

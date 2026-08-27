@@ -21,7 +21,30 @@ export async function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.delete('x-tenant-id');
 
-  const host = request.headers.get('host') || '';
+  const fwdHost = request.headers.get('x-forwarded-host');
+  const hostHeader = request.headers.get('host');
+  const fwdProto = request.headers.get('x-forwarded-proto');
+
+  let host = fwdHost || hostHeader || '';
+  if (host.includes('0.0.0.0') || host.includes('host.docker.internal')) {
+    host = process.env.NODE_ENV === 'production' 
+      ? (process.env.APP_URL ? new URL(process.env.APP_URL).host : 'test.smmplan.pro') 
+      : 'localhost:3000';
+  }
+
+  const proto = fwdProto || (process.env.NODE_ENV === 'production' && !host.includes('localhost') ? 'https' : 'http');
+  const originBase = `${proto}://${host}`;
+
+  const resolveRedirectUrl = (target: string | URL): URL => {
+    if (target instanceof URL) {
+      if (target.hostname === '0.0.0.0' || target.hostname === 'host.docker.internal') {
+        return new URL(`${target.pathname}${target.search}${target.hash}`, originBase);
+      }
+      return target;
+    }
+    return new URL(target, originBase);
+  };
+
   if (host.includes('lovable.pro')) {
     return NextResponse.redirect('https://smmflux.ru' + request.nextUrl.pathname, 301);
   }
@@ -71,10 +94,25 @@ export async function proxy(request: NextRequest) {
     return res;
   };
 
+  // 1. Instant Logout Interception (Zero 0.0.0.0 leak guarantee)
+  if (pathname === '/api/auth/logout' || pathname === '/logout') {
+    const res = NextResponse.redirect(resolveRedirectUrl(ROUTES.AUTH.LOGIN));
+    res.cookies.delete('session_token');
+    res.cookies.set('explicit_logout', 'true', {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+    });
+    res.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
+    return applyStickyCookie(res);
+  }
+
   // 2. Check legacy redirects
   const newPath = legacyRedirects[pathname];
   if (newPath) {
-    const redirectUrl = new URL(newPath, request.url);
+    const redirectUrl = resolveRedirectUrl(newPath);
     if (newPath.includes('#')) {
       const [pathPart, hashPart] = newPath.split('#');
       redirectUrl.pathname = pathPart;
@@ -103,12 +141,12 @@ export async function proxy(request: NextRequest) {
       }
       // Dev mode auto-login bypass for local environment
       if (isDevBypassAllowed) {
-        const autoLoginUrl = new URL('/api/dev/login-direct', request.url);
+        const autoLoginUrl = resolveRedirectUrl('/api/dev/login-direct');
         autoLoginUrl.searchParams.set('email', process.env.DEV_BYPASS_EMAIL || 'infosokoloff@yandex.ru');
         autoLoginUrl.searchParams.set('tenant', finalTenantId);
         return applyStickyCookie(NextResponse.redirect(autoLoginUrl));
       }
-      return applyStickyCookie(NextResponse.redirect(new URL(ROUTES.AUTH.LOGIN, request.url)));
+      return applyStickyCookie(NextResponse.redirect(resolveRedirectUrl(ROUTES.AUTH.LOGIN)));
     }
 
     const payload = await decryptSessionToken(sessionToken);
@@ -124,14 +162,14 @@ export async function proxy(request: NextRequest) {
       }
       // Dev mode auto-login bypass on tenant mismatch in local environment
       if (isDevBypassAllowed && explicitLogout !== 'true') {
-        const autoLoginUrl = new URL('/api/dev/login-direct', request.url);
+        const autoLoginUrl = resolveRedirectUrl('/api/dev/login-direct');
         autoLoginUrl.searchParams.set('email', process.env.DEV_BYPASS_EMAIL || 'infosokoloff@yandex.ru');
         autoLoginUrl.searchParams.set('tenant', finalTenantId);
         const response = NextResponse.redirect(autoLoginUrl);
         response.cookies.delete('session_token');
         return applyStickyCookie(response);
       }
-      const response = NextResponse.redirect(new URL(ROUTES.AUTH.LOGIN, request.url));
+      const response = NextResponse.redirect(resolveRedirectUrl(ROUTES.AUTH.LOGIN));
       response.cookies.delete('session_token');
       return applyStickyCookie(response);
     }
@@ -142,7 +180,7 @@ export async function proxy(request: NextRequest) {
         if (isRSC) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
-        return applyStickyCookie(NextResponse.redirect(new URL(ROUTES.DASHBOARD.HOME, request.url)));
+        return applyStickyCookie(NextResponse.redirect(resolveRedirectUrl(ROUTES.DASHBOARD.HOME)));
       }
     }
   }

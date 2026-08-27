@@ -207,7 +207,7 @@ export class LedgerReconciliationService {
    * Calculates sequential running balance from earliest to latest, then reverses for display.
    */
   static async getUserAuditTimeline(userId: string): Promise<UserAuditTimelineDTO> {
-    const user = await db.user.findUniqueOrThrow({
+    const user = await db.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -220,6 +220,10 @@ export class LedgerReconciliationService {
         createdAt: true,
       },
     });
+
+    if (!user) {
+      throw new Error(`Пользователь с ID ${userId} не найден`);
+    }
 
     const entries = await db.ledgerEntry.findMany({
       where: { userId },

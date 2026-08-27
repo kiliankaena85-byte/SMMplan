@@ -8,10 +8,11 @@ import { redirect } from "next/navigation";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const token = url.searchParams.get("token");
-  const tenant = url.searchParams.get("tenant") || "smmplan";
+  const { normalizeTenantId } = await import('@/lib/tenant-resolver-edge');
+  const tenant = normalizeTenantId(url.searchParams.get("tenant")) || "smmplan";
   const customRedirect = url.searchParams.get("redirectTo");
 
-  const loginBase = tenant === "lovable" ? "/login?tenant=lovable&" : "/login?";
+  const loginBase = tenant === "flux" ? "/login?tenant=flux&" : "/login?";
 
   if (!token) {
     redirect(`${loginBase}error=InvalidToken`);
@@ -65,21 +66,12 @@ export async function GET(request: Request) {
     path: '/',
   });
 
-  function isSafeRedirect(url: string | null): url is string {
-    if (!url) return false;
-    if (!url.startsWith('/')) return false;
-    if (url.startsWith('//')) return false;
-    if (url.includes('\\')) return false;
-    return true;
-  }
+  const { sanitizeRedirectUrl } = await import('@/lib/security/redirect-guard');
+  let destination = sanitizeRedirectUrl(customRedirect, '/dashboard');
 
-  let destination = '/dashboard';
-  if (isSafeRedirect(customRedirect)) {
-    destination = customRedirect;
-  }
-  const isLovable = user.tenantId === 'lovable' || tenant === 'lovable';
-  if (isLovable && !destination.includes('tenant=lovable')) {
-    destination += (destination.includes('?') ? '&' : '?') + 'tenant=lovable';
+  const isFlux = user.tenantId === 'flux' || tenant === 'flux';
+  if (isFlux && !destination.includes('tenant=flux')) {
+    destination += (destination.includes('?') ? '&' : '?') + 'tenant=flux';
   }
 
   redirect(destination);

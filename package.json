@@ -10,6 +10,8 @@
     "lint:debt": "npx knip",
     "typecheck": "tsc --noEmit",
     "audit:deps": "tsx scripts/audit-deps.ts",
+    "audit:swarm": "tsx scripts/harness/ai-swarm-audit.ts",
+    "audit:project": "tsx scripts/harness/full-project-swarm.ts",
     "postinstall": "prisma generate",
     "test": "dotenv -e .env.test -- vitest run",
     "test:ci": "dotenv -e .env.test -- vitest run --coverage",

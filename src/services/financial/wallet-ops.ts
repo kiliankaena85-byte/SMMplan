@@ -1,6 +1,9 @@
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { runSerializableTransaction } from '@/lib/transactions';
+import { ExactMath } from '@/lib/financial/exact-math';
+
+export { ExactMath };
 
 type PrismaTx = Omit<Prisma.TransactionClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">;
 

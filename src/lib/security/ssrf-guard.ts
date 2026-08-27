@@ -87,6 +87,14 @@ export async function assertSafeOutboundUrl(rawUrl: string): Promise<SsrfCheckRe
 
   const hostname = parsed.hostname.toLowerCase();
 
+  // Allow internal mock provider routes for dev/test environments
+  if (
+    parsed.pathname.includes('/api/dev/mock-provider') &&
+    (process.env.ENABLE_DEV_ROUTES === 'true' || process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development')
+  ) {
+    return { ok: true, ip: '127.0.0.1', hostname };
+  }
+
   if (BLOCKED_HOSTS.has(hostname) || hostname === AWS_METADATA_HOST) {
     return { ok: false, reason: `host-${hostname}-blocked` };
   }

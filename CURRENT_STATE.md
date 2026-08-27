@@ -1,16 +1,17 @@
 # CURRENT_STATE.md — Состояние проекта SMMplan / SMMpanel 1.0
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-26 23:55 (МСК)  
-> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS).
+> **Последнее обновление:** 2026-08-27 03:26 (МСК)  
+> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS, DOCKER & CLOUDFLARE ONLINE).
 
 - **Статус экранов:** 28/28 экранов реализованы и верифицированы (100%).
-- **Топология провайдеров в БД:** Очищена до строго 3 провайдеров:
-  1. `VexBoost` (Реальный провайдер, баланс ~3.20 руб — критический порог ликвидности).
-  2. `Mock Provider Alpha` (Основной маршрут, баланс 50 000 руб).
-  3. `Mock Provider Beta` (Резервный hot-swap маршрут, баланс 50 000 руб).
-- **Стресс-тестирование & User Journeys:** Полная батарея из 9 тест-сьютов (58 тестов) пройдена со 100% успехом (включая параллельные гонки баланса, hot-swap отказоустойчивость, защиту вебхуков от спама и мульти-тенант изоляцию).
-- **Сборка и деплой:** Next.js 16.2.12 Standalone собран, переразвернут в Docker, healthcheck на `https://test.smmplan.pro/api/health` — 200 OK (HEALTHY).
+- **Топология провайдеров в БД:** 
+  1. `VexBoost` (Реальный боевой провайдер, баланс 2.09 ₽ / 0.02 USD — критический порог ликвидности).
+  2. `Mock Provider Alpha` (Основной маршрут, баланс 150 000 руб).
+  3. `Mock Provider Beta` (Резервный hot-swap маршрут, баланс 150 000 руб).
+- **Стресс-тестирование & Multi-Currency Liquidity:** 59/59 тестов балансов и ликвидности пройдены со 100% успехом.
+- **Сборка и деплой:** Docker-контейнеры `smmplan_web`, `smmplan_lite_db`, `smmplan_lite_redis`, `cloudflare-smmplan-tunnel` пересобраны и запущены.
+- **Верификация Cloudflare Tunnel:** `https://test.smmplan.pro/` — 200 OK, `https://test.smmplan.pro/api/health` — 200 OK (HEALTHY).
 
 ---
 
@@ -46,10 +47,29 @@
 | **ORD**| **Order Lifecycle & Support Refunds** | ✅ 100% | `src/__tests__/order-actions-and-support-ops.test.ts` (7/7 PASS) |
 | **BDG**| **Badge & Warranty Semantic Coherence** | ✅ 100% | `src/__tests__/badge-and-warranty-anti-contradiction.test.ts` (22/22 PASS) |
 | **AI** | **AI Data, Math & Schema Integrity** | ✅ 100% | `src/__tests__/ai-data-math-and-schema-integrity.test.ts` (20/20 PASS) |
+| **AI-1**| **Deterministic Economic Harnesses** | ✅ 100% | `src/__tests__/ai-harnesses/stage1-economic-harnesses.test.ts` (6/6 PASS) |
+| **AI-2**| **BullMQ Nightly Optimizer Worker** | ✅ 100% | `src/__tests__/ai-harnesses/stage2-economic-optimizer-worker.test.ts` (3/3 PASS) |
+| **AI-3**| **Admin Console & 1-Click HITL Queue**| ✅ 100% | `src/__tests__/ai-harnesses/stage3-admin-hitl.test.ts` (4/4 PASS) |
+| **AI-4**| **Sentinel CX & Smart Recovery** | ✅ 100% | `src/__tests__/ai-harnesses/stage4-sentinel-cx-recovery.test.ts` (9/9 PASS) |
+| **AI-5**| **Treasury, Escrow & Safe Owner Draw** | ✅ 100% | `src/__tests__/ai-harnesses/stage5-treasury-escrow.test.ts` (3/3 PASS) |
+| **AI-ALF**| **Alfa-Bank Open API Integration** | ✅ 100% | `src/__tests__/ai-harnesses/alfa-bank-integration.test.ts` (7/7 PASS) |
+| **AI-ST**| **Adversarial AI Stress & Anti-Hallucination** | ✅ 100% | `src/__tests__/ai-harnesses/ai-adversarial-and-stress-testing.test.ts` (9/9 PASS) |
+| **AI-RG**| **Platform Regression & AI Degradation Armor** | ✅ 100% | `src/__tests__/ai-harnesses/platform-regression-and-degradation.test.ts` (4/4 PASS) |
+| **SEC** | **OWASP Top 10 2025/2026 & Data Leak Prevention** | ✅ 100% | `src/__tests__/security/owasp-top10-and-data-leak-prevention.test.ts` (11/11 PASS) |
+| **UI-DS**| **Treasury UI/UX, Design System & Typography** | ✅ 100% | `src/__tests__/ui/treasury-ui-design-system-and-security.test.ts` (7/7 PASS) |
+| **AN-FN**| **Conversion Funnel Analytics & Real Metrics** | ✅ 100% | `src/__tests__/analytics/conversion-funnel-and-cr.test.ts` (2/2 PASS) |
+| **FIN-E2E**| **Finance Hub & Ledger Reconciliation E2E** | ✅ 100% | `src/__tests__/admin-finance/finance-hub-and-reconciliation-e2e.test.ts` (7/7 PASS) |
+| **DRIP-MIN**| **Drip-Feed Min Quantity & Runs Floor Integrity** | ✅ 100% | `src/__tests__/orders/drip-feed-min-quantity-and-runs-integrity.test.ts` (5/5 PASS) |
+| **DRIP-ARCH**| **Drip-Feed Comprehensive Architecture & Mock Limits** | ✅ 100% | `src/__tests__/orders/drip-feed-comprehensive-architecture-and-mock-provider.test.ts` (13/13 PASS) |
+| **PROV-BAL** | **Provider Multi-Currency Balance & Liquidity Audit** | ✅ 100% | `src/__tests__/providers/provider-balance-currency-and-liquidity.test.ts` (7/7 PASS) |
+| **RED-ARM**  | **Zero 0.0.0.0 Redirect Leak & Cloudflare Proxy Armor** | ✅ 100% | `src/__tests__/auth/logout-and-proxy-redirects.test.ts` (9/9 PASS) |
+| **SWRM-AUD** | **Multi-Agent Swarm Audit (OpenRouter Free Tier)** | ✅ 100% | `scripts/harness/ai-swarm-audit.ts` (4/4 Models PASS) |
+| **EXACT-MTH** | **FinOps ExactMath & Banker's Rounding Suite** | ✅ 100% | `src/__tests__/financial/exact-math.test.ts` (10/10 PASS) |
+| **RESIL-HRD** | **Open-Redirect Armor & Provider Mutex Resilience** | ✅ 100% | `src/__tests__/resilience/resilience-and-hardening.test.ts` (8/8 PASS) |
 
 ---
 
-## 9 Критических Правил и Инвариантов Проекта
+## 11 Критических Правил и Инвариантов Проекта
 1. **Multi-Tenant (Строго 2 бренда):** `smmplan` (`smmplan.pro`) и `flux` (`smmflux.ru`). Переключение в шапке через `<GlobalSiteSwitcher />` (кука `x_admin_tenant`).
 2. **UI Pricing Contract:** Цена за 1 штуку (`pricePerUnitRub`) с подписью `₽ / шт`. Запрещено умножать на 1000 на клиенте.
 3. **Shadow Catalog & Cherry-Pick:** Сырые каталоги (5000+ услуг) буферизуются в Redis (`provider:{id}:catalog`). В PostgreSQL `Service` попадают только проверенные услуги.
@@ -59,3 +79,5 @@
 7. **Idempotent Telegram Polling:** Сброс вебхуков через `deleteWebhook({ drop_pending_updates: true })` перед `bot.launch()`.
 8. **Cloudflare Tunnel Exclusivity:** Официальный туннель Cloudflare (`scripts/start-tunnel.ps1`) на домене `test.smmplan.pro`.
 9. **Badge Zero-Contradiction Invariant:** Услуга с признаком «Без гарантии» / `isRefillEnabled = false` КАТЕГОРИЧЕСКИ НЕ МОЖЕТ иметь бейдж «ГАРАНТИЯ» в UI. Автоматическая санитизация бейджа на уровне каталога и валидация в админке.
+10. **Zero 0.0.0.0 Redirect Leak & Reverse Proxy Armor:** Все редиректы авторизации (`/api/auth/logout`, `/admin`, QA Dock) обязаны разрешаться в относительные пути (`/login`) или публичный домен бренда (`test.smmplan.pro` / `smmflux.ru`) с жесткой фильтрацией `0.0.0.0` и `host.docker.internal`.
+11. **Deterministic Banker's Rounding & Anti-Zero-Charge Floor:** Все финансовые расчеты стоимости заказов обязаны использовать `ExactMath.calculateOrderCostKopecks()` с округлением Round-Half-to-Even, базисными пунктами наценок и защитным порогом $\ge 1$ коп. на заказ.

@@ -64,82 +64,87 @@ function getPeriodStart(period: string): Date | undefined {
 }
 
 export async function getLedgerAction(params: Partial<LedgerParams>): Promise<LedgerPageResult | { success: false, error: string }> {
-  return requireStaffPermission('finance', 'view', async (admin) => {
-    const p = ledgerParamsSchema.parse(params);
-    const periodStart = getPeriodStart(p.period);
+  try {
+    return await requireStaffPermission('finance', 'view', async (admin) => {
+      const p = ledgerParamsSchema.parse(params);
+      const periodStart = getPeriodStart(p.period);
 
-    const searchTrim = p.search?.trim();
-    const activeTenantId = resolveAdminTenantContext(admin, p.tenantId);
+      const searchTrim = p.search?.trim();
+      const activeTenantId = resolveAdminTenantContext(admin, p.tenantId);
 
-    const where = {
-      ...(p.status !== 'ALL' ? { status: p.status } : {}),
-      ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
-      ...(activeTenantId && activeTenantId !== 'all' ? { user: { tenantId: activeTenantId } } : {}),
-      ...(searchTrim ? {
-        OR: [
-          { user: { is: { email: { contains: searchTrim, mode: 'insensitive' as const } } } },
-          { id: { contains: searchTrim, mode: 'insensitive' as const } },
-          { idempotencyKey: { contains: searchTrim, mode: 'insensitive' as const } }
-        ]
-      } : {}),
-    };
+      const where = {
+        ...(p.status !== 'ALL' ? { status: p.status } : {}),
+        ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
+        ...(activeTenantId && activeTenantId !== 'all' ? { user: { tenantId: activeTenantId } } : {}),
+        ...(searchTrim ? {
+          OR: [
+            { user: { is: { email: { contains: searchTrim, mode: 'insensitive' as const } } } },
+            { id: { contains: searchTrim, mode: 'insensitive' as const } },
+            { idempotencyKey: { contains: searchTrim, mode: 'insensitive' as const } }
+          ]
+        } : {}),
+      };
 
-    const { SafePagination } = await import('@/lib/pagination/safe-pagination');
-    const pagination = SafePagination.sanitize({ pageSize: p.pageSize, cursor: p.cursor });
-    const pageSize = pagination.take;
+      const { SafePagination } = await import('@/lib/pagination/safe-pagination');
+      const pagination = SafePagination.sanitize({ pageSize: p.pageSize, cursor: p.cursor });
+      const pageSize = pagination.take;
 
-    const entries = await db.ledgerEntry.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take: pageSize + 1,
-      ...(p.cursor ? { cursor: { id: p.cursor }, skip: 1 } : {}),
-      select: {
-        id: true,
-        userId: true,
-        adminId: true,
-        amount: true,
-        reason: true,
-        status: true,
-        createdAt: true,
-        tenantId: true,
-        user: {
-          select: {
-            email: true,
-            tenantId: true,
+      const entries = await db.ledgerEntry.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: pageSize + 1,
+        ...(p.cursor ? { cursor: { id: p.cursor }, skip: 1 } : {}),
+        select: {
+          id: true,
+          userId: true,
+          adminId: true,
+          amount: true,
+          reason: true,
+          status: true,
+          createdAt: true,
+          tenantId: true,
+          user: {
+            select: {
+              email: true,
+              tenantId: true,
+            },
           },
         },
-      },
+      });
+
+      const hasMore = entries.length > pageSize;
+      const page = hasMore ? entries.slice(0, pageSize) : entries;
+
+      // Totals for the same where clause (summary strip)
+      const [approvedAgg, quarantineAgg, refundsAgg] = await Promise.all([
+        db.ledgerEntry.aggregate({ _sum: { amount: true }, where: { ...where, status: 'APPROVED', amount: { gt: 0 } } }),
+        db.ledgerEntry.aggregate({ _sum: { amount: true }, where: { ...where, status: 'QUARANTINE' } }),
+        db.ledgerEntry.aggregate({ _sum: { amount: true }, where: { ...where, status: 'APPROVED', amount: { lt: 0 } } }),
+      ]);
+
+      return {
+        items: page.map(e => ({
+          id: e.id,
+          userId: e.userId,
+          userEmail: e.user?.email ?? e.userId,
+          adminId: e.adminId,
+          amount: Number(e.amount), // BigInt → number at DTO boundary
+          reason: e.reason,
+          status: e.status,
+          createdAt: e.createdAt.toISOString(),
+          tenantId: e.tenantId ?? e.user?.tenantId ?? 'smmplan',
+        })),
+        nextCursor: hasMore ? page[page.length - 1].id : null,
+        hasMore,
+        totals: {
+          approved: Number(approvedAgg._sum?.amount ?? 0),
+          quarantine: Number(quarantineAgg._sum?.amount ?? 0),
+          refunds: Math.abs(Number(refundsAgg._sum?.amount ?? 0)),
+        },
+      };
     });
-
-    const hasMore = entries.length > pageSize;
-    const page = hasMore ? entries.slice(0, pageSize) : entries;
-
-    // Totals for the same where clause (summary strip)
-    const [approvedAgg, quarantineAgg, refundsAgg] = await Promise.all([
-      db.ledgerEntry.aggregate({ _sum: { amount: true }, where: { ...where, status: 'APPROVED', amount: { gt: 0 } } }),
-      db.ledgerEntry.aggregate({ _sum: { amount: true }, where: { ...where, status: 'QUARANTINE' } }),
-      db.ledgerEntry.aggregate({ _sum: { amount: true }, where: { ...where, status: 'APPROVED', amount: { lt: 0 } } }),
-    ]);
-
-    return {
-      items: page.map(e => ({
-        id: e.id,
-        userId: e.userId,
-        userEmail: e.user?.email ?? e.userId,
-        adminId: e.adminId,
-        amount: Number(e.amount), // BigInt → number at DTO boundary
-        reason: e.reason,
-        status: e.status,
-        createdAt: e.createdAt.toISOString(),
-        tenantId: e.tenantId ?? e.user?.tenantId ?? 'smmplan',
-      })),
-      nextCursor: hasMore ? page[page.length - 1].id : null,
-      hasMore,
-      totals: {
-        approved: Number(approvedAgg._sum?.amount ?? 0),
-        quarantine: Number(quarantineAgg._sum?.amount ?? 0),
-        refunds: Math.abs(Number(refundsAgg._sum?.amount ?? 0)),
-      },
-    };
-  });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Ошибка загрузки записей Ledger';
+    return { success: false, error: message };
+  }
 }

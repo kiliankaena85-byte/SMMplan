@@ -678,12 +678,12 @@ export function useOrderEngine(
       if (dripFeedEnabled && runs > 0) {
         const chunk = Math.floor(quantity / runs);
         if (chunk < selectedService.minQty) {
-          errors['dripfeed'] = `Для ${runs} запусков общее количество должно быть минимум ${selectedService.minQty * runs} шт.`;
+          errors['dripfeed'] = `Для ${runs} запусков общее количество должно быть минимум ${selectedService.minQty * runs} шт. (мин. ${selectedService.minQty} шт. на запуск)`;
         }
       } else if (isSmartDrip && smartDripDays > 0) {
         const chunk = Math.floor(quantity / smartDripDays);
         if (chunk < selectedService.minQty) {
-          errors['dripfeed'] = `Для Умного Drip на ${smartDripDays} дней общее количество должно быть минимум ${selectedService.minQty * smartDripDays} шт.`;
+          errors['dripfeed'] = `Для Умного Drip на ${smartDripDays} дней общее количество должно быть минимум ${selectedService.minQty * smartDripDays} шт. (мин. ${selectedService.minQty} шт./день)`;
         }
       }
     }
@@ -695,12 +695,12 @@ export function useOrderEngine(
     
     setValidationErrors({});
     return true;
-  }, [url, quantity, email, selectedService, customData, agreedToTerms, platform, networkId, categoryId, catalog, manualPlatform]);
+  }, [url, quantity, email, selectedService, customData, agreedToTerms, platform, networkId, categoryId, catalog, manualPlatform, dripFeedEnabled, runs, isSmartDrip, smartDripDays]);
 
   // Real-time validation reaction
   useEffect(() => {
     validate(false); // Only run layout checking on typing, do NOT mutate URL
-  }, [url, selectedService, email, quantity, customData, agreedToTerms, networkId, categoryId, validate]);
+  }, [url, selectedService, email, quantity, customData, agreedToTerms, networkId, categoryId, dripFeedEnabled, runs, isSmartDrip, smartDripDays, validate]);
 
   // Helper getters
   const mediaGroupMultiplier = mediaGroupUrl.trim().length > 5 ? 2 : 1;

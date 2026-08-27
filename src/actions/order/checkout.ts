@@ -507,7 +507,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
             remains: totalQuantity,
             idempotencyKey: effectiveIdempotencyKey,
             promoCodeId: promoCodeId || null,
-            discountCents: BigInt(pricing.discountCents),
+            discountCents: BigInt(Math.round(pricing.discountCents || 0)),
             abVariant,
             usdToRubRate: currentUsdRate,
             tenantId
@@ -537,7 +537,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
               customData: `Медиагруппа: последнее медиа. Основной заказ: ${newOrder.numericId}`,
               remains: totalQuantity,
               promoCodeId: promoCodeId || null,
-              discountCents: BigInt(pricing.discountCents),
+              discountCents: BigInt(Math.round(pricing.discountCents || 0)),
               abVariant,
               usdToRubRate: currentUsdRate,
               tenantId
@@ -902,8 +902,12 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
           'order'
         );
         
-        let host = reqHeaders.get("host") || "localhost:3000";
-        if (host.includes("0.0.0.0")) host = host.replace("0.0.0.0", "localhost");
+        const fwdHost = reqHeaders.get("x-forwarded-host");
+        const hostHeader = reqHeaders.get("host");
+        let host = fwdHost || hostHeader || "localhost:3000";
+        if (host.includes("0.0.0.0") || host.includes("host.docker.internal")) {
+          host = process.env.NODE_ENV === "production" ? "test.smmplan.pro" : "localhost:3000";
+        }
         const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
         return { orderId: order.id, paymentId: order.payment.id, paymentUrl: `${protocol}://${host}/success` };
       }

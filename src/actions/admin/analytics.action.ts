@@ -18,24 +18,44 @@ export async function getFunnelAnalyticsAction(days: number) {
       categoryProfitability,
       ltv
     ] = await Promise.all([
-      db.analyticsEvent.count({ where: { event: 'LINK_PASTED', createdAt: { gte: cutoff } } }),
-      db.analyticsEvent.count({ where: { event: 'SERVICE_SELECTED', createdAt: { gte: cutoff } } }),
-      db.analyticsEvent.count({ where: { event: 'CHECKOUT_INITIATED', createdAt: { gte: cutoff } } }),
-      db.analyticsEvent.count({ where: { event: 'PAYMENT_CLICKED', createdAt: { gte: cutoff } } }),
+      db.analyticsEvent.count({
+        where: {
+          event: { in: ['LINK_PASTED', 'link_pasted', 'page_view', 'order_started'] },
+          createdAt: { gte: cutoff },
+        },
+      }),
+      db.analyticsEvent.count({
+        where: {
+          event: { in: ['SERVICE_SELECTED', 'service_selected'] },
+          createdAt: { gte: cutoff },
+        },
+      }),
+      db.analyticsEvent.count({
+        where: {
+          event: { in: ['CHECKOUT_INITIATED', 'checkout_initiated'] },
+          createdAt: { gte: cutoff },
+        },
+      }),
+      db.analyticsEvent.count({
+        where: {
+          event: { in: ['PAYMENT_CLICKED', 'payment_clicked', 'payment_initiated', 'order_completed'] },
+          createdAt: { gte: cutoff },
+        },
+      }),
       analyticsService.getServiceProfitability(days),
       analyticsService.getCategoryProfitability(days),
-      analyticsService.getLTVAnalytics()
-    ])
+      analyticsService.getLTVAnalytics(),
+    ]);
 
     // Optional: Top 5 Services by Clicks (for funnel)
-    const topServicesRaw = await db.$queryRaw<{name: string, clicks: number}[]>`
-      SELECT "metadata"->>'serviceName' as name, COUNT(*)::int as clicks
+    const topServicesRaw = await db.$queryRaw<{ name: string; clicks: number }[]>`
+      SELECT COALESCE("metadata"->>'serviceName', "metadata"->>'service_name', 'Услуга') as name, COUNT(*)::int as clicks
       FROM "AnalyticsEvent"
-      WHERE event = 'SERVICE_SELECTED' AND "createdAt" >= ${cutoff}
-      GROUP BY "metadata"->>'serviceName'
+      WHERE event IN ('SERVICE_SELECTED', 'service_selected') AND "createdAt" >= ${cutoff}
+      GROUP BY COALESCE("metadata"->>'serviceName', "metadata"->>'service_name', 'Услуга')
       ORDER BY clicks DESC
       LIMIT 5
-    `
+    `;
 
     const topServices = topServicesRaw.map(row => ({
       name: row.name,

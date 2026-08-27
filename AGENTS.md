@@ -115,9 +115,12 @@
 - ✅ Главные кнопки **ВСЕГДА активны**. При невалидной форме клик перехватывается (`e.preventDefault()`), вызывается `animate-shake` (с уникальным ключом `key={Date.now()}`) и плавный скролл (`scrollIntoView`) к первому ошибочному полю.
 - ✅ Общие серверные ошибки отображаются **непосредственно над кнопкой Submit** в фокусе внимания пользователя.
 
-### Пошаговый мастер заказа (Order Wizard)
+### Пошаговый мастер заказа (Order Wizard) & Drip-Feed Invariant (CRITICAL)
 - Заказ проходит строгие шаги: **1. Соцсеть** → **2. Категория** → **3. Услуга** → **4. Checkout** (Количество, Ссылка, Email).
 - Поле «Количество» автоматически инициализируется минимальным значением (`service.minQty`).
+- ❌ **КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО** допускать оформление Drip-Feed заказов с объемом на один запуск меньше `service.minQty` ($\lfloor \text{quantity} / \text{runs} \rfloor < \text{service.minQty}$).
+- ✅ **Drip-Feed Floor Invariant:** При активации Drip-Feed ($N$ запусков) или Smart Drip ($D$ дней) нижняя граница допустимого количества (`min`) и текущее значение в UI **ОБЯЗАНЫ автоматически масштабироваться** минимум до $\text{service.minQty} \times N$. Степперы и валидаторы форм обязаны запрещать декремент ниже этого значения.
+- ✅ **Fail-Closed Backend Check:** `checkoutAction` обязан строго валидировать `Math.floor(totalQuantity / runs) >= service.minQty` и отклонять невалидные запросы с понятной ошибкой до списания средств.
 
 ### Таблицы и компоновка данных (No Horizontal Scroll & Zero Column Clipping Rule)
 - ❌ **КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО** допускать появление горизонтального скролла в таблицах данных и административных интерфейсах.
@@ -159,8 +162,27 @@
    ```bash
    npx tsx scripts/check-design-system.ts # 0 нарушений токенов
    npx tsc --noEmit                       # 0 ошибок типизации
-   npm run build                          # Успешная сборка Next.js
-   npx vitest run                         # Прохождение юнит-тестов
+   npm run test                           # 100% прохождение всех Vitest тестов
+   npm run audit:swarm                    # Состязательный аудит Red Team -> Blue Team -> CTO
    ```
 4. **Фиксация опыта (Semantic Consolidation):** При решении сложных багов или принятии архитектурных решений сделайте короткую запись в [`MEMORY.md`](file:///d:/SMM_plan_2/MEMORY.md) и отправьте решение через `SmmplanMemoryClient.recordDecision()`.
+
+---
+
+## 6. Автоматический Состязательный Аудит (Adversarial Red Team & Pre-Mortem Gate)
+
+> 🛡️ **BLOCKING QUALITY GATE.** Любые архитектурные изменения финансовой логики (`WalletOps`, `pricing`), калькулятора заказов (`Drip-Feed`), маршрутизации (`src/proxy.ts`, `auth`) или очередей (`BullMQ`, `Redis`) ОБЯЗАНЫ проходить состязательную проверку:
+
+1. **Обязательный Pre-Mortem в Planning Mode:**
+   - Перед написанием кода агент формулирует минимум 3 сценария гипотетических отказов (Premortem Failure Modes): краевые расчеты, аномалии микро-цен, блокировки очередей и фишинг.
+2. **Запуск Состязательного Роя (Adversarial Swarm):**
+   ```bash
+   npm run audit:swarm
+   ```
+   - **Раунд 1 (Red Team / GLM-5.2):** Агрессивная атака и выявление 3–5 векторов отказа.
+   - **Раунд 2 (Blue Team / Nemotron 550B):** Оценка реальности рисков и отсечение YAGNI.
+   - **Раунд 3 (CTO Arbiter / Inkling Small):** Финальный вердикт. Запрещено объявлять задачу завершенной при наличии нерешенных `P0_BLOCKING` или `P1_REQUIRED` замечаний.
+3. **Финансовая точность (ExactMath Invariant):**
+   - Все расчеты сумм заказов обязаны использовать `ExactMath.calculateOrderCostKopecks()` с округлением Banker's Rounding (Half-Even) и защитным полом $\ge 1$ коп.
+
 

@@ -33,10 +33,15 @@ export type AccountsPageResult = {
 export async function getReconciliationSummaryAction(
   tenantId?: string
 ): Promise<ReconciliationSummaryDTO | { success: false; error: string }> {
-  return requireStaffPermission('finance', 'view', async (admin) => {
-    const activeTenantId = resolveAdminTenantContext(admin, tenantId);
-    return await LedgerReconciliationService.getSummary(activeTenantId);
-  });
+  try {
+    return await requireStaffPermission('finance', 'view', async (admin) => {
+      const activeTenantId = resolveAdminTenantContext(admin, tenantId);
+      return await LedgerReconciliationService.getSummary(activeTenantId);
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Ошибка получения сводки сверки';
+    return { success: false, error: message };
+  }
 }
 
 /**
@@ -45,17 +50,22 @@ export async function getReconciliationSummaryAction(
 export async function getReconciliationAccountsAction(
   params: Partial<GetAccountsParams>
 ): Promise<AccountsPageResult | { success: false; error: string }> {
-  return requireStaffPermission('finance', 'view', async (admin) => {
-    const p = getAccountsParamsSchema.parse(params || {});
-    const activeTenantId = resolveAdminTenantContext(admin, p.tenantId);
-    return await LedgerReconciliationService.getAccounts({
-      page: p.page,
-      pageSize: p.pageSize,
-      search: p.search,
-      onlyAnomalies: p.onlyAnomalies,
-      tenantId: activeTenantId,
+  try {
+    return await requireStaffPermission('finance', 'view', async (admin) => {
+      const p = getAccountsParamsSchema.parse(params || {});
+      const activeTenantId = resolveAdminTenantContext(admin, p.tenantId);
+      return await LedgerReconciliationService.getAccounts({
+        page: p.page,
+        pageSize: p.pageSize,
+        search: p.search,
+        onlyAnomalies: p.onlyAnomalies,
+        tenantId: activeTenantId,
+      });
     });
-  });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Ошибка загрузки списка аккаунтов';
+    return { success: false, error: message };
+  }
 }
 
 /**
@@ -64,10 +74,15 @@ export async function getReconciliationAccountsAction(
 export async function getUserLedgerAuditAction(
   userId: string
 ): Promise<UserAuditTimelineDTO | { success: false; error: string }> {
-  return requireStaffPermission('finance', 'view', async () => {
-    const validatedUserId = z.string().min(1).parse(userId);
-    return await LedgerReconciliationService.getUserAuditTimeline(validatedUserId);
-  });
+  try {
+    return await requireStaffPermission('finance', 'view', async () => {
+      const validatedUserId = z.string().min(1).parse(userId);
+      return await LedgerReconciliationService.getUserAuditTimeline(validatedUserId);
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Ошибка загрузки финансового аудита аккаунта';
+    return { success: false, error: message };
+  }
 }
 
 /**
@@ -78,16 +93,21 @@ export async function reconcileUserAction(
   action: 'LOCK' | 'AUTO_ADJUST',
   reason?: string
 ): Promise<{ success: boolean; message: string } | { success: false; error: string }> {
-  return requireStaffPermission('finance', 'edit', async (admin) => {
-    const validatedUserId = z.string().min(1).parse(userId);
-    const validatedAction = z.enum(['LOCK', 'AUTO_ADJUST']).parse(action);
-    const validatedReason = reason ? z.string().max(500).parse(reason) : undefined;
+  try {
+    return await requireStaffPermission('finance', 'edit', async (admin) => {
+      const validatedUserId = z.string().min(1).parse(userId);
+      const validatedAction = z.enum(['LOCK', 'AUTO_ADJUST']).parse(action);
+      const validatedReason = reason ? z.string().max(500).parse(reason) : undefined;
 
-    return await LedgerReconciliationService.remediateUser(
-      validatedUserId,
-      validatedAction,
-      { id: admin.id, email: admin.email },
-      validatedReason
-    );
-  });
+      return await LedgerReconciliationService.remediateUser(
+        validatedUserId,
+        validatedAction,
+        { id: admin.id, email: admin.email },
+        validatedReason
+      );
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Ошибка выполнения финансовой корректировки';
+    return { success: false, error: message };
+  }
 }

@@ -162,6 +162,82 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Incorrect API key' }, { status: 403 });
     }
 
+    // ── Catalog Definition ───────────────────────────────────────────────────
+    const MOCK_SERVICES = [
+      {
+        service: '100',
+        name: 'Mock Telegram Subscribers (High Speed)',
+        type: 'Default',
+        category: 'Telegram',
+        rate: '10.00',
+        min: '10',
+        max: '50000',
+        dripfeed: true,
+        refill: true,
+        cancel: true,
+      },
+      {
+        service: '101',
+        name: 'Mock Telegram Post Views',
+        type: 'Default',
+        category: 'Telegram',
+        rate: '1.50',
+        min: '50',
+        max: '100000',
+        dripfeed: true,
+        refill: false,
+        cancel: true,
+      },
+      {
+        service: '200',
+        name: 'Mock VKontakte Followers (Real)',
+        type: 'Default',
+        category: 'ВКонтакте',
+        rate: '15.00',
+        min: '20',
+        max: '20000',
+        dripfeed: true,
+        refill: true,
+        cancel: true,
+      },
+      {
+        service: '300',
+        name: 'Mock Instagram Followers (HQ)',
+        type: 'Default',
+        category: 'Instagram',
+        rate: '25.00',
+        min: '10',
+        max: '50000',
+        dripfeed: true,
+        refill: true,
+        cancel: true,
+      },
+      {
+        service: '400',
+        name: 'Mock YouTube Views (Monetizable)',
+        type: 'Default',
+        category: 'YouTube',
+        rate: '50.00',
+        min: '100',
+        max: '500000',
+        dripfeed: true,
+        refill: true,
+        cancel: false,
+      },
+      {
+        service: '500',
+        name: 'Mock Direct Service (No Drip)',
+        type: 'Default',
+        category: 'Direct',
+        rate: '30.00',
+        min: '25',
+        max: '10000',
+        dripfeed: false,
+        refill: false,
+        cancel: true,
+      },
+    ];
+
     // ── 3. Action: Balance ───────────────────────────────────────────────────
     if (action === 'balance') {
       return NextResponse.json({
@@ -172,77 +248,63 @@ export async function POST(req: NextRequest) {
 
     // ── 4. Action: Services ──────────────────────────────────────────────────
     if (action === 'services') {
-      return NextResponse.json([
-        {
-          service: '100',
-          name: 'Mock Telegram Subscribers (High Speed)',
-          type: 'Default',
-          category: 'Telegram',
-          rate: '10.00',
-          min: '10',
-          max: '50000',
-          dripfeed: true,
-          refill: true,
-          cancel: true,
-        },
-        {
-          service: '101',
-          name: 'Mock Telegram Post Views',
-          type: 'Default',
-          category: 'Telegram',
-          rate: '1.50',
-          min: '50',
-          max: '100000',
-          dripfeed: true,
-          refill: false,
-          cancel: true,
-        },
-        {
-          service: '200',
-          name: 'Mock VKontakte Followers (Real)',
-          type: 'Default',
-          category: 'ВКонтакте',
-          rate: '15.00',
-          min: '20',
-          max: '20000',
-          dripfeed: true,
-          refill: true,
-          cancel: true,
-        },
-        {
-          service: '300',
-          name: 'Mock Instagram Followers (HQ)',
-          type: 'Default',
-          category: 'Instagram',
-          rate: '25.00',
-          min: '10',
-          max: '50000',
-          dripfeed: true,
-          refill: true,
-          cancel: true,
-        },
-        {
-          service: '400',
-          name: 'Mock YouTube Views (Monetizable)',
-          type: 'Default',
-          category: 'YouTube',
-          rate: '50.00',
-          min: '100',
-          max: '500000',
-          dripfeed: true,
-          refill: true,
-          cancel: false,
-        },
-      ]);
+      return NextResponse.json(MOCK_SERVICES);
     }
 
-    // ── 5. Action: Add (Order Creation with Chaos Triggers) ──────────────────
+    // ── 5. Action: Add (Order Creation with Chaos Triggers & Limits) ──────────
     if (action === 'add') {
-      const quantity = parseInt(params.get('quantity') || '100', 10);
+      const serviceId = params.get('service');
+      const quantity = parseInt(params.get('quantity') || '0', 10);
       const link = (params.get('link') || '').toLowerCase().trim();
+      const runsStr = params.get('runs');
+      const runs = runsStr ? parseInt(runsStr, 10) : 1;
 
       if (!link) {
         return NextResponse.json({ error: 'Link is missing in payload' }, { status: 200 });
+      }
+
+      // Find service in mock catalog
+      const svc = MOCK_SERVICES.find((s) => s.service === serviceId);
+      if (!svc && serviceId) {
+        return NextResponse.json({ error: 'Incorrect service ID' }, { status: 200 });
+      }
+
+      // Validate Service Limits if service is known
+      if (svc) {
+        const minVal = parseInt(svc.min, 10);
+        const maxVal = parseInt(svc.max, 10);
+
+        // Min Quantity Validation
+        if (quantity < minVal) {
+          return NextResponse.json(
+            { error: `Quantity must be at least ${minVal}` },
+            { status: 200 }
+          );
+        }
+
+        // Max Quantity Validation
+        if (quantity > maxVal) {
+          return NextResponse.json(
+            { error: `Quantity must not exceed ${maxVal}` },
+            { status: 200 }
+          );
+        }
+
+        // Drip-Feed Capability & Per-Run Constraints
+        if (runs > 1) {
+          if (!svc.dripfeed) {
+            return NextResponse.json(
+              { error: 'Drip-feed is not supported for this service' },
+              { status: 200 }
+            );
+          }
+          if (quantity < minVal) {
+            return NextResponse.json(
+              { error: `Quantity per run (${quantity}) must be at least ${minVal}` },
+              { status: 200 }
+            );
+          }
+        }
       }
 
       // Chaos trigger: HTTP 500

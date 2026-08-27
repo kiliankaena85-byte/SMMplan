@@ -27,14 +27,40 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
       engine.setIsSmartDrip(false);
     } else {
       if (canSmartDrip) {
+        const minReq = selectedService.minQty * engine.smartDripDays;
+        if (engine.quantity < minReq) engine.setQuantity(minReq);
         engine.setIsSmartDrip(true);
         engine.setDripFeedEnabled(false);
       } else {
+        const minReq = selectedService.minQty * engine.runs;
+        if (engine.quantity < minReq) engine.setQuantity(minReq);
         engine.setDripFeedEnabled(true);
         engine.setIsSmartDrip(false);
       }
     }
   };
+
+  const handleSetRuns = (newRuns: number) => {
+    const clamped = Math.max(2, Math.min(100, newRuns));
+    const minReq = selectedService.minQty * clamped;
+    if (engine.quantity < minReq) {
+      engine.setQuantity(minReq);
+    }
+    engine.setRuns(clamped);
+  };
+
+  const handleSetSmartDays = (newDays: number) => {
+    const clamped = Math.max(1, Math.min(30, newDays));
+    const minReq = selectedService.minQty * clamped;
+    if (engine.quantity < minReq) {
+      engine.setQuantity(minReq);
+    }
+    engine.setSmartDripDays(clamped);
+  };
+
+  const perRunQty = engine.runs > 0 ? Math.floor(engine.quantity / engine.runs) : 0;
+  const isPerRunBelowMin = perRunQty < selectedService.minQty;
+  const minRequiredTotal = selectedService.minQty * engine.runs;
 
   return (
     <div className="w-full bg-card border border-border/80 rounded-2xl p-5 shadow-sm mb-4">
@@ -75,6 +101,8 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
                   <button
                     type="button"
                     onClick={() => {
+                      const minReq = selectedService.minQty * engine.smartDripDays;
+                      if (engine.quantity < minReq) engine.setQuantity(minReq);
                       engine.setIsSmartDrip(true);
                       engine.setDripFeedEnabled(false);
                     }}
@@ -89,6 +117,8 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
                   <button
                     type="button"
                     onClick={() => {
+                      const minReq = selectedService.minQty * engine.runs;
+                      if (engine.quantity < minReq) engine.setQuantity(minReq);
                       engine.setIsSmartDrip(false);
                       engine.setDripFeedEnabled(true);
                     }}
@@ -118,7 +148,7 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
                   <div className="flex items-center justify-between gap-3 bg-content2 p-1 rounded-xl border border-border">
                     <button
                       type="button"
-                      onClick={() => engine.setSmartDripDays(Math.max(1, engine.smartDripDays - 1))}
+                      onClick={() => handleSetSmartDays(engine.smartDripDays - 1)}
                       className="w-11 h-11 flex items-center justify-center rounded-lg bg-background border border-border text-foreground hover:border-primary hover:text-primary transition-all active:scale-95"
                     >
                       <Minus className="w-4 h-4" />
@@ -129,14 +159,14 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
                     </div>
                     <button
                       type="button"
-                      onClick={() => engine.setSmartDripDays(Math.min(30, engine.smartDripDays + 1))}
+                      onClick={() => handleSetSmartDays(engine.smartDripDays + 1)}
                       className="w-11 h-11 flex items-center justify-center rounded-lg bg-background border border-border text-foreground hover:border-primary hover:text-primary transition-all active:scale-95"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed text-center px-2">
-                    Нейросеть автоматически распределит <b>{engine.quantity}</b> ед. на <b>{engine.smartDripDays} дней</b>, имитируя случайные всплески активности.
+                    Нейросеть автоматически распределит <b>{engine.quantity}</b> ед. на <b>{engine.smartDripDays} дней</b> (мин. {selectedService.minQty} ед./день), имитируя случайные всплески активности.
                   </p>
                   {validationErrors?.dripfeed && engine.isSmartDrip && (
                     <p className="text-[10px] font-bold text-danger text-center mt-2 px-2">
@@ -156,7 +186,7 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
                     <div className="flex items-center justify-between bg-content2 p-1 rounded-xl border border-border">
                       <button
                         type="button"
-                        onClick={() => engine.setRuns(Math.max(2, engine.runs - 1))}
+                        onClick={() => handleSetRuns(engine.runs - 1)}
                         className="w-11 h-11 flex items-center justify-center rounded-lg bg-background border border-border hover:border-primary active:scale-95 transition-all"
                       >
                         <Minus className="w-3 h-3" />
@@ -164,7 +194,7 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
                       <span className="text-sm font-black tabular-nums">{engine.runs}</span>
                       <button
                         type="button"
-                        onClick={() => engine.setRuns(Math.min(100, engine.runs + 1))}
+                        onClick={() => handleSetRuns(engine.runs + 1)}
                         className="w-11 h-11 flex items-center justify-center rounded-lg bg-background border border-border hover:border-primary active:scale-95 transition-all"
                       >
                         <Plus className="w-3 h-3" />
@@ -197,14 +227,25 @@ export function DripFeedConfigurator({ engine }: { engine: OrderEngine }) {
                   
                   <div className="col-span-2 text-center mt-1">
                     <p className="text-[10px] text-muted-foreground leading-relaxed">
-                      Будет выполнено <b>{engine.runs}</b> запусков по <b>{Math.floor(engine.quantity / engine.runs)}</b> ед. каждые <b>{engine.dripInterval} минут</b>.
-                      <br/> Итого: <b className="text-foreground">{engine.quantity}</b> ед.
+                      Будет выполнено <b>{engine.runs}</b> {engine.runs < 5 ? 'запуска' : 'запусков'} по <b>{perRunQty}</b> ед. каждые <b>{engine.dripInterval} минут</b>.
+                      <br/> Итого: <b className="text-foreground">{engine.quantity}</b> ед. <span className="text-muted-foreground">(Мин. на 1 запуск: {selectedService.minQty} ед.)</span>
                     </p>
-                    {validationErrors?.dripfeed && !engine.isSmartDrip && (
+                    {isPerRunBelowMin ? (
+                      <div className="mt-2 p-2 bg-destructive/15 border border-destructive/30 rounded-lg text-[10px] font-bold text-destructive flex items-center justify-between gap-2">
+                        <span>⚠️ Мин. {selectedService.minQty} шт./запуск. Требуется минимум {minRequiredTotal} шт.</span>
+                        <button
+                          type="button"
+                          onClick={() => engine.setQuantity(minRequiredTotal)}
+                          className="px-2 py-1 bg-destructive text-destructive-foreground rounded-md text-[10px] font-black cursor-pointer hover:opacity-90"
+                        >
+                          Установить {minRequiredTotal}
+                        </button>
+                      </div>
+                    ) : validationErrors?.dripfeed ? (
                       <p className="text-[10px] font-bold text-danger mt-2">
                         {validationErrors.dripfeed}
                       </p>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               )}

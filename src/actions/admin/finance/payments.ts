@@ -65,67 +65,72 @@ function getPeriodStart(period: string): Date | undefined {
 }
 
 export async function getPaymentsAction(params: Partial<PaymentsParams>): Promise<PaymentsPageResult | { success: false, error: string }> {
-  return requireStaffPermission('finance', 'view', async (admin) => {
-    const p = paymentsParamsSchema.parse(params);
-    const periodStart = getPeriodStart(p.period);
+  try {
+    return await requireStaffPermission('finance', 'view', async (admin) => {
+      const p = paymentsParamsSchema.parse(params);
+      const periodStart = getPeriodStart(p.period);
 
-    const searchTrim = p.search?.trim();
-    const activeTenantId = resolveAdminTenantContext(admin, p.tenantId);
+      const searchTrim = p.search?.trim();
+      const activeTenantId = resolveAdminTenantContext(admin, p.tenantId);
 
-    const where = {
-      ...(p.status !== 'ALL' ? { status: p.status } : {}),
-      ...(p.gateway ? { gateway: p.gateway } : {}),
-      ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
-      ...(activeTenantId && activeTenantId !== 'all' ? { tenantId: activeTenantId } : {}),
-      ...(searchTrim ? {
-        OR: [
-          { user: { is: { email: { contains: searchTrim, mode: 'insensitive' as const } } } },
-          { id: { contains: searchTrim, mode: 'insensitive' as const } },
-          { gatewayId: { contains: searchTrim, mode: 'insensitive' as const } }
-        ]
-      } : {}),
-    };
+      const where = {
+        ...(p.status !== 'ALL' ? { status: p.status } : {}),
+        ...(p.gateway ? { gateway: p.gateway } : {}),
+        ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
+        ...(activeTenantId && activeTenantId !== 'all' ? { tenantId: activeTenantId } : {}),
+        ...(searchTrim ? {
+          OR: [
+            { user: { is: { email: { contains: searchTrim, mode: 'insensitive' as const } } } },
+            { id: { contains: searchTrim, mode: 'insensitive' as const } },
+            { gatewayId: { contains: searchTrim, mode: 'insensitive' as const } }
+          ]
+        } : {}),
+      };
 
-    const { SafePagination } = await import('@/lib/pagination/safe-pagination');
-    const pagination = SafePagination.sanitize({ pageSize: p.pageSize, cursor: p.cursor });
-    const pageSize = pagination.take;
+      const { SafePagination } = await import('@/lib/pagination/safe-pagination');
+      const pagination = SafePagination.sanitize({ pageSize: p.pageSize, cursor: p.cursor });
+      const pageSize = pagination.take;
 
-    const payments = await db.payment.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take: pageSize + 1,
-      ...(p.cursor ? { cursor: { id: p.cursor }, skip: 1 } : {}),
-      include: {
-        user: {
-          select: {
-            email: true,
+      const payments = await db.payment.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: pageSize + 1,
+        ...(p.cursor ? { cursor: { id: p.cursor }, skip: 1 } : {}),
+        include: {
+          user: {
+            select: {
+              email: true,
+            },
           },
         },
-      },
+      });
+
+      const hasMore = payments.length > pageSize;
+      const page = hasMore ? payments.slice(0, pageSize) : payments;
+
+      return {
+        items: page.map(e => ({
+          id: e.id,
+          userId: e.userId,
+          userEmail: e.user?.email ?? 'Unknown',
+          amount: Number(e.amount),
+          currency: e.currency,
+          status: e.status,
+          gateway: e.gateway,
+          gatewayId: e.gatewayId,
+          consentIp: e.consentIp,
+          consentUserAgent: e.consentUserAgent,
+          createdAt: e.createdAt.toISOString(),
+          tenantId: e.tenantId,
+        })),
+        nextCursor: hasMore ? page[page.length - 1].id : null,
+        hasMore,
+      };
     });
-
-    const hasMore = payments.length > pageSize;
-    const page = hasMore ? payments.slice(0, pageSize) : payments;
-
-    return {
-      items: page.map(e => ({
-        id: e.id,
-        userId: e.userId,
-        userEmail: e.user?.email ?? 'Unknown',
-        amount: Number(e.amount),
-        currency: e.currency,
-        status: e.status,
-        gateway: e.gateway,
-        gatewayId: e.gatewayId,
-        consentIp: e.consentIp,
-        consentUserAgent: e.consentUserAgent,
-        createdAt: e.createdAt.toISOString(),
-        tenantId: e.tenantId,
-      })),
-      nextCursor: hasMore ? page[page.length - 1].id : null,
-      hasMore,
-    };
-  });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Ошибка загрузки реестра платежей';
+    return { success: false, error: message };
+  }
 }
 
 type DisputePackOrderDTO = {
