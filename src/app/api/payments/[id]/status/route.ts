@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { verifySession } from '@/lib/session';
+import { YooKassaStatusChecker } from '@/services/financial/yookassa-status-checker';
+import { paymentService } from '@/services/financial/payment.service';
+import { logger } from '@/lib/logger';
+
+const log = logger.child({ component: 'PaymentStatusAPI' });
+
+// Minimum age (ms) before attempting Active Pull (avoids racing with instant webhooks)
+const ACTIVE_PULL_MIN_AGE_MS = 15_000; // 15 seconds
 
 export async function GET(
   request: Request,
@@ -28,13 +36,77 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // 4. Return status and URL if available
+    // 4. If payment is still PENDING and old enough, attempt Active Pull from YooKassa
+    if (payment.status === 'PENDING' && payment.gatewayId) {
+      const paymentAgeMs = Date.now() - new Date(payment.createdAt).getTime();
+
+      if (paymentAgeMs >= ACTIVE_PULL_MIN_AGE_MS) {
+        try {
+          const { SettingsManager } = await import('@/lib/settings');
+          const secrets = await SettingsManager.getPaymentSecrets();
+
+          // Determine gateway type from payment.gateway field
+          const isYooKassa = payment.gateway === 'yookassa' ||
+            (payment.gateway === 'test' && payment.gatewayId && payment.gatewayId.includes('-') && payment.gatewayId.length > 30);
+
+          if (isYooKassa && secrets.yookassaShopId && secrets.yookassaSecretKey) {
+            const liveStatus = await YooKassaStatusChecker.checkPaymentStatus(
+              payment.gatewayId,
+              secrets.yookassaShopId,
+              secrets.yookassaSecretKey
+            );
+
+            if (liveStatus && liveStatus.status === 'succeeded') {
+              log.info(`[ActivePull] YooKassa confirmed payment ${paymentId} as succeeded. Activating...`);
+
+              const amountCents = Math.round(parseFloat(liveStatus.amount.value) * 100);
+
+              // Fire confirmPayment (idempotent — will no-op if already SUCCEEDED)
+              await paymentService.confirmPayment(
+                payment.gatewayId,
+                BigInt(amountCents),
+                payment.userId,
+                false,
+                'yookassa',
+                payment.id
+              );
+
+              return NextResponse.json({
+                status: 'SUCCEEDED',
+                checkoutUrl: payment.checkoutUrl || null,
+                activePull: true,
+              });
+            }
+
+            if (liveStatus && liveStatus.status === 'canceled') {
+              log.info(`[ActivePull] YooKassa reports payment ${paymentId} as canceled.`);
+              // Update local status to match gateway
+              await db.payment.updateMany({
+                where: { id: payment.id, status: 'PENDING' },
+                data: { status: 'CANCELED' }
+              });
+
+              return NextResponse.json({
+                status: 'CANCELED',
+                checkoutUrl: payment.checkoutUrl || null,
+                activePull: true,
+              });
+            }
+          }
+        } catch (pullErr) {
+          // Active Pull is non-blocking: if it fails, we return the current DB status
+          log.warn('[ActivePull] Non-critical error during YooKassa status check', { error: pullErr });
+        }
+      }
+    }
+
+    // 5. Return current DB status
     return NextResponse.json({
-      status: payment.status, // e.g. PENDING, PAID, ERROR, CANCELED
+      status: payment.status,
       checkoutUrl: payment.checkoutUrl || null,
     });
   } catch (error) {
-    console.error('[PaymentStatusAPI] Error:', error);
+    log.error('[PaymentStatusAPI] Error:', { cause: error });
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

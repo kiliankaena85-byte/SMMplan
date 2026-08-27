@@ -103,3 +103,29 @@ export async function sendAdminAlertSync(message: string, severity: AlertSeverit
     }).catch(() => {});
   }
 }
+
+export interface P0EmergencyAlertPayload {
+  code: string;
+  title: string;
+  details: string;
+  actionPlan: string;
+}
+
+/**
+ * High-Priority P0 Emergency Alert Dispatcher.
+ * Formats structured alert with Title, Threat Details, and Actionable Plan.
+ */
+export async function sendP0EmergencyAlert(payload: P0EmergencyAlertPayload): Promise<void> {
+  const escapeHtml = (str: string) =>
+    str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const formattedMessage = [
+    `🚨 <b>[P0 CRITICAL: ${escapeHtml(payload.code)}]</b>`,
+    `<b>${escapeHtml(payload.title)}</b>\n`,
+    `⚠️ <b>Угроза бизнесу:</b>\n${escapeHtml(payload.details)}\n`,
+    `🛠️ <b>Что сделать (Action Plan):</b>\n${escapeHtml(payload.actionPlan)}`,
+  ].join('\n');
+
+  sendAdminAlert(formattedMessage, 'CRITICAL');
+}
+
