@@ -41,6 +41,8 @@ export const MOBILE_NAV = [
 
 import { useUnreadSupport } from '@/hooks/useUnreadSupport';
 
+import { TenantLogo } from '@/components/ui/TenantLogo';
+
 export function SidebarNav({
   email,
   balanceRub,
@@ -63,9 +65,7 @@ export function SidebarNav({
       {/* Logo Header */}
       <div className="p-5 border-b border-border/70 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5 group" aria-label="На главную">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary via-indigo-600 to-pink-500 flex items-center justify-center text-white font-black text-sm shadow-md shadow-primary/20 group-hover:scale-105 transition-transform">
-            S
-          </div>
+          <TenantLogo tenantId="smmplan" className="w-8 h-8 group-hover:scale-105 transition-transform" iconClassName="w-4 h-4" />
           <div className="flex flex-col">
             <span className="font-black text-foreground text-base tracking-tight leading-none">SMMplan</span>
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">B2B Platform</span>

@@ -15,6 +15,8 @@ import {
 import { MAIN_NAV_ITEMS, MOBILE_BOTTOM_NAV_ITEMS } from '@/lib/navigation';
 import { useUnreadSupport } from '@/hooks/useUnreadSupport';
 
+import { TenantLogo } from '@/components/ui/TenantLogo';
+
 export function FluxDashboardShell({
   user,
   children,
@@ -51,9 +53,7 @@ export function FluxDashboardShell({
       <header className="relative z-40 w-full px-4 sm:px-8 py-3.5 flex items-center justify-between backdrop-blur-2xl bg-white/60 dark:bg-black/60 border-b border-border/30 shadow-sm sticky top-0">
         <div className="flex items-center gap-8">
           <Link href="/dashboard" className="flex items-center gap-2.5 font-black text-xl text-foreground tracking-tight hover:opacity-90 transition-opacity">
-            <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center font-black text-base shadow-lg shadow-blue-500/25">
-              F
-            </div>
+            <TenantLogo tenantId="flux" className="w-9 h-9" iconClassName="w-4 h-4" />
             <span className="truncate tracking-tight font-black">SMMflux</span>
           </Link>
 

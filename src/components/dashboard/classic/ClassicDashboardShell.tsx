@@ -3,6 +3,8 @@ import { SidebarNav, MobileBottomNav } from '@/app/dashboard/sidebar-nav';
 import { formatBalance } from '@/lib/utils';
 import { BalanceDisplay } from '@/components/dashboard/balance/BalanceDisplay';
 
+import { TenantLogo } from '@/components/ui/TenantLogo';
+
 export function ClassicDashboardShell({
   user,
   children,
@@ -28,9 +30,7 @@ export function ClassicDashboardShell({
       {/* ── Mobile top bar ── */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-card/85 backdrop-blur-2xl border-b border-border/80 px-3 sm:px-4 py-2.5 flex items-center justify-between min-h-[56px] shadow-sm gap-2">
         <Link href="/" className="flex items-center gap-2 font-black text-foreground shrink-0">
-          <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-primary via-indigo-600 to-pink-500 flex items-center justify-center text-white font-black text-xs shrink-0 shadow-sm shadow-primary/20">
-            S
-          </div>
+          <TenantLogo tenantId="smmplan" className="w-7 h-7 shrink-0" iconClassName="w-3.5 h-3.5" />
           <span className="truncate tracking-tight font-bold text-sm sm:text-base">SMMplan</span>
         </Link>
         <div className="flex items-center gap-2 shrink-0">

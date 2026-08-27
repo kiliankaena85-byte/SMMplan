@@ -4,6 +4,7 @@ import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { headers } from 'next/headers';
 import { UserCheck, Sparkles, Zap, ShieldCheck } from 'lucide-react';
+import { TenantLogo } from '@/components/ui/TenantLogo';
 
 export const dynamic = 'force-dynamic';
 
@@ -202,10 +203,8 @@ export default async function LoginPage({ searchParams }: PageProps) {
         
         <div className="relative z-10">
           <Link href="/" className="flex items-center gap-2.5" aria-label="На главную">
-            <div className="w-9 h-9 rounded-xl bg-primary-foreground/15 backdrop-blur flex items-center justify-center font-black text-primary-foreground text-lg">
-              S
-            </div>
-            <span className="font-bold text-xl">SMMplan</span>
+            <TenantLogo tenantId={isFlux ? 'flux' : 'smmplan'} className="w-9 h-9" iconClassName="w-5 h-5" />
+            <span className="font-bold text-xl">{isFlux ? 'SMMflux' : 'SMMplan'}</span>
           </Link>
         </div>
 
@@ -235,7 +234,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
         </div>
 
         <p className="text-xs text-primary-foreground/40 relative z-10">
-          © {new Date().getFullYear()} SMMplan · Безопасная оплата через ЮKassa
+          © {new Date().getFullYear()} {isFlux ? 'SMMflux' : 'SMMplan'} · Безопасная оплата через ЮKassa
         </p>
       </div>
 
@@ -243,10 +242,8 @@ export default async function LoginPage({ searchParams }: PageProps) {
       <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-background">
         <div className="lg:hidden mb-8">
           <Link href="/" className="flex items-center gap-2 justify-center" aria-label="На главную">
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center font-black text-primary-foreground text-lg">
-              S
-            </div>
-            <span className="font-bold text-xl text-foreground">SMMplan</span>
+            <TenantLogo tenantId={isFlux ? 'flux' : 'smmplan'} className="w-9 h-9" iconClassName="w-5 h-5" />
+            <span className="font-bold text-xl text-foreground">{isFlux ? 'SMMflux' : 'SMMplan'}</span>
           </Link>
         </div>
 
