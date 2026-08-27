@@ -50,10 +50,17 @@ export class SentinelConciergeService {
       if (order.user.telegramId) {
         const token = process.env.TELEGRAM_BOT_TOKEN;
         if (token) {
+          const escapeHtml = (text: string) =>
+            text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+          const safeOrderId = escapeHtml(order.id.slice(-6));
+          const safeServiceName = escapeHtml(order.service.name);
+          const delayMinutes = Math.max(1, Math.round((elapsedSeconds - sla.p90Seconds) / 60));
+
           const msg = [
-            `👋 <b>Здравствуйте! Заказ #${order.id.slice(-6)} на контроле Sentinel AI</b>`,
-            `Услуга: <i>${order.service.name}</i>`,
-            `⚡ Поставщик задерживает старт на ${Math.round((elapsedSeconds - sla.p90Seconds) / 60)} мин из-за очереди на шлюзе.`,
+            `👋 <b>Здравствуйте! Заказ #${safeOrderId} на контроле Sentinel AI</b>`,
+            `Услуга: <i>${safeServiceName}</i>`,
+            `⚡ Поставщик задерживает старт на ${delayMinutes} мин из-за очереди на шлюзе.`,
             `Мы уже отслеживаем выполнение. Если заказ не стартует в течение 10 минут, мы автоматически переключим его на резервный узел.`,
           ].join('\n');
 

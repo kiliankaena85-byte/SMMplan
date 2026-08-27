@@ -68,7 +68,7 @@ export function scanDraftReply(
     }
   }
 
-  const moneyMatches = draft.match(/(\d[\d\s,.]*)\s*(₽|руб|rub)/gi) || [];
+  const moneyMatches = draft.match(/(?:[\$€£]\s*\d[\d\s,.]*|\d[\d\s,.]*\s*(?:₽|руб|rub|usd|usdt|евро|eur|\$|€))/gi) || [];
   for (const match of moneyMatches) {
     const digits = match.replace(/[^\d.,]/g, '').replace(',', '.');
     const claimVal = parseFloat(digits);
