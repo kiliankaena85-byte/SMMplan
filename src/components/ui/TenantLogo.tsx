@@ -134,28 +134,22 @@ export function TenantLogo({ tenantId, className = "w-8 h-8", iconClassName = "t
           opacity="0.35"
         />
 
-        {/* Mathematically Centered Bold Vector S (Precision Bounding Box: 46x62 on center 50,50) */}
-        <path
-          d="M 67 36
-             C 67 24, 58 17, 49 17
-             C 39 17, 31 24, 31 34
-             C 31 43, 39 47, 47 50
-             L 52 52
-             C 60 55, 67 60, 67 69
-             C 67 79, 58 86, 49 86
-             C 37 86, 29 78, 29 67
-             L 42 67
-             C 42 72, 45 75, 49 75
-             C 53 75, 56 72, 56 68
-             C 56 62, 51 59, 44 56
-             L 39 54
-             C 30 51, 20 45, 20 34
-             C 20 21, 32 12, 49 12
-             C 62 12, 76 21, 76 35
-             Z"
+        {/* Precision Centered Bold Sans-Serif S (Geometric System Typography) */}
+        <text
+          x="50%"
+          y="50%"
+          dominantBaseline="central"
+          textAnchor="middle"
           fill="#FFFFFF"
+          fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+          fontWeight="900"
+          fontSize="62"
+          letterSpacing="-0.04em"
           filter="url(#planLetterGlow)"
-        />
+          className="select-none"
+        >
+          S
+        </text>
       </svg>
     </div>
   );
