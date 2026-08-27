@@ -20,16 +20,20 @@ import {
   ChevronRight,
   Briefcase
 } from 'lucide-react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 
 interface Transaction {
   id: string;
   amountCents: number;
   amountRub: number;
+  runningBalanceCents?: number;
+  runningBalanceRub?: number;
   reason: string;
   status: string;
   idempotencyKey: string | null;
   transactionType: string;
+  orderNumericId?: number | null;
   createdAt: string;
 }
 
@@ -61,10 +65,13 @@ function MobileTransactionList({
           : 'text-destructive bg-destructive/10 border-destructive/20';
 
         if (!isAccountantMode) {
+          const orderMatch = /#(\d{3,9})/.exec(item.reason);
+          const orderId = orderMatch ? orderMatch[1] : null;
+
           return (
             <div
               key={item.id}
-              className="p-4 space-y-2.5"
+              className="p-4 space-y-2.5 hover:bg-muted/10 transition-colors"
             >
               {/* Header: Type Badge & Status */}
               <div className="flex justify-between items-center">
@@ -80,19 +87,34 @@ function MobileTransactionList({
                 </span>
               </div>
 
-              {/* Description */}
+              {/* Description & Order Link */}
               <div className="text-xs font-semibold text-foreground leading-normal">
                 {item.reason}
+                {orderId && (
+                  <Link
+                    href={`/dashboard/orders/${orderId}`}
+                    className="inline-flex items-center gap-1 ml-2 text-primary hover:underline text-[11px] font-bold"
+                  >
+                    Открыть заказ #{orderId} ↗
+                  </Link>
+                )}
               </div>
 
-              {/* Footer: Date & Amount */}
-              <div className="flex justify-between items-center pt-1 text-xs">
-                <span className="text-muted-foreground font-semibold tabular-nums">
+              {/* Footer: Date, Amount & Running Balance */}
+              <div className="flex justify-between items-center pt-1 text-xs border-t border-border/20">
+                <span className="text-muted-foreground font-semibold tabular-nums text-[11px]">
                   {formatDate(item.createdAt)}
                 </span>
-                <span className={`font-bold tabular-nums text-sm ${isCredit ? 'text-success' : 'text-destructive'}`}>
-                  {isCredit ? '+' : ''}{item.amountRub.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
-                </span>
+                <div className="flex flex-col items-end gap-0.5">
+                  <span className={`font-black tabular-nums text-sm ${isCredit ? 'text-success' : 'text-destructive'}`}>
+                    {isCredit ? '+' : ''}{item.amountRub.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                  </span>
+                  {typeof item.runningBalanceRub === 'number' && (
+                    <span className="text-[10px] text-muted-foreground font-mono font-medium">
+                      Баланс стал: <span className="font-bold text-foreground">{item.runningBalanceRub.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</span>
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           );
@@ -497,6 +519,7 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
                     <th className="py-4 px-5 font-bold">Тип</th>
                     <th className="py-4 px-5 font-bold">Описание / Причина</th>
                     <th className="py-4 px-5 font-bold text-right">Сумма (₽)</th>
+                    <th className="py-4 px-5 font-bold text-right">Баланс после</th>
                     <th className="py-4 px-5 font-bold text-center">Статус</th>
                   </tr>
                 </thead>
@@ -508,6 +531,9 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
                     const typeColor = isRefund ? 'text-info bg-info/10 border-info/20' 
                       : isCredit ? 'text-success-text bg-success/10 border-success/20' 
                       : 'text-destructive bg-destructive/10 border-destructive/20';
+
+                    const orderMatch = /#(\d{3,9})/.exec(item.reason);
+                    const orderId = orderMatch ? orderMatch[1] : null;
 
                     return (
                       <tr
@@ -526,14 +552,36 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
                           </span>
                         </td>
 
-                        {/* Decoded Reason */}
+                        {/* Decoded Reason & Order Link */}
                         <td className="py-3.5 px-5 text-xs font-semibold text-foreground leading-normal max-w-[320px]">
-                          {item.reason}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span>{item.reason}</span>
+                            {orderId && (
+                              <Link
+                                href={`/dashboard/orders/${orderId}`}
+                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-primary/10 hover:bg-primary/20 text-primary rounded text-[10px] font-mono font-bold transition-colors"
+                                title={`Перейти к заказу #${orderId}`}
+                              >
+                                Заказ #{orderId} ↗
+                              </Link>
+                            )}
+                          </div>
                         </td>
 
                         {/* Amount with colored sign */}
                         <td className={`py-3.5 px-5 text-right font-bold tabular-nums text-sm whitespace-nowrap ${isCredit ? 'text-success' : 'text-destructive'}`}>
                           {isCredit ? '+' : ''}{item.amountRub.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                        </td>
+
+                        {/* Running Balance After Transaction */}
+                        <td className="py-3.5 px-5 text-right font-mono font-semibold text-xs text-muted-foreground whitespace-nowrap tabular-nums">
+                          {typeof item.runningBalanceRub === 'number' ? (
+                            <span className="text-foreground font-bold">
+                              {item.runningBalanceRub.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+                            </span>
+                          ) : (
+                            '—'
+                          )}
                         </td>
 
                         {/* Status */}

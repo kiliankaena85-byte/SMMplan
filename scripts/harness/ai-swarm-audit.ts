@@ -128,7 +128,20 @@ function extractJsonString(raw: string): any {
     cleaned = cleaned.slice(firstBrace, lastBrace + 1);
   }
 
-  return JSON.parse(cleaned);
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // If strict parse fails due to trailing unescaped characters or truncations, try dirty json fix
+    try {
+      const sanitized = cleaned
+        .replace(/,\s*([\]}])/g, '$1') // remove trailing commas
+        .replace(/[\u0000-\u001F]+/g, ' '); // remove control characters
+      return JSON.parse(sanitized);
+    } catch {
+      // Fallback empty structured object if model truncated severely
+      return {};
+    }
+  }
 }
 
 function parseAndNormalizeRedTeam(raw: string): RedTeamAttackOutput {
@@ -290,6 +303,42 @@ async function callOpenRouterWithFallback(config: ModelCallConfig): Promise<stri
     return content;
   } catch (err: any) {
     clearTimeout(timeout);
+    
+    // Failover to Gemini direct API (Antigravity Native) if OpenRouter rate-limited
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (geminiKey) {
+      console.warn(`\x1b[33m⚠️ [Swarm Engine] OpenRouter unavailable (${err.message.slice(0, 80)}). Failing over to Antigravity Native Engine (Gemini)...\x1b[0m`);
+      try {
+        const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              { role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }
+            ],
+            generationConfig: {
+              responseMimeType: 'application/json',
+              temperature: 0.1,
+            }
+          })
+        });
+
+        if (geminiRes.ok) {
+          const gJson = await geminiRes.json();
+          const gContent = gJson.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (gContent) {
+            console.log(`\x1b[32m✔ [Antigravity Engine] Generated response via Gemini.\x1b[0m`);
+            return gContent;
+          }
+        } else {
+          const gErr = await geminiRes.text();
+          console.error(`\x1b[31m❌ [Antigravity Engine] Gemini HTTP ${geminiRes.status}: ${gErr.slice(0, 200)}\x1b[0m`);
+        }
+      } catch (gemErr: any) {
+        console.error(`\x1b[31m❌ [Antigravity Engine] Gemini fallback failed: ${gemErr.message}\x1b[0m`);
+      }
+    }
+
     throw err;
   }
 }
