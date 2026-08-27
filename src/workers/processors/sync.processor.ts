@@ -237,7 +237,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
     log.error('Failed to execute Quarantine Service tasks', { cause: e });
   }
 
-  // Sweep Orphaned PENDING Orders
+  // Sweep Orphaned PENDING Orders (> 15m)
   try {
     const orphanThreshold = new Date(Date.now() - 15 * 60 * 1000);
     const orphanOrders = await db.order.findMany({
@@ -258,6 +258,33 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
     }
   } catch (e: unknown) {
     log.error('Failed to execute Orphan Sweeper', { cause: e });
+  }
+
+  // Self-Healing Safeguard: Sweep stuck PENDING_CHECK Orders (> 2h without externalId)
+  // Ensures client funds are automatically refunded if an operator or reseller gateway is unresponsive
+  try {
+    const stuckPendingCheckThreshold = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const stuckCheckOrders = await db.order.findMany({
+      where: {
+        status: 'PENDING_CHECK',
+        updatedAt: { lt: stuckPendingCheckThreshold },
+        externalId: null
+      },
+      select: { id: true, numericId: true }
+    });
+
+    if (stuckCheckOrders.length > 0) {
+      log.warn(`Found ${stuckCheckOrders.length} stuck PENDING_CHECK orders (> 2h). Auto-refunding to protect client experience...`);
+      const { orderService } = await import('../../services/core/order.service');
+      for (const stuckOrder of stuckCheckOrders) {
+        await orderService.failOrderTerminal(
+          stuckOrder.id,
+          'Авто-отмена и 100% возврат: шлюз поставщика не подтвердил приём заказа в течение 2 часов.'
+        );
+      }
+    }
+  } catch (e: unknown) {
+    log.error('Failed to execute Stuck PENDING_CHECK Sweeper', { cause: e });
   }
 
   // Smart Drip 2.5: Auto-compensation tick

@@ -99,9 +99,9 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
     try {
       const { sendAdminAlert } = await import('@/lib/notifications');
       await sendAdminAlert(
-        `🚨 [DUPLICATE DISPATCH PREVENTED] Заказ #${order.numericId} (Услуга: ${order.service.name})\n` +
-        `Обнаружен повторный запуск джобы BullMQ после отправки провайдеру.\n` +
-        `Заказ переведен в PENDING_CHECK. Проверьте статус у провайдера вручную во избежание двойного списания!`,
+        `🛡️ [ЗАЩИТА ОТ ДВОЙНОГО СПИСАНИЯ] Заказ #${order.numericId} (Услуга: ${order.service.name})\n` +
+        `Система предотвратила повторную отправку заказа поставщику.\n` +
+        `Заказ переведён в статус «На проверке» (PENDING_CHECK). Проверьте в кабинете поставщика, был ли создан заказ, чтобы не платить дважды.`,
         'CRITICAL'
       );
     } catch { /* ignore */ }
@@ -325,10 +325,10 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
         try {
           const { sendAdminAlert } = await import('@/lib/notifications');
           sendAdminAlert(
-            `⚠️ [AMBIGUOUS TIMEOUT] Заказ #${order.numericId} (Услуга: ${order.service?.name || ''})\n` +
-            `Провайдер ${route.provider.name} не ответил (таймаут). Заказ переведен в PENDING_CHECK.\n` +
-            `Требуется ручная проверка на стороне провайдера во избежание двойной поставки!`,
-            'CRITICAL'
+            `⚠️ [ТАЙМАУТ СВЯЗИ С ПОСТАВЩИКОМ] Заказ #${order.numericId} (Услуга: ${order.service?.name || ''})\n` +
+            `Поставщик ${route.provider.name} не ответил вовремя (обрыв связи / таймаут).\n` +
+            `Заказ переведён в статус «На проверке» (PENDING_CHECK). Проверьте в кабинете поставщика, успел ли он принять заказ, прежде чем нажимать повтор!`,
+            'WARNING'
           );
         } catch { /* ignore */ }
 
