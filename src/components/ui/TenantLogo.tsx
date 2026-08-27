@@ -98,9 +98,65 @@ export function TenantLogo({ tenantId, className = "w-8 h-8", iconClassName = "t
 
   return (
     <div className={`relative flex items-center justify-center select-none shrink-0 ${className}`}>
-      <div className="w-full h-full rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-700 text-white flex items-center justify-center font-black shadow-md shadow-blue-500/25 border border-white/10">
-        <span className={`font-black text-white leading-none ${iconClassName || 'text-sm'}`}>S</span>
-      </div>
+      <svg
+        viewBox="0 0 100 100"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full h-full drop-shadow-[0_2px_8px_rgba(2,132,199,0.35)] transition-transform duration-200"
+      >
+        <defs>
+          <linearGradient id="planSkyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#38BDF8" />
+            <stop offset="50%" stopColor="#0EA5E9" />
+            <stop offset="100%" stopColor="#0284C7" />
+          </linearGradient>
+          <filter id="planLetterGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="#0369A1" floodOpacity="0.3" />
+          </filter>
+        </defs>
+
+        {/* Soft Super-ellipse / Squircle in Brand Light Sky Blue */}
+        <rect
+          x="2"
+          y="2"
+          width="96"
+          height="96"
+          rx="28"
+          fill="url(#planSkyGrad)"
+        />
+
+        {/* Subtle top specular sheen */}
+        <path
+          d="M 28 6 Q 50 14 72 6"
+          stroke="#FFFFFF"
+          strokeWidth="3"
+          strokeLinecap="round"
+          opacity="0.35"
+        />
+
+        {/* Mathematically Centered Bold Vector S (Precision Bounding Box: 46x62 on center 50,50) */}
+        <path
+          d="M 67 36
+             C 67 24, 58 17, 49 17
+             C 39 17, 31 24, 31 34
+             C 31 43, 39 47, 47 50
+             L 52 52
+             C 60 55, 67 60, 67 69
+             C 67 79, 58 86, 49 86
+             C 37 86, 29 78, 29 67
+             L 42 67
+             C 42 72, 45 75, 49 75
+             C 53 75, 56 72, 56 68
+             C 56 62, 51 59, 44 56
+             L 39 54
+             C 30 51, 20 45, 20 34
+             C 20 21, 32 12, 49 12
+             C 62 12, 76 21, 76 35
+             Z"
+          fill="#FFFFFF"
+          filter="url(#planLetterGlow)"
+        />
+      </svg>
     </div>
   );
 }
