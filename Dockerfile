@@ -1,36 +1,23 @@
-# --- deps ---
-FROM node:20-alpine AS deps
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci --prefer-offline || npm ci || npm install
-
-# --- builder ---
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-RUN npx prisma generate
-RUN npm run build
-
 # --- runner ---
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+RUN apk add --no-cache curl dos2unix openssl libssl3
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 
-# Next.js standalone
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+# Next.js standalone (копируется напрямую из собранного билда)
+COPY --chown=nextjs:nodejs .next/standalone ./
+COPY --chown=nextjs:nodejs .next/static ./.next/static
+COPY --chown=nextjs:nodejs public ./public
 
-# Prisma (для migrate deploy и client в worker)
-COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma/client ./node_modules/@prisma/client
+# Prisma (для migrate deploy и runtime)
+COPY --chown=nextjs:nodejs prisma ./prisma
+COPY --chown=nextjs:nodejs node_modules/.prisma ./node_modules/.prisma
+COPY --chown=nextjs:nodejs node_modules/@prisma/client ./node_modules/@prisma/client
 
 # Entrypoint (prisma migrate deploy перед стартом)
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
-RUN chmod +x docker-entrypoint.sh
+RUN dos2unix docker-entrypoint.sh && chmod +x docker-entrypoint.sh
 
 USER nextjs
 EXPOSE 3000
@@ -39,7 +26,7 @@ ENV PORT=3000 HOSTNAME=0.0.0.0
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD wget -qO- http://localhost:3000/api/health || exit 1
 
-ENTRYPOINT ["./docker-entrypoint.sh"]
+ENTRYPOINT ["/bin/sh", "./docker-entrypoint.sh"]
 CMD ["node", "server.js"]
 
 # --- worker-runner ---
