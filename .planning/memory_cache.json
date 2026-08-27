@@ -52,6 +52,50 @@
         "monitoring",
         "architecture"
       ]
+    },
+    {
+      "title": "Официальная спецификация YooKassa API v3 (Active Pull & Webhooks)",
+      "context": "Задержки ночных вебхуков и верификация платежей без ожидания",
+      "decision": "Использовать GET /v3/payments/{id} с Basic Auth (shopId:secretKey), Redis-кэшем 5 сек и глобальным Rate Limit (max 30 req/min). Вебхук проверяется через HMAC-SHA256.",
+      "rationale": "Подтверждено официальной документацией ЮKassa API v3. Исключает блокировку по 429 и решает проблему задержки вебхуков при ночном банковском клиринге.",
+      "tags": [
+        "yookassa",
+        "payments",
+        "api_v3",
+        "rate_limits",
+        "active_pull"
+      ],
+      "importance": 1,
+      "decayRate": 0
+    },
+    {
+      "title": "Официальная спецификация Robokassa Partner REST API 2026",
+      "context": "Проверка статусов заказов и отказ от устаревших XML-протоколов",
+      "decision": "Для проверки статуса использовать POST /PartnerRegisterService/api/Operation/GetOperations с HTTP Basic Auth партнера (roboxPartnerId UUID + login/password), а не устаревший XML OpStateExt с паролями магазина. ResultURL вебхук проверяет SignatureValue по алгоритму MD5/SHA256.",
+      "rationale": "SOAP/XML OpStateExt официально признан устаревшим (deprecated). Актуальная спецификация требует Partner REST API с UUID идентификатором партнера.",
+      "tags": [
+        "robokassa",
+        "payments",
+        "partner_api",
+        "rest",
+        "get_operations"
+      ],
+      "importance": 1,
+      "decayRate": 0
+    },
+    {
+      "title": "Иерархия проверки источников и защита от галлюцинаций (Zero-Hallucination 3-Tier Hierarchy)",
+      "context": "Исключение домыслов и устаревшей информации в коде и архитектурных решениях",
+      "decision": "При работе с любыми техническими, финансовыми, правовыми или API-системами агент обязан строго следовать правилу 3 ступеней: Уровень 1 — Официальная документация; Уровень 2 — Поиск в интернете; Уровень 3 — Память агента с обязательной пометкой гипотезы и верификацией.",
+      "rationale": "Предотвращает внедрение устаревших протоколов (как SOAP в 2026 г.) и защищает бизнес от сбоев.",
+      "tags": [
+        "zero_hallucination",
+        "methodology",
+        "verification_hierarchy",
+        "ace_triad"
+      ],
+      "importance": 1,
+      "decayRate": 0
     }
   ]
 }

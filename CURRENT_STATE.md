@@ -66,10 +66,11 @@
 | **SWRM-AUD** | **Multi-Agent Swarm Audit (OpenRouter Free Tier)** | ✅ 100% | `scripts/harness/ai-swarm-audit.ts` (4/4 Models PASS) |
 | **EXACT-MTH** | **FinOps ExactMath & Banker's Rounding Suite** | ✅ 100% | `src/__tests__/financial/exact-math.test.ts` (10/10 PASS) |
 | **RESIL-HRD** | **Open-Redirect Armor & Provider Mutex Resilience** | ✅ 100% | `src/__tests__/resilience/resilience-and-hardening.test.ts` (8/8 PASS) |
+| **P0-THREAT** | **P0 Threat Matrix, Active Pull & Nightly Ledger Guard** | ✅ 100% | `src/__tests__/security/p0-threat-matrix.test.ts` (5/5 PASS) |
 
 ---
 
-## 11 Критических Правил и Инвариантов Проекта
+## 12 Критических Правил и Инвариантов Проекта
 1. **Multi-Tenant (Строго 2 бренда):** `smmplan` (`smmplan.pro`) и `flux` (`smmflux.ru`). Переключение в шапке через `<GlobalSiteSwitcher />` (кука `x_admin_tenant`).
 2. **UI Pricing Contract:** Цена за 1 штуку (`pricePerUnitRub`) с подписью `₽ / шт`. Запрещено умножать на 1000 на клиенте.
 3. **Shadow Catalog & Cherry-Pick:** Сырые каталоги (5000+ услуг) буферизуются в Redis (`provider:{id}:catalog`). В PostgreSQL `Service` попадают только проверенные услуги.
@@ -81,3 +82,5 @@
 9. **Badge Zero-Contradiction Invariant:** Услуга с признаком «Без гарантии» / `isRefillEnabled = false` КАТЕГОРИЧЕСКИ НЕ МОЖЕТ иметь бейдж «ГАРАНТИЯ» в UI. Автоматическая санитизация бейджа на уровне каталога и валидация в админке.
 10. **Zero 0.0.0.0 Redirect Leak & Reverse Proxy Armor:** Все редиректы авторизации (`/api/auth/logout`, `/admin`, QA Dock) обязаны разрешаться в относительные пути (`/login`) или публичный домен бренда (`test.smmplan.pro` / `smmflux.ru`) с жесткой фильтрацией `0.0.0.0` и `host.docker.internal`.
 11. **Deterministic Banker's Rounding & Anti-Zero-Charge Floor:** Все финансовые расчеты стоимости заказов обязаны использовать `ExactMath.calculateOrderCostKopecks()` с округлением Round-Half-to-Even, базисными пунктами наценок и защитным порогом $\ge 1$ коп. на заказ.
+12. **Zero-Hallucination Source Verification Hierarchy (Rule of 3 Tiers):** При работе с внешними техническими, платежными или бухгалтерскими интеграциями агент ОБЯЗАН следовать 3-уровневой иерархии: Уровень 1 — Официальная документация (yookassa.ru/developers, docs.robokassa.ru); Уровень 2 — Поиск в интернете; Уровень 3 — Память агента с обязательной пометкой гипотезы и верификацией. Запрещено доверять устаревшим протоколам (SOAP/XML) без сверки с официальной документацией.
+

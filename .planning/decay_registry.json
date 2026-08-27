@@ -48,6 +48,20 @@
         "temporal_decay",
         "ai_models_2026"
       ]
+    },
+    {
+      "title": "Устаревший SOAP/XML метод Robokassa OpStateExt",
+      "deprecatedNorm": "Использование GET/POST Service.asmx/OpStateExt с MD5(MerchantLogin:InvoiceID:Password2) и XML парсингом",
+      "activeReplacement": "REST Partner API POST /api/Operation/GetOperations с Basic Auth партнера и JSON телом (roboxPartnerId, startDate, endDate, invoiceId)",
+      "decayFactor": 1,
+      "reason": "Официальный отказ Robokassa от SOAP в пользу REST API. Использование OpStateExt приводит к ошибкам подписи и сбоям.",
+      "tags": [
+        "robokassa",
+        "deprecated",
+        "opstate_ext",
+        "soap",
+        "xml"
+      ]
     }
   ]
 }
