@@ -186,15 +186,25 @@ function parseAndNormalizeRedTeam(raw: string): RedTeamAttackOutput {
 
 function parseAndNormalizeBlueTeam(raw: string): BlueTeamDefenseOutput {
   const obj = extractJsonString(raw);
-  const rawList = obj.rebuttals || obj.defenses || obj.responses || [];
+  const rawList = obj.rebuttals || obj.defenses || obj.responses || obj.evaluations || obj.findings || (Array.isArray(obj) ? obj : []);
 
   const rebuttals = (Array.isArray(rawList) ? rawList : []).map((r: any, idx: number) => {
+    const rawVerdict = typeof r?.verdict === 'string' ? r.verdict.toUpperCase().trim() : 'DEFENDED_ACCEPTABLE_TRADEOFF';
+    const validVerdict = [
+      'ACCEPTED_VALID_BUG',
+      'REJECTED_YAGNI_OVERENGINEERING',
+      'REJECTED_FALSE_POSITIVE',
+      'MITIGATED_BY_EXISTING_CONTROL',
+      'PROPOSED_PRAGMATIC_ALTERNATIVE',
+      'DEFENDED_ACCEPTABLE_TRADEOFF',
+    ].includes(rawVerdict) ? rawVerdict : 'DEFENDED_ACCEPTABLE_TRADEOFF';
+
     return {
-      findingId: r.findingId || r.id || `RED-${String(idx + 1).padStart(3, '0')}`,
-      verdict: ['ACCEPTED_VALID_BUG', 'REJECTED_YAGNI_OVERENGINEERING', 'REJECTED_FALSE_POSITIVE', 'MITIGATED_BY_EXISTING_CONTROL', 'PROPOSED_PRAGMATIC_ALTERNATIVE'].includes(r.verdict) ? r.verdict : 'DEFENDED_ACCEPTABLE_TRADEOFF',
-      engineeringTradeOffRationale: r.engineeringTradeOffRationale || r.rationale || r.defenseArgument || 'Pragmatic design acceptable at current scale',
-      costOfFixVsRisk: r.costOfFixVsRisk || r.costVsRisk || 'Low immediate risk',
-      proposedResolution: r.proposedResolution || r.resolution || 'Maintain current architecture with monitoring',
+      findingId: r?.findingId || r?.id || `RED-${String(idx + 1).padStart(3, '0')}`,
+      verdict: validVerdict as any,
+      engineeringTradeOffRationale: r?.engineeringTradeOffRationale || r?.rationale || r?.defenseArgument || r?.reason || 'Pragmatic design acceptable at current scale',
+      costOfFixVsRisk: r?.costOfFixVsRisk || r?.costVsRisk || r?.risk || 'Low immediate risk',
+      proposedResolution: r?.proposedResolution || r?.resolution || 'Maintain current architecture with monitoring',
     };
   });
 
@@ -211,30 +221,57 @@ function parseAndNormalizeArbiter(raw: string): CTOArbiterConsensusOutput {
   const rawTradeOffs = obj.acceptedTradeOffs || obj.tradeOffs || [];
 
   const actionableFixes = (Array.isArray(rawFixes) ? rawFixes : []).map((f: any, idx: number) => {
+    const rawPriority = typeof f?.priority === 'string' ? f.priority.trim().toUpperCase() : 'P1_REQUIRED';
+    const normalizedPriority: 'P0_BLOCKING' | 'P1_REQUIRED' | 'P2_DEFERRED' = 
+      rawPriority === 'P0_BLOCKING' || rawPriority === 'P0' || rawPriority === 'CRITICAL'
+        ? 'P0_BLOCKING'
+        : rawPriority === 'P2_DEFERRED' || rawPriority === 'P2' || rawPriority === 'LOW'
+        ? 'P2_DEFERRED'
+        : 'P1_REQUIRED';
+
     return {
-      fixId: f.fixId || `FIX-${String(idx + 1).padStart(2, '0')}`,
-      linkedFindingId: f.linkedFindingId || f.findingId || `RED-${String(idx + 1).padStart(3, '0')}`,
-      priority: ['P0_BLOCKING', 'P1_REQUIRED', 'P2_DEFERRED'].includes(f.priority) ? f.priority : 'P1_REQUIRED',
-      targetFile: f.targetFile || f.file || 'src/proxy.ts',
-      summary: f.summary || f.title || 'Required architectural patch',
-      concretePatchInstruction: f.concretePatchInstruction || f.patch || f.actionPlan || 'Apply safe boundary check',
-      verificationCriteria: f.verificationCriteria || f.verify || 'Automated unit test verification',
+      fixId: f?.fixId || `FIX-${String(idx + 1).padStart(2, '0')}`,
+      linkedFindingId: f?.linkedFindingId || f?.findingId || `RED-${String(idx + 1).padStart(3, '0')}`,
+      priority: normalizedPriority,
+      targetFile: f?.targetFile || f?.file || 'src/proxy.ts',
+      summary: f?.summary || f?.title || 'Required architectural patch',
+      concretePatchInstruction: f?.concretePatchInstruction || f?.patch || f?.actionPlan || 'Apply safe boundary check',
+      verificationCriteria: f?.verificationCriteria || f?.verify || 'Automated unit test verification',
     };
   });
 
   const acceptedTradeOffs = (Array.isArray(rawTradeOffs) ? rawTradeOffs : []).map((t: any, idx: number) => {
     return {
-      tradeOffId: t.tradeOffId || `TRADEOFF-${String(idx + 1).padStart(2, '0')}`,
-      linkedFindingId: t.linkedFindingId || t.findingId || `RED-${String(idx + 1).padStart(3, '0')}`,
-      justification: t.justification || t.reason || 'Acceptable trade-off under current architecture',
-      mitigatingFactors: t.mitigatingFactors || t.guards || 'Guarded by database invariants',
+      tradeOffId: t?.tradeOffId || `TRADEOFF-${String(idx + 1).padStart(2, '0')}`,
+      linkedFindingId: t?.linkedFindingId || t?.findingId || `RED-${String(idx + 1).padStart(3, '0')}`,
+      justification: t?.justification || t?.reason || 'Acceptable trade-off under current architecture',
+      mitigatingFactors: t?.mitigatingFactors || t?.guards || 'Guarded by database invariants',
     };
   });
 
+  const hasP0 = actionableFixes.some((f) => f.priority === 'P0_BLOCKING');
+  const hasP1 = actionableFixes.some((f) => f.priority === 'P1_REQUIRED');
+
+  const defaultVerdict: 'SHIP_AS_IS' | 'PASS_WITH_P1_REFACTOR' | 'HARD_BLOCK_P0' = hasP0
+    ? 'HARD_BLOCK_P0'
+    : hasP1
+    ? 'PASS_WITH_P1_REFACTOR'
+    : 'SHIP_AS_IS';
+
+  const defaultScore = hasP0 ? 30 : hasP1 ? 85 : 100;
+
+  const validVerdict = ['SHIP_AS_IS', 'PASS_WITH_P1_REFACTOR', 'HARD_BLOCK_P0'].includes(obj.overallVerdict)
+    ? obj.overallVerdict
+    : defaultVerdict;
+
+  const validScore = typeof obj.consensusScore === 'number' && obj.consensusScore >= 0 && obj.consensusScore <= 100
+    ? obj.consensusScore
+    : defaultScore;
+
   return {
     arbiterPersona: 'CTO Arbiter & Chief Synthesizer (Inkling)',
-    overallVerdict: ['SHIP_AS_IS', 'PASS_WITH_P1_REFACTOR', 'HARD_BLOCK_P0'].includes(obj.overallVerdict) ? obj.overallVerdict : (actionableFixes.some((f: any) => f.priority === 'P0_BLOCKING') ? 'HARD_BLOCK_P0' : 'PASS_WITH_P1_REFACTOR'),
-    consensusScore: typeof obj.consensusScore === 'number' ? obj.consensusScore : 85,
+    overallVerdict: validVerdict,
+    consensusScore: validScore,
     executiveSummary: obj.executiveSummary || obj.summary || 'Debate concluded with actionable synthesis.',
     actionableFixes,
     acceptedTradeOffs,
