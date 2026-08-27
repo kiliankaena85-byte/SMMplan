@@ -102,39 +102,39 @@ export function TenantLogo({ tenantId, className = "w-8 h-8", iconClassName = "t
         viewBox="0 0 100 100"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-full drop-shadow-[0_2px_8px_rgba(2,132,199,0.35)] transition-transform duration-200"
+        className="w-full h-full drop-shadow-[0_4px_12px_rgba(2,132,199,0.3)] transition-transform duration-200"
       >
         <defs>
+          {/* Light Sky Blue Gradient */}
           <linearGradient id="planSkyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#38BDF8" />
             <stop offset="50%" stopColor="#0EA5E9" />
             <stop offset="100%" stopColor="#0284C7" />
           </linearGradient>
-          <filter id="planLetterGlow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="#0369A1" floodOpacity="0.3" />
+
+          {/* Inner Shadow / Depth Filter for Rounded Squircle */}
+          <filter id="planInnerShadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feOffset dx="0" dy="3" />
+            <feGaussianBlur stdDeviation="3" result="offset-blur" />
+            <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse" />
+            <feFlood floodColor="#000000" floodOpacity="0.25" result="color" />
+            <feComposite operator="in" in="color" in2="inverse" result="shadow" />
+            <feComposite operator="over" in="shadow" in2="SourceGraphic" />
           </filter>
         </defs>
 
-        {/* Soft Super-ellipse / Squircle in Brand Light Sky Blue */}
+        {/* Rounded Blue Squircle with Inner Volume Depth */}
         <rect
           x="2"
           y="2"
           width="96"
           height="96"
-          rx="28"
+          rx="26"
           fill="url(#planSkyGrad)"
+          filter="url(#planInnerShadow)"
         />
 
-        {/* Subtle top specular sheen */}
-        <path
-          d="M 28 6 Q 50 14 72 6"
-          stroke="#FFFFFF"
-          strokeWidth="3"
-          strokeLinecap="round"
-          opacity="0.35"
-        />
-
-        {/* Precision Centered Bold Sans-Serif S (Geometric System Typography) */}
+        {/* Clean, Massive Bold Sans-Serif S (Maximized to 74px, Perfectly Centered) */}
         <text
           x="50%"
           y="50%"
@@ -143,9 +143,8 @@ export function TenantLogo({ tenantId, className = "w-8 h-8", iconClassName = "t
           fill="#FFFFFF"
           fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
           fontWeight="900"
-          fontSize="62"
+          fontSize="74"
           letterSpacing="-0.04em"
-          filter="url(#planLetterGlow)"
           className="select-none"
         >
           S
