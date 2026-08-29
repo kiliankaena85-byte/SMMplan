@@ -120,8 +120,24 @@ export async function proxy(request: NextRequest) {
   let finalTenantId = 'smmplan';
   let isExplicitTenant = false;
 
-  // 1. Explicit query parameter override (e.g. ?tenant=flux for manual QA preview)
-  if (fromQuery) {
+  const activeContour = getActiveServerContour();
+  const STAFF_ROLES = new Set(['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR']);
+
+  let isAllowedQueryTenant = true;
+  if (fromQuery && activeContour !== 'test' && process.env.NODE_ENV === 'production' && !isLocalhost) {
+    const sessionToken = request.cookies.get('session_token')?.value;
+    if (!sessionToken) {
+      isAllowedQueryTenant = false;
+    } else {
+      const payload = await decryptSessionToken(sessionToken);
+      if (!payload || !payload.role || !STAFF_ROLES.has(payload.role)) {
+        isAllowedQueryTenant = false;
+      }
+    }
+  }
+
+  // 1. Explicit query parameter override (permitted for staff on prod, or unrestricted on test/localhost)
+  if (fromQuery && isAllowedQueryTenant) {
     finalTenantId = fromQuery;
     isExplicitTenant = true;
   }
@@ -182,7 +198,6 @@ export async function proxy(request: NextRequest) {
   }
 
   // Strict validation against current active server contour (TRUSTED_CONTOUR_MAP)
-  const activeContour = getActiveServerContour();
   const allowedForContour = TRUSTED_CONTOUR_MAP[activeContour];
   const effectiveHost = (rawFwdClean && !isInternalHost(rawFwdClean)) ? rawFwdClean : rawHostClean;
 
