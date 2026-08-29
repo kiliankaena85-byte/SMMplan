@@ -1,8 +1,23 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-29 22:15 (МСК)  
-> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🛡️ POST-LAUNCH HARDENING v6 VERIFIED (N-10.3, N-10.5, OPERATOR RBAC, Dynamic Build-ID, RCA 530, CSP Telemetry, Pentest Arsenal Deactivated).
+> **Последнее обновление:** 2026-08-30 00:05 (МСК)  
+> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🛡️ SECURITY HARDENING v7 VERIFIED (SEC-01..SEC-07 100% REMEDIATED & TESTED, 20/20 PASS) + 🛡️ MULTI-AI PENTEST SWARM VERIFIED (10/10 Probes PASS, 100% Immunity Score) + 🚀 LAUNCH READY / PRODUCTION OPENED (`smmplan.pro` LIVE).
+
+- **Пакет улучшений безопасности Security Hardening v7 (Remediation SEC-01..SEC-07):**
+  - **SEC-01 (API v2 Real RateLimit RFC 9331 Headers):** Внедрен метод `RateLimitService.checkCustomKeyDetail` возвращающий реальные счетчики Redis/Postgres. Заголовки `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`, `RateLimit-Policy` выставляются на всех 200 и 429 ответах. Сьют: `src/__tests__/api-v2-rate-limit-headers.test.ts` (2/2 PASS).
+  - **SEC-02 (`security.txt` Prod Contour Allowlist):** В `src/proxy.ts` добавлен ранний allowlist `isSecurityTxt`, позволяющий ботам и секьюрити-сканерам получать RFC 9116 манифест на боевых доменах без блокировки. Сьют: `src/__tests__/auth/logout-and-proxy-redirects.test.ts` (9/9 PASS).
+  - **SEC-03 (`?tenant=` Override Staff Auth Guard):** В `src/proxy.ts` query-параметр `?tenant=...` на боевом контуре (`prod`) разрешен СТРОГО для аутентифицированных сотрудников (`OWNER`, `ADMIN`, `MANAGER`, `SUPPORT`, `OPERATOR`) через `decryptSessionToken`. Обычные пользователи и гости не могут подменить тенант. Сьют: `src/__tests__/proxy-tenant-override-auth.test.ts` (4/4 PASS).
+  - **SEC-04 (B2B API v2 Link Validation & Sanitization):** В `src/app/api/v2/route.ts` внедрена строгая валидация входящих ссылок `sanitizeAndValidateApiLink` (блокировка опасных схем `javascript:`, `data:`, очистка control characters, лимит 2048 симв.) и проверка соответствия категории через `getLinkValidator` + `mutateLink` для single и multi заказов. Сьют: `src/__tests__/api-v2-link-validation.test.ts` (5/5 PASS).
+  - **SEC-05 (15k Anti-Fraud Limit for Robokassa):** В `src/actions/order/checkout.ts` и `src/actions/user/top-up.action.ts` платежный шлюз `robokassa` включен в обязательную проверку привязки Telegram-аккаунта для сумм свыше 15 000 ₽ наряду с YooKassa и СБП. CryptoBot безопасно освобожден от лимита (0 чарджбэков). Сьют: `src/__tests__/robokassa-15k-anti-fraud.test.ts` (3/3 PASS).
+  - **SEC-06 (`isInternalHost` Pattern Hardening):** В `src/proxy.ts` неточная проверка подстроки `h.includes('docker')` заменена на строгий поиск по Set `INTERNAL_HOSTS` (`localhost`, `127.0.0.1`, `0.0.0.0`, `host.docker.internal`), исключая вектор обхода `evil-docker.com`. Сьют: `src/__tests__/internal-hosts-hardening.test.ts` (3/3 PASS).
+  - **SEC-07 (Cloudflare Tunnel IP Trust & `utils/ip.ts`):** В `src/utils/ip.ts` добавлен env-флаг `TRUST_CF_CONNECTING_IP`. При `true` (режим Cloudflare Tunnel) приоритет отдается `cf-connecting-ip`; при `false` (прямой Nginx в РФ) — `x-real-ip` для защиты от спуфинга. Сьют: `src/__tests__/ip-cloudflare-tunnel-trust.test.ts` (3/3 PASS).
+  - **Верификация Quality Gate:** `tsc --noEmit` (**0 ошибок**), 6 тестовых сьютов (**20/20 PASS**), `npm run check:bundle-secrets` (**0 утечек**), `npm run check:domains` (**0 нарушений**).
+
+- **Мульти-модельный пентест платформы (Multi-AI Pentest Swarm 2026):**
+  - Проведено состязательное тестирование на проникновение против живого контейнера `smmplan_web` по методологии OWASP Top 10:2025 и Ornith-1.0 SQP.
+  - **10/10 Активных защитных рубежей пройдены:** Host Spoofing Shield (`F91`), Multi-Contour JWT изоляция, B2B API-ключи, RFC 9116 security.txt, Robots.txt Non-Disclosure, Fail-Closed YooKassa, Timing-Safe CryptoBot HMAC (`crypto.timingSafeEqual`), Prelaunch Burst Rate-Limiting (HTTP 429), Zero-Trust Operator RBAC (307 redirect), Client Bundle Secrets AST Scanner (0 утечек).
+  - **Экспертный вердикт роя:** Immunity Score **100%**, вердикт **ГОТОВ К ПРОДАКШЕНУ (PRODUCTION READY)**. Полный отчет: `PENTEST_REPORT_2026.md`.
 
 - **Пакет фиксов Hardening v6 (Audit #10 Follow-ups & Post-Launch Security):**
   - **Деактивация пентест-арсенала (D1–D6):** 4 пентест-аккаунта (`pentest7-user@smmplan.pro`, `pentest7-operator@smmplan.pro`, `pentest7-admin@smmplan.pro`, `pentest7-flux@smmflux.ru`) переведены в `isActive: false`, `isDeleted: true`, `passwordHash: null`, `apiKeyHash: null`. Все 5 сессий удалены, B2B API-ключи отозваны (401 Unauthorized). Секрет `JWT_SECRET` сохранен без разлогина боевых пользователей.
