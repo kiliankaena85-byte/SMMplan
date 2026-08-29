@@ -34,7 +34,7 @@ describe('Payment Redirect & Gateway Whitelist Guard', () => {
     const internalPaths = [
       '/success?orderId=123',
       '/payment-redirect?id=pay_456',
-      '/api/dev/mock-payment?paymentId=mock_789',
+      '/dashboard?paymentId=pay_789',
       'https://smmplan.pro/success',
       'https://smmflux.ru/success',
       'http://localhost:3000/success',

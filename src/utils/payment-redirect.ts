@@ -26,7 +26,6 @@ export const ALLOWED_RELATIVE_PATHS = [
   '/payment-redirect',
   '/dashboard',
   '/support/payment-error',
-  '/api/dev/mock-payment',
 ] as const;
 
 export function isAllowedPaymentUrl(rawUrl: string, currentOrigin?: string): boolean {

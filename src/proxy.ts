@@ -21,11 +21,11 @@ export async function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.delete('x-tenant-id');
 
-  const fwdHost = request.headers.get('x-forwarded-host');
   const hostHeader = request.headers.get('host');
+  const fwdHost = request.headers.get('x-forwarded-host');
   const fwdProto = request.headers.get('x-forwarded-proto');
 
-  let host = fwdHost || hostHeader || '';
+  let host = hostHeader || fwdHost || '';
   if (host.includes('0.0.0.0') || host.includes('host.docker.internal')) {
     host = process.env.NODE_ENV === 'production' 
       ? (process.env.APP_URL ? new URL(process.env.APP_URL).host : 'test.smmplan.pro') 

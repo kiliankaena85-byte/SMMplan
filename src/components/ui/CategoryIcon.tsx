@@ -39,7 +39,6 @@ export const CategoryIcon = ({ name, className, size = 20 }: { name: string, cla
 };
 
 export const cleanCategoryName = (rawName: string) => {
-  // Strip emojis from the old database values to keep strings clean
   if (!rawName) return "";
-  return rawName.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
+  return rawName.trim();
 };

@@ -24,8 +24,8 @@ export async function POST(req: Request) {
     const forwarded = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
     const ip = forwarded ? forwarded.split(',')[0].trim() : '127.0.0.1';
 
-    // 2. IP-based Rate Limiter (Max 5 requests per hour)
-    const isAllowed = await RateLimitService.checkCustomKey(`prelaunch:subscribe:${ip}`, 5, 3600, true);
+    // 2. IP-based Rate Limiter (Max 5 requests per hour per tenant contour)
+    const isAllowed = await RateLimitService.checkCustomKey(`prelaunch:subscribe:${tenantId}:${ip}`, 5, 3600, true);
     if (!isAllowed) {
       return NextResponse.json(
         { success: false, error: 'Слишком много попыток подписки с вашего IP-адреса. Пожалуйста, попробуйте позже.' },
