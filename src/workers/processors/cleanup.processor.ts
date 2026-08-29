@@ -462,6 +462,9 @@ export async function runInProgressTTLSweep(): Promise<void> {
         remains: true,
         serviceId: true,
         externalId: true,
+        runs: true,
+        interval: true,
+        createdAt: true,
         service: {
           select: {
             provider: true
@@ -476,6 +479,17 @@ export async function runInProgressTTLSweep(): Promise<void> {
     }
 
     for (const order of stuckOrders) {
+      // 1. Dynamic TTL check for Drip-Feed orders (do not cancel orders still within scheduled run window)
+      const isDripFeed = Boolean(order.runs && order.runs > 1 && order.interval);
+      if (isDripFeed) {
+        const dynamicTtlHours = Math.max(72, Math.ceil(((order.runs || 1) * (order.interval || 60)) / 60) + 48);
+        const orderDynamicThreshold = new Date(Date.now() - dynamicTtlHours * 60 * 60 * 1000);
+        if (order.createdAt > orderDynamicThreshold) {
+          log.info(`Skipping Drip-Feed order ${order.id} TTL sweep (within scheduled run window: ${dynamicTtlHours}h)`);
+          continue;
+        }
+      }
+
       let remains = order.remains ?? order.quantity;
       let statusFromProvider: string | null = null;
 
@@ -503,25 +517,52 @@ export async function runInProgressTTLSweep(): Promise<void> {
         }
       }
 
+      // 2. Safe Anti-Drain Rule: If provider is still actively in progress, DO NOT cancel or refund!
+      const normalizedStatus = (statusFromProvider || '').toLowerCase().replace(/[\s-]+/g, '_');
+      if (normalizedStatus === 'in_progress' || normalizedStatus === 'processing' || normalizedStatus === 'pending') {
+        await db.order.updateMany({
+          where: { id: order.id, status: 'IN_PROGRESS' },
+          data: {
+            remains: Math.max(0, remains),
+            updatedAt: new Date(),
+          }
+        });
+
+        const orderAgeHours = Math.floor((Date.now() - order.createdAt.getTime()) / (1000 * 60 * 60));
+        if (orderAgeHours > 168) { // > 7 days
+          log.warn(`Order ${order.id} still in_progress at provider after ${orderAgeHours}h (remains: ${remains}/${order.quantity})`, {
+            orderId: order.id,
+            externalId: order.externalId
+          });
+        }
+        continue;
+      }
+
       const quantity = order.quantity;
       const charge = order.charge;
 
       let targetStatus: 'COMPLETED' | 'ERROR' | 'PARTIAL';
       let refundCents = 0;
       let delivered = 0;
-
       let reasonText = '';
-      if (statusFromProvider === 'completed') {
+
+      if (normalizedStatus === 'completed') {
         targetStatus = 'COMPLETED';
         refundCents = 0;
         delivered = quantity;
         reasonText = `Заказ завершён (подтверждено провайдером). Выполнено ${delivered} из ${quantity}.`;
-      } else if (statusFromProvider === 'canceled' || statusFromProvider === 'error') {
+      } else if (normalizedStatus === 'canceled' || normalizedStatus === 'error' || normalizedStatus === 'fail') {
         targetStatus = 'ERROR';
         refundCents = Number(charge);
         delivered = 0;
         reasonText = `Заказ отменён провайдером. Стоимость полностью возвращена на баланс.`;
+      } else if (normalizedStatus === 'partial') {
+        targetStatus = 'PARTIAL';
+        refundCents = calculatePartialRefund({ remains, quantity, charge });
+        delivered = Math.max(0, quantity - remains);
+        reasonText = `Заказ частично выполнен провайдером. Выполнено ${delivered} из ${quantity}. Невыполненный остаток возвращён на баланс.`;
       } else {
+        // Fallback for orders without an active external provider (local sandbox/seed or orphaned orders)
         if (remains <= 0) {
           targetStatus = 'COMPLETED';
           refundCents = 0;
@@ -618,7 +659,7 @@ export async function runInProgressTTLSweep(): Promise<void> {
  * These orders have charged the user's balance but never reached a provider.
  * Refunds the full amount and marks as ERROR.
  */
-async function runPendingCheckTTLSweep(): Promise<void> {
+export async function runPendingCheckTTLSweep(): Promise<void> {
   const PENDING_CHECK_TTL_HOURS = 24;
   const threshold = new Date(Date.now() - PENDING_CHECK_TTL_HOURS * 60 * 60 * 1000);
 

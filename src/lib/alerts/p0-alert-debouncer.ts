@@ -96,4 +96,30 @@ export class P0AlertDebouncer {
     } catch { /* ignore */ }
     inMemoryLocks.delete(fullKey);
   }
+
+  /**
+   * Smart Deduplication with occurrence count tracker.
+   * Returns shouldSend = true on first occurrence, plus the total occurrences accumulated.
+   */
+  public static async checkDeduplicatedAlert(
+    alertKey: string,
+    cooldownSeconds: number = 7200 // 2 hours default
+  ): Promise<{ shouldSend: boolean; occurrences: number }> {
+    const countKey = `${this.THRESHOLD_PREFIX}occurrences:${alertKey}`;
+    let occurrences = 1;
+
+    try {
+      if (redis.status === 'ready' || redis.status === 'connecting') {
+        occurrences = await redis.incr(countKey);
+        if (occurrences === 1) {
+          await redis.expire(countKey, cooldownSeconds);
+        }
+      }
+    } catch (redisErr) {
+      log.warn('[P0AlertDebouncer] Redis error on occurrence increment', { error: redisErr });
+    }
+
+    const shouldSend = await this.shouldSendAlert(alertKey, cooldownSeconds);
+    return { shouldSend, occurrences };
+  }
 }

@@ -79,9 +79,9 @@ export function FloatingQADock() {
 
   const handleQuickAuth = (role: "guest" | "admin" | "client") => {
     if (role === "guest") {
-      document.cookie = "session_token=; path=/; max-age=0; SameSite=Lax";
-      document.cookie = "auth_token=; path=/; max-age=0; SameSite=Lax";
-      document.cookie = "explicit_logout=true; path=/; max-age=31536000; SameSite=Lax";
+      document.cookie = "session_token=; path=/; max-age=0; SameSite=Lax; Secure; HttpOnly";
+      document.cookie = "auth_token=; path=/; max-age=0; SameSite=Lax; Secure";
+      document.cookie = "explicit_logout=true; path=/; max-age=31536000; SameSite=Lax; Secure; HttpOnly";
       toast.info("Вы вышли из аккаунта (Режим: Анонимный гость)");
       setTimeout(() => {
         const isProtectedPath = window.location.pathname.startsWith('/admin') || 
@@ -89,22 +89,8 @@ export function FloatingQADock() {
                                 window.location.pathname.startsWith('/operator');
         window.location.href = isProtectedPath ? '/login' : window.location.pathname;
       }, 300);
-    } else if (role === "admin") {
-      const secret = process.env.NEXT_PUBLIC_QA_SECRET;
-      if (!secret) {
-        toast.error("QA: NEXT_PUBLIC_QA_SECRET не задан — вход недоступен");
-        return;
-      }
-      toast.success("Вход под учетной записью Владельца (admin@smmplan.pro)...");
-      window.location.href = `/api/dev/login-direct?email=admin@smmplan.pro&secret=${encodeURIComponent(secret)}&redirect=${encodeURIComponent(window.location.pathname)}`;
-    } else if (role === "client") {
-      const secret = process.env.NEXT_PUBLIC_QA_SECRET;
-      if (!secret) {
-        toast.error("QA: NEXT_PUBLIC_QA_SECRET не задан — вход недоступен");
-        return;
-      }
-      toast.success("Вход под учетной записью Клиента (client@smmplan.pro)...");
-      window.location.href = `/api/dev/login-direct?email=client@smmplan.pro&secret=${encodeURIComponent(secret)}&redirect=${encodeURIComponent(window.location.pathname)}`;
+    } else {
+      toast.info("Быстрый вход доступен только в локальном dev-окружении через форму /login.");
     }
   };
 

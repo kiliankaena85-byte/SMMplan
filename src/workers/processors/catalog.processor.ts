@@ -54,18 +54,37 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
       case 'SYNC_PROVIDER_CATALOG': {
         const { providerId, admin } = payload;
         log.info(`[CatalogProcessor] Starting background catalog sync for provider ${providerId}...`);
-        const stats = await adminCatalogService.syncProviderCatalog(providerId, admin as { id: string; email: string });
-        log.info(`[CatalogProcessor] Catalog sync completed. Disabled Zombies: ${stats.zombiesDisabled}, Resurrected: ${stats.resurrected}, Anomalies: ${stats.priceAnomalies}`);
-        
-        // Apply blacklists, reclassification, and maxQty caps
         try {
-          const { applyPostSyncRules } = await import('@/services/providers/post-sync-rules');
-          await applyPostSyncRules();
-        } catch (postSyncErr) {
-          const errMsg = postSyncErr instanceof Error ? postSyncErr.message : String(postSyncErr);
-          log.error(`[CatalogProcessor] applyPostSyncRules failed: ${errMsg}`);
+          const stats = await adminCatalogService.syncProviderCatalog(providerId, admin as { id: string; email: string });
+          log.info(`[CatalogProcessor] Catalog sync completed for ${providerId}. Disabled Zombies: ${stats.zombiesDisabled}, Resurrected: ${stats.resurrected}, Anomalies: ${stats.priceAnomalies}`);
+          
+          // Apply blacklists, reclassification, and maxQty caps
+          try {
+            const { applyPostSyncRules } = await import('@/services/providers/post-sync-rules');
+            await applyPostSyncRules();
+          } catch (postSyncErr) {
+            const errMsg = postSyncErr instanceof Error ? postSyncErr.message : String(postSyncErr);
+            log.error(`[CatalogProcessor] applyPostSyncRules failed: ${errMsg}`);
+          }
+          await triggerCacheRevalidation(['catalog', 'services']);
+        } catch (syncErr: unknown) {
+          const errMsg = syncErr instanceof Error ? syncErr.message : String(syncErr);
+          log.warn(`[CatalogProcessor] Skipping catalog sync for provider ${providerId} due to provider API error: ${errMsg}`);
+          
+          // Update provider error metrics in database
+          try {
+            const { db } = await import('../../lib/db');
+            await db.provider.update({
+              where: { id: providerId },
+              data: {
+                lastErrorAt: new Date(),
+                errorCount5m: { increment: 1 }
+              }
+            });
+          } catch {
+            // Ignore if provider update fails
+          }
         }
-        await triggerCacheRevalidation(['catalog', 'services']);
         break;
       }
       

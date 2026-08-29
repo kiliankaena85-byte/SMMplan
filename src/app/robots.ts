@@ -13,22 +13,8 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   const host = isLocal ? rawHost : getTenantHost(tenantId);
 
   const disallowList = [
-    '/admin',
-    '/admin/',
-    '/dashboard',
-    '/dashboard/',
-    '/operator',
-    '/operator/',
-    '/api',
     '/api/',
-    '/client-demo',
-    '/client-demo/',
-    '/login',
-    '/register',
-    '/payment-redirect',
-    '/support/payment-error',
-    '/dev',
-    '/test',
+    '/admin/',
   ];
 
   return {

@@ -154,10 +154,31 @@ async function handleDeadLetter(
         }
       }
 
-      await sendAdminAlert(
-        `🪦 *Dead Letter Job*\n\nQueue: \`${queueName}\`\nJob ID: \`${job.id}\`\nAttempts: ${job.attemptsMade}/${maxAttempts}\n\nError: ${err.message}`,
-        'CRITICAL'
-      );
+      // ── Smart Alert Triage (P0 Critical vs P1 Maintenance with Deduplication) ─────
+      const isFinancialQueue = ['ordersQueue', 'paymentSyncQueue', 'paymentGatewayQueue', 'refillQueue'].includes(queueName);
+      
+      if (isFinancialQueue) {
+        // P0: Always alert immediately for customer money and orders
+        await sendAdminAlert(
+          `🪦 *Dead Letter Job (P0 Финансовый)*\n\nОчередь: \`${queueName}\`\nJob ID: \`${job.id}\`\nПопыток: ${job.attemptsMade}/${maxAttempts}\n\nОшибка: ${err.message}`,
+          'CRITICAL'
+        );
+      } else {
+        // P1: Deduplicate maintenance queues (catalog, articles, etc.) to prevent Telegram alert floods
+        const { P0AlertDebouncer } = await import('@/lib/alerts/p0-alert-debouncer');
+        const errKey = `dlq:${queueName}:${err.name || 'Error'}`;
+        const { shouldSend, occurrences } = await P0AlertDebouncer.checkDeduplicatedAlert(errKey, 7200);
+
+        if (shouldSend) {
+          const occInfo = occurrences > 1 ? ` (Повторов за 2ч: ${occurrences})` : '';
+          await sendAdminAlert(
+            `⚠️ *Фоновая задача в DLQ (P1 Обслуживание)*${occInfo}\n\nОчередь: \`${queueName}\`\nJob ID: \`${job.id}\`\nОшибка: ${err.message}`,
+            'WARNING'
+          );
+        } else {
+          log.info(`Suppressed duplicate DLQ alert for ${queueName} (${occurrences} occurrences in window)`);
+        }
+      }
 
       log.error('Job dead-lettered', { queue: queueName, jobId: job.id });
     } catch (dlqErr) {

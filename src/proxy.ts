@@ -97,7 +97,14 @@ export async function proxy(request: NextRequest) {
   // 1. Instant Logout Interception (Zero 0.0.0.0 leak guarantee)
   if (pathname === '/api/auth/logout' || pathname === '/logout') {
     const res = NextResponse.redirect(resolveRedirectUrl(ROUTES.AUTH.LOGIN));
-    res.cookies.delete('session_token');
+    res.cookies.set('session_token', '', {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 0,
+      expires: new Date(0),
+    });
     res.cookies.set('explicit_logout', 'true', {
       path: '/',
       httpOnly: true,
@@ -166,11 +173,25 @@ export async function proxy(request: NextRequest) {
         autoLoginUrl.searchParams.set('email', process.env.DEV_BYPASS_EMAIL || 'infosokoloff@yandex.ru');
         autoLoginUrl.searchParams.set('tenant', finalTenantId);
         const response = NextResponse.redirect(autoLoginUrl);
-        response.cookies.delete('session_token');
+        response.cookies.set('session_token', '', {
+          path: '/',
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 0,
+          expires: new Date(0),
+        });
         return applyStickyCookie(response);
       }
       const response = NextResponse.redirect(resolveRedirectUrl(ROUTES.AUTH.LOGIN));
-      response.cookies.delete('session_token');
+      response.cookies.set('session_token', '', {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 0,
+        expires: new Date(0),
+      });
       return applyStickyCookie(response);
     }
 

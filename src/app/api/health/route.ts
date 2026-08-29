@@ -8,8 +8,8 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 interface CachedHealth {
-  status: 'healthy';
-  service: string;
+  status: 'healthy' | 'ok';
+  service?: string;
   timestamp: string;
 }
 
@@ -59,7 +59,6 @@ export async function GET(req: Request) {
     if (!cachedPublicProbe || now - lastCacheTime >= PUBLIC_CACHE_TTL_MS) {
       cachedPublicProbe = {
         status: 'healthy',
-        service: 'smmplan',
         timestamp: new Date(now).toISOString(),
       };
       lastCacheTime = now;

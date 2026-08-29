@@ -67,6 +67,9 @@ export async function POST(request: NextRequest) {
         }
       }).catch(() => {});
     }
+    res.headers.set('RateLimit-Limit', '50');
+    res.headers.set('RateLimit-Reset', '60');
+    res.headers.set('RateLimit-Policy', '50;w=60');
     return res;
   };
 

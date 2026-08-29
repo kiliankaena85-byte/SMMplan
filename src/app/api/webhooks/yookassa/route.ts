@@ -220,6 +220,24 @@ export async function POST(req: NextRequest) {
           );
 
           if (success) {
+            // Webhook Latency & Health Analytics
+            if (existingPayment?.createdAt) {
+              const latencySec = Math.round((Date.now() - new Date(existingPayment.createdAt).getTime()) / 1000);
+              if (latencySec > 900) { // > 15 minutes lag
+                import('@/lib/notifications').then(async ({ sendAdminAlert }) => {
+                  const user = await db.user.findUnique({ where: { id: userId }, select: { email: true } });
+                  const email = user?.email || 'неизвестен';
+                  const maskedEmail = email.includes('@')
+                    ? email.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => `${a}${'*'.repeat(Math.min(4, b.length))}${c}`)
+                    : email;
+                  sendAdminAlert(
+                    `⏱️ <b>[Платёжный шлюз] Задержка вебхука ЮKassa</b>\n\n• Платеж: <code>${existingPayment.id}</code>\n• Клиент: <code>${maskedEmail}</code>\n• Сумма: <b>${(Number(amountCents) / 100).toFixed(2)} ₽</b>\n• Задержка доставки: <b>${Math.round(latencySec / 60)} мин</b>\n• Статус: <b>Успешно зачислено</b>`,
+                    'WARNING'
+                  );
+                }).catch(err => console.error('[YooKassa Webhook] Latency alert failed', err));
+              }
+            }
+
             const LARGE_PAYMENT_THRESHOLD = BigInt(50_000_00);
             if (amountCents >= LARGE_PAYMENT_THRESHOLD) {
               import('@/lib/notifications').then(async ({ sendAdminAlert }) => {

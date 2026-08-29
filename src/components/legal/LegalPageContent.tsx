@@ -70,7 +70,7 @@ export async function LegalPageContent({ slug }: LegalPageContentProps) {
     return (
       <div className="min-h-screen bg-background text-foreground py-12 px-4 sm:px-6 lg:px-8 relative overflow-x-clip font-sans">
         {/* SMMFLUX RADIANT HERO BACKGROUND (Matching main page) */}
-        <div className="absolute top-0 inset-x-0 h-[1800px] z-0 pointer-events-none overflow-hidden select-none bg-white dark:bg-default-50">
+        <div className="absolute top-0 inset-x-0 h-[1800px] z-0 pointer-events-none overflow-hidden select-none bg-background dark:bg-default-50">
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
@@ -82,7 +82,7 @@ export async function LegalPageContent({ slug }: LegalPageContentProps) {
                 'radial-gradient(70% 70% at 50% 25%, rgba(217, 70, 239, 0.50), transparent 75%)',
             }}
           />
-          <div className="absolute top-0 left-[2%] w-[700px] h-[700px] rounded-full bg-blue-500/35 blur-[120px] pointer-events-none" />
+          <div className="absolute top-0 left-[2%] w-[700px] h-[700px] rounded-full bg-primary/35 blur-[120px] pointer-events-none" />
           <div className="absolute top-4 left-[25%] w-[650px] h-[650px] rounded-full bg-purple-600/40 blur-[110px] pointer-events-none" />
           <div className="absolute top-0 right-[5%] w-[700px] h-[700px] rounded-full bg-pink-500/35 blur-[120px] pointer-events-none" />
           <div className="absolute bottom-0 inset-x-0 h-[300px] bg-gradient-to-t from-background to-transparent" />

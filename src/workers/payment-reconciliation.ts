@@ -17,10 +17,10 @@ export interface ReconciliationReport {
 
 /**
  * Reconciles stale PENDING payments with payment gateways.
- * Runs every 30 minutes to catch any payments missed due to lost webhooks.
+ * Runs every 5-10 minutes to catch any payments missed due to lost webhooks.
  */
 export async function reconcileStalePayments(): Promise<ReconciliationReport> {
-  const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   const report: ReconciliationReport = {
@@ -36,7 +36,7 @@ export async function reconcileStalePayments(): Promise<ReconciliationReport> {
       where: {
         status: 'PENDING',
         createdAt: {
-          lte: thirtyMinutesAgo,
+          lte: tenMinutesAgo,
           gte: twentyFourHoursAgo,
         },
       },
@@ -58,6 +58,14 @@ export async function reconcileStalePayments(): Promise<ReconciliationReport> {
     const authHeader = (secrets?.yookassaShopId && secrets?.yookassaSecretKey)
       ? 'Basic ' + Buffer.from(`${secrets.yookassaShopId}:${secrets.yookassaSecretKey}`).toString('base64')
       : 'Basic mock_auth';
+
+    const reconciledItems: Array<{
+      id: string;
+      gatewayId: string;
+      maskedEmail: string;
+      amountRub: string;
+      latencyMinutes: number;
+    }> = [];
 
     for (const payment of stalePayments) {
       if (!payment.gatewayId) {
@@ -94,7 +102,22 @@ export async function reconcileStalePayments(): Promise<ReconciliationReport> {
                 payment.id
               );
               report.reconciledSuccess += 1;
-              log.info(`Reconciled succeeded payment ${payment.id}`);
+
+              const latencyMinutes = Math.max(1, Math.round((Date.now() - new Date(payment.createdAt).getTime()) / 60000));
+              const email = payment.user?.email || 'неизвестен';
+              const maskedEmail = email.includes('@')
+                ? email.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => `${a}${'*'.repeat(Math.min(4, b.length))}${c}`)
+                : email;
+
+              reconciledItems.push({
+                id: payment.id,
+                gatewayId: payment.gatewayId,
+                maskedEmail,
+                amountRub: (Number(payment.amount) / 100).toFixed(2),
+                latencyMinutes,
+              });
+
+              log.info(`Reconciled succeeded payment ${payment.id} (latency: ${latencyMinutes}m)`);
             } else if (data.status === 'canceled') {
               await db.payment.update({
                 where: { id: payment.id },
@@ -111,10 +134,14 @@ export async function reconcileStalePayments(): Promise<ReconciliationReport> {
       }
     }
 
-    if (report.reconciledSuccess > 0) {
+    if (reconciledItems.length > 0) {
+      const itemsList = reconciledItems.map(item => 
+        `• <b>${item.amountRub} ₽</b> — <code>${item.maskedEmail}</code> (Задержка: <b>${item.latencyMinutes} мин</b>, Шлюз: <code>${item.gatewayId}</code>)`
+      ).join('\n');
+
       sendAdminAlert(
-        `🔄 <b>Авто-сверка платежей (Payment Reconciliation)</b>\nУспешно подтверждено ${report.reconciledSuccess} зависших платежей, отменено ${report.reconciledCanceled}.`,
-        'INFO'
+        `⚡ <b>[Авто-сверка] Подтверждены зависшие платежи (${reconciledItems.length})</b>\n\nВебхуки не поступили вовремя, балансы начислены через опрос API шлюза:\n\n${itemsList}`,
+        'WARNING'
       );
     }
 

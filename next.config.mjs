@@ -66,7 +66,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://challenges.cloudflare.com https://yookassa.ru https://auth.robokassa.ru; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; frame-src 'self' https://challenges.cloudflare.com https://yookassa.ru https://auth.robokassa.ru https://pay.crypt.bot; connect-src 'self' https://api.telegram.org https://static.cloudflareinsights.com https://cloudflareinsights.com https://challenges.cloudflare.com https://yookassa.ru https://api.yookassa.ru https://auth.robokassa.ru https://pay.crypt.bot wss:; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self';",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://challenges.cloudflare.com https://yookassa.ru https://auth.robokassa.ru; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; frame-src 'self' https://challenges.cloudflare.com https://yookassa.ru https://auth.robokassa.ru https://pay.crypt.bot; connect-src 'self' https://api.telegram.org https://static.cloudflareinsights.com https://cloudflareinsights.com https://challenges.cloudflare.com https://yookassa.ru https://api.yookassa.ru https://auth.robokassa.ru https://pay.crypt.bot; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self';",
           },
           {
             key: 'X-Content-Type-Options',
