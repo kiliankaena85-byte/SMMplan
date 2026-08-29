@@ -97347,10 +97347,6 @@ var init_emergency_email = __esm({
 });
 
 // src/lib/telemetry/error-interpreter.ts
-var error_interpreter_exports = {};
-__export2(error_interpreter_exports, {
-  ErrorInterpreter: () => ErrorInterpreter
-});
 var ErrorInterpreter;
 var init_error_interpreter = __esm({
   "src/lib/telemetry/error-interpreter.ts"() {
@@ -97555,10 +97551,20 @@ async function sendAdminAlertSync(message, severity = "INFO", tenantId) {
       console.error("[NotificationService] Emergency email cascade failed:", err);
     });
   }
-  if (!token || !chatId) return;
-  Promise.resolve().then(() => (init_error_interpreter(), error_interpreter_exports)).then(({ ErrorInterpreter: ErrorInterpreter2 }) => {
-    const text = message.startsWith("\u{1F6A8} <b>[P0 CRITICAL:") ? message : ErrorInterpreter2.formatTelegramMessage(message, severity, tenantId);
-    fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+  if (!token || !chatId) {
+    if (severity === "CRITICAL" || severity === "WARNING") {
+      await EmergencyEmailService.sendAlert({
+        severity,
+        title: `[${severity}] OmniSMM Alert (Telegram Unset)`,
+        details: message
+      }).catch(() => {
+      });
+    }
+    return;
+  }
+  try {
+    const text = message.startsWith("\u{1F6A8} <b>[P0 CRITICAL:") ? message : ErrorInterpreter.formatTelegramMessage(message, severity, tenantId);
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -97566,44 +97572,30 @@ async function sendAdminAlertSync(message, severity = "INFO", tenantId) {
         text,
         parse_mode: "HTML"
       })
-    }).then(async (res) => {
-      if (!res.ok) {
-        const errBody = await res.text().catch(() => "");
-        console.error(`[NotificationService] Telegram API error (${res.status}):`, errBody);
-        EmergencyEmailService.sendAlert({
-          severity: severity === "CRITICAL" ? "CRITICAL" : "WARNING",
-          title: `Telegram Delivery Failed (${res.status})`,
-          details: `${message}
-
-Telegram Error Details: ${errBody}`
-        }).catch(() => {
-        });
-      }
-    }).catch((err) => {
-      console.error("[NotificationService] Telegram alert sync failed:", err);
-      EmergencyEmailService.sendAlert({
+    });
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      console.error(`[NotificationService] Telegram API error (${res.status}):`, errBody);
+      await EmergencyEmailService.sendAlert({
         severity: severity === "CRITICAL" ? "CRITICAL" : "WARNING",
-        title: "Telegram Network Connection Error",
+        title: `Telegram Delivery Failed (${res.status})`,
         details: `${message}
 
-Network Error: ${err.message}`
+Telegram Error Details: ${errBody}`
       }).catch(() => {
       });
-    });
-  }).catch(() => {
-    const emoji = SEVERITY_EMOJI[severity];
-    const text = `${emoji} <b>SMMplan [${severity}]</b>
+    }
+  } catch (err) {
+    console.error("[NotificationService] Telegram alert sync failed:", err);
+    await EmergencyEmailService.sendAlert({
+      severity: severity === "CRITICAL" ? "CRITICAL" : "WARNING",
+      title: "Telegram Network Connection Error",
+      details: `${message}
 
-${message}
-
-<i>${(/* @__PURE__ */ new Date()).toLocaleString("ru-RU", { timeZone: "Europe/Moscow" })}</i>`;
-    fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML" })
+Network Error: ${err.message}`
     }).catch(() => {
     });
-  });
+  }
 }
 async function sendP0EmergencyAlert(payload) {
   const escapeHtml4 = (str) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -97619,16 +97611,11 @@ ${escapeHtml4(payload.actionPlan)}`
   ].join("\n");
   sendAdminAlert(formattedMessage, "CRITICAL");
 }
-var SEVERITY_EMOJI;
 var init_notifications = __esm({
   "src/lib/notifications.ts"() {
     "use strict";
     init_emergency_email();
-    SEVERITY_EMOJI = {
-      INFO: "\u2139\uFE0F",
-      WARNING: "\u26A0\uFE0F",
-      CRITICAL: "\u{1F6A8}"
-    };
+    init_error_interpreter();
   }
 });
 
@@ -104269,6 +104256,26 @@ var init_p0_alert_debouncer = __esm({
         } catch {
         }
         inMemoryLocks.delete(fullKey);
+      }
+      /**
+       * Smart Deduplication with occurrence count tracker.
+       * Returns shouldSend = true on first occurrence, plus the total occurrences accumulated.
+       */
+      static async checkDeduplicatedAlert(alertKey, cooldownSeconds = 7200) {
+        const countKey = `${this.THRESHOLD_PREFIX}occurrences:${alertKey}`;
+        let occurrences = 1;
+        try {
+          if (redis.status === "ready" || redis.status === "connecting") {
+            occurrences = await redis.incr(countKey);
+            if (occurrences === 1) {
+              await redis.expire(countKey, cooldownSeconds);
+            }
+          }
+        } catch (redisErr) {
+          log4.warn("[P0AlertDebouncer] Redis error on occurrence increment", { error: redisErr });
+        }
+        const shouldSend = await this.shouldSendAlert(alertKey, cooldownSeconds);
+        return { shouldSend, occurrences };
       }
     };
   }

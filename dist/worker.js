@@ -5414,7 +5414,7 @@ var require_node = __commonJS({
     var tty = require("tty");
     var util2 = require("util");
     exports2.init = init;
-    exports2.log = log28;
+    exports2.log = log29;
     exports2.formatArgs = formatArgs;
     exports2.save = save;
     exports2.load = load;
@@ -5549,7 +5549,7 @@ var require_node = __commonJS({
       }
       return (/* @__PURE__ */ new Date()).toISOString() + " ";
     }
-    function log28(...args) {
+    function log29(...args) {
       return process.stderr.write(util2.formatWithOptions(exports2.inspectOpts, ...args) + "\n");
     }
     function save(namespaces) {
@@ -8089,8 +8089,8 @@ var require_denque = __commonJS({
       this._capacityMask >>>= 1;
     };
     Denque.prototype._nextPowerOf2 = function _nextPowerOf2(num) {
-      var log28 = Math.log(num) / Math.log(2);
-      var nextPow2 = 1 << log28 + 1;
+      var log29 = Math.log(num) / Math.log(2);
+      var nextPow2 = 1 << log29 + 1;
       return Math.max(nextPow2, 4);
     };
     module2.exports = Denque;
@@ -45173,11 +45173,11 @@ var require_tools = __commonJS({
         }
       }
     }
-    function buildFormatters(level, bindings, log28) {
+    function buildFormatters(level, bindings, log29) {
       return {
         level,
         bindings,
-        log: log28
+        log: log29
       };
     }
     function normalizeDestFileDescriptor(destination) {
@@ -45558,11 +45558,11 @@ var require_proto = __commonJS({
         }
       } else instance[serializersSym] = serializers;
       if (options.hasOwnProperty("formatters")) {
-        const { level, bindings: chindings, log: log28 } = options.formatters;
+        const { level, bindings: chindings, log: log29 } = options.formatters;
         instance[formattersSym] = buildFormatters(
           level || formatters.level,
           chindings || resetChildingsFormatter,
-          log28 || formatters.log
+          log29 || formatters.log
         );
       } else {
         instance[formattersSym] = buildFormatters(
@@ -46633,7 +46633,7 @@ var require_pino = __commonJS({
 
 // src/lib/logger.ts
 function createLoggerFromBase(pinoInstance) {
-  const log28 = (level) => (message, context) => {
+  const log29 = (level) => (message, context) => {
     const store = logContextStorage.getStore();
     const extra = typeof context === "object" && context !== null && !Array.isArray(context) ? context : context !== void 0 ? { detail: context } : {};
     const merged = {
@@ -46647,10 +46647,10 @@ function createLoggerFromBase(pinoInstance) {
     pinoInstance[level](safeContext, safeMessage);
   };
   return {
-    info: log28("info"),
-    warn: log28("warn"),
-    error: log28("error"),
-    debug: log28("debug"),
+    info: log29("info"),
+    warn: log29("warn"),
+    error: log29("error"),
+    debug: log29("debug"),
     child: (bindings) => createLoggerFromBase(pinoInstance.child(bindings))
   };
 }
@@ -53758,14 +53758,14 @@ var require_mailer = __commonJS({
           this.getVersionString()
         );
         if (typeof this.transporter.on === "function") {
-          this.transporter.on("log", (log28) => {
+          this.transporter.on("log", (log29) => {
             this.logger.debug(
               {
                 tnx: "transport"
               },
               "%s: %s",
-              log28.type,
-              log28.message
+              log29.type,
+              log29.message
             );
           });
           this.transporter.on("error", (err) => {
@@ -58529,10 +58529,6 @@ var init_emergency_email = __esm({
 });
 
 // src/lib/telemetry/error-interpreter.ts
-var error_interpreter_exports = {};
-__export2(error_interpreter_exports, {
-  ErrorInterpreter: () => ErrorInterpreter
-});
 var ErrorInterpreter;
 var init_error_interpreter = __esm({
   "src/lib/telemetry/error-interpreter.ts"() {
@@ -58737,10 +58733,20 @@ async function sendAdminAlertSync(message, severity = "INFO", tenantId) {
       console.error("[NotificationService] Emergency email cascade failed:", err);
     });
   }
-  if (!token || !chatId) return;
-  Promise.resolve().then(() => (init_error_interpreter(), error_interpreter_exports)).then(({ ErrorInterpreter: ErrorInterpreter2 }) => {
-    const text = message.startsWith("\u{1F6A8} <b>[P0 CRITICAL:") ? message : ErrorInterpreter2.formatTelegramMessage(message, severity, tenantId);
-    fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+  if (!token || !chatId) {
+    if (severity === "CRITICAL" || severity === "WARNING") {
+      await EmergencyEmailService.sendAlert({
+        severity,
+        title: `[${severity}] OmniSMM Alert (Telegram Unset)`,
+        details: message
+      }).catch(() => {
+      });
+    }
+    return;
+  }
+  try {
+    const text = message.startsWith("\u{1F6A8} <b>[P0 CRITICAL:") ? message : ErrorInterpreter.formatTelegramMessage(message, severity, tenantId);
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -58748,44 +58754,30 @@ async function sendAdminAlertSync(message, severity = "INFO", tenantId) {
         text,
         parse_mode: "HTML"
       })
-    }).then(async (res) => {
-      if (!res.ok) {
-        const errBody = await res.text().catch(() => "");
-        console.error(`[NotificationService] Telegram API error (${res.status}):`, errBody);
-        EmergencyEmailService.sendAlert({
-          severity: severity === "CRITICAL" ? "CRITICAL" : "WARNING",
-          title: `Telegram Delivery Failed (${res.status})`,
-          details: `${message}
-
-Telegram Error Details: ${errBody}`
-        }).catch(() => {
-        });
-      }
-    }).catch((err) => {
-      console.error("[NotificationService] Telegram alert sync failed:", err);
-      EmergencyEmailService.sendAlert({
+    });
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      console.error(`[NotificationService] Telegram API error (${res.status}):`, errBody);
+      await EmergencyEmailService.sendAlert({
         severity: severity === "CRITICAL" ? "CRITICAL" : "WARNING",
-        title: "Telegram Network Connection Error",
+        title: `Telegram Delivery Failed (${res.status})`,
         details: `${message}
 
-Network Error: ${err.message}`
+Telegram Error Details: ${errBody}`
       }).catch(() => {
       });
-    });
-  }).catch(() => {
-    const emoji = SEVERITY_EMOJI[severity];
-    const text = `${emoji} <b>SMMplan [${severity}]</b>
+    }
+  } catch (err) {
+    console.error("[NotificationService] Telegram alert sync failed:", err);
+    await EmergencyEmailService.sendAlert({
+      severity: severity === "CRITICAL" ? "CRITICAL" : "WARNING",
+      title: "Telegram Network Connection Error",
+      details: `${message}
 
-${message}
-
-<i>${(/* @__PURE__ */ new Date()).toLocaleString("ru-RU", { timeZone: "Europe/Moscow" })}</i>`;
-    fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML" })
+Network Error: ${err.message}`
     }).catch(() => {
     });
-  });
+  }
 }
 async function sendP0EmergencyAlert(payload) {
   const escapeHtml2 = (str) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -58801,16 +58793,11 @@ ${escapeHtml2(payload.actionPlan)}`
   ].join("\n");
   sendAdminAlert(formattedMessage, "CRITICAL");
 }
-var SEVERITY_EMOJI;
 var init_notifications = __esm({
   "src/lib/notifications.ts"() {
     "use strict";
     init_emergency_email();
-    SEVERITY_EMOJI = {
-      INFO: "\u2139\uFE0F",
-      WARNING: "\u26A0\uFE0F",
-      CRITICAL: "\u{1F6A8}"
-    };
+    init_error_interpreter();
   }
 });
 
@@ -85887,13 +85874,13 @@ var require_mock_call_history = __commonJS({
     function makeFilterCalls(parameterName) {
       return (parameterValue, logs) => {
         if (typeof parameterValue === "string" || parameterValue == null) {
-          return logs.filter((log28) => {
-            return log28[parameterName] === parameterValue;
+          return logs.filter((log29) => {
+            return log29[parameterName] === parameterValue;
           });
         }
         if (parameterValue instanceof RegExp) {
-          return logs.filter((log28) => {
-            return parameterValue.test(log28[parameterName]);
+          return logs.filter((log29) => {
+            return parameterValue.test(log29[parameterName]);
           });
         }
         throw new InvalidArgumentError(`${parameterName} parameter should be one of string, regexp, undefined or null`);
@@ -85988,8 +85975,8 @@ var require_mock_call_history = __commonJS({
           return this.logs.filter(criteria);
         }
         if (criteria instanceof RegExp) {
-          return this.logs.filter((log28) => {
-            return criteria.test(log28.toString());
+          return this.logs.filter((log29) => {
+            return criteria.test(log29.toString());
           });
         }
         if (typeof criteria === "object" && criteria !== null) {
@@ -86039,13 +86026,13 @@ var require_mock_call_history = __commonJS({
         this.logs = [];
       }
       [kMockCallHistoryAddLog](requestInit) {
-        const log28 = new MockCallHistoryLog(requestInit);
-        this.logs.push(log28);
-        return log28;
+        const log29 = new MockCallHistoryLog(requestInit);
+        this.logs.push(log29);
+        return log29;
       }
       *[Symbol.iterator]() {
-        for (const log28 of this.calls()) {
-          yield log28;
+        for (const log29 of this.calls()) {
+          yield log29;
         }
       }
     };
@@ -137259,6 +137246,120 @@ var init_post_sync_rules = __esm({
   }
 });
 
+// src/lib/alerts/p0-alert-debouncer.ts
+var p0_alert_debouncer_exports = {};
+__export2(p0_alert_debouncer_exports, {
+  P0AlertDebouncer: () => P0AlertDebouncer
+});
+var log27, inMemoryLocks, inMemoryCounters, P0AlertDebouncer;
+var init_p0_alert_debouncer = __esm({
+  "src/lib/alerts/p0-alert-debouncer.ts"() {
+    "use strict";
+    init_redis();
+    init_logger();
+    log27 = logger.child({ component: "P0AlertDebouncer" });
+    inMemoryLocks = /* @__PURE__ */ new Map();
+    inMemoryCounters = /* @__PURE__ */ new Map();
+    P0AlertDebouncer = class {
+      static {
+        this.PREFIX = "p0:debounce:";
+      }
+      static {
+        this.THRESHOLD_PREFIX = "p0:threshold:";
+      }
+      /**
+       * Attempts to acquire an alert lock.
+       * Returns TRUE if this is the first alert in the window (lock acquired -> ALLOW SEND).
+       * Returns FALSE if an alert was already sent recently (lock exists -> DEBOUNCE / SUPPRESS).
+       */
+      static async shouldSendAlert(alertKey, cooldownSeconds = 3600) {
+        const fullKey = `${this.PREFIX}${alertKey}`;
+        try {
+          if (redis.status === "ready" || redis.status === "connecting") {
+            const acquired = await redis.set(fullKey, "1", "EX", cooldownSeconds, "NX");
+            return acquired === "OK";
+          }
+        } catch (redisErr) {
+          log27.warn("[P0AlertDebouncer] Redis unavailable, using in-memory debounce lock", { error: redisErr });
+        }
+        const now = Date.now();
+        const existingExpiry = inMemoryLocks.get(fullKey);
+        if (existingExpiry && existingExpiry > now) {
+          return false;
+        }
+        inMemoryLocks.set(fullKey, now + cooldownSeconds * 1e3);
+        return true;
+      }
+      /**
+       * Sliding window threshold accumulator.
+       * Useful for events that require accumulation (e.g. 20 auth errors in 5 min) before triggering P0.
+       * Returns reached = TRUE when threshold limit is met/exceeded.
+       */
+      static async checkThresholdTrigger(key, windowSeconds, thresholdLimit) {
+        const fullKey = `${this.THRESHOLD_PREFIX}${key}`;
+        try {
+          if (redis.status === "ready" || redis.status === "connecting") {
+            const currentCount = await redis.incr(fullKey);
+            if (currentCount === 1) {
+              await redis.expire(fullKey, windowSeconds);
+            }
+            return {
+              count: currentCount,
+              shouldTrigger: currentCount >= thresholdLimit
+            };
+          }
+        } catch (redisErr) {
+          log27.warn("[P0AlertDebouncer] Redis unavailable, using in-memory threshold counter", { error: redisErr });
+        }
+        const now = Date.now();
+        const entry = inMemoryCounters.get(fullKey);
+        if (!entry || entry.expiresAt <= now) {
+          inMemoryCounters.set(fullKey, { count: 1, expiresAt: now + windowSeconds * 1e3 });
+          return { count: 1, shouldTrigger: 1 >= thresholdLimit };
+        }
+        entry.count += 1;
+        return {
+          count: entry.count,
+          shouldTrigger: entry.count >= thresholdLimit
+        };
+      }
+      /**
+       * Resets a debounce lock (useful when an issue is resolved and can alert again).
+       */
+      static async resetLock(alertKey) {
+        const fullKey = `${this.PREFIX}${alertKey}`;
+        try {
+          if (redis.status === "ready" || redis.status === "connecting") {
+            await redis.del(fullKey);
+          }
+        } catch {
+        }
+        inMemoryLocks.delete(fullKey);
+      }
+      /**
+       * Smart Deduplication with occurrence count tracker.
+       * Returns shouldSend = true on first occurrence, plus the total occurrences accumulated.
+       */
+      static async checkDeduplicatedAlert(alertKey, cooldownSeconds = 7200) {
+        const countKey = `${this.THRESHOLD_PREFIX}occurrences:${alertKey}`;
+        let occurrences = 1;
+        try {
+          if (redis.status === "ready" || redis.status === "connecting") {
+            occurrences = await redis.incr(countKey);
+            if (occurrences === 1) {
+              await redis.expire(countKey, cooldownSeconds);
+            }
+          }
+        } catch (redisErr) {
+          log27.warn("[P0AlertDebouncer] Redis error on occurrence increment", { error: redisErr });
+        }
+        const shouldSend = await this.shouldSendAlert(alertKey, cooldownSeconds);
+        return { shouldSend, occurrences };
+      }
+    };
+  }
+});
+
 // src/workers/index.ts
 var import_bullmq4 = __toESM(require_cjs());
 init_queue_manager();
@@ -138553,7 +138654,7 @@ init_notifications();
 init_logger();
 var log11 = logger.child({ component: "PaymentReconciliation" });
 async function reconcileStalePayments() {
-  const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1e3);
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1e3);
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1e3);
   const report = {
     scanned: 0,
@@ -138567,7 +138668,7 @@ async function reconcileStalePayments() {
       where: {
         status: "PENDING",
         createdAt: {
-          lte: thirtyMinutesAgo,
+          lte: tenMinutesAgo,
           gte: twentyFourHoursAgo
         }
       },
@@ -138584,6 +138685,7 @@ async function reconcileStalePayments() {
     log11.info(`Found ${stalePayments.length} stale PENDING payments for reconciliation`);
     const secrets = await SettingsManager.getPaymentSecrets().catch(() => null);
     const authHeader = secrets?.yookassaShopId && secrets?.yookassaSecretKey ? "Basic " + Buffer.from(`${secrets.yookassaShopId}:${secrets.yookassaSecretKey}`).toString("base64") : "Basic mock_auth";
+    const reconciledItems = [];
     for (const payment of stalePayments) {
       if (!payment.gatewayId) {
         report.orphans += 1;
@@ -138615,7 +138717,17 @@ async function reconcileStalePayments() {
                 payment.id
               );
               report.reconciledSuccess += 1;
-              log11.info(`Reconciled succeeded payment ${payment.id}`);
+              const latencyMinutes = Math.max(1, Math.round((Date.now() - new Date(payment.createdAt).getTime()) / 6e4));
+              const email = payment.user?.email || "\u043D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u0435\u043D";
+              const maskedEmail = email.includes("@") ? email.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => `${a}${"*".repeat(Math.min(4, b.length))}${c}`) : email;
+              reconciledItems.push({
+                id: payment.id,
+                gatewayId: payment.gatewayId,
+                maskedEmail,
+                amountRub: (Number(payment.amount) / 100).toFixed(2),
+                latencyMinutes
+              });
+              log11.info(`Reconciled succeeded payment ${payment.id} (latency: ${latencyMinutes}m)`);
             } else if (data.status === "canceled") {
               await db.payment.update({
                 where: { id: payment.id },
@@ -138631,11 +138743,17 @@ async function reconcileStalePayments() {
         }
       }
     }
-    if (report.reconciledSuccess > 0) {
+    if (reconciledItems.length > 0) {
+      const itemsList = reconciledItems.map(
+        (item) => `\u2022 <b>${item.amountRub} \u20BD</b> \u2014 <code>${item.maskedEmail}</code> (\u0417\u0430\u0434\u0435\u0440\u0436\u043A\u0430: <b>${item.latencyMinutes} \u043C\u0438\u043D</b>, \u0428\u043B\u044E\u0437: <code>${item.gatewayId}</code>)`
+      ).join("\n");
       sendAdminAlert(
-        `\u{1F504} <b>\u0410\u0432\u0442\u043E-\u0441\u0432\u0435\u0440\u043A\u0430 \u043F\u043B\u0430\u0442\u0435\u0436\u0435\u0439 (Payment Reconciliation)</b>
-\u0423\u0441\u043F\u0435\u0448\u043D\u043E \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u043E ${report.reconciledSuccess} \u0437\u0430\u0432\u0438\u0441\u0448\u0438\u0445 \u043F\u043B\u0430\u0442\u0435\u0436\u0435\u0439, \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u043E ${report.reconciledCanceled}.`,
-        "INFO"
+        `\u26A1 <b>[\u0410\u0432\u0442\u043E-\u0441\u0432\u0435\u0440\u043A\u0430] \u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u044B \u0437\u0430\u0432\u0438\u0441\u0448\u0438\u0435 \u043F\u043B\u0430\u0442\u0435\u0436\u0438 (${reconciledItems.length})</b>
+
+\u0412\u0435\u0431\u0445\u0443\u043A\u0438 \u043D\u0435 \u043F\u043E\u0441\u0442\u0443\u043F\u0438\u043B\u0438 \u0432\u043E\u0432\u0440\u0435\u043C\u044F, \u0431\u0430\u043B\u0430\u043D\u0441\u044B \u043D\u0430\u0447\u0438\u0441\u043B\u0435\u043D\u044B \u0447\u0435\u0440\u0435\u0437 \u043E\u043F\u0440\u043E\u0441 API \u0448\u043B\u044E\u0437\u0430:
+
+${itemsList}`,
+        "WARNING"
       );
     }
     return report;
@@ -139300,6 +139418,9 @@ async function runInProgressTTLSweep() {
         remains: true,
         serviceId: true,
         externalId: true,
+        runs: true,
+        interval: true,
+        createdAt: true,
         service: {
           select: {
             provider: true
@@ -139312,6 +139433,15 @@ async function runInProgressTTLSweep() {
       break;
     }
     for (const order of stuckOrders) {
+      const isDripFeed = Boolean(order.runs && order.runs > 1 && order.interval);
+      if (isDripFeed) {
+        const dynamicTtlHours = Math.max(72, Math.ceil((order.runs || 1) * (order.interval || 60) / 60) + 48);
+        const orderDynamicThreshold = new Date(Date.now() - dynamicTtlHours * 60 * 60 * 1e3);
+        if (order.createdAt > orderDynamicThreshold) {
+          log14.info(`Skipping Drip-Feed order ${order.id} TTL sweep (within scheduled run window: ${dynamicTtlHours}h)`);
+          continue;
+        }
+      }
       let remains = order.remains ?? order.quantity;
       let statusFromProvider = null;
       if (order.externalId && order.service.provider) {
@@ -139336,22 +139466,45 @@ async function runInProgressTTLSweep() {
           }
         }
       }
+      const normalizedStatus = (statusFromProvider || "").toLowerCase().replace(/[\s-]+/g, "_");
+      if (normalizedStatus === "in_progress" || normalizedStatus === "processing" || normalizedStatus === "pending") {
+        await db.order.updateMany({
+          where: { id: order.id, status: "IN_PROGRESS" },
+          data: {
+            remains: Math.max(0, remains),
+            updatedAt: /* @__PURE__ */ new Date()
+          }
+        });
+        const orderAgeHours = Math.floor((Date.now() - order.createdAt.getTime()) / (1e3 * 60 * 60));
+        if (orderAgeHours > 168) {
+          log14.warn(`Order ${order.id} still in_progress at provider after ${orderAgeHours}h (remains: ${remains}/${order.quantity})`, {
+            orderId: order.id,
+            externalId: order.externalId
+          });
+        }
+        continue;
+      }
       const quantity = order.quantity;
       const charge = order.charge;
       let targetStatus;
       let refundCents = 0;
       let delivered = 0;
       let reasonText = "";
-      if (statusFromProvider === "completed") {
+      if (normalizedStatus === "completed") {
         targetStatus = "COMPLETED";
         refundCents = 0;
         delivered = quantity;
         reasonText = `\u0417\u0430\u043A\u0430\u0437 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D (\u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u043E \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u043E\u043C). \u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043E ${delivered} \u0438\u0437 ${quantity}.`;
-      } else if (statusFromProvider === "canceled" || statusFromProvider === "error") {
+      } else if (normalizedStatus === "canceled" || normalizedStatus === "error" || normalizedStatus === "fail") {
         targetStatus = "ERROR";
         refundCents = Number(charge);
         delivered = 0;
         reasonText = `\u0417\u0430\u043A\u0430\u0437 \u043E\u0442\u043C\u0435\u043D\u0451\u043D \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u043E\u043C. \u0421\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u043F\u043E\u043B\u043D\u043E\u0441\u0442\u044C\u044E \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0435\u043D\u0430 \u043D\u0430 \u0431\u0430\u043B\u0430\u043D\u0441.`;
+      } else if (normalizedStatus === "partial") {
+        targetStatus = "PARTIAL";
+        refundCents = calculatePartialRefund({ remains, quantity, charge });
+        delivered = Math.max(0, quantity - remains);
+        reasonText = `\u0417\u0430\u043A\u0430\u0437 \u0447\u0430\u0441\u0442\u0438\u0447\u043D\u043E \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u043E\u043C. \u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043E ${delivered} \u0438\u0437 ${quantity}. \u041D\u0435\u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043D\u044B\u0439 \u043E\u0441\u0442\u0430\u0442\u043E\u043A \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0451\u043D \u043D\u0430 \u0431\u0430\u043B\u0430\u043D\u0441.`;
       } else {
         if (remains <= 0) {
           targetStatus = "COMPLETED";
@@ -141403,16 +141556,32 @@ async function catalogProcessor(job) {
       case "SYNC_PROVIDER_CATALOG": {
         const { providerId, admin } = payload;
         log18.info(`[CatalogProcessor] Starting background catalog sync for provider ${providerId}...`);
-        const stats = await adminCatalogService.syncProviderCatalog(providerId, admin);
-        log18.info(`[CatalogProcessor] Catalog sync completed. Disabled Zombies: ${stats.zombiesDisabled}, Resurrected: ${stats.resurrected}, Anomalies: ${stats.priceAnomalies}`);
         try {
-          const { applyPostSyncRules: applyPostSyncRules2 } = await Promise.resolve().then(() => (init_post_sync_rules(), post_sync_rules_exports));
-          await applyPostSyncRules2();
-        } catch (postSyncErr) {
-          const errMsg = postSyncErr instanceof Error ? postSyncErr.message : String(postSyncErr);
-          log18.error(`[CatalogProcessor] applyPostSyncRules failed: ${errMsg}`);
+          const stats = await adminCatalogService.syncProviderCatalog(providerId, admin);
+          log18.info(`[CatalogProcessor] Catalog sync completed for ${providerId}. Disabled Zombies: ${stats.zombiesDisabled}, Resurrected: ${stats.resurrected}, Anomalies: ${stats.priceAnomalies}`);
+          try {
+            const { applyPostSyncRules: applyPostSyncRules2 } = await Promise.resolve().then(() => (init_post_sync_rules(), post_sync_rules_exports));
+            await applyPostSyncRules2();
+          } catch (postSyncErr) {
+            const errMsg = postSyncErr instanceof Error ? postSyncErr.message : String(postSyncErr);
+            log18.error(`[CatalogProcessor] applyPostSyncRules failed: ${errMsg}`);
+          }
+          await triggerCacheRevalidation(["catalog", "services"]);
+        } catch (syncErr) {
+          const errMsg = syncErr instanceof Error ? syncErr.message : String(syncErr);
+          log18.warn(`[CatalogProcessor] Skipping catalog sync for provider ${providerId} due to provider API error: ${errMsg}`);
+          try {
+            const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
+            await db2.provider.update({
+              where: { id: providerId },
+              data: {
+                lastErrorAt: /* @__PURE__ */ new Date(),
+                errorCount5m: { increment: 1 }
+              }
+            });
+          } catch {
+          }
         }
-        await triggerCacheRevalidation(["catalog", "services"]);
         break;
       }
       case "BULK_MARKUP": {
@@ -143649,8 +143818,8 @@ function trackEtaFailure(job, err) {
 
 // src/workers/index.ts
 init_queue_manager();
-var log27 = logger.child({ component: "WorkerManager" });
-log27.info("\u{1F680} Starting BullMQ workers...");
+var log28 = logger.child({ component: "WorkerManager" });
+log28.info("\u{1F680} Starting BullMQ workers...");
 var connection = getRedisConnection();
 var workerConfig = {
   connection,
@@ -143704,7 +143873,7 @@ var MAX_ATTEMPTS = 3;
 async function handleDeadLetter(queueName, job, err) {
   if (!job) return;
   const maxAttempts = job.opts?.attempts ?? MAX_ATTEMPTS;
-  log27.error(`Job failed`, {
+  log28.error(`Job failed`, {
     queue: queueName,
     jobId: job.id,
     attemptsMade: job.attemptsMade,
@@ -143728,7 +143897,7 @@ async function handleDeadLetter(queueName, job, err) {
         const payload = job.data;
         if (payload?.orderId) {
           await orderService.failOrderTerminal(payload.orderId, err.message);
-          log27.info(`Auto-refunded dead-letter order ${payload.orderId}`);
+          log28.info(`Auto-refunded dead-letter order ${payload.orderId}`);
         }
       }
       if (queueName === "refillQueue") {
@@ -143738,22 +143907,42 @@ async function handleDeadLetter(queueName, job, err) {
             where: { id: payload.refillId },
             data: { status: "ERROR" }
           });
-          log27.info(`Marked dead-letter refill ${payload.refillId} as ERROR`);
+          log28.info(`Marked dead-letter refill ${payload.refillId} as ERROR`);
         }
       }
-      await sendAdminAlert(
-        `\u{1FAA6} *Dead Letter Job*
+      const isFinancialQueue = ["ordersQueue", "paymentSyncQueue", "paymentGatewayQueue", "refillQueue"].includes(queueName);
+      if (isFinancialQueue) {
+        await sendAdminAlert(
+          `\u{1FAA6} *Dead Letter Job (P0 \u0424\u0438\u043D\u0430\u043D\u0441\u043E\u0432\u044B\u0439)*
 
-Queue: \`${queueName}\`
+\u041E\u0447\u0435\u0440\u0435\u0434\u044C: \`${queueName}\`
 Job ID: \`${job.id}\`
-Attempts: ${job.attemptsMade}/${maxAttempts}
+\u041F\u043E\u043F\u044B\u0442\u043E\u043A: ${job.attemptsMade}/${maxAttempts}
 
-Error: ${err.message}`,
-        "CRITICAL"
-      );
-      log27.error("Job dead-lettered", { queue: queueName, jobId: job.id });
+\u041E\u0448\u0438\u0431\u043A\u0430: ${err.message}`,
+          "CRITICAL"
+        );
+      } else {
+        const { P0AlertDebouncer: P0AlertDebouncer2 } = await Promise.resolve().then(() => (init_p0_alert_debouncer(), p0_alert_debouncer_exports));
+        const errKey = `dlq:${queueName}:${err.name || "Error"}`;
+        const { shouldSend, occurrences } = await P0AlertDebouncer2.checkDeduplicatedAlert(errKey, 7200);
+        if (shouldSend) {
+          const occInfo = occurrences > 1 ? ` (\u041F\u043E\u0432\u0442\u043E\u0440\u043E\u0432 \u0437\u0430 2\u0447: ${occurrences})` : "";
+          await sendAdminAlert(
+            `\u26A0\uFE0F *\u0424\u043E\u043D\u043E\u0432\u0430\u044F \u0437\u0430\u0434\u0430\u0447\u0430 \u0432 DLQ (P1 \u041E\u0431\u0441\u043B\u0443\u0436\u0438\u0432\u0430\u043D\u0438\u0435)*${occInfo}
+
+\u041E\u0447\u0435\u0440\u0435\u0434\u044C: \`${queueName}\`
+Job ID: \`${job.id}\`
+\u041E\u0448\u0438\u0431\u043A\u0430: ${err.message}`,
+            "WARNING"
+          );
+        } else {
+          log28.info(`Suppressed duplicate DLQ alert for ${queueName} (${occurrences} occurrences in window)`);
+        }
+      }
+      log28.error("Job dead-lettered", { queue: queueName, jobId: job.id });
     } catch (dlqErr) {
-      log27.error("Failed to write to DLQ", { error: dlqErr.message });
+      log28.error("Failed to write to DLQ", { error: dlqErr.message });
     }
   }
 }
@@ -143767,10 +143956,10 @@ catalogWorker.on("failed", (job, err) => {
   handleDeadLetter("catalogQueue", job, err);
 });
 cleanupWorker.on("failed", (job, err) => {
-  log27.error("Cleanup job failed", { error: err.message });
+  log28.error("Cleanup job failed", { error: err.message });
 });
 telegramWorker.on("failed", (job, err) => {
-  log27.error("Telegram notification failed", { error: err.message });
+  log28.error("Telegram notification failed", { error: err.message });
 });
 paymentSyncWorker.on("failed", (job, err) => {
   handleDeadLetter("paymentSyncQueue", job, err);
@@ -143796,25 +143985,25 @@ async function updateHeartbeat() {
   try {
     await connection.set(HEARTBEAT_KEY, Date.now().toString(), "EX", HEARTBEAT_TTL);
   } catch {
-    log27.warn("Heartbeat update failed (Redis connection issue)");
+    log28.warn("Heartbeat update failed (Redis connection issue)");
   }
 }
 updateHeartbeat();
 var heartbeatInterval = setInterval(updateHeartbeat, 6e4);
-ensureSyncCron().catch((e) => log27.error("Failed to setup Sync Cron", { error: e.message }));
-ensureCleanupCron().catch((e) => log27.error("Failed to setup Cleanup Cron", { error: e.message }));
-ensureETACron().catch((e) => log27.error("Failed to setup ETA Cron", { error: e.message }));
-ensureCatalogSyncCron().catch((e) => log27.error("Failed to setup Catalog Sync Cron", { error: e.message }));
-ensureOrphanSweepCron().catch((e) => log27.error("Failed to setup Orphan Sweep Cron", { error: e.message }));
-ensurePaymentSyncCron().catch((e) => log27.error("Failed to setup Payment Sync Cron", { error: e.message }));
-ensureDripfeedCron().catch((e) => log27.error("Failed to setup Dripfeed Cron", { error: e.message }));
-ensureArticlePublishCron().catch((e) => log27.error("Failed to setup Article Publish Cron", { error: e.message }));
-ensurePendingCheckCron().catch((e) => log27.error("Failed to setup PendingCheck Cron", { error: e.message }));
-ensureAiObserverCron().catch((e) => log27.error("Failed to setup AI Observer Cron", { error: e.message }));
-ensureAiEconomicOptimizerCron().catch((e) => log27.error("Failed to setup AI Economic Optimizer Cron", { error: e.message }));
-log27.info("All workers started", { queues: ["ordersQueue", "refillQueue", "syncQueue", "catalogQueue", "cleanup", "paymentSyncQueue", "articlePublishQueue", "aiObserverQueue", "aiEconomicOptimizerQueue"] });
+ensureSyncCron().catch((e) => log28.error("Failed to setup Sync Cron", { error: e.message }));
+ensureCleanupCron().catch((e) => log28.error("Failed to setup Cleanup Cron", { error: e.message }));
+ensureETACron().catch((e) => log28.error("Failed to setup ETA Cron", { error: e.message }));
+ensureCatalogSyncCron().catch((e) => log28.error("Failed to setup Catalog Sync Cron", { error: e.message }));
+ensureOrphanSweepCron().catch((e) => log28.error("Failed to setup Orphan Sweep Cron", { error: e.message }));
+ensurePaymentSyncCron().catch((e) => log28.error("Failed to setup Payment Sync Cron", { error: e.message }));
+ensureDripfeedCron().catch((e) => log28.error("Failed to setup Dripfeed Cron", { error: e.message }));
+ensureArticlePublishCron().catch((e) => log28.error("Failed to setup Article Publish Cron", { error: e.message }));
+ensurePendingCheckCron().catch((e) => log28.error("Failed to setup PendingCheck Cron", { error: e.message }));
+ensureAiObserverCron().catch((e) => log28.error("Failed to setup AI Observer Cron", { error: e.message }));
+ensureAiEconomicOptimizerCron().catch((e) => log28.error("Failed to setup AI Economic Optimizer Cron", { error: e.message }));
+log28.info("All workers started", { queues: ["ordersQueue", "refillQueue", "syncQueue", "catalogQueue", "cleanup", "paymentSyncQueue", "articlePublishQueue", "aiObserverQueue", "aiEconomicOptimizerQueue"] });
 var shutdown = async () => {
-  log27.info("Gracefully shutting down workers...");
+  log28.info("Gracefully shutting down workers...");
   clearInterval(heartbeatInterval);
   await connection.del(HEARTBEAT_KEY);
   await Promise.all([
@@ -143833,14 +144022,14 @@ var shutdown = async () => {
   ]);
   await db.$disconnect();
   if (connection) await connection.quit();
-  log27.info("Workers stopped successfully");
+  log28.info("Workers stopped successfully");
   process.exit(0);
 };
 process.on("unhandledRejection", (reason, promise) => {
-  log27.error("Unhandled Rejection in Worker process:", { reason, promise });
+  log28.error("Unhandled Rejection in Worker process:", { reason, promise });
 });
 process.on("uncaughtException", (error) => {
-  log27.error("Uncaught Exception in Worker process:", { error: error.message, stack: error.stack });
+  log28.error("Uncaught Exception in Worker process:", { error: error.message, stack: error.stack });
 });
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
