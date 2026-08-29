@@ -1,15 +1,14 @@
 import { cookies, headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { jwtVerify } from 'jose';
-import { getEncodedKey } from '@/lib/session';
+import { decryptSessionToken } from '@/lib/session-edge';
 
 async function deleteSessionFromDB(token?: string) {
   if (token) {
     try {
-      const { payload } = await jwtVerify(token, getEncodedKey(), { algorithms: ['HS256'] });
-      if (payload.sessionId) {
-        await db.session.delete({ where: { id: payload.sessionId as string } }).catch(() => {});
+      const payload = await decryptSessionToken(token);
+      if (payload && payload.sessionId) {
+        await db.session.deleteMany({ where: { id: String(payload.sessionId) } }).catch(() => {});
       }
     } catch {
       // ignore validation errors on logout
@@ -36,11 +35,11 @@ export async function POST(request: Request) {
   });
 
   const reqHeaders = await headers();
-  const fwdHost = reqHeaders.get('x-forwarded-host');
   const hostHeader = reqHeaders.get('host');
+  const fwdHost = reqHeaders.get('x-forwarded-host');
   const fwdProto = reqHeaders.get('x-forwarded-proto');
 
-  let host = fwdHost || hostHeader || '';
+  let host = hostHeader || fwdHost || '';
   if (host.includes('0.0.0.0') || host.includes('host.docker.internal') || !host) {
     host = process.env.NODE_ENV === 'production' 
       ? (process.env.APP_URL ? new URL(process.env.APP_URL).host : 'test.smmplan.pro') 

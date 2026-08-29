@@ -12,7 +12,7 @@ import { headers } from 'next/headers';
 export async function generateMetadata(): Promise<Metadata> {
   const reqHeaders = await headers();
   const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
-  const rawHost = reqHeaders.get('x-forwarded-host') || reqHeaders.get('host') || getTenantHost(tenantId);
+  const rawHost = reqHeaders.get('host') || reqHeaders.get('x-forwarded-host') || getTenantHost(tenantId);
   const host = (rawHost.includes('0.0.0.0') || rawHost.includes('host.docker.internal')) ? getTenantHost(tenantId) : rawHost;
   const protocol = host.includes('localhost') ? 'http' : 'https';
   const metadataBase = new URL(`${protocol}://${host}`);
@@ -187,7 +187,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         {(() => {
-          const rawHost = reqHeaders.get('x-forwarded-host') || reqHeaders.get('host') || '';
+          const rawHost = reqHeaders.get('host') || reqHeaders.get('x-forwarded-host') || '';
           const canonicalHost = getTenantHost(tenantId, rawHost);
           const isLocal = canonicalHost.includes('localhost') || canonicalHost.includes('127.0.0.1');
           const siteBaseUrl = `${isLocal ? 'http' : 'https'}://${canonicalHost}`;

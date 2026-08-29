@@ -94,8 +94,9 @@ export async function proxy(request: NextRequest) {
     return res;
   };
 
-  // 1. Instant Logout Interception (Zero 0.0.0.0 leak guarantee)
-  if (pathname === '/api/auth/logout' || pathname === '/logout') {
+  // 1. Instant UI Logout Interception (/logout UI link)
+  // Note: /api/auth/logout MUST pass through to route.ts to delete session in PostgreSQL (F-7.1)
+  if (pathname === '/logout') {
     const res = NextResponse.redirect(resolveRedirectUrl(ROUTES.AUTH.LOGIN));
     res.cookies.set('session_token', '', {
       path: '/',
@@ -114,6 +115,37 @@ export async function proxy(request: NextRequest) {
     });
     res.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
     return applyStickyCookie(res);
+  }
+
+  // 1.5 Strict Production Maintenance Gate (F-7.4)
+  // When smmplan.pro is in maintenance mode, block /login, /dashboard, /admin, /operator, /api/v2
+  const isProdHost = host === 'smmplan.pro';
+  const isMaintenanceActive = process.env.MAINTENANCE_MODE === 'true' || (isProdHost && process.env.ENABLE_PROD_ACCESS !== 'true');
+
+  if (isProdHost && isMaintenanceActive) {
+    const isAllowedMaintenancePath = 
+      pathname === '/' ||
+      pathname === '/prelaunch' ||
+      pathname === '/robots.txt' ||
+      pathname === '/sitemap.xml' ||
+      pathname === '/security.txt' ||
+      pathname.startsWith('/.well-known/') ||
+      pathname === '/api/health' ||
+      pathname === '/api/maintenance-status' ||
+      pathname === '/api/prelaunch/subscribe' ||
+      pathname.startsWith('/_next/') ||
+      pathname.startsWith('/images/') ||
+      pathname === '/favicon.ico';
+
+    if (!isAllowedMaintenancePath) {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'Service Unavailable - Platform under maintenance before launch' },
+          { status: 503, headers: { 'Retry-After': '3600' } }
+        );
+      }
+      return applyStickyCookie(NextResponse.redirect(resolveRedirectUrl('/')));
+    }
   }
 
   // 2. Check legacy redirects

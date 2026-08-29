@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const reqHeaders = await headers();
-  const rawHost = reqHeaders.get('x-forwarded-host') || reqHeaders.get('host') || '';
+  const rawHost = reqHeaders.get('host') || reqHeaders.get('x-forwarded-host') || '';
   const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id') || (rawHost.includes('flux') ? 'flux' : 'smmplan'));
   
   const isLocalhost = rawHost.includes('localhost') || rawHost.includes('127.0.0.1');

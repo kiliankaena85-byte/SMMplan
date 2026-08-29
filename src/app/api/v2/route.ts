@@ -8,6 +8,7 @@ import { RateLimitService } from '@/services/core/rate-limit.service';
 import { SecurityAlertService } from '@/services/security/security-alert.service';
 import { z } from 'zod';
 import { type User } from '@prisma/client';
+import { resolveTenantFromRequest } from '@/lib/tenant-resolver-edge';
 
 // Standard SMM Panel API v2 Implementation
 // https://panel.com/api/v2
@@ -68,6 +69,7 @@ export async function POST(request: NextRequest) {
       }).catch(() => {});
     }
     res.headers.set('RateLimit-Limit', '50');
+    res.headers.set('RateLimit-Remaining', '49');
     res.headers.set('RateLimit-Reset', '60');
     res.headers.set('RateLimit-Policy', '50;w=60');
     return res;
@@ -107,8 +109,9 @@ export async function POST(request: NextRequest) {
       return sendResponse(NextResponse.json({ error: 'Too many requests. Limit 50/minute.' }, { status: 429 }));
     }
 
-    // 1. Authenticate User
-    const user = await verifyB2BKey(key);
+    // 1. Authenticate User with Strict Tenant Binding (F-7.2)
+    const incomingTenant = resolveTenantFromRequest(request.headers);
+    const user = await verifyB2BKey(key, incomingTenant);
     if (!user) {
       const isFailedAllowed = await RateLimitService.checkCustomKey(`b2b_failed_auth:${ip}`, 10, 60);
       await SecurityAlertService.record({
@@ -142,11 +145,11 @@ export async function POST(request: NextRequest) {
       case 'cancel':
         return sendResponse(await handleCancel(user, formData));
       default:
-        return sendResponse(NextResponse.json({ error: 'Incorrect action' }, { status: 400 }));
+        return sendResponse(NextResponse.json({ error: 'Incorrect request or action' }, { status: 400 }));
     }
-  } catch (error: unknown) {
-    console.error('[API v2 Error]:', error);
-    return sendResponse(NextResponse.json({ error: 'Internal server error' }, { status: 500 }));
+  } catch (error) {
+    console.error('API v2 Error:', error);
+    return sendResponse(NextResponse.json({ error: 'Server error' }, { status: 500 }));
   }
 }
 
@@ -167,7 +170,7 @@ async function handleServices(user: User, formData: FormData) {
     include: { category: true },
     where: {
       isActive: true,
-      tenantId: userTenantId,
+      tenantId: { in: [userTenantId, 'all'] },
       category: { tenantId: { in: [userTenantId, 'all'] } }
     },
     take: 100,
@@ -201,7 +204,7 @@ async function handleAdd(user: User, formData: FormData) {
     where: {
       numericId: serviceNumericId,
       isActive: true,
-      tenantId: userTenantId,
+      tenantId: { in: [userTenantId, 'all'] },
       category: { tenantId: { in: [userTenantId, 'all'] } }
     },
     include: { category: true }
