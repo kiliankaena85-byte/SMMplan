@@ -6,6 +6,7 @@ import { Header } from "@/components/landing/Header";
 import { FluxOrderClient } from "@/components/ab-test/FluxOrderClient";
 import { FluxTrustBar } from "@/components/ab-test/FluxTrustBar";
 
+import { PreLaunchHoldingScreen } from "@/components/landing/PreLaunchHoldingScreen";
 const FluxWhyUs = dynamicImport(() => import("@/components/ab-test/FluxWhyUs").then(m => m.FluxWhyUs));
 const FluxReviews = dynamicImport(() => import("@/components/ab-test/FluxReviews").then(m => m.FluxReviews));
 const FluxFAQ = dynamicImport(() => import("@/components/ab-test/FluxFAQ").then(m => m.FluxFAQ));
@@ -169,6 +170,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
 
             <MegaFooter contactSettings={settings} tenantId={tenantId} />
           </div>
+        ) : process.env.SHOW_PRELAUNCH !== 'false' ? (
+          <PreLaunchHoldingScreen
+            siteName={siteName}
+            supportTelegram={settings.TELEGRAM_SUPPORT_BOT || "smmplan_support_bot"}
+            supportEmail={settings.SUPPORT_EMAIL || "support@smmplan.pro"}
+            tenantId={tenantId}
+          />
         ) : (
           <SmartLinkLanding 
             initialCatalog={catalog} 

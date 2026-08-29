@@ -20,6 +20,8 @@ const TRUSTED_CONTOUR_MAP: Record<ContourId, Set<string>> = {
   test: new Set([
     'test.smmplan.pro',
     'test-flux.smmplan.pro',
+    'smmplan.pro',
+    'www.smmplan.pro',
     'localhost',
     '127.0.0.1',
     '0.0.0.0',
