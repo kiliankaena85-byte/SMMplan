@@ -16,11 +16,14 @@ import {
   Zap,
   KeyRound,
   CheckCircle2,
-  Loader2
+  Loader2,
+  Headphones,
+  Briefcase,
+  Wallet
 } from "lucide-react";
 import { toast } from "sonner";
 import { BugReportModal } from "./BugReportModal";
-import { qaDirectLoginAction } from "@/actions/qa-auth";
+import { qaDirectLoginAction, QARole } from "@/actions/qa-auth";
 
 export function FloatingQADock() {
   const [isOpen, setIsOpen] = useState(false);
@@ -32,7 +35,7 @@ export function FloatingQADock() {
 
   // Состояние защищенного QA ключа
   const [showKeyInputModal, setShowKeyInputModal] = useState(false);
-  const [pendingRole, setPendingRole] = useState<"admin" | "client" | null>(null);
+  const [pendingRole, setPendingRole] = useState<QARole | null>(null);
   const [enteredSecret, setEnteredSecret] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
@@ -93,7 +96,7 @@ export function FloatingQADock() {
     }, 300);
   };
 
-  const executeLogin = async (role: "admin" | "client", secretKey: string) => {
+  const executeLogin = async (role: QARole, secretKey: string) => {
     setIsAuthenticating(true);
     try {
       const res = await qaDirectLoginAction({
@@ -105,9 +108,15 @@ export function FloatingQADock() {
       if (res.success && res.redirectUrl) {
         sessionStorage.setItem('smm_qa_key', secretKey);
         toast.success(
-          role === "admin" 
-            ? "Успешный вход под учетной записью Владельца!" 
-            : "Успешный вход под учетной записью Клиента!"
+          role === "owner" || role === "admin" 
+            ? "Успешный вход: Владелец платформы (полный доступ)" 
+            : role === "manager"
+            ? "Успешный вход: Менеджер платформы (каталог, заказы, тикеты)"
+            : role === "support"
+            ? "Успешный вход: Саппорт / Оператор (тикеты, докрутки)"
+            : role === "cashier"
+            ? "Успешный вход: Кассир (балансовые заявки)"
+            : "Успешный вход: Клиент (личный кабинет)"
         );
         setShowKeyInputModal(false);
         setTimeout(() => {
@@ -124,7 +133,7 @@ export function FloatingQADock() {
     }
   };
 
-  const handleQuickAuth = async (role: "guest" | "admin" | "client") => {
+  const handleQuickAuth = async (role: QARole | "guest") => {
     if (role === "guest") {
       document.cookie = "session_token=; path=/; max-age=0; SameSite=Lax; Secure; HttpOnly";
       document.cookie = "auth_token=; path=/; max-age=0; SameSite=Lax; Secure";
@@ -193,7 +202,7 @@ export function FloatingQADock() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="w-[340px] sm:w-[380px] max-h-[85vh] overflow-y-auto bg-zinc-950/95 text-zinc-100 border border-zinc-800/90 rounded-3xl p-5 shadow-2xl backdrop-blur-2xl flex flex-col gap-4 text-xs select-none custom-scrollbar"
+            className="w-[340px] sm:w-[400px] max-h-[85vh] overflow-y-auto bg-zinc-950/95 text-zinc-100 border border-zinc-800/90 rounded-3xl p-5 shadow-2xl backdrop-blur-2xl flex flex-col gap-4 text-xs select-none custom-scrollbar"
           >
             {/* Хедер панели */}
             <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
@@ -246,45 +255,37 @@ export function FloatingQADock() {
               </div>
             </div>
 
-            {/* Блок 2: Быстрая авторизация и роли */}
+            {/* Блок 2: Быстрая авторизация и роли (RBAC) */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-                <span>2. Мгновенная роль (1-Click)</span>
+                <span>2. Тестирование Ролей (RBAC 1-Click)</span>
                 {sessionStorage.getItem('smm_qa_key') && (
                   <span className="text-[10px] text-emerald-400 flex items-center gap-1 font-semibold">
                     <CheckCircle2 className="w-3 h-3" />
-                    Ключ сохранен
+                    Ключ активен
                   </span>
                 )}
               </div>
               <div className="grid grid-cols-3 gap-1.5">
+                {/* 1. Гость */}
                 <button
                   type="button"
                   disabled={isAuthenticating}
                   onClick={() => handleQuickAuth("guest")}
-                  className="min-h-[44px] px-2 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white font-medium flex flex-col items-center justify-center gap-1 transition-all cursor-pointer"
+                  className="min-h-[44px] px-2 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white font-medium flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer"
+                  title="Анонимный посетитель без сессии"
                 >
                   <LogOut className="w-3.5 h-3.5 text-zinc-400" />
                   <span className="text-[10px]">Гость</span>
                 </button>
-                <button
-                  type="button"
-                  disabled={isAuthenticating}
-                  onClick={() => handleQuickAuth("admin")}
-                  className="min-h-[44px] px-2 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer relative overflow-hidden"
-                >
-                  {isAuthenticating && pendingRole === "admin" ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
-                  ) : (
-                    <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-                  )}
-                  <span className="text-[10px]">Владелец</span>
-                </button>
+
+                {/* 2. Клиент */}
                 <button
                   type="button"
                   disabled={isAuthenticating}
                   onClick={() => handleQuickAuth("client")}
-                  className="min-h-[44px] px-2 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white font-medium flex flex-col items-center justify-center gap-1 transition-all cursor-pointer"
+                  className="min-h-[44px] px-2 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white font-medium flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer"
+                  title="Обычный покупатель (Личный кабинет /dashboard)"
                 >
                   {isAuthenticating && pendingRole === "client" ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-300" />
@@ -292,6 +293,70 @@ export function FloatingQADock() {
                     <User className="w-3.5 h-3.5 text-zinc-400" />
                   )}
                   <span className="text-[10px]">Клиент</span>
+                </button>
+
+                {/* 3. Владелец (Owner) */}
+                <button
+                  type="button"
+                  disabled={isAuthenticating}
+                  onClick={() => handleQuickAuth("owner")}
+                  className="min-h-[44px] px-2 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer relative overflow-hidden"
+                  title="Владелец / Super Admin — полный доступ к /admin"
+                >
+                  {isAuthenticating && (pendingRole === "owner" || pendingRole === "admin") ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                  ) : (
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                  )}
+                  <span className="text-[10px]">Владелец</span>
+                </button>
+
+                {/* 4. Менеджер */}
+                <button
+                  type="button"
+                  disabled={isAuthenticating}
+                  onClick={() => handleQuickAuth("manager")}
+                  className="min-h-[44px] px-2 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/40 text-blue-300 font-semibold flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer"
+                  title="Менеджер (Каталог, Заказы, Тикеты, Контент. БЕЗ финансов)"
+                >
+                  {isAuthenticating && pendingRole === "manager" ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
+                  ) : (
+                    <Briefcase className="w-3.5 h-3.5 text-blue-400" />
+                  )}
+                  <span className="text-[10px]">Менеджер</span>
+                </button>
+
+                {/* 5. Саппорт */}
+                <button
+                  type="button"
+                  disabled={isAuthenticating}
+                  onClick={() => handleQuickAuth("support")}
+                  className="min-h-[44px] px-2 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-semibold flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer"
+                  title="Саппорт / Оператор (Тикеты, Заказы просмотр, Докрутки)"
+                >
+                  {isAuthenticating && pendingRole === "support" ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+                  ) : (
+                    <Headphones className="w-3.5 h-3.5 text-emerald-400" />
+                  )}
+                  <span className="text-[10px]">Саппорт</span>
+                </button>
+
+                {/* 6. Кассир */}
+                <button
+                  type="button"
+                  disabled={isAuthenticating}
+                  onClick={() => handleQuickAuth("cashier")}
+                  className="min-h-[44px] px-2 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/40 text-purple-300 font-semibold flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer"
+                  title="Кассир (Согласование балансовых заявок)"
+                >
+                  {isAuthenticating && pendingRole === "cashier" ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" />
+                  ) : (
+                    <Wallet className="w-3.5 h-3.5 text-purple-400" />
+                  )}
+                  <span className="text-[10px]">Кассир</span>
                 </button>
               </div>
             </div>
@@ -386,15 +451,15 @@ export function FloatingQADock() {
                   </div>
                   <div>
                     <h3 className="font-extrabold text-sm text-white">Вход Тестировщика</h3>
-                    <p className="text-[11px] text-zinc-400">
-                      Вход в роли {pendingRole === "admin" ? "Владельца (admin)" : "Клиента (client)"}
+                    <p className="text-[11px] text-zinc-400 capitalize">
+                      Роль: {pendingRole || 'admin'}
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowKeyInputModal(false)}
-                  className="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center"
+                  className="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-850 text-zinc-400 hover:text-white flex items-center justify-center"
                 >
                   <X className="w-4 h-4" />
                 </button>

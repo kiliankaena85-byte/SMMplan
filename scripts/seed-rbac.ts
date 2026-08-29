@@ -117,21 +117,24 @@ async function main() {
       { stringRole: 'SUPPORT', staffRoleId: supportRole.id },
     ];
 
-    let totalMigrated = 0;
-    for (const sync of syncMap) {
-      const result = await prisma.user.updateMany({
-        where: { 
-          role: sync.stringRole,
-          staffRoleId: null // Only update users missing a StaffRole
-        },
-        data: {
-          staffRoleId: sync.staffRoleId
-        }
+    // 4. Ensure Dedicated Role Test Users Exist
+    const testAccounts = [
+      { email: 'admin@smmplan.pro', role: 'OWNER', staffRoleId: adminRole.id },
+      { email: 'manager@smmplan.pro', role: 'MANAGER', staffRoleId: managerRole.id },
+      { email: 'support@smmplan.pro', role: 'SUPPORT', staffRoleId: supportRole.id },
+      { email: 'cashier@smmplan.pro', role: 'MANAGER', staffRoleId: cashierRole.id },
+      { email: 'client@smmplan.pro', role: 'USER', staffRoleId: null },
+    ];
+
+    for (const acc of testAccounts) {
+      await prisma.user.upsert({
+        where: { email_tenantId: { email: acc.email, tenantId: 'smmplan' } },
+        update: { role: acc.role, staffRoleId: acc.staffRoleId },
+        create: { email: acc.email, role: acc.role, staffRoleId: acc.staffRoleId, tenantId: 'smmplan' }
       });
-      totalMigrated += result.count;
     }
 
-    console.log(`✅ Migrated ${totalMigrated} legacy staff users to StaffRole relationships.`);
+    console.log('✅ Successfully verified and seeded 5 dedicated role test accounts: Admin (Owner), Manager, Support, Cashier, Client.');
 
   } catch (error) {
     console.error('❌ Failed to seed RBAC:', error);

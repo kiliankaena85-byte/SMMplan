@@ -11,8 +11,10 @@ export interface QALoginResult {
   redirectUrl?: string;
 }
 
+export type QARole = 'admin' | 'owner' | 'manager' | 'support' | 'cashier' | 'client';
+
 export async function qaDirectLoginAction(formData: {
-  role: 'admin' | 'client';
+  role: QARole;
   secretKey: string;
   tenantId?: string;
   targetEmail?: string;
@@ -40,9 +42,20 @@ export async function qaDirectLoginAction(formData: {
   }
 
   const tenant = normalizeTenantId(formData.tenantId || 'smmplan');
+  
+  const defaultRoleEmailMap: Record<QARole, string> = {
+    admin: 'admin@smmplan.pro',
+    owner: 'admin@smmplan.pro',
+    manager: 'manager@smmplan.pro',
+    support: 'support@smmplan.pro',
+    cashier: 'cashier@smmplan.pro',
+    client: 'client@smmplan.pro',
+  };
+
   const targetEmail = (
     formData.targetEmail || 
-    (formData.role === 'admin' ? 'admin@smmplan.pro' : 'client@smmplan.pro')
+    defaultRoleEmailMap[formData.role] || 
+    'admin@smmplan.pro'
   ).toLowerCase();
 
   let user = await db.user.findFirst({
@@ -67,8 +80,15 @@ export async function qaDirectLoginAction(formData: {
 
   await createSession(user.id);
 
+  let redirectUrl = '/dashboard';
+  if (formData.role === 'admin' || formData.role === 'owner') {
+    redirectUrl = '/admin';
+  } else if (formData.role === 'manager' || formData.role === 'support' || formData.role === 'cashier') {
+    redirectUrl = '/operator';
+  }
+
   return {
     success: true,
-    redirectUrl: formData.role === 'admin' ? '/admin' : '/dashboard',
+    redirectUrl,
   };
 }
