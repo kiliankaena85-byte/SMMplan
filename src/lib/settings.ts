@@ -112,7 +112,7 @@ export class SettingsProvider {
           contactTelegramChannel: defaultChannel,
           legalCompanyName: "ИП Соколов Артём Андреевич",
           legalCompanyInn: "695006320024",
-          legalCompanyOgrnip: "324690000021650",
+          legalCompanyOgrnip: "",
           legalCompanyAddress: "Российская Федерация, Тверская область, г. Тверь",
         }
       });
