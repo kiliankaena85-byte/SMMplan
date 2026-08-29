@@ -1,14 +1,18 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-29 22:02 (МСК)  
-> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🚀 LAUNCH READY / PRODUCTION OPENED (`smmplan.pro` LIVE) + 🛡️ SELF-LEARNING IMMUNITY ENGINE INTEGRATED + 💳 YOOKASSA LIVE E2E VERIFIED + 🎯 LINK TARGET TYPE & 2026 FORMATS INTELLIGENCE + 🎨 SMMPLAN ORDER MODAL MULTI-AI AUDIT & OPTIMIZATION VERIFIED.
+> **Последнее обновление:** 2026-08-29 22:15 (МСК)  
+> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🛡️ POST-LAUNCH HARDENING v6 VERIFIED (N-10.3, N-10.5, OPERATOR RBAC, Dynamic Build-ID, RCA 530, CSP Telemetry, Pentest Arsenal Deactivated).
 
-- **Оптимизация UI/UX модального окна заказа SMMplan (CheckoutDrawer & Subcomponents):**
-  - **`DrawerQuantityCard.tsx`:** Цена за единицу строго зафиксирована на базовой розничной цене (`selectedService.pricePerUnitRub ₽ / шт`), скидка отображается отдельным бейджем (`Скидка −X ₽`), добавлен `handleInputBlur` clamp с учетом Drip-Feed множителя.
-  - **`DrawerFooter.tsx`:** Внедрено перечеркивание исходной цены со скидочным бейджем (`−X%`), кнопка оплаты всегда остается активной для мгновенной обратной связи.
-  - **`DrawerFormInputs.tsx`:** Добавлен живой счетчик строк/комментариев в реальном времени с индикацией выполнения минимального порога (`linesCount` / `minQty`), добавлена подсказка для опросов/голосований (`isPoll`).
-  - **Верификация:** `npx tsc --noEmit` (**0 ошибок**), `npm run audit:immunity` (**6/6 PASS**), `npm run test` (**100% PASS**), `npm run build` (**100% PASS Standalone Build + 0 Leaks**).
+- **Пакет фиксов Hardening v6 (Audit #10 Follow-ups & Post-Launch Security):**
+  - **Деактивация пентест-арсенала (D1–D6):** 4 пентест-аккаунта (`pentest7-user@smmplan.pro`, `pentest7-operator@smmplan.pro`, `pentest7-admin@smmplan.pro`, `pentest7-flux@smmflux.ru`) переведены в `isActive: false`, `isDeleted: true`, `passwordHash: null`, `apiKeyHash: null`. Все 5 сессий удалены, B2B API-ключи отозваны (401 Unauthorized). Секрет `JWT_SECRET` сохранен без разлогина боевых пользователей.
+  - **N-10.3 (Cross-Contour / Host-only Spoofing Shield):** Внедрен `TRUSTED_CONTOUR_MAP` в `src/proxy.ts`. Матрица приёмки H1–H7 блокирует 8 направлений подделки заголовка Host с HTTP 403 Forbidden.
+  - **N-10.5 (Мёртвый/чужой токен на prod):** Перенаправление с HTTP 307 строго на форму `/login` с немедленным сбросом куки `session_token` (`Max-Age=0`).
+  - **Панель OPERATOR (O1–O4):** Гвард `/operator` и RBAC поддерживают роль `OPERATOR` для секций заказов, тикетов, транзакций и клиентов. Обычные пользователи и гости перенаправляются на `/dashboard` или `/login`.
+  - **N-10.6 (`x-build-id`):** Динамический заголовок сборки `v6-<git-sha>; <timestamp>` на основе `src/lib/build-info.ts`.
+  - **RCA инцидента 530/1033:** Задокументирован в `docs/RCA_INCIDENT_530_1033.md` (анализ TLS EOF ТСПУ, 3 превентивные меры, HA Dual-Connector).
+  - **T+24h мониторинг:** Развернут эндпоинт `/api/telemetry/csp-report` и детектор 401-всплесков `/api/v2` в Redis.
+  - **Верификация:** Автоматизированный сьют `scripts/ci/test-hardening-v6-suite.ts` (**31/31 PASS, 100% GREEN**), `tsc --noEmit` (**0 ошибок**), `logout-and-proxy-redirects.test.ts` (**9/9 PASS**), `owasp-top10-and-data-leak-prevention.test.ts` (**11/11 PASS**), `operator-verification-gatekeeper.test.ts` (**5/5 PASS**).
 
 - **Автономный фоновый робот-сторож мониторинга РФ (GeoAvailability Watchdog & BullMQ Daemon):**
   - Разработан и активирован фоновый процессор `geo-availability.processor.ts`, запускаемый по расписанию BullMQ каждые 5 минут (`ensureGeoAvailabilityCron`).
