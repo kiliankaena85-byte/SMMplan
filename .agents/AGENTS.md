@@ -139,8 +139,12 @@
   2. **Уровень 2 (Поисковая верификация):** Поиск актуальных релизов протоколов (2025/2026 гг.), выявление устаревших методов (SOAP/XML vs REST/JSON).
   3. **Уровень 3 (Память модели):** Используется ТОЛЬКО как вспомогательная гипотеза с обязательным предупреждением пользователю: `[ГИПОТЕЗА: Требуется валидация документацией]`.
 
+---
 
-
-
-
-
+## 15. Security-by-Design, Pentest Immunity & Live Standards Verification (OWASP/PCI DSS)
+- ❌ **ЗАПРЕЩЕНО** писать код без предварительной сверки с мировыми стандартами безопасности: **OWASP Top 10:2025, OWASP ASVS 4.0.3, WSTG v4.2, PCI DSS 4.0, RFC 9116 (security.txt), RFC 9331 (RateLimit headers)**.
+- ✅ **Live Standards Search:** Перед проектированием любой архитектуры, аутентификации или платежного флоу агент ОБЯЗАН провести поиск актуальных стандартов и уязвимостей в интернете (`search_web`).
+- ❌ **Zero-Secrets in Client Bundles:** Никаких секретов, паролей или токенов в `NEXT_PUBLIC_*` или компонентах клиентского бандла (`use client`).
+- ❌ **No Information Disclosure:** Запрещено раскрывать внутренние пути (`/dev`, `/test`, `/operator`, `/client-demo`) в публичном `robots.txt` (использовать `X-Robots-Tag: noindex, nofollow`).
+- ✅ **Symmetric Cookie Sanitation:** Сброс сессионных кук ОБЯЗАН содержать полный набор атрибутов: `Secure; HttpOnly; SameSite=Lax; MaxAge=0; Expires=0; Path=/`.
+- ✅ **Granular RBAC Enforcement:** Все серверные операции сотрудников обязаны проходить через `requireStaffPermission()` с проверкой прав по секциям (`view`/`edit`).

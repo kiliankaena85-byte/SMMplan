@@ -207,5 +207,26 @@
 3. **Уровень 3 (Память модели — строго с пометкой гипотезы):**
    - Внутренняя память агента используется ТОЛЬКО как гипотеза с обязательным предупреждением пользователю: `[ГИПОТЕЗА: Требуется валидация документацией]`. Запрещено внедрять предположения без последующей проверки.
 
+---
 
+## 8. Безопасность по умолчанию (Security-by-Design, Pentest Immunity & Live Standards Verification)
 
+> 🛡️ **BLOCKING SECURITY MANDATE.** При разработке ЛЮБОГО проекта, компонента или новой функциональности агент ОБЯЗАН с самого начала закладывать архитектуру с защитой от пентестов и строго соблюдать мировые стандарты безопасности:
+
+1. **Стандарты безопасности обязательного соблюдения:**
+   - **OWASP Top 10:2025** (A01 Broken Access Control, A02 Security Misconfiguration, A04 Cryptographic Failures, A05 Injection, A07 Authentication Failures, etc.).
+   - **OWASP ASVS 4.0.3** (Application Security Verification Standard) & **WSTG v4.2**.
+   - **PCI DSS 4.0** (TLS 1.2/1.3, запрет устаревших CBC-шифров, безопасная обработка платежных реквизитов).
+   - **RFC 9116** (Обязательное наличие `/.well-known/security.txt`).
+   - **RFC 9331** (Стандартизированные заголовки `RateLimit-Limit`, `RateLimit-Reset`, `RateLimit-Policy` на публичных API).
+
+2. **Обязательная сверка стандартов перед стартом (Live Standard Verification):**
+   - Перед началом проектирования или реализации фич, связанных с аутентификацией, платежами, API или маршрутизацией, агент ОБЯЗАН проверить актуальные стандарты через поиск в интернете (`search_web`) или официальную документацию (`read_url_content`).
+   - Запрещено использовать устаревшие практики (например, незащищенные GET-эндпоинты прямого входа, раскрытие отладочных путей в `robots.txt`, отсутствие флагов у cookies при сбросе).
+
+3. **Ключевые инварианты кода (Pentest Immunity Rules):**
+   - ❌ **Zero-Secrets in Client Bundles:** Никаких `NEXT_PUBLIC_*_SECRET`, паролей или ключей в клиентском коде (`use client`).
+   - ❌ **No Backdoor/Debug Endpoints in Production:** Все тестовые/QA эндпоинты изолируются через Server Actions со строгой проверкой `QA_SECRET_KEY` на сервере через `crypto.timingSafeEqual`.
+   - ❌ **No Information Disclosure:** Запрещено раскрывать внутренние пути (`/dev`, `/operator`, `/test`) в публичном `robots.txt` (использовать `X-Robots-Tag: noindex, nofollow` в middleware).
+   - ✅ **Symmetric Cookie Sanitation:** Любая очистка сессионных кук обязана содержать полный набор атрибутов: `Secure; HttpOnly; SameSite=Lax; MaxAge=0; Expires=0; Path=/`.
+   - ✅ **Granular RBAC Enforcement:** Разграничение прав ролей (Owner, Admin, Manager, Support, Cashier, User) проверяется на уровне каждого Server Action через `requireStaffPermission()`.

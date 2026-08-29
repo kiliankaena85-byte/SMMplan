@@ -10,6 +10,15 @@
   - *Решение:* Отказ от распределенных Redis-блокировок (`MutexManager`) в финансовых операциях (`WalletOps`) в пользу нативной транзакционной изоляции PostgreSQL Serializable с автоматическим retry при serialization failure.
   - *Причина:* Предотвращение Race Conditions и дрейфа баланса без накладных расходов на Redis lock management.
 
+- **Security-by-Design, Pentest Immunity & OWASP Top 10:2025 Architecture:**
+  - *Решение:*
+    1. **Zero-Secrets in Client Bundles:** Категорический запрет любых переменных с секретами в клиентских компонентах Next.js (`NEXT_PUBLIC_*`). Все отладочные/QA флоу изолируются в Server Actions с валидацией через `crypto.timingSafeEqual`.
+    2. **OWASP Top 10:2025 / PCI DSS 4.0 Standard:** Проект обязан проходить пентесты со 100% успехом: требование TLS 1.2/1.3, CSP без небезопасных wildcard (`wss:`), RFC 9116 (`/.well-known/security.txt`), RFC 9331 (заголовки RateLimit на публичных API).
+    3. **Symmetric Cookie Sanitation:** При выходе или сбросе сессии кука `session_token` обязана очищаться с полным набором атрибутов: `Secure; HttpOnly; SameSite=Lax; MaxAge=0; Expires=0; Path=/`.
+    4. **Information Disclosure Prevention:** Публичный `robots.txt` не должен содержать внутренние пути (`/dev`, `/test`, `/operator`, `/client-demo`). Скрытие приватных страниц реализуется через `X-Robots-Tag: noindex, nofollow`.
+    5. **Granular RBAC Enforcement:** Разграничение прав ролей (`OWNER`, `ADMIN`, `MANAGER`, `SUPPORT`, `CASHIER`, `USER`) на уровне каждого Server Action через `requireStaffPermission()`.
+  - *Причина:* Соответствие мировым стандартам кибербезопасности 2026 года и исключение любых замечаний на пентестах.
+
 - **Ledger-First Transaction Integrity & Zero-Escape Security Invariants:**
   - *Решение:* 
     1. Исключены Transaction Escapes в `WalletOps` — все операции, включая catch-блоки duplicate key P2002, выполняются строго через `tx: PrismaTx`, никогда не переключаясь на глобальный `db`.
