@@ -150,7 +150,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     ? (settings.contactSupportEmail || 'support@smmflux.ru')
     : (settings.contactSupportEmail || 'support@smmplan.pro');
 
-  const showMaintenance = isMaintenanceMode && !isStaff && !isExcluded;
+  const host = reqHeaders.get('host') || reqHeaders.get('x-forwarded-host') || '';
+  const isTestDomain = host.includes('test.') || host.includes('localhost') || host.includes('127.0.0.1');
+
+  // test.smmplan.pro and local dev remain fully open for testing, while smmplan.pro displays holding screen
+  const isMaintenanceModeForDomain = isMaintenanceMode && !isTestDomain;
+  const showMaintenance = isMaintenanceModeForDomain && !isStaff && !isExcluded;
 
   const supportTelegram = settings.contactTelegramBot || 'smmplan_support_bot';
 
