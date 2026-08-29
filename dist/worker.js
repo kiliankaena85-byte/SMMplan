@@ -123356,6 +123356,15 @@ function normalizeTenantId2(tenantId) {
   return tid;
 }
 function getTenantHost(tenantId) {
+  if (process.env.APP_HOST) {
+    return process.env.APP_HOST;
+  }
+  if (process.env.APP_URL && (process.env.APP_URL.includes("test.") || process.env.APP_URL.includes("localhost"))) {
+    try {
+      return new URL(process.env.APP_URL).host;
+    } catch {
+    }
+  }
   switch (normalizeTenantId2(tenantId)) {
     case "flux":
     case "smmflux":

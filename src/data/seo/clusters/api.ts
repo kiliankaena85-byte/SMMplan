@@ -48,7 +48,7 @@ export const apiClusters: ClusterArticle[] = [
       <p>Метод <code>add</code> является главным эндпоинтом отправки заказов. Подробно обо всех действиях читайте в материале <a href="/knowledge/smm-api-guide">SMM API для агентств и реселлеров</a>.</p>
 
       <h2>Пример запроса cURL</h2>
-      <pre><code>curl -X POST https://smmplan.pro/api/v2 \\
+      <pre><code>curl -X POST https://test.smmplan.pro/api/v2 \\
   -d "key=smm_your_key&action=add&service=101&link=https://t.me/example&quantity=500"</code></pre>
 
       <p>Перейти к управлению доступом можно в <a href="/dashboard/settings/api">Разделе API</a>. Базовый гайд — <a href="/knowledge/smm-api-guide">SMM API для агентств и реселлеров</a>.</p>

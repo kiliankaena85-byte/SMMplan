@@ -4,13 +4,13 @@ import { getTenantHost, normalizeTenantId } from '@/lib/seo-helpers';
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const reqHeaders = await headers();
-  const rawHost = reqHeaders.get('host') || '';
+  const rawHost = reqHeaders.get('x-forwarded-host') || reqHeaders.get('host') || '';
   const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id') || (rawHost.includes('flux') ? 'flux' : 'smmplan'));
   
-  // Для dev-окружения с localhost используем http, в противном случае https + getTenantHost
-  const isLocal = rawHost.includes('localhost') || rawHost.includes('127.0.0.1');
-  const protocol = isLocal ? 'http' : 'https';
-  const host = isLocal ? rawHost : getTenantHost(tenantId);
+  // Для test-контура и dev-окружения используем запрашиваемый хост
+  const isTestOrLocal = rawHost.includes('localhost') || rawHost.includes('127.0.0.1') || rawHost.includes('test.');
+  const protocol = rawHost.includes('localhost') ? 'http' : 'https';
+  const host = isTestOrLocal ? rawHost : getTenantHost(tenantId);
 
   const disallowList = [
     '/api/',

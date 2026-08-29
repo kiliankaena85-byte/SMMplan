@@ -102,6 +102,16 @@ const API_ENDPOINTS = [
 
 export default function ApiDocsPage() {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [apiBaseUrl, setApiBaseUrl] = useState(
+    process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/v2` : '/api/v2'
+  );
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const origin = window.location.origin;
+      setApiBaseUrl(`${origin}/api/v2`);
+    }
+  }, []);
 
   const handleCopy = (text: string, index: number) => {
     navigator.clipboard.writeText(text);
@@ -170,9 +180,9 @@ export default function ApiDocsPage() {
               </p>
             </div>
             <div className="bg-card border border-border px-4 py-2.5 rounded-xl font-mono text-sm font-bold text-primary flex items-center gap-3 shrink-0 shadow-sm">
-              <span>https://smmplan.pro/api/v2</span>
+              <span>{apiBaseUrl}</span>
               <button 
-                onClick={() => handleCopy("https://smmplan.pro/api/v2", 999)}
+                onClick={() => handleCopy(apiBaseUrl, 999)}
                 className="text-muted-foreground hover:text-foreground transition-colors"
                 title="Копировать URL"
               >

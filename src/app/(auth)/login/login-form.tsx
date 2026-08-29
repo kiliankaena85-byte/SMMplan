@@ -7,6 +7,7 @@ import { registerWithPasswordAction } from '@/actions/auth/password-register';
 import { Mail, Loader2, CheckCircle2, ArrowRight, Eye, EyeOff, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { TurnstileWidget } from '@/components/ui/TurnstileWidget';
 
 const inputCls =
   'w-full rounded-2xl border border-border bg-card text-foreground px-4 py-3.5 ' +
@@ -18,6 +19,7 @@ export function LoginForm({ isFlux = false }: { isFlux?: boolean }) {
   const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [shakeKey, setShakeKey] = useState(0);
+  const [turnstileToken, setTurnstileToken] = useState('');
 
   const submitBtnCls = isFlux
     ? 'w-full flex items-center justify-center gap-2.5 h-12 py-3 px-5 rounded-full text-sm font-black bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-[0_4px_18px_rgba(168,85,247,0.35)] hover:shadow-[0_6px_24px_rgba(236,72,153,0.45)] hover:-translate-y-0.5 disabled:opacity-50 transition-all duration-200 cursor-pointer active:scale-[0.98]'
@@ -51,6 +53,9 @@ export function LoginForm({ isFlux = false }: { isFlux?: boolean }) {
         const formData = new FormData();
         formData.append('email', email);
         formData.append('password', password);
+        if (turnstileToken) {
+          formData.append('turnstileToken', turnstileToken);
+        }
 
         const res = await loginWithPasswordAction(null, formData);
         if (!res.success) {
@@ -218,6 +223,13 @@ export function LoginForm({ isFlux = false }: { isFlux?: boolean }) {
               </button>
             </div>
           </div>
+
+          {/* Cloudflare Turnstile CAPTCHA (V-04) */}
+          <TurnstileWidget
+            onVerify={(token) => setTurnstileToken(token)}
+            onError={() => setTurnstileToken('')}
+            onExpire={() => setTurnstileToken('')}
+          />
 
           <button
             type="submit"

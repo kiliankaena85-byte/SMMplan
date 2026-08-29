@@ -180,6 +180,28 @@ export async function proxy(request: NextRequest) {
   // Set headers for layout detection and tenant isolation
   requestHeaders.set('x-pathname', pathname);
 
+  // Generate cryptographic Nonce for strict-dynamic CSP (V-05)
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+  requestHeaders.set('x-nonce', nonce);
+
+  // Nonce-based Content Security Policy (PCI DSS 4.0 / OWASP ASVS 4.0.3)
+  const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://yookassa.ru https://auth.robokassa.ru;
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' blob: data: https:;
+    font-src 'self' data:;
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self' https://yookassa.ru https://auth.robokassa.ru;
+    frame-ancestors 'self';
+    frame-src 'self' https://challenges.cloudflare.com https://yookassa.ru https://auth.robokassa.ru;
+    connect-src 'self' https://challenges.cloudflare.com https://yookassa.ru https://auth.robokassa.ru https://api.cryptobot.org https://api.telegram.org;
+    upgrade-insecure-requests;
+  `.replace(/\s{2,}/g, ' ').trim();
+
+  requestHeaders.set('Content-Security-Policy', cspHeader);
+
   // Handle ref cookie if present in URL query
   const ref = request.nextUrl.searchParams.get('ref');
   const response = NextResponse.next({
@@ -189,6 +211,8 @@ export async function proxy(request: NextRequest) {
   });
 
   response.headers.set('x-tenant-id', finalTenantId);
+  response.headers.set('x-nonce', nonce);
+  response.headers.set('Content-Security-Policy', cspHeader);
   response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
   response.headers.set('X-Frame-Options', 'SAMEORIGIN');
   response.headers.set('X-Content-Type-Options', 'nosniff');

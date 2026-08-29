@@ -34,6 +34,7 @@ export function PreLaunchHoldingScreen({
   tenantId = 'smmplan',
 }: PreLaunchHoldingScreenProps) {
   const [email, setEmail] = useState('');
+  const [honeypot, setHoneypot] = useState('');
   const [agreed, setAgreed] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -63,6 +64,7 @@ export function PreLaunchHoldingScreen({
           email: email.trim(),
           tenantId,
           source: 'prelaunch_holding_hero',
+          company_fax_id: honeypot,
         }),
       });
 
@@ -201,6 +203,17 @@ export function PreLaunchHoldingScreen({
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                  {/* Honeypot field (hidden from real users, filled by bots) */}
+                  <input
+                    type="text"
+                    name="company_fax_id"
+                    value={honeypot}
+                    onChange={(e) => setHoneypot(e.target.value)}
+                    tabIndex={-1}
+                    autoComplete="off"
+                    className="opacity-0 absolute -z-50 pointer-events-none w-0 h-0 p-0 m-0 border-0"
+                    aria-hidden="true"
+                  />
                   <div className="relative flex-1">
                     <Mail className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input

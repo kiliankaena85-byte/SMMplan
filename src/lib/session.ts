@@ -8,7 +8,7 @@ import { getClientIp } from '@/utils/ip';
 import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 export async function createSession(userId: string, canResetPassword: boolean = false) {
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 дней
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 часа (V-13)
   
   let userAgent = 'unknown';
   let ipAddress = '127.0.0.1';
@@ -37,11 +37,18 @@ export async function createSession(userId: string, canResetPassword: boolean = 
   const role = user?.role || 'USER';
   const tenantId = user?.tenantId || 'smmplan';
 
-  // Шифруем ID сессии в JWT
-  const sessionToken = await new SignJWT({ sessionId: session.id, userId, canResetPassword, role, tenantId })
+  // Шифруем ID сессии в JWT со сроком 24 часа и версией сессии
+  const sessionToken = await new SignJWT({ 
+    sessionId: session.id, 
+    userId, 
+    canResetPassword, 
+    role, 
+    tenantId,
+    sessionVer: 1
+  })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('7d')
+    .setExpirationTime('24h')
     .sign(getEncodedKey());
     
   try {
@@ -83,11 +90,12 @@ export async function verifySession(requiredTenantId?: string): Promise<{ userId
   }
 
   try {
-    const { payload } = await jwtVerify(sessionToken, getEncodedKey(), {
-      algorithms: ['HS256'],
-    });
+    const payload = await decryptSessionToken(sessionToken);
+    if (!payload || !payload.sessionId) {
+      return null;
+    }
     
-    const sessionId = payload.sessionId as string;
+    const sessionId = payload.sessionId;
     const session = await db.session.findUnique({
       where: { id: sessionId },
       include: { user: true }

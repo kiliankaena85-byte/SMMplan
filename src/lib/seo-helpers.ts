@@ -6,6 +6,16 @@ export function normalizeTenantId(tenantId: string | null | undefined): string {
 }
 
 export function getTenantHost(tenantId: string): string {
+  if (process.env.APP_HOST) {
+    return process.env.APP_HOST;
+  }
+  if (process.env.APP_URL && (process.env.APP_URL.includes('test.') || process.env.APP_URL.includes('localhost'))) {
+    try {
+      return new URL(process.env.APP_URL).host;
+    } catch {
+      // fallback
+    }
+  }
   switch (normalizeTenantId(tenantId)) {
     case 'flux':
     case 'smmflux': return 'smmflux.ru';

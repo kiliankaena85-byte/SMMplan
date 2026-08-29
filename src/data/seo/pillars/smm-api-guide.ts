@@ -46,7 +46,7 @@ export const smmApiGuide = {
 
     <h2>Авторизация и безопасность программных запросов</h2>
     <p>Все программные обращения к API отправляются с использованием протокола защищенного соединения HTTPS методом <code>POST</code> на единую точку входа (Base URL):</p>
-    <pre><code>https://smmplan.pro/api/v2</code></pre>
+    <pre><code>https://test.smmplan.pro/api/v2</code></pre>
     <p>Аутентификация осуществляется путем передачи вашего секретного API-ключа в параметре <code>key</code> тела каждого POST-запроса (стандарт кодирования <code>application/x-www-form-urlencoded</code>):</p>
     <pre><code>key=smm_xxxxxxxxxxxxxxxxxxxxxxxx</code></pre>
     <p>Обратите внимание: храните ваш ключ в строгой конфиденциальности на стороне сервера. Запрещено передавать ключ в открытом виде в клиентском JavaScript-коде браузера или публичных репозиториях.</p>
@@ -55,7 +55,7 @@ export const smmApiGuide = {
 
     <h3>1. Запрос баланса счета (action=balance)</h3>
     <p>Возвращает информацию о текущем финансовом балансе вашей учетной записи в рублях.</p>
-    <pre><code>curl -X POST https://smmplan.pro/api/v2 \\
+    <pre><code>curl -X POST https://test.smmplan.pro/api/v2 \\
   -d "key=smm_your_key&action=balance"</code></pre>
     <p>Пример успешного JSON-ответа:</p>
     <pre><code>{
@@ -65,12 +65,12 @@ export const smmApiGuide = {
 
     <h3>2. Выгрузка списка услуг (action=services)</h3>
     <p>Возвращает массив всех доступных для заказа активных услуг с указанием лимитов, категорий и розничной стоимости за 1000 единиц (по стандарту SMM-панелей).</p>
-    <pre><code>curl -X POST https://smmplan.pro/api/v2 \\
+    <pre><code>curl -X POST https://test.smmplan.pro/api/v2 \\
   -d "key=smm_your_key&action=services"</code></pre>
 
     <h3>3. Оформление нового заказа (action=add)</h3>
     <p>Создает одиночный заказ на выбранную услугу с передачей целевой ссылки и количества.</p>
-    <pre><code>curl -X POST https://smmplan.pro/api/v2 \\
+    <pre><code>curl -X POST https://test.smmplan.pro/api/v2 \\
   -d "key=smm_your_key&action=add&service=101&link=https://t.me/example&quantity=500"</code></pre>
 
     <h3>4. Пакетное создание заказов (action=add_multi)</h3>
@@ -78,7 +78,7 @@ export const smmApiGuide = {
 
     <h3>5. Проверка статуса заказа (action=status)</h3>
     <p>Возвращает актуальное состояние исполнения заказа (PENDING, IN_PROGRESS, COMPLETED, CANCELLED). Для пакетной проверки передайте список ID через запятую (до 100 за раз).</p>
-    <pre><code>curl -X POST https://smmplan.pro/api/v2 \\
+    <pre><code>curl -X POST https://test.smmplan.pro/api/v2 \\
   -d "key=smm_your_key&action=status&order=12345"</code></pre>
 
     <h3>6. Запрос отмены заказа (action=cancel)</h3>
@@ -95,7 +95,7 @@ export const smmApiGuide = {
     <pre><code>import requests
 import time
 
-API_URL = "https://smmplan.pro/api/v2"
+API_URL = "https://test.smmplan.pro/api/v2"
 API_KEY = "smm_your_secret_key_here"
 
 def check_account_balance():
