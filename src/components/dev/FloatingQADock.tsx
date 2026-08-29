@@ -13,10 +13,14 @@ import {
   RotateCcw, 
   QrCode,
   Bug,
-  Zap
+  Zap,
+  KeyRound,
+  CheckCircle2,
+  Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 import { BugReportModal } from "./BugReportModal";
+import { qaDirectLoginAction } from "@/actions/qa-auth";
 
 export function FloatingQADock() {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,19 +30,31 @@ export function FloatingQADock() {
   const [showQR, setShowQR] = useState(false);
   const [showBugReportModal, setShowBugReportModal] = useState(false);
 
+  // Состояние защищенного QA ключа
+  const [showKeyInputModal, setShowKeyInputModal] = useState(false);
+  const [pendingRole, setPendingRole] = useState<"admin" | "client" | null>(null);
+  const [enteredSecret, setEnteredSecret] = useState("");
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+
   useEffect(() => {
     setIsClient(true);
 
-    // Strict Security Guard: Only activate if explicitly enabled via secret cookie or staff session
-    const hasSecretParam = window.location.search.includes('smm_qa_key=') || window.location.search.includes('tester_pass=');
+    // Чтение параметров активации из URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const secretParam = urlParams.get('smm_qa_key') || urlParams.get('tester_pass');
+    const hasSecretParam = !!secretParam;
     const hasStaffCookie = document.cookie.includes('x_staff=1') || document.cookie.includes('smm_qa_dock=1');
     const isLocalDev = process.env.NODE_ENV === 'development' && !window.location.hostname.includes('test.') && !window.location.hostname.includes('smmplan.pro');
+
+    if (secretParam && secretParam.length > 3) {
+      sessionStorage.setItem('smm_qa_key', secretParam);
+    }
 
     if (hasSecretParam) {
       document.cookie = 'smm_qa_dock=1; path=/; max-age=86400; SameSite=Lax; Secure';
     }
 
-    if (hasStaffCookie || (isLocalDev && process.env.NEXT_PUBLIC_ENABLE_QA_DOCK === 'true')) {
+    if (hasStaffCookie || hasSecretParam || (isLocalDev && process.env.NEXT_PUBLIC_ENABLE_QA_DOCK === 'true')) {
       setIsEnabled(true);
     } else {
       setIsEnabled(false);
@@ -77,7 +93,38 @@ export function FloatingQADock() {
     }, 300);
   };
 
-  const handleQuickAuth = (role: "guest" | "admin" | "client") => {
+  const executeLogin = async (role: "admin" | "client", secretKey: string) => {
+    setIsAuthenticating(true);
+    try {
+      const res = await qaDirectLoginAction({
+        role,
+        secretKey,
+        tenantId: currentTenant,
+      });
+
+      if (res.success && res.redirectUrl) {
+        sessionStorage.setItem('smm_qa_key', secretKey);
+        toast.success(
+          role === "admin" 
+            ? "Успешный вход под учетной записью Владельца!" 
+            : "Успешный вход под учетной записью Клиента!"
+        );
+        setShowKeyInputModal(false);
+        setTimeout(() => {
+          window.location.href = res.redirectUrl!;
+        }, 300);
+      } else {
+        toast.error(res.error || "Не удалось войти. Проверьте ключ QA.");
+        sessionStorage.removeItem('smm_qa_key');
+      }
+    } catch (err: unknown) {
+      toast.error("Ошибка при авторизации QA: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
+  const handleQuickAuth = async (role: "guest" | "admin" | "client") => {
     if (role === "guest") {
       document.cookie = "session_token=; path=/; max-age=0; SameSite=Lax; Secure; HttpOnly";
       document.cookie = "auth_token=; path=/; max-age=0; SameSite=Lax; Secure";
@@ -89,8 +136,15 @@ export function FloatingQADock() {
                                 window.location.pathname.startsWith('/operator');
         window.location.href = isProtectedPath ? '/login' : window.location.pathname;
       }, 300);
+      return;
+    }
+
+    const savedKey = sessionStorage.getItem('smm_qa_key');
+    if (savedKey) {
+      await executeLogin(role, savedKey);
     } else {
-      toast.info("Быстрый вход доступен только в локальном dev-окружении через форму /login.");
+      setPendingRole(role);
+      setShowKeyInputModal(true);
     }
   };
 
@@ -194,32 +248,49 @@ export function FloatingQADock() {
 
             {/* Блок 2: Быстрая авторизация и роли */}
             <div className="flex flex-col gap-2">
-              <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-                2. Мгновенная роль / Авторизация
+              <div className="flex items-center justify-between text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+                <span>2. Мгновенная роль (1-Click)</span>
+                {sessionStorage.getItem('smm_qa_key') && (
+                  <span className="text-[10px] text-emerald-400 flex items-center gap-1 font-semibold">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Ключ сохранен
+                  </span>
+                )}
               </div>
               <div className="grid grid-cols-3 gap-1.5">
                 <button
                   type="button"
+                  disabled={isAuthenticating}
                   onClick={() => handleQuickAuth("guest")}
-                  className="min-h-[40px] px-2 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white font-medium flex flex-col items-center justify-center gap-1 transition-all cursor-pointer"
+                  className="min-h-[44px] px-2 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white font-medium flex flex-col items-center justify-center gap-1 transition-all cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5 text-zinc-400" />
                   <span className="text-[10px]">Гость</span>
                 </button>
                 <button
                   type="button"
+                  disabled={isAuthenticating}
                   onClick={() => handleQuickAuth("admin")}
-                  className="min-h-[40px] px-2 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer"
+                  className="min-h-[44px] px-2 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer relative overflow-hidden"
                 >
-                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                  {isAuthenticating && pendingRole === "admin" ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                  ) : (
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                  )}
                   <span className="text-[10px]">Владелец</span>
                 </button>
                 <button
                   type="button"
+                  disabled={isAuthenticating}
                   onClick={() => handleQuickAuth("client")}
-                  className="min-h-[40px] px-2 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white font-medium flex flex-col items-center justify-center gap-1 transition-all cursor-pointer"
+                  className="min-h-[44px] px-2 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 hover:text-white font-medium flex flex-col items-center justify-center gap-1 transition-all cursor-pointer"
                 >
-                  <User className="w-3.5 h-3.5 text-zinc-400" />
+                  {isAuthenticating && pendingRole === "client" ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-300" />
+                  ) : (
+                    <User className="w-3.5 h-3.5 text-zinc-400" />
+                  )}
                   <span className="text-[10px]">Клиент</span>
                 </button>
               </div>
@@ -276,7 +347,7 @@ export function FloatingQADock() {
                 className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl flex flex-col items-center gap-2"
               >
                 <p className="text-[11px] text-zinc-300 font-semibold text-center">
-                  Наведите камеру смартфона для мгновенного входа:
+                  Наведите камеру смартфона для мгновенного перехода:
                 </p>
                 <img 
                   src={qrImageUrl} 
@@ -295,6 +366,89 @@ export function FloatingQADock() {
               <span className="font-mono">test.smmplan.pro</span>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Всплывающее окно ввода QA ключа (1 раз за сессию) */}
+      <AnimatePresence>
+        {showKeyInputModal && (
+          <div className="fixed inset-0 z-[9999999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm bg-zinc-950 border border-zinc-800 rounded-3xl p-6 shadow-2xl flex flex-col gap-4 text-zinc-100"
+            >
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                    <KeyRound className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-sm text-white">Вход Тестировщика</h3>
+                    <p className="text-[11px] text-zinc-400">
+                      Вход в роли {pendingRole === "admin" ? "Владельца (admin)" : "Клиента (client)"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowKeyInputModal(false)}
+                  className="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-[11px] font-semibold text-zinc-300">
+                  Секретный ключ QA доступа:
+                </label>
+                <input
+                  type="password"
+                  value={enteredSecret}
+                  onChange={(e) => setEnteredSecret(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && enteredSecret.trim() && pendingRole) {
+                      executeLogin(pendingRole, enteredSecret.trim());
+                    }
+                  }}
+                  placeholder="Введите ключ QA доступа..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none text-white text-xs font-mono transition-all"
+                  autoFocus
+                />
+                <p className="text-[10px] text-zinc-500">
+                  Ключ сохранится во вкладке браузера до закрытия.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowKeyInputModal(false)}
+                  className="flex-1 min-h-[40px] px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 font-semibold text-xs transition-colors"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="button"
+                  disabled={!enteredSecret.trim() || isAuthenticating}
+                  onClick={() => {
+                    if (pendingRole && enteredSecret.trim()) {
+                      executeLogin(pendingRole, enteredSecret.trim());
+                    }
+                  }}
+                  className="flex-1 min-h-[40px] px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
+                >
+                  {isAuthenticating ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-zinc-950" />
+                  ) : (
+                    "Подтвердить вход"
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
