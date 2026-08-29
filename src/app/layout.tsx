@@ -227,7 +227,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                {children}
              </MaintenanceGuardian>
           </NetworkAwareProvider>
-          {process.env.NODE_ENV === 'development' && process.env.ENABLE_DEV_ROUTES === 'true' && <FloatingQADock />}
+          <FloatingQADock />
           <CookieConsent />
         </Providers>
         <Toaster
