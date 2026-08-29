@@ -31,7 +31,9 @@ export async function createTopUpPaymentAction(
   if (!dbUser) throw new Error("Пользователь не найден.");
   if (dbUser.isDeleted === true || dbUser.isActive === false) throw new Error("Ваш аккаунт заблокирован или удален");
 
-  if ((gateway === 'yookassa' || gateway === 'sbp') && amountCents > 1_500_000) {
+  // Anti-fraud: gateways with chargeback risk (YooKassa, SBP, Robokassa) require Telegram verification over 15,000 RUB.
+  // CryptoBot is exempted as crypto transactions are irreversible (zero chargeback risk).
+  if ((gateway === 'yookassa' || gateway === 'sbp' || gateway === 'robokassa') && amountCents > 1_500_000) {
     if (!dbUser.telegramId) {
       throw new Error("Для пополнения баланса свыше 15 000 ₽ картой или СБП, пожалуйста, привяжите ваш Telegram-аккаунт в настройках профиля либо воспользуйтесь безналичным расчетом для юрлиц (B2B).");
     }

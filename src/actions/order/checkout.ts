@@ -425,13 +425,13 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
     }
 
     // Enforce 10 RUB minimum for Acquiring (YooKassa / CryptoBot) -> Auto-convert to 10 RUB top-up
-    let paymentAmount = finalTotalCents;
-    const isMicroOrder = gateway !== 'balance' && finalTotalCents < 1000;
     if (isMicroOrder) {
       paymentAmount = 1000; // 10 RUB minimum deposit (1000 cents)
     }
 
-    if ((gateway === 'yookassa' || gateway === 'sbp') && paymentAmount > 1_500_000 && !user.telegramId) {
+    // Anti-fraud: gateways with chargeback risk (YooKassa, SBP, Robokassa) require Telegram verification over 15,000 RUB.
+    // CryptoBot is exempted as crypto transactions are irreversible (zero chargeback risk).
+    if ((gateway === 'yookassa' || gateway === 'sbp' || gateway === 'robokassa') && paymentAmount > 1_500_000 && !user.telegramId) {
       throw new Error("Для совершения единовременных платежей свыше 15 000 ₽, пожалуйста, привяжите ваш Telegram-аккаунт в личном кабинете либо используйте безналичный расчет по счету для юрлиц и ИП.");
     }
 
