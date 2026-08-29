@@ -10,12 +10,11 @@
   - Добавлен автоматический фокус при возврате на Шаг 1.
   - Тестовый сьют `src/__tests__/mobile-wizard-smoke.test.tsx` (**6/6 PASS**), `tsc --noEmit` (**0 ошибок**).
 
-- **Multi-Domain Routing & РФ Анти-блокировка Cloudflare (Август 2026):**
-  - **smmplan.pro:** Показывает `PreLaunchHoldingScreen` (сбор заявок на бета-тест, 1 000 ₽ бонус, 152-ФЗ).
-  - **test.smmplan.pro:** Показывает полный `SmartLinkLanding` (каталог услуг, пошаговый мастер заказа).
-  - **flux.smmplan.pro:** Показывает витрину `FluxOrderClient` (SMMflux).
-  - **Cloudflare Shield для РФ (ТСПУ / МТС / Ростелеком):** `ipv6: off` (устранен дроп AAAA), `http3: off` (устранен UDP-дроп), `ech: off` (устранен TLS handshake reset), `protocol: http2` в `cloudflared`.
-  - **Docker Internal Routing Alias:** В `docker-compose.yml` контейнер `web` получил сетевой псевдоним `host.docker.internal` в сети `smm_plan_2_default`, устраняя 502 ошибки между туннелем и Next.js.
+- **Multi-Domain Testing & Production Routing Contract (STRICT RULE):**
+  - **`smmplan.pro` (и `www.smmplan.pro`):** Показывает `PreLaunchHoldingScreen` (страница-заглушка предзапуска со сбором заявок).
+  - **`test.smmplan.pro`:** Показывает основной сайт платформы SMMplan (`SmartLinkLanding`) во время тестирования.
+  - **`flux.smmplan.pro`:** Показывает витрину `FluxOrderClient` (SMMflux Radiant Aurora) во время тестирования.
+  - **Tailscale Funnel Live Node:** `https://desktop-25m6el7.tailbb9d28.ts.net` (100% доступность из РФ/МГТС без VPN, автозапуск в фоне на Windows).
 
 - **Пакет улучшений безопасности Security Hardening v7 (Remediation SEC-01..SEC-07):**
   - **SEC-01 (API v2 Real RateLimit RFC 9331 Headers):** Внедрен метод `RateLimitService.checkCustomKeyDetail` возвращающий реальные счетчики Redis/Postgres. Заголовки `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`, `RateLimit-Policy` выставляются на всех 200 и 429 ответах. Сьют: `src/__tests__/api-v2-rate-limit-headers.test.ts` (2/2 PASS).

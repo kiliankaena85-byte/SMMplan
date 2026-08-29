@@ -6,6 +6,12 @@
 
 ## 1. 🏗️ Архитектурные решения (ADR)
 
+- **Multi-Domain Testing & Production Routing Contract (STRICT RULE):**
+  - **`smmplan.pro` (и `www.smmplan.pro`):** СТРОГО страница-заглушка предзапуска (`PreLaunchHoldingScreen`) во время периода тестирования.
+  - **`test.smmplan.pro`:** СТРОГО основной сайт платформы SMMplan (`SmartLinkLanding`) во время периода тестирования.
+  - **`flux.smmplan.pro`:** СТРОГО витрина SMMflux (`FluxOrderClient` / Radiant Aurora) во время периода тестирования.
+  - *ПРИМЕЧАНИЕ:* Перенос боевого функционала на `smmplan.pro` будет производиться ТОЛЬКО после явной отдельной команды пользователя при выходе из тестирования.
+
 - **PostgreSQL Serializable Isolation vs MutexManager:**
   - *Решение:* Отказ от распределенных Redis-блокировок (`MutexManager`) в финансовых операциях (`WalletOps`) в пользу нативной транзакционной изоляции PostgreSQL Serializable с автоматическим retry при serialization failure.
   - *Причина:* Предотвращение Race Conditions и дрейфа баланса без накладных расходов на Redis lock management.
