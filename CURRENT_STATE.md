@@ -1,17 +1,18 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-29 16:30 (МСК)  
-> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🛡️ PENTEST RETEST #7 FIXES FULLY IMPLEMENTED (F-7.1, F-7.2, F-7.4, F-7.5) & DEPLOYED + 💎 EMOJI PRESERVATION IN UI (SMMflux & SMMplan) + 🧹 TELEGRAM/VK/YT/TT/IG CATALOG NORMALIZATION.
+> **Последнее обновление:** 2026-08-29 16:42 (МСК)  
+> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🛡️ PENTEST RETEST #7 FIXES FULLY IMPLEMENTED (F-7.1, F-7.2, F-7.3, F-7.4, F-7.5) & DEPLOYED + 💎 EMOJI PRESERVATION IN UI (SMMflux & SMMplan) + 🧹 TELEGRAM/VK/YT/TT/IG CATALOG NORMALIZATION.
 
 - **Статус экранов:** 28/28 экранов реализованы и верифицированы (100%).
 - **Закрытие замечаний Пентест-Отчета Ре-теста №7 (Security & Isolation Fixes):**
   - **F-7.1 (HIGH):** Устранена проблема неубиваемого JWT после logout на `/dashboard`. В `src/proxy.ts` снят ранний перехват `/api/auth/logout`, что гарантирует выполнение `src/app/api/auth/logout/route.ts` и физическое удаление записи сессии из PostgreSQL (`db.session.deleteMany`). Любой реплей токена на `/dashboard` немедленно находит `session === null` в DB и перенаправляет на `/login` (307).
   - **F-7.2 (MEDIUM):** В `src/lib/b2b-auth.ts` и `src/app/api/v2/route.ts` внедрен строгий биндинг B2B API-ключей к тенанту запроса (`resolveTenantFromRequest(headers)`). Попытка использования ключа `smmplan` на домене `flux` (или наоборот) немедленно отклоняется с HTTP 401. Исправлена выборка каталога B2B (`tenantId: { in: [userTenantId, 'all'] }`).
+  - **F-7.3 (MEDIUM):** Внедрена строгая **Multi-Contour изоляция** (`resolveContourFromHost` $\rightarrow$ `test` vs `prod` vs `flux`). В JWT сессии зашивается claim `contour`. Токены и тестовые учетные записи, выданные в песочнице `test.smmplan.pro`, строго отклоняются при попытке входа на продакшен `smmplan.pro`, гарантируя невозможность рендера прод-дашборда или исполнения B2B-запросов из тестовой среды.
   - **F-7.4 (MEDIUM):** В `src/proxy.ts` внедрен строгий Production Maintenance Gate для хоста `smmplan.pro`. Все входящие запросы на `/login`, `/dashboard`, `/operator`, `/admin` и `/api/v2` блокируются (503 Service Unavailable / редирект на Prelaunch), за исключением разрешенных `/api/health`, `/api/maintenance-status`, `/api/prelaunch/subscribe`, `/robots.txt`, `/sitemap.xml`, `/.well-known/security.txt`.
   - **F-7.5 (LOW / INFO-1):** Во всех точках разрешения канонических хостов (`robots.ts`, `sitemap.ts`, `layout.tsx`, `logout/route.ts`, `proxy.ts`) заголовок `Host` установлен абсолютным приоритетом перед `x-forwarded-host`, исключая сброс тенанта в дефолт при манипуляциях со сторонними прокси.
   - **Нормализация каталога и сохранение эмодзи:** Из базы вычищены все 71 мусорная услуга вида «Тариф #...» и моки. Настроены 6 канонических категорий в Telegram, ВКонтакте, YouTube, TikTok и Instagram. В `CategoryIcon.tsx` функция `cleanCategoryName` очищена от вырезания эмодзи (`👍`, `🔥`, `❤️`, `🎉`, `🥰`, `👏`).
-  - **Верификация:** Автоматизированный сьют `scripts/ci/test-retest7-fixes.ts` (**14/14 PASS**), `payment-redirect-and-gateways.test.ts` (**5/5 PASS**), `test-multi-contour-seo.ts` (**11/11 PASS**), `tsc --noEmit` (**0 ошибок**), Git commit `e2a42909c`.
+  - **Верификация:** Автоматизированный сьют `scripts/ci/test-retest7-fixes.ts` (**19/19 PASS**), `payment-redirect-and-gateways.test.ts` (**5/5 PASS**), `test-multi-contour-seo.ts` (**11/11 PASS**), `tsc --noEmit` (**0 ошибок**).
 - **Инфраструктура Cloudflare & Безопасность (Enterprise Hardening):**
   - **Шифрование:** Включен строгий стандарт **TLS 1.2 / TLS 1.3** и HTTP/3, отсекающий устаревшие и уязвимые протоколы.
   - **Защита от атак:** Развернуты правила **Bot Fight Mode** и **Leaked Credentials Mitigation** (блокировка брутфорса украденных баз паролей).

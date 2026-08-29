@@ -117,7 +117,24 @@ async function runRetest7Tests() {
 
   const realHostTest = 'test.smmplan.pro';
   const hostResolvedTest = getTenantHost('smmplan', realHostTest);
-  assert(hostResolvedTest === 'test.smmplan.pro', `Canonical host resolves correctly to test.smmplan.pro`);
+  // =========================================================================
+  // 5. F-7.3: Strict Contour Isolation (test vs prod vs flux)
+  // =========================================================================
+  console.log('\n--- 5. Testing F-7.3: Contour Isolation (test vs prod vs flux) ---');
+  // B2B key issued for test account on test contour
+  const validTestKey = await verifyB2BKey(b2bKey, 'smmplan', 'test');
+  assert(!!validTestKey, `Test B2B key valid on test contour ("test")`);
+
+  // B2B key issued for test account attempted on production contour
+  const prodTestKey = await verifyB2BKey(b2bKey, 'smmplan', 'prod');
+  assert(!prodTestKey, `Test B2B key STRICTLY REJECTED on production contour ("prod")`);
+
+  // Contour resolution tests
+  const { resolveContourFromHost } = await import('../../src/lib/tenant-resolver-edge');
+  assert(resolveContourFromHost('test.smmplan.pro') === 'test', `Host "test.smmplan.pro" resolves to contour "test"`);
+  assert(resolveContourFromHost('smmplan.pro') === 'prod', `Host "smmplan.pro" resolves to contour "prod"`);
+  assert(resolveContourFromHost('flux.smmplan.pro') === 'flux', `Host "flux.smmplan.pro" resolves to contour "flux"`);
+  assert(resolveContourFromHost('smmflux.ru') === 'flux', `Host "smmflux.ru" resolves to contour "flux"`);
 
   console.log('\n======================================================');
   console.log(`📊 RETEST-7 CI SUMMARY: ${passed} PASSED, ${failed} FAILED`);

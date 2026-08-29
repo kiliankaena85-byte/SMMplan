@@ -8,7 +8,7 @@ import { RateLimitService } from '@/services/core/rate-limit.service';
 import { SecurityAlertService } from '@/services/security/security-alert.service';
 import { z } from 'zod';
 import { type User } from '@prisma/client';
-import { resolveTenantFromRequest } from '@/lib/tenant-resolver-edge';
+import { resolveTenantFromRequest, resolveContourFromHost } from '@/lib/tenant-resolver-edge';
 
 // Standard SMM Panel API v2 Implementation
 // https://panel.com/api/v2
@@ -109,9 +109,11 @@ export async function POST(request: NextRequest) {
       return sendResponse(NextResponse.json({ error: 'Too many requests. Limit 50/minute.' }, { status: 429 }));
     }
 
-    // 1. Authenticate User with Strict Tenant Binding (F-7.2)
+    // 1. Authenticate User with Strict Tenant and Contour Binding (F-7.2, F-7.3)
     const incomingTenant = resolveTenantFromRequest(request.headers);
-    const user = await verifyB2BKey(key, incomingTenant);
+    const hostHeader = request.headers.get('host') || request.headers.get('x-forwarded-host') || '';
+    const incomingContour = resolveContourFromHost(hostHeader);
+    const user = await verifyB2BKey(key, incomingTenant, incomingContour);
     if (!user) {
       const isFailedAllowed = await RateLimitService.checkCustomKey(`b2b_failed_auth:${ip}`, 10, 60);
       await SecurityAlertService.record({

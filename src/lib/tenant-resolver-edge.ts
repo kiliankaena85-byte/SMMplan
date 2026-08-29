@@ -20,6 +20,24 @@ export const FLUX_DOMAINS = new Set([
 
 export const VALID_TENANTS = new Set(['smmplan', 'flux']);
 
+export type ContourId = 'test' | 'prod' | 'flux';
+
+/**
+ * Pure Edge-Compatible Contour Resolver.
+ * Resolves logical deployment environment:
+ * - test.smmplan.pro / localhost / dev -> 'test'
+ * - flux.smmplan.pro / smmflux.ru -> 'flux'
+ * - smmplan.pro / www.smmplan.pro -> 'prod'
+ */
+export function resolveContourFromHost(host?: string | null): ContourId {
+  if (!host || typeof host !== 'string') return 'prod';
+  const clean = host.split(':')[0].toLowerCase().trim();
+  if (clean.includes('flux') || FLUX_DOMAINS.has(clean)) return 'flux';
+  if (clean.startsWith('test.') || clean.includes('localhost') || clean.includes('127.0.0.1')) return 'test';
+  if (clean === 'smmplan.pro' || clean === 'www.smmplan.pro') return 'prod';
+  return 'prod';
+}
+
 /**
  * Edge-compatible host resolver (without Prisma DB dependency) for Next.js Middleware.
  */

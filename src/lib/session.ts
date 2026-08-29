@@ -5,20 +5,24 @@ import { getEncodedKey, decryptSessionToken } from './session-edge';
 export { getEncodedKey, decryptSessionToken };
 
 import { getClientIp } from '@/utils/ip';
-import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
+import { normalizeTenantId, resolveContourFromHost, type ContourId } from '@/lib/tenant-resolver-edge';
 
 export async function createSession(userId: string, canResetPassword: boolean = false) {
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 часа (V-13)
   
   let userAgent = 'unknown';
   let ipAddress = '127.0.0.1';
+  let host = '';
   try {
     const reqHeaders = await headers();
     userAgent = reqHeaders.get('user-agent') || 'unknown';
     ipAddress = await getClientIp();
+    host = reqHeaders.get('host') || reqHeaders.get('x-forwarded-host') || '';
   } catch {
     // Non-request scope fallback
   }
+
+  const contour = resolveContourFromHost(host);
 
   // Создаем запись в БД
   const session = await db.session.create({
@@ -37,13 +41,14 @@ export async function createSession(userId: string, canResetPassword: boolean = 
   const role = user?.role || 'USER';
   const tenantId = user?.tenantId || 'smmplan';
 
-  // Шифруем ID сессии в JWT со сроком 24 часа и версией сессии
+  // Шифруем ID сессии в JWT со сроком 24 часа, версией сессии и контуром (F-7.3)
   const sessionToken = await new SignJWT({ 
     sessionId: session.id, 
     userId, 
     canResetPassword, 
     role, 
     tenantId,
+    contour,
     sessionVer: 1
   })
     .setProtectedHeader({ alg: 'HS256' })
@@ -116,6 +121,8 @@ export async function verifySession(requiredTenantId?: string): Promise<{ userId
     }
 
     const reqHeaders = await headers();
+    const host = reqHeaders.get('host') || reqHeaders.get('x-forwarded-host') || '';
+    const currentContour = resolveContourFromHost(host);
     const currentTenantId = normalizeTenantId(requiredTenantId || reqHeaders.get("x-tenant-id")) || "smmplan";
     const userTenantId = normalizeTenantId(user.tenantId) || "smmplan";
     
@@ -123,6 +130,18 @@ export async function verifySession(requiredTenantId?: string): Promise<{ userId
     const isStaffRole = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'].includes(user.role);
     if (!isStaffRole && userTenantId !== currentTenantId) {
       console.warn(`[verifySession] null because: user tenant "${user.tenantId}" does not match request tenant "${currentTenantId}"`);
+      try {
+        const cookieStore = await cookies();
+        cookieStore.delete('session_token');
+      } catch {}
+      return null;
+    }
+
+    // F-7.3 Strict Contour Isolation:
+    // Regular users and operators cannot cross-use tokens between test.smmplan.pro and prod smmplan.pro
+    const tokenContour = (payload.contour as ContourId) || (userTenantId === 'flux' ? 'flux' : 'test');
+    if (user.role !== 'OWNER' && tokenContour !== currentContour) {
+      console.warn(`[verifySession] Contour mismatch: token was issued for "${tokenContour}", request is on "${currentContour}"`);
       try {
         const cookieStore = await cookies();
         cookieStore.delete('session_token');
