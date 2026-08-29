@@ -9,6 +9,7 @@ import { SecurityAlertService } from '@/services/security/security-alert.service
 import { z } from 'zod';
 import { type User } from '@prisma/client';
 import { resolveTenantFromRequest, resolveContourFromHost } from '@/lib/tenant-resolver-edge';
+import { getLinkValidator, mutateLink } from '@/validators/link-mutators';
 
 // Standard SMM Panel API v2 Implementation
 // https://panel.com/api/v2
@@ -203,9 +204,51 @@ async function handleServices(user: User, formData: FormData) {
   return NextResponse.json(finalFormatted);
 }
 
+function sanitizeAndValidateApiLink(rawLink: string): { isValid: boolean; sanitized: string; error?: string } {
+  if (!rawLink || typeof rawLink !== 'string') {
+    return { isValid: false, sanitized: '', error: 'Link is required' };
+  }
+
+  // 1. Trim whitespace and remove control characters
+  let clean = rawLink.trim().replace(/[\x00-\x1F\x7F]/g, '');
+
+  if (!clean || clean.length > 2048) {
+    return { isValid: false, sanitized: '', error: 'Link must be between 1 and 2048 characters' };
+  }
+
+  // 2. Reject malicious and non-web protocols
+  if (/^(javascript|data|vbscript|file|about):/i.test(clean)) {
+    return { isValid: false, sanitized: '', error: 'Unsupported link protocol' };
+  }
+
+  // 3. Prepend https:// if protocol is missing
+  if (!/^https?:\/\//i.test(clean)) {
+    if (clean.startsWith('@')) {
+      clean = `https://t.me/${clean.substring(1)}`;
+    } else {
+      clean = `https://${clean}`;
+    }
+  }
+
+  // 4. Verify valid URL structure
+  try {
+    const parsedUrl = new URL(clean);
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return { isValid: false, sanitized: '', error: 'Link must use http or https protocol' };
+    }
+    if (!parsedUrl.hostname || !parsedUrl.hostname.includes('.')) {
+      return { isValid: false, sanitized: '', error: 'Invalid domain name in link' };
+    }
+  } catch {
+    return { isValid: false, sanitized: '', error: 'Invalid URL format' };
+  }
+
+  return { isValid: true, sanitized: clean };
+}
+
 const addSchema = z.object({
   service: z.coerce.number().int().positive(),
-  link: z.string().url().or(z.string().min(1)),
+  link: z.string().min(1).max(2048),
   quantity: z.coerce.number().int().positive(),
   runs: z.coerce.number().int().positive().optional(),
   interval: z.coerce.number().int().positive().optional()
@@ -221,6 +264,13 @@ async function handleAdd(user: User, formData: FormData) {
 
   const { service: serviceNumericId, link, quantity, runs, interval } = parsed.data;
   const userTenantId = user.tenantId || 'smmplan';
+
+  // W7-SEC04: Strict Sanitization and URL Validation
+  const linkValidation = sanitizeAndValidateApiLink(link);
+  if (!linkValidation.isValid) {
+    return NextResponse.json({ error: linkValidation.error || 'Invalid link format' }, { status: 400 });
+  }
+  let validatedLink = linkValidation.sanitized;
 
   const service = await db.service.findFirst({
     where: {
@@ -242,6 +292,22 @@ async function handleAdd(user: User, formData: FormData) {
     return NextResponse.json({ error: 'Incorrect service ID' }, { status: 400 });
   }
 
+  // W7-SEC04: Category-specific link format validator
+  const network = service.category?.network || service.category?.name;
+  const targetType = (service as unknown as { targetType?: string }).targetType || 'CHANNEL';
+  if (network) {
+    try {
+      const validator = getLinkValidator(network, targetType);
+      const categoryCheck = validator.safeParse(validatedLink);
+      if (!categoryCheck.success) {
+        return NextResponse.json({ error: 'Link format is invalid for selected service category' }, { status: 400 });
+      }
+      validatedLink = mutateLink(validatedLink, network, targetType);
+    } catch {
+      // Fallback to sanitized URL if custom validator is unavailable
+    }
+  }
+
   if (quantity < service.minQty || quantity > service.maxQty) {
     return NextResponse.json({ error: 'Quantity out of bounds' }, { status: 400 });
   }
@@ -255,7 +321,7 @@ async function handleAdd(user: User, formData: FormData) {
 
     const result = await orderService.createOrder(user.id, {
       serviceId: service.id,
-      link,
+      link: validatedLink,
       quantity: totalQuantity,
       charge: pricing.totalCents,
       providerCost: pricing.providerCostCents,
@@ -362,6 +428,30 @@ async function handleAddMulti(user: User, formData: FormData) {
         continue;
       }
 
+      // W7-SEC04: Strict Sanitization and URL Validation for Multi Orders
+      const linkValidation = sanitizeAndValidateApiLink(link);
+      if (!linkValidation.isValid) {
+        results.push({ error: linkValidation.error || 'Invalid link format' });
+        continue;
+      }
+      let validatedLink = linkValidation.sanitized;
+
+      const network = service.category?.network || service.category?.name;
+      const targetType = (service as unknown as { targetType?: string }).targetType || 'CHANNEL';
+      if (network) {
+        try {
+          const validator = getLinkValidator(network, targetType);
+          const categoryCheck = validator.safeParse(validatedLink);
+          if (!categoryCheck.success) {
+            results.push({ error: 'Link format is invalid for selected service category' });
+            continue;
+          }
+          validatedLink = mutateLink(validatedLink, network, targetType);
+        } catch {
+          // Fallback to sanitized URL if custom validator is unavailable
+        }
+      }
+
       if (quantity < service.minQty || quantity > service.maxQty) {
         results.push({ error: 'Quantity out of bounds' });
         continue;
@@ -373,7 +463,7 @@ async function handleAddMulti(user: User, formData: FormData) {
 
       const result = await orderService.createOrder(user.id, {
         serviceId: service.id,
-        link,
+        link: validatedLink,
         quantity: totalQuantity,
         charge: pricing.totalCents,
         providerCost: pricing.providerCostCents,
