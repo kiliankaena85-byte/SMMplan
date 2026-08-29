@@ -43,6 +43,11 @@ const STEPS: CheckStep[] = [
     command: "npx dotenv -e .env.test -- npx vitest run src/__tests__/orders/order-ttl-and-provider-lifecycle-matrix.test.ts",
   },
   {
+    name: "Self-Learning Immunity & Architectural Invariant Audit (F-9.1, F-7.2, F-7.3, HTTP/2)",
+    category: "IMMUNITY",
+    command: "npx tsx scripts/harness/self-learning-immunity.ts",
+  },
+  {
     name: "Comprehensive Pentest & Security Invariant Battery",
     category: "SECURITY",
     command: "npx dotenv -e .env.test -- npx vitest run src/__tests__/pentest/comprehensive-pentest.test.ts",
