@@ -1,6 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
+import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useMobileWizard } from '@/components/landing/order-engine/wizard-steps/useMobileWizard';
@@ -133,5 +134,35 @@ describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
 
     expect(result.current.selectedCategoryName).toBe('Подписчики');
     expect(result.current.brandStyle).toBeDefined();
+  });
+
+  it('6. MobileStep1Link renders actionable prompt button when currentStep > 1 and url is empty (never returns null)', async () => {
+    const { render, screen, fireEvent } = await import('@testing-library/react');
+    const { MobileStep1Link } = await import('@/components/landing/order-engine/wizard-steps/MobileStep1Link');
+    const setActiveStep = vi.fn();
+    const engine = createMockEngine({ url: '' });
+
+    const { container } = render(
+      <MobileStep1Link
+        engine={engine}
+        currentStep={3}
+        setActiveStep={setActiveStep}
+        proceedFromStep1={vi.fn()}
+        isFocused={false}
+        setIsFocused={vi.fn()}
+        localUrlError={null}
+        setLocalUrlError={vi.fn()}
+        catalogHint={false}
+      />
+    );
+
+    // Must NOT be empty/null
+    expect(container.firstChild).not.toBeNull();
+    const promptBtn = screen.getByText(/Укажите ссылку для заказа/i);
+    expect(promptBtn).toBeDefined();
+
+    // Clicking prompt activates Step 1
+    fireEvent.click(promptBtn);
+    expect(setActiveStep).toHaveBeenCalledWith(1);
   });
 });

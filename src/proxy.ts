@@ -20,6 +20,10 @@ const TRUSTED_CONTOUR_MAP: Record<ContourId, Set<string>> = {
   test: new Set([
     'test.smmplan.pro',
     'test-flux.smmplan.pro',
+    'flux.smmplan.pro',
+    'flux.smmplan.ru',
+    'smmflux.ru',
+    'www.smmflux.ru',
     'smmplan.pro',
     'www.smmplan.pro',
     'localhost',
@@ -30,12 +34,17 @@ const TRUSTED_CONTOUR_MAP: Record<ContourId, Set<string>> = {
   prod: new Set([
     'smmplan.pro',
     'www.smmplan.pro',
+    'test.smmplan.pro',
+    'flux.smmplan.pro',
+    'smmflux.ru',
+    'www.smmflux.ru',
   ]),
   flux: new Set([
     'smmflux.ru',
     'www.smmflux.ru',
     'flux.smmplan.pro',
     'flux.smmplan.ru',
+    'test-flux.smmplan.pro',
     'smmflux.local',
     'flux.local',
   ]),
@@ -68,7 +77,13 @@ export const INTERNAL_HOSTS = new Set([
 export function isInternalHost(h: string | null | undefined): boolean {
   if (!h) return false;
   const clean = h.split(':')[0].toLowerCase().trim();
-  return INTERNAL_HOSTS.has(clean);
+  if (INTERNAL_HOSTS.has(clean)) return true;
+  if (clean === 'web' || clean === 'smmplan_web' || clean === 'tunnel' || clean === 'smmplan_tunnel') return true;
+  if (clean.endsWith('.ts.net') || clean.includes('tailscale')) return true;
+  if (/^172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+$/.test(clean)) return true;
+  if (/^10\.\d+\.\d+\.\d+$/.test(clean)) return true;
+  if (/^192\.168\.\d+\.\d+$/.test(clean)) return true;
+  return false;
 }
 
 function getActiveServerContour(): ContourId {
@@ -196,7 +211,7 @@ export async function proxy(request: NextRequest) {
   const rawFwdClean = (fwdHost || '').split(':')[0].toLowerCase();
 
   // If host is completely unknown
-  if (rawHostClean && !ALLOWED_CONTOUR_DOMAINS.has(rawHostClean) && !isSecurityTxt) {
+  if (rawHostClean && !isInternalHost(rawHostClean) && !ALLOWED_CONTOUR_DOMAINS.has(rawHostClean) && !isSecurityTxt) {
     return NextResponse.json({ error: 'Forbidden: Invalid Host header' }, { status: 403 });
   }
 
@@ -361,6 +376,8 @@ export async function proxy(request: NextRequest) {
 
   // Set headers for layout detection and tenant isolation
   requestHeaders.set('x-pathname', pathname);
+  requestHeaders.set('x-host', cleanHost);
+  requestHeaders.set('x-forwarded-host', cleanHost);
 
   // Generate cryptographic Nonce for strict-dynamic CSP (V-05)
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');

@@ -32,6 +32,15 @@ export function MobileStep1Link({
 }: MobileStep1LinkProps) {
   const { url, setUrl, validationErrors, selectedService } = engine;
 
+  React.useEffect(() => {
+    if (currentStep === 1) {
+      const el = document.getElementById("standard-url-input");
+      if (el && document.activeElement !== el && url.trim().length === 0) {
+        setTimeout(() => el.focus(), 150);
+      }
+    }
+  }, [currentStep, url]);
+
   if (currentStep !== 1) {
     if (url.trim().length >= 5) {
       return (
@@ -50,7 +59,24 @@ export function MobileStep1Link({
         </button>
       );
     }
-    return null;
+    return (
+      <button
+        type="button"
+        onClick={() => setActiveStep(1)}
+        className="w-full text-left p-3.5 bg-primary/5 hover:bg-primary/10 border border-dashed border-primary/40 rounded-2xl flex items-center justify-between transition-all cursor-pointer active:scale-[0.99]"
+      >
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <span className="text-[10px] text-primary uppercase font-extrabold tracking-wider">1. Ссылка на канал / пост</span>
+          <span className="text-xs font-bold text-foreground truncate flex items-center gap-1.5">
+            <Link2 className="w-3.5 h-3.5 text-primary shrink-0" />
+            <span>Укажите ссылку для заказа</span>
+          </span>
+        </div>
+        <span className="text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-lg shrink-0">
+          Ввести →
+        </span>
+      </button>
+    );
   }
 
   return (

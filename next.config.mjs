@@ -92,6 +92,13 @@ const nextConfig = {
       },
     ];
   },
+  // Fix: BullMQ uses dynamic require() in child-processor.js (known library pattern).
+  // Suppresses false-positive "Critical dependency" webpack warning — validated 2026.
+  // Source: github.com/taskforcesh/bullmq/issues + medium.com webpack docs
+  webpack: (config) => {
+    config.module.exprContextCritical = false;
+    return config;
+  },
 };
 
 export default nextConfig;

@@ -56,7 +56,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
   }
 
   const reqHeaders = await headers();
+  const host = reqHeaders.get("x-host") || reqHeaders.get("x-forwarded-host") || reqHeaders.get("host") || "";
+  const cleanHost = host.split(":")[0].toLowerCase().trim();
   const tenantId = normalizeTenantId(reqHeaders.get("x-tenant-id")) || "smmplan";
+  const isProdHost = cleanHost === "smmplan.pro" || cleanHost === "www.smmplan.pro";
 
   const userBalanceCents = 0;
   const catalogResult = await getPublicCatalogAction(tenantId);
@@ -170,7 +173,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
 
             <MegaFooter contactSettings={settings} tenantId={tenantId} />
           </div>
-        ) : process.env.SHOW_PRELAUNCH !== 'false' ? (
+        ) : isProdHost ? (
           <PreLaunchHoldingScreen
             siteName={siteName}
             supportTelegram={settings.TELEGRAM_SUPPORT_BOT || "smmplan_support_bot"}

@@ -1,8 +1,21 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 00:05 (МСК)  
-> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🛡️ SECURITY HARDENING v7 VERIFIED (SEC-01..SEC-07 100% REMEDIATED & TESTED, 20/20 PASS) + 🛡️ MULTI-AI PENTEST SWARM VERIFIED (10/10 Probes PASS, 100% Immunity Score) + 🚀 LAUNCH READY / PRODUCTION OPENED (`smmplan.pro` LIVE).
+> **Последнее обновление:** 2026-08-30 01:33 (МСК)  
+> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 📱 MOBILE SINGLE-INPUT RESTORATION LIVE (`Phase 999.14` 6/6 PASS).
+
+- **Mobile Single-Input Architecture & Link Input Restoration (`Phase 999.14`):**
+  - Устранен баг схлопывания Шага 1 в `MobileStep1Link.tsx`: при переходе в категории/услуги (`currentStep > 1`) пустой инпут заменяется на кликабельную плашку с явным призывом к вводу ссылки без удаления блока из DOM (`return null` ликвидирован).
+  - Строго соблюден принцип Single-Input: 1 единое поле ввода на экране смартфона без дублирования.
+  - Добавлен автоматический фокус при возврате на Шаг 1.
+  - Тестовый сьют `src/__tests__/mobile-wizard-smoke.test.tsx` (**6/6 PASS**), `tsc --noEmit` (**0 ошибок**).
+
+- **Multi-Domain Routing & РФ Анти-блокировка Cloudflare (Август 2026):**
+  - **smmplan.pro:** Показывает `PreLaunchHoldingScreen` (сбор заявок на бета-тест, 1 000 ₽ бонус, 152-ФЗ).
+  - **test.smmplan.pro:** Показывает полный `SmartLinkLanding` (каталог услуг, пошаговый мастер заказа).
+  - **flux.smmplan.pro:** Показывает витрину `FluxOrderClient` (SMMflux).
+  - **Cloudflare Shield для РФ (ТСПУ / МТС / Ростелеком):** `ipv6: off` (устранен дроп AAAA), `http3: off` (устранен UDP-дроп), `ech: off` (устранен TLS handshake reset), `protocol: http2` в `cloudflared`.
+  - **Docker Internal Routing Alias:** В `docker-compose.yml` контейнер `web` получил сетевой псевдоним `host.docker.internal` в сети `smm_plan_2_default`, устраняя 502 ошибки между туннелем и Next.js.
 
 - **Пакет улучшений безопасности Security Hardening v7 (Remediation SEC-01..SEC-07):**
   - **SEC-01 (API v2 Real RateLimit RFC 9331 Headers):** Внедрен метод `RateLimitService.checkCustomKeyDetail` возвращающий реальные счетчики Redis/Postgres. Заголовки `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`, `RateLimit-Policy` выставляются на всех 200 и 429 ответах. Сьют: `src/__tests__/api-v2-rate-limit-headers.test.ts` (2/2 PASS).

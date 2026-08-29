@@ -45,6 +45,7 @@ Phases execute in numeric order: 1, 999.1
 | 999.11. Provider Ticket URL | 1/1 | Completed | x |
 | 999.12. Knowledge Base & Blog | 1/1 | Completed | x |
 | 999.13. Email Security Setup | 1/1 | Completed | x |
+| 999.14. Mobile Link Input Restoration | 1/1 | Completed | x |
 
 ### Phase 2: Production Hardening (Docker, CI/CD, Deployment Architecture) (COMPLETED)
 
@@ -206,6 +207,15 @@ Plans:
 Plans:
 - [x] SMTP settings configuration panel and Nodemailer dynamic dispatch integration (Completed)
 
+### Phase 999.14: Mobile Link Input Restoration (Single-Input Architecture) (BACKLOG)
 
+**Goal:** Восстановить доступность единой строки ввода ссылки в мобильной версии SMMplan без дублирования элементов интерфейса (строго 1 строка ввода на экране), устранив баг исчезновения Шага 1 в пошаговом мастере MobileWizard при переходе по категориям и тарифам.
+**Requirements:**
+- **Single-Input Architecture (Строго один инпут):** Исключить дублирование полей ввода ссылки между Hero-блоком и мобильным мастером. На мобильных устройствах работает единая, сфокусированная точка ввода.
+- **Устранение бага исчезновения в `MobileStep1Link.tsx`:** Устранить ветку `return null`, из-за которой при `currentStep > 1` и пустом URL строка ввода ссылки бесследно пропадала из DOM. Если ссылка не заполнена, Шаг 1 всегда остается видимым и доступным для ввода/редактирования в 1 тап.
+- **Инвариант стейт-машины `useMobileWizard.ts`:** При открытии страниц категорий (`/services/[network]/...`) или смене тарифа сохранять видимость и фокус единого поля ссылки, не ломая шаг оформления.
+- **UX & Accessibility:** Высота поля $\ge 44$px (touch target), размер шрифта `text-base` (16px) для предотвращения авто-масштабирования в iOS Safari, плавный переход к выбору тарифов после ввода ссылки.
+**Plans:** 1/1
 
-
+Plans:
+- [x] Single-Input restoration, null-check prevention in MobileStep1Link and auto-focus (Completed)
