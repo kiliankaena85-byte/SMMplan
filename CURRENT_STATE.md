@@ -1,8 +1,15 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-29 16:42 (МСК)  
-> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🛡️ PENTEST RETEST #7 FIXES FULLY IMPLEMENTED (F-7.1, F-7.2, F-7.3, F-7.4, F-7.5) & DEPLOYED + 💎 EMOJI PRESERVATION IN UI (SMMflux & SMMplan) + 🧹 TELEGRAM/VK/YT/TT/IG CATALOG NORMALIZATION.
+> **Последнее обновление:** 2026-08-29 17:35 (МСК)  
+> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🚀 LAUNCH READY / PRODUCTION OPENED (`smmplan.pro` LIVE) + 🛡️ F-9.1 HOST & CROSS-CONTOUR SPOOFING SHIELD IMPLEMENTED + 🏷️ `x-build-id: launch-v5-live` ACTIVE + 📦 FULL 248 SERVICES B2B CATALOG + 🌐 GEO-AVAILABILITY MONITORING ACTIVE.
+
+- **Автономный фоновый робот-сторож мониторинга РФ (GeoAvailability Watchdog & BullMQ Daemon):**
+  - Разработан и активирован фоновый процессор `geo-availability.processor.ts`, запускаемый по расписанию BullMQ каждые 5 минут (`ensureGeoAvailabilityCron`).
+  - Опрашивает контрольные зонды в Санкт-Петербурге и Москве, фиксирует сбои ТСПУ / блокировки провайдеров РФ, ведет учет состояния в Redis (`geo_monitor:state:...`) с 15-минутным дедупликатором алертов.
+  - При сбое в РФ моментально отправляет критический Telegram-алерт (`🚨 ВНИМАНИЕ: СБОЙ ДОСТУПНОСТИ САЙТА ИЗ РОССИИ!`), а при восстановлении связи — автоматическое оповещение (`🟢 САЙТ СНОВА ДОСТУПЕН ИЗ РОССИИ!`).
+  - В Пульт Овнера Telegram-бота (`/owner` / `owner-hub.wizard.ts`) интегрирована кнопка ручной экспресс-проверки **«🌍 Доступность в РФ/Мире»** в 1 клик.
+  - Полный комплекс автотестов: `geo-availability.processor.test.ts` (4/4 PASS), `geo-availability-service.test.ts` (5/5 PASS), `owner-hub-geo-check.test.ts` (4/4 PASS), `tsc --noEmit` (0 ошибок).
 
 - **Статус экранов:** 28/28 экранов реализованы и верифицированы (100%).
 - **Закрытие замечаний Пентест-Отчета Ре-теста №7 (Security & Isolation Fixes):**
