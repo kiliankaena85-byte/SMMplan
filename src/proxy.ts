@@ -56,6 +56,19 @@ const ALLOWED_CONTOUR_DOMAINS = new Set([
   'host.docker.internal'
 ]);
 
+export const INTERNAL_HOSTS = new Set([
+  'localhost',
+  '127.0.0.1',
+  '0.0.0.0',
+  'host.docker.internal'
+]);
+
+export function isInternalHost(h: string | null | undefined): boolean {
+  if (!h) return false;
+  const clean = h.split(':')[0].toLowerCase().trim();
+  return INTERNAL_HOSTS.has(clean);
+}
+
 function getActiveServerContour(): ContourId {
   if (process.env.CONTOUR === 'test' || process.env.CONTOUR === 'prod' || process.env.CONTOUR === 'flux') {
     return process.env.CONTOUR;
@@ -83,20 +96,20 @@ export async function proxy(request: NextRequest) {
   const fwdHost = request.headers.get('x-forwarded-host');
   const fwdProto = request.headers.get('x-forwarded-proto');
 
-  let host = (fwdHost && !fwdHost.includes('0.0.0.0') && !fwdHost.includes('host.docker.internal'))
+  let host = (fwdHost && !isInternalHost(fwdHost))
     ? fwdHost
     : (hostHeader || '');
 
-  if (host.includes('0.0.0.0') || host.includes('host.docker.internal') || !host) {
+  if (isInternalHost(host) || !host) {
     host = process.env.APP_URL ? new URL(process.env.APP_URL).host : 'test.smmplan.pro';
   }
 
-  const proto = fwdProto || (process.env.NODE_ENV === 'production' && !host.includes('localhost') ? 'https' : 'http');
+  const proto = fwdProto || (process.env.NODE_ENV === 'production' && !isInternalHost(host) ? 'https' : 'http');
   const originBase = `${proto}://${host}`;
 
   const resolveRedirectUrl = (target: string | URL): URL => {
     if (target instanceof URL) {
-      if (target.hostname === '0.0.0.0' || target.hostname === 'host.docker.internal') {
+      if (isInternalHost(target.hostname)) {
         return new URL(`${target.pathname}${target.search}${target.hash}`, originBase);
       }
       return target;
@@ -184,8 +197,6 @@ export async function proxy(request: NextRequest) {
   if (rawHostClean && !ALLOWED_CONTOUR_DOMAINS.has(rawHostClean) && !isSecurityTxt) {
     return NextResponse.json({ error: 'Forbidden: Invalid Host header' }, { status: 403 });
   }
-
-  const isInternalHost = (h: string) => h.includes('docker') || h.includes('localhost') || h.includes('127.0.0.1') || h.includes('0.0.0.0');
 
   // Cross-contour spoofing check (e.g. connecting to smmplan.pro with Host: test.smmplan.pro or vice versa)
   if (rawHostClean && rawFwdClean && rawHostClean !== rawFwdClean && !isSecurityTxt) {
