@@ -19,6 +19,7 @@ export function LinkModal({
   networkSlug,
   categorySlug,
   serviceName,
+  onSwitchToDetectedNetwork,
 }: {
   showLinkModal: boolean;
   setShowLinkModal: (show: boolean) => void;
@@ -28,6 +29,7 @@ export function LinkModal({
   networkSlug?: string | null;
   categorySlug?: string | null;
   serviceName?: string | null;
+  onSwitchToDetectedNetwork?: (networkKey: string) => void;
 }) {
   const linkConfig = useMemo(
     () => getSocialLinkConfig(networkSlug, categorySlug, serviceName),
@@ -105,14 +107,28 @@ export function LinkModal({
           />
         </div>
 
-        {/* Dynamic Contextual Hint or Mismatch Warning */}
+        {/* Dynamic Contextual Hint or Mismatch Warning with Immediate Switch Action */}
         <div className="mb-6">
           {mismatch.isMismatch ? (
-            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-medium">
-              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>
-                Похоже, вы указали ссылку на <strong>{mismatch.detectedNetworkName}</strong>, хотя выбрана услуга для <strong>{mismatch.expectedNetworkName}</strong>. Проверьте правильность ссылки перед оплатой.
-              </span>
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 space-y-2.5">
+              <div className="flex items-start gap-2 text-xs font-medium">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  Вы указали ссылку на <strong>{mismatch.detectedNetworkName}</strong>, хотя выбрана услуга для <strong>{mismatch.expectedNetworkName}</strong>.
+                </span>
+              </div>
+              {onSwitchToDetectedNetwork && mismatch.detectedNetworkKey && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowLinkModal(false);
+                    onSwitchToDetectedNetwork(mismatch.detectedNetworkKey!);
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                >
+                  Перейти к тарифам {mismatch.detectedNetworkName} →
+                </button>
+              )}
             </div>
           ) : (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium px-1">

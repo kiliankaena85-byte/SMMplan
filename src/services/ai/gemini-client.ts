@@ -2,16 +2,13 @@ import { ProxyAgent } from 'undici';
 import { db } from '@/lib/db';
 import { VaultService } from '@/lib/vault';
 
-// Приоритетный каскад проверенных рабочих моделей (актуализировано по live Google API)
+// Приоритетный каскад проверенных рабочих моделей (gemini-3-flash / gemini-3-flash-preview)
 const FALLBACK_MODEL_CASCADES = [
-  'gemini-flash-latest', // Официальный динамический алиас Google -> gemini-3.7-flash
-  'gemini-3.6-flash',    // Стабильный Flash с субсекундной скоростью
-  'gemini-3.5-flash',
-  'gemini-flash-lite-latest', // Официальный легковесный динамический алиас -> gemini-3.5-flash-lite
-  'gemini-3.5-flash-lite',
-  'gemini-3.1-flash-lite',
   'gemini-3-flash-preview',
+  'gemini-3-flash',
+  'gemini-flash-latest',
   'gemini-2.5-flash',
+  'gemini-flash-lite-latest',
 ];
 
 interface CachedModelRegistry {

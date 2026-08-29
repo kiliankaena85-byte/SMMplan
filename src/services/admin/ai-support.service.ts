@@ -173,9 +173,20 @@ ENTERPRISE ПРАВИЛА БЕЗОПАСНОСТИ:
         blocked,
         knowledge_source: groundedKnowledge ? groundedKnowledge.slice(0, 60) : undefined,
       };
-    } catch (err) {
-      console.error('[AI Support] Generation failed:', err);
-      throw new Error('Не удалось сгенерировать ответ автоматически.', { cause: err });
+    } catch (err: unknown) {
+      console.warn('[AI Support] External generation failed/timed out, engaging Graceful Operator Fallback:', err);
+
+      const fallbackReply = `Здравствуйте! Ваше обращение принято и уже передано дежурному специалисту поддержки. Мы проверяем детали по вашему заказу и ответим вам в ближайшее время.`;
+
+      return {
+        client_sentiment: 'NEUTRAL',
+        escalate_to_senior: true,
+        internal_reasoning: `AI generation unavailable (${err instanceof Error ? err.message : 'timeout'}). Automatically escalated to human operator.`,
+        draft_reply: fallbackReply,
+        policy_violations: [],
+        blocked: false,
+        knowledge_source: 'Fallback Escalation Protocol',
+      };
     }
   }
 }

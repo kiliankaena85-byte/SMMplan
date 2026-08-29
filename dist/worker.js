@@ -142393,17 +142393,11 @@ var import_undici = __toESM(require_undici());
 init_db();
 init_vault();
 var FALLBACK_MODEL_CASCADES = [
-  "gemini-flash-latest",
-  // Официальный динамический алиас Google -> gemini-3.7-flash
-  "gemini-3.6-flash",
-  // Стабильный Flash с субсекундной скоростью
-  "gemini-3.5-flash",
-  "gemini-flash-lite-latest",
-  // Официальный легковесный динамический алиас -> gemini-3.5-flash-lite
-  "gemini-3.5-flash-lite",
-  "gemini-3.1-flash-lite",
   "gemini-3-flash-preview",
-  "gemini-2.5-flash"
+  "gemini-3-flash",
+  "gemini-flash-latest",
+  "gemini-2.5-flash",
+  "gemini-flash-lite-latest"
 ];
 var modelCache = null;
 var MODEL_CACHE_TTL_MS = 12 * 60 * 60 * 1e3;

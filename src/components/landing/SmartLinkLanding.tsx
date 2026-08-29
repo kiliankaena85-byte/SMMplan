@@ -413,6 +413,22 @@ export function SmartLinkLanding({
         networkSlug={unfilteredCatalog.find(n => n.id === engine.networkId)?.slug || engine.networkId}
         categorySlug={unfilteredCatalog.find(n => n.id === engine.networkId)?.categories.find(c => c.id === engine.categoryId)?.slug || engine.categoryId}
         serviceName={selectedService?.name}
+        onSwitchToDetectedNetwork={(networkKey) => {
+          const matchedNet = unfilteredCatalog.find(
+            n => n.slug.toLowerCase().includes(networkKey.toLowerCase()) || networkKey.toLowerCase().includes(n.slug.toLowerCase())
+          );
+          if (matchedNet) {
+            engine.setNetworkId(matchedNet.id);
+            if (matchedNet.categories.length > 0) {
+              engine.setCategoryId(matchedNet.categories[0].id);
+            }
+            setSelectedService(null);
+            const catalogEl = document.getElementById("catalog-section");
+            if (catalogEl) {
+              catalogEl.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          }
+        }}
       />
 
       {/* ══════════ MASS ORDER CONFIRM MODAL ══════════ */}

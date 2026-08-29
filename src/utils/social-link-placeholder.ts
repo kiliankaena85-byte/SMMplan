@@ -832,7 +832,7 @@ export function normalizeUserLink(rawInput: string): string {
 export function detectMismatchedNetwork(
   enteredUrl: string,
   selectedNetworkSlug?: string | null
-): { isMismatch: boolean; detectedNetworkName?: string; expectedNetworkName?: string } {
+): { isMismatch: boolean; detectedNetworkKey?: string; detectedNetworkName?: string; expectedNetworkName?: string } {
   if (!enteredUrl || !selectedNetworkSlug) return { isMismatch: false };
 
   const normTargetNet = NETWORK_ALIASES[normalizeKey(selectedNetworkSlug)];
@@ -856,6 +856,7 @@ export function detectMismatchedNetwork(
   if (foundNetKey && foundNetKey !== normTargetNet) {
     return {
       isMismatch: true,
+      detectedNetworkKey: foundNetKey,
       detectedNetworkName: SOCIAL_LINK_MATRIX[foundNetKey].name,
       expectedNetworkName: SOCIAL_LINK_MATRIX[normTargetNet].name,
     };
