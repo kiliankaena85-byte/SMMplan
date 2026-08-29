@@ -364,14 +364,31 @@ export function FluxCyberLinkDrawer({
                   })}
                 </div>
 
-                {/* Media Group Note */}
-                <div className="p-4 rounded-3xl bg-gradient-to-r from-purple-950/40 via-neutral-900 to-pink-950/40 border border-purple-500/30 flex items-start gap-3 text-xs text-purple-200 shadow-inner">
-                  <span className="text-lg shrink-0">✨</span>
-                  <div className="space-y-1">
-                    <span className="font-extrabold text-white block">Если у вас альбом из нескольких фото:</span>
-                    <p className="leading-relaxed text-neutral-300">
-                      {currentDeviceGuide.mediaGroupAlbumNote}
-                    </p>
+                {/* Dual-Order Album Synchronization Box (Radiant Cyber) */}
+                <div className="p-4 rounded-3xl bg-gradient-to-r from-purple-950/60 via-neutral-900 to-pink-950/60 border border-purple-500/40 space-y-2.5 text-xs text-purple-200 shadow-inner">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-extrabold text-pink-400 flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
+                      <Zap className="w-3.5 h-3.5 text-pink-400" />
+                      Синхронизация альбомов (2+ фото)
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold">
+                      2 ЗАКАЗА
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-neutral-300 leading-relaxed">
+                    <strong className="text-white">Desktop</strong> считывает просмотры с 1-го фото, а <strong className="text-white">iOS/Android</strong> — с последнего. Для 100% отображения просмотров на всех устройствах:
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] font-mono">
+                    <div className="p-2 rounded-xl bg-black/50 border border-purple-500/30 text-purple-300">
+                      <span className="text-purple-400 font-bold block text-[9px]">1. СТАРТ:</span>
+                      t.me/channel/101 (Desktop)
+                    </div>
+                    <div className="p-2 rounded-xl bg-black/50 border border-pink-500/30 text-pink-300">
+                      <span className="text-pink-400 font-bold block text-[9px]">2. ФИНИШ:</span>
+                      t.me/channel/105 (iOS/Android)
+                    </div>
                   </div>
                 </div>
               </div>

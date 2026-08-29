@@ -10,6 +10,13 @@
   - *Решение:* Отказ от распределенных Redis-блокировок (`MutexManager`) в финансовых операциях (`WalletOps`) в пользу нативной транзакционной изоляции PostgreSQL Serializable с автоматическим retry при serialization failure.
   - *Причина:* Предотвращение Race Conditions и дрейфа баланса без накладных расходов на Redis lock management.
 
+- **SMMplan Order Modal UX/UI Transparency & Price Contract (Multi-AI Optimization):**
+  - *Решение:*
+    1. `DrawerQuantityCard`: базовый бэйдж цены отображает строго розничную цену за штуку (`selectedService.pricePerUnitRub ₽ / шт`). Если действует скидка за объем или промокод (`discountCents > 0`), экономия отображается выделенным бейджем `Скидка −X ₽`. В `handleInputBlur` внедрен автокламп с учетом Drip-Feed множителя.
+    2. `DrawerFooter`: при наличии скидки выводится перечеркнутая базовая сумма и процент экономии (`−X%`). Кнопка подтверждения оплаты остается активной без блокирующего disabled стейта.
+    3. `DrawerFormInputs`: в поле кастомных комментариев встроен живой счетчик строк и валидатор минимального объема (`linesCount` / `minQty`), а для опросов (`isPoll`) добавлена поясняющая подсказка.
+  - *Причина:* Полная прозрачность ценообразования для клиентов, устранение когнитивного трения и соответствие дизайн-системе B2B/витрин 2026 года.
+
 - **Security-by-Design, Pentest Immunity & OWASP Top 10:2025 Architecture:**
   - *Решение:*
     1. **Zero-Secrets in Client Bundles:** Категорический запрет любых переменных с секретами в клиентских компонентах Next.js (`NEXT_PUBLIC_*`). Все отладочные/QA флоу изолируются в Server Actions с валидацией через `crypto.timingSafeEqual`.

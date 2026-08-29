@@ -1,4 +1,7 @@
-﻿import { describe, it, expect, vi } from 'vitest';
+/**
+ * @vitest-environment jsdom
+ */
+import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useMobileWizard } from '@/components/landing/order-engine/wizard-steps/useMobileWizard';
 import { OrderEngine } from '@/hooks/useOrderEngine';
@@ -55,6 +58,10 @@ describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
       ...overrides
     } as unknown as OrderEngine;
   };
+
+  if (typeof window !== 'undefined') {
+    window.HTMLElement.prototype.scrollIntoView = vi.fn();
+  }
 
   it('1. Initializes on Step 1 when no URL or service is preselected', () => {
     const engine = createMockEngine();

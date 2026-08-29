@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { decryptSessionToken } from '@/lib/session-edge';
 import { ROUTES } from '@/lib/routes';
-
-import { resolveTenantFromHostEdge, normalizeTenantId } from '@/lib/tenant-resolver-edge';
+import { BUILD_ID } from '@/lib/build-info';
+import { resolveTenantFromHostEdge, normalizeTenantId, resolveContourFromHost, type ContourId } from '@/lib/tenant-resolver-edge';
 
 // Map of legacy routes to new static routes
 const legacyRedirects: Record<string, string> = {
@@ -14,6 +14,59 @@ const legacyRedirects: Record<string, string> = {
   '/p/refund': ROUTES.LEGAL.REFUND,
   '/p/faq': ROUTES.FAQ,
 };
+
+// N-10.3: Strict Trusted Contour Domain Allowlist
+const TRUSTED_CONTOUR_MAP: Record<ContourId, Set<string>> = {
+  test: new Set([
+    'test.smmplan.pro',
+    'test-flux.smmplan.pro',
+    'localhost',
+    '127.0.0.1',
+  ]),
+  prod: new Set([
+    'smmplan.pro',
+    'www.smmplan.pro',
+  ]),
+  flux: new Set([
+    'smmflux.ru',
+    'www.smmflux.ru',
+    'flux.smmplan.pro',
+    'flux.smmplan.ru',
+    'smmflux.local',
+    'flux.local',
+  ]),
+};
+
+const ALLOWED_CONTOUR_DOMAINS = new Set([
+  'smmplan.pro',
+  'www.smmplan.pro',
+  'test.smmplan.pro',
+  'test-flux.smmplan.pro',
+  'smmflux.ru',
+  'www.smmflux.ru',
+  'flux.smmplan.pro',
+  'flux.smmplan.ru',
+  'smmflux.local',
+  'flux.local',
+  'localhost',
+  '127.0.0.1'
+]);
+
+function getActiveServerContour(): ContourId {
+  if (process.env.CONTOUR === 'test' || process.env.CONTOUR === 'prod' || process.env.CONTOUR === 'flux') {
+    return process.env.CONTOUR;
+  }
+  const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.BASE_URL || '';
+  if (appUrl) {
+    try {
+      return resolveContourFromHost(new URL(appUrl).host);
+    } catch {}
+  }
+  if (process.env.NODE_ENV === 'development') {
+    return 'test';
+  }
+  return 'prod';
+}
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -101,22 +154,11 @@ export async function proxy(request: NextRequest) {
     return res;
   };
 
-  // 0.1 F-9.1: Strict Host & Cross-Contour Spoofing Shield (OWASP A01 / A05)
-  const ALLOWED_CONTOUR_DOMAINS = new Set([
-    'smmplan.pro',
-    'www.smmplan.pro',
-    'test.smmplan.pro',
-    'smmflux.ru',
-    'www.smmflux.ru',
-    'flux.smmplan.pro',
-    'localhost',
-    '127.0.0.1'
-  ]);
-
+  // 0.1 N-10.3: Strict Host & Cross-Contour Spoofing Shield (OWASP A01 / A05)
   const rawHostClean = (hostHeader || '').split(':')[0].toLowerCase();
   const rawFwdClean = (fwdHost || '').split(':')[0].toLowerCase();
 
-  // If host is completely unknown or if cross-contour host header injection is attempted
+  // If host is completely unknown
   if (rawHostClean && !ALLOWED_CONTOUR_DOMAINS.has(rawHostClean)) {
     return NextResponse.json({ error: 'Forbidden: Invalid Host header' }, { status: 403 });
   }
@@ -132,12 +174,26 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Strict validation against current active server contour (TRUSTED_CONTOUR_MAP)
+  const activeContour = getActiveServerContour();
+  const allowedForContour = TRUSTED_CONTOUR_MAP[activeContour];
+  const isDevOrTestBypass = !isLocalhost && process.env.NODE_ENV !== 'production';
+
+  if (rawHostClean && allowedForContour && !allowedForContour.has(rawHostClean) && !isDevOrTestBypass) {
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        { error: 'Forbidden: Host not permitted for active server contour' },
+        { status: 403 }
+      );
+    }
+  }
+
   // 1. Instant UI Logout Interception (/logout UI link) -> Redirect to /api/auth/logout to delete DB session
   if (pathname === '/logout') {
     return NextResponse.redirect(resolveRedirectUrl('/api/auth/logout'), 307);
   }
 
-  // 1.5 Production Maintenance Gate (Task A: Lifted for Launch)
+  // 1.5 Production Maintenance Gate
   // Activated strictly only if MAINTENANCE_MODE is explicitly set to 'true' in env
   const isMaintenanceActive = process.env.MAINTENANCE_MODE === 'true';
 
@@ -179,9 +235,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(redirectUrl, 301); // 301 Permanent Redirect
   }
 
-  // 3. Legacy redirects handled above
-
-  // 4. Auth Route Protection
+  // 4. Auth Route Protection & N-10.5 Strict Redirection
   const protectedPaths = ['/admin', '/dashboard', '/operator'];
   if (protectedPaths.some(p => pathname.startsWith(p))) {
     const sessionToken = request.cookies.get('session_token')?.value;
@@ -192,25 +246,39 @@ export async function proxy(request: NextRequest) {
       if (isRSC) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
-      return applyStickyCookie(NextResponse.redirect(resolveRedirectUrl(ROUTES.AUTH.LOGIN)));
+      const res = NextResponse.redirect(resolveRedirectUrl(ROUTES.AUTH.LOGIN), 307);
+      res.cookies.set('session_token', '', {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 0,
+      });
+      return applyStickyCookie(res);
     }
 
     const payload = await decryptSessionToken(sessionToken);
     const isStaffRole = payload?.role && ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR'].includes(payload.role);
-    const isAdminPath = pathname.startsWith('/admin') || pathname.startsWith('/operator');
+    const isAdminPath = pathname.startsWith('/admin');
+    const isOperatorPath = pathname.startsWith('/operator');
 
-    // Enforce tenant isolation for regular users (Staff roles have global multi-tenant access in /admin)
-    const isTenantMismatch = !isStaffRole && !isAdminPath && (!payload || normalizeTenantId(payload.tenantId) !== finalTenantId);
+    // Enforce tenant isolation for regular users (Staff roles have global multi-tenant access)
+    const isTenantMismatch = !isStaffRole && !isAdminPath && !isOperatorPath && (!payload || normalizeTenantId(payload.tenantId) !== finalTenantId);
 
-    if (!payload || isTenantMismatch) {
+    // Enforce contour matching in JWT (tokens issued in test contour cannot be used in prod contour)
+    const currentContour = resolveContourFromHost(host);
+    const tokenContour = payload?.contour || (normalizeTenantId(payload?.tenantId) === 'flux' ? 'flux' : 'test');
+    const isContourMismatch = payload?.role !== 'OWNER' && tokenContour !== currentContour;
+
+    if (!payload || isTenantMismatch || isContourMismatch) {
       if (isRSC) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
-      const response = NextResponse.redirect(resolveRedirectUrl(ROUTES.AUTH.LOGIN));
+      const response = NextResponse.redirect(resolveRedirectUrl(ROUTES.AUTH.LOGIN), 307);
       response.cookies.set('session_token', '', {
         path: '/',
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 0,
       });
@@ -219,11 +287,24 @@ export async function proxy(request: NextRequest) {
 
     // Role verification for /admin and /operator
     if (isAdminPath) {
+      const isAdminRole = payload.role && ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'].includes(payload.role);
+      if (!isAdminRole) {
+        if (isRSC) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+        if (payload.role === 'OPERATOR') {
+          return applyStickyCookie(NextResponse.redirect(resolveRedirectUrl('/operator'), 307));
+        }
+        return applyStickyCookie(NextResponse.redirect(resolveRedirectUrl(ROUTES.DASHBOARD.HOME), 307));
+      }
+    }
+
+    if (isOperatorPath) {
       if (!isStaffRole) {
         if (isRSC) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
-        return applyStickyCookie(NextResponse.redirect(resolveRedirectUrl(ROUTES.DASHBOARD.HOME)));
+        return applyStickyCookie(NextResponse.redirect(resolveRedirectUrl(ROUTES.DASHBOARD.HOME), 307));
       }
     }
   }
@@ -248,6 +329,7 @@ export async function proxy(request: NextRequest) {
     frame-ancestors 'self';
     frame-src 'self' https://challenges.cloudflare.com https://yookassa.ru https://auth.robokassa.ru;
     connect-src 'self' https://challenges.cloudflare.com https://yookassa.ru https://auth.robokassa.ru https://api.cryptobot.org https://api.telegram.org;
+    report-uri /api/telemetry/csp-report;
     upgrade-insecure-requests;
   `.replace(/\s{2,}/g, ' ').trim();
 
@@ -269,7 +351,7 @@ export async function proxy(request: NextRequest) {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(self)');
-  response.headers.set('x-build-id', 'launch-v5-live; 2026-08-29T14:30Z');
+  response.headers.set('x-build-id', BUILD_ID);
   response.headers.set('X-DNS-Prefetch-Control', 'on');
 
   // Inject X-Robots-Tag for sensitive routes to prevent indexing

@@ -350,14 +350,39 @@ export function TelegramLinkGuideModal({
               })}
             </div>
 
-            {/* 🖼️ ALBUM / MEDIAGROUP EXPLANATION BOX */}
-            <div className="p-4 rounded-2xl border bg-blue-500/10 border-blue-500/20 text-blue-900 dark:text-blue-200 flex items-start gap-3 text-xs">
-              <span className="text-xl shrink-0">💡</span>
-              <div className="space-y-1">
-                <span className="font-extrabold block">Если у вас альбом из нескольких фото:</span>
-                <p className="leading-relaxed opacity-90">
-                  {currentDeviceGuide.mediaGroupAlbumNote}
-                </p>
+            {/* 🖼️ ALBUM / MEDIAGROUP DUAL-ORDER SYNCHRONIZATION BOX */}
+            <div className="p-4 sm:p-5 rounded-2xl border bg-amber-500/10 border-amber-500/30 text-foreground space-y-2.5 text-xs shadow-sm">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="font-black text-amber-600 dark:text-amber-400 flex items-center gap-1.5 text-xs uppercase tracking-wide">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  Важно для медиагрупп и альбомов (2+ фото/видео)
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                  Правило 2 заказов
+                </span>
+              </div>
+              
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                В Telegram разные устройства считывают просмотры по-разному: <strong className="text-foreground">Desktop/Web</strong> считает по первому фото, а <strong className="text-foreground">iOS и Android</strong> — по последнему.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                <div className="p-2.5 rounded-xl bg-background/80 border border-border/70 space-y-0.5">
+                  <span className="text-[10px] font-bold text-primary block">1. Первый заказ:</span>
+                  <span className="font-mono text-[11px] text-foreground font-semibold">https://t.me/канал/101</span>
+                  <span className="text-[10px] text-muted-foreground block">Синхронизирует Desktop / Web</span>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-background/80 border border-border/70 space-y-0.5">
+                  <span className="text-[10px] font-bold text-amber-500 block">2. Второй заказ:</span>
+                  <span className="font-mono text-[11px] text-foreground font-semibold">https://t.me/канал/105</span>
+                  <span className="text-[10px] text-muted-foreground block">Синхронизирует iOS / Android</span>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-amber-700 dark:text-amber-300 font-medium bg-amber-500/10 p-2 rounded-xl border border-amber-500/20 flex items-center gap-1.5">
+                <span>⚡</span>
+                <span>Оформите 2 отдельных заказа (на 1-е и последнее медиа), чтобы просмотры отображались одинаково у всех подписчиков!</span>
               </div>
             </div>
           </div>

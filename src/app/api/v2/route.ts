@@ -116,12 +116,20 @@ export async function POST(request: NextRequest) {
     const user = await verifyB2BKey(key, incomingTenant, incomingContour);
     if (!user) {
       const isFailedAllowed = await RateLimitService.checkCustomKey(`b2b_failed_auth:${ip}`, 10, 60);
+      const burstCountKey = `b2b_401_burst:${ip}`;
+      const isBurstAllowed = await RateLimitService.checkCustomKey(burstCountKey, 5, 60);
+
+      const severity = !isFailedAllowed ? 'CRITICAL' : (!isBurstAllowed ? 'HIGH' : 'WARNING');
+      const eventName = !isBurstAllowed ? 'B2B_AUTH_401_BURST' : 'B2B_AUTH_FAILED';
+
       await SecurityAlertService.record({
-        event: 'B2B_AUTH_FAILED',
-        severity: isFailedAllowed ? 'WARNING' : 'CRITICAL',
+        event: eventName,
+        severity,
         ip,
-        details: { action, reason: 'Invalid or banned API key' }
+        tenantId: incomingTenant,
+        details: { action, reason: 'Invalid or revoked API key', contour: incomingContour }
       });
+
       if (!isFailedAllowed) {
         return sendResponse(NextResponse.json({ error: 'Too many failed authentication attempts. Blocked for 60 seconds.' }, { status: 429 }));
       }

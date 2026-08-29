@@ -831,6 +831,19 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
                       </motion.div>
                     )}
                   </AnimatePresence>
+
+                  {/* Telegram Album & MediaGroup Advice Tip (Radiant Aurora) */}
+                  {LinkGuideService.isTelegramViewsService(activeNetwork?.slug || 'telegram', activeCategory?.slug, selectedService.name) && (
+                    <div className="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-xs text-foreground flex items-start gap-2.5 mt-2">
+                      <SparklesIcon className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5 min-w-0">
+                        <span className="font-bold text-purple-400 block text-[11px]">Совет для альбомов и медиагрупп:</span>
+                        <p className="text-muted-foreground text-[10px] leading-relaxed">
+                          {LinkGuideService.getTelegramAlbumAdvice(link)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* 3. Email */}

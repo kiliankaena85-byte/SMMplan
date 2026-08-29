@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { getBaseUrlAsync } from '@/utils/get-base-url';
-import { SettingsManager } from '@/lib/settings';
+import { SettingsProvider } from '@/lib/settings';
 import { WalletOps } from './wallet-ops';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { MutexManager } from '@/lib/redis-lock';
@@ -63,11 +63,11 @@ class YooKassaGateway extends BasePaymentGateway {
       throw new Error('Сумма платежа должна быть больше 0');
     }
 
-    const secrets = await SettingsManager.getPaymentSecrets();
+    const secrets = await SettingsProvider.getPaymentSecrets();
     const shopId = secrets.yookassaShopId;
     const secretKey = secrets.yookassaSecretKey;
 
-    const isMockPayment = await SettingsManager.isMockPaymentEnabled();
+    const isMockPayment = await SettingsProvider.isTestMode();
     const isDummyKeys = !shopId || !secretKey || shopId === 'test_shop_id' || shopId === 'test_shop_id_test' || secretKey === 'test_secret' || secretKey === 'test_secret_key';
 
     if (isMockPayment || isDummyKeys) {
@@ -79,7 +79,6 @@ class YooKassaGateway extends BasePaymentGateway {
 
     const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
     
-    const { SettingsProvider } = await import('@/lib/settings');
     const supportDomain = await SettingsProvider.getSupportEmailDomain();
 
     const payload: {
@@ -170,7 +169,7 @@ class YooKassaGateway extends BasePaymentGateway {
 
   async checkStatusSync(gatewayId: string): Promise<boolean> {
     try {
-      const secrets = await SettingsManager.getPaymentSecrets();
+      const secrets = await SettingsProvider.getPaymentSecrets();
       const shopId = secrets.yookassaShopId;
       const secretKey = secrets.yookassaSecretKey;
       if (!shopId || !secretKey) return false;
@@ -198,7 +197,7 @@ class CryptoBotGateway extends BasePaymentGateway {
       throw new Error('Сумма платежа должна быть больше 0');
     }
 
-    const secrets = await SettingsManager.getPaymentSecrets();
+    const secrets = await SettingsProvider.getPaymentSecrets();
     const cryptoToken = secrets.cryptoBotToken;
 
     const isDummyKeys = !cryptoToken || cryptoToken === 'test_token' || cryptoToken === 'test_shop_id' || cryptoToken === 'test_login' || cryptoToken.startsWith('test_');
@@ -214,7 +213,6 @@ class CryptoBotGateway extends BasePaymentGateway {
       };
     }
 
-    const { SettingsProvider } = await import('@/lib/settings');
     const legalSettings = await SettingsProvider.getContactAndLegalSettings();
     const brandName = legalSettings.COMPANY_NAME || 'SMMplan';
     const cleanDesc = params.description.startsWith('Test ') 
@@ -255,7 +253,7 @@ class CryptoBotGateway extends BasePaymentGateway {
 
   async checkStatusSync(gatewayId: string): Promise<boolean> {
     try {
-      const secrets = await SettingsManager.getPaymentSecrets();
+      const secrets = await SettingsProvider.getPaymentSecrets();
       const cryptoToken = secrets.cryptoBotToken;
       if (!cryptoToken) return false;
 
@@ -395,7 +393,7 @@ class RobokassaGateway extends BasePaymentGateway {
       throw new Error('Сумма платежа должна быть больше 0');
     }
 
-    const secrets = await SettingsManager.getPaymentSecrets();
+    const secrets = await SettingsProvider.getPaymentSecrets();
     const login = secrets.robokassaLogin;
     const password = secrets.robokassaPassword;
 

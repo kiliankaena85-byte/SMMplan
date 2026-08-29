@@ -431,7 +431,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       paymentAmount = 1000; // 10 RUB minimum deposit (1000 cents)
     }
 
-    if (paymentAmount > 1_500_000 && !user.telegramId) {
+    if ((gateway === 'yookassa' || gateway === 'sbp') && paymentAmount > 1_500_000 && !user.telegramId) {
       throw new Error("Для совершения единовременных платежей свыше 15 000 ₽, пожалуйста, привяжите ваш Telegram-аккаунт в личном кабинете либо используйте безналичный расчет по счету для юрлиц и ИП.");
     }
 

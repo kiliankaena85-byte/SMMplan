@@ -43,6 +43,7 @@ export function normalizeLinkType(rawType: string | null | undefined): LinkType 
     case 'PROFILE':
     case 'USER':
     case 'ACCOUNT':
+    case 'ARTIST':
       return LinkType.PROFILE;
 
     case 'POST':
@@ -51,6 +52,7 @@ export function normalizeLinkType(rawType: string | null | undefined): LinkType 
     case 'WALL':
     case 'TWEET':
     case 'STATUS':
+    case 'TRACK':
       return LinkType.POST;
 
     case 'VIDEO':
@@ -62,10 +64,13 @@ export function normalizeLinkType(rawType: string | null | undefined): LinkType 
     case 'VK_VIDEO':
     case 'VK_CLIP':
     case 'VK_PLAY':
+    case 'PHOTO_MODE':
       return LinkType.VIDEO;
 
     case 'STORY':
     case 'STORIES':
+    case 'HIGHLIGHT':
+    case 'HIGHLIGHTS':
       return LinkType.STORY;
 
     case 'POLL':

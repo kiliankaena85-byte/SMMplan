@@ -20,11 +20,21 @@ export interface PlatformDeviceGuide {
   mediaGroupAlbumNote: string;
 }
 
+export interface AlbumSyncGuidance {
+  title: string;
+  badge: string;
+  explanation: string;
+  recommendation: string;
+  firstStepExample: string;
+  lastStepExample: string;
+}
+
 export interface ServiceLinkGuidePayload {
   hasGuide: boolean;
   serviceType: 'TELEGRAM_VIEWS_PHOTO' | 'GENERIC';
   title: string;
   devices: PlatformDeviceGuide[];
+  albumSyncGuidance?: AlbumSyncGuidance;
 }
 
 export class LinkGuideService {
@@ -50,6 +60,14 @@ export class LinkGuideService {
       hasGuide: true,
       serviceType: 'TELEGRAM_VIEWS_PHOTO',
       title: 'Как скопировать ссылку на фото / альбом в Telegram',
+      albumSyncGuidance: {
+        title: 'Синхронизация просмотров для альбомов (Медиагрупп)',
+        badge: '⚡ Рекомендация для 100% точности',
+        explanation: 'В Telegram счётчики просмотров на iOS/Android считываются с последнего элемента медиагруппы, а на Desktop/Web — с первого. Чтобы счётчик обновился одинаково на всех устройствах пользователей, оформите 2 отдельных заказа: один на первое медиа альбома, второй — на последнее.',
+        recommendation: 'Оформите 2 заказа: на 1-е и на последнее медиа альбома.',
+        firstStepExample: 'https://t.me/channel_name/101 (Первое фото альбома — для Desktop/Web)',
+        lastStepExample: 'https://t.me/channel_name/105 (Последнее фото альбома — для iOS/Android)'
+      },
       devices: [
         {
           device: 'ios',
@@ -143,5 +161,29 @@ export class LinkGuideService {
         }
       ]
     };
+  }
+
+  /**
+   * Checks if a URL is likely a Telegram post or specific media item that could be part of an album.
+   */
+  static isTelegramAlbumCandidate(url?: string | null): boolean {
+    if (!url) return false;
+    const lower = url.toLowerCase().trim();
+    const isTg = lower.includes('t.me/') || lower.includes('telegram.me/') || lower.includes('telegram.dog/');
+    if (!isTg) return false;
+
+    // Matches /c/123/456 or /channel/456 or /channel/456?single
+    return /\/(?:c\/\d+\/|\w+\/)(\d+)/i.test(lower);
+  }
+
+  /**
+   * Returns a friendly, actionable advice string for Telegram album orders.
+   */
+  static getTelegramAlbumAdvice(url?: string | null): string {
+    const isSingle = (url || '').toLowerCase().includes('single');
+    if (isSingle) {
+      return 'Вы указали ссылку на отдельное медиа из альбома. Для равномерного отображения просмотров на iOS и Android оформите второй заказ на последнее фото альбома.';
+    }
+    return 'Если этот пост содержит альбом (медиагруппу), для синхронизации просмотров на iOS и Android оформите 2 заказа: на первое и последнее фото альбома.';
   }
 }

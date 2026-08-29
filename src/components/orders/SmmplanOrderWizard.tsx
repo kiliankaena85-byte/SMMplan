@@ -901,6 +901,19 @@ function SmmplanOrderWizardInner({
                     {errors.link}
                   </p>
                 )}
+
+                {/* Telegram Album & MediaGroup Advice Tip */}
+                {LinkGuideService.isTelegramViewsService(selectedNetwork?.slug, selectedCategory?.slug, selectedService.name) && (
+                  <div className="p-3 rounded-2xl bg-primary/5 border border-primary/20 text-xs text-foreground flex items-start gap-2.5">
+                    <span className="text-sm shrink-0">💡</span>
+                    <div className="space-y-0.5 min-w-0">
+                      <span className="font-bold text-primary block">Совет для альбомов и медиагрупп:</span>
+                      <p className="text-muted-foreground text-[11px] leading-relaxed">
+                        {LinkGuideService.getTelegramAlbumAdvice(link)}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Custom Data Input Field */}

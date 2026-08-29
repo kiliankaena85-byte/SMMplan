@@ -107930,6 +107930,7 @@ function normalizeLinkType(rawType) {
     case "PROFILE":
     case "USER":
     case "ACCOUNT":
+    case "ARTIST":
       return "PROFILE" /* PROFILE */;
     case "POST":
     case "PRIVATE_POST":
@@ -107937,6 +107938,7 @@ function normalizeLinkType(rawType) {
     case "WALL":
     case "TWEET":
     case "STATUS":
+    case "TRACK":
       return "POST" /* POST */;
     case "VIDEO":
     case "SHORT_VIDEO":
@@ -107947,9 +107949,12 @@ function normalizeLinkType(rawType) {
     case "VK_VIDEO":
     case "VK_CLIP":
     case "VK_PLAY":
+    case "PHOTO_MODE":
       return "VIDEO" /* VIDEO */;
     case "STORY":
     case "STORIES":
+    case "HIGHLIGHT":
+    case "HIGHLIGHTS":
       return "STORY" /* STORY */;
     case "POLL":
     case "VOTE":
@@ -109015,6 +109020,20 @@ var init_link_rules = __esm({
       // ===================== INSTAGRAM =====================
       {
         platform: "INSTAGRAM" /* INSTAGRAM */,
+        type: "highlight",
+        pattern: /instagram\.com\/stories\/highlights\/([\w-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.STORIES, CATEGORY_LABELS.VIEWS],
+        context: "highlight_views"
+      },
+      {
+        platform: "INSTAGRAM" /* INSTAGRAM */,
+        type: "story",
+        pattern: /instagram\.com\/stories\/([\w._]+)\/(\d+)/i,
+        suggestedCategories: [CATEGORY_LABELS.STORIES, CATEGORY_LABELS.VIEWS],
+        context: "temporary_story"
+      },
+      {
+        platform: "INSTAGRAM" /* INSTAGRAM */,
         type: "post",
         pattern: /instagram\.com\/(?:p|reel|tv)\/([\w-]+)/,
         suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.SAVES, CATEGORY_LABELS.REACTIONS],
@@ -109038,7 +109057,7 @@ var init_link_rules = __esm({
       {
         platform: "TIKTOK" /* TIKTOK */,
         type: "video",
-        pattern: /tiktok\.com\/@[\w.]+\/video\/(\d+)/i,
+        pattern: /tiktok\.com\/@[\w.]+\/(?:video|photo)\/(\d+)/i,
         suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.SAVES],
         context: "viral_reach"
       },
@@ -109081,6 +109100,20 @@ var init_link_rules = __esm({
       // ===================== TWITCH =====================
       {
         platform: "TWITCH" /* TWITCH */,
+        type: "clip",
+        pattern: /(?:clips\.twitch\.tv\/|twitch\.tv\/[\w]+\/clip\/)([\w-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.LIKES],
+        context: "viral_reach"
+      },
+      {
+        platform: "TWITCH" /* TWITCH */,
+        type: "video",
+        pattern: /twitch\.tv\/videos\/(\d+)/i,
+        suggestedCategories: [CATEGORY_LABELS.VIEWS],
+        context: "past_broadcast_views"
+      },
+      {
+        platform: "TWITCH" /* TWITCH */,
         type: "channel",
         pattern: /twitch\.tv\/([\w]+)/,
         suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.STREAMS, CATEGORY_LABELS.BOTS, CATEGORY_LABELS.GROUPS, CATEGORY_LABELS.OTHER],
@@ -109105,9 +109138,16 @@ var init_link_rules = __esm({
       {
         platform: "LIKEE" /* LIKEE */,
         type: "video",
-        pattern: /l\.likee\.video\/v\/([\w-]+)|likee\.video\/@[\w.]+\/video\/(\d+)/,
-        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS],
+        pattern: /(?:l\.likee\.video\/v\/([\w-]+)|(?:likee\.video|likee\.com)\/@[\w.]+\/video\/(\d+))/i,
+        suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS],
         context: "mobile_viral"
+      },
+      {
+        platform: "LIKEE" /* LIKEE */,
+        type: "profile",
+        pattern: /(?:l\.likee\.video\/p\/([\w-]+)|(?:likee\.video|likee\.com)\/(@[\w.]+))/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.VIEWS],
+        context: "influencer_growth"
       },
       // ===================== OK =====================
       {
@@ -109135,7 +109175,7 @@ var init_link_rules = __esm({
       {
         platform: "RUTUBE" /* RUTUBE */,
         type: "video",
-        pattern: /rutube\.ru\/video\/(?:private\/)?([\w-]{32})/i,
+        pattern: /rutube\.ru\/(?:video\/(?:private\/)?|play\/embed\/)([\w-]{32})/i,
         suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS],
         context: "authority_growth"
       },
@@ -109150,14 +109190,14 @@ var init_link_rules = __esm({
       {
         platform: "DZEN" /* DZEN */,
         type: "post",
-        pattern: /dzen\.ru\/(?:a|b|video\/watch)\/([\w-]+)/i,
+        pattern: /(?:dzen\.ru|zen\.yandex\.ru)\/(?:a\/|b\/|shorts\/|video\/watch\/|media\/(?:[\w.-]+\/)?)([\w-]+)/i,
         suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS],
         context: "authority_growth"
       },
       {
         platform: "DZEN" /* DZEN */,
         type: "channel",
-        pattern: /dzen\.ru\/(?:id\/([\w-]+)|([\w.-]+))/i,
+        pattern: /(?:dzen\.ru|zen\.yandex\.ru)\/(?:id\/([\w-]+)|u\/([\w.-]+)|channel\/([\w-]+)|@?([\w.-]+))\/?(?:\?.*)?$/i,
         suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.VIEWS],
         context: "viral_momentum"
       },
@@ -109178,6 +109218,13 @@ var init_link_rules = __esm({
         context: "live_stream"
       },
       // ===================== SPOTIFY =====================
+      {
+        platform: "SPOTIFY" /* SPOTIFY */,
+        type: "artist",
+        pattern: /open\.spotify\.com\/artist\/([\w-]+)/i,
+        suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PLAYS],
+        context: "artist_listeners"
+      },
       {
         platform: "SPOTIFY" /* SPOTIFY */,
         type: "track",
@@ -109737,11 +109784,12 @@ var init_link_analyzer = __esm({
             cleanUrl = `https://t.me/${rawHandle}`;
           }
         }
+        const hasSingleParam = rawUrl.toLowerCase().includes("single");
         const sanitizedUrl = this.sanitize(cleanUrl);
         const expandedUrl = await this.resolve(sanitizedUrl);
         const normalizedVk = this.normalizeVkUrl(expandedUrl);
         const normalizedForMatch = this.normalizeForMatch(normalizedVk);
-        return this.match(normalizedForMatch);
+        return this.match(normalizedForMatch, hasSingleParam);
       }
       normalizeVkUrl(url) {
         if (!url.includes("vk.com") && !url.includes("vk.ru") && !url.includes("vkvideo.ru")) return url;
@@ -109828,11 +109876,19 @@ var init_link_analyzer = __esm({
         }
         return url;
       }
-      match(url) {
+      match(url, isSingleParam = false) {
         const decodedUrl = url.replace(/%40/g, "@");
         for (const rule of LINK_RULES) {
           const match = decodedUrl.match(rule.pattern);
           if (match) {
+            const isTgPost = rule.platform === "TELEGRAM" /* TELEGRAM */ && rule.type === "post";
+            const isSinglePhoto = isSingleParam || decodedUrl.toLowerCase().includes("single");
+            const tips = [];
+            let advice = void 0;
+            if (isTgPost) {
+              tips.push("telegram_mediagroup_dual_order_recommended");
+              advice = isSinglePhoto ? "\u0412\u044B \u0443\u043A\u0430\u0437\u0430\u043B\u0438 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u043E\u0435 \u043C\u0435\u0434\u0438\u0430. \u0414\u043B\u044F \u0441\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0430\u0446\u0438\u0438 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u043E\u0432 \u043D\u0430 iOS \u0438 Android \u043E\u0444\u043E\u0440\u043C\u0438\u0442\u0435 \u0432\u0442\u043E\u0440\u043E\u0439 \u0437\u0430\u043A\u0430\u0437 \u043D\u0430 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0435\u0435 \u0444\u043E\u0442\u043E \u0430\u043B\u044C\u0431\u043E\u043C\u0430." : "\u0415\u0441\u043B\u0438 \u043F\u043E\u0441\u0442 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u0442 \u0430\u043B\u044C\u0431\u043E\u043C (\u043D\u0435\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0444\u043E\u0442\u043E), \u043E\u0444\u043E\u0440\u043C\u0438\u0442\u0435 \u0437\u0430\u043A\u0430\u0437\u044B \u043D\u0430 \u043F\u0435\u0440\u0432\u043E\u0435 \u0438 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0435\u0435 \u0444\u043E\u0442\u043E \u0434\u043B\u044F \u0441\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0430\u0446\u0438\u0438 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u043E\u0432 \u043D\u0430 \u0432\u0441\u0435\u0445 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u0445.";
+            }
             return {
               platform: rule.platform,
               type: rule.type,
@@ -109840,10 +109896,14 @@ var init_link_analyzer = __esm({
               canonicalUrl: decodedUrl,
               metadata: {
                 isLive: decodedUrl.includes("/live/") || decodedUrl.includes("/reel/"),
-                context: rule.context
+                context: rule.context,
+                isAlbum: isSinglePhoto,
+                isMediaGroupCandidate: isTgPost,
+                advice
               },
               suggestedCategories: rule.suggestedCategories,
-              warnings: []
+              warnings: [],
+              tips: tips.length > 0 ? tips : void 0
             };
           }
         }
@@ -141889,10 +141949,10 @@ var YooKassaGateway = class extends BasePaymentGateway {
     if (params.amountRub <= 0 || Math.round(params.amountRub * 100) <= 0) {
       throw new Error("\u0421\u0443\u043C\u043C\u0430 \u043F\u043B\u0430\u0442\u0435\u0436\u0430 \u0434\u043E\u043B\u0436\u043D\u0430 \u0431\u044B\u0442\u044C \u0431\u043E\u043B\u044C\u0448\u0435 0");
     }
-    const secrets = await SettingsManager.getPaymentSecrets();
+    const secrets = await SettingsProvider.getPaymentSecrets();
     const shopId = secrets.yookassaShopId;
     const secretKey = secrets.yookassaSecretKey;
-    const isMockPayment = await SettingsManager.isMockPaymentEnabled();
+    const isMockPayment = await SettingsProvider.isTestMode();
     const isDummyKeys = !shopId || !secretKey || shopId === "test_shop_id" || shopId === "test_shop_id_test" || secretKey === "test_secret" || secretKey === "test_secret_key";
     if (isMockPayment || isDummyKeys) {
       return {
@@ -141901,8 +141961,7 @@ var YooKassaGateway = class extends BasePaymentGateway {
       };
     }
     const authHeader = "Basic " + Buffer.from(`${shopId}:${secretKey}`).toString("base64");
-    const { SettingsProvider: SettingsProvider2 } = await Promise.resolve().then(() => (init_settings(), settings_exports));
-    const supportDomain = await SettingsProvider2.getSupportEmailDomain();
+    const supportDomain = await SettingsProvider.getSupportEmailDomain();
     const payload = {
       amount: { value: params.amountRub.toFixed(2), currency: "RUB" },
       capture: true,
@@ -141966,7 +142025,7 @@ var YooKassaGateway = class extends BasePaymentGateway {
   }
   async checkStatusSync(gatewayId) {
     try {
-      const secrets = await SettingsManager.getPaymentSecrets();
+      const secrets = await SettingsProvider.getPaymentSecrets();
       const shopId = secrets.yookassaShopId;
       const secretKey = secrets.yookassaSecretKey;
       if (!shopId || !secretKey) return false;
@@ -141990,7 +142049,7 @@ var CryptoBotGateway = class extends BasePaymentGateway {
     if (params.amountRub <= 0 || Math.round(params.amountRub * 100) <= 0) {
       throw new Error("\u0421\u0443\u043C\u043C\u0430 \u043F\u043B\u0430\u0442\u0435\u0436\u0430 \u0434\u043E\u043B\u0436\u043D\u0430 \u0431\u044B\u0442\u044C \u0431\u043E\u043B\u044C\u0448\u0435 0");
     }
-    const secrets = await SettingsManager.getPaymentSecrets();
+    const secrets = await SettingsProvider.getPaymentSecrets();
     const cryptoToken = secrets.cryptoBotToken;
     const isDummyKeys = !cryptoToken || cryptoToken === "test_token" || cryptoToken === "test_shop_id" || cryptoToken === "test_login" || cryptoToken.startsWith("test_");
     if (isDummyKeys) {
@@ -142003,8 +142062,7 @@ var CryptoBotGateway = class extends BasePaymentGateway {
         remoteGatewayId: `mock_${Date.now()}`
       };
     }
-    const { SettingsProvider: SettingsProvider2 } = await Promise.resolve().then(() => (init_settings(), settings_exports));
-    const legalSettings = await SettingsProvider2.getContactAndLegalSettings();
+    const legalSettings = await SettingsProvider.getContactAndLegalSettings();
     const brandName = legalSettings.COMPANY_NAME || "SMMplan";
     const cleanDesc = params.description.startsWith("Test ") ? params.description.substring(5) : params.description;
     const hiddenMessage = `${brandName} ${cleanDesc}`;
@@ -142038,7 +142096,7 @@ var CryptoBotGateway = class extends BasePaymentGateway {
   }
   async checkStatusSync(gatewayId) {
     try {
-      const secrets = await SettingsManager.getPaymentSecrets();
+      const secrets = await SettingsProvider.getPaymentSecrets();
       const cryptoToken = secrets.cryptoBotToken;
       if (!cryptoToken) return false;
       const resp = await fetch(`https://pay.crypt.bot/api/getInvoices?invoice_ids=${gatewayId}`, {
@@ -142157,7 +142215,7 @@ var RobokassaGateway = class extends BasePaymentGateway {
     if (params.amountRub <= 0 || Math.round(params.amountRub * 100) <= 0) {
       throw new Error("\u0421\u0443\u043C\u043C\u0430 \u043F\u043B\u0430\u0442\u0435\u0436\u0430 \u0434\u043E\u043B\u0436\u043D\u0430 \u0431\u044B\u0442\u044C \u0431\u043E\u043B\u044C\u0448\u0435 0");
     }
-    const secrets = await SettingsManager.getPaymentSecrets();
+    const secrets = await SettingsProvider.getPaymentSecrets();
     const login = secrets.robokassaLogin;
     const password = secrets.robokassaPassword;
     const isDummyKeys = params.isTestMode || !login || !password || login === "test_login";

@@ -45,30 +45,53 @@ export function DrawerFormInputs({
     }
   };
 
+  const linesCount = isCustomComments
+    ? customData.split("\n").filter(line => line.trim().length > 0).length
+    : 0;
+
   return (
     <div className="bg-card border border-border/80 rounded-2xl p-5 space-y-4 shadow-sm">
       {/* Custom Fields (Comments / Answer Option, etc.) */}
       {customFieldLabel && (
         <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-          <label className="text-xs sm:text-sm font-black text-foreground uppercase tracking-wider block">
-            {customFieldLabel}
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs sm:text-sm font-black text-foreground uppercase tracking-wider block">
+              {customFieldLabel}
+            </label>
+            {isCustomComments && (
+              <span className="text-[10px] font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20 tabular-nums">
+                {linesCount} {linesCount === 1 ? "комментарий" : linesCount < 5 && linesCount > 0 ? "комментария" : "комментариев"}
+              </span>
+            )}
+          </div>
           <div className="relative">
             {isCustomComments ? (
-              <textarea
-                value={customData}
-                onChange={(e) => handleCustomDataChange(e.target.value)}
-                placeholder="Каждая строка — новый комментарий..."
-                className="w-full min-h-[110px] p-3.5 rounded-xl border border-border/80 bg-background text-sm font-bold text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-2xs resize-y"
-              />
+              <>
+                <textarea
+                  value={customData}
+                  onChange={(e) => handleCustomDataChange(e.target.value)}
+                  placeholder="Каждая строка — новый комментарий..."
+                  className="w-full min-h-[110px] p-3.5 pb-8 rounded-xl border border-border/80 bg-background text-sm font-bold text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-2xs resize-y"
+                />
+                <div className="absolute bottom-2.5 right-3 text-[10px] font-mono font-bold text-muted-foreground bg-background/90 px-2 py-0.5 rounded-md border border-border/60 shadow-2xs pointer-events-none tabular-nums">
+                  Строк: {linesCount} {selectedService?.minQty ? `(мин: ${selectedService.minQty})` : ''}
+                </div>
+              </>
             ) : (
-              <input
-                type="text"
-                value={customData}
-                onChange={(e) => handleCustomDataChange(e.target.value)}
-                placeholder={isPoll ? "Например: 2" : "Слова через запятую..."}
-                className="w-full h-12 px-3.5 rounded-xl border border-border/80 bg-background text-sm font-bold text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-2xs"
-              />
+              <>
+                <input
+                  type="text"
+                  value={customData}
+                  onChange={(e) => handleCustomDataChange(e.target.value)}
+                  placeholder={isPoll ? "Например: 2" : "Слова через запятую..."}
+                  className="w-full h-12 px-3.5 rounded-xl border border-border/80 bg-background text-sm font-bold text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-2xs"
+                />
+                {isPoll && (
+                  <p className="text-[11px] text-muted-foreground font-medium mt-1">
+                    💡 Укажите номер варианта ответа (например: <strong>2</strong> — второй пункт в опросе).
+                  </p>
+                )}
+              </>
             )}
           </div>
           {isCustomComments && (

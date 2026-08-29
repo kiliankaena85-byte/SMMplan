@@ -29,10 +29,8 @@ export function DrawerQuantityCard({
 
   const { isCustomComments } = getServiceFlags(selectedService);
 
-  const hasDiscount = pricing && pricing.discountCents > 0;
-  const pricePerUnit = hasDiscount && quantity > 0
-    ? (pricing.totalCents / 100) / quantity
-    : selectedService.pricePerUnitRub;
+  const retailPricePerUnit = selectedService.pricePerUnitRub;
+  const discountAmount = pricing && pricing.discountCents > 0 ? pricing.discountCents / 100 : 0;
 
   const handleIncrement = () => {
     if (isCustomComments) return;
@@ -56,20 +54,29 @@ export function DrawerQuantityCard({
 
   const handleInputBlur = () => {
     if (isCustomComments) return;
-    if (quantity < min) {
+    if (!quantity || quantity < min) {
       setQuantity(min);
+    } else if (quantity > max) {
+      setQuantity(max);
     }
   };
 
   return (
-    <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-4.5 space-y-3 shadow-sm">
+    <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-4.5 space-y-3 shadow-sm ring-1 ring-primary/5">
       <div className="flex items-center justify-between">
         <label className="text-xs sm:text-sm font-black text-foreground uppercase tracking-wider">
           Количество заказа
         </label>
-        <span className="text-xs sm:text-sm font-bold text-primary font-mono tabular-nums bg-primary/10 px-2.5 py-0.5 rounded-lg border border-primary/20">
-          {formatPricePerUnit(pricePerUnit)} ₽ / шт
-        </span>
+        <div className="flex items-center gap-2">
+          {discountAmount > 0 && (
+            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+              Скидка −{discountAmount.toFixed(2)} ₽
+            </span>
+          )}
+          <span className="text-xs sm:text-sm font-bold text-primary font-mono tabular-nums bg-primary/10 px-2.5 py-0.5 rounded-lg border border-primary/20">
+            {formatPricePerUnit(retailPricePerUnit)} ₽ / шт
+          </span>
+        </div>
       </div>
 
       {/* Stepper controls */}

@@ -107,4 +107,102 @@ describe('Full Link Analyzer Remediation Suite (L-1, L-3, L-4, L-6, L-new1..L-ne
       expect(matched).toBe(false);
     });
   });
+
+  describe('2026 Formats: TikTok Photo Mode & Instagram Stories/Highlights', () => {
+    const analyzer = new IntelligenceLinkAnalyzer();
+
+    it('accurately parses TikTok Photo Mode links (/photo/)', async () => {
+      const res = await analyzer.analyze('https://www.tiktok.com/@creator/photo/7123456789012345678');
+      expect(res.platform).toBe('TIKTOK');
+      expect(res.type).toBe('video');
+      expect(res.id).toBe('7123456789012345678');
+    });
+
+    it('accurately parses Instagram temporary stories links', async () => {
+      const res = await analyzer.analyze('https://www.instagram.com/stories/username/3123456789012345678/');
+      expect(res.platform).toBe('INSTAGRAM');
+      expect(res.type).toBe('story');
+    });
+
+    it('accurately parses Instagram highlights links', async () => {
+      const res = await analyzer.analyze('https://www.instagram.com/stories/highlights/17987654321012345/');
+      expect(res.platform).toBe('INSTAGRAM');
+      expect(res.type).toBe('highlight');
+      expect(res.id).toBe('17987654321012345');
+    });
+
+    it('accurately parses Twitch VOD past broadcasts (/videos/)', async () => {
+      const res = await analyzer.analyze('https://www.twitch.tv/videos/1234567890');
+      expect(res.platform).toBe('TWITCH');
+      expect(res.type).toBe('video');
+      expect(res.id).toBe('1234567890');
+    });
+
+    it('accurately parses Twitch Clips (clips.twitch.tv)', async () => {
+      const res = await analyzer.analyze('https://clips.twitch.tv/BlushingCuteKangaroo');
+      expect(res.platform).toBe('TWITCH');
+      expect(res.type).toBe('clip');
+      expect(res.id).toBe('BlushingCuteKangaroo');
+    });
+
+    it('accurately parses Spotify artist profiles (/artist/)', async () => {
+      const res = await analyzer.analyze('https://open.spotify.com/artist/06HL4z0CvFAxyc27GXpf02');
+      expect(res.platform).toBe('SPOTIFY');
+      expect(res.type).toBe('artist');
+      expect(res.id).toBe('06HL4z0CvFAxyc27GXpf02');
+    });
+
+    it('accurately parses Rutube embed players (play/embed/hash)', async () => {
+      const res = await analyzer.analyze('https://rutube.ru/play/embed/e1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6');
+      expect(res.platform).toBe('RUTUBE');
+      expect(res.type).toBe('video');
+      expect(res.id).toBe('e1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6');
+    });
+
+    it('accurately parses Dzen vertical shorts (/shorts/)', async () => {
+      const res = await analyzer.analyze('https://dzen.ru/shorts/65a123456789abcdef');
+      expect(res.platform).toBe('DZEN');
+      expect(res.type).toBe('post');
+      expect(res.id).toBe('65a123456789abcdef');
+    });
+
+    it('accurately parses Dzen legacy Yandex Zen channels (zen.yandex.ru)', async () => {
+      const res = await analyzer.analyze('https://zen.yandex.ru/id/60a123456789abcdef');
+      expect(res.platform).toBe('DZEN');
+      expect(res.type).toBe('channel');
+      expect(res.id).toBe('60a123456789abcdef');
+    });
+
+    it('accurately parses Dzen media slug articles (/media/)', async () => {
+      const res = await analyzer.analyze('https://dzen.ru/media/mychannel/how-to-code-60a123456789');
+      expect(res.platform).toBe('DZEN');
+      expect(res.type).toBe('post');
+      expect(res.id).toBe('how-to-code-60a123456789');
+    });
+
+    it('accurately parses Likee web profile and video links (likee.video & likee.com)', async () => {
+      const profileRes = await analyzer.analyze('https://likee.video/@supercreator');
+      expect(profileRes.platform).toBe('LIKEE');
+      expect(profileRes.type).toBe('profile');
+      expect(profileRes.id).toBe('@supercreator');
+
+      const videoRes = await analyzer.analyze('https://likee.com/@supercreator/video/123456789');
+      expect(videoRes.platform).toBe('LIKEE');
+      expect(videoRes.type).toBe('video');
+      expect(videoRes.id).toBe('123456789');
+    });
+
+    it('accurately parses Likee mobile share links (/p/ profile & /v/ video)', async () => {
+      const videoShort = await analyzer.analyze('https://l.likee.video/v/AbCdEf123');
+      expect(videoShort.platform).toBe('LIKEE');
+      expect(videoShort.type).toBe('video');
+      expect(videoShort.id).toBe('AbCdEf123');
+
+      const profileShort = await analyzer.analyze('https://l.likee.video/p/AbCdEf123');
+      expect(profileShort.platform).toBe('LIKEE');
+      expect(profileShort.type).toBe('profile');
+      expect(profileShort.id).toBe('AbCdEf123');
+    });
+  });
 });
+

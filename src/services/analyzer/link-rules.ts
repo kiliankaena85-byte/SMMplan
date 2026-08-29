@@ -96,6 +96,20 @@ export const LINK_RULES: LinkRule[] = [
   // ===================== INSTAGRAM =====================
   {
       platform: IntelligencePlatform.INSTAGRAM,
+      type: 'highlight',
+      pattern: /instagram\.com\/stories\/highlights\/([\w-]+)/i,
+      suggestedCategories: [CATEGORY_LABELS.STORIES, CATEGORY_LABELS.VIEWS],
+      context: 'highlight_views'
+  },
+  {
+      platform: IntelligencePlatform.INSTAGRAM,
+      type: 'story',
+      pattern: /instagram\.com\/stories\/([\w._]+)\/(\d+)/i,
+      suggestedCategories: [CATEGORY_LABELS.STORIES, CATEGORY_LABELS.VIEWS],
+      context: 'temporary_story'
+  },
+  {
+      platform: IntelligencePlatform.INSTAGRAM,
       type: 'post',
       pattern: /instagram\.com\/(?:p|reel|tv)\/([\w-]+)/,
       suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.SAVES, CATEGORY_LABELS.REACTIONS],
@@ -119,7 +133,7 @@ export const LINK_RULES: LinkRule[] = [
   {
       platform: IntelligencePlatform.TIKTOK,
       type: 'video',
-      pattern: /tiktok\.com\/@[\w.]+\/video\/(\d+)/i,
+      pattern: /tiktok\.com\/@[\w.]+\/(?:video|photo)\/(\d+)/i,
       suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.SAVES],
       context: 'viral_reach'
   },
@@ -162,6 +176,20 @@ export const LINK_RULES: LinkRule[] = [
   // ===================== TWITCH =====================
   {
       platform: IntelligencePlatform.TWITCH,
+      type: 'clip',
+      pattern: /(?:clips\.twitch\.tv\/|twitch\.tv\/[\w]+\/clip\/)([\w-]+)/i,
+      suggestedCategories: [CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.LIKES],
+      context: 'viral_reach'
+  },
+  {
+      platform: IntelligencePlatform.TWITCH,
+      type: 'video',
+      pattern: /twitch\.tv\/videos\/(\d+)/i,
+      suggestedCategories: [CATEGORY_LABELS.VIEWS],
+      context: 'past_broadcast_views'
+  },
+  {
+      platform: IntelligencePlatform.TWITCH,
       type: 'channel',
       pattern: /twitch\.tv\/([\w]+)/,
       suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.STREAMS, CATEGORY_LABELS.BOTS, CATEGORY_LABELS.GROUPS, CATEGORY_LABELS.OTHER],
@@ -186,9 +214,16 @@ export const LINK_RULES: LinkRule[] = [
   {
       platform: IntelligencePlatform.LIKEE,
       type: 'video',
-      pattern: /l\.likee\.video\/v\/([\w-]+)|likee\.video\/@[\w.]+\/video\/(\d+)/,
-      suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS],
+      pattern: /(?:l\.likee\.video\/v\/([\w-]+)|(?:likee\.video|likee\.com)\/@[\w.]+\/video\/(\d+))/i,
+      suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS],
       context: 'mobile_viral'
+  },
+  {
+      platform: IntelligencePlatform.LIKEE,
+      type: 'profile',
+      pattern: /(?:l\.likee\.video\/p\/([\w-]+)|(?:likee\.video|likee\.com)\/(@[\w.]+))/i,
+      suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.VIEWS],
+      context: 'influencer_growth'
   },
   // ===================== OK =====================
   {
@@ -216,7 +251,7 @@ export const LINK_RULES: LinkRule[] = [
   {
       platform: IntelligencePlatform.RUTUBE,
       type: 'video',
-      pattern: /rutube\.ru\/video\/(?:private\/)?([\w-]{32})/i,
+      pattern: /rutube\.ru\/(?:video\/(?:private\/)?|play\/embed\/)([\w-]{32})/i,
       suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS],
       context: 'authority_growth'
   },
@@ -231,14 +266,14 @@ export const LINK_RULES: LinkRule[] = [
   {
       platform: IntelligencePlatform.DZEN,
       type: 'post',
-      pattern: /dzen\.ru\/(?:a|b|video\/watch)\/([\w-]+)/i,
+      pattern: /(?:dzen\.ru|zen\.yandex\.ru)\/(?:a\/|b\/|shorts\/|video\/watch\/|media\/(?:[\w.-]+\/)?)([\w-]+)/i,
       suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS],
       context: 'authority_growth'
   },
   {
       platform: IntelligencePlatform.DZEN,
       type: 'channel',
-      pattern: /dzen\.ru\/(?:id\/([\w-]+)|([\w.-]+))/i,
+      pattern: /(?:dzen\.ru|zen\.yandex\.ru)\/(?:id\/([\w-]+)|u\/([\w.-]+)|channel\/([\w-]+)|@?([\w.-]+))\/?(?:\?.*)?$/i,
       suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.VIEWS],
       context: 'viral_momentum'
   },
@@ -259,6 +294,13 @@ export const LINK_RULES: LinkRule[] = [
       context: 'live_stream'
   },
   // ===================== SPOTIFY =====================
+  {
+      platform: IntelligencePlatform.SPOTIFY,
+      type: 'artist',
+      pattern: /open\.spotify\.com\/artist\/([\w-]+)/i,
+      suggestedCategories: [CATEGORY_LABELS.SUBSCRIBERS, CATEGORY_LABELS.PLAYS],
+      context: 'artist_listeners'
+  },
   {
       platform: IntelligencePlatform.SPOTIFY,
       type: 'track',

@@ -7,6 +7,8 @@ interface IntelligenceLinkMetadata {
     context?: string;
     isPrivate?: boolean;
     isAlbum?: boolean;
+    isMediaGroupCandidate?: boolean;
+    advice?: string;
 }
 
 export interface IntelligenceAnalysisResult {
@@ -17,6 +19,7 @@ export interface IntelligenceAnalysisResult {
     metadata: IntelligenceLinkMetadata;
     suggestedCategories: string[];
     warnings: string[];
+    tips?: string[];
 }
 
 export class IntelligenceLinkAnalyzer {
@@ -33,11 +36,12 @@ export class IntelligenceLinkAnalyzer {
                 cleanUrl = `https://t.me/${rawHandle}`;
             }
         }
+        const hasSingleParam = rawUrl.toLowerCase().includes('single');
         const sanitizedUrl = this.sanitize(cleanUrl);
         const expandedUrl = await this.resolve(sanitizedUrl);
         const normalizedVk = this.normalizeVkUrl(expandedUrl);
         const normalizedForMatch = this.normalizeForMatch(normalizedVk);
-        return this.match(normalizedForMatch);
+        return this.match(normalizedForMatch, hasSingleParam);
     }
 
     private normalizeVkUrl(url: string): string {
@@ -146,11 +150,23 @@ export class IntelligenceLinkAnalyzer {
         return url;
     }
 
-    private match(url: string): IntelligenceAnalysisResult {
+    private match(url: string, isSingleParam = false): IntelligenceAnalysisResult {
         const decodedUrl = url.replace(/%40/g, '@');
         for (const rule of LINK_RULES) {
             const match = decodedUrl.match(rule.pattern);
             if (match) {
+                const isTgPost = rule.platform === IntelligencePlatform.TELEGRAM && rule.type === 'post';
+                const isSinglePhoto = isSingleParam || decodedUrl.toLowerCase().includes('single');
+                const tips: string[] = [];
+
+                let advice: string | undefined = undefined;
+                if (isTgPost) {
+                    tips.push('telegram_mediagroup_dual_order_recommended');
+                    advice = isSinglePhoto 
+                        ? 'Вы указали ссылку на отдельное медиа. Для синхронизации просмотров на iOS и Android оформите второй заказ на последнее фото альбома.'
+                        : 'Если пост содержит альбом (несколько фото), оформите заказы на первое и последнее фото для синхронизации просмотров на всех устройствах.';
+                }
+
                 return {
                     platform: rule.platform,
                     type: rule.type,
@@ -158,10 +174,14 @@ export class IntelligenceLinkAnalyzer {
                     canonicalUrl: decodedUrl,
                     metadata: {
                         isLive: decodedUrl.includes('/live/') || decodedUrl.includes('/reel/'),
-                        context: rule.context
+                        context: rule.context,
+                        isAlbum: isSinglePhoto,
+                        isMediaGroupCandidate: isTgPost,
+                        advice
                     },
                     suggestedCategories: rule.suggestedCategories,
-                    warnings: []
+                    warnings: [],
+                    tips: tips.length > 0 ? tips : undefined
                 };
             }
         }

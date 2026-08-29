@@ -96,6 +96,30 @@
       ],
       "importance": 1,
       "decayRate": 0
+    },
+    {
+      "title": "Social Link Formats & Modern Pitfalls (TikTok Photo Mode, IG Highlights, TG Albums)",
+      "context": "2026 Social networks URL parsing nuances and multi-device sync",
+      "decision": "Added TikTok /photo/ recognition, Instagram stories/highlights rules, and Telegram dual-order sync guide",
+      "rationale": "Prevents client order failures on new media formats and desync across mobile/desktop",
+      "tags": [
+        "links",
+        "analyzer",
+        "tiktok",
+        "instagram",
+        "telegram"
+      ]
+    },
+    {
+      "title": "Dzen Link Formats Fix (Shorts, Media, Legacy Yandex Domains)",
+      "context": "Resolving edge cases in Yandex.Dzen / Dzen.ru URL parsing",
+      "decision": "Added Dzen shorts, media slugs, and zen.yandex.ru legacy domain support to IntelligenceLinkAnalyzer",
+      "rationale": "Prevents misclassifying shorts/media as channel and supports legacy domains",
+      "tags": [
+        "links",
+        "dzen",
+        "analyzer"
+      ]
     }
   ]
 }

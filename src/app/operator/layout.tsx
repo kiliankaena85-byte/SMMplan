@@ -13,6 +13,7 @@ const ROLE_LABELS: Record<string, string> = {
   ADMIN: 'Администратор',
   MANAGER: 'Менеджер',
   SUPPORT: 'Поддержка',
+  OPERATOR: 'Оператор',
 };
 
 export default async function OperatorLayout({ children }: { children: ReactNode }) {

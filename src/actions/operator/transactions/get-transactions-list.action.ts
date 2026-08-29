@@ -59,7 +59,7 @@ export async function getTransactionsListAction(
   params: Partial<LedgerParams>
 ): Promise<LedgerPageResult | { success: false; error: string }> {
   try {
-    const result = await requireOperatorPermission('orders', 'view', async () => {
+    const result = await requireOperatorPermission<LedgerPageResult>('orders', 'view', async () => {
       const p = ledgerParamsSchema.parse(params);
       const periodStart = getPeriodStart(p.period);
       const searchTrim = p.search?.trim();

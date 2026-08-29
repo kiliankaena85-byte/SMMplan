@@ -1,8 +1,14 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-29 20:45 (МСК)  
-> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🚀 LAUNCH READY / PRODUCTION OPENED (`smmplan.pro` LIVE) + 🛡️ SELF-LEARNING IMMUNITY ENGINE INTEGRATED + 💳 YOOKASSA LIVE E2E VERIFIED + 🎯 LINK TARGET TYPE & CATEGORY FILTERING ENFORCED (Telegram Channel -> Auto-views/Subscribers only; Post -> Views/Reactions only) + 🔒 5 FRESH PENTEST-10 JWT TOKENS PROVISIONED.
+> **Последнее обновление:** 2026-08-29 22:02 (МСК)  
+> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🚀 LAUNCH READY / PRODUCTION OPENED (`smmplan.pro` LIVE) + 🛡️ SELF-LEARNING IMMUNITY ENGINE INTEGRATED + 💳 YOOKASSA LIVE E2E VERIFIED + 🎯 LINK TARGET TYPE & 2026 FORMATS INTELLIGENCE + 🎨 SMMPLAN ORDER MODAL MULTI-AI AUDIT & OPTIMIZATION VERIFIED.
+
+- **Оптимизация UI/UX модального окна заказа SMMplan (CheckoutDrawer & Subcomponents):**
+  - **`DrawerQuantityCard.tsx`:** Цена за единицу строго зафиксирована на базовой розничной цене (`selectedService.pricePerUnitRub ₽ / шт`), скидка отображается отдельным бейджем (`Скидка −X ₽`), добавлен `handleInputBlur` clamp с учетом Drip-Feed множителя.
+  - **`DrawerFooter.tsx`:** Внедрено перечеркивание исходной цены со скидочным бейджем (`−X%`), кнопка оплаты всегда остается активной для мгновенной обратной связи.
+  - **`DrawerFormInputs.tsx`:** Добавлен живой счетчик строк/комментариев в реальном времени с индикацией выполнения минимального порога (`linesCount` / `minQty`), добавлена подсказка для опросов/голосований (`isPoll`).
+  - **Верификация:** `npx tsc --noEmit` (**0 ошибок**), `npm run audit:immunity` (**6/6 PASS**), `npm run test` (**100% PASS**), `npm run build` (**100% PASS Standalone Build + 0 Leaks**).
 
 - **Автономный фоновый робот-сторож мониторинга РФ (GeoAvailability Watchdog & BullMQ Daemon):**
   - Разработан и активирован фоновый процессор `geo-availability.processor.ts`, запускаемый по расписанию BullMQ каждые 5 минут (`ensureGeoAvailabilityCron`).
