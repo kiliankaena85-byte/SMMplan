@@ -197,7 +197,7 @@
 ---
 
 ## 12 Критических Правил и Инвариантов Проекта
-1. **Multi-Tenant (Строго 2 бренда):** `smmplan` (`smmplan.pro`) и `flux` (`smmflux.ru`). Переключение в шапке через `<GlobalSiteSwitcher />` (кука `x_admin_tenant`).
+1. **Multi-Tenant (Строго 2 равноправных бренда, No B2B Classification):** `smmplan` (`smmplan.pro`) и `flux` (`smmflux.ru`). Деления на B2B и B2C нет — это две независимые витрины. Переключение в шапке через `<GlobalSiteSwitcher />` (кука `x_admin_tenant`).
 2. **UI Pricing Contract:** Цена за 1 штуку (`pricePerUnitRub`) с подписью `₽ / шт`. Запрещено умножать на 1000 на клиенте.
 3. **Shadow Catalog & Cherry-Pick:** Сырые каталоги (5000+ услуг) буферизуются в Redis (`provider:{id}:catalog`). В PostgreSQL `Service` попадают только проверенные услуги.
 4. **No Horizontal Scroll Rule:** Таблицы на 100% ширины видимого экрана без обрезания колонок и скрытых кнопок.
@@ -209,4 +209,13 @@
 10. **Zero 0.0.0.0 Redirect Leak & Reverse Proxy Armor:** Все редиректы авторизации (`/api/auth/logout`, `/admin`, QA Dock) обязаны разрешаться в относительные пути (`/login`) или публичный домен бренда (`test.smmplan.pro` / `smmflux.ru`) с жесткой фильтрацией `0.0.0.0` и `host.docker.internal`.
 11. **Deterministic Banker's Rounding & Anti-Zero-Charge Floor:** Все финансовые расчеты стоимости заказов обязаны использовать `ExactMath.calculateOrderCostKopecks()` с округлением Round-Half-to-Even, базисными пунктами наценок и защитным порогом $\ge 1$ коп. на заказ.
 12. **Zero-Hallucination Source Verification Hierarchy (Rule of 3 Tiers):** При работе с внешними техническими, платежными или бухгалтерскими интеграциями агент ОБЯЗАН следовать 3-уровневой иерархии: Уровень 1 — Официальная документация (yookassa.ru/developers, docs.robokassa.ru); Уровень 2 — Поиск в интернете; Уровень 3 — Память агента с обязательной пометкой гипотезы и верификацией. Запрещено доверять устаревшим протоколам (SOAP/XML) без сверки с официальной документацией.
+
+---
+
+## 📋 Бэклог задач (Backlog)
+1. **[REFACTOR-B2B-CLEANUP] Удаление упоминаний B2B и унификация терминологии:**
+   - Очистить код и документацию от упоминаний термина `b2b`.
+   - Заменить `b2b-auth` $\rightarrow$ `api-auth` / `panel-auth`.
+   - Заменить `b2bRequestLog` $\rightarrow$ `apiRequestLog`.
+   - Заменить в текстах и комментариях «B2B-портал / B2B API» на «Panel API / SMM API v2» и «витрина SMMplan».
 

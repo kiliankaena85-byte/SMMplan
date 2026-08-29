@@ -55,8 +55,10 @@
   - *Решение:* В UI всегда выводится цена за 1 штуку (`pricePerUnitRub` = `pricePer1kRub / 1000`), подпись строго: `₽ / шт`.
   - *Табу:* Никогда не писать `/ 1000 шт` и не умножать цену на 1000 на стороне клиента.
 
-- **Multi-Tenant Routing (SMMplan & SMMflux):**
-  - *Решение:* Бренда Lovable больше нет. Используются только `smmplan` (smmplan.pro) и `flux` (smmflux.ru). Алиас `lovable` мягко мапится на `flux`.
+- **Multi-Tenant Routing & Равноправие брендов (No B2B Classification):**
+  - *Решение:* В платформе OmniSMM 1.0 **нет деления на B2B и B2C**. Есть **два равноправных независимых тенанта**: **SMMplan** (`smmplan.pro`) и **SMMflux** (`smmflux.ru`). Бренда Lovable больше нет (алиас `lovable` мапится на `flux`).
+  - *Инвариант:* Запрещено называть SMMplan «B2B-платформой», а SMMflux «B2C/розничной витриной». Это просто два разных тенанта со своей визуальной идентичностью и аудиторией на общем ядре OmniSMM.
+  - *Бэклог:* Запланировано удаление устаревших упоминаний `b2b` из кода и документации (замена на Panel API / SMM API v2, `api-auth`, `apiRequestLog`).
   - *Правило:* Canonical URLs всегда абсолютные через `absoluteCanonical(tenantId, path)`. Хардкод хостов запрещен.
 
 - **Cloudflare Tunnel (cloudflared) Exclusivity:**
