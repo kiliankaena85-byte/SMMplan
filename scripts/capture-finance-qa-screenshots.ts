@@ -9,7 +9,7 @@ async function main() {
   const artifactDir = 'C:/Users/Артём/.gemini/antigravity/brain/94b4db79-7a02-4bc2-a8e3-43afbae751e5';
   if (!fs.existsSync(artifactDir)) fs.mkdirSync(artifactDir, { recursive: true });
 
-  const QA_SECRET = 'secret_qdocker_qa2026';
+  const QA_SECRET = process.env.QA_SECRET || '';
   const testEmail = 'client_1787806229510@smmplan.local';
 
   // --------------------------------------------------------------------------
