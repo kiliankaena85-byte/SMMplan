@@ -22,6 +22,8 @@ const TRUSTED_CONTOUR_MAP: Record<ContourId, Set<string>> = {
     'test-flux.smmplan.pro',
     'localhost',
     '127.0.0.1',
+    '0.0.0.0',
+    'host.docker.internal',
   ]),
   prod: new Set([
     'smmplan.pro',
@@ -49,7 +51,9 @@ const ALLOWED_CONTOUR_DOMAINS = new Set([
   'smmflux.local',
   'flux.local',
   'localhost',
-  '127.0.0.1'
+  '127.0.0.1',
+  '0.0.0.0',
+  'host.docker.internal'
 ]);
 
 function getActiveServerContour(): ContourId {
@@ -79,11 +83,12 @@ export async function proxy(request: NextRequest) {
   const fwdHost = request.headers.get('x-forwarded-host');
   const fwdProto = request.headers.get('x-forwarded-proto');
 
-  let host = hostHeader || fwdHost || '';
-  if (host.includes('0.0.0.0') || host.includes('host.docker.internal')) {
-    host = process.env.NODE_ENV === 'production' 
-      ? (process.env.APP_URL ? new URL(process.env.APP_URL).host : 'test.smmplan.pro') 
-      : 'localhost:3000';
+  let host = (fwdHost && !fwdHost.includes('0.0.0.0') && !fwdHost.includes('host.docker.internal'))
+    ? fwdHost
+    : (hostHeader || '');
+
+  if (host.includes('0.0.0.0') || host.includes('host.docker.internal') || !host) {
+    host = process.env.APP_URL ? new URL(process.env.APP_URL).host : 'test.smmplan.pro';
   }
 
   const proto = fwdProto || (process.env.NODE_ENV === 'production' && !host.includes('localhost') ? 'https' : 'http');
@@ -163,10 +168,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden: Invalid Host header' }, { status: 403 });
   }
 
+  const isInternalHost = (h: string) => h.includes('docker') || h.includes('localhost') || h.includes('127.0.0.1') || h.includes('0.0.0.0');
+
   // Cross-contour spoofing check (e.g. connecting to smmplan.pro with Host: test.smmplan.pro or vice versa)
   if (rawHostClean && rawFwdClean && rawHostClean !== rawFwdClean) {
-    const isInternal = rawFwdClean.includes('docker') || rawFwdClean.includes('localhost') || rawFwdClean.includes('127.0.0.1');
-    if (!isInternal) {
+    if (!isInternalHost(rawFwdClean) && !isInternalHost(rawHostClean)) {
       return NextResponse.json(
         { error: 'Forbidden: Cross-contour host header spoofing detected' },
         { status: 403 }
@@ -177,9 +183,9 @@ export async function proxy(request: NextRequest) {
   // Strict validation against current active server contour (TRUSTED_CONTOUR_MAP)
   const activeContour = getActiveServerContour();
   const allowedForContour = TRUSTED_CONTOUR_MAP[activeContour];
-  const isDevOrTestBypass = !isLocalhost && process.env.NODE_ENV !== 'production';
+  const effectiveHost = (rawFwdClean && !isInternalHost(rawFwdClean)) ? rawFwdClean : rawHostClean;
 
-  if (rawHostClean && allowedForContour && !allowedForContour.has(rawHostClean) && !isDevOrTestBypass) {
+  if (effectiveHost && allowedForContour && !isInternalHost(effectiveHost) && !allowedForContour.has(effectiveHost)) {
     if (process.env.NODE_ENV === 'production') {
       return NextResponse.json(
         { error: 'Forbidden: Host not permitted for active server contour' },
@@ -188,9 +194,24 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // 1. Instant UI Logout Interception (/logout UI link) -> Redirect to /api/auth/logout to delete DB session
-  if (pathname === '/logout') {
-    return NextResponse.redirect(resolveRedirectUrl('/api/auth/logout'), 307);
+  // 1. Instant UI Logout Interception (/logout or /api/auth/logout)
+  if (pathname === '/logout' || pathname === '/api/auth/logout') {
+    const res = NextResponse.redirect(resolveRedirectUrl(ROUTES.AUTH.LOGIN), 307);
+    res.cookies.set('explicit_logout', 'true', {
+      path: '/',
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 5, // 5 minutes
+    });
+    res.cookies.set('session_token', '', {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 0,
+    });
+    return applyStickyCookie(res);
   }
 
   // 1.5 Production Maintenance Gate
