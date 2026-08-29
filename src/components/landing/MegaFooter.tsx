@@ -143,7 +143,7 @@ export function MegaFooter({
         <div className="flex flex-col gap-1">
           <p className="text-sm font-bold text-foreground">© {new Date().getFullYear()} {brandName}. Все права защищены.</p>
           <p className="text-xs text-foreground/70 font-medium">
-            {contactSettings?.COMPANY_NAME || "ООО \"СММ План\""} (ИНН: {inn}{ogrnip ? ` / ОГРНИП: ${ogrnip}` : ""})
+            {contactSettings?.COMPANY_NAME || "ИП Соколов Артём Андреевич"} (ИНН: {inn}{ogrnip ? ` / ОГРНИП: ${ogrnip}` : ""})
           </p>
         </div>
         <p className="flex items-center gap-1 text-foreground/80 font-semibold">Designed with <span className="text-red-500">❤</span> for Organic Growth</p>

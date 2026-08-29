@@ -72047,10 +72047,10 @@ var init_settings = __esm({
                 contactPrivacyEmail: defaultPrivacyEmail,
                 contactTelegramBot: defaultBot,
                 contactTelegramChannel: defaultChannel,
-                legalCompanyName: defaultName,
-                legalCompanyInn: "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0418\u041D\u041D",
-                legalCompanyOgrnip: "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u041E\u0413\u0420\u041D\u0418\u041F",
-                legalCompanyAddress: "\u0433. \u041C\u043E\u0441\u043A\u0432\u0430"
+                legalCompanyName: "\u0418\u041F \u0421\u043E\u043A\u043E\u043B\u043E\u0432 \u0410\u0440\u0442\u0451\u043C \u0410\u043D\u0434\u0440\u0435\u0435\u0432\u0438\u0447",
+                legalCompanyInn: "695006320024",
+                legalCompanyOgrnip: "324690000021650",
+                legalCompanyAddress: "\u0420\u043E\u0441\u0441\u0438\u0439\u0441\u043A\u0430\u044F \u0424\u0435\u0434\u0435\u0440\u0430\u0446\u0438\u044F, \u0422\u0432\u0435\u0440\u0441\u043A\u0430\u044F \u043E\u0431\u043B\u0430\u0441\u0442\u044C, \u0433. \u0422\u0432\u0435\u0440\u044C"
               }
             });
           },

@@ -169,8 +169,8 @@ export function FluxCyberFooter({
       <div className="max-w-7xl mx-auto px-4 md:px-8 border-t border-neutral-800/80 pt-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-neutral-400 relative z-10">
         <div className="flex flex-col gap-1">
           <p className="font-bold text-neutral-200">© {new Date().getFullYear()} {brandName}. Все права защищены.</p>
-          <p className="text-[11px] text-neutral-400">
-            {contactSettings?.COMPANY_NAME || "ИП Соколов А. А."} (ИНН: {inn}{ogrnip ? ` / ОГРНИП: ${ogrnip}` : ""})
+          <p className="text-xs text-foreground/70 font-medium">
+            {contactSettings?.COMPANY_NAME || "ИП Соколов Артём Андреевич"} (ИНН: {inn}{ogrnip ? ` / ОГРНИП: ${ogrnip}` : ""})
           </p>
         </div>
         

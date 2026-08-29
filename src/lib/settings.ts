@@ -110,10 +110,10 @@ export class SettingsProvider {
           contactPrivacyEmail: defaultPrivacyEmail,
           contactTelegramBot: defaultBot,
           contactTelegramChannel: defaultChannel,
-          legalCompanyName: defaultName,
-          legalCompanyInn: "Укажите ИНН",
-          legalCompanyOgrnip: "Укажите ОГРНИП",
-          legalCompanyAddress: "г. Москва",
+          legalCompanyName: "ИП Соколов Артём Андреевич",
+          legalCompanyInn: "695006320024",
+          legalCompanyOgrnip: "324690000021650",
+          legalCompanyAddress: "Российская Федерация, Тверская область, г. Тверь",
         }
       });
     },

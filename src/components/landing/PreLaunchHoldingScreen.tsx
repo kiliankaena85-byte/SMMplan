@@ -4,12 +4,9 @@ import * as React from 'react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Rocket, 
   Sparkles, 
   ShieldCheck, 
   Zap, 
-  Bot, 
-  FileText, 
   CheckCircle2, 
   Send, 
   Mail, 
@@ -17,6 +14,7 @@ import {
   Lock,
   Flame,
   Clock,
+  Sliders,
   Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -101,12 +99,9 @@ export function PreLaunchHoldingScreen({
           <div className="flex flex-col">
             <span className="font-extrabold text-xl tracking-tight text-foreground flex items-center gap-2">
               {siteName}
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 border border-primary/30 text-primary font-bold tracking-wider uppercase">
-                Экосистема
-              </span>
             </span>
             <span className="text-[11px] text-muted-foreground font-medium">
-              Оптовая экосистема SMM-продвижения
+              SMM-панель для продвижения в социальных сетях
             </span>
           </div>
         </div>
@@ -133,7 +128,7 @@ export function PreLaunchHoldingScreen({
           className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/25 text-primary text-xs font-bold mb-6 shadow-inner backdrop-blur-md"
         >
           <Flame className="w-4 h-4 text-amber-500 animate-pulse" />
-          <span>Скоро официальное открытие • Релиз Сентябрь 2026</span>
+          <span>Скоро официальное открытие • Релиз в 2026 году</span>
         </motion.div>
 
         {/* Hero Title */}
@@ -143,10 +138,10 @@ export function PreLaunchHoldingScreen({
           transition={{ duration: 0.5, delay: 0.1 }}
           className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-foreground leading-[1.15] mb-6"
         >
-          Первая оптовая платформа <br className="hidden sm:inline" />
-          продвижения{' '}
+          Удобная SMM-панель <br className="hidden sm:inline" />
+          для продвижения{' '}
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-500 to-cyan-400">
-            по себестоимости
+            в социальных сетях
           </span>
         </motion.h1>
 
@@ -157,7 +152,7 @@ export function PreLaunchHoldingScreen({
           transition={{ duration: 0.5, delay: 0.2 }}
           className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-2xl leading-relaxed mb-8"
         >
-          Прямое подключение к шлюзам поставщиков без посредников. Автоматические докрутки, ЭДО с НДС 22% и нейросетевой AI Co-Pilot для управления кампаниями.
+          Проверенные поставщики услуг, интеллектуальный подбор тарифов, честные цены за 1 штуку и круглосуточная поддержка в Telegram.
         </motion.p>
 
         {/* Readiness Progress Bar */}
@@ -170,15 +165,15 @@ export function PreLaunchHoldingScreen({
           <div className="flex items-center justify-between text-xs font-semibold mb-2">
             <span className="text-foreground flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-primary" />
-              Готовность ядра платформы:
+              Готовность платформы:
             </span>
-            <span className="text-primary font-bold">96% (Закрытый аудит)</span>
+            <span className="text-primary font-bold">96%</span>
           </div>
           <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden p-0.5">
             <div className="h-full bg-gradient-to-r from-primary via-blue-500 to-emerald-400 rounded-full w-[96%] animate-pulse" />
           </div>
           <p className="text-[10px] text-muted-foreground mt-2 text-left">
-            Финальное тестирование платежных шлюзов, RBAC-безопасности и API v2.
+            Финальное тестирование провайдеров, систем оплаты и Telegram-бота.
           </p>
         </motion.div>
 
@@ -200,7 +195,7 @@ export function PreLaunchHoldingScreen({
                     Получите доступ в числе первых
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    Оставьте почту, чтобы получить инвайт в закрытый бета-тест и{' '}
+                    Оставьте почту, чтобы получить инвайт к запуску и{' '}
                     <strong className="text-foreground font-semibold">1 000 ₽ бонуса</strong> на стартовый баланс.
                   </p>
                 </div>
@@ -212,7 +207,7 @@ export function PreLaunchHoldingScreen({
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Введите ваш рабочий email..."
+                      placeholder="Введите ваш email..."
                       required
                       className="w-full min-h-[48px] pl-10 pr-4 rounded-xl bg-background/80 border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-foreground text-xs sm:text-sm font-medium transition-all"
                     />
@@ -244,7 +239,7 @@ export function PreLaunchHoldingScreen({
                   />
                   <span>
                     Согласен на получение уведомления об открытии и обработку данных в соответствии с{' '}
-                    <Link href="/privacy" className="text-primary hover:underline">
+                    <Link href="/legal/privacy" className="text-primary hover:underline">
                       Политикой конфиденциальности (152-ФЗ)
                     </Link>.
                   </span>
@@ -261,7 +256,7 @@ export function PreLaunchHoldingScreen({
                 </div>
                 <h3 className="text-lg font-black text-foreground">Заявка принята!</h3>
                 <p className="text-xs text-muted-foreground max-w-md">
-                  Мы отправили подтверждение на <span className="font-semibold text-foreground">{email}</span>. В день запуска вы получите письмо со специальной ссылкой для активации приветственного баланса 1 000 ₽.
+                  Мы отправили подтверждение на <span className="font-semibold text-foreground">{email}</span>. В день запуска вы получите письмо для активации приветственного баланса 1 000 ₽.
                 </p>
                 <a
                   href={telegramUrl}
@@ -277,16 +272,16 @@ export function PreLaunchHoldingScreen({
           </AnimatePresence>
         </motion.div>
 
-        {/* ── 4 Key Teasers Grid ── */}
+        {/* ── 4 Accurate Feature Cards ── */}
         <div className="w-full max-w-5xl mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
           
           <div className="bg-card/40 border border-border/40 rounded-2xl p-5 backdrop-blur-sm hover:border-primary/30 transition-all duration-300 group">
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
               <Zap className="w-5 h-5" />
             </div>
-            <h4 className="font-bold text-sm text-foreground mb-1">Оптовые цены</h4>
+            <h4 className="font-bold text-sm text-foreground mb-1">Честные цены</h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Прямые тарифы от 0.001 ₽ за 1 шт. Без наценок посредников и скрытых комиссий.
+              Прозрачные розничные цены за 1 шт. Без скрытых комиссий и лишних переплат.
             </p>
           </div>
 
@@ -294,29 +289,29 @@ export function PreLaunchHoldingScreen({
             <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
               <ShieldCheck className="w-5 h-5" />
             </div>
-            <h4 className="font-bold text-sm text-foreground mb-1">Гарантия и Докрутки</h4>
+            <h4 className="font-bold text-sm text-foreground mb-1">Интеллектуальный подбор</h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Автоматический мониторинг списаний 24/7 и мгновенное восполнение объема по кнопке.
+              Удобная система фильтрации и подбора проверенных услуг по скорости и гарантии.
             </p>
           </div>
 
           <div className="bg-card/40 border border-border/40 rounded-2xl p-5 backdrop-blur-sm hover:border-primary/30 transition-all duration-300 group">
             <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-              <Bot className="w-5 h-5" />
+              <Sliders className="w-5 h-5" />
             </div>
-            <h4 className="font-bold text-sm text-foreground mb-1">OmniSMM AI Co-Pilot</h4>
+            <h4 className="font-bold text-sm text-foreground mb-1">Гибкие настройки</h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Встроенный ИИ-помощник: аналитика каналов, умное распределение задач и смарт-дрейп.
+              Пошаговый мастер заказа, плавное распределение (Drip-Feed) и отслеживание статуса.
             </p>
           </div>
 
           <div className="bg-card/40 border border-border/40 rounded-2xl p-5 backdrop-blur-sm hover:border-primary/30 transition-all duration-300 group">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-              <FileText className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <MessageSquare className="w-5 h-5" />
             </div>
-            <h4 className="font-bold text-sm text-foreground mb-1">Безналичный расчет & ЭДО</h4>
+            <h4 className="font-bold text-sm text-foreground mb-1">Поддержка в Telegram</h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Оплата картами, СБП и по счету для юрлиц и ИП, чеки 54-ФЗ с НДС 22%, закрывающие акты.
+              Круглосуточный бот поддержки, уведомления о заказах и оперативная связь с командой.
             </p>
           </div>
 
@@ -325,10 +320,10 @@ export function PreLaunchHoldingScreen({
 
       {/* ── Footer ── */}
       <footer className="relative z-10 w-full border-t border-border/30 mt-12 py-8 bg-card/20 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Инфраструктура: Серверы в РФ и ЕС активны</span>
+            <span>Инфраструктура активна</span>
           </div>
 
           <div className="flex items-center gap-6">
@@ -350,8 +345,11 @@ export function PreLaunchHoldingScreen({
             </a>
           </div>
 
-          <div>
-            © {new Date().getFullYear()} {siteName}. Все права защищены.
+          <div className="flex flex-col sm:flex-row items-center gap-2 text-center md:text-right">
+            <div>© {new Date().getFullYear()} {siteName}. Все права защищены.</div>
+            <div className="text-[11px] text-muted-foreground/80 font-medium">
+              ИП Соколов Артём Андреевич (ИНН: 695006320024 / ОГРНИП: 324690000021650)
+            </div>
           </div>
         </div>
       </footer>
