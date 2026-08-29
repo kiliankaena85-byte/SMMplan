@@ -542,7 +542,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="Например: VexBoost"
+              placeholder="Например: Основной поставщик"
               className={`${inputCls} ${fieldErrors.name ? 'border-destructive focus:ring-destructive/20' : ''}`}
               aria-label="Название провайдера"
             />

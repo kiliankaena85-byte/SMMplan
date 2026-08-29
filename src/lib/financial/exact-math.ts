@@ -14,15 +14,29 @@ export class ExactMath {
    * e.g., 12.34 RUB -> 1234n kopecks.
    */
   public static rublesToKopecks(rub: number | string): bigint {
-    const num = typeof rub === 'string' ? parseFloat(rub) : rub;
-    if (!Number.isFinite(num)) {
+    if (typeof rub === 'string') {
+      const trimmed = rub.trim();
+      const num = parseFloat(trimmed);
+      if (!Number.isFinite(num)) {
+        throw new Error(`Invalid monetary amount: ${rub}`);
+      }
+      if (num < 0) {
+        throw new Error(`Negative monetary amounts are forbidden: ${rub}`);
+      }
+      const fixed = num.toFixed(2);
+      const [whole, frac = '00'] = fixed.split('.');
+      return BigInt(whole) * BigInt(100) + BigInt(frac);
+    }
+    if (!Number.isFinite(rub)) {
       throw new Error(`Invalid monetary amount: ${rub}`);
     }
-    if (num < 0) {
+    if (rub < 0) {
       throw new Error(`Negative monetary amounts are forbidden: ${rub}`);
     }
-    // Round to avoid float precision issues before multiplying
-    return BigInt(Math.round(num * 100));
+    // String-fixed decomposition eliminates IEEE-754 floating-point drift
+    const fixed = rub.toFixed(2);
+    const [whole, frac = '00'] = fixed.split('.');
+    return BigInt(whole) * BigInt(100) + BigInt(frac);
   }
 
   /**
@@ -31,6 +45,19 @@ export class ExactMath {
    */
   public static kopecksToRubles(kopecks: bigint): number {
     return Number(kopecks) / 100;
+  }
+
+  /**
+   * Converts BigInt kopecks to exact 2-decimal rubles string without IEEE-754 loss.
+   * e.g., 123456n kopecks -> "1234.56" RUB.
+   */
+  public static kopecksToRublesString(kopecks: bigint): string {
+    const isNegative = kopecks < BigInt(0);
+    const absKop = isNegative ? -kopecks : kopecks;
+    const whole = absKop / BigInt(100);
+    const frac = absKop % BigInt(100);
+    const fracStr = frac < BigInt(10) ? `0${frac}` : `${frac}`;
+    return `${isNegative ? '-' : ''}${whole}.${fracStr}`;
   }
 
   /**

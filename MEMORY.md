@@ -55,6 +55,12 @@
   - *Табу:* Категорически запрещено использовать сторонние туннели (SSH reverse tunnels, ngrok, localtunnel и прочее). Всегда запускать и проверять `cloudflared.exe`.
 
 - **4-Level Taxonomy & Smart Provider Matcher:**
+- **Automated Category Auto-Creation & Catch-All Taxonomy Protection:**
+  - *Решение:*
+    1. **Level 1 (Data Migration):** Скрипт `scripts/fix-catchall-categories.ts` разбивает catch-all категории на целевые по `activityType` (SUBSCRIBERS, LIKES, VIEWS, REACTIONS, BOOSTS, BOTS, etc.) на основе нормализованных данных `ShadowService` и JSON-поля `features.category`.
+    2. **Level 2 (UI Shield):** В `ImportWizard` встроен детектор `detectMixedCategoryTypes`, который выявляет попытки импортировать разнородные типы услуг в одну категорию и отображает интерактивный предупреждающий баннер со структурой типов.
+    3. **Level 3 (Backend Auto-Split):** В `catalog.service.ts` метод `ensureCategoryForActivityType` автоматически создает и связывает отдельные категории по типам активности для соцсети при импорте, предотвращая появление "свалок" услуг.
+  - *Причина:* Исключение деградации UX в визарде заказа (`/dashboard/new-order`), когда при выборе соцсети отображается одна категория со всеми услугами вперемешку.
 - **Modal Hoisting & Global Portal Boundary Rule:**
   - *Решение:* Модальные окна (`Modal`, `Dialog`) категорически запрещено рендерить внутри контекстных дропдаунов (`DropdownMenuContent`, `Popover`, `Tooltip`). Состояние открытия модалов всегда поднимается на уровень экрана (`State Lifting` в `unified-workspace.tsx` или через глобальный store), а кнопки дропдауна вызывают колбэки `onOpenModal={() => ...}`.
   - *Причина:* Закрытие `DropdownMenu` при клике немедленно анмаунтирует всё своё поддерево, приводя к крашу `Modal` или зажатию модалки в узких границах контейнера (`Context Clamping`).

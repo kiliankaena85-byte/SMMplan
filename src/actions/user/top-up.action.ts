@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { getBaseUrlAsync } from "@/utils/get-base-url";
 import { getClientIp } from "@/utils/ip";
 import { RateLimitService } from "@/services/core/rate-limit.service";
+import { ExactMath } from "@/lib/financial/exact-math";
 
 export async function createTopUpPaymentAction(
   amountRub: number,
@@ -22,7 +23,7 @@ export async function createTopUpPaymentAction(
     throw new Error("Некорректная сумма пополнения");
   }
 
-  const amountCents = Math.round(amountRub * 100);
+  const amountCents = Number(ExactMath.rublesToKopecks(amountRub));
   if (amountCents < 1000) throw new Error("Минимальная сумма пополнения — 10 ₽");
 
   // Fetch user

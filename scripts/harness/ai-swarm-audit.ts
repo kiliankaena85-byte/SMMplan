@@ -272,7 +272,13 @@ function parseAndNormalizeArbiter(raw: string): CTOArbiterConsensusOutput {
     arbiterPersona: 'CTO Arbiter & Chief Synthesizer (Inkling)',
     overallVerdict: validVerdict,
     consensusScore: validScore,
-    executiveSummary: obj.executiveSummary || obj.summary || 'Debate concluded with actionable synthesis.',
+    executiveSummary: typeof obj.executiveSummary === 'string'
+      ? obj.executiveSummary
+      : typeof obj.summary === 'string'
+      ? obj.summary
+      : obj.executiveSummary
+      ? JSON.stringify(obj.executiveSummary)
+      : 'Debate concluded with actionable synthesis.',
     actionableFixes,
     acceptedTradeOffs,
     unresolvedDebates: Array.isArray(obj.unresolvedDebates) ? obj.unresolvedDebates : [],
@@ -299,18 +305,14 @@ async function callOpenRouterWithFallback(config: ModelCallConfig): Promise<stri
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   const payload: Record<string, any> = {
-    models: models.slice(0, 3), // OpenRouter supports up to 3 fallback models
+    model: models[0],
+    models: models.slice(0, 3), // OpenRouter supports fallback models
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
     ],
-    response_format: { type: 'json_object' },
     temperature,
   };
-
-  if (enableReasoning) {
-    payload.reasoning = { enabled: true };
-  }
 
   try {
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -341,12 +343,12 @@ async function callOpenRouterWithFallback(config: ModelCallConfig): Promise<stri
   } catch (err: any) {
     clearTimeout(timeout);
     
-    // Failover to Gemini direct API (Antigravity Native) if OpenRouter rate-limited
+    // Failover to Gemini direct API (Antigravity Native gemini-3-flash) if OpenRouter rate-limited
     const geminiKey = process.env.GEMINI_API_KEY;
     if (geminiKey) {
-      console.warn(`\x1b[33m⚠️ [Swarm Engine] OpenRouter unavailable (${err.message.slice(0, 80)}). Failing over to Antigravity Native Engine (Gemini)...\x1b[0m`);
+      console.warn(`\x1b[33m⚠️ [Swarm Engine] OpenRouter unavailable (${err.message.slice(0, 80)}). Failing over to Antigravity Native Engine (gemini-3-flash)...\x1b[0m`);
       try {
-        const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
+        const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=${geminiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -364,10 +366,32 @@ async function callOpenRouterWithFallback(config: ModelCallConfig): Promise<stri
           const gJson = await geminiRes.json();
           const gContent = gJson.candidates?.[0]?.content?.parts?.[0]?.text;
           if (gContent) {
-            console.log(`\x1b[32m✔ [Antigravity Engine] Generated response via Gemini.\x1b[0m`);
+            console.log(`\x1b[32m✔ [Antigravity Engine] Generated response via gemini-3-flash.\x1b[0m`);
             return gContent;
           }
         } else {
+          // Fallback to gemini-2.5-flash if gemini-3-flash endpoint preview differs
+          const g2Res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                { role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }
+              ],
+              generationConfig: {
+                responseMimeType: 'application/json',
+                temperature: 0.1,
+              }
+            })
+          });
+          if (g2Res.ok) {
+            const g2Json = await g2Res.json();
+            const g2Content = g2Json.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (g2Content) {
+              console.log(`\x1b[32m✔ [Antigravity Engine] Generated response via Gemini.\x1b[0m`);
+              return g2Content;
+            }
+          }
           const gErr = await geminiRes.text();
           console.error(`\x1b[31m❌ [Antigravity Engine] Gemini HTTP ${geminiRes.status}: ${gErr.slice(0, 200)}\x1b[0m`);
         }
@@ -398,15 +422,15 @@ function getGitTargetDiff(): string {
     // ignore
   }
 
-  return `// SMMplan Financial Math & Exact Kopecks
-export class ExactMath {
-  public static readonly MICRO_SCALE = 10000n;
-  public static calculateOrderCostKopecks(qty: bigint, ratePer1k: bigint, marginBps: bigint = 0n) {
-    const base = (qty * ratePer1k * 10000n) / 1000n;
-    const effective = (base * (10000n + marginBps)) / 10000n;
-    return (effective + 5000n) / 10000n;
+  // Fallback to recent key files
+  try {
+    const linkRules = fs.readFileSync(path.resolve(process.cwd(), 'src/services/analyzer/link-rules.ts'), 'utf8');
+    const exactMath = fs.readFileSync(path.resolve(process.cwd(), 'src/lib/financial/exact-math.ts'), 'utf8');
+    const safeRegex = fs.readFileSync(path.resolve(process.cwd(), 'src/services/analyzer/safe-regex.validator.ts'), 'utf8');
+    return `// SMMplan Global Link Rules & Multi-Platform\n${linkRules.slice(0, 5000)}\n\n// ExactMath\n${exactMath.slice(0, 3000)}\n\n// SafeRegexValidator\n${safeRegex.slice(0, 3000)}`;
+  } catch {
+    return '// SMMplan Core Engine Invariants';
   }
-}`;
 }
 
 // ============================================================================
@@ -415,20 +439,20 @@ export class ExactMath {
 
 async function runAdversarialDebate() {
   console.log('\n\x1b[1m\x1b[35m======================================================================\x1b[0m');
-  console.log('\x1b[1m\x1b[35m   ⚔️  SMMplan Adversarial Swarm Debate Engine (Round Table v2)   \x1b[0m');
+  console.log('\x1b[1m\x1b[35m   ⚔️  OmniSMM 1.0 Adversarial Swarm Debate Engine (Round Table v2)   \x1b[0m');
   console.log('\x1b[1m\x1b[35m======================================================================\x1b[0m\n');
 
   const diff = getGitTargetDiff();
-  const truncatedDiff = diff.slice(0, 14000);
+  const truncatedDiff = diff.slice(0, 16000);
   console.log(`📦 Ingested target diff (${diff.length} bytes, analyzed slice: ${truncatedDiff.length} bytes)\n`);
 
   // --------------------------------------------------------------------------
   // ROUND 1: RED TEAM ATTACK
   // --------------------------------------------------------------------------
-  console.log('\x1b[1m\x1b[31m[ROUND 1/3] 🔴 Red Team Attack (GLM-5.2 with Reasoning Enabled)...\x1b[0m');
+  console.log('\x1b[1m\x1b[31m[ROUND 1/3] 🔴 Red Team Attack (MiniMax M3 / GLM-5.2 with 1M Context)...\x1b[0m');
   const r1Start = Date.now();
 
-  const redSystemPrompt = `You are the Lead Adversarial Red Team Security & FinOps Auditor for SMMplan (Next.js 16, React 19, Prisma 5, PostgreSQL, Redis, WalletOps BigInt Ledger).
+  const redSystemPrompt = `You are the Lead Adversarial Red Team Security & FinOps Auditor for OmniSMM 1.0 (Next.js 16, React 19, Prisma 5, PostgreSQL, Redis, WalletOps BigInt Ledger).
 
 MISSION:
 Your sole mandate is ADVERSARIAL ATTACK. Deconstruct the provided code diff and uncover 3 to 5 CONCRETE, REAL-WORLD failure modes.
@@ -438,7 +462,8 @@ CRITICAL INVARIANTS:
 2. TRANSACTION ESCAPE: Forbid db.* inside tx: PrismaTx interactive blocks.
 3. DRIP-FEED: Floor invariant Math.floor(quantity / runs) >= service.minQty must hold.
 4. ZERO-TRUST IDOR: Reject unauthorized access when item.userId exists and session is guest/unmatched.
-5. ZERO 0.0.0.0 LEAKS: Auth redirects must be relative or canonical.
+5. REGEX & REDOS: Links must not trigger catastrophic backtracking.
+6. MULTI-TENANT ISOLATION: Customer notifications must be strictly isolated to user's tenant; Admin alerts come from OmniSMM 1.0.
 
 Output valid JSON matching RedTeamAttackSchema.`;
 
@@ -446,9 +471,10 @@ Output valid JSON matching RedTeamAttackSchema.`;
 
   const redRawResponse = await callOpenRouterWithFallback({
     models: [
-      'z-ai/glm-5.2:free',
-      'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
       'minimax/minimax-m3:free',
+      'z-ai/glm-5.2:free',
+      'poolside/laguna-s-2.1:free',
+      'openrouter/free',
     ],
     systemPrompt: redSystemPrompt,
     userPrompt: redUserPrompt,
@@ -468,16 +494,16 @@ Output valid JSON matching RedTeamAttackSchema.`;
   // --------------------------------------------------------------------------
   // ROUND 2: BLUE TEAM DEFENSE
   // --------------------------------------------------------------------------
-  console.log('\n\x1b[1m\x1b[34m[ROUND 2/3] 🔵 Blue Team Defense (Nemotron 3 Ultra 550B Pragmatic Defense)...\x1b[0m');
+  console.log('\n\x1b[1m\x1b[34m[ROUND 2/3] 🔵 Blue Team Defense (MiniMax M2.7 / Nemotron / Llama Defense)...\x1b[0m');
   const r2Start = Date.now();
 
-  const blueSystemPrompt = `You are the Principal Systems Architect & Production Defense Lead (Blue Team) for SMMplan.
+  const blueSystemPrompt = `You are the Principal Systems Architect & Production Defense Lead (Blue Team) for OmniSMM 1.0.
 
 MISSION:
 Review the Red Team's attack report against the actual code diff. Your mandate is PRAGMATIC PRODUCTION REALISM.
-- If Red Team identified a real P0 bug (race condition, balance leak, IDOR), ACCEPT IT (ACCEPTED_VALID_BUG).
+- If Red Team identified a real P0 bug (race condition, balance leak, IDOR, ReDoS crash), ACCEPT IT (ACCEPTED_VALID_BUG).
 - If Red Team demands unnecessary distributed architectures or premature abstractions, REJECT IT (REJECTED_YAGNI_OVERENGINEERING).
-- Highlight existing DB constraints, Redis locks, or Zod schemas that already mitigate theoretical risks.
+- Highlight existing DB constraints, Redis locks, SafeRegexValidator, or Zod schemas that already mitigate theoretical risks.
 
 Output valid JSON matching BlueTeamDefenseSchema.`;
 
@@ -485,9 +511,10 @@ Output valid JSON matching BlueTeamDefenseSchema.`;
 
   const blueRawResponse = await callOpenRouterWithFallback({
     models: [
+      'minimax/minimax-m2.7:free',
       'nvidia/nemotron-3-ultra-550b-a55b:free',
-      'nvidia/nemotron-3-super-120b-a12b:free',
-      'meta-llama/llama-3.3-70b-instruct:free',
+      'cohere/north-mini-code:free',
+      'openrouter/free',
     ],
     systemPrompt: blueSystemPrompt,
     userPrompt: blueUserPrompt,
@@ -508,16 +535,16 @@ Output valid JSON matching BlueTeamDefenseSchema.`;
   // --------------------------------------------------------------------------
   // ROUND 3: CTO ARBITER CONSENSUS
   // --------------------------------------------------------------------------
-  console.log('\n\x1b[1m\x1b[33m[ROUND 3/3] 👑 CTO Arbiter & Consensus (Inkling Small with Reasoning)...\x1b[0m');
+  console.log('\n\x1b[1m\x1b[35m[ROUND 3/3] ⚖️  CTO Arbiter Consensus (MiniMax M3 / Gemini Synthesis)...\x1b[0m');
   const r3Start = Date.now();
 
-  const ctoSystemPrompt = `You are the Chief Technology Officer (CTO) and Final Arbiter for SMMplan.
+  const ctoSystemPrompt = `You are the Fractional CTO & Chief Arbiter for OmniSMM 1.0.
 
 MISSION:
-Reconcile the debate between Red Team Attack and Blue Team Defense.
-- Separate true P0/P1 blockers from accepted technical trade-offs.
-- Enforce SMMplan invariants (BigInt WalletOps, Drip-Feed Floor, Zero-Trust IDOR).
-- Formulate concrete, minimal patch instructions.
+Read the dialectic debate between Red Team and Blue Team. Synthesize a definitive engineering verdict.
+- Any P0_BLOCKING issues MUST be fixed before shipping.
+- Any P1_REQUIRED issues should be resolved in the current phase or tracked.
+- Distinguish between real operational risk vs academic perfectionism.
 
 Output valid JSON matching CTOArbiterConsensusSchema.`;
 
@@ -525,9 +552,9 @@ Output valid JSON matching CTOArbiterConsensusSchema.`;
 
   const ctoRawResponse = await callOpenRouterWithFallback({
     models: [
-      'thinkingmachines/inkling-small:free',
-      'thinkingmachines/inkling:free',
-      'cohere/north-mini-code:free',
+      'minimax/minimax-m3:free',
+      'poolside/laguna-s-2.1:free',
+      'openrouter/free',
     ],
     systemPrompt: ctoSystemPrompt,
     userPrompt: ctoUserPrompt,

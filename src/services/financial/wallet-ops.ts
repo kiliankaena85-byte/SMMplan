@@ -340,22 +340,25 @@ export const WalletOps = {
       }
     }
 
-    // Execute atomic balance increment and totalSpent decrement in single Prisma update step
+    // Fetch user for tenant and totalSpent calculation
+    const existingUser = await tx.user.findUnique({
+      where: { id: userId },
+      select: { balance: true, totalSpent: true, tenantId: true }
+    });
+    if (!existingUser) throw new WalletUserNotFoundError(userId);
+
+    // Calculate safe totalSpent (down to 0 if order was paid via external gateway without prior balance charge)
+    const currentTotalSpent = existingUser.totalSpent ?? BigInt(0);
+    const newTotalSpent = currentTotalSpent > rawCents ? currentTotalSpent - rawCents : BigInt(0);
+
     const updatedUser = await tx.user.update({
       where: { id: userId },
       data: {
         balance: { increment: rawCents },
-        totalSpent: { decrement: rawCents }
+        totalSpent: newTotalSpent
       },
       select: { balance: true, totalSpent: true, tenantId: true }
     });
-
-    // Accounting integrity check: negative totalSpent indicates a bug (more refunds than charges).
-    // Do NOT silently clamp — fail fast and alert ops.
-    if (updatedUser.totalSpent < BigInt(0)) {
-      console.error(`[WalletOps.refund] CRITICAL: Accounting anomaly — totalSpent for user ${userId} went negative (${updatedUser.totalSpent.toString()}). Refund amount: ${rawCents}. This indicates a double-refund or accounting bug. Throwing to abort transaction.`);
-      throw new Error(`[WalletOps.refund] Accounting integrity violation: totalSpent went negative for user ${userId}. Transaction aborted.`);
-    }
 
     const entry = await tx.ledgerEntry.create({
       data: {

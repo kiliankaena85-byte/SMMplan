@@ -84,23 +84,37 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
 
         if (allExtIds.length === 0) continue;
 
-        // multiStatus API with Timeout
-        const syncStartTime = Date.now();
-        const statuses = await Promise.race([
-          provider.getMultiOrderStatus(allExtIds),
-          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('PROVIDER_TIMEOUT')), 15000))
-        ]);
-        const elapsedMs = Date.now() - syncStartTime;
+        // multiStatus API with Timeout and 2-Tier Fallback
+        let statuses: Record<string, any> = {};
+        try {
+          const syncStartTime = Date.now();
+          statuses = await Promise.race([
+            provider.getMultiOrderStatus(allExtIds),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error('PROVIDER_TIMEOUT')), 15000))
+          ]);
+          const elapsedMs = Date.now() - syncStartTime;
 
-        // Update SLA Monitoring (Success)
-        await db.provider.update({
-          where: { id: providerDef.id },
-          data: {
-            lastSuccessAt: new Date(),
-            errorCount5m: 0, // Reset errors on successful ping
-            avgResponseMs: Math.round(((providerDef.avgResponseMs || 0) * 9 + elapsedMs) / 10),
+          // Update SLA Monitoring (Success)
+          await db.provider.update({
+            where: { id: providerDef.id },
+            data: {
+              lastSuccessAt: new Date(),
+              errorCount5m: 0, // Reset errors on successful ping
+              avgResponseMs: Math.round(((providerDef.avgResponseMs || 0) * 9 + elapsedMs) / 10),
+            }
+          });
+        } catch (batchErr) {
+          log.warn(`[SyncProcessor] Batch status polling failed for ${providerDef.name}, falling back to 1-by-1 query:`, { error: batchErr });
+          // Fallback: poll sequentially so 1 broken ID does not break remaining 49 orders
+          for (const extId of allExtIds) {
+            try {
+              const single = await provider.getOrderStatus(extId);
+              if (single && typeof single === 'object') {
+                statuses[extId] = single;
+              }
+            } catch { /* skip individual failure */ }
           }
-        });
+        }
 
         // 3. Update orders based on responses
         for (const order of ordersBatch) {
@@ -126,10 +140,11 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
                });
              });
           } else if (anyCanceled) {
+             const clampedDripRemains = Math.min(order.quantity, Math.max(0, totalRemainsText));
              await db.$transaction(async (tx) => {
                await safeUpdateOrderStatus(tx, order.id, {
                  status: 'PARTIAL',
-                 remains: totalRemainsText
+                 remains: clampedDripRemains
                });
              });
           }
@@ -187,23 +202,27 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
             }
           });
         } else if (targetStatus === 'PARTIAL') {
-          const validRemains = (remainsNum !== undefined && !isNaN(remainsNum) && remainsNum > 0) ? remainsNum : 0;
+          // Mathematical Boundary Clamp: remains must be between 0 and order.quantity
+          const rawRemains = (remainsNum !== undefined && !isNaN(remainsNum) && remainsNum > 0) ? remainsNum : 0;
+          const safeRemains = Math.min(order.quantity, Math.max(0, rawRemains));
+
           await db.$transaction(async (tx) => {
             const updated = await safeUpdateOrderStatus(tx, order.id, {
               status: 'PARTIAL',
-              remains: validRemains,
+              remains: safeRemains,
               startCount: startCountNum !== undefined && !isNaN(startCountNum) ? startCountNum : undefined
             });
 
             if (updated) {
-              await RefundPolicyService.processRefund({ id: order.id, userId: order.userId, charge: Number(order.charge), quantity: order.quantity, remains: validRemains, status: 'PARTIAL' }, 'Авто-возврат за недовыполненную часть заказа', tx);
+              await RefundPolicyService.processRefund({ id: order.id, userId: order.userId, charge: Number(order.charge), quantity: order.quantity, remains: safeRemains, status: 'PARTIAL' }, 'Авто-возврат за недовыполненную часть заказа', tx);
             }
           });
         } else if (targetStatus === 'IN_PROGRESS') {
+          const safeProgressRemains = (remainsNum !== undefined && !isNaN(remainsNum)) ? Math.min(order.quantity, Math.max(0, remainsNum)) : undefined;
           await db.order.update({
             where: { id: order.id },
             data: {
-              remains: remainsNum !== undefined && !isNaN(remainsNum) ? remainsNum : undefined,
+              remains: safeProgressRemains,
               startCount: startCountNum !== undefined && !isNaN(startCountNum) ? startCountNum : undefined
             }
           });

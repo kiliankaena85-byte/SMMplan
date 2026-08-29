@@ -3,34 +3,45 @@ import { db } from '@/lib/db';
 
 export class LoyaltyService {
   /**
-   * Retrieves the current referral percentage for a user.
-   * Can evaluate Tiered logic based on LTV or Pioneer badges.
+   * Retrieves the current referral percentage for a user based on REFERRAL_TIERS.
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   static async getReferralPercent(userId: string, projectId?: string): Promise<number> {
     const user = await db.user.findUnique({
       where: { id: userId },
-      select: { totalSpent: true, createdAt: true }
+      select: { 
+        totalSpent: true, 
+        createdAt: true,
+        _count: { select: { referrals: true } }
+      }
     });
 
-    if (!user) return 10;
+    if (!user) return 5;
 
-    // Tiered logic base: 
-    // Pioneer Boost (First 30 days of platform launch etc):
+    // Pioneer Boost (First 30 days of platform launch):
     const isPioneer = user.createdAt.getTime() < new Date('2026-05-01').getTime();
     if (isPioneer) return 20;
 
-    // Standard LTV volume tier logic
-    if (user.totalSpent >= 5000_00) return 15; // 15% for VIPs
+    const referralsCount = user._count?.referrals ?? 0;
+    const totalSpentRub = Number(user.totalSpent) / 100;
 
-    return 10; // Default 10%
+    // Aligned with 4-tier progression:
+    // Tier 4: VIP Лидер (25+ refs or 50,000+ RUB) -> 15%
+    if (referralsCount >= 25 || totalSpentRub >= 50000) return 15;
+    // Tier 3: Профи (10+ refs or 30,000+ RUB) -> 10%
+    if (referralsCount >= 10 || totalSpentRub >= 30000) return 10;
+    // Tier 2: Партнёр (3+ refs or 10,000+ RUB) -> 7%
+    if (referralsCount >= 3 || totalSpentRub >= 10000) return 7;
+
+    // Tier 1: Старт -> 5%
+    return 5;
   }
 
   /**
    * Awards a commission to the referrer when a referred user makes a deposit.
    * Safe to run inside an existing PostgreSQL transaction.
    */
-    static async awardCommission(tx: Prisma.TransactionClient, referredUserId: string, depositAmountCents: number, orderId: string): Promise<void> {
+  static async awardCommission(tx: Prisma.TransactionClient, referredUserId: string, depositAmountCents: number, orderId: string): Promise<void> {
     const user = await tx.user.findUnique({
       where: { id: referredUserId },
       select: { referredById: true }

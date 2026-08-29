@@ -31,6 +31,7 @@ import { checkServiceRefill } from '@/utils/service-refill';
 import { TelegramLinkGuideModal } from '@/components/orders/TelegramLinkGuideModal';
 import { LinkGuideService } from '@/services/catalog/link-guide.service';
 import { HelpCircle } from 'lucide-react';
+import { trackEvent } from '@/lib/analytics';
 
 function SmmplanOrderWizardInner({
   userEmail = '',
@@ -72,7 +73,7 @@ function SmmplanOrderWizardInner({
   const [isTgGuideOpen, setIsTgGuideOpen] = useState(false);
 
   // Validation & Submitting State
-  const [errors, setErrors] = useState<{ link?: string; quantity?: string; customData?: string; requirement?: string; general?: string }>({});
+  const [errors, setErrors] = useState<{ link?: string; quantity?: string; customData?: string; requirement?: string; email?: string; general?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
 
@@ -155,6 +156,7 @@ function SmmplanOrderWizardInner({
 
   // Load Public Catalog on Mount
   useEffect(() => {
+    trackEvent('order_started');
     async function loadCatalog() {
       setIsLoadingCatalog(true);
       try {
@@ -229,6 +231,8 @@ function SmmplanOrderWizardInner({
     setCustomData("");
     setIsRequirementsConfirmed(false);
     setErrors({});
+    trackEvent('service_selected', { serviceId: srv.id, serviceName: srv.name, price: srv.pricePerUnitRub });
+    trackEvent('checkout_initiated', { serviceId: srv.id, serviceName: srv.name });
     changeStep(4, srv.id, selectedCategory?.id, selectedNetwork?.id);
   };
 
@@ -299,7 +303,7 @@ function SmmplanOrderWizardInner({
     e.preventDefault();
     setErrors({});
 
-    const newErrors: { link?: string; quantity?: string; customData?: string; requirement?: string; general?: string } = {};
+    const newErrors: { link?: string; quantity?: string; customData?: string; requirement?: string; email?: string; general?: string } = {};
 
     if (!selectedService) {
       newErrors.general = 'Пожалуйста, выберите услугу';
@@ -333,6 +337,7 @@ function SmmplanOrderWizardInner({
     }
 
     if (!email || !email.includes('@')) {
+      newErrors.email = 'Укажите корректный email для чека и статуса заказа';
       newErrors.general = 'Укажите корректный email для чека и статуса заказа';
     }
 
@@ -349,6 +354,13 @@ function SmmplanOrderWizardInner({
 
     // Submit Checkout Action
     setIsSubmitting(true);
+    trackEvent('payment_clicked', {
+      serviceId: selectedService!.id,
+      serviceName: selectedService!.name,
+      gateway,
+      quantity: totalQuantity,
+      priceRub: calculatedPriceRub
+    });
     try {
       const res = await checkoutAction({
         serviceId: selectedService!.id,
@@ -1078,16 +1090,29 @@ function SmmplanOrderWizardInner({
 
               {/* Email Input */}
               <div className="space-y-2">
-                <label className="text-sm font-bold text-foreground">
-                  Ваш Email (для чека и статуса) <span className="text-destructive">*</span>
+                <label className="text-sm font-bold text-foreground flex items-center justify-between">
+                  <span>Ваш Email (для чека и статуса) <span className="text-destructive">*</span></span>
                 </label>
                 <input
                   type="email"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  onChange={e => {
+                    setEmail(e.target.value);
+                    if (errors.email) {
+                      setErrors(prev => ({ ...prev, email: undefined, general: undefined }));
+                    }
+                  }}
                   placeholder="name@example.com"
-                  className="w-full px-4 py-3 text-sm bg-background border border-border/60 rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className={`w-full px-4 py-3 text-sm bg-background border rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all ${
+                    errors.email ? 'border-destructive ring-2 ring-destructive/20 bg-destructive/5' : 'border-border/60'
+                  }`}
                 />
+                {errors.email && (
+                  <p className="text-xs font-semibold text-destructive mt-1 flex items-center gap-1">
+                    <Info className="w-3.5 h-3.5" />
+                    {errors.email}
+                  </p>
+                )}
               </div>
 
               {/* Promo Code Toggle */}

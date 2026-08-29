@@ -74,7 +74,8 @@ export class ProviderService {
     // Auto-route internal mock provider URLs or mock provider records to local mock-provider route
     if (apiUrl.includes('mock.smmplan.internal') || apiUrl.includes('mock-provider') || config.name.toLowerCase().includes('mock provider')) {
       const port = process.env.PORT || '3000';
-      const internalUrl = `http://127.0.0.1:${port}/api/dev/mock-provider`;
+      const internalBase = process.env.INTERNAL_WEB_URL || (process.env.NODE_ENV === 'production' ? 'http://web:3000' : `http://127.0.0.1:${port}`);
+      const internalUrl = `${internalBase}/api/dev/mock-provider`;
       decryptedKey = process.env.MOCK_PROVIDER_KEY || decryptedKey || 'mock_master_key_2026';
       return new UniversalProvider(
         internalUrl,
@@ -133,15 +134,13 @@ export class ProviderService {
    * This protects real provider balance from being charged during QA testing.
    */
   async getWorkerProviderInstance(config: Provider): Promise<BaseProvider> {
-    const isTest = await SettingsManager.isTestMode();
-    if (isTest) {
-      const mockKey = process.env.MOCK_PROVIDER_KEY;
-      if (!mockKey) {
-        throw new Error('MOCK_PROVIDER_KEY is not set. Configure it in .env to use test mode.');
-      }
+    const isMockProvider = await SettingsManager.isMockProviderEnabled();
+    if (isMockProvider) {
+      const mockKey = process.env.MOCK_PROVIDER_KEY || 'mock_master_key_2026';
       const port = process.env.PORT || '3000';
+      const internalBase = process.env.INTERNAL_WEB_URL || (process.env.NODE_ENV === 'production' ? 'http://web:3000' : `http://127.0.0.1:${port}`);
       return new UniversalProvider(
-        `http://127.0.0.1:${port}/api/dev/mock-provider`,
+        `${internalBase}/api/dev/mock-provider`,
         mockKey,
         (config.metadata as Record<string, unknown> | undefined),
       );

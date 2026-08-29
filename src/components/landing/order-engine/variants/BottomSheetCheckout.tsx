@@ -10,6 +10,7 @@ import { DrawerFormInputs } from "../drawer/DrawerFormInputs";
 import { DrawerPaymentSelector } from "../drawer/DrawerPaymentSelector";
 import { DripFeedConfigurator } from "../DripFeedConfigurator";
 import { LegalCheckbox } from "../LegalCheckbox";
+import { EmailPromptModal } from "../modals/EmailPromptModal";
 
 export function BottomSheetCheckout({
   selectedService,
@@ -34,6 +35,7 @@ export function BottomSheetCheckout({
   userBalanceCents
 }: CheckoutVariantProps) {
   const [gateway, setGateway] = useState<"yookassa" | "cryptobot" | "balance">("yookassa");
+  const [isEmailPromptOpen, setIsEmailPromptOpen] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -157,7 +159,14 @@ export function BottomSheetCheckout({
 
                 <button
                   type="button"
-                  onClick={() => handleCheckout(gateway)}
+                  onClick={() => {
+                    const trimmed = email?.trim();
+                    if (!trimmed || !trimmed.includes('@') || !trimmed.includes('.')) {
+                      setIsEmailPromptOpen(true);
+                      return;
+                    }
+                    handleCheckout(gateway);
+                  }}
                   disabled={isSubmitting || isCalculating}
                   className="min-h-[48px] h-12 px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                 >
@@ -188,6 +197,18 @@ export function BottomSheetCheckout({
                 />
               </motion.div>
             </div>
+
+            {/* Email Prompt Modal Fallback */}
+            <EmailPromptModal
+              isOpen={isEmailPromptOpen}
+              onClose={() => setIsEmailPromptOpen(false)}
+              onConfirm={(confirmedEmail) => {
+                setEmail(confirmedEmail);
+                setIsEmailPromptOpen(false);
+                handleCheckout(gateway, confirmedEmail);
+              }}
+              initialEmail={email}
+            />
           </motion.div>
         </div>
       )}

@@ -1,19 +1,105 @@
-# CURRENT_STATE.md — Состояние проекта SMMplan / SMMpanel 1.0
+# CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-27 10:01 (МСК)  
-> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS, YOOKASSA & VEXBOOST ONLINE 200 OK, FAST HOT-SWAP READY).
+> **Последнее обновление:** 2026-08-29 02:48 (МСК)  
+> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + ⚖️ 10-ROUND ADVERSARIAL PRE-MORTEM (Legal & Financial Guards) + ⚡ 2-TIER MULTI-STATUS POLLER WITH FALLBACK + 🛡️ REMAINS BOUNDARY CLAMP + 🧹 24H SAFE SESSION PURGE + 🐳 DOCKER REDEPLOYED.
+
 
 - **Статус экранов:** 28/28 экранов реализованы и верифицированы (100%).
-- **Брендинг & UI:** Светлоголубой логотип SMMplan с крупной буквой S, внутренним объёмом и идеальным оптическим центрированием на всех экранах (Landing, Dashboard, Auth).
-- **Human-Readable Error Translator:** Модуль `src/lib/telemetry/error-interpreter.ts` классифицирует системные ошибки в понятные бизнес-карточки без пугающих логов.
-- **Топология провайдеров и платёжных шлюзов в БД:** 
-  1. `YooKassa` (Shop ID: `1155075`, Тестовый режим: `200 OK`, `status: enabled`, ключи в `SystemSettings`).
-  2. `VexBoost` (Реальный боевой провайдер: `200 OK`, баланс `2.0936 RUB`).
-  3. `Mock Provider Alpha` & `Mock Provider Beta` (Резервные маршруты активны).
+- **10-Раундовый Премортем-Аудит (Legal, Financial & Worker Reliability):**
+  - **Юридический инвариант (Zero Link Mutation):** Любая модификация ссылки клиента на бэкенде категорически запрещена (ст. 401 ГК РФ, защита от чарджбэков и судебных рисков). Допустим только `link.trim()`. Ошибочная ссылка клиента отменяется через Fail-Fast с автоматическим 100% возвратом на баланс.
+  - **2-Уровневый пакетный опрос с Fallback:** `SyncProcessor` опрашивает заказы пачками до 50 штук (`getMultiOrderStatus`). При ошибке пачки моментально включается Fallback на поштучный опрос каждого заказа, исключая зависание заказов из-за 1 невалидного ID.
+  - **Математический предохранитель остатков (`Remains Boundary Clamp`):** `safeRemains = Math.min(order.quantity, Math.max(0, remains))` и `refundAmount <= order.charge` гарантируют невозможность чрезмерных возвратов.
+  - **Безопасная очистка сессий (`P0ThreatSensorService`):** Автоматическая очистка сессий старше 24 часов (`expiresAt < now - 24h`) батчами по 500 записей без риска для активных пользователей.
+- **Двухосевая система окружения (Dual-Axis Environment Matrix):**
+  - **Ось 1 (Оплата):** `MOCK_PAYMENT` (0 ₽) vs `LIVE_ACQUIRING` (ЮKassa / СБП).
+  - **Ось 2 (Исполнение):** `MOCK_PROVIDER` (Виртуальный безопасный SMM) vs `LIVE_PROVIDER` (Реальный VexBoost).
+  - **4 Режима платформы:**
+    1. 🟢 **Песочница (SANDBOX):** Тестовая оплата (0 ₽) + Mock SMM (100% изоляция без списаний с поставщика).
+    2. ⚡ **Гибридный тест (HYBRID):** Тестовая оплата (0 ₽) + **РЕАЛЬНЫЙ VexBoost** (бесплатный заказ на сайте накручивает реальных подписчиков в канал).
+    3. 🔵 **Тест эквайринга (ACQUIRING_TEST):** Боевая ЮKassa + Mock SMM (тест реального списания с карт без отправки накрутки).
+    4. 🚀 **Боевой режим (PRODUCTION):** Боевая ЮKassa + РЕАЛЬНЫЙ VexBoost.
+  - **Header Пульт Режимов:** `<EnvironmentModeSwitcher />` интегрирован в шапку админки рядом с `<GlobalSiteSwitcher />` с подтверждением (`Confirm Dialog`) и цветными бейджами.
+- **Сквозное стресс-тестирование (Full Lifecycle Stress Test Engine - 25/25 PASS):**
+  - Скрипт `scripts/stress/run-full-lifecycle-stress.ts` успешно прогнал 25 сценариев:
+    1. Standard Instant Orders (5/5 PASS) — создание, списание, отправка провайдеру, поллинг, завершение.
+    2. Drip-Feed Orders (5/5 PASS) — масштабирование запусков, валидация Drip-Feed floor invariant.
+    3. Fail-Fast Provider Errors & Auto-Refund (5/5 PASS) — симуляция сетевых сбоев, немедленная отмена и 100% возврат на баланс.
+    4. Partial Completion & Pro-Rata Refunds (5/5 PASS) — частичная доставка и точный пропорциональный возврат за остаток.
+    5. Warranty Refill Cycles (5/5 PASS) — создание гарантийной докрутки и успешное исполнение.
+- **Платформа и архитектура:** **OmniSMM 1.0 Engine** (мульти-тенантная платформа управления, обслуживающая сайты-витрины `SMMplan` и `SMMflux` с динамической масштабируемостью).
+- **Единая таксономия и категоризация услуг (100% Normalized):**
+  - **Одноклассники (OK):** 👥 Участники в группу, ❤️ Классы и лайки, 👁️ Просмотры записей и видео, 🔄 Поделиться / Репосты.
+  - **Likee:** 👥 Подписчики, ❤️ Лайки, 👁️ Просмотры видео, 🔄 Репосты.
+  - **ВКонтакте (VK):** 👥 Подписчики в группу, 👤 Друзья на страницу, ❤️ Лайки на публикации, 👁️ Просмотры постов и клипов, 🔄 Репосты записей, 💬 Комментарии.
+  - **YouTube:** 👁️ Просмотры видео, 👥 Подписчики на канал, ❤️ Лайки на видео, 💬 Комментарии, ⏱️ Часы просмотров.
+  - **Instagram:** 👥 Подписчики в профиль, ❤️ Лайки на публикации, 🎬 Просмотры Reels и Stories, 💾 Сохранения и охваты.
+  - **TikTok:** 👥 Подписчики в профиль, 👁️ Просмотры видео, ❤️ Лайки на видео, 🔄 Репосты и сохранения.
+  - **Twitch:** 👥 Фолловеры на канал, 👁️ Зрители на стрим.
+  - **Telegram:** 📢 Подписчики на канал, ⭐ Premium Подписчики, 👁️ Просмотры и охваты, ❤️ Реакции и бусты, 💬 Комментарии, 🤖 Старты ботов.
+  - **Дзен:** 👥 Подписчики на канал, 👁️ Дочитывания и просмотры.
+  - **MAX:** 👥 Подписчики на канал, 👁️ Просмотры постов, ❤️ Реакции на пост.
+  - **Ликвидация дубликатов тарифов:** Каждая услуга снабжена уникальным понятным качественным бейджем (`[Быстрый старт]`, `[Офферный РФ]`, `[Живые пользователи]`, `[С гарантией 30 дней]`, `[Моментальные]`, `[Тренды]`, `[Вывод в ТОП]`). Одинаковые тарифы `Эконом` / `Стандарт` устранены.
+  - **Zero Vendor Leaks:** Полное удаление упоминаний сторонних брендов (VexBoost, PrimeLike, SMM Toolbox, provider IDs) из всех заголовков, описаний, базы данных и исходников.
+- **Состязательный аудит (Red Team / Blue Team / CTO Arbiter):** Вердикт **`SHIP_AS_IS` (100/100)**, 0 уязвимостей, 0 блокеров P0/P1.
+- **Мастер-сьют личного кабинета (8 Вкладок & Финансовая математика):** `src/__tests__/dashboard/client-dashboard-master.test.ts` (**20/20 PASS**).
+- **Глобальная матрица 30+ социальных сетей и веб-сайтов (`80/80 PASS`):**
+  - Полное распознавание: Telegram, YouTube, Instagram, TikTok, VK, Twitter/X, Discord, Twitch, Rutube, Dzen, OK, Likee, Kick, Spotify, SoundCloud, Pinterest, Reddit, LinkedIn, Snapchat, Yandex Music/Maps, Apple Music/Podcasts, Facebook, Threads, Kwai, Tumblr, Medium, Quora, Vimeo, Rumble, Shazam, WhatsApp, Steam, Trovo, Max Messenger, Wibes.
+  - Поддержка произвольных веб-сайтов (Direct Traffic, SEO Backlinks, субдомены, магазины, форумы).
+- **Мастер-сьюты админки, каталога, ReDoS и безопасности:** `src/__tests__/dashboard/client-dashboard-master.test.ts` (20/20 PASS), `src/__tests__/catalog/all-global-social-networks-and-websites.test.ts` (80/80 PASS), `src/__tests__/catalog/admin-catalog-and-regex-engine-master.test.ts` (36/36 PASS), `src/__tests__/notifications/multitenant-alerts-and-customer-branding.test.ts` (7/7 PASS), `src/__tests__/pentest/comprehensive-pentest.test.ts` (9/9 PASS). Итого: **152/152 PASS (100% Green)**.
+- **Mobile Wizard Stepper (WCAG 2.2 / Apple HIG / Material 3):** Реактивная стейт-машина без сбросов, single-input, `min-h-[44px]` touch targets, 16px iOS Safari auto-zoom prevention, SSR-safe `dynamic(..., { ssr: false })`.
+- **Платёжный шлюз ЮKassa (Live Test Integration):**
+  - Shop ID: `1155075`, Ключ: `test_Bz5eSTzvWGA92wbksyOApJbxi-sfJ67LLgMTZSSOulA` (Зашифровано VaultService в SystemSettings, 200 OK).
+  - Сгенерирован боевой тестовый URL оплаты: `https://yoomoney.ru/checkout/payments/v2/contract?...`.
+  - Белый список редиректов централизован в `src/utils/payment-redirect.ts` (поддержка `yoomoney.ru`, `yookassa.ru`, `crypto.bot`, `t.me`, `robokassa.ru`).
+  - Локальные хосты (`localhost`, `127.0.0.1`) изолированы строго для dev-режима (`NODE_ENV !== 'production'`).
+  - Относительные пути ограничены строгим белым списком (`/success`, `/payment-redirect`, `/dashboard`, `/support/payment-error`, `/api/dev/mock-payment`).
+- **Финансовый Ledger, ExactMath & WalletOps:**
+  - `ExactMath.rublesToKopecks()` переведен на строковое fixed-декомпозирование — исключен IEEE-754 floating point drift на суммах `0.29 ₽` и `1234.56 ₽`.
+  - Пополнение баланса (`top-up.action.ts`) использует `ExactMath.rublesToKopecks()`.
+  - Устранен сбой `totalSpent went negative` в `WalletOps.refund` для заказов, оплаченных напрямую через шлюзы. Зависшие ордеры очищены.
+- **CRO & Состязательный Аудит Воронки Заказа (Adversarial OpenRouter Swarm):**
+  - Проведен 3-раундовый состязательный аудит (Red Team / Blue Team / CTO Arbiter) с использованием MiniMax M3 (1M context) и Poolside Laguna.
+  - Поле Email в `EmailPromptModal.tsx` снабжено строгой RFC 5322 регуляркой.
+  - Защита PII (152-ФЗ / GDPR) на `/support/payment-error`: маскирование email (`a***@domain.com`) и безопасное усечение URL.
+- **Affiliate Growth Engine 2.0 (100% PASS):**
+  - 4-уровневая прогрессивная шкала начислений: Старт (5%), Партнёр (7%), Профи (10%), VIP Лидер (15%), Pioneer Boost (20%).
+  - Тестовый комплекс `src/__tests__/referral/affiliate-growth-engine.test.ts` (9/9 PASS): прогрессия тиров, вычисление необходимого LTV/рефералов, защита от самореферальных петель (`self-referral`), обнаружение графовых циклов (A -> B -> A), эвристика кластеризации IP, атомарное начисление и подтверждение комиссий.
+- **Smart Provider Fallback & Quality Guard Engine (100% PASS):**
+  - **Zero Quality Drift (Manual Mode by Default):** По умолчанию для всех услуг `failoverMode = "manual"`. При ошибке основного поставщика система **НЕ переключает заказ вслепую на других провайдеров**, чтобы не допустить разницы в качестве (например, замена живых подписчиков на ботов). Заказ немедленно ставится в `PENDING_CHECK` с алертом оператору.
+  - **Human-in-the-Loop & Anti-Double-Charge Invariant:** если заказ уже передан провайдеру (`externalId !== null` или статус `IN_PROGRESS`, `PARTIAL`, `CANCELED`, `ERROR`), автоматический переброс на другого провайдера **КАТЕГОРИЧЕСКИ ЗАПРЕЩЁН**. При частичной отмене или ошибке остаток не перенаправляется автоматически.
+  - **Anti-Self-Destruction Policy:** воркеры и алгоритмы не имеют права выключать (`isActive: false`) или удалять услуги и провайдеров в базе данных. Деградация провайдера (`errorCount5m > 10`) — это исключительно временный in-memory фильтр приоритета в очереди.
+  - **Операторский шлюз:** любые инциденты (закрытый аккаунт, смена типа ссылки, сбой ноды провайдера) переводятся в `PENDING_CHECK` / `ERROR` для ручной диагностики оператором перед перезапуском или возвратом средств.
+  - Тестовый комплекс: `src/__tests__/orders/` (31/31 PASS в 5 тестовых файлах).
+- **SEO, OpenGraph & Core Web Vitals Hardening (100% PASS):**
+  - Обогащена мета-разметка `generateMetadata()` в `src/app/layout.tsx`: раздельные OpenGraph-изображения и Twitter Cards для SMMplan (`/images/og-smmplan.png`) и SMMflux (`/images/og-flux.png`), директивы `googleBot` с поддержкой больших превью.
+  - Внедрена Schema.org разметка: `Organization` с логотипом и контактами поддержки, `WebSite` с `potentialAction` (`SearchAction`) для отображения строки поиска в Google и Яндексе.
+  - Тестовый комплекс `src/__tests__/seo/` (12/12 PASS): Quality Gate карты сайта (фильтрация категорий с <3 активными услугами), защита конфиденциальных эндпоинтов в `robots.ts`, поддержка AI-краулеров (`GPTBot`, `ClaudeBot`, `PerplexityBot`), абсолютные канонические URL `absoluteCanonical()`.
+- **Telegram Bot Master Suite & Comprehensive Smoke Testing (100% PASS):**
+  - Тестовый комплекс `src/bot/__tests__/` (47/47 PASS в 6 тестовых файлах).
+  - Верифицированы сценарии `/start` (чистый запуск, меню), Smart Bind (`tg_bind_...` с защитой от протухания и replay-атак), реферальный старт (`ref_...`), визарды заказов (`orderWizard`), пополнений (`depositWizard`), рефералки (`referralWizard`), Owner Hub RBAC (`ADMIN_ALERT_CHAT_ID`) и экранирование HTML/XSS.
+- **Топология провайдеров:**
+  - `Mock Provider Alpha` & `Mock Provider Beta` (Услуги снабжены `externalId`, типы целей `targetType: CHANNEL/POST` скорректированы).
+  - `VexBoost` (Боевой провайдер активен).
 - **Стресс-тестирование & OWASP Top 10 (2025/2026):** Все тесты безопасности и телеметрии пройдены со 100% успехом.
-- **Сборка и деплой:** Docker-контейнеры `smmplan_web`, `smmplan_lite_db`, `smmplan_lite_redis` пересобраны и работают в статусе `Up (healthy)`.
-- **Верификация Cloudflare Tunnel:** `https://test.smmplan.pro/` — 200 OK, `https://test.smmplan.pro/api/health` — 200 OK (HEALTHY).
+- **Инженерный Пульт Овнера в Telegram-боте (`/owner` / `/admin` / `👑 Пульт Овнера`):** Реализован интерактивный пульт управления овнера (`src/bot/scenes/owner-hub.wizard.ts`) со строгим Zero-Trust доступом (`ADMIN_ALERT_CHAT_ID`), включающий:
+  1. *📊 Серверы & Docker Health:* Замер латентности PostgreSQL и Redis в ms, память, диск, статус 6 контейнеров.
+  2. *🌐 SMM & Провайдеры:* Мониторинг каталога (313 услуг), баланс VexBoost, статус YooKassa и CryptoBot.
+  3. *🛡️ Безопасность & Ledger:* Сверка балансов пользователей (`BalanceVerifier.verifyAllBalances()`), P0 Threat Sensor, журнал инцидентов.
+  4. *🧠 AI-Тестирование & Аудит:* Запуск состязательного аудита AI Swarm с выводом вердикта CTO прямо в Telegram.
+  5. *🔑 Magic Link в Админку:* Мгновенная генерация защищенной одноразовой ссылки на вход в веб-панель SMMpanel 1.0 без паролей.
+  6. *🧹 Сброс Кэша Redis:* Очистка кэша каталога в 1 клик.
+- **Защита от отрицательной маржи Price Drift Hold (100% PASS):**
+  - При резком скачке цен поставщика или волатильности USD/RUB `order.processor.ts` блокирует отправку в минус и переводит заказ в защитный статус `PENDING_CHECK (PRICE_DRIFT_HOLD)`.
+  - Отправляется критический Telegram-алерт овнеру с точным расчетом себестоимости и суммы оплаты.
+  - Каскадный failover: если основной маршрут стал убыточным, заказ автоматически направляется на прибыльный альтернативный маршрут.
+  - Тестовый комплекс `src/__tests__/orders/price-drift-hold.test.ts` (100% PASS).
+- **Интерактивный AI-Аналитик воронки & CRO Advisor (100% PASS):**
+  - Разработан сервис `AiFunnelAnalystService` на базе `gemini-3-flash` с эвристическим fallback и 1-часовым Redis-кэшем.
+  - Автоматический расчет индекса здоровья воронки (Health Score), выявление ключевого узкого горлышка (Bottleneck) и генерация 3 рекомендаций по росту конверсии.
+  - Интерактивный UI-виджет `AiFunnelAdvisor` на `/admin/analytics` с мгновенным пересчетом по кнопке.
+  - Тестовый комплекс `src/__tests__/analytics/ai-funnel-analyst.test.ts` (3/3 PASS).
+- **Автономная контейнеризация всех сервисов в Docker (100% Up):** Все сервисы (`smmplan_web`, `smmplan_bot`, `smmplan_lite_worker`, `smmplan_lite_db`, `smmplan_lite_redis`, `smmplan_tunnel`) работают в изолированных контейнерах со статусом `Up (healthy)`. Бот и воркер упакованы в компактные standalone бандлы (5 MB) с нативным Prisma binary engine.
 
 ---
 
@@ -69,6 +155,11 @@
 | **EXACT-MTH** | **FinOps ExactMath & Banker's Rounding Suite** | ✅ 100% | `src/__tests__/financial/exact-math.test.ts` (10/10 PASS) |
 | **RESIL-HRD** | **Open-Redirect Armor & Provider Mutex Resilience** | ✅ 100% | `src/__tests__/resilience/resilience-and-hardening.test.ts` (8/8 PASS) |
 | **P0-THREAT** | **P0 Threat Matrix, Active Pull & Nightly Ledger Guard** | ✅ 100% | `src/__tests__/security/p0-threat-matrix.test.ts` (5/5 PASS) |
+| **TG-TAXO**   | **Telegram Bot Taxonomy, Ghost Filtering & Isolation** | ✅ 100% | `src/bot/__tests__/bot-catalog-taxonomy-and-isolation.test.ts` (7/7 PASS) |
+| **TG-NAV**    | **Telegram Bot Link-First Analyzer & Dynamic Navigation** | ✅ 100% | `src/bot/__tests__/bot-link-first-and-smart-navigation.test.ts` (9/9 PASS) |
+| **TG-EXHAUST**| **Telegram Bot Full State Machine & Navigation Suite** | ✅ 100% | `src/bot/__tests__/bot-exhaustive-state-and-navigation.test.ts` (4/4 PASS) |
+| **TG-SMOKE**  | **Telegram Bot Full Lifecycle Smoke Test Suite** | ✅ 100% | `src/bot/__tests__/bot-full-smoke-and-lifecycle.test.ts` (6/6 PASS) |
+| **TG-JOURNEY**| **Telegram Bot 7-Journey End-to-End Client Smoke Suite** | ✅ 100% | `src/bot/__tests__/bot-client-journey-smoke.test.ts` (15/15 PASS) |
 
 ---
 

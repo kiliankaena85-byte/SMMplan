@@ -79,7 +79,7 @@ export function MobileStep1Link({
         />
         
         <div className="relative flex items-center w-full bg-content1 rounded-2xl p-0.5 z-10">
-          <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
           <input
             id="standard-url-input"
             type="url"
@@ -99,18 +99,19 @@ export function MobileStep1Link({
             }}
             placeholder="https://t.me/channel_or_post"
             aria-label="Введите ссылку на канал, профиль или пост"
+            aria-describedby={validationErrors?.link || localUrlError ? "mobile-step1-url-error" : undefined}
             className="w-full h-11 pl-10 pr-4 rounded-2xl bg-transparent text-base font-semibold text-foreground placeholder:text-muted-foreground/50 outline-none border-none"
           />
         </div>
       </div>
 
       {validationErrors?.link && (
-        <p className="text-[11px] font-bold text-danger pl-1 animate-pulse">
+        <p id="mobile-step1-url-error" role="alert" aria-live="assertive" className="text-[11px] font-bold text-danger pl-1 animate-pulse">
           {validationErrors.link}
         </p>
       )}
       {localUrlError && (
-        <p className="text-[11px] font-bold text-danger pl-1 animate-pulse">
+        <p id="mobile-step1-url-error" role="alert" aria-live="assertive" className="text-[11px] font-bold text-danger pl-1 animate-pulse">
           {localUrlError}
         </p>
       )}

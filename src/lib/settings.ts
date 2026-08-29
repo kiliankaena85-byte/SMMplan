@@ -511,7 +511,55 @@ export class SettingsProvider {
       console.error('[SettingsProvider] Warning: Failed to invalidate cache tag:', cacheErr);
     }
   }
+  static async getEnvironmentMode(tenantId?: string): Promise<EnvironmentMode> {
+    const activeTenantId = tenantId || await this.getTenantId();
+    try {
+      const { redis } = await import('./redis');
+      const cachedMode = await redis.get(`settings:${activeTenantId}:environmentMode`);
+      if (cachedMode && ['SANDBOX', 'HYBRID', 'ACQUIRING_TEST', 'PRODUCTION'].includes(cachedMode)) {
+        return cachedMode as EnvironmentMode;
+      }
+    } catch { /* ignore redis error */ }
+
+    const isTest = await this.isTestMode(activeTenantId);
+    return isTest ? 'SANDBOX' : 'PRODUCTION';
+  }
+
+  static async setEnvironmentMode(mode: EnvironmentMode, tenantId?: string): Promise<void> {
+    const activeTenantId = tenantId || await this.getTenantId();
+    const isTest = mode !== 'PRODUCTION';
+    
+    await db.systemSettings.upsert({
+      where: { id: activeTenantId },
+      update: { isTestMode: isTest },
+      create: { id: activeTenantId, isTestMode: isTest }
+    });
+
+    try {
+      const { redis } = await import('./redis');
+      await redis.set(`settings:${activeTenantId}:environmentMode`, mode);
+      await redis.set(`settings:${activeTenantId}:isTestMode`, String(isTest));
+    } catch { /* ignore */ }
+
+    try {
+      revalidateTag('settings', 'default');
+    } catch (cacheErr) {
+      console.error('[SettingsProvider] Warning: Failed to invalidate cache tag:', cacheErr);
+    }
+  }
+
+  static async isMockPaymentEnabled(tenantId?: string): Promise<boolean> {
+    const mode = await this.getEnvironmentMode(tenantId);
+    return mode === 'SANDBOX' || mode === 'HYBRID';
+  }
+
+  static async isMockProviderEnabled(tenantId?: string): Promise<boolean> {
+    const mode = await this.getEnvironmentMode(tenantId);
+    return mode === 'SANDBOX' || mode === 'ACQUIRING_TEST';
+  }
 }
+
+export type EnvironmentMode = 'SANDBOX' | 'HYBRID' | 'ACQUIRING_TEST' | 'PRODUCTION';
 
 /**
  * @deprecated Use SettingsProvider for optimized access.
@@ -528,6 +576,22 @@ export class SettingsManager {
 
   static async isTestMode(tenantId?: string): Promise<boolean> {
     return SettingsProvider.isTestMode(tenantId);
+  }
+
+  static async getEnvironmentMode(tenantId?: string): Promise<EnvironmentMode> {
+    return SettingsProvider.getEnvironmentMode(tenantId);
+  }
+
+  static async setEnvironmentMode(mode: EnvironmentMode, tenantId?: string): Promise<void> {
+    return SettingsProvider.setEnvironmentMode(mode, tenantId);
+  }
+
+  static async isMockPaymentEnabled(tenantId?: string): Promise<boolean> {
+    return SettingsProvider.isMockPaymentEnabled(tenantId);
+  }
+
+  static async isMockProviderEnabled(tenantId?: string): Promise<boolean> {
+    return SettingsProvider.isMockProviderEnabled(tenantId);
   }
 
   static async getExchangeRateUSD(tenantId?: string): Promise<number> {

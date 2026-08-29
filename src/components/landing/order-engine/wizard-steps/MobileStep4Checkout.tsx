@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Zap, Sliders, ChevronDown } from "lucide-react";
+import { Loader2, Zap, Sliders, ChevronDown, Link2, Pencil } from "lucide-react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { DynamicPayloadWarnings } from "../DynamicPayloadWarnings";
 import { DripFeedConfigurator } from "../DripFeedConfigurator";
@@ -36,6 +36,8 @@ export function MobileStep4Checkout({
   const [showPromo, setShowPromo] = useState(false);
 
   const {
+    url, setUrl,
+    validationErrors,
     selectedService,
     quantity, setQuantity,
     email, setEmail,
@@ -55,6 +57,8 @@ export function MobileStep4Checkout({
     return null;
   }
 
+  const isLinkReady = url.trim().length >= 5;
+
   return (
     <motion.div
       initial={{ height: 0, opacity: 0 }}
@@ -68,6 +72,61 @@ export function MobileStep4Checkout({
         4. Параметры заказа
       </span>
 
+      {/* Ссылка на объект (Канал / Пост / Профиль) */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label htmlFor="step4-url-input" className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1 flex items-center gap-1.5">
+            <Link2 className="w-3.5 h-3.5 text-primary" />
+            <span>Ссылка на объект</span>
+            <span className="text-destructive">*</span>
+          </label>
+          {isLinkReady && (
+            <button
+              type="button"
+              onClick={() => setActiveStep(1)}
+              className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <Pencil className="w-3 h-3" />
+              <span>Изменить</span>
+            </button>
+          )}
+        </div>
+
+        {isLinkReady ? (
+          <div className="p-3 rounded-xl bg-content2/80 border border-border/60 flex items-center justify-between gap-2">
+            <span className="text-xs font-bold text-foreground truncate font-mono">{url}</span>
+            <button
+              type="button"
+              onClick={() => setActiveStep(1)}
+              className="text-xs font-bold text-primary px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 shrink-0 cursor-pointer"
+            >
+              Сменить
+            </button>
+          </div>
+        ) : (
+          <div>
+            <input
+              id="step4-url-input"
+              type="url"
+              value={url}
+              onChange={e => setUrl(e.target.value)}
+              aria-describedby={validationErrors?.link ? "step4-url-error" : undefined}
+              placeholder="https://t.me/channel_or_post"
+              className={`w-full h-11 px-4 rounded-xl border bg-background text-sm text-foreground outline-none transition-all ${
+                validationErrors?.link
+                  ? 'border-destructive focus:border-destructive ring-2 ring-destructive/30'
+                  : 'border-border focus:border-primary focus:ring-2 ring-primary/30'
+              }`}
+            />
+            {validationErrors?.link && (
+              <p id="step4-url-error" className="text-[11px] font-bold text-destructive pl-1 animate-in fade-in duration-200">
+                {validationErrors.link}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
       <DynamicPayloadWarnings engine={engine} />
 
       <div className="space-y-1.5">
@@ -77,6 +136,7 @@ export function MobileStep4Checkout({
         <input
           id="quantity-input"
           type="number"
+          inputMode="numeric"
           value={quantity}
           min={selectedService.minQty}
           max={selectedService.maxQty}
@@ -131,7 +191,7 @@ export function MobileStep4Checkout({
           <button
             type="button"
             onClick={() => setShowPromo(true)}
-            className="text-xs font-extrabold text-primary uppercase tracking-wider pl-1 hover:underline flex items-center gap-1 transition-all h-9 cursor-pointer"
+            className="text-xs font-extrabold text-primary uppercase tracking-wider pl-1 hover:underline flex items-center gap-1 transition-all h-11 min-h-[44px] cursor-pointer"
           >
             + Есть промокод?
           </button>

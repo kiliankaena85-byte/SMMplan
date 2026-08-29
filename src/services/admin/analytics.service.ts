@@ -22,7 +22,7 @@ interface CategoryProfitability {
 }
 
 class AnalyticsService {
-  async getServiceProfitability(days: number): Promise<ServiceProfitability[]> {
+  async getServiceProfitability(days: number, tenantId?: string): Promise<ServiceProfitability[]> {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
 
@@ -30,7 +30,8 @@ class AnalyticsService {
     const orders = await db.order.findMany({
       where: {
         createdAt: { gte: cutoff },
-        status: { notIn: ['AWAITING_PAYMENT', 'PENDING', 'ERROR'] }
+        status: { notIn: ['AWAITING_PAYMENT', 'PENDING', 'ERROR'] },
+        ...(tenantId ? { tenantId } : {})
       },
       include: {
         service: {
@@ -86,17 +87,15 @@ class AnalyticsService {
     }).sort((a, b) => b.profit - a.profit);
   }
 
-  async getCategoryProfitability(days: number): Promise<CategoryProfitability[]> {
-    const serviceStats = await this.getServiceProfitability(days);
+  async getCategoryProfitability(days: number, tenantId?: string): Promise<CategoryProfitability[]> {
+    const serviceStats = await this.getServiceProfitability(days, tenantId);
     const catStats: Record<string, CategoryProfitability> = {};
 
     for (const s of serviceStats) {
-      // Note: Category name is used as key here, or we could fetch real Category objects
-      // For simplicity and since serviceStats already has categoryName:
       const catKey = s.categoryName; 
       if (!catStats[catKey]) {
         catStats[catKey] = {
-          categoryId: '', // We don't have ID here easily without extra lookup
+          categoryId: '',
           categoryName: s.categoryName,
           revenue: 0,
           cogs: 0,
@@ -119,10 +118,14 @@ class AnalyticsService {
     }).sort((a, b) => b.profit - a.profit);
   }
 
-  async getLTVAnalytics() {
-    const totalUsers = await db.user.count({ where: { role: 'USER' } });
+  async getLTVAnalytics(tenantId?: string) {
+    const userFilter = {
+      role: 'USER' as const,
+      ...(tenantId ? { tenantId } : {})
+    };
+    const totalUsers = await db.user.count({ where: userFilter });
     const users = await db.user.findMany({
-      where: { role: 'USER' },
+      where: userFilter,
       select: { totalSpent: true },
       orderBy: { totalSpent: 'desc' }
     });

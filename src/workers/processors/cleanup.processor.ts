@@ -305,7 +305,7 @@ export async function runOrphanSweep(): Promise<void> {
       status: 'PENDING',
       createdAt: { lt: threshold }
     },
-    select: { id: true, numericId: true, userId: true, charge: true, createdAt: true, status: true }
+    select: { id: true, numericId: true, userId: true, charge: true, createdAt: true, status: true, externalId: true }
   });
 
   if (orphans.length > 0) {
@@ -338,9 +338,21 @@ export async function runOrphanSweep(): Promise<void> {
         }
 
         if (jobState === 'completed') {
-          const msg = `[CRITICAL][ACTION REQUIRED] Order PENDING but Job Completed. Data inconsistency! Order ${orphan.id}, Job ${jobId}`;
-          log.error(msg);
-          criticalAlerts.push(`🚨 Data Inconsistency: Заказ #${orphan.numericId} (ID: ${orphan.id}) висит PENDING, но очередь сообщает COMPLETED! Требуется ручной разбор.`);
+          // Self-Healing: Job completed. If externalId exists, order was dispatched to provider.
+          if (orphan.externalId) {
+            await db.order.update({
+              where: { id: orphan.id },
+              data: { status: 'IN_PROGRESS', updatedAt: new Date() }
+            });
+            log.info(`[Auto-Heal] Order ${orphan.id} with externalId ${orphan.externalId} resolved PENDING -> IN_PROGRESS`);
+          } else {
+            await orderService.failOrderTerminal(
+              orphan.id,
+              'Автовосстановление: Job completed without provider externalId',
+              false
+            );
+            log.warn(`[Auto-Heal] Order ${orphan.id} without externalId failed & refunded`);
+          }
           continue;
         }
 

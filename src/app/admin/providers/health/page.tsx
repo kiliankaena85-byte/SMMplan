@@ -87,7 +87,7 @@ export default function ProviderHealthMonitorPage() {
         </div>
 
         <div className="divide-y divide-border">
-          {['Vexboost', 'Soc-Rocket', 'SMMPrime', 'Stream-Promotion', 'Likedrom', 'SMMPanelUS', 'Soc-Proof', 'Telegram.Shop'].map((provider) => (
+          {['Main-Provider', 'Soc-Rocket', 'SMMPrime', 'Stream-Promotion', 'Likedrom', 'SMMPanelUS', 'Soc-Proof', 'Telegram.Shop'].map((provider) => (
             <div key={provider} className="px-5 py-3.5 flex items-center justify-between hover:bg-muted/50 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />

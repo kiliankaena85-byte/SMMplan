@@ -11,6 +11,7 @@ import { CommandPalette } from '@/components/admin/command-palette';
 import { ShortcutsProvider } from '@/components/admin/shortcuts-provider';
 import { AdminProfileDropdown } from '@/components/admin/admin-profile-dropdown';
 import { GlobalSiteSwitcher } from '@/components/admin/tenant-switcher';
+import { EnvironmentModeSwitcher } from '@/components/admin/EnvironmentModeSwitcher';
 import { SystemEmergencyBanner } from '@/components/admin/system-emergency-banner';
 import { SettingsManager } from '@/lib/settings';
 import { unstable_cache } from 'next/cache';
@@ -123,6 +124,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                 navigation={navigation}
               />
               <GlobalSiteSwitcher />
+              <EnvironmentModeSwitcher />
             </div>
             <div className="flex items-center gap-2">
               <AdminProfileDropdown

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, ArrowLeft, ArrowRight, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
+import { X, ArrowLeft, ArrowRight, CheckCircle2, Loader2, ShieldCheck, Mail, Edit3 } from "lucide-react";
 import { CheckoutVariantProps } from "./types";
 import { DrawerOrderSummary } from "../drawer/DrawerOrderSummary";
 import { DrawerQuantityCard } from "../drawer/DrawerQuantityCard";
@@ -10,6 +10,7 @@ import { DrawerFormInputs } from "../drawer/DrawerFormInputs";
 import { DrawerPaymentSelector } from "../drawer/DrawerPaymentSelector";
 import { DripFeedConfigurator } from "../DripFeedConfigurator";
 import { LegalCheckbox } from "../LegalCheckbox";
+import { EmailPromptModal } from "../modals/EmailPromptModal";
 
 export function StepWizardCheckout({
   selectedService,
@@ -36,6 +37,8 @@ export function StepWizardCheckout({
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [gateway, setGateway] = useState<"yookassa" | "cryptobot" | "balance">("yookassa");
   const [isMobile, setIsMobile] = useState(false);
+  const [isEmailPromptOpen, setIsEmailPromptOpen] = useState(false);
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 640);
@@ -247,6 +250,63 @@ export function StepWizardCheckout({
                     totalCents={pricing?.totalCents || 0}
                   />
 
+                  {/* Step 3: Explicit Email Input Card (54-FZ Compliant) */}
+                  <div className="p-3.5 rounded-2xl bg-card border border-border space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <Mail className="w-3.5 h-3.5 text-primary" />
+                        <span>Email для чека (54-ФЗ)</span>
+                        <span className="text-destructive">*</span>
+                      </label>
+                      {email && email.includes('@') && !isEditingEmail ? (
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingEmail(true)}
+                          className="text-[11px] text-primary font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <Edit3 className="w-3 h-3" /> Изменить
+                        </button>
+                      ) : null}
+                    </div>
+
+                    {(!email || isEditingEmail) ? (
+                      <motion.div
+                        animate={emailHasError ? { x: [0, -6, 6, -6, 6, 0] } : {}}
+                        transition={{ duration: 0.4 }}
+                        className="relative"
+                      >
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => {
+                            setEmail(e.target.value);
+                          }}
+                          onBlur={() => {
+                            if (email && email.includes('@')) {
+                              setIsEditingEmail(false);
+                            }
+                          }}
+                          placeholder="name@example.com"
+                          className={`w-full h-11 px-3.5 rounded-xl border bg-background text-sm font-bold text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all ${
+                            emailHasError && (!email || !email.includes('@'))
+                              ? "border-destructive ring-2 ring-destructive/20 bg-destructive/5"
+                              : "border-border/80"
+                          }`}
+                        />
+                      </motion.div>
+                    ) : (
+                      <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-muted/40 border border-border/80">
+                        <span className="text-sm font-bold text-foreground font-mono truncate">{email}</span>
+                        <span className="text-[10px] text-emerald-500 font-bold flex items-center gap-1 shrink-0 ml-2">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Указан
+                        </span>
+                      </div>
+                    )}
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">
+                      По закону 54-ФЗ фискальный чек об оплате и статус заказа будут отправлены на эту почту.
+                    </p>
+                  </div>
+
                   <div className="p-3.5 rounded-2xl bg-muted/40 border border-border space-y-1.5 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">Услуга:</span>
@@ -260,12 +320,6 @@ export function StepWizardCheckout({
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground font-medium">Цель:</span>
                         <span className="font-mono text-primary truncate max-w-[220px] sm:max-w-[260px]">{url}</span>
-                      </div>
-                    )}
-                    {email && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground font-medium">Чек на email:</span>
-                        <span className="font-bold text-foreground">{email}</span>
                       </div>
                     )}
                   </div>
@@ -324,7 +378,14 @@ export function StepWizardCheckout({
                 ) : (
                   <button
                     type="button"
-                    onClick={() => handleCheckout(gateway)}
+                    onClick={() => {
+                      const trimmed = email?.trim();
+                      if (!trimmed || !trimmed.includes('@') || !trimmed.includes('.')) {
+                        setIsEmailPromptOpen(true);
+                        return;
+                      }
+                      handleCheckout(gateway);
+                    }}
                     disabled={isSubmitting || isCalculating}
                     className="min-h-[44px] h-11 px-4 sm:px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs sm:text-sm transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                   >
@@ -340,6 +401,18 @@ export function StepWizardCheckout({
                 )}
               </div>
             </div>
+
+            {/* Email Prompt Modal Fallback */}
+            <EmailPromptModal
+              isOpen={isEmailPromptOpen}
+              onClose={() => setIsEmailPromptOpen(false)}
+              onConfirm={(confirmedEmail) => {
+                setEmail(confirmedEmail);
+                setIsEmailPromptOpen(false);
+                handleCheckout(gateway, confirmedEmail);
+              }}
+              initialEmail={email}
+            />
           </motion.div>
         </div>
       )}

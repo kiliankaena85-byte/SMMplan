@@ -152,7 +152,8 @@ export class P0ThreatSensorService {
     try {
       const settings = await SettingsProvider.get();
       if (settings.exchangeRateUpdatedAt) {
-        const hoursOld = (Date.now() - settings.exchangeRateUpdatedAt.getTime()) / (1000 * 60 * 60);
+        const syncTime = new Date(settings.exchangeRateUpdatedAt).getTime();
+        const hoursOld = !isNaN(syncTime) ? (Date.now() - syncTime) / (1000 * 60 * 60) : 0;
         const isStale = hoursOld > 48;
 
         if (isStale) {
@@ -177,6 +178,40 @@ export class P0ThreatSensorService {
   }
 
   /**
+   * Safely purges expired sessions and auth tokens with a 24-hour safety buffer.
+   * Prevents database bloat while strictly avoiding race conditions with active users.
+   */
+  public static async purgeExpiredSessionsWithSafetyMargin(): Promise<{ deletedSessions: number; deletedTokens: number }> {
+    try {
+      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24-hour safety buffer
+
+      const [sessionsResult, tokensResult] = await Promise.all([
+        db.session.deleteMany({
+          where: { expiresAt: { lt: cutoff } }
+        }),
+        db.authToken.deleteMany({
+          where: { expiresAt: { lt: cutoff } }
+        })
+      ]);
+
+      if (sessionsResult.count > 0 || tokensResult.count > 0) {
+        log.info('[P0ThreatSensor] Cleaned expired sessions and auth tokens', {
+          deletedSessions: sessionsResult.count,
+          deletedTokens: tokensResult.count
+        });
+      }
+
+      return {
+        deletedSessions: sessionsResult.count,
+        deletedTokens: tokensResult.count
+      };
+    } catch (err) {
+      log.warn('[P0ThreatSensor] purgeExpiredSessionsWithSafetyMargin failed', { error: err });
+      return { deletedSessions: 0, deletedTokens: 0 };
+    }
+  }
+
+  /**
    * Runs a complete comprehensive P0 health telemetry scan.
    */
   public static async runFullP0Scan(): Promise<SystemHealthMetrics> {
@@ -185,6 +220,7 @@ export class P0ThreatSensorService {
       this.checkMemoryPressure(),
       this.checkProviderBalances(),
       this.checkStaleCurrencyRate(),
+      this.purgeExpiredSessionsWithSafetyMargin(),
     ]);
 
     return {

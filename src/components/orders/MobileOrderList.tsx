@@ -219,6 +219,8 @@ export function MobileOrderList({ orders, user }: { orders: MobileOrderItem[], u
                           categoryId={order.service?.categoryId || ""} 
                           link={order.link} 
                           quantity={order.quantity} 
+                          remains={order.remains}
+                          status={order.status}
                         />
                       )}
                     </div>
@@ -388,6 +390,8 @@ export function MobileOrderList({ orders, user }: { orders: MobileOrderItem[], u
                              categoryId={selectedOrder?.service?.categoryId || ""} 
                              link={selectedOrder.link} 
                              quantity={selectedOrder.quantity} 
+                             remains={selectedOrder.remains}
+                             status={selectedOrder.status}
                              className="w-full h-11 text-sm font-bold bg-primary text-primary-foreground border-none hover:bg-primary/90 hover:text-primary-foreground"
                            />
                         </div>

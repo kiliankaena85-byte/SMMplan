@@ -55,10 +55,10 @@ export default async function PaymentErrorPage({ searchParams }: PageProps) {
     'limit_exceeded': 'Превышен лимит по карте или операции.',
   };
 
-  // VULN-024, VULN-028 Mitigation: Never display raw gateway errors to the user.
-  // We only display the mapped safe error string, or a generic fallback.
-  const displayError = errorMap[code] || 'Произошла непредвиденная ошибка при обработке платежа шлюзом. Транзакция отклонена.';
-  const technicalErrorCode = code || (rawError ? 'UNKNOWN_GATEWAY_ERROR' : 'NONE');
+  // Safe mapping of predefined error codes or sanitized descriptive error
+  const isSanitizedError = rawError && rawError.length < 200 && !rawError.includes('Prisma') && !rawError.includes('at ') && !rawError.includes('SELECT ') && !rawError.includes('INSERT ');
+  const displayError = errorMap[code] || (isSanitizedError ? rawError : 'Произошла непредвиденная ошибка при обработке платежа шлюзом. Транзакция отклонена.');
+  const technicalErrorCode = code || (rawError ? (isSanitizedError ? rawError.slice(0, 40) : 'GATEWAY_ERROR') : 'NONE');
 
   // Safe database query to fetch service name
   let serviceName = '';
@@ -84,14 +84,19 @@ export default async function PaymentErrorPage({ searchParams }: PageProps) {
     `• Код ошибки: ${technicalErrorCode}\n` +
     `--------------------------`;
 
-  // Pre-fill support form message
+  // Mask email for PII compliance (152-ФЗ / GDPR)
+  const maskedEmail = email ? email.replace(/^(.{1,2})(.*)(@.*)$/, (_, a, b, c) => a + '***' + c) : '';
+  const safeDisplayUrl = url ? (url.length > 50 ? url.slice(0, 47) + '...' : url) : '';
+
+  // Pre-fill support form message without raw PII leak
   const defaultSupportMessage = 
     `Здравствуйте!\n\n` +
     `Не удалось завершить оплату через шлюз ${gatewayName.toUpperCase()}.\n` +
     `Код ошибки: "${technicalErrorCode}"\n` +
     (serviceName ? `Выбранная услуга: ${serviceName}\n` : '') +
     (quantity ? `Количество: ${quantity} шт.\n` : '') +
-    (url ? `Ссылка на страницу: ${url}\n` : '') +
+    (safeDisplayUrl ? `Ссылка: ${safeDisplayUrl}\n` : '') +
+    (maskedEmail ? `Email аккаунта: ${maskedEmail}\n` : '') +
     `Помогите, пожалуйста, провести платеж.`;
 
   return (

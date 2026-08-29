@@ -115,6 +115,26 @@ export async function setOrderStatusAction(
       const oldStatus = order.status;
       const newStatus = validatedStatus;
 
+      if (oldStatus === newStatus) {
+        return { oldStatus, refundCents: 0, numericId: order.numericId };
+      }
+
+      const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
+        AWAITING_PAYMENT: ['PENDING', 'CANCELED', 'ERROR'],
+        PENDING: ['IN_PROGRESS', 'CANCELED', 'ERROR', 'COMPLETED'],
+        PENDING_CHECK: ['PENDING', 'IN_PROGRESS', 'CANCELED', 'ERROR'],
+        IN_PROGRESS: ['COMPLETED', 'PARTIAL', 'CANCELED', 'ERROR'],
+        PARTIAL: ['COMPLETED', 'CANCELED'],
+        COMPLETED: ['PARTIAL'],
+        CANCELED: [],
+        ERROR: ['PENDING', 'IN_PROGRESS', 'CANCELED'],
+      };
+
+      const allowedNextStatuses = VALID_STATUS_TRANSITIONS[oldStatus] || [];
+      if (!allowedNextStatuses.includes(newStatus)) {
+        throw new Error(`Переход заказа из статуса "${oldStatus}" в "${newStatus}" не допускается бизнес-логикой`);
+      }
+
       const TERMINAL_REFUNDED_STATUSES = ['COMPLETED', 'CANCELED', 'ERROR', 'PARTIAL'];
 
       let refundCents = 0;

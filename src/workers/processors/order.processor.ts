@@ -151,6 +151,9 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
   let dispatched = false;
   let lastError = '';
 
+  let marginRejectionCount = 0;
+  let lastMarginError = '';
+
   for (let i = 0; i < candidateRoutes.length; i++) {
     const route = candidateRoutes[i];
     const nextRoute = candidateRoutes[i + 1];
@@ -213,6 +216,8 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
 
       if (!marginCheck.isProfitable) {
         lastError = marginCheck.reason || 'Маржа маршрута отрицательна с учетом буфера 5%';
+        lastMarginError = lastError;
+        marginRejectionCount++;
         log.warn(`[OrderProcessor] Margin rejected for route ${route.provider.name}: ${lastError}`);
         await SmartRoutingService.recordFailoverEvent({
           serviceId: order.serviceId,
@@ -339,6 +344,31 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
       lastError = originalError;
       log.error(`[OrderProcessor] Provider error on route ${route.provider.name} for order ${order.id}: ${originalError}`);
 
+      // 🛡️ QUALITY & SAFETY GUARD: In manual failover mode (default), do NOT blindly cascade to other providers.
+      // Halt immediately, move order to PENDING_CHECK and alert operator to prevent service quality drift.
+      if (route.failoverMode !== 'automatic') {
+        log.warn(`[OrderProcessor] Failover mode is '${route.failoverMode}' for route ${route.id}. Halting cascade to prevent quality drift.`);
+        await db.order.update({
+          where: { id: order.id },
+          data: {
+            status: 'PENDING_CHECK',
+            error: `Ошибка поставщика ${route.provider.name}: ${originalError}. Авто-переключение отключено (manual mode). Требуется проверка оператором.`
+          }
+        });
+
+        try {
+          const { sendAdminAlert } = await import('@/lib/notifications');
+          sendAdminAlert(
+            `⚠️ [ТРЕБУЕТСЯ ПРОВЕРКА ОПЕРАТОРОМ] Заказ #${order.numericId} (Услуга: ${order.service?.name || ''})\n` +
+            `Поставщик ${route.provider.name} вернул ошибку: ${originalError}\n` +
+            `Авто-переключение на других поставщиков отключено для сохранения качества услуги (режим: manual). Заказ переведён в статус «На проверке» (PENDING_CHECK).`,
+            'WARNING'
+          );
+        } catch { /* ignore */ }
+
+        throw new UnrecoverableError(`Manual failover mode: operator triage required`);
+      }
+
       if (nextRoute) {
         await SmartRoutingService.recordFailoverEvent({
           serviceId: order.serviceId,
@@ -352,6 +382,32 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
   }
 
   if (!dispatched) {
+    // 🛡️ PRICE DRIFT HOLD: If all candidate routes were rejected specifically due to negative margin
+    if (marginRejectionCount > 0 && marginRejectionCount === candidateRoutes.length) {
+      const holdMessage = `PRICE_DRIFT_HOLD: ${lastMarginError || 'Себестоимость поставщика превышает оплату клиента. Заказ приостановлен во избежание отрицательной маржи.'}`;
+      log.warn(`[OrderProcessor] PRICE DRIFT HOLD for Order ${order.id}: ${holdMessage}`);
+
+      await db.order.update({
+        where: { id: order.id },
+        data: {
+          status: 'PENDING_CHECK',
+          error: holdMessage
+        }
+      });
+
+      try {
+        const { sendAdminAlert } = await import('@/lib/notifications');
+        await sendAdminAlert(
+          `🚨 [PRICE DRIFT HOLD] Заказ #${order.numericId} (Услуга: ${order.service?.name || ''})\n` +
+          `Поставщик поднял цену или изменился курс валют. Себестоимость превысила сумму оплаты клиента!\n` +
+          `Заказ переведён в статус «На проверке» (PENDING_CHECK). Проверьте заказ в панели оператора: смените провайдера или отмените заказ с возвратом средств.`,
+          'CRITICAL'
+        );
+      } catch { /* ignore */ }
+
+      throw new UnrecoverableError(`Price Drift Hold: ${holdMessage}`);
+    }
+
     log.error(`[OrderProcessor] FAIL-FAST for Order ${order.id}: ${lastError}`);
 
     try {

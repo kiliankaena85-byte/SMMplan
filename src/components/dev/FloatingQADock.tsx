@@ -29,16 +29,19 @@ export function FloatingQADock() {
   useEffect(() => {
     setIsClient(true);
 
-    const isEnvEnabled = process.env.NEXT_PUBLIC_ENABLE_QA_DOCK === 'true' || process.env.NODE_ENV === 'development';
-    const hasQaParam = window.location.search.includes('qa=1') || window.location.search.includes('qodocker=1') || window.location.search.includes('tester=1');
-    const hasQaCookie = document.cookie.includes('smm_qa_dock=1') || document.cookie.includes('x_staff=1');
+    // Strict Security Guard: Only activate if explicitly enabled via secret cookie or staff session
+    const hasSecretParam = window.location.search.includes('smm_qa_key=') || window.location.search.includes('tester_pass=');
+    const hasStaffCookie = document.cookie.includes('x_staff=1') || document.cookie.includes('smm_qa_dock=1');
+    const isLocalDev = process.env.NODE_ENV === 'development' && !window.location.hostname.includes('test.') && !window.location.hostname.includes('smmplan.pro');
 
-    if (hasQaParam) {
-      document.cookie = 'smm_qa_dock=1; path=/; max-age=604800; SameSite=Lax';
+    if (hasSecretParam) {
+      document.cookie = 'smm_qa_dock=1; path=/; max-age=86400; SameSite=Lax; Secure';
     }
 
-    if (isEnvEnabled || hasQaParam || hasQaCookie) {
+    if (hasStaffCookie || (isLocalDev && process.env.NEXT_PUBLIC_ENABLE_QA_DOCK === 'true')) {
       setIsEnabled(true);
+    } else {
+      setIsEnabled(false);
     }
 
     // Определение текущего тенанта

@@ -21,19 +21,21 @@ export function DriftClient({ initialData }: { initialData: DriftCandidate[] }) 
   const [chartData, setChartData] = useState<{ date: string; rate: number }[]>([]);
   const [chartLoading, setChartLoading] = useState(false);
   const [selectedService, setSelectedService] = useState<DriftCandidate | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleCompensate = (serviceId: string) => {
     setLoadingIds(prev => new Set(prev).add(serviceId));
+    setErrorMessage(null);
     startTransition(async () => {
       try {
         const res = await compensateServiceMarginAction(serviceId);
         if (res.success) {
           setData(prev => prev.filter(s => s.id !== serviceId));
         } else {
-          alert('Ошибка: ' + res.error);
+          setErrorMessage(res.error || 'Ошибка компенсации маржи');
         }
       } catch {
-        alert('Ошибка при компенсации маржи');
+        setErrorMessage('Сбой соединения при компенсации маржи');
       } finally {
         setLoadingIds(prev => {
           const next = new Set(prev);
@@ -62,6 +64,12 @@ export function DriftClient({ initialData }: { initialData: DriftCandidate[] }) 
 
   return (
     <>
+      {errorMessage && (
+        <div className="mb-4 p-3.5 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium flex items-center justify-between">
+          <span>{errorMessage}</span>
+          <button onClick={() => setErrorMessage(null)} className="text-xs underline hover:opacity-80">Закрыть</button>
+        </div>
+      )}
       <div className="bg-card border border-border rounded-xl overflow-hidden w-full">
         <Table aria-label="Таблица дрейфа цен">
           <Table.ScrollContainer>

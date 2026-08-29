@@ -30,14 +30,14 @@ import { EmergencyEmailService } from '@/lib/emergency-email';
  * Queues or dispatches a formatted alert to the admin Telegram channel.
  * Non-blocking (fire-and-forget). Never throws.
  */
-export function sendAdminAlert(message: string, severity: AlertSeverity = 'INFO') {
+export function sendAdminAlert(message: string, severity: AlertSeverity = 'INFO', tenantId?: string | null) {
   const { token, chatId } = getTelegramConfig();
   if (!token || !chatId) {
     // If Telegram not configured, send directly via Email for CRITICAL/WARNING
     if (severity === 'CRITICAL' || severity === 'WARNING') {
       EmergencyEmailService.sendAlert({
         severity,
-        title: `[${severity}] SMMpanel Alert (Telegram Unset)`,
+        title: `[${severity}] OmniSMM Alert (Telegram Unset)`,
         details: message,
       }).catch(() => {});
     }
@@ -45,7 +45,7 @@ export function sendAdminAlert(message: string, severity: AlertSeverity = 'INFO'
   }
   
   // Direct async dispatch ensures alerts arrive immediately even if BullMQ worker is paused
-  sendAdminAlertSync(message, severity).catch((err) => {
+  sendAdminAlertSync(message, severity, tenantId).catch((err) => {
     console.error('[NotificationService] Failed to dispatch Telegram alert:', err);
   });
 }
@@ -53,7 +53,7 @@ export function sendAdminAlert(message: string, severity: AlertSeverity = 'INFO'
 /**
  * Worker-only method to actually execute the HTTP request to Telegram.
  */
-export async function sendAdminAlertSync(message: string, severity: AlertSeverity = 'INFO') {
+export async function sendAdminAlertSync(message: string, severity: AlertSeverity = 'INFO', tenantId?: string | null) {
   const { token, chatId } = getTelegramConfig();
   
   // Multi-Channel Cascade: Always send emergency email for CRITICAL incidents
@@ -73,7 +73,7 @@ export async function sendAdminAlertSync(message: string, severity: AlertSeverit
     // If message is already preformatted P0 alert, keep structure, otherwise format as incident card
     const text = message.startsWith('🚨 <b>[P0 CRITICAL:')
       ? message
-      : ErrorInterpreter.formatTelegramMessage(message, severity);
+      : ErrorInterpreter.formatTelegramMessage(message, severity, tenantId);
 
     fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',

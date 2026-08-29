@@ -9,6 +9,9 @@ export async function getFunnelAnalyticsAction(days: number) {
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - days)
 
+    const { SettingsProvider } = await import('@/lib/settings')
+    const tenantId = await SettingsProvider.getTenantId()
+
     const [
       linkPasted,
       serviceSelected,
@@ -42,9 +45,9 @@ export async function getFunnelAnalyticsAction(days: number) {
           createdAt: { gte: cutoff },
         },
       }),
-      analyticsService.getServiceProfitability(days),
-      analyticsService.getCategoryProfitability(days),
-      analyticsService.getLTVAnalytics(),
+      analyticsService.getServiceProfitability(days, tenantId),
+      analyticsService.getCategoryProfitability(days, tenantId),
+      analyticsService.getLTVAnalytics(tenantId),
     ]);
 
     // Optional: Top 5 Services by Clicks (for funnel)
@@ -77,4 +80,71 @@ export async function getFunnelAnalyticsAction(days: number) {
       ltv
     }
   })
+}
+
+export async function getAiFunnelAnalysisAction(days: number, forceRefresh: boolean = false) {
+  return requireStaffPermission('orders', 'view', async () => {
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - days)
+
+    const { SettingsProvider } = await import('@/lib/settings')
+    const tenantId = await SettingsProvider.getTenantId()
+
+    const [
+      linkPasted,
+      serviceSelected,
+      checkoutInitiated,
+      paymentClicked
+    ] = await Promise.all([
+      db.analyticsEvent.count({
+        where: {
+          event: { in: ['LINK_PASTED', 'link_pasted', 'page_view', 'order_started'] },
+          createdAt: { gte: cutoff },
+        },
+      }),
+      db.analyticsEvent.count({
+        where: {
+          event: { in: ['SERVICE_SELECTED', 'service_selected'] },
+          createdAt: { gte: cutoff },
+        },
+      }),
+      db.analyticsEvent.count({
+        where: {
+          event: { in: ['CHECKOUT_INITIATED', 'checkout_initiated'] },
+          createdAt: { gte: cutoff },
+        },
+      }),
+      db.analyticsEvent.count({
+        where: {
+          event: { in: ['PAYMENT_CLICKED', 'payment_clicked', 'payment_initiated', 'order_completed'] },
+          createdAt: { gte: cutoff },
+        },
+      }),
+    ]);
+
+    const topServicesRaw = await db.$queryRaw<{ name: string; clicks: number }[]>`
+      SELECT COALESCE("metadata"->>'serviceName', "metadata"->>'service_name', 'Услуга') as name, COUNT(*)::int as clicks
+      FROM "AnalyticsEvent"
+      WHERE event IN ('SERVICE_SELECTED', 'service_selected') AND "createdAt" >= ${cutoff}
+      GROUP BY COALESCE("metadata"->>'serviceName', "metadata"->>'service_name', 'Услуга')
+      ORDER BY clicks DESC
+      LIMIT 5
+    `;
+
+    const topServices = topServicesRaw.map(row => ({
+      name: row.name,
+      clicks: Number(row.clicks)
+    }));
+
+    const { AiFunnelAnalystService } = await import('@/services/analytics/ai-funnel-analyst.service')
+    return AiFunnelAnalystService.analyzeFunnel({
+      linkPasted,
+      serviceSelected,
+      checkoutInitiated,
+      paymentClicked,
+      periodDays: days,
+      tenantId,
+      topServices
+    }, forceRefresh);
+  });
 }

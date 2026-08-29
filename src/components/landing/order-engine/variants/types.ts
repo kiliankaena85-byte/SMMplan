@@ -23,7 +23,7 @@ export interface CheckoutVariantProps {
   setPromoCode: (val: string) => void;
   isCalculating: boolean;
   isSubmitting: boolean;
-  handleCheckout: (gateway?: string) => void;
+  handleCheckout: (gateway?: string, overrideEmail?: string) => void;
   onClose: () => void;
   emailInputRef?: React.RefObject<HTMLInputElement | null>;
   emailHasError?: boolean;

@@ -44,10 +44,13 @@ const StepWizardCheckout = dynamic(
   () => import("./order-engine/variants/StepWizardCheckout").then((mod) => mod.StepWizardCheckout),
   { ssr: false }
 );
+const MobileWizard = dynamic(
+  () => import("./order-engine/MobileWizard").then((mod) => mod.MobileWizard),
+  { ssr: false }
+);
 import { NetworkSelector } from "./order-engine/NetworkSelector";
 import { CategorySidebar } from "./order-engine/CategorySidebar";
 import { ServiceGrid } from "./order-engine/ServiceGrid";
-import { MobileWizard } from "./order-engine/MobileWizard";
 import { MobileCatalogModal } from "./order-engine/MobileCatalogModal";
 import { useCheckoutOrchestrator } from "./order-engine/useCheckoutOrchestrator";
 import { HeroInput } from "./order-engine/HeroInput";
@@ -256,8 +259,8 @@ export function SmartLinkLanding({
             </div>
           </div>
 
-          {/* ГЛАВНЫЙ ИНПУТ ДЛЯ ВСТАВКИ ССЫЛКИ В HERO СЕКЦИИ */}
-          <div className="pt-3 w-full">
+          {/* ГЛАВНЫЙ ИНПУТ ДЛЯ ВСТАВКИ ССЫЛКИ В HERO СЕКЦИИ (ТОЛЬКО ДЕСКТОП, НА МОБИЛЬНЫХ РАБОТАЕТ ПОШАГОВЫЙ WIZARD) */}
+          <div className="pt-3 w-full hidden md:block">
             <HeroInput 
               engine={engine} 
               handleCheckout={handleCheckout} 

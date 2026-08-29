@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   const token = url.searchParams.get("token");
   const { normalizeTenantId } = await import('@/lib/tenant-resolver-edge');
   const tenant = normalizeTenantId(url.searchParams.get("tenant")) || "smmplan";
-  const customRedirect = url.searchParams.get("redirectTo");
+  const customRedirect = url.searchParams.get("redirectTo") || url.searchParams.get("redirect") || url.searchParams.get("returnUrl");
 
   const loginBase = tenant === "flux" ? "/login?tenant=flux&" : "/login?";
 

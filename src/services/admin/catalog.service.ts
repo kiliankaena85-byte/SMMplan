@@ -51,6 +51,138 @@ import { SecuritySanitizer } from '@/utils/security-sanitizer';
 import { SmartAnalyzerLogic } from '@/services/providers/smart-analyzer.logic';
 import { sanitizeServiceDescription } from '@/lib/sanitize';
 
+// ── Category auto-creation helpers (CATEGORY-FIX) ──────────────────────────
+
+const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
+  SUBSCRIBERS: 'Подписчики',
+  GROUPS: 'Вступление в группы',
+  LIKES: 'Лайки',
+  VIEWS: 'Просмотры',
+  COMMENTS: 'Комментарии',
+  REACTIONS: 'Реакции',
+  REPOSTS: 'Репосты',
+  AUTO_VIEWS: 'Автопросмотры',
+  AUTO_LIKES: 'Автолайки',
+  AUTO_REACTIONS: 'Автореакции',
+  AUTO_REPOSTS: 'Авторепосты',
+  AUTO_COMMENTS: 'Автокомментарии',
+  BOOSTS: 'Бусты',
+  POLLS: 'Голоса',
+  STORIES: 'Сторис',
+  BOTS: 'Боты',
+  REFERRALS: 'Рефералы',
+  FRIENDS: 'Друзья',
+  PLAYS: 'Прослушивания',
+  TRAFFIC: 'Трафик',
+  DISLIKES: 'Дизлайки',
+  STARS: 'Звёзды',
+  SAVES: 'Сохранения',
+  COMPLAINTS: 'Жалобы',
+  STREAMS: 'Стримы',
+  PREMIUM: 'Премиум',
+  RECOVER: 'Восстановление',
+  OTHER: 'Другое',
+};
+
+const CATEGORY_SORT_ORDER: Record<string, number> = {
+  SUBSCRIBERS: 10, LIKES: 20, VIEWS: 30, REACTIONS: 40, REPOSTS: 50,
+  COMMENTS: 60, STORIES: 70, BOOSTS: 80, AUTO_VIEWS: 90, AUTO_LIKES: 100,
+  AUTO_REACTIONS: 110, AUTO_REPOSTS: 120, AUTO_COMMENTS: 130, PLAYS: 140,
+  POLLS: 150, GROUPS: 160, FRIENDS: 170, PREMIUM: 180, STARS: 190,
+  SAVES: 200, TRAFFIC: 210, REFERRALS: 220, STREAMS: 230, BOTS: 240,
+  DISLIKES: 250, RECOVER: 260, COMPLAINTS: 270, OTHER: 999,
+};
+
+/**
+ * CATEGORY-FIX (Level 3): Ensures that for a given network, a category with
+ * the specified `activityType` exists. Creates one if absent.
+ *
+ * Returns the id of the existing or newly-created category.
+ * Called from importServices() when shadow services have diverse normalizedCategory
+ * values that don't match the single fallback categoryId provided by the operator.
+ */
+export async function ensureCategoryForActivityType(
+  networkId: string,
+  networkName: string,
+  networkSlug: string,
+  activityType: string,
+  tenantId: string
+): Promise<string> {
+  // 1. Look for an existing category with this activityType in the network
+  const existing = await db.category.findFirst({
+    where: { networkId, activityType },
+    select: { id: true },
+  });
+  if (existing) return existing.id;
+
+  // 2. Build the category name and slug (concise display name in UI, unique network-prefixed slug in DB)
+  const displayName = CATEGORY_DISPLAY_NAMES[activityType] || activityType;
+  const fullName = displayName;
+  const baseSlug = `${networkSlug}-${activityType.toLowerCase().replace(/_/g, '-')}`;
+
+
+  // 3. Handle slug collision
+  let finalSlug = baseSlug;
+  let attempts = 0;
+  while (await db.category.findFirst({ where: { slug: finalSlug } })) {
+    attempts++;
+    finalSlug = `${baseSlug}-${attempts}`;
+    if (attempts > 20) {
+      finalSlug = `${baseSlug}-${Date.now()}`;
+      break;
+    }
+  }
+
+  // 4. Create the category
+  const newCat = await db.category.create({
+    data: {
+      name: fullName,
+      slug: finalSlug,
+      networkId,
+      tenantId,
+      activityType,
+      sort: CATEGORY_SORT_ORDER[activityType] ?? 500,
+    },
+  });
+
+  logger.info(`[CATEGORY-FIX] Auto-created category "${fullName}" (${activityType}) for network ${networkName}`, {
+    networkId, activityType, categoryId: newCat.id,
+  });
+
+  return newCat.id;
+}
+
+/**
+ * Ensures a service name has full context: "Action — Tariff"
+ * E.g. "Стандарт" in category "Подписчики" -> "Подписчики — Стандарт"
+ */
+export function formatFullServiceName(rawName: string, categoryName?: string | null): string {
+  const clean = ServiceAuditEngine.cleanText(rawName);
+  if (!categoryName) return clean;
+
+  const catKeywords = [
+    'подпис', 'лайк', 'просмотр', 'реакц', 'коммент', 'репост', 'буст', 'бот', 'голос', 'истори',
+    'фолловер', 'зрител', 'слуш', 'трафик', 'читател', 'участник',
+    'sub', 'member', 'follow', 'like', 'view', 'watch', 'react', 'emoji', 'comment', 'repost',
+    'share', 'boost', 'bot', 'poll', 'vote', 'story', 'friend', 'play', 'traffic'
+  ];
+  const hasCat = catKeywords.some(k => clean.toLowerCase().includes(k));
+  if (hasCat) return clean;
+
+  const cleanCat = categoryName.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
+  const platformKeywords = ['telegram', 'instagram', 'tiktok', 'youtube', 'vk', 'вконтакте', 'max', 'ok', 'likee', 'dzen', 'twitch', 'twitter', 'facebook', 'other', 'другое'];
+  if (platformKeywords.includes(cleanCat.toLowerCase())) {
+    return clean;
+  }
+
+  return `${cleanCat} - ${clean}`;
+}
+
+
+
+
+
+
 const rawServiceSchema = z.object({
   service: z.union([z.string(), z.number()]),
   name: z.string().transform(v => SecuritySanitizer.sanitizePromptInjection(v)),
@@ -961,7 +1093,7 @@ class AdminCatalogService {
         select: { updatedAt: true },
       });
       shadowCatalogAgeHours = latestShadow
-        ? (Date.now() - latestShadow.updatedAt.getTime()) / 3_600_000
+        ? (Date.now() - new Date(latestShadow.updatedAt).getTime()) / 3_600_000
         : null;
 
       const SHADOW_FALLBACK_MAX_AGE_HOURS = 24;
@@ -1040,6 +1172,19 @@ class AdminCatalogService {
     const markupAdjustments: ImportMarkupAdjustment[] = [];
     const globalUsdToRub = await SettingsProvider.getExchangeRateUSD();
 
+    // CATEGORY-FIX (Level 3): Look up the fallback category's network so we can
+    // auto-create properly-named sub-categories if services have diverse normalizedCategory.
+    const fallbackCategoryRecord = categoryId
+      ? await db.category.findUnique({
+          where: { id: categoryId },
+          select: { activityType: true, networkId: true, tenantId: true, network: { select: { id: true, name: true, slug: true } } }
+        })
+      : null;
+    // Cache for auto-created category IDs: normalizedCategory → categoryId
+    const autoCreatedCategoryCache = new Map<string, string>();
+
+
+
     for (const shadowExt of shadowServices) {
       const extId = shadowExt.externalId;
 
@@ -1110,13 +1255,52 @@ class AdminCatalogService {
         }
         takenSlugs.add(`${tId}:${stableSlug}`);
 
+        // CATEGORY-FIX (Level 3): resolve the most specific category for this service.
+        // Priority: operator's explicit per-service mapping > auto-created by normalizedCategory > fallback categoryId
+        const resolvedCategoryId = await (async () => {
+          // If operator explicitly mapped this service to a category, use it
+          if (categoryIdMap?.[extId]) return categoryIdMap[extId];
+
+          // If a network is known and service has a normalizedCategory, auto-create/reuse the right category
+          const normCat = shadowExt.normalizedCategory;
+          if (
+            normCat &&
+            normCat !== 'OTHER' &&
+            fallbackCategoryRecord?.network?.id &&
+            fallbackCategoryRecord.networkId
+          ) {
+            // Only auto-split if the service's type differs from the fallback category's type
+            if (normCat !== fallbackCategoryRecord.activityType) {
+              const cacheKey = normCat;
+              if (!autoCreatedCategoryCache.has(cacheKey)) {
+                const autoId = await ensureCategoryForActivityType(
+                  fallbackCategoryRecord.networkId,
+                  fallbackCategoryRecord.network.name,
+                  fallbackCategoryRecord.network.slug,
+                  normCat,
+                  fallbackCategoryRecord.tenantId || tId
+                );
+                autoCreatedCategoryCache.set(cacheKey, autoId);
+              }
+              return autoCreatedCategoryCache.get(cacheKey)!;
+            }
+          }
+
+          // Fallback: use the operator-provided catch-all category
+          return categoryId;
+        })();
+
+        const resolvedCategoryName = categoryNameMap.get(resolvedCategoryId) || fallbackCategoryRecord?.network?.name || '';
+
         servicesToCreate.push({
           tenantId: tId,
           slug: stableSlug,
-          name: ServiceAuditEngine.cleanText(importedName), // Use AI Clean Name with sanitization
+          name: formatFullServiceName(importedName, resolvedCategoryName), // Use formatted Action — Tariff Name
           description: importedDesc ? sanitizeServiceDescription(ServiceAuditEngine.cleanText(importedDesc)) : null,
           externalId: extId,
-          categoryId: categoryIdMap?.[extId] || categoryId,
+          categoryId: resolvedCategoryId,
+
+
           providerId: providerDbRecord.id,
           providerCurrency: providerCurrency,
           rate: rawRate, // Live provider rate (or fresh shadow rate on fallback)
@@ -1137,7 +1321,8 @@ class AdminCatalogService {
             anomalyScore: shadowExt.anomalyScore
           },
           anomalyScore: shadowExt.anomalyScore || 0,
-          targetType: shadowExt.targetType || inferTargetTypeFromCategory(categoryNameMap.get(categoryIdMap?.[extId] || categoryId)),
+          targetType: shadowExt.targetType || inferTargetTypeFromCategory(categoryNameMap.get(categoryIdMap?.[extId] || categoryId) || shadowExt.normalizedCategory || ''),
+
           customDataType: shadowExt.customDataType || 'NONE',
           isMediaGroupAware: shadowExt.isMediaGroupAware || false,
           isActive: true,

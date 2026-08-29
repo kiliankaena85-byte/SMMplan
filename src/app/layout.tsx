@@ -4,6 +4,7 @@ import { Providers } from './providers';
 import { Toaster } from '@/components/ui/sonner';
 import { NetworkAwareProvider } from '@/components/providers/NetworkAwareProvider';
 import { FloatingQADock } from '@/components/dev/FloatingQADock';
+import { CookieConsent } from '@/components/common/CookieConsent';
 import { getTenantHost, normalizeTenantId } from '@/lib/seo-helpers';
 
 import { headers } from 'next/headers';
@@ -23,22 +24,38 @@ export async function generateMetadata(): Promise<Metadata> {
         template: '%s | SMMflux',
       },
       description: 'Быстрая накрутка и продвижение в социальных сетях для бизнеса. Фокус на качество и скорость.',
-      keywords: ['smm', 'накрутка', 'продвижение', 'smmflux', 'быстрый старт'],
+      keywords: ['smm', 'накрутка', 'продвижение', 'smmflux', 'быстрый старт', 'подписчики telegram', 'просмотры vk'],
       openGraph: {
         type: 'website',
         locale: 'ru_RU',
         siteName: 'SMMflux',
         title: 'SMMflux — Быстрое продвижение для бизнеса',
         description: 'Быстрая накрутка и продвижение в социальных сетях для бизнеса. Фокус на качество и скорость.',
+        images: [
+          {
+            url: '/images/og-flux.png',
+            width: 1200,
+            height: 630,
+            alt: 'SMMflux — Платформа продвижения',
+          },
+        ],
       },
       twitter: {
         card: 'summary_large_image',
         title: 'SMMflux — Быстрое продвижение для бизнеса',
         description: 'Быстрая накрутка и продвижение в социальных сетях для бизнеса.',
+        images: ['/images/og-flux.png'],
       },
       robots: {
         index: true,
         follow: true,
+        googleBot: {
+          index: true,
+          follow: true,
+          'max-video-preview': -1,
+          'max-image-preview': 'large',
+          'max-snippet': -1,
+        },
       },
       metadataBase,
     };
@@ -51,7 +68,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description:
       'Продвижение подписчиков, лайков, просмотров для Instagram, TikTok, VK, YouTube. Быстрый старт, надежные исполнители, поддержка 9-21 МСК.',
-    keywords: ['smm', 'продвижение', 'подписчики', 'лайки', 'instagram', 'tiktok', 'youtube', 'vk'],
+    keywords: ['smm', 'продвижение', 'подписчики', 'лайки', 'instagram', 'tiktok', 'youtube', 'vk', 'telegram'],
     openGraph: {
       type: 'website',
       locale: 'ru_RU',
@@ -59,15 +76,31 @@ export async function generateMetadata(): Promise<Metadata> {
       title: 'SMMplan — продвижение в социальных сетях',
       description:
         'Продвижение подписчиков, лайков, просмотров. Быстрый старт, профессиональное выполнение, поддержка 9-21 МСК.',
+      images: [
+        {
+          url: '/images/og-smmplan.png',
+          width: 1200,
+          height: 630,
+          alt: 'SMMplan — B2B Платформа продвижения',
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
       title: 'SMMplan — продвижение в социальных сетях',
       description: 'B2B платформа продвижения: продвижение подписчиков, лайков, просмотров.',
+      images: ['/images/og-smmplan.png'],
     },
     robots: {
       index: true,
       follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
     },
     metadataBase,
   };
@@ -156,6 +189,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               "@type": "Organization",
               "name": siteName,
               "url": `https://${getTenantHost(normalizeTenantId(reqHeaders.get('x-tenant-id')))}`,
+              "logo": `https://${getTenantHost(normalizeTenantId(reqHeaders.get('x-tenant-id')))}/images/logo.png`,
               "contactPoint": {
                 "@type": "ContactPoint",
                 "contactType": "customer support",
@@ -172,6 +206,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               "@type": "WebSite",
               "name": siteName,
               "url": `https://${getTenantHost(normalizeTenantId(reqHeaders.get('x-tenant-id')))}`,
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": `https://${getTenantHost(normalizeTenantId(reqHeaders.get('x-tenant-id')))}/services?q={search_term_string}`,
+                "query-input": "required name=search_term_string",
+              },
             },
           ]).replace(/</g, '\\u003c') }}
         />
@@ -189,6 +228,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
              </MaintenanceGuardian>
           </NetworkAwareProvider>
           <FloatingQADock />
+          <CookieConsent />
         </Providers>
         <Toaster
           position="top-right"

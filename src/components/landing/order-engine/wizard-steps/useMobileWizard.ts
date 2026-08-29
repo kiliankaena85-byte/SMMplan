@@ -9,8 +9,6 @@ export function useMobileWizard(engine: OrderEngine) {
   const [mounted, setMounted] = useState(false);
   const [activeStepRaw, setActiveStepRaw] = useState<1 | 2 | 3 | 4>(1);
   const [lastResolvedUrl, setLastResolvedUrl] = useState<string>("");
-  const [lastSelectedServiceId, setLastSelectedServiceId] = useState<string | undefined>(undefined);
-  const [lastCategoryId, setLastCategoryId] = useState<string | null>(null);
   const [catalogHint, setCatalogHint] = useState(false);
 
   // Refs for scroll-into-view on step transitions
@@ -42,13 +40,14 @@ export function useMobileWizard(engine: OrderEngine) {
 
   useEffect(() => {
     setMounted(true);
-    if (url.trim().length >= 5) {
+    if (selectedService) {
+      setActiveStep(4);
+    } else if (categoryId) {
+      setActiveStep(3);
+    } else if (url.trim().length >= 5) {
       setLastResolvedUrl(url);
-      if (selectedService) setActiveStep(4);
-      else if (categoryId) setActiveStep(3);
-      else setActiveStep(2);
+      setActiveStep(2);
     } else {
-      if (selectedService) setCatalogHint(true);
       setActiveStep(1);
     }
   }, []);
@@ -59,64 +58,29 @@ export function useMobileWizard(engine: OrderEngine) {
     else setActiveStep(2);
   };
 
+  // URL auto-detection sync: when user pastes a valid link in Step 1, advance to next logical step
   useEffect(() => {
-    if (url.trim().length < 5) {
-      setActiveStep(1);
-      setLastResolvedUrl("");
-      return;
-    }
-    if (!isLoading) {
+    if (!isLoading && url.trim().length >= 5) {
       const isUrlValid = !validationErrors?.link && !localUrlError;
       if (isUrlValid && url !== lastResolvedUrl) {
         setLastResolvedUrl(url);
-        if (selectedService) setActiveStep(4);
-        else if (categoryId) setActiveStep(3);
-        else setActiveStep(2);
-      }
-    }
-  }, [isLoading, url, validationErrors?.link, localUrlError, lastResolvedUrl, selectedService, categoryId]);
-
-  useEffect(() => {
-    if (selectedService?.id !== lastSelectedServiceId) {
-      setLastSelectedServiceId(selectedService?.id);
-      if (selectedService) {
-        if (url.trim().length >= 5) {
-          setActiveStep(4);
-        } else {
-          setCatalogHint(true);
-          setActiveStep(1);
-        }
-      } else {
-        // Rollback step when selectedService is cleared (e.g. closing checkout drawer)
-        if (url.trim().length >= 5) {
-          if (categoryId) {
-            setActiveStep(3);
-          } else {
-            setActiveStep(2);
-          }
-        } else {
-          setActiveStep(1);
+        if (activeStepRaw === 1) {
+          if (selectedService) setActiveStep(4);
+          else if (categoryId) setActiveStep(3);
+          else setActiveStep(2);
         }
       }
     }
-  }, [selectedService, lastSelectedServiceId, url, categoryId, setActiveStep]);
+  }, [isLoading, url, validationErrors?.link, localUrlError, lastResolvedUrl, selectedService, categoryId, activeStepRaw, setActiveStep]);
 
+  // Reactive selection auto-advance: when user selects a service or category from catalog, advance automatically
   useEffect(() => {
-    if (categoryId !== lastCategoryId) {
-      setLastCategoryId(categoryId);
-      if (categoryId && !selectedService && url.trim().length >= 5) {
-        setActiveStep(3);
-      } else if (!categoryId && url.trim().length >= 5) {
-        setActiveStep(2);
-      }
+    if (selectedService) {
+      setActiveStep(4);
+    } else if (categoryId && activeStepRaw < 3) {
+      setActiveStep(3);
     }
-  }, [categoryId, lastCategoryId, selectedService, url]);
-
-  useEffect(() => {
-    if (catalogHint && url.trim().length >= 5) {
-      setCatalogHint(false);
-    }
-  }, [url, catalogHint]);
+  }, [selectedService, categoryId, activeStepRaw, setActiveStep]);
 
   const selectedCategoryName = useMemo(() => {
     if (!catalog || !networkId || !categoryId) return "Тарифы";
@@ -133,9 +97,9 @@ export function useMobileWizard(engine: OrderEngine) {
   }, [catalog, networkId]);
 
   const isLinkFilled = url.trim().length >= 5;
-  const shouldShowCategories = isLinkFilled;
-  const shouldShowTariffs = (isLinkFilled && !!categoryId) || !!selectedService;
-  const shouldShowParameters = isLinkFilled && !!selectedService;
+  const shouldShowCategories = true;
+  const shouldShowTariffs = true;
+  const shouldShowParameters = true;
   const currentStep = activeStepRaw as number;
 
   return {

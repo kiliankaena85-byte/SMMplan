@@ -642,7 +642,40 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       throw err;
     }
 
-    // 6. Generate payment URL (gateway-specific API calls)
+    // 6. Persist Server-Side Funnel Analytics Events
+    try {
+      await db.analyticsEvent.createMany({
+        data: [
+          {
+            event: 'CHECKOUT_INITIATED',
+            metadata: {
+              userId: user?.id,
+              serviceId,
+              serviceName: service.name,
+              quantity: totalQuantity,
+              totalCents: finalTotalCents,
+              tenantId
+            }
+          },
+          {
+            event: 'PAYMENT_CLICKED',
+            metadata: {
+              userId: user?.id,
+              serviceId,
+              serviceName: service.name,
+              gateway,
+              orderId: result.orderId,
+              totalCents: finalTotalCents,
+              tenantId
+            }
+          }
+        ]
+      });
+    } catch {
+      // Non-blocking telemetry
+    }
+
+    // 7. Generate payment URL (gateway-specific API calls)
     let paymentUrl: string | undefined;
 
     const host = reqHeaders?.get("host") || "localhost:3000";

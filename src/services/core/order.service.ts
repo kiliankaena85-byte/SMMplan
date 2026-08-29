@@ -39,10 +39,13 @@ class OrderService {
       // 1. [FIN-005] Currency Circuit Breaker: Prevent orders if CBR sync is stale
       const settings = await SettingsProvider.get();
       if (settings.exchangeRateUpdatedAt) {
-         const hoursSinceSync = (Date.now() - settings.exchangeRateUpdatedAt.getTime()) / (1000 * 60 * 60);
-         if (hoursSinceSync > 48) {
-             throw new Error('SYSTEM_HALT: Currency exchange rate is older than 48 hours. Orders are temporarily suspended to prevent financial loss.');
-         }
+        const syncTime = new Date(settings.exchangeRateUpdatedAt).getTime();
+        if (!isNaN(syncTime)) {
+          const hoursSinceSync = (Date.now() - syncTime) / (1000 * 60 * 60);
+          if (hoursSinceSync > 48) {
+            throw new Error('SYSTEM_HALT: Currency exchange rate is older than 48 hours. Orders are temporarily suspended to prevent financial loss.');
+          }
+        }
       }
 
       const isDripFeed = input.runs ? input.runs > 1 : false;

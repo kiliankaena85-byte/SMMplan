@@ -82,7 +82,7 @@ export function MobileNavDrawer({ userEmail, roleInfo, navigation }: MobileNavDr
                 ⚡
               </div>
               <h2 className="text-base font-extrabold tracking-tight text-foreground">
-                SMMpanel
+                OmniSMM
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 ml-1">
                   1.0
                 </span>

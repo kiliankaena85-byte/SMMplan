@@ -425,6 +425,8 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                             categoryId={order.service.categoryId} 
                             link={order.link} 
                             quantity={order.quantity} 
+                            remains={order.remains}
+                            status={order.status}
                           />
                         )}
                       </div>

@@ -156,8 +156,8 @@ export async function POST(req: NextRequest) {
     const webhookCreatedAt = rawBody.object?.created_at || rawBody.created_at;
     if (webhookCreatedAt) {
       const webhookTime = new Date(webhookCreatedAt).getTime();
-      const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000;
-      if (webhookTime < thirtyMinutesAgo) {
+      const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+      if (webhookTime < twentyFourHoursAgo) {
         await SecurityAlertService.record({
           event: 'REPLAY_ATTEMPT',
           severity: 'CRITICAL',

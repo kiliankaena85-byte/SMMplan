@@ -15,7 +15,13 @@ import {
 const createRequestSchema = z.object({
   userId: z.string().min(1, "Пользователь не выбран"),
   direction: z.enum([BALANCE_ADJUSTMENT_DIRECTION.CREDIT, BALANCE_ADJUSTMENT_DIRECTION.DEBIT]),
-  amount: z.string().min(1, "Сумма не указана"),
+  amount: z.string()
+    .min(1, "Сумма не указана")
+    .regex(/^\d+(\.\d{1,2})?$/, "Некорректный формат суммы (пример: 100 или 100.50)")
+    .refine((val) => {
+      const num = parseFloat(val);
+      return !isNaN(num) && num > 0;
+    }, "Сумма должна быть строго больше нуля"),
   reasonCode: z.string().min(1, "Причина не выбрана"),
   reasonNote: z.string().min(10, "Примечание должно содержать минимум 10 символов").max(2000),
   ticketId: z.string().optional().nullable(),
@@ -186,6 +192,16 @@ export async function createBalanceAdjustmentRequestAction(formData: FormData) {
     if (policy.maxTotalPerDay > BigInt(0)) {
       if (todayCreditSum + todayDebitSum + amountBigInt > policy.maxTotalPerDay) {
         return { success: false, error: `Превышен суммарный дневной лимит заявок (${policy.maxTotalPerDay.toString()} коп.)` };
+      }
+    }
+
+    // Idempotency check before creation
+    if (data.idempotencyKey) {
+      const existing = await db.manualBalanceAdjustment.findFirst({
+        where: { idempotencyKey: data.idempotencyKey }
+      });
+      if (existing) {
+        return { success: true, data: existing, note: 'Заявка с данным ключом уже существует' };
       }
     }
 

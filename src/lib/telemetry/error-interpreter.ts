@@ -160,9 +160,13 @@ export class ErrorInterpreter {
   }
 
   /**
-   * Formats the incident into a beautiful Telegram HTML card.
+   * Formats the incident into a beautiful Telegram HTML card with clear Tenant / Core Engine identification.
    */
-  static formatTelegramMessage(rawMessage: string, defaultSeverity: 'INFO' | 'WARNING' | 'CRITICAL' = 'INFO'): string {
+  static formatTelegramMessage(
+    rawMessage: string,
+    defaultSeverity: 'INFO' | 'WARNING' | 'CRITICAL' = 'INFO',
+    tenantId?: string | null
+  ): string {
     const incident = this.interpret(rawMessage, defaultSeverity);
     const moscowTime = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
 
@@ -174,8 +178,28 @@ export class ErrorInterpreter {
 
     const icon = severityIcon[incident.severity] || 'ℹ️';
 
+    // Resolve which Tenant or Core Engine caused the alert
+    let tenantLabel = 'OmniSMM 1.0 (Core Engine / Глобально)';
+    const lowerRaw = rawMessage.toLowerCase();
+
+    if (tenantId) {
+      const norm = tenantId.toLowerCase().trim();
+      if (norm === 'flux' || norm === 'smmflux' || norm === 'lovable') {
+        tenantLabel = 'SMMflux (smmflux.ru)';
+      } else if (norm === 'smmplan') {
+        tenantLabel = 'SMMplan (smmplan.pro)';
+      } else {
+        tenantLabel = `${tenantId}`;
+      }
+    } else if (lowerRaw.includes('smmflux') || lowerRaw.includes('tenant=flux') || lowerRaw.includes('tenant=smmflux')) {
+      tenantLabel = 'SMMflux (smmflux.ru)';
+    } else if (lowerRaw.includes('smmplan.pro') || lowerRaw.includes('tenant=smmplan')) {
+      tenantLabel = 'SMMplan (smmplan.pro)';
+    }
+
     const lines: string[] = [
       `${icon} <b>[${incident.severity}] ${this.escapeHtml(incident.title)}</b>`,
+      `🌐 <b>Локация:</b> <code>${this.escapeHtml(tenantLabel)}</code>`,
       '',
       `📌 <b>Что произошло:</b>\n${this.escapeHtml(incident.whatHappened)}`,
       '',

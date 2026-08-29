@@ -11,22 +11,42 @@ import { applyBeautifulRounding } from "@/lib/financial-constants";
 import { inferTargetTypeFromCategory } from "@/utils/target-type";
 
 export async function ensureTaxonomyTenantAccess(categoryId: string) {
-  return requireStaffPermission('CATALOG', 'edit', async () => {
+  return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const category = await db.category.findUnique({
       where: { id: categoryId },
       select: { id: true, tenantId: true, networkId: true }
     });
     if (category && category.tenantId !== 'all') {
-      await db.category.update({
-        where: { id: categoryId },
-        data: { tenantId: 'all' }
-      });
-      if (category.networkId) {
-        await db.network.update({
-          where: { id: category.networkId },
+      await db.$transaction(async (tx) => {
+        await tx.category.update({
+          where: { id: categoryId },
           data: { tenantId: 'all' }
         });
+        if (category.networkId) {
+          await tx.network.update({
+            where: { id: category.networkId },
+            data: { tenantId: 'all' }
+          });
+        }
+      });
+      if (category.networkId) {
+        await auditAdminAwaitable({
+          adminId: admin.id,
+          adminEmail: admin.email,
+          action: 'UPDATE_NETWORK_TENANT_ACCESS',
+          target: category.networkId,
+          targetType: 'NETWORK',
+          newValue: { to: 'all', triggeredByCategoryId: categoryId },
+        });
       }
+      await auditAdminAwaitable({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: 'UPDATE_CATEGORY_TENANT_ACCESS',
+        target: categoryId,
+        targetType: 'CATEGORY',
+        newValue: { from: category.tenantId, to: 'all', networkId: category.networkId },
+      });
     }
   });
 }

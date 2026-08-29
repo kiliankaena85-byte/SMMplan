@@ -13,6 +13,18 @@ import * as dotenv from 'dotenv';
 import path from 'path';
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
+// Fix node-fetch isAbortSignal prototype check in esbuild bundles (Node 20)
+const origGetProto = Object.getPrototypeOf;
+Object.getPrototypeOf = function (obj: any) {
+  const p = origGetProto.call(Object, obj);
+  if (obj && typeof obj === 'object' && 'aborted' in obj && p && p.constructor && p.constructor.name !== 'AbortSignal') {
+    try {
+      Object.defineProperty(p.constructor, 'name', { value: 'AbortSignal', configurable: true });
+    } catch { /* ignore */ }
+  }
+  return p;
+};
+
 import { Scenes, session, Telegraf, Markup } from 'telegraf';
 import { db } from '@/lib/db';
 import { WalletOps } from '@/services/financial/wallet-ops';
@@ -22,6 +34,8 @@ import type { BotContext } from './types/bot-context';
 import { orderWizard, ORDER_WIZARD } from './scenes/order.wizard';
 import { depositWizard, DEPOSIT_WIZARD } from './scenes/deposit.wizard';
 import { referralWizard, REFERRAL_WIZARD } from './scenes/referral.wizard';
+import { ownerHubWizard, isOwnerOrAdmin } from './scenes/owner-hub.wizard';
+import { BotCatalogService } from './services/bot-catalog.service';
 
 // ── BOT INSTANCE ──
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -39,6 +53,7 @@ const stage = new Scenes.Stage<BotContext>([
   orderWizard,
   depositWizard,
   referralWizard,
+  ownerHubWizard,
 ]);
 
 // ── MIDDLEWARE ──
@@ -83,15 +98,16 @@ bot.catch(async (err: unknown, ctx: unknown) => {
 
     // Asynchronously log to TelegramErrorLog in database
     try {
-      const { logTelegramError } = await import('@/actions/admin/telegram-bot');
-      await logTelegramError({
-        level: 'ERROR',
-        source: (contextObj?.updateType as 'command' | 'callback_query' | 'webhook' | 'polling') || 'polling',
-        errorCode,
-        errorMessage: description || 'Unknown bot error',
-        stackTrace: errorObj?.stack?.slice(0, 1000),
-        userId: contextObj?.from?.id ? String(contextObj.from.id) : undefined,
-        chatId: contextObj?.chat?.id ? String(contextObj.chat.id) : undefined,
+      await (db as any).telegramErrorLog?.create({
+        data: {
+          level: 'ERROR',
+          source: (contextObj?.updateType as 'command' | 'callback_query' | 'webhook' | 'polling') || 'polling',
+          errorCode,
+          errorMessage: description || 'Unknown bot error',
+          stackTrace: errorObj?.stack?.slice(0, 1000),
+          userId: contextObj?.from?.id ? String(contextObj.from.id) : undefined,
+          chatId: contextObj?.chat?.id ? String(contextObj.chat.id) : undefined,
+        }
       });
     } catch { /* error logging must never crash the bot */ }
 
@@ -231,6 +247,8 @@ bot.start(async (ctx: BotContext) => {
   const emailStub = `tg_${tgId}@${botTenantId}.bot`;
   let user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
 
+  const tgName = ctx.from?.first_name || (ctx.from?.username ? `@${ctx.from.username}` : 'Пользователь');
+
   if (!user) {
     user = await db.user.upsert({
       where: { email_tenantId: { email: emailStub, tenantId: botTenantId } },
@@ -249,7 +267,7 @@ bot.start(async (ctx: BotContext) => {
       if (refUser?.telegramId) {
         bot.telegram.sendMessage(
           refUser.telegramId,
-          `🎉 <b>Новый реферал!</b>\n\nПо вашей ссылке зарегистрировался новый пользователь.`,
+          `🎉 <b>Новый реферал!</b>\n\nПо вашей ссылке зарегистрировался ${escapeHtml(tgName)}.`,
           { parse_mode: 'HTML' }
         ).catch(() => {});
       }
@@ -257,30 +275,43 @@ bot.start(async (ctx: BotContext) => {
   }
 
   let welcomeTpl =
-    `👋 <b>Добро пожаловать в {siteName}!</b>\n\n` +
+    `👋 <b>{userName}, добро пожаловать в {siteName}!</b>\n\n` +
     `Платформа автоматического продвижения в социальных сетях.\n\n` +
     `💰 Ваш баланс: <b>{balance} ₽</b>\n\n` +
-    `Выберите действие в меню ниже:`;
+    `🚀 <b>Что сегодня будем продвигать?</b>\n` +
+    `🔗 <i>Отправьте ссылку на пост, канал или профиль прямо в этот чат — я автоматически определю соцсеть и подберу лучшие тарифы.</i>\n\n` +
+    `Либо выберите раздел в меню ниже:`;
 
   try {
-    const settings = await db.systemSettings.findFirst({ select: { telegramTemplates: true, welcomeMessage: true } });
+    const settings = await db.systemSettings.findFirst({ select: { telegramTemplates: true } });
     const templates = settings?.telegramTemplates as { welcome?: string } | null;
-    if (templates?.welcome) {
+    if (templates?.welcome && templates.welcome.trim().length > 0) {
       welcomeTpl = templates.welcome;
-    } else if (settings?.welcomeMessage) {
-      welcomeTpl = settings.welcomeMessage;
     }
   } catch { /* use default */ }
 
   const formattedWelcome = welcomeTpl
     .replace(/{siteName}/g, escapeHtml(botSiteName))
-    .replace(/{userName}/g, escapeHtml(user.email?.split('@')[0] || 'Пользователь'))
+    .replace(/{userName}/g, escapeHtml(tgName))
     .replace(/{balance}/g, (Number(user.balance) / 100).toFixed(2));
 
-  const keyboard = await getDynamicKeyboard();
+  const keyboard = await getDynamicKeyboard(tgId);
+  const isOwner = await isOwnerOrAdmin(tgId);
+  const inlineRows = [
+    [Markup.button.callback('🛍 Каталог услуг', 'shop'), Markup.button.callback('👤 Личный кабинет', 'profile')],
+    [Markup.button.callback('🔗 Привязать аккаунт', 'bind_account'), Markup.button.callback('🆘 Поддержка', 'support')]
+  ];
+
+  if (isOwner) {
+    inlineRows.unshift([Markup.button.callback('👑 Пульт Овнера / DevOps Hub', 'nav_owner_hub')]);
+  }
+
+  const startInline = Markup.inlineKeyboard(inlineRows);
+
   return ctx.reply(formattedWelcome, {
     parse_mode: 'HTML',
-    ...keyboard
+    ...keyboard,
+    ...startInline
   });
 });
 
@@ -294,7 +325,15 @@ interface DynamicMenuBtn {
   isActive: boolean;
 }
 
-async function getDynamicKeyboard() {
+async function getDynamicKeyboard(tgId?: string | number) {
+  const isOwner = tgId ? await isOwnerOrAdmin(tgId) : false;
+
+  let baseGrid: string[][] = [
+    ['🛍 Каталог услуг', '📦 Мои заказы'],
+    ['💰 Пополнить', '👤 Профиль'],
+    ['🆘 Поддержка', '👥 Рефералы']
+  ];
+
   try {
     const settings = await db.systemSettings.findFirst({ select: { telegramMenuConfig: true } });
     const buttons = settings?.telegramMenuConfig as unknown as DynamicMenuBtn[] | null;
@@ -314,66 +353,62 @@ async function getDynamicKeyboard() {
           grid.push(rowBtns.map(b => b.label));
         }
         if (grid.length > 0) {
-          return Markup.keyboard(grid).resize();
+          baseGrid = grid;
         }
       }
     }
   } catch { /* use default fallback */ }
 
-  return Markup.keyboard([
-    ['🛍 Каталог услуг', '📦 Мои заказы'],
-    ['💰 Пополнить', '👤 Профиль'],
-    ['🆘 Поддержка', '👥 Рефералы']
-  ]).resize();
+  if (isOwner) {
+    return Markup.keyboard([
+      ['👑 Пульт Овнера'],
+      ...baseGrid
+    ]).resize();
+  }
+
+  return Markup.keyboard(baseGrid).resize();
+}
+
+async function sendNetworkCatalogMenu(ctx: BotContext, isEdit = false) {
+  try {
+    const networks = await BotCatalogService.getVisibleNetworks(botTenantId);
+    if (networks.length === 0) {
+      const text = '🛍 Каталог услуг временно недоступен или обновляется.';
+      if (isEdit) {
+        return await ctx.editMessageText(text).catch(() => {});
+      }
+      return await ctx.reply(text);
+    }
+
+    const buttons = networks.map((n: { id: string; name: string }) => [Markup.button.callback(n.name, `cat_net_${n.id}`)]);
+    const text = '🛍 <b>Каталог услуг</b>\nВыберите социальную сеть:';
+    const extra = {
+      parse_mode: 'HTML' as const,
+      ...Markup.inlineKeyboard(buttons)
+    };
+
+    if (isEdit) {
+      return await ctx.editMessageText(text, extra).catch(() => {});
+    }
+    return await ctx.reply(text, extra);
+  } catch (err) {
+    console.error('[Bot Catalog Menu] Error:', err);
+    if (isEdit) {
+      return await ctx.answerCbQuery('Ошибка загрузки каталога').catch(() => {});
+    }
+    return await ctx.reply('Произошла ошибка при загрузке каталога.');
+  }
 }
 
 bot.command('shop', async (ctx: BotContext) => {
-  try {
-    const networks = await db.network.findMany({
-      where: { isActive: true },
-      orderBy: { sort: 'asc' }
-    });
-
-    if (networks.length === 0) {
-      return ctx.reply('🛍 Каталог услуг временно недоступен.');
-    }
-
-    const buttons = networks.map((n: { id: string; name: string }) => [Markup.button.callback(n.name, `cat_net_${n.id}`)]);
-
-    await ctx.reply('🛍 <b>Каталог услуг</b>\nВыберите социальную сеть:', {
-      parse_mode: 'HTML',
-      ...Markup.inlineKeyboard(buttons)
-    });
-  } catch (err) {
-    console.error('[Bot Catalog] Error:', err);
-    await ctx.reply('Произошла ошибка при загрузке каталога.');
-  }
+  await sendNetworkCatalogMenu(ctx, false);
 });
 
 bot.hears('🛍 Каталог услуг', async (ctx: BotContext) => {
-  try {
-    const networks = await db.network.findMany({
-      where: { isActive: true },
-      orderBy: { sort: 'asc' }
-    });
-
-    if (networks.length === 0) {
-      return ctx.reply('🛍 Каталог услуг временно недоступен.');
-    }
-
-    const buttons = networks.map((n: { id: string; name: string }) => [Markup.button.callback(n.name, `cat_net_${n.id}`)]);
-
-    await ctx.reply('🛍 <b>Каталог услуг</b>\nВыберите социальную сеть:', {
-      parse_mode: 'HTML',
-      ...Markup.inlineKeyboard(buttons)
-    });
-  } catch (err) {
-    console.error('[Bot Catalog] Error:', err);
-    await ctx.reply('Произошла ошибка при загрузке каталога.');
-  }
+  await sendNetworkCatalogMenu(ctx, false);
 });
 
-bot.hears('👤 Профиль', async (ctx: BotContext) => {
+export async function sendUserProfile(ctx: BotContext) {
   if (!ctx.from) return;
   const tgId = String(ctx.from.id);
   const user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
@@ -382,19 +417,159 @@ bot.hears('👤 Профиль', async (ctx: BotContext) => {
   const orderCount = await db.order.count({ where: { userId: user.id } });
 
   const text =
-    `👤 <b>Ваш профиль</b>\n\n` +
+    `👤 <b>Личный кабинет ${botSiteName}</b>\n\n` +
     `🆔 ID: <code>${user.id.slice(0, 8)}</code>\n` +
     `💰 Баланс: <b>${(Number(user.balance) / 100).toFixed(2)} ₽</b>\n` +
     `📦 Всего заказов: <b>${orderCount}</b>\n` +
-    `👥 Реферальный код: <code>${user.referralCode || '—'}</code>`;
+    `👥 Реферальный код: <code>${user.referralCode || '—'}</code>\n\n` +
+    `<i>Управляйте балансом, заказами и рефералами:</i>`;
+
+  const isOwner = await isOwnerOrAdmin(tgId);
+  const profileRows = [
+    [Markup.button.callback('💰 Пополнить баланс', 'deposit'), Markup.button.callback('📦 Мои заказы', 'my_orders')],
+    [Markup.button.callback('📜 История операций', 'my_tx'), Markup.button.callback('👥 Рефералы', 'referral')],
+    [Markup.button.callback('🔗 Привязать к сайту', 'bind_account'), Markup.button.callback('🆘 Служба поддержки', 'support')]
+  ];
+
+  if (isOwner) {
+    profileRows.unshift([Markup.button.callback('👑 Пульт Овнера / DevOps Hub', 'nav_owner_hub')]);
+  }
 
   await ctx.reply(text, {
     parse_mode: 'HTML',
-    ...Markup.inlineKeyboard([
-      [Markup.button.callback('💰 Пополнить баланс', 'deposit')],
-      [Markup.button.callback('👥 Реферальная программа', 'referral')]
-    ])
+    ...Markup.inlineKeyboard(profileRows)
   });
+}
+
+bot.hears('👤 Профиль', sendUserProfile);
+
+bot.hears(['👑 Пульт Овнера', 'Пульт Овнера', '⚙️ Админка', '👑 Пульт управления', 'Админка'], async (ctx: BotContext) => {
+  if (!ctx.from || !(await isOwnerOrAdmin(ctx.from.id))) {
+    return ctx.reply('⛔ Доступ ограничен. Этот раздел доступен только владельцу платформы.');
+  }
+  return ctx.scene.enter('owner-hub');
+});
+
+bot.action('profile', async (ctx: BotContext) => {
+  await ctx.answerCbQuery();
+  await sendUserProfile(ctx);
+});
+
+bot.action('nav_owner_hub', async (ctx: BotContext) => {
+  await ctx.answerCbQuery();
+  if (!ctx.from || !(await isOwnerOrAdmin(ctx.from.id))) {
+    return ctx.reply('⛔ Доступ ограничен.');
+  }
+  return ctx.scene.enter('owner-hub');
+});
+
+bot.command('owner', async (ctx: BotContext) => {
+  if (!ctx.from || !(await isOwnerOrAdmin(ctx.from.id))) {
+    return ctx.reply('⛔ Доступ ограничен. Этот раздел доступен только владельцу платформы.');
+  }
+  return ctx.scene.enter('owner-hub');
+});
+
+bot.command('id', async (ctx: BotContext) => {
+  if (!ctx.from) return;
+  const tgId = String(ctx.from.id);
+  const user = await db.user.findFirst({ where: { telegramId: tgId } });
+  const role = user?.role || 'Гость (не привязан)';
+  const isOwner = await isOwnerOrAdmin(ctx.from.id);
+  await ctx.reply(
+    `🆔 <b>Ваш Telegram ID:</b> <code>${tgId}</code>\n` +
+    `👤 <b>Привязанный аккаунт:</b> ${user?.email || 'Не привязан'}\n` +
+    `🎭 <b>Роль в системе:</b> ${role}\n` +
+    `👑 <b>Доступ к пульту овнера:</b> ${isOwner ? '✅ Разрешён (/owner)' : '❌ Ограничен'}`,
+    { parse_mode: 'HTML' }
+  );
+});
+
+bot.command('whoami', async (ctx: BotContext) => {
+  if (!ctx.from) return;
+  const tgId = String(ctx.from.id);
+  const user = await db.user.findFirst({ where: { telegramId: tgId } });
+  const role = user?.role || 'Гость (не привязан)';
+  const isOwner = await isOwnerOrAdmin(ctx.from.id);
+  await ctx.reply(
+    `🆔 <b>Ваш Telegram ID:</b> <code>${tgId}</code>\n` +
+    `👤 <b>Email:</b> ${user?.email || 'Не привязан'}\n` +
+    `🎭 <b>Роль:</b> ${role}\n` +
+    `👑 <b>Доступ к овнеру:</b> ${isOwner ? '✅ Разрешён' : '❌ Ограничен'}`,
+    { parse_mode: 'HTML' }
+  );
+});
+
+async function sendUserTransactions(ctx: BotContext) {
+  if (!ctx.from) return;
+  const tgId = String(ctx.from.id);
+  const user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
+  if (!user) return ctx.reply('Используйте /start для регистрации.');
+
+  const transactions = await db.ledgerEntry.findMany({
+    where: { userId: user.id },
+    take: 8,
+    orderBy: { createdAt: 'desc' }
+  });
+
+  if (transactions.length === 0) {
+    return ctx.reply('📜 <b>История транзакций:</b>\n\nУ вас пока нет финансовых операций.', { parse_mode: 'HTML' });
+  }
+
+  let text = '📜 <b>История финансовых операций:</b>\n────────────────────\n\n';
+  for (const tx of transactions) {
+    const isCredit = tx.amount > BigInt(0);
+    const sign = isCredit ? '➕' : '➖';
+    const amountAbs = (Number(tx.amount < BigInt(0) ? -tx.amount : tx.amount) / 100).toFixed(2);
+    const dateStr = new Date(tx.createdAt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    text += `${sign} <b>${amountAbs} ₽</b> [${tx.transactionType}]\n` +
+      `   ├ ${escapeHtml(tx.reason || 'Операция')}\n` +
+      `   └ <i>${dateStr}</i>\n\n`;
+  }
+
+  await ctx.reply(text, { parse_mode: 'HTML' });
+}
+
+bot.action('my_tx', async (ctx: BotContext) => {
+  await ctx.answerCbQuery();
+  await sendUserTransactions(ctx);
+});
+
+bot.command('transactions', sendUserTransactions);
+
+async function sendBindInstructions(ctx: BotContext) {
+  const host = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (botTenantId === 'flux' || botTenantId === 'lovable' ? 'https://smmflux.ru' : 'https://test.smmplan.pro');
+  await ctx.reply(
+    `🔗 <b>Связывание аккаунта ${botSiteName}</b>\n\n` +
+    `Привяжите Telegram к сайту, чтобы синхронизировать баланс, получать уведомления о заказах и обращаться в поддержку без задержек.\n\n` +
+    `<b>Как привязать:</b>\n` +
+    `1. Войдите в аккаунт на сайте: ${host}/dashboard\n` +
+    `2. Перейдите в <b>Личный кабинет</b> → вкладка <b>«Безопасность»</b> или нажмите <b>«Привязать Telegram»</b>.\n` +
+    `3. Бот автоматически объединит баланс и историю заказов!\n\n` +
+    `<i>Это безопасно: мы не передаем номер телефона и пароли.</i>`,
+    {
+      parse_mode: 'HTML',
+      link_preview_options: { is_disabled: true },
+      ...Markup.inlineKeyboard([
+        [Markup.button.callback('💰 Проверить баланс', 'profile')],
+        [Markup.button.callback('🛍 Каталог услуг', 'shop')]
+      ])
+    }
+  );
+}
+
+bot.action('bind_account', async (ctx: BotContext) => {
+  await ctx.answerCbQuery();
+  await sendBindInstructions(ctx);
+});
+
+bot.action('support', async (ctx: BotContext) => {
+  await ctx.answerCbQuery();
+  await ctx.reply(
+    '🎧 <b>Служба заботы о клиентах</b>\n\n' +
+    'Напишите ваш вопрос, номер заказа или отправьте скриншот прямо в этот чат. Наш оператор ответит вам здесь же.',
+    { parse_mode: 'HTML' }
+  );
 });
 
 // Inline buttons from profile
@@ -408,19 +583,7 @@ bot.action('referral', async (ctx: BotContext) => {
 });
 bot.action('shop', async (ctx: BotContext) => {
   await ctx.answerCbQuery();
-  try {
-    const networks = await db.network.findMany({
-      where: { isActive: true },
-      orderBy: { sort: 'asc' }
-    });
-    const buttons = networks.map((n: { id: string; name: string }) => [Markup.button.callback(n.name, `cat_net_${n.id}`)]);
-    await ctx.reply('🛍 <b>Каталог услуг</b>\nВыберите социальную сеть:', {
-      parse_mode: 'HTML',
-      ...Markup.inlineKeyboard(buttons)
-    });
-  } catch (err) {
-    console.error('[Bot Shop Action] Error:', err);
-  }
+  await sendNetworkCatalogMenu(ctx, false);
 });
 bot.action('my_orders', async (ctx: BotContext) => {
   await ctx.answerCbQuery();
@@ -447,21 +610,8 @@ bot.action('my_orders', async (ctx: BotContext) => {
 
 // ── CATALOG NAVIGATION ──
 bot.action('cat_back_networks', async (ctx: BotContext) => {
-  try {
-    const networks = await db.network.findMany({
-      where: { isActive: true },
-      orderBy: { sort: 'asc' }
-    });
-    const buttons = networks.map((n: { id: string; name: string }) => [Markup.button.callback(n.name, `cat_net_${n.id}`)]);
-    await ctx.answerCbQuery();
-    await ctx.editMessageText('🛍 <b>Каталог услуг</b>\nВыберите социальную сеть:', {
-      parse_mode: 'HTML',
-      ...Markup.inlineKeyboard(buttons)
-    }).catch(() => {});
-  } catch (err) {
-    console.error('[Bot Catalog Back Networks] Error:', err);
-    await ctx.answerCbQuery('Произошла ошибка');
-  }
+  await ctx.answerCbQuery();
+  await sendNetworkCatalogMenu(ctx, true);
 });
 
 // Callback handler: Select Network -> Show Categories
@@ -472,16 +622,11 @@ bot.action(/^cat_net_(.+)$/, async (ctx: BotContext) => {
     const network = await db.network.findUnique({ where: { id: netId } });
     if (!network) return ctx.answerCbQuery('Социальная сеть не найдена');
 
-    const categories = await db.category.findMany({
-      where: {
-        networkId: netId,
-        services: { some: { isActive: true } }
-      },
-      orderBy: { sort: 'asc' }
-    });
+    const categories = await BotCatalogService.getVisibleCategories(netId, botTenantId);
 
     if (categories.length === 0) {
-      return ctx.answerCbQuery('В этой соцсети пока нет доступных категорий');
+      await ctx.answerCbQuery('В этой соцсети пока нет доступных категорий');
+      return await sendNetworkCatalogMenu(ctx, true);
     }
 
     const buttons = categories.map((c: { id: string; name: string }) => [Markup.button.callback(c.name, `cat_ctg_${c.id}`)]);
@@ -513,14 +658,11 @@ bot.action(/^cat_ctg_(.+)$/, async (ctx: BotContext) => {
     const { calculatePricePerUnit, formatPricePerUnit } = await import('./utils/formatter');
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
 
-    const services = await db.service.findMany({
-      where: { categoryId: catId, isActive: true },
-      orderBy: { rate: 'asc' },
-      select: { id: true, name: true, rate: true, markup: true, providerCurrency: true }
-    });
+    const services = await BotCatalogService.getVisibleServices(catId, botTenantId);
 
     if (services.length === 0) {
-      return ctx.answerCbQuery('В этой категории пока нет доступных тарифов');
+      await ctx.answerCbQuery('В этой категории пока нет доступных тарифов');
+      return;
     }
 
     const buttons = services.map((s: { id: string; name: string; rate: number; markup: number; providerCurrency: string }) => {
@@ -549,13 +691,11 @@ bot.action(/^cat_back_net_(.+)$/, async (ctx: BotContext) => {
     const network = await db.network.findUnique({ where: { id: netId } });
     if (!network) return ctx.answerCbQuery('Социальная сеть не найдена');
 
-    const categories = await db.category.findMany({
-      where: {
-        networkId: netId,
-        services: { some: { isActive: true } }
-      },
-      orderBy: { sort: 'asc' }
-    });
+    const categories = await BotCatalogService.getVisibleCategories(netId, botTenantId);
+    if (categories.length === 0) {
+      await ctx.answerCbQuery('В этой соцсети пока нет доступных категорий');
+      return await sendNetworkCatalogMenu(ctx, true);
+    }
 
     const buttons = categories.map((c: { id: string; name: string }) => [Markup.button.callback(c.name, `cat_ctg_${c.id}`)]);
     buttons.push([Markup.button.callback('⬅️ Назад к списку сетей', 'cat_back_networks')]);
@@ -575,19 +715,20 @@ bot.action(/^cat_back_net_(.+)$/, async (ctx: BotContext) => {
 bot.action(/^order_svc_(.+)$/, async (ctx: BotContext) => {
   if (!ctx.match) return;
   const serviceId = ctx.match[1];
-  const service = await db.service.findUnique({
-    where: { id: serviceId },
-    include: {
-      category: {
-        include: {
-          network: true
-        }
-      }
-    }
-  });
-  if (!service) return ctx.answerCbQuery('Услуга не найдена');
+  const service = await BotCatalogService.getServiceForOrder(serviceId, botTenantId);
+  if (!service) {
+    await ctx.answerCbQuery('Эта услуга временно недоступна или находится на техобслуживании');
+    return;
+  }
+  const preFilledLink = (ctx.session as Record<string, unknown> | undefined)?.activeLink as string | undefined;
+  if (ctx.session) {
+    delete (ctx.session as Record<string, unknown>).activeLink;
+  }
   await ctx.answerCbQuery();
-  return ctx.scene.enter(ORDER_WIZARD, { preSelectedService: service });
+  return ctx.scene.enter(ORDER_WIZARD, { 
+    preSelectedService: service,
+    preFilledLink: preFilledLink || undefined
+  });
 });
 
 bot.hears('💰 Пополнить', async (ctx: BotContext) => {
@@ -772,7 +913,98 @@ bot.action(/^fb_done:([^:]+)$/, async (ctx: BotContext) => {
   }
 });
 
-// ── CATCH-ALL (SUPPORT DIRECT CHAT MODE) ──
+function isPotentialLinkOrHandle(text: string): boolean {
+  const trimmed = text.trim();
+  if (trimmed.length > 500) return false;
+  const urlPattern = /^(https?:\/\/|t\.me\/|vk\.com\/|instagram\.com\/|youtube\.com\/|youtu\.be\/|tiktok\.com\/|ok\.ru\/|rutube\.ru\/|dzen\.ru\/|twitch\.tv\/|x\.com\/|twitter\.com\/|@[\w_]{3,})/i;
+  const generalUrlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9-]+\.[a-zA-Z]{2,}\/[^\s]*)/i;
+  return urlPattern.test(trimmed) || generalUrlRegex.test(trimmed);
+}
+
+async function handleLinkInput(ctx: BotContext, rawInput: string) {
+  try {
+    const { IntelligenceLinkAnalyzer } = await import('@/services/analyzer/link-analyzer');
+    const analyzer = new IntelligenceLinkAnalyzer();
+    const analysis = await analyzer.analyze(rawInput);
+
+    if (!analysis || analysis.platform === 'OTHER') {
+      await ctx.reply(
+        '🔍 <b>Не удалось автоматически определить социальную сеть по вашей ссылке.</b>\n\n' +
+        'Пожалуйста, выберите нужный раздел вручную из каталога либо обратитесь в поддержку:',
+        {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('🛍 Открыть каталог', 'shop')],
+            [Markup.button.callback('🆘 Задать вопрос поддержке', 'support')]
+          ])
+        }
+      );
+      return;
+    }
+
+    const network = await BotCatalogService.findNetworkByPlatform(analysis.platform, botTenantId);
+    if (!network) {
+      await ctx.reply(
+        `🔍 <b>Распознано: ${analysis.platform}</b>\n\n` +
+        `К сожалению, для этой социальной сети сейчас нет активных услуг.\n` +
+        `Вы можете выбрать другое направление в каталоге:`,
+        {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('🛍 Открыть каталог', 'shop')]
+          ])
+        }
+      );
+      return;
+    }
+
+    const categories = await BotCatalogService.getVisibleCategories(network.id, botTenantId);
+    if (categories.length === 0) {
+      await ctx.reply(
+        `🔍 <b>Распознано: ${network.name}</b>\n\n` +
+        `В этой соцсети пока нет доступных категорий.\n` +
+        `Выберите другую соцсеть в каталоге:`,
+        {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('🛍 Открыть каталог', 'shop')]
+          ])
+        }
+      );
+      return;
+    }
+
+    const canonicalLink = analysis.canonicalUrl || rawInput.trim();
+    if (!ctx.session) (ctx as unknown as { session: Record<string, unknown> }).session = {};
+    (ctx.session as Record<string, unknown>).activeLink = canonicalLink;
+
+    const buttons = categories.map((c: { id: string; name: string }) => [Markup.button.callback(c.name, `cat_ctg_${c.id}`)]);
+    buttons.push([Markup.button.callback('⬅️ Все соцсети', 'cat_back_networks')]);
+
+    const typeDesc = analysis.type ? ` (${analysis.type})` : '';
+
+    await ctx.reply(
+      `🎯 <b>Ссылка успешно распознана!</b>\n` +
+      `🌐 Соцсеть: <b>${network.name}${typeDesc}</b>\n` +
+      `🔗 Ссылка: <code>${escapeHtml(canonicalLink)}</code>\n\n` +
+      `Выберите категорию для продвижения:`,
+      {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard(buttons)
+      }
+    );
+  } catch (err) {
+    console.error('[Bot Link Input] Error:', err);
+    await ctx.reply(
+      '⚠️ Произошла ошибка при анализе ссылки. Пожалуйста, откройте каталог вручную:',
+      {
+        ...Markup.inlineKeyboard([[Markup.button.callback('🛍 Открыть каталог', 'shop')]])
+      }
+    );
+  }
+}
+
+// ── CATCH-ALL (SMART LINK ANALYZER & SUPPORT DIRECT CHAT) ──
 bot.on(['text', 'photo', 'voice', 'document', 'video', 'sticker', 'video_note', 'location'], async (ctx: BotContext) => {
   // 1. Check if user sent an unsupported format
   const msg = ctx.message as Record<string, unknown> | undefined;
@@ -780,7 +1012,14 @@ bot.on(['text', 'photo', 'voice', 'document', 'video', 'sticker', 'video_note', 
     return ctx.reply('⚠️ К сожалению, мы не можем просматривать стикеры, кружочки или геолокации. Пожалуйста, отправьте текст, скриншот (фото) или голосовое сообщение.');
   }
 
-  // 2. Resolve or Auto-Create User for Telegram Support
+  const text = (msg && 'text' in msg && typeof msg.text === 'string') ? msg.text.trim() : '';
+
+  // 2. SMART LINK-FIRST FLOW: If message is or contains a link / handle, run analyzer
+  if (text && isPotentialLinkOrHandle(text)) {
+    return await handleLinkInput(ctx, text);
+  }
+
+  // 3. DIRECT SUPPORT CHAT: Resolve or Auto-Create User for Telegram Support
   if (!ctx.from) return;
   const tgId = String(ctx.from.id);
   let user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
@@ -859,11 +1098,16 @@ export async function launchBot() {
       console.warn('[Bot] Redis heartbeat setup skipped:', redisErr);
     }
 
-    bot.launch({ dropPendingUpdates: true }).then(() => {
-      console.info('[Bot] Polling terminated.');
-    }).catch((e: unknown) => {
-      console.error('[Bot] ❌ Polling loop error:', e instanceof Error ? e.message : String(e));
-    });
+    // Fix node-fetch AbortSignal prototype check in Node 20
+    try {
+      const sig = new AbortController().signal;
+      const sigProto = Object.getPrototypeOf(sig);
+      if (sigProto && sigProto.constructor && sigProto.constructor.name !== 'AbortSignal') {
+        Object.defineProperty(sigProto.constructor, 'name', { value: 'AbortSignal', configurable: true });
+      }
+    } catch { /* ignore */ }
+
+    await bot.launch({ dropPendingUpdates: true });
 
     console.info(`[Bot] 🚀 Telegram bot @${me.username} is now actively polling for updates!`);
   } catch (e: unknown) {

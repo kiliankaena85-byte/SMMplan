@@ -151,7 +151,7 @@ Action: Account LOCKED, logged in AdminAuditLog.`;
 }
 
 // CLI Execution Wrapper
-if (require.main === module || (process.argv[1] && process.argv[1].endsWith('balance-verifier.ts'))) {
+if (process.argv[1] && (process.argv[1].endsWith('balance-verifier.ts') || process.argv[1].endsWith('balance-verifier.js'))) {
   (async () => {
     console.log('======================================================================');
     console.log('🔍 ЗАПУСК СКАНИРОВАНИЯ БАЛАНСОВ ПОЛЬЗОВАТЕЛЕЙ SMMplan');

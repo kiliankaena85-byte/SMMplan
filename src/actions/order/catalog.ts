@@ -39,7 +39,7 @@ export async function getCachedNetworks(tenantId: string) {
         include: {
           categories: {
             where: storefrontCategoryVisibility(tenantId),
-            orderBy: { name: 'asc' }
+            orderBy: { sort: 'asc' }
           }
         },
         orderBy: { sort: 'asc' }

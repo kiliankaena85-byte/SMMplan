@@ -48,7 +48,15 @@ export async function getDriftCandidatesAction(): Promise<{ success: true; data:
       }
     });
 
-    const usdToRub = await SettingsProvider.getExchangeRateUSD();
+    let usdToRub = 95.0;
+    try {
+      usdToRub = await SettingsProvider.getExchangeRateUSD();
+      if (!usdToRub || usdToRub <= 0) {
+        return { success: false, error: 'Некорректный курс валют' };
+      }
+    } catch {
+      return { success: false, error: 'Не удалось получить актуальный курс валют' };
+    }
     const candidates: DriftCandidate[] = [];
 
     for (const s of services) {

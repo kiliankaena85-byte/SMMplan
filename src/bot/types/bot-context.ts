@@ -46,6 +46,7 @@ export interface BotWizardSession extends Scenes.WizardSessionData {
   preSelectedService?: unknown;
   amountRub?: number;
   gateway?: string;
+  activeLink?: string;
   [key: string]: unknown;
 }
 

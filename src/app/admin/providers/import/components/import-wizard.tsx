@@ -108,6 +108,65 @@ const autoMapCategory = (s: ExternalServiceItem, categories: CategoryItem[]): { 
   return { id: "", confident: false };
 };
 
+/* ── Mixed-Type Category Detection ─────────────────────────────────────────
+ * Detects when multiple services with DIFFERENT normalizedCategory types (e.g.
+ * REACTIONS + SUBSCRIBERS + LIKES) are being imported into a SINGLE DB category.
+ * This is the root cause of the "all services in one category" bug.
+ * ────────────────────────────────────────────────────────────────────────── */
+interface MixedTypeWarning {
+  targetCategoryId: string;
+  targetCategoryName: string;
+  types: Array<{ normCategory: string; count: number; examples: string[] }>;
+}
+
+const detectMixedCategoryTypes = (
+  selectedIds: Set<string>,
+  services: ExternalServiceItem[],
+  selectedCategories: Record<string, string>,
+  autoMappedCategories: Record<string, string>,
+  categories: CategoryItem[]
+): MixedTypeWarning[] => {
+  // Group selected services by their target DB category
+  const byCatId: Record<string, Array<{ normCat: string; name: string }>> = {};
+
+  selectedIds.forEach(id => {
+    const svc = services.find(s => String(s.service) === id);
+    if (!svc) return;
+    const catId = selectedCategories[id] || autoMappedCategories[id];
+    if (!catId) return;
+    const normCat = (svc.metrics?.category || 'OTHER').toUpperCase();
+    if (!byCatId[catId]) byCatId[catId] = [];
+    byCatId[catId].push({ normCat, name: svc.name });
+  });
+
+  const warnings: MixedTypeWarning[] = [];
+
+  for (const [catId, entries] of Object.entries(byCatId)) {
+    // Count by normalizedCategory
+    const typeCounts: Record<string, string[]> = {};
+    entries.forEach(e => {
+      if (!typeCounts[e.normCat]) typeCounts[e.normCat] = [];
+      typeCounts[e.normCat].push(e.name);
+    });
+
+    const distinctTypes = Object.keys(typeCounts);
+    if (distinctTypes.length <= 1) continue; // OK — single type
+
+    const cat = categories.find(c => c.id === catId);
+    warnings.push({
+      targetCategoryId: catId,
+      targetCategoryName: cat?.name || catId,
+      types: distinctTypes.map(t => ({
+        normCategory: t,
+        count: typeCounts[t].length,
+        examples: typeCounts[t].slice(0, 2),
+      })),
+    });
+  }
+
+  return warnings;
+};
+
 /* ── Platform Tabs ── */
 const PLATFORM_TABS = [
   { id: "ALL", name: "Все", icon: "🌐" },
@@ -194,6 +253,10 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
   const [importReport, setImportReport] = useState<ImportServicesResult | null>(null);
   /* PATCH P0-3: select-all-filtered loading state */
   const [selectingAllFiltered, setSelectingAllFiltered] = useState(false);
+  /* CATEGORY-FIX: mixed-type category detection state */
+  const [mixedTypeWarnings, setMixedTypeWarnings] = useState<MixedTypeWarning[]>([]);
+  const [showMixedTypeWarning, setShowMixedTypeWarning] = useState(false);
+
 
   // PATCH P1-6: ref for auto-dismiss
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -499,8 +562,28 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
       return;
     }
 
+    // CATEGORY-FIX: detect mixed activity types going into the same DB category
+    const warnings = detectMixedCategoryTypes(
+      selectedIds,
+      services,
+      selectedCategories,
+      autoMappedCategories,
+      categories
+    );
+
+    if (warnings.length > 0 && !showMixedTypeWarning) {
+      // Show warning banner first — user must explicitly acknowledge and click again
+      setMixedTypeWarnings(warnings);
+      setShowMixedTypeWarning(true);
+      return;
+    }
+
+    // Reset warning flag after user acknowledges
+    setShowMixedTypeWarning(false);
+    setMixedTypeWarnings([]);
     setShowConfirmModal(true);
   };
+
 
   const handleConfirmImport = async () => {
     setShowConfirmModal(false);
@@ -690,6 +773,61 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
       {/* ── Post-import report ── */}
       {importReport && (
         <ImportReportCard report={importReport} onClose={() => setImportReport(null)} />
+      )}
+
+      {/* ── CATEGORY-FIX: Mixed Activity Types Warning Banner ── */}
+      {showMixedTypeWarning && mixedTypeWarnings.length > 0 && (
+        <div className="p-4 rounded-xl border border-amber-500/40 bg-amber-500/8 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-amber-700 dark:text-amber-400">
+                ⚠️ Обнаружено смешение типов услуг в одной категории
+              </p>
+              <p className="text-xs text-amber-600/80 dark:text-amber-400/70 mt-1">
+                Вы импортируете услуги разных типов (подписчики, реакции, лайки и т.д.) в одну категорию.
+                Это приведёт к тому, что в визарде заказа пользователь увидит всё вперемешку.
+              </p>
+              <div className="mt-3 space-y-2">
+                {mixedTypeWarnings.map((w, wi) => (
+                  <div key={wi} className="bg-amber-500/10 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1.5">
+                      Категория: «{w.targetCategoryName}»
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {w.types.map((t, ti) => (
+                        <span
+                          key={ti}
+                          className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30"
+                          title={`Примеры: ${t.examples.join(', ')}`}
+                        >
+                          {t.normCategory} ({t.count} шт)
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-amber-600/70 dark:text-amber-400/60 mt-1.5">
+                      💡 Рекомендация: создайте отдельные категории (Подписчики {w.targetCategoryName.split(' ').pop()}, Реакции {w.targetCategoryName.split(' ').pop()}) или запустите скрипт исправления данных.
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 mt-3">
+                <button
+                  onClick={() => { setShowMixedTypeWarning(false); setMixedTypeWarnings([]); handleStartImport(); }}
+                  className="px-3 py-1.5 text-xs font-bold rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors cursor-pointer"
+                >
+                  Всё равно импортировать
+                </button>
+                <button
+                  onClick={() => { setShowMixedTypeWarning(false); setMixedTypeWarnings([]); }}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-amber-500/30 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                >
+                  Отмена — исправить категории
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Main Table Container ── */}

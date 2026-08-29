@@ -71,7 +71,7 @@ export class EmergencyEmailService {
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #f8fafc; padding: 24px;">
       <div style="max-width: 600px; margin: 0 auto; background: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden;">
         <div style="background: ${headerColor}; padding: 16px 24px; color: #ffffff;">
-          <h2 style="margin: 0; font-size: 18px;">${emoji} [${severity}] SMMpanel 1.0 Emergency Alert</h2>
+          <h2 style="margin: 0; font-size: 18px;">${emoji} [${severity}] OmniSMM 1.0 Emergency Alert</h2>
         </div>
         <div style="padding: 24px;">
           <h3 style="margin-top: 0; color: #ffffff; font-size: 16px;">${title}</h3>
@@ -90,7 +90,7 @@ export class EmergencyEmailService {
 
           <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #334155; color: #94a3b8; font-size: 12px; display: flex; justify-content: space-between;">
             <span>Время инцидента: ${moscowTime}</span>
-            <span>SMMpanel 1.0 Autonomous Watchdog</span>
+            <span>OmniSMM 1.0 Autonomous Watchdog</span>
           </div>
         </div>
       </div>
@@ -100,9 +100,9 @@ export class EmergencyEmailService {
 
     try {
       const info = await transporter.sendMail({
-        from: `"SMMpanel 1.0 Security" <${process.env.SMTP_USER || 'infosokoloff@yandex.ru'}>`,
+        from: `"OmniSMM 1.0 Security" <${process.env.SMTP_USER || 'infosokoloff@yandex.ru'}>`,
         to: toEmail,
-        subject: `${emoji} [${severity}] ${title} — SMMpanel Monitor`,
+        subject: `${emoji} [${severity}] ${title} — OmniSMM Monitor`,
         html,
       });
 

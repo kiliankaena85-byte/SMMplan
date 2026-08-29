@@ -9,15 +9,34 @@ interface RepeatOrderButtonProps {
   categoryId: string;
   link: string | null;
   quantity: number;
+  remains?: number | null;
+  status?: string;
   className?: string;
 }
 
-export function RepeatOrderButton({ serviceId, categoryId, link, quantity, className = "" }: RepeatOrderButtonProps) {
+export function RepeatOrderButton({ 
+  serviceId, 
+  categoryId, 
+  link, 
+  quantity, 
+  remains, 
+  status, 
+  className = "" 
+}: RepeatOrderButtonProps) {
   const params = new URLSearchParams();
   if (serviceId) params.set('reorderServiceId', serviceId);
   if (categoryId) params.set('reorderCategoryId', categoryId);
   if (link) params.set('reorderLink', link);
-  if (quantity) params.set('reorderQty', quantity.toString());
+
+  // If order was PARTIAL and has positive remains, repeat specifically the недовыполненный остаток
+  const targetQty = (status === 'PARTIAL' && typeof remains === 'number' && remains > 0)
+    ? remains
+    : quantity;
+
+  if (targetQty) params.set('reorderQty', targetQty.toString());
+  if (status === 'PARTIAL' && typeof remains === 'number' && remains > 0) {
+    params.set('reorderPartial', 'true');
+  }
 
   return (
     <Link

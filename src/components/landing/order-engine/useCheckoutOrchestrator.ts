@@ -21,6 +21,8 @@ import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
 import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 import { ABVariant } from '@/hooks/useABTest';
+import { executePaymentRedirect } from '@/utils/payment-redirect';
+import { parseActionableError } from '@/lib/errors/actionable-error';
 
 interface CheckoutOrchestratorOptions {
   engine: OrderEngine;
@@ -67,8 +69,9 @@ export function useCheckoutOrchestrator({
     setShowPaymentModal(true);
   };
 
-  const handleCheckout = async (directGateway?: string) => {
-    const { selectedService, url, quantity, customData, agreedToTerms, email, isMassMode, massCalculation, promoCode } = engine;
+  const handleCheckout = async (directGateway?: string, overrideEmail?: string) => {
+    const { selectedService, url, quantity, customData, agreedToTerms, email: engineEmail, isMassMode, massCalculation, promoCode } = engine;
+    const email = overrideEmail?.trim() || engineEmail?.trim();
 
     if (isMassMode) {
       if (!massCalculation || massCalculation.validCount === 0) {
@@ -350,17 +353,12 @@ export function useCheckoutOrchestrator({
         });
         if (res.success) {
           if (res.data?.paymentUrl) {
-            const allowedDomains = ['yookassa.ru', 'crypto.bot', 'robokassa.ru', 'pay.cryptometria.com'];
-            try {
-              const parsedUrl = new URL(res.data.paymentUrl);
-              if (!allowedDomains.some(d => parsedUrl.hostname.endsWith(d))) {
-                throw new Error('Invalid payment URL domain');
-              }
-              window.location.href = res.data.paymentUrl;
-            } catch {
-              toast.error('Некорректный URL платежного шлюза');
-              return;
+            const redirected = executePaymentRedirect(res.data.paymentUrl);
+            if (!redirected) {
+              setIsSubmitting(false);
+              toast.error('Не удалось открыть платежный шлюз');
             }
+            return;
           } else if (res.data?.orderId) {
             window.location.href = `/success?orderId=${res.data.orderId}`;
           } else if (res.data?.paymentId) {
@@ -368,17 +366,7 @@ export function useCheckoutOrchestrator({
           }
           return;
         } else {
-          if (res.error?.includes("Telegram-аккаунт") || res.error?.includes("привяжите ваш Telegram-аккаунт")) {
-            toast.error(res.error, {
-              position: 'top-center',
-              duration: 8000,
-              action: {
-                label: 'Привязать',
-                onClick: () => window.location.href = '/dashboard/settings'
-              }
-            });
-            return;
-          }
+          setIsSubmitting(false);
           if (res.error?.startsWith('VOUCHER_USE_BALANCE:')) {
             toast.error(
               'Это ваучер на пополнение баланса. Перейдите в раздел «Мой баланс» для активации.',
@@ -391,16 +379,42 @@ export function useCheckoutOrchestrator({
                 }
               }
             );
-          } else {
-            const errorMessage = res.error || "Ошибка создания заказа. Попробуйте снова.";
-            window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&serviceId=${checkoutParams.serviceId}&gateway=${directGateway}&email=${encodeURIComponent(email)}&quantity=${quantity}&url=${encodeURIComponent(finalUrl)}&paymentId=&orderId=`;
+            return;
           }
+
+          const actionable = parseActionableError(res.error, { serviceId: checkoutParams.serviceId });
+          toast.error(actionable.message, {
+            position: 'top-center',
+            duration: 8000,
+            action: actionable.action ? {
+              label: actionable.action.label,
+              onClick: () => {
+                if (actionable.action?.targetGateway) {
+                  handleCheckout(actionable.action.targetGateway);
+                } else if (actionable.action?.redirectUrl) {
+                  window.location.href = actionable.action.redirectUrl;
+                }
+              }
+            } : undefined
+          });
         }
-            } catch (e: unknown) {
+      } catch (e: unknown) {
         setIsSubmitting(false);
-        const err = e as Error;
-        const errorMessage = err.message || "Ошибка платежного шлюза.";
-        window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&serviceId=${checkoutParams.serviceId}&gateway=${directGateway}&email=${encodeURIComponent(email)}&quantity=${quantity}&url=${encodeURIComponent(finalUrl)}&paymentId=&orderId=`;
+        const actionable = parseActionableError(e, { serviceId: checkoutParams.serviceId });
+        toast.error(actionable.message, {
+          position: 'top-center',
+          duration: 8000,
+          action: actionable.action ? {
+            label: actionable.action.label,
+            onClick: () => {
+              if (actionable.action?.targetGateway) {
+                handleCheckout(actionable.action.targetGateway);
+              } else if (actionable.action?.redirectUrl) {
+                window.location.href = actionable.action.redirectUrl;
+              }
+            }
+          } : undefined
+        });
       }
       return;
     }
@@ -425,7 +439,11 @@ export function useCheckoutOrchestrator({
         setShowPaymentModal(false);
         if (res.success) {
           if (res.data?.paymentUrl) {
-            window.location.href = res.data.paymentUrl;
+            const redirected = executePaymentRedirect(res.data.paymentUrl);
+            if (!redirected) {
+              const errorMessage = 'Ошибка: не удалось получить ссылку на оплату.';
+              window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&gateway=${gateway}&email=${encodeURIComponent(pendingCheckoutParams.email || '')}&url=${encodeURIComponent(pendingCheckoutParams.text || '')}&paymentId=&orderId=`;
+            }
           } else {
             const errorMessage = 'Ошибка: не удалось получить ссылку на оплату.';
             window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&gateway=${gateway}&email=${encodeURIComponent(pendingCheckoutParams.email || '')}&url=${encodeURIComponent(pendingCheckoutParams.text || '')}&paymentId=&orderId=`;
@@ -453,7 +471,11 @@ export function useCheckoutOrchestrator({
       setIsSubmitting(false);
       setShowPaymentModal(false);
       if (res.success && res.data?.paymentUrl) {
-        window.location.href = res.data.paymentUrl;
+        const redirected = executePaymentRedirect(res.data.paymentUrl);
+        if (!redirected) {
+          const errorMessage = 'Ошибка: не удалось открыть платёжный шлюз.';
+          window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&serviceId=${pendingCheckoutParams.serviceId}&gateway=${gateway}&email=${encodeURIComponent(pendingCheckoutParams.email || '')}&quantity=${pendingCheckoutParams.quantity}&url=${encodeURIComponent(pendingCheckoutParams.link || '')}&paymentId=&orderId=`;
+        }
       } else if (!res.success) {
         if (res.error?.includes("Telegram-аккаунт") || res.error?.includes("привяжите ваш Telegram-аккаунт")) {
           toast.error(res.error, {

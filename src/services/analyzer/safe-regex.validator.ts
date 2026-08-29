@@ -15,13 +15,15 @@ export interface ValidationResult {
 
 // Patterns that typically indicate catastrophic exponential backtracking (ReDoS)
 const REDOS_PATTERNS = [
-  /\([^)]*(\+|\*)\)[+*]/,          // (a+)+ or (a*)*
-  /\([^)]*(\+|\*)\)\{/i,          // (a+){2,}
+  /\([^)]*(\+|\*)[^)]*\)[+*]/,          // (a+)+ or (x+x+)+ or (a*)*
+  /\([^)]*(\+|\*)[^)]*\)\{/i,          // (a+){2,}
   /\([a-z0-9_.\-\\s|]+\+[|][^)]+\)\+/i, // (a+|b)+
   /\([a-z0-9_.\-\\s|]+\*[|][^)]+\)\*/i, // (a*|b)*
   /\(\.\*\)\+/,                   // (.*)+
   /\(\.\+\)\+/,                   // (.+)+
   /\(\.\*\)\*/,                   // (.*)*
+  /\([^)]*\|[^)]*\)[+*]/,         // (a|aa)+
+  /\(\.\*[^)]*\)\{\d+,?\}/,       // (.*a){10}
 ];
 
 export class SafeRegexValidator {

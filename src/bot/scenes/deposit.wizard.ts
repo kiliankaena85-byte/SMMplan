@@ -158,3 +158,19 @@ depositWizard.action(/pay_(yookassa|cryptobot)/, async (ctx: BotContext) => {
   }
   return ctx.scene.leave();
 });
+
+depositWizard.action('cancel_deposit', async (ctx: BotContext) => {
+  await ctx.answerCbQuery('Пополнение отменено');
+  await ctx.reply('❌ Пополнение баланса отменено.');
+  return ctx.scene.leave();
+});
+
+depositWizard.command('cancel', async (ctx: BotContext) => {
+  await ctx.reply('❌ Пополнение баланса отменено.');
+  return ctx.scene.leave();
+});
+
+depositWizard.hears(['🛍 Каталог услуг', '👤 Профиль', '🆘 Поддержка', '💰 Пополнить', '👥 Рефералы', '📦 Мои заказы', '/start', '/shop', '/bind'], async (ctx: BotContext, next) => {
+  await ctx.scene.leave();
+  return next();
+});

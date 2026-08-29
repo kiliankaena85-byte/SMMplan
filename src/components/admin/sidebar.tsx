@@ -131,7 +131,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
             ⚡
           </div>
           <h2 className="text-xl font-extrabold tracking-tight text-foreground flex items-center gap-1.5">
-            SMMpanel
+            OmniSMM
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
               1.0
             </span>

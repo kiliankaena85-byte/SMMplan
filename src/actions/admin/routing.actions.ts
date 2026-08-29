@@ -440,7 +440,7 @@ export async function getProviderComparisonData(serviceId: string) {
       let avgEtaSeconds = 0;
       if (completedOrders.length > 0) {
         const totalDuration = completedOrders.reduce((sum, o) => {
-          const duration = (o.updatedAt.getTime() - o.createdAt.getTime()) / 1000;
+          const duration = (new Date(o.updatedAt).getTime() - new Date(o.createdAt).getTime()) / 1000;
           return sum + duration;
         }, 0);
         avgEtaSeconds = Math.round(totalDuration / completedOrders.length);

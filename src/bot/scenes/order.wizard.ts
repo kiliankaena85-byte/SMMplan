@@ -182,12 +182,32 @@ export const orderWizard = new Scenes.WizardScene<BotContext>(
 
   // ШАГ 1 (Index 0): Начало — показать выбранную услугу или запросить ссылку
   async (ctx: BotContext) => {
-    const preSelected = (ctx.scene.state as Record<string, unknown>)?.preSelectedService as WizardOrderService | undefined;
+    const state = ctx.scene.state as Record<string, unknown>;
+    const preSelected = state?.preSelectedService as WizardOrderService | undefined;
+    const preFilledLink = state?.preFilledLink as string | undefined;
+
     if (preSelected) {
       const orderData = getOrderData(ctx);
       orderData.service = preSelected;
       orderData.minQty = preSelected.minQty;
       orderData.maxQty = preSelected.maxQty;
+
+      if (preFilledLink && preFilledLink.trim().length > 0) {
+        orderData.link = preFilledLink.trim();
+        orderData.isLinkOverridden = false;
+        await ctx.reply(
+          `✨ <b>ВЫБРАНО:</b> ${escapeHtml(preSelected.name)}\n` +
+          `🔗 <b>Ссылка:</b> <code>${escapeHtml(orderData.link)}</code>\n\n` +
+          `🔢 <b>Введите количество</b> (от ${preSelected.minQty.toLocaleString()} до ${preSelected.maxQty.toLocaleString()}):\n\n` +
+          `<i>Отправьте число в ответном сообщении:</i>`,
+          {
+            parse_mode: 'HTML',
+            ...Markup.inlineKeyboard([[Markup.button.callback('❌ Отмена', 'cancel_wizard')]])
+          }
+        );
+        return ctx.wizard.selectStep(3);
+      }
+
       await ctx.reply(`✨ <b>ВЫБРАНО:</b> ${escapeHtml(preSelected.name)}\n\n🚀 <b>Пришлите ссылку:</b>`, {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([[Markup.button.callback('❌ Отмена', 'cancel_wizard')]])
@@ -528,4 +548,14 @@ orderWizard.action('cancel_wizard', async (ctx: BotContext) => {
   await ctx.answerCbQuery('Заказ отменен');
   await ctx.reply('❌ Оформление заказа отменено.');
   return ctx.scene.leave();
+});
+
+orderWizard.command('cancel', async (ctx: BotContext) => {
+  await ctx.reply('❌ Оформление заказа отменено.');
+  return ctx.scene.leave();
+});
+
+orderWizard.hears(['🛍 Каталог услуг', '👤 Профиль', '🆘 Поддержка', '💰 Пополнить', '👥 Рефералы', '📦 Мои заказы', '/start', '/shop', '/bind'], async (ctx: BotContext, next) => {
+  await ctx.scene.leave();
+  return next();
 });

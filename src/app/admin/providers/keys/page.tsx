@@ -34,7 +34,7 @@ export default function ProviderKeysManagementPage() {
       </div>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
-        {['Vexboost', 'Soc-Rocket', 'SMMPrime', 'Stream-Promotion', 'Likedrom', 'SMMPanelUS', 'Soc-Proof', 'Telegram.Shop'].map((name) => (
+        {['Main-Provider', 'Soc-Rocket', 'SMMPrime', 'Stream-Promotion', 'Likedrom', 'SMMPanelUS', 'Soc-Proof', 'Telegram.Shop'].map((name) => (
           <div key={name} className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <div className="font-semibold text-foreground text-sm">{name}</div>

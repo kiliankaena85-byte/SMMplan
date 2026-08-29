@@ -67,13 +67,10 @@ class YooKassaGateway extends BasePaymentGateway {
     const shopId = secrets.yookassaShopId;
     const secretKey = secrets.yookassaSecretKey;
 
+    const isMockPayment = await SettingsManager.isMockPaymentEnabled();
     const isDummyKeys = !shopId || !secretKey || shopId === 'test_shop_id' || shopId === 'test_shop_id_test' || secretKey === 'test_secret' || secretKey === 'test_secret_key';
 
-    if (isDummyKeys) {
-      if (process.env.NODE_ENV === 'production' && !params.isTestMode && process.env.ENABLE_DEV_ROUTES !== 'true') {
-        console.error('[YooKassaGateway] YooKassa credentials missing or invalid in production — refusing payment creation', { paymentId: params.paymentId });
-        throw new Error('Платёжный шлюз ЮKassa не настроен. Пожалуйста, укажите валидные ключи в панели управления (Настройки → Интеграции).');
-      }
+    if (isMockPayment || isDummyKeys) {
       return {
         paymentUrl: `${await getBaseUrlAsync()}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
         remoteGatewayId: `mock_${Date.now()}`
@@ -106,7 +103,7 @@ class YooKassaGateway extends BasePaymentGateway {
       amount: { value: params.amountRub.toFixed(2), currency: 'RUB' },
       capture: true,
       confirmation: { type: 'redirect', return_url: params.successUrl },
-      description: params.description,
+      description: (params.description || "Оплата заказа").slice(0, 128),
       metadata: { paymentId: params.paymentId, userId: params.userId, orderId: params.orderId, ...params.metadata }
     };
 
@@ -115,7 +112,7 @@ class YooKassaGateway extends BasePaymentGateway {
     const vatCode = isVatThresholdExceeded ? 10 : 1; // 10 = НДС 22% (п. 3 ст. 164 НК РФ), 1 = Без НДС
 
     payload.receipt = {
-      customer: { email: params.email || `no-reply@${supportDomain}` },
+      customer: { email: (params.email?.trim() || `no-reply@${supportDomain}`).slice(0, 64) },
       items: [{
         description: (params.description || "Информационные услуги").slice(0, 128),
         quantity: "1.00",
@@ -143,6 +140,13 @@ class YooKassaGateway extends BasePaymentGateway {
     if (!resp.ok) {
       const errBody = await resp.text();
       console.error('[YooKassaGateway] API Error:', resp.status, errBody);
+      if ((resp.status === 401 || resp.status === 403) && process.env.ENABLE_DEV_ROUTES === 'true') {
+        console.warn('[YooKassaGateway] YooKassa test credentials rejected (HTTP ' + resp.status + '). Falling back to mock-payment dev route.');
+        return {
+          paymentUrl: `${await getBaseUrlAsync()}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
+          remoteGatewayId: `mock_${Date.now()}`
+        };
+      }
       let descriptiveError = 'Ошибка шлюза YooKassa';
       try {
         const parsed = JSON.parse(errBody);

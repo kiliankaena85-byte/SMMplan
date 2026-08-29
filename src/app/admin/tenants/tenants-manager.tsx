@@ -98,13 +98,16 @@ export function TenantsManager({ initialTenants }: TenantsManagerProps) {
 
   const handleToggle = async (id: string, currentStatus: boolean) => {
     setLoading(true);
+    setError(null);
     try {
       const res = await toggleTenantStatusAction(id, !currentStatus);
       if (res.success) {
         setTenants(prev => prev.map(t => t.id === id ? { ...t, isActive: !currentStatus } : t));
       } else {
-        alert(res.error || 'Ошибка смены статуса');
+        setError(res.error || 'Ошибка смены статуса');
       }
+    } catch {
+      setError('Сбой сети при смене статуса');
     } finally {
       setLoading(false);
     }
@@ -114,13 +117,16 @@ export function TenantsManager({ initialTenants }: TenantsManagerProps) {
     if (!confirm(`Вы действительно хотите удалить бренд "${brandName}" (${id})?`)) return;
 
     setLoading(true);
+    setError(null);
     try {
       const res = await deleteTenantAction(id);
       if (res.success) {
         setTenants(prev => prev.filter(t => t.id !== id));
       } else {
-        alert(res.error || 'Ошибка удаления бренда');
+        setError(res.error || 'Ошибка удаления бренда');
       }
+    } catch {
+      setError('Сбой сети при удалении бренда');
     } finally {
       setLoading(false);
     }

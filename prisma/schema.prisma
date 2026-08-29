@@ -2123,9 +2123,16 @@ model CxApologyCompensation {
   @@index([status])
 }
 
+model PreLaunchLead {
+  id          String    @id @default(cuid())
+  email       String
+  tenantId    String    @default("smmplan")
+  ipHash      String?
+  source      String    @default("holding_page")
+  isNotified  Boolean   @default(false)
+  notifiedAt  DateTime?
+  createdAt   DateTime  @default(now())
 
-
-
-
-
-
+  @@unique([email, tenantId])
+  @@index([tenantId, createdAt])
+}

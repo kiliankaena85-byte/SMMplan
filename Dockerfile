@@ -33,13 +33,27 @@ CMD ["node", "server.js"]
 FROM node:20-alpine AS worker-runner
 WORKDIR /app
 ENV NODE_ENV=production
+RUN apk add --no-cache openssl libssl3 curl
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=nextjs:nodejs /app/src ./src
-COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
-COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
+COPY --chown=nextjs:nodejs .next/standalone/node_modules ./node_modules
+COPY --chown=nextjs:nodejs prisma ./prisma
+COPY --chown=nextjs:nodejs dist/worker.js ./
 
 USER nextjs
-CMD ["./node_modules/.bin/tsx", "src/workers/index.ts"]
+CMD ["node", "worker.js"]
+
+# --- bot-runner ---
+FROM node:20-alpine AS bot-runner
+WORKDIR /app
+ENV NODE_ENV=production
+RUN apk add --no-cache openssl libssl3 curl
+RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
+
+# Copy standalone node_modules, Prisma runtime, and bundled bot
+COPY --chown=nextjs:nodejs .next/standalone/node_modules ./node_modules
+COPY --chown=nextjs:nodejs prisma ./prisma
+COPY --chown=nextjs:nodejs dist/bot.js ./
+
+USER nextjs
+CMD ["node", "bot.js"]
