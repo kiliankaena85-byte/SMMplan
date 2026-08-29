@@ -4,6 +4,16 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+function getDatasourceUrl(): string | undefined {
+  if (process.env.CONTOUR === 'test' && process.env.DATABASE_URL_TEST) {
+    return process.env.DATABASE_URL_TEST;
+  }
+  if (process.env.CONTOUR === 'prod' && process.env.DATABASE_URL_PROD) {
+    return process.env.DATABASE_URL_PROD;
+  }
+  return process.env.DATABASE_URL;
+}
+
 function createPrismaClient(): PrismaClient {
   if (typeof window !== 'undefined' || process.env.NEXT_RUNTIME === 'edge') {
     // Return mock proxy for Browser/Edge Runtime to prevent native binary evaluation crashes
@@ -14,9 +24,11 @@ function createPrismaClient(): PrismaClient {
     });
   }
 
+  const datasourceUrl = getDatasourceUrl();
   const rawPrisma =
     globalForPrisma.prisma ??
     new PrismaClient({
+      ...(datasourceUrl ? { datasources: { db: { url: datasourceUrl } } } : {}),
       log: process.env.DEBUG_PRISMA === 'true'
         ? ['query', 'error', 'warn']
         : ['error', 'warn'],

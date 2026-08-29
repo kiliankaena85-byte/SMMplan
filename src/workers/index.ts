@@ -14,6 +14,7 @@ import {
   ensurePendingCheckCron,
   ensureAiObserverCron,
   ensureAiEconomicOptimizerCron,
+  ensureGeoAvailabilityCron,
   dlqQueue, 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   cleanupQueue, 
@@ -44,6 +45,7 @@ import refillProcessor from './processors/refill.processor';
 import articlePublishProcessor from './processors/article-publish.processor';
 import aiObserverProcessor from './processors/ai-observer.processor';
 import aiEconomicOptimizerProcessor from './processors/ai-economic-optimizer.processor';
+import geoAvailabilityProcessor from './processors/geo-availability.processor';
 import { orderService } from '../services/core/order.service';
 import { trackEtaFailure, resetEtaFailureStreak } from './eta-alerts';
 
@@ -52,11 +54,12 @@ log.info('🚀 Starting BullMQ workers...');
 
 const connection = getRedisConnection();
 
-import { jitteredBackoff } from '../lib/queue-manager';
+import { jitteredBackoff, getQueuePrefix } from '../lib/queue-manager';
 
 // ── Worker instances ──────────────────────────────────────────────────────────
 const workerConfig: BullWorkerOptions = { 
   connection,
+  prefix: getQueuePrefix(),
   lockDuration: 60000,     // 60s lock to prevent false stalls during slow provider APIs (our breaker is 15s)
   stalledInterval: 30000,  // Check for stalled jobs every 30s
   maxStalledCount: 1,      // Only retry a stalled job once before failing
@@ -98,6 +101,7 @@ const refillWorker = new Worker('refillQueue', refillProcessor, workerConfig);
 const articlePublishWorker = new Worker('articlePublishQueue', articlePublishProcessor, workerConfig);
 const aiObserverWorker = new Worker('aiObserverQueue', aiObserverProcessor, workerConfig);
 const aiEconomicOptimizerWorker = new Worker('aiEconomicOptimizerQueue', aiEconomicOptimizerProcessor, workerConfig);
+const geoAvailabilityWorker = new Worker('geoAvailabilityQueue', geoAvailabilityProcessor, workerConfig);
 
 // ── P2.1: DLQ — Dead Letter Queue handler ────────────────────────────────────
 const MAX_ATTEMPTS = 3; // Must match createQueue defaults
@@ -233,8 +237,9 @@ ensureArticlePublishCron().catch(e => log.error('Failed to setup Article Publish
 ensurePendingCheckCron().catch(e => log.error('Failed to setup PendingCheck Cron', { error: (e as Error).message }));
 ensureAiObserverCron().catch(e => log.error('Failed to setup AI Observer Cron', { error: (e as Error).message }));
 ensureAiEconomicOptimizerCron().catch(e => log.error('Failed to setup AI Economic Optimizer Cron', { error: (e as Error).message }));
+ensureGeoAvailabilityCron().catch(e => log.error('Failed to setup Geo Availability Cron', { error: (e as Error).message }));
 
-log.info('All workers started', { queues: ['ordersQueue', 'refillQueue', 'syncQueue', 'catalogQueue', 'cleanup', 'paymentSyncQueue', 'articlePublishQueue', 'aiObserverQueue', 'aiEconomicOptimizerQueue'] });
+log.info('All workers started', { queues: ['ordersQueue', 'refillQueue', 'syncQueue', 'catalogQueue', 'cleanup', 'paymentSyncQueue', 'articlePublishQueue', 'aiObserverQueue', 'aiEconomicOptimizerQueue', 'geoAvailabilityQueue'] });
 
 // ── Graceful Shutdown (12-Factor App) ────────────────────────────────────────
 const shutdown = async () => {
@@ -254,6 +259,7 @@ const shutdown = async () => {
     articlePublishWorker.close(),
     aiObserverWorker.close(),
     aiEconomicOptimizerWorker.close(),
+    geoAvailabilityWorker.close(),
   ]);
   await db.$disconnect();
   if (connection) await connection.quit();

@@ -6,7 +6,17 @@ let cachedPreviousKeys: Uint8Array[] | null = null;
 
 export function getEncodedKey(): Uint8Array {
   if (cachedEncodedKey) return cachedEncodedKey;
-  const secret = process.env.JWT_SIGNING_KEY || process.env.JWT_SECRET;
+  let secret = process.env.JWT_SIGNING_KEY;
+  if (!secret) {
+    if (process.env.CONTOUR === 'test' && process.env.JWT_SECRET_TEST) {
+      secret = process.env.JWT_SECRET_TEST;
+    } else if (process.env.CONTOUR === 'prod' && process.env.JWT_SECRET_PROD) {
+      secret = process.env.JWT_SECRET_PROD;
+    } else {
+      secret = process.env.JWT_SECRET;
+    }
+  }
+
   if (!secret) {
     throw new Error(
       'FATAL: JWT_SECRET environment variable is not set. ' +

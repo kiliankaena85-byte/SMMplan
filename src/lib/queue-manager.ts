@@ -5,14 +5,27 @@ import { redactSensitiveTokens } from '@/lib/logger/sensitive-data-filter';
 // Singleton Redis connection pattern
 let redisConnection: Redis | null = null;
 
+export const getQueuePrefix = (): string => {
+  if (process.env.REDIS_KEY_PREFIX) return process.env.REDIS_KEY_PREFIX;
+  if (process.env.CONTOUR === 'test') return 'test:bullmq';
+  if (process.env.CONTOUR === 'prod') return 'prod:bullmq';
+  return 'bullmq';
+};
+
 export const getRedisConnection = (): Redis => {
   if (redisConnection) return redisConnection;
 
-  const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+  const redisUrl = (process.env.CONTOUR === 'test' && process.env.REDIS_URL_TEST)
+    ? process.env.REDIS_URL_TEST
+    : (process.env.REDIS_URL || 'redis://127.0.0.1:6379');
   const redisPassword = process.env.REDIS_PASSWORD || undefined;
+  const dbIndex = process.env.REDIS_DB_INDEX
+    ? parseInt(process.env.REDIS_DB_INDEX, 10)
+    : (process.env.CONTOUR === 'test' ? 1 : 0);
   
   redisConnection = new Redis(redisUrl, {
     password: redisPassword,
+    db: isNaN(dbIndex) ? 0 : dbIndex,
     maxRetriesPerRequest: null, // Specific required for BullMQ
     lazyConnect: true // Prevent immediate crash if unavailable during build
   });
@@ -55,6 +68,7 @@ export const createQueue = <PayloadType>(name: string, defaultOptions?: Partial<
 
     return new Queue<PayloadType, unknown, string>(name, {
     connection: getRedisConnection(),
+    prefix: getQueuePrefix(),
     defaultJobOptions: {
       removeOnComplete: { count: 500, age: 3600 },
       removeOnFail: { count: 1000, age: 86400 },
@@ -396,6 +410,35 @@ export async function ensureAiEconomicOptimizerCron(): Promise<void> {
   );
 }
 
+export interface GeoAvailabilityJobPayload {
+  timestamp: number;
+  targetUrl?: string;
+}
+
+export const geoAvailabilityQueue = createQueue<GeoAvailabilityJobPayload>(
+  'geoAvailabilityQueue',
+  {
+    attempts: 2,
+    backoff: { type: 'fixed', delay: 10000 },
+  }
+);
+
+/**
+ * Geo Availability Watchdog: Runs every 5 minutes
+ */
+export async function ensureGeoAvailabilityCron(): Promise<void> {
+  await geoAvailabilityQueue.add(
+    'geo-availability-probe-tick',
+    { timestamp: Date.now() },
+    {
+      repeat: {
+        pattern: '*/5 * * * *', // Every 5 minutes
+      },
+      jobId: 'geo-availability-singleton',
+    }
+  );
+}
+
 export const closeQueues = async () => {
     await ordersQueue.close();
     await syncQueue.close();
@@ -410,5 +453,6 @@ export const closeQueues = async () => {
     await articlePublishQueue.close();
     await aiObserverQueue.close();
     await aiEconomicOptimizerQueue.close();
+    await geoAvailabilityQueue.close();
     if (redisConnection) await redisConnection.quit();
 };
