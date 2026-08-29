@@ -13,6 +13,9 @@ export const FLUX_DOMAINS = new Set([
   'flux.local',
   'smmflux.local',
   'flux.smmplan.ru',
+  'flux.smmplan.pro',
+  'test-flux.smmplan.pro',
+  'test.smmflux.ru',
 ]);
 
 export const VALID_TENANTS = new Set(['smmplan', 'flux']);
@@ -23,7 +26,10 @@ export const VALID_TENANTS = new Set(['smmplan', 'flux']);
 export function resolveTenantFromHostEdge(host: string): string {
   if (!host || typeof host !== 'string') return 'smmplan';
   const cleanHost = host.split(':')[0].toLowerCase().trim();
-  return FLUX_DOMAINS.has(cleanHost) ? 'flux' : 'smmplan';
+  if (cleanHost.startsWith('flux.') || cleanHost.startsWith('test-flux.') || cleanHost.includes('smmflux') || FLUX_DOMAINS.has(cleanHost)) {
+    return 'flux';
+  }
+  return 'smmplan';
 }
 
 /**
