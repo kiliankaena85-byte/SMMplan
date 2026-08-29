@@ -1,13 +1,14 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-29 07:26 (МСК)  
-> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🛡️ OWASP/PCI DSS PENTEST REMEDIATION (V-01..V-14 CLOSED) + 🔒 CLOUDFLARE HARDENING + 🚀 8-GATE PREFLIGHT (100% PASS) + ⚖️ 100% LEGAL РФ + 🛑 MANDATORY DEPLOYMENT GATE CONTRACT.
-
+> **Последнее обновление:** 2026-08-29 08:46 (МСК)  
+> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🛡️ V-01 CRITICAL BACKDOOR PURGED + 🔒 CI BUNDLE SECRET SCANNER ENFORCED + 🚀 DOCKER smmplan_web REBUILT & RESTARTED + 🛑 MANDATORY DEPLOYMENT GATE COMPLIANT.
 
 - **Статус экранов:** 28/28 экранов реализованы и верифицированы (100%).
 - **Закрытие находок Пентест-Отчета (OWASP Top 10:2025 / PCI DSS 4.0 Assessment):**
-  - **V-01 & V-03 (CRITICAL / HIGH):** Полное удаление `NEXT_PUBLIC_QA_SECRET` из клиентских чанков, отключение `FloatingQADock` в продакшен-бандлах, строгий `404 Not Found` на `/api/dev/login-direct` вне локальной разработки, отзыв сессий тестирования.
+  - **V-01 (CRITICAL):** Полное удаление директории `src/app/api/dev/` и бэкдора `login-direct`. Запросы отвечают `404 Not Found`. Отзыв всех скомпрометированных сессий (включая `cmtdtxrx5000512xd8fq92q3f`, `cmtdwnc1n000912xdhqh2b2k0`), сброс и блокировка паролей QA-аккаунтов (`scripts/revoke-qa-sessions.ts`). Удаление `NEXT_PUBLIC_QA_SECRET` из клиентских бандлов и `.env`.
+  - **V-03 (HIGH):** Внедрен CI-гейт `scripts/check-bundle-secrets.mjs` и unit-тест `src/__tests__/security/check-bundle-secrets.test.ts`. Бандлы `.next/static/**` сканируются на этапе сборки `npm run build`.
+  - **Docker Deployment:** Контейнер `smmplan_web` успешно пересобран и перезапущен с новыми хэшами JS-файлов. Все проверки (`404` на dev-маршрутах, `200` на `/api/health`) пройдены.
   - **V-02 (HIGH):** Включение **TLS 1.2 / TLS 1.3** и блокировка устаревших CBC-шифров в Cloudflare Edge Certificates.
   - **V-05 (MEDIUM):** Усиление **CSP** (удален wildcard `wss:`, ограничены доверенные origins платежных шлюзов).
   - **V-06 (MEDIUM):** Симметричный сброс куки `session_token` со строгими флагами (`Secure; HttpOnly; SameSite=Lax; MaxAge=0`).
