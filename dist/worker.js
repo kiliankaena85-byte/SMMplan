@@ -5414,7 +5414,7 @@ var require_node = __commonJS({
     var tty = require("tty");
     var util2 = require("util");
     exports2.init = init;
-    exports2.log = log29;
+    exports2.log = log30;
     exports2.formatArgs = formatArgs;
     exports2.save = save;
     exports2.load = load;
@@ -5549,7 +5549,7 @@ var require_node = __commonJS({
       }
       return (/* @__PURE__ */ new Date()).toISOString() + " ";
     }
-    function log29(...args) {
+    function log30(...args) {
       return process.stderr.write(util2.formatWithOptions(exports2.inspectOpts, ...args) + "\n");
     }
     function save(namespaces) {
@@ -8089,8 +8089,8 @@ var require_denque = __commonJS({
       this._capacityMask >>>= 1;
     };
     Denque.prototype._nextPowerOf2 = function _nextPowerOf2(num) {
-      var log29 = Math.log(num) / Math.log(2);
-      var nextPow2 = 1 << log29 + 1;
+      var log210 = Math.log(num) / Math.log(2);
+      var nextPow2 = 1 << log210 + 1;
       return Math.max(nextPow2, 4);
     };
     module2.exports = Denque;
@@ -41866,11 +41866,13 @@ __export2(queue_manager_exports, {
   ensureCleanupCron: () => ensureCleanupCron,
   ensureDripfeedCron: () => ensureDripfeedCron,
   ensureETACron: () => ensureETACron,
+  ensureGeoAvailabilityCron: () => ensureGeoAvailabilityCron,
   ensureOrphanSweepCron: () => ensureOrphanSweepCron,
   ensurePaymentSyncCron: () => ensurePaymentSyncCron,
   ensurePendingCheckCron: () => ensurePendingCheckCron,
   ensureSyncCron: () => ensureSyncCron,
   etaQueue: () => etaQueue,
+  geoAvailabilityQueue: () => geoAvailabilityQueue,
   getRedisConnection: () => getRedisConnection,
   jitteredBackoff: () => jitteredBackoff,
   ordersQueue: () => ordersQueue,
@@ -42027,7 +42029,20 @@ async function ensureAiEconomicOptimizerCron() {
     }
   );
 }
-var import_bullmq, import_ioredis, redisConnection, getRedisConnection, jitteredBackoff, createQueue, ordersQueue, syncQueue, catalogQueue, dlqQueue, cleanupQueue, telegramQueue, etaQueue, paymentSyncQueue, refillQueue, criticalQueue, defaultQueue, bulkQueue, queuePayment, queueOrder, queueSync, paymentGatewayQueue, articlePublishQueue, aiObserverQueue, aiEconomicOptimizerQueue, closeQueues;
+async function ensureGeoAvailabilityCron() {
+  await geoAvailabilityQueue.add(
+    "geo-availability-probe-tick",
+    { timestamp: Date.now() },
+    {
+      repeat: {
+        pattern: "*/5 * * * *"
+        // Every 5 minutes
+      },
+      jobId: "geo-availability-singleton"
+    }
+  );
+}
+var import_bullmq, import_ioredis, redisConnection, getRedisConnection, jitteredBackoff, createQueue, ordersQueue, syncQueue, catalogQueue, dlqQueue, cleanupQueue, telegramQueue, etaQueue, paymentSyncQueue, refillQueue, criticalQueue, defaultQueue, bulkQueue, queuePayment, queueOrder, queueSync, paymentGatewayQueue, articlePublishQueue, aiObserverQueue, aiEconomicOptimizerQueue, geoAvailabilityQueue, closeQueues;
 var init_queue_manager = __esm({
   "src/lib/queue-manager.ts"() {
     "use strict";
@@ -42151,6 +42166,13 @@ var init_queue_manager = __esm({
         backoff: { type: "exponential", delay: 1e4 }
       }
     );
+    geoAvailabilityQueue = createQueue(
+      "geoAvailabilityQueue",
+      {
+        attempts: 2,
+        backoff: { type: "fixed", delay: 1e4 }
+      }
+    );
     closeQueues = async () => {
       await ordersQueue.close();
       await syncQueue.close();
@@ -42165,6 +42187,7 @@ var init_queue_manager = __esm({
       await articlePublishQueue.close();
       await aiObserverQueue.close();
       await aiEconomicOptimizerQueue.close();
+      await geoAvailabilityQueue.close();
       if (redisConnection) await redisConnection.quit();
     };
   }
@@ -45173,11 +45196,11 @@ var require_tools = __commonJS({
         }
       }
     }
-    function buildFormatters(level, bindings, log29) {
+    function buildFormatters(level, bindings, log30) {
       return {
         level,
         bindings,
-        log: log29
+        log: log30
       };
     }
     function normalizeDestFileDescriptor(destination) {
@@ -45558,11 +45581,11 @@ var require_proto = __commonJS({
         }
       } else instance[serializersSym] = serializers;
       if (options.hasOwnProperty("formatters")) {
-        const { level, bindings: chindings, log: log29 } = options.formatters;
+        const { level, bindings: chindings, log: log30 } = options.formatters;
         instance[formattersSym] = buildFormatters(
           level || formatters.level,
           chindings || resetChildingsFormatter,
-          log29 || formatters.log
+          log30 || formatters.log
         );
       } else {
         instance[formattersSym] = buildFormatters(
@@ -46633,7 +46656,7 @@ var require_pino = __commonJS({
 
 // src/lib/logger.ts
 function createLoggerFromBase(pinoInstance) {
-  const log29 = (level) => (message, context) => {
+  const log30 = (level) => (message, context) => {
     const store = logContextStorage.getStore();
     const extra = typeof context === "object" && context !== null && !Array.isArray(context) ? context : context !== void 0 ? { detail: context } : {};
     const merged = {
@@ -46647,10 +46670,10 @@ function createLoggerFromBase(pinoInstance) {
     pinoInstance[level](safeContext, safeMessage);
   };
   return {
-    info: log29("info"),
-    warn: log29("warn"),
-    error: log29("error"),
-    debug: log29("debug"),
+    info: log30("info"),
+    warn: log30("warn"),
+    error: log30("error"),
+    debug: log30("debug"),
     child: (bindings) => createLoggerFromBase(pinoInstance.child(bindings))
   };
 }
@@ -53758,14 +53781,14 @@ var require_mailer = __commonJS({
           this.getVersionString()
         );
         if (typeof this.transporter.on === "function") {
-          this.transporter.on("log", (log29) => {
+          this.transporter.on("log", (log30) => {
             this.logger.debug(
               {
                 tnx: "transport"
               },
               "%s: %s",
-              log29.type,
-              log29.message
+              log30.type,
+              log30.message
             );
           });
           this.transporter.on("error", (err) => {
@@ -85874,13 +85897,13 @@ var require_mock_call_history = __commonJS({
     function makeFilterCalls(parameterName) {
       return (parameterValue, logs) => {
         if (typeof parameterValue === "string" || parameterValue == null) {
-          return logs.filter((log29) => {
-            return log29[parameterName] === parameterValue;
+          return logs.filter((log30) => {
+            return log30[parameterName] === parameterValue;
           });
         }
         if (parameterValue instanceof RegExp) {
-          return logs.filter((log29) => {
-            return parameterValue.test(log29[parameterName]);
+          return logs.filter((log30) => {
+            return parameterValue.test(log30[parameterName]);
           });
         }
         throw new InvalidArgumentError(`${parameterName} parameter should be one of string, regexp, undefined or null`);
@@ -85975,8 +85998,8 @@ var require_mock_call_history = __commonJS({
           return this.logs.filter(criteria);
         }
         if (criteria instanceof RegExp) {
-          return this.logs.filter((log29) => {
-            return criteria.test(log29.toString());
+          return this.logs.filter((log30) => {
+            return criteria.test(log30.toString());
           });
         }
         if (typeof criteria === "object" && criteria !== null) {
@@ -86026,13 +86049,13 @@ var require_mock_call_history = __commonJS({
         this.logs = [];
       }
       [kMockCallHistoryAddLog](requestInit) {
-        const log29 = new MockCallHistoryLog(requestInit);
-        this.logs.push(log29);
-        return log29;
+        const log30 = new MockCallHistoryLog(requestInit);
+        this.logs.push(log30);
+        return log30;
       }
       *[Symbol.iterator]() {
-        for (const log29 of this.calls()) {
-          yield log29;
+        for (const log30 of this.calls()) {
+          yield log30;
         }
       }
     };
@@ -137270,13 +137293,13 @@ var p0_alert_debouncer_exports = {};
 __export2(p0_alert_debouncer_exports, {
   P0AlertDebouncer: () => P0AlertDebouncer
 });
-var log27, inMemoryLocks, inMemoryCounters, P0AlertDebouncer;
+var log28, inMemoryLocks, inMemoryCounters, P0AlertDebouncer;
 var init_p0_alert_debouncer = __esm({
   "src/lib/alerts/p0-alert-debouncer.ts"() {
     "use strict";
     init_redis();
     init_logger();
-    log27 = logger.child({ component: "P0AlertDebouncer" });
+    log28 = logger.child({ component: "P0AlertDebouncer" });
     inMemoryLocks = /* @__PURE__ */ new Map();
     inMemoryCounters = /* @__PURE__ */ new Map();
     P0AlertDebouncer = class {
@@ -137299,7 +137322,7 @@ var init_p0_alert_debouncer = __esm({
             return acquired === "OK";
           }
         } catch (redisErr) {
-          log27.warn("[P0AlertDebouncer] Redis unavailable, using in-memory debounce lock", { error: redisErr });
+          log28.warn("[P0AlertDebouncer] Redis unavailable, using in-memory debounce lock", { error: redisErr });
         }
         const now = Date.now();
         const existingExpiry = inMemoryLocks.get(fullKey);
@@ -137328,7 +137351,7 @@ var init_p0_alert_debouncer = __esm({
             };
           }
         } catch (redisErr) {
-          log27.warn("[P0AlertDebouncer] Redis unavailable, using in-memory threshold counter", { error: redisErr });
+          log28.warn("[P0AlertDebouncer] Redis unavailable, using in-memory threshold counter", { error: redisErr });
         }
         const now = Date.now();
         const entry = inMemoryCounters.get(fullKey);
@@ -137370,7 +137393,7 @@ var init_p0_alert_debouncer = __esm({
             }
           }
         } catch (redisErr) {
-          log27.warn("[P0AlertDebouncer] Redis error on occurrence increment", { error: redisErr });
+          log28.warn("[P0AlertDebouncer] Redis error on occurrence increment", { error: redisErr });
         }
         const shouldSend = await this.shouldSendAlert(alertKey, cooldownSeconds);
         return { shouldSend, occurrences };
@@ -143800,13 +143823,259 @@ async function aiEconomicOptimizerProcessor(job) {
   return { success: true, processedTenants: results };
 }
 
+// src/services/telemetry/geo-availability.service.ts
+var GeoAvailabilityService = class _GeoAvailabilityService {
+  static {
+    this.DEFAULT_TARGET = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "https://test.smmplan.pro";
+  }
+  /**
+   * Performs an asynchronous geo-distributed HTTP probe across Russian and international probe nodes.
+   */
+  static async checkAvailability(targetUrl = _GeoAvailabilityService.DEFAULT_TARGET, maxNodes = 15, waitMs = 6e3) {
+    const initUrl = `https://check-host.net/check-http?host=${encodeURIComponent(targetUrl)}&max_nodes=${maxNodes}`;
+    try {
+      const initRes = await fetch(initUrl, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(8e3)
+      });
+      if (!initRes.ok) {
+        throw new Error(`Check-Host API returned HTTP ${initRes.status}: ${initRes.statusText}`);
+      }
+      const initData = await initRes.json();
+      const requestId = initData.request_id;
+      const rawNodes = initData.nodes || {};
+      const permanentLink = initData.permanent_link || `https://check-host.net/check-report/${requestId}`;
+      if (waitMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+      }
+      const resultUrl = `https://check-host.net/check-result/${requestId}`;
+      const resultRes = await fetch(resultUrl, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(8e3)
+      });
+      const rawResults = resultRes.ok ? await resultRes.json() : {};
+      return this.parseResults(targetUrl, rawNodes, rawResults, permanentLink);
+    } catch (err) {
+      return this.buildFallbackReport(targetUrl, err.message);
+    }
+  }
+  /**
+   * Pure parser function to transform raw API responses into typed domain model
+   */
+  static parseResults(targetUrl, rawNodes, rawResults, permanentLink) {
+    const nodeResults = [];
+    let ruPassed = 0;
+    let ruTotal = 0;
+    let globalPassed = 0;
+    let globalTotal = 0;
+    let totalResponseTimeMs = 0;
+    let responseTimeCount = 0;
+    for (const [nodeId, nodeInfo] of Object.entries(rawNodes)) {
+      const countryCode = (nodeInfo[0] || "").toUpperCase();
+      const countryName = nodeInfo[1] || "Unknown";
+      const city = nodeInfo[2] || "Unknown";
+      const isRussia = countryCode === "RU";
+      const probeOutput = rawResults[nodeId];
+      if (!probeOutput || !Array.isArray(probeOutput) || probeOutput.length === 0 || !probeOutput[0]) {
+        nodeResults.push({
+          nodeId,
+          countryCode,
+          countryName,
+          city,
+          isRussia,
+          status: "PENDING"
+        });
+        continue;
+      }
+      const item = probeOutput[0];
+      const isOk = item[0] === 1;
+      const responseTimeMs = typeof item[1] === "number" ? Math.round(item[1] * 1e3) : 0;
+      const errorMessage = item[2] || "";
+      const httpCode = typeof item[3] === "number" ? item[3] : parseInt(String(item[3]), 10) || void 0;
+      if (isRussia) ruTotal++;
+      else globalTotal++;
+      if (isOk) {
+        if (isRussia) ruPassed++;
+        else globalPassed++;
+        if (responseTimeMs > 0) {
+          totalResponseTimeMs += responseTimeMs;
+          responseTimeCount++;
+        }
+        nodeResults.push({
+          nodeId,
+          countryCode,
+          countryName,
+          city,
+          isRussia,
+          status: "OK",
+          httpCode: httpCode || 200,
+          responseTimeMs
+        });
+      } else {
+        nodeResults.push({
+          nodeId,
+          countryCode,
+          countryName,
+          city,
+          isRussia,
+          status: "FAIL",
+          httpCode,
+          responseTimeMs,
+          errorMessage
+        });
+      }
+    }
+    const ruRate = ruTotal > 0 ? ruPassed / ruTotal : 1;
+    const globalRate = globalTotal > 0 ? globalPassed / globalTotal : 1;
+    const avgResponseTimeMs = responseTimeCount > 0 ? Math.round(totalResponseTimeMs / responseTimeCount) : 0;
+    let verdict = "ALL_GREEN";
+    let verdictText = "\u{1F7E2} \u041F\u043E\u043B\u043D\u0430\u044F \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u044C \u0432 \u0420\u0424 \u0438 \u043C\u0438\u0440\u0435 (100% Green)";
+    if (ruTotal > 0 && ruPassed === 0) {
+      verdict = "RU_BLOCKED";
+      verdictText = "\u{1F534} \u0411\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u043A\u0430 \u0432 \u0420\u0424 (\u0421\u0430\u0439\u0442 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D \u0443 \u0440\u043E\u0441\u0441\u0438\u0439\u0441\u043A\u0438\u0445 \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u043E\u0432)";
+    } else if (ruTotal > 0 && ruRate < 0.7) {
+      verdict = "PARTIAL_OUTAGE";
+      verdictText = "\u26A0\uFE0F \u0427\u0430\u0441\u0442\u0438\u0447\u043D\u0430\u044F \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u044C \u0432 \u0420\u0424 (\u041F\u0440\u043E\u0431\u043B\u0435\u043C\u044B \u0443 \u043D\u0435\u043A\u043E\u0442\u043E\u0440\u044B\u0445 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u043E\u0432)";
+    } else if (globalRate < 0.5) {
+      verdict = "GLOBAL_OUTAGE";
+      verdictText = "\u{1F534} \u0413\u043B\u043E\u0431\u0430\u043B\u044C\u043D\u044B\u0439 \u0441\u0431\u043E\u0439 \u0438\u043D\u0444\u0440\u0430\u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u044B";
+    }
+    return {
+      targetUrl,
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      ruRate,
+      ruTotal,
+      ruPassed,
+      globalRate,
+      globalTotal,
+      globalPassed,
+      avgResponseTimeMs,
+      verdict,
+      verdictText,
+      permanentLink,
+      nodes: nodeResults
+    };
+  }
+  /**
+   * Fallback report when external probe API is completely unreachable
+   */
+  static buildFallbackReport(targetUrl, errorReason) {
+    return {
+      targetUrl,
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      ruRate: 1,
+      ruTotal: 0,
+      ruPassed: 0,
+      globalRate: 1,
+      globalTotal: 0,
+      globalPassed: 0,
+      avgResponseTimeMs: 0,
+      verdict: "ALL_GREEN",
+      verdictText: `\u26A0\uFE0F \u0412\u043D\u0435\u0448\u043D\u0438\u0439 \u0437\u043E\u043D\u0434 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D (${errorReason}). \u041B\u043E\u043A\u0430\u043B\u044C\u043D\u044B\u0439 \u0441\u0442\u0430\u0442\u0443\u0441: Active.`,
+      permanentLink: "",
+      nodes: []
+    };
+  }
+};
+
+// src/workers/processors/geo-availability.processor.ts
+init_notifications();
+init_redis();
+init_logger();
+var log26 = logger.child({ component: "GeoAvailabilityWatchdog" });
+async function processGeoAvailabilityCheck(job) {
+  const targetUrl = job?.data?.targetUrl || process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "https://test.smmplan.pro";
+  log26.info(`\u{1F50D} Running automated Geo-Availability probe for: ${targetUrl}`);
+  const report = await GeoAvailabilityService.checkAvailability(targetUrl, 12, 5e3);
+  const stateKey = `geo_monitor:state:${Buffer.from(targetUrl).toString("base64")}`;
+  let previousState = {
+    isBlocked: false,
+    consecutiveFails: 0,
+    lastAlertTime: 0
+  };
+  try {
+    const rawState = await redis.get(stateKey);
+    if (rawState) {
+      previousState = JSON.parse(rawState);
+    }
+  } catch (err) {
+    log26.warn(`Failed to read previous geo monitor state: ${err.message}`);
+  }
+  const now = Date.now();
+  let alertSent = false;
+  const isCurrentlyBlocked = report.verdict === "RU_BLOCKED" || report.ruTotal > 0 && report.ruPassed === 0;
+  if (isCurrentlyBlocked) {
+    const consecutiveFails = previousState.consecutiveFails + 1;
+    const cooldownMs = 15 * 60 * 1e3;
+    const shouldAlert = !previousState.isBlocked || now - previousState.lastAlertTime > cooldownMs;
+    if (shouldAlert) {
+      const alertMsg = `\u{1F6A8} <b>\u0412\u041D\u0418\u041C\u0410\u041D\u0418\u0415: \u0421\u0411\u041E\u0419 \u0414\u041E\u0421\u0422\u0423\u041F\u041D\u041E\u0421\u0422\u0418 \u0421\u0410\u0419\u0422\u0410 \u0418\u0417 \u0420\u041E\u0421\u0421\u0418\u0418!</b>
+
+\u{1F3AF} <b>\u0426\u0435\u043B\u0435\u0432\u043E\u0439 \u0434\u043E\u043C\u0435\u043D:</b> <code>${targetUrl}</code>
+\u{1F1F7}\u{1F1FA} <b>\u0421\u0442\u0430\u0442\u0443\u0441 \u0432 \u0420\u0424:</b> <b>0% \u0414\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u0438</b> (0/${report.ruTotal || 2} \u0443\u0437\u043B\u043E\u0432)
+\u{1F4CA} <b>\u0421\u0438\u043C\u043F\u0442\u043E\u043C:</b> ${report.verdictText}
+\u{1F30D} <b>\u041C\u0438\u0440\u043E\u0432\u0430\u044F \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u044C:</b> ${Math.round(report.globalRate * 100)}% (${report.globalPassed}/${report.globalTotal || 1})
+
+\u26A1 <b>\u0420\u0435\u043A\u043E\u043C\u0435\u043D\u0434\u043E\u0432\u0430\u043D\u043D\u044B\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044F:</b>
+1. \u041F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C \u0441\u0442\u0430\u0442\u0443\u0441 <b>ECH (Encrypted Client Hello)</b> \u0432 Cloudflare (\u043E\u0442\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u043F\u0440\u0438 \u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u043A\u0435).
+2. \u041F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0438\u0442\u044C Cloudflare \u043D\u0430 \u0440\u0435\u0436\u0438\u043C <b>DNS Only (\u0421\u0435\u0440\u043E\u0435 \u043E\u0431\u043B\u0430\u043A\u043E)</b>.
+3. \u041F\u0435\u0440\u0435\u043D\u0430\u043F\u0440\u0430\u0432\u0438\u0442\u044C \u0442\u0440\u0430\u0444\u0438\u043A \u043D\u0430 \u0440\u0435\u0437\u0435\u0440\u0432\u043D\u044B\u0439 RU-\u0434\u043E\u043C\u0435\u043D (<code>smmflux.ru</code>).
+
+` + (report.permanentLink ? `\u{1F517} <a href="${report.permanentLink}">\u041F\u043E\u0434\u0440\u043E\u0431\u043D\u044B\u0439 \u0434\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0439 \u043E\u0442\u0447\u0435\u0442</a>` : "");
+      sendAdminAlert(alertMsg, "CRITICAL");
+      alertSent = true;
+      log26.error(`\u{1F6A8} Dispatched CRITICAL Geo-Availability alert for ${targetUrl}`);
+    }
+    const newState = {
+      isBlocked: true,
+      consecutiveFails,
+      lastAlertTime: shouldAlert ? now : previousState.lastAlertTime
+    };
+    await redis.set(stateKey, JSON.stringify(newState), "EX", 86400);
+  } else if (previousState.isBlocked && report.verdict === "ALL_GREEN") {
+    const recoveryMsg = `\u{1F7E2} <b>\u0421\u0410\u0419\u0422 \u0421\u041D\u041E\u0412\u0410 \u0414\u041E\u0421\u0422\u0423\u041F\u0415\u041D \u0418\u0417 \u0420\u041E\u0421\u0421\u0418\u0418!</b>
+
+\u{1F3AF} <b>\u0426\u0435\u043B\u0435\u0432\u043E\u0439 \u0434\u043E\u043C\u0435\u043D:</b> <code>${targetUrl}</code>
+\u{1F1F7}\u{1F1FA} <b>\u0414\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u044C \u0432 \u0420\u0424:</b> <b>100%</b> (${report.ruPassed}/${report.ruTotal || 1} \u0443\u0437\u043B\u043E\u0432 OK)
+\u{1F30D} <b>\u041C\u0438\u0440\u043E\u0432\u0430\u044F \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u044C:</b> <b>100%</b>
+\u26A1 <b>\u0421\u0440\u0435\u0434\u043D\u044F\u044F \u0437\u0430\u0434\u0435\u0440\u0436\u043A\u0430:</b> ${report.avgResponseTimeMs || 100} ms
+
+<i>\u0412\u0441\u0435 \u0441\u0438\u0441\u0442\u0435\u043C\u044B \u0440\u0430\u0431\u043E\u0442\u0430\u044E\u0442 \u0432 \u0448\u0442\u0430\u0442\u043D\u043E\u043C \u0440\u0435\u0436\u0438\u043C\u0435.</i>`;
+    sendAdminAlert(recoveryMsg, "INFO");
+    alertSent = true;
+    log26.info(`\u{1F7E2} Site availability recovered for ${targetUrl}`);
+    const newState = {
+      isBlocked: false,
+      consecutiveFails: 0,
+      lastAlertTime: now
+    };
+    await redis.set(stateKey, JSON.stringify(newState), "EX", 86400);
+  } else {
+    log26.info(`\u{1F7E2} Geo probe healthy: RU=${Math.round(report.ruRate * 100)}%, Global=${Math.round(report.globalRate * 100)}%`);
+    if (previousState.consecutiveFails > 0) {
+      await redis.set(
+        stateKey,
+        JSON.stringify({ isBlocked: false, consecutiveFails: 0, lastAlertTime: previousState.lastAlertTime }),
+        "EX",
+        86400
+      );
+    }
+  }
+  return {
+    status: report.verdict,
+    ruRate: report.ruRate,
+    alertSent
+  };
+}
+var geo_availability_processor_default = processGeoAvailabilityCheck;
+
 // src/workers/index.ts
 init_order_service();
 
 // src/workers/eta-alerts.ts
 init_notifications();
 init_logger();
-var log26 = logger.child({ component: "ETAAlerts" });
+var log27 = logger.child({ component: "ETAAlerts" });
 var ETA_ALERT_THRESHOLD = 5;
 var etaFailureStreak = 0;
 function resetEtaFailureStreak() {
@@ -143814,7 +144083,7 @@ function resetEtaFailureStreak() {
 }
 function trackEtaFailure(job, err) {
   etaFailureStreak++;
-  log26.error("[etaWorker] Job failed", {
+  log27.error("[etaWorker] Job failed", {
     jobId: job?.id,
     jobName: job?.name,
     error: err?.message,
@@ -143831,8 +144100,8 @@ function trackEtaFailure(job, err) {
 
 // src/workers/index.ts
 init_queue_manager();
-var log28 = logger.child({ component: "WorkerManager" });
-log28.info("\u{1F680} Starting BullMQ workers...");
+var log29 = logger.child({ component: "WorkerManager" });
+log29.info("\u{1F680} Starting BullMQ workers...");
 var connection = getRedisConnection();
 var workerConfig = {
   connection,
@@ -143882,11 +144151,12 @@ var refillWorker = new import_bullmq4.Worker("refillQueue", refillProcessor, wor
 var articlePublishWorker = new import_bullmq4.Worker("articlePublishQueue", articlePublishProcessor, workerConfig);
 var aiObserverWorker = new import_bullmq4.Worker("aiObserverQueue", aiObserverProcessor, workerConfig);
 var aiEconomicOptimizerWorker = new import_bullmq4.Worker("aiEconomicOptimizerQueue", aiEconomicOptimizerProcessor, workerConfig);
+var geoAvailabilityWorker = new import_bullmq4.Worker("geoAvailabilityQueue", geo_availability_processor_default, workerConfig);
 var MAX_ATTEMPTS = 3;
 async function handleDeadLetter(queueName, job, err) {
   if (!job) return;
   const maxAttempts = job.opts?.attempts ?? MAX_ATTEMPTS;
-  log28.error(`Job failed`, {
+  log29.error(`Job failed`, {
     queue: queueName,
     jobId: job.id,
     attemptsMade: job.attemptsMade,
@@ -143910,7 +144180,7 @@ async function handleDeadLetter(queueName, job, err) {
         const payload = job.data;
         if (payload?.orderId) {
           await orderService.failOrderTerminal(payload.orderId, err.message);
-          log28.info(`Auto-refunded dead-letter order ${payload.orderId}`);
+          log29.info(`Auto-refunded dead-letter order ${payload.orderId}`);
         }
       }
       if (queueName === "refillQueue") {
@@ -143920,7 +144190,7 @@ async function handleDeadLetter(queueName, job, err) {
             where: { id: payload.refillId },
             data: { status: "ERROR" }
           });
-          log28.info(`Marked dead-letter refill ${payload.refillId} as ERROR`);
+          log29.info(`Marked dead-letter refill ${payload.refillId} as ERROR`);
         }
       }
       const isFinancialQueue = ["ordersQueue", "paymentSyncQueue", "paymentGatewayQueue", "refillQueue"].includes(queueName);
@@ -143950,12 +144220,12 @@ Job ID: \`${job.id}\`
             "WARNING"
           );
         } else {
-          log28.info(`Suppressed duplicate DLQ alert for ${queueName} (${occurrences} occurrences in window)`);
+          log29.info(`Suppressed duplicate DLQ alert for ${queueName} (${occurrences} occurrences in window)`);
         }
       }
-      log28.error("Job dead-lettered", { queue: queueName, jobId: job.id });
+      log29.error("Job dead-lettered", { queue: queueName, jobId: job.id });
     } catch (dlqErr) {
-      log28.error("Failed to write to DLQ", { error: dlqErr.message });
+      log29.error("Failed to write to DLQ", { error: dlqErr.message });
     }
   }
 }
@@ -143969,10 +144239,10 @@ catalogWorker.on("failed", (job, err) => {
   handleDeadLetter("catalogQueue", job, err);
 });
 cleanupWorker.on("failed", (job, err) => {
-  log28.error("Cleanup job failed", { error: err.message });
+  log29.error("Cleanup job failed", { error: err.message });
 });
 telegramWorker.on("failed", (job, err) => {
-  log28.error("Telegram notification failed", { error: err.message });
+  log29.error("Telegram notification failed", { error: err.message });
 });
 paymentSyncWorker.on("failed", (job, err) => {
   handleDeadLetter("paymentSyncQueue", job, err);
@@ -143998,25 +144268,26 @@ async function updateHeartbeat() {
   try {
     await connection.set(HEARTBEAT_KEY, Date.now().toString(), "EX", HEARTBEAT_TTL);
   } catch {
-    log28.warn("Heartbeat update failed (Redis connection issue)");
+    log29.warn("Heartbeat update failed (Redis connection issue)");
   }
 }
 updateHeartbeat();
 var heartbeatInterval = setInterval(updateHeartbeat, 6e4);
-ensureSyncCron().catch((e) => log28.error("Failed to setup Sync Cron", { error: e.message }));
-ensureCleanupCron().catch((e) => log28.error("Failed to setup Cleanup Cron", { error: e.message }));
-ensureETACron().catch((e) => log28.error("Failed to setup ETA Cron", { error: e.message }));
-ensureCatalogSyncCron().catch((e) => log28.error("Failed to setup Catalog Sync Cron", { error: e.message }));
-ensureOrphanSweepCron().catch((e) => log28.error("Failed to setup Orphan Sweep Cron", { error: e.message }));
-ensurePaymentSyncCron().catch((e) => log28.error("Failed to setup Payment Sync Cron", { error: e.message }));
-ensureDripfeedCron().catch((e) => log28.error("Failed to setup Dripfeed Cron", { error: e.message }));
-ensureArticlePublishCron().catch((e) => log28.error("Failed to setup Article Publish Cron", { error: e.message }));
-ensurePendingCheckCron().catch((e) => log28.error("Failed to setup PendingCheck Cron", { error: e.message }));
-ensureAiObserverCron().catch((e) => log28.error("Failed to setup AI Observer Cron", { error: e.message }));
-ensureAiEconomicOptimizerCron().catch((e) => log28.error("Failed to setup AI Economic Optimizer Cron", { error: e.message }));
-log28.info("All workers started", { queues: ["ordersQueue", "refillQueue", "syncQueue", "catalogQueue", "cleanup", "paymentSyncQueue", "articlePublishQueue", "aiObserverQueue", "aiEconomicOptimizerQueue"] });
+ensureSyncCron().catch((e) => log29.error("Failed to setup Sync Cron", { error: e.message }));
+ensureCleanupCron().catch((e) => log29.error("Failed to setup Cleanup Cron", { error: e.message }));
+ensureETACron().catch((e) => log29.error("Failed to setup ETA Cron", { error: e.message }));
+ensureCatalogSyncCron().catch((e) => log29.error("Failed to setup Catalog Sync Cron", { error: e.message }));
+ensureOrphanSweepCron().catch((e) => log29.error("Failed to setup Orphan Sweep Cron", { error: e.message }));
+ensurePaymentSyncCron().catch((e) => log29.error("Failed to setup Payment Sync Cron", { error: e.message }));
+ensureDripfeedCron().catch((e) => log29.error("Failed to setup Dripfeed Cron", { error: e.message }));
+ensureArticlePublishCron().catch((e) => log29.error("Failed to setup Article Publish Cron", { error: e.message }));
+ensurePendingCheckCron().catch((e) => log29.error("Failed to setup PendingCheck Cron", { error: e.message }));
+ensureAiObserverCron().catch((e) => log29.error("Failed to setup AI Observer Cron", { error: e.message }));
+ensureAiEconomicOptimizerCron().catch((e) => log29.error("Failed to setup AI Economic Optimizer Cron", { error: e.message }));
+ensureGeoAvailabilityCron().catch((e) => log29.error("Failed to setup Geo Availability Cron", { error: e.message }));
+log29.info("All workers started", { queues: ["ordersQueue", "refillQueue", "syncQueue", "catalogQueue", "cleanup", "paymentSyncQueue", "articlePublishQueue", "aiObserverQueue", "aiEconomicOptimizerQueue", "geoAvailabilityQueue"] });
 var shutdown = async () => {
-  log28.info("Gracefully shutting down workers...");
+  log29.info("Gracefully shutting down workers...");
   clearInterval(heartbeatInterval);
   await connection.del(HEARTBEAT_KEY);
   await Promise.all([
@@ -144031,18 +144302,19 @@ var shutdown = async () => {
     paymentGatewayWorker.close(),
     articlePublishWorker.close(),
     aiObserverWorker.close(),
-    aiEconomicOptimizerWorker.close()
+    aiEconomicOptimizerWorker.close(),
+    geoAvailabilityWorker.close()
   ]);
   await db.$disconnect();
   if (connection) await connection.quit();
-  log28.info("Workers stopped successfully");
+  log29.info("Workers stopped successfully");
   process.exit(0);
 };
 process.on("unhandledRejection", (reason, promise) => {
-  log28.error("Unhandled Rejection in Worker process:", { reason, promise });
+  log29.error("Unhandled Rejection in Worker process:", { reason, promise });
 });
 process.on("uncaughtException", (error) => {
-  log28.error("Uncaught Exception in Worker process:", { error: error.message, stack: error.stack });
+  log29.error("Uncaught Exception in Worker process:", { error: error.message, stack: error.stack });
 });
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);

@@ -70173,11 +70173,13 @@ __export2(queue_manager_exports, {
   ensureCleanupCron: () => ensureCleanupCron,
   ensureDripfeedCron: () => ensureDripfeedCron,
   ensureETACron: () => ensureETACron,
+  ensureGeoAvailabilityCron: () => ensureGeoAvailabilityCron,
   ensureOrphanSweepCron: () => ensureOrphanSweepCron,
   ensurePaymentSyncCron: () => ensurePaymentSyncCron,
   ensurePendingCheckCron: () => ensurePendingCheckCron,
   ensureSyncCron: () => ensureSyncCron,
   etaQueue: () => etaQueue,
+  geoAvailabilityQueue: () => geoAvailabilityQueue,
   getRedisConnection: () => getRedisConnection,
   jitteredBackoff: () => jitteredBackoff,
   ordersQueue: () => ordersQueue,
@@ -70334,7 +70336,20 @@ async function ensureAiEconomicOptimizerCron() {
     }
   );
 }
-var import_bullmq, import_ioredis2, redisConnection, getRedisConnection, jitteredBackoff, createQueue, ordersQueue, syncQueue, catalogQueue, dlqQueue, cleanupQueue, telegramQueue, etaQueue, paymentSyncQueue, refillQueue, criticalQueue, defaultQueue, bulkQueue, queuePayment, queueOrder, queueSync, paymentGatewayQueue, articlePublishQueue, aiObserverQueue, aiEconomicOptimizerQueue, closeQueues;
+async function ensureGeoAvailabilityCron() {
+  await geoAvailabilityQueue.add(
+    "geo-availability-probe-tick",
+    { timestamp: Date.now() },
+    {
+      repeat: {
+        pattern: "*/5 * * * *"
+        // Every 5 minutes
+      },
+      jobId: "geo-availability-singleton"
+    }
+  );
+}
+var import_bullmq, import_ioredis2, redisConnection, getRedisConnection, jitteredBackoff, createQueue, ordersQueue, syncQueue, catalogQueue, dlqQueue, cleanupQueue, telegramQueue, etaQueue, paymentSyncQueue, refillQueue, criticalQueue, defaultQueue, bulkQueue, queuePayment, queueOrder, queueSync, paymentGatewayQueue, articlePublishQueue, aiObserverQueue, aiEconomicOptimizerQueue, geoAvailabilityQueue, closeQueues;
 var init_queue_manager = __esm({
   "src/lib/queue-manager.ts"() {
     "use strict";
@@ -70458,6 +70473,13 @@ var init_queue_manager = __esm({
         backoff: { type: "exponential", delay: 1e4 }
       }
     );
+    geoAvailabilityQueue = createQueue(
+      "geoAvailabilityQueue",
+      {
+        attempts: 2,
+        backoff: { type: "fixed", delay: 1e4 }
+      }
+    );
     closeQueues = async () => {
       await ordersQueue.close();
       await syncQueue.close();
@@ -70472,6 +70494,7 @@ var init_queue_manager = __esm({
       await articlePublishQueue.close();
       await aiObserverQueue.close();
       await aiEconomicOptimizerQueue.close();
+      await geoAvailabilityQueue.close();
       if (redisConnection) await redisConnection.quit();
     };
   }
@@ -135056,6 +135079,167 @@ var init_p0_threat_sensor_service = __esm({
   }
 });
 
+// src/services/telemetry/geo-availability.service.ts
+var GeoAvailabilityService;
+var init_geo_availability_service = __esm({
+  "src/services/telemetry/geo-availability.service.ts"() {
+    "use strict";
+    GeoAvailabilityService = class _GeoAvailabilityService {
+      static {
+        this.DEFAULT_TARGET = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "https://test.smmplan.pro";
+      }
+      /**
+       * Performs an asynchronous geo-distributed HTTP probe across Russian and international probe nodes.
+       */
+      static async checkAvailability(targetUrl = _GeoAvailabilityService.DEFAULT_TARGET, maxNodes = 15, waitMs = 6e3) {
+        const initUrl = `https://check-host.net/check-http?host=${encodeURIComponent(targetUrl)}&max_nodes=${maxNodes}`;
+        try {
+          const initRes = await fetch(initUrl, {
+            headers: { Accept: "application/json" },
+            signal: AbortSignal.timeout(8e3)
+          });
+          if (!initRes.ok) {
+            throw new Error(`Check-Host API returned HTTP ${initRes.status}: ${initRes.statusText}`);
+          }
+          const initData = await initRes.json();
+          const requestId = initData.request_id;
+          const rawNodes = initData.nodes || {};
+          const permanentLink = initData.permanent_link || `https://check-host.net/check-report/${requestId}`;
+          if (waitMs > 0) {
+            await new Promise((resolve) => setTimeout(resolve, waitMs));
+          }
+          const resultUrl = `https://check-host.net/check-result/${requestId}`;
+          const resultRes = await fetch(resultUrl, {
+            headers: { Accept: "application/json" },
+            signal: AbortSignal.timeout(8e3)
+          });
+          const rawResults = resultRes.ok ? await resultRes.json() : {};
+          return this.parseResults(targetUrl, rawNodes, rawResults, permanentLink);
+        } catch (err) {
+          return this.buildFallbackReport(targetUrl, err.message);
+        }
+      }
+      /**
+       * Pure parser function to transform raw API responses into typed domain model
+       */
+      static parseResults(targetUrl, rawNodes, rawResults, permanentLink) {
+        const nodeResults = [];
+        let ruPassed = 0;
+        let ruTotal = 0;
+        let globalPassed = 0;
+        let globalTotal = 0;
+        let totalResponseTimeMs = 0;
+        let responseTimeCount = 0;
+        for (const [nodeId, nodeInfo] of Object.entries(rawNodes)) {
+          const countryCode = (nodeInfo[0] || "").toUpperCase();
+          const countryName = nodeInfo[1] || "Unknown";
+          const city = nodeInfo[2] || "Unknown";
+          const isRussia = countryCode === "RU";
+          const probeOutput = rawResults[nodeId];
+          if (!probeOutput || !Array.isArray(probeOutput) || probeOutput.length === 0 || !probeOutput[0]) {
+            nodeResults.push({
+              nodeId,
+              countryCode,
+              countryName,
+              city,
+              isRussia,
+              status: "PENDING"
+            });
+            continue;
+          }
+          const item = probeOutput[0];
+          const isOk = item[0] === 1;
+          const responseTimeMs = typeof item[1] === "number" ? Math.round(item[1] * 1e3) : 0;
+          const errorMessage = item[2] || "";
+          const httpCode = typeof item[3] === "number" ? item[3] : parseInt(String(item[3]), 10) || void 0;
+          if (isRussia) ruTotal++;
+          else globalTotal++;
+          if (isOk) {
+            if (isRussia) ruPassed++;
+            else globalPassed++;
+            if (responseTimeMs > 0) {
+              totalResponseTimeMs += responseTimeMs;
+              responseTimeCount++;
+            }
+            nodeResults.push({
+              nodeId,
+              countryCode,
+              countryName,
+              city,
+              isRussia,
+              status: "OK",
+              httpCode: httpCode || 200,
+              responseTimeMs
+            });
+          } else {
+            nodeResults.push({
+              nodeId,
+              countryCode,
+              countryName,
+              city,
+              isRussia,
+              status: "FAIL",
+              httpCode,
+              responseTimeMs,
+              errorMessage
+            });
+          }
+        }
+        const ruRate = ruTotal > 0 ? ruPassed / ruTotal : 1;
+        const globalRate = globalTotal > 0 ? globalPassed / globalTotal : 1;
+        const avgResponseTimeMs = responseTimeCount > 0 ? Math.round(totalResponseTimeMs / responseTimeCount) : 0;
+        let verdict = "ALL_GREEN";
+        let verdictText = "\u{1F7E2} \u041F\u043E\u043B\u043D\u0430\u044F \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u044C \u0432 \u0420\u0424 \u0438 \u043C\u0438\u0440\u0435 (100% Green)";
+        if (ruTotal > 0 && ruPassed === 0) {
+          verdict = "RU_BLOCKED";
+          verdictText = "\u{1F534} \u0411\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u043A\u0430 \u0432 \u0420\u0424 (\u0421\u0430\u0439\u0442 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D \u0443 \u0440\u043E\u0441\u0441\u0438\u0439\u0441\u043A\u0438\u0445 \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u043E\u0432)";
+        } else if (ruTotal > 0 && ruRate < 0.7) {
+          verdict = "PARTIAL_OUTAGE";
+          verdictText = "\u26A0\uFE0F \u0427\u0430\u0441\u0442\u0438\u0447\u043D\u0430\u044F \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u044C \u0432 \u0420\u0424 (\u041F\u0440\u043E\u0431\u043B\u0435\u043C\u044B \u0443 \u043D\u0435\u043A\u043E\u0442\u043E\u0440\u044B\u0445 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u043E\u0432)";
+        } else if (globalRate < 0.5) {
+          verdict = "GLOBAL_OUTAGE";
+          verdictText = "\u{1F534} \u0413\u043B\u043E\u0431\u0430\u043B\u044C\u043D\u044B\u0439 \u0441\u0431\u043E\u0439 \u0438\u043D\u0444\u0440\u0430\u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u044B";
+        }
+        return {
+          targetUrl,
+          timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+          ruRate,
+          ruTotal,
+          ruPassed,
+          globalRate,
+          globalTotal,
+          globalPassed,
+          avgResponseTimeMs,
+          verdict,
+          verdictText,
+          permanentLink,
+          nodes: nodeResults
+        };
+      }
+      /**
+       * Fallback report when external probe API is completely unreachable
+       */
+      static buildFallbackReport(targetUrl, errorReason) {
+        return {
+          targetUrl,
+          timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+          ruRate: 1,
+          ruTotal: 0,
+          ruPassed: 0,
+          globalRate: 1,
+          globalTotal: 0,
+          globalPassed: 0,
+          avgResponseTimeMs: 0,
+          verdict: "ALL_GREEN",
+          verdictText: `\u26A0\uFE0F \u0412\u043D\u0435\u0448\u043D\u0438\u0439 \u0437\u043E\u043D\u0434 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D (${errorReason}). \u041B\u043E\u043A\u0430\u043B\u044C\u043D\u044B\u0439 \u0441\u0442\u0430\u0442\u0443\u0441: Active.`,
+          permanentLink: "",
+          nodes: []
+        };
+      }
+    };
+  }
+});
+
 // src/bot/scenes/owner-hub.wizard.ts
 async function isOwnerOrAdmin(tgId) {
   const strId = String(tgId);
@@ -135104,10 +135288,11 @@ async function showOwnerMain(ctx, isEdit = false) {
       import_telegraf4.Markup.button.callback("\u{1F9E0} \u0417\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u044C AI-\u0422\u0435\u0441\u0442", "owner_ai_test")
     ],
     [
-      import_telegraf4.Markup.button.callback("\u{1F511} \u0412\u043E\u0439\u0442\u0438 \u0432 \u0412\u0435\u0431-\u0410\u0434\u043C\u0438\u043D\u043A\u0443", "owner_magic_link"),
-      import_telegraf4.Markup.button.callback("\u{1F9F9} \u0421\u0431\u0440\u043E\u0441 \u041A\u044D\u0448\u0430 Redis", "owner_flush_cache")
+      import_telegraf4.Markup.button.callback("\u{1F30D} \u0414\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u044C \u0432 \u0420\u0424/\u041C\u0438\u0440\u0435", "owner_geo_check"),
+      import_telegraf4.Markup.button.callback("\u{1F511} \u0412\u043E\u0439\u0442\u0438 \u0432 \u0412\u0435\u0431-\u0410\u0434\u043C\u0438\u043D\u043A\u0443", "owner_magic_link")
     ],
     [
+      import_telegraf4.Markup.button.callback("\u{1F9F9} \u0421\u0431\u0440\u043E\u0441 \u041A\u044D\u0448\u0430 Redis", "owner_flush_cache"),
       import_telegraf4.Markup.button.callback("\u25C0\uFE0F \u0412\u044B\u0439\u0442\u0438 \u0438\u0437 \u041F\u0443\u043B\u044C\u0442\u0430", "owner_exit")
     ]
   ]);
@@ -135131,6 +135316,7 @@ var init_owner_hub_wizard = __esm({
     init_redis();
     init_balance_verifier();
     init_p0_threat_sensor_service();
+    init_geo_availability_service();
     init_provider_service();
     ownerHubWizard = new import_telegraf4.Scenes.WizardScene(
       "owner-hub",
@@ -135415,6 +135601,67 @@ ${errorLogSummary}`;
         }
       } catch (err) {
         await ctx.reply(`\u26A0\uFE0F \u041E\u0448\u0438\u0431\u043A\u0430 \u043E\u0447\u0438\u0441\u0442\u043A\u0438 \u043A\u044D\u0448\u0430: ${err.message}`);
+      }
+    });
+    ownerHubWizard.action("owner_geo_check", async (ctx) => {
+      if (!ctx.from || !await isOwnerOrAdmin(ctx.from.id)) return;
+      await ctx.answerCbQuery("\u0417\u0430\u043F\u0443\u0441\u043A \u0433\u0435\u043E-\u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438...");
+      const targetUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "https://test.smmplan.pro";
+      const waitMsg = `\u{1F30D} <b>\u041F\u0420\u041E\u0412\u0415\u0420\u041A\u0410 \u0414\u041E\u0421\u0422\u0423\u041F\u041D\u041E\u0421\u0422\u0418 \u0421\u0410\u0419\u0422\u0410 \u0418\u0417 \u0420\u0424 \u0418 \u041C\u0418\u0420\u0410</b>
+
+\u{1F3AF} <b>\u0426\u0435\u043B\u044C:</b> <code>${targetUrl}</code>
+
+\u23F3 <i>\u041E\u043F\u0440\u0430\u0448\u0438\u0432\u0430\u0435\u043C \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u044C\u043D\u044B\u0435 \u0441\u0435\u0440\u0432\u0435\u0440\u043D\u044B\u0435 \u0437\u043E\u043D\u0434\u044B \u0432 \u0421\u0430\u043D\u043A\u0442-\u041F\u0435\u0442\u0435\u0440\u0431\u0443\u0440\u0433\u0435, \u041C\u043E\u0441\u043A\u0432\u0435, \u0415\u0432\u0440\u043E\u043F\u0435 \u0438 \u0410\u0437\u0438\u0438...</i>
+\u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u043F\u043E\u0434\u043E\u0436\u0434\u0438\u0442\u0435 5-6 \u0441\u0435\u043A\u0443\u043D\u0434...`;
+      try {
+        await ctx.editMessageText(waitMsg, { parse_mode: "HTML" });
+      } catch {
+      }
+      const report = await GeoAvailabilityService.checkAvailability(targetUrl);
+      const ruNodes = report.nodes.filter((n) => n.isRussia);
+      const globalNodes = report.nodes.filter((n) => !n.isRussia);
+      let ruSummary = "";
+      if (ruNodes.length > 0) {
+        ruSummary = ruNodes.map((n) => {
+          const statusIcon = n.status === "OK" ? "\u{1F7E2} 200 OK" : `\u{1F534} ${n.errorMessage || "FAIL"}`;
+          const latency = n.responseTimeMs ? `(${n.responseTimeMs} ms)` : "";
+          return `  \u2022 \u{1F1F7}\u{1F1FA} <b>${n.city}</b>: ${statusIcon} ${latency}`;
+        }).join("\n");
+      } else {
+        ruSummary = "  \u2022 \u{1F1F7}\u{1F1FA} <b>\u0420\u043E\u0441\u0441\u0438\u044F:</b> \u{1F7E2} 100% \u0414\u043E\u0441\u0442\u0443\u043F\u0435\u043D (\u0412\u043D\u0443\u0442\u0440\u0435\u043D\u043D\u0438\u0439 \u0448\u043B\u044E\u0437)";
+      }
+      let globalSummary = "";
+      if (globalNodes.length > 0) {
+        globalSummary = globalNodes.slice(0, 4).map((n) => {
+          const statusIcon = n.status === "OK" ? "\u{1F7E2} OK" : `\u{1F534} ${n.errorMessage || "FAIL"}`;
+          const latency = n.responseTimeMs ? `(${n.responseTimeMs} ms)` : "";
+          return `  \u2022 \u{1F30D} <b>${n.city} (${n.countryCode})</b>: ${statusIcon} ${latency}`;
+        }).join("\n");
+      }
+      const text = `\u{1F30D} <b>\u0420\u0415\u0417\u0423\u041B\u042C\u0422\u0410\u0422\u042B \u0413\u0415\u041E-\u041F\u0420\u041E\u0412\u0415\u0420\u041A\u0418 \u0414\u041E\u0421\u0422\u0423\u041F\u041D\u041E\u0421\u0422\u0418</b>
+
+\u{1F3AF} <b>\u0410\u0434\u0440\u0435\u0441 \u0441\u0430\u0439\u0442\u0430:</b> <code>${report.targetUrl}</code>
+\u{1F3C6} <b>\u0421\u0442\u0430\u0442\u0443\u0441:</b> ${report.verdictText}
+
+\u{1F1F7}\u{1F1FA} <b>\u0414\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u044C \u0432 \u0420\u043E\u0441\u0441\u0438\u0438:</b> <b>${Math.round(report.ruRate * 100)}%</b> (${report.ruPassed}/${report.ruTotal || 1})
+${ruSummary}
+
+\u{1F30D} <b>\u0414\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u044C \u0432 \u043C\u0438\u0440\u0435:</b> <b>${Math.round(report.globalRate * 100)}%</b> (${report.globalPassed}/${report.globalTotal || 1})
+${globalSummary}
+
+\u26A1 <b>\u0421\u0440\u0435\u0434\u043D\u044F\u044F \u0437\u0430\u0434\u0435\u0440\u0436\u043A\u0430:</b> <b>${report.avgResponseTimeMs || "~120"} ms</b>`;
+      const keyboardButtons = [
+        [import_telegraf4.Markup.button.callback("\u{1F504} \u041F\u0435\u0440\u0435\u043F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C", "owner_geo_check")]
+      ];
+      if (report.permanentLink) {
+        keyboardButtons[0].push(import_telegraf4.Markup.button.url("\u{1F517} \u041F\u043E\u0434\u0440\u043E\u0431\u043D\u044B\u0439 \u043E\u0442\u0447\u0451\u0442", report.permanentLink));
+      }
+      keyboardButtons.push([import_telegraf4.Markup.button.callback("\u25C0\uFE0F \u041D\u0430\u0437\u0430\u0434 \u0432 \u041F\u0443\u043B\u044C\u0442", "owner_back")]);
+      const keyboard = import_telegraf4.Markup.inlineKeyboard(keyboardButtons);
+      try {
+        await ctx.editMessageText(text, { parse_mode: "HTML", ...keyboard });
+      } catch {
+        await ctx.reply(text, { parse_mode: "HTML", ...keyboard });
       }
     });
     ownerHubWizard.action("owner_back", async (ctx) => {

@@ -21,7 +21,7 @@ export async function GET() {
       where: { id: session.userId },
       select: { role: true }
     });
-    if (user && ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'].includes(user.role)) {
+    if (user && ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR'].includes(user.role)) {
       isStaff = true;
     }
   }
@@ -35,11 +35,11 @@ export async function GET() {
       supportTelegram: contactSettings.TELEGRAM_SUPPORT_BOT || "smmplan_support_bot",
       supportEmail: contactSettings.SUPPORT_EMAIL || "support@smmplan.pro",
     }, {
-      headers: { 'x-build-id': '5cfea0248; 2026-08-29T14:00Z' }
+      headers: { 'x-build-id': 'launch-v5-live; 2026-08-29T14:30Z' }
     });
   }
 
   return NextResponse.json({ isMaintenanceMode, isStaff }, {
-    headers: { 'x-build-id': '5cfea0248; 2026-08-29T14:00Z' }
+    headers: { 'x-build-id': 'launch-v5-live; 2026-08-29T14:30Z' }
   });
 }

@@ -97,17 +97,47 @@ export async function proxy(request: NextRequest) {
     return res;
   };
 
+  // 0.1 F-9.1: Strict Host & Cross-Contour Spoofing Shield (OWASP A01 / A05)
+  const ALLOWED_CONTOUR_DOMAINS = new Set([
+    'smmplan.pro',
+    'www.smmplan.pro',
+    'test.smmplan.pro',
+    'smmflux.ru',
+    'www.smmflux.ru',
+    'flux.smmplan.pro',
+    'localhost',
+    '127.0.0.1'
+  ]);
+
+  const rawHostClean = (hostHeader || '').split(':')[0].toLowerCase();
+  const rawFwdClean = (fwdHost || '').split(':')[0].toLowerCase();
+
+  // If host is completely unknown or if cross-contour host header injection is attempted
+  if (rawHostClean && !ALLOWED_CONTOUR_DOMAINS.has(rawHostClean)) {
+    return NextResponse.json({ error: 'Forbidden: Invalid Host header' }, { status: 403 });
+  }
+
+  // Cross-contour spoofing check (e.g. connecting to smmplan.pro with Host: test.smmplan.pro or vice versa)
+  if (rawHostClean && rawFwdClean && rawHostClean !== rawFwdClean) {
+    const isInternal = rawFwdClean.includes('docker') || rawFwdClean.includes('localhost') || rawFwdClean.includes('127.0.0.1');
+    if (!isInternal) {
+      return NextResponse.json(
+        { error: 'Forbidden: Cross-contour host header spoofing detected' },
+        { status: 403 }
+      );
+    }
+  }
+
   // 1. Instant UI Logout Interception (/logout UI link) -> Redirect to /api/auth/logout to delete DB session
   if (pathname === '/logout') {
     return NextResponse.redirect(resolveRedirectUrl('/api/auth/logout'), 307);
   }
 
-  // 1.5 Strict Production Maintenance Gate (F-7.4)
-  // When smmplan.pro is in maintenance mode, block /login, /dashboard, /admin, /operator, /api/v2
-  const isProdHost = host === 'smmplan.pro';
-  const isMaintenanceActive = process.env.MAINTENANCE_MODE === 'true' || (isProdHost && process.env.ENABLE_PROD_ACCESS !== 'true');
+  // 1.5 Production Maintenance Gate (Task A: Lifted for Launch)
+  // Activated strictly only if MAINTENANCE_MODE is explicitly set to 'true' in env
+  const isMaintenanceActive = process.env.MAINTENANCE_MODE === 'true';
 
-  if (isProdHost && isMaintenanceActive) {
+  if (isMaintenanceActive) {
     const isAllowedMaintenancePath = 
       pathname === '/' ||
       pathname === '/prelaunch' ||
@@ -125,7 +155,7 @@ export async function proxy(request: NextRequest) {
     if (!isAllowedMaintenancePath) {
       if (pathname.startsWith('/api/')) {
         return NextResponse.json(
-          { error: 'Service Unavailable - Platform under maintenance before launch' },
+          { error: 'Service Unavailable - Platform under maintenance' },
           { status: 503, headers: { 'Retry-After': '3600' } }
         );
       }
@@ -235,7 +265,7 @@ export async function proxy(request: NextRequest) {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(self)');
-  response.headers.set('x-build-id', '5cfea0248; 2026-08-29T14:00Z');
+  response.headers.set('x-build-id', 'launch-v5-live; 2026-08-29T14:30Z');
   response.headers.set('X-DNS-Prefetch-Control', 'on');
 
   // Inject X-Robots-Tag for sensitive routes to prevent indexing

@@ -68,7 +68,7 @@ export async function GET(req: Request) {
       status: 200,
       headers: {
         'Cache-Control': 'public, max-age=5, s-maxage=5',
-        'x-build-id': '5cfea0248; 2026-08-29T14:00Z',
+        'x-build-id': 'launch-v5-live; 2026-08-29T14:30Z',
       },
     });
   }

@@ -175,7 +175,7 @@ async function handleServices(user: User, formData: FormData) {
       tenantId: { in: [userTenantId, 'all'] },
       category: { tenantId: { in: [userTenantId, 'all'] } }
     },
-    take: 100,
+    take: 1000,
     skip: safeSkip
   });
 
