@@ -1,2 +1,2 @@
 $token = "eyJhIjoiMGE3YTlhN2FjYjM2M2ZmYmE2ZjFmMWQ3MTg5N2I5NGMiLCJ0IjoiOWU4ZTBkODEtY2ExMS00MTFhLTgyMTUtNzIyMTgxZGM5MDMyIiwicyI6Ik1EUTFPVFk0TUdJdE16UmxaQzAwWm1JNUxUZzFZell0WldJeE5tSmxaREZqWmpCaiJ9"
-& "D:\SMM_plan_2\cloudflared.exe" tunnel --no-autoupdate run --token $token
+& "D:\SMM_plan_2\cloudflared.exe" tunnel --protocol http2 --no-autoupdate run --token $token
