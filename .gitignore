@@ -90,3 +90,7 @@ all-providers-data.json
 smmtoolbox_enriched.json
 private/uploads/
 visual_audit_assets/
+
+*.exe
+caddy/
+
