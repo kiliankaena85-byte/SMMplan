@@ -227,7 +227,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Providers>
           <NetworkAwareProvider>
              <MaintenanceGuardian
-               {...(isMaintenanceMode && !isStaff ? { m: true } : {})}
+               {...(isMaintenanceModeForDomain && !isStaff ? { m: true } : {})}
              >
                {children}
              </MaintenanceGuardian>
