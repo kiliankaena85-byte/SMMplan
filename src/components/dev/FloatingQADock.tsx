@@ -138,7 +138,7 @@ export function FloatingQADock() {
       document.cookie = "session_token=; path=/; max-age=0; SameSite=Lax; Secure; HttpOnly";
       document.cookie = "auth_token=; path=/; max-age=0; SameSite=Lax; Secure";
       document.cookie = "explicit_logout=true; path=/; max-age=31536000; SameSite=Lax; Secure; HttpOnly";
-      toast.info("Вы вышли из аккаунта (Режим: Анонимный гость)");
+      toast.info("Вы вышли из учетной записи");
       setTimeout(() => {
         const isProtectedPath = window.location.pathname.startsWith('/admin') || 
                                 window.location.pathname.startsWith('/dashboard') || 
@@ -189,7 +189,7 @@ export function FloatingQADock() {
               ? "bg-blue-600/30 text-blue-400 border border-blue-500/30" 
               : "bg-purple-600/30 text-purple-300 border border-purple-500/30"
           }`}>
-            {currentTenant === "smmplan" ? "SMMplan (B2B)" : "SMMflux"}
+            {currentTenant === "smmplan" ? "SMMplan" : "SMMflux"}
           </span>
         </motion.button>
       )}
@@ -238,7 +238,7 @@ export function FloatingQADock() {
                   }`}
                 >
                   <Building2 className="w-4 h-4" />
-                  <span>SMMplan (B2B)</span>
+                  <span>SMMplan</span>
                 </button>
                 <button
                   type="button"

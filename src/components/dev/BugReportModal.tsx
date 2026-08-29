@@ -55,7 +55,7 @@ export function BugReportModal({
     if (typeof window !== "undefined" && isOpen) {
       const match = document.cookie.match(/auth_token=([^;]+)/);
       const isOwner = document.cookie.includes("owner") || window.location.pathname.startsWith("/admin");
-      const userRole = isOwner ? "Владелец / Администратор" : match ? "Авторизованный клиент" : "Анонимный гость";
+      const userRole = isOwner ? "Владелец / Администратор" : match ? "Авторизованный клиент" : "Гость";
 
       setContext({
         url: window.location.pathname + window.location.search,

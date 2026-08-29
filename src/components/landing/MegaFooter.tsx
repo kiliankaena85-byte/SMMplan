@@ -146,7 +146,7 @@ export function MegaFooter({
             {contactSettings?.COMPANY_NAME || "ООО \"СММ План\""} (ИНН: {inn}{ogrnip ? ` / ОГРНИП: ${ogrnip}` : ""})
           </p>
         </div>
-        <p className="flex items-center gap-1 text-foreground/80 font-semibold">Designed with <span className="text-red-500">❤</span> for B2B Growth</p>
+        <p className="flex items-center gap-1 text-foreground/80 font-semibold">Designed with <span className="text-red-500">❤</span> for Organic Growth</p>
       </div>
     </footer>
   );

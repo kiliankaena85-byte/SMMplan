@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { POST as mockProviderPost } from '@/app/api/dev/mock-provider/route';
+import { mockProviderPost } from '@/__tests__/helpers/mock-provider-handler';
 import { NextRequest } from 'next/server';
 import { calculatePartialRefund } from '@/utils/refund';
 import { checkoutAction } from '@/actions/order/checkout';

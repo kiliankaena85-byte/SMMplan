@@ -93,7 +93,7 @@ export async function createTenantAction(formData: z.infer<typeof CreateTenantSc
           systemSettings: {
             create: {
               siteName: name.trim(),
-              siteDescription: `Оптовая B2B платформа продвижения в соцсетях ${name.trim()}`,
+              siteDescription: `Оптовая платформа продвижения в соцсетях ${name.trim()}`,
               welcomeMessage: `Добро пожаловать в ${name.trim()}! Ваш личный кабинет готов.`,
               taxRate: 6.0,
               isTestMode: false,

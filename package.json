@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build --webpack && npm run build:bot && npm run build:worker",
+    "build": "next build --webpack && npm run build:bot && npm run build:worker && node scripts/check-bundle-secrets.mjs",
+    "check:bundle-secrets": "node scripts/check-bundle-secrets.mjs",
     "build:bot": "esbuild src/bot/index.ts --bundle --platform=node --target=node20 --outfile=dist/bot.js --external:@prisma/client --external:@opentelemetry/api",
     "build:worker": "esbuild src/workers/index.ts --bundle --platform=node --target=node20 --outfile=dist/worker.js --external:@prisma/client --external:@opentelemetry/api",
     "start": "next start",

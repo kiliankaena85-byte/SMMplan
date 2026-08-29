@@ -46,9 +46,9 @@ export function ApiDashboardClient({ hasKey }: ApiDashboardClientProps) {
       {activeTab === 'key' ? (
         <div className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-sm">
           <div className="px-5 py-4 border-b border-border/40">
-            <h2 className="font-extrabold text-foreground text-sm">B2B Reseller API Key</h2>
+            <h2 className="font-extrabold text-foreground text-sm">Персональный API-ключ</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Используйте API-ключ для заказа услуг SMMplan из ваших собственных систем.
+              Используйте API-ключ для автоматического заказа услуг SMMplan из ваших скриптов и систем.
             </p>
           </div>
           <div className="p-5">

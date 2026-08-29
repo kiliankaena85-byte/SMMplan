@@ -19,7 +19,15 @@ export async function qaDirectLoginAction(formData: {
   tenantId?: string;
   targetEmail?: string;
 }): Promise<QALoginResult> {
-  const expectedSecret = process.env.QA_SECRET_KEY;
+  const isAllowed = process.env.NODE_ENV === 'development' || process.env.ENABLE_QA_TOOLS === 'true';
+  if (!isAllowed) {
+    return {
+      success: false,
+      error: 'QA вход отключен в производственной среде.'
+    };
+  }
+
+  const expectedSecret = process.env.QA_DEV_SECRET || process.env.QA_SECRET_KEY;
   if (!expectedSecret) {
     return { 
       success: false, 

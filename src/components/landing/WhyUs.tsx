@@ -85,7 +85,7 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
                 <div className="w-10 h-10 bg-primary-foreground/15 dark:bg-primary/15 rounded-xl flex items-center justify-center text-primary-foreground dark:text-primary group-hover:scale-110 transition-transform">
                   <Terminal className="w-5 h-5" strokeWidth={1.5} />
                 </div>
-                <span className="text-xs font-bold text-primary-foreground dark:text-primary uppercase tracking-widest">B2B Интеграция</span>
+                <span className="text-xs font-bold text-primary-foreground dark:text-primary uppercase tracking-widest">API & Интеграции</span>
               </div>
               <h3 className="text-2xl font-bold text-primary-foreground dark:text-foreground mb-4 tracking-tight">Решения для Реселлеров & API Hub</h3>
               
@@ -110,7 +110,7 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
                 <div className="flex items-start gap-2.5 bg-primary-foreground/10 dark:bg-content2/80 p-3.5 rounded-xl border border-primary-foreground/10 dark:border-border/50">
                   <Diamond className="w-5 h-5 text-primary-foreground dark:text-primary shrink-0 mt-0.5" strokeWidth={1.5} />
                   <div>
-                    <h4 className="text-sm font-semibold text-primary-foreground dark:text-foreground">Wholesale Цены</h4>
+                    <h4 className="text-sm font-semibold text-primary-foreground dark:text-foreground">Оптовые Цены</h4>
                     <p className="text-[11px] text-primary-foreground/80 dark:text-muted-foreground mt-0.5 leading-snug">Накопительный дисконт до 15% пожизненно</p>
                   </div>
                 </div>
@@ -120,13 +120,13 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
             {/* Bottom CTA bar */}
             <div className="mt-6 sm:mt-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t border-primary-foreground/10 dark:border-border/50">
               <p className="text-xs text-primary-foreground/90 dark:text-muted-foreground">
-                Запустите свой SMM-бизнес за 5 минут без требований к минимальному балансу.
+                Запустите свой SMM-сервис за 5 минут без требований к минимальному балансу.
               </p>
               <Link 
-                href="/login?promo=B2BSTART"
+                href="/login?promo=START"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-card hover:bg-muted text-foreground dark:bg-primary dark:hover:bg-primary/90 dark:text-primary-foreground text-xs font-extrabold shadow-lg shadow-background/10 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shrink-0 border border-border"
               >
-                <span>Кабинет Реселлера</span>
+                <span>Личный кабинет</span>
                 <ArrowUpRight className="w-3.5 h-3.5" />
               </Link>
             </div>

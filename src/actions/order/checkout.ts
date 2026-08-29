@@ -431,9 +431,8 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       paymentAmount = 1000; // 10 RUB minimum deposit (1000 cents)
     }
 
-    // 54-ФЗ / 115-ФЗ: Лимит анонимных платежей без подтверждения личности — 15 000 ₽ (1 500 000 копеек)
     if (paymentAmount > 1_500_000 && !user.telegramId) {
-      throw new Error("Для совершения единовременных платежей свыше 15 000 ₽, пожалуйста, привяжите ваш Telegram-аккаунт в личном кабинете либо используйте безналичный расчет для юрлиц (B2B).");
+      throw new Error("Для совершения единовременных платежей свыше 15 000 ₽, пожалуйста, привяжите ваш Telegram-аккаунт в личном кабинете либо используйте безналичный расчет по счету для юрлиц и ИП.");
     }
 
     // Balance check is now performed atomically inside db.$transaction using WalletOps.charge

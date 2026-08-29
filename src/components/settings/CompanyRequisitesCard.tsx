@@ -80,7 +80,7 @@ export default function CompanyRequisitesCard({ initialData }: CompanyRequisites
             Реквизиты организации и налоговые данные
           </h2>
           <p className="text-[10px] text-muted-foreground">
-            Данные юрлица / ИП для автоматического формирования счетов, актов и УПД (152-ФЗ / 54-ФЗ B2B)
+            Данные юрлица / ИП для автоматического формирования счетов, актов и УПД (152-ФЗ / 54-ФЗ)
           </p>
         </div>
       </div>

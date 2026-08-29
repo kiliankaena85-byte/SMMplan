@@ -113,7 +113,7 @@ export default async function AcademyPage() {
           </h1>
 
           <p className="text-base sm:text-lg text-muted-foreground font-medium max-w-xl mx-auto">
-            Экспертные руководства, пошаговые инструкции по копированию ссылок, лимитам соцсетей и лайфхакам B2B-реселлеров.
+            Экспертные руководства, пошаговые инструкции по копированию ссылок, лимитам соцсетей и практикам эффективного продвижения.
           </p>
         </div>
 

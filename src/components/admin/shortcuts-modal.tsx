@@ -146,7 +146,7 @@ export function ShortcutsModal({ isOpen = false, onClose }: ShortcutsModalProps)
         {/* Footer */}
         <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
           <span>Нажмите <kbd className="px-1.5 py-0.5 font-mono bg-background border border-border rounded text-[10px]">Esc</kbd> для закрытия</span>
-          <span className="font-semibold text-primary">SMMplan B2B Workspace</span>
+          <span className="font-semibold text-primary">SMMplan Workspace</span>
         </div>
       </div>
     </div>

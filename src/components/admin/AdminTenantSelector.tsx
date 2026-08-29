@@ -15,7 +15,7 @@ const SITES = [
   { 
     id: 'smmplan', 
     name: 'smmplan.pro', 
-    domain: 'SMMplan · B2B панель', 
+    domain: 'SMMplan · Основная панель', 
     short: 'smmplan.pro',
     icon: Building2,
   },

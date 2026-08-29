@@ -137,21 +137,9 @@ export async function proxy(request: NextRequest) {
     const explicitLogout = request.cookies.get('explicit_logout')?.value;
     const isRSC = request.headers.has('rsc') || request.headers.has('next-action');
 
-    const isDevBypassAllowed =
-      process.env.NODE_ENV === 'development' &&
-      process.env.ENABLE_DEV_BYPASS === 'true' &&
-      process.env.APP_ENV !== 'test';
-
     if (explicitLogout === 'true' || !sessionToken) {
       if (isRSC) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-      // Dev mode auto-login bypass for local environment
-      if (isDevBypassAllowed) {
-        const autoLoginUrl = resolveRedirectUrl('/api/dev/login-direct');
-        autoLoginUrl.searchParams.set('email', process.env.DEV_BYPASS_EMAIL || 'infosokoloff@yandex.ru');
-        autoLoginUrl.searchParams.set('tenant', finalTenantId);
-        return applyStickyCookie(NextResponse.redirect(autoLoginUrl));
       }
       return applyStickyCookie(NextResponse.redirect(resolveRedirectUrl(ROUTES.AUTH.LOGIN)));
     }
@@ -167,30 +155,13 @@ export async function proxy(request: NextRequest) {
       if (isRSC) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
-      // Dev mode auto-login bypass on tenant mismatch in local environment
-      if (isDevBypassAllowed && explicitLogout !== 'true') {
-        const autoLoginUrl = resolveRedirectUrl('/api/dev/login-direct');
-        autoLoginUrl.searchParams.set('email', process.env.DEV_BYPASS_EMAIL || 'infosokoloff@yandex.ru');
-        autoLoginUrl.searchParams.set('tenant', finalTenantId);
-        const response = NextResponse.redirect(autoLoginUrl);
-        response.cookies.set('session_token', '', {
-          path: '/',
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 0,
-          expires: new Date(0),
-        });
-        return applyStickyCookie(response);
-      }
       const response = NextResponse.redirect(resolveRedirectUrl(ROUTES.AUTH.LOGIN));
       response.cookies.set('session_token', '', {
         path: '/',
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: true,
         sameSite: 'lax',
         maxAge: 0,
-        expires: new Date(0),
       });
       return applyStickyCookie(response);
     }

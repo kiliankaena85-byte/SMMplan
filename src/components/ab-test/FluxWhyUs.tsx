@@ -16,7 +16,7 @@ export function FluxWhyUs({ companyName = "SMMflux" }: { companyName?: string })
           Платформа нового поколения
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-medium text-pretty">
-          Более 10 000 клиентов доверяют {companyName} своё продвижение не просто так. Мы переосмыслили B2B опыт продвижения.
+          Более 10 000 клиентов доверяют {companyName} своё продвижение не просто так. Мы переосмыслили опыт продвижения.
         </p>
       </div>
 
@@ -68,7 +68,7 @@ export function FluxWhyUs({ companyName = "SMMflux" }: { companyName?: string })
           </div>
         </div>
 
-        {/* Card 4: Large B2B Reseller Suite & API Hub Card */}
+        {/* Card 4: Large Reseller Suite & API Hub Card */}
         <div className="md:col-span-2 bg-card border border-border text-card-foreground rounded-[2.5rem] p-6 pb-8 md:p-10 md:pb-12 relative overflow-hidden group shadow-md transition-all duration-300 min-h-[380px]">
           {/* Background Ambient Glow */}
           <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 -translate-y-1/3 translate-x-1/3" />
@@ -79,7 +79,7 @@ export function FluxWhyUs({ companyName = "SMMflux" }: { companyName?: string })
                 <div className="w-12 h-12 bg-muted rounded-2xl flex items-center justify-center text-foreground backdrop-blur-sm group-hover:scale-110 transition-transform">
                   <Terminal className="w-6 h-6" strokeWidth={1.5} />
                 </div>
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">B2B Интеграция</span>
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">API & Интеграции</span>
               </div>
               <h3 className="text-3xl font-bold text-foreground mb-6 tracking-tight">Решения для Реселлеров & API Hub</h3>
               
@@ -104,7 +104,7 @@ export function FluxWhyUs({ companyName = "SMMflux" }: { companyName?: string })
                 <div className="flex items-start gap-3 bg-muted/40 p-4 rounded-2xl backdrop-blur-md border border-border/50">
                   <Diamond className="w-6 h-6 text-primary shrink-0" strokeWidth={1.5} />
                   <div>
-                    <h4 className="text-sm font-semibold text-foreground">Wholesale Цены</h4>
+                    <h4 className="text-sm font-semibold text-foreground">Оптовые Цены</h4>
                     <p className="text-xs text-muted-foreground mt-1 leading-snug">Накопительный дисконт до 15% пожизненно</p>
                   </div>
                 </div>
@@ -114,10 +114,10 @@ export function FluxWhyUs({ companyName = "SMMflux" }: { companyName?: string })
             {/* Bottom CTA bar */}
             <div className="mt-8 sm:mt-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-6 border-t border-border">
               <p className="text-sm text-muted-foreground">
-                Запустите свой SMM-бизнес за 5 минут без требований к минимальному балансу.
+                Запустите свой SMM-сервис за 5 минут без требований к минимальному балансу.
               </p>
               <Link 
-                href="/login?promo=B2BSTART"
+                href="/login?promo=START"
                 className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition-all text-sm shrink-0 shadow-sm"
               >
                 Получить API-доступ

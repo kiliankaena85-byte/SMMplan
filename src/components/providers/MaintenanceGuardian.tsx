@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { MaintenanceScreen } from '../ui/MaintenanceScreen';
+import { PreLaunchHoldingScreen } from '../landing/PreLaunchHoldingScreen';
 
 interface MaintenanceGuardianProps {
   children: React.ReactNode;
@@ -66,7 +66,7 @@ export function MaintenanceGuardian({
 
   if (!isExcluded && isMaintenance) {
     return (
-      <MaintenanceScreen
+      <PreLaunchHoldingScreen
         siteName={siteName}
         supportTelegram={supportTelegram}
         supportEmail={supportEmail}

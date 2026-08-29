@@ -93,7 +93,7 @@ export default function B2bWebhookCard({ initialData }: B2bWebhookCardProps) {
           </div>
           <div>
             <h2 className="font-semibold text-foreground text-sm">
-              B2B Webhook & Интеграции
+              Webhook & Автоматизация
             </h2>
             <p className="text-[10px] text-muted-foreground">
               Автоматическая отправка статусов заказов и событий на ваш сервер
