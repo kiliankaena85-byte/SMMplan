@@ -160,18 +160,19 @@ export async function proxy(request: NextRequest) {
   };
 
   // 0.1 N-10.3: Strict Host & Cross-Contour Spoofing Shield (OWASP A01 / A05)
+  const isSecurityTxt = pathname === '/.well-known/security.txt' || pathname === '/security.txt';
   const rawHostClean = (hostHeader || '').split(':')[0].toLowerCase();
   const rawFwdClean = (fwdHost || '').split(':')[0].toLowerCase();
 
   // If host is completely unknown
-  if (rawHostClean && !ALLOWED_CONTOUR_DOMAINS.has(rawHostClean)) {
+  if (rawHostClean && !ALLOWED_CONTOUR_DOMAINS.has(rawHostClean) && !isSecurityTxt) {
     return NextResponse.json({ error: 'Forbidden: Invalid Host header' }, { status: 403 });
   }
 
   const isInternalHost = (h: string) => h.includes('docker') || h.includes('localhost') || h.includes('127.0.0.1') || h.includes('0.0.0.0');
 
   // Cross-contour spoofing check (e.g. connecting to smmplan.pro with Host: test.smmplan.pro or vice versa)
-  if (rawHostClean && rawFwdClean && rawHostClean !== rawFwdClean) {
+  if (rawHostClean && rawFwdClean && rawHostClean !== rawFwdClean && !isSecurityTxt) {
     if (!isInternalHost(rawFwdClean) && !isInternalHost(rawHostClean)) {
       return NextResponse.json(
         { error: 'Forbidden: Cross-contour host header spoofing detected' },
@@ -185,7 +186,7 @@ export async function proxy(request: NextRequest) {
   const allowedForContour = TRUSTED_CONTOUR_MAP[activeContour];
   const effectiveHost = (rawFwdClean && !isInternalHost(rawFwdClean)) ? rawFwdClean : rawHostClean;
 
-  if (effectiveHost && allowedForContour && !isInternalHost(effectiveHost) && !allowedForContour.has(effectiveHost)) {
+  if (effectiveHost && allowedForContour && !isInternalHost(effectiveHost) && !allowedForContour.has(effectiveHost) && !isSecurityTxt) {
     if (process.env.NODE_ENV === 'production') {
       return NextResponse.json(
         { error: 'Forbidden: Host not permitted for active server contour' },
