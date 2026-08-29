@@ -34,8 +34,12 @@ export async function GET() {
       siteName: contactSettings.SITE_NAME || "SMMplan",
       supportTelegram: contactSettings.TELEGRAM_SUPPORT_BOT || "smmplan_support_bot",
       supportEmail: contactSettings.SUPPORT_EMAIL || "support@smmplan.pro",
+    }, {
+      headers: { 'x-build-id': '5cfea0248; 2026-08-29T14:00Z' }
     });
   }
 
-  return NextResponse.json({ isMaintenanceMode, isStaff });
+  return NextResponse.json({ isMaintenanceMode, isStaff }, {
+    headers: { 'x-build-id': '5cfea0248; 2026-08-29T14:00Z' }
+  });
 }

@@ -180,7 +180,7 @@ export async function proxy(request: NextRequest) {
     }
 
     const payload = await decryptSessionToken(sessionToken);
-    const isStaffRole = payload?.role && ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'].includes(payload.role);
+    const isStaffRole = payload?.role && ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR'].includes(payload.role);
     const isAdminPath = pathname.startsWith('/admin') || pathname.startsWith('/operator');
 
     // Enforce tenant isolation for regular users (Staff roles have global multi-tenant access in /admin)
@@ -253,6 +253,7 @@ export async function proxy(request: NextRequest) {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(self)');
+  response.headers.set('x-build-id', '5cfea0248; 2026-08-29T14:00Z');
   response.headers.set('X-DNS-Prefetch-Control', 'on');
 
   // Inject X-Robots-Tag for sensitive routes to prevent indexing
