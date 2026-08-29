@@ -22,14 +22,20 @@ function normalizeIp(ip: string): string {
 
 /**
  * Извлекает IP-адрес клиента из HTTP-заголовков.
- * Приоритет: x-real-ip (доверенный, перезаписанный Nginx / DDoS-Guard) > x-forwarded-for (правый хоп к доверенному прокси) > fallback.
+ *
+ * Приоритет при TRUST_CF_CONNECTING_IP === 'true' (Cloudflare Tunnel / CDN mode):
+ * 1. cf-connecting-ip (выставлен доверенным edge Cloudflare)
+ * 2. x-real-ip (перезаписан reverse proxy)
+ * 3. x-forwarded-for (правый хоп к доверенному прокси)
+ * 4. fallback
+ *
+ * Приоритет по умолчанию (прямой хостинг РФ / Nginx без CDN):
+ * 1. x-real-ip (доверенный, перезаписанный Nginx / DDoS-Guard)
+ * 2. x-forwarded-for (правый хоп к доверенному прокси)
+ * 3. fallback
  *
  * ARCHITECTURE CONTRACT: Единственный источник правды для IP.
  * Не дублируйте эту логику — используйте этот вызов.
- *
- * SECURITY: cf-connecting-ip НЕ используется — проект размещён в РФ
- * без Cloudflare. Этот заголовок может быть подделан злоумышленником
- * при прямом обращении к серверу в обход CDN для обхода Rate Limiting.
  */
 export async function getClientIp(
   reqOrHeadersOrFallback?: Request | NextRequest | Headers | string | null,
@@ -51,6 +57,14 @@ export async function getClientIp(
 
     if (!reqHeaders) {
       reqHeaders = await headers();
+    }
+
+    const trustCf = process.env.TRUST_CF_CONNECTING_IP === 'true';
+    if (trustCf) {
+      const cfIp = reqHeaders.get('cf-connecting-ip');
+      if (cfIp && isValidIp(cfIp)) {
+        return normalizeIp(cfIp);
+      }
     }
 
     const realIp = reqHeaders.get('x-real-ip');
