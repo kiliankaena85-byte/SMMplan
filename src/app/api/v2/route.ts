@@ -43,6 +43,11 @@ export async function POST(request: NextRequest) {
   let currentHashedKey = '';
   let currentAction = '';
   let currentFormData: FormData | null = null;
+  let rateLimitHeaderInfo = {
+    limit: 50,
+    remaining: 49,
+    resetSeconds: 60
+  };
 
   const sendResponse = (res: NextResponse) => {
     if (currentHashedKey) {
@@ -68,10 +73,10 @@ export async function POST(request: NextRequest) {
         }
       }).catch(() => {});
     }
-    res.headers.set('RateLimit-Limit', '50');
-    res.headers.set('RateLimit-Remaining', '49');
-    res.headers.set('RateLimit-Reset', '60');
-    res.headers.set('RateLimit-Policy', '50;w=60');
+    res.headers.set('RateLimit-Limit', rateLimitHeaderInfo.limit.toString());
+    res.headers.set('RateLimit-Remaining', rateLimitHeaderInfo.remaining.toString());
+    res.headers.set('RateLimit-Reset', rateLimitHeaderInfo.resetSeconds.toString());
+    res.headers.set('RateLimit-Policy', `${rateLimitHeaderInfo.limit};w=${rateLimitHeaderInfo.resetSeconds || 60}`);
     return res;
   };
 
@@ -99,13 +104,20 @@ export async function POST(request: NextRequest) {
 
     const ip = request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
 
-    // Rate Limiting (OWASP A04)
+    // Rate Limiting (OWASP A04, RFC 9331 headers)
     const crypto = (await import('crypto')).default;
     const hashedKey = crypto.createHash('sha256').update(key).digest('hex');
     currentHashedKey = hashedKey;
 
-    const isAllowed = await RateLimitService.checkCustomKey(hashedKey, 50, 60);
-    if (!isAllowed) {
+    const rateDetail = await RateLimitService.checkCustomKeyDetail(hashedKey, 50, 60);
+    rateLimitHeaderInfo = {
+      limit: rateDetail.limit,
+      remaining: rateDetail.remaining,
+      resetSeconds: rateDetail.resetSeconds
+    };
+
+    if (!rateDetail.allowed) {
+      rateLimitHeaderInfo.remaining = 0;
       return sendResponse(NextResponse.json({ error: 'Too many requests. Limit 50/minute.' }, { status: 429 }));
     }
 

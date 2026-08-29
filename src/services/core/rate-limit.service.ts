@@ -93,28 +93,33 @@ export class RateLimitService {
     }
   }
   
-  static async checkCustomKey(
+  /**
+   * Enforces a rate limit for a custom key and returns full RFC 9331 details
+   */
+  static async checkCustomKeyDetail(
     key: string,
     maxHits: number = 10,
     windowSeconds: number = 60,
-    failClosed: boolean = true // Secure by default: block traffic if rate limiter fails
-  ): Promise<boolean> {
+    failClosed: boolean = true
+  ): Promise<{ allowed: boolean; limit: number; remaining: number; resetSeconds: number }> {
     try {
       if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') {
         const { SettingsProvider } = await import('@/lib/settings');
         if (SettingsProvider.isTestEnvironment() && process.env.ENABLE_RATE_LIMIT_TEST !== 'true') {
-          return true;
+          return { allowed: true, limit: maxHits, remaining: maxHits - 1, resetSeconds: windowSeconds };
         }
       }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
-      if (process.env.NODE_ENV === 'test' && process.env.ENABLE_RATE_LIMIT_TEST !== 'true') return true;
+      if (process.env.NODE_ENV === 'test' && process.env.ENABLE_RATE_LIMIT_TEST !== 'true') {
+        return { allowed: true, limit: maxHits, remaining: maxHits - 1, resetSeconds: windowSeconds };
+      }
     }
     try {
       // W6-1 SECURITY FIX: Prevent Redis OOM or DB bloat from huge custom keys
       if (!key || key.length > 256) {
         console.warn(`[RATE_LIMIT_CUSTOM] Blocked key exceeding max length or empty`);
-        return false;
+        return { allowed: false, limit: maxHits, remaining: 0, resetSeconds: windowSeconds };
       }
       
       const now = new Date();
@@ -131,14 +136,23 @@ export class RateLimitService {
             if current == 1 then
               redis.call('EXPIRE', KEYS[1], ARGV[1])
             end
-            return current
+            local ttl = redis.call('TTL', KEYS[1])
+            if ttl < 0 then
+              ttl = tonumber(ARGV[1])
+            end
+            return { current, ttl }
           `;
-          const hits = await redis.eval(script, 1, redisKey, windowSeconds) as number;
-          if (hits > maxHits) {
+          const res = await redis.eval(script, 1, redisKey, windowSeconds) as [number, number] | number[];
+          const hits = Array.isArray(res) ? Number(res[0]) : Number(res);
+          const rawTtl = Array.isArray(res) && res[1] !== undefined ? Number(res[1]) : windowSeconds;
+          const resetSeconds = Math.max(1, rawTtl > 0 ? rawTtl : windowSeconds);
+          const remaining = Math.max(0, maxHits - hits);
+          const allowed = hits <= maxHits;
+
+          if (!allowed) {
              console.warn(`[RATE_LIMIT_CUSTOM:REDIS] Blocked key ${key} (${hits}/${maxHits})`);
-             return false;
           }
-          return true;
+          return { allowed, limit: maxHits, remaining, resetSeconds };
         }
       } catch (redisError: unknown) {
         console.warn("[RATE_LIMIT_CUSTOM:REDIS] Redis check failed, falling back to PostgreSQL:", (redisError as Error).message);
@@ -148,30 +162,44 @@ export class RateLimitService {
       const ip = "CUSTOM_KEY";
       const endpoint = key;
       const newExpiry = new Date(now.getTime() + windowSeconds * 1000);
-      const rows = await db.$queryRaw<Array<{ hits: number }>>`
+      const rows = await db.$queryRaw<Array<{ hits: number; expiresAt: Date }>>`
         INSERT INTO "RateLimit" ("id", "ip", "endpoint", "hits", "expiresAt", "createdAt")
         VALUES (gen_random_uuid()::text, ${ip}, ${endpoint}, 1, ${newExpiry}, NOW())
         ON CONFLICT ("ip", "endpoint") DO UPDATE SET
           "hits" = CASE WHEN "RateLimit"."expiresAt" <= NOW() THEN 1 ELSE "RateLimit"."hits" + 1 END,
           "expiresAt" = CASE WHEN "RateLimit"."expiresAt" <= NOW() THEN ${newExpiry} ELSE "RateLimit"."expiresAt" END
-        RETURNING "hits";
+        RETURNING "hits", "expiresAt";
       `;
 
       const hits = rows[0]?.hits ?? 1;
-      if (hits > maxHits) {
+      const expiresAt = rows[0]?.expiresAt ? new Date(rows[0].expiresAt) : newExpiry;
+      const resetSeconds = Math.max(1, Math.ceil((expiresAt.getTime() - Date.now()) / 1000));
+      const remaining = Math.max(0, maxHits - hits);
+      const allowed = hits <= maxHits;
+
+      if (!allowed) {
          console.warn(`[RATE_LIMIT_CUSTOM:PG] Blocked key ${key} (${hits}/${maxHits})`);
-         return false;
       }
-      return true;
+      return { allowed, limit: maxHits, remaining, resetSeconds };
     } catch (e: unknown) {
       console.error("[RATE_LIMIT_CUSTOM] Fatal Failure:", e);
       if (failClosed) {
         console.warn(`[RATE_LIMIT_CUSTOM] Failing CLOSED for key ${key}`);
-        return false;
+        return { allowed: false, limit: maxHits, remaining: 0, resetSeconds: windowSeconds };
       }
       console.warn(`[RATE_LIMIT_CUSTOM] Failing OPEN for key ${key}`);
-      return true;
+      return { allowed: true, limit: maxHits, remaining: maxHits - 1, resetSeconds: windowSeconds };
     }
+  }
+
+  static async checkCustomKey(
+    key: string,
+    maxHits: number = 10,
+    windowSeconds: number = 60,
+    failClosed: boolean = true // Secure by default: block traffic if rate limiter fails
+  ): Promise<boolean> {
+    const detail = await this.checkCustomKeyDetail(key, maxHits, windowSeconds, failClosed);
+    return detail.allowed;
   }
 }
 
