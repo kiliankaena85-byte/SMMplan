@@ -186,39 +186,48 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify([
-            {
-              "@context": "https://schema.org",
-              "@type": "Organization",
-              "name": siteName,
-              "url": `https://${getTenantHost(normalizeTenantId(reqHeaders.get('x-tenant-id')))}`,
-              "logo": `https://${getTenantHost(normalizeTenantId(reqHeaders.get('x-tenant-id')))}/images/logo.png`,
-              "contactPoint": {
-                "@type": "ContactPoint",
-                "contactType": "customer support",
-                "email": supportEmail,
-                "availableLanguage": "Russian",
-              },
-              "address": {
-                "@type": "PostalAddress",
-                "addressCountry": "RU",
-              },
-            },
-            {
-              "@context": "https://schema.org",
-              "@type": "WebSite",
-              "name": siteName,
-              "url": `https://${getTenantHost(normalizeTenantId(reqHeaders.get('x-tenant-id')))}`,
-              "potentialAction": {
-                "@type": "SearchAction",
-                "target": `https://${getTenantHost(normalizeTenantId(reqHeaders.get('x-tenant-id')))}/services?q={search_term_string}`,
-                "query-input": "required name=search_term_string",
-              },
-            },
-          ]).replace(/</g, '\\u003c') }}
-        />
+        {(() => {
+          const rawHost = reqHeaders.get('x-forwarded-host') || reqHeaders.get('host') || '';
+          const canonicalHost = getTenantHost(tenantId, rawHost);
+          const isLocal = canonicalHost.includes('localhost') || canonicalHost.includes('127.0.0.1');
+          const siteBaseUrl = `${isLocal ? 'http' : 'https'}://${canonicalHost}`;
+
+          return (
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: JSON.stringify([
+                {
+                  "@context": "https://schema.org",
+                  "@type": "Organization",
+                  "name": siteName,
+                  "url": siteBaseUrl,
+                  "logo": `${siteBaseUrl}/images/logo.png`,
+                  "contactPoint": {
+                    "@type": "ContactPoint",
+                    "contactType": "customer support",
+                    "email": supportEmail,
+                    "availableLanguage": "Russian",
+                  },
+                  "address": {
+                    "@type": "PostalAddress",
+                    "addressCountry": "RU",
+                  },
+                },
+                {
+                  "@context": "https://schema.org",
+                  "@type": "WebSite",
+                  "name": siteName,
+                  "url": siteBaseUrl,
+                  "potentialAction": {
+                    "@type": "SearchAction",
+                    "target": `${siteBaseUrl}/services?q={search_term_string}`,
+                    "query-input": "required name=search_term_string",
+                  },
+                },
+              ]).replace(/</g, '\\u003c') }}
+            />
+          );
+        })()}
       </head>
       <body className={`font-sans antialiased bg-background text-foreground theme-${tenantId}`} data-tenant={tenantId} suppressHydrationWarning>
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary text-primary-foreground px-4 py-2 rounded-lg z-[9999] font-semibold outline-none focus:ring-2 focus:ring-primary transition-all">

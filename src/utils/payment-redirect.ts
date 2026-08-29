@@ -13,13 +13,8 @@ export const PROD_ALLOWED_PAYMENT_DOMAINS = [
   'telegram.me',
   'robokassa.ru',
   'robokassa.com',
-  'pay.cryptometria.com',
-  'cryptometria.com',
   'smmplan.pro',
   'smmflux.ru',
-  'localhost',
-  '127.0.0.1',
-  '0.0.0.0',
 ] as const;
 
 export const ALLOWED_PAYMENT_DOMAINS: string[] = [

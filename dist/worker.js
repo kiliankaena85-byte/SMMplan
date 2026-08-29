@@ -123355,23 +123355,33 @@ function normalizeTenantId2(tenantId) {
   if (tid === "flux" || tid === "lovable" || tid === "smmflux") return "flux";
   return tid;
 }
-function getTenantHost(tenantId) {
-  if (process.env.APP_HOST) {
-    return process.env.APP_HOST;
-  }
-  if (process.env.APP_URL && (process.env.APP_URL.includes("test.") || process.env.APP_URL.includes("localhost"))) {
+function resolveCanonicalHost(tenantId, incomingHost) {
+  const normTenant = normalizeTenantId2(tenantId);
+  const rawHost = (incomingHost || "").toLowerCase().trim();
+  const hostWithoutPort = rawHost.replace(/:\d+$/, "");
+  if (process.env.PUBLIC_SITE_URL) {
     try {
-      return new URL(process.env.APP_URL).host;
+      return new URL(process.env.PUBLIC_SITE_URL).host;
     } catch {
     }
   }
-  switch (normalizeTenantId2(tenantId)) {
-    case "flux":
-    case "smmflux":
-      return "smmflux.ru";
-    default:
-      return "smmplan.pro";
+  if (process.env.APP_HOST) {
+    return process.env.APP_HOST;
   }
+  if (normTenant === "flux") {
+    if (hostWithoutPort === "flux.smmplan.pro" || rawHost === "flux.smmplan.pro") return "flux.smmplan.pro";
+    if (hostWithoutPort === "smmflux.ru" || rawHost === "smmflux.ru") return "smmflux.ru";
+    if (rawHost.includes("localhost") || rawHost.includes("127.0.0.1")) return rawHost;
+    return process.env.NODE_ENV === "production" && !process.env.APP_URL?.includes("test.") ? "smmflux.ru" : "flux.smmplan.pro";
+  } else {
+    if (hostWithoutPort === "test.smmplan.pro" || rawHost === "test.smmplan.pro") return "test.smmplan.pro";
+    if (hostWithoutPort === "smmplan.pro" || rawHost === "smmplan.pro") return "smmplan.pro";
+    if (rawHost.includes("localhost") || rawHost.includes("127.0.0.1")) return rawHost;
+    return process.env.NODE_ENV === "production" && !process.env.APP_URL?.includes("test.") ? "smmplan.pro" : "test.smmplan.pro";
+  }
+}
+function getTenantHost(tenantId, incomingHost) {
+  return resolveCanonicalHost(tenantId, incomingHost);
 }
 function getTenantSiteName(tenantId) {
   switch (normalizeTenantId2(tenantId)) {

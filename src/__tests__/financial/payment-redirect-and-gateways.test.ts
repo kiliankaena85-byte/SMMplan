@@ -15,7 +15,7 @@ describe('Payment Redirect & Gateway Whitelist Guard', () => {
     }
   });
 
-  it('2. MUST allow CryptoBot, RoboKassa and CryptoMetria URLs', () => {
+  it('2. MUST allow CryptoBot and RoboKassa URLs', () => {
     const validGatewayUrls = [
       'https://pay.crypto.bot/i/123456',
       'https://pay.crypt.bot/i/654321',
@@ -23,7 +23,6 @@ describe('Payment Redirect & Gateway Whitelist Guard', () => {
       'https://t.me/CryptoBot?start=invoice_123',
       'https://auth.robokassa.ru/Merchant/Index.aspx?MerchantLogin=smmplan&OutSum=515.00',
       'https://robokassa.ru/pay',
-      'https://pay.cryptometria.com/invoice/999',
     ];
 
     for (const url of validGatewayUrls) {

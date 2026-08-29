@@ -7,10 +7,9 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   const rawHost = reqHeaders.get('x-forwarded-host') || reqHeaders.get('host') || '';
   const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id') || (rawHost.includes('flux') ? 'flux' : 'smmplan'));
   
-  // Для test-контура и dev-окружения используем запрашиваемый хост
-  const isTestOrLocal = rawHost.includes('localhost') || rawHost.includes('127.0.0.1') || rawHost.includes('test.');
-  const protocol = rawHost.includes('localhost') ? 'http' : 'https';
-  const host = isTestOrLocal ? rawHost : getTenantHost(tenantId);
+  const isLocal = rawHost.includes('localhost') || rawHost.includes('127.0.0.1');
+  const protocol = isLocal ? 'http' : 'https';
+  const host = isLocal ? rawHost : getTenantHost(tenantId, rawHost);
 
   const disallowList = [
     '/api/',

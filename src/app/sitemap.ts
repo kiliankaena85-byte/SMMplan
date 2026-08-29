@@ -10,14 +10,13 @@ export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const reqHeaders = await headers();
-  const rawHost = reqHeaders.get('host') || 'smmplan.pro';
+  const rawHost = reqHeaders.get('x-forwarded-host') || reqHeaders.get('host') || '';
   const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id') || (rawHost.includes('flux') ? 'flux' : 'smmplan'));
   
-  // For production: use canonical host based on tenant, not raw request host
-  // For localhost dev: use http://localhost:3000 style for testing
   const isLocalhost = rawHost.includes('localhost') || rawHost.includes('127.0.0.1');
   const protocol = isLocalhost ? 'http' : 'https';
-  const baseUrl = isLocalhost ? `${protocol}://${rawHost}` : `https://${getTenantHost(tenantId)}`;
+  const canonicalHost = getTenantHost(tenantId, rawHost);
+  const baseUrl = isLocalhost ? `${protocol}://${rawHost}` : `https://${canonicalHost}`;
 
   const routes: MetadataRoute.Sitemap = [
     {
