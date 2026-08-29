@@ -17,6 +17,11 @@ async function deleteSessionFromDB(token?: string) {
 }
 
 export async function GET(request: Request) {
+  // Sec-Fetch-Site check to prevent Logout CSRF via <img> tags from third-party sites
+  const secFetchSite = request.headers.get('sec-fetch-site');
+  if (secFetchSite && secFetchSite !== 'same-origin' && secFetchSite !== 'same-site' && secFetchSite !== 'none') {
+    return NextResponse.json({ error: 'Cross-site logout rejected' }, { status: 403 });
+  }
   return POST(request);
 }
 

@@ -45,8 +45,11 @@ export async function proxy(request: NextRequest) {
     return new URL(target, originBase);
   };
 
-  if (host.includes('lovable.pro')) {
-    return NextResponse.redirect('https://smmflux.ru' + request.nextUrl.pathname, 301);
+  const LOVABLE_HOSTS = new Set(['lovable.pro', 'www.lovable.pro', 'flux.lovable.pro']);
+  const cleanHost = host.split(':')[0].toLowerCase();
+  if (LOVABLE_HOSTS.has(cleanHost)) {
+    const targetUrl = new URL(request.nextUrl.pathname + request.nextUrl.search, 'https://smmflux.ru');
+    return NextResponse.redirect(targetUrl, 302);
   }
   const isProduction = process.env.NODE_ENV === 'production';
   const isDevOrQA = !isProduction || 
@@ -70,7 +73,7 @@ export async function proxy(request: NextRequest) {
   } else if (isDevOrQA && fromCookie) {
     finalTenantId = fromCookie;
     isExplicitTenant = true;
-  } else if (fromAdminCookie && pathname.startsWith('/admin')) {
+  } else if (fromAdminCookie && (pathname.startsWith('/admin') || pathname.startsWith('/operator')) && request.cookies.has('session_token')) {
     finalTenantId = fromAdminCookie;
   } else if (fromHost && fromHost !== 'smmplan') {
     finalTenantId = fromHost;
