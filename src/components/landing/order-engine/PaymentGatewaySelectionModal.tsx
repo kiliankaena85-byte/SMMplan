@@ -74,8 +74,8 @@ export function PaymentGatewaySelectionModal({
   ];
 
   const filteredMethods = methods.filter((m) => {
-    if (!available) return true; // Show all while loading
-    return available[m.id as keyof typeof available];
+    if (!available) return false;
+    return available[m.id as keyof typeof available] === true;
   });
 
 

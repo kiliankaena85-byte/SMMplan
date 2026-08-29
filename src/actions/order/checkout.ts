@@ -1152,12 +1152,16 @@ export async function getAvailableGatewaysAction() {
     const secrets = await SettingsProvider.getPaymentSecrets();
     const isTest = await SettingsProvider.isTestMode();
 
+    const hasValidYookassa = !!(secrets.yookassaShopId && secrets.yookassaSecretKey && secrets.yookassaShopId.trim().length > 0 && secrets.yookassaSecretKey.trim().length > 0);
+    const hasValidRobokassa = !!(secrets.robokassaLogin && secrets.robokassaPassword && secrets.robokassaLogin.trim().length > 0 && secrets.robokassaPassword.trim().length > 0);
+    const hasValidCryptoBot = !!(secrets.cryptoBotToken && secrets.cryptoBotToken.trim().length > 0 && secrets.cryptoBotToken !== 'test_bot_token' && !secrets.cryptoBotToken.startsWith('test_dummy'));
+
     return {
       success: true,
       data: {
-        yookassa: isTest || !!(secrets.yookassaShopId && secrets.yookassaSecretKey),
-        robokassa: !!(secrets.robokassaLogin && secrets.robokassaPassword),
-        cryptobot: !!secrets.cryptoBotToken,
+        yookassa: isTest || hasValidYookassa,
+        robokassa: hasValidRobokassa,
+        cryptobot: hasValidCryptoBot,
         isTestMode: isTest
       }
     };

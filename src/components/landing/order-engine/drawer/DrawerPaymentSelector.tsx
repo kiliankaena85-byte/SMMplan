@@ -1,7 +1,8 @@
 'use client';
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Check, CreditCard, Coins, Wallet } from "lucide-react";
+import { getAvailableGatewaysAction } from "@/actions/order/checkout";
 
 interface DrawerPaymentSelectorProps {
   gateway: "yookassa" | "cryptobot" | "balance";
@@ -16,9 +17,25 @@ export function DrawerPaymentSelector({
   userBalanceCents = 0,
   totalCents
 }: DrawerPaymentSelectorProps) {
+  const [available, setAvailable] = useState<{ yookassa: boolean; robokassa: boolean; cryptobot: boolean } | null>(null);
+
+  useEffect(() => {
+    getAvailableGatewaysAction().then((res) => {
+      if (res.success && res.data) {
+        setAvailable(res.data);
+        if (gateway !== "balance" && !res.data[gateway as keyof typeof res.data]) {
+          const first = (["yookassa", "cryptobot"] as const).find((g) => res.data?.[g]);
+          if (first) {
+            setGateway(first);
+          }
+        }
+      }
+    });
+  }, [gateway, setGateway]);
+
   const showBalanceOption = userBalanceCents >= totalCents;
 
-  const paymentMethods = [
+  const allMethods = [
     {
       id: "yookassa" as const,
       name: "Карта РФ / СБП",
@@ -41,6 +58,12 @@ export function DrawerPaymentSelector({
       color: "text-success border-success/20 bg-success/5"
     }] : [])
   ];
+
+  const paymentMethods = allMethods.filter((m) => {
+    if (m.id === "balance") return true;
+    if (!available) return true; // optimistic while loading
+    return available[m.id as keyof typeof available] === true;
+  });
 
   return (
     <div className="bg-card border border-border/80 rounded-2xl p-5 space-y-3.5 shadow-sm">

@@ -51,13 +51,7 @@ export async function proxy(request: NextRequest) {
     const targetUrl = new URL(request.nextUrl.pathname + request.nextUrl.search, 'https://smmflux.ru');
     return NextResponse.redirect(targetUrl, 302);
   }
-  const isProduction = process.env.NODE_ENV === 'production';
-  const isDevOrQA = !isProduction || 
-    process.env.ENABLE_DEV_ROUTES === 'true' || 
-    process.env.NEXT_PUBLIC_ENABLE_QA_DOCK === 'true' || 
-    host.includes('test.') || 
-    host.includes('localhost') || 
-    host.includes('127.0.0.1');
+  const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
 
   const fromQuery = normalizeTenantId(request.nextUrl.searchParams.get('tenant'));
   const fromCookie = normalizeTenantId(request.cookies.get('x_tenant')?.value);
@@ -67,17 +61,26 @@ export async function proxy(request: NextRequest) {
   let finalTenantId = 'smmplan';
   let isExplicitTenant = false;
 
-  if (isDevOrQA && fromQuery) {
+  // 1. Explicit query parameter override (e.g. ?tenant=flux for manual QA preview)
+  if (fromQuery) {
     finalTenantId = fromQuery;
     isExplicitTenant = true;
-  } else if (isDevOrQA && fromCookie) {
+  }
+  // 2. Global Site Switcher for Admin/Operator panels
+  else if (fromAdminCookie && (pathname.startsWith('/admin') || pathname.startsWith('/operator')) && request.cookies.has('session_token')) {
+    finalTenantId = fromAdminCookie;
+  }
+  // 3. Dedicated Domain Resolution (test.smmplan.pro -> smmplan, flux.smmplan.pro -> flux) - ABSOLUTE PRIORITY OVER STALE COOKIES
+  else if (fromHost && !isLocalhost) {
+    finalTenantId = fromHost;
+  }
+  // 4. Local Development Cookie Fallback (only on localhost:3000 / 127.0.0.1)
+  else if (isLocalhost && fromCookie) {
     finalTenantId = fromCookie;
     isExplicitTenant = true;
-  } else if (fromAdminCookie && (pathname.startsWith('/admin') || pathname.startsWith('/operator')) && request.cookies.has('session_token')) {
-    finalTenantId = fromAdminCookie;
-  } else if (fromHost && fromHost !== 'smmplan') {
-    finalTenantId = fromHost;
-  } else {
+  }
+  // 5. Default Fallback
+  else {
     finalTenantId = fromHost || 'smmplan';
   }
 
