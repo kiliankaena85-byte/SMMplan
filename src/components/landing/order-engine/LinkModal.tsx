@@ -1,9 +1,14 @@
 'use client';
 
-import React from "react";
+import React, { useMemo } from "react";
 import { motion } from "framer-motion";
-import { X, Link2, ChevronRight } from "lucide-react";
+import { X, Link2, ChevronRight, AlertTriangle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  getSocialLinkConfig,
+  normalizeUserLink,
+  detectMismatchedNetwork,
+} from "@/utils/social-link-placeholder";
 
 export function LinkModal({
   showLinkModal,
@@ -11,13 +16,29 @@ export function LinkModal({
   url,
   setUrl,
   handleCheckout,
+  networkSlug,
+  categorySlug,
+  serviceName,
 }: {
   showLinkModal: boolean;
   setShowLinkModal: (show: boolean) => void;
   url: string;
   setUrl: (url: string) => void;
   handleCheckout: () => void;
+  networkSlug?: string | null;
+  categorySlug?: string | null;
+  serviceName?: string | null;
 }) {
+  const linkConfig = useMemo(
+    () => getSocialLinkConfig(networkSlug, categorySlug, serviceName),
+    [networkSlug, categorySlug, serviceName]
+  );
+
+  const mismatch = useMemo(
+    () => detectMismatchedNetwork(url, networkSlug),
+    [url, networkSlug]
+  );
+
   if (!showLinkModal) return null;
 
   return (
@@ -33,43 +54,50 @@ export function LinkModal({
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0, y: 20 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="bg-card rounded-3xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.2)] p-8 w-full max-w-md"
+        className="bg-card rounded-3xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.2)] p-6 sm:p-8 w-full max-w-lg border border-border/60"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-5">
           <div>
-            <h3 className="text-xl font-black text-foreground">Укажите ссылку</h3>
-            <p className="text-sm text-muted-foreground mt-1">Куда отправить заказ?</p>
+            <div className="flex items-center gap-2">
+              <h3 className="text-xl font-black text-foreground">Укажите ссылку</h3>
+              {linkConfig.badge && (
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                  {linkConfig.badge}
+                </span>
+              )}
+            </div>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Куда отправить заказ?</p>
           </div>
-          <button onClick={() => setShowLinkModal(false)} className="w-8 h-8 rounded-full bg-default-100 hover:bg-default-200 flex items-center justify-center transition-colors">
+          <button
+            onClick={() => setShowLinkModal(false)}
+            className="w-8 h-8 rounded-full bg-default-100 hover:bg-default-200 flex items-center justify-center transition-colors"
+          >
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
-        
-        <div className="relative mb-6">
+
+        <div className="relative mb-3">
           <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-          <input 
-            type="url" 
-            value={url} 
-            onChange={e => setUrl(e.target.value)} 
-            placeholder="Например: t.me/durov или instagram.com/username"
+          <input
+            type="url"
+            value={url}
+            onChange={e => setUrl(e.target.value)}
+            placeholder={linkConfig.placeholder}
             autoFocus
-            className="w-full h-14 pl-12 pr-6 rounded-2xl border-2 border-border bg-background text-[15px] font-semibold text-foreground placeholder-slate-400 focus:border-primary/50 focus:shadow-[0_8px_20px_-6px] focus:shadow-primary/15 outline-none transition-all"
+            className={`w-full h-14 pl-12 pr-6 rounded-2xl border-2 bg-background text-[14px] sm:text-[15px] font-semibold text-foreground placeholder:text-muted-foreground/60 outline-none transition-all ${
+              mismatch.isMismatch
+                ? 'border-amber-500/80 focus:border-amber-500 focus:shadow-[0_8px_20px_-6px_rgba(245,158,11,0.25)]'
+                : 'border-border focus:border-primary/50 focus:shadow-[0_8px_20px_-6px] focus:shadow-primary/15'
+            }`}
             onBlur={(e) => {
-              const val = e.target.value.trim();
-              if (val && !/^https?:\/\//i.test(val) && val.includes('.') && !val.includes(' ')) {
-                setUrl(`https://${val}`);
-              } else {
-                setUrl(val);
-              }
+              const normalized = normalizeUserLink(e.target.value);
+              setUrl(normalized);
             }}
             onKeyDown={e => {
               if (e.key === 'Enter' && url.trim().length > 0) {
-                let finalUrl = url.trim();
-                if (!/^https?:\/\//i.test(finalUrl) && finalUrl.includes('.') && !finalUrl.includes(' ')) {
-                  finalUrl = `https://${finalUrl}`;
-                  setUrl(finalUrl);
-                }
+                const finalUrl = normalizeUserLink(url);
+                setUrl(finalUrl);
                 setShowLinkModal(false);
                 handleCheckout();
               }
@@ -77,18 +105,37 @@ export function LinkModal({
           />
         </div>
 
-        <div className="flex items-center justify-end gap-4">
+        {/* Dynamic Contextual Hint or Mismatch Warning */}
+        <div className="mb-6">
+          {mismatch.isMismatch ? (
+            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-medium">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>
+                Похоже, вы указали ссылку на <strong>{mismatch.detectedNetworkName}</strong>, хотя выбрана услуга для <strong>{mismatch.expectedNetworkName}</strong>. Проверьте правильность ссылки перед оплатой.
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium px-1">
+              <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+              <span>{linkConfig.hint}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-3">
           <Button
             onClick={() => {
               if (url.trim().length > 0) {
+                const finalUrl = normalizeUserLink(url);
+                setUrl(finalUrl);
                 setShowLinkModal(false);
                 handleCheckout();
               }
             }}
             disabled={url.trim().length === 0}
-            className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base shadow-lg transition-all flex items-center gap-2"
+            className="h-13 px-7 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm sm:text-base shadow-lg transition-all flex items-center gap-2"
           >
-            Продолжить <ChevronRight className="w-5 h-5" />
+            Продолжить <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
         </div>
       </motion.div>

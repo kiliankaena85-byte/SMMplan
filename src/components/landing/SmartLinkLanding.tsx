@@ -410,6 +410,9 @@ export function SmartLinkLanding({
         url={url}
         setUrl={setUrl}
         handleCheckout={handleCheckout}
+        networkSlug={unfilteredCatalog.find(n => n.id === engine.networkId)?.slug || engine.networkId}
+        categorySlug={unfilteredCatalog.find(n => n.id === engine.networkId)?.categories.find(c => c.id === engine.categoryId)?.slug || engine.categoryId}
+        serviceName={selectedService?.name}
       />
 
       {/* ══════════ MASS ORDER CONFIRM MODAL ══════════ */}

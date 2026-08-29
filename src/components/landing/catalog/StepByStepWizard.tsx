@@ -18,7 +18,13 @@ import {
   Wallet,
   CreditCard,
   QrCode,
+  AlertCircle,
 } from 'lucide-react';
+import {
+  getSocialLinkConfig,
+  normalizeUserLink,
+  detectMismatchedNetwork,
+} from '@/utils/social-link-placeholder';
 import { ALL_PLATFORMS, CatalogPlatform, CatalogCategory, CatalogServiceItem } from './FullscreenMasterCatalog';
 
 export function StepByStepWizard({
@@ -346,16 +352,52 @@ export function StepByStepWizard({
               <div className="space-y-4">
                 {/* Ссылка */}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                    Ссылка на канал, пост или профиль:
-                  </label>
-                  <input
-                    type="text"
-                    value={targetUrl}
-                    onChange={(e) => setTargetUrl(e.target.value)}
-                    placeholder="https://t.me/your_channel"
-                    className="w-full px-4 py-3 rounded-2xl bg-muted/50 border border-border text-foreground font-medium text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
-                  />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                      Ссылка для заказа:
+                      {(() => {
+                        const cfg = getSocialLinkConfig(selectedPlatform.id, selectedCategory?.id, selectedService?.title);
+                        return cfg.badge ? (
+                          <span className="text-[10px] lowercase font-bold px-2 py-0.2 rounded-full bg-primary/10 text-primary border border-primary/20">
+                            {cfg.badge}
+                          </span>
+                        ) : null;
+                      })()}
+                    </label>
+                  </div>
+                  {(() => {
+                    const cfg = getSocialLinkConfig(selectedPlatform.id, selectedCategory?.id, selectedService?.title);
+                    const mismatch = detectMismatchedNetwork(targetUrl, selectedPlatform.id);
+
+                    return (
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={targetUrl}
+                          onChange={(e) => setTargetUrl(e.target.value)}
+                          onBlur={(e) => setTargetUrl(normalizeUserLink(e.target.value))}
+                          placeholder={cfg.placeholder}
+                          className={`w-full px-4 py-3 rounded-2xl bg-muted/50 border text-foreground font-medium text-sm focus:outline-none transition-all ${
+                            mismatch.isMismatch
+                              ? 'border-amber-500/80 focus:ring-2 focus:ring-amber-500/30'
+                              : 'border-border focus:ring-2 focus:ring-primary/40'
+                          }`}
+                        />
+                        {mismatch.isMismatch ? (
+                          <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium px-1">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                            <span>
+                              Внимание: ссылка на <strong>{mismatch.detectedNetworkName}</strong>, хотя выбран сервис <strong>{mismatch.expectedNetworkName}</strong>.
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-muted-foreground font-medium px-1">
+                            💡 {cfg.hint}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Количество */}
