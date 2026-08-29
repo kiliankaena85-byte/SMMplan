@@ -1,8 +1,8 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-29 18:04 (МСК)  
-> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🚀 LAUNCH READY / PRODUCTION OPENED (`smmplan.pro` LIVE) + 🛡️ SELF-LEARNING IMMUNITY ENGINE INTEGRATED (6/6 Invariant Gates + `npm run audit:immunity` + `self-learning-adversary` & `threat-modeling-preflight` Skills) + 🔒 F-7.3 FULL DATABASE & QUEUE ISOLATION + 🌐 GEO-AVAILABILITY MONITORING ACTIVE.
+> **Последнее обновление:** 2026-08-29 20:05 (МСК)  
+> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🚀 LAUNCH READY / PRODUCTION OPENED (`smmplan.pro` LIVE) + 🛡️ SELF-LEARNING IMMUNITY ENGINE INTEGRATED + 💳 YOOKASSA LIVE E2E VERIFIED + 🔒 HOST SOURCE OF TRUTH (test.smmplan.pro -> SMMplan, flux.smmplan.pro -> SMMflux) + 🌐 ALL CONTAINERS REBUILT & RESTARTED HEALTHY (200 OK).
 
 - **Автономный фоновый робот-сторож мониторинга РФ (GeoAvailability Watchdog & BullMQ Daemon):**
   - Разработан и активирован фоновый процессор `geo-availability.processor.ts`, запускаемый по расписанию BullMQ каждые 5 минут (`ensureGeoAvailabilityCron`).
