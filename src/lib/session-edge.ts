@@ -1,5 +1,5 @@
 import { jwtVerify } from 'jose';
-import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
+import { normalizeTenantId, type ContourId } from '@/lib/tenant-resolver-edge';
 
 let cachedEncodedKey: Uint8Array | null = null;
 let cachedPreviousKeys: Uint8Array[] | null = null;
@@ -51,6 +51,7 @@ export async function decryptSessionToken(token: string) {
         userId: string; 
         role: string; 
         tenantId: string; 
+        contour?: ContourId;
         canResetPassword?: boolean;
         sessionVer?: number;
       };
