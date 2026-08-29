@@ -7,6 +7,7 @@ import { resolveTenantFromHostEdge, normalizeTenantId } from '@/lib/tenant-resol
 
 // Map of legacy routes to new static routes
 const legacyRedirects: Record<string, string> = {
+  '/register': '/login?tab=register',
   '/p/offer': ROUTES.LEGAL.TERMS,
   '/p/terms': ROUTES.LEGAL.TERMS,
   '/p/privacy': ROUTES.LEGAL.PRIVACY,

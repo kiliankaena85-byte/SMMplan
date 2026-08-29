@@ -20,6 +20,10 @@ import { getPublicCatalogAction, getServicesByCategoryAction } from "@/actions/o
 import { checkoutAction } from "@/actions/order/checkout";
 import { formatEtaSpeedBadge } from "@/utils/format-eta";
 import { validateDripFeedDuration, DRIP_FEED_MAX_ERROR_MESSAGE, detectNetworkByUrl } from "@/hooks/useOrderWizard";
+import { analyzeUrl } from "@/actions/order/analyze-url";
+import { matchesSuggestedCategory } from "@/services/analyzer/category-matcher";
+import { isLinkServiceCompatible } from "@/constants/link-service-compatibility";
+import { inferTargetTypeFromName } from "@/utils/target-type";
 import { FluxNetwork, FluxCategory, FluxService } from "@/types/flux";
 import { FluxCyberLinkDrawer } from "@/components/orders/flux/FluxCyberLinkDrawer";
 
@@ -78,6 +82,8 @@ function FluxDashboardOrderWizardInner({
   
   const [link, setLink] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [detectedType, setDetectedType] = useState<string | null>(null);
+  const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);
   const [activeNetwork, setActiveNetwork] = useState<FluxNetwork | null>(null);
   const [activeCategory, setActiveCategory] = useState<FluxCategory | null>(null);
   const [services, setServices] = useState<FluxService[]>([]);
@@ -197,29 +203,61 @@ function FluxDashboardOrderWizardInner({
     if (!targetLink || !targetLink.trim()) return;
     setIsAnalyzing(true);
     
-    // Detect network from URL
-    const detectedNet = detectNetworkByUrl(targetLink.trim(), catalog);
-    if (detectedNet) {
-      const foundNet = catalog.find(n => n.id === detectedNet.id || n.slug.toLowerCase() === detectedNet.slug.toLowerCase());
+    try {
+      const res = await analyzeUrl(targetLink.trim());
+      const analysis = res && res.success ? res.data : null;
+      const activePlatformStr = analysis && analysis.platform !== 'OTHER' ? analysis.platform.toLowerCase() : null;
+      let foundNet: FluxNetwork | null = null;
+
+      if (activePlatformStr) {
+        foundNet = catalog.find(n => n.slug.toLowerCase().includes(activePlatformStr) || activePlatformStr.includes(n.slug.toLowerCase())) || null;
+      }
+      if (!foundNet) {
+        const detectedNet = detectNetworkByUrl(targetLink.trim(), catalog);
+        if (detectedNet) {
+          foundNet = catalog.find(n => n.id === detectedNet.id || n.slug.toLowerCase() === detectedNet.slug.toLowerCase()) || null;
+        }
+      }
+
+      setDetectedType(analysis?.type || null);
+      setSuggestedCategories(analysis?.suggestedCategories || []);
+
       if (foundNet) {
         setActiveNetwork(foundNet);
         setActiveCategory(null);
         setSelectedService(null);
-        setIsAnalyzing(false);
         navigateTo('category');
         return;
       }
-    }
 
-    // Default fallback to first network if not detected
-    if (catalog.length > 0) {
-      setActiveNetwork(catalog[0]);
+      if (catalog.length > 0) {
+        setActiveNetwork(catalog[0]);
+      }
+      navigateTo('category');
+    } catch {
+      const detectedNet = detectNetworkByUrl(targetLink.trim(), catalog);
+      if (detectedNet) {
+        const foundNet = catalog.find(n => n.id === detectedNet.id || n.slug.toLowerCase() === detectedNet.slug.toLowerCase());
+        if (foundNet) {
+          setActiveNetwork(foundNet);
+          setActiveCategory(null);
+          setSelectedService(null);
+          navigateTo('category');
+          return;
+        }
+      }
+      if (catalog.length > 0) {
+        setActiveNetwork(catalog[0]);
+      }
+      navigateTo('category');
+    } finally {
+      setIsAnalyzing(false);
     }
-    setIsAnalyzing(false);
-    navigateTo('category');
   };
 
   const selectNetwork = (network: FluxNetwork) => {
+    setDetectedType(null);
+    setSuggestedCategories([]);
     setActiveNetwork(network);
     setActiveCategory(null);
     setSelectedService(null);
@@ -235,7 +273,7 @@ function FluxDashboardOrderWizardInner({
 
     try {
       const data = await getServicesByCategoryAction(cat.id);
-            const srvList: FluxService[] = (data || []).map((s) => {
+      let srvList: FluxService[] = (data || []).map((s) => {
         const unitPrice = s.pricePerUnitRub || 0.1;
         return {
           id: s.id,
@@ -254,6 +292,16 @@ function FluxDashboardOrderWizardInner({
           targetType: s.targetType || 'POST'
         };
       });
+
+      if (detectedType) {
+        const compatible = srvList.filter(s =>
+          isLinkServiceCompatible(detectedType, s.targetType || inferTargetTypeFromName(s.name))
+        );
+        if (compatible.length > 0) {
+          srvList = compatible;
+        }
+      }
+
       setServices(srvList);
     } catch {
       setServices([]);
@@ -623,37 +671,47 @@ function FluxDashboardOrderWizardInner({
                 </button>
               </div>
 
-              <motion.div 
-                variants={containerVariants}
-                initial="hidden"
-                animate="show"
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"
-              >
-                {activeNetwork.categories?.map((cat) => (
+              {(() => {
+                const availableCategories = activeNetwork.categories || [];
+                const filteredCategories = (suggestedCategories.length > 0 || detectedType)
+                  ? availableCategories.filter(c => matchesSuggestedCategory(c.name, suggestedCategories, undefined, detectedType))
+                  : [];
+                const displayCategories = filteredCategories.length > 0 ? filteredCategories : availableCategories;
+
+                return (
                   <motion.div 
-                    key={cat.id}
-                    role="button"
-                    tabIndex={0}
-                    variants={itemVariants}
-                    whileHover={{ y: -3, scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 28 }}
-                    onClick={() => selectCategory(cat)}
-                    onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectCategory(cat); } }}
-                    className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary p-4 sm:p-5 rounded-[1.5rem] border border-border/40 bg-card/85 backdrop-blur-md hover:bg-card hover:border-primary/50 hover:shadow-lg transition-colors duration-150 flex items-center justify-between group"
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="show"
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                        <Layers className="w-4 h-4" />
-                      </div>
-                      <h4 className="font-bold text-foreground text-sm sm:text-base">{cat.name}</h4>
-                    </div>
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/5 group-hover:bg-primary flex items-center justify-center transition-colors">
-                      <ArrowRightIcon className="w-3.5 h-3.5 text-primary group-hover:text-primary-foreground" />
-                    </div>
+                    {displayCategories.map((cat) => (
+                      <motion.div 
+                        key={cat.id}
+                        role="button"
+                        tabIndex={0}
+                        variants={itemVariants}
+                        whileHover={{ y: -3, scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 28 }}
+                        onClick={() => selectCategory(cat)}
+                        onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectCategory(cat); } }}
+                        className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary p-4 sm:p-5 rounded-[1.5rem] border border-border/40 bg-card/85 backdrop-blur-md hover:bg-card hover:border-primary/50 hover:shadow-lg transition-colors duration-150 flex items-center justify-between group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                            <Layers className="w-4 h-4" />
+                          </div>
+                          <h4 className="font-bold text-foreground text-sm sm:text-base">{cat.name}</h4>
+                        </div>
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/5 group-hover:bg-primary flex items-center justify-center transition-colors">
+                          <ArrowRightIcon className="w-3.5 h-3.5 text-primary group-hover:text-primary-foreground" />
+                        </div>
+                      </motion.div>
+                    ))}
                   </motion.div>
-                ))}
-              </motion.div>
+                );
+              })()}
             </motion.div>
           )}
 

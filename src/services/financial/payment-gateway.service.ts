@@ -72,7 +72,7 @@ class YooKassaGateway extends BasePaymentGateway {
 
     if (isMockPayment || isDummyKeys) {
       return {
-        paymentUrl: `${await getBaseUrlAsync()}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
+        paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
         remoteGatewayId: `mock_${Date.now()}`
       };
     }
@@ -143,7 +143,7 @@ class YooKassaGateway extends BasePaymentGateway {
       if ((resp.status === 401 || resp.status === 403) && process.env.ENABLE_DEV_ROUTES === 'true') {
         console.warn('[YooKassaGateway] YooKassa test credentials rejected (HTTP ' + resp.status + '). Falling back to mock-payment dev route.');
         return {
-          paymentUrl: `${await getBaseUrlAsync()}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
+          paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
           remoteGatewayId: `mock_${Date.now()}`
         };
       }
@@ -209,7 +209,7 @@ class CryptoBotGateway extends BasePaymentGateway {
         throw new Error('Платёжный шлюз CryptoBot не настроен. Пожалуйста, укажите API токен в панели управления.');
       }
       return {
-        paymentUrl: `${await getBaseUrlAsync()}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
+        paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
         remoteGatewayId: `mock_${Date.now()}`
       };
     }
@@ -403,7 +403,7 @@ class RobokassaGateway extends BasePaymentGateway {
 
     if (isDummyKeys) {
       return {
-        paymentUrl: `${await getBaseUrlAsync()}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
+        paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
         remoteGatewayId: `mock_${Date.now()}`
       };
     }
@@ -465,7 +465,7 @@ class RobokassaGateway extends BasePaymentGateway {
 class MockGateway extends BasePaymentGateway {
   async createPayment(params: PaymentGatewayParams): Promise<PaymentGatewayResult> {
     return {
-      paymentUrl: `${await getBaseUrlAsync()}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ''}`,
+      paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
       remoteGatewayId: `mock_${Date.now()}`
     };
   }

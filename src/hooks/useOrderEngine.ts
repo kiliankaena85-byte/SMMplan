@@ -383,8 +383,8 @@ export function useOrderEngine(
         const net = catalog.find(n => n.id === networkId);
         if (net) {
            const catsForNet = net.categories;
-           const matchedCats = suggestedCategories.length > 0
-              ? catsForNet.filter(c => matchesSuggestedCategory(c.name, suggestedCategories))
+           const matchedCats = suggestedCategories.length > 0 || detectedType
+              ? catsForNet.filter(c => matchesSuggestedCategory(c.name, suggestedCategories, c.analyzerTags, detectedType))
               : [];
            const availableCats = matchedCats.length > 0 ? matchedCats : catsForNet;
            if (availableCats.length > 0 && !availableCats.some(c => c.id === categoryId)) {
@@ -393,7 +393,7 @@ export function useOrderEngine(
            }
         }
      }
-  }, [networkId, catalog, categoryId, suggestedCategories]);
+  }, [networkId, catalog, categoryId, suggestedCategories, detectedType]);
 
   // 3. Load Services when Category changes
   useEffect(() => {

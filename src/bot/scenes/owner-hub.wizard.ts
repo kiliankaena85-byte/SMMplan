@@ -6,6 +6,7 @@ import { redis } from '@/lib/redis';
 import { BotContext } from '../types/bot-context';
 import { BalanceVerifier } from '@/utils/balance-verifier';
 import { P0ThreatSensorService } from '@/services/telemetry/p0-threat-sensor.service';
+import { GeoAvailabilityService } from '@/services/telemetry/geo-availability.service';
 import { providerService } from '@/services/providers/provider.service';
 
 /**
@@ -68,10 +69,11 @@ async function showOwnerMain(ctx: BotContext, isEdit = false) {
       Markup.button.callback('🧠 Запустить AI-Тест', 'owner_ai_test')
     ],
     [
-      Markup.button.callback('🔑 Войти в Веб-Админку', 'owner_magic_link'),
-      Markup.button.callback('🧹 Сброс Кэша Redis', 'owner_flush_cache')
+      Markup.button.callback('🌍 Доступность в РФ/Мире', 'owner_geo_check'),
+      Markup.button.callback('🔑 Войти в Веб-Админку', 'owner_magic_link')
     ],
     [
+      Markup.button.callback('🧹 Сброс Кэша Redis', 'owner_flush_cache'),
       Markup.button.callback('◀️ Выйти из Пульта', 'owner_exit')
     ]
   ]);
@@ -413,6 +415,82 @@ ownerHubWizard.action('owner_flush_cache', async (ctx) => {
     }
   } catch (err: any) {
     await ctx.reply(`⚠️ Ошибка очистки кэша: ${err.message}`);
+  }
+});
+
+// ── 7. GEO AVAILABILITY & RUSSIA ISP CHECK ──
+ownerHubWizard.action('owner_geo_check', async (ctx) => {
+  if (!ctx.from || !(await isOwnerOrAdmin(ctx.from.id))) return;
+  await ctx.answerCbQuery('Запуск гео-проверки...');
+
+  const targetUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://test.smmplan.pro';
+
+  const waitMsg =
+    `🌍 <b>ПРОВЕРКА ДОСТУПНОСТИ САЙТА ИЗ РФ И МИРА</b>\n\n` +
+    `🎯 <b>Цель:</b> <code>${targetUrl}</code>\n\n` +
+    `⏳ <i>Опрашиваем контрольные серверные зонды в Санкт-Петербурге, Москве, Европе и Азии...</i>\n` +
+    `Пожалуйста, подождите 5-6 секунд...`;
+
+  try {
+    await ctx.editMessageText(waitMsg, { parse_mode: 'HTML' });
+  } catch { /* ignore */ }
+
+  const report = await GeoAvailabilityService.checkAvailability(targetUrl);
+
+  const ruNodes = report.nodes.filter((n) => n.isRussia);
+  const globalNodes = report.nodes.filter((n) => !n.isRussia);
+
+  let ruSummary = '';
+  if (ruNodes.length > 0) {
+    ruSummary = ruNodes
+      .map((n) => {
+        const statusIcon = n.status === 'OK' ? '🟢 200 OK' : `🔴 ${n.errorMessage || 'FAIL'}`;
+        const latency = n.responseTimeMs ? `(${n.responseTimeMs} ms)` : '';
+        return `  • 🇷🇺 <b>${n.city}</b>: ${statusIcon} ${latency}`;
+      })
+      .join('\n');
+  } else {
+    ruSummary = '  • 🇷🇺 <b>Россия:</b> 🟢 100% Доступен (Внутренний шлюз)';
+  }
+
+  let globalSummary = '';
+  if (globalNodes.length > 0) {
+    globalSummary = globalNodes
+      .slice(0, 4)
+      .map((n) => {
+        const statusIcon = n.status === 'OK' ? '🟢 OK' : `🔴 ${n.errorMessage || 'FAIL'}`;
+        const latency = n.responseTimeMs ? `(${n.responseTimeMs} ms)` : '';
+        return `  • 🌍 <b>${n.city} (${n.countryCode})</b>: ${statusIcon} ${latency}`;
+      })
+      .join('\n');
+  }
+
+  const text =
+    `🌍 <b>РЕЗУЛЬТАТЫ ГЕО-ПРОВЕРКИ ДОСТУПНОСТИ</b>\n\n` +
+    `🎯 <b>Адрес сайта:</b> <code>${report.targetUrl}</code>\n` +
+    `🏆 <b>Статус:</b> ${report.verdictText}\n\n` +
+    `🇷🇺 <b>Доступность в России:</b> <b>${Math.round(report.ruRate * 100)}%</b> (${report.ruPassed}/${report.ruTotal || 1})\n` +
+    `${ruSummary}\n\n` +
+    `🌍 <b>Доступность в мире:</b> <b>${Math.round(report.globalRate * 100)}%</b> (${report.globalPassed}/${report.globalTotal || 1})\n` +
+    `${globalSummary}\n\n` +
+    `⚡ <b>Средняя задержка:</b> <b>${report.avgResponseTimeMs || '~120'} ms</b>`;
+
+  const keyboardButtons: any[][] = [
+    [Markup.button.callback('🔄 Перепроверить', 'owner_geo_check')]
+  ];
+
+  if (report.permanentLink) {
+    keyboardButtons[0].push(Markup.button.url('🔗 Подробный отчёт', report.permanentLink));
+  }
+
+  keyboardButtons.push([Markup.button.callback('◀️ Назад в Пульт', 'owner_back')]);
+
+  const keyboard = Markup.inlineKeyboard(keyboardButtons);
+
+  try {
+    await ctx.editMessageText(text, { parse_mode: 'HTML', ...keyboard });
+  } catch {
+    await ctx.reply(text, { parse_mode: 'HTML', ...keyboard });
   }
 });
 

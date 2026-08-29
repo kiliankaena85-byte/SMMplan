@@ -8,6 +8,10 @@ import { getServicesByCategoryAction } from "@/actions/order/catalog";
 import { checkoutAction, getAvailableGatewaysAction } from "@/actions/order/checkout";
 import { formatEtaSpeedBadge } from "@/utils/format-eta";
 import { validateDripFeedDuration, DRIP_FEED_MAX_ERROR_MESSAGE, detectNetworkByUrl } from "@/hooks/useOrderWizard";
+import { analyzeUrl } from "@/actions/order/analyze-url";
+import { matchesSuggestedCategory } from "@/services/analyzer/category-matcher";
+import { isLinkServiceCompatible } from "@/constants/link-service-compatibility";
+import { inferTargetTypeFromName } from "@/utils/target-type";
 import { FluxNetwork, FluxCategory, FluxService } from "@/types/flux";
 import { FluxCyberLinkDrawer } from "@/components/orders/flux/FluxCyberLinkDrawer";
 import { LinkGuideService } from "@/services/catalog/link-guide.service";
@@ -103,6 +107,9 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
   const [isTgGuideOpen, setIsTgGuideOpen] = useState(false);
   const [showShakeError, setShowShakeError] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
+
+  const [detectedType, setDetectedType] = useState<string | null>(null);
+  const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);
 
   const [selectedGateway, setSelectedGateway] = useState<string>("yookassa");
   const [availableGateways, setAvailableGateways] = useState<{ yookassa: boolean; robokassa: boolean; cryptobot: boolean } | null>(null);
@@ -216,21 +223,48 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
     setStep(newStep);
   };
 
-  const handleAnalyzeLink = (url: string) => {
+  const handleAnalyzeLink = async (url: string) => {
     if (!url) return;
     setIsAnalyzing(true);
     
-    let matchedNetwork = detectNetworkByUrl(url, initialCatalog || []);
-    if (!matchedNetwork && initialCatalog && initialCatalog.length > 0) matchedNetwork = initialCatalog[0];
+    try {
+      const res = await analyzeUrl(url);
+      const analysis = res && res.success ? res.data : null;
+      const activePlatformStr = analysis && analysis.platform !== 'OTHER' ? analysis.platform.toLowerCase() : null;
+      let matchedNetwork = null;
+      if (activePlatformStr && initialCatalog) {
+        matchedNetwork = initialCatalog.find(n => n.slug.toLowerCase().includes(activePlatformStr) || activePlatformStr.includes(n.slug.toLowerCase()));
+      }
+      if (!matchedNetwork) {
+        matchedNetwork = detectNetworkByUrl(url, initialCatalog || []);
+      }
+      if (!matchedNetwork && initialCatalog && initialCatalog.length > 0) {
+        matchedNetwork = initialCatalog[0];
+      }
       
-    if (matchedNetwork) {
-            setActiveNetwork(matchedNetwork);
-      setActiveCategory(null);
-      setServices([]);
-      setSelectedService(null);
-      navigateTo('category');
+      setDetectedType(analysis?.type || null);
+      setSuggestedCategories(analysis?.suggestedCategories || []);
+
+      if (matchedNetwork) {
+        setActiveNetwork(matchedNetwork);
+        setActiveCategory(null);
+        setServices([]);
+        setSelectedService(null);
+        navigateTo('category');
+      }
+    } catch {
+      let matchedNetwork = detectNetworkByUrl(url, initialCatalog || []);
+      if (!matchedNetwork && initialCatalog && initialCatalog.length > 0) matchedNetwork = initialCatalog[0];
+      if (matchedNetwork) {
+        setActiveNetwork(matchedNetwork);
+        setActiveCategory(null);
+        setServices([]);
+        setSelectedService(null);
+        navigateTo('category');
+      }
+    } finally {
+      setIsAnalyzing(false);
     }
-    setIsAnalyzing(false);
   };
 
   const selectCategory = async (cat: FluxCategory) => {
@@ -240,7 +274,16 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
     navigateTo('service');
     try {
       const fetched = await getServicesByCategoryAction(cat.id, tenantId);
-      setServices(fetched || []);
+      let srvList: FluxService[] = fetched || [];
+      if (detectedType) {
+        const compatible = srvList.filter(s =>
+          isLinkServiceCompatible(detectedType, s.targetType || inferTargetTypeFromName(s.name))
+        );
+        if (compatible.length > 0) {
+          srvList = compatible;
+        }
+      }
+      setServices(srvList);
     } catch { 
       // error is intentionally ignored here since we just set services to empty
     } finally {
@@ -400,6 +443,8 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
                     variants={itemVariants}
                     key={network.id}
                     onClick={() => {
+                      setDetectedType(null);
+                      setSuggestedCategories([]);
                       setActiveNetwork(network);
                       navigateTo('category');
                     }}
@@ -421,54 +466,62 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
         )}
 
         {/* STEP 2: CATEGORY SELECTION */}
-        {step === 'category' && activeNetwork && (
-          <motion.div
-            key="step-category"
-            custom={direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            className="w-full transform-gpu"
-          >
-            <div className="mb-6 w-full">
-              <div className="flex items-center gap-3 mb-6">
-                <img 
-                  src={activeNetwork.icon || undefined} 
-                  alt={activeNetwork.name} 
-                  className="w-8 h-8 object-contain" 
-                  loading="lazy"
-                  decoding="async"
-                />
-                <h2 className="text-2xl font-bold text-foreground tracking-tight">Выберите категорию</h2>
-              </div>
-            </div>
+        {step === 'category' && activeNetwork && (() => {
+          const availableCategories = activeNetwork.categories || [];
+          const filteredCategories = (suggestedCategories.length > 0 || detectedType)
+            ? availableCategories.filter(c => matchesSuggestedCategory(c.name, suggestedCategories, undefined, detectedType))
+            : [];
+          const displayCategories = filteredCategories.length > 0 ? filteredCategories : availableCategories;
 
-            <motion.div 
-              variants={containerVariants}
-              initial="hidden"
-              animate="show"
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-5"
+          return (
+            <motion.div
+              key="step-category"
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="w-full transform-gpu"
             >
-              {activeNetwork.categories?.map((cat: FluxCategory) => (
-                <motion.div 
-                  key={cat.id}
-                  role="button"
-                  tabIndex={0}
-                  variants={itemVariants}
-                  onClick={() => selectCategory(cat)}
-                  onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectCategory(cat); } }}
-                  className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary p-4 sm:p-5 rounded-[1.5rem] sm:rounded-[2rem] border border-white/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-md hover:shadow-xl hover:border-primary/50 transition-all duration-150 flex items-center justify-between group transform-gpu hover:scale-[1.02] active:scale-[0.98]"
-                >
-                   <h4 className="font-bold text-zinc-900 dark:text-zinc-100 text-base sm:text-lg">{cat.name}</h4>
-                   <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/5 group-hover:bg-primary flex items-center justify-center transition-colors">
-                     <ArrowRightIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary group-hover:text-primary-foreground" />
-                   </div>
-                </motion.div>
-              ))}
+              <div className="mb-6 w-full">
+                <div className="flex items-center gap-3 mb-6">
+                  <img 
+                    src={activeNetwork.icon || undefined} 
+                    alt={activeNetwork.name} 
+                    className="w-8 h-8 object-contain" 
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <h2 className="text-2xl font-bold text-foreground tracking-tight">Выберите категорию</h2>
+                </div>
+              </div>
+
+              <motion.div 
+                variants={containerVariants}
+                initial="hidden"
+                animate="show"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-5"
+              >
+                {displayCategories.map((cat: FluxCategory) => (
+                  <motion.div 
+                    key={cat.id}
+                    role="button"
+                    tabIndex={0}
+                    variants={itemVariants}
+                    onClick={() => selectCategory(cat)}
+                    onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectCategory(cat); } }}
+                    className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary p-4 sm:p-5 rounded-[1.5rem] sm:rounded-[2rem] border border-white/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-md hover:shadow-xl hover:border-primary/50 transition-all duration-150 flex items-center justify-between group transform-gpu hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                     <h4 className="font-bold text-zinc-900 dark:text-zinc-100 text-base sm:text-lg">{cat.name}</h4>
+                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/5 group-hover:bg-primary flex items-center justify-center transition-colors">
+                       <ArrowRightIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary group-hover:text-primary-foreground" />
+                     </div>
+                  </motion.div>
+                ))}
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
+          );
+        })()}
 
         {/* STEP 3: SERVICE SELECTION */}
         {step === 'service' && activeCategory && (

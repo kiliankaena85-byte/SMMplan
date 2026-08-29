@@ -41873,6 +41873,7 @@ __export2(queue_manager_exports, {
   ensureSyncCron: () => ensureSyncCron,
   etaQueue: () => etaQueue,
   geoAvailabilityQueue: () => geoAvailabilityQueue,
+  getQueuePrefix: () => getQueuePrefix,
   getRedisConnection: () => getRedisConnection,
   jitteredBackoff: () => jitteredBackoff,
   ordersQueue: () => ordersQueue,
@@ -42042,7 +42043,7 @@ async function ensureGeoAvailabilityCron() {
     }
   );
 }
-var import_bullmq, import_ioredis, redisConnection, getRedisConnection, jitteredBackoff, createQueue, ordersQueue, syncQueue, catalogQueue, dlqQueue, cleanupQueue, telegramQueue, etaQueue, paymentSyncQueue, refillQueue, criticalQueue, defaultQueue, bulkQueue, queuePayment, queueOrder, queueSync, paymentGatewayQueue, articlePublishQueue, aiObserverQueue, aiEconomicOptimizerQueue, geoAvailabilityQueue, closeQueues;
+var import_bullmq, import_ioredis, redisConnection, getQueuePrefix, getRedisConnection, jitteredBackoff, createQueue, ordersQueue, syncQueue, catalogQueue, dlqQueue, cleanupQueue, telegramQueue, etaQueue, paymentSyncQueue, refillQueue, criticalQueue, defaultQueue, bulkQueue, queuePayment, queueOrder, queueSync, paymentGatewayQueue, articlePublishQueue, aiObserverQueue, aiEconomicOptimizerQueue, geoAvailabilityQueue, closeQueues;
 var init_queue_manager = __esm({
   "src/lib/queue-manager.ts"() {
     "use strict";
@@ -42050,12 +42051,20 @@ var init_queue_manager = __esm({
     import_ioredis = __toESM(require_built3());
     init_sensitive_data_filter();
     redisConnection = null;
+    getQueuePrefix = () => {
+      if (process.env.REDIS_KEY_PREFIX) return process.env.REDIS_KEY_PREFIX;
+      if (process.env.CONTOUR === "test") return "test:bullmq";
+      if (process.env.CONTOUR === "prod") return "prod:bullmq";
+      return "bullmq";
+    };
     getRedisConnection = () => {
       if (redisConnection) return redisConnection;
-      const redisUrl2 = process.env.REDIS_URL || "redis://127.0.0.1:6379";
+      const redisUrl2 = process.env.CONTOUR === "test" && process.env.REDIS_URL_TEST ? process.env.REDIS_URL_TEST : process.env.REDIS_URL || "redis://127.0.0.1:6379";
       const redisPassword2 = process.env.REDIS_PASSWORD || void 0;
+      const dbIndex = process.env.REDIS_DB_INDEX ? parseInt(process.env.REDIS_DB_INDEX, 10) : process.env.CONTOUR === "test" ? 1 : 0;
       redisConnection = new import_ioredis.Redis(redisUrl2, {
         password: redisPassword2,
+        db: isNaN(dbIndex) ? 0 : dbIndex,
         maxRetriesPerRequest: null,
         // Specific required for BullMQ
         lazyConnect: true
@@ -42094,6 +42103,7 @@ var init_queue_manager = __esm({
       }
       return new import_bullmq.Queue(name, {
         connection: getRedisConnection(),
+        prefix: getQueuePrefix(),
         defaultJobOptions: {
           removeOnComplete: { count: 500, age: 3600 },
           removeOnFail: { count: 1e3, age: 86400 },
@@ -42198,6 +42208,15 @@ var db_exports = {};
 __export2(db_exports, {
   db: () => db
 });
+function getDatasourceUrl() {
+  if (process.env.CONTOUR === "test" && process.env.DATABASE_URL_TEST) {
+    return process.env.DATABASE_URL_TEST;
+  }
+  if (process.env.CONTOUR === "prod" && process.env.DATABASE_URL_PROD) {
+    return process.env.DATABASE_URL_PROD;
+  }
+  return process.env.DATABASE_URL;
+}
 function createPrismaClient() {
   if (typeof window !== "undefined" || process.env.NEXT_RUNTIME === "edge") {
     return new Proxy({}, {
@@ -42206,7 +42225,9 @@ function createPrismaClient() {
       }
     });
   }
+  const datasourceUrl = getDatasourceUrl();
   const rawPrisma = globalForPrisma.prisma ?? new import_client.PrismaClient({
+    ...datasourceUrl ? { datasources: { db: { url: datasourceUrl } } } : {},
     log: process.env.DEBUG_PRISMA === "true" ? ["query", "error", "warn"] : ["error", "warn"]
   });
   const guarded = rawPrisma.$extends({
@@ -141875,7 +141896,7 @@ var YooKassaGateway = class extends BasePaymentGateway {
     const isDummyKeys = !shopId || !secretKey || shopId === "test_shop_id" || shopId === "test_shop_id_test" || secretKey === "test_secret" || secretKey === "test_secret_key";
     if (isMockPayment || isDummyKeys) {
       return {
-        paymentUrl: `${await getBaseUrlAsync()}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ""}`,
+        paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
         remoteGatewayId: `mock_${Date.now()}`
       };
     }
@@ -141920,7 +141941,7 @@ var YooKassaGateway = class extends BasePaymentGateway {
       if ((resp.status === 401 || resp.status === 403) && process.env.ENABLE_DEV_ROUTES === "true") {
         console.warn("[YooKassaGateway] YooKassa test credentials rejected (HTTP " + resp.status + "). Falling back to mock-payment dev route.");
         return {
-          paymentUrl: `${await getBaseUrlAsync()}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ""}`,
+          paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
           remoteGatewayId: `mock_${Date.now()}`
         };
       }
@@ -141978,7 +141999,7 @@ var CryptoBotGateway = class extends BasePaymentGateway {
         throw new Error("\u041F\u043B\u0430\u0442\u0451\u0436\u043D\u044B\u0439 \u0448\u043B\u044E\u0437 CryptoBot \u043D\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 API \u0442\u043E\u043A\u0435\u043D \u0432 \u043F\u0430\u043D\u0435\u043B\u0438 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F.");
       }
       return {
-        paymentUrl: `${await getBaseUrlAsync()}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ""}`,
+        paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
         remoteGatewayId: `mock_${Date.now()}`
       };
     }
@@ -142142,7 +142163,7 @@ var RobokassaGateway = class extends BasePaymentGateway {
     const isDummyKeys = params.isTestMode || !login || !password || login === "test_login";
     if (isDummyKeys) {
       return {
-        paymentUrl: `${await getBaseUrlAsync()}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ""}`,
+        paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
         remoteGatewayId: `mock_${Date.now()}`
       };
     }
@@ -142193,7 +142214,7 @@ var RobokassaGateway = class extends BasePaymentGateway {
 var MockGateway = class extends BasePaymentGateway {
   async createPayment(params) {
     return {
-      paymentUrl: `${await getBaseUrlAsync()}/api/dev/mock-payment?paymentId=${params.paymentId}${params.orderId ? `&orderId=${params.orderId}` : ""}`,
+      paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
       remoteGatewayId: `mock_${Date.now()}`
     };
   }
@@ -144105,6 +144126,7 @@ log29.info("\u{1F680} Starting BullMQ workers...");
 var connection = getRedisConnection();
 var workerConfig = {
   connection,
+  prefix: getQueuePrefix(),
   lockDuration: 6e4,
   // 60s lock to prevent false stalls during slow provider APIs (our breaker is 15s)
   stalledInterval: 3e4,

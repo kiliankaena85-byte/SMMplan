@@ -11,8 +11,7 @@ export async function GET() {
   const host = reqHeaders.get('host') || reqHeaders.get('x-forwarded-host') || '';
   const isTestDomain = host.includes('test.') || host.includes('flux.') || host.includes('localhost') || host.includes('127.0.0.1');
 
-  const rawMaintenanceMode = await SettingsProvider.isMaintenanceMode();
-  const isMaintenanceMode = isTestDomain ? false : rawMaintenanceMode;
+  const isMaintenanceMode = isTestDomain ? false : (process.env.MAINTENANCE_MODE === 'true');
   let isStaff = false;
 
   const session = await verifySession();
