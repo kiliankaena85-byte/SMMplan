@@ -17,7 +17,7 @@ describe('SEC-03: ?tenant= Override Staff Authentication Guard on Production', (
   });
 
   it('ignores ?tenant= override on production when unauthenticated and resolves to smmplan', async () => {
-    process.env.NODE_ENV = 'production';
+    (process.env as Record<string, string | undefined>)['NODE_ENV'] = 'production';
     process.env.CONTOUR = 'prod';
 
     const req = new NextRequest('https://smmplan.pro/services?tenant=flux', {
@@ -31,7 +31,7 @@ describe('SEC-03: ?tenant= Override Staff Authentication Guard on Production', (
   });
 
   it('ignores ?tenant= override on production for regular USER role and resolves to smmplan', async () => {
-    process.env.NODE_ENV = 'production';
+    (process.env as Record<string, string | undefined>)['NODE_ENV'] = 'production';
     process.env.CONTOUR = 'prod';
 
     vi.mocked(decryptSessionToken).mockResolvedValueOnce({
@@ -53,7 +53,7 @@ describe('SEC-03: ?tenant= Override Staff Authentication Guard on Production', (
   });
 
   it('permits ?tenant= override on production for ADMIN staff role and resolves to flux', async () => {
-    process.env.NODE_ENV = 'production';
+    (process.env as Record<string, string | undefined>)['NODE_ENV'] = 'production';
     process.env.CONTOUR = 'prod';
 
     vi.mocked(decryptSessionToken).mockResolvedValueOnce({
@@ -75,7 +75,7 @@ describe('SEC-03: ?tenant= Override Staff Authentication Guard on Production', (
   });
 
   it('permits unrestricted ?tenant= override on test contour for QA workflow', async () => {
-    process.env.NODE_ENV = 'production';
+    (process.env as Record<string, string | undefined>)['NODE_ENV'] = 'production';
     process.env.CONTOUR = 'test';
 
     const req = new NextRequest('https://test.smmplan.pro/services?tenant=flux', {

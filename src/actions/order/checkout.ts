@@ -425,6 +425,8 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
     }
 
     // Enforce 10 RUB minimum for Acquiring (YooKassa / CryptoBot) -> Auto-convert to 10 RUB top-up
+    let paymentAmount = finalTotalCents;
+    const isMicroOrder = gateway !== 'balance' && finalTotalCents < 1000;
     if (isMicroOrder) {
       paymentAmount = 1000; // 10 RUB minimum deposit (1000 cents)
     }

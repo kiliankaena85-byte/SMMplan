@@ -254,16 +254,32 @@ const addSchema = z.object({
   interval: z.coerce.number().int().positive().optional()
 });
 
+function resolvePlatformSlug(category?: { networkId?: string | null; slug?: string | null; name?: string | null } | null): string {
+  if (!category) return '';
+  const text = `${category.networkId || ''} ${category.slug || ''} ${category.name || ''}`.toUpperCase();
+  if (text.includes('TELEGRAM') || text.includes('TG')) return 'TELEGRAM';
+  if (text.includes('VK') || text.includes('ВКОНТАКТЕ')) return 'VK';
+  if (text.includes('INSTAGRAM') || text.includes('INSTA')) return 'INSTAGRAM';
+  if (text.includes('TIKTOK')) return 'TIKTOK';
+  if (text.includes('YOUTUBE') || text.includes('YT')) return 'YOUTUBE';
+  if (text.includes('RUTUBE')) return 'RUTUBE';
+  if (text.includes('DZEN') || text.includes('ДЗЕН')) return 'DZEN';
+  if (text.includes('OK') || text.includes('ОДНОКЛАССНИКИ')) return 'OK';
+  if (text.includes('DISCORD')) return 'DISCORD';
+  if (text.includes('SPOTIFY')) return 'SPOTIFY';
+  if (text.includes('KICK')) return 'KICK';
+  if (text.includes('MAX') || text.includes('МАКС')) return 'MAX';
+  return category.networkId || category.slug || category.name || '';
+}
+
 async function handleAdd(user: User, formData: FormData) {
-  const payload = Object.fromEntries(formData.entries());
-  const parsed = addSchema.safeParse(payload);
+  const parsed = addSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!parsed.success) {
     return NextResponse.json({ error: 'Incorrect parameters' }, { status: 400 });
   }
 
   const { service: serviceNumericId, link, quantity, runs, interval } = parsed.data;
-  const userTenantId = user.tenantId || 'smmplan';
 
   // W7-SEC04: Strict Sanitization and URL Validation
   const linkValidation = sanitizeAndValidateApiLink(link);
@@ -271,6 +287,8 @@ async function handleAdd(user: User, formData: FormData) {
     return NextResponse.json({ error: linkValidation.error || 'Invalid link format' }, { status: 400 });
   }
   let validatedLink = linkValidation.sanitized;
+
+  const userTenantId = user.tenantId || 'smmplan';
 
   const service = await db.service.findFirst({
     where: {
@@ -293,7 +311,7 @@ async function handleAdd(user: User, formData: FormData) {
   }
 
   // W7-SEC04: Category-specific link format validator
-  const network = service.category?.network || service.category?.name;
+  const network = resolvePlatformSlug(service.category);
   const targetType = (service as unknown as { targetType?: string }).targetType || 'CHANNEL';
   if (network) {
     try {
@@ -414,7 +432,8 @@ async function handleAddMulti(user: User, formData: FormData) {
           isActive: true,
           tenantId: userTenantId,
           category: { tenantId: { in: [userTenantId, 'all'] } }
-        }
+        },
+        include: { category: true }
       });
 
       if (!service) {
@@ -436,7 +455,7 @@ async function handleAddMulti(user: User, formData: FormData) {
       }
       let validatedLink = linkValidation.sanitized;
 
-      const network = service.category?.network || service.category?.name;
+      const network = resolvePlatformSlug(service.category);
       const targetType = (service as unknown as { targetType?: string }).targetType || 'CHANNEL';
       if (network) {
         try {

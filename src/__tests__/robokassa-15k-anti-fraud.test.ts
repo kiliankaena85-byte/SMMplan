@@ -40,7 +40,6 @@ describe('SEC-05: 15,000 RUB Anti-Fraud Limit for Robokassa & Exemption for Cryp
 
   it('blocks Top-Up > 15 000 RUB via Robokassa for users without Telegram', async () => {
     vi.mocked(verifySession).mockResolvedValueOnce({
-      sessionId: 'sess-1',
       userId: 'u-no-tg',
       role: 'USER',
       tenantId: 'smmplan'
@@ -62,7 +61,6 @@ describe('SEC-05: 15,000 RUB Anti-Fraud Limit for Robokassa & Exemption for Cryp
 
   it('allows Top-Up > 15 000 RUB via Robokassa for users WITH Telegram', async () => {
     vi.mocked(verifySession).mockResolvedValueOnce({
-      sessionId: 'sess-1',
       userId: 'u-with-tg',
       role: 'USER',
       tenantId: 'smmplan'
@@ -89,7 +87,6 @@ describe('SEC-05: 15,000 RUB Anti-Fraud Limit for Robokassa & Exemption for Cryp
 
   it('exempts CryptoBot from 15 000 RUB Telegram requirement (Zero Chargeback Risk)', async () => {
     vi.mocked(verifySession).mockResolvedValueOnce({
-      sessionId: 'sess-1',
       userId: 'u-crypto',
       role: 'USER',
       tenantId: 'smmplan'

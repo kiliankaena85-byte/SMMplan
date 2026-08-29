@@ -8,7 +8,7 @@ vi.mock('@/lib/db', () => ({
     b2bRequestLog: { create: vi.fn().mockResolvedValue({}) },
     user: { 
       findFirst: vi.fn(),
-      findUnique: vi.fn().mockResolvedValue({ id: 'user-123', balance: 100000n, tenantId: 'smmplan' })
+      findUnique: vi.fn().mockResolvedValue({ id: 'user-123', balance: BigInt(100000), tenantId: 'smmplan' })
     },
     service: { findMany: vi.fn() }
   }
@@ -19,7 +19,7 @@ vi.mock('@/lib/b2b-auth', () => ({
     id: 'user-123',
     role: 'USER',
     tenantId: 'smmplan',
-    balance: 100000n
+    balance: BigInt(100000)
   }),
   resolveTenantFromRequest: vi.fn().mockReturnValue('smmplan'),
   resolveContourFromHost: vi.fn().mockReturnValue('test')
