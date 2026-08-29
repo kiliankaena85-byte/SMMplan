@@ -45,7 +45,16 @@ export async function POST(request: Request) {
   const fwdProto = reqHeaders.get('x-forwarded-proto');
 
   let host = hostHeader || fwdHost || '';
-  if (host.includes('0.0.0.0') || host.includes('host.docker.internal') || !host) {
+  const ALLOWED_HOSTS = new Set([
+    'smmplan.pro',
+    'test.smmplan.pro',
+    'smmflux.ru',
+    'flux.smmplan.pro',
+    'localhost',
+    '127.0.0.1'
+  ]);
+  const cleanHost = host.split(':')[0].toLowerCase();
+  if (!ALLOWED_HOSTS.has(cleanHost) || host.includes('0.0.0.0') || host.includes('host.docker.internal')) {
     host = process.env.NODE_ENV === 'production' 
       ? (process.env.APP_URL ? new URL(process.env.APP_URL).host : 'test.smmplan.pro') 
       : 'localhost:3000';

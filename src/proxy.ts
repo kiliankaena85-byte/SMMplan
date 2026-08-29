@@ -97,27 +97,9 @@ export async function proxy(request: NextRequest) {
     return res;
   };
 
-  // 1. Instant UI Logout Interception (/logout UI link)
-  // Note: /api/auth/logout MUST pass through to route.ts to delete session in PostgreSQL (F-7.1)
+  // 1. Instant UI Logout Interception (/logout UI link) -> Redirect to /api/auth/logout to delete DB session
   if (pathname === '/logout') {
-    const res = NextResponse.redirect(resolveRedirectUrl(ROUTES.AUTH.LOGIN));
-    res.cookies.set('session_token', '', {
-      path: '/',
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 0,
-      expires: new Date(0),
-    });
-    res.cookies.set('explicit_logout', 'true', {
-      path: '/',
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 365, // 1 year
-    });
-    res.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
-    return applyStickyCookie(res);
+    return NextResponse.redirect(resolveRedirectUrl('/api/auth/logout'), 307);
   }
 
   // 1.5 Strict Production Maintenance Gate (F-7.4)
