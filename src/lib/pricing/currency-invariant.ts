@@ -19,6 +19,13 @@ export type SupportedCurrency = 'USD' | 'RUB' | 'EUR' | 'UAH' | 'KZT';
 
 export const SUPPORTED_CURRENCIES: readonly SupportedCurrency[] = ['USD', 'RUB', 'EUR', 'UAH', 'KZT'] as const;
 
+export interface CustomCrossRates {
+  eurToUsd?: number;
+  uahToUsd?: number;
+  kztToUsd?: number;
+  updatedAt?: Date;
+}
+
 /**
  * CANONICAL COST INVARIANT (P0-1)
  * Calculates the exact cost in RUB for a given provider rate and currency.
@@ -26,15 +33,14 @@ export const SUPPORTED_CURRENCIES: readonly SupportedCurrency[] = ['USD', 'RUB',
  * Fail-Closed Invariants:
  * 1. Forbids silent fallback to USD (throws on missing/unsupported currency).
  * 2. Strict rates & positive multipliers.
- *
- * Precise Coefficients:
- * - RUB: 1.0 (raw rate)
- * - USD: raw rate × usdRate
- * - EUR: raw rate × 1.08 × usdRate
- * - UAH: raw rate × 0.027 × usdRate
- * - KZT: raw rate × 0.0023 × usdRate
+ * 3. Supports dynamic cross-rates with safe compile-time fallbacks.
  */
-export function getCostRub(rate: number, currency: string, usdRate: number): number {
+export function getCostRub(
+  rate: number,
+  currency: string,
+  usdRate: number,
+  crossRates?: CustomCrossRates
+): number {
   if (typeof rate !== 'number' || !isFinite(rate) || rate < 0) {
     throw new Error(`INVALID_RATE: rate must be a non-negative finite number, got ${rate}`);
   }
@@ -60,19 +66,22 @@ export function getCostRub(rate: number, currency: string, usdRate: number): num
       if (typeof usdRate !== 'number' || !isFinite(usdRate) || usdRate <= 0) {
         throw new Error(`INVALID_USD_RATE: usdRate must be a positive number, got ${usdRate}`);
       }
-      cost = rate * 1.08 * usdRate;
+      const eurFactor = crossRates?.eurToUsd && crossRates.eurToUsd > 0 ? crossRates.eurToUsd : 1.08;
+      cost = rate * eurFactor * usdRate;
       break;
     case 'UAH':
       if (typeof usdRate !== 'number' || !isFinite(usdRate) || usdRate <= 0) {
         throw new Error(`INVALID_USD_RATE: usdRate must be a positive number, got ${usdRate}`);
       }
-      cost = rate * 0.027 * usdRate;
+      const uahFactor = crossRates?.uahToUsd && crossRates.uahToUsd > 0 ? crossRates.uahToUsd : 0.027;
+      cost = rate * uahFactor * usdRate;
       break;
     case 'KZT':
       if (typeof usdRate !== 'number' || !isFinite(usdRate) || usdRate <= 0) {
         throw new Error(`INVALID_USD_RATE: usdRate must be a positive number, got ${usdRate}`);
       }
-      cost = rate * 0.0023 * usdRate;
+      const kztFactor = crossRates?.kztToUsd && crossRates.kztToUsd > 0 ? crossRates.kztToUsd : 0.0023;
+      cost = rate * kztFactor * usdRate;
       break;
     default:
       // FAIL LOUD / FAIL CLOSED — strictly forbid silent fallback to USD

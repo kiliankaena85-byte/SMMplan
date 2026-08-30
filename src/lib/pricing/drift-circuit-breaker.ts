@@ -15,14 +15,16 @@ export const DEFAULT_DRIFT_CONFIG: DriftConfig = {
 
 export class PriceDriftCircuitBreaker {
   /**
-   * Validates a new cost against reasonable bounds and historical shadow price.
+   * Validates a new cost against reasonable bounds, currency ratio limits, and historical shadow price.
    * Returns: { ok: true } | { ok: false, reason, severity }
    */
   static async validate(
     providerId: string,
     externalId: string,
     newCostPer1kRub: number,
-    config: DriftConfig = DEFAULT_DRIFT_CONFIG
+    config: DriftConfig = DEFAULT_DRIFT_CONFIG,
+    rawRate?: number,
+    currency?: string
   ): Promise<
     | { ok: true }
     | { ok: false; reason: string; severity: 'WARN' | 'BLOCK'; previousCost?: number }
@@ -45,7 +47,20 @@ export class PriceDriftCircuitBreaker {
       };
     }
 
-    // 3. Drift check vs previous shadow record
+    // 3. Ratio-bound sanity check (catches misconfigured rates e.g. rate=10, usdRate=9000 -> ratio 900x)
+    if (rawRate && rawRate > 0 && currency) {
+      const ratio = newCostPer1kRub / rawRate;
+      const upperRatioLimit = currency === 'RUB' ? 1.5 : (currency === 'USD' ? 250 : 300);
+      if (ratio > upperRatioLimit) {
+        return {
+          ok: false,
+          reason: `Отношение себестоимости к исходной ставке (${ratio.toFixed(2)}x) превышает безопасный коэффициент ${upperRatioLimit}x для валюты ${currency}`,
+          severity: 'BLOCK'
+        };
+      }
+    }
+
+    // 4. Drift check vs previous shadow record
     try {
       const historical = await db.shadowService.findFirst({
         where: { providerId, externalId },
@@ -65,8 +80,8 @@ export class PriceDriftCircuitBreaker {
           };
         }
       }
-    } catch {
-      // Non-blocking database check
+    } catch (dbErr) {
+      console.error('[PriceDriftCircuitBreaker] DB query error while checking historical rate:', dbErr);
     }
 
     return { ok: true };

@@ -1717,21 +1717,25 @@ class AdminCatalogService {
    * Updates all denormalized prices in the background when the exchange rate changes.
    */
   async syncDenormalizedPrices(usdToRub: number) {
+    const { CBRRateService } = await import('@/services/system/cbr-rate.service');
+    const liveCrossRates = await CBRRateService.getLiveCrossRates();
+
     const allServices = await db.service.findMany({
-      select: { id: true, name: true, rate: true, markup: true, isActive: true, providerCurrency: true }
+      select: { id: true, name: true, rate: true, markup: true, isActive: true, providerCurrency: true, tenantId: true }
     });
 
     console.info(`[AdminCatalogService] Syncing prices for ${allServices.length} services with rate ${usdToRub}...`);
 
     const updatesBatch: Prisma.PrismaPromise<unknown>[] = [];
     for (const s of allServices) {
-      const costRub = getCostRub(s.rate, s.providerCurrency || 'RUB', usdToRub);
+      const costRub = getCostRub(s.rate, s.providerCurrency || 'RUB', usdToRub, liveCrossRates);
       const effectiveMarkup = s.markup > 0 ? s.markup : SAFETY_FLOOR_MARKUP;
       const pricePer1kRubRounded = applyBeautifulRounding(costRub * effectiveMarkup);
       const pricePerUnitRub = pricePer1kRubRounded / 1000;
       const purchaseCostPerUnitRub = costRub / 1000;
 
-      if (pricePerUnitRub < purchaseCostPerUnitRub) {
+      // Loss prevention check: normalized price per 1k must never be below cost per 1k
+      if (pricePer1kRubRounded < costRub || pricePerUnitRub < purchaseCostPerUnitRub) {
         // Loss prevention breach! Deactivate service
         updatesBatch.push(
           db.service.update({

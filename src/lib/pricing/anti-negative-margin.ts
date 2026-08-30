@@ -19,7 +19,10 @@ export function applyAntiNegativeMargin(
   rawRetailPer1kRub: number,
   minMarginPct: number = 5
 ): MarginGuardResult {
-  const safeCost = Math.max(0, costPer1kRub);
+  if (!Number.isFinite(costPer1kRub) || costPer1kRub <= 0) {
+    throw new Error(`[AntiNegativeMargin] Invalid costPer1kRub: must be a positive finite number (got ${costPer1kRub})`);
+  }
+  const safeCost = costPer1kRub;
   const minAcceptableRetail = safeCost * (1 + minMarginPct / 100);
 
   let finalRetail = applyBeautifulRounding(rawRetailPer1kRub);
@@ -37,8 +40,9 @@ export function applyAntiNegativeMargin(
     wasFloored = true;
   }
 
-  // Always round up to avoid sub-kopeck fractional loss
-  finalRetail = Math.ceil(finalRetail * 100) / 100;
+  // Guarantee integer kopeck precision (ceiling prevents any fractional loss)
+  const finalCents = Math.ceil(finalRetail * 100);
+  finalRetail = finalCents / 100;
 
   const marginPct = safeCost > 0
     ? ((finalRetail - safeCost) / safeCost) * 100
@@ -46,7 +50,7 @@ export function applyAntiNegativeMargin(
 
   return {
     finalRetailPer1kRub: finalRetail,
-    finalRetailPer1kCents: Math.round(finalRetail * 100),
+    finalRetailPer1kCents: finalCents,
     wasFloored,
     originalRetailPer1kRub: rawRetailPer1kRub,
     costPer1kRub: safeCost,

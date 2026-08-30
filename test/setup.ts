@@ -384,7 +384,9 @@ beforeEach(async () => {
         'abtest',
         'ab-test',
         'client-crm-balance',
-        'services-lifecycle'
+        'services-lifecycle',
+        'price-reconciler',
+        'pricing-hardening'
       ];
       if (skipPatterns.some(pattern => testPath.toLowerCase().includes(pattern.toLowerCase()))) {
         shouldReset = false;

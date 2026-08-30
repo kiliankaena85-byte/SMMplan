@@ -25,9 +25,11 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
   try {
     switch (payload.type) {
       case 'SYNC_PRICES': {
-        const { usdToRub } = payload;
-        log.info(`[CatalogProcessor] Starting background price sync with rate ${usdToRub}...`);
-        await adminCatalogService.syncDenormalizedPrices(usdToRub);
+        const { SettingsProvider } = await import('@/lib/settings');
+        const freshUsdRate = await SettingsProvider.getExchangeRateUSD();
+        const effectiveRate = Number.isFinite(payload.usdToRub) && payload.usdToRub > 0 ? payload.usdToRub : freshUsdRate;
+        log.info(`[CatalogProcessor] Starting background price sync with rate ${effectiveRate}...`);
+        await adminCatalogService.syncDenormalizedPrices(effectiveRate);
         log.info(`[CatalogProcessor] Price sync completed successfully.`);
         await triggerCacheRevalidation(['catalog', 'services']);
         break;
@@ -37,11 +39,14 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
         const { batchSize = 500 } = payload;
         log.info(`[CatalogProcessor] Starting price reconciliation (batchSize: ${batchSize})...`);
         const { SettingsProvider } = await import('@/lib/settings');
-        const { db } = await import('../../lib/db');
+        const { db } = await import('@/lib/db');
         const { getCostRub } = await import('@/lib/pricing/currency-invariant');
         const { UPPER_SANITY_LIMIT_RUB } = await import('@/lib/financial-constants');
         
+        const { CBRRateService } = await import('@/services/system/cbr-rate.service');
         const usdRate = await SettingsProvider.getExchangeRateUSD();
+        const liveCrossRates = await CBRRateService.getLiveCrossRates();
+
         const activeServices = await db.service.findMany({
           where: { isActive: true },
           take: batchSize,
@@ -68,7 +73,7 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
           scanned++;
           let freshCostRub = 0;
           try {
-            freshCostRub = getCostRub(s.rate, s.providerCurrency || '', usdRate);
+            freshCostRub = getCostRub(s.rate, s.providerCurrency || '', usdRate, liveCrossRates);
           } catch (currErr) {
             // Invalid/missing currency -> Quarantine
             await db.service.update({

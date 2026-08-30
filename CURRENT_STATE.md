@@ -1,28 +1,34 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 06:10 (МСК)  
-> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🛡️ ZERO-SPIKE TIME-TRAVEL PRICING VERIFIED (DAY 0 → DAY 90).
+> **Последнее обновление:** 2026-08-30 07:00 (МСК)  
+> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🛡️ ZERO-SPIKE TIME-TRAVEL PRICING VERIFIED + 💰 OPENROUTER MULTI-MODEL SWARM VERIFIED.
 
 - **Pricing Engine Hardening & Phase 2 Reconciler (100% COMPLETE & VERIFIED):**
   - **P-A (Schema & Cache):** `costPer1kRub Float?` в модели `Service` + бэкфилл-скрипт `scripts/harness/backfill-cost-per-1k-rub.ts`.
   - **P-B (Per-Tenant Markup & Cache Wiring):** В `catalog.service.ts` реализован динамический расчет себестоимости и учет `SystemSettings.globalMarkup` тенанта в циклах импорта и синхронизации цен. Устранен легаси-поиск `id: "global"` с мертвым 90.0 фоллбэком — заменен на `SettingsProvider.getExchangeRateUSD()`.
   - **P-C (Cost Readers):** `PriceDriftCircuitBreaker`, `ServicesLifecycleService` и аналитика маржи переключены на приоритетное чтение `service.costPer1kRub ?? getCostRub(...)`.
-  - **P-D (Price Reconciler Engine):** Добавлен тип задачи `RECONCILE_PRICES` в BullMQ `catalog.processor.ts` и защищенный роут `src/app/api/cron/reconcile-prices/route.ts` (Bearer/HMAC auth, Redis lock `cron:price-reconciler:lock`). Проверяет дрейф кэша себестоимости (>2%), спайки розницы (< себестоимости) и `UPPER_SANITY_LIMIT_RUB` (> 50 000 ₽).
+  - **P-D (Price Reconciler Engine):** Добавлен тип задачи `RECONCILE_PRICES` в BullMQ `catalog.processor.ts` и защищенный роут `src/app/api/cron/reconcile-prices/route.ts` (Bearer/HMAC auth, Redis lock `cron:price-reconciler:lock` с атомарным Lua-релизом и 300s TTL). Проверяет дрейф кэша себестоимости (>2%), спайки розницы (< себестоимости) и `UPPER_SANITY_LIMIT_RUB` (> 50 000 ₽).
+  - **P0 Hardening (Dynamic Cross-Rates, Fail-Closed & Anti-Negative Margin):**
+    - **Динамический кросс-курс валют:** `CBRRateService.getLiveCrossRates()` с парсингом EUR, UAH, KZT из ЦБ РФ и кэшированием в Redis.
+    - **Anti-Negative Margin Strictness:** Выбрасывает исключение при `costPer1kRub <= 0` и гарантирует целочисленные копейки `Math.ceil(finalRetail * 100)`.
+    - **Drift Circuit Breaker Ratio Sanity:** Защита от ошибочных коэффициентов валют (`newCostPer1kRub / rawRate`) с блокировкой аномальных скачков.
   - **E2E Time-Travel & Multi-Currency Stability Engine (Day 0 → Day 90 Verified):**
-    - Разработан и успешно верифицирован сквозной E2E симулятор временных рамок (`src/__tests__/e2e-pricing-time-travel-and-currency-stability.test.ts`), моделирующий поведение движка цен во времени:
-      - **День 0 (Baseline):** Мультивалютная фиксация (`RUB` и `USD`), корректная ставка за 1k, точный расчет цен по шкале наценок и операторским маржам.
-      - **День 1 (Routine Sync 24h):** Валюты зафиксированы в БД (рубли не аннулируются в доллары), кастомные наценки оператора (1.5x, 2.5x) не сбрасываются в принудительные 3.0x.
-      - **День 7 (Minor Fluctuations & Rate Drift):** Колебания курсов ЦБ и мелкие изменения цен поставщика (±2%) обновляются тихо без ложного карантина и без умножения рублей на 100x.
-      - **День 30 (Chaos & Currency Flip Resilience):** Безопасный пересчет при смене валюты провайдером без скачков цен в рублях; моментальное срабатывание Активного Карантина (`isQuarantined: true`, `isActive: false`) при реальных спайках себестоимости >50% или превышении `UPPER_SANITY_LIMIT_RUB` (50,000 ₽).
-      - **День 90 (End-to-End Storefront Checkout Smoke):** Оформление заказа через `checkoutAction` с защитой от отрицательной маржи, банковским округлением (Half-Even) и точным копеечным списанием.
-  - **Полная тестовая батарея ценообразования: 45/45 PASS (100% GREEN):**
+    - Разработан и успешно верифицирован сквозной E2E симулятор временных рамок (`src/__tests__/e2e-pricing-time-travel-and-currency-stability.test.ts`), моделирующий поведение движка цен во времени (День 0 -> 1 -> 7 -> 30 -> 90).
+  - **OpenRouter Multi-Model Adversarial Verification Swarm:**
+    - Проведена независимая верификация через OpenRouter API:
+      - **Раунд 1 (Red Team / `minimax-m3:free`):** Глубокий анализ финансовых инвариантов и математики курсов.
+      - **Раунд 2 (Blue Team / `minimax-m3:free`):** Оценка устойчивости отказов, распределенных блокировок и Time-Travel изоляции (Resilience Score: **92/100, Grade A-**).
+      - **Раунд 3 (CTO Arbiter / `ling-3.0-flash-fin:free`):** Синтез архитектуры и формирование итогового чек-листа доработок. Отчет: `scripts/harness/openrouter-pricing-verification-verdict.md`.
+  - **Полная тестовая батарея ценообразования: 57/57 PASS (100% GREEN):**
     - `pricing-import-guardrails.test.ts` (26/26 PASS)
+    - `pricing-hardening-p0.test.ts` (12/12 PASS)
     - `provider-price-anomaly-and-quarantine.test.ts` (5/5 PASS)
     - `price-drift.test.ts` (5/5 PASS)
     - `e2e-pricing-time-travel-and-currency-stability.test.ts` (5/5 PASS)
     - `price-reconciler.test.ts` (4/4 PASS)
     - Strict TypeScript (`npx tsc --noEmit`): **0 ошибок**.
+    - Production Webpack Build (`npm run build`): **100% GREEN (Успешно собран)**.
 
 - **Multi-Domain Testing & Production Routing Contract (STRICT RULE — 100% VERIFIED LIVE):**
   - **`smmplan.pro` (и `www.smmplan.pro`):** Показывает `PreLaunchHoldingScreen` (страница-заглушка предзапуска со сбором заявок).

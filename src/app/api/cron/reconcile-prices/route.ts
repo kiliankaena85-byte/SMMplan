@@ -1,4 +1,4 @@
-﻿export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { SettingsProvider } from '@/lib/settings';
 import { adminCatalogService } from '@/services/admin/catalog.service';
@@ -25,10 +25,11 @@ export async function GET(req: NextRequest) {
   }
 
   const redis = getRedisConnection();
-  const lockKey = 'cron:reconcile-prices:lock';
+  const lockKey = 'cron:price-reconciler:lock';
+  const lockToken = crypto.randomUUID();
 
-  // Acquire distributed lock for 10 minutes
-  const acquired = await redis.set(lockKey, '1', 'EX', 600, 'NX');
+  // Acquire distributed lock for 5 minutes (300s) with owner token
+  const acquired = await redis.set(lockKey, lockToken, 'EX', 300, 'NX');
   if (!acquired) {
     return NextResponse.json({ success: false, reason: 'overlap_prevented' }, { status: 200 });
   }
@@ -53,6 +54,16 @@ export async function GET(req: NextRequest) {
     const errMsg = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ success: false, error: errMsg }, { status: 500 });
   } finally {
-    await redis.del(lockKey);
+    try {
+      const script = `
+        if redis.call("get", KEYS[1]) == ARGV[1] then
+          return redis.call("del", KEYS[1])
+        else
+          return 0
+        end`;
+      await (redis as any).eval(script, 1, lockKey, lockToken);
+    } catch (err) {
+      console.error('[Cron Reconcile] Lock release error:', err);
+    }
   }
 }

@@ -137260,7 +137260,7 @@ __export2(currency_invariant_exports, {
   reconcileCurrencyBeforeSync: () => reconcileCurrencyBeforeSync,
   resnapshotOnCurrencyChange: () => resnapshotOnCurrencyChange
 });
-function getCostRub(rate, currency, usdRate) {
+function getCostRub(rate, currency, usdRate, crossRates) {
   if (typeof rate !== "number" || !isFinite(rate) || rate < 0) {
     throw new Error(`INVALID_RATE: rate must be a non-negative finite number, got ${rate}`);
   }
@@ -137283,19 +137283,22 @@ function getCostRub(rate, currency, usdRate) {
       if (typeof usdRate !== "number" || !isFinite(usdRate) || usdRate <= 0) {
         throw new Error(`INVALID_USD_RATE: usdRate must be a positive number, got ${usdRate}`);
       }
-      cost = rate * 1.08 * usdRate;
+      const eurFactor = crossRates?.eurToUsd && crossRates.eurToUsd > 0 ? crossRates.eurToUsd : 1.08;
+      cost = rate * eurFactor * usdRate;
       break;
     case "UAH":
       if (typeof usdRate !== "number" || !isFinite(usdRate) || usdRate <= 0) {
         throw new Error(`INVALID_USD_RATE: usdRate must be a positive number, got ${usdRate}`);
       }
-      cost = rate * 0.027 * usdRate;
+      const uahFactor = crossRates?.uahToUsd && crossRates.uahToUsd > 0 ? crossRates.uahToUsd : 0.027;
+      cost = rate * uahFactor * usdRate;
       break;
     case "KZT":
       if (typeof usdRate !== "number" || !isFinite(usdRate) || usdRate <= 0) {
         throw new Error(`INVALID_USD_RATE: usdRate must be a positive number, got ${usdRate}`);
       }
-      cost = rate * 23e-4 * usdRate;
+      const kztFactor = crossRates?.kztToUsd && crossRates.kztToUsd > 0 ? crossRates.kztToUsd : 23e-4;
+      cost = rate * kztFactor * usdRate;
       break;
     default:
       throw new Error(`CURRENCY_UNSUPPORTED: ${currency} (rate=${rate})`);
@@ -137393,6 +137396,124 @@ var init_currency_invariant = __esm({
     init_db();
     init_settings();
     SUPPORTED_CURRENCIES = ["USD", "RUB", "EUR", "UAH", "KZT"];
+  }
+});
+
+// src/services/system/cbr-rate.service.ts
+var cbr_rate_service_exports = {};
+__export2(cbr_rate_service_exports, {
+  CBRRateService: () => CBRRateService
+});
+var CBRRateService;
+var init_cbr_rate_service = __esm({
+  "src/services/system/cbr-rate.service.ts"() {
+    "use strict";
+    init_settings();
+    CBRRateService = class {
+      static {
+        this.CBR_API_URL = "https://www.cbr-xml-daily.ru/daily_json.js";
+      }
+      static {
+        this.SPREAD_MULTIPLIER = 1.03;
+      }
+      // +3% Margin Safety Net (PB-003)
+      /**
+       * Fetches the latest USD, EUR, UAH, KZT exchange rates from CBR, applies a 3% safety spread, 
+       * and updates SystemSettings & Redis FX cache. If network fails, leaves the old rate.
+       * 
+       * @returns The combined payload: nominal rate, system rate (with spread), and update status.
+       */
+      static async syncCBRExchangeRate(tenantId) {
+        try {
+          let usdRate = null;
+          let eurRate = null;
+          let uahRate = null;
+          let kztRate = null;
+          try {
+            const response = await fetch(this.CBR_API_URL, {
+              signal: AbortSignal.timeout(6e3),
+              next: { revalidate: 3600 }
+            });
+            if (response.ok) {
+              const data = await response.json();
+              usdRate = data?.Valute?.USD?.Value;
+              eurRate = data?.Valute?.EUR?.Value;
+              const uahNominal = data?.Valute?.UAH?.Nominal || 10;
+              const uahVal = data?.Valute?.UAH?.Value;
+              if (uahVal) uahRate = uahVal / uahNominal;
+              const kztNominal = data?.Valute?.KZT?.Nominal || 100;
+              const kztVal = data?.Valute?.KZT?.Value;
+              if (kztVal) kztRate = kztVal / kztNominal;
+            }
+          } catch (err) {
+            console.warn("[CBRRateService] CBR JSON fetch error:", err instanceof Error ? err.message : String(err));
+          }
+          if (typeof usdRate !== "number" || isNaN(usdRate) || usdRate <= 0) {
+            const existingRate = await SettingsManager.getExchangeRateUSD(tenantId);
+            const fallbackCrossRates = {
+              usdToRub: existingRate || 95,
+              eurToUsd: 1.08,
+              uahToUsd: 0.027,
+              kztToUsd: 23e-4,
+              updatedAt: /* @__PURE__ */ new Date()
+            };
+            return { nominalRate: existingRate, systemRate: existingRate, crossRates: fallbackCrossRates, updated: false };
+          }
+          const systemRate = parseFloat((usdRate * this.SPREAD_MULTIPLIER).toFixed(2));
+          const eurToUsd = eurRate && usdRate ? parseFloat((eurRate / usdRate).toFixed(4)) : 1.08;
+          const uahToUsd = uahRate && usdRate ? parseFloat((uahRate / usdRate).toFixed(6)) : 0.027;
+          const kztToUsd = kztRate && usdRate ? parseFloat((kztRate / usdRate).toFixed(7)) : 23e-4;
+          const crossRates = {
+            usdToRub: systemRate,
+            eurToUsd,
+            uahToUsd,
+            kztToUsd,
+            updatedAt: /* @__PURE__ */ new Date()
+          };
+          try {
+            const { redis: redis2 } = await Promise.resolve().then(() => (init_redis(), redis_exports));
+            await redis2.set("fx:cross_rates", JSON.stringify(crossRates), "EX", 86400);
+          } catch {
+          }
+          await SettingsManager.setExchangeRateUSD(systemRate, tenantId);
+          return { nominalRate: usdRate, systemRate, crossRates, updated: true };
+        } catch (error) {
+          console.error("[CBRRateService] CBR sync failed:", error instanceof Error ? error.message : String(error));
+          const existingRate = await SettingsManager.getExchangeRateUSD(tenantId);
+          const fallbackCrossRates = {
+            usdToRub: existingRate || 95,
+            eurToUsd: 1.08,
+            uahToUsd: 0.027,
+            kztToUsd: 23e-4,
+            updatedAt: /* @__PURE__ */ new Date()
+          };
+          return { nominalRate: existingRate, systemRate: existingRate, crossRates: fallbackCrossRates, updated: false };
+        }
+      }
+      /**
+       * Retrieves cached live cross rates or falls back to system settings defaults.
+       */
+      static async getLiveCrossRates(tenantId) {
+        try {
+          const { redis: redis2 } = await Promise.resolve().then(() => (init_redis(), redis_exports));
+          const cached = await redis2.get("fx:cross_rates");
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            parsed.updatedAt = new Date(parsed.updatedAt);
+            return parsed;
+          }
+        } catch {
+        }
+        const usdRate = await SettingsManager.getExchangeRateUSD(tenantId);
+        return {
+          usdToRub: usdRate || 95,
+          eurToUsd: 1.08,
+          uahToUsd: 0.027,
+          kztToUsd: 23e-4,
+          updatedAt: /* @__PURE__ */ new Date()
+        };
+      }
+    };
   }
 });
 
@@ -140412,7 +140533,10 @@ init_currency_invariant();
 // src/lib/pricing/anti-negative-margin.ts
 init_financial_constants();
 function applyAntiNegativeMargin(costPer1kRub, rawRetailPer1kRub, minMarginPct = 5) {
-  const safeCost = Math.max(0, costPer1kRub);
+  if (!Number.isFinite(costPer1kRub) || costPer1kRub <= 0) {
+    throw new Error(`[AntiNegativeMargin] Invalid costPer1kRub: must be a positive finite number (got ${costPer1kRub})`);
+  }
+  const safeCost = costPer1kRub;
   const minAcceptableRetail = safeCost * (1 + minMarginPct / 100);
   let finalRetail = applyBeautifulRounding(rawRetailPer1kRub);
   let wasFloored = false;
@@ -140424,11 +140548,12 @@ function applyAntiNegativeMargin(costPer1kRub, rawRetailPer1kRub, minMarginPct =
     finalRetail = safeCost;
     wasFloored = true;
   }
-  finalRetail = Math.ceil(finalRetail * 100) / 100;
+  const finalCents = Math.ceil(finalRetail * 100);
+  finalRetail = finalCents / 100;
   const marginPct = safeCost > 0 ? (finalRetail - safeCost) / safeCost * 100 : 0;
   return {
     finalRetailPer1kRub: finalRetail,
-    finalRetailPer1kCents: Math.round(finalRetail * 100),
+    finalRetailPer1kCents: finalCents,
     wasFloored,
     originalRetailPer1kRub: rawRetailPer1kRub,
     costPer1kRub: safeCost,
@@ -140446,10 +140571,10 @@ var DEFAULT_DRIFT_CONFIG = {
 };
 var PriceDriftCircuitBreaker = class {
   /**
-   * Validates a new cost against reasonable bounds and historical shadow price.
+   * Validates a new cost against reasonable bounds, currency ratio limits, and historical shadow price.
    * Returns: { ok: true } | { ok: false, reason, severity }
    */
-  static async validate(providerId, externalId, newCostPer1kRub, config = DEFAULT_DRIFT_CONFIG) {
+  static async validate(providerId, externalId, newCostPer1kRub, config = DEFAULT_DRIFT_CONFIG, rawRate, currency) {
     if (newCostPer1kRub < config.MIN_REASONABLE_COST_RUB) {
       return {
         ok: false,
@@ -140463,6 +140588,17 @@ var PriceDriftCircuitBreaker = class {
         reason: `\u0421\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C ${newCostPer1kRub} \u20BD/1k \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u043C\u0430\u043A\u0441\u0438\u043C\u0430\u043B\u044C\u043D\u044B\u0439 \u043B\u0438\u043C\u0438\u0442 ${config.MAX_REASONABLE_COST_RUB} \u20BD/1k (\u0432\u0435\u0440\u043E\u044F\u0442\u043D\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430 \u0432\u0430\u043B\u044E\u0442\u044B)`,
         severity: "BLOCK"
       };
+    }
+    if (rawRate && rawRate > 0 && currency) {
+      const ratio = newCostPer1kRub / rawRate;
+      const upperRatioLimit = currency === "RUB" ? 1.5 : currency === "USD" ? 250 : 300;
+      if (ratio > upperRatioLimit) {
+        return {
+          ok: false,
+          reason: `\u041E\u0442\u043D\u043E\u0448\u0435\u043D\u0438\u0435 \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u0438 \u043A \u0438\u0441\u0445\u043E\u0434\u043D\u043E\u0439 \u0441\u0442\u0430\u0432\u043A\u0435 (${ratio.toFixed(2)}x) \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u044B\u0439 \u043A\u043E\u044D\u0444\u0444\u0438\u0446\u0438\u0435\u043D\u0442 ${upperRatioLimit}x \u0434\u043B\u044F \u0432\u0430\u043B\u044E\u0442\u044B ${currency}`,
+          severity: "BLOCK"
+        };
+      }
     }
     try {
       const historical = await db.shadowService.findFirst({
@@ -140481,7 +140617,8 @@ var PriceDriftCircuitBreaker = class {
           };
         }
       }
-    } catch {
+    } catch (dbErr) {
+      console.error("[PriceDriftCircuitBreaker] DB query error while checking historical rate:", dbErr);
     }
     return { ok: true };
   }
@@ -141819,18 +141956,20 @@ ${anomalies.join("\n")}`,
    * Updates all denormalized prices in the background when the exchange rate changes.
    */
   async syncDenormalizedPrices(usdToRub) {
+    const { CBRRateService: CBRRateService2 } = await Promise.resolve().then(() => (init_cbr_rate_service(), cbr_rate_service_exports));
+    const liveCrossRates = await CBRRateService2.getLiveCrossRates();
     const allServices = await db.service.findMany({
-      select: { id: true, name: true, rate: true, markup: true, isActive: true, providerCurrency: true }
+      select: { id: true, name: true, rate: true, markup: true, isActive: true, providerCurrency: true, tenantId: true }
     });
     console.info(`[AdminCatalogService] Syncing prices for ${allServices.length} services with rate ${usdToRub}...`);
     const updatesBatch = [];
     for (const s of allServices) {
-      const costRub = getCostRub(s.rate, s.providerCurrency || "RUB", usdToRub);
+      const costRub = getCostRub(s.rate, s.providerCurrency || "RUB", usdToRub, liveCrossRates);
       const effectiveMarkup = s.markup > 0 ? s.markup : SAFETY_FLOOR_MARKUP;
       const pricePer1kRubRounded = applyBeautifulRounding(costRub * effectiveMarkup);
       const pricePerUnitRub = pricePer1kRubRounded / 1e3;
       const purchaseCostPerUnitRub = costRub / 1e3;
-      if (pricePerUnitRub < purchaseCostPerUnitRub) {
+      if (pricePer1kRubRounded < costRub || pricePerUnitRub < purchaseCostPerUnitRub) {
         updatesBatch.push(
           db.service.update({
             where: { id: s.id },
@@ -142057,9 +142196,11 @@ async function catalogProcessor(job) {
   try {
     switch (payload.type) {
       case "SYNC_PRICES": {
-        const { usdToRub } = payload;
-        log18.info(`[CatalogProcessor] Starting background price sync with rate ${usdToRub}...`);
-        await adminCatalogService.syncDenormalizedPrices(usdToRub);
+        const { SettingsProvider: SettingsProvider2 } = await Promise.resolve().then(() => (init_settings(), settings_exports));
+        const freshUsdRate = await SettingsProvider2.getExchangeRateUSD();
+        const effectiveRate = Number.isFinite(payload.usdToRub) && payload.usdToRub > 0 ? payload.usdToRub : freshUsdRate;
+        log18.info(`[CatalogProcessor] Starting background price sync with rate ${effectiveRate}...`);
+        await adminCatalogService.syncDenormalizedPrices(effectiveRate);
         log18.info(`[CatalogProcessor] Price sync completed successfully.`);
         await triggerCacheRevalidation(["catalog", "services"]);
         break;
@@ -142071,7 +142212,9 @@ async function catalogProcessor(job) {
         const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
         const { getCostRub: getCostRub2 } = await Promise.resolve().then(() => (init_currency_invariant(), currency_invariant_exports));
         const { UPPER_SANITY_LIMIT_RUB: UPPER_SANITY_LIMIT_RUB2 } = await Promise.resolve().then(() => (init_financial_constants(), financial_constants_exports));
+        const { CBRRateService: CBRRateService2 } = await Promise.resolve().then(() => (init_cbr_rate_service(), cbr_rate_service_exports));
         const usdRate = await SettingsProvider2.getExchangeRateUSD();
+        const liveCrossRates = await CBRRateService2.getLiveCrossRates();
         const activeServices = await db2.service.findMany({
           where: { isActive: true },
           take: batchSize,
@@ -142096,7 +142239,7 @@ async function catalogProcessor(job) {
           scanned++;
           let freshCostRub = 0;
           try {
-            freshCostRub = getCostRub2(s.rate, s.providerCurrency || "", usdRate);
+            freshCostRub = getCostRub2(s.rate, s.providerCurrency || "", usdRate, liveCrossRates);
           } catch (currErr) {
             await db2.service.update({
               where: { id: s.id },
