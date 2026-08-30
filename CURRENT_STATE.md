@@ -1,7 +1,22 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 09:10 (МСК)
+> **Последнее обновление:** 2026-08-30 09:20 (МСК)
+
+- **Reactive Table Density Engine & Global Architecture (100% COMPLETE & VERIFIED):**
+  - **1. Архитектурный аудит & Устранение изоляции состояния:**
+    - Ранее переключатель «Компактность таблиц» сохранял значение в `localStorage.getItem('admin_compact_density')`, но не передавал состояние в DOM и компоненты таблиц.
+    - Создан универсальный `DensityProvider` (`src/components/admin/density-provider.tsx`) с хуком `useDensity()`, реактивной синхронизацией `StorageEvent` между вкладками и управлением атрибутом `data-density="compact"` и классом `.compact-density` на корневом `document.documentElement`.
+  - **2. CSS-Driven Universal Compression Engine (`globals.css`):**
+    - Внедрены правила сжатия отступов ячеек: `th` $14\text{px} \rightarrow 6\text{px}$, `td` $16\text{px} \rightarrow 4\text{px}$, высота строк сжимается до $32\text{px}$, размер шрифта $11\text{px}-12\text{px}$.
+    - Поддержка как стандартных `<table>`, так и кастомных CSS Grid-строк (`[role="row"]`, `[data-slot="order-row"]`).
+  - **3. Интеграция в UI (`admin-profile-dropdown.tsx`, `admin/layout.tsx`):**
+    - Кнопка в профиле оператора подключена к `useDensity().toggleDensity()`, мгновенно переключая бейдж «Компакт» / «Стандарт» и визуальный вид всех таблиц на лету без перезагрузки страницы.
+  - **4. Тестирование и верификация:**
+    - Новый юнит-сьют: `src/__tests__/table-density.test.ts` (**3/3 PASS**).
+    - Батарея тестов: `vitest.unit.config.ts` (**97/97 PASS, 100% GREEN**).
+    - Строгая проверка типов: `npx tsc --noEmit` (**0 ошибок**).
+
 
 - **Unified Design System & Semantic Theming (100% COMPLETE & VERIFIED):**
   - **1. Zero-Wildcard Theme Architecture (`globals.css`, `providers.tsx`):**
