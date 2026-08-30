@@ -3,6 +3,14 @@
 > **Файл-якорь для синхронизации контекста сессий.**  
 > **Последнее обновление:** 2026-08-30 15:40 (МСК)
 
+- **Mobile Wizard v2.0 Refactoring & High-Density UX (100% COMPLETE & VERIFIED):**
+  - **1. 4-шаговый прогресс-степпер (`MobileWizardStepper.tsx`):** Внедрена интерактивная шкала шагов (`1. Ссылка` → `2. Категория` → `3. Тариф` → `4. Оплата`) с прогресс-баром и быстрой навигацией по пройденным шагам.
+  - **2. 2-колоночная сетка категорий (`MobileStep2Category.tsx`):** Компактная сетка `grid grid-cols-2 gap-2` сократила вертикальный скролл более чем в 2 раза, оптимизировав UX на экранах 390–430px.
+  - **3. Устранение Scroll-Chaining (`MobileStep3Service.tsx`):** Удален вложенный фиксированный скролл `max-h-[40dvh]`, восстановлен естественный мобильный скролл страницы.
+  - **4. Эргономика ввода количества (`MobileStep4Checkout.tsx`):** Добавлены кнопки шага `[-]` / `[+]` и быстрые чипы объемов (`+100`, `+500`, `+1k`, `+5k`), устранено дублирование инпутов ссылки.
+  - **5. Фиксированный Safe-Area Dock (`MobileStickyCTA.tsx`):** Панель оформлена как `fixed bottom-0` с поддержкой `env(safe-area-inset-bottom)` и размытием `backdrop-blur-md`.
+  - **6. Верификация:** Новый сьют `mobile-wizard-smoke.test.tsx` (7/7 PASS), общий прогон `vitest.unit.config.ts` — **146/146 PASS (100% GREEN)**, `tsc --noEmit` — **0 ошибок**.
+
 - **Comprehensive Storefront & Backend Hardening (All Issues 100% COMPLETE, DEPLOYED & HEALTHY):**
   - **1. Валидация ссылок и HTTPS:** Решена проблема ложных ошибок HTTPS. `mutateLink()` интегрирован во все точки входа. Добавлена нормализация `generic_link`/`OTHER` в `link-service-compatibility.ts`. В `useCheckoutOrchestrator.ts` сообщение об ошибке валидации снабжено подсказкой перехода на режим «Использовать как есть» (`isLinkOverridden`). Комбинаторный тест показал **68/68 PASS (100%)**.
   - **2. Дублирование иконок ссылок:** Удалены лишние иконки перехода в таблицах и канбан-досках заказов (`FluxOrdersList`, `FluxOrdersKanban`).

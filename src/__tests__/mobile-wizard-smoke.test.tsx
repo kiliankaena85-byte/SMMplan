@@ -3,8 +3,10 @@
  */
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, render, screen, fireEvent } from '@testing-library/react';
 import { useMobileWizard } from '@/components/landing/order-engine/wizard-steps/useMobileWizard';
+import { MobileWizardStepper } from '@/components/landing/order-engine/wizard-steps/MobileWizardStepper';
+import { MobileStep1Link } from '@/components/landing/order-engine/wizard-steps/MobileStep1Link';
 import { OrderEngine } from '@/hooks/useOrderEngine';
 
 describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
@@ -98,27 +100,16 @@ describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
   });
 
   it('4. Allows manual bidirectional step navigation without state corruption', () => {
-    const engine = createMockEngine();
+    const engine = createMockEngine({ url: 'https://t.me/channel' });
     const { result } = renderHook(() => useMobileWizard(engine));
 
-    expect(result.current.currentStep).toBe(1);
-
-    act(() => {
-      result.current.setActiveStep(2);
-    });
     expect(result.current.currentStep).toBe(2);
 
     act(() => {
-      result.current.setActiveStep(3);
+      result.current.setActiveStep(1);
     });
-    expect(result.current.currentStep).toBe(3);
+    expect(result.current.currentStep).toBe(1);
 
-    act(() => {
-      result.current.setActiveStep(4);
-    });
-    expect(result.current.currentStep).toBe(4);
-
-    // Back to Step 3
     act(() => {
       result.current.setActiveStep(3);
     });
@@ -127,6 +118,7 @@ describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
 
   it('5. Correctly resolves selected category name and brand styling', () => {
     const engine = createMockEngine({
+      url: 'https://t.me/channel',
       networkId: 'tg-net',
       categoryId: 'tg-subs'
     });
@@ -136,9 +128,28 @@ describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
     expect(result.current.brandStyle).toBeDefined();
   });
 
-  it('6. MobileStep1Link renders actionable prompt button when currentStep > 1 and url is empty (never returns null)', async () => {
-    const { render, screen, fireEvent } = await import('@testing-library/react');
-    const { MobileStep1Link } = await import('@/components/landing/order-engine/wizard-steps/MobileStep1Link');
+  it('6. MobileWizardStepper renders 4 interactive steps and handles navigation', () => {
+    const setActiveStep = vi.fn();
+    const { getByText } = render(
+      <MobileWizardStepper
+        currentStep={2}
+        setActiveStep={setActiveStep}
+        isLinkFilled={true}
+        hasCategory={false}
+        hasService={false}
+      />
+    );
+
+    expect(getByText('Ссылка')).toBeDefined();
+    expect(getByText('Категория')).toBeDefined();
+    expect(getByText('Тариф')).toBeDefined();
+    expect(getByText('Оплата')).toBeDefined();
+
+    fireEvent.click(getByText('Ссылка'));
+    expect(setActiveStep).toHaveBeenCalledWith(1);
+  });
+
+  it('7. MobileStep1Link renders actionable prompt button when currentStep > 1 and url is empty', () => {
     const setActiveStep = vi.fn();
     const engine = createMockEngine({ url: '' });
 
@@ -156,12 +167,10 @@ describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
       />
     );
 
-    // Must NOT be empty/null
     expect(container.firstChild).not.toBeNull();
     const promptBtn = screen.getByText(/Укажите ссылку для заказа/i);
     expect(promptBtn).toBeDefined();
 
-    // Clicking prompt activates Step 1
     fireEvent.click(promptBtn);
     expect(setActiveStep).toHaveBeenCalledWith(1);
   });

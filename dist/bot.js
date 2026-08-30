@@ -10440,6 +10440,9 @@ var init_exact_math = __esm({
           if (num < 0) {
             throw new Error(`Negative monetary amounts are forbidden: ${rub}`);
           }
+          if (num > Number.MAX_SAFE_INTEGER) {
+            throw new Error(`Monetary amount exceeds safe calculation limits: ${rub}`);
+          }
           const fixed2 = num.toFixed(2);
           const [whole2, frac2 = "00"] = fixed2.split(".");
           return BigInt(whole2) * BigInt(100) + BigInt(frac2);
@@ -10449,6 +10452,9 @@ var init_exact_math = __esm({
         }
         if (rub < 0) {
           throw new Error(`Negative monetary amounts are forbidden: ${rub}`);
+        }
+        if (rub > Number.MAX_SAFE_INTEGER) {
+          throw new Error(`Monetary amount exceeds safe calculation limits: ${rub}`);
         }
         const fixed = rub.toFixed(2);
         const [whole, frac = "00"] = fixed.split(".");
@@ -71593,6 +71599,9 @@ async function isPublicHost(hostname) {
   if (cleanHost === "localhost" || cleanHost.endsWith(".local") || cleanHost.endsWith(".internal")) {
     return false;
   }
+  if (!isPublicIp(cleanHost)) {
+    return false;
+  }
   try {
     const records = await import_promises.default.lookup(cleanHost, { all: true });
     if (!records || records.length === 0) return false;
@@ -97906,10 +97915,16 @@ var init_order_service = __esm({
             }
             if (!input.isLinkOverridden) {
               const { isLinkServiceCompatible: isLinkServiceCompatible2, getCompatibilityError: getCompatibilityError2, normalizeServiceTargetType: normalizeServiceTargetType2 } = await Promise.resolve().then(() => (init_link_service_compatibility(), link_service_compatibility_exports));
-              const { IntelligenceLinkAnalyzer: IntelligenceLinkAnalyzer2 } = await Promise.resolve().then(() => (init_link_analyzer(), link_analyzer_exports));
-              const analyzer = new IntelligenceLinkAnalyzer2();
-              const analysis = await analyzer.analyze(input.link.trim());
-              const detectedLinkType = analysis?.type || "generic_link";
+              let detectedLinkType = "generic_link";
+              try {
+                const { IntelligenceLinkAnalyzer: IntelligenceLinkAnalyzer2 } = await Promise.resolve().then(() => (init_link_analyzer(), link_analyzer_exports));
+                const analyzer = new IntelligenceLinkAnalyzer2();
+                const analysis = await analyzer.analyze(input.link.trim());
+                detectedLinkType = analysis?.type || "generic_link";
+              } catch (e) {
+                console.warn(`[OrderService] IntelligenceLinkAnalyzer error:`, e);
+                detectedLinkType = "generic_link";
+              }
               const resolvedTargetType = service.targetType || (service.category?.name ? (await Promise.resolve().then(() => (init_target_type(), target_type_exports))).inferTargetTypeFromCategory(service.category.name) : "POST");
               const serviceTargetType = normalizeServiceTargetType2(resolvedTargetType);
               if (!isLinkServiceCompatible2(detectedLinkType, serviceTargetType)) {
@@ -98808,7 +98823,7 @@ var init_payment_gateway_service = __esm({
         const secrets = await SettingsProvider.getPaymentSecrets();
         const shopId = secrets.yookassaShopId;
         const secretKey = secrets.yookassaSecretKey;
-        const isDummyKeys = !shopId || !secretKey || shopId === "test_shop_id" || shopId === "test_shop_id_test" || secretKey === "test_secret" || secretKey === "test_secret_key";
+        const isDummyKeys = !shopId || !secretKey || shopId.trim().length === 0 || secretKey.trim().length === 0;
         if (isDummyKeys) {
           throw new Error("\u041F\u043B\u0430\u0442\u0451\u0436\u043D\u044B\u0439 \u0448\u043B\u044E\u0437 \u042EKassa \u043D\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 Shop ID \u0438 Secret Key \u0432 \u043F\u0430\u043D\u0435\u043B\u0438 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F.");
         }

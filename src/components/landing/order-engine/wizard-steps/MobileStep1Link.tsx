@@ -1,5 +1,5 @@
 import React from "react";
-import { Link2, AlertCircle, ChevronDown } from "lucide-react";
+import { Link2, AlertCircle, ChevronDown, ClipboardPaste } from "lucide-react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { DynamicPayloadWarnings } from "../DynamicPayloadWarnings";
 
@@ -32,14 +32,19 @@ export function MobileStep1Link({
 }: MobileStep1LinkProps) {
   const { url, setUrl, validationErrors, selectedService } = engine;
 
-  React.useEffect(() => {
-    if (currentStep === 1) {
-      const el = document.getElementById("standard-url-input");
-      if (el && document.activeElement !== el && url.trim().length === 0) {
-        setTimeout(() => el.focus(), 150);
+  const handlePasteFromClipboard = async () => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text && text.trim().length > 0) {
+          setUrl(text.trim());
+          if (localUrlError) setLocalUrlError(null);
+        }
       }
+    } catch {
+      // Non-blocking clipboard permission fallback
     }
-  }, [currentStep, url]);
+  };
 
   if (currentStep !== 1) {
     if (url.trim().length >= 5) {
@@ -47,12 +52,12 @@ export function MobileStep1Link({
         <button
           type="button"
           onClick={() => setActiveStep(1)}
-          className="w-full text-left p-3.5 bg-content2 hover:bg-content3 border border-border/40 rounded-2xl flex items-center justify-between transition-all cursor-pointer active:scale-[0.99]"
+          className="w-full text-left p-3 bg-content2 hover:bg-content3 border border-border/40 rounded-2xl flex items-center justify-between transition-all cursor-pointer active:scale-[0.99]"
         >
           <div className="flex flex-col gap-0.5 min-w-0">
             <span className="text-[10px] text-muted-foreground uppercase font-extrabold tracking-wider">1. Ссылка на канал / пост</span>
-            <span className="text-xs font-bold text-foreground truncate">
-              Ссылка: {url}
+            <span className="text-xs font-bold text-foreground truncate font-mono">
+              {url}
             </span>
           </div>
           <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0 rotate-90" />
@@ -63,7 +68,7 @@ export function MobileStep1Link({
       <button
         type="button"
         onClick={() => setActiveStep(1)}
-        className="w-full text-left p-3.5 bg-primary/5 hover:bg-primary/10 border border-dashed border-primary/40 rounded-2xl flex items-center justify-between transition-all cursor-pointer active:scale-[0.99]"
+        className="w-full text-left p-3 bg-primary/5 hover:bg-primary/10 border border-dashed border-primary/40 rounded-2xl flex items-center justify-between transition-all cursor-pointer active:scale-[0.99]"
       >
         <div className="flex flex-col gap-0.5 min-w-0">
           <span className="text-[10px] text-primary uppercase font-extrabold tracking-wider">1. Ссылка на канал / пост</span>
@@ -81,9 +86,11 @@ export function MobileStep1Link({
 
   return (
     <div className="space-y-2">
-      <label htmlFor="standard-url-input" className="block text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider pl-1">
-        1. Введите ссылку на канал, профиль или пост
-      </label>
+      <div className="flex items-center justify-between pl-1">
+        <label htmlFor="standard-url-input" className="block text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
+          1. Введите ссылку на канал, профиль или пост
+        </label>
+      </div>
       
       <div className={`relative w-full group rounded-2xl transition-all duration-300 ${isFocused ? 'p-[2px] scale-[1.01]' : 'p-[1px] scale-100'}`}>
         <div
@@ -126,8 +133,29 @@ export function MobileStep1Link({
             placeholder="https://t.me/channel_or_post"
             aria-label="Введите ссылку на канал, профиль или пост"
             aria-describedby={validationErrors?.link || localUrlError ? "mobile-step1-url-error" : undefined}
-            className="w-full h-11 pl-10 pr-4 rounded-2xl bg-transparent text-base font-semibold text-foreground placeholder:text-muted-foreground/50 outline-none border-none"
+            className="w-full h-11 pl-10 pr-24 rounded-2xl bg-transparent text-base font-semibold text-foreground placeholder:text-muted-foreground/50 outline-none border-none"
           />
+          {url.trim().length === 0 ? (
+            <button
+              type="button"
+              onClick={handlePasteFromClipboard}
+              className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-[11px] font-extrabold flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+            >
+              <ClipboardPaste className="w-3 h-3" />
+              <span>Вставить</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setUrl('');
+                if (localUrlError) setLocalUrlError(null);
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-muted-foreground hover:text-foreground text-xs font-bold cursor-pointer"
+            >
+              ✕
+            </button>
+          )}
         </div>
       </div>
 
@@ -164,7 +192,7 @@ export function MobileStep1Link({
             type="button"
             onClick={onOpenGuide}
             aria-label="Где взять ссылку для заказа? Гайд по ссылкам"
-            className="text-xs font-bold text-muted-foreground hover:text-primary flex items-center gap-1 cursor-pointer active:scale-95 transition-all h-11 min-h-[44px] px-2 -ml-2"
+            className="text-xs font-bold text-muted-foreground hover:text-primary flex items-center gap-1 cursor-pointer active:scale-95 transition-all h-10 px-1 -ml-1"
           >
             <span>❓</span>
             <span className="underline">Где взять ссылку?</span>
@@ -173,11 +201,17 @@ export function MobileStep1Link({
         
         <button
           type="button"
-          onClick={onOpenCatalog}
+          onClick={() => {
+            if (onOpenCatalog) {
+              onOpenCatalog();
+            } else {
+              setActiveStep(2);
+            }
+          }}
           className="text-xs font-bold text-primary hover:underline h-11 min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 w-full border border-dashed border-primary/30 rounded-xl bg-primary/5 active:scale-95 transition-all cursor-pointer"
         >
           <span>📂</span>
-          <span>Выбрать тариф из каталога вручную</span>
+          <span>Или выбрать услугу вручную из каталога →</span>
         </button>
       </div>
     </div>

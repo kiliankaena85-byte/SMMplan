@@ -10,6 +10,7 @@ export function useMobileWizard(engine: OrderEngine) {
   const [activeStepRaw, setActiveStepRaw] = useState<1 | 2 | 3 | 4>(1);
   const [lastResolvedUrl, setLastResolvedUrl] = useState<string>("");
   const [catalogHint, setCatalogHint] = useState(false);
+  const userManuallyBrowsingRef = useRef(false);
 
   // Refs for scroll-into-view on step transitions
   const step2Ref = useRef<HTMLDivElement>(null);
@@ -17,15 +18,16 @@ export function useMobileWizard(engine: OrderEngine) {
   const step4Ref = useRef<HTMLDivElement>(null);
 
   const setActiveStep = useCallback((step: 1 | 2 | 3 | 4) => {
+    userManuallyBrowsingRef.current = true;
     setActiveStepRaw(step);
-    // Scroll to the new step after a short delay for AnimatePresence
+    // Smooth scroll to the new step without jumping
     setTimeout(() => {
       const refMap: Record<number, React.RefObject<HTMLDivElement | null>> = { 2: step2Ref, 3: step3Ref, 4: step4Ref };
       const ref = refMap[step];
       if (ref?.current) {
-        ref.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-    }, 150);
+    }, 100);
   }, []);
 
   const {
@@ -38,21 +40,24 @@ export function useMobileWizard(engine: OrderEngine) {
     validationErrors,
   } = engine;
 
+  // CRITICAL INVARIANT:
+  // 1. If selectedService is already set (e.g. from Catalog Modal / deep link) -> Step 4
+  // 2. If valid url is already set -> Step 2
+  // 3. DEFAULT: Always Step 1 (Вставьте ссылку) — never skip to Step 3 just because categoryId has default value!
   useEffect(() => {
     setMounted(true);
     if (selectedService) {
-      setActiveStep(4);
-    } else if (categoryId) {
-      setActiveStep(3);
-    } else if (url.trim().length >= 5) {
+      setActiveStepRaw(4);
+    } else if (url && url.trim().length >= 5) {
       setLastResolvedUrl(url);
-      setActiveStep(2);
+      setActiveStepRaw(2);
     } else {
-      setActiveStep(1);
+      setActiveStepRaw(1);
     }
   }, []);
 
   const proceedFromStep1 = () => {
+    userManuallyBrowsingRef.current = true;
     if (selectedService) setActiveStep(4);
     else if (categoryId) setActiveStep(3);
     else setActiveStep(2);
@@ -60,11 +65,12 @@ export function useMobileWizard(engine: OrderEngine) {
 
   // URL auto-detection sync: when user pastes a valid link in Step 1, advance to next logical step
   useEffect(() => {
-    if (!isLoading && url.trim().length >= 5) {
+    if (!isLoading && url && url.trim().length >= 5) {
       const isUrlValid = !validationErrors?.link && !localUrlError;
       if (isUrlValid && url !== lastResolvedUrl) {
         setLastResolvedUrl(url);
         if (activeStepRaw === 1) {
+          userManuallyBrowsingRef.current = true;
           if (selectedService) setActiveStep(4);
           else if (categoryId) setActiveStep(3);
           else setActiveStep(2);
@@ -73,11 +79,17 @@ export function useMobileWizard(engine: OrderEngine) {
     }
   }, [isLoading, url, validationErrors?.link, localUrlError, lastResolvedUrl, selectedService, categoryId, activeStepRaw, setActiveStep]);
 
-  // Reactive selection auto-advance: when user selects a service or category from catalog, advance automatically
+  // Reactive selection auto-advance: ONLY advance if the user is already actively browsing (Step >= 2)
+  // or explicitly selected a service
   useEffect(() => {
+    if (!userManuallyBrowsingRef.current && activeStepRaw === 1 && !selectedService) {
+      // Do NOT auto-skip Step 1 on initial load just because categoryId is pre-set!
+      return;
+    }
+
     if (selectedService) {
       setActiveStep(4);
-    } else if (categoryId && activeStepRaw < 3) {
+    } else if (categoryId && activeStepRaw === 2) {
       setActiveStep(3);
     }
   }, [selectedService, categoryId, activeStepRaw, setActiveStep]);
@@ -96,11 +108,13 @@ export function useMobileWizard(engine: OrderEngine) {
     return net ? getBrandStyles(net.slug) : undefined;
   }, [catalog, networkId]);
 
-  const isLinkFilled = url.trim().length >= 5;
+  const isLinkFilled = Boolean(url && url.trim().length >= 5);
+  const hasCategory = Boolean(categoryId);
+  const hasService = Boolean(selectedService);
   const shouldShowCategories = true;
   const shouldShowTariffs = true;
   const shouldShowParameters = true;
-  const currentStep = activeStepRaw as number;
+  const currentStep = activeStepRaw as 1 | 2 | 3 | 4;
 
   return {
     isFocused, setIsFocused,
@@ -113,6 +127,8 @@ export function useMobileWizard(engine: OrderEngine) {
     selectedCategoryName,
     brandStyle,
     isLinkFilled,
+    hasCategory,
+    hasService,
     shouldShowCategories,
     shouldShowTariffs,
     shouldShowParameters,

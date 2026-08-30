@@ -38,7 +38,7 @@ export function MobileStep3Service({
       exit={{ height: 0, opacity: 0 }}
       transition={{ type: "spring", stiffness: 260, damping: 26 }}
       ref={step3Ref}
-      className="space-y-3 overflow-visible border-t border-border/30 pt-4"
+      className="space-y-3 overflow-visible border-t border-border/30 pt-3"
     >
       {currentStep === 3 ? (
         <>
@@ -46,12 +46,15 @@ export function MobileStep3Service({
             <span className="block text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
               3. Выберите тариф • {selectedCategoryName}
             </span>
+            <span className="text-[11px] font-bold text-primary">
+              {services.length} тарифов
+            </span>
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 gap-2">
+            <div className="grid grid-cols-1 gap-2.5">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-20 rounded-2xl bg-muted/20 animate-pulse border border-border/50" />
+                <div key={i} className="h-24 rounded-2xl bg-content2/70 animate-pulse border border-border/40" />
               ))}
             </div>
           ) : services.length === 0 ? (
@@ -61,7 +64,7 @@ export function MobileStep3Service({
                 : "В этой категории пока нет доступных тарифов. Попробуйте выбрать другую."}
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-3 max-h-[40dvh] overflow-y-auto overscroll-contain pr-1">
+            <div className="flex flex-col gap-2.5">
               {services.map((srv) => (
                 <TariffCard
                   key={srv.id}
@@ -77,12 +80,12 @@ export function MobileStep3Service({
             </div>
           )}
 
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-2 pt-1">
             <Button
               type="button"
               intent="outline"
               onClick={() => setActiveStep(2)}
-              className="w-full text-xs font-bold h-11 min-h-[44px] rounded-xl bg-content2 text-foreground border-border/40 hover:bg-content3"
+              className="w-full text-xs font-bold h-11 min-h-[44px] rounded-xl bg-content2 text-foreground border-border/40 hover:bg-content3 cursor-pointer"
             >
               Назад
             </Button>
@@ -90,9 +93,9 @@ export function MobileStep3Service({
               <Button
                 type="button"
                 onClick={() => setActiveStep(4)}
-                className="w-full text-xs font-bold h-11 min-h-[44px] rounded-xl bg-primary text-primary-foreground"
+                className="w-full text-xs font-bold h-11 min-h-[44px] rounded-xl bg-primary text-primary-foreground cursor-pointer"
               >
-                Далее
+                К оформлению →
               </Button>
             )}
           </div>
@@ -102,12 +105,12 @@ export function MobileStep3Service({
           <button
             type="button"
             onClick={() => setActiveStep(3)}
-            className="w-full text-left p-3.5 bg-content2 hover:bg-content3 border border-border/40 rounded-2xl flex items-center justify-between transition-all cursor-pointer active:scale-[0.99]"
+            className="w-full text-left p-3 bg-content2 hover:bg-content3 border border-border/40 rounded-2xl flex items-center justify-between transition-all cursor-pointer active:scale-[0.99]"
           >
             <div className="flex flex-col gap-0.5 min-w-0">
               <span className="text-[10px] text-muted-foreground uppercase font-extrabold tracking-wider">3. Выбранный тариф</span>
               <span className="text-xs font-bold text-foreground truncate">
-                Тариф: {selectedService.name}
+                {selectedService.name}
               </span>
             </div>
             <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0 rotate-90" />

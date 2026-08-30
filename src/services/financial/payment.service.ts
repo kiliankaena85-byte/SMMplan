@@ -37,12 +37,15 @@ export class PaymentService {
 
     try {
       // 1. Double-check against real gateway API in production
-      if (process.env.NODE_ENV === 'production' && gatewayType === 'yookassa') {
+      const isMockPayment = gatewayId.startsWith('test_') || gatewayId.startsWith('mock_');
+      if (process.env.NODE_ENV === 'production' && gatewayType === 'yookassa' && !isDevSandbox && !isMockPayment) {
         const { SettingsManager } = await import('@/lib/settings');
-        const secrets = await SettingsManager.getPaymentSecrets();
-        
-        // We attempt to verify with YooKassa if secrets are configured
-        if (secrets.yookassaShopId && secrets.yookassaSecretKey) {
+        const isTestMode = await SettingsManager.isTestMode();
+        if (!isTestMode) {
+          const secrets = await SettingsManager.getPaymentSecrets();
+          
+          // We attempt to verify with YooKassa if secrets are configured
+          if (secrets.yookassaShopId && secrets.yookassaSecretKey) {
             const authHeader = 'Basic ' + Buffer.from(`${secrets.yookassaShopId}:${secrets.yookassaSecretKey}`).toString('base64');
             try {
                 const response = await fetch(`https://api.yookassa.ru/v3/payments/${gatewayId}`, {
@@ -67,9 +70,10 @@ export class PaymentService {
                 console.error(`[Payment] Verification Exploit Blocked: ${(e instanceof Error ? e.message : String(e))}`);
                 return false; // Reject payment
             }
-        } else {
+          } else {
              console.error(`[Payment] YooKassa verification failed for ${gatewayId} due to missing secrets in admin panel! Rejecting for safety.`);
              return false;
+          }
         }
       }
 

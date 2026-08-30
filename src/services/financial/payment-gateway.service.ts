@@ -67,7 +67,7 @@ class YooKassaGateway extends BasePaymentGateway {
     const shopId = secrets.yookassaShopId;
     const secretKey = secrets.yookassaSecretKey;
 
-    const isDummyKeys = !shopId || !secretKey || shopId === 'test_shop_id' || shopId === 'test_shop_id_test' || secretKey === 'test_secret' || secretKey === 'test_secret_key';
+    const isDummyKeys = !shopId || !secretKey || shopId.trim().length === 0 || secretKey.trim().length === 0;
 
     if (isDummyKeys) {
       throw new Error('Платёжный шлюз ЮKassa не настроен. Пожалуйста, укажите Shop ID и Secret Key в панели управления.');

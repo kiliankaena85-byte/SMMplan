@@ -3,6 +3,7 @@ import { OrderEngine } from "@/hooks/useOrderEngine";
 import { Loader2 } from "lucide-react";
 
 // Wizard Steps
+import { MobileWizardStepper } from "./wizard-steps/MobileWizardStepper";
 import { MobileStep1Link } from "./wizard-steps/MobileStep1Link";
 import { MobileStep2Category } from "./wizard-steps/MobileStep2Category";
 import { MobileStep3Service } from "./wizard-steps/MobileStep3Service";
@@ -43,7 +44,15 @@ export function MobileWizard({
   }
 
   return (
-    <div data-testid="mobile-wizard" className="md:hidden flex flex-col gap-5 p-4 bg-card rounded-3xl shadow-sm relative z-30 animate-in fade-in duration-300">
+    <div data-testid="mobile-wizard" className="md:hidden flex flex-col gap-4 p-3.5 bg-card rounded-3xl shadow-sm relative z-30 animate-in fade-in duration-300">
+      <MobileWizardStepper
+        currentStep={wizard.currentStep}
+        setActiveStep={wizard.setActiveStep}
+        isLinkFilled={wizard.isLinkFilled}
+        hasCategory={wizard.hasCategory}
+        hasService={wizard.hasService}
+      />
+
       <MobileStep1Link 
         engine={engine}
         currentStep={wizard.currentStep}
