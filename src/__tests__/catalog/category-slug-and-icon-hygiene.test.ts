@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { cleanCategoryName } from '@/components/ui/CategoryIcon';
-import { cyrillicToSlug } from '@/actions/admin/catalog/categories';
+import { cyrillicToSlug } from '@/utils/slugify';
 
 describe('Category Icon Hygiene & Unicode Clean Text (Zero-Duplicate Icons)', () => {
   it('cleanCategoryName strips leading emojis and preserves 100% of Cyrillic text', () => {

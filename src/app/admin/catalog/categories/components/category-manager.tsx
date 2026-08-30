@@ -10,9 +10,9 @@ import {
   mergeCategoriesAction,
   createNetworkAction,
   updateNetworkAction,
-  deleteNetworkAction,
-  cyrillicToSlug
+  deleteNetworkAction
 } from "@/actions/admin/catalog/categories";
+import { cyrillicToSlug } from "@/utils/slugify";
 import { Table } from '@/components/admin/hero-ui';
 import { toast } from "sonner";
 import { Loader2, Plus, Globe, GitMerge, Pencil, Trash2, Search, EyeOff, Layers, ExternalLink, AlertTriangle } from "lucide-react";
