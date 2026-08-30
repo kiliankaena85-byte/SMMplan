@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useTransition, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Save, Loader2, Layers, ShieldCheck, Target, AlertTriangle, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -55,6 +55,7 @@ interface ServiceEditFormProps {
   networks: NetworkOption[];
   providers: ProviderOption[];
   exchangeRateUsd: number;
+  returnUrl?: string;
 }
 
 const TARGET_TYPE_OPTIONS = [
@@ -75,8 +76,11 @@ export function ServiceEditForm({
   networks,
   providers,
   exchangeRateUsd,
+  returnUrl,
 }: ServiceEditFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const effectiveReturnUrl = returnUrl || searchParams.get('returnUrl') || '/admin/catalog';
   const [isPending, startTransition] = useTransition();
 
   const [name, setName] = useState(initialData.name);
@@ -165,7 +169,7 @@ export function ServiceEditForm({
 
         if (res.success) {
           toast.success('Услуга успешно обновлена');
-          router.push('/admin/catalog');
+          router.push(effectiveReturnUrl);
           router.refresh();
         } else {
           toast.error(res.error || 'Ошибка при сохранении');
@@ -182,8 +186,9 @@ export function ServiceEditForm({
       <div className="flex items-center justify-between gap-4 pb-4 border-b border-border">
         <div className="flex items-center gap-3">
           <Link
-            href="/admin/catalog"
+            href={effectiveReturnUrl}
             className="p-2 rounded-xl border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            title="Вернуться в каталог"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>

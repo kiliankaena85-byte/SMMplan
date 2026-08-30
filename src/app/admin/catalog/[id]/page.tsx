@@ -8,13 +8,16 @@ export const dynamic = 'force-dynamic';
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ returnUrl?: string; [key: string]: string | undefined }>;
 }
 
-export default async function AdminEditServicePage({ params }: Props) {
+export default async function AdminEditServicePage({ params, searchParams }: Props) {
   const session = await verifySession();
   if (!session) redirect('/admin/login');
 
   const { id } = await params;
+  const sp = searchParams ? await searchParams : {};
+  const returnUrl = sp.returnUrl || undefined;
 
   const [service, networks, providers, exchangeRateUsd] = await Promise.all([
     db.service.findUnique({
@@ -89,6 +92,7 @@ export default async function AdminEditServicePage({ params }: Props) {
         networks={networks}
         providers={providers}
         exchangeRateUsd={exchangeRateUsd || 90.0}
+        returnUrl={returnUrl}
       />
     </div>
   );

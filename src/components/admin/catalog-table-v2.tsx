@@ -153,10 +153,16 @@ export function EditServiceModal({
   onSuccess?: () => void;
   usdToRub?: number;
 }) {
+  const searchParams = useSearchParams();
+  const qs = searchParams.toString();
+  const editHref = qs
+    ? `/admin/catalog/${service.id}?returnUrl=${encodeURIComponent(`/admin/catalog?${qs}`)}`
+    : `/admin/catalog/${service.id}`;
+
   return (
     <div className="flex items-center gap-1">
       <Link
-        href={`/admin/catalog/${service.id}`}
+        href={editHref}
         aria-label={`Редактировать услугу ${service.name}`}
         className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200 cursor-pointer"
       >
@@ -662,7 +668,7 @@ export function CatalogTable({
                     <Table.Cell className={canEdit ? "py-2 px-2 text-right" : "hidden"}>
                       <div className="flex items-center gap-1 justify-end">
                         <Link
-                          href={`/admin/catalog/${s.id}`}
+                          href={searchParams.toString() ? `/admin/catalog/${s.id}?returnUrl=${encodeURIComponent(`/admin/catalog?${searchParams.toString()}`)}` : `/admin/catalog/${s.id}`}
                           title="Редактировать услугу"
                           aria-label={`Редактировать услугу ${s.name}`}
                           className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all cursor-pointer"

@@ -261,10 +261,20 @@ export function CatalogFilters({ categories, providers, selectedTenant }: Catalo
     router.push(resetUrl, { scroll: false });
   };
 
-  const hasActiveFilters = Boolean(
-    localSearch || localExternalId || localPlatform !== 'ALL' || localCategory !== 'all' || 
-    localProviderId !== 'all' || localIsActive !== 'all' || localProviderStatus !== 'all' || localHideDeleted
-  );
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (localSearch) count++;
+    if (localExternalId) count++;
+    if (localPlatform !== 'ALL') count++;
+    if (localCategory !== 'all') count++;
+    if (localProviderId !== 'all') count++;
+    if (localIsActive !== 'all') count++;
+    if (localProviderStatus !== 'all') count++;
+    if (localHideDeleted) count++;
+    return count;
+  }, [localSearch, localExternalId, localPlatform, localCategory, localProviderId, localIsActive, localProviderStatus, localHideDeleted]);
+
+  const hasActiveFilters = activeFiltersCount > 0;
 
   return (
     <div className="bg-card/70 backdrop-blur-md border border-border p-3.5 sm:p-4 rounded-xl shadow-xs space-y-3">
@@ -289,16 +299,27 @@ export function CatalogFilters({ categories, providers, selectedTenant }: Catalo
           </button>
         </div>
 
-        {hasActiveFilters && (
+        <div className="flex items-center gap-2">
+          {activeFiltersCount > 0 && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 animate-in fade-in duration-200">
+              Активно фильтров: {activeFiltersCount}
+            </span>
+          )}
           <button 
             type="button"
             onClick={resetAllFilters} 
-            className="text-[11px] font-bold text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors cursor-pointer"
+            disabled={!hasActiveFilters}
+            className={`text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer border ${
+              hasActiveFilters
+                ? 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20 hover:border-destructive/30 shadow-2xs active:scale-95'
+                : 'bg-muted/30 text-muted-foreground/40 border-border/40 cursor-not-allowed opacity-50'
+            }`}
+            title={hasActiveFilters ? 'Сбросить все выбранные фильтры и поиск' : 'Фильтры не применены'}
           >
-            <RotateCcw className="w-3 h-3" />
-            Сбросить фильтры
+            <RotateCcw className={`w-3.5 h-3.5 ${hasActiveFilters ? 'text-destructive' : ''}`} />
+            <span>Сбросить фильтры</span>
           </button>
-        )}
+        </div>
       </div>
       
       {/* ROW 1: Поиск | Внешний ID | Соцсеть | Категория */}
