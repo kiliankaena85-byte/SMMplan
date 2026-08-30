@@ -55,6 +55,10 @@ export async function batchToggleServicesAction(
     revalidatePath('/services', 'layout');
     revalidateTag('catalog', 'default');
     revalidateTag('services', 'default');
+    revalidateTag('catalog-smmplan', 'default');
+    revalidateTag('catalog-flux', 'default');
+    revalidateTag('services-smmplan', 'default');
+    revalidateTag('services-flux', 'default');
     return { success: true as const, count: ids.data.length };
   });
 }
@@ -122,6 +126,10 @@ export async function batchSetMarkupAction(
     revalidatePath('/services', 'layout');
     revalidateTag('catalog', 'default');
     revalidateTag('services', 'default');
+    revalidateTag('catalog-smmplan', 'default');
+    revalidateTag('catalog-flux', 'default');
+    revalidateTag('services-smmplan', 'default');
+    revalidateTag('services-flux', 'default');
     return { success: true as const, count: ids.data.length };
   });
 }
@@ -226,6 +234,10 @@ export async function updateServiceMarkupAction(
     revalidatePath('/services', 'layout');
     revalidateTag('catalog', 'default');
     revalidateTag('services', 'default');
+    revalidateTag('catalog-smmplan', 'default');
+    revalidateTag('catalog-flux', 'default');
+    revalidateTag('services-smmplan', 'default');
+    revalidateTag('services-flux', 'default');
     return { success: true as const };
   });
 }
@@ -254,6 +266,10 @@ export async function toggleServiceActiveAction(
     revalidatePath('/services', 'layout');
     revalidateTag('catalog', 'default');
     revalidateTag('services', 'default');
+    revalidateTag('catalog-smmplan', 'default');
+    revalidateTag('catalog-flux', 'default');
+    revalidateTag('services-smmplan', 'default');
+    revalidateTag('services-flux', 'default');
     return { success: true as const };
   });
 }
@@ -300,6 +316,10 @@ export async function batchReassignServicesCategoryAction(
     revalidatePath('/services', 'layout');
     revalidateTag('catalog', 'default');
     revalidateTag('services', 'default');
+    revalidateTag('catalog-smmplan', 'default');
+    revalidateTag('catalog-flux', 'default');
+    revalidateTag('services-smmplan', 'default');
+    revalidateTag('services-flux', 'default');
     return { success: true as const, count: updateResult.count };
   });
 }
@@ -363,6 +383,10 @@ export async function batchResetMarkupAction(
     revalidatePath('/services', 'layout');
     revalidateTag('catalog', 'default');
     revalidateTag('services', 'default');
+    revalidateTag('catalog-smmplan', 'default');
+    revalidateTag('catalog-flux', 'default');
+    revalidateTag('services-smmplan', 'default');
+    revalidateTag('services-flux', 'default');
     return { success: true as const, count: ids.data.length };
   });
 }

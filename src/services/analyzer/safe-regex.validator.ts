@@ -149,4 +149,40 @@ export class SafeRegexValidator {
 
     return escaped;
   }
+
+  /**
+   * Runs a suite of smoke test URLs against a regex to verify both safety and functional matching accuracy
+   */
+  static runSmokeTestSuite(
+    patternString: string,
+    smokeCases: { url: string; expectedMatch: boolean }[],
+    flags: string = 'i'
+  ): { passed: boolean; failedCases: { url: string; expected: boolean; actual: boolean }[]; error?: string } {
+    const audit = this.staticAudit(patternString);
+    if (!audit.isSafe) {
+      return { passed: false, failedCases: [], error: audit.reason };
+    }
+
+    let regex: RegExp;
+    try {
+      regex = new RegExp(patternString, flags);
+    } catch (e: unknown) {
+      return { passed: false, failedCases: [], error: e instanceof Error ? e.message : String(e) };
+    }
+
+    const failedCases: { url: string; expected: boolean; actual: boolean }[] = [];
+    for (const testCase of smokeCases) {
+      const match = Boolean(testCase.url.match(regex));
+      if (match !== testCase.expectedMatch) {
+        failedCases.push({ url: testCase.url, expected: testCase.expectedMatch, actual: match });
+      }
+    }
+
+    return {
+      passed: failedCases.length === 0,
+      failedCases,
+      error: failedCases.length > 0 ? `Не прошло ${failedCases.length} smoke-тестов` : undefined
+    };
+  }
 }
+

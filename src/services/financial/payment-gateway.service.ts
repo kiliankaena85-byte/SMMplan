@@ -67,14 +67,10 @@ class YooKassaGateway extends BasePaymentGateway {
     const shopId = secrets.yookassaShopId;
     const secretKey = secrets.yookassaSecretKey;
 
-    const isMockPayment = await SettingsProvider.isTestMode();
     const isDummyKeys = !shopId || !secretKey || shopId === 'test_shop_id' || shopId === 'test_shop_id_test' || secretKey === 'test_secret' || secretKey === 'test_secret_key';
 
-    if (isMockPayment || isDummyKeys) {
-      return {
-        paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
-        remoteGatewayId: `mock_${Date.now()}`
-      };
+    if (isDummyKeys) {
+      throw new Error('Платёжный шлюз ЮKassa не настроен. Пожалуйста, укажите Shop ID и Secret Key в панели управления.');
     }
 
     const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
@@ -139,13 +135,6 @@ class YooKassaGateway extends BasePaymentGateway {
     if (!resp.ok) {
       const errBody = await resp.text();
       console.error('[YooKassaGateway] API Error:', resp.status, errBody);
-      if ((resp.status === 401 || resp.status === 403) && process.env.ENABLE_DEV_ROUTES === 'true') {
-        console.warn('[YooKassaGateway] YooKassa test credentials rejected (HTTP ' + resp.status + '). Falling back to mock-payment dev route.');
-        return {
-          paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
-          remoteGatewayId: `mock_${Date.now()}`
-        };
-      }
       let descriptiveError = 'Ошибка шлюза YooKassa';
       try {
         const parsed = JSON.parse(errBody);
@@ -200,17 +189,10 @@ class CryptoBotGateway extends BasePaymentGateway {
     const secrets = await SettingsProvider.getPaymentSecrets();
     const cryptoToken = secrets.cryptoBotToken;
 
-    const isDummyKeys = !cryptoToken || cryptoToken === 'test_token' || cryptoToken === 'test_shop_id' || cryptoToken === 'test_login' || cryptoToken.startsWith('test_');
+    const isDummyKeys = !cryptoToken || cryptoToken === 'test_token' || cryptoToken === 'test_bot_token' || cryptoToken === 'test_shop_id' || cryptoToken === 'test_login' || cryptoToken.startsWith('test_') || cryptoToken.trim().length === 0;
 
     if (isDummyKeys) {
-      if (process.env.NODE_ENV === 'production' && !params.isTestMode && process.env.ENABLE_DEV_ROUTES !== 'true') {
-        console.error('[CryptoBotGateway] CryptoBot API token missing in production', { paymentId: params.paymentId });
-        throw new Error('Платёжный шлюз CryptoBot не настроен. Пожалуйста, укажите API токен в панели управления.');
-      }
-      return {
-        paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
-        remoteGatewayId: `mock_${Date.now()}`
-      };
+      throw new Error('Платёжный шлюз CryptoBot не настроен. Пожалуйста, укажите действующий API токен в панели управления.');
     }
 
     const legalSettings = await SettingsProvider.getContactAndLegalSettings();
@@ -397,13 +379,10 @@ class RobokassaGateway extends BasePaymentGateway {
     const login = secrets.robokassaLogin;
     const password = secrets.robokassaPassword;
 
-    const isDummyKeys = params.isTestMode || !login || !password || login === 'test_login';
+    const isDummyKeys = !login || !password || login === 'test_login' || login.trim().length === 0 || password.trim().length === 0;
 
     if (isDummyKeys) {
-      return {
-        paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
-        remoteGatewayId: `mock_${Date.now()}`
-      };
+      throw new Error('Платёжный шлюз Робокасса не настроен. Пожалуйста, укажите Merchant Login и Пароль в панели управления.');
     }
 
     const outSum = params.amountRub.toFixed(2);
@@ -463,7 +442,7 @@ class RobokassaGateway extends BasePaymentGateway {
 class MockGateway extends BasePaymentGateway {
   async createPayment(params: PaymentGatewayParams): Promise<PaymentGatewayResult> {
     return {
-      paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
+      paymentUrl: params.successUrl || `${await getBaseUrlAsync()}/dashboard/add-funds?success=1`,
       remoteGatewayId: `mock_${Date.now()}`
     };
   }

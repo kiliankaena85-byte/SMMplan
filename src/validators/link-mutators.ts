@@ -296,3 +296,69 @@ export const getCustomValidator = (customDataType?: string | null) => {
   }
   return z.string().trim().min(1, "Поле не может быть пустым");
 };
+
+/**
+ * Validates regular expression safety (ReDoS protection) and optionally runs smoke test URLs
+ */
+export function validateRegexSafetyAndSmoke(
+  pattern: string,
+  smokeCases?: { url: string; expectedMatch: boolean }[]
+): { isValid: boolean; error?: string; warning?: string } {
+  if (!pattern || !pattern.trim()) {
+    return { isValid: false, error: 'Шаблон регулярного выражения не может быть пустым' };
+  }
+
+  // Length guard
+  if (pattern.length > 300) {
+    return { isValid: false, error: 'Слишком длинный шаблон регулярного выражения (макс. 300 символов)' };
+  }
+
+  // Nested quantifiers check (ReDoS)
+  const redosDetectors = [
+    /\([^)]*(\+|\*)[^)]*\)[+*]/,
+    /\([^)]*(\+|\*)[^)]*\)\{/i,
+    /\([a-z0-9_.\-\\s|]+\+[|][^)]+\)\+/i,
+    /\([a-z0-9_.\-\\s|]+\*[|][^)]+\)\*/i,
+    /\(\.\*\)\+/,
+    /\(\.\+\)\+/,
+    /\(\.\*\)\*/,
+    /\([^)]*\|[^)]*\)[+*]/,
+    /\(\.\*[^)]*\)\{\d+,?\}/,
+  ];
+
+  for (const dangerous of redosDetectors) {
+    if (dangerous.test(pattern)) {
+      return {
+        isValid: false,
+        error: 'Обнаружена потенциальная ReDoS уязвимость (вложенные квантификаторы вроде (a+)+ или (.*)+)'
+      };
+    }
+  }
+
+  // Compilation test
+  let regex: RegExp;
+  try {
+    regex = new RegExp(pattern, 'i');
+  } catch (e: unknown) {
+    return {
+      isValid: false,
+      error: `Синтаксическая ошибка в RegEx: ${e instanceof Error ? e.message : String(e)}`
+    };
+  }
+
+  // Smoke test cases if provided
+  if (smokeCases && smokeCases.length > 0) {
+    for (const testCase of smokeCases) {
+      const isMatch = Boolean(testCase.url.match(regex));
+      if (isMatch !== testCase.expectedMatch) {
+        return {
+          isValid: false,
+          error: `Smoke-тест не пройден для URL "${testCase.url}": ожидалось ${testCase.expectedMatch ? 'совпадение' : 'отклонение'}, получено ${isMatch ? 'совпадение' : 'отклонение'}`
+        };
+      }
+    }
+  }
+
+  return { isValid: true };
+}
+

@@ -72,8 +72,9 @@ export class UnifiedPaymentService {
       };
 
     } catch (e: unknown) {
-      console.error('[UnifiedPayment] System error:', (e instanceof Error ? e.message : String(e)));
-      return { success: false, error: 'Internal logic exception' };
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error('[UnifiedPayment] System error:', msg);
+      return { success: false, error: msg || 'Ошибка платежного шлюза' };
     }
   }
 }

@@ -4,6 +4,7 @@ import { useState, useTransition, useRef, useEffect } from 'react';
 import { createTopUpPaymentAction } from '@/actions/user/top-up.action';
 import { activatePromoCodeAction } from '@/actions/user/promo';
 import { createB2bInvoiceAction } from '@/actions/user/b2b-invoice.action';
+import { getAvailableGatewaysAction } from '@/actions/order/checkout';
 import {
   CreditCard,
   Wallet,
@@ -94,6 +95,35 @@ export default function AddFundsForm() {
   const [method, setMethod] = useState<PaymentMethodId>('sbp');
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [availableGateways, setAvailableGateways] = useState<{
+    yookassa: boolean;
+    sbp?: boolean;
+    robokassa: boolean;
+    cryptobot: boolean;
+    b2b?: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    getAvailableGatewaysAction().then((res) => {
+      if (res.success && res.data) {
+        setAvailableGateways(res.data);
+        const data = res.data;
+        const isCurrentActive =
+          (method === 'sbp' && data.yookassa) ||
+          (method === 'yookassa' && data.yookassa) ||
+          (method === 'cryptobot' && data.cryptobot) ||
+          (method === 'robokassa' && data.robokassa) ||
+          (method === 'b2b' && data.b2b !== false);
+
+        if (!isCurrentActive) {
+          if (data.yookassa) setMethod('sbp');
+          else if (data.cryptobot) setMethod('cryptobot');
+          else if (data.robokassa) setMethod('robokassa');
+          else setMethod('b2b');
+        }
+      }
+    });
+  }, [method]);
 
   // B2B state
   const [b2bCompanyName, setB2bCompanyName] = useState('');
@@ -329,7 +359,14 @@ export default function AddFundsForm() {
             Способ оплаты
           </label>
           <div className="space-y-2.5">
-            {METHODS.map(({ id, label, badge, badgeColor, icon: Icon, note }) => {
+            {METHODS.filter(({ id }) => {
+              if (!availableGateways) return true;
+              if (id === 'sbp' || id === 'yookassa') return Boolean(availableGateways.yookassa);
+              if (id === 'cryptobot') return Boolean(availableGateways.cryptobot);
+              if (id === 'robokassa') return Boolean(availableGateways.robokassa);
+              if (id === 'b2b') return true;
+              return false;
+            }).map(({ id, label, badge, badgeColor, icon: Icon, note }) => {
               const isSelected = method === id;
               return (
                 <button

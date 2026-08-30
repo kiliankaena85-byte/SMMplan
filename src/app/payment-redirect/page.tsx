@@ -46,7 +46,22 @@ export default function PaymentRedirectPage() {
           return;
         }
 
-        if (data.checkoutUrl) {
+        if (data.status === 'SUCCEEDED') {
+          setStatus('redirecting');
+          setTimeout(() => {
+            if (isMounted) {
+              window.location.href = '/dashboard/add-funds?success=1';
+            }
+          }, 500);
+          return;
+        }
+
+        const isSelfRedirect = data.checkoutUrl && (
+          data.checkoutUrl.includes('/payment-redirect') ||
+          (typeof window !== 'undefined' && data.checkoutUrl === window.location.href)
+        );
+
+        if (data.checkoutUrl && !isSelfRedirect) {
           setStatus('redirecting');
           // Short delay for UX smoothness
           setTimeout(() => {

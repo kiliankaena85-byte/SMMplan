@@ -9,6 +9,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { SettingsProvider } from "@/lib/settings";
 import { applyBeautifulRounding } from "@/lib/financial-constants";
 import { inferTargetTypeFromCategory } from "@/utils/target-type";
+import { validateRegexSafetyAndSmoke } from "@/validators/link-mutators";
 
 export async function ensureTaxonomyTenantAccess(categoryId: string) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
@@ -128,6 +129,14 @@ export async function createServiceAction(rawData: unknown) {
       targetType = inferTargetTypeFromCategory(category.name);
     }
 
+    // Validate link regex safety (ReDoS check)
+    if (data.linkValidatorRegex) {
+      const regexAudit = validateRegexSafetyAndSmoke(data.linkValidatorRegex);
+      if (!regexAudit.isValid) {
+        return { success: false as const, error: regexAudit.error || 'Некорректное или небезопасное регулярное выражение' };
+      }
+    }
+
     // Calculate pricePer1000Cents dynamically using CBR exchange rate
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
     const exchangeRate = providerCurrency === 'RUB' ? 1.0 : usdToRub;
@@ -193,6 +202,8 @@ export async function createServiceAction(rawData: unknown) {
     revalidatePath("/admin/catalog");
     revalidateTag("catalog", 'default');
     revalidateTag("services", 'default');
+    revalidateTag(`catalog-${data.tenantId}`, 'default');
+    revalidateTag(`services-${data.tenantId}`, 'default');
 
     return { success: true as const, serviceId: service.id };
   });
@@ -246,6 +257,14 @@ export async function updateServiceAction(id: string, rawData: unknown) {
     let targetType = data.targetType;
     if (!targetType) {
       targetType = inferTargetTypeFromCategory(category.name);
+    }
+
+    // Validate link regex safety (ReDoS check)
+    if (data.linkValidatorRegex) {
+      const regexAudit = validateRegexSafetyAndSmoke(data.linkValidatorRegex);
+      if (!regexAudit.isValid) {
+        return { success: false as const, error: regexAudit.error || 'Некорректное или небезопасное регулярное выражение' };
+      }
     }
 
     // Recalculate pricePer1000Cents dynamically using CBR exchange rate
@@ -327,6 +346,8 @@ export async function updateServiceAction(id: string, rawData: unknown) {
     revalidatePath("/admin/catalog");
     revalidateTag("catalog", 'default');
     revalidateTag("services", 'default');
+    revalidateTag(`catalog-${updatedService.tenantId}`, 'default');
+    revalidateTag(`services-${updatedService.tenantId}`, 'default');
 
     return { success: true as const, serviceId: updatedService.id };
   });
@@ -345,7 +366,7 @@ export async function deleteOrArchiveServiceAction(id: string) {
 
     const service = await db.service.findUnique({
       where: { id },
-      select: { id: true, name: true, isActive: true, _count: { select: { orders: true } } }
+      select: { id: true, name: true, tenantId: true, isActive: true, _count: { select: { orders: true } } }
     });
 
     if (!service) {
@@ -373,6 +394,10 @@ export async function deleteOrArchiveServiceAction(id: string) {
         revalidatePath("/admin/catalog/tree");
         revalidateTag("catalog", 'default');
         revalidateTag("services", 'default');
+        if (service.tenantId) {
+          revalidateTag(`catalog-${service.tenantId}`, 'default');
+          revalidateTag(`services-${service.tenantId}`, 'default');
+        }
 
         return { 
           success: true as const, 

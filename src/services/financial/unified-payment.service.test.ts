@@ -24,10 +24,15 @@ vi.mock('@/lib/settings', () => ({
     isTestMode: vi.fn().mockResolvedValue(false),
   },
   SettingsProvider: {
+    getPaymentSecrets: vi.fn().mockResolvedValue({
+      yookassaShopId: 'shop-1',
+      yookassaSecretKey: 'secret-1',
+      cryptoBotToken: 'token-1'
+    }),
     getContactAndLegalSettings: vi.fn().mockResolvedValue({
       COMPANY_NAME: 'DynamicBrand',
     }),
-    getSupportEmailDomain: vi.fn().mockResolvedValue('dynamicbrand.com'),
+    getSupportEmailDomain: vi.fn().mockResolvedValue('smmflux.ru'),
     isTestMode: vi.fn().mockResolvedValue(false),
   }
 }));
@@ -51,7 +56,7 @@ describe('UnifiedPaymentService', () => {
     originalNextPublicAppUrl = process.env.NEXT_PUBLIC_APP_URL;
     originalBaseUrl = process.env.BASE_URL;
 
-    process.env.NEXT_PUBLIC_APP_URL = 'https://app.dynamicbrand.com';
+    process.env.NEXT_PUBLIC_APP_URL = 'https://smmflux.ru';
     delete process.env.APP_URL;
     delete process.env.WEBAPP_URL;
     delete process.env.BASE_URL;
@@ -91,7 +96,7 @@ describe('UnifiedPaymentService', () => {
     // Check fetch call to ensure return_url used dynamic domain
     const fetchArgs = (global.fetch as any).mock.calls[0];
     const payload = JSON.parse(fetchArgs[1].body);
-    expect(payload.confirmation.return_url).toBe('https://dynamicbrand.com/dashboard');
+    expect(payload.confirmation.return_url).toBe('https://smmflux.ru/dashboard');
   });
 
   it('CryptoBot gateway uses dynamic brand name for hidden_message', async () => {
