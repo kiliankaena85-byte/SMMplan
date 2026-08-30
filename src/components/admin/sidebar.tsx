@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
+import { isNavTabActive } from '@/components/admin/navigation-data';
 
 interface NavItem {
   href: string;
@@ -92,6 +93,10 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
   const currentTheme = theme || 'sky-dark';
   const currentAccent = currentTheme.includes('emerald') ? 'emerald' : currentTheme.includes('violet') ? 'violet' : currentTheme.includes('warm') ? 'warm' : currentTheme.includes('telegram') ? 'telegram' : 'sky';
 
+  const allNavHrefs = React.useMemo(() => {
+    return navigation.flatMap((g) => g.items.map((item) => item.href));
+  }, [navigation]);
+
   // All flat items map for pinned rendering
   const allItemsMap = React.useMemo(() => {
     const map = new Map<string, NavItem>();
@@ -166,7 +171,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
               </h3>
             )}
             {pinnedItems.map((tab) => {
-              const isActive = pathname === tab.href || pathname?.startsWith(tab.href + '/');
+              const isActive = isNavTabActive(pathname, tab.href, allNavHrefs);
               const IconComponent = ICON_MAP[tab.icon] || Home;
               return (
                 <Link
@@ -229,7 +234,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
               {(!isGroupCollapsed || collapsed) && (
                 <div className="space-y-0.5">
                   {section.items.map((tab) => {
-                    const isActive = pathname === tab.href || (tab.href !== '/admin/dashboard' && pathname?.startsWith(tab.href));
+                    const isActive = isNavTabActive(pathname, tab.href, allNavHrefs);
                     const isPinned = pinnedHrefs.includes(tab.href);
                     const IconComponent = ICON_MAP[tab.icon] || Home;
 

@@ -30,7 +30,7 @@ const PRESETS = [
   { value: 25000, label: '25 000 ₽' },
 ];
 
-export type PaymentMethodId = 'sbp' | 'yookassa' | 'cryptobot' | 'robokassa' | 'b2b';
+export type PaymentMethodId = 'yookassa' | 'cryptobot' | 'robokassa' | 'b2b';
 
 const METHODS: Array<{
   id: PaymentMethodId;
@@ -42,21 +42,12 @@ const METHODS: Array<{
   commission: string;
 }> = [
   {
-    id: 'sbp',
-    label: 'СБП (Система быстрых платежей)',
-    badge: '0% комиссия',
-    badgeColor: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-    icon: QrCode,
-    note: 'Оплата по QR-коду или через мобильное приложение любого банка РФ',
-    commission: '0%',
-  },
-  {
     id: 'yookassa',
-    label: 'Банковские карты РФ',
+    label: 'Банковские карты РФ и СБП (ЮKassa)',
     badge: 'Мгновенно',
     badgeColor: 'bg-primary/10 text-primary border-primary/20',
     icon: CreditCard,
-    note: 'МИР, Visa, Mastercard РФ • Онлайн-чеки 54-ФЗ',
+    note: 'МИР, Visa, Mastercard РФ, СБП, SberPay, T-Pay • Онлайн-чеки 54-ФЗ',
     commission: '0%',
   },
   {
@@ -92,12 +83,11 @@ export default function AddFundsForm() {
   const isSuccess = searchParams.get('success') === '1';
 
   const [amount, setAmount] = useState<number>(3000);
-  const [method, setMethod] = useState<PaymentMethodId>('sbp');
+  const [method, setMethod] = useState<PaymentMethodId>('yookassa');
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [availableGateways, setAvailableGateways] = useState<{
     yookassa: boolean;
-    sbp?: boolean;
     robokassa: boolean;
     cryptobot: boolean;
     b2b?: boolean;
@@ -106,20 +96,25 @@ export default function AddFundsForm() {
   useEffect(() => {
     getAvailableGatewaysAction().then((res) => {
       if (res.success && res.data) {
-        setAvailableGateways(res.data);
         const data = res.data;
+        setAvailableGateways({
+          yookassa: Boolean(data.yookassa),
+          robokassa: Boolean(data.robokassa),
+          cryptobot: Boolean(data.cryptobot),
+          b2b: Boolean(data.b2b)
+        });
+
         const isCurrentActive =
-          (method === 'sbp' && data.yookassa) ||
           (method === 'yookassa' && data.yookassa) ||
           (method === 'cryptobot' && data.cryptobot) ||
           (method === 'robokassa' && data.robokassa) ||
-          (method === 'b2b' && data.b2b !== false);
+          (method === 'b2b' && data.b2b);
 
         if (!isCurrentActive) {
-          if (data.yookassa) setMethod('sbp');
+          if (data.yookassa) setMethod('yookassa');
           else if (data.cryptobot) setMethod('cryptobot');
           else if (data.robokassa) setMethod('robokassa');
-          else setMethod('b2b');
+          else if (data.b2b) setMethod('b2b');
         }
       }
     });
@@ -212,8 +207,7 @@ export default function AddFundsForm() {
 
     startTransition(async () => {
       try {
-        const gatewayParam = method === 'sbp' ? 'yookassa' : method;
-        const res = await createTopUpPaymentAction(amount, gatewayParam);
+        const res = await createTopUpPaymentAction(amount, method);
         if (res.success && res.paymentUrl) {
           window.location.href = res.paymentUrl;
         } else {
@@ -364,11 +358,11 @@ export default function AddFundsForm() {
           </label>
           <div className="space-y-2.5">
             {METHODS.filter(({ id }) => {
-              if (!availableGateways) return true;
-              if (id === 'sbp' || id === 'yookassa') return Boolean(availableGateways.yookassa);
+              if (!availableGateways) return id === 'yookassa';
+              if (id === 'yookassa') return Boolean(availableGateways.yookassa);
               if (id === 'cryptobot') return Boolean(availableGateways.cryptobot);
               if (id === 'robokassa') return Boolean(availableGateways.robokassa);
-              if (id === 'b2b') return true;
+              if (id === 'b2b') return Boolean(availableGateways.b2b);
               return false;
             }).map(({ id, label, badge, badgeColor, icon: Icon, note }) => {
               const isSelected = method === id;

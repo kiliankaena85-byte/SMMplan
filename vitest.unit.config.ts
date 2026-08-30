@@ -28,6 +28,7 @@ export default defineConfig({
       'src/__tests__/admin-stress/admin-panel-stress-and-resilience.test.ts',
       'src/__tests__/checkout-payments/checkout-resilience-and-bypass.test.ts',
       'src/__tests__/mobile-wizard-smoke.test.tsx',
+      'src/__tests__/admin-nav-active.test.ts',
     ],
   }
 });

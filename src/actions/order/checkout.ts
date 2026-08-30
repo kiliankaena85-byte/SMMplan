@@ -1211,14 +1211,22 @@ export async function getAvailableGatewaysAction() {
       !secrets.cryptoBotToken.startsWith('test_')
     );
 
+    // B2B is only valid if company legal INN is configured (not placeholder "Укажите ИНН")
+    const legalDetails = await SettingsProvider.getContactAndLegalSettings();
+    const hasValidB2b = Boolean(
+      legalDetails.LEGAL_INN && 
+      legalDetails.LEGAL_INN !== 'Укажите ИНН' && 
+      legalDetails.LEGAL_INN.trim().length >= 10
+    );
+
     return {
       success: true,
       data: {
         yookassa: hasValidYookassa,
-        sbp: hasValidYookassa,
+        sbp: false, // SBP is integrated inside YooKassa gateway, not a standalone gateway
         robokassa: hasValidRobokassa,
         cryptobot: hasValidCryptoBot,
-        b2b: true,
+        b2b: hasValidB2b,
         isTestMode: isTest
       }
     };

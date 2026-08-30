@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { isNavTabActive } from '@/components/admin/navigation-data';
 
 interface NavItem {
   href: string;
@@ -58,6 +59,10 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string; strokeW
 export function MobileNavDrawer({ userEmail, roleInfo, navigation }: MobileNavDrawerProps) {
   const [open, setOpen] = React.useState(false);
   const pathname = usePathname();
+
+  const allNavHrefs = React.useMemo(() => {
+    return navigation.flatMap((g) => g.items.map((item) => item.href));
+  }, [navigation]);
 
   // Close drawer on route change
   React.useEffect(() => {
@@ -118,7 +123,7 @@ export function MobileNavDrawer({ userEmail, roleInfo, navigation }: MobileNavDr
               </h3>
               <div className="space-y-0.5">
                 {section.items.map((item) => {
-                  const isActive = pathname === item.href || (pathname?.startsWith(item.href + '/') && item.href !== '/admin/dashboard');
+                  const isActive = isNavTabActive(pathname, item.href, allNavHrefs);
                   const IconComponent = ICON_MAP[item.icon] || Home;
 
                   return (

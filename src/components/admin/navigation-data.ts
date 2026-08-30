@@ -1,3 +1,50 @@
+/**
+ * Calculates whether a navigation item is active using the Best Match Rule.
+ * Prevents parent routes (e.g. /admin/catalog) from staying active when a more specific
+ * child route (e.g. /admin/catalog/categories) is currently visited.
+ */
+export function isNavTabActive(
+  pathname: string | null | undefined,
+  tabHref: string,
+  allHrefs: string[]
+): boolean {
+  if (!pathname) return false;
+
+  // Exact match
+  if (pathname === tabHref) return true;
+
+  // Handle query params in tabHref (e.g., /admin/settings?tab=telegram)
+  const [cleanTabPath] = tabHref.split('?');
+  const [cleanCurrentPath] = pathname.split('?');
+
+  if (cleanCurrentPath === cleanTabPath && !tabHref.includes('?')) return true;
+
+  // Dashboard is strictly exact match
+  if (cleanTabPath === '/admin/dashboard' || cleanTabPath === '/admin') {
+    return cleanCurrentPath === cleanTabPath;
+  }
+
+  // Prefix match check: pathname must start with tabHref + '/'
+  const isPrefixMatch = cleanCurrentPath.startsWith(cleanTabPath + '/');
+  if (!isPrefixMatch) return false;
+
+  // Check if there is a more specific candidate in allHrefs that matches current path
+  const hasMoreSpecificMatch = allHrefs.some((otherHref) => {
+    if (otherHref === tabHref) return false;
+    const [cleanOther] = otherHref.split('?');
+    if (cleanOther === cleanTabPath) return false;
+
+    // other is a child of tabHref (e.g. /admin/catalog/categories is child of /admin/catalog)
+    const isChild = cleanOther.startsWith(cleanTabPath + '/');
+    if (!isChild) return false;
+
+    // And current path matches other
+    return cleanCurrentPath === cleanOther || cleanCurrentPath.startsWith(cleanOther + '/');
+  });
+
+  return !hasMoreSpecificMatch;
+}
+
 export const OPERATIONS_TABS = [
   { label: 'Сводка дашборда', href: '/admin/dashboard' },
   { label: 'Заказы клиентов', href: '/admin/orders' },
