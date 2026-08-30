@@ -3,6 +3,22 @@
 > **Файл-якорь для синхронизации контекста сессий.**  
 > **Последнее обновление:** 2026-08-30 20:41 (МСК)
 
+- **OmniSMM Category Slugs, Zero-Duplicate Icons & Dynamic Storefront URL Sync (100% COMPLETE & VERIFIED):**
+  - **1. Редактирование слагов категорий и автотранслитерация:**
+    - В [`src/actions/admin/catalog/categories.ts`](file:///d:/SMM_plan_2/src/actions/admin/catalog/categories.ts) добавлена функция `cyrillicToSlug`, валидация слага в схеме Zod, автогенерация слага при создании/редактировании категории и защита от коллизий.
+    - В модальное окно категории [`category-manager.tsx`](file:///d:/SMM_plan_2/src/app/admin/catalog/categories/components/category-manager.tsx) добавлено поле ввода «Слаг (URL-адрес)» с предпросмотром пути `/services/[network]/[slug]` и автоподстановкой при вводе названия.
+  - **2. Устранение двойных иконок (Zero-Duplicate Icons Hygiene):**
+    - В [`CategoryIcon.tsx`](file:///d:/SMM_plan_2/src/components/ui/CategoryIcon.tsx) обновлена функция `cleanCategoryName()` со стандартом Unicode `\p{Extended_Pictographic}|\p{Emoji_Presentation}` (с флагом `u`), которая полностью срезает любые встроенные смайлики из текста названия и защищает 100% русских букв и знаков препинания.
+    - В интерфейсах каталога ([`FluxOrderClient.tsx`](file:///d:/SMM_plan_2/src/components/ab-test/FluxOrderClient.tsx), [`CategorySidebar.tsx`](file:///d:/SMM_plan_2/src/components/landing/order-engine/CategorySidebar.tsx), [`MobileStep2Category.tsx`](file:///d:/SMM_plan_2/src/components/landing/order-engine/wizard-steps/MobileStep2Category.tsx), [`category-manager.tsx`](file:///d:/SMM_plan_2/src/app/admin/catalog/categories/components/category-manager.tsx)) настроен вывод: строго **одна** векторная иконка `<CategoryIcon icon={cat.icon} />` слева + чистый текст названия справа без задвоения.
+  - **3. Бесшовная синхронизация URL и 301 Canonical Fallback:**
+    - При выборе соцсети и категории в визарде заказа URL в браузере обновляется на `/services/[network]/[category]` без перезагрузки страницы и мерцания.
+    - В маршруте [`src/app/services/[network]/[category]/page.tsx`](file:///d:/SMM_plan_2/src/app/services/%5Bnetwork%5D/%5Bcategory%5D/page.tsx) внедрен постоянный 301-редирект (`permanentRedirect`) при обращении по старым/неканоническим слагам.
+  - **4. Верификация & Swarm Review:**
+    - Проведен двойной состязательный аудит (OpenRouter Swarm: GLM-5.2 & MiniMax-M3) с защитой от 4 критических векторов.
+    - Новый юнит-сьют: [`category-slug-and-icon-hygiene.test.ts`](file:///d:/SMM_plan_2/src/__tests__/catalog/category-slug-and-icon-hygiene.test.ts) (**5/5 PASS**).
+    - Полный регрессионный сьют: **26/26 test suites, 217/217 tests PASS (100% GREEN)**.
+    - Проверка типов: `npx tsc --noEmit` $\rightarrow$ **0 ошибок**.
+
 - **OmniSMM Transaction & Balance Status Filter Engine (100% COMPLETE & VERIFIED):**
   - **1. Быстрые пресеты и фильтрация по типу операции:**
     - В [`src/actions/admin/finance/ledger.ts`](file:///d:/SMM_plan_2/src/actions/admin/finance/ledger.ts) и [`src/actions/operator/transactions/get-transactions-list.action.ts`](file:///d:/SMM_plan_2/src/actions/operator/transactions/get-transactions-list.action.ts) внедрена многомерная фильтрация по типу (`TOPUP` / Пополнение баланса [первым в списке], `DEBIT` / Списание, `REFUND` / Возврат, `COMPENSATION` / Бонус, `ADJUSTMENT` / Корректировка) и статусам проводки (`APPROVED`, `QUARANTINE`, `REJECTED`).
