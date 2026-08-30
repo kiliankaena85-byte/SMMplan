@@ -140,9 +140,6 @@ export function FluxOrdersList({
                       {order.link}
                     </a>
                     <div className="flex items-center gap-1 shrink-0">
-                      <a href={order.link} target="_blank" rel="noopener noreferrer" className="text-muted-foreground/60 hover:text-primary p-0.5" title="Открыть ссылку">
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
                       <CopyText text={order.link} iconOnly={true} tooltipText="Копировать ссылку" />
                     </div>
                   </>

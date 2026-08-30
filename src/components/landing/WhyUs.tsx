@@ -71,7 +71,7 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
           </div>
         </div>
 
-        {/* Card 4: Large B2B Reseller Suite & API Hub Card */}
+        {/* Card 4: Platform Advantages & Intelligent Delivery Card */}
         <div className="md:col-span-2 bg-primary text-primary-foreground dark:bg-content1 dark:text-foreground border border-primary/20 dark:border-border/60 rounded-[2rem] p-5 pb-8 md:p-8 md:pb-10 relative overflow-hidden group shadow-2xl ring-1 ring-black/5 transition-all duration-300 hover:shadow-primary/10 min-h-[380px]">
           {/* Background Ambient Glow */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-secondary/20 to-primary/20 dark:from-primary/10 dark:to-transparent rounded-full blur-3xl opacity-60 group-hover:opacity-90 group-hover:scale-110 transition-all duration-500 -translate-y-1/3 translate-x-1/3 pointer-events-none" />
@@ -83,35 +83,35 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
             <div>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 bg-primary-foreground/15 dark:bg-primary/15 rounded-xl flex items-center justify-center text-primary-foreground dark:text-primary group-hover:scale-110 transition-transform">
-                  <Terminal className="w-5 h-5" strokeWidth={1.5} />
+                  <Sparkles className="w-5 h-5" strokeWidth={1.5} />
                 </div>
-                <span className="text-xs font-bold text-primary-foreground dark:text-primary uppercase tracking-widest">API & Интеграции</span>
+                <span className="text-xs font-bold text-primary-foreground dark:text-primary uppercase tracking-widest">Технологии & Надежность</span>
               </div>
-              <h3 className="text-2xl font-bold text-primary-foreground dark:text-foreground mb-4 tracking-tight">Решения для Реселлеров & API Hub</h3>
+              <h3 className="text-2xl font-bold text-primary-foreground dark:text-foreground mb-4 tracking-tight">Преимущества платформы {companyName}</h3>
               
               {/* Triple-Hook Feature List */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
                 <div className="flex items-start gap-2.5 bg-primary-foreground/10 dark:bg-content2/80 p-3.5 rounded-xl border border-primary-foreground/10 dark:border-border/50">
-                  <FileSpreadsheet className="w-5 h-5 text-primary-foreground dark:text-primary shrink-0 mt-0.5" strokeWidth={1.5} />
+                  <Sparkles className="w-5 h-5 text-primary-foreground dark:text-primary shrink-0 mt-0.5" strokeWidth={1.5} />
                   <div>
-                    <h4 className="text-sm font-semibold text-primary-foreground dark:text-foreground">Массовый заказ</h4>
-                    <p className="text-[11px] text-primary-foreground/80 dark:text-muted-foreground mt-0.5 leading-snug">Умный Excel-парсер с автоочисткой ссылок</p>
+                    <h4 className="text-sm font-semibold text-primary-foreground dark:text-foreground">Мгновенный старт</h4>
+                    <p className="text-[11px] text-primary-foreground/80 dark:text-muted-foreground mt-0.5 leading-snug">Автоматический запуск заказов от 30 секунд в режиме 24/7</p>
                   </div>
                 </div>
                 
                 <div className="flex items-start gap-2.5 bg-primary-foreground/10 dark:bg-content2/80 p-3.5 rounded-xl border border-primary-foreground/10 dark:border-border/50">
-                  <Terminal className="w-5 h-5 text-primary-foreground dark:text-primary shrink-0 mt-0.5" strokeWidth={1.5} />
+                  <ShieldCheck className="w-5 h-5 text-primary-foreground dark:text-primary shrink-0 mt-0.5" strokeWidth={1.5} />
                   <div>
-                    <h4 className="text-sm font-semibold text-primary-foreground dark:text-foreground">PerfectPanel API</h4>
-                    <p className="text-[11px] text-primary-foreground/80 dark:text-muted-foreground mt-0.5 leading-snug">Спецификация v2 для автоматизации</p>
+                    <h4 className="text-sm font-semibold text-primary-foreground dark:text-foreground">Защита от списаний</h4>
+                    <p className="text-[11px] text-primary-foreground/80 dark:text-muted-foreground mt-0.5 leading-snug">Плавный Drip-Feed и авто-докрутка (Refill) по гарантии</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2.5 bg-primary-foreground/10 dark:bg-content2/80 p-3.5 rounded-xl border border-primary-foreground/10 dark:border-border/50">
                   <Diamond className="w-5 h-5 text-primary-foreground dark:text-primary shrink-0 mt-0.5" strokeWidth={1.5} />
                   <div>
-                    <h4 className="text-sm font-semibold text-primary-foreground dark:text-foreground">Оптовые Цены</h4>
-                    <p className="text-[11px] text-primary-foreground/80 dark:text-muted-foreground mt-0.5 leading-snug">Накопительный дисконт до 15% пожизненно</p>
+                    <h4 className="text-sm font-semibold text-primary-foreground dark:text-foreground">Честные тарифы</h4>
+                    <p className="text-[11px] text-primary-foreground/80 dark:text-muted-foreground mt-0.5 leading-snug">Прямые цены без посредников и без скрытых комиссий</p>
                   </div>
                 </div>
               </div>
@@ -120,13 +120,13 @@ export function WhyUs({ companyName = "SMMplan" }: { companyName?: string }) {
             {/* Bottom CTA bar */}
             <div className="mt-6 sm:mt-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t border-primary-foreground/10 dark:border-border/50">
               <p className="text-xs text-primary-foreground/90 dark:text-muted-foreground">
-                Запустите свой SMM-сервис за 5 минут без требований к минимальному балансу.
+                Запустите продвижение за 1 минуту без обязательств и скрытых условий.
               </p>
               <Link 
-                href="/login?promo=START"
+                href="#catalog"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-card hover:bg-muted text-foreground dark:bg-primary dark:hover:bg-primary/90 dark:text-primary-foreground text-xs font-extrabold shadow-lg shadow-background/10 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shrink-0 border border-border"
               >
-                <span>Личный кабинет</span>
+                <span>Выбрать услугу</span>
                 <ArrowUpRight className="w-3.5 h-3.5" />
               </Link>
             </div>

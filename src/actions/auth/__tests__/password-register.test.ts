@@ -61,7 +61,7 @@ describe('Password Registration Tests', () => {
     expect(createdUser?.role).toBeDefined();
     expect(createdUser?.isEmailVerified).toBe(false);
     expect(createSession).not.toHaveBeenCalled();
-    expect(sendMagicLink).toHaveBeenCalledWith('reg_new@smmplan.local', expect.any(String));
+    expect(sendMagicLink).toHaveBeenCalledWith('reg_new@smmplan.local', expect.any(String), 'smmplan');
   });
 
   it('should fail if email is already registered', async () => {

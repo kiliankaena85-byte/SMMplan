@@ -59,7 +59,7 @@ describe('Request Magic Link Tests', () => {
     
     await new Promise(resolve => setTimeout(resolve, 50));
     
-    expect(sendMagicLink).toHaveBeenCalledWith('magic_existing@smmplan.local', expect.any(String));
+    expect(sendMagicLink).toHaveBeenCalledWith('magic_existing@smmplan.local', expect.any(String), 'smmplan');
   });
 
   it('should create new user and send magic link if user does not exist', async () => {
@@ -71,7 +71,7 @@ describe('Request Magic Link Tests', () => {
     
     await new Promise(resolve => setTimeout(resolve, 50));
     
-    expect(sendMagicLink).toHaveBeenCalledWith('magic_new@smmplan.local', expect.any(String));
+    expect(sendMagicLink).toHaveBeenCalledWith('magic_new@smmplan.local', expect.any(String), 'smmplan');
     
     const user = await db.user.findUnique({ where: { email_tenantId: { email: 'magic_new@smmplan.local', tenantId: 'smmplan' } } });
     expect(user).not.toBeNull();
@@ -86,7 +86,7 @@ describe('Request Magic Link Tests', () => {
     const res = await requestMagicLink({}, formData);
     expect(res).toEqual({ success: false, error: "Не удалось отправить письмо. Проверьте правильность email или попробуйте позже." });
     
-    expect(sendMagicLink).toHaveBeenCalledWith('magic_new2@smmplan.local', expect.any(String));
+    expect(sendMagicLink).toHaveBeenCalledWith('magic_new2@smmplan.local', expect.any(String), 'smmplan');
 
     // The user should have been deleted
     const user = await db.user.findUnique({ where: { email_tenantId: { email: 'magic_new2@smmplan.local', tenantId: 'smmplan' } } });

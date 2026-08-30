@@ -146,7 +146,6 @@ export function MegaFooter({
             {contactSettings?.COMPANY_NAME || "ИП Соколов Артём Андреевич"} (ИНН: {inn})
           </p>
         </div>
-        <p className="flex items-center gap-1 text-foreground/80 font-semibold">Designed with <span className="text-red-500">❤</span> for Organic Growth</p>
       </div>
     </footer>
   );

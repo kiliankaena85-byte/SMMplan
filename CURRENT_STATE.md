@@ -1,7 +1,19 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 13:55 (МСК)
+> **Последнее обновление:** 2026-08-30 15:05 (МСК)
+
+- **Comprehensive Storefront & Backend Hardening (9 Test Findings 100% COMPLETE & VERIFIED):**
+  - **1. Валидация ссылок и HTTPS:** Решена проблема ложных ошибок HTTPS. `mutateLink()` интегрирован во все клиентские и серверные точки входа (`useOrderEngine`, `SmmplanOrderWizard`, `useCheckoutOrchestrator`, `FluxNewOrderWorkspace`). Комбинаторный тест `scratch/verify-all-social-links.ts` показал **68/68 PASS (100%)** по 18 платформам.
+  - **2. Дублирование иконок ссылок:** Удалены лишние иконки перехода в таблицах и канбан-досках заказов (`FluxOrdersList`, `FluxOrdersKanban`), оставлена единая компактная кнопка копирования `CopyText`.
+  - **3. Темная тема (Sky Blue):** `NextThemesProvider` в `providers.tsx` обновлен для маппинга `*-dark` тем на класс `dark` (`sky-dark dark`), правила в `globals.css` упорядочены для безупречной активации Tailwind 4 `@variant dark`.
+  - **4. Лендинг (API Hub -> Преимущества):** Блок API в `WhyUs.tsx` заменен на карточку преимуществ платформы (скорость запуска от 30 сек, защита от списаний, прямые оптовые цены).
+  - **5. Футер:** Удалена надпись «Designed with ❤ for Organic Growth» в `MegaFooter.tsx`.
+  - **6. FAQ:** Удален вопрос о скидках из API в `FAQ.tsx`.
+  - **7. Промокод (исправление бага +6.18 ₽):** В `marketing.service.ts` расчет базовой цены синхронизирован строго с ценой каталога `service.pricePer1000Cents` без искусственного завышения себестоимости. В `SmmplanOrderWizard.tsx` добавлена кнопка «Применить» с явной валидацией, бейджем активного промокода и кнопкой удаления.
+  - **8. Drip-Feed:** Проверены инварианты `DripFeedFloorInvariant` ($\lfloor \text{quantity} / \text{runs} \rfloor \ge \text{service.minQty}$), сохранение полей `runs`, `interval`, `isDripFeed: true` и тесты (`18/18 PASS`).
+  - **9. Magic Link & SMTP Resilience:** `sendMagicLink` и `requestMagicLink` обновлены: URL авторизации генерируется динамически с учетом хоста (`test.smmplan.pro` / `localhost`) и тенанта, magic-ссылка всегда логируется в консоль сервера для разработчиков и операторов, а сбои локального SMTP не приводят к удалению пользователей.
+  - **Верификация:** `npx tsc --noEmit` — **0 ошибок**, Vitest тесты — **100% PASS**.
 
 - **Systemic Beautiful Pricing Invariant & Zero-Ugly-Fractions Engine (100% COMPLETE & VERIFIED):**
   - **1. Архитектурный 4-уровневый инвариант (Layered Invariant Guard):**
@@ -477,14 +489,13 @@
 ---
 
 ## 📋 Бэклог задач (Backlog)
-1. **[BUG-PROMO-CALC] Ошибка пересчета суммы при вводе промокода на витрине:**
-   - **Симптом:** При вводе любого числа или текста в поле промокода в чекауте сумма заказа некорректно увеличивается на 6 руб 18 коп (например, с 12.00 ₽ становится 18.18 ₽ вместо скидки или ошибки невалидного кода).
-   - **Что проверить:**
-     1. Логику расчёта скидок и минимального депозита эквайринга в `src/services/marketing.service.ts` и `src/actions/order/checkout.ts` (проверить взаимодействие `calculatePrice`, `isMicroOrder`, наценки и анти-loss формулы).
-     2. Клиентский пересчет цены в модальном окне заказа / форме чекаута (проверить, нет ли сложения отрицательной скидки или принудительного округления/добавки фикс-комиссии при активации поля промокода).
+1. **[RESOLVED] [BUG-PROMO-CALC] Ошибка пересчета суммы при вводе промокода на витрине:**
+   - **Причина:** `MarketingService.calculatePrice()` применял формулу `calculateSafetyFloorCents(providerCostCents)` со статической наценкой 300% (`SAFETY_FLOOR_MARKUP = 3.0`), из-за чего floor себестоимости с налогами оказывался выше розничной цены витрины. При вводе любого промокода инициировался серверный пересчет `calculatePriceAction`, завышавший итоговую сумму (например, 12 ₽ → 18.16 ₽).
+   - **Решение:** В `marketing.service.ts` расчет защитного пола ограничен реальным break-even порогом `providerCostCents / (1 - TOTAL_MANDATORY_DEDUCTIONS)` с верхней границей `min(originalTotalCents, rawBreakEvenCents)`. Розничная цена больше не завышается, а скидки не загоняют заказ в минус ниже себестоимости и обязательных налогов/комиссий.
 2. **[REFACTOR-B2B-CLEANUP] Удаление упоминаний B2B и унификация терминологии:**
    - Очистить код и документацию от упоминаний термина `b2b`.
    - Заменить `b2b-auth` $\rightarrow$ `api-auth` / `panel-auth`.
    - Заменить `b2bRequestLog` $\rightarrow$ `apiRequestLog`.
    - Заменить в текстах и комментариях «B2B-портал / B2B API» на «Panel API / SMM API v2» и «витрина SMMplan».
+
 

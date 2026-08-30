@@ -20,6 +20,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { SocialIcon } from '@/components/ui/SocialIcon';
+import { toast } from 'sonner';
 import { getPublicCatalogAction, getServicesByCategoryAction, PublicNetwork, PublicCategory, PublicService } from '@/actions/order/catalog';
 import { calculatePriceAction, checkoutAction } from '@/actions/order/checkout';
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
@@ -60,7 +61,11 @@ function SmmplanOrderWizardInner({
   const [link, setLink] = useState('');
   const [quantity, setQuantity] = useState<number>(100);
   const [email, setEmail] = useState(userEmail);
-  const [promoCode, setPromoCode] = useState('');
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState('');
+  const [promoDiscountPercent, setPromoDiscountPercent] = useState<number | null>(null);
+  const [promoMessage, setPromoMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
   const [showPromo, setShowPromo] = useState(false);
   const [gateway, setGateway] = useState<'balance' | 'yookassa' | 'cryptobot'>('balance');
 
@@ -238,7 +243,45 @@ function SmmplanOrderWizardInner({
 
   const totalQuantity = isDripFeedEnabled ? quantity * dripRuns : quantity;
 
-  // Recalculate price whenever service or quantity changes
+  const handleApplyPromo = async () => {
+    const code = promoCodeInput.trim().toUpperCase();
+    if (!code || !selectedService) return;
+    setIsApplyingPromo(true);
+    setPromoMessage(null);
+    try {
+      const res = await calculatePriceAction(selectedService.id, totalQuantity, code);
+      if (res.success && res.data) {
+        if (res.data.discountCents > 0) {
+          const base = res.data.originalTotalCents || res.data.totalCents;
+          const disc = Math.round((res.data.discountCents / base) * 100);
+          setAppliedPromo(code);
+          setPromoDiscountPercent(disc);
+          setCalculatedPriceRub(res.data.totalCents / 100);
+          setPromoMessage({ type: 'success', text: `Промокод «${code}» применен: скидка ${disc}%` });
+          toast.success(`Промокод применен: скидка ${disc}%`);
+        } else {
+          setAppliedPromo('');
+          setPromoDiscountPercent(null);
+          setPromoMessage({ type: 'error', text: 'Промокод не найден или срок действия истек' });
+        }
+      } else {
+        setPromoMessage({ type: 'error', text: res.error || 'Ошибка проверки промокода' });
+      }
+    } catch {
+      setPromoMessage({ type: 'error', text: 'Не удалось проверить промокод' });
+    } finally {
+      setIsApplyingPromo(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo('');
+    setPromoCodeInput('');
+    setPromoDiscountPercent(null);
+    setPromoMessage(null);
+  };
+
+  // Recalculate price whenever service, quantity or applied promo changes
   useEffect(() => {
     if (!selectedService || !quantity) {
       setCalculatedPriceRub(null);
@@ -248,7 +291,7 @@ function SmmplanOrderWizardInner({
     async function updatePrice() {
       setIsCalculatingPrice(true);
       try {
-        const res = await calculatePriceAction(selectedService!.id, totalQuantity, promoCode);
+        const res = await calculatePriceAction(selectedService!.id, totalQuantity, appliedPromo || undefined);
         if (!isCancelled && res.success && res.data) {
           setCalculatedPriceRub(res.data.totalCents / 100);
         } else if (!isCancelled) {
@@ -266,7 +309,7 @@ function SmmplanOrderWizardInner({
     return () => {
       isCancelled = true;
     };
-  }, [selectedService, quantity, totalQuantity, promoCode]);
+  }, [selectedService, quantity, totalQuantity, appliedPromo]);
 
   // Target Type Placeholder Generator
   const getTargetTypeHint = (catName?: string, srvTargetType?: string | null) => {
@@ -309,10 +352,17 @@ function SmmplanOrderWizardInner({
       newErrors.general = 'Пожалуйста, выберите услугу';
     }
 
-    if (!link || link.trim().length < 3) {
+    const trimmedLink = link.trim();
+    if (!trimmedLink || trimmedLink.length < 3) {
       newErrors.link = 'Введите корректную ссылку для выполнения заказа';
-    } else if (link.includes(' ')) {
-      newErrors.link = 'Ссылка не должна содержать пробелы';
+    } else if (trimmedLink.includes(' ')) {
+      // If link contains surrounding words/spaces, extract the URL
+      const match = trimmedLink.match(/(https?:\/\/[^\s]+|[a-zA-Z0-9-]+\.[a-zA-Z]{2,}\/[^\s]*)/i);
+      if (match) {
+        setLink(match[0]);
+      } else {
+        newErrors.link = 'Ссылка не должна содержать пробелы';
+      }
     }
 
     if (!selectedService) {
@@ -367,7 +417,7 @@ function SmmplanOrderWizardInner({
         link: link.trim(),
         quantity: totalQuantity,
         email: email.trim(),
-        promoCodeStr: promoCode ? promoCode.trim() : undefined,
+        promoCodeStr: appliedPromo ? appliedPromo.trim() : undefined,
         runs: isDripFeedEnabled ? dripRuns : undefined,
         interval: isDripFeedEnabled ? dripInterval : undefined,
         customData: selectedService!.customDataType !== 'NONE' ? customData : undefined,
@@ -1146,14 +1196,56 @@ function SmmplanOrderWizardInner({
                   </button>
                 ) : (
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-foreground">Промокод</label>
-                    <input
-                      type="text"
-                      value={promoCode}
-                      onChange={e => setPromoCode(e.target.value.toUpperCase())}
-                      placeholder="ВВЕДИТЕ ПРОМОКОД"
-                      className="w-full px-4 py-2 text-sm uppercase font-mono bg-background border border-border/60 rounded-xl text-foreground"
-                    />
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-foreground">Промокод</label>
+                      {appliedPromo && (
+                        <button
+                          type="button"
+                          onClick={handleRemovePromo}
+                          className="text-[11px] font-medium text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                        >
+                          Удалить
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={promoCodeInput}
+                        onChange={e => {
+                          setPromoCodeInput(e.target.value.toUpperCase());
+                          if (promoMessage) setPromoMessage(null);
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleApplyPromo();
+                          }
+                        }}
+                        placeholder="ВВЕДИТЕ ПРОМОКОД"
+                        disabled={Boolean(appliedPromo)}
+                        className="flex-1 px-4 py-2 text-sm uppercase font-mono bg-background border border-border/60 rounded-xl text-foreground disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                      {!appliedPromo ? (
+                        <button
+                          type="button"
+                          onClick={handleApplyPromo}
+                          disabled={!promoCodeInput.trim() || isApplyingPromo}
+                          className="px-4 py-2 bg-primary text-primary-foreground text-xs font-bold rounded-xl hover:opacity-90 transition-all disabled:opacity-50 cursor-pointer shrink-0 active:scale-95"
+                        >
+                          {isApplyingPromo ? '...' : 'Применить'}
+                        </button>
+                      ) : (
+                        <div className="flex items-center px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-xl shrink-0 select-none">
+                          ✓ Активен
+                        </div>
+                      )}
+                    </div>
+                    {promoMessage && (
+                      <p className={`text-xs font-semibold ${promoMessage.type === 'success' ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}`}>
+                        {promoMessage.text}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

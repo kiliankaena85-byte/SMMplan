@@ -93,7 +93,7 @@ const checkoutSchema = z.object({
   link: z.string().min(3, "Ссылка слишком короткая").max(2048, "Ссылка слишком длинная").refine(val => !val.includes(' '), "Ссылка не должна содержать пробелов"),
   quantity: z.number().min(1),
   email: z.string().email("Неверный email"),
-  promoCodeStr: z.string().optional(),
+  promoCodeStr: z.string().trim().max(32, "Промокод не может быть длиннее 32 символов").regex(/^[a-zA-Z0-9_-]*$/, "Некорректный формат промокода").optional(),
   runs: z.number().int().positive().optional(),
   interval: z.number().int().positive().optional(),
   customData: z.string().optional(),

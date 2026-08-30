@@ -60,8 +60,13 @@ class MarketingService {
     promoCodeStr?: string | null,
     preloadedContext?: { user?: Prisma.UserGetPayload<object> | null, service?: Prisma.ServiceGetPayload<object> | null }
   ): Promise<PricingResult> {
-    // CHK-07: Case-insensitive promo code normalization
-    promoCodeStr = promoCodeStr ? promoCodeStr.trim().toUpperCase() : null;
+    // CHK-07 & OWASP A03: Strict promo code normalization and injection sanitization
+    if (promoCodeStr) {
+      const clean = promoCodeStr.trim().toUpperCase();
+      promoCodeStr = (clean.length <= 32 && /^[A-Z0-9_-]+$/.test(clean)) ? clean : null;
+    } else {
+      promoCodeStr = null;
+    }
 
     let user = null;
     if (userId) {
@@ -87,12 +92,19 @@ class MarketingService {
     let costPer1kRub: number;
     if (typeof service.costPer1kRub === 'number' && Number.isFinite(service.costPer1kRub) && service.costPer1kRub > 0) {
       costPer1kRub = service.costPer1kRub;
-    } else {
+    } else if (typeof service.rate === 'number' && Number.isFinite(service.rate) && service.rate > 0) {
       try {
         costPer1kRub = getCostRub(service.rate, service.providerCurrency || 'RUB', usdToRub, liveCrossRates);
       } catch {
         costPer1kRub = service.rate * (service.providerCurrency === 'RUB' ? 1.0 : usdToRub);
       }
+    } else if (typeof service.pricePer1000Cents === 'number' && service.pricePer1000Cents > 0) {
+      costPer1kRub = (service.pricePer1000Cents / 100) / ((service.markup && service.markup > 0) ? service.markup : SAFETY_FLOOR_MARKUP);
+    } else {
+      costPer1kRub = 0.01;
+    }
+    if (!Number.isFinite(costPer1kRub) || costPer1kRub <= 0) {
+      costPer1kRub = 0.01;
     }
 
     const providerCostPer1000Cents = Math.round(costPer1kRub * 100);
@@ -103,9 +115,7 @@ class MarketingService {
     // 2. Base Retail Price per 1k in Cents (Honors DB pricePer1000Cents for 100% storefront parity)
     let retailPer1000Cents: number;
     if (typeof service.pricePer1000Cents === 'number' && service.pricePer1000Cents > 0) {
-      // Guard DB price against loss via Anti-Negative Margin floor
-      const antiLoss = applyAntiNegativeMargin(costPer1kRub, service.pricePer1000Cents / 100);
-      retailPer1000Cents = antiLoss.finalRetailPer1kCents;
+      retailPer1000Cents = service.pricePer1000Cents;
     } else {
       const markup = (service.markup && service.markup > 0) ? service.markup : SAFETY_FLOOR_MARKUP;
       const rawRetailRub = applyBeautifulRounding(costPer1kRub * markup);
@@ -155,8 +165,13 @@ class MarketingService {
     let discountCents = percentDiscountCents + voucherCents;
     let totalCents = originalTotalCents - discountCents;
 
-    // 5. [SAFETY FLOOR] Never sell below break-even after taxes & gateway fees.
-    const safetyFloorCents = calculateSafetyFloorCents(providerCostCents);
+    // 5. [SAFETY FLOOR] Never sell below break-even after taxes & gateway fees (cost + mandatory deductions).
+    // Break-even floor is providerCostCents / (1 - TOTAL_MANDATORY_DEDUCTIONS).
+    // It is ONLY applied to prevent excessive discounts from causing negative profit,
+    // and must NEVER inflate the base retail price above originalTotalCents.
+    const rawBreakEvenCents = Math.ceil(providerCostCents / (1 - TOTAL_MANDATORY_DEDUCTIONS));
+    const safetyFloorCents = Math.min(originalTotalCents, rawBreakEvenCents);
+    
     if (totalCents < safetyFloorCents) {
       totalCents = safetyFloorCents;
       // Recalculate true discount applied so receipts match the actual charge (never negative)

@@ -133,7 +133,7 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
           expiresAt: new Date(Date.now() + 1000 * 60 * 15),
         }
       });
-      await sendMagicLink(cleanEmail, rawToken);
+      await sendMagicLink(cleanEmail, rawToken, tenantId);
     } catch {
       log.warn('Registration email send failed', { email: cleanEmail });
     }

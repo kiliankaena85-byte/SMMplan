@@ -111,7 +111,7 @@ export async function requestMagicLink(prevState: unknown, formData: FormData) {
         },
       });
 
-      return { type: 'success' as const, user, isNewUser, rawToken };
+      return { type: 'success' as const, user, isNewUser, rawToken, tenantId };
     }, { isolationLevel: 'Serializable' });
 
     if (txResult.type === 'blocked') {
@@ -124,12 +124,12 @@ export async function requestMagicLink(prevState: unknown, formData: FormData) {
       return { success: true, error: null };
     }
 
-    const { user, isNewUser, rawToken } = txResult;
+    const { user, isNewUser, rawToken, tenantId } = txResult;
 
     try {
-      await sendMagicLink(cleanEmail, rawToken);
+      await sendMagicLink(cleanEmail, rawToken, tenantId);
       if (isNewUser) {
-        sendWelcomeLetter(cleanEmail).catch(console.error);
+        sendWelcomeLetter(cleanEmail, tenantId).catch(console.error);
       }
     } catch (smtpError) {
       log.error('Magic link SMTP error', { error: smtpError });

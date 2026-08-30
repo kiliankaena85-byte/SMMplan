@@ -666,8 +666,9 @@ export function useOrderEngine(
     if (selectedService && activePlatform && currentUrl && !isLinkOverridden && !errors['link']) {
        const activeCat2 = catalog.flatMap(n => n.categories).find(c => c.id === selectedService.categoryId);
        const targetType = selectedService.targetType || inferTargetTypeFromCategory(activeCat2?.name);
+       const cleanUrl = mutateLink(currentUrl, activePlatform, targetType);
        const validator = getLinkValidator(activePlatform, targetType);
-       const linkResult = validator.safeParse(currentUrl);
+       const linkResult = validator.safeParse(cleanUrl);
        
        if (!linkResult.success) {
            errors['link'] = linkResult.error.errors[0].message;

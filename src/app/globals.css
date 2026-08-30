@@ -133,6 +133,26 @@
     }
   }
 }
+/* --- THEME: SKY LIGHT / ROOT DEFAULTS --- */
+:root,
+.sky-light,
+[data-theme="sky-light"] {
+  --color-background: #f8fafc;
+  --color-foreground: #0f172a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0f172a;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #475569;
+  --color-border: #e2e8f0;
+  --color-primary: #0369a1;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #e0f2fe;
+  --color-secondary-foreground: #0369a1;
+  --color-ring: #bae6fd;
+}
+
 /* --- DARK THEMES VARIABLES OVERRIDE --- */
 .dark,
 [data-theme="dark"],
@@ -184,7 +204,7 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    overscroll-behavior-y: contain; /* Prevent pull-to-refresh destroying form state on Android */
+    overscroll-behavior-y: contain;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -199,30 +219,11 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Premium default smooth transitions for all interactive elements */
   button, a, input, select, textarea, [role="button"] {
     transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 200ms;
   }
-}
-
-/* --- THEME: SKY LIGHT / ROOT DEFAULTS --- */
-.sky-light, [data-theme="sky-light"], :root {
-  --color-background: #f8fafc;
-  --color-foreground: #0f172a;
-  --color-card: #ffffff;
-  --color-card-foreground: #0f172a;
-  --color-popover: #ffffff;
-  --color-popover-foreground: #0f172a;
-  --color-muted: #f1f5f9;
-  --color-muted-foreground: #475569;
-  --color-border: #e2e8f0;
-  --color-primary: #0369a1;
-  --color-primary-foreground: #ffffff;
-  --color-secondary: #e0f2fe;
-  --color-secondary-foreground: #0369a1;
-  --color-ring: #bae6fd;
 }
 
 /* --- THEME: EMERALD LIGHT --- */

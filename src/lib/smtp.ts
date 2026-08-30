@@ -99,22 +99,22 @@ async function dispatch(result: TransporterResult, options: DispatchOptions) {
 }
 
 export async function sendMagicLink(email: string, token: string, tenantId?: string) {
-  const { companyName, supportDomain } = await getEmailContext(tenantId);
-  const baseUrl = `https://${supportDomain}`;
-  const link = `${baseUrl}/api/auth/verify?token=${token}`;
-
-  if (process.env.NODE_ENV !== 'production') {
-    console.info(`\n[DEVELOPMENT] MAGIC LINK FOR ${email} (${companyName}): \n${link}\n`);
+  const { companyName } = await getEmailContext(tenantId);
+  let baseUrl = await getBaseUrlAsync().catch(() => '');
+  if (!baseUrl) {
+    const { supportDomain } = await getEmailContext(tenantId);
+    baseUrl = `https://${supportDomain}`;
   }
+  const normTenant = normalizeTenantId(tenantId);
+  const tenantParam = normTenant && normTenant !== 'smmplan' ? `&tenant=${normTenant}` : '';
+  const link = `${baseUrl}/api/auth/verify?token=${token}${tenantParam}`;
+
+  console.info(`\n========================================\n[MAGIC LINK FOR ${email} (${companyName})]:\n${link}\n========================================\n`);
 
   const result = await getTransporter();
 
   if (!result) {
-    if (process.env.NODE_ENV === 'production') {
-      log.error('Not configured in AdminPanel');
-    } else {
-      log.warn('Not configured. Email skipped.', { action: 'MAGIC_LINK', email, link });
-    }
+    log.warn('SMTP Not configured. Magic link printed to console.', { email, link });
     return;
   }
 
@@ -134,11 +134,16 @@ export async function sendMagicLink(email: string, token: string, tenantId?: str
   try {
     await dispatch(result, { companyName, to: email, subject: `Ваша ссылка для входа в ${companyName}`, html: htmlContent });
   } catch (err: unknown) {
-    if (process.env.NODE_ENV === 'production' && process.env.DEV_MOCK_SMTP !== 'true') {
-      throw err;
-    } else {
-      log.error('SMTP send failed (printed link above instead)', { error: (err instanceof Error ? err.message : String(err)) });
+    log.error('SMTP send failed (printed link above in console)', { 
+      error: (err instanceof Error ? err.message : String(err)),
+      email,
+      link
+    });
+    // In staging / dev / when ISP blocks port 465, do not fail the request if link was generated
+    if (process.env.APP_URL?.includes('test.smmplan.pro') || process.env.NODE_ENV !== 'production' || process.env.DEV_MOCK_SMTP === 'true') {
+      return;
     }
+    throw err;
   }
 }
 

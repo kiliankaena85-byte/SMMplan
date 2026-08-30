@@ -118,15 +118,6 @@ export function FluxOrdersKanban({
                   {order.link}
                 </a>
                 <div className="flex items-center gap-1 shrink-0">
-                  <a 
-                    href={order.link} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="p-1 text-muted-foreground hover:text-primary rounded-md transition-colors"
-                    title="Открыть ссылку в новой вкладке"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
                   <CopyText text={order.link} iconOnly={true} tooltipText="Копировать ссылку" />
                 </div>
               </>

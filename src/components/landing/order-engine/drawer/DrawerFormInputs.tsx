@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, Mail, Ticket } from "lucide-react";
+import { X, Mail, Ticket, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { getServiceFlags } from "@/utils/url-analyzer";
 
@@ -183,6 +183,35 @@ export function DrawerFormInputs({
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
+
+            {/* Validation Feedback */}
+            {engine.isCalculating && promoCode.trim().length > 0 && (
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1 font-medium animate-pulse">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                <span>Проверяем промокод...</span>
+              </p>
+            )}
+
+            {engine.pricingError === 'voucher' && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1 mt-1">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>Это ваучер для пополнения баланса. Активируйте в личном кабинете.</span>
+              </p>
+            )}
+
+            {!engine.isCalculating && promoCode.trim().length > 0 && engine.pricing && engine.pricing.discountCents > 0 && (
+              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 mt-1 animate-in fade-in">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                <span>Промокод активен! Скидка: {(engine.pricing.discountCents / 100).toFixed(2)} ₽</span>
+              </p>
+            )}
+
+            {!engine.isCalculating && promoCode.trim().length > 0 && (!engine.pricing || engine.pricing.discountCents === 0) && !engine.pricingError && (
+              <p className="text-[11px] text-rose-500 font-medium flex items-center gap-1 mt-1 animate-in fade-in">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>Промокод не найден или срок действия истёк</span>
+              </p>
+            )}
           </div>
         )}
       </div>
