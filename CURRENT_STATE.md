@@ -1,7 +1,38 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 09:20 (МСК)
+> **Последнее обновление:** 2026-08-30 09:25 (МСК)
+
+- **Category & Network Management Architecture (100% COMPLETE & VERIFIED):**
+  - **1. Архитектурный аудит & Круглый стол (Agent Swarm):**
+    - Выявлено, что экран управления категориями (`/admin/catalog/categories`) существовал в кодовой базе, но отсутствовал в главном меню (`ADMIN_NAVIGATION`), из-за чего администраторы не видели прямой точки входа.
+    - В Server Actions `createCategory` и `updateCategory` отсутствовала передача `tenantId`, что приводило к созданию категорий только с дефолтным тенантом `smmplan`.
+  - **2. Реализация точек прямого доступа в UI:**
+    - **Главный Сайдбар:** Раздел «Категории & Соцсети» вынесен в главное боковое меню (`src/app/admin/layout.tsx`) с иконкой `Layers` и RBAC-фильтрацией по секции `CATALOG`.
+    - **Шапка Каталога (`/admin/catalog`):** Добавлена кнопка прямого перехода `Категории & Соцсети`.
+    - **Формы услуг & Импорт (`service-edit-form.tsx`, `import-wizard.tsx`):** Добавлены ссылки быстрого перехода к управлению категориями прямо рядом с выпадающими списками выбора категорий.
+  - **3. Мультитенантность и безопасность:**
+    - `createCategory` и `updateCategory` поддерживают параметр `tenantId` (`'smmplan' | 'flux' | 'all'`) и сохраняют полный аудит-лог через `auditAdminAwaitable()`.
+  - **4. Тестирование и валидация:**
+    - `src/__tests__/categories-unit.test.ts` (**3/3 PASS**).
+    - Батарея тестов: `vitest.unit.config.ts` (**100/100 PASS, 100% GREEN**).
+    - Проверка типов: `npx tsc --noEmit` (**0 ошибок**).
+
+
+
+- **Payment System Deep Audit, Dynamic Gateway Filtering & Anti-Loop Engine (100% COMPLETE & VERIFIED):**
+  - **1. Архитектурный аудит & Первопричина (RCA):**
+    - Устранено зависание на экране «Перенаправляем в банк...» (`/payment-redirect`): ранее при тестовом режиме или мок-платежах `createPayment` возвращал `checkoutUrl: .../payment-redirect?id=...`, что зацикливало браузер в бесконечный `window.location.href` редирект на самого себя.
+    - В `src/app/payment-redirect/page.tsx` внедрена защита от циклических редиректов (`!isSelfRedirect`), обработка статуса `SUCCEEDED` и тайм-аут с кнопкой возврата.
+    - В `src/services/financial/payment-gateway.service.ts` шлюзы ЮKassa, Robokassa и CryptoBot теперь строго валидируют наличие не-заглушечных ключей и генерируют прямые внешние URL эквайринга либо выбрасывают типизированную ошибку (Fail-Closed).
+  - **2. Динамическая фильтрация доступных шлюзов (UI):**
+    - В личном кабинете (`src/app/dashboard/add-funds/client-page.tsx`), Step-by-Step визарде (`src/components/landing/catalog/StepByStepWizard.tsx`), Drawer заказа (`DrawerPaymentSelector.tsx`) и модалках оплаты интегрирован вызов `getAvailableGatewaysAction()`.
+    - Ненастроенные платёжные системы (Робокасса, CryptoBot с dummy-токенами) **полностью скрываются из пользовательского интерфейса**. Отображаются исключительно 100% настроенные и активные шлюзы (ЮKassa: СБП и Карты РФ, а также B2B безналичный расчёт).
+  - **3. Сквозные End-to-End тесты и верификация:**
+    - Новый E2E сьют: `src/__tests__/financial/payment-e2e-and-gateway-filtering.test.ts` (**7/7 PASS**).
+    - Полная батарея финансовых тестов: `src/services/financial/__tests__/` + `unified-payment.service.test.ts` (**22/22 PASS, 100% GREEN**).
+    - Строгая проверка типов: `npx tsc --noEmit` (**0 ошибок**).
+
 
 - **Reactive Table Density Engine & Global Architecture (100% COMPLETE & VERIFIED):**
   - **1. Архитектурный аудит & Устранение изоляции состояния:**
