@@ -1,5 +1,4 @@
 import { adminProviderService } from '@/services/admin/provider.service';
-import { providerBalanceService } from '@/services/admin/provider-balance.service';
 import Link from 'next/link';
 import { Plug } from 'lucide-react';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
@@ -14,10 +13,8 @@ export default async function ProvidersAdminPage() {
   // AUD-09 (4.1): provider management requires the 'providers' section
   await enforceSectionAccess('providers');
 
-  const [providers, liquidity] = await Promise.all([
-    adminProviderService.listProviders(),
-    providerBalanceService.getGlobalLiquiditySummary(),
-  ]);
+  // Fast database query (< 10ms) without blocking on external provider network roundtrips
+  const providers = await adminProviderService.listProviders();
 
   return (
     <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
@@ -40,10 +37,8 @@ export default async function ProvidersAdminPage() {
         onboarding={ONBOARDING_CONFIGS.providers}
       />
 
-      {/* Глобальная ликвидность поверх таблицы */}
-      {liquidity.activeCount > 0 && (
-        <LiquidityDashboard data={liquidity} />
-      )}
+      {/* Глобальная ликвидность поверх таблицы (асинхронная загрузка с кэшированием) */}
+      <LiquidityDashboard />
 
       <ProvidersTable providers={providers} />
     </div>

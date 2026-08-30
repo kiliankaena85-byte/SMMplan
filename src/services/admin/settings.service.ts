@@ -1,6 +1,7 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, UsnScheme } from '@prisma/client';
 import { db } from '@/lib/db';
-import { UsnScheme } from '@prisma/client';
+import { SettingsProvider } from '@/lib/settings';
+import { redis } from '@/lib/redis';
 
 class SettingsService {
   // ── User Management ──
@@ -83,7 +84,7 @@ class SettingsService {
 
   // ── System Settings ──
   async getSystemSettings(tenantId?: string) {
-    const activeTenantId = tenantId || await (await import('@/lib/settings')).SettingsProvider.getTenantId();
+    const activeTenantId = tenantId || await SettingsProvider.getTenantId();
     let settings = await db.systemSettings.findUnique({ where: { id: activeTenantId } });
     if (!settings) {
       const defaultName = activeTenantId === 'lovable' ? 'Lovable Boost' : 'SMMplan';
@@ -91,7 +92,6 @@ class SettingsService {
         data: { id: activeTenantId, taxRate: 6.0, opexMonthly: 0, maintenanceMode: false, siteName: defaultName, siteDescription: '' }
       });
     }
-    const { SettingsProvider } = await import('@/lib/settings');
     if (SettingsProvider.isTestEnvironment()) {
       settings.isTestMode = true;
     }
@@ -139,7 +139,7 @@ class SettingsService {
     resendApiKey?: string | null;
     usnScheme?: UsnScheme;
   }, tenantId?: string) {
-    const activeTenantId = tenantId || await (await import('@/lib/settings')).SettingsProvider.getTenantId();
+    const activeTenantId = tenantId || await SettingsProvider.getTenantId();
     const result = await db.systemSettings.upsert({
       where: { id: activeTenantId },
       update: data,
@@ -148,7 +148,6 @@ class SettingsService {
 
     if (data.maintenanceMode !== undefined) {
       try {
-        const { redis } = await import('@/lib/redis');
         await redis.set(`settings:${activeTenantId}:maintenanceMode`, String(data.maintenanceMode));
       } catch (err) {
         console.warn(`[SettingsService] Failed to update Redis cache for maintenanceMode on ${activeTenantId}:`, err);

@@ -50,7 +50,7 @@ export default async function AdminSettingsPage({
       settingsService.listStaffUsers(),
       searchQuery ? settingsService.listUsers(searchQuery) : Promise.resolve([]),
       settingsService.getSystemSettings(),
-      db.adminAuditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 50 }),
+      activeTab === 'audit' ? db.adminAuditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 50 }) : Promise.resolve([]),
       db.staffRole.findMany({ include: { permissions: true }, orderBy: { name: 'asc' } }),
       db.supportTemplate.findMany({ orderBy: { sort: 'asc' } }),
       db.provider.findMany({ orderBy: { name: 'asc' } }),

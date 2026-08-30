@@ -37,7 +37,7 @@ export interface GlobalLiquiditySummary {
 export class ProviderBalanceService {
   private readonly CACHE_TTL_SECONDS = 60;
   private readonly ERROR_CACHE_TTL_SECONDS = 15;
-  private readonly TIMEOUT_MS = 5000;
+  private readonly TIMEOUT_MS = 3000;
 
   /**
    * Retrieves current balance for a specific provider with 60-second Redis caching

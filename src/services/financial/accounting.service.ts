@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { Prisma, UsnScheme } from '@prisma/client';
+import { calculatePartialRefund } from '@/utils/refund';
 
 interface FinancialMetrics {
   revenueGross: number; // Изначально принесенные деньги
@@ -57,13 +58,18 @@ class AccountingService {
         ...dateFilter,
         status: { in: ['PARTIAL', 'CANCELED'] },
         ...(isSingleTenant ? { tenantId } : {})
+      },
+      select: {
+        status: true,
+        quantity: true,
+        remains: true,
+        charge: true,
       }
     });
 
     let refunds = 0;
     for (const order of refundedOrders) {
       if (order.quantity > 0 && order.remains > 0) {
-        const { calculatePartialRefund } = await import('@/utils/refund');
         refunds += calculatePartialRefund(order);
       } else if (order.status === 'CANCELED') {
         refunds += Number(order.charge);

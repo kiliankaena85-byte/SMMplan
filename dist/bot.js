@@ -98836,16 +98836,28 @@ var init_payment_gateway_service = __esm({
         };
         const idempString = `yookassa_${params.userId}_${params.paymentId}_${Math.floor(Date.now() / 6e4)}`;
         const idempKey = import_crypto2.default.createHash("sha256").update(idempString).digest("hex").substring(0, 36);
-        const resp = await fetch("https://api.yookassa.ru/v3/payments", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": authHeader,
-            "Idempotence-Key": idempKey
-          },
-          body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(15e3)
-        });
+        if (params.isTestMode) {
+          return {
+            paymentUrl: `${params.successUrl}${params.successUrl.includes("?") ? "&" : "?"}testMode=true&paymentId=${params.paymentId}`,
+            remoteGatewayId: `test_yk_${params.paymentId}`
+          };
+        }
+        let resp;
+        try {
+          resp = await fetch("https://api.yookassa.ru/v3/payments", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": authHeader,
+              "Idempotence-Key": idempKey
+            },
+            body: JSON.stringify(payload),
+            signal: AbortSignal.timeout(1e4)
+          });
+        } catch (netErr) {
+          console.error("[YooKassaGateway] Connection failed:", netErr);
+          throw new Error("\u041E\u0448\u0438\u0431\u043A\u0430 \u0441\u043E\u0435\u0434\u0438\u043D\u0435\u043D\u0438\u044F \u0441\u043E \u0448\u043B\u044E\u0437\u043E\u043C \u042EKassa. \u0421\u0435\u0440\u0432\u0435\u0440 \u043E\u043F\u043B\u0430\u0442\u044B \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D \u2014 \u043F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u0421\u0411\u041F \u0438\u043B\u0438 CryptoBot.");
+        }
         if (!resp.ok) {
           const errBody = await resp.text();
           console.error("[YooKassaGateway] API Error:", resp.status, errBody);

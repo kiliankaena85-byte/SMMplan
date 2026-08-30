@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
+import { redis } from '@/lib/redis';
 
 export interface StormServiceAlert {
   serviceId: string;
@@ -68,6 +69,16 @@ class StormDetectorService {
       minUsers = 1,
       tenantId
     } = options;
+
+    const cacheKey = `admin:storm_report:${tenantId || 'all'}:${windowHours}`;
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached) as StormRadarReport;
+      }
+    } catch {
+      // Redis fallback to DB query
+    }
 
     const isSingleTenant = tenantId && tenantId !== 'all';
     const cutoffDate = new Date(Date.now() - windowHours * 60 * 60 * 1000);
@@ -220,7 +231,7 @@ class StormDetectorService {
       return b.failureRate - a.failureRate;
     });
 
-    return {
+    const report: StormRadarReport = {
       isShadowMode: true, // Stage 1: Safe Shadow Monitoring
       windowHours,
       totalAuditedServices: serviceMap.size,
@@ -229,6 +240,14 @@ class StormDetectorService {
       criticalCount,
       alerts
     };
+
+    try {
+      await redis.set(cacheKey, JSON.stringify(report), 'EX', 60);
+    } catch {
+      // Redis write failure is non-fatal
+    }
+
+    return report;
   }
 }
 

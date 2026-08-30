@@ -1,20 +1,39 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
-import { TrendingDown, Wallet, Clock, AlertTriangle, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useTransition } from 'react';
+import { TrendingDown, Wallet, Clock, AlertTriangle, CheckCircle2, XCircle, RefreshCw, Loader2 } from 'lucide-react';
 import type { GlobalLiquiditySummary } from '@/services/admin/provider-balance.service';
 import { getGlobalProviderLiquidityAction } from '@/actions/admin/providers/balance';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
 interface LiquidityDashboardProps {
-  data: GlobalLiquiditySummary;
+  data?: GlobalLiquiditySummary | null;
 }
 
 export function LiquidityDashboard({ data: initialData }: LiquidityDashboardProps) {
-  const [data, setData] = useState<GlobalLiquiditySummary>(initialData);
+  const [data, setData] = useState<GlobalLiquiditySummary | null>(initialData ?? null);
+  const [isLoading, setIsLoading] = useState(!initialData);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!initialData) {
+      setIsLoading(true);
+      getGlobalProviderLiquidityAction(false)
+        .then((res) => {
+          if (res.success && res.data) {
+            setData(res.data);
+          }
+        })
+        .catch((err) => {
+          console.warn('[LiquidityDashboard] Failed to fetch liquidity:', err);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
+  }, [initialData]);
 
   const handleRefresh = () => {
     startTransition(async () => {
@@ -33,6 +52,28 @@ export function LiquidityDashboard({ data: initialData }: LiquidityDashboardProp
       }
     });
   };
+
+  if (isLoading || !data) {
+    return (
+      <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-[24px] shadow-sm p-5 sm:p-6 space-y-4 animate-pulse">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <div className="h-4 w-36 bg-muted rounded-md" />
+            <div className="h-3 w-48 bg-muted/60 rounded-md" />
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <span>Загрузка балансов...</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="h-20 bg-muted/40 rounded-[14px]" />
+          <div className="h-20 bg-muted/40 rounded-[14px]" />
+          <div className="h-20 bg-muted/40 rounded-[14px]" />
+        </div>
+      </div>
+    );
+  }
 
   const runwayText =
     data.runwayDays === null

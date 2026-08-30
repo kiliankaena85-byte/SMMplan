@@ -5,7 +5,26 @@ import { adminTicketService } from '@/services/admin/ticket.service';
 import { adminCatalogService } from '@/services/admin/catalog.service';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
+import { unstable_cache } from 'next/cache';
 import nextDynamic from 'next/dynamic';
+
+const getCachedHealthData = unstable_cache(
+  async () => {
+    return db.service.groupBy({
+      by: ['isQuarantined', 'cooldownReason'],
+      _count: true,
+      where: {
+        OR: [
+          { isQuarantined: true },
+          { cooldownReason: 'ZOMBIE_AUTO_DISABLED' },
+          { cooldownUntil: { gt: new Date() }, cooldownReason: { not: 'ZOMBIE_AUTO_DISABLED' } },
+        ]
+      }
+    });
+  },
+  ['admin_dashboard_catalog_health'],
+  { revalidate: 60, tags: ['catalog', 'health'] }
+);
 
 const OrdersChart = nextDynamic(() => import('./orders-chart').then(mod => mod.OrdersChart), {
   loading: () => <div className="h-64 w-full animate-pulse rounded-xl bg-card/50 border border-border flex items-center justify-center text-xs text-muted-foreground">Загрузка графиков...</div>,
@@ -418,19 +437,9 @@ export default async function AdminDashboardPage({
 }
 
 async function SystemHealthBanner() {
-  const healthData = await db.service.groupBy({
-    by: ['isQuarantined', 'cooldownReason'],
-    _count: true,
-    where: {
-      OR: [
-        { isQuarantined: true },
-        { cooldownReason: 'ZOMBIE_AUTO_DISABLED' },
-        { cooldownUntil: { gt: new Date() }, cooldownReason: { not: 'ZOMBIE_AUTO_DISABLED' } },
-      ]
-    }
-  });
+  const healthData = await getCachedHealthData();
 
-  if (healthData.length === 0) return null;
+  if (!healthData || healthData.length === 0) return null;
 
   let quarantineCount = 0;
   let zombieCount = 0;
