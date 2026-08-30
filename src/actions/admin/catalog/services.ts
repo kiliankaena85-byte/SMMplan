@@ -267,10 +267,16 @@ export async function updateServiceAction(id: string, rawData: unknown) {
       }
     }
 
+    // For API-bound services (VexBoost/SMM panels), rate, minQty, and maxQty are authoritative from the upstream provider API sync
+    const isApiBound = Boolean((service.providerId && service.externalId) || (data.providerId && data.externalId));
+    const effectiveRate = isApiBound && service.rate > 0 ? service.rate : data.rate;
+    const effectiveMinQty = isApiBound && service.minQty > 0 ? service.minQty : data.minQty;
+    const effectiveMaxQty = isApiBound && service.maxQty > 0 ? service.maxQty : data.maxQty;
+
     // Recalculate pricePer1000Cents dynamically using CBR exchange rate
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
     const exchangeRate = providerCurrency === 'RUB' ? 1.0 : usdToRub;
-    const pricePer1000Cents = Math.round(applyBeautifulRounding(data.rate * data.markup * exchangeRate) * 100);
+    const pricePer1000Cents = Math.round(applyBeautifulRounding(effectiveRate * data.markup * exchangeRate) * 100);
 
     // Check if name or description were customized
     const isCustomName = data.name !== service.name ? true : service.isCustomName;
@@ -287,10 +293,10 @@ export async function updateServiceAction(id: string, rawData: unknown) {
           isCustomDescription,
           categoryId: data.categoryId,
           providerId: data.providerId,
-          rate: data.rate,
+          rate: effectiveRate,
           markup: data.markup,
-          minQty: data.minQty,
-          maxQty: data.maxQty,
+          minQty: effectiveMinQty,
+          maxQty: effectiveMaxQty,
           externalId: data.externalId,
           targetType: targetType,
           qualityTier: data.qualityTier,

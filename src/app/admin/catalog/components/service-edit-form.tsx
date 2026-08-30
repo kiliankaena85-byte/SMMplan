@@ -97,6 +97,9 @@ export function ServiceEditForm({
   const [isRefillEnabled, setIsRefillEnabled] = useState(Boolean(initialData.isRefillEnabled));
   const [isCancelEnabled, setIsCancelEnabled] = useState(Boolean(initialData.isCancelEnabled));
 
+  // Determine if service is bound to an upstream API provider (e.g. VexBoost)
+  const isProviderBound = Boolean(initialData.providerId || providerId);
+
   // Anti-Contradiction & Semantic Badge Detection
   const lowerName = name.toLowerCase();
   const hasRefillContradiction = (lowerName.includes('без гарант') || lowerName.includes('no refill') || lowerName.includes('no-refill')) && isRefillEnabled;
@@ -312,29 +315,61 @@ export function ServiceEditForm({
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-foreground mb-1 block">Мин. заказ (шт)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-foreground block">Мин. заказ (шт)</label>
+                  {isProviderBound && (
+                    <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">
+                      🔒 API Sync
+                    </span>
+                  )}
+                </div>
                 <input
                   type="number"
                   value={minQty}
                   onChange={e => setMinQty(Number(e.target.value))}
                   min={1}
+                  disabled={isProviderBound}
+                  readOnly={isProviderBound}
                   required
-                  className="w-full px-3 py-2 rounded-xl border border-border bg-background text-foreground text-xs font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  className={`w-full px-3 py-2 rounded-xl border text-xs font-medium outline-none transition-all ${
+                    isProviderBound
+                      ? 'bg-muted/40 text-muted-foreground border-border/70 cursor-not-allowed border-dashed font-mono'
+                      : 'border-border bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary'
+                  }`}
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-foreground mb-1 block">Макс. заказ (шт)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-foreground block">Макс. заказ (шт)</label>
+                  {isProviderBound && (
+                    <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">
+                      🔒 API Sync
+                    </span>
+                  )}
+                </div>
                 <input
                   type="number"
                   value={maxQty}
                   onChange={e => setMaxQty(Number(e.target.value))}
                   min={1}
+                  disabled={isProviderBound}
+                  readOnly={isProviderBound}
                   required
-                  className="w-full px-3 py-2 rounded-xl border border-border bg-background text-foreground text-xs font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  className={`w-full px-3 py-2 rounded-xl border text-xs font-medium outline-none transition-all ${
+                    isProviderBound
+                      ? 'bg-muted/40 text-muted-foreground border-border/70 cursor-not-allowed border-dashed font-mono'
+                      : 'border-border bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary'
+                  }`}
                 />
               </div>
             </div>
+
+            {isProviderBound && (
+              <p className="text-[11px] text-muted-foreground">
+                ℹ️ Лимиты объёма передаются напрямую от поставщика по API (VexBoost/SMM) и обновляются автоматически при синхронизации.
+              </p>
+            )}
 
             <div className="grid grid-cols-3 gap-3 pt-2">
               <label className="flex items-center gap-2 p-2.5 rounded-xl border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors">
@@ -440,18 +475,32 @@ export function ServiceEditForm({
             </h2>
 
             <div>
-              <label className="text-xs font-semibold text-foreground mb-1 block">Тариф провайдера ($ за 1000)</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-foreground block">Тариф провайдера ($ за 1000)</label>
+                {isProviderBound && (
+                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded flex items-center gap-1">
+                    🔒 API Sync
+                  </span>
+                )}
+              </div>
               <input
                 type="number"
                 step="0.0001"
                 value={rate}
                 onChange={e => setRate(Number(e.target.value))}
                 min={0}
+                disabled={isProviderBound}
+                readOnly={isProviderBound}
                 required
-                className="w-full px-3 py-2 rounded-xl border border-border bg-background text-foreground text-xs font-mono font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                className={`w-full px-3 py-2 rounded-xl border text-xs font-mono font-medium outline-none transition-all ${
+                  isProviderBound
+                    ? 'bg-muted/40 text-muted-foreground border-border/70 cursor-not-allowed border-dashed'
+                    : 'border-border bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary'
+                }`}
               />
               <p className="text-[11px] text-muted-foreground mt-1 font-mono">
                 Себестоимость: {costPer1000Rub.toFixed(2)} ₽ / 1000 шт
+                {isProviderBound && ' · обновляется автоматически по API'}
               </p>
             </div>
 
