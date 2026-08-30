@@ -1,7 +1,17 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 15:40 (МСК)
+> **Последнее обновление:** 2026-08-30 18:24 (МСК)
+
+- **Admin Navigation Best Match Rule & Single Tab Highlight Fix (100% COMPLETE, TESTED & DEPLOYED):**
+  - **1. Алгоритм наибольшей специфичности («Best Match Rule»):** В утилиту `isNavTabActive` ([`src/components/admin/navigation-data.ts`](file:///d:/SMM_plan_2/src/components/admin/navigation-data.ts)) внедрена точная логика сопоставления URL. Устранено паразитное одновременное подсвечивание родительских маршрутов (`/admin/catalog` или `/admin/finance`) при переходе на более специфичные дочерние страницы (`/admin/catalog/categories` или `/admin/finance/balance-requests`).
+  - **2. Синхронизация всех компонентов навигации:** Алгоритм `isNavTabActive` подключен в десктопный сайдбар ([`AdminSidebar`](file:///d:/SMM_plan_2/src/components/admin/sidebar.tsx)), мобильную шторку ([`MobileNavDrawer`](file:///d:/SMM_plan_2/src/components/admin/mobile-nav-drawer.tsx)) и блок закреплённых вкладок (Pinned Items).
+  - **3. Верификация:** Создан специализированный сьют `src/__tests__/admin-nav-active.test.ts` (7/7 PASS), общий юнит-сьют `vitest.unit.config.ts` — **158/158 PASS (100% GREEN)**, `tsc --noEmit` — **0 ошибок**, полный `npm run build` standalone бандла успешен.
+
+- **Unified Payment Methods Consolidation & Strict Inactive Gateways Filter (100% COMPLETE & VERIFIED):**
+  - **1. Единый шлюз ЮKassa:** В кабинете пополнения ([`/dashboard/add-funds`](file:///d:/SMM_plan_2/src/app/dashboard/add-funds/client-page.tsx)) методы «СБП» и «Карты РФ» объединены в один официальный пункт «Банковские карты РФ и СБП (ЮKassa)», исключая дублирование.
+  - **2. Строгий фильтр B2B и ненастроенных шлюзов:** В `getAvailableGatewaysAction()` безналичный расчёт B2B активируется ТОЛЬКО при наличии заполненного ИНН компании (`LEGAL_INN`). Ненастроенные шлюзы (Робокасса, CryptoBot) скрыты во всех 5 интерфейсах.
+  - **3. Живой автоматизированный смок-тест контейнера:** Разработан скрипт `scripts/smoke-live-container.ts` (**15/15 PASS**), подтвердивший корректность работы HTTP, переключения Sandbox/Production, защиты от недоплат (`PAYMENT_AMOUNT_MISMATCH`) и целостности леджера.
 
 - **Mobile Wizard v2.0 Refactoring & High-Density UX (100% COMPLETE & VERIFIED):**
   - **1. 4-шаговый прогресс-степпер (`MobileWizardStepper.tsx`):** Внедрена интерактивная шкала шагов (`1. Ссылка` → `2. Категория` → `3. Тариф` → `4. Оплата`) с прогресс-баром и быстрой навигацией по пройденным шагам.

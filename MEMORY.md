@@ -6,6 +6,10 @@
 
 ## 1. 🏗️ Архитектурные решения (ADR)
 
+- **Admin Navigation Best Match Rule & Prefix Routing Isolation:**
+  - *Решение:* Логика подсветки активных пунктов в сайдбаре (`AdminSidebar`, `MobileNavDrawer`) переведена на функцию `isNavTabActive()` с алгоритмом наибольшей специфичности (Best Match Rule).
+  - *Причина:* Предотвращение одновременной подсветки родительских маршрутов (`/admin/catalog` или `/admin/finance`) при переходе на более специализированные дочерние вкладки (`/admin/catalog/categories` или `/admin/finance/balance-requests`).
+
 - **Multi-Domain Testing & Production Routing Contract (STRICT RULE — 100% VERIFIED LIVE):**
   - **`smmplan.pro` (и `www.smmplan.pro`):** СТРОГО страница-заглушка предзапуска (`PreLaunchHoldingScreen`) во время периода тестирования.
   - **`test.smmplan.pro`:** СТРОГО основной сайт платформы SMMplan (`SmartLinkLanding`) во время периода тестирования.
