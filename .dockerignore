@@ -4,9 +4,9 @@ node_modules/*
 .next/*
 !.next/standalone
 !.next/static
-caddy/
-dist/
-*.zip
+dist/*
+!dist/bot.js
+!dist/worker.js
 logs/
 .git
 .env
