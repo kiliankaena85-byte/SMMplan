@@ -214,7 +214,11 @@ export default function AddFundsForm() {
       try {
         const gatewayParam = method === 'sbp' ? 'yookassa' : method;
         const res = await createTopUpPaymentAction(amount, gatewayParam);
-        window.location.href = res.paymentUrl;
+        if (res.success && res.paymentUrl) {
+          window.location.href = res.paymentUrl;
+        } else {
+          setError(res.error || 'Ошибка создания платежа в платёжной системе');
+        }
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : 'Неизвестная ошибка создания платежа');
       }

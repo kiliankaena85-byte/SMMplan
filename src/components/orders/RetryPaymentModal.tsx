@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Wallet, CreditCard, Bitcoin, Coins } from 'lucide-react';
 import { toast } from 'sonner';
@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { formatBalance } from '@/lib/utils';
+import { getAvailableGatewaysAction } from '@/actions/order/checkout';
 
 interface RetryPaymentModalProps {
   orderId: string;
@@ -27,10 +28,23 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [availableGateways, setAvailableGateways] = useState<{
+    yookassa: boolean;
+    robokassa: boolean;
+    cryptobot: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      getAvailableGatewaysAction().then((res) => {
+        if (res.success && res.data) {
+          setAvailableGateways(res.data);
+        }
+      });
+    }
+  }, [isOpen]);
 
   const amountRub = centsToRub(charge);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const balanceRub = centsToRub(balance);
   const canPayFromBalance = balance >= charge;
 
   async function handleRetry(gateway: string) {
@@ -53,12 +67,16 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
       } else {
         toast.error(res.error || 'Платёжная система временно недоступна. Попробуйте позже или выберите другой способ оплаты.');
       }
-        } catch {
+    } catch {
       toast.error('Проблема с интернет-соединением. Проверьте связь и попробуйте снова.');
     } finally {
       setIsProcessing(false);
     }
   }
+
+  const showYooKassa = !availableGateways || availableGateways.yookassa;
+  const showRobokassa = availableGateways ? availableGateways.robokassa : false;
+  const showCryptoBot = availableGateways ? availableGateways.cryptobot : false;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -92,6 +110,7 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
           </div>
 
           <div className="space-y-3 mt-2">
+            {/* 1. Internal Balance */}
             <Button
               intent="outline"
               size="lg"
@@ -114,50 +133,59 @@ export function RetryPaymentModal({ orderId, charge, balance, trigger }: RetryPa
               {isProcessing && <Loader2 className="w-4 h-4 animate-spin absolute right-4 text-muted-foreground" />}
             </Button>
 
-            <Button
-              intent="outline"
-              size="lg"
-              className="w-full justify-start h-14 border-border/60 hover:border-primary/50 hover:bg-primary/5"
-              disabled={isProcessing}
-              onClick={() => handleRetry('yookassa')}
-            >
-              <CreditCard className="w-5 h-5 mr-3 text-primary" />
-              <div className="flex flex-col items-start">
-                <span className="font-semibold text-foreground">Банковская карта / СБП</span>
-                <span className="text-xs text-muted-foreground mt-0.5">YooKassa</span>
-              </div>
-              {isProcessing && <Loader2 className="w-4 h-4 animate-spin absolute right-4 text-muted-foreground" />}
-            </Button>
+            {/* 2. YooKassa */}
+            {showYooKassa && (
+              <Button
+                intent="outline"
+                size="lg"
+                className="w-full justify-start h-14 border-border/60 hover:border-primary/50 hover:bg-primary/5"
+                disabled={isProcessing}
+                onClick={() => handleRetry('yookassa')}
+              >
+                <CreditCard className="w-5 h-5 mr-3 text-primary" />
+                <div className="flex flex-col items-start">
+                  <span className="font-semibold text-foreground">Банковская карта / СБП</span>
+                  <span className="text-xs text-muted-foreground mt-0.5">YooKassa</span>
+                </div>
+                {isProcessing && <Loader2 className="w-4 h-4 animate-spin absolute right-4 text-muted-foreground" />}
+              </Button>
+            )}
 
-            <Button
-              intent="outline"
-              size="lg"
-              className="w-full justify-start h-14 border-border/60 hover:border-primary/50 hover:bg-primary/5"
-              disabled={isProcessing}
-              onClick={() => handleRetry('robokassa')}
-            >
-              <Coins className="w-5 h-5 mr-3 text-info" />
-              <div className="flex flex-col items-start">
-                <span className="font-semibold text-foreground">Робокасса</span>
-                <span className="text-xs text-muted-foreground mt-0.5">Карты РФ/СНГ, СБП, Электронные кошельки</span>
-              </div>
-              {isProcessing && <Loader2 className="w-4 h-4 animate-spin absolute right-4 text-muted-foreground" />}
-            </Button>
+            {/* 3. Robokassa (Only when configured) */}
+            {showRobokassa && (
+              <Button
+                intent="outline"
+                size="lg"
+                className="w-full justify-start h-14 border-border/60 hover:border-primary/50 hover:bg-primary/5"
+                disabled={isProcessing}
+                onClick={() => handleRetry('robokassa')}
+              >
+                <Coins className="w-5 h-5 mr-3 text-info" />
+                <div className="flex flex-col items-start">
+                  <span className="font-semibold text-foreground">Робокасса</span>
+                  <span className="text-xs text-muted-foreground mt-0.5">Карты РФ/СНГ, СБП, Электронные кошельки</span>
+                </div>
+                {isProcessing && <Loader2 className="w-4 h-4 animate-spin absolute right-4 text-muted-foreground" />}
+              </Button>
+            )}
 
-            <Button
-              intent="outline"
-              size="lg"
-              className="w-full justify-start h-14 border-border/60 hover:border-primary/50 hover:bg-primary/5"
-              disabled={isProcessing}
-              onClick={() => handleRetry('cryptobot')}
-            >
-              <Bitcoin className="w-5 h-5 mr-3 text-warning-text" />
-              <div className="flex flex-col items-start">
-                <span className="font-semibold text-foreground">Криптовалюта</span>
-                <span className="text-xs text-muted-foreground mt-0.5">CryptoBot (USDT, TON, BTC)</span>
-              </div>
-              {isProcessing && <Loader2 className="w-4 h-4 animate-spin absolute right-4 text-muted-foreground" />}
-            </Button>
+            {/* 4. CryptoBot (Only when configured) */}
+            {showCryptoBot && (
+              <Button
+                intent="outline"
+                size="lg"
+                className="w-full justify-start h-14 border-border/60 hover:border-primary/50 hover:bg-primary/5"
+                disabled={isProcessing}
+                onClick={() => handleRetry('cryptobot')}
+              >
+                <Bitcoin className="w-5 h-5 mr-3 text-warning-text" />
+                <div className="flex flex-col items-start">
+                  <span className="font-semibold text-foreground">Криптовалюта</span>
+                  <span className="text-xs text-muted-foreground mt-0.5">CryptoBot (USDT, TON, BTC)</span>
+                </div>
+                {isProcessing && <Loader2 className="w-4 h-4 animate-spin absolute right-4 text-muted-foreground" />}
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>
