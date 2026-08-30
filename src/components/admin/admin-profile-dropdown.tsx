@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useShortcuts } from './shortcuts-provider';
+import { useDensity } from './density-provider';
 import { toast } from 'sonner';
 import { soundManager } from '@/utils/sound';
 
@@ -39,19 +40,17 @@ export function AdminProfileDropdown({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { theme, resolvedTheme, setTheme } = useTheme();
   const { setIsHelpOpen } = useShortcuts();
+  const { isCompact, toggleDensity } = useDensity();
   const [mounted, setMounted] = useState(false);
 
   // Workspace Settings
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [compactMode, setCompactMode] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     try {
       const savedSound = localStorage.getItem('admin_sound_notifications');
       if (savedSound !== null) setSoundEnabled(savedSound === 'true');
-      const savedCompact = localStorage.getItem('admin_compact_density');
-      if (savedCompact !== null) setCompactMode(savedCompact === 'true');
     } catch {}
   }, []);
 
@@ -69,13 +68,9 @@ export function AdminProfileDropdown({
     } catch {}
   };
 
-  const toggleCompact = () => {
-    const next = !compactMode;
-    setCompactMode(next);
-    try {
-      localStorage.setItem('admin_compact_density', String(next));
-      toast.success(next ? 'Включен компактный режим таблиц' : 'Включен стандартный режим таблиц');
-    } catch {}
+  const handleToggleCompact = () => {
+    toggleDensity();
+    toast.success(!isCompact ? 'Включен компактный режим таблиц' : 'Включен стандартный режим таблиц');
   };
 
   const isDark = mounted ? (resolvedTheme === 'dark' || theme?.includes('dark') || theme === 'dark') : false;
@@ -173,28 +168,28 @@ export function AdminProfileDropdown({
             >
               <span className="flex items-center gap-2">
                 {soundEnabled ? (
-                  <Volume2 className="w-4 h-4 text-emerald-500" />
+                  <Volume2 className="w-4 h-4 text-success" />
                 ) : (
                   <VolumeX className="w-4 h-4 text-muted-foreground" />
                 )}
                 Звук уведомлений
               </span>
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${soundEnabled ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground'}`}>
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${soundEnabled ? 'bg-success/10 text-success-text' : 'bg-muted text-muted-foreground'}`}>
                 {soundEnabled ? 'Вкл' : 'Выкл'}
               </span>
             </button>
 
             {/* Density Toggle */}
             <button
-              onClick={toggleCompact}
+              onClick={handleToggleCompact}
               className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
             >
               <span className="flex items-center gap-2">
-                <LayoutGrid className="w-4 h-4 text-sky-500" />
+                <LayoutGrid className="w-4 h-4 text-primary" />
                 Компактность таблиц
               </span>
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${compactMode ? 'bg-sky-500/10 text-sky-600' : 'bg-muted text-muted-foreground'}`}>
-                {compactMode ? 'Компакт' : 'Стандарт'}
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isCompact ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                {isCompact ? 'Компакт' : 'Стандарт'}
               </span>
             </button>
 
@@ -206,9 +201,9 @@ export function AdminProfileDropdown({
             >
               <span className="flex items-center gap-2">
                 {isDark ? (
-                  <Sun className="w-4 h-4 text-amber-500" />
+                  <Sun className="w-4 h-4 text-warning" />
                 ) : (
-                  <Moon className="w-4 h-4 text-indigo-500" />
+                  <Moon className="w-4 h-4 text-info" />
                 )}
                 Тема оформления
               </span>

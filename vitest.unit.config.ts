@@ -19,6 +19,7 @@ export default defineConfig({
       'src/__tests__/orders-clients-pagination.test.ts',
       'src/__tests__/dark-mode-audit.test.ts',
       'src/__tests__/maintenance-screens.test.ts',
+      'src/__tests__/table-density.test.ts',
     ],
   }
 });

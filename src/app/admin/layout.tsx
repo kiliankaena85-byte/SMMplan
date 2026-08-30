@@ -9,6 +9,7 @@ import { AdminSidebar } from '@/components/admin/sidebar';
 import { MobileNavDrawer } from '@/components/admin/mobile-nav-drawer';
 import { CommandPalette } from '@/components/admin/command-palette';
 import { ShortcutsProvider } from '@/components/admin/shortcuts-provider';
+import { DensityProvider } from '@/components/admin/density-provider';
 import { AdminProfileDropdown } from '@/components/admin/admin-profile-dropdown';
 import { GlobalSiteSwitcher } from '@/components/admin/tenant-switcher';
 import { EnvironmentModeSwitcher } from '@/components/admin/EnvironmentModeSwitcher';
@@ -110,69 +111,71 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   );
 
   return (
-    <ShortcutsProvider>
-      <div data-tenant={activeTenantId} className="h-screen w-full overflow-hidden bg-muted/10 dark:bg-background flex flex-col md:flex-row relative selection:bg-primary/20 selection:text-foreground font-sans">
-        {/* Soft Ambient Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20 pointer-events-none z-0" />
+    <DensityProvider>
+      <ShortcutsProvider>
+        <div data-tenant={activeTenantId} className="h-screen w-full overflow-hidden bg-muted/10 dark:bg-background flex flex-col md:flex-row relative selection:bg-primary/20 selection:text-foreground font-sans">
+          {/* Soft Ambient Background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20 pointer-events-none z-0" />
 
-        <AdminSidebar 
-          userEmail={user.email}
-          roleInfo={roleInfo}
-          navigation={navigation}
-        />
+          <AdminSidebar 
+            userEmail={user.email}
+            roleInfo={roleInfo}
+            navigation={navigation}
+          />
 
-        {/* Floating Main Content Area */}
-        <div className="flex-1 max-h-screen overflow-hidden p-0 md:p-3.5 z-10 relative flex flex-col">
-          <SystemEmergencyBanner />
-          {/* Top Header Bar with Mobile Drawer, Global Site Switcher & Profile Dropdown */}
-          <header className="mb-2 px-3 md:px-1 flex items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-2 md:gap-3">
-              <MobileNavDrawer
-                userEmail={user.email}
-                roleInfo={roleInfo}
-                navigation={navigation}
-              />
-              <GlobalSiteSwitcher currentTenant={activeTenantId} />
-              <EnvironmentModeSwitcher readOnly={!canEditSettings} />
-            </div>
-            <div className="flex items-center gap-2">
-              <AdminProfileDropdown
-                userEmail={user.email}
-                role={user.role}
-                roleLabel={roleInfo.label}
-                roleColor={roleInfo.color}
-              />
-            </div>
-          </header>
-
-          {/* Global Test Mode Warning Banner */}
-          {isTestMode && (
-            <div className="mb-2.5 mx-3 md:mx-0 rounded-lg bg-muted/60 border border-border/70 text-foreground px-4 py-2.5 flex items-center justify-between shadow-sm relative overflow-hidden">
-              <div className="flex items-center gap-3 relative z-10">
-                <div className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                </div>
-                <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-                  <span className="font-extrabold text-[11px] uppercase tracking-wider text-primary">Тестовый режим</span>
-                  <span className="text-muted-foreground text-xs">Заказы не отправляются провайдерам. Ghost Proxy перехватывает трафик.</span>
-                </div>
+          {/* Floating Main Content Area */}
+          <div className="flex-1 max-h-screen overflow-hidden p-0 md:p-3.5 z-10 relative flex flex-col">
+            <SystemEmergencyBanner />
+            {/* Top Header Bar with Mobile Drawer, Global Site Switcher & Profile Dropdown */}
+            <header className="mb-2 px-3 md:px-1 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2 md:gap-3">
+                <MobileNavDrawer
+                  userEmail={user.email}
+                  roleInfo={roleInfo}
+                  navigation={navigation}
+                />
+                <GlobalSiteSwitcher currentTenant={activeTenantId} />
+                <EnvironmentModeSwitcher readOnly={!canEditSettings} />
               </div>
-              <Link href="/admin/settings?tab=system" className="text-xs font-semibold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-2.5 py-1 rounded-md transition-all relative z-10">
-                Настройки →
-              </Link>
-            </div>
-          )}
-          <main id="main-content" tabIndex={-1} className="flex-1 w-full overflow-hidden flex flex-col relative transition-all duration-200 bg-card md:rounded-xl md:border md:border-border/60 md:shadow-sm outline-none">
-            <div className="flex-1 w-full p-3 md:p-4.5 flex flex-col overflow-y-auto">
-              {children}
-            </div>
-          </main>
-        </div>
+              <div className="flex items-center gap-2">
+                <AdminProfileDropdown
+                  userEmail={user.email}
+                  role={user.role}
+                  roleLabel={roleInfo.label}
+                  roleColor={roleInfo.color}
+                />
+              </div>
+            </header>
 
-        <CommandPalette />
-        <Toaster position="top-right" richColors closeButton className="mt-4 mr-4" />
-      </div>
-    </ShortcutsProvider>
+            {/* Global Test Mode Warning Banner */}
+            {isTestMode && (
+              <div className="mb-2.5 mx-3 md:mx-0 rounded-lg bg-muted/60 border border-border/70 text-foreground px-4 py-2.5 flex items-center justify-between shadow-sm relative overflow-hidden">
+                <div className="flex items-center gap-3 relative z-10">
+                  <div className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                  </div>
+                  <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                    <span className="font-extrabold text-[11px] uppercase tracking-wider text-primary">Тестовый режим</span>
+                    <span className="text-muted-foreground text-xs">Заказы не отправляются провайдерам. Ghost Proxy перехватывает трафик.</span>
+                  </div>
+                </div>
+                <Link href="/admin/settings?tab=system" className="text-xs font-semibold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 px-2.5 py-1 rounded-md transition-all relative z-10">
+                  Настройки →
+                </Link>
+              </div>
+            )}
+            <main id="main-content" tabIndex={-1} className="flex-1 w-full overflow-hidden flex flex-col relative transition-all duration-200 bg-card md:rounded-xl md:border md:border-border/60 md:shadow-sm outline-none">
+              <div className="flex-1 w-full p-3 md:p-4.5 flex flex-col overflow-y-auto">
+                {children}
+              </div>
+            </main>
+          </div>
+
+          <CommandPalette />
+          <Toaster position="top-right" richColors closeButton className="mt-4 mr-4" />
+        </div>
+      </ShortcutsProvider>
+    </DensityProvider>
   );
 }

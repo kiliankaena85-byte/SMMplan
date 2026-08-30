@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Send,
@@ -50,6 +50,32 @@ export function StepByStepWizard({
   const [targetUrl, setTargetUrl] = useState('');
   const [quantity, setQuantity] = useState(500);
   const [paymentMethod, setPaymentMethod] = useState<'sbp' | 'card' | 'crypto'>('sbp');
+  const [availableGateways, setAvailableGateways] = useState<{
+    yookassa: boolean;
+    sbp?: boolean;
+    robokassa: boolean;
+    cryptobot: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    import('@/actions/order/checkout').then(({ getAvailableGatewaysAction }) => {
+      getAvailableGatewaysAction().then((res) => {
+        if (res.success && res.data) {
+          setAvailableGateways(res.data);
+          const data = res.data;
+          const isCurrentActive =
+            (paymentMethod === 'sbp' && data.yookassa) ||
+            (paymentMethod === 'card' && data.yookassa) ||
+            (paymentMethod === 'crypto' && data.cryptobot);
+
+          if (!isCurrentActive) {
+            if (data.yookassa) setPaymentMethod('sbp');
+            else if (data.cryptobot) setPaymentMethod('crypto');
+          }
+        }
+      });
+    });
+  }, [paymentMethod]);
 
   // Price calculations
   const pricePerUnitNumeric = parseFloat(selectedService.pricePerUnit.replace(/[^0-9.]/g, '')) || 0.18;
@@ -426,54 +452,60 @@ export function StepByStepWizard({
                   <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
                     Способ оплаты:
                   </label>
-                  <div className="grid grid-cols-3 gap-2.5">
-                    <button
-                      type="button"
-                      className={`p-3 min-h-[44px] rounded-2xl border text-left transition-all ${
-                        paymentMethod === 'sbp'
-                          ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                          : 'border-border bg-card'
-                      }`}
-                      onClick={() => setPaymentMethod('sbp')}
-                    >
-                      <div className="flex items-center gap-2">
-                        <QrCode className="w-4 h-4 text-primary" />
-                        <span className="font-bold text-xs">СБП / QR</span>
-                      </div>
-                      <span className="text-[10px] text-muted-foreground block mt-0.5">0% комиссии</span>
-                    </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                    {(!availableGateways || availableGateways.yookassa) && (
+                      <button
+                        type="button"
+                        className={`p-3 min-h-[44px] rounded-2xl border text-left transition-all ${
+                          paymentMethod === 'sbp'
+                            ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                            : 'border-border bg-card'
+                        }`}
+                        onClick={() => setPaymentMethod('sbp')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <QrCode className="w-4 h-4 text-primary" />
+                          <span className="font-bold text-xs">СБП / QR</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground block mt-0.5">0% комиссии</span>
+                      </button>
+                    )}
 
-                    <button
-                      type="button"
-                      className={`p-3 min-h-[44px] rounded-2xl border text-left transition-all ${
-                        paymentMethod === 'card'
-                          ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                          : 'border-border bg-card'
-                      }`}
-                      onClick={() => setPaymentMethod('card')}
-                    >
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="w-4 h-4 text-primary" />
-                        <span className="font-bold text-xs">Карта РФ</span>
-                      </div>
-                      <span className="text-[10px] text-muted-foreground block mt-0.5">МИР / Visa / MC</span>
-                    </button>
+                    {(!availableGateways || availableGateways.yookassa) && (
+                      <button
+                        type="button"
+                        className={`p-3 min-h-[44px] rounded-2xl border text-left transition-all ${
+                          paymentMethod === 'card'
+                            ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                            : 'border-border bg-card'
+                        }`}
+                        onClick={() => setPaymentMethod('card')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="w-4 h-4 text-primary" />
+                          <span className="font-bold text-xs">Карта РФ</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground block mt-0.5">МИР / Visa / MC</span>
+                      </button>
+                    )}
 
-                    <button
-                      type="button"
-                      className={`p-3 min-h-[44px] rounded-2xl border text-left transition-all ${
-                        paymentMethod === 'crypto'
-                          ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                          : 'border-border bg-card'
-                      }`}
-                      onClick={() => setPaymentMethod('crypto')}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Wallet className="w-4 h-4 text-primary" />
-                        <span className="font-bold text-xs">Crypto</span>
-                      </div>
-                      <span className="text-[10px] text-muted-foreground block mt-0.5">USDT / TON / BTC</span>
-                    </button>
+                    {(!availableGateways || availableGateways.cryptobot) && (
+                      <button
+                        type="button"
+                        className={`p-3 min-h-[44px] rounded-2xl border text-left transition-all ${
+                          paymentMethod === 'crypto'
+                            ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                            : 'border-border bg-card'
+                        }`}
+                        onClick={() => setPaymentMethod('crypto')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Wallet className="w-4 h-4 text-primary" />
+                          <span className="font-bold text-xs">Crypto</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground block mt-0.5">USDT / TON / BTC</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 

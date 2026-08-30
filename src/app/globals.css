@@ -626,6 +626,62 @@ img {
   content-visibility: auto;
 }
 
+/* ── Table Density Modes (Admin Panel & Dashboards) ── */
+:root {
+  --density-th-py: 0.875rem; /* 14px */
+  --density-th-px: 1.5rem;   /* 24px */
+  --density-td-py: 1rem;      /* 16px */
+  --density-td-px: 1.5rem;   /* 24px */
+  --density-font: 0.8125rem;  /* 13px */
+}
+
+[data-density="compact"],
+.compact-density {
+  --density-th-py: 0.375rem; /* 6px */
+  --density-th-px: 0.5rem;   /* 8px */
+  --density-td-py: 0.25rem;  /* 4px */
+  --density-td-px: 0.5rem;   /* 8px */
+  --density-font: 0.75rem;   /* 12px */
+}
+
+/* High-priority compact table overrides */
+[data-density="compact"] table th,
+.compact-density table th,
+[data-density="compact"] [data-slot="table-head"],
+.compact-density [data-slot="table-head"] {
+  padding-top: 0.375rem !important;
+  padding-bottom: 0.375rem !important;
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  font-size: 0.6875rem !important;
+  line-height: 1.15 !important;
+}
+
+[data-density="compact"] table td,
+.compact-density table td,
+[data-density="compact"] [data-slot="table-cell"],
+.compact-density [data-slot="table-cell"] {
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.25rem !important;
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+  font-size: 0.75rem !important;
+  line-height: 1.2 !important;
+}
+
+/* Custom Grid rows in tables (e.g. Orders Table) */
+[data-density="compact"] [role="row"],
+.compact-density [role="row"] {
+  padding-top: 0.375rem !important;
+  padding-bottom: 0.375rem !important;
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+  font-size: 0.75rem !important;
+}
+
+
 .gpu-accelerated {
   transform: translate3d(0, 0, 0);
   backface-visibility: hidden;
