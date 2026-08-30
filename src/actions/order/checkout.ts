@@ -256,10 +256,26 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       }
       try {
         const u = new URL(normalizedLink);
-        if (!u.hostname.includes('.')) {
+        const host = u.hostname.toLowerCase();
+        if (!host.includes('.') && host !== 't.me' && host !== 'vk.cc') {
           throw new Error("Указан некорректный домен ссылки.");
         }
+        // SSRF Guard: block private/loopback/cloud metadata IP addresses
+        if (
+          host === 'localhost' ||
+          host === '127.0.0.1' ||
+          host === '::1' ||
+          host === '169.254.169.254' ||
+          host.startsWith('10.') ||
+          host.startsWith('192.168.') ||
+          /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host)
+        ) {
+          throw new Error("Указанный адрес заблокирован политикой безопасности.");
+        }
       } catch (e: unknown) {
+        if (e instanceof Error && (e.message.includes("домен") || e.message.includes("безопасности"))) {
+          throw e;
+        }
         console.error(`[Checkout] Link mutation failed for ${safeUrlForLog(link)}:`, e);
         throw new Error("Неверный формат ссылки.", { cause: e });
       }
@@ -269,10 +285,16 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         : inferTargetTypeFromCategory(service.category?.name);
 
       // Deep Domain Compatibility Check (Backend Defense Guard)
-      const { IntelligenceLinkAnalyzer } = await import('@/services/analyzer/link-analyzer');
-      const analyzer = new IntelligenceLinkAnalyzer();
-      const analysis = await analyzer.analyze(link.trim());
-      const detectedLinkType = analysis?.type || 'generic_link';
+      let detectedLinkType = 'generic_link';
+      try {
+        const { IntelligenceLinkAnalyzer } = await import('@/services/analyzer/link-analyzer');
+        const analyzer = new IntelligenceLinkAnalyzer();
+        const analysis = await analyzer.analyze(link.trim());
+        detectedLinkType = analysis?.type || 'generic_link';
+      } catch (err) {
+        console.warn(`[Checkout] IntelligenceLinkAnalyzer exception for ${safeUrlForLog(link)}:`, err);
+        detectedLinkType = 'generic_link';
+      }
       const serviceTargetType = normalizeServiceTargetType(resolvedTargetType);
 
       if (!isLinkServiceCompatible(detectedLinkType, serviceTargetType)) {
@@ -290,7 +312,12 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         }
       } else {
         // 1. Clean the link according to provider rules
-        normalizedLink = mutateLink(link, platformSlug, resolvedTargetType);
+        try {
+          normalizedLink = mutateLink(link, platformSlug, resolvedTargetType);
+        } catch (e) {
+          console.warn(`[Checkout] mutateLink failed for ${safeUrlForLog(link)}:`, e);
+          normalizedLink = link.trim();
+        }
 
         // 2. Validate the cleaned link
         const validator = getLinkValidator(platformSlug, resolvedTargetType);

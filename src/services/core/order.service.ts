@@ -101,10 +101,16 @@ class OrderService {
         // 2a.1 Link-Service Domain Compatibility Check
         if (!input.isLinkOverridden) {
           const { isLinkServiceCompatible, getCompatibilityError, normalizeServiceTargetType } = await import('@/constants/link-service-compatibility');
-          const { IntelligenceLinkAnalyzer } = await import('@/services/analyzer/link-analyzer');
-          const analyzer = new IntelligenceLinkAnalyzer();
-          const analysis = await analyzer.analyze(input.link.trim());
-          const detectedLinkType = analysis?.type || 'generic_link';
+          let detectedLinkType = 'generic_link';
+          try {
+            const { IntelligenceLinkAnalyzer } = await import('@/services/analyzer/link-analyzer');
+            const analyzer = new IntelligenceLinkAnalyzer();
+            const analysis = await analyzer.analyze(input.link.trim());
+            detectedLinkType = analysis?.type || 'generic_link';
+          } catch (e) {
+            console.warn(`[OrderService] IntelligenceLinkAnalyzer error:`, e);
+            detectedLinkType = 'generic_link';
+          }
           const resolvedTargetType = service.targetType || (service.category?.name ? (await import('@/utils/target-type')).inferTargetTypeFromCategory(service.category.name) : 'POST');
           const serviceTargetType = normalizeServiceTargetType(resolvedTargetType);
 

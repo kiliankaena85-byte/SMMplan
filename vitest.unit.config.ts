@@ -26,6 +26,7 @@ export default defineConfig({
       'src/__tests__/p0-security-fixes.test.ts',
       'src/__tests__/actionable-error.test.ts',
       'src/__tests__/admin-stress/admin-panel-stress-and-resilience.test.ts',
+      'src/__tests__/checkout-payments/checkout-resilience-and-bypass.test.ts',
     ],
   }
 });
