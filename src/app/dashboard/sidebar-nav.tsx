@@ -19,6 +19,7 @@ import {
 
 import { BalanceDisplay } from '@/components/dashboard/balance/BalanceDisplay';
 import { UserCommandMenu } from '@/components/dashboard/UserCommandMenu';
+import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 
 export const NAV = [
   { href: '/dashboard',              icon: LayoutDashboard, label: 'Главная'     },
@@ -97,13 +98,13 @@ export function SidebarNav({
               <div className="relative shrink-0">
                 <Icon className={`w-4 h-4 transition-transform ${active ? 'text-primary-foreground' : 'group-hover:scale-110'}`} />
                 {hasUnread && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-card animate-ping" />
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-notification ring-2 ring-card animate-ping" />
                 )}
               </div>
               <span>{label}</span>
 
               {hasUnread ? (
-                <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-rose-500 text-white font-black text-[10px] shadow-sm shadow-rose-500/40 animate-pulse">
+                <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-notification text-notification-foreground font-black text-[10px] shadow-sm shadow-notification/40 animate-pulse">
                   {unreadCount}
                 </span>
               ) : !active ? (
@@ -117,19 +118,20 @@ export function SidebarNav({
       {/* User footer */}
       <div className="p-3 border-t border-border/70">
         <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-2xl bg-secondary/60 border border-border/50">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary/20 to-indigo-500/20 text-primary flex items-center justify-center text-xs font-black uppercase shrink-0 border border-primary/20">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary/20 to-secondary text-primary flex items-center justify-center text-xs font-black uppercase shrink-0 border border-primary/20">
             {email.substring(0, 2)}
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-xs font-bold text-foreground truncate">{email}</div>
             <span className="text-[10px] text-muted-foreground font-semibold block">Пользователь</span>
           </div>
+          <ThemeSwitcher variant="toggle" className="shrink-0" />
           <Link
             href="/api/auth/logout"
             prefetch={false}
             title="Выйти"
             aria-label="Выйти из аккаунта"
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
           >
             <LogOut className="w-4 h-4" />
           </Link>
@@ -154,7 +156,7 @@ export function MobileBottomNav({
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-2xl border-t border-border/80 flex pb-[env(safe-area-inset-bottom)] shadow-2xl shadow-black/20"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-2xl border-t border-border/80 flex pb-[env(safe-area-inset-bottom)] shadow-2xl"
       aria-label="Нижняя навигация"
     >
       {MOBILE_NAV.map(({ href, icon: Icon, label }) => {
@@ -175,7 +177,7 @@ export function MobileBottomNav({
             <div className="relative">
               <Icon className="w-5 h-5 shrink-0" />
               {hasUnread && (
-                <span className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white font-black text-[9px] flex items-center justify-center animate-pulse shadow-sm shadow-rose-500/50">
+                <span className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-notification text-notification-foreground font-black text-[9px] flex items-center justify-center animate-pulse shadow-sm shadow-notification/50">
                   {unreadCount}
                 </span>
               )}

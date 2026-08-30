@@ -256,7 +256,7 @@ export function ChatMessageList({
                 >
                   {showAvatar && (
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-extrabold text-[11px] tracking-wider shadow-sm bg-gradient-to-br ${avatarGradient} shrink-0`}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-primary-foreground font-extrabold text-[11px] tracking-wider shadow-sm bg-gradient-to-br ${avatarGradient} shrink-0`}
                       title={avatarTitle}
                     >
                       {avatarInitial}
@@ -422,7 +422,7 @@ export function ChatMessageList({
                       <div
                         className={`mb-2 p-2 rounded-lg border-l-2 text-xs ${
                           msg.sender === 'STAFF'
-                            ? 'bg-foreground/10 border-white/40 text-primary-foreground'
+                            ? 'bg-foreground/10 border-primary-foreground/40 text-primary-foreground'
                             : 'bg-default-100 border-primary/50 text-foreground'
                         }`}
                       >
@@ -627,7 +627,7 @@ export function ChatMessageList({
                           }
                           // Document
                           return (
-                            <div className="flex items-center gap-2 bg-foreground/5 p-2.5 rounded-xl border border-black/10 mb-2 max-w-sm">
+                            <div className="flex items-center gap-2 bg-foreground/5 p-2.5 rounded-xl border border-border mb-2 max-w-sm">
                               <div className="text-2xl drop-shadow-sm shrink-0">📄</div>
                               <div
                                 className="text-sm font-semibold truncate flex-1 leading-tight text-foreground/90 min-w-0"
@@ -697,7 +697,7 @@ export function ChatMessageList({
                                 return (
                                   <div
                                     key={file.id}
-                                    className="bg-foreground/5 p-2 rounded-xl border border-black/10 flex flex-col justify-between h-full group/att min-w-0"
+                                    className="bg-foreground/5 p-2 rounded-xl border border-border flex flex-col justify-between h-full group/att min-w-0"
                                   >
                                     <audio
                                       src={`/api/media/${encodeURIComponent(file.url)}`}
@@ -717,7 +717,7 @@ export function ChatMessageList({
                               return (
                                 <div
                                   key={file.id}
-                                  className="flex items-center gap-2 bg-foreground/5 p-2 rounded-xl border border-black/10 group/att min-w-0"
+                                  className="flex items-center gap-2 bg-foreground/5 p-2 rounded-xl border border-border group/att min-w-0"
                                 >
                                   <div className="text-xl drop-shadow-sm shrink-0">📄</div>
                                   <div

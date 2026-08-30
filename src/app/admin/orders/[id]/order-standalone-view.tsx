@@ -25,14 +25,14 @@ import { formatKopecks } from '@/utils/format-kopecks';
 import { OrderModalColumn } from '@/components/admin/OrderDetailsModal';
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string; borderCls: string }> = {
-  AWAITING_PAYMENT: { label: 'Ожидает оплаты', cls: 'bg-slate-500/10 text-slate-600 dark:text-slate-400', borderCls: 'border-slate-500/30' },
-  PENDING:          { label: 'В очереди',       cls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400', borderCls: 'border-amber-500/30' },
-  IN_PROGRESS:      { label: 'В работе',        cls: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',       borderCls: 'border-sky-500/30' },
-  COMPLETED:        { label: 'Выполнен',        cls: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', borderCls: 'border-emerald-500/30' },
-  PARTIAL:          { label: 'Частично',        cls: 'bg-orange-500/10 text-orange-600 dark:text-orange-400', borderCls: 'border-orange-500/30' },
-  CANCELED:         { label: 'Отменён',         cls: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',        borderCls: 'border-rose-500/30' },
-  ERROR:            { label: 'Ошибка',          cls: 'bg-red-500/10 text-red-600 dark:text-red-400',           borderCls: 'border-red-500/30' },
-  REFUNDING:        { label: 'Возврат средств', cls: 'bg-violet-500/10 text-violet-600 dark:text-violet-400', borderCls: 'border-violet-500/30' },
+  AWAITING_PAYMENT: { label: 'Ожидает оплаты', cls: 'bg-muted text-muted-foreground', borderCls: 'border-border' },
+  PENDING:          { label: 'В очереди',       cls: 'bg-warning/10 text-warning-text', borderCls: 'border-warning/30' },
+  IN_PROGRESS:      { label: 'В работе',        cls: 'bg-primary/10 text-primary',       borderCls: 'border-primary/30' },
+  COMPLETED:        { label: 'Выполнен',        cls: 'bg-success/10 text-success-text', borderCls: 'border-success/30' },
+  PARTIAL:          { label: 'Частично',        cls: 'bg-warning/10 text-warning-text', borderCls: 'border-warning/30' },
+  CANCELED:         { label: 'Отменён',         cls: 'bg-destructive/10 text-destructive-text',        borderCls: 'border-destructive/30' },
+  ERROR:            { label: 'Ошибка',          cls: 'bg-destructive/10 text-destructive-text',           borderCls: 'border-destructive/30' },
+  REFUNDING:        { label: 'Возврат средств', cls: 'bg-info/10 text-info', borderCls: 'border-info/30' },
 };
 
 export function OrderStandaloneView({
@@ -191,7 +191,7 @@ export function OrderStandaloneView({
               setConfirmOpen(true);
             }}
             disabled={isPending || currentOrder.status === 'COMPLETED'}
-            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-bold text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-success hover:bg-success/90 disabled:opacity-40 text-success-foreground font-bold text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
           >
             <CheckCircle className="w-3.5 h-3.5" />
             <span>Завершить</span>
@@ -202,7 +202,7 @@ export function OrderStandaloneView({
               setConfirmOpen(true);
             }}
             disabled={isPending || currentOrder.status === 'CANCELED'}
-            className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-40 text-white font-bold text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-destructive hover:bg-destructive/90 disabled:opacity-40 text-destructive-foreground font-bold text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
           >
             <XCircle className="w-3.5 h-3.5" />
             <span>Отменить и вернуть</span>
@@ -332,7 +332,7 @@ export function OrderStandaloneView({
 
                 <div className="flex items-center justify-between pt-2 border-t border-border/40">
                   <span className="text-[10px] font-bold uppercase tracking-tight text-muted-foreground">Чистая маржа</span>
-                  <span className={`font-black text-sm tabular-nums ${marginRub >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  <span className={`font-black text-sm tabular-nums ${marginRub >= 0 ? 'text-success-text' : 'text-destructive-text'}`}>
                     {marginRub >= 0 ? `+${marginRub.toFixed(2)} ₽` : `${marginRub.toFixed(2)} ₽`} ({marginPercent}%)
                   </span>
                 </div>

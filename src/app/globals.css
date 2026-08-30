@@ -56,6 +56,9 @@
   /* ── Brand & Utility Tokens ── */
   --color-brand-telegram: #3390EC;
   --color-blob-sky: #38bdf8;
+  --color-notification: #f43f5e; /* rose-500 unread indicator */
+  --color-notification-foreground: #ffffff;
+  --color-overlay: rgba(0, 0, 0, 0.6);
   --animate-spin-slow: spin 3s linear infinite;
 
   /* ── Marquee Animation ── */
@@ -132,7 +135,9 @@
 }
 /* --- DARK THEMES VARIABLES OVERRIDE --- */
 .dark,
-[data-theme="dark"] {
+[data-theme="dark"],
+.sky-dark,
+[data-theme="sky-dark"] {
   --color-background: #0f172a; /* Soft, premium slate-900 instead of pitch-black */
   --color-foreground: #f8fafc; /* slate-50 */
 
@@ -161,6 +166,10 @@
   --color-success-text: #34d399;
   --color-destructive-text: #fca5a5;
   --color-info: #818cf8; /* indigo-400 */
+
+  --color-notification: #fb7185; /* rose-400 */
+  --color-notification-foreground: #0f172a;
+  --color-overlay: rgba(0, 0, 0, 0.75);
 
   /* ── Status Badges (Dark Mode Adjustments) ── */
   --color-status-completed: #34d399; /* emerald-400 */

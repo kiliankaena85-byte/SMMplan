@@ -832,7 +832,7 @@ export function OrderDetailsModal({
                         <button
                           onClick={handleConfirmFailover}
                           disabled={isPending || (!selectedRoute?.isMarginPositive && !acknowledgeBlindReroute)}
-                          className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white font-bold text-xs rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                          className="px-4 py-2 bg-warning hover:bg-warning/90 disabled:opacity-40 text-warning-foreground font-bold text-xs rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-1.5 cursor-pointer"
                         >
                           {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
                           <span>Перевести заказ на {selectedRoute?.providerName || 'маршрут'}</span>
@@ -863,7 +863,7 @@ export function OrderDetailsModal({
                 }
               }}
               disabled={isPending}
-              className="px-3.5 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold text-xs transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 rounded-xl border border-warning/30 bg-warning/10 hover:bg-warning/20 text-warning-text font-bold text-xs transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
               title="Перевести заказ на резервного провайдера (Alt+M)"
             >
               <Zap className="w-3.5 h-3.5" />
@@ -891,7 +891,7 @@ export function OrderDetailsModal({
                 setConfirmOpen(true);
               }}
               disabled={isPending || currentOrder.status === 'COMPLETED'}
-              className="px-3.5 py-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold text-xs transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 rounded-xl border border-success/30 bg-success/10 hover:bg-success/20 text-success-text font-bold text-xs transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
             >
               <CheckCircle className="w-3.5 h-3.5" />
               <span>Завершить</span>
@@ -904,7 +904,7 @@ export function OrderDetailsModal({
                 setConfirmOpen(true);
               }}
               disabled={isPending || currentOrder.status === 'CANCELED'}
-              className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-40 text-white font-bold text-xs transition-all shadow-md active:scale-95 flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 rounded-xl bg-destructive hover:bg-destructive/90 disabled:opacity-40 text-destructive-foreground font-bold text-xs transition-all shadow-md active:scale-95 flex items-center gap-1.5 cursor-pointer"
               title="Отменить заказ и вернуть средства на баланс (Alt+C)"
             >
               <XCircle className="w-3.5 h-3.5" />

@@ -52,32 +52,32 @@ const LAYER_CONFIG = {
     label: 'В очереди',
     color: '#f59e0b', // amber-500
     fillId: 'gradPending',
-    dotCls: 'bg-amber-500',
-    badgeCls: 'text-amber-700 dark:text-amber-400 bg-amber-500/10 border-amber-500/20',
+    dotCls: 'bg-warning',
+    badgeCls: 'text-warning-text bg-warning/10 border-warning/20',
   },
   unpaid: {
     key: 'unpaid',
     label: 'Не оплачены',
     color: '#94a3b8', // slate-400
     fillId: 'gradUnpaid',
-    dotCls: 'bg-slate-400',
-    badgeCls: 'text-slate-700 dark:text-slate-300 bg-slate-500/10 border-slate-500/20',
+    dotCls: 'bg-muted-foreground',
+    badgeCls: 'text-muted-foreground bg-muted border-border',
   },
   canceled: {
     key: 'canceled',
     label: 'Сбои / Отмены',
     color: '#f43f5e', // rose-500
     fillId: 'gradCanceled',
-    dotCls: 'bg-rose-500',
-    badgeCls: 'text-rose-700 dark:text-rose-400 bg-rose-500/10 border-rose-500/20',
+    dotCls: 'bg-destructive',
+    badgeCls: 'text-destructive-text bg-destructive/10 border-destructive/20',
   },
   partial: {
     key: 'partial',
     label: 'Частично',
     color: '#8b5cf6', // violet-500
     fillId: 'gradPartial',
-    dotCls: 'bg-violet-500',
-    badgeCls: 'text-violet-700 dark:text-violet-400 bg-violet-500/10 border-violet-500/20',
+    dotCls: 'bg-info',
+    badgeCls: 'text-info bg-info/10 border-info/20',
   },
 } as const;
 

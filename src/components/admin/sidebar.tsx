@@ -160,8 +160,8 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
         {pinnedItems.length > 0 && (
           <div className="space-y-1 pb-3 mb-2 border-b border-border/40">
             {!collapsed && (
-              <h3 className="px-3 mb-1.5 text-[10px] font-black text-amber-500/90 dark:text-amber-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
-                <Star className="w-3 h-3 fill-amber-500/20" />
+              <h3 className="px-3 mb-1.5 text-[10px] font-black text-warning uppercase tracking-[0.2em] flex items-center gap-1.5">
+                <Star className="w-3 h-3 fill-warning/20" />
                 Избранное
               </h3>
             )}
@@ -195,9 +195,9 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
                     <button
                       onClick={(e) => togglePin(tab.href, e)}
                       title="Убрать из избранного"
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:text-amber-500 text-muted-foreground transition-opacity cursor-pointer"
+                      className="opacity-0 group-hover:opacity-100 p-1 hover:text-warning text-muted-foreground transition-opacity cursor-pointer"
                     >
-                      <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                      <Star className="w-3.5 h-3.5 fill-warning text-warning" />
                     </button>
                   )}
                 </Link>
@@ -277,11 +277,11 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
                             className={cn(
                               "p-1 rounded transition-all cursor-pointer",
                               isPinned
-                                ? "text-amber-500 fill-amber-500 opacity-100"
-                                : "opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-amber-500"
+                                ? "text-warning fill-warning opacity-100"
+                                : "opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-warning"
                             )}
                           >
-                            <Star className={cn("w-3.5 h-3.5", isPinned && "fill-amber-500")} />
+                            <Star className={cn("w-3.5 h-3.5", isPinned && "fill-warning")} />
                           </button>
                         )}
                       </Link>

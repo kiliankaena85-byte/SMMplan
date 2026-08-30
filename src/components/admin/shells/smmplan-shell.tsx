@@ -27,12 +27,12 @@ export function SMMplanShell({
       />
       
       {/* Mobile static nav fallback */}
-      <aside className="md:hidden w-full bg-primary border-b border-slate-800 text-primary-foreground p-4 z-10 shadow-md">
+      <aside className="md:hidden w-full bg-primary border-b border-primary-foreground/20 text-primary-foreground p-4 z-10 shadow-md">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-sky-400">
+          <h2 className="text-xl font-bold text-primary-foreground">
             {siteName}
           </h2>
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">{roleInfo.label}</span>
+          <span className="text-xs font-medium text-primary-foreground/80 uppercase tracking-widest">{roleInfo.label}</span>
         </div>
       </aside>
 

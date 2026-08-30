@@ -26,13 +26,13 @@ interface Props {
 }
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  COMPLETED:        { label: 'Выполнен',  cls: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20' },
-  IN_PROGRESS:      { label: 'В работе',  cls: 'bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20' },
-  PENDING:          { label: 'В очереди', cls: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20' },
-  AWAITING_PAYMENT: { label: 'Ожидает',   cls: 'bg-slate-500/10 text-slate-700 dark:text-slate-400 border-slate-500/20' },
-  PARTIAL:          { label: 'Частично',  cls: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20' },
-  CANCELED:         { label: 'Отменён',   cls: 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20' },
-  ERROR:            { label: 'Ошибка',    cls: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20' },
+  COMPLETED:        { label: 'Выполнен',  cls: 'bg-success/10 text-success-text border-success/20' },
+  IN_PROGRESS:      { label: 'В работе',  cls: 'bg-primary/10 text-primary border-primary/20' },
+  PENDING:          { label: 'В очереди', cls: 'bg-warning/10 text-warning-text border-warning/20' },
+  AWAITING_PAYMENT: { label: 'Ожидает',   cls: 'bg-muted text-muted-foreground border-border' },
+  PARTIAL:          { label: 'Частично',  cls: 'bg-warning/10 text-warning-text border-warning/20' },
+  CANCELED:         { label: 'Отменён',   cls: 'bg-destructive/10 text-destructive-text border-destructive/20' },
+  ERROR:            { label: 'Ошибка',    cls: 'bg-destructive/10 text-destructive-text border-destructive/20' },
 };
 
 function timeAgo(date: Date): string {

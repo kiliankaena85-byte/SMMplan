@@ -56,9 +56,9 @@ const ADMIN_NAVIGATION = [
 ];
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
-  OWNER:   { label: 'Владелец',  color: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20 font-bold' },
-  ADMIN:   { label: 'Админ',     color: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20 font-bold' },
-  MANAGER: { label: 'Менеджер',  color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 font-bold' },
+  OWNER:   { label: 'Владелец',  color: 'bg-primary/10 text-primary border-primary/20 font-bold' },
+  ADMIN:   { label: 'Админ',     color: 'bg-info/10 text-info border-info/20 font-bold' },
+  MANAGER: { label: 'Менеджер',  color: 'bg-success/10 text-success-text border-success/20 font-bold' },
   SUPPORT: { label: 'Саппорт',   color: 'bg-muted text-muted-foreground border-border font-bold' },
 };
 

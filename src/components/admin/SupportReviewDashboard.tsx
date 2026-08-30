@@ -177,13 +177,13 @@ export function SupportReviewDashboard() {
                       />
                       <button
                         onClick={() => handleReview(item.id, 'APPROVED')}
-                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-medium transition-colors"
+                        className="px-2.5 py-1 bg-success hover:bg-success/90 text-success-foreground rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
                       >
                         Одобрить
                       </button>
                       <button
                         onClick={() => handleReview(item.id, 'VIOLATION')}
-                        className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-[11px] font-medium transition-colors"
+                        className="px-2.5 py-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
                       >
                         Нарушение
                       </button>
