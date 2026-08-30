@@ -8,7 +8,7 @@ import { z } from "zod";
 import { revalidatePath, revalidateTag } from "next/cache";
 
 const categorySchema = z.object({
-  name: z.string().min(1).max(255, "Category name too long"),
+  name: z.string().min(1, "Название категории обязательно").max(255, "Category name too long"),
   networkId: z.string().min(1, "Network ID required"),
   sort: z.coerce.number().int().default(0),
   tenantId: z.string().optional().nullable(),
@@ -16,6 +16,9 @@ const categorySchema = z.object({
   requireWarning: z.coerce.boolean().default(false),
   warningMessage: z.string().max(1000, "Предупреждение слишком длинное").optional().nullable(),
   analyzerTags: z.string().max(255).optional().nullable()
+}).refine(data => !data.requireWarning || (typeof data.warningMessage === 'string' && data.warningMessage.trim().length > 0), {
+  message: "Укажите текст предупреждения при включённой опции предупреждения",
+  path: ["warningMessage"]
 });
 
 const idSchema = z.string().min(1);
@@ -49,6 +52,10 @@ export async function createCategory(rawData: { name: string; networkId: string;
     revalidatePath("/admin/catalog");
     revalidateTag("catalog", 'default');
     revalidateTag("services", 'default');
+    revalidateTag("catalog-smmplan", 'default');
+    revalidateTag("catalog-flux", 'default');
+    revalidateTag("services-smmplan", 'default');
+    revalidateTag("services-flux", 'default');
     return { success: true, error: undefined, categoryId: cat.id, category: cat };
   });
 }
@@ -84,6 +91,10 @@ export async function updateCategory(rawId: string, rawData: { name: string; net
     revalidatePath("/admin/catalog");
     revalidateTag("catalog", 'default');
     revalidateTag("services", 'default');
+    revalidateTag("catalog-smmplan", 'default');
+    revalidateTag("catalog-flux", 'default');
+    revalidateTag("services-smmplan", 'default');
+    revalidateTag("services-flux", 'default');
     return { success: true, error: undefined };
   });
 }
@@ -91,13 +102,23 @@ export async function updateCategory(rawId: string, rawData: { name: string; net
 export async function deleteCategory(rawId: string) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const id = idSchema.parse(rawId);
-    const count = await db.service.count({ where: { categoryId: id } });
-    if (count > 0) {
+    const category = await db.category.findUnique({
+      where: { id },
+      include: {
+        _count: { select: { services: true } }
+      }
+    });
+
+    if (!category) {
+      return { success: false, error: 'Категория не найдена' };
+    }
+
+    if (category._count.services > 0) {
       return { 
         success: false, 
         hasServices: true,
-        serviceCount: count,
-        error: `Категория содержит ${count} услуг. Вы можете скрыть все услуги или объединить категорию с другой.` 
+        serviceCount: category._count.services,
+        error: `Категория содержит ${category._count.services} услуг. Вы можете скрыть все услуги или объединить категорию с другой.` 
       };
     }
 
@@ -108,13 +129,18 @@ export async function deleteCategory(rawId: string) {
       adminEmail: admin.email,
       action: "CATEGORY_DELETE",
       target: id,
-      targetType: "SETTINGS"
+      targetType: "SETTINGS",
+      oldValue: { name: category.name, networkId: category.networkId, tenantId: category.tenantId, sort: category.sort }
     });
 
     revalidatePath("/admin/catalog/categories");
     revalidatePath("/admin/catalog/tree");
     revalidateTag("catalog", 'default');
     revalidateTag("services", 'default');
+    revalidateTag("catalog-smmplan", 'default');
+    revalidateTag("catalog-flux", 'default');
+    revalidateTag("services-smmplan", 'default');
+    revalidateTag("services-flux", 'default');
     return { success: true, error: undefined };
   });
 }
@@ -153,6 +179,10 @@ export async function hideCategoryAndServicesAction(categoryId: string) {
     revalidatePath("/admin/catalog");
     revalidateTag("catalog", 'default');
     revalidateTag("services", 'default');
+    revalidateTag("catalog-smmplan", 'default');
+    revalidateTag("catalog-flux", 'default');
+    revalidateTag("services-smmplan", 'default');
+    revalidateTag("services-flux", 'default');
 
     return { 
       success: true as const, 
@@ -176,7 +206,10 @@ export async function mergeCategoriesAction(sourceCategoryId: string, targetCate
       return { success: false as const, error: 'Source and target categories cannot be the same.' };
     }
 
-    const sourceCat = await db.category.findUnique({ where: { id: sourceCategoryId } });
+    const sourceCat = await db.category.findUnique({ 
+      where: { id: sourceCategoryId },
+      include: { services: { select: { id: true, name: true } } }
+    });
     if (!sourceCat) {
       return { success: false as const, error: 'Source category not found.' };
     }
@@ -184,6 +217,22 @@ export async function mergeCategoriesAction(sourceCategoryId: string, targetCate
     const targetCat = await db.category.findUnique({ where: { id: targetCategoryId } });
     if (!targetCat) {
       return { success: false as const, error: 'Target category not found.' };
+    }
+
+    // Invariant: cannot merge categories across different networks (e.g. Instagram into TikTok)
+    if (sourceCat.networkId !== targetCat.networkId) {
+      return { success: false as const, error: 'Нельзя объединять категории из разных соцсетей.' };
+    }
+
+    // Invariant: cannot merge categories across conflicting tenants
+    if (
+      sourceCat.tenantId && 
+      targetCat.tenantId && 
+      sourceCat.tenantId !== 'all' && 
+      targetCat.tenantId !== 'all' && 
+      sourceCat.tenantId !== targetCat.tenantId
+    ) {
+      return { success: false as const, error: `Нельзя объединять категории из разных сайтов (${sourceCat.tenantId} и ${targetCat.tenantId}).` };
     }
 
     await db.$transaction(async (tx) => {
@@ -205,7 +254,14 @@ export async function mergeCategoriesAction(sourceCategoryId: string, targetCate
       action: 'CATEGORY_MERGE',
       target: sourceCategoryId,
       targetType: 'SETTINGS',
-      newValue: { sourceCategoryId, targetCategoryId }
+      oldValue: { 
+        sourceName: sourceCat.name, 
+        sourceNetworkId: sourceCat.networkId,
+        sourceTenantId: sourceCat.tenantId,
+        movedServicesCount: sourceCat.services.length,
+        movedServiceIds: sourceCat.services.map(s => s.id)
+      },
+      newValue: { targetCategoryId, targetName: targetCat.name, targetNetworkId: targetCat.networkId }
     });
 
     revalidatePath("/admin/catalog/categories");
@@ -360,7 +416,8 @@ export async function deleteNetworkAction(id: string) {
       adminEmail: admin.email,
       action: 'NETWORK_DELETE',
       target: id,
-      targetType: 'SETTINGS'
+      targetType: 'SETTINGS',
+      oldValue: { name: network.name, slug: network.slug, sort: network.sort }
     });
 
     revalidatePath("/admin/catalog/categories");

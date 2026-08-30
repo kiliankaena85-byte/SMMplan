@@ -8,6 +8,8 @@ import { headers, cookies } from "next/headers";
 import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
 import { verifySession } from "@/lib/session";
 
+import { enforceSectionAccess } from "@/lib/server/rbac";
+
 export const dynamic = "force-dynamic";
 
 type Props = {
@@ -15,6 +17,8 @@ type Props = {
 };
 
 export default async function CategoriesAdminPage({ searchParams }: Props) {
+  await enforceSectionAccess('catalog');
+
   const reqHeaders = await headers();
   const cookieStore = await cookies();
   const session = await verifySession();
