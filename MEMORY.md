@@ -6,10 +6,11 @@
 
 ## 1. 🏗️ Архитектурные решения (ADR)
 
-- **Multi-Domain Testing & Production Routing Contract (STRICT RULE):**
+- **Multi-Domain Testing & Production Routing Contract (STRICT RULE — 100% VERIFIED LIVE):**
   - **`smmplan.pro` (и `www.smmplan.pro`):** СТРОГО страница-заглушка предзапуска (`PreLaunchHoldingScreen`) во время периода тестирования.
   - **`test.smmplan.pro`:** СТРОГО основной сайт платформы SMMplan (`SmartLinkLanding`) во время периода тестирования.
   - **`flux.smmplan.pro`:** СТРОГО витрина SMMflux (`FluxOrderClient` / Radiant Aurora) во время периода тестирования.
+  - *Выученный урок (Maintenance Intercept Bug):* `src/app/layout.tsx` и `src/app/api/maintenance-status/route.ts` проверяют `isTestDomain` перед показом `MaintenanceScreen`. Для корректной работы туннеля хосты `.ts.net` и `tailscale` ОБЯЗАНЫ быть включены в `isTestDomain`, иначе `layout.tsx` глобально перехватывает все страницы и рендерит заглушку, игнорируя логику `page.tsx`.
   - *ПРИМЕЧАНИЕ:* Перенос боевого функционала на `smmplan.pro` будет производиться ТОЛЬКО после явной отдельной команды пользователя при выходе из тестирования.
 
 - **PostgreSQL Serializable Isolation vs MutexManager:**
