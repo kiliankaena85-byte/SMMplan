@@ -31,6 +31,7 @@ type OrderSearchParams = {
   activityType?: string;
   datePreset?: string;
   cursor?: string;
+  page?: number;
   pageSize?: number;
   userId?: string;
   clientEmail?: string;
@@ -71,13 +72,14 @@ class AdminOrderService {
 
   /**
    * Omni-Search: searches by email, link/URL, order numericId, or externalId.
-   * Always returns paginated results via cursor.
+   * Returns paginated results with support for offset and cursor.
    */
   async searchOrders(params: OrderSearchParams): Promise<PaginatedResult<AdminOrderRow>> {
     const { 
       query, 
       status, 
       cursor, 
+      page,
       pageSize = 50, 
       userId,
       clientEmail,
@@ -307,6 +309,7 @@ class AdminOrderService {
 
     return paginatedQuery<AdminOrderRow>(db.order, {
       cursor,
+      page,
       pageSize,
       where,
       orderBy,

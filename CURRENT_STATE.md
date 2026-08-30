@@ -1,7 +1,17 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 08:14 (МСК)
+> **Последнее обновление:** 2026-08-30 08:20 (МСК)
+
+- **Universal Numbered Pagination for Orders & Clients (100% COMPLETE & VERIFIED):**
+  - **1. Reusable Component (`NumberedPagination.tsx`):** Создан универсальный модульный компонент с нумерованными кнопками, умным многоточием (`1, 2 ... 10 11 12 ... 50`), кнопками «В начало» / «В конец», инпутом быстрого перехода на любую страницу (Jump-to-page) и селектором размера страниц (`20`, `50`, `100`, `200`).
+  - **2. Orders Screen (`/admin/orders`):** Заменена 2-кнопочная курсорная пагинация на полноценную нумерованную оффсет-пагинацию с сохранением всех 14 поисковых фильтров.
+  - **3. Clients Screen (`/admin/clients`):** Заменена 2-кнопочная пагинация на нумерованную с поддержкой пресетов (`VIP`, `B2B`, `С балансом`, `Заблокированные`).
+  - **4. Backend Offset Queries (`order.service.ts`, `user.service.ts`, `pagination.ts`):** `paginatedQuery` производит точный расчёт `totalPages`, `currentPage`, `totalCount` и срезку `skip / take`.
+  - **5. Тестирование и верификация:** 
+    - Новый юнит-сьют: `src/__tests__/orders-clients-pagination.test.ts` (**4/4 PASS**).
+    - Батарея тестов: `vitest.unit.config.ts` (**86/86 PASS, 100% GREEN**).
+    - Строгая проверка типов: `npx tsc --noEmit` (**0 ошибок**).
 
 - **AI Support Copilot Speed Optimization & Dashboard UI Polish (100% COMPLETE & VERIFIED):**
   - **1. Gemini Proxy Timeout Elimination (`GeminiClient.ts`):** Устранены холостые попытки подключения к локальным портам `127.0.0.1:7897/7890`. Клиент теперь использует прямое соединение без штрафа в 15 секунд при отсутствии явного прокси.

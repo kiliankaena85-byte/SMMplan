@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+﻿import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 import { auditAdmin } from '@/lib/admin-audit';
@@ -80,10 +80,11 @@ export { getVolumeTier };
 class AdminUserService {
 
   /**
-   * Paginated user list with multi-field search and filter presets.
+   * Paginated user list with multi-field search, filter presets and offset pagination.
    */
   async listUsers(params: {
     cursor?: string;
+    page?: number;
     search?: string;
     filter?: 'all' | 'b2b' | 'balance' | 'banned' | 'vip';
     pageSize?: number;
@@ -122,6 +123,7 @@ class AdminUserService {
 
     return paginatedQuery<AdminUserRow>(db.user, {
       cursor: params.cursor,
+      page: params.page,
       pageSize: params.pageSize || 50,
       where,
       orderBy: { createdAt: 'desc' },

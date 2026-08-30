@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { OrderClient } from './components/order-client';
 import { OrdersFilterForm } from './components/orders-filter-form';
+import { NumberedPagination } from '@/components/admin/ui/numbered-pagination';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 
@@ -16,6 +17,8 @@ type Props = {
     activityType?: string;
     datePreset?: string;
     cursor?: string;
+    page?: string;
+    pageSize?: string;
     userId?: string;
     edit_order_id?: string;
     clientEmail?: string;
@@ -78,14 +81,17 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   const isDripFeed = params.isDripFeed === 'true';
   const noProvider = params.noProvider === 'true';
   const staleMinutes = params.stale ? parseInt(params.stale, 10) : undefined;
+  const page = Math.max(1, parseInt(params.page || '1', 10) || 1);
+  const pageSize = Math.max(10, Math.min(200, parseInt(params.pageSize || '50', 10) || 50));
 
-  const { items: orders, nextCursor, hasMore } = await adminOrderService.searchOrders({
+  const { items: orders, totalCount, totalPages, currentPage } = await adminOrderService.searchOrders({
     query: query || undefined,
     status: statusFilter,
     activityType: params.activityType || undefined,
     datePreset: params.datePreset || undefined,
     cursor,
-    pageSize: 50,
+    page,
+    pageSize,
     userId: userId || undefined,
     clientEmail: params.clientEmail || undefined,
     orderId: params.orderId ? parseInt(params.orderId, 10) : undefined,
@@ -191,7 +197,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
               <span>Заказы</span>
               {query && <span className="font-mono text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-md">«{query}»</span>}
-              <span className="text-muted-foreground font-medium text-xs">({orders.length}{hasMore ? '+' : ''})</span>
+              <span className="text-muted-foreground font-medium text-xs">({orders.length} из {totalCount})</span>
             </h3>
           </div>
           <OrderClient 
@@ -234,30 +240,16 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
             }))} 
           />
 
-          {/* Pagination Bar */}
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-5 pt-4 border-t border-border/60 text-xs text-muted-foreground">
-            <div>
-              Показано <strong className="text-foreground">{orders.length}</strong> заказов {hasMore ? '(есть следующие страницы)' : '(конец списка)'}
-            </div>
-            <div className="flex items-center gap-2">
-              {cursor ? (
-                <Link
-                  href={`/admin/orders${buildQueryString({ cursor: '' })}`}
-                  className="px-3 py-1.5 font-semibold text-foreground bg-background border border-border/80 rounded-lg hover:bg-muted transition-all active:scale-95 cursor-pointer shadow-xs"
-                >
-                  ← В начало
-                </Link>
-              ) : null}
-              {hasMore && nextCursor && (
-                <Link
-                  href={`/admin/orders${buildQueryString({ cursor: nextCursor })}`}
-                  className="px-3.5 py-1.5 font-bold text-primary-foreground bg-primary rounded-lg hover:opacity-90 transition-all active:scale-95 cursor-pointer shadow-xs"
-                >
-                  Следующая страница →
-                </Link>
-              )}
-            </div>
-          </div>
+          {/* Modular Numbered Pagination */}
+          <NumberedPagination
+            totalCount={totalCount}
+            globalTotalCount={stats.total}
+            currentPage={currentPage || page}
+            totalPages={totalPages || 1}
+            pageSize={pageSize}
+            itemLabel="заказов"
+            selectedTenant={tenantFilter}
+          />
         </div>
       </div>
     </div>

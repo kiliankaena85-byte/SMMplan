@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { FINANCE_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { ClientTable } from './components/client-table';
+import { NumberedPagination } from '@/components/admin/ui/numbered-pagination';
 import { Users, Download, Search, Building2, Wallet, ShieldAlert, Sparkles } from 'lucide-react';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
@@ -16,6 +17,8 @@ type Props = {
     q?: string;
     filter?: 'all' | 'b2b' | 'balance' | 'banned' | 'vip';
     cursor?: string;
+    page?: string;
+    pageSize?: string;
     tenant?: string;
   }>;
 };
@@ -36,15 +39,18 @@ export default async function AdminClientsPage({ searchParams }: Props) {
   const search = params.q || '';
   const filter = params.filter || 'all';
   const cursor = params.cursor || undefined;
+  const page = Math.max(1, parseInt(params.page || '1', 10) || 1);
+  const pageSize = Math.max(10, Math.min(200, parseInt(params.pageSize || '50', 10) || 50));
   const selectedTenant = params.tenant;
 
   const activeTenantId = resolveAdminTenantContext(user, selectedTenant);
 
-  const { items: users, nextCursor, hasMore } = await adminUserService.listUsers({
+  const { items: users, totalCount, totalPages, currentPage } = await adminUserService.listUsers({
     search: search || undefined,
     filter,
     cursor,
-    pageSize: 50,
+    page,
+    pageSize,
     tenantId: activeTenantId,
   });
 
@@ -181,27 +187,16 @@ export default async function AdminClientsPage({ searchParams }: Props) {
             }))}
           />
 
-          {/* Pagination */}
-          {(cursor || hasMore) && (
-            <div className="flex justify-between items-center mt-6 pt-6 border-t border-border/50">
-              {cursor ? (
-                <Link 
-                  href={`/admin/clients?q=${encodeURIComponent(search)}${filter !== 'all' ? `&filter=${filter}` : ''}`}
-                  className="px-4 py-2 text-xs font-bold text-foreground bg-background/50 border border-border/60 rounded-xl hover:bg-muted shadow-xs transition-all active:scale-95"
-                >
-                  ← В начало
-                </Link>
-              ) : <div />}
-              {hasMore && nextCursor && (
-                <Link 
-                  href={`/admin/clients?q=${encodeURIComponent(search)}&cursor=${nextCursor}${filter !== 'all' ? `&filter=${filter}` : ''}`}
-                  className="px-4 py-2 text-xs font-bold text-primary-foreground bg-primary rounded-xl hover:bg-primary/90 shadow-xs transition-all active:scale-95"
-                >
-                  Следующая страница →
-                </Link>
-              )}
-            </div>
-          )}
+          {/* Modular Numbered Pagination */}
+          <NumberedPagination
+            totalCount={totalCount}
+            globalTotalCount={stats.total}
+            currentPage={currentPage || page}
+            totalPages={totalPages || 1}
+            pageSize={pageSize}
+            itemLabel="клиентов"
+            selectedTenant={selectedTenant}
+          />
         </div>
       </div>
     </div>
