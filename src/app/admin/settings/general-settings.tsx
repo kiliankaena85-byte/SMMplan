@@ -187,30 +187,42 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
           </div>
         </div>
 
-        <div className="flex items-center justify-between p-4 sm:p-5 rounded-2xl border border-border/60 bg-muted/20">
-          <div className="space-y-1">
-            <Label htmlFor="maintenanceMode" className="text-sm font-bold text-foreground cursor-pointer">
-              Режим технического обслуживания (Maintenance)
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              Клиенты увидят красивую страницу техработ с контактами поддержки. Вход в панель администрирования останется доступен.
-            </p>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-4 sm:p-5 rounded-2xl border border-border/60 bg-muted/20">
+            <div className="space-y-1 pr-4">
+              <Label htmlFor="maintenanceMode" className="text-sm font-bold text-foreground cursor-pointer flex items-center gap-2">
+                Режим технического обслуживания (Maintenance)
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Закрывает витрину для клиентов и показывает специализированный экран техработ (статус узлов, сохранность балансов, экстренная связь с дежурным инженером в Telegram).
+              </p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <span className={`text-xs font-bold ${maintenance ? 'text-rose-500 font-extrabold' : 'text-muted-foreground'}`}>
+                {maintenance ? '🔴 Включен' : '⚪ Выключен'}
+              </span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  id="maintenanceMode"
+                  name="maintenanceMode"
+                  checked={maintenance}
+                  onChange={(e) => setMaintenance(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-12 h-6.5 bg-muted-foreground/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-background after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
+              </label>
+            </div>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <span className={`text-xs font-bold ${maintenance ? 'text-rose-500 font-extrabold' : 'text-muted-foreground'}`}>
-              {maintenance ? '🔴 Включен' : '⚪ Выключен'}
-            </span>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                id="maintenanceMode"
-                name="maintenanceMode"
-                checked={maintenance}
-                onChange={(e) => setMaintenance(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-12 h-6.5 bg-muted-foreground/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-background after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
-            </label>
+
+          <div className="p-3.5 rounded-xl border border-border/40 bg-card/60 text-xs text-muted-foreground space-y-1.5">
+            <div className="flex items-center gap-2 font-semibold text-foreground">
+              <span className="text-primary font-bold">ℹ️ Архитектурные экраны ожидания:</span>
+            </div>
+            <p className="text-[11px] leading-relaxed">
+              • <strong className="text-foreground">Экран техработ (Maintenance Screen):</strong> отображается при активном тумблере выше (для неавторизованных пользователей на основном домене).<br />
+              • <strong className="text-foreground">Предстартовый экран (Pre-Launch Holding):</strong> презентационная страница сбора email-заявок (доступна по пути <code className="text-primary font-mono text-[10px]">/prelaunch</code> или при holding-маршрутизации).
+            </p>
           </div>
         </div>
       </Card>
