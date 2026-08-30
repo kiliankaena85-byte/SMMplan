@@ -1,7 +1,28 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 08:20 (МСК)
+> **Последнее обновление:** 2026-08-30 09:10 (МСК)
+
+- **Unified Design System & Semantic Theming (100% COMPLETE & VERIFIED):**
+  - **1. Zero-Wildcard Theme Architecture (`globals.css`, `providers.tsx`):**
+    - Селектор `@custom-variant dark (&:where(.dark, .dark *))` строго матчит класс `.dark` без wildcard `[class*="dark"]`, исключая ложное срабатывание на светлых темах.
+    - В `globals.css` добавлены семантические токены `--color-notification`, `--color-notification-foreground`, `--color-overlay` и явные переопределения `.sky-dark`.
+    - `NextThemesProvider` сконфигурирован с `defaultTheme="light"`, `enableSystem={false}` и `storageKey="smmplan-theme"`.
+  - **2. Hardcoded Color Elimination & Semantic Token Alignment:**
+    - **Dashboard Sidebar (`sidebar-nav.tsx`):** Unread badges переведены на `--color-notification`, добавлен компактный `<ThemeSwitcher variant="toggle" />` в футер пользователя.
+    - **Admin Shell & Sidebar (`smmplan-shell.tsx`, `sidebar.tsx`):** Устранены `border-slate-800` и `amber-*`, внедрены `border-border` и `text-warning`.
+    - **Support Chat (`ChatMessageList.tsx`):** Устранены `text-white`, `border-white/40`, `border-black/10` в аватарах, цитатах и медиа-вложениях.
+    - **Admin Orders & Actions (`OrderDetailsModal.tsx`, `order-standalone-view.tsx`, `RecentOrdersFeedWidget.tsx`, `orders-chart.tsx`):** Все статусные бейджи переведены на токены `bg-success/10`, `text-success-text`, `bg-warning/10`, `text-warning-text`, `bg-destructive/10`, `text-destructive-text`.
+    - **Review Dashboard (`SupportReviewDashboard.tsx`):** Кнопки действий переведены на `bg-success` и `bg-destructive`.
+  - **3. Upgraded Reusable Component (`ThemeSwitcher.tsx`):**
+    - Поддержка вариантов `full` (с 12 цветовыми акцентами `sky`, `emerald`, `violet`, `warm`, `telegram`), `toggle` (Sun/Moon для сайдбаров/шапок) и безопасным светлым дефолтом.
+  - **4. CI-Gate Audit Harness (`scripts/harness/design-system-audit.js`):**
+    - Создан исполняемый скрипт для сканирования и предотвращения повторного появления захардкоженных цветов.
+  - **5. Тестирование и сборка:**
+    - `vitest.unit.config.ts` (**94/94 PASS, 100% GREEN**).
+    - `npx tsc --noEmit` (**0 ошибок**).
+    - `npm run build` (**100% SUCCESS**, 150+ роутов скомпилированы, 0 утечек секретов).
+
 
 - **Universal Numbered Pagination for Orders & Clients (100% COMPLETE & VERIFIED):**
   - **1. Reusable Component (`NumberedPagination.tsx`):** Создан универсальный модульный компонент с нумерованными кнопками, умным многоточием (`1, 2 ... 10 11 12 ... 50`), кнопками «В начало» / «В конец», инпутом быстрого перехода на любую страницу (Jump-to-page) и селектором размера страниц (`20`, `50`, `100`, `200`).
