@@ -30,13 +30,13 @@ export function applyAntiNegativeMargin(
 
   // Floor at minimum margin (e.g. cost + 5%)
   if (finalRetail < minAcceptableRetail) {
-    finalRetail = minAcceptableRetail;
+    finalRetail = applyBeautifulRounding(minAcceptableRetail);
     wasFloored = true;
   }
 
   // Absolute floor: never below raw cost
   if (finalRetail < safeCost) {
-    finalRetail = safeCost;
+    finalRetail = applyBeautifulRounding(safeCost);
     wasFloored = true;
   }
 

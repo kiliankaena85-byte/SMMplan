@@ -3,7 +3,7 @@ import crypto from 'crypto';
 const COST_N = 65536;
 const LEGACY_N = 16384;
 const KEY_LEN = 64;
-const MAX_MEM = 64 * 1024 * 1024; // 64MB (optimized memory budget per scrypt operation)
+const MAX_MEM = 128 * 1024 * 1024; // 128MB required by OpenSSL scrypt implementation for N=65536, r=8, p=1
 
 function scryptAsync(password: string | Buffer, salt: string | Buffer, keylen: number, options: crypto.ScryptOptions): Promise<Buffer> {
   return new Promise((resolve, reject) => {

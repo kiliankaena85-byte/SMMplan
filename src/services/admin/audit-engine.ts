@@ -93,15 +93,18 @@ export class ServiceAuditEngine {
     let newMarkup = originalMarkup;
     let newPrice = originalPrice;
 
-    // Curated markup preservation: If markup is explicitly set (> 0), keep it.
-    // If markup is not set (<= 0), apply adaptive pricing ladder based on cost in RUB.
+    // Curated markup preservation & Beautiful Rounding Enforcement
     const rate = parseFloat(String(external.rate)) || 0;
 
-    if (!service.isQuarantined && originalMarkup <= 0 && rate > 0) {
+    if (!service.isQuarantined && rate > 0) {
       const costRub = rate * exchangeRate;
-      const retailFromLadder = applyPricingLadder(costRub);
-      newMarkup = costRub > 0 ? Math.round((retailFromLadder / costRub) * 100) / 100 : 3.0;
-      newPrice = Math.round(applyBeautifulRounding(retailFromLadder) * 100);
+      if (originalMarkup <= 0) {
+        const retailFromLadder = applyPricingLadder(costRub);
+        newMarkup = costRub > 0 ? Math.round((retailFromLadder / costRub) * 100) / 100 : 3.0;
+        newPrice = Math.round(applyBeautifulRounding(retailFromLadder) * 100);
+      } else {
+        newPrice = Math.round(applyBeautifulRounding(costRub * originalMarkup) * 100);
+      }
     }
 
     const nameChanged = cleanedName !== originalName;

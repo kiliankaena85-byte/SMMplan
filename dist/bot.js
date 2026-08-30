@@ -10803,18 +10803,11 @@ var init_wallet_ops = __esm({
         if (!existingUser) throw new WalletUserNotFoundError(userId);
         const currentTotalSpent = existingUser.totalSpent ?? BigInt(0);
         const newTotalSpent = currentTotalSpent > rawCents ? currentTotalSpent - rawCents : BigInt(0);
-        const updatedUser = await tx.user.update({
-          where: { id: userId },
-          data: {
-            balance: { increment: rawCents },
-            totalSpent: newTotalSpent
-          },
-          select: { balance: true, totalSpent: true, tenantId: true }
-        });
+        const resolvedTenantId = tenantId || existingUser.tenantId || "smmplan";
         const entry = await tx.ledgerEntry.create({
           data: {
             userId,
-            tenantId: tenantId || updatedUser.tenantId || "smmplan",
+            tenantId: resolvedTenantId,
             adminId,
             amount: rawCents,
             reason,
@@ -10822,6 +10815,14 @@ var init_wallet_ops = __esm({
             idempotencyKey,
             transactionType: "REFUND"
           }
+        });
+        const updatedUser = await tx.user.update({
+          where: { id: userId },
+          data: {
+            balance: { increment: rawCents },
+            totalSpent: newTotalSpent
+          },
+          select: { balance: true, totalSpent: true }
         });
         return { success: true, balance: updatedUser.balance, cached: false, entry };
       },
@@ -33667,11 +33668,6 @@ var require_built3 = __commonJS({
 });
 
 // src/lib/logger/sensitive-data-filter.ts
-var sensitive_data_filter_exports = {};
-__export2(sensitive_data_filter_exports, {
-  redactSensitiveTokens: () => redactSensitiveTokens,
-  sanitizeLogObject: () => sanitizeLogObject
-});
 function redactSensitiveTokens(logString) {
   if (!logString || typeof logString !== "string") return logString;
   let sanitized = logString;
@@ -33711,6 +33707,7 @@ var init_redis = __esm({
   "src/lib/redis.ts"() {
     "use strict";
     import_ioredis = __toESM(require_built3());
+    init_sensitive_data_filter();
     globalForRedis = global;
     redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
     redisPassword = process.env.REDIS_PASSWORD || void 0;
@@ -33729,8 +33726,7 @@ var init_redis = __esm({
     });
     if (process.env.NODE_ENV !== "production") globalForRedis.redis = redis;
     redis.on("error", (err) => {
-      const { redactSensitiveTokens: redactSensitiveTokens2 } = (init_sensitive_data_filter(), __toCommonJS(sensitive_data_filter_exports));
-      console.error("[REDIS] Connection error:", redactSensitiveTokens2(err.message));
+      console.error("[REDIS] Connection error:", redactSensitiveTokens(err.message));
     });
   }
 });
@@ -34093,6 +34089,7 @@ var init_settings = __esm({
       }
       static async setExchangeRateUSD(rate, tenantId) {
         const activeTenantId = tenantId || await this.getTenantId();
+        delete localSettingsCache[activeTenantId];
         await db.systemSettings.upsert({
           where: { id: activeTenantId },
           update: { exchangeRateUSD: rate, exchangeRateUpdatedAt: /* @__PURE__ */ new Date() },
@@ -34106,13 +34103,17 @@ var init_settings = __esm({
       }
       static async setTestMode(enable, tenantId) {
         const activeTenantId = tenantId || await this.getTenantId();
+        delete localSettingsCache[activeTenantId];
         await db.systemSettings.upsert({
           where: { id: activeTenantId },
           update: { isTestMode: enable },
           create: { id: activeTenantId, isTestMode: enable }
         });
-        const { redis: redis2 } = await Promise.resolve().then(() => (init_redis(), redis_exports));
-        await redis2.set(`settings:${activeTenantId}:isTestMode`, String(enable));
+        try {
+          const { redis: redis2 } = await Promise.resolve().then(() => (init_redis(), redis_exports));
+          await redis2.set(`settings:${activeTenantId}:isTestMode`, String(enable));
+        } catch {
+        }
         try {
           (0, import_cache.revalidateTag)("settings", "default");
         } catch (cacheErr) {
@@ -34121,13 +34122,17 @@ var init_settings = __esm({
       }
       static async setMaintenanceMode(enable, tenantId) {
         const activeTenantId = tenantId || await this.getTenantId();
+        delete localSettingsCache[activeTenantId];
         await db.systemSettings.upsert({
           where: { id: activeTenantId },
           update: { maintenanceMode: enable },
           create: { id: activeTenantId, maintenanceMode: enable }
         });
-        const { redis: redis2 } = await Promise.resolve().then(() => (init_redis(), redis_exports));
-        await redis2.set(`settings:${activeTenantId}:maintenanceMode`, String(enable));
+        try {
+          const { redis: redis2 } = await Promise.resolve().then(() => (init_redis(), redis_exports));
+          await redis2.set(`settings:${activeTenantId}:maintenanceMode`, String(enable));
+        } catch {
+        }
         try {
           (0, import_cache.revalidateTag)("settings", "default");
         } catch (cacheErr) {
@@ -34149,6 +34154,7 @@ var init_settings = __esm({
       }
       static async setRefillModuleEnabled(enable, tenantId) {
         const activeTenantId = tenantId || await this.getTenantId();
+        delete localSettingsCache[activeTenantId];
         const { redis: redis2 } = await Promise.resolve().then(() => (init_redis(), redis_exports));
         await redis2.set(`settings:${activeTenantId}:isRefillModuleEnabled`, String(enable));
         try {
@@ -34173,6 +34179,9 @@ var init_settings = __esm({
       static async setEnvironmentMode(mode, tenantId) {
         const activeTenantId = tenantId || await this.getTenantId();
         const isTest = mode !== "PRODUCTION";
+        delete localSettingsCache[activeTenantId];
+        delete localSettingsCache["smmplan"];
+        delete localSettingsCache["flux"];
         await db.systemSettings.upsert({
           where: { id: activeTenantId },
           update: { isTestMode: isTest },
@@ -70904,7 +70913,7 @@ var init_link_rules = __esm({
       {
         platform: "YOUTUBE" /* YOUTUBE */,
         type: "video",
-        pattern: /(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{6,32})/i,
+        pattern: /(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{6,12})(?=[^\w-]|$|&)/i,
         suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.STREAMS],
         context: "high_retention_target"
       },
@@ -71877,6 +71886,9 @@ function inferTargetTypeFromName(name) {
   if (n.includes("\u0430\u0432\u0442\u043E\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || n.includes("\u0430\u0432\u0442\u043E\u043B\u0430\u0439\u043A") || n.includes("\u0430\u0432\u0442\u043E\u0440\u0435\u0430\u043A\u0446\u0438") || n.includes("\u0430\u0432\u0442\u043E\u0440\u0435\u043F\u043E\u0441\u0442") || n.includes("\u0431\u0443\u0434\u0443\u0449\u0438\u0435 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B") || n.includes("\u043C\u0430\u0441\u0441\u043E\u0432\u044B\u0435 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B") || n.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u043A\u0430 \u043D\u0430") || n.includes("auto view") || n.includes("future view") || n.includes("channel posts")) {
     return "CHANNEL_POSTS" /* CHANNEL_POSTS */;
   }
+  if (n.includes("\u043E\u043F\u0440\u043E\u0441") || n.includes("\u0433\u043E\u043B\u043E\u0441") || n.includes("poll") || n.includes("vote")) {
+    return "POLL" /* POLL */;
+  }
   if (n.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A") || n.includes("\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A") || n.includes("\u0444\u043E\u043B\u043B\u043E\u0432\u0435\u0440") || n.includes("subscriber") || n.includes("member") || n.includes("follower") || n.includes("\u043A\u0430\u043D\u0430\u043B") || n.includes("channel") || n.includes("\u0433\u0440\u0443\u043F\u043F") || n.includes("group") || n.includes("\u0431\u0443\u0441\u0442") || n.includes("boost") || n.includes("\u0438\u043D\u0432\u0430\u0439\u0442") || n.includes("invite")) {
     return "CHANNEL" /* CHANNEL */;
   }
@@ -71888,9 +71900,6 @@ function inferTargetTypeFromName(name) {
   }
   if (n.includes("\u043F\u0440\u043E\u0444\u0438\u043B\u044C") || n.includes("profile") || n.includes("\u0430\u043A\u043A\u0430\u0443\u043D\u0442") || n.includes("\u0434\u0440\u0443\u0433") || n.includes("friend")) {
     return "PROFILE" /* PROFILE */;
-  }
-  if (n.includes("\u043E\u043F\u0440\u043E\u0441") || n.includes("\u0433\u043E\u043B\u043E\u0441") || n.includes("poll") || n.includes("vote")) {
-    return "POLL" /* POLL */;
   }
   if (n.includes("\u043A\u043E\u043C\u043C\u0435\u043D\u0442") || n.includes("comment") || n.includes("\u043E\u0442\u0437\u044B\u0432") || n.includes("review")) {
     return "COMMENTS" /* COMMENTS */;
@@ -98443,11 +98452,11 @@ function applyAntiNegativeMargin(costPer1kRub, rawRetailPer1kRub, minMarginPct =
   let finalRetail = applyBeautifulRounding(rawRetailPer1kRub);
   let wasFloored = false;
   if (finalRetail < minAcceptableRetail) {
-    finalRetail = minAcceptableRetail;
+    finalRetail = applyBeautifulRounding(minAcceptableRetail);
     wasFloored = true;
   }
   if (finalRetail < safeCost) {
-    finalRetail = safeCost;
+    finalRetail = applyBeautifulRounding(safeCost);
     wasFloored = true;
   }
   const finalCents = Math.ceil(finalRetail * 100);
@@ -98781,13 +98790,9 @@ var init_payment_gateway_service = __esm({
         const secrets = await SettingsProvider.getPaymentSecrets();
         const shopId = secrets.yookassaShopId;
         const secretKey = secrets.yookassaSecretKey;
-        const isMockPayment = await SettingsProvider.isTestMode();
         const isDummyKeys = !shopId || !secretKey || shopId === "test_shop_id" || shopId === "test_shop_id_test" || secretKey === "test_secret" || secretKey === "test_secret_key";
-        if (isMockPayment || isDummyKeys) {
-          return {
-            paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
-            remoteGatewayId: `mock_${Date.now()}`
-          };
+        if (isDummyKeys) {
+          throw new Error("\u041F\u043B\u0430\u0442\u0451\u0436\u043D\u044B\u0439 \u0448\u043B\u044E\u0437 \u042EKassa \u043D\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 Shop ID \u0438 Secret Key \u0432 \u043F\u0430\u043D\u0435\u043B\u0438 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F.");
         }
         const authHeader = "Basic " + Buffer.from(`${shopId}:${secretKey}`).toString("base64");
         const supportDomain = await SettingsProvider.getSupportEmailDomain();
@@ -98826,13 +98831,6 @@ var init_payment_gateway_service = __esm({
         if (!resp.ok) {
           const errBody = await resp.text();
           console.error("[YooKassaGateway] API Error:", resp.status, errBody);
-          if ((resp.status === 401 || resp.status === 403) && process.env.ENABLE_DEV_ROUTES === "true") {
-            console.warn("[YooKassaGateway] YooKassa test credentials rejected (HTTP " + resp.status + "). Falling back to mock-payment dev route.");
-            return {
-              paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
-              remoteGatewayId: `mock_${Date.now()}`
-            };
-          }
           let descriptiveError = "\u041E\u0448\u0438\u0431\u043A\u0430 \u0448\u043B\u044E\u0437\u0430 YooKassa";
           try {
             const parsed = JSON.parse(errBody);
@@ -98880,16 +98878,9 @@ var init_payment_gateway_service = __esm({
         }
         const secrets = await SettingsProvider.getPaymentSecrets();
         const cryptoToken = secrets.cryptoBotToken;
-        const isDummyKeys = !cryptoToken || cryptoToken === "test_token" || cryptoToken === "test_shop_id" || cryptoToken === "test_login" || cryptoToken.startsWith("test_");
+        const isDummyKeys = !cryptoToken || cryptoToken === "test_token" || cryptoToken === "test_bot_token" || cryptoToken === "test_shop_id" || cryptoToken === "test_login" || cryptoToken.startsWith("test_") || cryptoToken.trim().length === 0;
         if (isDummyKeys) {
-          if (process.env.NODE_ENV === "production" && !params.isTestMode && process.env.ENABLE_DEV_ROUTES !== "true") {
-            console.error("[CryptoBotGateway] CryptoBot API token missing in production", { paymentId: params.paymentId });
-            throw new Error("\u041F\u043B\u0430\u0442\u0451\u0436\u043D\u044B\u0439 \u0448\u043B\u044E\u0437 CryptoBot \u043D\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 API \u0442\u043E\u043A\u0435\u043D \u0432 \u043F\u0430\u043D\u0435\u043B\u0438 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F.");
-          }
-          return {
-            paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
-            remoteGatewayId: `mock_${Date.now()}`
-          };
+          throw new Error("\u041F\u043B\u0430\u0442\u0451\u0436\u043D\u044B\u0439 \u0448\u043B\u044E\u0437 CryptoBot \u043D\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0443\u044E\u0449\u0438\u0439 API \u0442\u043E\u043A\u0435\u043D \u0432 \u043F\u0430\u043D\u0435\u043B\u0438 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F.");
         }
         const legalSettings = await SettingsProvider.getContactAndLegalSettings();
         const brandName = legalSettings.COMPANY_NAME || "SMMplan";
@@ -99047,12 +99038,9 @@ var init_payment_gateway_service = __esm({
         const secrets = await SettingsProvider.getPaymentSecrets();
         const login = secrets.robokassaLogin;
         const password = secrets.robokassaPassword;
-        const isDummyKeys = params.isTestMode || !login || !password || login === "test_login";
+        const isDummyKeys = !login || !password || login === "test_login" || login.trim().length === 0 || password.trim().length === 0;
         if (isDummyKeys) {
-          return {
-            paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
-            remoteGatewayId: `mock_${Date.now()}`
-          };
+          throw new Error("\u041F\u043B\u0430\u0442\u0451\u0436\u043D\u044B\u0439 \u0448\u043B\u044E\u0437 \u0420\u043E\u0431\u043E\u043A\u0430\u0441\u0441\u0430 \u043D\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 Merchant Login \u0438 \u041F\u0430\u0440\u043E\u043B\u044C \u0432 \u043F\u0430\u043D\u0435\u043B\u0438 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F.");
         }
         const outSum = params.amountRub.toFixed(2);
         const invId = 0;
@@ -99101,7 +99089,7 @@ var init_payment_gateway_service = __esm({
     MockGateway = class extends BasePaymentGateway {
       async createPayment(params) {
         return {
-          paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
+          paymentUrl: params.successUrl || `${await getBaseUrlAsync()}/dashboard/add-funds?success=1`,
           remoteGatewayId: `mock_${Date.now()}`
         };
       }
@@ -99190,8 +99178,9 @@ var init_unified_payment_service = __esm({
             confirmationUrl: gatewayResult.paymentUrl || `/payment-redirect?id=${payment.id}`
           };
         } catch (e) {
-          console.error("[UnifiedPayment] System error:", e instanceof Error ? e.message : String(e));
-          return { success: false, error: "Internal logic exception" };
+          const msg = e instanceof Error ? e.message : String(e);
+          console.error("[UnifiedPayment] System error:", msg);
+          return { success: false, error: msg || "\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u043B\u0430\u0442\u0435\u0436\u043D\u043E\u0433\u043E \u0448\u043B\u044E\u0437\u0430" };
         }
       }
     };
@@ -103394,8 +103383,57 @@ var link_mutators_exports = {};
 __export2(link_mutators_exports, {
   getCustomValidator: () => getCustomValidator,
   getLinkValidator: () => getLinkValidator,
-  mutateLink: () => mutateLink
+  mutateLink: () => mutateLink,
+  validateRegexSafetyAndSmoke: () => validateRegexSafetyAndSmoke
 });
+function validateRegexSafetyAndSmoke(pattern, smokeCases) {
+  if (!pattern || !pattern.trim()) {
+    return { isValid: false, error: "\u0428\u0430\u0431\u043B\u043E\u043D \u0440\u0435\u0433\u0443\u043B\u044F\u0440\u043D\u043E\u0433\u043E \u0432\u044B\u0440\u0430\u0436\u0435\u043D\u0438\u044F \u043D\u0435 \u043C\u043E\u0436\u0435\u0442 \u0431\u044B\u0442\u044C \u043F\u0443\u0441\u0442\u044B\u043C" };
+  }
+  if (pattern.length > 300) {
+    return { isValid: false, error: "\u0421\u043B\u0438\u0448\u043A\u043E\u043C \u0434\u043B\u0438\u043D\u043D\u044B\u0439 \u0448\u0430\u0431\u043B\u043E\u043D \u0440\u0435\u0433\u0443\u043B\u044F\u0440\u043D\u043E\u0433\u043E \u0432\u044B\u0440\u0430\u0436\u0435\u043D\u0438\u044F (\u043C\u0430\u043A\u0441. 300 \u0441\u0438\u043C\u0432\u043E\u043B\u043E\u0432)" };
+  }
+  const redosDetectors = [
+    /\([^)]*(\+|\*)[^)]*\)[+*]/,
+    /\([^)]*(\+|\*)[^)]*\)\{/i,
+    /\([a-z0-9_.\-\\s|]+\+[|][^)]+\)\+/i,
+    /\([a-z0-9_.\-\\s|]+\*[|][^)]+\)\*/i,
+    /\(\.\*\)\+/,
+    /\(\.\+\)\+/,
+    /\(\.\*\)\*/,
+    /\([^)]*\|[^)]*\)[+*]/,
+    /\(\.\*[^)]*\)\{\d+,?\}/
+  ];
+  for (const dangerous of redosDetectors) {
+    if (dangerous.test(pattern)) {
+      return {
+        isValid: false,
+        error: "\u041E\u0431\u043D\u0430\u0440\u0443\u0436\u0435\u043D\u0430 \u043F\u043E\u0442\u0435\u043D\u0446\u0438\u0430\u043B\u044C\u043D\u0430\u044F ReDoS \u0443\u044F\u0437\u0432\u0438\u043C\u043E\u0441\u0442\u044C (\u0432\u043B\u043E\u0436\u0435\u043D\u043D\u044B\u0435 \u043A\u0432\u0430\u043D\u0442\u0438\u0444\u0438\u043A\u0430\u0442\u043E\u0440\u044B \u0432\u0440\u043E\u0434\u0435 (a+)+ \u0438\u043B\u0438 (.*)+)"
+      };
+    }
+  }
+  let regex;
+  try {
+    regex = new RegExp(pattern, "i");
+  } catch (e) {
+    return {
+      isValid: false,
+      error: `\u0421\u0438\u043D\u0442\u0430\u043A\u0441\u0438\u0447\u0435\u0441\u043A\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430 \u0432 RegEx: ${e instanceof Error ? e.message : String(e)}`
+    };
+  }
+  if (smokeCases && smokeCases.length > 0) {
+    for (const testCase of smokeCases) {
+      const isMatch = Boolean(testCase.url.match(regex));
+      if (isMatch !== testCase.expectedMatch) {
+        return {
+          isValid: false,
+          error: `Smoke-\u0442\u0435\u0441\u0442 \u043D\u0435 \u043F\u0440\u043E\u0439\u0434\u0435\u043D \u0434\u043B\u044F URL "${testCase.url}": \u043E\u0436\u0438\u0434\u0430\u043B\u043E\u0441\u044C ${testCase.expectedMatch ? "\u0441\u043E\u0432\u043F\u0430\u0434\u0435\u043D\u0438\u0435" : "\u043E\u0442\u043A\u043B\u043E\u043D\u0435\u043D\u0438\u0435"}, \u043F\u043E\u043B\u0443\u0447\u0435\u043D\u043E ${isMatch ? "\u0441\u043E\u0432\u043F\u0430\u0434\u0435\u043D\u0438\u0435" : "\u043E\u0442\u043A\u043B\u043E\u043D\u0435\u043D\u0438\u0435"}`
+        };
+      }
+    }
+  }
+  return { isValid: true };
+}
 var cleanInstagramUrl, cleanVkUrl, cleanTelegramUrl, cleanYoutubeUrl, cleanTikTokUrl, mutateLink, getLinkValidator, getCustomValidator;
 var init_link_mutators = __esm({
   "src/validators/link-mutators.ts"() {
@@ -103418,8 +103456,8 @@ var init_link_mutators = __esm({
       }
     };
     cleanVkUrl = (url, targetType) => {
-      let cleaned = url.replace(/m\.vk\.com/, "vk.com");
-      if (targetType === "CHANNEL") {
+      let cleaned = url.replace(/^http:\/\//i, "https://").replace(/m\.vk\.com/i, "vk.com").replace(/vk\.ru/i, "vk.com");
+      if (targetType === "CHANNEL" || targetType === "PROFILE") {
         const wallMatch = cleaned.match(/vk\.com\/wall(-?\d+)_\d+/i);
         if (wallMatch) {
           const id = wallMatch[1];
@@ -103440,17 +103478,36 @@ var init_link_mutators = __esm({
           return urlObj.toString();
         }
         urlObj.search = "";
-        return urlObj.toString();
+        let res = urlObj.toString();
+        if (targetType === "CHANNEL" || targetType === "PROFILE") {
+          res = res.replace(/\/+$/, "");
+        }
+        return res;
       } catch {
-        return cleaned;
+        return cleaned.replace(/\/+$/, "");
       }
     };
     cleanTelegramUrl = (url, targetType) => {
-      const cleaned = url.replace(/telegram\.me/, "t.me");
-      if (targetType === "CHANNEL" || targetType === "CHANNEL_POSTS") {
+      let cleaned = url.trim().replace(/^http:\/\//i, "https://").replace(/telegram\.me/i, "t.me").replace(/telegram\.dog/i, "t.me");
+      if (!cleaned.includes("/") && !cleaned.includes(".")) {
+        const rawHandle = cleaned.startsWith("@") ? cleaned.substring(1) : cleaned;
+        if (/^[a-zA-Z0-9_]+$/.test(rawHandle)) {
+          cleaned = `https://t.me/${rawHandle}`;
+        }
+      }
+      cleaned = cleaned.replace(/t\.me\/@/i, "t.me/");
+      cleaned = cleaned.replace(/t\.me\/s\/([a-zA-Z0-9_]+)/i, "t.me/$1");
+      const webMatch = cleaned.match(/web\.telegram\.org\/(?:k|a)\/#@?([a-zA-Z0-9_]+)/i);
+      if (webMatch) {
+        cleaned = `https://t.me/${webMatch[1]}`;
+      }
+      if (!/^https?:\/\//i.test(cleaned) && cleaned.includes("t.me")) {
+        cleaned = `https://${cleaned}`;
+      }
+      if (targetType === "CHANNEL" || targetType === "CHANNEL_POSTS" || targetType === "PROFILE") {
         const postMatch = cleaned.match(/^(https?:\/\/(?:t\.me|telegram\.dog)\/)([\w-]+)\/\d+\/?(?:\?.*)?$/i);
-        if (postMatch && postMatch[2] !== "c") {
-          return `${postMatch[1]}${postMatch[2]}`;
+        if (postMatch && postMatch[2] !== "c" && postMatch[2] !== "s") {
+          cleaned = `${postMatch[1]}${postMatch[2]}`;
         }
       }
       try {
@@ -103461,10 +103518,18 @@ var init_link_mutators = __esm({
           if (start) {
             urlObj.searchParams.set("start", start);
           }
+        } else if (targetType === "CHANNEL" || targetType === "CHANNEL_POSTS" || targetType === "PROFILE") {
+          if (!urlObj.pathname.includes("/+") && !urlObj.pathname.includes("/joinchat/")) {
+            urlObj.search = "";
+          }
         }
-        return urlObj.toString();
+        let res = urlObj.toString();
+        if (targetType === "CHANNEL" || targetType === "PROFILE") {
+          res = res.replace(/\/+$/, "");
+        }
+        return res;
       } catch {
-        return cleaned;
+        return cleaned.replace(/\/+$/, "");
       }
     };
     cleanYoutubeUrl = (url, targetType) => {
@@ -103539,8 +103604,8 @@ var init_link_mutators = __esm({
     getLinkValidator = (platform, targetType) => {
       switch (platform.toUpperCase()) {
         case "TELEGRAM":
-          if (targetType === "CHANNEL" || targetType === "CHANNEL_POSTS") {
-            return external_exports.string().regex(/^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/(?:joinchat\/|\+)?[\w-]+\/?(?:\?.*)?$/i, "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u043F\u0443\u0431\u043B\u0438\u0447\u043D\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043A\u0430\u043D\u0430\u043B (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440, https://t.me/durov)");
+          if (targetType === "CHANNEL" || targetType === "CHANNEL_POSTS" || targetType === "PROFILE") {
+            return external_exports.string().regex(/^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/(?:joinchat\/|\+)?@?[\w-]+\/?(?:\?.*)?$/i, "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u043F\u0443\u0431\u043B\u0438\u0447\u043D\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043A\u0430\u043D\u0430\u043B (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440, https://t.me/durov)");
           }
           if (targetType === "POST") {
             return external_exports.string().refine((val) => !val.includes("/c/"), "\u041D\u0435\u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E \u0437\u0430\u043A\u0430\u0437\u0430\u0442\u044C \u0443\u0441\u043B\u0443\u0433\u0443 \u0432 \u0437\u0430\u043A\u0440\u044B\u0442\u044B\u0439 \u0447\u0430\u0442 (\u0441\u0441\u044B\u043B\u043A\u0430 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u0442 /c/). \u0421\u0434\u0435\u043B\u0430\u0439\u0442\u0435 \u043A\u0430\u043D\u0430\u043B \u043F\u0443\u0431\u043B\u0438\u0447\u043D\u044B\u043C.").and(external_exports.string().regex(/^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/[\w-]+\/\d+\/?(?:\?.*)?$/i, "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u044B\u0439 \u043F\u043E\u0441\u0442 (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440, https://t.me/durov/123)"));
@@ -103557,16 +103622,16 @@ var init_link_mutators = __esm({
           break;
         case "VK":
           if (targetType === "POST") {
-            return external_exports.string().regex(/^https?:\/\/(m\.)?vk\.com\/(wall|video|clip|photo)-?\d+_\d+/, "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043F\u043E\u0441\u0442, \u0444\u043E\u0442\u043E \u0438\u043B\u0438 \u0432\u0438\u0434\u0435\u043E \u0412\u041A\u043E\u043D\u0442\u0430\u043A\u0442\u0435.");
+            return external_exports.string().regex(/^https?:\/\/(?:m\.)?(?:vk\.(?:com|ru)|vkvideo\.ru)\/(?:wall|video|clip|photo)-?\d+_\d+/, "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043F\u043E\u0441\u0442, \u0444\u043E\u0442\u043E \u0438\u043B\u0438 \u0432\u0438\u0434\u0435\u043E \u0412\u041A\u043E\u043D\u0442\u0430\u043A\u0442\u0435.");
           }
-          if (targetType === "CHANNEL") {
-            return external_exports.string().regex(/^https?:\/\/(m\.)?vk\.com\/[a-zA-Z0-9_.]+$/, "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u043F\u0440\u044F\u043C\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u0433\u0440\u0443\u043F\u043F\u0443 \u0438\u043B\u0438 \u043F\u0440\u043E\u0444\u0438\u043B\u044C \u0412\u041A\u043E\u043D\u0442\u0430\u043A\u0442\u0435.");
+          if (targetType === "CHANNEL" || targetType === "PROFILE") {
+            return external_exports.string().regex(/^https?:\/\/(?:m\.)?vk\.(?:com|ru)\/[a-zA-Z0-9_.]+\/?$/, "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u043F\u0440\u044F\u043C\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u0433\u0440\u0443\u043F\u043F\u0443 \u0438\u043B\u0438 \u043F\u0440\u043E\u0444\u0438\u043B\u044C \u0412\u041A\u043E\u043D\u0442\u0430\u043A\u0442\u0435.");
           }
           if (targetType === "COMMENT") {
-            return external_exports.string().regex(/^https?:\/\/(m\.)?vk\.com\/(wall|video|clip|photo)-?\d+_\d+\?(?:.*&)?reply=\d+/, "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439 \u0412\u041A\u043E\u043D\u0442\u0430\u043A\u0442\u0435 (\u0434\u043E\u043B\u0436\u043D\u0430 \u0441\u043E\u0434\u0435\u0440\u0436\u0430\u0442\u044C \u043F\u0430\u0440\u0430\u043C\u0435\u0442\u0440 reply).");
+            return external_exports.string().regex(/^https?:\/\/(?:m\.)?(?:vk\.(?:com|ru)|vkvideo\.ru)\/(?:wall|video|clip|photo)-?\d+_\d+\?(?:.*&)?reply=\d+/, "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439 \u0412\u041A\u043E\u043D\u0442\u0430\u043A\u0442\u0435 (\u0434\u043E\u043B\u0436\u043D\u0430 \u0441\u043E\u0434\u0435\u0440\u0436\u0430\u0442\u044C \u043F\u0430\u0440\u0430\u043C\u0435\u0442\u0440 reply).");
           }
           if (targetType === "POLL") {
-            return external_exports.string().regex(/^https?:\/\/(m\.)?vk\.com\/(wall|video|clip|photo)-?\d+_\d+/, "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043F\u043E\u0441\u0442 \u0441 \u043E\u043F\u0440\u043E\u0441\u043E\u043C \u0412\u041A\u043E\u043D\u0442\u0430\u043A\u0442\u0435.");
+            return external_exports.string().regex(/^https?:\/\/(?:m\.)?(?:vk\.(?:com|ru)|vkvideo\.ru)\/(?:wall|video|clip|photo)-?\d+_\d+/, "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043F\u043E\u0441\u0442 \u0441 \u043E\u043F\u0440\u043E\u0441\u043E\u043C \u0412\u041A\u043E\u043D\u0442\u0430\u043A\u0442\u0435.");
           }
           break;
         case "INSTAGRAM":
@@ -104708,7 +104773,7 @@ var init_circuit_breaker = __esm({
         }
         const isHalfOpen = await redis2.get(`cb:${host}:half_open`);
         if (isHalfOpen) {
-          const locked = await redis2.set(`cb:${host}:probe_lock`, "1", "EX", 15, "NX");
+          const locked = await redis2.set(`cb:${host}:probe_lock`, "1", "EX", 5, "NX");
           if (!locked) {
             throw new CircuitBreakerOpenException(host);
           }
@@ -104833,6 +104898,17 @@ async function assertSafeOutboundUrl(rawUrl) {
     if (!isPublicIp2(ip)) {
       return { ok: false, reason: `ip-${ip}-private` };
     }
+  }
+  try {
+    const secondCheckRecords = await import_node_dns.promises.lookup(hostname, { all: true });
+    const secondAddrs = secondCheckRecords.map((r) => r.address);
+    for (const ip of secondAddrs) {
+      if (!isPublicIp2(ip)) {
+        return { ok: false, reason: `ip-${ip}-private-rebinding` };
+      }
+    }
+  } catch {
+    return { ok: false, reason: "dns-rebinding-lookup-failed" };
   }
   return { ok: true, ip: addrs[0], hostname };
 }

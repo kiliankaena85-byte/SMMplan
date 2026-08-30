@@ -41811,11 +41811,6 @@ var require_cjs = __commonJS({
 });
 
 // src/lib/logger/sensitive-data-filter.ts
-var sensitive_data_filter_exports = {};
-__export2(sensitive_data_filter_exports, {
-  redactSensitiveTokens: () => redactSensitiveTokens,
-  sanitizeLogObject: () => sanitizeLogObject
-});
 function redactSensitiveTokens(logString) {
   if (!logString || typeof logString !== "string") return logString;
   let sanitized = logString;
@@ -71997,6 +71992,7 @@ var init_redis = __esm({
   "src/lib/redis.ts"() {
     "use strict";
     import_ioredis2 = __toESM(require_built3());
+    init_sensitive_data_filter();
     globalForRedis = global;
     redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
     redisPassword = process.env.REDIS_PASSWORD || void 0;
@@ -72015,8 +72011,7 @@ var init_redis = __esm({
     });
     if (process.env.NODE_ENV !== "production") globalForRedis.redis = redis;
     redis.on("error", (err) => {
-      const { redactSensitiveTokens: redactSensitiveTokens2 } = (init_sensitive_data_filter(), __toCommonJS(sensitive_data_filter_exports));
-      console.error("[REDIS] Connection error:", redactSensitiveTokens2(err.message));
+      console.error("[REDIS] Connection error:", redactSensitiveTokens(err.message));
     });
   }
 });
@@ -72379,6 +72374,7 @@ var init_settings = __esm({
       }
       static async setExchangeRateUSD(rate, tenantId) {
         const activeTenantId = tenantId || await this.getTenantId();
+        delete localSettingsCache[activeTenantId];
         await db.systemSettings.upsert({
           where: { id: activeTenantId },
           update: { exchangeRateUSD: rate, exchangeRateUpdatedAt: /* @__PURE__ */ new Date() },
@@ -72392,13 +72388,17 @@ var init_settings = __esm({
       }
       static async setTestMode(enable, tenantId) {
         const activeTenantId = tenantId || await this.getTenantId();
+        delete localSettingsCache[activeTenantId];
         await db.systemSettings.upsert({
           where: { id: activeTenantId },
           update: { isTestMode: enable },
           create: { id: activeTenantId, isTestMode: enable }
         });
-        const { redis: redis2 } = await Promise.resolve().then(() => (init_redis(), redis_exports));
-        await redis2.set(`settings:${activeTenantId}:isTestMode`, String(enable));
+        try {
+          const { redis: redis2 } = await Promise.resolve().then(() => (init_redis(), redis_exports));
+          await redis2.set(`settings:${activeTenantId}:isTestMode`, String(enable));
+        } catch {
+        }
         try {
           (0, import_cache.revalidateTag)("settings", "default");
         } catch (cacheErr) {
@@ -72407,13 +72407,17 @@ var init_settings = __esm({
       }
       static async setMaintenanceMode(enable, tenantId) {
         const activeTenantId = tenantId || await this.getTenantId();
+        delete localSettingsCache[activeTenantId];
         await db.systemSettings.upsert({
           where: { id: activeTenantId },
           update: { maintenanceMode: enable },
           create: { id: activeTenantId, maintenanceMode: enable }
         });
-        const { redis: redis2 } = await Promise.resolve().then(() => (init_redis(), redis_exports));
-        await redis2.set(`settings:${activeTenantId}:maintenanceMode`, String(enable));
+        try {
+          const { redis: redis2 } = await Promise.resolve().then(() => (init_redis(), redis_exports));
+          await redis2.set(`settings:${activeTenantId}:maintenanceMode`, String(enable));
+        } catch {
+        }
         try {
           (0, import_cache.revalidateTag)("settings", "default");
         } catch (cacheErr) {
@@ -72435,6 +72439,7 @@ var init_settings = __esm({
       }
       static async setRefillModuleEnabled(enable, tenantId) {
         const activeTenantId = tenantId || await this.getTenantId();
+        delete localSettingsCache[activeTenantId];
         const { redis: redis2 } = await Promise.resolve().then(() => (init_redis(), redis_exports));
         await redis2.set(`settings:${activeTenantId}:isRefillModuleEnabled`, String(enable));
         try {
@@ -72459,6 +72464,9 @@ var init_settings = __esm({
       static async setEnvironmentMode(mode, tenantId) {
         const activeTenantId = tenantId || await this.getTenantId();
         const isTest = mode !== "PRODUCTION";
+        delete localSettingsCache[activeTenantId];
+        delete localSettingsCache["smmplan"];
+        delete localSettingsCache["flux"];
         await db.systemSettings.upsert({
           where: { id: activeTenantId },
           update: { isTestMode: isTest },
@@ -72595,7 +72603,7 @@ var init_circuit_breaker = __esm({
         }
         const isHalfOpen = await redis2.get(`cb:${host}:half_open`);
         if (isHalfOpen) {
-          const locked = await redis2.set(`cb:${host}:probe_lock`, "1", "EX", 15, "NX");
+          const locked = await redis2.set(`cb:${host}:probe_lock`, "1", "EX", 5, "NX");
           if (!locked) {
             throw new CircuitBreakerOpenException(host);
           }
@@ -72720,6 +72728,17 @@ async function assertSafeOutboundUrl(rawUrl) {
     if (!isPublicIp(ip)) {
       return { ok: false, reason: `ip-${ip}-private` };
     }
+  }
+  try {
+    const secondCheckRecords = await import_node_dns.promises.lookup(hostname, { all: true });
+    const secondAddrs = secondCheckRecords.map((r) => r.address);
+    for (const ip of secondAddrs) {
+      if (!isPublicIp(ip)) {
+        return { ok: false, reason: `ip-${ip}-private-rebinding` };
+      }
+    }
+  } catch {
+    return { ok: false, reason: "dns-rebinding-lookup-failed" };
   }
   return { ok: true, ip: addrs[0], hostname };
 }
@@ -107703,18 +107722,11 @@ var init_wallet_ops = __esm({
         if (!existingUser) throw new WalletUserNotFoundError(userId);
         const currentTotalSpent = existingUser.totalSpent ?? BigInt(0);
         const newTotalSpent = currentTotalSpent > rawCents ? currentTotalSpent - rawCents : BigInt(0);
-        const updatedUser = await tx.user.update({
-          where: { id: userId },
-          data: {
-            balance: { increment: rawCents },
-            totalSpent: newTotalSpent
-          },
-          select: { balance: true, totalSpent: true, tenantId: true }
-        });
+        const resolvedTenantId = tenantId || existingUser.tenantId || "smmplan";
         const entry = await tx.ledgerEntry.create({
           data: {
             userId,
-            tenantId: tenantId || updatedUser.tenantId || "smmplan",
+            tenantId: resolvedTenantId,
             adminId,
             amount: rawCents,
             reason,
@@ -107722,6 +107734,14 @@ var init_wallet_ops = __esm({
             idempotencyKey,
             transactionType: "REFUND"
           }
+        });
+        const updatedUser = await tx.user.update({
+          where: { id: userId },
+          data: {
+            balance: { increment: rawCents },
+            totalSpent: newTotalSpent
+          },
+          select: { balance: true, totalSpent: true }
         });
         return { success: true, balance: updatedUser.balance, cached: false, entry };
       },
@@ -109010,7 +109030,7 @@ var init_link_rules = __esm({
       {
         platform: "YOUTUBE" /* YOUTUBE */,
         type: "video",
-        pattern: /(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{6,32})/i,
+        pattern: /(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{6,12})(?=[^\w-]|$|&)/i,
         suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.STREAMS],
         context: "high_retention_target"
       },
@@ -109983,6 +110003,9 @@ function inferTargetTypeFromName(name) {
   if (n.includes("\u0430\u0432\u0442\u043E\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || n.includes("\u0430\u0432\u0442\u043E\u043B\u0430\u0439\u043A") || n.includes("\u0430\u0432\u0442\u043E\u0440\u0435\u0430\u043A\u0446\u0438") || n.includes("\u0430\u0432\u0442\u043E\u0440\u0435\u043F\u043E\u0441\u0442") || n.includes("\u0431\u0443\u0434\u0443\u0449\u0438\u0435 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B") || n.includes("\u043C\u0430\u0441\u0441\u043E\u0432\u044B\u0435 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B") || n.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u043A\u0430 \u043D\u0430") || n.includes("auto view") || n.includes("future view") || n.includes("channel posts")) {
     return "CHANNEL_POSTS" /* CHANNEL_POSTS */;
   }
+  if (n.includes("\u043E\u043F\u0440\u043E\u0441") || n.includes("\u0433\u043E\u043B\u043E\u0441") || n.includes("poll") || n.includes("vote")) {
+    return "POLL" /* POLL */;
+  }
   if (n.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A") || n.includes("\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A") || n.includes("\u0444\u043E\u043B\u043B\u043E\u0432\u0435\u0440") || n.includes("subscriber") || n.includes("member") || n.includes("follower") || n.includes("\u043A\u0430\u043D\u0430\u043B") || n.includes("channel") || n.includes("\u0433\u0440\u0443\u043F\u043F") || n.includes("group") || n.includes("\u0431\u0443\u0441\u0442") || n.includes("boost") || n.includes("\u0438\u043D\u0432\u0430\u0439\u0442") || n.includes("invite")) {
     return "CHANNEL" /* CHANNEL */;
   }
@@ -109994,9 +110017,6 @@ function inferTargetTypeFromName(name) {
   }
   if (n.includes("\u043F\u0440\u043E\u0444\u0438\u043B\u044C") || n.includes("profile") || n.includes("\u0430\u043A\u043A\u0430\u0443\u043D\u0442") || n.includes("\u0434\u0440\u0443\u0433") || n.includes("friend")) {
     return "PROFILE" /* PROFILE */;
-  }
-  if (n.includes("\u043E\u043F\u0440\u043E\u0441") || n.includes("\u0433\u043E\u043B\u043E\u0441") || n.includes("poll") || n.includes("vote")) {
-    return "POLL" /* POLL */;
   }
   if (n.includes("\u043A\u043E\u043C\u043C\u0435\u043D\u0442") || n.includes("comment") || n.includes("\u043E\u0442\u0437\u044B\u0432") || n.includes("review")) {
     return "COMMENTS" /* COMMENTS */;
@@ -138860,6 +138880,10 @@ var PaymentService = class {
             include: { user: { select: { email: true } }, service: { select: { name: true } } }
           });
           if (order && order.status === "AWAITING_PAYMENT") {
+            if (creditAmount < order.charge) {
+              console.error(`[SECURITY] Underpaid order activation blocked: order #${order.numericId} requires ${order.charge} kopecks, but payment credited only ${creditAmount} kopecks.`);
+              throw new Error(`UNDERPAID_ORDER: Credited amount (${creditAmount}) is less than required order charge (${order.charge})`);
+            }
             await tx.order.update({
               where: { id: linkedOrderId },
               data: { status: "PENDING" }
@@ -140262,7 +140286,33 @@ init_logger();
 
 // src/lib/pagination.ts
 async function paginatedQuery(model, params) {
-  const { cursor, pageSize = 50, where = {}, orderBy = { id: "desc" }, include } = params;
+  const { cursor, page, pageSize = 50, where = {}, orderBy = { id: "desc" }, include } = params;
+  if (page !== void 0 && !cursor) {
+    const currentPage = Math.max(1, page);
+    const queryOptions2 = {
+      take: pageSize,
+      skip: (currentPage - 1) * pageSize,
+      where,
+      orderBy
+    };
+    if (include) {
+      queryOptions2.include = include;
+    }
+    const [items2, totalCount2] = await Promise.all([
+      model.findMany(queryOptions2),
+      model.count({ where })
+    ]);
+    const totalPages2 = Math.max(1, Math.ceil(totalCount2 / pageSize));
+    const hasMore = currentPage < totalPages2;
+    return {
+      items: items2,
+      totalCount: totalCount2,
+      totalPages: totalPages2,
+      currentPage,
+      pageSize,
+      hasMore
+    };
+  }
   const take = pageSize + 1;
   const queryOptions = {
     take,
@@ -140283,11 +140333,15 @@ async function paginatedQuery(model, params) {
   const hasNextPage = items.length > pageSize;
   const paginatedItems = hasNextPage ? items.slice(0, pageSize) : items;
   const nextCursor = hasNextPage && paginatedItems.length > 0 ? paginatedItems[paginatedItems.length - 1]?.id : void 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   return {
     items: paginatedItems,
     nextCursor,
     hasMore: hasNextPage,
-    totalCount
+    totalCount,
+    totalPages,
+    currentPage: 1,
+    pageSize
   };
 }
 
@@ -140457,11 +140511,15 @@ var ServiceAuditEngine = class {
     let newMarkup = originalMarkup;
     let newPrice = originalPrice;
     const rate = parseFloat(String(external.rate)) || 0;
-    if (!service.isQuarantined && originalMarkup <= 0 && rate > 0) {
+    if (!service.isQuarantined && rate > 0) {
       const costRub = rate * exchangeRate;
-      const retailFromLadder = applyPricingLadder(costRub);
-      newMarkup = costRub > 0 ? Math.round(retailFromLadder / costRub * 100) / 100 : 3;
-      newPrice = Math.round(applyBeautifulRounding(retailFromLadder) * 100);
+      if (originalMarkup <= 0) {
+        const retailFromLadder = applyPricingLadder(costRub);
+        newMarkup = costRub > 0 ? Math.round(retailFromLadder / costRub * 100) / 100 : 3;
+        newPrice = Math.round(applyBeautifulRounding(retailFromLadder) * 100);
+      } else {
+        newPrice = Math.round(applyBeautifulRounding(costRub * originalMarkup) * 100);
+      }
     }
     const nameChanged = cleanedName !== originalName;
     const descriptionChanged = cleanedDescription !== service.description;
@@ -140544,11 +140602,11 @@ function applyAntiNegativeMargin(costPer1kRub, rawRetailPer1kRub, minMarginPct =
   let finalRetail = applyBeautifulRounding(rawRetailPer1kRub);
   let wasFloored = false;
   if (finalRetail < minAcceptableRetail) {
-    finalRetail = minAcceptableRetail;
+    finalRetail = applyBeautifulRounding(minAcceptableRetail);
     wasFloored = true;
   }
   if (finalRetail < safeCost) {
-    finalRetail = safeCost;
+    finalRetail = applyBeautifulRounding(safeCost);
     wasFloored = true;
   }
   const finalCents = Math.ceil(finalRetail * 100);
@@ -140946,6 +141004,7 @@ var AdminCatalogService = class {
     }
     return paginatedQuery(db.service, {
       cursor: params.cursor,
+      page: params.page,
       pageSize: params.pageSize || 50,
       where,
       orderBy,
@@ -142615,13 +142674,9 @@ var YooKassaGateway = class extends BasePaymentGateway {
     const secrets = await SettingsProvider.getPaymentSecrets();
     const shopId = secrets.yookassaShopId;
     const secretKey = secrets.yookassaSecretKey;
-    const isMockPayment = await SettingsProvider.isTestMode();
     const isDummyKeys = !shopId || !secretKey || shopId === "test_shop_id" || shopId === "test_shop_id_test" || secretKey === "test_secret" || secretKey === "test_secret_key";
-    if (isMockPayment || isDummyKeys) {
-      return {
-        paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
-        remoteGatewayId: `mock_${Date.now()}`
-      };
+    if (isDummyKeys) {
+      throw new Error("\u041F\u043B\u0430\u0442\u0451\u0436\u043D\u044B\u0439 \u0448\u043B\u044E\u0437 \u042EKassa \u043D\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 Shop ID \u0438 Secret Key \u0432 \u043F\u0430\u043D\u0435\u043B\u0438 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F.");
     }
     const authHeader = "Basic " + Buffer.from(`${shopId}:${secretKey}`).toString("base64");
     const supportDomain = await SettingsProvider.getSupportEmailDomain();
@@ -142660,13 +142715,6 @@ var YooKassaGateway = class extends BasePaymentGateway {
     if (!resp.ok) {
       const errBody = await resp.text();
       console.error("[YooKassaGateway] API Error:", resp.status, errBody);
-      if ((resp.status === 401 || resp.status === 403) && process.env.ENABLE_DEV_ROUTES === "true") {
-        console.warn("[YooKassaGateway] YooKassa test credentials rejected (HTTP " + resp.status + "). Falling back to mock-payment dev route.");
-        return {
-          paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
-          remoteGatewayId: `mock_${Date.now()}`
-        };
-      }
       let descriptiveError = "\u041E\u0448\u0438\u0431\u043A\u0430 \u0448\u043B\u044E\u0437\u0430 YooKassa";
       try {
         const parsed = JSON.parse(errBody);
@@ -142714,16 +142762,9 @@ var CryptoBotGateway = class extends BasePaymentGateway {
     }
     const secrets = await SettingsProvider.getPaymentSecrets();
     const cryptoToken = secrets.cryptoBotToken;
-    const isDummyKeys = !cryptoToken || cryptoToken === "test_token" || cryptoToken === "test_shop_id" || cryptoToken === "test_login" || cryptoToken.startsWith("test_");
+    const isDummyKeys = !cryptoToken || cryptoToken === "test_token" || cryptoToken === "test_bot_token" || cryptoToken === "test_shop_id" || cryptoToken === "test_login" || cryptoToken.startsWith("test_") || cryptoToken.trim().length === 0;
     if (isDummyKeys) {
-      if (process.env.NODE_ENV === "production" && !params.isTestMode && process.env.ENABLE_DEV_ROUTES !== "true") {
-        console.error("[CryptoBotGateway] CryptoBot API token missing in production", { paymentId: params.paymentId });
-        throw new Error("\u041F\u043B\u0430\u0442\u0451\u0436\u043D\u044B\u0439 \u0448\u043B\u044E\u0437 CryptoBot \u043D\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 API \u0442\u043E\u043A\u0435\u043D \u0432 \u043F\u0430\u043D\u0435\u043B\u0438 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F.");
-      }
-      return {
-        paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
-        remoteGatewayId: `mock_${Date.now()}`
-      };
+      throw new Error("\u041F\u043B\u0430\u0442\u0451\u0436\u043D\u044B\u0439 \u0448\u043B\u044E\u0437 CryptoBot \u043D\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0443\u044E\u0449\u0438\u0439 API \u0442\u043E\u043A\u0435\u043D \u0432 \u043F\u0430\u043D\u0435\u043B\u0438 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F.");
     }
     const legalSettings = await SettingsProvider.getContactAndLegalSettings();
     const brandName = legalSettings.COMPANY_NAME || "SMMplan";
@@ -142881,12 +142922,9 @@ var RobokassaGateway = class extends BasePaymentGateway {
     const secrets = await SettingsProvider.getPaymentSecrets();
     const login = secrets.robokassaLogin;
     const password = secrets.robokassaPassword;
-    const isDummyKeys = params.isTestMode || !login || !password || login === "test_login";
+    const isDummyKeys = !login || !password || login === "test_login" || login.trim().length === 0 || password.trim().length === 0;
     if (isDummyKeys) {
-      return {
-        paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
-        remoteGatewayId: `mock_${Date.now()}`
-      };
+      throw new Error("\u041F\u043B\u0430\u0442\u0451\u0436\u043D\u044B\u0439 \u0448\u043B\u044E\u0437 \u0420\u043E\u0431\u043E\u043A\u0430\u0441\u0441\u0430 \u043D\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 Merchant Login \u0438 \u041F\u0430\u0440\u043E\u043B\u044C \u0432 \u043F\u0430\u043D\u0435\u043B\u0438 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F.");
     }
     const outSum = params.amountRub.toFixed(2);
     const invId = 0;
@@ -142935,7 +142973,7 @@ var RobokassaGateway = class extends BasePaymentGateway {
 var MockGateway = class extends BasePaymentGateway {
   async createPayment(params) {
     return {
-      paymentUrl: `${await getBaseUrlAsync()}/payment-redirect?id=${params.paymentId}`,
+      paymentUrl: params.successUrl || `${await getBaseUrlAsync()}/dashboard/add-funds?success=1`,
       remoteGatewayId: `mock_${Date.now()}`
     };
   }
@@ -143204,11 +143242,7 @@ var GeminiClient = class {
     }
     const proxyUrls = proxyRaw.split(/[,\n]/).map((p) => p.trim()).filter((p) => p.startsWith("http://") || p.startsWith("https://") || p.startsWith("socks5://"));
     if (proxyUrls.length === 0) {
-      return [
-        new import_undici.ProxyAgent("http://127.0.0.1:7897"),
-        new import_undici.ProxyAgent("http://127.0.0.1:7890"),
-        void 0
-      ];
+      return [void 0];
     }
     return proxyUrls.map((url) => new import_undici.ProxyAgent(url));
   }
@@ -143290,55 +143324,13 @@ var GeminiClient = class {
     console.warn(`[GeminiClient] Key ...${key.slice(-6)} placed on cooldown for 5m. Reason: ${reason}`);
   }
   /**
-   * Динамически определяет самую свежую рабочую Flash-модель из официального Google API.
+   * Возвращает целевую модель Gemini (по умолчанию gemini-3-flash-preview).
    */
-  static async resolveLatestModel(apiKey) {
+  static async resolveLatestModel(_apiKey) {
     if (process.env.GEMINI_MODEL) {
       return process.env.GEMINI_MODEL.trim();
     }
-    const now = Date.now();
-    if (modelCache && now - modelCache.cachedAt < MODEL_CACHE_TTL_MS) {
-      return modelCache.resolvedModel;
-    }
-    try {
-      const baseUrl2 = this.getBaseUrl();
-      const dispatchers = await this.getDispatchers();
-      for (const dispatcher of dispatchers) {
-        try {
-          const res = await fetch(`${baseUrl2}/v1beta/models?key=${apiKey}`, {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-            dispatcher,
-            signal: AbortSignal.timeout(5e3)
-          });
-          if (res.ok) {
-            const data = await res.json();
-            const models = data?.models || [];
-            const flashModels = models.filter(
-              (m) => m.supportedGenerationMethods?.includes("generateContent") && m.name.includes("flash") && !m.name.includes("vision") && !m.name.includes("8b")
-            ).map((m) => m.name.replace(/^models\//, ""));
-            if (flashModels.length > 0) {
-              flashModels.sort((a, b) => {
-                const getVer = (str) => {
-                  const match = str.match(/gemini-(\d+(?:\.\d+)?)/);
-                  return match ? parseFloat(match[1]) : 0;
-                };
-                return getVer(b) - getVer(a);
-              });
-              const highestModel = flashModels[0];
-              modelCache = { resolvedModel: highestModel, cachedAt: now };
-              return highestModel;
-            }
-          }
-        } catch {
-          continue;
-        }
-      }
-    } catch (e) {
-      console.warn("[GeminiClient] Auto-discovery of models failed, falling back to static cascade:", e);
-    }
-    modelCache = { resolvedModel: FALLBACK_MODEL_CASCADES[0], cachedAt: now };
-    return FALLBACK_MODEL_CASCADES[0];
+    return "gemini-3-flash-preview";
   }
   /**
    * Выполняет запрос к Gemini с ротацией ключей, поддержкой пула прокси с авто-переключением (Multi-Proxy Failover)

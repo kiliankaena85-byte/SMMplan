@@ -82,7 +82,7 @@ export const LINK_RULES: LinkRule[] = [
   {
       platform: IntelligencePlatform.YOUTUBE,
       type: 'video',
-      pattern: /(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{6,32})/i,
+      pattern: /(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{6,12})(?=[^\w-]|$|&)/i,
       suggestedCategories: [CATEGORY_LABELS.LIKES, CATEGORY_LABELS.VIEWS, CATEGORY_LABELS.COMMENTS, CATEGORY_LABELS.REPOSTS, CATEGORY_LABELS.STREAMS],
       context: 'high_retention_target'
   },

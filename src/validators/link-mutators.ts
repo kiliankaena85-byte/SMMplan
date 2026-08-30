@@ -29,9 +29,12 @@ const cleanInstagramUrl = (url: string, targetType: string): string => {
 };
 
 const cleanVkUrl = (url: string, targetType: string): string => {
-  let cleaned = url.replace(/m\.vk\.com/, 'vk.com');
+  let cleaned = url
+    .replace(/^http:\/\//i, 'https://')
+    .replace(/m\.vk\.com/i, 'vk.com')
+    .replace(/vk\.ru/i, 'vk.com');
   
-  if (targetType === 'CHANNEL') {
+  if (targetType === 'CHANNEL' || targetType === 'PROFILE') {
     // If it's a post link (e.g. vk.com/wall-123456_789), convert to public group or user ID
     const wallMatch = cleaned.match(/vk\.com\/wall(-?\d+)_\d+/i);
     if (wallMatch) {
@@ -57,21 +60,56 @@ const cleanVkUrl = (url: string, targetType: string): string => {
           return urlObj.toString();
       }
       urlObj.search = ''; 
-      return urlObj.toString();
+      let res = urlObj.toString();
+      if (targetType === 'CHANNEL' || targetType === 'PROFILE') {
+        res = res.replace(/\/+$/, '');
+      }
+      return res;
   } catch {
-      return cleaned;
+      return cleaned.replace(/\/+$/, '');
   }
 };
 
 const cleanTelegramUrl = (url: string, targetType: string): string => {
-  const cleaned = url.replace(/telegram\.me/, 't.me');
-  if (targetType === 'CHANNEL' || targetType === 'CHANNEL_POSTS') {
-    // If it's a post link (e.g. t.me/username/123), strip the post ID to make it a channel link
-    const postMatch = cleaned.match(/^(https?:\/\/(?:t\.me|telegram\.dog)\/)([\w-]+)\/\d+\/?(?:\?.*)?$/i);
-    if (postMatch && postMatch[2] !== 'c') {
-      return `${postMatch[1]}${postMatch[2]}`;
+  let cleaned = url
+    .trim()
+    .replace(/^http:\/\//i, 'https://')
+    .replace(/telegram\.me/i, 't.me')
+    .replace(/telegram\.dog/i, 't.me');
+
+  // Handle bare handles: "@durov" or "durov"
+  if (!cleaned.includes('/') && !cleaned.includes('.')) {
+    const rawHandle = cleaned.startsWith('@') ? cleaned.substring(1) : cleaned;
+    if (/^[a-zA-Z0-9_]+$/.test(rawHandle)) {
+      cleaned = `https://t.me/${rawHandle}`;
     }
   }
+
+  // Handle "t.me/@channel" -> "https://t.me/channel"
+  cleaned = cleaned.replace(/t\.me\/@/i, 't.me/');
+
+  // Handle "t.me/s/channel" -> "https://t.me/channel"
+  cleaned = cleaned.replace(/t\.me\/s\/([a-zA-Z0-9_]+)/i, 't.me/$1');
+
+  // Handle "web.telegram.org/k/#@channel" -> "https://t.me/channel"
+  const webMatch = cleaned.match(/web\.telegram\.org\/(?:k|a)\/#@?([a-zA-Z0-9_]+)/i);
+  if (webMatch) {
+    cleaned = `https://t.me/${webMatch[1]}`;
+  }
+
+  // Ensure protocol
+  if (!/^https?:\/\//i.test(cleaned) && cleaned.includes('t.me')) {
+    cleaned = `https://${cleaned}`;
+  }
+
+  if (targetType === 'CHANNEL' || targetType === 'CHANNEL_POSTS' || targetType === 'PROFILE') {
+    // If it's a post link (e.g. t.me/username/123), strip the post ID to make it a channel link
+    const postMatch = cleaned.match(/^(https?:\/\/(?:t\.me|telegram\.dog)\/)([\w-]+)\/\d+\/?(?:\?.*)?$/i);
+    if (postMatch && postMatch[2] !== 'c' && postMatch[2] !== 's') {
+      cleaned = `${postMatch[1]}${postMatch[2]}`;
+    }
+  }
+
   try {
     const urlObj = new URL(cleaned);
     if (targetType === 'TELEGRAM_BOT') {
@@ -80,10 +118,19 @@ const cleanTelegramUrl = (url: string, targetType: string): string => {
       if (start) {
         urlObj.searchParams.set('start', start);
       }
+    } else if (targetType === 'CHANNEL' || targetType === 'CHANNEL_POSTS' || targetType === 'PROFILE') {
+      // Strip query parameters for standard public channels
+      if (!urlObj.pathname.includes('/+') && !urlObj.pathname.includes('/joinchat/')) {
+        urlObj.search = '';
+      }
     }
-    return urlObj.toString();
+    let res = urlObj.toString();
+    if (targetType === 'CHANNEL' || targetType === 'PROFILE') {
+      res = res.replace(/\/+$/, '');
+    }
+    return res;
   } catch {
-    return cleaned;
+    return cleaned.replace(/\/+$/, '');
   }
 };
 
@@ -163,8 +210,8 @@ export const mutateLink = (url: string, platform: string, targetType: string): s
 export const getLinkValidator = (platform: string, targetType: string) => {
     switch (platform.toUpperCase()) {
         case 'TELEGRAM':
-            if (targetType === 'CHANNEL' || targetType === 'CHANNEL_POSTS') {
-                 return z.string().regex(/^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/(?:joinchat\/|\+)?[\w-]+\/?(?:\?.*)?$/i, "Укажите публичную ссылку на канал (например, https://t.me/durov)");
+            if (targetType === 'CHANNEL' || targetType === 'CHANNEL_POSTS' || targetType === 'PROFILE') {
+                 return z.string().regex(/^https?:\/\/(?:t\.me|telegram\.me|telegram\.dog)\/(?:joinchat\/|\+)?@?[\w-]+\/?(?:\?.*)?$/i, "Укажите публичную ссылку на канал (например, https://t.me/durov)");
             }
             if (targetType === 'POST') {
                  // Disallow /c/ (private)
@@ -185,16 +232,16 @@ export const getLinkValidator = (platform: string, targetType: string) => {
             
         case 'VK':
             if (targetType === 'POST') {
-                return z.string().regex(/^https?:\/\/(m\.)?vk\.com\/(wall|video|clip|photo)-?\d+_\d+/, "Укажите ссылку на пост, фото или видео ВКонтакте.");
+                return z.string().regex(/^https?:\/\/(?:m\.)?(?:vk\.(?:com|ru)|vkvideo\.ru)\/(?:wall|video|clip|photo)-?\d+_\d+/, "Укажите ссылку на пост, фото или видео ВКонтакте.");
             }
-            if (targetType === 'CHANNEL') {
-                return z.string().regex(/^https?:\/\/(m\.)?vk\.com\/[a-zA-Z0-9_.]+$/, "Укажите прямую ссылку на группу или профиль ВКонтакте.");
+            if (targetType === 'CHANNEL' || targetType === 'PROFILE') {
+                return z.string().regex(/^https?:\/\/(?:m\.)?vk\.(?:com|ru)\/[a-zA-Z0-9_.]+\/?$/, "Укажите прямую ссылку на группу или профиль ВКонтакте.");
             }
             if (targetType === 'COMMENT') {
-                return z.string().regex(/^https?:\/\/(m\.)?vk\.com\/(wall|video|clip|photo)-?\d+_\d+\?(?:.*&)?reply=\d+/, "Укажите ссылку на комментарий ВКонтакте (должна содержать параметр reply).");
+                return z.string().regex(/^https?:\/\/(?:m\.)?(?:vk\.(?:com|ru)|vkvideo\.ru)\/(?:wall|video|clip|photo)-?\d+_\d+\?(?:.*&)?reply=\d+/, "Укажите ссылку на комментарий ВКонтакте (должна содержать параметр reply).");
             }
             if (targetType === 'POLL') {
-                return z.string().regex(/^https?:\/\/(m\.)?vk\.com\/(wall|video|clip|photo)-?\d+_\d+/, "Укажите ссылку на пост с опросом ВКонтакте.");
+                return z.string().regex(/^https?:\/\/(?:m\.)?(?:vk\.(?:com|ru)|vkvideo\.ru)\/(?:wall|video|clip|photo)-?\d+_\d+/, "Укажите ссылку на пост с опросом ВКонтакте.");
             }
             break;
             

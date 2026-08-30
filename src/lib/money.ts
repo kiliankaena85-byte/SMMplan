@@ -18,3 +18,12 @@ export const centsToRub = (c: MoneyCents | bigint | null | undefined): number =>
 export const formatRub = (c: MoneyCents | bigint | null | undefined): string =>
   (Number(c || 0) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+/**
+ * Formats price per unit cleanly without trailing unnecessary zeroes (e.g. 0.26 ₽ / шт, 1.2 ₽ / шт).
+ */
+export const formatUnitRub = (priceRub: number | null | undefined): string => {
+  if (priceRub === null || priceRub === undefined || isNaN(priceRub)) return '0 ₽';
+  return priceRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+};
+
+

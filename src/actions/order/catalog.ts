@@ -336,11 +336,12 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
           else if (s.rate < 0.1) badge = "ХИТ";
        }
 
-       // Single Source of Truth: pricePer1000Cents is the canonical retail price
-       const pricePer1kRub = typeof s.pricePer1000Cents === 'number' && s.pricePer1000Cents > 0
+       // Single Source of Truth & Systemic Beautiful Rounding Invariant
+       const rawPricePer1k = typeof s.pricePer1000Cents === 'number' && s.pricePer1000Cents > 0
          ? s.pricePer1000Cents / 100
-         : applyBeautifulRounding((s.costPer1kRub || (s.rate * (s.providerCurrency === 'RUB' ? 1.0 : usdToRub))) * (s.markup || SAFETY_FLOOR_MARKUP));
-       const pricePerUnitRub = pricePer1kRub / 1000;
+         : (s.costPer1kRub || (s.rate * (s.providerCurrency === 'RUB' ? 1.0 : usdToRub))) * (s.markup || SAFETY_FLOOR_MARKUP);
+       const pricePer1kRub = applyBeautifulRounding(rawPricePer1k);
+       const pricePerUnitRub = Math.round((pricePer1kRub / 1000) * 10000) / 10000;
 
        const startTime = (feat.startTime as string | undefined) || fallbackAnalysis?.startTime || '5–15 мин';
        const speedDisplay = (feat.speedText as string | undefined) || fallbackAnalysis?.speedText || (lowerName.includes('быстр') ? 'Быстрая' : 'Стандартная');
@@ -424,11 +425,12 @@ export async function getServiceBySlugAction(slug: string, tenantId: string = 's
 
     if (!service) return null;
 
-    // Single Source of Truth: pricePer1000Cents is the canonical retail price
-    const pricePer1kRub = typeof service.pricePer1000Cents === 'number' && service.pricePer1000Cents > 0
+    // Single Source of Truth & Systemic Beautiful Rounding Invariant
+    const rawPricePer1k = typeof service.pricePer1000Cents === 'number' && service.pricePer1000Cents > 0
       ? service.pricePer1000Cents / 100
-      : applyBeautifulRounding((service.costPer1kRub || (service.rate * (service.providerCurrency === 'RUB' ? 1.0 : usdToRub))) * (service.markup || SAFETY_FLOOR_MARKUP));
-    const pricePerUnitRub = pricePer1kRub / 1000;
+      : (service.costPer1kRub || (service.rate * (service.providerCurrency === 'RUB' ? 1.0 : usdToRub))) * (service.markup || SAFETY_FLOOR_MARKUP);
+    const pricePer1kRub = applyBeautifulRounding(rawPricePer1k);
+    const pricePerUnitRub = Math.round((pricePer1kRub / 1000) * 10000) / 10000;
 
     return {
       ...service,

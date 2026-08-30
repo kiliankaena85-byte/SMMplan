@@ -1,7 +1,18 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 10:39 (МСК)
+> **Последнее обновление:** 2026-08-30 13:55 (МСК)
+
+- **Systemic Beautiful Pricing Invariant & Zero-Ugly-Fractions Engine (100% COMPLETE & VERIFIED):**
+  - **1. Архитектурный 4-уровневый инвариант (Layered Invariant Guard):**
+    - **Layer 1 (Database Normalization):** Пакетно нормализованы все 252 услуги каталога в PostgreSQL через `scripts/normalize-catalog-pricing.ts`. Все значения `pricePer1000Cents` теперь строго кратны 10 ₽ / 100 ₽ (например, `26000` коп. = `260` ₽/1k $\rightarrow$ `0.26` ₽/шт, `120000` коп. = `1200` ₽/1k $\rightarrow$ `1.20` ₽/шт).
+    - **Layer 2 (Backend Pricing & Margins):** В [`anti-negative-margin.ts`](file:///d:/SMM_plan_2/src/lib/pricing/anti-negative-margin.ts), [`audit-engine.ts`](file:///d:/SMM_plan_2/src/services/admin/audit-engine.ts) и [`catalog.service.ts`](file:///d:/SMM_plan_2/src/services/admin/catalog.service.ts) внедрено строгое оборачивание расчетов в `applyBeautifulRounding()` независимо от значения `markup`.
+    - **Layer 3 (Storefront DTO Gateway Shield):** В [`src/actions/order/catalog.ts`](file:///d:/SMM_plan_2/src/actions/order/catalog.ts) (`getServicesByCategoryAction`, `getServiceBySlugAction`) внедрен защитный барьер: любые цены из БД на лету валидируются через `applyBeautifulRounding()`, исключая попадание дробных хвостов вроде `0.25872` или `0.00582` на клиентский интерфейс.
+    - **Layer 4 (UI Formatting Helper):** В [`src/lib/money.ts`](file:///d:/SMM_plan_2/src/lib/money.ts) добавлен стандартизированный хелпер `formatUnitRub()` для отображения цены за 1 штуку.
+  - **2. Тестирование и верификация:**
+    - Новый сьют: `src/__tests__/catalog/systemic-beautiful-pricing-invariant.test.ts` (**9/9 PASS**).
+    - Проверка типов: `npx tsc --noEmit` (**0 ошибок**).
+
 
 - **P0 Security & Data Integrity Hardening (100% COMPLETE & VERIFIED):**
   - **1. Payment Amount Guard (`payment.service.ts`):** Добавлена строгая проверка `creditAmount >= order.charge` перед активацией заказа. При попытке недоплаты операция отклоняется с кодом `UNDERPAID_ORDER`.

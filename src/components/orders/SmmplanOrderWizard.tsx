@@ -405,9 +405,15 @@ function SmmplanOrderWizardInner({
 
   // Auto-prepend https:// protocol on blur for client link input
   const normalizeUrl = (raw: string): string => {
-    const trimmed = raw.trim();
+    let trimmed = raw.trim();
     if (!trimmed) return '';
+    // Clean duplicate protocols (e.g. https://https://t.me/...)
+    trimmed = trimmed.replace(/^(?:https?:\/\/)+(https?:\/\/)/i, '$1');
     if (!/^https?:\/\//i.test(trimmed)) {
+      if (trimmed.startsWith('@')) {
+        trimmed = trimmed.substring(1);
+        return `https://t.me/${trimmed}`;
+      }
       return `https://${trimmed}`;
     }
     return trimmed;
