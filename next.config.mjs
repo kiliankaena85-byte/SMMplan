@@ -5,7 +5,81 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /** @type {import('next').NextConfig} */
-const isProd = process.env.NODE_ENV === 'production';
+/**
+ * Dynamic Allowed Origins Generator for Next.js 16 Server Actions & Dev Server.
+ * Supports exact domains, wildcards (*.ts.net, *.trycloudflare.com), and dynamic ENV hydration.
+ */
+function buildAllowedOrigins() {
+  const isProdContour = process.env.NODE_ENV === 'production' && process.env.CONTOUR === 'prod';
+
+  // Production contour: tunnel wildcards restricted; enabled in dev/test/staging or via explicit ENV
+  const tunnelWildcards = isProdContour ? [] : [
+    '*.ts.net',
+    '*.trycloudflare.com',
+    '*.loca.lt',
+    '*.ngrok-free.app',
+    '*.ngrok.app',
+    '*.ngrok.io',
+  ];
+
+  const baseWildcards = [
+    // Production brand domains & subdomains
+    'smmplan.pro',
+    '*.smmplan.pro',
+    'smmflux.ru',
+    '*.smmflux.ru',
+    'smmplan.ru',
+    '*.smmplan.ru',
+    ...tunnelWildcards,
+  ];
+
+  const localOrigins = [
+    'localhost',
+    'localhost:3000',
+    'localhost:3001',
+    '127.0.0.1',
+    '127.0.0.1:3000',
+    '127.0.0.1:3001',
+    '0.0.0.0:3000',
+    'host.docker.internal:3000',
+  ];
+
+  const envOrigins = [];
+
+  // 1. APP_URL & NEXT_PUBLIC_APP_URL
+  const appUrls = [process.env.APP_URL, process.env.NEXT_PUBLIC_APP_URL, process.env.BASE_URL];
+  for (const u of appUrls) {
+    if (u) {
+      try {
+        const parsed = new URL(u);
+        envOrigins.push(parsed.host);
+      } catch {}
+    }
+  }
+
+  // 2. TUNNEL_DOMAIN (comma-separated or single)
+  if (process.env.TUNNEL_DOMAIN) {
+    const list = process.env.TUNNEL_DOMAIN.split(',').map(s => s.trim()).filter(Boolean);
+    envOrigins.push(...list);
+  }
+
+  // 3. ALLOWED_ORIGINS (comma-separated list for custom mirrors / white-label tenants)
+  if (process.env.ALLOWED_ORIGINS) {
+    const list = process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean);
+    envOrigins.push(...list);
+  }
+
+  // Deduplicate and sanitize
+  const combined = Array.from(new Set([
+    ...baseWildcards,
+    ...localOrigins,
+    ...envOrigins
+  ])).filter(Boolean);
+
+  return combined;
+}
+
+const dynamicOrigins = buildAllowedOrigins();
 
 const nextConfig = {
   output: "standalone",
@@ -20,14 +94,12 @@ const nextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',
-      allowedOrigins: isProd
-        ? ['smmplan.pro', 'www.smmplan.pro', 'test.smmplan.pro', 'flux.smmplan.pro', 'stage.smmplan.pro', 'smmflux.ru', 'www.smmflux.ru', 'desktop-25m6el7.tailbb9d28.ts.net']
-        : ['smmplan.pro', 'www.smmplan.pro', 'test.smmplan.pro', 'flux.smmplan.pro', 'localhost:3000', '127.0.0.1:3000', 'localhost:3001', '127.0.0.1:3001', 'desktop-25m6el7.tailbb9d28.ts.net'],
+      allowedOrigins: dynamicOrigins,
     },
+    // CRITICAL: Required for multi-tunnel and reverse proxies so Next.js respects X-Forwarded-Host
+    trustHostHeader: true,
   },
-  allowedDevOrigins: isProd
-    ? ['desktop-25m6el7.tailbb9d28.ts.net']
-    : ["127.0.0.1:3001", "localhost:3001", "127.0.0.1", "localhost", "desktop-25m6el7.tailbb9d28.ts.net"],
+  allowedDevOrigins: dynamicOrigins,
   
   // OSAD-V2: Distributed Cache Sync for Redis (Disabled for standalone container portability)
   cacheHandler: undefined,

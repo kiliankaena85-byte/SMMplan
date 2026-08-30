@@ -265,3 +265,19 @@ npx @next/codemod@latest middleware-to-proxy
 - **JWT & Session Verification**: `verifySession()` проверяет наличие `sessionId` в базе данных `Session`. В `auth.setup.ts` создается реальная запись `Session` и вкладывается в JWT `SignJWT({ sessionId, userId, role, tenantId })`.
 - **Тестовая изоляция аутентификации**: В `session.ts` функция `handleDevAutoLogin()` принудительно возвращает `null` при `APP_ENV=test`, что предотвращает автоматический вход гостей и гарантирует чистоту тестов форм логина и регистрации.
 - **UI/UX & Visual Regression**: Набор `e2e/ux-quality/` (WCAG 2.2 AA a11y scanner, mobile viewport density, order wizard pricing contract `₽ / шт`) и `e2e/visual-regression.spec.ts` (10 сценариев) проходят на 100% GREEN.
+
+---
+
+## 8. 🧠 Флагманские AI-модели Swarm и Сетевая архитектура тоннелей
+
+- **Флагманский стек OpenRouter Adversarial Swarm (СТРОГОЕ ПРАВИЛО):**
+  - **Red Team (Атакующий):** `z-ai/glm-5.2:free` (GLM 5.2) — резерв `minimax/minimax-m3:free`.
+  - **Blue Team (Защитник/Системный архитектор):** `minimax/minimax-m3:free` (MiniMax M3) — резерв `nvidia/nemotron-3-ultra-550b-a55b:free`.
+  - **CTO Arbiter (Синтез и вердикт):** `nvidia/nemotron-3-ultra-550b-a55b:free` (Nemotron 3 Ultra 550B) / `thinkingmachines/inkling:free`.
+  - ❌ **КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО** использовать устаревшие модели в скриптах состязательного аудита при наличии этих флагманов.
+
+- **Zero-Hardcode Dynamic Tunnel & Next.js 16 Server Actions Invariant:**
+  - `next.config.mjs`: список `allowedOrigins` формируется динамически (`buildAllowedOrigins`) с поддержкой wildcard-масок брендов (`*.smmplan.pro`, `*.smmflux.ru`), тоннелей (`*.ts.net`, `*.trycloudflare.com`) и гидратацией из ENV (`APP_URL`, `TUNNEL_DOMAIN`, `ALLOWED_ORIGINS`). В `CONTOUR=prod` публичные маски тоннелей отключаются для защиты от CSRF.
+  - `src/proxy.ts`: извлекает `x-forwarded-host` и `x-forwarded-proto` с защитой от дублирования (`split(',')[0].trim()`), выполняет раннюю валидацию `isKnownOrAllowedHost` ДО построения `originBase` и явно синхронизирует заголовки для Next.js Server Actions.
+  - Тестовый сьют: `src/__tests__/dynamic-tunnel-and-server-actions-proxy.test.ts` (8/8 PASS).
+

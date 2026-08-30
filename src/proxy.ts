@@ -50,6 +50,24 @@ const TRUSTED_CONTOUR_MAP: Record<ContourId, Set<string>> = {
   ]),
 };
 
+// Base Known Root Domains
+const KNOWN_ROOT_DOMAINS = [
+  'smmplan.pro',
+  'smmflux.ru',
+  'smmplan.ru',
+  'lovable.pro',
+];
+
+// Dynamic Tunnel & Testing Suffixes
+const ALLOWED_TUNNEL_SUFFIXES = [
+  '.ts.net',
+  '.trycloudflare.com',
+  '.loca.lt',
+  '.ngrok-free.app',
+  '.ngrok.app',
+  '.ngrok.io',
+];
+
 const ALLOWED_CONTOUR_DOMAINS = new Set([
   'smmplan.pro',
   'www.smmplan.pro',
@@ -71,18 +89,81 @@ export const INTERNAL_HOSTS = new Set([
   'localhost',
   '127.0.0.1',
   '0.0.0.0',
-  'host.docker.internal'
+  'host.docker.internal',
+  'web',
+  'smmplan_web',
+  'tunnel',
+  'smmplan_tunnel'
 ]);
 
 export function isInternalHost(h: string | null | undefined): boolean {
   if (!h) return false;
-  const clean = h.split(':')[0].toLowerCase().trim();
+  let clean = h.split(',')[0].trim().toLowerCase();
+  if (clean.startsWith('[') && clean.includes(']')) {
+    clean = clean.slice(1, clean.indexOf(']'));
+  }
+  clean = clean.split(':')[0];
+
   if (INTERNAL_HOSTS.has(clean)) return true;
-  if (clean === 'web' || clean === 'smmplan_web' || clean === 'tunnel' || clean === 'smmplan_tunnel') return true;
   if (clean.endsWith('.ts.net') || clean.includes('tailscale')) return true;
+  if (ALLOWED_TUNNEL_SUFFIXES.some(suffix => clean.endsWith(suffix))) return true;
   if (/^172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+$/.test(clean)) return true;
   if (/^10\.\d+\.\d+\.\d+$/.test(clean)) return true;
   if (/^192\.168\.\d+\.\d+$/.test(clean)) return true;
+  if (/^100\.(6[4-9]|[7-9]\d|1[0-1]\d|12[0-7])\.\d+\.\d+$/.test(clean)) return true;
+  return false;
+}
+
+/**
+ * Validates whether an incoming host is authorized (via root domain wildcard, tunnel suffix, internal network, or ENV).
+ */
+export function isKnownOrAllowedHost(h: string | null | undefined): boolean {
+  if (!h) return false;
+  let clean = h.split(',')[0].trim().toLowerCase();
+  if (clean.startsWith('[') && clean.includes(']')) {
+    clean = clean.slice(1, clean.indexOf(']'));
+  }
+  clean = clean.split(':')[0];
+  
+  if (isInternalHost(clean)) return true;
+
+  // 1. Check root domains and all their subdomains (*.smmplan.pro, *.smmflux.ru, etc.)
+  for (const root of KNOWN_ROOT_DOMAINS) {
+    if (clean === root || clean.endsWith('.' + root)) {
+      return true;
+    }
+  }
+
+  // 2. Check tunnel suffixes (*.ts.net, *.trycloudflare.com, etc.)
+  for (const suffix of ALLOWED_TUNNEL_SUFFIXES) {
+    if (clean.endsWith(suffix)) {
+      return true;
+    }
+  }
+
+  // 3. Check explicit list
+  if (ALLOWED_CONTOUR_DOMAINS.has(clean)) return true;
+
+  // 4. Check dynamic environment variables
+  const envList = [
+    process.env.APP_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.BASE_URL,
+    process.env.TUNNEL_DOMAIN,
+    process.env.ALLOWED_ORIGINS,
+  ].filter(Boolean).join(',');
+
+  if (envList) {
+    const customHosts = envList.split(',').map(s => {
+      try {
+        return s.includes('://') ? new URL(s.trim()).host.split(':')[0].toLowerCase() : s.trim().split(':')[0].toLowerCase();
+      } catch {
+        return s.trim().split(':')[0].toLowerCase();
+      }
+    });
+    if (customHosts.includes(clean)) return true;
+  }
+
   return false;
 }
 
@@ -110,12 +191,27 @@ export async function proxy(request: NextRequest) {
   requestHeaders.delete('x-tenant-id');
 
   const hostHeader = request.headers.get('host');
-  const fwdHost = request.headers.get('x-forwarded-host');
-  const fwdProto = request.headers.get('x-forwarded-proto');
+  // Take ONLY the first value to defeat duplicate-header concat attacks
+  const fwdHostRaw = request.headers.get('x-forwarded-host');
+  const fwdHost = fwdHostRaw?.split(',')[0]?.trim() || null;
+  const fwdProtoRaw = request.headers.get('x-forwarded-proto');
+  const fwdProto = fwdProtoRaw?.split(',')[0]?.trim() || null;
+
+  const rawHostClean = (hostHeader || '').split(',')[0].split(':')[0].toLowerCase().trim();
+  const rawFwdClean = (fwdHost || '').split(':')[0].toLowerCase().trim();
+  const isSecurityTxt = pathname === '/.well-known/security.txt' || pathname === '/security.txt';
+
+  // EARLY REJECTION — before any host is used for redirects/cookies
+  if (rawHostClean && !isKnownOrAllowedHost(rawHostClean) && !isSecurityTxt) {
+    return NextResponse.json({ error: 'Forbidden: Invalid Host header' }, { status: 403 });
+  }
+  if (rawFwdClean && !isKnownOrAllowedHost(rawFwdClean) && !isSecurityTxt) {
+    return NextResponse.json({ error: 'Forbidden: Invalid X-Forwarded-Host header' }, { status: 403 });
+  }
 
   let host = (fwdHost && !isInternalHost(fwdHost))
     ? fwdHost
-    : (hostHeader || '');
+    : (hostHeader?.split(',')[0]?.trim() || '');
 
   if (isInternalHost(host) || !host) {
     host = process.env.APP_URL ? new URL(process.env.APP_URL).host : 'test.smmplan.pro';
@@ -192,17 +288,8 @@ export async function proxy(request: NextRequest) {
 
   requestHeaders.set('x-tenant-id', finalTenantId);
 
-  // SEC: Authoritative site-mode signal based on ORIGINAL incoming host,
-  // NOT on query params (which could be stale in browser cache).
-  // "holding" = request came from smmplan.pro (the production holding domain)
-  // "live" = everything else (test.smmplan.pro, flux.smmplan.pro, Tailscale, localhost)
-  const originalIncomingHost = (() => {
-    const fwd = request.headers.get('x-forwarded-host');
-    const hdr = request.headers.get('host');
-    if (fwd && !isInternalHost(fwd)) return fwd.split(':')[0].toLowerCase();
-    if (hdr && !isInternalHost(hdr)) return hdr.split(':')[0].toLowerCase();
-    return null;
-  })();
+  // SEC: Authoritative site-mode signal based on proven-valid incoming host
+  const originalIncomingHost = host.split(':')[0].toLowerCase();
   const isHoldingDomain = originalIncomingHost === 'smmplan.pro' || originalIncomingHost === 'www.smmplan.pro';
   requestHeaders.set('x-site-mode', isHoldingDomain ? 'holding' : 'live');
 
@@ -219,26 +306,6 @@ export async function proxy(request: NextRequest) {
     }
     return res;
   };
-
-  // 0.1 N-10.3: Strict Host & Cross-Contour Spoofing Shield (OWASP A01 / A05)
-  const isSecurityTxt = pathname === '/.well-known/security.txt' || pathname === '/security.txt';
-  const rawHostClean = (hostHeader || '').split(':')[0].toLowerCase();
-  const rawFwdClean = (fwdHost || '').split(':')[0].toLowerCase();
-
-  // If host is completely unknown
-  if (rawHostClean && !isInternalHost(rawHostClean) && !ALLOWED_CONTOUR_DOMAINS.has(rawHostClean) && !isSecurityTxt) {
-    return NextResponse.json({ error: 'Forbidden: Invalid Host header' }, { status: 403 });
-  }
-
-  // Cross-contour spoofing check (e.g. connecting to smmplan.pro with Host: test.smmplan.pro or vice versa)
-  if (rawHostClean && rawFwdClean && rawHostClean !== rawFwdClean && !isSecurityTxt) {
-    if (!isInternalHost(rawFwdClean) && !isInternalHost(rawHostClean)) {
-      return NextResponse.json(
-        { error: 'Forbidden: Cross-contour host header spoofing detected' },
-        { status: 403 }
-      );
-    }
-  }
 
   // Strict validation against current active server contour (TRUSTED_CONTOUR_MAP)
   const allowedForContour = TRUSTED_CONTOUR_MAP[activeContour];
