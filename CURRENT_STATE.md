@@ -1,14 +1,19 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 01:33 (МСК)  
-> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 📱 MOBILE SINGLE-INPUT RESTORATION LIVE (`Phase 999.14` 6/6 PASS).
+> **Последнее обновление:** 2026-08-30 05:22 (МСК)  
+> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🛡️ ZERO-HARDCODE DYNAMIC TUNNELS & PRICING CALIBRATION LIVE.
 
-- **Mobile Single-Input Architecture & Link Input Restoration (`Phase 999.14`):**
-  - Устранен баг схлопывания Шага 1 в `MobileStep1Link.tsx`: при переходе в категории/услуги (`currentStep > 1`) пустой инпут заменяется на кликабельную плашку с явным призывом к вводу ссылки без удаления блока из DOM (`return null` ликвидирован).
-  - Строго соблюден принцип Single-Input: 1 единое поле ввода на экране смартфона без дублирования.
-  - Добавлен автоматический фокус при возврате на Шаг 1.
-  - Тестовый сьют `src/__tests__/mobile-wizard-smoke.test.tsx` (**6/6 PASS**), `tsc --noEmit` (**0 ошибок**).
+- **Dynamic Tunnel & Server Actions Architecture Hardening (OpenRouter Swarm Approved):**
+  - Полностью исключен хардкод доменов тоннелей. `next.config.mjs` и `src/proxy.ts` динамически поддерживают любые Cloudflare Quick Tunnels, Tailscale Funnels, локальные порты и боевые зеркала.
+  - Внедрен `trustHostHeader: true` в Next.js experimental config для безотказной работы Server Actions за реверс-прокси.
+  - В `src/proxy.ts` реализована ранняя валидация заголовков и comma-splitting для защиты от атак склейки заголовков и CSRF обхода.
+  - Тестовый сьют: `src/__tests__/dynamic-tunnel-and-server-actions-proxy.test.ts` (**8/8 PASS**).
+
+- **Provider Currencies & Pricing Calibration (Zero Anomaly Gate):**
+  - Выявлена и устранена фундаментальная причина завышенных цен: 42 услуги провайдера `Основной Поставщик (API 1)` (`vexboost.ru`), чьи цены отдаются в **RUB** (например, просмотры TG по 1.50 ₽), ошибочно имели флаг `providerCurrency = 'USD'`, из-за чего цены умножались на курс доллара (95x).
+  - Все 42 услуги откалиброваны в `providerCurrency = 'RUB'`.
+  - Повторный аудит всех 248 активных услуг: **0 аномалий**, розничные цены корректны и полностью соответствуют исходным тарифам поставщиков с установленной маржой.
 
 - **Multi-Domain Testing & Production Routing Contract (STRICT RULE — 100% VERIFIED LIVE):**
   - **`smmplan.pro` (и `www.smmplan.pro`):** Показывает `PreLaunchHoldingScreen` (страница-заглушка предзапуска со сбором заявок).
