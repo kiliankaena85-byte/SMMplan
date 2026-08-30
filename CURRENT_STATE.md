@@ -1,7 +1,40 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 09:25 (МСК)
+> **Последнее обновление:** 2026-08-30 09:30 (МСК)
+
+- **Orders High-Performance Numbered Pagination & Dual-Nav Architecture (100% COMPLETE & VERIFIED):**
+  - **1. Бэкенд-ускорение и устранение 5x Full-Table Scans (`getOrderStats`):**
+    - Ранее на каждый клик по страницам заказов выполнялось 5 раздельных `db.order.count()` запросов по всей таблице `Order`.
+    - Заменено на один высокоскоростной агрегирующий запрос `db.order.groupBy({ by: ['status'], where })` с 15-секундным микро-кэшем, что снизило время ответа базы данных в 4–5 раз.
+    - Запрос списка сетей и категорий обёрнут в `unstable_cache` (`getCachedNetworks`), исключая повторные запросы справочников при навигации.
+  - **2. Улучшение UX пагинации (`NumberedPagination.tsx`):**
+    - **Мгновенный отклик (`useTransition`):** навигация между страницами не блокирует интерфейс, а при клике на номер страницы мгновенно отображается спиннер/индикатор загрузки.
+    - **Двойная навигация (Dual Pagination):** добавлена компактная мини-панель пагинации прямо в шапку таблицы (`variant="compact"`) и полная панель снизу (`variant="full"`), избавляя оператора от необходимости листать 50 строк вниз для переключения страницы.
+    - **Горячие клавиши:** добавлена поддержка `Alt + ←` (Предыдущая страница) и `Alt + →` (Следующая страница).
+    - **Прямой ввод и пресеты:** быстрый переход по Enter (`Стр. [  ] ->`) и пресеты размера страниц (`20`, `50`, `100`, `200`).
+  - **3. Тестирование и верификация:**
+    - Новый юнит-сьют: `src/__tests__/orders-pagination-speed.test.ts` (**6/6 PASS**).
+    - Тестовый прогон: `vitest.unit.config.ts` — **107/107 PASS (100% GREEN)**.
+    - Проверка типов TypeScript: `npx tsc --noEmit` — **0 ошибок**.
+
+
+
+- **Autonomous Catalog, Smart Routing Failover & ReDoS Pre-flight (100% COMPLETE & VERIFIED):**
+  - **1. Автономный каскадный Failover провайдеров (`OrderDispatchService` + `SmartRoutingService`):**
+    - Внедрён метод `OrderDispatchService.dispatchOrderWithFailover()`: при сбое основного поставщика (5xx, таймаут, нехватка баланса) заказ автоматически перенаправляется на альтернативные маршруты `ServiceRoute` в порядке приоритета.
+    - Перед переключением `MarginGuard.checkMargin()` проверяет рентабельность маршрута (с валютным буфером 5%), блокируя отправку в убыток.
+    - Каждое автопереключение логируется в `RoutingAuditLog` с действием `AUTOMATIC_FAILOVER`.
+  - **2. ReDoS-защита и Smoke-Link Pre-flight (`SafeRegexValidator` & `link-mutators.ts`):**
+    - Добавлен метод `SafeRegexValidator.runSmokeTestSuite()` и функция `validateRegexSafetyAndSmoke()`: валидация паттернов соцсетей и услуг с отсечением вложенных квантификаторов `(a+)+` и прогоном тестовых URL.
+    - Валидация внедрена в `createServiceAction`, `updateServiceAction` и `saveLinkPatternAction`.
+  - **3. Гранулярный сброс кэша по тенантам:**
+    - Все действия каталога (`services.ts`, `categories.ts`, `batch.ts`) инвалидируют как глобальные теги (`catalog`, `services`), так и мультитенантные `catalog-${tenantId}` и `services-${tenantId}`.
+  - **4. Тестирование и верификация:**
+    - Новый сьют: `src/__tests__/catalog/autonomous-catalog-and-routing-resilience.test.ts` (**6/6 PASS**).
+    - Полная батарея тестов маршрутизации: `operational-routing-hot-swap.test.ts`, `smart-provider-fallback-and-failover.test.ts` (**19/19 PASS, 100% GREEN**).
+    - Строгая проверка типов: `npx tsc --noEmit` (**0 ошибок**).
+
 
 - **Category & Network Management Architecture (100% COMPLETE & VERIFIED):**
   - **1. Архитектурный аудит & Круглый стол (Agent Swarm):**

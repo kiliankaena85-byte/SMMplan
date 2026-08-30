@@ -465,26 +465,55 @@ class AdminOrderService {
     return { orderNumericId: result.orderNumericId };
   }
 
+  // Fast cache for order status stats (15s TTL) to prevent 5x full table scans on rapid pagination
+  private static statsCache = new Map<string, { data: { total: number; pending: number; inProgress: number; completed: number; error: number }; expiresAt: number }>();
+
   /**
-   * Get order statistics for dashboard widgets.
+   * Retrieves order stats using a single high-performance groupBy query with 15s cache.
    */
   async getOrderStats(startDate?: Date, endDate?: Date, tenantId?: string) {
-    const where: Record<string, unknown> = {};
+    const cacheKey = `${startDate?.toISOString() || 'all'}_${endDate?.toISOString() || 'all'}_${tenantId || 'all'}`;
+    const cached = AdminOrderService.statsCache.get(cacheKey);
+    const now = Date.now();
+
+    if (cached && cached.expiresAt > now) {
+      return cached.data;
+    }
+
+    const where: Prisma.OrderWhereInput = {};
     if (startDate && endDate) {
       where.createdAt = { gte: startDate, lte: endDate };
     }
-    if (tenantId) {
+    if (tenantId && tenantId !== 'all') {
       where.tenantId = tenantId;
     }
-    const [total, pending, inProgress, completed, error] = await Promise.all([
-      db.order.count({ where }),
-      db.order.count({ where: { ...where, status: 'PENDING' } }),
-      db.order.count({ where: { ...where, status: 'IN_PROGRESS' } }),
-      db.order.count({ where: { ...where, status: 'COMPLETED' } }),
-      db.order.count({ where: { ...where, status: 'ERROR' } }),
-    ]);
 
-    return { total, pending, inProgress, completed, error };
+    // High performance single groupBy query instead of 5 separate full-table count scans
+    const statusGroups = await db.order.groupBy({
+      by: ['status'],
+      where,
+      _count: { _all: true },
+    });
+
+    let total = 0;
+    let pending = 0;
+    let inProgress = 0;
+    let completed = 0;
+    let error = 0;
+
+    for (const group of statusGroups) {
+      const count = group._count._all;
+      total += count;
+      if (group.status === 'PENDING') pending += count;
+      else if (group.status === 'IN_PROGRESS') inProgress += count;
+      else if (group.status === 'COMPLETED') completed += count;
+      else if (group.status === 'ERROR') error += count;
+    }
+
+    const result = { total, pending, inProgress, completed, error };
+    AdminOrderService.statsCache.set(cacheKey, { data: result, expiresAt: now + 15000 });
+
+    return result;
   }
 
   /**

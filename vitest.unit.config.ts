@@ -21,6 +21,7 @@ export default defineConfig({
       'src/__tests__/maintenance-screens.test.ts',
       'src/__tests__/table-density.test.ts',
       'src/__tests__/categories-unit.test.ts',
+      'src/__tests__/orders-pagination-speed.test.ts',
     ],
   }
 });

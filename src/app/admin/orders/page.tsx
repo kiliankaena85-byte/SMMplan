@@ -42,6 +42,27 @@ type Props = {
 
 import { enforceSectionAccess } from '@/lib/server/rbac';
 
+import { unstable_cache } from 'next/cache';
+
+const getCachedNetworks = unstable_cache(
+  async () => {
+    return db.network.findMany({
+      select: { 
+        id: true, 
+        name: true, 
+        slug: true,
+        categories: {
+          select: { id: true, name: true, slug: true },
+          orderBy: { sort: 'asc' }
+        }
+      },
+      orderBy: { sort: 'asc' }
+    });
+  },
+  ['admin_orders_networks_list'],
+  { revalidate: 60, tags: ['catalog', 'networks'] }
+);
+
 export default async function AdminOrdersPage({ searchParams }: Props) {
   await enforceSectionAccess('orders');
   const session = await verifySession();
@@ -65,18 +86,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   const resolvedTenant = resolveAdminTenantContext(user, params.tenant);
   const tenantFilter = resolvedTenant !== 'all' ? resolvedTenant : undefined;
 
-  const networks = await db.network.findMany({
-    select: { 
-      id: true, 
-      name: true, 
-      slug: true,
-      categories: {
-        select: { id: true, name: true, slug: true },
-        orderBy: { sort: 'asc' }
-      }
-    },
-    orderBy: { sort: 'asc' }
-  });
+  const networks = await getCachedNetworks();
 
   const isDripFeed = params.isDripFeed === 'true';
   const noProvider = params.noProvider === 'true';
@@ -193,12 +203,26 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
 
         {/* Table Section */}
         <div className="flex-1 p-4 sm:p-5 pt-4">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pb-2 border-b border-border/40">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
               <span>Заказы</span>
               {query && <span className="font-mono text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-md">«{query}»</span>}
-              <span className="text-muted-foreground font-medium text-xs">({orders.length} из {totalCount})</span>
+              <span className="text-muted-foreground font-medium text-xs">({orders.length} из {totalCount.toLocaleString('ru-RU')})</span>
             </h3>
+
+            {/* Top Quick Compact Pagination */}
+            {totalPages > 1 && (
+              <NumberedPagination
+                totalCount={totalCount}
+                globalTotalCount={stats.total}
+                currentPage={currentPage || page}
+                totalPages={totalPages || 1}
+                pageSize={pageSize}
+                itemLabel="заказов"
+                selectedTenant={tenantFilter}
+                variant="compact"
+              />
+            )}
           </div>
           <OrderClient 
             canSeeRates={canSeeRates}
@@ -240,7 +264,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
             }))} 
           />
 
-          {/* Modular Numbered Pagination */}
+          {/* Modular Bottom Numbered Pagination */}
           <NumberedPagination
             totalCount={totalCount}
             globalTotalCount={stats.total}
@@ -249,6 +273,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
             pageSize={pageSize}
             itemLabel="заказов"
             selectedTenant={tenantFilter}
+            variant="full"
           />
         </div>
       </div>
