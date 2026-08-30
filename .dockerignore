@@ -4,6 +4,10 @@ node_modules/*
 .next/*
 !.next/standalone
 !.next/static
+caddy/
+dist/
+*.zip
+logs/
 .git
 .env
 .env.*

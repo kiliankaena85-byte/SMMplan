@@ -60,6 +60,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
   const cleanHost = host.split(":")[0].toLowerCase().trim();
   const tenantId = normalizeTenantId(reqHeaders.get("x-tenant-id")) || "smmplan";
   const isProdHost = cleanHost === "smmplan.pro" || cleanHost === "www.smmplan.pro";
+  const isHoldingMode = params.mode === "holding" || (isProdHost && params.contour !== "test");
 
   const userBalanceCents = 0;
   const catalogResult = await getPublicCatalogAction(tenantId);
@@ -173,7 +174,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
 
             <MegaFooter contactSettings={settings} tenantId={tenantId} />
           </div>
-        ) : isProdHost ? (
+        ) : isHoldingMode ? (
           <PreLaunchHoldingScreen
             siteName={siteName}
             supportTelegram={settings.TELEGRAM_SUPPORT_BOT || "smmplan_support_bot"}

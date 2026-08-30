@@ -153,8 +153,9 @@ export async function proxy(request: NextRequest) {
   const activeContour = getActiveServerContour();
   const STAFF_ROLES = new Set(['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR']);
 
+  const isTailscaleHost = cleanHost.endsWith('.ts.net') || cleanHost.includes('tailscale');
   let isAllowedQueryTenant = true;
-  if (fromQuery && activeContour !== 'test' && process.env.NODE_ENV === 'production' && !isLocalhost) {
+  if (fromQuery && activeContour !== 'test' && process.env.NODE_ENV === 'production' && !isLocalhost && !isTailscaleHost) {
     const sessionToken = request.cookies.get('session_token')?.value;
     if (!sessionToken) {
       isAllowedQueryTenant = false;

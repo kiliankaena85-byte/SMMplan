@@ -61,13 +61,13 @@ async function main() {
     },
     {
       targets: [{ target: 'url', constraint: { operator: 'matches', value: '*test.smmplan.pro/*' } }],
-      actions: [{ id: 'forwarding_url', value: { status_code: 302, url: 'https://desktop-25m6el7.tailbb9d28.ts.net/$2?contour=test' } }],
+      actions: [{ id: 'forwarding_url', value: { status_code: 302, url: 'https://desktop-25m6el7.tailbb9d28.ts.net/$2' } }],
       priority: 2,
       status: 'active'
     },
     {
       targets: [{ target: 'url', constraint: { operator: 'matches', value: '*smmplan.pro/*' } }],
-      actions: [{ id: 'forwarding_url', value: { status_code: 302, url: 'https://desktop-25m6el7.tailbb9d28.ts.net/$2' } }],
+      actions: [{ id: 'forwarding_url', value: { status_code: 302, url: 'https://desktop-25m6el7.tailbb9d28.ts.net/$2?mode=holding' } }],
       priority: 3,
       status: 'active'
     }
