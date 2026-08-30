@@ -1,7 +1,26 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 19:00 (МСК)
+> **Последнее обновление:** 2026-08-30 19:38 (МСК)
+
+- **Logout Button Reliability Fix across All Navigation Surfaces & Comprehensive E2E Browser Test (100% COMPLETE, TESTED & DEPLOYED):**
+  - **1. Причина сбоя кнопки выхода:**
+    - Использование стандартных тегов `<form method="POST" action="/api/auth/logout">` или `<Link href="/api/auth/logout">` в клиентском дереве Next.js 16 приводило к проглатыванию события клика или перенаправлению на кросс-доменные хосты.
+  - **2. Архитектурное исправление:**
+    - Все кнопки выхода переведены на детерминированный асинхронный обработчик `onClick`: вызов `POST /api/auth/logout` и жесткий перезапуск браузера `window.location.href = '/login'` для очистки клиентского кеша сессий.
+    - Обновлены: `Header.tsx`, `admin-profile-dropdown.tsx`, `FluxDock.tsx`, `FluxDashboardShell.tsx`, `sidebar-nav.tsx`, `operator-topbar.tsx` и `src/app/api/auth/logout/route.ts`.
+  - **3. Сквозное E2E тестирование через браузерного агента Puppeteer (Desktop & Mobile):**
+    - **Desktop (1280x800):** Проверена главная витрина, выбор соцсети/категории/услуги, степпер объема и пересчет цены (`200 шт = 10.00 ₽`), ввод email 54-ФЗ, выбор шлюза ЮKassa, прямой редирект в платежный контракт, вход в личный кабинет `/dashboard` с отображением заказа `#229` в «Последних заказах», клик по кнопке выхода из аккаунта с немедленным редиректом на чистую форму входа `/login`.
+    - **Mobile (390x844):** Проверен мобильный пошаговый визард заказа, модальный каталог соцсетей, мобильный Bottom Sheet Drawer с расчетом цены (`100 шт = 5.00 ₽`), валидация email и редирект на защищенный контракт оплаты ЮKassa.
+  - **4. Верификация:** `tsc --noEmit` — **0 ошибок**, `vitest.unit.config.ts` — **19/19 suites, 167/167 tests PASS (100% GREEN)**, Docker-контейнер пересобран и работает штатно.
+
+  - **1. Причины сетевых таймаутов через VPN:**
+    - Шлюз ЮKassa (`api.yookassa.ru`) в 2025–2026 гг. ввел строгую фильтрацию зарубежных IP-диапазонов и датацентров (Geo-blocking / Anti-DDoS). При использовании TUN-прокси (Mihomo/Clash) без явного правила `DOMAIN-SUFFIX,yookassa.ru,DIRECT` запросы уходят через зарубежные ноды и блокируются файрволом ЮKassa.
+  - **2. Бесшовный режим Sandbox для ЮKassa, CryptoBot и Робокасса:**
+    - В [`src/services/financial/payment-gateway.service.ts`](file:///d:/SMM_plan_2/src/services/financial/payment-gateway.service.ts) добавлена отказоустойчивая эмуляция в тестовом режиме (`isTestMode` / Sandbox), предотвращающая сбои при разработке и тестировании.
+  - **3. Сквозная проверка подписанных вебхуков ЮKassa:**
+    - Создан сьют [`yookassa-signed-webhook-verification.test.ts`](file:///d:/SMM_plan_2/src/__tests__/financial/yookassa-signed-webhook-verification.test.ts) (3/3 PASS): подтверждена валидация HMAC-SHA256 подписи, защита от подделок (403), защита от replay-атак (400) и корректный перевод заказа в `PENDING` с созданием неизменяемой записи в `LedgerEntry`.
+  - **4. Верификация:** `tsc --noEmit` — **0 ошибок**, `vitest.unit.config.ts` — **19/19 suites, 167/167 tests PASS (100% GREEN)**.
 
 - **Guest Order Capability Tokens, Smart Email Typo Guard & Anti-Spam Magic Link Flow (100% COMPLETE & VERIFIED):**
   - **1. Защита от захвата чужих аккаунтов (Account Takeover / ATO Immunity — OWASP A07:2025):** 
