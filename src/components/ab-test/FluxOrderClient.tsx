@@ -15,6 +15,7 @@ import { inferTargetTypeFromName } from "@/utils/target-type";
 import { FluxNetwork, FluxCategory, FluxService } from "@/types/flux";
 import { FluxCyberLinkDrawer } from "@/components/orders/flux/FluxCyberLinkDrawer";
 import { LinkGuideService } from "@/services/catalog/link-guide.service";
+import { CategoryIcon, cleanCategoryName } from "@/components/ui/CategoryIcon";
 
 type Step = 'link' | 'network' | 'category' | 'service' | 'checkout';
 
@@ -273,6 +274,11 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
     setIsLoadingServices(true);
     setServices([]);
     navigateTo('service');
+
+    if (activeNetwork && cat.slug && typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `/services/${activeNetwork.slug}/${cat.slug}`);
+    }
+
     try {
       const fetched = await getServicesByCategoryAction(cat.id, tenantId);
       let srvList: FluxService[] = fetched || [];
@@ -513,10 +519,15 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
                     onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectCategory(cat); } }}
                     className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary p-4 sm:p-5 rounded-[1.5rem] sm:rounded-[2rem] border border-white/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-md hover:shadow-xl hover:border-primary/50 transition-all duration-150 flex items-center justify-between group transform-gpu hover:scale-[1.02] active:scale-[0.98]"
                   >
-                     <h4 className="font-bold text-zinc-900 dark:text-zinc-100 text-base sm:text-lg">{cat.name}</h4>
-                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/5 group-hover:bg-primary flex items-center justify-center transition-colors">
-                       <ArrowRightIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary group-hover:text-primary-foreground" />
-                     </div>
+                    <div className="flex items-center gap-3 min-w-0 pr-2">
+                      <div className="w-9 h-9 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                        <CategoryIcon name={cat.name} icon={cat.icon} size={18} />
+                      </div>
+                      <h4 className="font-bold text-zinc-900 dark:text-zinc-100 text-base sm:text-lg truncate">{cleanCategoryName(cat.name)}</h4>
+                    </div>
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/5 group-hover:bg-primary flex items-center justify-center transition-colors shrink-0">
+                      <ArrowRightIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary group-hover:text-primary-foreground" />
+                    </div>
                   </motion.div>
                 ))}
               </motion.div>

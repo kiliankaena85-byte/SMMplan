@@ -1,5 +1,5 @@
 import { getPublicCatalogAction, getServicesByCategoryAction } from "@/actions/order/catalog";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Metadata } from "next";
 import { headers } from "next/headers";
 import { absoluteCanonical, getTenantSiteName, normalizeTenantId, getTenantHost } from "@/lib/seo-helpers";
@@ -100,6 +100,11 @@ export default async function CategoryServicesPage({
   const currentCategory = currentNetwork?.categories.find(c => c.slug === categorySlug || c.slug === `${network}-${categorySlug}` || c.slug.endsWith(`-${categorySlug}`));
 
   if (!currentNetwork || !currentCategory) notFound();
+
+  // If accessed via a fallback or legacy slug, redirect 301 to the canonical slug
+  if (categorySlug !== currentCategory.slug) {
+    permanentRedirect(`/services/${currentNetwork.slug}/${currentCategory.slug}`);
+  }
 
   const settings = await SettingsProvider.getContactAndLegalSettings();
   const cleanCatName = cleanEmoji(currentCategory.name);

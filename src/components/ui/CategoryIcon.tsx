@@ -50,8 +50,16 @@ export const CategoryIcon = ({ name = "", icon, className, size = 20 }: Category
   return <IconCmp className={className} strokeWidth={1.5} size={size} />;
 };
 
-export const cleanCategoryName = (rawName: string) => {
+/**
+ * Strips Unicode emojis, variation selectors, and zero-width joiners from category names
+ * while safely preserving 100% of Cyrillic, Latin, numbers, and punctuation.
+ */
+export const cleanCategoryName = (rawName: string): string => {
   if (!rawName) return "";
-  return rawName.trim();
+  return rawName
+    .replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}\u200d\uFE0E\uFE0F\u2700-\u27BF\uE000-\uF8FF]/gu, '')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 };
 

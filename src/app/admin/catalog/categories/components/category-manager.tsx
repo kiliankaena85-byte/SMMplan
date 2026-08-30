@@ -10,7 +10,8 @@ import {
   mergeCategoriesAction,
   createNetworkAction,
   updateNetworkAction,
-  deleteNetworkAction 
+  deleteNetworkAction,
+  cyrillicToSlug
 } from "@/actions/admin/catalog/categories";
 import { Table } from '@/components/admin/hero-ui';
 import { toast } from "sonner";
@@ -19,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { SocialIcon } from '@/components/ui/SocialIcon';
 import { UniversalIcon } from '@/components/ui/UniversalIcon';
+import { cleanCategoryName } from '@/components/ui/CategoryIcon';
 import { IconPicker } from '@/components/admin/icon-picker/IconPicker';
 import {
   Dialog,
@@ -96,6 +98,7 @@ export function CategoryManager({
   // Category Edit State
   const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
   const [catName, setCatName] = useState("");
+  const [catSlug, setCatSlug] = useState("");
   const [catIcon, setCatIcon] = useState<string | null>(null);
   const [catNetworkId, setCatNetworkId] = useState(networks[0]?.id || "");
   const [catSort, setCatSort] = useState("0");
@@ -142,6 +145,7 @@ export function CategoryManager({
   const openNewCategoryModal = () => {
     setEditingCategory(null);
     setCatName("");
+    setCatSlug("");
     setCatIcon(null);
     setCatNetworkId(selectedNetworkFilter !== "ALL" ? selectedNetworkFilter : (networks[0]?.id || ""));
     setCatSort("0");
@@ -174,6 +178,7 @@ export function CategoryManager({
   const openEditCategoryModal = (cat: CategoryItem) => {
     setEditingCategory(cat);
     setCatName(cat.name);
+    setCatSlug(cat.slug || "");
     setCatIcon(cat.icon || null);
     setCatNetworkId(cat.networkId || networks[0]?.id || "");
     setCatSort(String(cat.sort));
@@ -200,6 +205,7 @@ export function CategoryManager({
       setCatError(null);
       const payload = {
         name: catName.trim(),
+        slug: catSlug.trim().toLowerCase() || undefined,
         networkId: catNetworkId,
         sort: parseInt(catSort, 10) || 0,
         requireWarning: catRequireWarning,
@@ -509,7 +515,7 @@ export function CategoryManager({
                                     <UniversalIcon icon={c.icon || c.network?.icon || `brand:${net.slug}`} size={16} />
                                   </div>
                                   <div className="flex flex-col min-w-0">
-                                    <span className="font-bold text-foreground text-xs truncate">{c.name}</span>
+                                    <span className="font-bold text-foreground text-xs truncate">{cleanCategoryName(c.name)}</span>
                                     {c.requireWarning && (
                                       <span className="text-[10px] text-amber-500 font-medium truncate max-w-xs" title={c.warningMessage || ''}>
                                         ⚠️ {c.warningMessage}
@@ -541,52 +547,25 @@ export function CategoryManager({
                                     ))}
                                   </div>
                                 ) : (
-                                  <span className="text-[11px] text-muted-foreground">—</span>
+                                  <span className="text-[10px] text-muted-foreground italic">По умолчанию</span>
                                 )}
                               </Table.Cell>
-                              <Table.Cell className="text-right px-4 py-3">
-                                <div className="flex justify-end items-center gap-1.5">
-                                  {c._count.services > 0 && (
-                                    <button 
-                                      onClick={() => router.push(`/admin/catalog?category=${c.id}`)}
-                                      className="p-1.5 rounded-lg text-primary hover:bg-primary/10 cursor-pointer transition-colors"
-                                      title={`Перейти к тарифам (${c._count.services} шт.) в каталоге`}
-                                      aria-label={`Перейти к тарифам для ${c.name}`}
-                                    >
-                                      <ExternalLink className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                  {c._count.services > 0 && (
-                                    <button 
-                                      onClick={async () => {
-                                        const res = await hideCategoryAndServicesAction(c.id);
-                                        if (res.success) {
-                                          toast.success(res.message);
-                                          router.refresh();
-                                        } else {
-                                          toast.error(res.error || 'Ошибка скрытия услуг');
-                                        }
-                                      }} 
-                                      className="p-1.5 rounded-lg text-amber-500 hover:bg-amber-500/10 cursor-pointer transition-colors"
-                                      title="Скрыть все услуги этой категории с витрины"
-                                      aria-label={`Скрыть все услуги для ${c.name}`}
-                                    >
-                                      <EyeOff className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                  <button 
-                                    onClick={() => openEditCategoryModal(c)} 
-                                    className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 cursor-pointer transition-colors"
-                                    title="Редактировать"
-                                    aria-label={`Редактировать ${c.name}`}
+                              <Table.Cell className="px-4 py-3 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    onClick={() => openEditCategoryModal(c)}
+                                    title="Редактировать категорию"
+                                    className="p-1.5 rounded-lg border border-border/60 hover:border-primary/50 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all duration-150 cursor-pointer"
                                   >
                                     <Pencil className="w-3.5 h-3.5" />
                                   </button>
-                                  <button 
-                                    onClick={() => confirmDeleteCategory(c)} 
-                                    className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer transition-colors"
-                                    title="Удалить"
-                                    aria-label={`Удалить ${c.name}`}
+                                  <button
+                                    onClick={() => {
+                                      setCategoryToDelete(c);
+                                      setDeleteConfirmOpen(true);
+                                    }}
+                                    title="Удалить категорию"
+                                    className="p-1.5 rounded-lg border border-border/60 hover:border-destructive/50 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-150 cursor-pointer"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
@@ -606,13 +585,13 @@ export function CategoryManager({
 
       {/* ─── Modal 1: Create / Edit Category ─── */}
       <Dialog open={categoryModalOpen} onOpenChange={setCategoryModalOpen}>
-        <DialogContent className="max-w-lg p-6 rounded-2xl bg-card border border-border">
+        <DialogContent className="sm:max-w-[480px] bg-background border border-border rounded-2xl p-6 shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-foreground">
               {editingCategory ? "📝 Редактировать категорию" : "➕ Новая категория"}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Настройте название категории, привязку к соцсети и теги автоматического анализатора ссылок.
+              Настройте название категории, слаг URL, визуальную иконку, привязку к соцсети и теги анализатора.
             </DialogDescription>
           </DialogHeader>
 
@@ -629,7 +608,13 @@ export function CategoryManager({
                 type="text"
                 required
                 value={catName}
-                onChange={e => setCatName(e.target.value)}
+                onChange={e => {
+                  const val = e.target.value;
+                  setCatName(val);
+                  if (!editingCategory) {
+                    setCatSlug(cyrillicToSlug(val));
+                  }
+                }}
                 placeholder="Например: Подписчики"
                 className="w-full px-3 py-2 text-xs rounded-xl border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all"
               />
@@ -639,6 +624,23 @@ export function CategoryManager({
                   <span>{duplicateCategoryWarning}</span>
                 </div>
               )}
+            </div>
+
+            {/* Slug URL Input */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-muted-foreground">Слаг (URL-адрес)</label>
+                <span className="text-[10px] text-muted-foreground font-mono">
+                  /services/{selectedNetworkSlug || 'network'}/<span className="text-primary font-bold">{catSlug || 'slug'}</span>
+                </span>
+              </div>
+              <input
+                type="text"
+                value={catSlug}
+                onChange={e => setCatSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, '-'))}
+                placeholder="subscribers"
+                className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              />
             </div>
 
             {/* Visual Icon Picker */}

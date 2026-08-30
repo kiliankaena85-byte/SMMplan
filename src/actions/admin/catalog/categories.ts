@@ -8,8 +8,26 @@ import { z } from "zod";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { normalizeIconDescriptor } from "@/lib/icons/safe-svg";
 
+export function cyrillicToSlug(text: string): string {
+  const ru: Record<string, string> = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e', 'ж': 'zh',
+    'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
+    'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts',
+    'ч': 'ch', 'ш': 'sh', 'щ': 'sch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+  };
+  return text
+    .toLowerCase()
+    .split('')
+    .map(char => ru[char] !== undefined ? ru[char] : char)
+    .join('')
+    .replace(/[^a-z0-9-_]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
 const categorySchema = z.object({
   name: z.string().min(1, "Название категории обязательно").max(255, "Category name too long"),
+  slug: z.string().max(100, "Слаг слишком длинный").regex(/^[a-z0-9-_]*$/, "Слаг может содержать только строчные буквы, цифры, дефис и подчеркивание").optional().nullable(),
   networkId: z.string().min(1, "Network ID required"),
   sort: z.coerce.number().int().default(0),
   tenantId: z.string().optional().nullable(),
@@ -25,7 +43,7 @@ const categorySchema = z.object({
 
 const idSchema = z.string().min(1);
 
-export async function createCategory(rawData: { name: string; networkId: string; sort: number; tenantId?: string | null; activityType?: string | null; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null; icon?: string | null }) {
+export async function createCategory(rawData: { name: string; slug?: string | null; networkId: string; sort: number; tenantId?: string | null; activityType?: string | null; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null; icon?: string | null }) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const data = categorySchema.parse(rawData);
     
@@ -35,9 +53,28 @@ export async function createCategory(rawData: { name: string; networkId: string;
       return { success: false, error: iconResult.error || 'Некорректная иконка' };
     }
 
+    // Determine final slug
+    let rawSlug = data.slug?.trim().toLowerCase();
+    if (!rawSlug) {
+      rawSlug = cyrillicToSlug(data.name) || `cat-${Date.now()}`;
+    }
+
+    // Check slug collision
+    let finalSlug = rawSlug;
+    let attempts = 0;
+    while (await db.category.findFirst({ where: { slug: finalSlug } })) {
+      attempts++;
+      finalSlug = `${rawSlug}-${attempts}`;
+      if (attempts > 20) {
+        finalSlug = `${rawSlug}-${Date.now()}`;
+        break;
+      }
+    }
+
     const cat = await db.category.create({
       data: {
         name: data.name,
+        slug: finalSlug,
         networkId: data.networkId,
         sort: data.sort,
         tenantId: data.tenantId || 'all',
@@ -55,7 +92,7 @@ export async function createCategory(rawData: { name: string; networkId: string;
       action: "CATEGORY_CREATE",
       target: cat.id,
       targetType: "SETTINGS",
-      newValue: { name: cat.name, networkId: cat.networkId, tenantId: cat.tenantId, activityType: cat.activityType, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage, analyzerTags: cat.analyzerTags }
+      newValue: { name: cat.name, slug: cat.slug, networkId: cat.networkId, tenantId: cat.tenantId, activityType: cat.activityType, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage, analyzerTags: cat.analyzerTags, icon: cat.icon }
     });
 
     revalidatePath("/admin/catalog/categories");
@@ -70,7 +107,7 @@ export async function createCategory(rawData: { name: string; networkId: string;
   });
 }
 
-export async function updateCategory(rawId: string, rawData: { name: string; networkId: string; sort: number; tenantId?: string | null; activityType?: string | null; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null; icon?: string | null }) {
+export async function updateCategory(rawId: string, rawData: { name: string; slug?: string | null; networkId: string; sort: number; tenantId?: string | null; activityType?: string | null; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null; icon?: string | null }) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const id = idSchema.parse(rawId);
     const data = categorySchema.parse(rawData);
@@ -81,10 +118,24 @@ export async function updateCategory(rawId: string, rawData: { name: string; net
       return { success: false, error: iconResult.error || 'Некорректная иконка' };
     }
 
+    // Verify slug uniqueness if provided
+    let updateSlug: string | undefined = undefined;
+    if (data.slug?.trim()) {
+      const targetSlug = data.slug.trim().toLowerCase();
+      const existing = await db.category.findFirst({
+        where: { slug: targetSlug, id: { not: id } }
+      });
+      if (existing) {
+        return { success: false, error: `Слаг "${targetSlug}" уже занят другой категорией.` };
+      }
+      updateSlug = targetSlug;
+    }
+
     const cat = await db.category.update({
       where: { id },
       data: {
         name: data.name,
+        ...(updateSlug ? { slug: updateSlug } : {}),
         networkId: data.networkId,
         sort: data.sort,
         ...(data.tenantId ? { tenantId: data.tenantId } : {}),
@@ -102,7 +153,7 @@ export async function updateCategory(rawId: string, rawData: { name: string; net
       action: "CATEGORY_UPDATE",
       target: cat.id,
       targetType: "SETTINGS",
-      newValue: { name: cat.name, networkId: cat.networkId, tenantId: cat.tenantId, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage, analyzerTags: cat.analyzerTags, icon: cat.icon }
+      newValue: { name: cat.name, slug: cat.slug, networkId: cat.networkId, tenantId: cat.tenantId, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage, analyzerTags: cat.analyzerTags, icon: cat.icon }
     });
 
     revalidatePath("/admin/catalog/categories");

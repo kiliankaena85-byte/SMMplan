@@ -809,6 +809,7 @@ export function useOrderEngine(
     platform,
     manualPlatform,
     setManualPlatform: handleSetManualPlatform,
+    activeNetwork,
     catalog: displayCatalog,
     unfilteredCatalog: catalog,
     availableCategories,
