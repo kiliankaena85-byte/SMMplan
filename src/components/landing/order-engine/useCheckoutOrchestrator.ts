@@ -160,8 +160,11 @@ export function useCheckoutOrchestrator({
       const linkResult = validator.safeParse(finalUrl);
       
       if (!linkResult.success) {
+        // Format the error message with a hint that bypass is available
+        const baseMsg = linkResult.error.errors[0].message;
+        const bypassHint = '\n\nЕсли ваша ссылка уже корректная — нажмите «Изменить ссылку» и включите «Использовать как есть».';
         setLinkHasError(true);
-        toast.error(linkResult.error.errors[0].message, { position: 'top-center' });
+        toast.error(baseMsg + bypassHint, { position: 'top-center', duration: 6000 });
         setShowLinkModal(true);
         return;
       }

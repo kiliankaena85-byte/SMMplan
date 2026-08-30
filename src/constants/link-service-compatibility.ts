@@ -80,6 +80,11 @@ export function normalizeLinkType(rawType: string | null | undefined): LinkType 
     case 'BOT':
       return LinkType.BOT;
 
+    case 'GENERIC_LINK':
+    case 'OTHER':
+    case 'UNKNOWN':
+      return LinkType.CUSTOM;
+
     default:
       return LinkType.CUSTOM;
   }

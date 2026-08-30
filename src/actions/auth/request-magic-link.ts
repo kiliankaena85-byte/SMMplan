@@ -134,8 +134,17 @@ export async function requestMagicLink(prevState: unknown, formData: FormData) {
     } catch (smtpError) {
       log.error('Magic link SMTP error', { error: smtpError });
       console.error("Exact SMTP error:", smtpError);
-      if (isNewUser) {
-        log.info('Soft-deleting newly created user due to SMTP failure', { email: cleanEmail });
+
+      // Only soft-delete newly created user in strict production (real SMTP failure).
+      // In dev / staging / when ISP blocks port 465 — sendMagicLink already prints the link
+      // to console and returns silently, so this catch block is only reached for genuine
+      // prod failures. Guard with extra env check to be safe.
+      const isTestEnv = process.env.APP_URL?.includes('test.smmplan.pro') ||
+        process.env.NODE_ENV !== 'production' ||
+        process.env.DEV_MOCK_SMTP === 'true';
+
+      if (isNewUser && !isTestEnv) {
+        log.info('Soft-deleting newly created user due to SMTP failure in production', { email: cleanEmail });
         try {
           await db.user.update({
             where: { id: user.id },
@@ -148,8 +157,13 @@ export async function requestMagicLink(prevState: unknown, formData: FormData) {
         } catch (e) {
           log.error('Failed to soft-delete newly created user', { error: e });
         }
+        return { error: "Не удалось отправить письмо. Проверьте правильность email или попробуйте позже.", success: false };
       }
-      return { error: "Не удалось отправить письмо. Проверьте правильность email или попробуйте позже.", success: false };
+
+      // In test/dev: user is created, magic link is in console — return success so UI shows
+      // "Ссылка отправлена" and user can copy the link from server logs.
+      log.info('[DEV] SMTP unavailable but user created — magic link is in server console', { email: cleanEmail });
+      return { success: true, error: null };
     }
 
     return { success: true, error: null };
