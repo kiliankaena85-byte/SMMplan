@@ -151,7 +151,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     : (settings.contactSupportEmail || 'support@smmplan.pro');
 
   const host = reqHeaders.get('host') || reqHeaders.get('x-forwarded-host') || '';
-  const isTestDomain = host.includes('test.') || host.includes('flux.') || host.includes('localhost') || host.includes('127.0.0.1');
+  const isTestDomain = host.includes('test.') || host.includes('flux.') || host.includes('localhost') || host.includes('127.0.0.1') || host.includes('.ts.net') || host.includes('tailscale');
 
   // test.smmplan.pro, flux.smmplan.pro and local dev remain fully open for testing, while smmplan.pro displays holding screen
   const isMaintenanceModeForDomain = isMaintenanceMode && !isTestDomain;

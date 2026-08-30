@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   const reqHeaders = await headers();
   const host = reqHeaders.get('host') || reqHeaders.get('x-forwarded-host') || '';
-  const isTestDomain = host.includes('test.') || host.includes('flux.') || host.includes('localhost') || host.includes('127.0.0.1');
+  const isTestDomain = host.includes('test.') || host.includes('flux.') || host.includes('localhost') || host.includes('127.0.0.1') || host.includes('.ts.net') || host.includes('tailscale');
 
   const isMaintenanceMode = isTestDomain ? false : (process.env.MAINTENANCE_MODE === 'true');
   let isStaff = false;
