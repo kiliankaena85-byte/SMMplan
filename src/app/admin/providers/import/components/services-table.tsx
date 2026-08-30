@@ -5,16 +5,8 @@ import type { ExternalServiceItem, CategoryItem, FilterState } from '../types';
 
 import React from 'react';
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectGroup,
-  SelectLabel,
-} from '@/components/ui/select';
 import { formatPricePerUnit } from '@/utils/format-price';
+import { SearchableCategorySelect } from './searchable-category-select';
 
 interface ServicesTableProps {
   services: ExternalServiceItem[];
@@ -31,6 +23,7 @@ interface ServicesTableProps {
   categoriesByNetwork?: { network: string; items: CategoryItem[] }[];
   selectedCategories?: Record<string, string>;
   onCategoryChange?: (serviceId: string, categoryId: string) => void;
+  onCategoryCreated?: (newCategory: CategoryItem) => void;
   autoMappedCategories?: Record<string, string>;
   aiConfidence?: Record<string, boolean>;
   showCategoryColumn?: boolean;
@@ -115,6 +108,7 @@ export function ServicesTable({
   categoriesByNetwork = [],
   selectedCategories = {},
   onCategoryChange,
+  onCategoryCreated,
   autoMappedCategories = {},
   aiConfidence = {},
   showCategoryColumn = false,
@@ -145,48 +139,19 @@ export function ServicesTable({
     ? 'grid-cols-[40px_minmax(0,1.5fr)_minmax(0,1.5fr)_150px_200px_80px]'
     : 'grid-cols-[40px_minmax(0,1.5fr)_minmax(0,1.5fr)_150px_80px]';
 
-  /* PATCH P1-4: render category dropdown — grouped or flat fallback */
-  const renderCategorySelect = (svcId: string, isMobile: boolean) => {
-    const triggerCls = isMobile
-      ? `w-full bg-background text-xs rounded-[8px] border h-10 px-3 ${validationErrors.has(svcId) ? 'border-destructive ring-1 ring-destructive' : 'border-border'}`
-      : `w-full bg-background text-xs rounded-[8px] border h-9 py-1 px-2 ${validationErrors.has(svcId) ? 'border-destructive ring-1 ring-destructive' : 'border-border'}`;
-    const contentCls = isMobile
-      ? 'bg-popover text-popover-foreground border border-border rounded-[8px] max-h-60 w-[90vw] max-w-[400px]'
-      : 'bg-popover text-popover-foreground border border-border rounded-[8px] max-h-60 w-[220px]';
-    const itemCls = isMobile ? 'text-xs cursor-pointer py-2' : 'text-xs cursor-pointer';
-
+  /* Render searchable category select with create capability */
+  const renderCategorySelect = (svcId: string, isMobile: boolean, suggestedPlatform?: string | null) => {
     return (
-      <Select value={selectedCategories[svcId] || ''} onValueChange={(val) => onCategoryChange?.(svcId, val || '')}>
-        <SelectTrigger size="sm" className={triggerCls}>
-          <SelectValue placeholder={isMobile ? 'Выберите категорию' : 'Выберите'}>
-            {(value: string) => {
-              if (!value) return isMobile ? 'Выберите категорию' : 'Выберите';
-              const cat = categories.find((c) => c.id === value);
-              return cat ? `${(cat.network?.name || '')} • ${cat.name}` : value;
-            }}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent className={contentCls}>
-          {categoriesByNetwork.length > 0
-            ? categoriesByNetwork.map((group) => (
-                <SelectGroup key={group.network}>
-                  <SelectLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2 py-1">
-                    {group.network}
-                  </SelectLabel>
-                  {group.items.map((c) => (
-                    <SelectItem key={c.id} value={c.id} className={itemCls}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              ))
-            : categories.map((c) => (
-                <SelectItem key={c.id} value={c.id} className={itemCls}>
-                  {(c.network?.name || '')} • {c.name}
-                </SelectItem>
-              ))}
-        </SelectContent>
-      </Select>
+      <SearchableCategorySelect
+        value={selectedCategories[svcId] || ''}
+        onChange={(val) => onCategoryChange?.(svcId, val)}
+        categories={categories}
+        categoriesByNetwork={categoriesByNetwork}
+        onCategoryCreated={onCategoryCreated}
+        suggestedPlatform={suggestedPlatform}
+        isMobile={isMobile}
+        hasError={validationErrors.has(svcId)}
+      />
     );
   };
 
@@ -356,7 +321,7 @@ export function ServicesTable({
                           <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 select-none bg-muted px-2 py-1.5 rounded-[8px] border border-border w-fit max-w-full truncate">📦 Импортировано</span>
                         ) : (
                           <div className="flex flex-col gap-1 w-full min-w-0">
-                            {renderCategorySelect(String(s.service), false)}
+                            {renderCategorySelect(String(s.service), false, metrics.platform)}
                             {aiConfidence[String(s.service)] ? (
                               <span className="text-[10px] font-semibold text-success mt-1 block select-none">🦄 Автоопределение ИИ</span>
                             ) : validationErrors.has(String(s.service)) ? (
@@ -426,7 +391,7 @@ export function ServicesTable({
                           <span className="text-xs text-muted-foreground font-semibold flex items-center gap-1.5 select-none bg-muted px-2 py-1.5 rounded-[8px] border border-border w-fit">📦 Уже импортировано</span>
                         ) : (
                           <div className="flex flex-col gap-1 w-full">
-                            {renderCategorySelect(String(s.service), true)}
+                            {renderCategorySelect(String(s.service), true, metrics.platform)}
                             {aiConfidence[String(s.service)] ? (
                               <span className="text-[10px] font-semibold text-success mt-1">🦄 Автоопределение ИИ</span>
                             ) : validationErrors.has(String(s.service)) ? (

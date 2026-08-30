@@ -28,14 +28,25 @@ import type { ExternalServiceItem, CategoryItem, ProviderItem } from "../types";
 
 /* ── AI Auto-Mapping ── */
 const autoMapCategory = (s: ExternalServiceItem, categories: CategoryItem[]): { id: string; confident: boolean } | null => {
-  const platform = (s.metrics?.platform || "").toUpperCase();
+  // Normalise platform: some providers send 'Vkontakte' or 'vk' instead of 'VK'
+  const rawPlatform = (s.metrics?.platform || "").trim();
+  const platform = rawPlatform.toUpperCase()
+    .replace(/^VKONTAKTE$/, 'VK')
+    .replace(/^VK\.COM$/, 'VK');
+
   const category = (s.metrics?.category || "").toUpperCase();
   const serviceName = (s.name || "").toLowerCase();
   const serviceTargetType = inferTargetTypeFromName(s.name);
 
+  // Filter categories by platform — try both the slug AND the network name
   const platformCategories = categories.filter(c => {
-    const netSlug = c.network?.slug?.toUpperCase() || "";
-    return netSlug === platform;
+    const netSlug = (c.network?.slug || "").toUpperCase()
+      .replace(/^VKONTAKTE$/, 'VK')
+      .replace(/^VK\.COM$/, 'VK');
+    const netName = (c.network?.name || "").toUpperCase()
+      .replace(/ВКОНТАКТЕ/g, 'VK')
+      .replace(/ВКОНТАКТE/g, 'VK');
+    return netSlug === platform || netName.includes(platform);
   });
 
   const targetCategories = platformCategories.length > 0 ? platformCategories : categories;
@@ -47,7 +58,9 @@ const autoMapCategory = (s: ExternalServiceItem, categories: CategoryItem[]): { 
     REPOSTS: ['repost', 'share', 'retweet', 'репост', 'подели'],
     REACTIONS: ['react', 'emoji', 'fire', 'thumb', 'реакц', 'эмод'],
     COMMENTS: ['comment', 'reply', 'custom comment', 'коммен', 'отзыв'],
-    STORIES: ['story', 'stories', 'сторис']
+    STORIES: ['story', 'stories', 'сторис'],
+    // Added: опросы/голоса
+    POLLS: ['poll', 'vote', 'votes', 'опрос', 'голос', 'голоса', 'голосов'],
   };
 
   let bestCategory: CategoryItem | null = null;
@@ -103,6 +116,12 @@ const autoMapCategory = (s: ExternalServiceItem, categories: CategoryItem[]): { 
 
   if (bestCategory && maxScore >= 10) {
     return { id: bestCategory.id, confident: true };
+  }
+
+  // Fallback: if platform matched categories exist, return the best scoring one
+  // even with score < 10 (score >= 0) so user at least gets the right platform pre-selected
+  if (platformCategories.length > 0 && bestCategory && maxScore >= 0) {
+    return { id: bestCategory.id, confident: false };
   }
 
   return { id: "", confident: false };
@@ -215,9 +234,12 @@ const DEFAULT_FILTERS = {
 /* ═══════════════════════════════════════════════════════════════════
    Main Component
    ═══════════════════════════════════════════════════════════════════ */
-export function ImportWizard({ categories, providers }: { categories: CategoryItem[]; providers: ProviderItem[] }) {
+export function ImportWizard({ categories: initialCategories, providers }: { categories: CategoryItem[]; providers: ProviderItem[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+
+  // Local categories — can be extended by on-the-fly category creation
+  const [localCategories, setLocalCategories] = useState<CategoryItem[]>(initialCategories);
 
   // Core state
   const [providerId, setProviderId] = useState<string>(providers[0]?.id || "");
@@ -237,6 +259,15 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
   const [aiConfidence, setAiConfidence] = useState<Record<string, boolean>>({});
   const [markup, setMarkup] = useState<string>("200");
   const [targetTenant, setTargetTenant] = useState<'smmplan' | 'flux' | 'both'>('smmplan');
+
+  // Handler for on-the-fly category creation from the category select
+  const handleCategoryCreated = (newCategory: CategoryItem) => {
+    setLocalCategories(prev => {
+      // Avoid duplicates
+      if (prev.some(c => c.id === newCategory.id)) return prev;
+      return [...prev, newCategory];
+    });
+  };
 
   // Filters
   /* PATCH P0-2: activeTab now has a setter that is actually called from UI */
@@ -315,7 +346,7 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
       const confidence: Record<string, boolean> = {};
       services.forEach((s) => {
         const idStr = String(s.service);
-        const result = autoMapCategory(s, categories);
+        const result = autoMapCategory(s, localCategories);
         if (result) {
           aiMap[idStr] = result.id;
           confidence[idStr] = result.confident;
@@ -332,7 +363,7 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
         return next;
       });
     }
-  }, [services, categories]);
+  }, [services, localCategories]);
 
   // Load paginated services from Redis cache
   const loadServices = useCallback(async () => {
@@ -568,7 +599,7 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
       services,
       selectedCategories,
       autoMappedCategories,
-      categories
+      localCategories
     );
 
     if (warnings.length > 0 && !showMixedTypeWarning) {
@@ -639,7 +670,7 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
       const svc = services.find((s) => String(s.service) === id);
       const catId = selectedCategories[id] || autoMappedCategories[id];
       if (svc && catId) {
-        const cat = categories.find((c) => c.id === catId);
+        const cat = localCategories.find((c) => c.id === catId);
         if (cat) {
           const serviceType = inferTargetTypeFromName(svc.name);
           const catType = inferTargetTypeFromCategory(cat.name);
@@ -650,7 +681,7 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
       }
     });
     return set;
-  }, [selectedIds, services, selectedCategories, autoMappedCategories, categories]);
+  }, [selectedIds, services, selectedCategories, autoMappedCategories, localCategories]);
 
   const handleExcludeIncompatible = () => {
     setSelectedIds((prev) => {
@@ -664,7 +695,7 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
   const categoriesByNetwork = useMemo(() => {
     const groups: Record<string, CategoryItem[]> = {};
     const ordered: string[] = [];
-    for (const cat of categories) {
+    for (const cat of localCategories) {
       const netName = cat.network?.name || 'Без сети';
       if (!groups[netName]) {
         groups[netName] = [];
@@ -673,7 +704,7 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
       groups[netName].push(cat);
     }
     return ordered.map(name => ({ network: name, items: groups[name] }));
-  }, [categories]);
+  }, [localCategories]);
 
   /* ═══════════════════════════════════════════════════════════════════
      RENDER
@@ -748,7 +779,7 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
                 type="button"
                 onClick={() => {
                   const ids = Array.from(missingCategoryIds);
-                  const catName = categories.find((c) => c.id === bulkCategory)?.name || 'выбранная категория';
+                  const catName = localCategories.find((c: CategoryItem) => c.id === bulkCategory)?.name || 'выбранная категория';
                   setSelectedCategories((prev) => {
                     const next = { ...prev };
                     ids.forEach((id) => { next[id] = bulkCategory; });
@@ -899,7 +930,7 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
               <SelectTrigger className="w-[200px] h-9 text-xs">
                 <SelectValue placeholder="Массовая категория...">
                   {(val: string) => {
-                    const cat = categories.find((c) => c.id === val);
+                    const cat = localCategories.find((c) => c.id === val);
                     return cat ? `${(cat.network?.name || '')} • ${cat.name}` : val || "Массовая категория...";
                   }}
                 </SelectValue>
@@ -1171,9 +1202,10 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
             /* PATCH P1-2: when markup=0, send 0 (auto) instead of 3.0 */
             markup={computeMarkupMultiplier(markup)}
             isAutoMarkup={parseFloat(markup) === 0}
-            categories={categories}
+            categories={localCategories}
             categoriesByNetwork={categoriesByNetwork}
             selectedCategories={selectedCategories}
+            onCategoryCreated={handleCategoryCreated}
             onCategoryChange={(svcId, catId) => {
               setSelectedCategories((prev) => ({ ...prev, [svcId]: catId }));
               setMissingCategoryIds((prev) => {

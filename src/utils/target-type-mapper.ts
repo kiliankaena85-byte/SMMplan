@@ -115,6 +115,11 @@ export function inferTargetTypeFromName(name: string | null | undefined): Target
     return TargetTypeEnum.CHANNEL_POSTS;
   }
 
+  // Polls / Votes (prioritize before channel/group because polls often happen in channels/groups)
+  if (n.includes('опрос') || n.includes('голос') || n.includes('poll') || n.includes('vote')) {
+    return TargetTypeEnum.POLL;
+  }
+
   // Channel / Group / Subscribers
   if (
     n.includes('подписчик') ||
@@ -148,11 +153,6 @@ export function inferTargetTypeFromName(name: string | null | undefined): Target
   // Profile / Friends / Visits
   if (n.includes('профиль') || n.includes('profile') || n.includes('аккаунт') || n.includes('друг') || n.includes('friend')) {
     return TargetTypeEnum.PROFILE;
-  }
-
-  // Polls / Votes
-  if (n.includes('опрос') || n.includes('голос') || n.includes('poll') || n.includes('vote')) {
-    return TargetTypeEnum.POLL;
   }
 
   // Comments
