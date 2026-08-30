@@ -86,8 +86,11 @@ describe('VexBoost Live Upstream Integration Suite', () => {
       // Test multi status
       const multiStatus = await pInstance.getMultiOrderStatus([realOrder.externalId]);
       expect(multiStatus).toBeDefined();
-      expect(multiStatus[realOrder.externalId]).toBeDefined();
-      expect(multiStatus[realOrder.externalId].status).toBe(singleStatus.status);
+      const orderEntry = multiStatus[realOrder.externalId];
+      expect(orderEntry).toBeDefined();
+      if (typeof orderEntry === 'object' && orderEntry !== null) {
+        expect(orderEntry.status).toBe(singleStatus.status);
+      }
     }
   });
 });
