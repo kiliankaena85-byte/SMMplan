@@ -14,7 +14,7 @@ import {
 } from "@/actions/admin/catalog/categories";
 import { Table } from '@/components/admin/hero-ui';
 import { toast } from "sonner";
-import { Loader2, Plus, Globe, GitMerge, Pencil, Trash2, Search, EyeOff, Layers } from "lucide-react";
+import { Loader2, Plus, Globe, GitMerge, Pencil, Trash2, Search, EyeOff, Layers, ExternalLink, AlertTriangle } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { SocialIcon } from '@/components/ui/SocialIcon';
@@ -33,17 +33,18 @@ import {
   SelectValue
 } from '@/components/ui/select';
 
-const PREDEFINED_TAGS = [
-  { id: 'post', label: 'Пост / Публикация' },
-  { id: 'channel', label: 'Канал / Группа' },
-  { id: 'profile', label: 'Профиль / Аккаунт' },
-  { id: 'video', label: 'Видео' },
-  { id: 'reel', label: 'Reels / Shorts / Клипы' },
-  { id: 'story', label: 'Истории (Stories)' },
-  { id: 'bot', label: 'Бот' },
-  { id: 'chat', label: 'Чат / Беседа' },
-  { id: 'comment', label: 'Комментарии' },
-  { id: 'poll', label: 'Опрос / Голосование' }
+// Reusable analyzer tags with network affinity
+const PREDEFINED_TAGS: { id: string; label: string; networks?: string[] }[] = [
+  { id: 'channel', label: 'Канал / Группа', networks: ['telegram', 'tg', 'vk', 'vkontakte', 'youtube', 'yt', 'rutube'] },
+  { id: 'post', label: 'Пост / Публикация', networks: ['telegram', 'tg', 'vk', 'vkontakte', 'instagram', 'in', 'threads', 'twitter', 'x', 'facebook', 'dzen'] },
+  { id: 'profile', label: 'Профиль / Аккаунт', networks: ['instagram', 'in', 'tiktok', 'tt', 'vk', 'vkontakte', 'threads', 'twitter', 'x', 'facebook'] },
+  { id: 'video', label: 'Видео', networks: ['youtube', 'yt', 'rutube', 'vk', 'vkontakte', 'tiktok', 'tt', 'twitch'] },
+  { id: 'reel', label: 'Reels / Shorts / Клипы', networks: ['instagram', 'in', 'youtube', 'yt', 'tiktok', 'tt', 'vk', 'vkontakte'] },
+  { id: 'story', label: 'Истории (Stories)', networks: ['instagram', 'in', 'telegram', 'tg', 'vk', 'vkontakte'] },
+  { id: 'poll', label: 'Опрос / Голосование', networks: ['telegram', 'tg', 'vk', 'vkontakte', 'twitter', 'x'] },
+  { id: 'comment', label: 'Комментарии', networks: ['telegram', 'tg', 'vk', 'vkontakte', 'instagram', 'in', 'youtube', 'yt', 'tiktok', 'tt'] },
+  { id: 'bot', label: 'Бот / MiniApp', networks: ['telegram', 'tg'] },
+  { id: 'chat', label: 'Чат / Беседа', networks: ['telegram', 'tg', 'vk', 'vkontakte'] }
 ];
 
 interface NetworkItem {
@@ -61,6 +62,8 @@ interface CategoryItem {
   slug: string;
   networkId?: string | null;
   sort: number;
+  tenantId?: string | null;
+  activityType?: string | null;
   requireWarning?: boolean;
   warningMessage?: string | null;
   analyzerTags?: string | null;
@@ -115,6 +118,9 @@ export function CategoryManager({
   const [targetCatId, setTargetCatId] = useState("");
   const [isMergePending, startMergeTransition] = useTransition();
 
+  const sourceCat = useMemo(() => categories.find(c => c.id === sourceCatId), [categories, sourceCatId]);
+  const targetCat = useMemo(() => categories.find(c => c.id === targetCatId), [categories, targetCatId]);
+
   // Filtered categories
   const filteredCategories = useMemo(() => {
     return categories.filter(c => {
@@ -139,6 +145,25 @@ export function CategoryManager({
     setCatError(null);
     setCategoryModalOpen(true);
   };
+
+  // Realtime check for duplicate category name within the same network
+  const duplicateCategoryWarning = useMemo(() => {
+    if (!catName.trim() || !catNetworkId) return null;
+    const cleanInput = catName.trim().toLowerCase();
+    const existing = categories.find(c => 
+      c.networkId === catNetworkId && 
+      c.name.trim().toLowerCase() === cleanInput &&
+      (!editingCategory || c.id !== editingCategory.id)
+    );
+    if (!existing) return null;
+    const netName = networks.find(n => n.id === catNetworkId)?.name || 'этой соцсети';
+    return `Внимание: в ${netName} уже существует категория «${existing.name}» (${existing._count?.services || 0} услуг).`;
+  }, [catName, catNetworkId, categories, editingCategory, networks]);
+
+  // Network slug for tag recommendations
+  const selectedNetworkSlug = useMemo(() => {
+    return networks.find(n => n.id === catNetworkId)?.slug?.toLowerCase() || '';
+  }, [catNetworkId, networks]);
 
   const openEditCategoryModal = (cat: CategoryItem) => {
     setEditingCategory(cat);
@@ -352,7 +377,7 @@ export function CategoryManager({
             className="font-bold h-9 cursor-pointer"
           >
             <Plus className="w-4 h-4 mr-1.5" />
-            Добавить активность
+            Добавить категорию
           </Button>
         </div>
       </div>
@@ -363,7 +388,7 @@ export function CategoryManager({
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <input
             type="text"
-            placeholder="Поиск по активности или соцсети..."
+            placeholder="Поиск по категории или соцсети..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="w-full h-9 pl-9 pr-3 text-xs rounded-xl border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all"
@@ -422,7 +447,7 @@ export function CategoryManager({
                       {net.name}
                     </span>
                     <span className="text-[11px] font-mono font-bold text-muted-foreground bg-background px-2 py-0.5 rounded-md border border-border/50">
-                      {netCategories.length} {netCategories.length === 1 ? 'активность' : netCategories.length < 5 ? 'активности' : 'активностей'}
+                      {netCategories.length} {netCategories.length === 1 ? 'категория' : netCategories.length < 5 ? 'категории' : 'категорий'}
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
@@ -444,21 +469,21 @@ export function CategoryManager({
                       className="text-xs font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      Добавить
+                      Добавить категорию
                     </button>
                   </div>
                 </div>
 
                 {netCategories.length === 0 ? (
                   <div className="p-6 text-center text-xs text-muted-foreground">
-                    В этой соцсети пока нет активностей. Нажмите «Добавить», чтобы создать первую.
+                    В этой соцсети пока нет категорий. Нажмите «Добавить категорию», чтобы создать первую.
                   </div>
                 ) : (
-                  <Table aria-label={`Активности ${net.name}`} className="w-full text-left">
+                  <Table aria-label={`Категории ${net.name}`} className="w-full text-left">
                     <Table.ScrollContainer>
                       <Table.Content>
                         <Table.Header>
-                          <Table.Column isRowHeader className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-2.5">НАЗВАНИЕ АКТИВНОСТИ</Table.Column>
+                          <Table.Column isRowHeader className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-2.5">НАЗВАНИЕ КАТЕГОРИИ</Table.Column>
                           <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider py-2.5">SLUG</Table.Column>
                           <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider py-2.5 text-center">СОРТИРОВКА</Table.Column>
                           <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider py-2.5 text-center">АКТИВНЫХ УСЛУГ</Table.Column>
@@ -508,6 +533,16 @@ export function CategoryManager({
                                 <div className="flex justify-end items-center gap-1.5">
                                   {c._count.services > 0 && (
                                     <button 
+                                      onClick={() => router.push(`/admin/catalog?category=${c.id}`)}
+                                      className="p-1.5 rounded-lg text-primary hover:bg-primary/10 cursor-pointer transition-colors"
+                                      title={`Перейти к тарифам (${c._count.services} шт.) в каталоге`}
+                                      aria-label={`Перейти к тарифам для ${c.name}`}
+                                    >
+                                      <ExternalLink className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  {c._count.services > 0 && (
+                                    <button 
                                       onClick={async () => {
                                         const res = await hideCategoryAndServicesAction(c.id);
                                         if (res.success) {
@@ -518,7 +553,7 @@ export function CategoryManager({
                                         }
                                       }} 
                                       className="p-1.5 rounded-lg text-amber-500 hover:bg-amber-500/10 cursor-pointer transition-colors"
-                                      title="Скрыть все услуги этой активности с витрины"
+                                      title="Скрыть все услуги этой категории с витрины"
                                       aria-label={`Скрыть все услуги для ${c.name}`}
                                     >
                                       <EyeOff className="w-3.5 h-3.5" />
@@ -554,15 +589,15 @@ export function CategoryManager({
           })}
       </div>
 
-      {/* ─── Modal 1: Create / Edit Category (Activity) ─── */}
+      {/* ─── Modal 1: Create / Edit Category ─── */}
       <Dialog open={categoryModalOpen} onOpenChange={setCategoryModalOpen}>
         <DialogContent className="max-w-lg p-6 rounded-2xl bg-card border border-border">
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-foreground">
-              {editingCategory ? "📝 Редактировать активность" : "➕ Новая активность"}
+              {editingCategory ? "📝 Редактировать категорию" : "➕ Новая категория"}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Настройте название активности, привязку к соцсети и теги автоматического анализатора ссылок.
+              Настройте название категории, привязку к соцсети и теги автоматического анализатора ссылок.
             </DialogDescription>
           </DialogHeader>
 
@@ -574,7 +609,7 @@ export function CategoryManager({
 
           <form onSubmit={handleSaveCategory} className="space-y-4 pt-2">
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-muted-foreground">Название активности</label>
+              <label className="block text-xs font-bold text-muted-foreground">Название категории</label>
               <input
                 type="text"
                 required
@@ -583,6 +618,12 @@ export function CategoryManager({
                 placeholder="Например: Подписчики"
                 className="w-full px-3 py-2 text-xs rounded-xl border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20 transition-all"
               />
+              {duplicateCategoryWarning && (
+                <div className="flex items-center gap-1.5 p-2 rounded-lg bg-warning/10 border border-warning/20 text-warning text-[11px] font-semibold mt-1.5 animate-in fade-in duration-200">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{duplicateCategoryWarning}</span>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -643,29 +684,47 @@ export function CategoryManager({
               )}
             </div>
 
-            {/* Analyzer Tags */}
+            {/* Analyzer Tags with Network Presets */}
             <div className="space-y-2 border-t border-border/40 pt-3">
-              <label className="block text-xs font-bold text-muted-foreground">
-                Теги анализатора ссылок (Автовыбор при вводе ссылки)
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-muted-foreground">
+                  Теги анализатора ссылок (Автовыбор при вводе ссылки)
+                </label>
+                {selectedNetworkSlug && (
+                  <span className="text-[10px] text-primary font-bold bg-primary/10 px-1.5 py-0.5 rounded">
+                    ⭐ Рекомендовано для сети
+                  </span>
+                )}
+              </div>
               <div className="flex flex-wrap gap-1.5">
-                {PREDEFINED_TAGS.map(tag => {
-                  const isActive = catAnalyzerTags.split(',').map(t => t.trim()).filter(Boolean).includes(tag.id);
-                  return (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      onClick={() => toggleTag(tag.id)}
-                      className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all border cursor-pointer ${
-                        isActive
-                          ? 'bg-primary text-primary-foreground border-primary shadow-xs'
-                          : 'bg-muted/40 text-muted-foreground border-border hover:text-foreground'
-                      }`}
-                    >
-                      {tag.label}
-                    </button>
-                  );
-                })}
+                {PREDEFINED_TAGS
+                  .slice()
+                  .sort((a, b) => {
+                    const aRec = a.networks?.some(s => selectedNetworkSlug.includes(s)) ? 1 : 0;
+                    const bRec = b.networks?.some(s => selectedNetworkSlug.includes(s)) ? 1 : 0;
+                    return bRec - aRec;
+                  })
+                  .map(tag => {
+                    const isActive = catAnalyzerTags.split(',').map(t => t.trim()).filter(Boolean).includes(tag.id);
+                    const isRecommended = selectedNetworkSlug && tag.networks?.some(s => selectedNetworkSlug.includes(s));
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => toggleTag(tag.id)}
+                        className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all border cursor-pointer flex items-center gap-1 ${
+                          isActive
+                            ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                            : isRecommended
+                            ? 'bg-primary/5 text-primary border-primary/30 hover:bg-primary/10'
+                            : 'bg-muted/40 text-muted-foreground border-border hover:text-foreground'
+                        }`}
+                      >
+                        {isRecommended && !isActive && <span className="text-[9px]">⭐</span>}
+                        <span>{tag.label}</span>
+                      </button>
+                    );
+                  })}
               </div>
             </div>
 
@@ -817,10 +876,10 @@ export function CategoryManager({
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
               <GitMerge className="w-4 h-4 text-primary" />
-              Объединение Активностей
+              Объединение категорий
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Перемещение всех услуг из одной активности в другую с последующим удалением источника.
+              Перемещение всех услуг из одной категории в другую с последующим удалением источника.
             </DialogDescription>
           </DialogHeader>
 
@@ -852,20 +911,55 @@ export function CategoryManager({
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.filter(c => c.id !== sourceCatId).map(c => (
-                    <SelectItem key={c.id} value={c.id} label={`${c.network?.name || ''}: ${c.name}`} className="text-xs cursor-pointer">
-                      {c.network?.name}: {c.name}
-                    </SelectItem>
-                  ))}
+                  {categories.filter(c => c.id !== sourceCatId).map(c => {
+                    const isSameNetwork = sourceCat ? c.networkId === sourceCat.networkId : true;
+                    return (
+                      <SelectItem key={c.id} value={c.id} label={`${c.network?.name || ''}: ${c.name}`} className="text-xs cursor-pointer">
+                        <span className="flex items-center justify-between w-full gap-2">
+                          <span>{c.network?.name}: {c.name}</span>
+                          {!isSameNetwork && (
+                            <span className="text-[10px] text-destructive font-bold bg-destructive/10 px-1 py-0.5 rounded">Другая сеть</span>
+                          )}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Brand-Safe Merge Summary */}
+            {sourceCat && targetCat && (
+              <div className="p-3 rounded-xl bg-muted/40 border border-border space-y-2 text-xs">
+                <div className="flex items-center justify-between font-semibold">
+                  <span className="text-muted-foreground">Перенос услуг:</span>
+                  <span className="font-mono font-bold text-primary">{sourceCat._count?.services || 0} тарифов</span>
+                </div>
+                {sourceCat.networkId !== targetCat.networkId ? (
+                  <div className="flex items-center gap-1.5 text-destructive text-[11px] font-bold bg-destructive/10 p-2 rounded-lg border border-destructive/20">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span>Ошибка: нельзя объединять категории разных соцсетей ({sourceCat.network?.name} → {targetCat.network?.name})</span>
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-muted-foreground">
+                    Все тарифы из «{sourceCat.name}» будут безопасно перенесены в «{targetCat.name}». Категория «{sourceCat.name}» будет удалена.
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="flex justify-end gap-2 pt-3 border-t border-border/50">
               <Button type="button" intent="outline" size="sm" onClick={() => setMergeModalOpen(false)} className="cursor-pointer">
                 Отмена
               </Button>
-              <Button type="button" intent="primary" size="sm" disabled={isMergePending || !sourceCatId || !targetCatId} onClick={executeMerge} className="cursor-pointer">
+              <Button 
+                type="button" 
+                intent="primary" 
+                size="sm" 
+                disabled={isMergePending || !sourceCatId || !targetCatId || (sourceCat && targetCat && sourceCat.networkId !== targetCat.networkId)} 
+                onClick={executeMerge} 
+                className="cursor-pointer"
+              >
                 {isMergePending && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
                 Объединить услуги
               </Button>
@@ -879,12 +973,12 @@ export function CategoryManager({
         isOpen={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
         onConfirm={executeDeleteCategory}
-        title="Удаление активности"
+        title="Удаление категории"
         isDanger={true}
         confirmText="Удалить"
         cancelText="Отмена"
       >
-        Вы действительно хотите удалить активность «{categoryToDelete?.name}»? Все услуги этой активности должны быть предварительно удалены или перенесены.
+        Вы действительно хотите удалить категорию «{categoryToDelete?.name}»? Все услуги этой категории должны быть предварительно удалены или перенесены.
       </ConfirmModal>
 
     </div>
