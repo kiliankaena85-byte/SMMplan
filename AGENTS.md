@@ -16,6 +16,14 @@
 > 4. **Проверка безопасности:** подтверждение отсутствия утечек секретов, ключей API и персональных данных.
 > 5. **Контроль Git:** проверка `git status`, создание атомарного коммита и `git push` в удаленный репозиторий GitHub.
 
+## 0.6. 📋 RELEASE ACCEPTANCE CRITERIA (RAC-2026 STANDARDS GATE — CRITICAL)
+> 🛡️ **Каждое обновление платформы ОБЯЗАНО соответствовать действующим стандартам 2025–2026 гг., зафиксированным в [`docs/RELEASE_ACCEPTANCE_CRITERIA_2026.md`](file:///d:/SMM_plan_2/docs/RELEASE_ACCEPTANCE_CRITERIA_2026.md):**
+> 1. **Кибербезопасность & Pentest Immunity:** OWASP Top 10:2025 (A01-A10), OWASP ASVS v4.0.3 Level 2, PCI DSS v4.0.1 (Req 3.4, 6.4, 8.3, 10.2), RFC 9116 (`security.txt`), RFC 9331 (`RateLimit`), 152-ФЗ / GDPR.
+> 2. **Финтех, Биллинг & Фискализация:** 54-ФЗ + 176-ФЗ/425-ФЗ (НДС 22%, порог УСН 20 млн ₽, `vat_code`), чистый `BigInt` (копейки, ExactMath), Ledger-First принцип, `idempotencyKey`.
+> 3. **UX/UI, Дизайн-система & Доступность:** W3C WCAG 2.2 Level AA (Touch Target $\ge 44\text{px}$, Контраст $\ge 4.5:1$), ISO 9241-110:2020, NN/g 10 эвристик (Best Match Rule, единая витрина шлюзов, Zero Horizontal Scroll).
+> 4. **Бизнес-логика & Multi-Tenant:** OmniSMM 1.0 (SMMplan / SMMflux), Drip-Feed Floor Invariant ($\lfloor Q/N \rfloor \ge \text{minQty}$), Shadow Catalog buffer.
+> 5. **Качество кода & CI/CD:** Server Actions typed `{ success, error }`, TypeScript strict (0 errors), Vitest (100% pass), CI-гейты секретов.
+
 ### При каждом старте сессии в этом проекте:
 
 1. **Прочитай файл-якорь** → `d:\SMM_plan_2\CURRENT_STATE.md`
