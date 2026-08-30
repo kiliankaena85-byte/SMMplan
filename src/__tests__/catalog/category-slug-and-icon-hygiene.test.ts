@@ -18,6 +18,13 @@ describe('Category Icon Hygiene & Unicode Clean Text (Zero-Duplicate Icons)', ()
     expect(cleanCategoryName('🇷🇺 Русские подписчики')).toBe('Русские подписчики');
   });
 
+  it('cleanCategoryName preserves inline reaction emojis and emoji sets', () => {
+    expect(cleanCategoryName('🔥 Реакции (👍, ❤️, 🔥, 🎉)')).toBe('Реакции (👍, ❤️, 🔥, 🎉)');
+    expect(cleanCategoryName('Позитивные реакции 👍❤️')).toBe('Позитивные реакции 👍❤️');
+    expect(cleanCategoryName('Негативные реакции (👎, 💩)')).toBe('Негативные реакции (👎, 💩)');
+    expect(cleanCategoryName('👍')).toBe('👍');
+  });
+
   it('cleanCategoryName handles empty and clean strings without mutation', () => {
     expect(cleanCategoryName('')).toBe('');
     expect(cleanCategoryName('Подписчики')).toBe('Подписчики');

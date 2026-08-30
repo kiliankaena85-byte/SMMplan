@@ -51,15 +51,17 @@ export const CategoryIcon = ({ name = "", icon, className, size = 20 }: Category
 };
 
 /**
- * Strips Unicode emojis, variation selectors, and zero-width joiners from category names
- * while safely preserving 100% of Cyrillic, Latin, numbers, and punctuation.
+ * Strips leading decorative emojis from category names
+ * (to prevent duplicating the left-hand visual SVG icon)
+ * while safely preserving inline reaction emojis (e.g. "Реакции (👍, ❤️, 🔥)"), Cyrillic text, numbers, and punctuation.
  */
 export const cleanCategoryName = (rawName: string): string => {
   if (!rawName) return "";
-  return rawName
-    .replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}\u200d\uFE0E\uFE0F\u2700-\u27BF\uE000-\uF8FF]/gu, '')
-    .replace(/[\u200B-\u200D\uFEFF]/g, '')
-    .replace(/\s+/g, ' ')
+  const stripped = rawName
+    .replace(/^[\p{Extended_Pictographic}\p{Emoji_Presentation}\u200d\uFE0E\uFE0F\u2700-\u27BF\uE000-\uF8FF\s]+/gu, '')
     .trim();
+  
+  // If the string consisted solely of emojis (e.g. "👍"), fallback to trimmed original
+  return stripped.length > 0 ? stripped : rawName.trim();
 };
 
