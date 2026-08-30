@@ -1,7 +1,16 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 09:58 (МСК)
+> **Последнее обновление:** 2026-08-30 10:36 (МСК)
+
+- **Admin Settings: Full Swarm Audit, Horizontal Scroll Elimination & Zero-Defect Hardening (100% COMPLETE & VERIFIED):**
+  - **1. Аудит всех 8 вкладок через Swarm (MiniMax M3 + GLM-5.2):** Проведен состязательный анализ `System`, `Catalog`, `Integrations`, `Telegram`, `Proxy`, `Team`, `Templates`, `Audit`.
+  - **2. Устранение горизонтального скролла:** Таб-бар `page.tsx` и саб-табы Telegram снабжены `min-w-0`, `w-full`, `overflow-x-auto`, `snap-x snap-mandatory`, `no-scrollbar` и `whitespace-nowrap`.
+  - **3. Проверка Round-Trip секретов:** Подтверждена защита от затирания реальных ключей масками `••••••` через серверный фильтр `isPlaceholder()`.
+  - **4. Проверка работоспособности кнопок:** Все диагностические тесты (Bot API, SMTP, ЮKassa, Gemini) подключены к реальным Server Actions.
+  - **5. Верификация:** `tsc --noEmit` — 0 ошибок, `vitest.unit.config.ts` — 109/109 PASS.
+
+
 
 - **Category Manager: 4-Point Swarm Enhancements & Unified Terminology (100% COMPLETE & VERIFIED):**
   - **1. Унификация терминологии:** Все упоминания «активностей» приведены к понятному стандарту «Категория» (в шапках, кнопках, модальных окнах, слиянии и удалении).

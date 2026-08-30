@@ -259,11 +259,11 @@ export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
       </Card>
 
       {/* ── 2. INNER NAVIGATION TABS (9 ENTERPRISE SUBTABS) ── */}
-      <div className="flex flex-wrap items-center gap-1.5 p-1.5 rounded-2xl bg-muted/30 border border-border/60">
+      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-muted/30 border border-border/60 overflow-x-auto w-full min-w-0 no-scrollbar snap-x snap-mandatory">
         <button
           type="button"
           onClick={() => setActiveTab('general')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 snap-start whitespace-nowrap ${
             activeTab === 'general'
               ? 'bg-card text-foreground shadow-sm border border-border/80'
               : 'text-muted-foreground hover:text-foreground'
@@ -276,7 +276,7 @@ export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
         <button
           type="button"
           onClick={() => setActiveTab('menu')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 snap-start whitespace-nowrap ${
             activeTab === 'menu'
               ? 'bg-card text-foreground shadow-sm border border-border/80'
               : 'text-muted-foreground hover:text-foreground'
@@ -289,7 +289,7 @@ export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
         <button
           type="button"
           onClick={() => setActiveTab('templates')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 snap-start whitespace-nowrap ${
             activeTab === 'templates'
               ? 'bg-card text-foreground shadow-sm border border-border/80'
               : 'text-muted-foreground hover:text-foreground'
@@ -302,7 +302,7 @@ export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
         <button
           type="button"
           onClick={() => setActiveTab('csat')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 snap-start whitespace-nowrap ${
             activeTab === 'csat'
               ? 'bg-card text-foreground shadow-sm border border-border/80'
               : 'text-muted-foreground hover:text-foreground'
@@ -315,7 +315,7 @@ export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
         <button
           type="button"
           onClick={() => setActiveTab('feedback')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 snap-start whitespace-nowrap ${
             activeTab === 'feedback'
               ? 'bg-card text-foreground shadow-sm border border-border/80'
               : 'text-muted-foreground hover:text-foreground'
@@ -328,7 +328,7 @@ export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
         <button
           type="button"
           onClick={() => setActiveTab('proxy')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 snap-start whitespace-nowrap ${
             activeTab === 'proxy'
               ? 'bg-card text-foreground shadow-sm border border-border/80'
               : 'text-muted-foreground hover:text-foreground'
@@ -341,7 +341,7 @@ export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
         <button
           type="button"
           onClick={() => setActiveTab('statistics')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 snap-start whitespace-nowrap ${
             activeTab === 'statistics'
               ? 'bg-card text-foreground shadow-sm border border-border/80'
               : 'text-muted-foreground hover:text-foreground'
@@ -354,7 +354,7 @@ export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
         <button
           type="button"
           onClick={() => setActiveTab('errors')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 snap-start whitespace-nowrap ${
             activeTab === 'errors'
               ? 'bg-card text-foreground shadow-sm border border-border/80'
               : 'text-muted-foreground hover:text-foreground'
@@ -367,7 +367,7 @@ export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
         <button
           type="button"
           onClick={() => setActiveTab('security')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 snap-start whitespace-nowrap ${
             activeTab === 'security'
               ? 'bg-card text-foreground shadow-sm border border-border/80'
               : 'text-muted-foreground hover:text-foreground'

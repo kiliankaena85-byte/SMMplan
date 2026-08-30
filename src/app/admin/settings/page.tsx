@@ -92,7 +92,7 @@ export default async function AdminSettingsPage({
     { id: 'audit', label: 'Аудит', icon: History },
   ];
   return (
-    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
+    <div className="space-y-6 w-full min-w-0 animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
       <AdminTabbedHeader
         icon={Settings}
         title="Настройки системы"
@@ -106,14 +106,14 @@ export default async function AdminSettingsPage({
       <SystemHealthOverview settings={sanitizedSettings} />
 
       {/* ── Custom URL-based Tabs ── */}
-      <div className="flex gap-1 border-b border-border overflow-x-auto">
+      <div className="flex gap-1 border-b border-border overflow-x-auto w-full min-w-0 no-scrollbar snap-x snap-mandatory">
         {tabs.map((t) => (
           <Link
             key={t.id}
             href={`?tab=${t.id}`}
-            className={`flex items-center gap-2 py-3 px-6 transition-all -mb-px text-[11px] font-black uppercase tracking-widest border-b-2 whitespace-nowrap ${
+            className={`flex items-center gap-2 py-3 px-5 transition-all -mb-px text-[11px] font-black uppercase tracking-widest border-b-2 whitespace-nowrap shrink-0 snap-start ${
               activeTab === t.id
-                ? 'border-primary text-primary bg-card rounded-t-xl'
+                ? 'border-primary text-primary bg-card rounded-t-xl shadow-xs'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
