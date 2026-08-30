@@ -5,7 +5,7 @@
  * 3. SMMflux Radiant Aurora Storefront (Витрина Flux)
  */
 
-async function testScreen(name: string, url: string, requiredTokens: string[], forbiddenTokens: string[]) {
+async function testScreen(name: string, url: string, requiredTokens: string[], forbiddenTokens: string[], extraHeaders: Record<string, string> = {}) {
   console.log(`\n───────────────────────────────────────────────────────────────────`);
   console.log(`🧪 Testing: [${name}]`);
   console.log(`   URL: ${url}`);
@@ -13,6 +13,7 @@ async function testScreen(name: string, url: string, requiredTokens: string[], f
   const res = await fetch(url, {
     headers: {
       'User-Agent': 'Mozilla/5.0 SMMplan-E2E-Auditor',
+      ...extraHeaders,
     },
   });
 
@@ -49,20 +50,25 @@ async function main() {
   console.log('  🔬 END-TO-END VERIFICATION OF ALL 3 PLATFORM SCREENS');
   console.log('═══════════════════════════════════════════════════════════════════');
 
-  // 1. Holding Screen (Заглушка)
+  // 1. Holding Screen (Заглушка) — triggered by Host: smmplan.pro, NOT by ?mode=holding
+  //    Simulate what Cloudflare does: redirect smmplan.pro → Tailscale URL with ?mode=holding
+  //    The proxy sees original host in x-forwarded-host, sets x-site-mode=holding
   const holdingPass = await testScreen(
-    '1. ЗАГЛУШКА ПРЕДЗАПУСКА (PreLaunchHoldingScreen)',
+    '1. ЗАГЛУШКА ПРЕДЗАПУСКА (PreLaunchHoldingScreen) [Host: smmplan.pro]',
     'http://127.0.0.1:3000/?mode=holding',
     ['Скоро официальное открытие', 'Удобная SMM-панель', 'Готовность платформы', 'Вход в панель'],
-    ['Показать тарифы →']
+    ['Показать тарифы →'],
+    { 'x-forwarded-host': 'smmplan.pro' }
   );
 
-  // 2. SMMplan Main Platform (Основной сайт)
+  // 2. SMMplan Main Platform (Основной сайт) — test.smmplan.pro with ?mode=holding in URL
+  //    Must show catalog NOT holding, even if ?mode=holding is in URL (stale browser cache scenario)
   const smmplanPass = await testScreen(
-    '2. ОСНОВНОЙ САЙТ SMMPLAN (SmartLinkLanding)',
-    'http://127.0.0.1:3000/',
+    '2. ОСНОВНОЙ САЙТ SMMPLAN [Host: test.smmplan.pro, even with ?mode=holding]',
+    'http://127.0.0.1:3000/?mode=holding',
     ['Telegram, VK и соцсетях', 'Показать тарифы →', 'Telegram', 'ВКонтакте'],
-    ['Скоро официальное открытие', 'Что хотите']
+    ['Скоро официальное открытие'],
+    { 'x-forwarded-host': 'test.smmplan.pro' }
   );
 
   // 3. SMMflux Radiant Aurora Storefront (Витрина Flux)

@@ -59,8 +59,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
   const host = reqHeaders.get("x-host") || reqHeaders.get("x-forwarded-host") || reqHeaders.get("host") || "";
   const cleanHost = host.split(":")[0].toLowerCase().trim();
   const tenantId = normalizeTenantId(reqHeaders.get("x-tenant-id")) || "smmplan";
+
+  // AUTHORITATIVE holding mode: based on x-site-mode header set by proxy.ts
+  // from the ORIGINAL incoming domain — NOT from ?mode=holding URL param
+  // (which could be stale in browser cache from old Cloudflare redirects).
+  // smmplan.pro → x-site-mode=holding → PreLaunchHoldingScreen
+  // test.smmplan.pro / flux.smmplan.pro → x-site-mode=live → normal site
+  const siteMode = reqHeaders.get("x-site-mode");
   const isProdHost = cleanHost === "smmplan.pro" || cleanHost === "www.smmplan.pro";
-  const isHoldingMode = params.mode === "holding" || (isProdHost && params.contour !== "test");
+  const isHoldingMode = siteMode === "holding" || (siteMode === null && isProdHost);
 
   const userBalanceCents = 0;
   const catalogResult = await getPublicCatalogAction(tenantId);

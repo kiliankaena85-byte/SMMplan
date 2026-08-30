@@ -192,6 +192,20 @@ export async function proxy(request: NextRequest) {
 
   requestHeaders.set('x-tenant-id', finalTenantId);
 
+  // SEC: Authoritative site-mode signal based on ORIGINAL incoming host,
+  // NOT on query params (which could be stale in browser cache).
+  // "holding" = request came from smmplan.pro (the production holding domain)
+  // "live" = everything else (test.smmplan.pro, flux.smmplan.pro, Tailscale, localhost)
+  const originalIncomingHost = (() => {
+    const fwd = request.headers.get('x-forwarded-host');
+    const hdr = request.headers.get('host');
+    if (fwd && !isInternalHost(fwd)) return fwd.split(':')[0].toLowerCase();
+    if (hdr && !isInternalHost(hdr)) return hdr.split(':')[0].toLowerCase();
+    return null;
+  })();
+  const isHoldingDomain = originalIncomingHost === 'smmplan.pro' || originalIncomingHost === 'www.smmplan.pro';
+  requestHeaders.set('x-site-mode', isHoldingDomain ? 'holding' : 'live');
+
   const applyStickyCookie = (res: NextResponse) => {
     res.headers.set('x-tenant-id', finalTenantId);
     if (isExplicitTenant) {
