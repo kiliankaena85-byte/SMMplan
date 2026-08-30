@@ -10,11 +10,13 @@
 
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { resolveAdminTenantContext } from '@/utils/admin-tenant';
 
 const ledgerParamsSchema = z.object({
   status:   z.enum(['ALL', 'APPROVED', 'QUARANTINE', 'REJECT', 'REJECTED']).default('ALL'),
+  type:     z.enum(['ALL', 'TOPUP', 'DEBIT', 'REFUND', 'COMPENSATION', 'ADJUSTMENT']).default('ALL'),
   period:   z.enum(['today', 'week', 'month', 'all']).default('month'),
   search:   z.string().max(255).optional(),
   cursor:   z.string().optional(),
@@ -32,6 +34,7 @@ export type LedgerEntryDTO = {
   amount: number;
   reason: string;
   status: string;
+  transactionType: string;
   createdAt: string;
   tenantId?: string;
 };
@@ -72,18 +75,54 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
       const searchTrim = p.search?.trim();
       const activeTenantId = resolveAdminTenantContext(admin, p.tenantId);
 
-      const where = {
-        ...(p.status !== 'ALL' ? { status: p.status } : {}),
-        ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
-        ...(activeTenantId && activeTenantId !== 'all' ? { user: { tenantId: activeTenantId } } : {}),
-        ...(searchTrim ? {
+      // Build type-based conditions and search using AND array to avoid OR collisions
+      const andConditions: Prisma.LedgerEntryWhereInput[] = [];
+
+      if (p.status !== 'ALL') {
+        andConditions.push({ status: p.status });
+      }
+      if (periodStart) {
+        andConditions.push({ createdAt: { gte: periodStart } });
+      }
+      if (activeTenantId && activeTenantId !== 'all') {
+        andConditions.push({ user: { tenantId: activeTenantId } });
+      }
+
+      if (p.type === 'TOPUP') {
+        andConditions.push({ amount: { gt: 0 }, transactionType: { not: 'REFUND' } });
+      } else if (p.type === 'DEBIT') {
+        andConditions.push({ amount: { lt: 0 } });
+      } else if (p.type === 'REFUND') {
+        andConditions.push({
+          OR: [
+            { transactionType: 'REFUND' },
+            { reason: { contains: 'возврат', mode: 'insensitive' as const } },
+            { reason: { contains: 'refund', mode: 'insensitive' as const } }
+          ]
+        });
+      } else if (p.type === 'COMPENSATION') {
+        andConditions.push({
+          OR: [
+            { transactionType: 'COMPENSATION' },
+            { reason: { contains: 'компенсац', mode: 'insensitive' as const } },
+            { reason: { contains: 'бонус', mode: 'insensitive' as const } }
+          ]
+        });
+      } else if (p.type === 'ADJUSTMENT') {
+        andConditions.push({ adminId: { not: null } });
+      }
+
+      if (searchTrim) {
+        andConditions.push({
           OR: [
             { user: { is: { email: { contains: searchTrim, mode: 'insensitive' as const } } } },
             { id: { contains: searchTrim, mode: 'insensitive' as const } },
             { idempotencyKey: { contains: searchTrim, mode: 'insensitive' as const } }
           ]
-        } : {}),
-      };
+        });
+      }
+
+      const where: Prisma.LedgerEntryWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
       const { SafePagination } = await import('@/lib/pagination/safe-pagination');
       const pagination = SafePagination.sanitize({ pageSize: p.pageSize, cursor: p.cursor });
@@ -101,6 +140,7 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
           amount: true,
           reason: true,
           status: true,
+          transactionType: true,
           createdAt: true,
           tenantId: true,
           user: {
@@ -131,6 +171,7 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
           amount: Number(e.amount), // BigInt → number at DTO boundary
           reason: e.reason,
           status: e.status,
+          transactionType: e.transactionType || (Number(e.amount) >= 0 ? 'PAYMENT' : 'DEBIT'),
           createdAt: e.createdAt.toISOString(),
           tenantId: e.tenantId ?? e.user?.tenantId ?? 'smmplan',
         })),

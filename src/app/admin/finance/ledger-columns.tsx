@@ -19,6 +19,42 @@ const STATUS_CLASSES: Record<string, string> = {
   REJECTED:   'bg-destructive/15 text-destructive border-destructive/20',
 };
 
+export function getTypeBadge(type: string, amount: number, adminId: string | null) {
+  if (adminId) {
+    return (
+      <Badge intent="outline" className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20 text-[10px] font-bold">
+        ⚙️ Корректировка
+      </Badge>
+    );
+  }
+  if (type === 'REFUND') {
+    return (
+      <Badge intent="outline" className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 text-[10px] font-bold">
+        ↩️ Возврат
+      </Badge>
+    );
+  }
+  if (type === 'COMPENSATION') {
+    return (
+      <Badge intent="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20 text-[10px] font-bold">
+        🎁 Бонус
+      </Badge>
+    );
+  }
+  if (amount > 0) {
+    return (
+      <Badge intent="outline" className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[10px] font-bold">
+        💳 Пополнение
+      </Badge>
+    );
+  }
+  return (
+    <Badge intent="outline" className="bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20 text-[10px] font-bold">
+      🔻 Списание
+    </Badge>
+  );
+}
+
 function fmt(cents: number, showSign = false): string {
   const sign = showSign && cents > 0 ? '+' : '';
   return `${sign}${(Math.abs(cents) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽`;
@@ -98,6 +134,14 @@ export const columns: ColumnDef<LedgerEntryDTO>[] = [
           {isSmmplan ? 'SMMplan' : 'SMMflux'}
         </Badge>
       );
+    },
+  },
+  {
+    accessorKey: 'transactionType',
+    header: 'Тип операции',
+    cell: ({ row }) => {
+      const { transactionType, amount, adminId } = row.original;
+      return getTypeBadge(transactionType, amount, adminId);
     },
   },
   {

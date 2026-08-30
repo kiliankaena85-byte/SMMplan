@@ -10,18 +10,70 @@ interface TransactionsTableProps {
   data: LedgerEntryDTO[];
 }
 
-const TYPE_COLORS: Record<string, string> = {
-  PAYMENT:      'bg-primary/10 text-primary border-transparent',
-  REFUND:       'bg-warning/15 text-warning border-transparent',
-  COMPENSATION: 'bg-violet-100 dark:bg-violet-900/20 text-violet-800 dark:text-violet-400 border-transparent',
-  REROUTE:      'bg-slate-100 dark:bg-slate-900/20 text-slate-700 dark:text-slate-400 border-transparent',
-};
+function renderTypeBadge(item: LedgerEntryDTO) {
+  if (item.adminId) {
+    return (
+      <Badge intent="outline" className="text-[10px] font-bold px-2 py-0.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20">
+        ⚙️ Корректировка
+      </Badge>
+    );
+  }
+  if (item.transactionType === 'REFUND' || item.reason?.toLowerCase().includes('возврат')) {
+    return (
+      <Badge intent="outline" className="text-[10px] font-bold px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
+        ↩️ Возврат
+      </Badge>
+    );
+  }
+  if (item.transactionType === 'COMPENSATION') {
+    return (
+      <Badge intent="outline" className="text-[10px] font-bold px-2 py-0.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20">
+        🎁 Бонус
+      </Badge>
+    );
+  }
+  if (item.amount > 0) {
+    return (
+      <Badge intent="outline" className="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">
+        💳 Пополнение
+      </Badge>
+    );
+  }
+  return (
+    <Badge intent="outline" className="text-[10px] font-bold px-2 py-0.5 bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20">
+      🔻 Списание
+    </Badge>
+  );
+}
 
-const STATUS_COLORS: Record<string, string> = {
-  APPROVED:   'bg-success/15 text-success border-transparent',
-  QUARANTINE: 'bg-warning/15 text-warning border-transparent font-bold',
-  REJECTED:   'bg-destructive/15 text-destructive border-transparent',
-};
+function renderStatusBadge(status: string) {
+  switch (status) {
+    case 'APPROVED':
+      return (
+        <Badge intent="outline" className="text-[10px] font-bold px-2 py-0.5 bg-success/15 text-success border-success/30">
+          Одобрено
+        </Badge>
+      );
+    case 'QUARANTINE':
+      return (
+        <Badge intent="outline" className="text-[10px] font-bold px-2 py-0.5 bg-warning/15 text-warning border-warning/30 animate-pulse">
+          Карантин
+        </Badge>
+      );
+    case 'REJECTED':
+      return (
+        <Badge intent="outline" className="text-[10px] font-bold px-2 py-0.5 bg-destructive/15 text-destructive border-destructive/30">
+          Отклонено
+        </Badge>
+      );
+    default:
+      return (
+        <Badge intent="outline" className="text-[10px] font-bold px-2 py-0.5 bg-muted text-muted-foreground">
+          {status}
+        </Badge>
+      );
+  }
+}
 
 export function TransactionsTable({ data }: TransactionsTableProps) {
   return (
@@ -31,7 +83,7 @@ export function TransactionsTable({ data }: TransactionsTableProps) {
           <Table.Column isRowHeader>ID Транзакции</Table.Column>
           <Table.Column>Клиент</Table.Column>
           <Table.Column className="text-right">Сумма</Table.Column>
-          <Table.Column>Тип</Table.Column>
+          <Table.Column>Тип операции</Table.Column>
           <Table.Column>Статус</Table.Column>
           <Table.Column>Назначение / Описание</Table.Column>
           <Table.Column>Дата</Table.Column>
@@ -39,7 +91,7 @@ export function TransactionsTable({ data }: TransactionsTableProps) {
         <Table.Body emptyContent="Транзакции не найдены">
           {data.map((item) => {
             const isCredit = item.amount > 0;
-            const formattedAmount = (item.amount / 100).toLocaleString('ru-RU', {
+            const formattedAmount = (Math.abs(item.amount) / 100).toLocaleString('ru-RU', {
               minimumFractionDigits: 2,
             });
 
@@ -47,7 +99,7 @@ export function TransactionsTable({ data }: TransactionsTableProps) {
               <Table.Row key={item.id}>
                 {/* ID */}
                 <Table.Cell className="font-mono text-[10px] text-muted-foreground whitespace-nowrap">
-                  {item.id}
+                  {item.id.slice(0, 10)}...
                 </Table.Cell>
 
                 {/* Client Link */}
@@ -64,36 +116,22 @@ export function TransactionsTable({ data }: TransactionsTableProps) {
                 <Table.Cell className="text-right">
                   <span
                     className={`font-mono font-bold text-xs tabular-nums tracking-tight ${
-                      isCredit ? 'text-success' : 'text-foreground'
+                      isCredit ? 'text-success' : 'text-destructive'
                     }`}
                   >
-                    {isCredit ? '+' : ''}
+                    {isCredit ? '+' : '-'}
                     {formattedAmount} ₽
                   </span>
                 </Table.Cell>
 
                 {/* Type */}
                 <Table.Cell>
-                  <Badge
-                    intent="outline"
-                    className={`text-[9px] uppercase font-black tracking-widest px-2 py-0.5 ${
-                      TYPE_COLORS[item.transactionType] || 'bg-muted'
-                    }`}
-                  >
-                    {item.transactionType}
-                  </Badge>
+                  {renderTypeBadge(item)}
                 </Table.Cell>
 
                 {/* Status */}
                 <Table.Cell>
-                  <Badge
-                    intent="outline"
-                    className={`text-[9px] uppercase font-black tracking-widest px-2 py-0.5 ${
-                      STATUS_COLORS[item.status] || 'bg-muted'
-                    }`}
-                  >
-                    {item.status}
-                  </Badge>
+                  {renderStatusBadge(item.status)}
                 </Table.Cell>
 
                 {/* Reason */}

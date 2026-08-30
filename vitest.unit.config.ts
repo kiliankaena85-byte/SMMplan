@@ -36,6 +36,7 @@ export default defineConfig({
       'src/lib/icons/__tests__/safe-svg.test.ts',
       'src/__tests__/order-actions-and-support-ops.test.ts',
       'src/__tests__/providers/balance-autoflush-resilience.test.ts',
+      'src/__tests__/financial/ledger-and-transaction-type-filters.test.ts',
     ],
   }
 });

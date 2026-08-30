@@ -7,6 +7,7 @@ import { requireOperatorPermission } from '@/lib/operator/rbac';
 
 const ledgerParamsSchema = z.object({
   status: z.enum(['ALL', 'APPROVED', 'QUARANTINE', 'REJECTED']).default('ALL'),
+  type:   z.enum(['ALL', 'TOPUP', 'DEBIT', 'REFUND', 'COMPENSATION', 'ADJUSTMENT']).default('ALL'),
   period: z.enum(['today', 'week', 'month', 'all']).default('month'),
   search: z.string().max(255).optional(),
   cursor: z.string().optional(),
@@ -64,19 +65,53 @@ export async function getTransactionsListAction(
       const periodStart = getPeriodStart(p.period);
       const searchTrim = p.search?.trim();
 
-      const where: Prisma.LedgerEntryWhereInput = {
-        ...(p.status !== 'ALL' ? { status: p.status } : {}),
-        ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
-        ...(p.userId ? { userId: p.userId } : {}),
-      };
+      const andConditions: Prisma.LedgerEntryWhereInput[] = [];
+
+      if (p.status !== 'ALL') {
+        andConditions.push({ status: p.status });
+      }
+      if (periodStart) {
+        andConditions.push({ createdAt: { gte: periodStart } });
+      }
+      if (p.userId) {
+        andConditions.push({ userId: p.userId });
+      }
+
+      if (p.type === 'TOPUP') {
+        andConditions.push({ amount: { gt: 0 }, transactionType: { not: 'REFUND' } });
+      } else if (p.type === 'DEBIT') {
+        andConditions.push({ amount: { lt: 0 } });
+      } else if (p.type === 'REFUND') {
+        andConditions.push({
+          OR: [
+            { transactionType: 'REFUND' },
+            { reason: { contains: 'возврат', mode: 'insensitive' as const } },
+            { reason: { contains: 'refund', mode: 'insensitive' as const } }
+          ]
+        });
+      } else if (p.type === 'COMPENSATION') {
+        andConditions.push({
+          OR: [
+            { transactionType: 'COMPENSATION' },
+            { reason: { contains: 'компенсац', mode: 'insensitive' as const } },
+            { reason: { contains: 'бонус', mode: 'insensitive' as const } }
+          ]
+        });
+      } else if (p.type === 'ADJUSTMENT') {
+        andConditions.push({ adminId: { not: null } });
+      }
 
       if (searchTrim) {
-        where.OR = [
-          { user: { email: { contains: searchTrim, mode: 'insensitive' as const } } },
-          { id: { contains: searchTrim, mode: 'insensitive' as const } },
-          { idempotencyKey: { contains: searchTrim, mode: 'insensitive' as const } },
-        ];
+        andConditions.push({
+          OR: [
+            { user: { email: { contains: searchTrim, mode: 'insensitive' as const } } },
+            { id: { contains: searchTrim, mode: 'insensitive' as const } },
+            { idempotencyKey: { contains: searchTrim, mode: 'insensitive' as const } },
+          ]
+        });
       }
+
+      const where: Prisma.LedgerEntryWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
       const pageSize = p.pageSize;
       const entries = await db.ledgerEntry.findMany({

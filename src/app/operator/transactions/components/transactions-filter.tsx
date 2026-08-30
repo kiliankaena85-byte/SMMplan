@@ -13,6 +13,7 @@ export function TransactionsFilter() {
   const currentSearch = searchParams.get('search') || '';
   const currentPeriod = searchParams.get('period') || 'month';
   const currentStatus = searchParams.get('status') || 'ALL';
+  const currentType   = searchParams.get('type') || 'ALL';
   const currentUserId = searchParams.get('userId') || '';
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -54,10 +55,48 @@ export function TransactionsFilter() {
     { value: 'all', label: 'Все время' },
   ];
 
+  const QUICK_TYPES = [
+    { label: '💳 Пополнения баланса', type: 'TOPUP', status: 'ALL' },
+    { label: '🔻 Списания', type: 'DEBIT', status: 'ALL' },
+    { label: '↩️ Возвраты', type: 'REFUND', status: 'ALL' },
+    { label: '⏳ В карантине', type: 'ALL', status: 'QUARANTINE' },
+    { label: '📋 Все транзакции', type: 'ALL', status: 'ALL' },
+  ];
+
   return (
     <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-6 ring-1 ring-border/5 space-y-4">
+      {/* Quick Operation Type Filters */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none flex-nowrap">
+        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mr-2 shrink-0">Тип:</span>
+        {QUICK_TYPES.map((q) => {
+          const isActive = currentType === q.type && currentStatus === q.status;
+          return (
+            <button
+              key={q.label}
+              type="button"
+              onClick={() => {
+                const params = new URLSearchParams(searchParams.toString());
+                params.delete('cursor');
+                if (q.type !== 'ALL') params.set('type', q.type);
+                else params.delete('type');
+                if (q.status !== 'ALL') params.set('status', q.status);
+                else params.delete('status');
+                router.push(`${pathname}?${params.toString()}`);
+              }}
+              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap active:scale-95 cursor-pointer ${
+                isActive
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-background hover:bg-muted/50 text-muted-foreground hover:text-foreground border border-border/40'
+              }`}
+            >
+              {q.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Quick Period Filters */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none flex-nowrap" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none flex-nowrap">
         <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mr-2 shrink-0">Период:</span>
         {QUICK_PERIODS.map((p) => {
           const isActive = currentPeriod === p.value;
@@ -71,9 +110,9 @@ export function TransactionsFilter() {
                 params.set('period', p.value);
                 router.push(`${pathname}?${params.toString()}`);
               }}
-              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap active:scale-95 ${
+              className={`px-3 py-1 text-xs font-bold rounded-xl transition-all whitespace-nowrap active:scale-95 ${
                 isActive
-                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  ? 'bg-primary/20 text-primary border border-primary/30'
                   : 'bg-background hover:bg-muted/50 text-muted-foreground hover:text-foreground border border-border/40'
               }`}
             >
@@ -84,7 +123,7 @@ export function TransactionsFilter() {
       </div>
 
       {/* Main Filter Form */}
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
         {/* Hidden period for form submission to preserve active period pill */}
         <input type="hidden" name="period" value={currentPeriod} />
 
@@ -103,9 +142,27 @@ export function TransactionsFilter() {
           </div>
         </div>
 
+        {/* Type Select */}
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Вид операции</label>
+          <select
+            name="type"
+            value={currentType}
+            onChange={handleSelectChange}
+            className="w-full px-3 py-2 text-xs bg-background/50 border border-border/60 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-foreground"
+          >
+            <option value="ALL">Все операции</option>
+            <option value="TOPUP">💳 Пополнение баланса</option>
+            <option value="DEBIT">🔻 Списание / Оплата</option>
+            <option value="REFUND">↩️ Возврат средств</option>
+            <option value="COMPENSATION">🎁 Компенсация / Бонус</option>
+            <option value="ADJUSTMENT">⚙️ Корректировка</option>
+          </select>
+        </div>
+
         {/* Status Select */}
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Статус транзакции</label>
+          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Статус проводки</label>
           <select
             name="status"
             value={currentStatus}

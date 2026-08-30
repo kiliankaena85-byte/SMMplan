@@ -22,6 +22,15 @@ export const LEDGER_STATUS_OPTIONS = [
   { value: 'REJECTED',   label: 'Отклонено' },
 ] as const;
 
+export const LEDGER_TYPE_OPTIONS = [
+  { value: 'ALL',          label: 'Все операции' },
+  { value: 'TOPUP',        label: '💳 Пополнение баланса' },
+  { value: 'DEBIT',        label: '🔻 Списание / Оплата' },
+  { value: 'REFUND',       label: '↩️ Возврат средств' },
+  { value: 'COMPENSATION', label: '🎁 Компенсация / Бонус' },
+  { value: 'ADJUSTMENT',   label: '⚙️ Ручная корректировка' },
+] as const;
+
 export const PAYMENT_STATUS_OPTIONS = [
   { value: 'ALL',       label: 'Все статусы' },
   { value: 'SUCCEEDED', label: 'Успешные' },

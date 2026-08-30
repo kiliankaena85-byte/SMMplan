@@ -37,14 +37,16 @@ export interface FinanceLedgerTabProps {
 export function FinanceLedgerTab({ initial, period: initPeriod, tenantId }: FinanceLedgerTabProps) {
   const [period, setPeriod]       = useState(initPeriod);
   const [status, setStatus]       = useState<string>('ALL');
+  const [type, setType]           = useState<string>('ALL');
   const [data,   setData]         = useState<LedgerPageResult>(initial);
   const [isPending, startTransition] = useTransition();
 
-  const load = useCallback((newPeriod: string, newStatus: string) => {
+  const load = useCallback((newPeriod: string, newStatus: string, newType: string) => {
     startTransition(async () => {
       const r = await getLedgerAction({
         period:   newPeriod as 'today' | 'week' | 'month' | 'all',
         status:   newStatus as 'ALL' | 'APPROVED' | 'QUARANTINE' | 'REJECTED',
+        type:     newType as 'ALL' | 'TOPUP' | 'DEBIT' | 'REFUND' | 'COMPENSATION' | 'ADJUSTMENT',
         pageSize: 100,
         tenantId,
       });
@@ -59,17 +61,59 @@ export function FinanceLedgerTab({ initial, period: initPeriod, tenantId }: Fina
   function applyPeriod(v: string | null) {
     if (!v) return;
     setPeriod(v);
-    load(v, status);
+    load(v, status, type);
   }
 
   function applyStatus(v: string | null) {
     if (!v) return;
     setStatus(v);
-    load(period, v);
+    load(period, v, type);
   }
+
+  function applyType(v: string | null) {
+    if (!v) return;
+    setType(v);
+    load(period, status, v);
+  }
+
+  function setQuickFilter(quickType: string, quickStatus = 'ALL') {
+    setType(quickType);
+    setStatus(quickStatus);
+    load(period, quickStatus, quickType);
+  }
+
+  const QUICK_FILTERS = [
+    { label: '💳 Пополнения баланса', type: 'TOPUP', status: 'ALL' },
+    { label: '🔻 Списания / Оплата', type: 'DEBIT', status: 'ALL' },
+    { label: '↩️ Возвраты', type: 'REFUND', status: 'ALL' },
+    { label: '⏳ В карантине', type: 'ALL', status: 'QUARANTINE' },
+    { label: '📋 Все проводки', type: 'ALL', status: 'ALL' },
+  ];
 
   return (
     <div className="space-y-6">
+      {/* Quick Filter Pills (1-Click Presets) */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none flex-nowrap">
+        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mr-1 shrink-0">Быстрый фильтр:</span>
+        {QUICK_FILTERS.map((q) => {
+          const isActive = type === q.type && status === q.status;
+          return (
+            <button
+              key={q.label}
+              type="button"
+              onClick={() => setQuickFilter(q.type, q.status)}
+              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap active:scale-95 cursor-pointer ${
+                isActive
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-card/70 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/50'
+              }`}
+            >
+              {q.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Totals Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
@@ -112,10 +156,30 @@ export function FinanceLedgerTab({ initial, period: initPeriod, tenantId }: Fina
       {/* Action Bar: Filters & 1-Click CSV Export */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-2xl border border-border/70 bg-card/60 backdrop-blur-md shadow-xs">
         <div className="flex flex-wrap items-center gap-3">
+          {/* Transaction Type Filter (with Top-up in first place!) */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Тип:</span>
+            <Select defaultValue={type} onValueChange={applyType}>
+              <SelectTrigger className="w-[180px] h-9 text-xs" size="sm">
+                <SelectValue placeholder="Тип операции">
+                  {(value: string) => import('./finance-helpers').then(m => m.LEDGER_TYPE_OPTIONS.find(t => t.value === value)?.label ?? value)}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Все операции</SelectItem>
+                <SelectItem value="TOPUP">💳 Пополнение баланса</SelectItem>
+                <SelectItem value="DEBIT">🔻 Списание / Оплата</SelectItem>
+                <SelectItem value="REFUND">↩️ Возврат средств</SelectItem>
+                <SelectItem value="COMPENSATION">🎁 Компенсация / Бонус</SelectItem>
+                <SelectItem value="ADJUSTMENT">⚙️ Ручная корректировка</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Период:</span>
             <Select defaultValue={period} onValueChange={applyPeriod}>
-              <SelectTrigger className="w-[140px] h-9 text-xs" size="sm">
+              <SelectTrigger className="w-[130px] h-9 text-xs" size="sm">
                 <SelectValue placeholder="Период">
                   {(value: string) => PERIOD_OPTIONS.find(p => p.value === value)?.label ?? value}
                 </SelectValue>
@@ -131,7 +195,7 @@ export function FinanceLedgerTab({ initial, period: initPeriod, tenantId }: Fina
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider text-[10px]">Статус:</span>
             <Select defaultValue={status} onValueChange={applyStatus}>
-              <SelectTrigger className="w-[150px] h-9 text-xs" size="sm">
+              <SelectTrigger className="w-[140px] h-9 text-xs" size="sm">
                 <SelectValue placeholder="Статус">
                   {(value: string) => LEDGER_STATUS_OPTIONS.find(s => s.value === value)?.label ?? value}
                 </SelectValue>
@@ -146,7 +210,7 @@ export function FinanceLedgerTab({ initial, period: initPeriod, tenantId }: Fina
 
           <Button
             size="sm"
-            onClick={() => load(period, status)}
+            onClick={() => load(period, status, type)}
             disabled={isPending}
             className="h-9 px-3 border border-border bg-card hover:bg-muted text-foreground"
             title="Обновить"

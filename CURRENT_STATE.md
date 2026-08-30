@@ -3,6 +3,18 @@
 > **Файл-якорь для синхронизации контекста сессий.**  
 > **Последнее обновление:** 2026-08-30 20:41 (МСК)
 
+- **OmniSMM Transaction & Balance Status Filter Engine (100% COMPLETE & VERIFIED):**
+  - **1. Быстрые пресеты и фильтрация по типу операции:**
+    - В [`src/actions/admin/finance/ledger.ts`](file:///d:/SMM_plan_2/src/actions/admin/finance/ledger.ts) и [`src/actions/operator/transactions/get-transactions-list.action.ts`](file:///d:/SMM_plan_2/src/actions/operator/transactions/get-transactions-list.action.ts) внедрена многомерная фильтрация по типу (`TOPUP` / Пополнение баланса [первым в списке], `DEBIT` / Списание, `REFUND` / Возврат, `COMPENSATION` / Бонус, `ADJUSTMENT` / Корректировка) и статусам проводки (`APPROVED`, `QUARANTINE`, `REJECTED`).
+    - Использован безопасный `AND`-массив условий Prisma для предотвращения коллизий с `OR`-поиском по email/ID.
+  - **2. Интуитивный UI в панели администратора и оператора:**
+    - В [`finance-ledger-tab.tsx`](file:///d:/SMM_plan_2/src/app/admin/finance/components/finance-ledger-tab.tsx) и [`transactions-filter.tsx`](file:///d:/SMM_plan_2/src/app/operator/transactions/components/transactions-filter.tsx) добавлены быстрые фильтры в 1 клик над таблицей: `💳 Пополнения баланса`, `🔻 Списания`, `↩️ Возвраты`, `⏳ В карантине`, `📋 Все транзакции`.
+    - В [`ledger-columns.tsx`](file:///d:/SMM_plan_2/src/app/admin/finance/ledger-columns.tsx) и [`transactions-table.tsx`](file:///d:/SMM_plan_2/src/app/operator/transactions/components/transactions-table.tsx) внедрены наглядные русскоязычные бейджи с иконками и разметкой типов операций.
+  - **3. Верификация:**
+    - Новый юнит-сьют: [`src/__tests__/financial/ledger-and-transaction-type-filters.test.ts`](file:///d:/SMM_plan_2/src/__tests__/financial/ledger-and-transaction-type-filters.test.ts) (**5/5 PASS**).
+    - Полный регрессионный сьют: **25/25 test suites, 212/212 tests PASS (100% GREEN)**.
+    - Проверка типов: `npx tsc --noEmit` $\rightarrow$ **0 ошибок**.
+
 - **Smart Provider Balance Recovery & Auto-Flush Engine (100% COMPLETE & VERIFIED):**
   - **1. Разрешение безопасного перезапуска заказов `PENDING_CHECK`:**
     - В [`src/services/admin/order.service.ts`](file:///d:/SMM_plan_2/src/services/admin/order.service.ts) устранена ошибка блокировки *«Используйте "Дублировать заказ"»*. Заказы `PENDING_CHECK` теперь перезапускаются без повторного списания с клиента (деньги сохранены в Escrow) и мгновенно ставятся в очередь воркера.
