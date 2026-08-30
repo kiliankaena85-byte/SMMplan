@@ -111,7 +111,17 @@ export class ProviderBalanceService {
         const parsed = parseFloat(str.replace(/,/g, '.'));
         numBalance = isNaN(parsed) ? 0 : parsed;
       }
-      const currency = (balanceData.currency || provider.balanceCurrency || 'USD').toUpperCase().trim();
+      const reportedCurrency = balanceData.currency?.toUpperCase().trim();
+      const storedCurrency = provider.balanceCurrency?.toUpperCase().trim();
+      let currency: string;
+      if (reportedCurrency && reportedCurrency !== 'UNKNOWN' && reportedCurrency.length >= 3) {
+        currency = reportedCurrency;
+      } else if (storedCurrency && storedCurrency.length >= 3) {
+        currency = storedCurrency;
+      } else {
+        currency = 'USD';
+        console.warn(`[ProviderBalance] Provider ${provider.name} returned no currency and none stored in DB; fallback to USD`);
+      }
 
       // Normalize exchange rate
       let usdRate = 95.0;

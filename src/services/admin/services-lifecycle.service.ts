@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { inferTargetTypeFromName, isTargetTypeCompatible } from '@/utils/target-type';
 import { assertSafeOutboundUrl } from '@/lib/security/ssrf-guard';
+import { UPPER_SANITY_LIMIT_RUB } from '@/lib/financial-constants';
 
 export interface AdminContext {
   id: string;
@@ -346,6 +347,13 @@ export class ServicesLifecycleService {
       throw new Error('Невозможно перевести в TESTING: цена услуги должна быть больше 0 ₽');
     }
 
+    const settings = await db.systemSettings.findUnique({ where: { id: 'global' }, select: { exchangeRateUSD: true } });
+    const usdRate = settings?.exchangeRateUSD || 90.0;
+    const rateInRub = (draft.procurementCurrency || 'USD') === 'USD' ? draft.procurementRate * Math.max(1.0, usdRate) : draft.procurementRate;
+    if (rateInRub > UPPER_SANITY_LIMIT_RUB) {
+      throw new Error(`Невозможно перевести в TESTING: себестоимость ${rateInRub.toFixed(2)} ₽ превышает верхний лимит безопасности (${UPPER_SANITY_LIMIT_RUB.toLocaleString('ru-RU')} ₽)`);
+    }
+
     const updated = await db.serviceDraft.update({
       where: { id: draftId },
       data: { status: 'TESTING', validationStatus: 'PASSED' },
@@ -391,6 +399,13 @@ export class ServicesLifecycleService {
     const catTargetType = inferTargetTypeFromName(category.name);
     if (!isTargetTypeCompatible(draft.targetType, catTargetType)) {
       console.warn(`[Lifecycle] Предупреждение: тип услуги ${draft.targetType} может не совпадать с категорией ${category.name}`);
+    }
+
+    const settings = await db.systemSettings.findUnique({ where: { id: 'global' }, select: { exchangeRateUSD: true } });
+    const usdRate = settings?.exchangeRateUSD || 90.0;
+    const rateInRub = (draft.procurementCurrency || 'USD') === 'USD' ? draft.procurementRate * Math.max(1.0, usdRate) : draft.procurementRate;
+    if (rateInRub > UPPER_SANITY_LIMIT_RUB) {
+      throw new Error(`Невозможно опубликовать: себестоимость ${rateInRub.toFixed(2)} ₽ превышает верхний лимит безопасности (${UPPER_SANITY_LIMIT_RUB.toLocaleString('ru-RU')} ₽)`);
     }
 
     // Атомарная транзакция создания/обновления реальной услуги

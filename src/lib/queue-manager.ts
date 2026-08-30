@@ -81,9 +81,10 @@ export const createQueue = <PayloadType>(name: string, defaultOptions?: Partial<
 
 export type CatalogMutationPayload = 
   | { type: 'SYNC_PRICES'; usdToRub: number }
-    | { type: 'SYNC_PROVIDER_CATALOG'; providerId: string; admin: unknown }
-    | { type: 'SYNC_ALL_CATALOGS'; admin: unknown }
-    | { type: 'BULK_MARKUP'; filter: { categoryId?: string; platform?: string }; markupPercent: number; admin: unknown };
+  | { type: 'RECONCILE_PRICES'; batchSize?: number }
+  | { type: 'SYNC_PROVIDER_CATALOG'; providerId: string; admin: unknown }
+  | { type: 'SYNC_ALL_CATALOGS'; admin: unknown }
+  | { type: 'BULK_MARKUP'; filter: { categoryId?: string; platform?: string }; markupPercent: number; admin: unknown };
 
 export interface OrderJobPayload {
   orderId: string;

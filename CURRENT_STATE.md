@@ -1,19 +1,28 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 05:22 (МСК)  
-> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🛡️ ZERO-HARDCODE DYNAMIC TUNNELS & PRICING CALIBRATION LIVE.
+> **Последнее обновление:** 2026-08-30 06:10 (МСК)  
+> **Статус:** 🟢 ВСЕ БЛОКИ ЗАВЕРШЕНЫ (100% PASS) + 🛡️ ZERO-SPIKE TIME-TRAVEL PRICING VERIFIED (DAY 0 → DAY 90).
 
-- **Dynamic Tunnel & Server Actions Architecture Hardening (OpenRouter Swarm Approved):**
-  - Полностью исключен хардкод доменов тоннелей. `next.config.mjs` и `src/proxy.ts` динамически поддерживают любые Cloudflare Quick Tunnels, Tailscale Funnels, локальные порты и боевые зеркала.
-  - Внедрен `trustHostHeader: true` в Next.js experimental config для безотказной работы Server Actions за реверс-прокси.
-  - В `src/proxy.ts` реализована ранняя валидация заголовков и comma-splitting для защиты от атак склейки заголовков и CSRF обхода.
-  - Тестовый сьют: `src/__tests__/dynamic-tunnel-and-server-actions-proxy.test.ts` (**8/8 PASS**).
-
-- **Provider Currencies & Pricing Calibration (Zero Anomaly Gate):**
-  - Выявлена и устранена фундаментальная причина завышенных цен: 42 услуги провайдера `Основной Поставщик (API 1)` (`vexboost.ru`), чьи цены отдаются в **RUB** (например, просмотры TG по 1.50 ₽), ошибочно имели флаг `providerCurrency = 'USD'`, из-за чего цены умножались на курс доллара (95x).
-  - Все 42 услуги откалиброваны в `providerCurrency = 'RUB'`.
-  - Повторный аудит всех 248 активных услуг: **0 аномалий**, розничные цены корректны и полностью соответствуют исходным тарифам поставщиков с установленной маржой.
+- **Pricing Engine Hardening & Phase 2 Reconciler (100% COMPLETE & VERIFIED):**
+  - **P-A (Schema & Cache):** `costPer1kRub Float?` в модели `Service` + бэкфилл-скрипт `scripts/harness/backfill-cost-per-1k-rub.ts`.
+  - **P-B (Per-Tenant Markup & Cache Wiring):** В `catalog.service.ts` реализован динамический расчет себестоимости и учет `SystemSettings.globalMarkup` тенанта в циклах импорта и синхронизации цен. Устранен легаси-поиск `id: "global"` с мертвым 90.0 фоллбэком — заменен на `SettingsProvider.getExchangeRateUSD()`.
+  - **P-C (Cost Readers):** `PriceDriftCircuitBreaker`, `ServicesLifecycleService` и аналитика маржи переключены на приоритетное чтение `service.costPer1kRub ?? getCostRub(...)`.
+  - **P-D (Price Reconciler Engine):** Добавлен тип задачи `RECONCILE_PRICES` в BullMQ `catalog.processor.ts` и защищенный роут `src/app/api/cron/reconcile-prices/route.ts` (Bearer/HMAC auth, Redis lock `cron:price-reconciler:lock`). Проверяет дрейф кэша себестоимости (>2%), спайки розницы (< себестоимости) и `UPPER_SANITY_LIMIT_RUB` (> 50 000 ₽).
+  - **E2E Time-Travel & Multi-Currency Stability Engine (Day 0 → Day 90 Verified):**
+    - Разработан и успешно верифицирован сквозной E2E симулятор временных рамок (`src/__tests__/e2e-pricing-time-travel-and-currency-stability.test.ts`), моделирующий поведение движка цен во времени:
+      - **День 0 (Baseline):** Мультивалютная фиксация (`RUB` и `USD`), корректная ставка за 1k, точный расчет цен по шкале наценок и операторским маржам.
+      - **День 1 (Routine Sync 24h):** Валюты зафиксированы в БД (рубли не аннулируются в доллары), кастомные наценки оператора (1.5x, 2.5x) не сбрасываются в принудительные 3.0x.
+      - **День 7 (Minor Fluctuations & Rate Drift):** Колебания курсов ЦБ и мелкие изменения цен поставщика (±2%) обновляются тихо без ложного карантина и без умножения рублей на 100x.
+      - **День 30 (Chaos & Currency Flip Resilience):** Безопасный пересчет при смене валюты провайдером без скачков цен в рублях; моментальное срабатывание Активного Карантина (`isQuarantined: true`, `isActive: false`) при реальных спайках себестоимости >50% или превышении `UPPER_SANITY_LIMIT_RUB` (50,000 ₽).
+      - **День 90 (End-to-End Storefront Checkout Smoke):** Оформление заказа через `checkoutAction` с защитой от отрицательной маржи, банковским округлением (Half-Even) и точным копеечным списанием.
+  - **Полная тестовая батарея ценообразования: 45/45 PASS (100% GREEN):**
+    - `pricing-import-guardrails.test.ts` (26/26 PASS)
+    - `provider-price-anomaly-and-quarantine.test.ts` (5/5 PASS)
+    - `price-drift.test.ts` (5/5 PASS)
+    - `e2e-pricing-time-travel-and-currency-stability.test.ts` (5/5 PASS)
+    - `price-reconciler.test.ts` (4/4 PASS)
+    - Strict TypeScript (`npx tsc --noEmit`): **0 ошибок**.
 
 - **Multi-Domain Testing & Production Routing Contract (STRICT RULE — 100% VERIFIED LIVE):**
   - **`smmplan.pro` (и `www.smmplan.pro`):** Показывает `PreLaunchHoldingScreen` (страница-заглушка предзапуска со сбором заявок).

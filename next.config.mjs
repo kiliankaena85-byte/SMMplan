@@ -96,8 +96,6 @@ const nextConfig = {
       bodySizeLimit: '2mb',
       allowedOrigins: dynamicOrigins,
     },
-    // CRITICAL: Required for multi-tunnel and reverse proxies so Next.js respects X-Forwarded-Host
-    trustHostHeader: true,
   },
   allowedDevOrigins: dynamicOrigins,
   

@@ -69,6 +69,12 @@ const SYNC_JITTER_THRESHOLD = 0.05;
 /** Anomaly Detector: изменение rate > 20% считается аномалией и генерирует алерт */
 export const SYNC_ANOMALY_THRESHOLD = 0.20;
 
+/** Active Quarantine Threshold: скачок себестоимости > 50% автоматически изолирует услугу в карантин */
+export const ANOMALY_PRICE_SPIKE_THRESHOLD = 0.50;
+
+/** Верхний предел разумной себестоимости закупки (RUB за 1000 единиц) для защиты от валютных аномалий */
+export const UPPER_SANITY_LIMIT_RUB = 50000;
+
 // ═══════════════════════════════════════════════════════
 // 🪜 PRICING LADDER (Лестница наценок по умолчанию)
 // ═══════════════════════════════════════════════════════
@@ -170,3 +176,58 @@ export function applyBeautifulRounding(priceRubPer1000: number): number {
   }
   return Math.ceil(cleanedPrice / 100) * 100;
 }
+
+export interface SanityCheckResult {
+  isExceeded: boolean;
+  price: number;
+  limit: number;
+  clampedPrice: number;
+}
+
+/**
+ * Проверяет цену на непревышение верхнего порога адекватности (UPPER_SANITY_LIMIT_RUB = 50000).
+ * Если расчетная цена превышает лимит, возвращает флаг isExceeded: true.
+ *
+ * @param priceRub - расчетная цена в RUB
+ * @param limit - порог адекватности (по умолчанию UPPER_SANITY_LIMIT_RUB)
+ */
+export function checkPriceSanityLimit(
+  priceRub: number,
+  limit: number = UPPER_SANITY_LIMIT_RUB
+): SanityCheckResult {
+  const isExceeded = typeof priceRub === 'number' && isFinite(priceRub) && priceRub > limit;
+  return {
+    isExceeded,
+    price: priceRub,
+    limit,
+    clampedPrice: isExceeded ? limit : priceRub
+  };
+}
+
+export interface PricingLadderResult {
+  retailPrice: number;
+  isSanityLimitExceeded: boolean;
+  sanityLimit: number;
+  multiplier: number;
+}
+
+/**
+ * Применяет Pricing Ladder и проверяет розничную цену на непревышение порога адекватности.
+ */
+export function applyPricingLadderWithSanity(
+  providerCostRubPer1000: number,
+  ladder: LadderLevel[] = DEFAULT_PRICING_LADDER,
+  sanityLimit: number = UPPER_SANITY_LIMIT_RUB
+): PricingLadderResult {
+  const retailPrice = applyPricingLadder(providerCostRubPer1000, ladder);
+  const sanity = checkPriceSanityLimit(retailPrice, sanityLimit);
+  const level = ladder.find(l => providerCostRubPer1000 < l.threshold) || ladder[ladder.length - 1];
+
+  return {
+    retailPrice,
+    isSanityLimitExceeded: sanity.isExceeded,
+    sanityLimit,
+    multiplier: level.multiplier
+  };
+}
+

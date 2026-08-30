@@ -117,11 +117,6 @@ describe.sequential('Zombie Eraser & Pricing Auto-recalculation / Quarantine Tes
 
   afterEach(async () => {
     vi.restoreAllMocks();
-    if (provider?.id) {
-      await db.service.deleteMany({ where: { providerId: provider.id } });
-      await db.shadowService.deleteMany({ where: { providerId: provider.id } });
-      await db.provider.deleteMany({ where: { id: provider.id } });
-    }
   });
 
   it('should mark services deleted by the provider as inactive (Zombie Eraser)', async () => {
@@ -145,42 +140,47 @@ describe.sequential('Zombie Eraser & Pricing Auto-recalculation / Quarantine Tes
     expect(serviceBDb?.isActive).toBe(true);
   });
 
-  it('should auto-fix margin floor breaches (markup < 5.0) to 5.0 and recalculate pricing instead of quarantining', async () => {
-    // Provider catalog contains ext-404 but price hiked from $1.00 to $1.25
-    // With rate = $1.25, markup = 1.2, retail = 1.2 * 1.0 * 100 = 120 RUB per 1k.
-    // Since markup is 1.2 (which is < 5.0), the engine auto-fixes the markup to 5.0
-    // and updates retail price using rate $1.25, exchange rate 100.0, markup 5.0:
-    // Retail = 1.25 * 5.0 * 100 = 625 RUB per 1k -> beautiful rounded to 630 RUB -> 63000 cents.
+  it('should preserve curator markup (markup = 1.2) during routine sync and NOT force jump to 3.0', async () => {
+    // Provider catalog contains ext-404 with price unchanged $1.00
+    // With rate = $1.00, markup = 1.2, retail price should remain 120 RUB (12000 cents)
+    // and markup should remain 1.2 (NOT overridden to 3.0 or 5.0)
     mockGetServices.mockResolvedValue([
       { service: 'ext-303', name: 'TG Views Fast', rate: '0.50', min: '10', max: '10000', category: 'TG Views' },
-      { service: 'ext-404', name: 'TG Views High Quality', rate: '1.35', min: '10', max: '10000', category: 'TG Views' }
+      { service: 'ext-404', name: 'TG Views High Quality', rate: '1.00', min: '10', max: '10000', category: 'TG Views' }
     ]);
 
     const res = await adminCatalogService.syncProviderCatalog(provider.id, adminUser);
     expect(res.marginFloorBreaches).toBe(0);
-    expect(res.priceAnomalies).toBe(1); // Service B still quarantines for Price Spike (>30%) after auto-fix
+    expect(res.priceAnomalies).toBe(0);
 
-    // Service B should be quarantined for Price Spike, not Margin Floor Breach
+    // Service B should remain active with original curator markup 1.2
     const serviceBDb = await db.service.findUnique({ where: { id: serviceB.id } });
-    expect(serviceBDb?.isQuarantined).toBe(true);
-    expect(serviceBDb?.quarantineReason).toContain('Price Spike');
-    expect(serviceBDb?.pendingRate).toBe(1.35);
-    expect(serviceBDb?.markup).toBe(3.0);
-    expect(serviceBDb?.pricePer1000Cents).toBe(41000);
+    expect(serviceBDb?.isActive).toBe(true);
+    expect(serviceBDb?.isQuarantined).toBe(false);
+    expect(serviceBDb?.markup).toBe(1.2);
+    expect(serviceBDb?.pricePer1000Cents).toBe(12000);
+  });
 
-    // Verify AdminAuditLog entry was created for the auto-fix
-    const autoFixLog = await db.adminAuditLog.findFirst({
-      where: {
-        action: 'SERVICE_AUTO_FIX',
-        target: serviceB.id,
-      },
+  it('should apply adaptive pricing ladder when service.markup is 0', async () => {
+    // Set Service A markup to 0 (auto-pricing)
+    await db.service.update({
+      where: { id: serviceA.id },
+      data: { markup: 0, pricePer1000Cents: 0 }
     });
-    expect(autoFixLog).toBeDefined();
-    expect(autoFixLog?.adminEmail).toBe('system@smmplan.pro');
-    const oldVal = JSON.parse(autoFixLog?.oldValue || '{}');
-    const newVal = JSON.parse(autoFixLog?.newValue || '{}');
-    expect(oldVal.markup).toBe(1.2);
-    expect(newVal.markup).toBe(3.0);
+
+    // Provider rate = $0.50 -> cost in RUB = 50.0 RUB (by 100 USD/RUB)
+    // Pricing ladder for 50 RUB: multiplier 6 -> retail = 50 * 6 * 1.035 = 310.5 -> rounded to 320 RUB (32000 cents)
+    mockGetServices.mockResolvedValue([
+      { service: 'ext-303', name: 'TG Views Fast', rate: '0.50', min: '10', max: '10000', category: 'TG Views' },
+      { service: 'ext-404', name: 'TG Views High Quality', rate: '1.00', min: '10', max: '10000', category: 'TG Views' }
+    ]);
+
+    await adminCatalogService.syncProviderCatalog(provider.id, adminUser);
+
+    const serviceADb = await db.service.findUnique({ where: { id: serviceA.id } });
+    expect(serviceADb?.isActive).toBe(true);
+    expect(serviceADb?.markup).toBeGreaterThan(5.0);
+    expect(serviceADb?.pricePer1000Cents).toBe(32000);
   });
 
   it('should detect a price spike anomaly (>20% increase) and quarantine the service safely', async () => {
@@ -215,5 +215,32 @@ describe.sequential('Zombie Eraser & Pricing Auto-recalculation / Quarantine Tes
     expect(serviceADb?.rate).toBe(0.53);
     expect(serviceADb?.pricePer1000Cents).toBe(32000);
     expect(serviceADb?.isQuarantined).toBe(false);
+  });
+
+  it('should preserve providerCurrency = RUB and calculate prices without USD multiplication', async () => {
+    // Update provider and service to RUB
+    await db.provider.update({
+      where: { id: provider.id },
+      data: { balanceCurrency: 'RUB' }
+    });
+    await db.service.update({
+      where: { id: serviceA.id },
+      data: { providerCurrency: 'RUB', rate: 10.0, markup: 2.0, pricePer1000Cents: 2000 }
+    });
+
+    mockGetServices.mockResolvedValue([
+      { service: 'ext-303', name: 'TG Views Fast', rate: '10.50', min: '10', max: '10000', category: 'TG Views' },
+      { service: 'ext-404', name: 'TG Views High Quality', rate: '1.00', min: '10', max: '10000', category: 'TG Views' }
+    ]);
+
+    const res = await adminCatalogService.syncProviderCatalog(provider.id, adminUser);
+    expect(res.priceUpdatedSilent).toBeGreaterThanOrEqual(1);
+
+    const serviceADb = await db.service.findUnique({ where: { id: serviceA.id } });
+    expect(serviceADb?.providerCurrency).toBe('RUB');
+    expect(serviceADb?.rate).toBe(10.50);
+    // 10.50 * 2.0 * 1.0 = 21.0 RUB -> beautiful rounded to 30 RUB -> 3000 cents (NOT 210000 cents from 100x USD conversion)
+    expect(serviceADb?.pricePer1000Cents).toBe(3000);
+    expect(serviceADb?.markup).toBe(2.0);
   });
 });

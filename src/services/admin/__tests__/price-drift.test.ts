@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { db } from '@/lib/db';
 import { adminCatalogService } from '../catalog.service';
 import { adminSyncProviderCatalog } from '@/actions/admin/providers/sync-action';
@@ -18,9 +18,10 @@ vi.mock('@/lib/redis-lock', () => ({
   },
 }));
 
-describe('Active Service Price Drift Detection', () => {
+describe.sequential('Active Service Price Drift Detection', () => {
   let provider: any;
   let category: any;
+  let network: any;
   let service: any;
   let mockRate = 1.0;
   
@@ -37,18 +38,19 @@ describe('Active Service Price Drift Detection', () => {
       create: { id: 'global', quarantineThreshold: 0.20, exchangeRateUSD: 90.0 },
     });
 
-    const network = await db.network.create({
-      data: { name: 'Instagram', slug: 'instagram' },
+    const ts = Date.now() + Math.floor(Math.random() * 100000);
+    network = await db.network.create({
+      data: { name: `Instagram ${ts}`, slug: `instagram-${ts}` },
     });
     
     category = await db.category.create({
-      data: { name: 'Likes', networkId: network.id },
+      data: { name: `Likes ${ts}`, networkId: network.id },
     });
     
     provider = await db.provider.create({
       data: {
-        name: 'Test SMM Provider',
-        apiUrl: 'https://api.testprovider.com',
+        name: `Test SMM Provider ${ts}`,
+        apiUrl: `https://api.testprovider.com/${ts}`,
         apiKey: 'encrypted-key',
         isActive: true,
         balanceCurrency: 'USD',
@@ -57,13 +59,13 @@ describe('Active Service Price Drift Detection', () => {
 
     service = await db.service.create({
       data: {
-        name: 'Instagram Likes Drift Test',
+        name: `Instagram Likes Drift Test ${ts}`,
         rate: 1.0,
         markup: 5.0,
         pricePer1000Cents: 45000,
         categoryId: category.id,
         providerId: provider.id,
-        externalId: '101',
+        externalId: `ext-${ts}`,
         isActive: true,
       },
     });
@@ -80,8 +82,8 @@ describe('Active Service Price Drift Detection', () => {
       return {
         getServices: async () => [
           {
-            service: '101',
-            name: 'Instagram Likes Drift Test',
+            service: `ext-${ts}`,
+            name: `Instagram Likes Drift Test ${ts}`,
             rate: mockRate.toString(),
             min: '10',
             max: '10000',
@@ -90,6 +92,22 @@ describe('Active Service Price Drift Detection', () => {
         ]
       } as any;
     });
+  });
+
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    if (provider?.id) {
+      await db.servicePriceHistory.deleteMany({ where: { serviceId: service?.id } });
+      await db.service.deleteMany({ where: { providerId: provider.id } });
+      await db.shadowService.deleteMany({ where: { providerId: provider.id } });
+      await db.provider.deleteMany({ where: { id: provider.id } });
+    }
+    if (category?.id) {
+      await db.category.deleteMany({ where: { id: category.id } });
+    }
+    if (network?.id) {
+      await db.network.deleteMany({ where: { id: network.id } });
+    }
   });
 
   afterAll(async () => {

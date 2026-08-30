@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { applyBeautifulRounding } from "@/lib/financial-constants";
+import { applyBeautifulRounding, applyPricingLadder } from "@/lib/financial-constants";
 import { sanitizeServiceDescription } from "@/lib/sanitize";
 
 export class ServiceAuditEngine {
@@ -93,13 +93,15 @@ export class ServiceAuditEngine {
     let newMarkup = originalMarkup;
     let newPrice = originalPrice;
 
-    // Owner directive: Enforce owner minimum margin floor (3.0x multiplier = 200% margin)
+    // Curated markup preservation: If markup is explicitly set (> 0), keep it.
+    // If markup is not set (<= 0), apply adaptive pricing ladder based on cost in RUB.
     const rate = parseFloat(String(external.rate)) || 0;
-    const MIN_MARKUP = 3.0; // 200% minimum margin standard
 
-    if (!service.isQuarantined && (originalMarkup < MIN_MARKUP)) {
-      newMarkup = Math.max(originalMarkup, MIN_MARKUP);
-      newPrice = Math.round(applyBeautifulRounding(rate * newMarkup * exchangeRate) * 100);
+    if (!service.isQuarantined && originalMarkup <= 0 && rate > 0) {
+      const costRub = rate * exchangeRate;
+      const retailFromLadder = applyPricingLadder(costRub);
+      newMarkup = costRub > 0 ? Math.round((retailFromLadder / costRub) * 100) / 100 : 3.0;
+      newPrice = Math.round(applyBeautifulRounding(retailFromLadder) * 100);
     }
 
     const nameChanged = cleanedName !== originalName;

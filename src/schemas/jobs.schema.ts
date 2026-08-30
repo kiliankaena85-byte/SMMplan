@@ -11,6 +11,10 @@ export const CatalogJobSchema = z.discriminatedUnion('type', [
     usdToRub: z.number().positive()
   }),
   z.object({
+    type: z.literal('RECONCILE_PRICES'),
+    batchSize: z.number().positive().optional()
+  }),
+  z.object({
     type: z.literal('SYNC_PROVIDER_CATALOG'),
     providerId: z.string().min(1),
      

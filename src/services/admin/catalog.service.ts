@@ -10,6 +10,8 @@ import { providerService } from '@/services/providers/provider.service';
 import { SettingsProvider } from '@/lib/settings';
 import {
   SYNC_ANOMALY_THRESHOLD,
+  ANOMALY_PRICE_SPIKE_THRESHOLD,
+  UPPER_SANITY_LIMIT_RUB,
   applyPricingLadder,
   SAFETY_FLOOR_MARKUP,
   TOTAL_MANDATORY_DEDUCTIONS,
@@ -19,6 +21,9 @@ import { inferTargetTypeFromCategory } from '@/utils/target-type';
 import { ServiceAuditEngine } from './audit-engine';
 import { tenantVisibilityFilter } from '@/lib/tenant-scope';
 import { z } from 'zod';
+import { buildCurrencySnapshot, getCostRub, reconcileCurrencyBeforeSync } from '@/lib/pricing/currency-invariant';
+import { applyAntiNegativeMargin } from '@/lib/pricing/anti-negative-margin';
+import { PriceDriftCircuitBreaker } from '@/lib/pricing/drift-circuit-breaker';
 
 /**
  * Ensures a category (and its network) is visible to every tenant targeted by
@@ -251,7 +256,10 @@ export type ImportSkipReason =
   | 'ALREADY_EXISTS'
   | 'REMOVED_BY_PROVIDER'
   | 'INVALID_RATE'
-  | 'NOT_IN_SHADOW_CATALOG';
+  | 'NOT_IN_SHADOW_CATALOG'
+  | 'CURRENCY_CONVERSION_FAILED'
+  | 'PRICE_DRIFT_BLOCKED'
+  | 'INVALID_MIN_MAX';
 
 export type ImportSkippedItem = {
   externalId: string;
@@ -458,13 +466,14 @@ class AdminCatalogService {
     const service = await db.service.findUniqueOrThrow({ where: { id: serviceId } });
     const oldMarkup = service.markup;
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
-    const exchangeRate = service.providerCurrency === 'RUB' ? 1.0 : usdToRub;
+    const costRub = getCostRub(service.rate, service.providerCurrency || 'RUB', usdToRub);
 
     await db.service.update({
       where: { id: serviceId },
       data: { 
         markup: newMarkup,
-        pricePer1000Cents: Math.round(applyBeautifulRounding(service.rate * newMarkup * exchangeRate) * 100)
+        costPer1kRub: costRub,
+        pricePer1000Cents: Math.round(applyBeautifulRounding(costRub * newMarkup) * 100)
       },
     });
 
@@ -535,6 +544,12 @@ class AdminCatalogService {
     const providerDbRecord = await db.provider.findUnique({ where: { id: providerId } });
     if (!providerDbRecord) throw new Error("Provider not found");
 
+    // P0-2: Reconcile provider currency changes before wiping shadow catalog
+    await reconcileCurrencyBeforeSync(
+      providerDbRecord.id,
+      providerDbRecord.balanceCurrency || 'USD'
+    );
+
     const providerInstance = await providerService.getProviderInstance(providerDbRecord);
     const rawServices = await providerInstance.getServices();
 
@@ -565,9 +580,8 @@ class AdminCatalogService {
       console.warn('[CatalogService] Redis hash cache lookup error:', cacheErr);
     }
 
-    // Fetch exchange settings
-    const settings = await db.systemSettings.findUnique({ where: { id: "global" }, select: { exchangeRateUSD: true } });
-    const usdRate = settings?.exchangeRateUSD || 90.0;
+    // Fetch exchange settings via SettingsProvider (falls back to smmplan tenant rate)
+    const usdRate = await SettingsProvider.getExchangeRateUSD();
     const currency = providerDbRecord.balanceCurrency || 'USD';
 
     // Filter raw services using Zod Schema
@@ -805,18 +819,33 @@ class AdminCatalogService {
         }
 
         if (!s.isActive && s.cooldownReason === 'ZOMBIE_AUTO_DISABLED') {
-          // Check Price Spike before resurrecting
-          const oldRate = s.rate;
-          const EPSILON_RATE = 0.001;
+          // Check Price Spike before resurrecting using normalized ruble cost
+          const oldCurrency = s.providerCurrency || 'USD';
+          const oldExchangeRate = oldCurrency === 'RUB' ? 1.0 : usdToRub;
+          const oldCostRub = s.rate * oldExchangeRate;
+          const newCostRub = rawRate * exchangeRate;
+          const EPSILON_RUB = 0.01;
 
-          if (oldRate > 0 && rawRate > (oldRate * (1 + QUARANTINE_THRESHOLD) + EPSILON_RATE)) {
+          if (newCostRub > UPPER_SANITY_LIMIT_RUB) {
+            // Upper sanity limit breached!
+            await db.service.update({
+              where: { id: s.id },
+              data: {
+                isQuarantined: true,
+                pendingRate: rawRate,
+                quarantineReason: `Zombie Resurrection: Превышен лимит себестоимости (${newCostRub.toFixed(2)} ₽/1k > ${UPPER_SANITY_LIMIT_RUB.toLocaleString('ru-RU')} ₽)`,
+                quarantinedAt: new Date()
+              }
+            });
+            priceAnomalies++;
+          } else if (oldCostRub > 0 && newCostRub > (oldCostRub * (1 + QUARANTINE_THRESHOLD) + EPSILON_RUB)) {
             // Price spiked! Quarantine it
             await db.service.update({
               where: { id: s.id },
               data: {
                 isQuarantined: true,
                 pendingRate: rawRate,
-                quarantineReason: `Zombie Resurrection: Цена выросла с $${oldRate} до $${rawRate}`,
+                quarantineReason: `Zombie Resurrection: Себестоимость выросла с ${oldCostRub.toFixed(2)} ₽ до ${newCostRub.toFixed(2)} ₽/1k (${s.rate} ${oldCurrency} → ${rawRate} ${providerCurrency})`,
                 quarantinedAt: new Date()
               }
             });
@@ -830,21 +859,29 @@ class AdminCatalogService {
                 cooldownReason: null,
                 cooldownUntil: null,
                 rate: rawRate,
-                pricePer1000Cents: Math.round(applyBeautifulRounding(rawRate * s.markup * exchangeRate) * 100)
+                providerCurrency: providerCurrency,
+                costPer1kRub: newCostRub,
+                pricePer1000Cents: Math.round(applyBeautifulRounding(newCostRub * s.markup) * 100)
               }
             });
             resurrected++;
           }
         } else if (s.isActive && !s.isQuarantined) {
-          // Active Service Price Drift Detection
+          // Active Service Price Drift Detection using normalized RUB costs
+          const targetCurrency = providerDbRecord.balanceCurrency || s.providerCurrency || 'RUB';
+          const newCostExchangeRate = targetCurrency === 'RUB' ? 1.0 : usdToRub;
+          const oldCostExchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
+          const oldCostRub = s.costPer1kRub ?? (s.rate * oldCostExchangeRate);
+
           let oldRate = s.rate;
           const newRate = rawRate;
+          const serviceCurrency = targetCurrency;
 
-          // Self-heal mismatch between service providerCurrency and current provider balanceCurrency on the fly
-          if (s.providerCurrency !== providerCurrency) {
-            const conversionFactor = (s.providerCurrency === 'USD' && providerCurrency === 'RUB')
+          // Self-heal mismatch ONLY if provider has explicitly defined a different balanceCurrency
+          if (providerDbRecord.balanceCurrency && s.providerCurrency !== providerDbRecord.balanceCurrency) {
+            const conversionFactor = (s.providerCurrency === 'USD' && providerDbRecord.balanceCurrency === 'RUB')
               ? usdToRub
-              : (s.providerCurrency === 'RUB' && providerCurrency === 'USD')
+              : (s.providerCurrency === 'RUB' && providerDbRecord.balanceCurrency === 'USD')
               ? (1.0 / usdToRub)
               : 1.0;
             oldRate = oldRate * conversionFactor;
@@ -852,34 +889,54 @@ class AdminCatalogService {
             // permanently align in DB
             await db.service.update({
               where: { id: s.id },
-              data: { providerCurrency }
+              data: { providerCurrency: providerDbRecord.balanceCurrency }
             });
           }
 
-          // Calculate actual markup and check for Loss Prevention breach (unprofitable prices)
+          const newCostRub = newRate * newCostExchangeRate;
           const currentRetailCents = s.pricePer1000Cents;
-          const newCostCents = newRate * exchangeRate * 100;
+          const newCostCents = newCostRub * 100;
           const actualMarkup = newCostCents > 0 ? (currentRetailCents / newCostCents) : s.markup;
 
           const pricePerUnitRub = (currentRetailCents / 100) / 1000;
-          const purchaseCostPerUnitRub = (newRate * exchangeRate) / 1000;
+          const purchaseCostPerUnitRub = newCostRub / 1000;
 
-          // Price Spike Detection (> 30% increase)
-          const rateDiff = oldRate > 0 ? (newRate - oldRate) / oldRate : 0;
-          if (oldRate > 0 && rateDiff > 0.30) {
+          // Normalized price delta in RUB (immune to currency flip)
+          const costDeltaRub = oldCostRub > 0 ? (newCostRub - oldCostRub) / oldCostRub : 0;
+
+          // 1. Sanity limit breach (> UPPER_SANITY_LIMIT_RUB)
+          if (newCostRub > UPPER_SANITY_LIMIT_RUB) {
             await db.service.update({
               where: { id: s.id },
               data: {
                 isActive: false, // Immediately take off storefront
                 isQuarantined: true,
                 pendingRate: newRate,
-                quarantineReason: `Price Spike (+${(rateDiff * 100).toFixed(0)}%): c $${oldRate} до $${newRate}`,
+                quarantineReason: `Upper Sanity Limit Exceeded: себестоимость ${newCostRub.toFixed(2)} ₽/1k превышает лимит ${UPPER_SANITY_LIMIT_RUB.toLocaleString('ru-RU')} ₽ (${newRate} ${serviceCurrency})`,
                 quarantinedAt: new Date()
               }
             });
 
-            const alertMsg = `🚨 Price spike: услуга "${s.name}" (id=${s.id}) — рост цены ${(rateDiff * 100).toFixed(0)}%. Автоматически снята с витрины.`;
-            logger.warn(alertMsg, { serviceId: s.id, oldRate, newRate, rateDiff });
+            const alertMsg = `🚨 [Sanity Limit Breach] Услуга "${s.name}" (id=${s.id}): себестоимость ${newCostRub.toFixed(2)} ₽/1k превышает лимит ${UPPER_SANITY_LIMIT_RUB.toLocaleString('ru-RU')} ₽ (${newRate} ${serviceCurrency}). Автоматически снята с витрины и помещена в карантин.`;
+            logger.warn(alertMsg, { serviceId: s.id, oldCostRub, newCostRub, rawRate, providerCurrency: serviceCurrency });
+            await sendAdminAlert(alertMsg, 'CRITICAL');
+            priceAnomalies++;
+          }
+          // 2. Price Spike Detection (> 30% or > QUARANTINE_THRESHOLD or > ANOMALY_PRICE_SPIKE_THRESHOLD)
+          else if (oldCostRub > 0 && (costDeltaRub > 0.30 || costDeltaRub > QUARANTINE_THRESHOLD || costDeltaRub > ANOMALY_PRICE_SPIKE_THRESHOLD)) {
+            await db.service.update({
+              where: { id: s.id },
+              data: {
+                isActive: false, // Immediately take off storefront
+                isQuarantined: true,
+                pendingRate: newRate,
+                quarantineReason: `Price Spike (+${(costDeltaRub * 100).toFixed(0)}%): себестоимость выросла с ${oldCostRub.toFixed(2)} ₽ до ${newCostRub.toFixed(2)} ₽/1k (${s.rate} ${serviceCurrency} → ${newRate} ${serviceCurrency})`,
+                quarantinedAt: new Date()
+              }
+            });
+
+            const alertMsg = `🚨 [Price Spike] Услуга "${s.name}" (id=${s.id}) — рост себестоимости +${(costDeltaRub * 100).toFixed(0)}% (${oldCostRub.toFixed(2)} ₽ → ${newCostRub.toFixed(2)} ₽/1k, ${s.rate} ${serviceCurrency} → ${newRate} ${serviceCurrency}). Автоматически снята с витрины и помещена в карантин.`;
+            logger.warn(alertMsg, { serviceId: s.id, oldCostRub, newCostRub, costDeltaRub, oldRate: s.rate, newRate, providerCurrency: serviceCurrency });
             await sendAdminAlert(alertMsg, 'WARNING');
             priceAnomalies++;
           } else if (pricePerUnitRub < purchaseCostPerUnitRub || actualMarkup < 1.0) {
@@ -906,15 +963,26 @@ class AdminCatalogService {
             await sendAdminAlert(alertMsg, 'CRITICAL');
             priceAnomalies++;
           } else {
-            // Owner Directive: "Мы перерасчитываем сразу" & "Минимальную маржу устанавливает овнер (по стандарту 200% / 3.0x)"
-            const minMarkup = settings.globalMarkup || 3.0;
-            const effectiveMarkup = Math.max(s.markup, minMarkup);
-            const calculatedPriceCents = Math.round(applyBeautifulRounding(newRate * effectiveMarkup * exchangeRate) * 100);
+            // Curated markup preservation or adaptive pricing ladder fallback
+            let effectiveMarkup: number;
+            let calculatedPriceCents: number;
+
+            if (s.markup > 0) {
+              // PRESERVE curator's custom markup
+              effectiveMarkup = s.markup;
+              calculatedPriceCents = Math.round(applyBeautifulRounding(newCostRub * effectiveMarkup) * 100);
+            } else {
+              // Adaptive pricing ladder for unconfigured markup (markup <= 0)
+              const retailFromLadder = applyPricingLadder(newCostRub);
+              effectiveMarkup = newCostRub > 0 ? Math.round((retailFromLadder / newCostRub) * 100) / 100 : (settings.globalMarkup || 3.0);
+              calculatedPriceCents = Math.round(applyBeautifulRounding(retailFromLadder) * 100);
+            }
 
             // Respect custom fields if set
             const updateData: Record<string, unknown> = {
               rate: newRate,
-              providerCurrency: providerCurrency,
+              costPer1kRub: newCostRub,
+              providerCurrency: serviceCurrency,
               pricePer1000Cents: calculatedPriceCents,
               markup: effectiveMarkup,
               minQty: stagingExt.min,
@@ -924,10 +992,10 @@ class AdminCatalogService {
               quarantineReason: null
             };
 
-                        if (!(s as unknown as { isCustomName?: boolean }).isCustomName) {
+            if (!(s as unknown as { isCustomName?: boolean }).isCustomName) {
               updateData.name = stagingExt.name || s.name;
             }
-                        if (!(s as unknown as { isCustomDescription?: boolean }).isCustomDescription && stagingExt.name) {
+            if (!(s as unknown as { isCustomDescription?: boolean }).isCustomDescription && stagingExt.name) {
               // keep description intact unless specified
             }
 
@@ -1203,28 +1271,53 @@ class AdminCatalogService {
         continue;
       }
 
-      // Handle Currency Conversion (Avoid double-conversion for RUB providers)
+      // Handle Currency Conversion via Immutable Snapshot (P0-1)
       const providerCurrency = providerDbRecord.balanceCurrency || 'USD';
-      const exchangeRate = providerCurrency === 'RUB' ? 1.0 : globalUsdToRub;
+      let snapshot;
+      try {
+        snapshot = await buildCurrencySnapshot(rawRate, providerCurrency);
+      } catch (snapErr) {
+        skipped.push({ externalId: extId, name: shadowExt.cleanName || shadowExt.name, reason: 'CURRENCY_CONVERSION_FAILED' });
+        continue;
+      }
+
+      // P0-5: Price Drift Circuit Breaker — detect extreme price anomalies & currency mismatches
+      const driftCheck = await PriceDriftCircuitBreaker.validate(providerDbRecord.id, extId, snapshot.costPer1kRub);
+      if (!driftCheck.ok && driftCheck.severity === 'BLOCK') {
+        skipped.push({ externalId: extId, name: shadowExt.cleanName || shadowExt.name, reason: 'PRICE_DRIFT_BLOCKED' });
+        warnings.push(`Услуга ${extId} заблокирована предохранителем дрейфа цен: ${driftCheck.reason}`);
+        continue;
+      }
+
+      // P0-7: Strict Min / Max Validation (no silent substitution)
+      const rawMin = parseInt(String(liveExt.min), 10);
+      const rawMax = parseInt(String(liveExt.max), 10);
+      const minQty = isNaN(rawMin) || rawMin <= 0 ? 10 : rawMin;
+      const maxQty = isNaN(rawMax) || rawMax < minQty ? Math.max(minQty * 10, 10000) : rawMax;
 
       let effectiveMarkup = defaultMarkup;
 
-      // Auto-pricing engine
+      // Auto-pricing engine based on immutable base cost
       if (defaultMarkup <= 0) {
-        const retailFromLadder = applyPricingLadder(rawRate * exchangeRate);
-        effectiveMarkup = rawRate > 0 ? Math.round((retailFromLadder / (rawRate * exchangeRate)) * 100) / 100 : 3.0;
+        const retailFromLadder = applyPricingLadder(snapshot.costPer1kRub);
+        effectiveMarkup = snapshot.costPer1kRub > 0 ? Math.round((retailFromLadder / snapshot.costPer1kRub) * 100) / 100 : 3.0;
       }
 
-      // AUD-13 (2.3): Safety Floor Check — record the adjustment instead of bumping silently
-      if (effectiveMarkup < SAFETY_FLOOR_MARKUP) {
+      // Safety Floor Check: Ensure markup never drops below 1.0 (loss protection)
+      const MIN_SAFE_MARKUP = 1.0;
+      if (effectiveMarkup < MIN_SAFE_MARKUP) {
         markupAdjustments.push({
           externalId: extId,
           name: shadowExt.cleanName || shadowExt.name,
           requestedMarkup: effectiveMarkup,
-          appliedMarkup: SAFETY_FLOOR_MARKUP,
+          appliedMarkup: MIN_SAFE_MARKUP,
         });
-        effectiveMarkup = SAFETY_FLOOR_MARKUP;
+        effectiveMarkup = MIN_SAFE_MARKUP;
       }
+
+      // P0-3: Anti-Negative Margin Floor
+      const rawRetailRub = snapshot.costPer1kRub * effectiveMarkup;
+      const marginGuard = applyAntiNegativeMargin(snapshot.costPer1kRub, rawRetailRub, 5);
 
       const importedName = shadowExt.cleanName || liveExt.name;
       const importedDesc = liveExt.desc || null;
@@ -1300,14 +1393,16 @@ class AdminCatalogService {
           externalId: extId,
           categoryId: resolvedCategoryId,
 
-
           providerId: providerDbRecord.id,
-          providerCurrency: providerCurrency,
-          rate: rawRate, // Live provider rate (or fresh shadow rate on fallback)
+          providerCurrency: snapshot.currency,
+          costPer1kRub: snapshot.costPer1kRub,
+          currencyCapturedAt: snapshot.capturedAt,
+          usdRateAtCapture: snapshot.usdRateAtCapture,
+          rate: snapshot.rawRate, // Live provider rate (for audit)
           markup: effectiveMarkup,
-          pricePer1000Cents: Math.round(applyBeautifulRounding(rawRate * effectiveMarkup * exchangeRate) * 100),
-          minQty: parseInt(liveExt.min, 10) || 10,
-          maxQty: parseInt(liveExt.max, 10) || 10000,
+          pricePer1000Cents: marginGuard.finalRetailPer1kCents,
+          minQty,
+          maxQty,
           features: {
             platform: shadowExt.platform,
             category: shadowExt.normalizedCategory,
@@ -1412,30 +1507,95 @@ class AdminCatalogService {
   }
 
   /**
-   * Anomaly Detector: checks for large price changes after catalog sync.
-   * Called after sync-catalog worker runs.
+   * Anomaly Detector: checks for price changes after catalog sync.
+   * Active Quarantine Enforcement: automatically isolates services with price anomalies (>50% spike or >UPPER_SANITY_LIMIT_RUB) into quarantine.
    */
   async detectAnomalies(
-    oldRates: Map<string, number>,
-    newRates: Map<string, number>
+    oldRates: Map<string, number | { rate: number; currency?: string; costRub?: number }>,
+    newRates: Map<string, number | { rate: number; currency?: string; costRub?: number }>
   ): Promise<string[]> {
     const anomalies: string[] = [];
+    const settings = await SettingsProvider.get();
+    const usdToRub = settings.exchangeRateUSD || 95.0;
 
-    for (const [serviceId, oldRate] of oldRates) {
-      const newRate = newRates.get(serviceId);
-      if (newRate === undefined || oldRate === 0) continue;
+    const serviceIds = Array.from(oldRates.keys());
+    if (serviceIds.length === 0) return anomalies;
 
-      const change = Math.abs((newRate - oldRate) / oldRate);
-      if (change >= SYNC_ANOMALY_THRESHOLD) {
-        const direction = newRate > oldRate ? '📈' : '📉';
-        const msg = `${direction} Услуга ${serviceId}: $${oldRate} → $${newRate} (${(change * 100).toFixed(0)}%)`;
+    const services = await db.service.findMany({
+      where: { id: { in: serviceIds } },
+      select: { id: true, name: true, rate: true, providerCurrency: true, isQuarantined: true }
+    });
+    const serviceMap = new Map(services.map(s => [s.id, s]));
+
+    for (const [serviceId, oldRateVal] of oldRates) {
+      const newRateVal = newRates.get(serviceId);
+      if (newRateVal === undefined) continue;
+
+      const service = serviceMap.get(serviceId);
+      const sCurrency = service?.providerCurrency || 'USD';
+
+      const oldRateNum = typeof oldRateVal === 'number' ? oldRateVal : oldRateVal.rate;
+      const oldCurr = (typeof oldRateVal === 'object' && oldRateVal.currency) ? oldRateVal.currency : sCurrency;
+      const oldCostRub = (typeof oldRateVal === 'object' && typeof oldRateVal.costRub === 'number')
+        ? oldRateVal.costRub
+        : (oldRateNum * (oldCurr === 'RUB' ? 1.0 : usdToRub));
+
+      const newRateNum = typeof newRateVal === 'number' ? newRateVal : newRateVal.rate;
+      const newCurr = (typeof newRateVal === 'object' && newRateVal.currency) ? newRateVal.currency : sCurrency;
+      const newCostRub = (typeof newRateVal === 'object' && typeof newRateVal.costRub === 'number')
+        ? newRateVal.costRub
+        : (newRateNum * (newCurr === 'RUB' ? 1.0 : usdToRub));
+
+      if (oldCostRub === 0 && newCostRub === 0) continue;
+
+      // 1. Sanity limit breach
+      if (newCostRub > UPPER_SANITY_LIMIT_RUB) {
+        const msg = `🚨 [Sanity Breach] Услуга "${service?.name || serviceId}" (${serviceId}): себестоимость ${newCostRub.toFixed(2)} ₽/1k (${newRateNum} ${newCurr}) превышает лимит ${UPPER_SANITY_LIMIT_RUB.toLocaleString('ru-RU')} ₽. Изолирована в карантин.`;
         anomalies.push(msg);
+
+        await db.service.update({
+          where: { id: serviceId },
+          data: {
+            isActive: false,
+            isQuarantined: true,
+            pendingRate: newRateNum,
+            quarantineReason: `Upper Sanity Limit Exceeded: себестоимость ${newCostRub.toFixed(2)} ₽/1k превышает лимит ${UPPER_SANITY_LIMIT_RUB.toLocaleString('ru-RU')} ₽ (${newRateNum} ${newCurr})`,
+            quarantinedAt: new Date(),
+          }
+        }).catch(() => {});
+        continue;
+      }
+
+      // 2. Relative change in normalized ruble cost
+      if (oldCostRub > 0) {
+        const change = (newCostRub - oldCostRub) / oldCostRub;
+        const absChange = Math.abs(change);
+
+        if (absChange >= SYNC_ANOMALY_THRESHOLD) {
+          const direction = newCostRub > oldCostRub ? '📈' : '📉';
+          const msg = `${direction} Услуга "${service?.name || serviceId}" (${serviceId}): ${oldCostRub.toFixed(2)} ₽ (${oldRateNum} ${oldCurr}) → ${newCostRub.toFixed(2)} ₽ (${newRateNum} ${newCurr}) (${change >= 0 ? '+' : ''}${(change * 100).toFixed(0)}%)`;
+          anomalies.push(msg);
+
+          // If spike is >= 50% (ANOMALY_PRICE_SPIKE_THRESHOLD), enforce ACTIVE QUARANTINE
+          if (change >= ANOMALY_PRICE_SPIKE_THRESHOLD) {
+            await db.service.update({
+              where: { id: serviceId },
+              data: {
+                isActive: false,
+                isQuarantined: true,
+                pendingRate: newRateNum,
+                quarantineReason: `Price Spike (+${(change * 100).toFixed(0)}%): себестоимость выросла с ${oldCostRub.toFixed(2)} ₽ до ${newCostRub.toFixed(2)} ₽/1k (${oldRateNum} ${oldCurr} → ${newRateNum} ${newCurr})`,
+                quarantinedAt: new Date(),
+              }
+            }).catch(() => {});
+          }
+        }
       }
     }
 
     if (anomalies.length > 0) {
-      sendAdminAlert(
-        `⚡ Price Anomaly Detected\n\n${anomalies.join('\n')}`,
+      await sendAdminAlert(
+        `⚡ Обнаружены аномалии цен поставщиков:\n\n${anomalies.join('\n')}`,
         'WARNING'
       );
     }
@@ -1500,14 +1660,18 @@ class AdminCatalogService {
     if (newMarkup <= 0) {
       const services = await db.service.findMany({ where, select: { id: true, rate: true, providerCurrency: true } });
       const updates = services.map(s => {
-         const exchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
-         const retailFromLadder = applyPricingLadder(s.rate * exchangeRate);
-         const calculatedMarkup = s.rate > 0 ? Math.round((retailFromLadder / (s.rate * exchangeRate)) * 100) / 100 : 3.0;
+         const costRub = getCostRub(s.rate, s.providerCurrency || 'RUB', usdToRub);
+         const retailFromLadder = applyPricingLadder(costRub);
+         let calculatedMarkup = costRub > 0 ? Math.round((retailFromLadder / costRub) * 100) / 100 : SAFETY_FLOOR_MARKUP;
+         if (calculatedMarkup < SAFETY_FLOOR_MARKUP) {
+           calculatedMarkup = SAFETY_FLOOR_MARKUP;
+         }
          return db.service.update({
             where: { id: s.id },
             data: { 
               markup: calculatedMarkup,
-              pricePer1000Cents: Math.round(applyBeautifulRounding(s.rate * calculatedMarkup * exchangeRate) * 100)
+              costPer1kRub: costRub,
+              pricePer1000Cents: Math.round(applyBeautifulRounding(costRub * calculatedMarkup) * 100)
             }
          });
       });
@@ -1519,12 +1683,13 @@ class AdminCatalogService {
     } else {
       const services = await db.service.findMany({ where, select: { id: true, rate: true, providerCurrency: true } });
       const updates = services.map(s => {
-         const exchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
+         const costRub = getCostRub(s.rate, s.providerCurrency || 'RUB', usdToRub);
          return db.service.update({
             where: { id: s.id },
             data: { 
               markup: newMarkup,
-              pricePer1000Cents: Math.round(applyBeautifulRounding(s.rate * newMarkup * exchangeRate) * 100)
+              costPer1kRub: costRub,
+              pricePer1000Cents: Math.round(applyBeautifulRounding(costRub * newMarkup) * 100)
             }
          });
       });
@@ -1558,19 +1723,20 @@ class AdminCatalogService {
 
     console.info(`[AdminCatalogService] Syncing prices for ${allServices.length} services with rate ${usdToRub}...`);
 
-        const updatesBatch: Prisma.PrismaPromise<unknown>[] = [];
+    const updatesBatch: Prisma.PrismaPromise<unknown>[] = [];
     for (const s of allServices) {
-      const exchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
-      const pricePer1kRubRounded = applyBeautifulRounding(s.rate * s.markup * exchangeRate);
+      const costRub = getCostRub(s.rate, s.providerCurrency || 'RUB', usdToRub);
+      const effectiveMarkup = s.markup > 0 ? s.markup : SAFETY_FLOOR_MARKUP;
+      const pricePer1kRubRounded = applyBeautifulRounding(costRub * effectiveMarkup);
       const pricePerUnitRub = pricePer1kRubRounded / 1000;
-      const purchaseCostPerUnitRub = (s.rate * exchangeRate) / 1000;
+      const purchaseCostPerUnitRub = costRub / 1000;
 
       if (pricePerUnitRub < purchaseCostPerUnitRub) {
         // Loss prevention breach! Deactivate service
         updatesBatch.push(
           db.service.update({
             where: { id: s.id },
-            data: { isActive: false }
+            data: { isActive: false, costPer1kRub: costRub }
           })
         );
 
@@ -1592,7 +1758,10 @@ class AdminCatalogService {
         updatesBatch.push(
           db.service.update({
             where: { id: s.id },
-            data: { pricePer1000Cents: newPriceCents }
+            data: { 
+              costPer1kRub: costRub,
+              pricePer1000Cents: newPriceCents 
+            }
           })
         );
       }
@@ -1602,7 +1771,8 @@ class AdminCatalogService {
       await db.$transaction(updatesBatch.slice(i, i + 100));
     }
 
-    console.info(`[AdminCatalogService] Price sync completed.`);
+    console.info(`[AdminCatalogService] Price sync completed. Updated ${updatesBatch.length} services.`);
+    return { updatedCount: updatesBatch.length, totalCount: allServices.length };
   }
 
   /**

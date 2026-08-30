@@ -80,12 +80,10 @@ export async function approveQuarantinedService(serviceId: string) {
     }
     const targetRate = service.pendingRate;
     
-    if (targetRate <= 0) {
-      return { success: false, error: "Cannot approve quarantine: target rate is invalid (<= 0)" };
-    }
-
+    const settings = await SettingsManager.get();
+    const effectiveMarkup = service.markup > 0 ? service.markup : (settings.globalMarkup || 3.0);
     const newPricePer1000Cents = Math.round(
-      applyBeautifulRounding(targetRate * Math.max(service.markup, SAFETY_FLOOR_MARKUP) * exchangeRate) * 100
+      applyBeautifulRounding(targetRate * effectiveMarkup * exchangeRate) * 100
     );
 
     await db.$transaction(async (tx) => {
@@ -152,6 +150,7 @@ export async function approveAllQuarantined() {
     });
 
     const usdToRub = await SettingsManager.getExchangeRateUSD();
+    const settings = await SettingsManager.get();
 
     await db.$transaction(async (tx) => {
       for (const s of quarantined) {
@@ -160,8 +159,9 @@ export async function approveAllQuarantined() {
         }
         const targetRate = s.pendingRate;
         const exchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
+        const effectiveMarkup = s.markup > 0 ? s.markup : (settings.globalMarkup || 3.0);
         const newPricePer1000Cents = Math.round(
-          applyBeautifulRounding(targetRate * Math.max(s.markup, SAFETY_FLOOR_MARKUP) * exchangeRate) * 100
+          applyBeautifulRounding(targetRate * effectiveMarkup * exchangeRate) * 100
         );
 
         await tx.service.update({

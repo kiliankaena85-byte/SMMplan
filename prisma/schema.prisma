@@ -254,6 +254,9 @@ model Service {
   provider         Provider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
   rate             Float // provider rate per 1000
   providerCurrency String    @default("USD") // Dual-Ledger: tracks original currency of rate
+  costPer1kRub     Float?    // Frozen RUB cost at import/sync time (Immutable Base Cost)
+  currencyCapturedAt DateTime? // Timestamp when costPer1kRub was captured
+  usdRateAtCapture Float?    // Exchange rate USD used at capture time
   markup           Float     @default(3.0) // 300% markup
   anomalyScore     Int       @default(0) // Data Intelligence: 0-100 score for suspicious provider claims
   minQty           Int       @default(10)

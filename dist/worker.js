@@ -107208,6 +107208,10 @@ var init_jobs_schema = __esm({
         usdToRub: external_exports.number().positive()
       }),
       external_exports.object({
+        type: external_exports.literal("RECONCILE_PRICES"),
+        batchSize: external_exports.number().positive().optional()
+      }),
+      external_exports.object({
         type: external_exports.literal("SYNC_PROVIDER_CATALOG"),
         providerId: external_exports.string().min(1),
         admin: external_exports.any()
@@ -124217,6 +124221,25 @@ error: ${e instanceof Error ? e.message : String(e)}`,
 });
 
 // src/lib/financial-constants.ts
+var financial_constants_exports = {};
+__export2(financial_constants_exports, {
+  ANOMALY_PRICE_SPIKE_THRESHOLD: () => ANOMALY_PRICE_SPIKE_THRESHOLD,
+  MAX_TOTAL_DISCOUNT: () => MAX_TOTAL_DISCOUNT,
+  SAFETY_FLOOR_MARKUP: () => SAFETY_FLOOR_MARKUP,
+  SYNC_ANOMALY_THRESHOLD: () => SYNC_ANOMALY_THRESHOLD,
+  TOTAL_MANDATORY_DEDUCTIONS: () => TOTAL_MANDATORY_DEDUCTIONS,
+  UPPER_SANITY_LIMIT_RUB: () => UPPER_SANITY_LIMIT_RUB,
+  applyBeautifulRounding: () => applyBeautifulRounding,
+  applyPricingLadder: () => applyPricingLadder,
+  applyPricingLadderWithSanity: () => applyPricingLadderWithSanity,
+  calculateSafetyFloorCents: () => calculateSafetyFloorCents,
+  checkPriceSanityLimit: () => checkPriceSanityLimit
+});
+function calculateSafetyFloorCents(providerCostCents) {
+  if (providerCostCents <= 0) return 0;
+  const safetyCents = providerCostCents * (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
+  return Math.ceil(safetyCents);
+}
 function applyPricingLadder(providerCostRubPer1000, ladder = DEFAULT_PRICING_LADDER) {
   if (providerCostRubPer1000 <= 0) return 0;
   const level = ladder.find((l) => providerCostRubPer1000 < l.threshold) || ladder[ladder.length - 1];
@@ -124232,7 +124255,27 @@ function applyBeautifulRounding(priceRubPer1000) {
   }
   return Math.ceil(cleanedPrice / 100) * 100;
 }
-var TAX_USN_INCOME_RATE, TAX_VAT_USN_SPECIAL_RATE, ACQUIRING_SAFE_MAX, SAFETY_FLOOR_MARKUP, SYNC_ANOMALY_THRESHOLD, DEFAULT_PRICING_LADDER, TOTAL_TAX_FROM_REVENUE, TOTAL_MANDATORY_DEDUCTIONS;
+function checkPriceSanityLimit(priceRub, limit = UPPER_SANITY_LIMIT_RUB) {
+  const isExceeded = typeof priceRub === "number" && isFinite(priceRub) && priceRub > limit;
+  return {
+    isExceeded,
+    price: priceRub,
+    limit,
+    clampedPrice: isExceeded ? limit : priceRub
+  };
+}
+function applyPricingLadderWithSanity(providerCostRubPer1000, ladder = DEFAULT_PRICING_LADDER, sanityLimit = UPPER_SANITY_LIMIT_RUB) {
+  const retailPrice = applyPricingLadder(providerCostRubPer1000, ladder);
+  const sanity = checkPriceSanityLimit(retailPrice, sanityLimit);
+  const level = ladder.find((l) => providerCostRubPer1000 < l.threshold) || ladder[ladder.length - 1];
+  return {
+    retailPrice,
+    isSanityLimitExceeded: sanity.isExceeded,
+    sanityLimit,
+    multiplier: level.multiplier
+  };
+}
+var TAX_USN_INCOME_RATE, TAX_VAT_USN_SPECIAL_RATE, ACQUIRING_SAFE_MAX, SAFETY_FLOOR_MARKUP, MAX_TOTAL_DISCOUNT, SYNC_ANOMALY_THRESHOLD, ANOMALY_PRICE_SPIKE_THRESHOLD, UPPER_SANITY_LIMIT_RUB, DEFAULT_PRICING_LADDER, TOTAL_TAX_FROM_REVENUE, TOTAL_MANDATORY_DEDUCTIONS;
 var init_financial_constants = __esm({
   "src/lib/financial-constants.ts"() {
     "use strict";
@@ -124240,7 +124283,10 @@ var init_financial_constants = __esm({
     TAX_VAT_USN_SPECIAL_RATE = 0.05;
     ACQUIRING_SAFE_MAX = 0.035;
     SAFETY_FLOOR_MARKUP = 3;
+    MAX_TOTAL_DISCOUNT = 30;
     SYNC_ANOMALY_THRESHOLD = 0.2;
+    ANOMALY_PRICE_SPIKE_THRESHOLD = 0.5;
+    UPPER_SANITY_LIMIT_RUB = 5e4;
     DEFAULT_PRICING_LADDER = [
       { threshold: 1, multiplier: 50, fixedMarkup: 0 },
       { threshold: 10, multiplier: 11, fixedMarkup: 0 },
@@ -137204,6 +137250,152 @@ and ensure you are accounting for this risk.
   }
 });
 
+// src/lib/pricing/currency-invariant.ts
+var currency_invariant_exports = {};
+__export2(currency_invariant_exports, {
+  SUPPORTED_CURRENCIES: () => SUPPORTED_CURRENCIES,
+  buildCurrencySnapshot: () => buildCurrencySnapshot,
+  detectCurrencyChange: () => detectCurrencyChange,
+  getCostRub: () => getCostRub,
+  reconcileCurrencyBeforeSync: () => reconcileCurrencyBeforeSync,
+  resnapshotOnCurrencyChange: () => resnapshotOnCurrencyChange
+});
+function getCostRub(rate, currency, usdRate) {
+  if (typeof rate !== "number" || !isFinite(rate) || rate < 0) {
+    throw new Error(`INVALID_RATE: rate must be a non-negative finite number, got ${rate}`);
+  }
+  if (!currency || typeof currency !== "string") {
+    throw new Error(`CURRENCY_UNSUPPORTED: currency is required (rate=${rate})`);
+  }
+  const normalized = currency.toUpperCase().trim();
+  let cost;
+  switch (normalized) {
+    case "RUB":
+      cost = rate;
+      break;
+    case "USD":
+      if (typeof usdRate !== "number" || !isFinite(usdRate) || usdRate <= 0) {
+        throw new Error(`INVALID_USD_RATE: usdRate must be a positive number, got ${usdRate}`);
+      }
+      cost = rate * usdRate;
+      break;
+    case "EUR":
+      if (typeof usdRate !== "number" || !isFinite(usdRate) || usdRate <= 0) {
+        throw new Error(`INVALID_USD_RATE: usdRate must be a positive number, got ${usdRate}`);
+      }
+      cost = rate * 1.08 * usdRate;
+      break;
+    case "UAH":
+      if (typeof usdRate !== "number" || !isFinite(usdRate) || usdRate <= 0) {
+        throw new Error(`INVALID_USD_RATE: usdRate must be a positive number, got ${usdRate}`);
+      }
+      cost = rate * 0.027 * usdRate;
+      break;
+    case "KZT":
+      if (typeof usdRate !== "number" || !isFinite(usdRate) || usdRate <= 0) {
+        throw new Error(`INVALID_USD_RATE: usdRate must be a positive number, got ${usdRate}`);
+      }
+      cost = rate * 23e-4 * usdRate;
+      break;
+    default:
+      throw new Error(`CURRENCY_UNSUPPORTED: ${currency} (rate=${rate})`);
+  }
+  if (!isFinite(cost) || cost < 0) {
+    throw new Error(`CURRENCY_CONVERSION_INVALID: ${rate} ${currency} \u2192 ${cost} RUB`);
+  }
+  return Math.round(cost * 1e4) / 1e4;
+}
+async function buildCurrencySnapshot(rawRate, providerCurrency) {
+  if (!providerCurrency || typeof providerCurrency !== "string") {
+    throw new Error(`CURRENCY_UNSUPPORTED: providerCurrency is required (rate=${rawRate})`);
+  }
+  const currency = providerCurrency.toUpperCase().trim();
+  let usdRate = 95;
+  try {
+    const fetched = await SettingsProvider.getExchangeRateUSD();
+    if (fetched && fetched > 0) usdRate = fetched;
+  } catch {
+    usdRate = 95;
+  }
+  const costPer1kRub = getCostRub(rawRate, currency, usdRate);
+  if (!isFinite(costPer1kRub) || costPer1kRub <= 0) {
+    throw new Error(`CURRENCY_CONVERSION_INVALID: ${rawRate} ${currency} \u2192 ${costPer1kRub} RUB`);
+  }
+  return {
+    rawRate,
+    currency,
+    costPer1kRub,
+    usdRateAtCapture: usdRate,
+    capturedAt: /* @__PURE__ */ new Date()
+  };
+}
+async function detectCurrencyChange(providerId, newCurrency) {
+  const provider = await db.provider.findUnique({
+    where: { id: providerId },
+    select: { balanceCurrency: true }
+  });
+  const oldCurrency = provider?.balanceCurrency || null;
+  const normalizedNew = (newCurrency || "USD").toUpperCase().trim();
+  if (oldCurrency && oldCurrency.toUpperCase().trim() !== normalizedNew) {
+    const serviceCount = await db.service.count({
+      where: { providerId, isActive: true }
+    });
+    return { changed: true, oldCurrency, serviceCount };
+  }
+  return { changed: false, oldCurrency, serviceCount: 0 };
+}
+async function resnapshotOnCurrencyChange(providerId, oldCurrency, newCurrency) {
+  const services = await db.service.findMany({
+    where: { providerId, isActive: true },
+    select: { id: true, rate: true, providerCurrency: true, markup: true }
+  });
+  let updated = 0;
+  for (const svc of services) {
+    try {
+      const snapshot = await buildCurrencySnapshot(svc.rate, newCurrency);
+      await db.service.update({
+        where: { id: svc.id },
+        data: {
+          providerCurrency: newCurrency,
+          costPer1kRub: snapshot.costPer1kRub,
+          currencyCapturedAt: snapshot.capturedAt,
+          usdRateAtCapture: snapshot.usdRateAtCapture,
+          // Recompute retail from new base cost
+          pricePer1000Cents: Math.round(snapshot.costPer1kRub * svc.markup * 100)
+        }
+      });
+      updated++;
+    } catch (err) {
+      console.error(`[CurrencyResnapshot] Failed for service ${svc.id}:`, err);
+    }
+  }
+  await db.routingAuditLog.create({
+    data: {
+      serviceId: "SYSTEM",
+      action: "PROVIDER_CURRENCY_CHANGED",
+      reason: `Provider currency changed ${oldCurrency} \u2192 ${newCurrency}, resnapshotted ${updated} services`
+    }
+  });
+  return updated;
+}
+async function reconcileCurrencyBeforeSync(providerId, newBalanceCurrency) {
+  const change = await detectCurrencyChange(providerId, newBalanceCurrency);
+  if (!change.changed || !change.oldCurrency) {
+    return { resnapshotted: false, serviceCount: 0 };
+  }
+  const updated = await resnapshotOnCurrencyChange(providerId, change.oldCurrency, newBalanceCurrency);
+  return { resnapshotted: true, serviceCount: updated };
+}
+var SUPPORTED_CURRENCIES;
+var init_currency_invariant = __esm({
+  "src/lib/pricing/currency-invariant.ts"() {
+    "use strict";
+    init_db();
+    init_settings();
+    SUPPORTED_CURRENCIES = ["USD", "RUB", "EUR", "UAH", "KZT"];
+  }
+});
+
 // src/services/providers/post-sync-rules.ts
 var post_sync_rules_exports = {};
 __export2(post_sync_rules_exports, {
@@ -140141,10 +140333,11 @@ var ServiceAuditEngine = class {
     let newMarkup = originalMarkup;
     let newPrice = originalPrice;
     const rate = parseFloat(String(external.rate)) || 0;
-    const MIN_MARKUP = 3;
-    if (!service.isQuarantined && originalMarkup < MIN_MARKUP) {
-      newMarkup = Math.max(originalMarkup, MIN_MARKUP);
-      newPrice = Math.round(applyBeautifulRounding(rate * newMarkup * exchangeRate) * 100);
+    if (!service.isQuarantined && originalMarkup <= 0 && rate > 0) {
+      const costRub = rate * exchangeRate;
+      const retailFromLadder = applyPricingLadder(costRub);
+      newMarkup = costRub > 0 ? Math.round(retailFromLadder / costRub * 100) / 100 : 3;
+      newPrice = Math.round(applyBeautifulRounding(retailFromLadder) * 100);
     }
     const nameChanged = cleanedName !== originalName;
     const descriptionChanged = cleanedDescription !== service.description;
@@ -140214,6 +140407,85 @@ function tenantVisibilityFilter(tenantId) {
 
 // src/services/admin/catalog.service.ts
 init_zod();
+init_currency_invariant();
+
+// src/lib/pricing/anti-negative-margin.ts
+init_financial_constants();
+function applyAntiNegativeMargin(costPer1kRub, rawRetailPer1kRub, minMarginPct = 5) {
+  const safeCost = Math.max(0, costPer1kRub);
+  const minAcceptableRetail = safeCost * (1 + minMarginPct / 100);
+  let finalRetail = applyBeautifulRounding(rawRetailPer1kRub);
+  let wasFloored = false;
+  if (finalRetail < minAcceptableRetail) {
+    finalRetail = minAcceptableRetail;
+    wasFloored = true;
+  }
+  if (finalRetail < safeCost) {
+    finalRetail = safeCost;
+    wasFloored = true;
+  }
+  finalRetail = Math.ceil(finalRetail * 100) / 100;
+  const marginPct = safeCost > 0 ? (finalRetail - safeCost) / safeCost * 100 : 0;
+  return {
+    finalRetailPer1kRub: finalRetail,
+    finalRetailPer1kCents: Math.round(finalRetail * 100),
+    wasFloored,
+    originalRetailPer1kRub: rawRetailPer1kRub,
+    costPer1kRub: safeCost,
+    marginPct: Math.round(marginPct * 100) / 100
+  };
+}
+
+// src/lib/pricing/drift-circuit-breaker.ts
+init_db();
+init_financial_constants();
+var DEFAULT_DRIFT_CONFIG = {
+  MAX_SINGLE_DRIFT_PCT: 200,
+  MIN_REASONABLE_COST_RUB: 0.01,
+  MAX_REASONABLE_COST_RUB: UPPER_SANITY_LIMIT_RUB
+};
+var PriceDriftCircuitBreaker = class {
+  /**
+   * Validates a new cost against reasonable bounds and historical shadow price.
+   * Returns: { ok: true } | { ok: false, reason, severity }
+   */
+  static async validate(providerId, externalId, newCostPer1kRub, config = DEFAULT_DRIFT_CONFIG) {
+    if (newCostPer1kRub < config.MIN_REASONABLE_COST_RUB) {
+      return {
+        ok: false,
+        reason: `\u0421\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C ${newCostPer1kRub} \u20BD/1k \u043D\u0438\u0436\u0435 \u043C\u0438\u043D\u0438\u043C\u0430\u043B\u044C\u043D\u043E \u0434\u043E\u043F\u0443\u0441\u0442\u0438\u043C\u043E\u0433\u043E \u043F\u043E\u0440\u043E\u0433\u0430 ${config.MIN_REASONABLE_COST_RUB} \u20BD/1k (\u0430\u043D\u043E\u043C\u0430\u043B\u0438\u044F \u043C\u0438\u043A\u0440\u043E-\u0446\u0435\u043D\u044B \u0438\u043B\u0438 \u0441\u0431\u043E\u0439 \u0432\u0430\u043B\u044E\u0442\u044B)`,
+        severity: "BLOCK"
+      };
+    }
+    if (newCostPer1kRub > config.MAX_REASONABLE_COST_RUB) {
+      return {
+        ok: false,
+        reason: `\u0421\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C ${newCostPer1kRub} \u20BD/1k \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u043C\u0430\u043A\u0441\u0438\u043C\u0430\u043B\u044C\u043D\u044B\u0439 \u043B\u0438\u043C\u0438\u0442 ${config.MAX_REASONABLE_COST_RUB} \u20BD/1k (\u0432\u0435\u0440\u043E\u044F\u0442\u043D\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430 \u0432\u0430\u043B\u044E\u0442\u044B)`,
+        severity: "BLOCK"
+      };
+    }
+    try {
+      const historical = await db.shadowService.findFirst({
+        where: { providerId, externalId },
+        select: { rateRub: true }
+      });
+      if (historical?.rateRub && historical.rateRub > 0) {
+        const driftPct = (newCostPer1kRub - historical.rateRub) / historical.rateRub * 100;
+        const absDrift = Math.abs(driftPct);
+        if (absDrift > config.MAX_SINGLE_DRIFT_PCT) {
+          return {
+            ok: false,
+            reason: `\u0414\u0440\u0435\u0439\u0444 \u0446\u0435\u043D\u044B ${driftPct.toFixed(1)}% \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u0434\u043E\u043F\u0443\u0441\u0442\u0438\u043C\u044B\u0439 \u043F\u043E\u0440\u043E\u0433 (${historical.rateRub} \u20BD \u2192 ${newCostPer1kRub} \u20BD)`,
+            severity: absDrift > 500 ? "BLOCK" : "WARN",
+            previousCost: historical.rateRub
+          };
+        }
+      }
+    } catch {
+    }
+    return { ok: true };
+  }
+};
 
 // src/utils/security-sanitizer.ts
 var SecuritySanitizer = class {
@@ -140552,12 +140824,13 @@ var AdminCatalogService = class {
     const service = await db.service.findUniqueOrThrow({ where: { id: serviceId } });
     const oldMarkup = service.markup;
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
-    const exchangeRate = service.providerCurrency === "RUB" ? 1 : usdToRub;
+    const costRub = getCostRub(service.rate, service.providerCurrency || "RUB", usdToRub);
     await db.service.update({
       where: { id: serviceId },
       data: {
         markup: newMarkup,
-        pricePer1000Cents: Math.round(applyBeautifulRounding(service.rate * newMarkup * exchangeRate) * 100)
+        costPer1kRub: costRub,
+        pricePer1000Cents: Math.round(applyBeautifulRounding(costRub * newMarkup) * 100)
       }
     });
     auditAdmin({
@@ -140616,6 +140889,10 @@ var AdminCatalogService = class {
   async refreshShadowCatalog(providerId) {
     const providerDbRecord = await db.provider.findUnique({ where: { id: providerId } });
     if (!providerDbRecord) throw new Error("Provider not found");
+    await reconcileCurrencyBeforeSync(
+      providerDbRecord.id,
+      providerDbRecord.balanceCurrency || "USD"
+    );
     const providerInstance = await providerService.getProviderInstance(providerDbRecord);
     const rawServices = await providerInstance.getServices();
     if (!Array.isArray(rawServices) || rawServices.length === 0) {
@@ -140637,8 +140914,7 @@ var AdminCatalogService = class {
     } catch (cacheErr) {
       console.warn("[CatalogService] Redis hash cache lookup error:", cacheErr);
     }
-    const settings = await db.systemSettings.findUnique({ where: { id: "global" }, select: { exchangeRateUSD: true } });
-    const usdRate = settings?.exchangeRateUSD || 90;
+    const usdRate = await SettingsProvider.getExchangeRateUSD();
     const currency = providerDbRecord.balanceCurrency || "USD";
     const validRawServices = [];
     let invalidCount = 0;
@@ -140830,15 +141106,29 @@ var AdminCatalogService = class {
           await db.$transaction(auditPayloads);
         }
         if (!s.isActive && s.cooldownReason === "ZOMBIE_AUTO_DISABLED") {
-          const oldRate = s.rate;
-          const EPSILON_RATE = 1e-3;
-          if (oldRate > 0 && rawRate > oldRate * (1 + QUARANTINE_THRESHOLD) + EPSILON_RATE) {
+          const oldCurrency = s.providerCurrency || "USD";
+          const oldExchangeRate = oldCurrency === "RUB" ? 1 : usdToRub;
+          const oldCostRub = s.rate * oldExchangeRate;
+          const newCostRub = rawRate * exchangeRate;
+          const EPSILON_RUB = 0.01;
+          if (newCostRub > UPPER_SANITY_LIMIT_RUB) {
             await db.service.update({
               where: { id: s.id },
               data: {
                 isQuarantined: true,
                 pendingRate: rawRate,
-                quarantineReason: `Zombie Resurrection: \u0426\u0435\u043D\u0430 \u0432\u044B\u0440\u043E\u0441\u043B\u0430 \u0441 $${oldRate} \u0434\u043E $${rawRate}`,
+                quarantineReason: `Zombie Resurrection: \u041F\u0440\u0435\u0432\u044B\u0448\u0435\u043D \u043B\u0438\u043C\u0438\u0442 \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u0438 (${newCostRub.toFixed(2)} \u20BD/1k > ${UPPER_SANITY_LIMIT_RUB.toLocaleString("ru-RU")} \u20BD)`,
+                quarantinedAt: /* @__PURE__ */ new Date()
+              }
+            });
+            priceAnomalies++;
+          } else if (oldCostRub > 0 && newCostRub > oldCostRub * (1 + QUARANTINE_THRESHOLD) + EPSILON_RUB) {
+            await db.service.update({
+              where: { id: s.id },
+              data: {
+                isQuarantined: true,
+                pendingRate: rawRate,
+                quarantineReason: `Zombie Resurrection: \u0421\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u0432\u044B\u0440\u043E\u0441\u043B\u0430 \u0441 ${oldCostRub.toFixed(2)} \u20BD \u0434\u043E ${newCostRub.toFixed(2)} \u20BD/1k (${s.rate} ${oldCurrency} \u2192 ${rawRate} ${providerCurrency})`,
                 quarantinedAt: /* @__PURE__ */ new Date()
               }
             });
@@ -140851,29 +141141,37 @@ var AdminCatalogService = class {
                 cooldownReason: null,
                 cooldownUntil: null,
                 rate: rawRate,
-                pricePer1000Cents: Math.round(applyBeautifulRounding(rawRate * s.markup * exchangeRate) * 100)
+                providerCurrency,
+                costPer1kRub: newCostRub,
+                pricePer1000Cents: Math.round(applyBeautifulRounding(newCostRub * s.markup) * 100)
               }
             });
             resurrected++;
           }
         } else if (s.isActive && !s.isQuarantined) {
+          const targetCurrency = providerDbRecord.balanceCurrency || s.providerCurrency || "RUB";
+          const newCostExchangeRate = targetCurrency === "RUB" ? 1 : usdToRub;
+          const oldCostExchangeRate = s.providerCurrency === "RUB" ? 1 : usdToRub;
+          const oldCostRub = s.costPer1kRub ?? s.rate * oldCostExchangeRate;
           let oldRate = s.rate;
           const newRate = rawRate;
-          if (s.providerCurrency !== providerCurrency) {
-            const conversionFactor = s.providerCurrency === "USD" && providerCurrency === "RUB" ? usdToRub : s.providerCurrency === "RUB" && providerCurrency === "USD" ? 1 / usdToRub : 1;
+          const serviceCurrency = targetCurrency;
+          if (providerDbRecord.balanceCurrency && s.providerCurrency !== providerDbRecord.balanceCurrency) {
+            const conversionFactor = s.providerCurrency === "USD" && providerDbRecord.balanceCurrency === "RUB" ? usdToRub : s.providerCurrency === "RUB" && providerDbRecord.balanceCurrency === "USD" ? 1 / usdToRub : 1;
             oldRate = oldRate * conversionFactor;
             await db.service.update({
               where: { id: s.id },
-              data: { providerCurrency }
+              data: { providerCurrency: providerDbRecord.balanceCurrency }
             });
           }
+          const newCostRub = newRate * newCostExchangeRate;
           const currentRetailCents = s.pricePer1000Cents;
-          const newCostCents = newRate * exchangeRate * 100;
+          const newCostCents = newCostRub * 100;
           const actualMarkup = newCostCents > 0 ? currentRetailCents / newCostCents : s.markup;
           const pricePerUnitRub = currentRetailCents / 100 / 1e3;
-          const purchaseCostPerUnitRub = newRate * exchangeRate / 1e3;
-          const rateDiff = oldRate > 0 ? (newRate - oldRate) / oldRate : 0;
-          if (oldRate > 0 && rateDiff > 0.3) {
+          const purchaseCostPerUnitRub = newCostRub / 1e3;
+          const costDeltaRub = oldCostRub > 0 ? (newCostRub - oldCostRub) / oldCostRub : 0;
+          if (newCostRub > UPPER_SANITY_LIMIT_RUB) {
             await db.service.update({
               where: { id: s.id },
               data: {
@@ -140881,12 +141179,28 @@ var AdminCatalogService = class {
                 // Immediately take off storefront
                 isQuarantined: true,
                 pendingRate: newRate,
-                quarantineReason: `Price Spike (+${(rateDiff * 100).toFixed(0)}%): c $${oldRate} \u0434\u043E $${newRate}`,
+                quarantineReason: `Upper Sanity Limit Exceeded: \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C ${newCostRub.toFixed(2)} \u20BD/1k \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u043B\u0438\u043C\u0438\u0442 ${UPPER_SANITY_LIMIT_RUB.toLocaleString("ru-RU")} \u20BD (${newRate} ${serviceCurrency})`,
                 quarantinedAt: /* @__PURE__ */ new Date()
               }
             });
-            const alertMsg = `\u{1F6A8} Price spike: \u0443\u0441\u043B\u0443\u0433\u0430 "${s.name}" (id=${s.id}) \u2014 \u0440\u043E\u0441\u0442 \u0446\u0435\u043D\u044B ${(rateDiff * 100).toFixed(0)}%. \u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0441\u043D\u044F\u0442\u0430 \u0441 \u0432\u0438\u0442\u0440\u0438\u043D\u044B.`;
-            logger.warn(alertMsg, { serviceId: s.id, oldRate, newRate, rateDiff });
+            const alertMsg = `\u{1F6A8} [Sanity Limit Breach] \u0423\u0441\u043B\u0443\u0433\u0430 "${s.name}" (id=${s.id}): \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C ${newCostRub.toFixed(2)} \u20BD/1k \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u043B\u0438\u043C\u0438\u0442 ${UPPER_SANITY_LIMIT_RUB.toLocaleString("ru-RU")} \u20BD (${newRate} ${serviceCurrency}). \u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0441\u043D\u044F\u0442\u0430 \u0441 \u0432\u0438\u0442\u0440\u0438\u043D\u044B \u0438 \u043F\u043E\u043C\u0435\u0449\u0435\u043D\u0430 \u0432 \u043A\u0430\u0440\u0430\u043D\u0442\u0438\u043D.`;
+            logger.warn(alertMsg, { serviceId: s.id, oldCostRub, newCostRub, rawRate, providerCurrency: serviceCurrency });
+            await sendAdminAlert(alertMsg, "CRITICAL");
+            priceAnomalies++;
+          } else if (oldCostRub > 0 && (costDeltaRub > 0.3 || costDeltaRub > QUARANTINE_THRESHOLD || costDeltaRub > ANOMALY_PRICE_SPIKE_THRESHOLD)) {
+            await db.service.update({
+              where: { id: s.id },
+              data: {
+                isActive: false,
+                // Immediately take off storefront
+                isQuarantined: true,
+                pendingRate: newRate,
+                quarantineReason: `Price Spike (+${(costDeltaRub * 100).toFixed(0)}%): \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u0432\u044B\u0440\u043E\u0441\u043B\u0430 \u0441 ${oldCostRub.toFixed(2)} \u20BD \u0434\u043E ${newCostRub.toFixed(2)} \u20BD/1k (${s.rate} ${serviceCurrency} \u2192 ${newRate} ${serviceCurrency})`,
+                quarantinedAt: /* @__PURE__ */ new Date()
+              }
+            });
+            const alertMsg = `\u{1F6A8} [Price Spike] \u0423\u0441\u043B\u0443\u0433\u0430 "${s.name}" (id=${s.id}) \u2014 \u0440\u043E\u0441\u0442 \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u0438 +${(costDeltaRub * 100).toFixed(0)}% (${oldCostRub.toFixed(2)} \u20BD \u2192 ${newCostRub.toFixed(2)} \u20BD/1k, ${s.rate} ${serviceCurrency} \u2192 ${newRate} ${serviceCurrency}). \u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0441\u043D\u044F\u0442\u0430 \u0441 \u0432\u0438\u0442\u0440\u0438\u043D\u044B \u0438 \u043F\u043E\u043C\u0435\u0449\u0435\u043D\u0430 \u0432 \u043A\u0430\u0440\u0430\u043D\u0442\u0438\u043D.`;
+            logger.warn(alertMsg, { serviceId: s.id, oldCostRub, newCostRub, costDeltaRub, oldRate: s.rate, newRate, providerCurrency: serviceCurrency });
             await sendAdminAlert(alertMsg, "WARNING");
             priceAnomalies++;
           } else if (pricePerUnitRub < purchaseCostPerUnitRub || actualMarkup < 1) {
@@ -140909,12 +141223,20 @@ var AdminCatalogService = class {
             await sendAdminAlert(alertMsg, "CRITICAL");
             priceAnomalies++;
           } else {
-            const minMarkup = settings.globalMarkup || 3;
-            const effectiveMarkup = Math.max(s.markup, minMarkup);
-            const calculatedPriceCents = Math.round(applyBeautifulRounding(newRate * effectiveMarkup * exchangeRate) * 100);
+            let effectiveMarkup;
+            let calculatedPriceCents;
+            if (s.markup > 0) {
+              effectiveMarkup = s.markup;
+              calculatedPriceCents = Math.round(applyBeautifulRounding(newCostRub * effectiveMarkup) * 100);
+            } else {
+              const retailFromLadder = applyPricingLadder(newCostRub);
+              effectiveMarkup = newCostRub > 0 ? Math.round(retailFromLadder / newCostRub * 100) / 100 : settings.globalMarkup || 3;
+              calculatedPriceCents = Math.round(applyBeautifulRounding(retailFromLadder) * 100);
+            }
             const updateData = {
               rate: newRate,
-              providerCurrency,
+              costPer1kRub: newCostRub,
+              providerCurrency: serviceCurrency,
               pricePer1000Cents: calculatedPriceCents,
               markup: effectiveMarkup,
               minQty: stagingExt.min,
@@ -141133,21 +141455,40 @@ var AdminCatalogService = class {
         continue;
       }
       const providerCurrency = providerDbRecord.balanceCurrency || "USD";
-      const exchangeRate = providerCurrency === "RUB" ? 1 : globalUsdToRub;
+      let snapshot;
+      try {
+        snapshot = await buildCurrencySnapshot(rawRate, providerCurrency);
+      } catch (snapErr) {
+        skipped.push({ externalId: extId, name: shadowExt.cleanName || shadowExt.name, reason: "CURRENCY_CONVERSION_FAILED" });
+        continue;
+      }
+      const driftCheck = await PriceDriftCircuitBreaker.validate(providerDbRecord.id, extId, snapshot.costPer1kRub);
+      if (!driftCheck.ok && driftCheck.severity === "BLOCK") {
+        skipped.push({ externalId: extId, name: shadowExt.cleanName || shadowExt.name, reason: "PRICE_DRIFT_BLOCKED" });
+        warnings.push(`\u0423\u0441\u043B\u0443\u0433\u0430 ${extId} \u0437\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u0430 \u043F\u0440\u0435\u0434\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043C \u0434\u0440\u0435\u0439\u0444\u0430 \u0446\u0435\u043D: ${driftCheck.reason}`);
+        continue;
+      }
+      const rawMin = parseInt(String(liveExt.min), 10);
+      const rawMax = parseInt(String(liveExt.max), 10);
+      const minQty = isNaN(rawMin) || rawMin <= 0 ? 10 : rawMin;
+      const maxQty = isNaN(rawMax) || rawMax < minQty ? Math.max(minQty * 10, 1e4) : rawMax;
       let effectiveMarkup = defaultMarkup;
       if (defaultMarkup <= 0) {
-        const retailFromLadder = applyPricingLadder(rawRate * exchangeRate);
-        effectiveMarkup = rawRate > 0 ? Math.round(retailFromLadder / (rawRate * exchangeRate) * 100) / 100 : 3;
+        const retailFromLadder = applyPricingLadder(snapshot.costPer1kRub);
+        effectiveMarkup = snapshot.costPer1kRub > 0 ? Math.round(retailFromLadder / snapshot.costPer1kRub * 100) / 100 : 3;
       }
-      if (effectiveMarkup < SAFETY_FLOOR_MARKUP) {
+      const MIN_SAFE_MARKUP = 1;
+      if (effectiveMarkup < MIN_SAFE_MARKUP) {
         markupAdjustments.push({
           externalId: extId,
           name: shadowExt.cleanName || shadowExt.name,
           requestedMarkup: effectiveMarkup,
-          appliedMarkup: SAFETY_FLOOR_MARKUP
+          appliedMarkup: MIN_SAFE_MARKUP
         });
-        effectiveMarkup = SAFETY_FLOOR_MARKUP;
+        effectiveMarkup = MIN_SAFE_MARKUP;
       }
+      const rawRetailRub = snapshot.costPer1kRub * effectiveMarkup;
+      const marginGuard = applyAntiNegativeMargin(snapshot.costPer1kRub, rawRetailRub, 5);
       const importedName = shadowExt.cleanName || liveExt.name;
       const importedDesc = liveExt.desc || null;
       const baseSlug = importedName.toLowerCase().trim().replace(/[^a-z0-9а-яё]+/gi, "-").replace(/^-+|-+$/g, "") || `service-${extId}`;
@@ -141202,13 +141543,16 @@ var AdminCatalogService = class {
           externalId: extId,
           categoryId: resolvedCategoryId,
           providerId: providerDbRecord.id,
-          providerCurrency,
-          rate: rawRate,
-          // Live provider rate (or fresh shadow rate on fallback)
+          providerCurrency: snapshot.currency,
+          costPer1kRub: snapshot.costPer1kRub,
+          currencyCapturedAt: snapshot.capturedAt,
+          usdRateAtCapture: snapshot.usdRateAtCapture,
+          rate: snapshot.rawRate,
+          // Live provider rate (for audit)
           markup: effectiveMarkup,
-          pricePer1000Cents: Math.round(applyBeautifulRounding(rawRate * effectiveMarkup * exchangeRate) * 100),
-          minQty: parseInt(liveExt.min, 10) || 10,
-          maxQty: parseInt(liveExt.max, 10) || 1e4,
+          pricePer1000Cents: marginGuard.finalRetailPer1kCents,
+          minQty,
+          maxQty,
           features: {
             platform: shadowExt.platform,
             category: shadowExt.normalizedCategory,
@@ -141302,24 +141646,74 @@ var AdminCatalogService = class {
     };
   }
   /**
-   * Anomaly Detector: checks for large price changes after catalog sync.
-   * Called after sync-catalog worker runs.
+   * Anomaly Detector: checks for price changes after catalog sync.
+   * Active Quarantine Enforcement: automatically isolates services with price anomalies (>50% spike or >UPPER_SANITY_LIMIT_RUB) into quarantine.
    */
   async detectAnomalies(oldRates, newRates) {
     const anomalies = [];
-    for (const [serviceId, oldRate] of oldRates) {
-      const newRate = newRates.get(serviceId);
-      if (newRate === void 0 || oldRate === 0) continue;
-      const change = Math.abs((newRate - oldRate) / oldRate);
-      if (change >= SYNC_ANOMALY_THRESHOLD) {
-        const direction = newRate > oldRate ? "\u{1F4C8}" : "\u{1F4C9}";
-        const msg = `${direction} \u0423\u0441\u043B\u0443\u0433\u0430 ${serviceId}: $${oldRate} \u2192 $${newRate} (${(change * 100).toFixed(0)}%)`;
+    const settings = await SettingsProvider.get();
+    const usdToRub = settings.exchangeRateUSD || 95;
+    const serviceIds = Array.from(oldRates.keys());
+    if (serviceIds.length === 0) return anomalies;
+    const services = await db.service.findMany({
+      where: { id: { in: serviceIds } },
+      select: { id: true, name: true, rate: true, providerCurrency: true, isQuarantined: true }
+    });
+    const serviceMap = new Map(services.map((s) => [s.id, s]));
+    for (const [serviceId, oldRateVal] of oldRates) {
+      const newRateVal = newRates.get(serviceId);
+      if (newRateVal === void 0) continue;
+      const service = serviceMap.get(serviceId);
+      const sCurrency = service?.providerCurrency || "USD";
+      const oldRateNum = typeof oldRateVal === "number" ? oldRateVal : oldRateVal.rate;
+      const oldCurr = typeof oldRateVal === "object" && oldRateVal.currency ? oldRateVal.currency : sCurrency;
+      const oldCostRub = typeof oldRateVal === "object" && typeof oldRateVal.costRub === "number" ? oldRateVal.costRub : oldRateNum * (oldCurr === "RUB" ? 1 : usdToRub);
+      const newRateNum = typeof newRateVal === "number" ? newRateVal : newRateVal.rate;
+      const newCurr = typeof newRateVal === "object" && newRateVal.currency ? newRateVal.currency : sCurrency;
+      const newCostRub = typeof newRateVal === "object" && typeof newRateVal.costRub === "number" ? newRateVal.costRub : newRateNum * (newCurr === "RUB" ? 1 : usdToRub);
+      if (oldCostRub === 0 && newCostRub === 0) continue;
+      if (newCostRub > UPPER_SANITY_LIMIT_RUB) {
+        const msg = `\u{1F6A8} [Sanity Breach] \u0423\u0441\u043B\u0443\u0433\u0430 "${service?.name || serviceId}" (${serviceId}): \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C ${newCostRub.toFixed(2)} \u20BD/1k (${newRateNum} ${newCurr}) \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u043B\u0438\u043C\u0438\u0442 ${UPPER_SANITY_LIMIT_RUB.toLocaleString("ru-RU")} \u20BD. \u0418\u0437\u043E\u043B\u0438\u0440\u043E\u0432\u0430\u043D\u0430 \u0432 \u043A\u0430\u0440\u0430\u043D\u0442\u0438\u043D.`;
         anomalies.push(msg);
+        await db.service.update({
+          where: { id: serviceId },
+          data: {
+            isActive: false,
+            isQuarantined: true,
+            pendingRate: newRateNum,
+            quarantineReason: `Upper Sanity Limit Exceeded: \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C ${newCostRub.toFixed(2)} \u20BD/1k \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u043B\u0438\u043C\u0438\u0442 ${UPPER_SANITY_LIMIT_RUB.toLocaleString("ru-RU")} \u20BD (${newRateNum} ${newCurr})`,
+            quarantinedAt: /* @__PURE__ */ new Date()
+          }
+        }).catch(() => {
+        });
+        continue;
+      }
+      if (oldCostRub > 0) {
+        const change = (newCostRub - oldCostRub) / oldCostRub;
+        const absChange = Math.abs(change);
+        if (absChange >= SYNC_ANOMALY_THRESHOLD) {
+          const direction = newCostRub > oldCostRub ? "\u{1F4C8}" : "\u{1F4C9}";
+          const msg = `${direction} \u0423\u0441\u043B\u0443\u0433\u0430 "${service?.name || serviceId}" (${serviceId}): ${oldCostRub.toFixed(2)} \u20BD (${oldRateNum} ${oldCurr}) \u2192 ${newCostRub.toFixed(2)} \u20BD (${newRateNum} ${newCurr}) (${change >= 0 ? "+" : ""}${(change * 100).toFixed(0)}%)`;
+          anomalies.push(msg);
+          if (change >= ANOMALY_PRICE_SPIKE_THRESHOLD) {
+            await db.service.update({
+              where: { id: serviceId },
+              data: {
+                isActive: false,
+                isQuarantined: true,
+                pendingRate: newRateNum,
+                quarantineReason: `Price Spike (+${(change * 100).toFixed(0)}%): \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u0432\u044B\u0440\u043E\u0441\u043B\u0430 \u0441 ${oldCostRub.toFixed(2)} \u20BD \u0434\u043E ${newCostRub.toFixed(2)} \u20BD/1k (${oldRateNum} ${oldCurr} \u2192 ${newRateNum} ${newCurr})`,
+                quarantinedAt: /* @__PURE__ */ new Date()
+              }
+            }).catch(() => {
+            });
+          }
+        }
       }
     }
     if (anomalies.length > 0) {
-      sendAdminAlert(
-        `\u26A1 Price Anomaly Detected
+      await sendAdminAlert(
+        `\u26A1 \u041E\u0431\u043D\u0430\u0440\u0443\u0436\u0435\u043D\u044B \u0430\u043D\u043E\u043C\u0430\u043B\u0438\u0438 \u0446\u0435\u043D \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u043E\u0432:
 
 ${anomalies.join("\n")}`,
         "WARNING"
@@ -141373,14 +141767,18 @@ ${anomalies.join("\n")}`,
     if (newMarkup <= 0) {
       const services = await db.service.findMany({ where, select: { id: true, rate: true, providerCurrency: true } });
       const updates = services.map((s) => {
-        const exchangeRate = s.providerCurrency === "RUB" ? 1 : usdToRub;
-        const retailFromLadder = applyPricingLadder(s.rate * exchangeRate);
-        const calculatedMarkup = s.rate > 0 ? Math.round(retailFromLadder / (s.rate * exchangeRate) * 100) / 100 : 3;
+        const costRub = getCostRub(s.rate, s.providerCurrency || "RUB", usdToRub);
+        const retailFromLadder = applyPricingLadder(costRub);
+        let calculatedMarkup = costRub > 0 ? Math.round(retailFromLadder / costRub * 100) / 100 : SAFETY_FLOOR_MARKUP;
+        if (calculatedMarkup < SAFETY_FLOOR_MARKUP) {
+          calculatedMarkup = SAFETY_FLOOR_MARKUP;
+        }
         return db.service.update({
           where: { id: s.id },
           data: {
             markup: calculatedMarkup,
-            pricePer1000Cents: Math.round(applyBeautifulRounding(s.rate * calculatedMarkup * exchangeRate) * 100)
+            costPer1kRub: costRub,
+            pricePer1000Cents: Math.round(applyBeautifulRounding(costRub * calculatedMarkup) * 100)
           }
         });
       });
@@ -141391,12 +141789,13 @@ ${anomalies.join("\n")}`,
     } else {
       const services = await db.service.findMany({ where, select: { id: true, rate: true, providerCurrency: true } });
       const updates = services.map((s) => {
-        const exchangeRate = s.providerCurrency === "RUB" ? 1 : usdToRub;
+        const costRub = getCostRub(s.rate, s.providerCurrency || "RUB", usdToRub);
         return db.service.update({
           where: { id: s.id },
           data: {
             markup: newMarkup,
-            pricePer1000Cents: Math.round(applyBeautifulRounding(s.rate * newMarkup * exchangeRate) * 100)
+            costPer1kRub: costRub,
+            pricePer1000Cents: Math.round(applyBeautifulRounding(costRub * newMarkup) * 100)
           }
         });
       });
@@ -141426,15 +141825,16 @@ ${anomalies.join("\n")}`,
     console.info(`[AdminCatalogService] Syncing prices for ${allServices.length} services with rate ${usdToRub}...`);
     const updatesBatch = [];
     for (const s of allServices) {
-      const exchangeRate = s.providerCurrency === "RUB" ? 1 : usdToRub;
-      const pricePer1kRubRounded = applyBeautifulRounding(s.rate * s.markup * exchangeRate);
+      const costRub = getCostRub(s.rate, s.providerCurrency || "RUB", usdToRub);
+      const effectiveMarkup = s.markup > 0 ? s.markup : SAFETY_FLOOR_MARKUP;
+      const pricePer1kRubRounded = applyBeautifulRounding(costRub * effectiveMarkup);
       const pricePerUnitRub = pricePer1kRubRounded / 1e3;
-      const purchaseCostPerUnitRub = s.rate * exchangeRate / 1e3;
+      const purchaseCostPerUnitRub = costRub / 1e3;
       if (pricePerUnitRub < purchaseCostPerUnitRub) {
         updatesBatch.push(
           db.service.update({
             where: { id: s.id },
-            data: { isActive: false }
+            data: { isActive: false, costPer1kRub: costRub }
           })
         );
         const alertMsg = `\u{1F6A8} [Loss Prevention] \u0423\u0441\u043B\u0443\u0433\u0430 ${s.id} \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0430 \u0438\u0437-\u0437\u0430 \u043A\u043E\u043B\u0435\u0431\u0430\u043D\u0438\u0439 \u043A\u0443\u0440\u0441\u0430 \u0426\u0411! \u0420\u043E\u0437\u043D\u0438\u0447\u043D\u0430\u044F \u0446\u0435\u043D\u0430 ${pricePerUnitRub.toFixed(4)} \u20BD/\u0448\u0442 \u043C\u0435\u043D\u044C\u0448\u0435 \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u0438 \u0437\u0430\u043A\u0443\u043F\u043A\u0438 ${purchaseCostPerUnitRub.toFixed(4)} \u20BD/\u0448\u0442.`;
@@ -141453,7 +141853,10 @@ ${anomalies.join("\n")}`,
         updatesBatch.push(
           db.service.update({
             where: { id: s.id },
-            data: { pricePer1000Cents: newPriceCents }
+            data: {
+              costPer1kRub: costRub,
+              pricePer1000Cents: newPriceCents
+            }
           })
         );
       }
@@ -141461,7 +141864,8 @@ ${anomalies.join("\n")}`,
     for (let i = 0; i < updatesBatch.length; i += 100) {
       await db.$transaction(updatesBatch.slice(i, i + 100));
     }
-    console.info(`[AdminCatalogService] Price sync completed.`);
+    console.info(`[AdminCatalogService] Price sync completed. Updated ${updatesBatch.length} services.`);
+    return { updatedCount: updatesBatch.length, totalCount: allServices.length };
   }
   /**
    * Markup Analytics: returns distribution of markups across all services.
@@ -141657,6 +142061,103 @@ async function catalogProcessor(job) {
         log18.info(`[CatalogProcessor] Starting background price sync with rate ${usdToRub}...`);
         await adminCatalogService.syncDenormalizedPrices(usdToRub);
         log18.info(`[CatalogProcessor] Price sync completed successfully.`);
+        await triggerCacheRevalidation(["catalog", "services"]);
+        break;
+      }
+      case "RECONCILE_PRICES": {
+        const { batchSize = 500 } = payload;
+        log18.info(`[CatalogProcessor] Starting price reconciliation (batchSize: ${batchSize})...`);
+        const { SettingsProvider: SettingsProvider2 } = await Promise.resolve().then(() => (init_settings(), settings_exports));
+        const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        const { getCostRub: getCostRub2 } = await Promise.resolve().then(() => (init_currency_invariant(), currency_invariant_exports));
+        const { UPPER_SANITY_LIMIT_RUB: UPPER_SANITY_LIMIT_RUB2 } = await Promise.resolve().then(() => (init_financial_constants(), financial_constants_exports));
+        const usdRate = await SettingsProvider2.getExchangeRateUSD();
+        const activeServices = await db2.service.findMany({
+          where: { isActive: true },
+          take: batchSize,
+          select: {
+            id: true,
+            name: true,
+            rate: true,
+            providerCurrency: true,
+            costPer1kRub: true,
+            pricePer1000Cents: true,
+            markup: true,
+            tenantId: true
+          }
+        });
+        let scanned = 0;
+        let costCacheFixed = 0;
+        let lossQuarantined = 0;
+        let upperQuarantined = 0;
+        let currencyQuarantined = 0;
+        let lowMarkupReported = 0;
+        for (const s of activeServices) {
+          scanned++;
+          let freshCostRub = 0;
+          try {
+            freshCostRub = getCostRub2(s.rate, s.providerCurrency || "", usdRate);
+          } catch (currErr) {
+            await db2.service.update({
+              where: { id: s.id },
+              data: {
+                isActive: false,
+                isQuarantined: true,
+                quarantinedAt: /* @__PURE__ */ new Date(),
+                quarantineReason: `Invalid Currency (${s.providerCurrency || "NULL"}): ${currErr instanceof Error ? currErr.message : String(currErr)}`
+              }
+            });
+            currencyQuarantined++;
+            continue;
+          }
+          const currentCost = s.costPer1kRub;
+          const costDelta = currentCost == null ? 1 : Math.abs(currentCost - freshCostRub) / Math.max(currentCost, 1);
+          if (currentCost == null || costDelta > 0.02) {
+            await db2.service.update({
+              where: { id: s.id },
+              data: { costPer1kRub: freshCostRub }
+            });
+            costCacheFixed++;
+          }
+          const retailRub = (s.pricePer1000Cents || 0) / 100;
+          if (retailRub < freshCostRub) {
+            await db2.service.update({
+              where: { id: s.id },
+              data: {
+                isActive: false,
+                isQuarantined: true,
+                quarantinedAt: /* @__PURE__ */ new Date(),
+                quarantineReason: `Loss Prevention: Retail price ${retailRub.toFixed(2)} \u20BD < Cost ${freshCostRub.toFixed(2)} \u20BD/1k`
+              }
+            });
+            lossQuarantined++;
+            continue;
+          }
+          if (retailRub > UPPER_SANITY_LIMIT_RUB2) {
+            await db2.service.update({
+              where: { id: s.id },
+              data: {
+                isActive: false,
+                isQuarantined: true,
+                quarantinedAt: /* @__PURE__ */ new Date(),
+                quarantineReason: `Upper Sanity Limit Exceeded: Retail price ${retailRub.toFixed(2)} \u20BD > ${UPPER_SANITY_LIMIT_RUB2} \u20BD/1k`
+              }
+            });
+            upperQuarantined++;
+            continue;
+          }
+          if (s.markup > 0 && s.markup < 1) {
+            lowMarkupReported++;
+          }
+        }
+        log18.info(`[CatalogProcessor] Price reconciliation completed:`, {
+          scanned,
+          costCacheFixed,
+          lossQuarantined,
+          upperQuarantined,
+          currencyQuarantined,
+          lowMarkupReported
+        });
         await triggerCacheRevalidation(["catalog", "services"]);
         break;
       }

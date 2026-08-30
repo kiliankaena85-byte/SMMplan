@@ -17,6 +17,7 @@ import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { z } from 'zod';
 import { applyBeautifulRounding, applyPricingLadder, SAFETY_FLOOR_MARKUP } from '@/lib/financial-constants';
+import { getCostRub } from '@/lib/pricing/currency-invariant';
 import { SettingsProvider } from '@/lib/settings';
 
 const MIN_MARKUP = 1.0;
@@ -87,13 +88,17 @@ export async function batchSetMarkupAction(
     });
 
     await db.$transaction(
-      services.map(s => db.service.update({
-        where: { id: s.id },
-        data: { 
-          markup: m,
-          pricePer1000Cents: Math.round(applyBeautifulRounding(s.rate * m * (s.providerCurrency === 'RUB' ? 1 : usdToRub)) * 100)
-        }
-      }))
+      services.map(s => {
+        const costRub = getCostRub(s.rate, s.providerCurrency || 'RUB', usdToRub);
+        return db.service.update({
+          where: { id: s.id },
+          data: { 
+            markup: m,
+            costPer1kRub: costRub,
+            pricePer1000Cents: Math.round(applyBeautifulRounding(costRub * m) * 100)
+          }
+        });
+      })
     );
 
     await auditAdminAwaitable({
@@ -138,7 +143,7 @@ export async function previewBatchMarkupAction(
 
     const samples = services.map(s => {
       const oldPriceRub = s.pricePer1000Cents / 100;
-      const rateRub = s.providerCurrency === 'RUB' ? s.rate : s.rate * usdToRub;
+      const rateRub = getCostRub(s.rate, s.providerCurrency || 'RUB', usdToRub);
       const newPriceRub = applyBeautifulRounding(rateRub * m);
       return {
         id: s.id,
@@ -179,11 +184,14 @@ export async function updateServiceMarkupAction(
 
     if (!service) return { success: false as const, error: 'Service not found' };
 
+    const costRub = getCostRub(service.rate, service.providerCurrency || 'RUB', usdToRub);
+
     await db.service.update({
       where: { id: serviceId },
       data: { 
         markup: m,
-        pricePer1000Cents: Math.round(applyBeautifulRounding(service.rate * m * (service.providerCurrency === 'RUB' ? 1 : usdToRub)) * 100)
+        costPer1kRub: costRub,
+        pricePer1000Cents: Math.round(applyBeautifulRounding(costRub * m) * 100)
       },
     });
 
@@ -297,9 +305,9 @@ export async function batchResetMarkupAction(
     });
 
     const updates = services.map(s => {
-      const exchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
-      const retailFromLadder = applyPricingLadder(s.rate * exchangeRate);
-      let calculatedMarkup = s.rate > 0 ? Math.round((retailFromLadder / (s.rate * exchangeRate)) * 100) / 100 : 3.0;
+      const costRub = getCostRub(s.rate, s.providerCurrency || 'RUB', usdToRub);
+      const retailFromLadder = applyPricingLadder(costRub);
+      let calculatedMarkup = costRub > 0 ? Math.round((retailFromLadder / costRub) * 100) / 100 : SAFETY_FLOOR_MARKUP;
       
       // Safety Floor Check
       if (calculatedMarkup < SAFETY_FLOOR_MARKUP) {
@@ -310,7 +318,8 @@ export async function batchResetMarkupAction(
         where: { id: s.id },
         data: { 
           markup: calculatedMarkup,
-          pricePer1000Cents: Math.round(applyBeautifulRounding(s.rate * calculatedMarkup * exchangeRate) * 100)
+          costPer1kRub: costRub,
+          pricePer1000Cents: Math.round(applyBeautifulRounding(costRub * calculatedMarkup) * 100)
         }
       });
     });
