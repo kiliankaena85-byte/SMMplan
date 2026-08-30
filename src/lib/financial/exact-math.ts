@@ -23,6 +23,9 @@ export class ExactMath {
       if (num < 0) {
         throw new Error(`Negative monetary amounts are forbidden: ${rub}`);
       }
+      if (num > Number.MAX_SAFE_INTEGER) {
+        throw new Error(`Monetary amount exceeds safe calculation limits: ${rub}`);
+      }
       const fixed = num.toFixed(2);
       const [whole, frac = '00'] = fixed.split('.');
       return BigInt(whole) * BigInt(100) + BigInt(frac);
@@ -32,6 +35,9 @@ export class ExactMath {
     }
     if (rub < 0) {
       throw new Error(`Negative monetary amounts are forbidden: ${rub}`);
+    }
+    if (rub > Number.MAX_SAFE_INTEGER) {
+      throw new Error(`Monetary amount exceeds safe calculation limits: ${rub}`);
     }
     // String-fixed decomposition eliminates IEEE-754 floating-point drift
     const fixed = rub.toFixed(2);

@@ -56,6 +56,11 @@ export async function isPublicHost(hostname: string): Promise<boolean> {
     return false;
   }
 
+  // Direct IP address check
+  if (!isPublicIp(cleanHost)) {
+    return false;
+  }
+
   try {
     const records = await dns.lookup(cleanHost, { all: true });
     if (!records || records.length === 0) return false;

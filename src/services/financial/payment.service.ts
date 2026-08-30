@@ -232,6 +232,12 @@ export class PaymentService {
             // Batch deduct total charge and log ledger entries
             const totalChargeCents = basketOrders.reduce((sum, order) => sum + order.charge, BigInt(0));
             
+            // [FIN-P0 Guard] Ensure credited amount is strictly >= totalChargeCents to prevent underpaid basket activation
+            if (creditAmount < totalChargeCents) {
+              console.error(`[SECURITY] Underpaid basket activation blocked: basket requires ${totalChargeCents} kopecks, but payment credited only ${creditAmount} kopecks.`);
+              throw new Error(`UNDERPAID_BASKET: Credited amount (${creditAmount}) is less than required basket charge (${totalChargeCents})`);
+            }
+
             await WalletOps.charge(
               tx,
               targetUserId,
