@@ -135,6 +135,13 @@ export async function loginWithPasswordAction(prevState: unknown, formData: Form
 
     if (!user.isEmailVerified) {
       log.warn('Password login: Email not verified', { email: cleanEmail });
+      const isTestEnv =
+        process.env.APP_URL?.includes('test.smmplan.pro') ||
+        process.env.NODE_ENV !== 'production' ||
+        process.env.DEV_MOCK_SMTP === 'true';
+      if (isTestEnv) {
+        return { error: "Email не подтверждён. В тестовом режиме: скопируйте ссылку из логов сервера и откройте её в браузере.", success: false };
+      }
       return { error: "Пожалуйста, подтвердите email по ссылке из письма", success: false };
     }
 

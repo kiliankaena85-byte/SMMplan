@@ -560,7 +560,12 @@ export async function adminChangeUserPasswordAction(userId: string, newPass: str
 
     await db.user.update({
       where: { id: userId },
-      data: { passwordHash: hashed }
+      data: { 
+        passwordHash: hashed,
+        // Verify email automatically: admin-set password implies identity is confirmed
+        isEmailVerified: true,
+        isActive: true,
+      }
     });
 
     // Сброс всех сессий пользователя ради безопасности

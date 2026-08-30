@@ -136,6 +136,19 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
       await sendMagicLink(cleanEmail, rawToken, tenantId);
     } catch {
       log.warn('Registration email send failed', { email: cleanEmail });
+      // In test/dev: auto-verify email so the user can immediately log in.
+      // In production: email verification remains mandatory.
+      const isTestEnv =
+        process.env.APP_URL?.includes('test.smmplan.pro') ||
+        process.env.NODE_ENV !== 'production' ||
+        process.env.DEV_MOCK_SMTP === 'true';
+      if (isTestEnv) {
+        await db.user.update({
+          where: { id: user.id },
+          data: { isEmailVerified: true },
+        });
+        log.info('[DEV] Auto-verified email for user due to SMTP failure', { email: cleanEmail, userId: user.id });
+      }
     }
 
     log.info('Password registration initiated with email verification link', { email: cleanEmail, userId: user.id });
