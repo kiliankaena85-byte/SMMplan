@@ -37,14 +37,16 @@ export function AdminProfileDropdown({
 }: AdminProfileDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { theme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const { setIsHelpOpen } = useShortcuts();
+  const [mounted, setMounted] = useState(false);
 
   // Workspace Settings
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [compactMode, setCompactMode] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     try {
       const savedSound = localStorage.getItem('admin_sound_notifications');
       if (savedSound !== null) setSoundEnabled(savedSound === 'true');
@@ -76,6 +78,14 @@ export function AdminProfileDropdown({
     } catch {}
   };
 
+  const isDark = mounted ? (resolvedTheme === 'dark' || theme?.includes('dark') || theme === 'dark') : false;
+
+  const toggleTheme = () => {
+    const next = isDark ? 'light' : 'dark';
+    setTheme(next);
+    toast.success(isDark ? 'Включена светлая тема' : 'Включена тёмная тема');
+  };
+
   // Close dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -88,7 +98,6 @@ export function AdminProfileDropdown({
   }, []);
 
   const initials = userEmail.slice(0, 2).toUpperCase();
-  const isDark = theme?.includes('dark') || theme === 'dark';
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -191,7 +200,8 @@ export function AdminProfileDropdown({
 
             {/* Dark / Light Theme Toggle */}
             <button
-              onClick={() => setTheme(isDark ? 'sky-light' : 'sky-dark')}
+              type="button"
+              onClick={toggleTheme}
               className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
             >
               <span className="flex items-center gap-2">

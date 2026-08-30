@@ -17,6 +17,7 @@ export default defineConfig({
       'src/__tests__/admin-switchers-security.test.ts',
       'src/__tests__/ai-draft-caching-speed.test.ts',
       'src/__tests__/orders-clients-pagination.test.ts',
+      'src/__tests__/dark-mode-audit.test.ts',
     ],
   }
 });
