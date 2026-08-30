@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { analyzeUrl } from "@/actions/order/analyze-url";
-import { getServicesByCategoryAction, PublicNetwork, PublicCategory, PublicService, getPublicCatalogAction } from "@/actions/order/catalog";
+import { getServicesByCategoryAction, PublicNetwork, PublicCategory, PublicService, getPublicCatalogAction, getFreshServiceAction } from "@/actions/order/catalog";
 import { calculatePriceAction } from "@/actions/order/checkout";
 import { PricingResult } from "@/services/marketing.service";
 import { IntelligencePlatform } from "@/services/analyzer/link-rules";
@@ -747,6 +747,39 @@ export function useOrderEngine(
     }
     return null;
   }, [selectedService, detectedType, isLinkOverridden, catalog]);
+
+  // Live Sync: on window focus or visibility change, re-check selected service for real-time prices and limits
+  useEffect(() => {
+    const handleSync = () => {
+      if (selectedServiceRef.current?.id) {
+        getFreshServiceAction(selectedServiceRef.current.id).then((fresh) => {
+          if (fresh) {
+            setSelectedService(prev => {
+              if (!prev || prev.id !== fresh.id) return prev;
+              if (
+                prev.pricePerUnitRub !== fresh.pricePerUnitRub ||
+                prev.minQty !== fresh.minQty ||
+                prev.maxQty !== fresh.maxQty ||
+                prev.description !== fresh.description ||
+                prev.name !== fresh.name ||
+                prev.isActive !== fresh.isActive
+              ) {
+                return fresh;
+              }
+              return prev;
+            });
+          }
+        }).catch(() => {});
+      }
+    };
+
+    window.addEventListener('focus', handleSync);
+    document.addEventListener('visibilitychange', handleSync);
+    return () => {
+      window.removeEventListener('focus', handleSync);
+      document.removeEventListener('visibilitychange', handleSync);
+    };
+  }, []);
 
   return {
     // State

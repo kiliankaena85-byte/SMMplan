@@ -350,10 +350,18 @@ export async function updateServiceAction(id: string, rawData: unknown) {
     });
 
     revalidatePath("/admin/catalog");
+    revalidatePath("/", "layout");
+    revalidatePath("/services", "layout");
     revalidateTag("catalog", 'default');
     revalidateTag("services", 'default');
-    revalidateTag(`catalog-${updatedService.tenantId}`, 'default');
-    revalidateTag(`services-${updatedService.tenantId}`, 'default');
+    revalidateTag("catalog-smmplan", 'default');
+    revalidateTag("catalog-flux", 'default');
+    revalidateTag("networks-smmplan", 'default');
+    revalidateTag("networks-flux", 'default');
+    if (updatedService.categoryId) {
+      revalidateTag(`category-${updatedService.categoryId}-smmplan`, 'default');
+      revalidateTag(`category-${updatedService.categoryId}-flux`, 'default');
+    }
 
     return { success: true as const, serviceId: updatedService.id };
   });

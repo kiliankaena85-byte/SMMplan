@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
-import { PublicService } from "@/actions/order/catalog";
+import { PublicService, getFreshServiceAction } from "@/actions/order/catalog";
 import { DrawerOrderSummary } from "./DrawerOrderSummary";
 import { DrawerQuantityCard } from "./DrawerQuantityCard";
 import { DrawerFormInputs } from "./DrawerFormInputs";
@@ -58,6 +58,35 @@ export function CheckoutDrawer({
   userBalanceCents = 0
 }: CheckoutDrawerProps) {
   const [gateway, setGateway] = React.useState<"yookassa" | "cryptobot" | "balance">("yookassa");
+
+  // Live JIT Service Sync: update service parameters immediately when drawer is shown
+  useEffect(() => {
+    if (!selectedService?.id) return;
+    let isMounted = true;
+
+    getFreshServiceAction(selectedService.id).then((fresh) => {
+      if (!isMounted || !fresh) return;
+      if (
+        fresh.pricePerUnitRub !== selectedService.pricePerUnitRub ||
+        fresh.minQty !== selectedService.minQty ||
+        fresh.maxQty !== selectedService.maxQty ||
+        fresh.description !== selectedService.description ||
+        fresh.name !== selectedService.name ||
+        fresh.isActive !== selectedService.isActive
+      ) {
+        engine.setSelectedService(fresh);
+        if (quantity < fresh.minQty) {
+          setQuantity(fresh.minQty);
+        } else if (quantity > fresh.maxQty) {
+          setQuantity(fresh.maxQty);
+        }
+      }
+    }).catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedService?.id]);
 
   // Handle ESC key to close drawer
   useEffect(() => {

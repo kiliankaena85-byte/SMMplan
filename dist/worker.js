@@ -143712,6 +143712,7 @@ var LedgerReconciliationService = class {
 
 // src/services/admin/storm-detector.service.ts
 init_db();
+init_redis();
 var StormDetectorService = class {
   constructor() {
     /**
@@ -143748,6 +143749,14 @@ var StormDetectorService = class {
       minUsers = 1,
       tenantId
     } = options;
+    const cacheKey = `admin:storm_report:${tenantId || "all"}:${windowHours}`;
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch {
+    }
     const isSingleTenant = tenantId && tenantId !== "all";
     const cutoffDate = new Date(Date.now() - windowHours * 60 * 60 * 1e3);
     const where = {
@@ -143869,7 +143878,7 @@ var StormDetectorService = class {
       if (b.severity === "CRITICAL" && a.severity !== "CRITICAL") return 1;
       return b.failureRate - a.failureRate;
     });
-    return {
+    const report = {
       isShadowMode: true,
       // Stage 1: Safe Shadow Monitoring
       windowHours,
@@ -143879,6 +143888,11 @@ var StormDetectorService = class {
       criticalCount,
       alerts
     };
+    try {
+      await redis.set(cacheKey, JSON.stringify(report), "EX", 60);
+    } catch {
+    }
+    return report;
   }
 };
 var stormDetectorService = new StormDetectorService();

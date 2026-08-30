@@ -99,14 +99,18 @@ export type PublicService = {
   minQty: number;
   maxQty: number;
   description: string | null;
-  speed: string;
+  speed?: string;
   speedDisplay?: string | null;
   startTime?: string | null;
   warrantyDays?: number | null;
   qualityLabel?: string | null;
+  qualityTier?: string | null;
+  tierName?: string | null;
   badge: string;
+  isActive?: boolean;
   isDripFeedEnabled: boolean;
   isRefillEnabled?: boolean;
+  isCancelEnabled?: boolean;
   targetType?: string | null;
   customDataType?: string | null;
   customDataLabel?: string | null;
@@ -439,6 +443,137 @@ export async function getServiceBySlugAction(slug: string, tenantId: string = 's
     };
   } catch (error) {
     console.error("Failed to fetch service by slug:", error);
+    return null;
+  }
+}
+
+/**
+ * @public Fetches fresh, live un-cached service details for JIT modal refresh
+ */
+export async function getFreshServiceAction(serviceId: string, tenantId: string = 'smmplan'): Promise<PublicService | null> {
+  try {
+    const usdToRub = await SettingsProvider.getExchangeRateUSD();
+    const s = await db.service.findUnique({
+      where: { id: serviceId },
+      include: {
+        smartConfig: {
+          select: {
+            isEnabled: true,
+            isTestMode: true,
+            minChunk: true,
+            maxChunk: true,
+            markup: true,
+            useInviteBuffer: true,
+            autoCompensate: true,
+            checkIntervalMins: true,
+          }
+        }
+      }
+    });
+
+    if (!s) return null;
+
+    const lowerName = s.name.toLowerCase();
+    const isExplicitNoRefill =
+      lowerName.includes('без гарантии') ||
+      lowerName.includes('без гарантий') ||
+      lowerName.includes('без автодокрутки') ||
+      lowerName.includes('no refill') ||
+      lowerName.includes('no-refill') ||
+      lowerName.includes('norefill') ||
+      /\b0\s*(?:d|day|days)\s*refill/i.test(lowerName) ||
+      /\bnon[\s-]refill/i.test(lowerName) ||
+      lowerName.includes('no warranty') ||
+      lowerName.includes('without warranty') ||
+      lowerName.includes('без восстановления');
+
+    const feat = (s.features && typeof s.features === 'object' ? s.features : {}) as Record<string, unknown>;
+    const fallbackAnalysis = (!feat.speedText || !feat.startTime)
+      ? SmartAnalyzerLogic.detectSync(s.name, s.description || '')
+      : null;
+
+    const isRefillActive = !isExplicitNoRefill && Boolean(
+      s.isRefillEnabled ||
+      feat.hasRefill ||
+      (typeof feat.warrantyDays === 'number' && feat.warrantyDays > 0) ||
+      (fallbackAnalysis?.warranty && fallbackAnalysis.warranty > 0)
+    );
+
+    const warrantyDays = isExplicitNoRefill
+      ? null
+      : ((typeof feat.warrantyDays === 'number' ? feat.warrantyDays : undefined) ?? fallbackAnalysis?.warranty ?? (isRefillActive ? 30 : null));
+
+    const parts = s.name.split('•');
+    const tierName = parts.length > 1 ? parts[parts.length - 1].trim().toLowerCase() : '';
+
+    const rawCustomBadge = (feat.badge as string | undefined)?.trim();
+    let badge = '';
+    if (rawCustomBadge) {
+      badge = rawCustomBadge.toUpperCase();
+    } else if (isExplicitNoRefill) {
+      badge = (lowerName.includes('быстр') || lowerName.includes('instant')) ? 'БЫСТРЫЕ' : '';
+    } else if (isRefillActive) {
+      badge = 'ГАРАНТИЯ';
+    } else if (lowerName.includes('премиум') || lowerName.includes('premium')) {
+      badge = 'ПРЕМИУМ';
+    } else if (lowerName.includes('эконом') || lowerName.includes('economy')) {
+      badge = 'ЭКОНОМ';
+    } else if (lowerName.includes('живые') || lowerName.includes('real')) {
+      badge = 'ЖИВЫЕ';
+    } else if (lowerName.includes('стандарт') || lowerName.includes('standard')) {
+      badge = 'СТАНДАРТ';
+    } else if (lowerName.includes('быстр') || lowerName.includes('instant')) {
+      badge = 'БЫСТРЫЕ';
+    }
+
+    const rawPricePer1k = typeof s.pricePer1000Cents === 'number' && s.pricePer1000Cents > 0
+      ? s.pricePer1000Cents / 100
+      : (s.costPer1kRub || (s.rate * (s.providerCurrency === 'RUB' ? 1.0 : usdToRub))) * (s.markup || SAFETY_FLOOR_MARKUP);
+    const pricePer1kRub = applyBeautifulRounding(rawPricePer1k);
+    const pricePerUnitRub = Math.round((pricePer1kRub / 1000) * 10000) / 10000;
+
+    return {
+      id: s.id,
+      numericId: s.numericId,
+      slug: s.slug,
+      categoryId: s.categoryId,
+      name: s.name,
+      pricePer1kRub,
+      pricePerUnitRub,
+      minQty: s.minQty,
+      maxQty: s.maxQty,
+      description: s.description ? sanitizeServiceDescription(s.description) : null,
+      isActive: s.isActive,
+      isDripFeedEnabled: s.isDripFeedEnabled,
+      isRefillEnabled: isRefillActive,
+      isCancelEnabled: s.isCancelEnabled,
+      warrantyDays,
+      tierName,
+      badge,
+      targetType: s.targetType,
+      qualityTier: s.qualityTier,
+      customDataType: s.customDataType,
+      customDataLabel: s.customDataLabel,
+      smartConfig: s.smartConfig ? {
+        isEnabled: s.smartConfig.isEnabled,
+        isTestMode: s.smartConfig.isTestMode,
+        minChunk: s.smartConfig.minChunk,
+        maxChunk: s.smartConfig.maxChunk,
+        markup: s.smartConfig.markup,
+        useInviteBuffer: s.smartConfig.useInviteBuffer,
+        autoCompensate: s.smartConfig.autoCompensate,
+        checkIntervalMins: s.smartConfig.checkIntervalMins
+      } : null,
+      requireWarning: s.requireWarning,
+      warningMessage: s.warningMessage,
+      clientRequirement: s.clientRequirement,
+      clientConfirmation: s.clientConfirmation,
+      etaP50Seconds: s.etaP50Seconds,
+      etaP90Seconds: s.etaP90Seconds,
+      etaSpeedClass: s.etaSpeedClass
+    };
+  } catch (error) {
+    console.error('[getFreshServiceAction] Failed to fetch live service:', error);
     return null;
   }
 }
