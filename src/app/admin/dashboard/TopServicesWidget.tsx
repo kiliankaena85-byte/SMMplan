@@ -29,7 +29,7 @@ export function TopServicesWidget({ services }: Props) {
           </div>
           <div>
             <h4 className="font-bold text-xs uppercase tracking-wider text-foreground">
-              🔥 Топ услуг-драйверов (Выручка и заказы)
+              Топ услуг-драйверов (Выручка и заказы)
             </h4>
             <p className="text-[10px] text-muted-foreground mt-0.5">
               Наиболее востребованные позиции каталога с расчетом маржинальности

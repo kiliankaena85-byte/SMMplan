@@ -56,7 +56,7 @@ export function StormRadarWidget({ report }: Props) {
           <div>
             <div className="flex items-center gap-2">
               <h4 className="font-bold text-xs uppercase tracking-wider text-foreground">
-                ⚡ Радар штормов соцсетей и сбоев провайдеров
+                Радар штормов соцсетей и сбоев провайдеров
               </h4>
               <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-bold bg-muted text-muted-foreground border border-border/50">
                 <ShieldCheck className="w-3 h-3 text-emerald-500" />
@@ -72,17 +72,20 @@ export function StormRadarWidget({ report }: Props) {
         {/* Status Counters */}
         <div className="flex items-center gap-2">
           {report.criticalCount > 0 && (
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20">
-              🔴 {report.criticalCount} шторм алгоритма
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+              <span>{report.criticalCount} шторм</span>
             </span>
           )}
           {report.warningCount > 0 && (
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-              🟡 {report.warningCount} нестабильны
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              <span>{report.warningCount} нестабильны</span>
             </span>
           )}
-          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-            🟢 {report.healthyCount} в норме
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span>{report.healthyCount} в норме</span>
           </span>
         </div>
       </div>

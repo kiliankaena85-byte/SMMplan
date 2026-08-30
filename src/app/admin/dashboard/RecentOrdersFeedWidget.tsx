@@ -56,7 +56,7 @@ export function RecentOrdersFeedWidget({ orders }: Props) {
           </div>
           <div>
             <h4 className="font-bold text-xs uppercase tracking-wider text-foreground">
-              📦 Лента последних заказов (Live Feed)
+              Лента последних заказов (Live Feed)
             </h4>
             <p className="text-[10px] text-muted-foreground mt-0.5">
               Оперативный поток поступающих задач в реальном времени

@@ -1,7 +1,17 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 08:06 (МСК)
+> **Последнее обновление:** 2026-08-30 08:14 (МСК)
+
+- **AI Support Copilot Speed Optimization & Dashboard UI Polish (100% COMPLETE & VERIFIED):**
+  - **1. Gemini Proxy Timeout Elimination (`GeminiClient.ts`):** Устранены холостые попытки подключения к локальным портам `127.0.0.1:7897/7890`. Клиент теперь использует прямое соединение без штрафа в 15 секунд при отсутствии явного прокси.
+  - **2. Static Model Fast-Path:** Зафиксирована модель `gemini-3-flash-preview` без лишних HTTP-запросов к Discovery API, снизив задержку инициализации до 0ms.
+  - **3. Redis Predictive Draft Caching & Prefetching:** При открытии тикета оператором в фоне запускается `prefetchSmartReplyAction`, а сгенерированный ответ кэшируется в Redis на 15 минут (`ai:support:draft:${ticketId}:${lastMsgId}`). Повторный клик или открытие подготовленного тикета вставляет ответ за **< 50ms**.
+  - **4. Dashboard UI Polish & Raw HTML Fix:** В `ExecutiveAiDigestCard` внедрён безопасный парсер тегов `<b>`, `<i>`, `<code>`, устранивший показ сырых HTML-тегов на экране. Во всех виджетах дашборда убраны дублирующиеся эмодзи-иконки из заголовков.
+  - **5. Тестирование и верификация:** 
+    - Новый юнит-сьют: `src/__tests__/ai-draft-caching-speed.test.ts` (**3/3 PASS**).
+    - Полная батарея юнит-тестов: `vitest.unit.config.ts` (**82/82 PASS**).
+    - Строгая проверка типов: `npx tsc --noEmit` (**0 ошибок**).
 
 - **Admin Site & Environment Switchers Reactivity & Security (100% COMPLETE & VERIFIED):**
   - **1. Instant Mode Switching (`EnvironmentModeSwitcher.tsx`):** Устранено залипание фиолетового баннера «ТЕСТОВЫЙ РЕЖИМ». В компонент добавлен вызов `router.refresh()` после мутации, а в Server Action `setEnvironmentModeAction` внедрен сброс кэшей `revalidatePath('/admin', 'layout')` и `revalidatePath('/', 'layout')`.

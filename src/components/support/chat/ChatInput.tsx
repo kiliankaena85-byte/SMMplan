@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Sparkles, Send, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { generateSmartReplyAction, changeTicketStatus } from '@/actions/support/ticket';
+import { generateSmartReplyAction, prefetchSmartReplyAction, changeTicketStatus } from '@/actions/support/ticket';
 
 import { Message } from './useChatMessages';
 import { ChatTemplateManager, type SupportTemplateDTO } from './ChatTemplateManager';
@@ -355,12 +355,23 @@ export function ChatInput({
     }
   };
 
+  // Background predictive prefetch for staff operators
+  useEffect(() => {
+    if (isStaff && ticketId) {
+      prefetchSmartReplyAction(ticketId).catch(() => {});
+    }
+  }, [isStaff, ticketId]);
+
   const handleAiReply = () => {
     startAiTransition(async () => {
       const res = await generateSmartReplyAction(ticketId);
       if (res.success && res.reply) {
         setText(res.reply);
-        toast.success('AI ответ сгенерирован');
+        if (res.fromCache) {
+          toast.success('AI ответ мгновенно загружен из кэша');
+        } else {
+          toast.success('AI ответ сгенерирован');
+        }
       } else {
         toast.error('Ошибка AI: ' + res.error);
       }

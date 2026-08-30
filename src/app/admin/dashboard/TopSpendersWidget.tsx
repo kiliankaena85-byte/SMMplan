@@ -30,7 +30,7 @@ export function TopSpendersWidget({ clients }: Props) {
           </div>
           <div>
             <h4 className="font-bold text-xs uppercase tracking-wider text-foreground">
-              🏆 Ключевые клиенты платформы (VIP)
+              Ключевые клиенты платформы (VIP)
             </h4>
             <p className="text-[10px] text-muted-foreground mt-0.5">
               Топ пользователей по суммарному объему расходов (LTV)

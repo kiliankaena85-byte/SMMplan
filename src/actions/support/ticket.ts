@@ -22,14 +22,18 @@ import { CompensationService } from '@/services/financial/compensation.service';
 
 // ... (rest of imports)
 
-export async function generateSmartReplyAction(ticketId: string) {
+export async function generateSmartReplyAction(ticketId: string, options?: { forceRefresh?: boolean }) {
   return requireStaffPermission('tickets', 'view', async (admin) => {
     try {
       if (process.env.DISABLE_AI_SUPPORT === 'true') {
         return { success: false, error: 'AI-ассистент временно отключен администратором в настройках системы.' };
       }
 
-      const aiData = await aiSupportService.generateReply(ticketId, admin.tenantId ?? 'smmplan');
+      const aiData = await aiSupportService.generateReply(
+        ticketId,
+        admin.tenantId ?? 'smmplan',
+        { forceRefresh: options?.forceRefresh }
+      );
 
       // If Policy Engine blocked the response, inform the operator
       if (aiData.blocked) {
@@ -39,6 +43,7 @@ export async function generateSmartReplyAction(ticketId: string) {
         return {
           success: true,
           reply: `⛔ AI-ответ заблокирован системой безопасности.\n\nНарушения:\n${violationsSummary}\n\nНапишите ответ вручную.`,
+          fromCache: aiData.fromCache,
         };
       }
 
@@ -47,11 +52,15 @@ export async function generateSmartReplyAction(ticketId: string) {
         ? `[⚠️ ИНСАЙТ AI (${aiData.client_sentiment}): ${aiData.internal_reasoning}]\n\n${aiData.draft_reply}`
         : aiData.draft_reply;
 
-      return { success: true, reply: draft };
+      return { success: true, reply: draft, fromCache: aiData.fromCache };
     } catch (err: unknown) {
       return { success: false, error: (err instanceof Error ? err.message : String(err)) };
     }
   });
+}
+
+export async function prefetchSmartReplyAction(ticketId: string) {
+  return generateSmartReplyAction(ticketId, { forceRefresh: false });
 }
 
 import { RateLimitService } from '@/services/core/rate-limit.service';

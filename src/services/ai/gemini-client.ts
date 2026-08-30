@@ -64,12 +64,8 @@ export class GeminiClient {
       .filter((p) => p.startsWith('http://') || p.startsWith('https://') || p.startsWith('socks5://'));
 
     if (proxyUrls.length === 0) {
-      // Прямое соединение + fallback на локальные Clash/V2Ray порты
-      return [
-        new ProxyAgent('http://127.0.0.1:7897'),
-        new ProxyAgent('http://127.0.0.1:7890'),
-        undefined,
-      ];
+      // Direct connection by default (zero latency timeout penalty)
+      return [undefined];
     }
 
     return proxyUrls.map((url) => new ProxyAgent(url));
@@ -177,73 +173,13 @@ export class GeminiClient {
   }
 
   /**
-   * Динамически определяет самую свежую рабочую Flash-модель из официального Google API.
+   * Возвращает целевую модель Gemini (по умолчанию gemini-3-flash-preview).
    */
-  static async resolveLatestModel(apiKey: string): Promise<string> {
+  static async resolveLatestModel(_apiKey?: string): Promise<string> {
     if (process.env.GEMINI_MODEL) {
       return process.env.GEMINI_MODEL.trim();
     }
-
-    const now = Date.now();
-    if (modelCache && now - modelCache.cachedAt < MODEL_CACHE_TTL_MS) {
-      return modelCache.resolvedModel;
-    }
-
-    try {
-      const baseUrl = this.getBaseUrl();
-      const dispatchers = await this.getDispatchers();
-      
-      for (const dispatcher of dispatchers) {
-        try {
-          const res = await fetch(`${baseUrl}/v1beta/models?key=${apiKey}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-            dispatcher,
-            signal: AbortSignal.timeout(5000),
-            } as unknown as RequestInit);
-
-          if (res.ok) {
-            const data = await res.json();
-            const models = (data?.models || []) as Array<{
-              name: string;
-              supportedGenerationMethods?: string[];
-            }>;
-
-            const flashModels = models
-              .filter(
-                (m) =>
-                  m.supportedGenerationMethods?.includes('generateContent') &&
-                  m.name.includes('flash') &&
-                  !m.name.includes('vision') &&
-                  !m.name.includes('8b')
-              )
-              .map((m) => m.name.replace(/^models\//, ''));
-
-            if (flashModels.length > 0) {
-              flashModels.sort((a, b) => {
-                const getVer = (str: string) => {
-                  const match = str.match(/gemini-(\d+(?:\.\d+)?)/);
-                  return match ? parseFloat(match[1]) : 0;
-                };
-                return getVer(b) - getVer(a);
-              });
-
-              const highestModel = flashModels[0];
-              modelCache = { resolvedModel: highestModel, cachedAt: now };
-              return highestModel;
-            }
-          }
-        } catch {
-          // Пробуем следующий диспетчер
-          continue;
-        }
-      }
-    } catch (e) {
-      console.warn('[GeminiClient] Auto-discovery of models failed, falling back to static cascade:', e);
-    }
-
-    modelCache = { resolvedModel: FALLBACK_MODEL_CASCADES[0], cachedAt: now };
-    return FALLBACK_MODEL_CASCADES[0];
+    return 'gemini-3-flash-preview';
   }
 
   /**

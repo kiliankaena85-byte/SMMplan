@@ -143,8 +143,55 @@ export function ExecutiveAiDigestCard() {
           </div>
 
           {/* Formatted Text Box */}
-          <div className="p-4 rounded-lg bg-muted/40 border border-border text-xs leading-relaxed font-sans text-foreground whitespace-pre-wrap select-text">
-            {digestData.digestMarkdown}
+          <div className="p-4 sm:p-5 rounded-xl bg-muted/25 border border-border/70 text-xs leading-relaxed font-sans text-foreground select-text space-y-2">
+            {digestData.digestMarkdown.split('\n').map((line, idx) => {
+              const trimmed = line.trim();
+              if (!trimmed) return <div key={idx} className="h-1.5" />;
+
+              // Parse <b>, <i>, <code> tags safely without dangerouslySetInnerHTML
+              const formatLine = (raw: string) => {
+                const parts: React.ReactNode[] = [];
+                const regex = /<b>(.*?)<\/b>|<i>(.*?)<\/i>|<code>(.*?)<\/code>/g;
+                let lastIndex = 0;
+                let match: RegExpExecArray | null;
+
+                while ((match = regex.exec(raw)) !== null) {
+                  if (match.index > lastIndex) {
+                    parts.push(raw.slice(lastIndex, match.index));
+                  }
+                  if (match[1] !== undefined) {
+                    parts.push(<strong key={match.index} className="font-bold text-foreground">{match[1]}</strong>);
+                  } else if (match[2] !== undefined) {
+                    parts.push(<em key={match.index} className="italic text-muted-foreground">{match[2]}</em>);
+                  } else if (match[3] !== undefined) {
+                    parts.push(<code key={match.index} className="font-mono bg-muted px-1 py-0.5 rounded text-[11px]">{match[3]}</code>);
+                  }
+                  lastIndex = regex.lastIndex;
+                }
+                if (lastIndex < raw.length) {
+                  parts.push(raw.slice(lastIndex));
+                }
+                return parts.length > 0 ? parts : raw;
+              };
+
+              const isHeading = trimmed.startsWith('🌅') || trimmed.startsWith('💰') || trimmed.startsWith('⚡') || trimmed.startsWith('🎧') || trimmed.startsWith('🛡️');
+              const isBullet = trimmed.startsWith('•') || trimmed.startsWith('-');
+
+              return (
+                <div
+                  key={idx}
+                  className={`${
+                    isHeading
+                      ? 'font-bold text-sm text-foreground pt-1.5 pb-0.5 border-b border-border/30 flex items-center gap-1.5'
+                      : isBullet
+                      ? 'pl-3 text-xs text-foreground/90 flex items-start gap-1.5'
+                      : 'text-xs text-muted-foreground'
+                  }`}
+                >
+                  {formatLine(trimmed)}
+                </div>
+              );
+            })}
           </div>
         </div>
       ) : (

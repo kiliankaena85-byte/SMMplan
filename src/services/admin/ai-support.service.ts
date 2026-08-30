@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { redis } from '@/lib/redis';
 import { GeminiClient } from '@/services/ai/gemini-client';
 import { scanDraftReply, hasBlockingViolation, type PolicyViolation } from './output-policy-engine';
 import { aiKnowledgeRetriever } from './ai-knowledge-retriever.service';
@@ -11,20 +12,18 @@ export interface AiSupportResponse {
   policy_violations: PolicyViolation[];
   blocked: boolean;
   knowledge_source?: string;
+  fromCache?: boolean;
 }
 
 class AiSupportService {
   /**
    * Enterprise Chain-of-Thought JSON Mode with RAG Grounding + Input Spotlighting + Output Policy Engine.
-   * 
-   * Defense-in-Depth Architecture:
-   * Layer 1: Input Spotlighting (mark untrusted user data) & Sanitization
-   * Layer 2: Dynamic RAG Grounding (retrieves relevant knowledge from 66+ articles)
-   * Layer 3: JSON Structured Output (force chain-of-thought reasoning)
-   * Layer 4: Output Policy Engine (deterministic post-generation scan)
-   * Layer 5: Human-in-the-Loop (operator approves final text)
    */
-  async generateReply(ticketId: string, tenantId: string = 'smmplan'): Promise<AiSupportResponse> {
+  async generateReply(
+    ticketId: string,
+    tenantId: string = 'smmplan',
+    options: { forceRefresh?: boolean } = {}
+  ): Promise<AiSupportResponse> {
     const ticket = await db.ticket.findFirst({
       where: { id: ticketId, tenantId },
       include: {
@@ -52,6 +51,21 @@ class AiSupportService {
     });
 
     if (!ticket) throw new Error('Ticket not found');
+
+    const lastMsgId = ticket.messages[ticket.messages.length - 1]?.id || 'init';
+    const cacheKey = `ai:support:draft:${ticketId}:${lastMsgId}`;
+
+    if (!options.forceRefresh) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached) as AiSupportResponse;
+          return { ...parsed, fromCache: true };
+        }
+      } catch {
+        // ignore redis error
+      }
+    }
 
     const brandName = tenantId === 'flux' ? 'SMMflux' : 'SMMplan';
     const balanceRub = (Number(ticket.user.balance) / 100).toFixed(2);
@@ -131,7 +145,7 @@ ENTERPRISE ПРАВИЛА БЕЗОПАСНОСТИ:
         contents,
         temperature: 0.1,
         jsonMode: true,
-        timeoutMs: 20000,
+        timeoutMs: 12000,
       });
 
       // Parse JSON
@@ -162,7 +176,7 @@ ENTERPRISE ПРАВИЛА БЕЗОПАСНОСТИ:
         console.warn('[AI Support] Output blocked by Policy Engine:', violations);
       }
 
-      return {
+      const result: AiSupportResponse = {
         client_sentiment: parsed.client_sentiment || 'NEUTRAL',
         escalate_to_senior: parsed.escalate_to_senior || false,
         internal_reasoning: parsed.internal_reasoning,
@@ -172,7 +186,16 @@ ENTERPRISE ПРАВИЛА БЕЗОПАСНОСТИ:
         policy_violations: violations,
         blocked,
         knowledge_source: groundedKnowledge ? groundedKnowledge.slice(0, 60) : undefined,
+        fromCache: false,
       };
+
+      try {
+        await redis.set(cacheKey, JSON.stringify(result), 'EX', 900); // 15 minutes TTL
+      } catch {
+        // ignore
+      }
+
+      return result;
     } catch (err: unknown) {
       console.warn('[AI Support] External generation failed/timed out, engaging Graceful Operator Fallback:', err);
 

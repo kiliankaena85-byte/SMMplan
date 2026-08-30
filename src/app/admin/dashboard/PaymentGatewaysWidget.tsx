@@ -31,7 +31,7 @@ export function PaymentGatewaysWidget({ gateways }: Props) {
           </div>
           <div>
             <h4 className="font-bold text-xs uppercase tracking-wider text-foreground">
-              💳 Эквайринг и платежные шлюзы
+              Эквайринг и платежные шлюзы
             </h4>
             <p className="text-[10px] text-muted-foreground mt-0.5">
               Объем пополнений, конверсия оплат и комиссии платежных систем
