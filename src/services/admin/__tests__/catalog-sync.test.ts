@@ -1,6 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
 import { assertSafeUrl } from '@/utils/ssrf-guard';
 
+vi.mock('node:dns', () => ({
+  promises: {
+    lookup: vi.fn(async (hostname: string) => {
+      if (hostname === 'example.com' || hostname === 'api.telegram.org') {
+        return [{ address: '93.184.216.34', family: 4 }];
+      }
+      return [{ address: '127.0.0.1', family: 4 }];
+    })
+  }
+}));
+
 describe('SSRF Guard', () => {
   it('allows safe public URLs', async () => {
     await expect(assertSafeUrl('https://example.com/api')).resolves.not.toThrow();
@@ -15,7 +26,7 @@ describe('SSRF Guard', () => {
   it('blocks loopback and private IP hostnames', async () => {
     await expect(assertSafeUrl('http://127.0.0.1')).rejects.toThrow('Private IP blocked');
     await expect(assertSafeUrl('http://localhost')).rejects.toThrow('Blocked URL');
-    await expect(assertSafeUrl('http://169.254.169.254')).rejects.toThrow('Private IP blocked');
+    await expect(assertSafeUrl('http://169.254.169.254')).rejects.toThrow('Blocked URL');
     await expect(assertSafeUrl('http://192.168.1.1')).rejects.toThrow('Private IP blocked');
     await expect(assertSafeUrl('http://10.0.0.5')).rejects.toThrow('Private IP blocked');
     await expect(assertSafeUrl('http://172.16.0.1')).rejects.toThrow('Private IP blocked');

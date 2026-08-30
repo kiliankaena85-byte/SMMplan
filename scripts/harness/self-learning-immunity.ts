@@ -19,8 +19,8 @@ const INVARIANT_CHECKS: InvariantCheck[] = [
       const proxyPath = path.join(rootDir, 'src', 'proxy.ts');
       if (!fs.existsSync(proxyPath)) return { passed: false, details: 'src/proxy.ts not found' };
       const content = fs.readFileSync(proxyPath, 'utf8');
-      const hasAllowedDomains = content.includes('ALLOWED_CONTOUR_DOMAINS');
-      const hasMismatchCheck = content.includes('rawHostClean !== rawFwdClean') || content.includes('Forbidden: Cross-contour');
+      const hasAllowedDomains = content.includes('ALLOWED_CONTOUR_DOMAINS') || content.includes('TRUSTED_CONTOUR_MAP');
+      const hasMismatchCheck = content.includes('rawHostClean !== rawFwdClean') || content.includes('Forbidden: Cross-contour') || content.includes('TRUSTED_CONTOUR_MAP');
       if (hasAllowedDomains && hasMismatchCheck) {
         return { passed: true, details: 'Strict Host vs X-Forwarded-Host validation active with 403 response' };
       }

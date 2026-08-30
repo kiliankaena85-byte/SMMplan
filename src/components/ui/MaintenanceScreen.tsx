@@ -56,8 +56,8 @@ export function MaintenanceScreen({
       {/* ── Header ── */}
       <header className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-amber-500/20 ring-2 ring-amber-500/20">
-            <Wrench className="w-5 h-5 text-white animate-pulse" />
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-primary-foreground font-black text-lg shadow-lg shadow-amber-500/20 ring-2 ring-amber-500/20">
+            <Wrench className="w-5 h-5 text-primary-foreground animate-pulse" />
           </div>
           <div className="flex flex-col">
             <span className="font-extrabold text-xl tracking-tight text-foreground flex items-center gap-2">
