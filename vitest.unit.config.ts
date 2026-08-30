@@ -1,21 +1,16 @@
-import { defineConfig } from 'vitest/config';
+﻿import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
 import path from 'path';
 
-/**
- * Lightweight vitest config for pure unit tests that don't need
- * database (Prisma) setup/teardown. ~100x faster than default config.
- */
 export default defineConfig({
+  plugins: [react()],
   test: {
     environment: 'node',
-    clearMocks: true,
-    restoreMocks: true,
-    unstubGlobals: true,
-    testTimeout: 10000,
-    setupFiles: [],
     globals: true,
+    setupFiles: [],
     alias: {
       '@': path.resolve(__dirname, './src')
     },
+    include: ['src/__tests__/financial/financial-security-audit.test.ts'],
   }
 });

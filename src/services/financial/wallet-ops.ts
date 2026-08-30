@@ -351,19 +351,14 @@ export const WalletOps = {
     const currentTotalSpent = existingUser.totalSpent ?? BigInt(0);
     const newTotalSpent = currentTotalSpent > rawCents ? currentTotalSpent - rawCents : BigInt(0);
 
-    const updatedUser = await tx.user.update({
-      where: { id: userId },
-      data: {
-        balance: { increment: rawCents },
-        totalSpent: newTotalSpent
-      },
-      select: { balance: true, totalSpent: true, tenantId: true }
-    });
+    const resolvedTenantId = tenantId || existingUser.tenantId || 'smmplan';
 
+    // LEDGER-FIRST INVARIANT: Create LedgerEntry BEFORE updating User.balance.
+    // If ledger.create fails, the balance is never touched — preserving financial integrity.
     const entry = await tx.ledgerEntry.create({
       data: {
         userId,
-        tenantId: tenantId || updatedUser.tenantId || 'smmplan',
+        tenantId: resolvedTenantId,
         adminId,
         amount: rawCents,
         reason,
@@ -371,6 +366,15 @@ export const WalletOps = {
         idempotencyKey,
         transactionType: 'REFUND',
       }
+    });
+
+    const updatedUser = await tx.user.update({
+      where: { id: userId },
+      data: {
+        balance: { increment: rawCents },
+        totalSpent: newTotalSpent
+      },
+      select: { balance: true, totalSpent: true }
     });
 
     return { success: true, balance: updatedUser.balance, cached: false, entry };
