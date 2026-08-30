@@ -10,11 +10,12 @@
   - Добавлен автоматический фокус при возврате на Шаг 1.
   - Тестовый сьют `src/__tests__/mobile-wizard-smoke.test.tsx` (**6/6 PASS**), `tsc --noEmit` (**0 ошибок**).
 
-- **Multi-Domain Testing & Production Routing Contract (STRICT RULE):**
+- **Multi-Domain Testing & Production Routing Contract (STRICT RULE — 100% VERIFIED LIVE):**
   - **`smmplan.pro` (и `www.smmplan.pro`):** Показывает `PreLaunchHoldingScreen` (страница-заглушка предзапуска со сбором заявок).
-  - **`test.smmplan.pro`:** Показывает основной сайт платформы SMMplan (`SmartLinkLanding`) во время тестирования.
+  - **`test.smmplan.pro`:** Показывает основной сайт платформы SMMplan (`SmartLinkLanding`) с тарифами и пошаговым мастером заказа во время тестирования.
   - **`flux.smmplan.pro`:** Показывает витрину `FluxOrderClient` (SMMflux Radiant Aurora) во время тестирования.
   - **Tailscale Funnel Live Node:** `https://desktop-25m6el7.tailbb9d28.ts.net` (100% доступность из РФ/МГТС без VPN, автозапуск в фоне на Windows).
+  - **Исправление (RCA):** В `src/app/layout.tsx` и `src/app/api/maintenance-status/route.ts` домен туннеля `.ts.net` добавлен в `isTestDomain`, устранив ложный глобальный перехват `MaintenanceGuardian` и восстановив корректный рендер витрин.
 
 - **Пакет улучшений безопасности Security Hardening v7 (Remediation SEC-01..SEC-07):**
   - **SEC-01 (API v2 Real RateLimit RFC 9331 Headers):** Внедрен метод `RateLimitService.checkCustomKeyDetail` возвращающий реальные счетчики Redis/Postgres. Заголовки `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`, `RateLimit-Policy` выставляются на всех 200 и 429 ответах. Сьют: `src/__tests__/api-v2-rate-limit-headers.test.ts` (2/2 PASS).
