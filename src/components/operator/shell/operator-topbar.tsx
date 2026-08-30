@@ -68,14 +68,21 @@ export function OperatorTopbar({ userEmail, roleLabel, navigation }: OperatorTop
             <User className="h-4.5 w-4.5" />
           </div>
 
-          <Link
-            href="/logout"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive border border-border/40 transition-colors duration-200"
+          <button
+            type="button"
+            onClick={async (e) => {
+              e.preventDefault();
+              try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+              } catch {}
+              window.location.href = '/login';
+            }}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive border border-border/40 transition-colors duration-200 cursor-pointer"
             title="Выйти"
             style={{ minHeight: '44px', minWidth: '44px' }}
           >
             <LogOut className="h-4.5 w-4.5" />
-          </Link>
+          </button>
         </div>
       </div>
 

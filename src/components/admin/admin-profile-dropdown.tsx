@@ -233,15 +233,20 @@ export function AdminProfileDropdown({
               Сотрудники и смены
             </Link>
 
-            <form action="/api/auth/logout" method="POST">
-              <button
-                type="submit"
-                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer text-left"
-              >
-                <LogOut className="w-4 h-4 text-rose-500" />
-                Выйти из системы
-              </button>
-            </form>
+            <button
+              type="button"
+              onClick={async (e) => {
+                e.preventDefault();
+                try {
+                  await fetch('/api/auth/logout', { method: 'POST' });
+                } catch {}
+                window.location.href = '/login';
+              }}
+              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer text-left"
+            >
+              <LogOut className="w-4 h-4 text-rose-500" />
+              Выйти из системы
+            </button>
           </div>
         </div>
       )}

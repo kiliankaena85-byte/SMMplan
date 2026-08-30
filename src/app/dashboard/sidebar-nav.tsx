@@ -126,15 +126,21 @@ export function SidebarNav({
             <span className="text-[10px] text-muted-foreground font-semibold block">Пользователь</span>
           </div>
           <ThemeSwitcher variant="toggle" className="shrink-0" />
-          <Link
-            href="/api/auth/logout"
-            prefetch={false}
+          <button
+            type="button"
+            onClick={async (e) => {
+              e.preventDefault();
+              try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+              } catch {}
+              window.location.href = '/login';
+            }}
             title="Выйти"
             aria-label="Выйти из аккаунта"
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0 cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
-          </Link>
+          </button>
         </div>
       </div>
     </aside>

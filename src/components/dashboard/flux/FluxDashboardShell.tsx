@@ -134,15 +134,20 @@ export function FluxDashboardShell({
               <Settings className="w-4 h-4" />
             </Link>
 
-            <form method="POST" action="/api/auth/logout">
-              <button
-                type="submit"
-                className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors ml-0.5 cursor-pointer"
-                title="Выйти из аккаунта"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </form>
+            <button
+              type="button"
+              onClick={async (e) => {
+                e.preventDefault();
+                try {
+                  await fetch('/api/auth/logout', { method: 'POST' });
+                } catch {}
+                window.location.href = '/login?tenant=flux';
+              }}
+              className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors ml-0.5 cursor-pointer"
+              title="Выйти из аккаунта"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>

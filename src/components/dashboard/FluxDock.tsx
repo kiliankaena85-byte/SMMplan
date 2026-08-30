@@ -47,15 +47,20 @@ export function FluxDock({ email, className }: { email?: string; className?: str
           </div>
           <span className="text-xs text-muted-foreground font-semibold max-w-[100px] truncate">{email}</span>
         </div>
-        <form method="POST" action="/api/auth/logout">
-          <button
-            type="submit"
-            className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-2xl transition-colors cursor-pointer"
-            title="Выйти"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </form>
+        <button
+          type="button"
+          onClick={async (e) => {
+            e.preventDefault();
+            try {
+              await fetch('/api/auth/logout', { method: 'POST' });
+            } catch {}
+            window.location.href = '/login?tenant=flux';
+          }}
+          className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-2xl transition-colors cursor-pointer"
+          title="Выйти"
+        >
+          <LogOut className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );

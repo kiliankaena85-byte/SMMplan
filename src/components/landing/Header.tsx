@@ -1,8 +1,8 @@
 'use client';
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { LogIn, LogOut, Menu } from "lucide-react";
+import { LogIn, LogOut, Menu, Loader2 } from "lucide-react";
 import { ROUTES } from "@/lib/routes";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { TenantLogo } from "@/components/ui/TenantLogo";
@@ -17,6 +17,19 @@ interface HeaderProps {
 
 export function Header({ initialEmail, siteName, tenantId, activePath }: HeaderProps) {
   const isFlux = normalizeTenantId(tenantId) === 'flux';
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsLoggingOut(true);
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+    window.location.href = isFlux ? '/login?tenant=flux' : '/login';
+  };
 
   return (
     <header className="w-full sticky top-0 z-50 backdrop-blur-2xl bg-background/80 border-b border-border/50 shadow-[0_4px_30px_rgba(0,0,0,0.02)] transition-all">
@@ -28,11 +41,11 @@ export function Header({ initialEmail, siteName, tenantId, activePath }: HeaderP
           </span>
         </Link>
 
-        <nav className="hidden md:flex gap-8 text-sm font-bold">
+        <nav className="hidden md:flex items-center gap-8 text-sm font-semibold">
           <Link 
             href={ROUTES.HOME} 
             className={`transition-colors ${
-              activePath === ROUTES.HOME 
+              activePath === "/" 
                 ? (isFlux ? "text-purple-600 dark:text-purple-400 font-black" : "text-primary") 
                 : (isFlux ? "text-muted-foreground hover:text-purple-600" : "text-muted-foreground hover:text-primary")
             }`}
@@ -40,19 +53,20 @@ export function Header({ initialEmail, siteName, tenantId, activePath }: HeaderP
             Услуги
           </Link>
           <a 
-            href="/api/support/telegram"
+            href="/api/support/telegram" 
             target="_blank" 
             rel="noopener noreferrer" 
-            className={`transition-colors flex items-center gap-1.5 ${
+            className={`flex items-center gap-1.5 transition-colors ${
               isFlux ? "text-muted-foreground hover:text-purple-600" : "text-muted-foreground hover:text-primary"
             }`}
           >
-            Поддержка <span className={`w-2 h-2 rounded-full animate-pulse ${isFlux ? "bg-purple-600" : "bg-primary"}`} />
+            <span>Поддержка</span>
+            <span className={`w-1.5 h-1.5 rounded-full ${isFlux ? "bg-purple-600" : "bg-primary"}`} />
           </a>
           <Link 
             href={ROUTES.FAQ} 
             className={`transition-colors ${
-              activePath === ROUTES.FAQ 
+              activePath === "/#faq" 
                 ? (isFlux ? "text-purple-600 dark:text-purple-400 font-black" : "text-primary") 
                 : (isFlux ? "text-muted-foreground hover:text-purple-600" : "text-muted-foreground hover:text-primary")
             }`}
@@ -87,16 +101,20 @@ export function Header({ initialEmail, siteName, tenantId, activePath }: HeaderP
               >
                 <span>Личный кабинет</span>
               </Link>
-              <form method="POST" action="/api/auth/logout">
-                <button
-                  type="submit"
-                  className="flex items-center justify-center p-2 sm:p-2.5 min-h-[40px] min-w-[40px] sm:min-h-[44px] sm:min-w-[44px] rounded-full bg-default-100 hover:bg-default-200 text-muted-foreground hover:text-destructive transition-colors border border-default-200 cursor-pointer"
-                  title="Выйти из аккаунта"
-                  aria-label="Выйти из аккаунта"
-                >
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="flex items-center justify-center p-2 sm:p-2.5 min-h-[40px] min-w-[40px] sm:min-h-[44px] sm:min-w-[44px] rounded-full bg-default-100 hover:bg-default-200 text-muted-foreground hover:text-destructive transition-colors border border-default-200 cursor-pointer disabled:opacity-50"
+                title="Выйти из аккаунта"
+                aria-label="Выйти из аккаунта"
+              >
+                {isLoggingOut ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                ) : (
                   <LogOut className="w-4 h-4" />
-                </button>
-              </form>
+                )}
+              </button>
             </div>
           ) : (
             <Link
@@ -112,7 +130,6 @@ export function Header({ initialEmail, siteName, tenantId, activePath }: HeaderP
             </Link>
           )}
 
-          {/* Mobile Dropdown Trigger */}
           <div className="md:hidden">
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -122,6 +139,13 @@ export function Header({ initialEmail, siteName, tenantId, activePath }: HeaderP
                 <Menu className="w-5 h-5" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl bg-card border-border shadow-xl">
+                {initialEmail && (
+                  <DropdownMenuItem className="p-0 cursor-pointer">
+                    <Link href="/dashboard" className="flex items-center gap-2 w-full py-2 px-3 rounded-xl font-bold text-primary">
+                      <span>Личный кабинет</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem className="p-0 cursor-pointer">
                   <Link href={ROUTES.HOME} className="flex items-center gap-2 w-full py-2 px-3 rounded-xl">
                     <span>Услуги</span>
@@ -143,6 +167,19 @@ export function Header({ initialEmail, siteName, tenantId, activePath }: HeaderP
                     <span>База знаний</span>
                   </Link>
                 </DropdownMenuItem>
+                {initialEmail && (
+                  <DropdownMenuItem className="p-0 cursor-pointer">
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      disabled={isLoggingOut}
+                      className="flex items-center gap-2 w-full py-2 px-3 rounded-xl text-destructive hover:bg-destructive/10 transition-colors text-left"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Выйти из аккаунта</span>
+                    </button>
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

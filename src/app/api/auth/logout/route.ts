@@ -62,7 +62,14 @@ export async function POST(request: Request) {
   const proto = fwdProto || (process.env.NODE_ENV === 'production' && !host.includes('localhost') ? 'https' : 'http');
   const targetUrl = `${proto}://${host}/login`;
 
-  const response = NextResponse.redirect(targetUrl, 303);
+  const isFetch = request.headers.get('sec-fetch-mode') === 'cors' || 
+                  request.headers.get('accept')?.includes('application/json') ||
+                  request.headers.get('x-requested-with') === 'XMLHttpRequest';
+
+  const response = isFetch 
+    ? NextResponse.json({ success: true, redirect: targetUrl }) 
+    : NextResponse.redirect(targetUrl, 303);
+
   response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
   return response;
 }
