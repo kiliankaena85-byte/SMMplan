@@ -42,9 +42,10 @@ export const RefundPolicy = {
     const totalQty = order.quantity > 0 ? order.quantity : 1;
     const remainingQty = typeof unfulfilledQty === 'number' ? Math.min(totalQty, Math.max(0, unfulfilledQty)) : totalQty;
 
-    // Calculate raw ratio refund
-    const refundRatio = Number(remainingQty) / Number(totalQty);
-    const rawRefundAmount = BigInt(Math.floor(Number(totalCharge) * refundRatio));
+    // Calculate exact refund using pure BigInt arithmetic to avoid Number float precision loss
+    const remainingQtyBigInt = BigInt(remainingQty);
+    const totalQtyBigInt = BigInt(totalQty);
+    const rawRefundAmount = (totalCharge * remainingQtyBigInt) / totalQtyBigInt;
 
     // CLAMP: Never exceed maxAvailableRefund
     const finalRefundAmount = rawRefundAmount > maxAvailableRefund ? maxAvailableRefund : rawRefundAmount;

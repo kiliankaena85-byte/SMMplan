@@ -1,4 +1,5 @@
 import { Redis } from 'ioredis';
+import { redactSensitiveTokens } from '@/lib/logger/sensitive-data-filter';
 
 const globalForRedis = global as unknown as { redis: Redis };
 
@@ -29,6 +30,5 @@ if (process.env.NODE_ENV !== 'production') globalForRedis.redis = redis;
 
 // Fire and forget error handler to prevent unhandled rejection crashes
 redis.on('error', (err) => {
-  const { redactSensitiveTokens } = require('@/lib/logger/sensitive-data-filter');
   console.error('[REDIS] Connection error:', redactSensitiveTokens(err.message));
 });

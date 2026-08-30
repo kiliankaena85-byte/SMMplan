@@ -37,8 +37,8 @@ export class CircuitBreaker {
     // 2. Are we in HALF-OPEN state? (open expired, testing the waters)
     const isHalfOpen = await redis.get(`cb:${host}:half_open`);
     if (isHalfOpen) {
-      // Only let ONE request through as a probe (Atomic setnx + expire)
-      const locked = await redis.set(`cb:${host}:probe_lock`, '1', 'EX', 15, 'NX');
+      // Only let ONE request through as a probe (Atomic setnx + expire 5s)
+      const locked = await redis.set(`cb:${host}:probe_lock`, '1', 'EX', 5, 'NX');
       if (!locked) {
          // Probe is currently running, others must fail fast
          throw new CircuitBreakerOpenException(host);

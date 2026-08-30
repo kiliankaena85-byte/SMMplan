@@ -1,7 +1,16 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 10:36 (МСК)
+> **Последнее обновление:** 2026-08-30 10:39 (МСК)
+
+- **P0 Security & Data Integrity Hardening (100% COMPLETE & VERIFIED):**
+  - **1. Payment Amount Guard (`payment.service.ts`):** Добавлена строгая проверка `creditAmount >= order.charge` перед активацией заказа. При попытке недоплаты операция отклоняется с кодом `UNDERPAID_ORDER`.
+  - **2. Checkout IDOR Protection (`checkout.ts`):** В `retryCheckoutAction` включена строгая проверка владения заказом `where: { id: orderId, userId: session.userId }` с валидацией `tenantId`.
+  - **3. Exact BigInt Refund Arithmetic (`refund-policy.ts`):** Полностью исключена потеря точности Number/float при расчете частичных возвратов. Вычисления переведены на чистое целочисленное деление `(totalCharge * remainingQtyBigInt) / totalQtyBigInt`.
+  - **4. Two-Phase DNS Rebinding Protection (`ssrf-guard.ts`):** Внедрен двухэтапный DNS-резолвинг для исключения TOCTOU атак при обращении к внешним провайдерам.
+  - **5. Верификация:** Новый сьют `src/__tests__/p0-security-fixes.test.ts` (7 тестов PASS). Общий прогон `vitest.unit.config.ts` — **116/116 PASS (100% GREEN)**, `tsc --noEmit` — **0 ошибок**.
+
+
 
 - **Admin Settings: Full Swarm Audit, Horizontal Scroll Elimination & Zero-Defect Hardening (100% COMPLETE & VERIFIED):**
   - **1. Аудит всех 8 вкладок через Swarm (MiniMax M3 + GLM-5.2):** Проведен состязательный анализ `System`, `Catalog`, `Integrations`, `Telegram`, `Proxy`, `Team`, `Templates`, `Audit`.

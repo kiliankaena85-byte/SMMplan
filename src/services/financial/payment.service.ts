@@ -168,6 +168,12 @@ export class PaymentService {
             include: { user: { select: { email: true } }, service: { select: { name: true } } }
           });
           if (order && order.status === 'AWAITING_PAYMENT') {
+            // [FIN-P0 Guard] Ensure credited amount is strictly >= order.charge to prevent underpaid activation
+            if (creditAmount < order.charge) {
+              console.error(`[SECURITY] Underpaid order activation blocked: order #${order.numericId} requires ${order.charge} kopecks, but payment credited only ${creditAmount} kopecks.`);
+              throw new Error(`UNDERPAID_ORDER: Credited amount (${creditAmount}) is less than required order charge (${order.charge})`);
+            }
+
             await tx.order.update({
               where: { id: linkedOrderId },
               data: { status: 'PENDING' }

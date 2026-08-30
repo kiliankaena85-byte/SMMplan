@@ -107,7 +107,7 @@ export async function assertSafeOutboundUrl(rawUrl: string): Promise<SsrfCheckRe
     return { ok: true, ip: hostname, hostname };
   }
 
-  // Resolve hostname via DNS
+  // Resolve hostname via DNS (Phase 1)
   let addrs: string[] = [];
   try {
     const records = await dns.lookup(hostname, { all: true });
@@ -124,6 +124,19 @@ export async function assertSafeOutboundUrl(rawUrl: string): Promise<SsrfCheckRe
     if (!isPublicIp(ip)) {
       return { ok: false, reason: `ip-${ip}-private` };
     }
+  }
+
+  // Phase 2: Double-resolution verification to mitigate DNS rebinding race conditions
+  try {
+    const secondCheckRecords = await dns.lookup(hostname, { all: true });
+    const secondAddrs = secondCheckRecords.map(r => r.address);
+    for (const ip of secondAddrs) {
+      if (!isPublicIp(ip)) {
+        return { ok: false, reason: `ip-${ip}-private-rebinding` };
+      }
+    }
+  } catch {
+    return { ok: false, reason: 'dns-rebinding-lookup-failed' };
   }
 
   return { ok: true, ip: addrs[0], hostname };
