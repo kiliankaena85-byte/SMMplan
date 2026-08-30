@@ -42,7 +42,7 @@ export function parseActionableError(rawError: string | Error | unknown, context
   const lower = text.toLowerCase();
 
   // =========================================================================
-  // 1. CLIENT DEVICE & BROWSER WEBVIEW ERRORS
+  // 1. CLIENT DEVICE & NETWORK DISCONNECTION ERRORS
   // =========================================================================
   if (lower.includes('popup') || lower.includes('всплывающ') || lower.includes('webview') || lower.includes('redirect')) {
     return {
@@ -58,12 +58,22 @@ export function parseActionableError(rawError: string | Error | unknown, context
     };
   }
 
-  if (lower.includes('offline') || lower.includes('network') || lower.includes('интернет') || lower.includes('сеть')) {
+  if (
+    lower.includes('сетевая ошибка') ||
+    lower.includes('таймаут') ||
+    lower.includes('timeout') ||
+    lower.includes('не удалось установить соединение') ||
+    lower.includes('fetch failed') ||
+    lower.includes('econnrefused') ||
+    lower.includes('offline') ||
+    lower.includes('интернет') ||
+    (lower.includes('сеть') && !lower.includes('соцсет'))
+  ) {
     return {
       code: 'ERR_NETWORK_DISCONNECTED',
       category: 'CLIENT_DEVICE',
-      title: 'Проблемы со связью',
-      message: 'Не удалось связаться с сервером из-за нестабильного интернета. Ваши данные сохранены.',
+      title: 'Ошибка соединения с сервером',
+      message: text.length > 10 ? text : 'Не удалось установить соединение с сервером. Пожалуйста, проверьте интернет или повторите попытку через минуту.',
       action: {
         type: 'RETRY',
         label: 'Повторить попытку'
@@ -72,7 +82,52 @@ export function parseActionableError(rawError: string | Error | unknown, context
   }
 
   // =========================================================================
-  // 2. ORDER WIZARD & FORM VALIDATION ERRORS
+  // 2. PAYMENT GATEWAYS & ACQUIRING ERRORS
+  // =========================================================================
+  if (lower.includes('yookassa') || lower.includes('юkassa') || lower.includes('не настроен') || lower.includes('shopid') || lower.includes('платежн')) {
+    return {
+      code: 'ERR_GATEWAY_CREDENTIALS_MISCONFIGURED',
+      category: 'FINANCE_GATEWAY',
+      title: 'Шлюз оплаты недоступен',
+      message: text.length > 15 ? text : 'Оплата картами временно недоступна. Вы можете моментально оплатить через СБП или CryptoBot.',
+      action: {
+        type: 'SWITCH_GATEWAY',
+        label: 'Оплатить через СБП / CryptoBot',
+        targetGateway: 'cryptobot'
+      }
+    };
+  }
+
+  if (lower.includes('cryptobot') || lower.includes('crypto-pay') || lower.includes('invoice')) {
+    return {
+      code: 'ERR_CRYPTOBOT_INVOICE_ERROR',
+      category: 'FINANCE_GATEWAY',
+      title: 'Ошибка счёта CryptoBot',
+      message: 'Не удалось сформировать крипто-счёт. Попробуйте оплатить картой РФ / СБП.',
+      action: {
+        type: 'SWITCH_GATEWAY',
+        label: 'Оплатить картой РФ / СБП',
+        targetGateway: 'yookassa'
+      }
+    };
+  }
+
+  if (lower.includes('недостаточно средств') || lower.includes('balance') || lower.includes('баланс')) {
+    return {
+      code: 'ERR_BALANCE_INSUFFICIENT',
+      category: 'FINANCE_GATEWAY',
+      title: 'Недостаточно средств на балансе',
+      message: 'На балансе аккаунта недостаточно средств. Оплатите заказ напрямую через банковскую карту или СБП.',
+      action: {
+        type: 'SWITCH_GATEWAY',
+        label: 'Оплатить картой / СБП',
+        targetGateway: 'yookassa'
+      }
+    };
+  }
+
+  // =========================================================================
+  // 3. ORDER WIZARD & FORM VALIDATION ERRORS
   // =========================================================================
   if (lower.includes('приватн') || lower.includes('закрыт') || lower.includes('t.me/+') || lower.includes('joinchat')) {
     return {
@@ -87,12 +142,12 @@ export function parseActionableError(rawError: string | Error | unknown, context
     };
   }
 
-  if (lower.includes('не соответствует соцсети') || lower.includes('неверная соцсеть') || lower.includes('платформ')) {
+  if (lower.includes('не соответствует соцсети') || lower.includes('неверная соцсеть') || lower.includes('соцсет') || lower.includes('платформ')) {
     return {
       code: 'ERR_LINK_NETWORK_MISMATCH',
       category: 'VALIDATION',
       title: 'Ссылка не от этой соцсети',
-      message: 'Вы указали ссылку на другую платформу. Пожалуйста, укажите верную ссылку для выбранной соцсети.',
+      message: text.length > 10 ? text : 'Вы указали ссылку на другую платформу. Пожалуйста, укажите верную ссылку для выбранной соцсети.',
       action: {
         type: 'FIX_LINK',
         label: 'Исправить ссылку'
@@ -131,7 +186,7 @@ export function parseActionableError(rawError: string | Error | unknown, context
       code: 'ERR_DRIP_FEED_FLOOR_UNDERFLOW',
       category: 'VALIDATION',
       title: 'Параметры постепенной подачи',
-      message: text.length < 150 ? text : 'Объём на один запуск меньше минимального лимита услуги. Увеличьте общий объём заказа или уменьшите число запусков.',
+      message: text.length > 10 ? text : 'Объём на один запуск меньше минимального лимита услуги. Увеличьте общий объём заказа или уменьшите число запусков.',
       action: {
         type: 'ADJUST_QTY',
         label: 'Скорректировать количество'
@@ -144,7 +199,7 @@ export function parseActionableError(rawError: string | Error | unknown, context
       code: 'ERR_PROMO_EXHAUSTED_OR_MIN_TOTAL',
       category: 'VALIDATION',
       title: 'Условия промокода',
-      message: text.length < 120 ? text : 'Промокод не может быть применён к этому заказу. Проверьте минимальную сумму заказа.',
+      message: text.length > 10 ? text : 'Промокод не может быть применён к этому заказу. Проверьте минимальную сумму заказа.',
       action: {
         type: 'RETRY',
         label: 'Продолжить'
@@ -152,12 +207,12 @@ export function parseActionableError(rawError: string | Error | unknown, context
     };
   }
 
-  if (lower.includes('ссылк') || lower.includes('url') || lower.includes('формат') || lower.includes('неверная ссылка')) {
+  if (lower.includes('ссылк') || lower.includes('неверный формат ссылки') || lower.includes('некорректный домен') || lower.includes('тип цели')) {
     return {
       code: 'ERR_LINK_INVALID_FORMAT',
       category: 'VALIDATION',
       title: 'Проверьте правильность ссылки',
-      message: text.length < 120 ? text : 'Ссылка указана некорректно. Убедитесь, что она начинается с https:// и объект доступен публично.',
+      message: text.length > 15 ? text : 'Ссылка указана некорректно. Убедитесь, что она начинается с https:// и объект доступен публично.',
       action: {
         type: 'FIX_LINK',
         label: 'Исправить ссылку'
@@ -187,51 +242,6 @@ export function parseActionableError(rawError: string | Error | unknown, context
       action: {
         type: 'ADJUST_QTY',
         label: 'Изменить количество'
-      }
-    };
-  }
-
-  // =========================================================================
-  // 3. PAYMENT GATEWAYS & ACQUIRING ERRORS
-  // =========================================================================
-  if (lower.includes('yookassa') || lower.includes('юkassa') || lower.includes('не настроен') || lower.includes('shopid')) {
-    return {
-      code: 'ERR_GATEWAY_CREDENTIALS_MISCONFIGURED',
-      category: 'FINANCE_GATEWAY',
-      title: 'Шлюз карт на техобслуживании',
-      message: 'Оплата картами временно на обслуживании. Вы можете моментально оплатить через CryptoBot или СБП.',
-      action: {
-        type: 'SWITCH_GATEWAY',
-        label: 'Оплатить через CryptoBot',
-        targetGateway: 'cryptobot'
-      }
-    };
-  }
-
-  if (lower.includes('cryptobot') || lower.includes('crypto-pay') || lower.includes('invoice')) {
-    return {
-      code: 'ERR_CRYPTOBOT_INVOICE_ERROR',
-      category: 'FINANCE_GATEWAY',
-      title: 'Ошибка счёта CryptoBot',
-      message: 'Не удалось сформировать крипто-счёт. Попробуйте оплатить картой РФ / СБП.',
-      action: {
-        type: 'SWITCH_GATEWAY',
-        label: 'Оплатить картой РФ / СБП',
-        targetGateway: 'yookassa'
-      }
-    };
-  }
-
-  if (lower.includes('недостаточно средств') || lower.includes('balance') || lower.includes('баланс')) {
-    return {
-      code: 'ERR_BALANCE_INSUFFICIENT',
-      category: 'FINANCE_GATEWAY',
-      title: 'Недостаточно средств на балансе',
-      message: 'На балансе аккаунта недостаточно средств. Оплатите заказ напрямую через банковскую карту или СБП.',
-      action: {
-        type: 'SWITCH_GATEWAY',
-        label: 'Оплатить картой / СБП',
-        targetGateway: 'yookassa'
       }
     };
   }

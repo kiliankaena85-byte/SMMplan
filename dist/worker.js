@@ -107985,6 +107985,10 @@ function normalizeLinkType(rawType) {
       return "POLL" /* POLL */;
     case "BOT":
       return "BOT" /* BOT */;
+    case "GENERIC_LINK":
+    case "OTHER":
+    case "UNKNOWN":
+      return "CUSTOM" /* CUSTOM */;
     default:
       return "CUSTOM" /* CUSTOM */;
   }
@@ -123476,6 +123480,62 @@ var init_dist3 = __esm({
   }
 });
 
+// src/utils/get-base-url.ts
+function isAllowedHost(host) {
+  if (!host) return false;
+  const cleanHost = host.split(":")[0].toLowerCase();
+  if (cleanHost === "0.0.0.0" || cleanHost === "host.docker.internal") return false;
+  return ALLOWED_HOST_DOMAINS.includes(cleanHost) || cleanHost.endsWith(".smmplan.pro") || cleanHost.endsWith(".smmflux.ru");
+}
+async function getBaseUrlAsync(reqHost, reqProto) {
+  const envUrl = process.env.WEBAPP_URL || process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+  try {
+    const headersList = await (0, import_headers.headers)();
+    let host = headersList.get("x-forwarded-host") || headersList.get("host");
+    const proto = headersList.get("x-forwarded-proto") || (process.env.NODE_ENV === "production" ? "https" : "http");
+    if (host) {
+      if (host.includes("0.0.0.0") || host.includes("host.docker.internal")) {
+        host = process.env.NODE_ENV === "production" ? process.env.APP_URL ? new URL(process.env.APP_URL).host : "test.smmplan.pro" : "localhost:3000";
+      }
+      if (isAllowedHost(host)) {
+        return `${proto}://${host}`;
+      }
+    }
+  } catch {
+  }
+  if (envUrl) {
+    return envUrl.endsWith("/") ? envUrl.slice(0, -1) : envUrl;
+  }
+  if (reqHost) {
+    let host = reqHost;
+    if (host.includes("0.0.0.0") || host.includes("host.docker.internal")) {
+      host = process.env.NODE_ENV === "production" ? process.env.APP_URL ? new URL(process.env.APP_URL).host : "test.smmplan.pro" : "localhost:3000";
+    }
+    if (isAllowedHost(host)) {
+      const proto = reqProto || (process.env.NODE_ENV === "production" ? "https" : "http");
+      return `${proto}://${host}`;
+    }
+  }
+  return process.env.NODE_ENV === "production" ? "https://test.smmplan.pro" : "http://localhost:3000";
+}
+var import_headers, ALLOWED_HOST_DOMAINS;
+var init_get_base_url = __esm({
+  "src/utils/get-base-url.ts"() {
+    "use strict";
+    import_headers = __toESM(require_headers3());
+    ALLOWED_HOST_DOMAINS = [
+      "smmplan.pro",
+      "www.smmplan.pro",
+      "test.smmplan.pro",
+      "smmflux.ru",
+      "www.smmflux.ru",
+      "test.smmflux.ru",
+      "localhost",
+      "127.0.0.1"
+    ];
+  }
+});
+
 // src/lib/seo-helpers.ts
 function normalizeTenantId2(tenantId) {
   if (!tenantId) return "smmplan";
@@ -123595,22 +123655,24 @@ async function dispatch(result, options) {
   }
 }
 async function sendMagicLink(email, token, tenantId) {
-  const { companyName, supportDomain } = await getEmailContext(tenantId);
-  const baseUrl2 = `https://${supportDomain}`;
-  const link = `${baseUrl2}/api/auth/verify?token=${token}`;
-  if (process.env.NODE_ENV !== "production") {
-    console.info(`
-[DEVELOPMENT] MAGIC LINK FOR ${email} (${companyName}): 
-${link}
-`);
+  const { companyName } = await getEmailContext(tenantId);
+  let baseUrl2 = await getBaseUrlAsync().catch(() => "");
+  if (!baseUrl2) {
+    const { supportDomain } = await getEmailContext(tenantId);
+    baseUrl2 = `https://${supportDomain}`;
   }
+  const normTenant = normalizeTenantId2(tenantId);
+  const tenantParam = normTenant && normTenant !== "smmplan" ? `&tenant=${normTenant}` : "";
+  const link = `${baseUrl2}/api/auth/verify?token=${token}${tenantParam}`;
+  console.info(`
+========================================
+[MAGIC LINK FOR ${email} (${companyName})]:
+${link}
+========================================
+`);
   const result = await getTransporter();
   if (!result) {
-    if (process.env.NODE_ENV === "production") {
-      log5.error("Not configured in AdminPanel");
-    } else {
-      log5.warn("Not configured. Email skipped.", { action: "MAGIC_LINK", email, link });
-    }
+    log5.warn("SMTP Not configured. Magic link printed to console.", { email, link });
     return;
   }
   const htmlContent = `
@@ -123628,11 +123690,15 @@ ${link}
   try {
     await dispatch(result, { companyName, to: email, subject: `\u0412\u0430\u0448\u0430 \u0441\u0441\u044B\u043B\u043A\u0430 \u0434\u043B\u044F \u0432\u0445\u043E\u0434\u0430 \u0432 ${companyName}`, html: htmlContent });
   } catch (err) {
-    if (process.env.NODE_ENV === "production" && process.env.DEV_MOCK_SMTP !== "true") {
-      throw err;
-    } else {
-      log5.error("SMTP send failed (printed link above instead)", { error: err instanceof Error ? err.message : String(err) });
+    log5.error("SMTP send failed (printed link above in console)", {
+      error: err instanceof Error ? err.message : String(err),
+      email,
+      link
+    });
+    if (process.env.APP_URL?.includes("test.smmplan.pro") || process.env.NODE_ENV !== "production" || process.env.DEV_MOCK_SMTP === "true") {
+      return;
     }
+    throw err;
   }
 }
 async function sendMail(email, subject, htmlContent, replyTo, tenantId) {
@@ -123739,6 +123805,7 @@ var init_smtp = __esm({
     init_settings();
     init_dist3();
     init_logger();
+    init_get_base_url();
     init_seo_helpers();
     if (import_dns.default.setDefaultResultOrder) {
       import_dns.default.setDefaultResultOrder("ipv4first");
@@ -142591,58 +142658,7 @@ init_db();
 
 // src/services/financial/payment-gateway.service.ts
 init_db();
-
-// src/utils/get-base-url.ts
-var import_headers = __toESM(require_headers3());
-var ALLOWED_HOST_DOMAINS = [
-  "smmplan.pro",
-  "www.smmplan.pro",
-  "test.smmplan.pro",
-  "smmflux.ru",
-  "www.smmflux.ru",
-  "test.smmflux.ru",
-  "localhost",
-  "127.0.0.1"
-];
-function isAllowedHost(host) {
-  if (!host) return false;
-  const cleanHost = host.split(":")[0].toLowerCase();
-  if (cleanHost === "0.0.0.0" || cleanHost === "host.docker.internal") return false;
-  return ALLOWED_HOST_DOMAINS.includes(cleanHost) || cleanHost.endsWith(".smmplan.pro") || cleanHost.endsWith(".smmflux.ru");
-}
-async function getBaseUrlAsync(reqHost, reqProto) {
-  const envUrl = process.env.WEBAPP_URL || process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
-  try {
-    const headersList = await (0, import_headers.headers)();
-    let host = headersList.get("x-forwarded-host") || headersList.get("host");
-    const proto = headersList.get("x-forwarded-proto") || (process.env.NODE_ENV === "production" ? "https" : "http");
-    if (host) {
-      if (host.includes("0.0.0.0") || host.includes("host.docker.internal")) {
-        host = process.env.NODE_ENV === "production" ? process.env.APP_URL ? new URL(process.env.APP_URL).host : "test.smmplan.pro" : "localhost:3000";
-      }
-      if (isAllowedHost(host)) {
-        return `${proto}://${host}`;
-      }
-    }
-  } catch {
-  }
-  if (envUrl) {
-    return envUrl.endsWith("/") ? envUrl.slice(0, -1) : envUrl;
-  }
-  if (reqHost) {
-    let host = reqHost;
-    if (host.includes("0.0.0.0") || host.includes("host.docker.internal")) {
-      host = process.env.NODE_ENV === "production" ? process.env.APP_URL ? new URL(process.env.APP_URL).host : "test.smmplan.pro" : "localhost:3000";
-    }
-    if (isAllowedHost(host)) {
-      const proto = reqProto || (process.env.NODE_ENV === "production" ? "https" : "http");
-      return `${proto}://${host}`;
-    }
-  }
-  return process.env.NODE_ENV === "production" ? "https://test.smmplan.pro" : "http://localhost:3000";
-}
-
-// src/services/financial/payment-gateway.service.ts
+init_get_base_url();
 init_settings();
 init_wallet_ops();
 var import_crypto5 = __toESM(require("crypto"));

@@ -24,6 +24,7 @@ export default defineConfig({
       'src/__tests__/orders-pagination-speed.test.ts',
       'src/__tests__/auto-map-poll-category.test.ts',
       'src/__tests__/p0-security-fixes.test.ts',
+      'src/__tests__/actionable-error.test.ts',
     ],
   }
 });

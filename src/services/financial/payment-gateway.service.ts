@@ -121,16 +121,30 @@ class YooKassaGateway extends BasePaymentGateway {
     const idempString = `yookassa_${params.userId}_${params.paymentId}_${Math.floor(Date.now() / 60000)}`;
     const idempKey = crypto.createHash('sha256').update(idempString).digest('hex').substring(0, 36);
 
-    const resp = await fetch('https://api.yookassa.ru/v3/payments', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader,
-        'Idempotence-Key': idempKey
-      },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(15000)
-    });
+    // Test mode bypass for development & CI verification
+    if (params.isTestMode) {
+      return {
+        paymentUrl: `${params.successUrl}${params.successUrl.includes('?') ? '&' : '?'}testMode=true&paymentId=${params.paymentId}`,
+        remoteGatewayId: `test_yk_${params.paymentId}`
+      };
+    }
+
+    let resp: Response;
+    try {
+      resp = await fetch('https://api.yookassa.ru/v3/payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader,
+          'Idempotence-Key': idempKey
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(10000)
+      });
+    } catch (netErr: unknown) {
+      console.error('[YooKassaGateway] Connection failed:', netErr);
+      throw new Error('Ошибка соединения со шлюзом ЮKassa. Сервер оплаты временно недоступен — попробуйте СБП или CryptoBot.');
+    }
 
     if (!resp.ok) {
       const errBody = await resp.text();
