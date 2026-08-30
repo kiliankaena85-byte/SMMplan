@@ -72,11 +72,17 @@ const MODES: ModeConfig[] = [
   }
 ];
 
+import { useRouter, useSearchParams } from 'next/navigation';
+
 export function EnvironmentModeSwitcher({
   initialMode = 'SANDBOX'
 }: {
   initialMode?: EnvironmentMode;
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tenantId = searchParams.get('tenant') || undefined;
+
   const [currentMode, setCurrentMode] = React.useState<EnvironmentMode>(initialMode);
   const [isOpen, setIsOpen] = React.useState(false);
   const [isPending, startTransition] = React.useTransition();
@@ -84,12 +90,12 @@ export function EnvironmentModeSwitcher({
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    getEnvironmentModeAction().then((res) => {
+    getEnvironmentModeAction(tenantId).then((res) => {
       if (res.success && res.mode) {
         setCurrentMode(res.mode as EnvironmentMode);
       }
     });
-  }, []);
+  }, [tenantId]);
 
   // Close on outside click
   React.useEffect(() => {
@@ -117,10 +123,11 @@ export function EnvironmentModeSwitcher({
 
   const executeSwitch = (mode: EnvironmentMode) => {
     startTransition(async () => {
-      const res = await setEnvironmentModeAction({ mode });
+      const res = await setEnvironmentModeAction({ mode, tenantId });
       if (res.success) {
         setCurrentMode(mode);
         toast.success(`Режим окружения изменён на ${mode}`);
+        router.refresh(); // Crucial: Re-render Server Components (e.g. Test Mode Banner in Layout)
       } else {
         toast.error(res.error || 'Не удалось переключить режим');
       }

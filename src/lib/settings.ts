@@ -443,6 +443,7 @@ export class SettingsProvider {
 
   static async setExchangeRateUSD(rate: number, tenantId?: string) {
     const activeTenantId = tenantId || await this.getTenantId();
+    delete localSettingsCache[activeTenantId];
     await db.systemSettings.upsert({
       where: { id: activeTenantId },
       update: { exchangeRateUSD: rate, exchangeRateUpdatedAt: new Date() },
@@ -457,13 +458,16 @@ export class SettingsProvider {
 
   static async setTestMode(enable: boolean, tenantId?: string) {
     const activeTenantId = tenantId || await this.getTenantId();
+    delete localSettingsCache[activeTenantId];
     await db.systemSettings.upsert({
       where: { id: activeTenantId },
       update: { isTestMode: enable },
       create: { id: activeTenantId, isTestMode: enable }
     });
-    const { redis } = await import('./redis');
-    await redis.set(`settings:${activeTenantId}:isTestMode`, String(enable));
+    try {
+      const { redis } = await import('./redis');
+      await redis.set(`settings:${activeTenantId}:isTestMode`, String(enable));
+    } catch {}
     try {
       revalidateTag('settings', 'default');
     } catch (cacheErr) {
@@ -473,13 +477,16 @@ export class SettingsProvider {
 
   static async setMaintenanceMode(enable: boolean, tenantId?: string) {
     const activeTenantId = tenantId || await this.getTenantId();
+    delete localSettingsCache[activeTenantId];
     await db.systemSettings.upsert({
       where: { id: activeTenantId },
       update: { maintenanceMode: enable },
       create: { id: activeTenantId, maintenanceMode: enable }
     });
-    const { redis } = await import('./redis');
-    await redis.set(`settings:${activeTenantId}:maintenanceMode`, String(enable));
+    try {
+      const { redis } = await import('./redis');
+      await redis.set(`settings:${activeTenantId}:maintenanceMode`, String(enable));
+    } catch {}
     try {
       revalidateTag('settings', 'default');
     } catch (cacheErr) {
@@ -503,6 +510,7 @@ export class SettingsProvider {
 
   static async setRefillModuleEnabled(enable: boolean, tenantId?: string) {
     const activeTenantId = tenantId || await this.getTenantId();
+    delete localSettingsCache[activeTenantId];
     const { redis } = await import('./redis');
     await redis.set(`settings:${activeTenantId}:isRefillModuleEnabled`, String(enable));
     try {
@@ -511,6 +519,7 @@ export class SettingsProvider {
       console.error('[SettingsProvider] Warning: Failed to invalidate cache tag:', cacheErr);
     }
   }
+
   static async getEnvironmentMode(tenantId?: string): Promise<EnvironmentMode> {
     const activeTenantId = tenantId || await this.getTenantId();
     try {
@@ -529,6 +538,10 @@ export class SettingsProvider {
     const activeTenantId = tenantId || await this.getTenantId();
     const isTest = mode !== 'PRODUCTION';
     
+    delete localSettingsCache[activeTenantId];
+    delete localSettingsCache['smmplan'];
+    delete localSettingsCache['flux'];
+
     await db.systemSettings.upsert({
       where: { id: activeTenantId },
       update: { isTestMode: isTest },

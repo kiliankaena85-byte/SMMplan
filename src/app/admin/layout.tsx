@@ -15,6 +15,8 @@ import { EnvironmentModeSwitcher } from '@/components/admin/EnvironmentModeSwitc
 import { SystemEmergencyBanner } from '@/components/admin/system-emergency-banner';
 import { SettingsManager } from '@/lib/settings';
 import { unstable_cache } from 'next/cache';
+import { cookies } from 'next/headers';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 // ADM-16: catalog anomaly badge — cached for 60s instead of a COUNT on every admin page load
 const getCachedAnomalyCount = unstable_cache(
@@ -98,11 +100,14 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   })).filter(group => group.items.length > 0);
 
   const roleInfo = ROLE_LABELS[user.role] || { label: user.role, color: 'bg-muted text-foreground' };
-  const isTestMode = await SettingsManager.isTestMode();
+  const cookieStore = await cookies();
+  const cookieTenant = cookieStore.get('x_admin_tenant')?.value;
+  const activeTenantId = normalizeTenantId(cookieTenant) || user.tenantId || 'smmplan';
+  const isTestMode = await SettingsManager.isTestMode(activeTenantId);
 
   return (
     <ShortcutsProvider>
-      <div data-tenant={user.tenantId || "smmplan"} className="h-screen w-full overflow-hidden bg-muted/10 dark:bg-background flex flex-col md:flex-row relative selection:bg-primary/20 selection:text-foreground font-sans">
+      <div data-tenant={activeTenantId} className="h-screen w-full overflow-hidden bg-muted/10 dark:bg-background flex flex-col md:flex-row relative selection:bg-primary/20 selection:text-foreground font-sans">
         {/* Soft Ambient Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20 pointer-events-none z-0" />
 
@@ -123,7 +128,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                 roleInfo={roleInfo}
                 navigation={navigation}
               />
-              <GlobalSiteSwitcher />
+              <GlobalSiteSwitcher currentTenant={activeTenantId} />
               <EnvironmentModeSwitcher />
             </div>
             <div className="flex items-center gap-2">

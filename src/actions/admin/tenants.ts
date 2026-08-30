@@ -6,6 +6,8 @@ import { requireStaffPermission } from '@/lib/server/rbac';
 import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 const CreateTenantSchema = z.object({
   name: z.string().min(2, 'Название бренда должно быть не менее 2 символов').max(60),
@@ -251,4 +253,35 @@ export async function deleteTenantAction(id: string) {
     console.error('[TenantsAction] Failed to delete tenant:', error);
     return { success: false, error: 'Ошибка удаления тенанта (проверьте связанные данные)' };
   }
+}
+
+/**
+ * Explicit and secure Server Action for switching the active administrative tenant.
+ * Sets the x_admin_tenant cookie on the server side and invalidates the layout cache.
+ */
+export async function switchAdminTenantAction(tenantId: string) {
+  const session = await verifySession();
+  if (!session) {
+    return { success: false, error: 'Необходима авторизация' };
+  }
+
+  const STAFF_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR'];
+  if (!session.role || !STAFF_ROLES.includes(session.role)) {
+    return { success: false, error: 'Доступ запрещён: требуется роль сотрудника' };
+  }
+
+  const normalized = normalizeTenantId(tenantId) || 'smmplan';
+  const cookieStore = await cookies();
+  cookieStore.set('x_admin_tenant', normalized, {
+    path: '/',
+    maxAge: 31536000, // 1 year
+    sameSite: 'lax',
+    httpOnly: false,
+    secure: process.env.NODE_ENV === 'production',
+  });
+
+  revalidatePath('/admin', 'layout');
+  revalidatePath('/', 'layout');
+
+  return { success: true, tenantId: normalized };
 }

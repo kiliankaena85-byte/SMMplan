@@ -3,13 +3,20 @@
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { SettingsManager, type EnvironmentMode } from '@/lib/settings';
 import { auditAdminAwaitable } from '@/lib/admin-audit';
+import { revalidatePath } from 'next/cache';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
+import { cookies } from 'next/headers';
 
-export async function getEnvironmentModeAction() {
+export async function getEnvironmentModeAction(tenantId?: string) {
   return requireStaffPermission('settings', 'view', async (staffUser) => {
     try {
-      const mode = await SettingsManager.getEnvironmentMode();
-      const isMockPayment = await SettingsManager.isMockPaymentEnabled();
-      const isMockProvider = await SettingsManager.isMockProviderEnabled();
+      const cookieStore = await cookies();
+      const cookieTenant = cookieStore.get('x_admin_tenant')?.value;
+      const targetTenant = normalizeTenantId(tenantId || cookieTenant || staffUser.tenantId) || 'smmplan';
+
+      const mode = await SettingsManager.getEnvironmentMode(targetTenant);
+      const isMockPayment = await SettingsManager.isMockPaymentEnabled(targetTenant);
+      const isMockProvider = await SettingsManager.isMockProviderEnabled(targetTenant);
       return {
         success: true,
         mode,
@@ -27,6 +34,7 @@ export async function getEnvironmentModeAction() {
 
 export async function setEnvironmentModeAction(input: {
   mode: EnvironmentMode;
+  tenantId?: string;
 }) {
   return requireStaffPermission('settings', 'edit', async (staffUser) => {
     try {
@@ -35,18 +43,26 @@ export async function setEnvironmentModeAction(input: {
         return { success: false, error: 'Некорректный режим окружения' };
       }
 
-      const oldMode = await SettingsManager.getEnvironmentMode();
-      await SettingsManager.setEnvironmentMode(input.mode);
+      const cookieStore = await cookies();
+      const cookieTenant = cookieStore.get('x_admin_tenant')?.value;
+      const targetTenant = normalizeTenantId(input.tenantId || cookieTenant || staffUser.tenantId) || 'smmplan';
+
+      const oldMode = await SettingsManager.getEnvironmentMode(targetTenant);
+      await SettingsManager.setEnvironmentMode(input.mode, targetTenant);
 
       await auditAdminAwaitable({
         adminId: staffUser.id,
         adminEmail: staffUser.email,
         action: 'ENVIRONMENT_MODE_CHANGED',
-        target: 'SYSTEM_SETTINGS',
+        target: `SYSTEM_SETTINGS:${targetTenant}`,
         targetType: 'SETTINGS',
-        oldValue: { mode: oldMode },
-        newValue: { mode: input.mode }
+        oldValue: { mode: oldMode, tenantId: targetTenant },
+        newValue: { mode: input.mode, tenantId: targetTenant }
       });
+
+      // Crucial: Invalidate Next.js Server Components layout cache
+      revalidatePath('/admin', 'layout');
+      revalidatePath('/', 'layout');
 
       return {
         success: true,

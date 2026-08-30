@@ -1,7 +1,17 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 07:58 (МСК)
+> **Последнее обновление:** 2026-08-30 08:06 (МСК)
+
+- **Admin Site & Environment Switchers Reactivity & Security (100% COMPLETE & VERIFIED):**
+  - **1. Instant Mode Switching (`EnvironmentModeSwitcher.tsx`):** Устранено залипание фиолетового баннера «ТЕСТОВЫЙ РЕЖИМ». В компонент добавлен вызов `router.refresh()` после мутации, а в Server Action `setEnvironmentModeAction` внедрен сброс кэшей `revalidatePath('/admin', 'layout')` и `revalidatePath('/', 'layout')`.
+  - **2. In-Memory & Redis Cache Invalidation (`SettingsProvider` in `settings.ts`):** `setEnvironmentMode`, `setTestMode` и `setMaintenanceMode` теперь немедленно инвалидируют локальный `localSettingsCache` в оперативной памяти Node.js, предотвращая отдачу устаревших настроек в течение 60-300 секунд.
+  - **3. Atomic Tenant Switching Action (`switchAdminTenantAction` in `tenants.ts`):** Создан защищенный Server Action с проверкой прав сотрудника (OWASP A01), установкой `x_admin_tenant` cookie на стороне сервера и инвалидацией layout кэша.
+  - **4. Optimistic UI & Cookie Sync (`tenant-switcher.tsx`):** Переключатель сайтов мгновенно обновляет визуальный стейт, предотвращает сброс на `smmplan` при клике по сайдбару и показывает плавный спиннер во время перехода.
+  - **5. Тестирование и верификация:** 
+    - Новый юнит-сьют безопасности: `src/__tests__/admin-switchers-security.test.ts` (**6/6 PASS**).
+    - Полная батарея юнит-тестов: `vitest.unit.config.ts` (**79/79 PASS**).
+    - Строгая проверка типов: `npx tsc --noEmit` (**0 ошибок**).
 
 - **Admin Catalog Modern Pagination & UX Architecture (100% COMPLETE & VERIFIED):**
   - **1. Numbered Offset Pagination:** В `src/lib/pagination.ts` внедрена поддержка offset-пагинации с расчётом `totalPages`, `currentPage`, `pageSize` и точного диапазона записей.

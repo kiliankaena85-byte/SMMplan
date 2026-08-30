@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useTransition } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { TENANTS, TenantId } from '@/config/tenants';
-import { Globe, ChevronDown, Check, ExternalLink, Sparkles } from 'lucide-react';
+import { Globe, ChevronDown, Check, ExternalLink, Sparkles, Loader2 } from 'lucide-react';
 import { getTenantHost } from '@/lib/seo-helpers';
+import { switchAdminTenantAction } from '@/actions/admin/tenants';
 
 interface TenantSwitcherProps {
   currentTenant?: string;
@@ -17,10 +18,34 @@ export function TenantSwitcher({ currentTenant = 'smmplan', className = '', vari
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const activeTenantId = (searchParams.get('tenant') as TenantId) || currentTenant || 'smmplan';
-  const activeTenant = TENANTS.find((t) => t.id === activeTenantId) || TENANTS[0];
+  // Initialize tenant from searchParams or currentTenant
+  const [selectedTenantId, setSelectedTenantId] = useState<TenantId>(() => {
+    const urlTenant = searchParams.get('tenant') as TenantId | null;
+    if (urlTenant && TENANTS.some((t) => t.id === urlTenant)) return urlTenant;
+    return (currentTenant as TenantId) || 'smmplan';
+  });
+
+  // Keep state synchronized with URL searchParams and cookie
+  useEffect(() => {
+    const urlTenant = searchParams.get('tenant') as TenantId | null;
+    if (urlTenant && TENANTS.some((t) => t.id === urlTenant)) {
+      setSelectedTenantId(urlTenant);
+      return;
+    }
+
+    try {
+      const match = document.cookie.match(/(?:^|;\s*)x_admin_tenant=([^;]+)/);
+      if (match && match[1]) {
+        const cTenant = match[1] as TenantId;
+        if (TENANTS.some((t) => t.id === cTenant)) {
+          setSelectedTenantId(cTenant);
+        }
+      }
+    } catch {}
+  }, [searchParams, currentTenant]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -36,21 +61,29 @@ export function TenantSwitcher({ currentTenant = 'smmplan', className = '', vari
     };
   }, [isOpen]);
 
+  const activeTenant = TENANTS.find((t) => t.id === selectedTenantId) || TENANTS[0];
+
   const handleSelect = (tenantId: TenantId) => {
     setIsOpen(false);
-    
-    // 1. Set cookie for session-wide admin tenant persistence
+    setSelectedTenantId(tenantId); // ⚡ Optimistic UI update
+
+    // 1. Set cookie on client for immediate network fetch availability
     try {
       document.cookie = `x_admin_tenant=${tenantId}; path=/; max-age=31536000; SameSite=Lax`;
     } catch {}
 
-    // 2. Update search params
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('tenant', tenantId);
-    params.delete('cursor');
+    // 2. Server Action for atomic cookie set and layout cache invalidation
+    startTransition(async () => {
+      await switchAdminTenantAction(tenantId);
 
-    router.replace(`${pathname}?${params.toString()}`);
-    router.refresh();
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('tenant', tenantId);
+      params.delete('cursor');
+      params.delete('page');
+
+      router.replace(`${pathname}?${params.toString()}`);
+      router.refresh();
+    });
   };
 
   if (variant === 'segmented') {
@@ -94,7 +127,7 @@ export function TenantSwitcher({ currentTenant = 'smmplan', className = '', vari
         className="flex items-center gap-2 px-3 py-1.5 h-9 sm:h-10 bg-card/90 hover:bg-card border border-border/80 hover:border-primary/50 text-foreground font-semibold rounded-xl transition-all duration-200 shadow-sm active:scale-95 cursor-pointer text-xs sm:text-sm select-none"
       >
         <div className="w-5 h-5 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-          <Globe className="w-3.5 h-3.5" />
+          {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
         </div>
         
         <span className="font-black text-foreground tracking-tight">

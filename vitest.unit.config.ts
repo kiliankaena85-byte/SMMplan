@@ -14,6 +14,7 @@ export default defineConfig({
     include: [
       'src/__tests__/financial/financial-security-audit.test.ts',
       'src/__tests__/catalog-pagination-offset.test.ts',
+      'src/__tests__/admin-switchers-security.test.ts',
     ],
   }
 });
