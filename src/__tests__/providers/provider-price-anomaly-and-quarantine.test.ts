@@ -146,10 +146,10 @@ describe.sequential('Provider Price Anomaly Detector & Active Quarantine Enforce
     expect(updatedServiceA.quarantineReason).toContain('1 USD → 1.6 USD');
   });
 
-  it('2. Active Quarantine on UPPER_SANITY_LIMIT_RUB breach (> 50,000 ₽/1k)', async () => {
-    // Provider returns an insane rate of $600/1k = 60,000 RUB/1k (exceeding UPPER_SANITY_LIMIT_RUB of 50,000 ₽)
+  it('2. Active Quarantine on UPPER_SANITY_LIMIT_RUB breach (> 500,000 ₽/1k)', async () => {
+    // Provider returns an insane rate of $6000/1k = 600,000 RUB/1k (exceeding UPPER_SANITY_LIMIT_RUB of 500,000 ₽)
     mockGetServices.mockResolvedValue([
-      { service: serviceA.externalId, name: 'Telegram Subscribers Real', rate: '600.00', min: '100', max: '50000', category: 'Subscribers' },
+      { service: serviceA.externalId, name: 'Telegram Subscribers Real', rate: '6000.00', min: '100', max: '50000', category: 'Subscribers' },
       { service: serviceB.externalId, name: 'Telegram Views Instant', rate: '0.50', min: '100', max: '100000', category: 'Views' },
     ]);
 
@@ -160,8 +160,8 @@ describe.sequential('Provider Price Anomaly Detector & Active Quarantine Enforce
     expect(updatedServiceA.isActive).toBe(false);
     expect(updatedServiceA.isQuarantined).toBe(true);
     expect(updatedServiceA.quarantineReason).toContain('Upper Sanity Limit Exceeded');
-    expect(updatedServiceA.quarantineReason).toContain('600 USD');
-    expect(updatedServiceA.quarantineReason).toMatch(/(57000|60000)\.00 ₽\/1k/);
+    expect(updatedServiceA.quarantineReason).toContain('6000 USD');
+    expect(updatedServiceA.quarantineReason).toMatch(/(570000|600000)\.00 ₽\/1k/);
   });
 
   it('3. Currency Flip Resilience (USD -> RUB): does NOT trigger false price spike when normalized cost in RUB is unchanged', async () => {

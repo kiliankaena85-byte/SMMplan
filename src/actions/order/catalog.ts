@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { IntelligencePlatform } from "@/services/analyzer/link-rules";
 import { applyBeautifulRounding, SAFETY_FLOOR_MARKUP } from "@/lib/financial-constants";
 import { getCostRub } from "@/lib/pricing/currency-invariant";
+import { applyAntiNegativeMargin } from "@/lib/pricing/anti-negative-margin";
 import { SettingsProvider } from "@/lib/settings";
 import { unstable_cache } from "next/cache";
 import { tenantVisibilityFilter } from "@/lib/tenant-scope";
@@ -252,6 +253,7 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
               warningMessage: true,
               providerCurrency: true,
               costPer1kRub: true,
+              pricePer1000Cents: true,
               markup: true,
               rate: true,
               smartConfig: {
@@ -334,21 +336,11 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
           else if (s.rate < 0.1) badge = "ХИТ";
        }
 
-       // P0-1 & P0-3: Immutable Base Cost + Anti-Negative Margin Guard
-       let baseCostRub: number;
-       if (typeof s.costPer1kRub === 'number' && s.costPer1kRub > 0) {
-         baseCostRub = s.costPer1kRub;
-       } else {
-         try {
-           baseCostRub = getCostRub(s.rate, s.providerCurrency || 'RUB', usdToRub);
-         } catch {
-           baseCostRub = s.rate * (s.providerCurrency === 'RUB' ? 1.0 : usdToRub);
-         }
-       }
-       const markup = s.markup > 0 ? s.markup : SAFETY_FLOOR_MARKUP;
-       const pricePer1kRub = applyBeautifulRounding(baseCostRub * markup);
-       const guardedPricePer1kRub = Math.max(pricePer1kRub, Math.ceil(baseCostRub * 1.05 * 100) / 100);
-       const pricePerUnitRub = guardedPricePer1kRub / 1000;
+       // Single Source of Truth: pricePer1000Cents is the canonical retail price
+       const pricePer1kRub = typeof s.pricePer1000Cents === 'number' && s.pricePer1000Cents > 0
+         ? s.pricePer1000Cents / 100
+         : applyBeautifulRounding((s.costPer1kRub || (s.rate * (s.providerCurrency === 'RUB' ? 1.0 : usdToRub))) * (s.markup || SAFETY_FLOOR_MARKUP));
+       const pricePerUnitRub = pricePer1kRub / 1000;
 
        const startTime = (feat.startTime as string | undefined) || fallbackAnalysis?.startTime || '5–15 мин';
        const speedDisplay = (feat.speedText as string | undefined) || fallbackAnalysis?.speedText || (lowerName.includes('быстр') ? 'Быстрая' : 'Стандартная');
@@ -432,18 +424,10 @@ export async function getServiceBySlugAction(slug: string, tenantId: string = 's
 
     if (!service) return null;
 
-    let baseCostRub: number;
-    if (typeof service.costPer1kRub === 'number' && service.costPer1kRub > 0) {
-      baseCostRub = service.costPer1kRub;
-    } else {
-      try {
-        baseCostRub = getCostRub(service.rate, service.providerCurrency || 'RUB', usdToRub);
-      } catch {
-        baseCostRub = service.rate * (service.providerCurrency === 'RUB' ? 1.0 : usdToRub);
-      }
-    }
-    const markup = service.markup > 0 ? service.markup : SAFETY_FLOOR_MARKUP;
-    const pricePer1kRub = applyBeautifulRounding(baseCostRub * markup);
+    // Single Source of Truth: pricePer1000Cents is the canonical retail price
+    const pricePer1kRub = typeof service.pricePer1000Cents === 'number' && service.pricePer1000Cents > 0
+      ? service.pricePer1000Cents / 100
+      : applyBeautifulRounding((service.costPer1kRub || (service.rate * (service.providerCurrency === 'RUB' ? 1.0 : usdToRub))) * (service.markup || SAFETY_FLOOR_MARKUP));
     const pricePerUnitRub = pricePer1kRub / 1000;
 
     return {

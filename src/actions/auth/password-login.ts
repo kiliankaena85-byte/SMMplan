@@ -16,54 +16,7 @@ const schema = z.object({
   email: z.string().email("Введите корректный email"),
   password: z.string().min(1, "Введите пароль"),
   twoFactorCode: z.string().optional(),
-  turnstileToken: z.string().optional(),
 });
-
-/**
- * Verifies Cloudflare Turnstile captcha token via official siteverify endpoint.
- * Bypasses only when TURNSTILE_DISABLED_FOR_TESTS=1 in non-production environments.
- */
-async function verifyTurnstileToken(token: string | undefined, ip?: string): Promise<{ success: boolean; error?: string }> {
-  if (process.env.TURNSTILE_DISABLED_FOR_TESTS === '1' && process.env.NODE_ENV !== 'production') {
-    return { success: true };
-  }
-
-  const secret = process.env.TURNSTILE_SECRET_KEY;
-  if (!secret) {
-    if (process.env.NODE_ENV === 'production') {
-      log.error('TURNSTILE_SECRET_KEY is missing in production environment');
-      return { success: false, error: 'Ошибка конфигурации безопасности. Обратитесь к администратору.' };
-    }
-    return { success: true };
-  }
-
-  if (!token || token.trim() === '') {
-    return { success: false, error: 'Подтвердите, что вы не робот (пройдите проверку безопасности)' };
-  }
-
-  try {
-    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        secret,
-        response: token,
-        ...(ip && ip !== '127.0.0.1' ? { remoteip: ip } : {}),
-      }),
-      signal: AbortSignal.timeout(5000),
-    });
-
-    const data = await res.json();
-    if (!data.success) {
-      log.warn('Turnstile verification failed', { errorCodes: data['error-codes'] });
-      return { success: false, error: 'Проверка безопасности не пройдена. Пожалуйста, обновите страницу и попробуйте снова.' };
-    }
-    return { success: true };
-  } catch (err) {
-    log.error('Turnstile verification network error', { err });
-    return { success: false, error: 'Не удалось проверить капчу. Проверьте соединение с интернетом.' };
-  }
-}
 
 /** @public Public user login action */
 export async function loginWithPasswordAction(prevState: unknown, formData: FormData) {
@@ -76,21 +29,13 @@ export async function loginWithPasswordAction(prevState: unknown, formData: Form
   }
 
   const { email, password, twoFactorCode } = parsed.data;
-  const rawTurnstile = formData.get('cf-turnstile-response') || formData.get('turnstileToken') || parsed.data.turnstileToken;
-  const turnstileToken = typeof rawTurnstile === 'string' ? rawTurnstile : undefined;
   const cleanEmail = email.toLowerCase().trim();
 
   try {
     const { SecurityAuditLogger } = await import('@/lib/security/audit-logger');
     const ipAddress = await getClientIp();
 
-    // 1. CAPTCHA Verification (Fail-Closed: executed BEFORE any database lookups)
-    const turnstileCheck = await verifyTurnstileToken(turnstileToken, ipAddress);
-    if (!turnstileCheck.success) {
-      return { error: turnstileCheck.error || "Подтвердите, что вы не робот", success: false };
-    }
-
-    // 2. IP-level Rate Limit (Max 20 attempts per hour, 5 attempts per minute)
+    // 1. IP-level Rate Limit (Max 20 attempts per hour, 5 attempts per minute)
     const isIpAllowed = await RateLimitService.check('auth:password:ip', 20, 3600, true);
     const isIpBurstAllowed = await RateLimitService.check(`auth:password:ip:burst:${ipAddress}`, 5, 60, true);
     if (!isIpAllowed || !isIpBurstAllowed) {

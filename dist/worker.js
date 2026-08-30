@@ -124286,7 +124286,7 @@ var init_financial_constants = __esm({
     MAX_TOTAL_DISCOUNT = 30;
     SYNC_ANOMALY_THRESHOLD = 0.2;
     ANOMALY_PRICE_SPIKE_THRESHOLD = 0.5;
-    UPPER_SANITY_LIMIT_RUB = 5e4;
+    UPPER_SANITY_LIMIT_RUB = 5e5;
     DEFAULT_PRICING_LADDER = [
       { threshold: 1, multiplier: 50, fixedMarkup: 0 },
       { threshold: 10, multiplier: 11, fixedMarkup: 0 },
@@ -137505,8 +137505,11 @@ var init_cbr_rate_service = __esm({
         } catch {
         }
         const usdRate = await SettingsManager.getExchangeRateUSD(tenantId);
+        if (!usdRate || usdRate <= 0 || !Number.isFinite(usdRate)) {
+          throw new Error("INVALID_USD_RATE: Exchange rate USD is not configured in SystemSettings");
+        }
         return {
-          usdToRub: usdRate || 95,
+          usdToRub: usdRate,
           eurToUsd: 1.08,
           uahToUsd: 0.027,
           kztToUsd: 23e-4,
@@ -141599,7 +141602,14 @@ var AdminCatalogService = class {
         skipped.push({ externalId: extId, name: shadowExt.cleanName || shadowExt.name, reason: "CURRENCY_CONVERSION_FAILED" });
         continue;
       }
-      const driftCheck = await PriceDriftCircuitBreaker.validate(providerDbRecord.id, extId, snapshot.costPer1kRub);
+      const driftCheck = await PriceDriftCircuitBreaker.validate(
+        providerDbRecord.id,
+        extId,
+        snapshot.costPer1kRub,
+        DEFAULT_DRIFT_CONFIG,
+        rawRate,
+        providerCurrency
+      );
       if (!driftCheck.ok && driftCheck.severity === "BLOCK") {
         skipped.push({ externalId: extId, name: shadowExt.cleanName || shadowExt.name, reason: "PRICE_DRIFT_BLOCKED" });
         warnings.push(`\u0423\u0441\u043B\u0443\u0433\u0430 ${extId} \u0437\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u0430 \u043F\u0440\u0435\u0434\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u0435\u043B\u0435\u043C \u0434\u0440\u0435\u0439\u0444\u0430 \u0446\u0435\u043D: ${driftCheck.reason}`);
@@ -141609,23 +141619,6 @@ var AdminCatalogService = class {
       const rawMax = parseInt(String(liveExt.max), 10);
       const minQty = isNaN(rawMin) || rawMin <= 0 ? 10 : rawMin;
       const maxQty = isNaN(rawMax) || rawMax < minQty ? Math.max(minQty * 10, 1e4) : rawMax;
-      let effectiveMarkup = defaultMarkup;
-      if (defaultMarkup <= 0) {
-        const retailFromLadder = applyPricingLadder(snapshot.costPer1kRub);
-        effectiveMarkup = snapshot.costPer1kRub > 0 ? Math.round(retailFromLadder / snapshot.costPer1kRub * 100) / 100 : 3;
-      }
-      const MIN_SAFE_MARKUP = 1;
-      if (effectiveMarkup < MIN_SAFE_MARKUP) {
-        markupAdjustments.push({
-          externalId: extId,
-          name: shadowExt.cleanName || shadowExt.name,
-          requestedMarkup: effectiveMarkup,
-          appliedMarkup: MIN_SAFE_MARKUP
-        });
-        effectiveMarkup = MIN_SAFE_MARKUP;
-      }
-      const rawRetailRub = snapshot.costPer1kRub * effectiveMarkup;
-      const marginGuard = applyAntiNegativeMargin(snapshot.costPer1kRub, rawRetailRub, 5);
       const importedName = shadowExt.cleanName || liveExt.name;
       const importedDesc = liveExt.desc || null;
       const baseSlug = importedName.toLowerCase().trim().replace(/[^a-z0-9а-яё]+/gi, "-").replace(/^-+|-+$/g, "") || `service-${extId}`;
@@ -141635,6 +141628,25 @@ var AdminCatalogService = class {
           skippedTenants.push(tId);
           continue;
         }
+        const tenantSettings = await SettingsProvider.get(tId);
+        const tenantFloor = Math.max(SAFETY_FLOOR_MARKUP, tenantSettings?.globalMarkup || 3);
+        let effectiveMarkup = defaultMarkup;
+        if (defaultMarkup <= 0) {
+          const retailFromLadder = applyPricingLadder(snapshot.costPer1kRub);
+          effectiveMarkup = snapshot.costPer1kRub > 0 ? Math.round(retailFromLadder / snapshot.costPer1kRub * 100) / 100 : 3;
+        }
+        if (effectiveMarkup < tenantFloor) {
+          markupAdjustments.push({
+            externalId: extId,
+            name: shadowExt.cleanName || shadowExt.name,
+            requestedMarkup: effectiveMarkup,
+            appliedMarkup: tenantFloor,
+            tenantId: tId
+          });
+          effectiveMarkup = tenantFloor;
+        }
+        const rawRetailRub = snapshot.costPer1kRub * effectiveMarkup;
+        const marginGuard = applyAntiNegativeMargin(snapshot.costPer1kRub, rawRetailRub, 5);
         let stableSlug = baseSlug;
         if (takenSlugs.has(`${tId}:${stableSlug}`)) {
           stableSlug = `${baseSlug}-${extId}`;
@@ -142207,7 +142219,7 @@ async function catalogProcessor(job) {
       }
       case "RECONCILE_PRICES": {
         const { batchSize = 500 } = payload;
-        log18.info(`[CatalogProcessor] Starting price reconciliation (batchSize: ${batchSize})...`);
+        log18.info(`[CatalogProcessor] Starting paginated price reconciliation (batchSize: ${batchSize})...`);
         const { SettingsProvider: SettingsProvider2 } = await Promise.resolve().then(() => (init_settings(), settings_exports));
         const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
         const { getCostRub: getCostRub2 } = await Promise.resolve().then(() => (init_currency_invariant(), currency_invariant_exports));
@@ -142215,82 +142227,89 @@ async function catalogProcessor(job) {
         const { CBRRateService: CBRRateService2 } = await Promise.resolve().then(() => (init_cbr_rate_service(), cbr_rate_service_exports));
         const usdRate = await SettingsProvider2.getExchangeRateUSD();
         const liveCrossRates = await CBRRateService2.getLiveCrossRates();
-        const activeServices = await db2.service.findMany({
-          where: { isActive: true },
-          take: batchSize,
-          select: {
-            id: true,
-            name: true,
-            rate: true,
-            providerCurrency: true,
-            costPer1kRub: true,
-            pricePer1000Cents: true,
-            markup: true,
-            tenantId: true
-          }
-        });
         let scanned = 0;
         let costCacheFixed = 0;
         let lossQuarantined = 0;
         let upperQuarantined = 0;
         let currencyQuarantined = 0;
         let lowMarkupReported = 0;
-        for (const s of activeServices) {
-          scanned++;
-          let freshCostRub = 0;
-          try {
-            freshCostRub = getCostRub2(s.rate, s.providerCurrency || "", usdRate, liveCrossRates);
-          } catch (currErr) {
-            await db2.service.update({
-              where: { id: s.id },
-              data: {
-                isActive: false,
-                isQuarantined: true,
-                quarantinedAt: /* @__PURE__ */ new Date(),
-                quarantineReason: `Invalid Currency (${s.providerCurrency || "NULL"}): ${currErr instanceof Error ? currErr.message : String(currErr)}`
-              }
-            });
-            currencyQuarantined++;
-            continue;
-          }
-          const currentCost = s.costPer1kRub;
-          const costDelta = currentCost == null ? 1 : Math.abs(currentCost - freshCostRub) / Math.max(currentCost, 1);
-          if (currentCost == null || costDelta > 0.02) {
-            await db2.service.update({
-              where: { id: s.id },
-              data: { costPer1kRub: freshCostRub }
-            });
-            costCacheFixed++;
-          }
-          const retailRub = (s.pricePer1000Cents || 0) / 100;
-          if (retailRub < freshCostRub) {
-            await db2.service.update({
-              where: { id: s.id },
-              data: {
-                isActive: false,
-                isQuarantined: true,
-                quarantinedAt: /* @__PURE__ */ new Date(),
-                quarantineReason: `Loss Prevention: Retail price ${retailRub.toFixed(2)} \u20BD < Cost ${freshCostRub.toFixed(2)} \u20BD/1k`
-              }
-            });
-            lossQuarantined++;
-            continue;
-          }
-          if (retailRub > UPPER_SANITY_LIMIT_RUB2) {
-            await db2.service.update({
-              where: { id: s.id },
-              data: {
-                isActive: false,
-                isQuarantined: true,
-                quarantinedAt: /* @__PURE__ */ new Date(),
-                quarantineReason: `Upper Sanity Limit Exceeded: Retail price ${retailRub.toFixed(2)} \u20BD > ${UPPER_SANITY_LIMIT_RUB2} \u20BD/1k`
-              }
-            });
-            upperQuarantined++;
-            continue;
-          }
-          if (s.markup > 0 && s.markup < 1) {
-            lowMarkupReported++;
+        let lastId = void 0;
+        while (true) {
+          const whereClause = lastId ? { isActive: true, id: { gt: lastId } } : { isActive: true };
+          const activeServices = await db2.service.findMany({
+            where: whereClause,
+            take: batchSize,
+            orderBy: { id: "asc" },
+            select: {
+              id: true,
+              name: true,
+              rate: true,
+              providerCurrency: true,
+              costPer1kRub: true,
+              pricePer1000Cents: true,
+              markup: true,
+              tenantId: true
+            }
+          });
+          if (activeServices.length === 0) break;
+          lastId = activeServices[activeServices.length - 1].id;
+          for (const s of activeServices) {
+            scanned++;
+            let freshCostRub = 0;
+            try {
+              freshCostRub = getCostRub2(s.rate, s.providerCurrency || "", usdRate, liveCrossRates);
+            } catch (currErr) {
+              await db2.service.update({
+                where: { id: s.id },
+                data: {
+                  isActive: false,
+                  isQuarantined: true,
+                  quarantinedAt: /* @__PURE__ */ new Date(),
+                  quarantineReason: `Invalid Currency (${s.providerCurrency || "NULL"}): ${currErr instanceof Error ? currErr.message : String(currErr)}`
+                }
+              });
+              currencyQuarantined++;
+              continue;
+            }
+            const currentCost = s.costPer1kRub;
+            const costDelta = currentCost == null ? 1 : Math.abs(currentCost - freshCostRub) / Math.max(currentCost, 1);
+            if (currentCost == null || costDelta > 0.02) {
+              await db2.service.update({
+                where: { id: s.id },
+                data: { costPer1kRub: freshCostRub }
+              });
+              costCacheFixed++;
+            }
+            const retailRub = (s.pricePer1000Cents || 0) / 100;
+            if (retailRub < freshCostRub) {
+              await db2.service.update({
+                where: { id: s.id },
+                data: {
+                  isActive: false,
+                  isQuarantined: true,
+                  quarantinedAt: /* @__PURE__ */ new Date(),
+                  quarantineReason: `Loss Prevention: Retail price ${retailRub.toFixed(2)} \u20BD < Cost ${freshCostRub.toFixed(2)} \u20BD/1k`
+                }
+              });
+              lossQuarantined++;
+              continue;
+            }
+            if (retailRub > UPPER_SANITY_LIMIT_RUB2) {
+              await db2.service.update({
+                where: { id: s.id },
+                data: {
+                  isActive: false,
+                  isQuarantined: true,
+                  quarantinedAt: /* @__PURE__ */ new Date(),
+                  quarantineReason: `Upper Sanity Limit Exceeded: Retail price ${retailRub.toFixed(2)} \u20BD > ${UPPER_SANITY_LIMIT_RUB2} \u20BD/1k`
+                }
+              });
+              upperQuarantined++;
+              continue;
+            }
+            if (s.markup > 0 && s.markup < 1) {
+              lowMarkupReported++;
+            }
           }
         }
         log18.info(`[CatalogProcessor] Price reconciliation completed:`, {

@@ -250,9 +250,9 @@ describe('E2E Pricing Time-Travel & Multi-Currency Stability Test Suite (Day 0 �
     expect(sRuSpiked.quarantineReason).toContain('Price Spike');
     expect(sRuSpiked.quarantineReason).toContain('3.00 ₽/1k');
 
-    // Scenario 4C: UPPER_SANITY_LIMIT_RUB Breach (> 50,000 ₽)
+    // Scenario 4C: UPPER_SANITY_LIMIT_RUB Breach (> 500,000 ₽)
     mockGetServices.mockResolvedValue([
-      { service: serviceUsd.externalId, name: 'Telegram HQ Subscribers USD', rate: '60000.00', min: '100', max: '50000', category: 'Subscribers' },
+      { service: serviceUsd.externalId, name: 'Telegram HQ Subscribers USD', rate: '600000.00', min: '100', max: '50000', category: 'Subscribers' },
     ]);
 
     const resInsane = await adminCatalogService.syncProviderCatalog(providerB.id, adminUser);

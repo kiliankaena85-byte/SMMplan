@@ -87,7 +87,7 @@ describe.sequential('Price Reconciler Engine (P-D Unit Tests)', () => {
     expect(updated.quarantineReason).toContain('Loss Prevention');
   });
 
-  it('3. Quarantines service when retail price exceeds UPPER_SANITY_LIMIT_RUB (50,000 ₽)', async () => {
+  it('3. Quarantines service when retail price exceeds UPPER_SANITY_LIMIT_RUB (500,000 ₽)', async () => {
     const ts = Date.now() + Math.floor(Math.random() * 1000000);
     const cat = await db.category.create({ data: { name: `Cat 3 ${ts}` } });
     const prov = await db.provider.create({
@@ -100,10 +100,10 @@ describe.sequential('Price Reconciler Engine (P-D Unit Tests)', () => {
         categoryId: cat.id,
         providerId: prov.id,
         providerCurrency: 'RUB',
-        rate: 20000.0,
-        costPer1kRub: 20000.0,
+        rate: 200000.0,
+        costPer1kRub: 200000.0,
         markup: 3.0,
-        pricePer1000Cents: 6000000, // 60,000.00 RUB > 50,000 limit
+        pricePer1000Cents: 60000000, // 600,000.00 RUB > 500,000 limit
         minQty: 10,
         maxQty: 1000,
         isActive: true,

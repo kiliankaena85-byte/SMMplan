@@ -79,8 +79,8 @@ describe('P0 Hardening: Currency Invariants, Dynamic FX & Anti-Negative Margin',
       }
     });
 
-    it('blocks upper sanity limit breach above 50,000 RUB', async () => {
-      const res = await PriceDriftCircuitBreaker.validate('prov-1', 'srv-1', 50001);
+    it('blocks upper sanity limit breach above 500,000 RUB', async () => {
+      const res = await PriceDriftCircuitBreaker.validate('prov-1', 'srv-1', 500001);
       expect(res.ok).toBe(false);
       if (!res.ok) {
         expect(res.severity).toBe('BLOCK');

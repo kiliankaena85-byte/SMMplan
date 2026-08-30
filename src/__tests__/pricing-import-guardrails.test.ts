@@ -92,27 +92,27 @@ describe('Pricing & Import Engine Guardrails Suite (P0 Invariants)', () => {
     });
   });
 
-  describe('3. Upper Sanity Limit (50,000 RUB) & Sanity Check', () => {
-    it('declares UPPER_SANITY_LIMIT_RUB as exactly 50000', () => {
-      expect(UPPER_SANITY_LIMIT_RUB).toBe(50000);
+  describe('3. Upper Sanity Limit (500,000 RUB) & Sanity Check', () => {
+    it('declares UPPER_SANITY_LIMIT_RUB as exactly 500000', () => {
+      expect(UPPER_SANITY_LIMIT_RUB).toBe(500000);
     });
 
     it('checkPriceSanityLimit flags exceeded limit correctly', () => {
-      const normal = checkPriceSanityLimit(49999);
+      const normal = checkPriceSanityLimit(499999);
       expect(normal.isExceeded).toBe(false);
-      expect(normal.price).toBe(49999);
-      expect(normal.limit).toBe(50000);
+      expect(normal.price).toBe(499999);
+      expect(normal.limit).toBe(500000);
 
-      const exact = checkPriceSanityLimit(50000);
+      const exact = checkPriceSanityLimit(500000);
       expect(exact.isExceeded).toBe(false);
 
-      const exceeded = checkPriceSanityLimit(50000.01);
+      const exceeded = checkPriceSanityLimit(500000.01);
       expect(exceeded.isExceeded).toBe(true);
-      expect(exceeded.clampedPrice).toBe(50000);
+      expect(exceeded.clampedPrice).toBe(500000);
 
-      const extreme = checkPriceSanityLimit(250000);
+      const extreme = checkPriceSanityLimit(750000);
       expect(extreme.isExceeded).toBe(true);
-      expect(extreme.clampedPrice).toBe(50000);
+      expect(extreme.clampedPrice).toBe(500000);
     });
 
     it('applyPricingLadderWithSanity returns sanity check result with pricing ladder', () => {
@@ -120,10 +120,10 @@ describe('Pricing & Import Engine Guardrails Suite (P0 Invariants)', () => {
       expect(normalResult.isSanityLimitExceeded).toBe(false);
       expect(normalResult.retailPrice).toBeGreaterThan(0);
 
-      const hugeResult = applyPricingLadderWithSanity(20000);
-      // 20000 * 4 * 1.035 = 82800 > 50000
+      const hugeResult = applyPricingLadderWithSanity(150000);
+      // 150000 * 4 * 1.035 = 621000 > 500000
       expect(hugeResult.isSanityLimitExceeded).toBe(true);
-      expect(hugeResult.retailPrice).toBe(82800);
+      expect(hugeResult.retailPrice).toBe(621000);
     });
   });
 

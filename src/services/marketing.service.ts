@@ -8,6 +8,9 @@ import {
   applyBeautifulRounding,
 } from '@/lib/financial-constants';
 import { SettingsProvider } from '@/lib/settings';
+import { getCostRub } from '@/lib/pricing/currency-invariant';
+import { CBRRateService } from '@/services/system/cbr-rate.service';
+import { applyAntiNegativeMargin } from '@/lib/pricing/anti-negative-margin';
 
 export type PricingResult = {
   totalCents: number;
@@ -78,20 +81,41 @@ class MarketingService {
     }
 
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
-    const serviceExchangeRate = service.providerCurrency === 'RUB' ? 1.0 : usdToRub;
+    const liveCrossRates = await CBRRateService.getLiveCrossRates().catch(() => undefined);
 
-    // 1. Calculate base original price in Cents (Convert USD provider rate to RUB Cents)
-    const providerCostPer1000Cents = service.rate * serviceExchangeRate * 100;
+    // 1. Calculate provider cost in RUB per 1k (Canonical Source of Truth)
+    let costPer1kRub: number;
+    if (typeof service.costPer1kRub === 'number' && Number.isFinite(service.costPer1kRub) && service.costPer1kRub > 0) {
+      costPer1kRub = service.costPer1kRub;
+    } else {
+      try {
+        costPer1kRub = getCostRub(service.rate, service.providerCurrency || 'RUB', usdToRub, liveCrossRates);
+      } catch {
+        costPer1kRub = service.rate * (service.providerCurrency === 'RUB' ? 1.0 : usdToRub);
+      }
+    }
+
+    const providerCostPer1000Cents = Math.round(costPer1kRub * 100);
     const providerCostCents = quantity > 0
       ? Math.max(1, Math.ceil((providerCostPer1000Cents / 1000) * quantity))
-      : Math.ceil((providerCostPer1000Cents / 1000) * quantity);
+      : 0;
 
-    // Apply the same Beautiful Rounding logic used in the Catalog to ensure price parity
-    const rawRetailPer1000Rub = service.rate * service.markup * serviceExchangeRate;
-    const beautifulRetailPer1000Rub = applyBeautifulRounding(rawRetailPer1000Rub);
+    // 2. Base Retail Price per 1k in Cents (Honors DB pricePer1000Cents for 100% storefront parity)
+    let retailPer1000Cents: number;
+    if (typeof service.pricePer1000Cents === 'number' && service.pricePer1000Cents > 0) {
+      // Guard DB price against loss via Anti-Negative Margin floor
+      const antiLoss = applyAntiNegativeMargin(costPer1kRub, service.pricePer1000Cents / 100);
+      retailPer1000Cents = antiLoss.finalRetailPer1kCents;
+    } else {
+      const markup = (service.markup && service.markup > 0) ? service.markup : SAFETY_FLOOR_MARKUP;
+      const rawRetailRub = applyBeautifulRounding(costPer1kRub * markup);
+      const antiLoss = applyAntiNegativeMargin(costPer1kRub, rawRetailRub);
+      retailPer1000Cents = antiLoss.finalRetailPer1kCents;
+    }
+
     const originalTotalCents = quantity > 0
-      ? Math.max(1, Math.ceil((beautifulRetailPer1000Rub * 100 / 1000) * quantity))
-      : Math.ceil((beautifulRetailPer1000Rub * 100 / 1000) * quantity);
+      ? Math.max(1, Math.ceil((retailPer1000Cents / 1000) * quantity))
+      : 0;
 
     // 2. Discover available discounts
     const volumeTier = user ? this.getVolumeTier(Number(user.totalSpent)) : { name: 'REGULAR', discountPercent: 0.0 };

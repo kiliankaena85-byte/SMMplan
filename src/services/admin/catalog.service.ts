@@ -23,7 +23,7 @@ import { tenantVisibilityFilter } from '@/lib/tenant-scope';
 import { z } from 'zod';
 import { buildCurrencySnapshot, getCostRub, reconcileCurrencyBeforeSync } from '@/lib/pricing/currency-invariant';
 import { applyAntiNegativeMargin } from '@/lib/pricing/anti-negative-margin';
-import { PriceDriftCircuitBreaker } from '@/lib/pricing/drift-circuit-breaker';
+import { PriceDriftCircuitBreaker, DEFAULT_DRIFT_CONFIG } from '@/lib/pricing/drift-circuit-breaker';
 
 /**
  * Ensures a category (and its network) is visible to every tenant targeted by
@@ -274,6 +274,7 @@ export type ImportMarkupAdjustment = {
   name: string | null;
   requestedMarkup: number;
   appliedMarkup: number;
+  tenantId?: string;
 };
 
 export type ImportServicesResult = {
@@ -1282,7 +1283,14 @@ class AdminCatalogService {
       }
 
       // P0-5: Price Drift Circuit Breaker — detect extreme price anomalies & currency mismatches
-      const driftCheck = await PriceDriftCircuitBreaker.validate(providerDbRecord.id, extId, snapshot.costPer1kRub);
+      const driftCheck = await PriceDriftCircuitBreaker.validate(
+        providerDbRecord.id,
+        extId,
+        snapshot.costPer1kRub,
+        DEFAULT_DRIFT_CONFIG,
+        rawRate,
+        providerCurrency
+      );
       if (!driftCheck.ok && driftCheck.severity === 'BLOCK') {
         skipped.push({ externalId: extId, name: shadowExt.cleanName || shadowExt.name, reason: 'PRICE_DRIFT_BLOCKED' });
         warnings.push(`Услуга ${extId} заблокирована предохранителем дрейфа цен: ${driftCheck.reason}`);
@@ -1294,30 +1302,6 @@ class AdminCatalogService {
       const rawMax = parseInt(String(liveExt.max), 10);
       const minQty = isNaN(rawMin) || rawMin <= 0 ? 10 : rawMin;
       const maxQty = isNaN(rawMax) || rawMax < minQty ? Math.max(minQty * 10, 10000) : rawMax;
-
-      let effectiveMarkup = defaultMarkup;
-
-      // Auto-pricing engine based on immutable base cost
-      if (defaultMarkup <= 0) {
-        const retailFromLadder = applyPricingLadder(snapshot.costPer1kRub);
-        effectiveMarkup = snapshot.costPer1kRub > 0 ? Math.round((retailFromLadder / snapshot.costPer1kRub) * 100) / 100 : 3.0;
-      }
-
-      // Safety Floor Check: Ensure markup never drops below 1.0 (loss protection)
-      const MIN_SAFE_MARKUP = 1.0;
-      if (effectiveMarkup < MIN_SAFE_MARKUP) {
-        markupAdjustments.push({
-          externalId: extId,
-          name: shadowExt.cleanName || shadowExt.name,
-          requestedMarkup: effectiveMarkup,
-          appliedMarkup: MIN_SAFE_MARKUP,
-        });
-        effectiveMarkup = MIN_SAFE_MARKUP;
-      }
-
-      // P0-3: Anti-Negative Margin Floor
-      const rawRetailRub = snapshot.costPer1kRub * effectiveMarkup;
-      const marginGuard = applyAntiNegativeMargin(snapshot.costPer1kRub, rawRetailRub, 5);
 
       const importedName = shadowExt.cleanName || liveExt.name;
       const importedDesc = liveExt.desc || null;
@@ -1331,6 +1315,34 @@ class AdminCatalogService {
           skippedTenants.push(tId);
           continue;
         }
+
+        // P1: Per-Tenant Markup & Floor Calculation
+        const tenantSettings = await SettingsProvider.get(tId);
+        const tenantFloor = Math.max(SAFETY_FLOOR_MARKUP, tenantSettings?.globalMarkup || 3.0);
+
+        let effectiveMarkup = defaultMarkup;
+
+        // Auto-pricing engine based on immutable base cost
+        if (defaultMarkup <= 0) {
+          const retailFromLadder = applyPricingLadder(snapshot.costPer1kRub);
+          effectiveMarkup = snapshot.costPer1kRub > 0 ? Math.round((retailFromLadder / snapshot.costPer1kRub) * 100) / 100 : 3.0;
+        }
+
+        // Safety Floor Check: Ensure markup never drops below tenant floor (3.0 default)
+        if (effectiveMarkup < tenantFloor) {
+          markupAdjustments.push({
+            externalId: extId,
+            name: shadowExt.cleanName || shadowExt.name,
+            requestedMarkup: effectiveMarkup,
+            appliedMarkup: tenantFloor,
+            tenantId: tId,
+          });
+          effectiveMarkup = tenantFloor;
+        }
+
+        // P0-3: Anti-Negative Margin Floor
+        const rawRetailRub = snapshot.costPer1kRub * effectiveMarkup;
+        const marginGuard = applyAntiNegativeMargin(snapshot.costPer1kRub, rawRetailRub, 5);
 
         // AUD-04 (2.2): collision-safe slug — base → base-extId → base-extId-N
         let stableSlug = baseSlug;

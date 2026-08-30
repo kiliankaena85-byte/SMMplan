@@ -386,20 +386,23 @@ beforeEach(async () => {
         'client-crm-balance',
         'services-lifecycle',
         'price-reconciler',
-        'pricing-hardening'
+        'pricing-hardening',
+        'pricing-order-and-marketing',
+        'pricing-invariants'
       ];
       if (skipPatterns.some(pattern => testPath.toLowerCase().includes(pattern.toLowerCase()))) {
         shouldReset = false;
       }
       
-      // Skip unit/ except for marketing, smart-feedback-loop, wallet.race, smart-drip, audit-log
+      // Skip unit/ except for marketing, smart-feedback-loop, wallet.race, smart-drip, audit-log, pricing-invariants
       if (testPath.toLowerCase().includes('unit/')) {
         const allowedUnitTests = [
           'marketing.test.ts',
           'smart-feedback-loop.test.ts',
           'wallet.race.test.ts',
           'smart-drip.test.ts',
-          'audit-log.test.ts'
+          'audit-log.test.ts',
+          'pricing-invariants.test.ts'
         ];
         if (!allowedUnitTests.some(testName => testPath.toLowerCase().includes(testName))) {
           shouldReset = false;

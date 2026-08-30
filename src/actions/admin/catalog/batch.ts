@@ -16,8 +16,9 @@ import { db } from '@/lib/db';
 import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { z } from 'zod';
-import { applyBeautifulRounding, applyPricingLadder, SAFETY_FLOOR_MARKUP } from '@/lib/financial-constants';
+import { applyBeautifulRounding, applyPricingLadder, SAFETY_FLOOR_MARKUP, UPPER_SANITY_LIMIT_RUB } from '@/lib/financial-constants';
 import { getCostRub } from '@/lib/pricing/currency-invariant';
+import { applyAntiNegativeMargin } from '@/lib/pricing/anti-negative-margin';
 import { SettingsProvider } from '@/lib/settings';
 
 const MIN_MARKUP = 1.0;
@@ -44,7 +45,7 @@ export async function batchToggleServicesAction(
     await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
-      action: isActive ? 'BATCH_SERVICE_ENABLE' : 'BATCH_SERVICE_DISABLE',
+      action: 'BATCH_SERVICE_ENABLE' as const,
       target: ids.data.join(','),
       targetType: 'SERVICE',
       newValue: { count: ids.data.length, isActive },
@@ -84,22 +85,29 @@ export async function batchSetMarkupAction(
     // so we iterate or use a raw query. For 500 items, iteration is safe.
     const services = await db.service.findMany({
       where: { id: { in: ids.data } },
-      select: { id: true, rate: true, providerCurrency: true }
+      select: { id: true, name: true, rate: true, providerCurrency: true }
     });
 
-    await db.$transaction(
-      services.map(s => {
-        const costRub = getCostRub(s.rate, s.providerCurrency || 'RUB', usdToRub);
-        return db.service.update({
-          where: { id: s.id },
-          data: { 
-            markup: m,
-            costPer1kRub: costRub,
-            pricePer1000Cents: Math.round(applyBeautifulRounding(costRub * m) * 100)
-          }
-        });
-      })
-    );
+    const updates = services.map(s => {
+      const costRub = getCostRub(s.rate, s.providerCurrency || 'RUB', usdToRub);
+      const rawRetailRub = applyBeautifulRounding(costRub * m);
+      const antiLoss = applyAntiNegativeMargin(costRub, rawRetailRub);
+
+      if (antiLoss.finalRetailPer1kRub > UPPER_SANITY_LIMIT_RUB) {
+        throw new Error(`Услуга "${s.name}" превышает верхний лимит ${UPPER_SANITY_LIMIT_RUB.toLocaleString('ru-RU')} ₽ (расчетная цена: ${antiLoss.finalRetailPer1kRub.toFixed(2)} ₽)`);
+      }
+
+      return db.service.update({
+        where: { id: s.id },
+        data: { 
+          markup: m,
+          costPer1kRub: costRub,
+          pricePer1000Cents: antiLoss.finalRetailPer1kCents
+        }
+      });
+    });
+
+    await db.$transaction(updates);
 
     await auditAdminAwaitable({
       adminId: admin.id,
@@ -179,19 +187,28 @@ export async function updateServiceMarkupAction(
 
     const service = await db.service.findUnique({
       where: { id: serviceId },
-      select: { markup: true, rate: true, providerCurrency: true },
+      select: { markup: true, rate: true, providerCurrency: true, name: true },
     });
 
     if (!service) return { success: false as const, error: 'Service not found' };
 
     const costRub = getCostRub(service.rate, service.providerCurrency || 'RUB', usdToRub);
+    const rawRetailRub = applyBeautifulRounding(costRub * m);
+    const antiLoss = applyAntiNegativeMargin(costRub, rawRetailRub);
+
+    if (antiLoss.finalRetailPer1kRub > UPPER_SANITY_LIMIT_RUB) {
+      return {
+        success: false as const,
+        error: `Превышен верхний лимит цены ${UPPER_SANITY_LIMIT_RUB.toLocaleString('ru-RU')} ₽ (расчетная: ${antiLoss.finalRetailPer1kRub.toFixed(2)} ₽)`,
+      };
+    }
 
     await db.service.update({
       where: { id: serviceId },
       data: { 
         markup: m,
         costPer1kRub: costRub,
-        pricePer1000Cents: Math.round(applyBeautifulRounding(costRub * m) * 100)
+        pricePer1000Cents: antiLoss.finalRetailPer1kCents
       },
     });
 
@@ -301,7 +318,7 @@ export async function batchResetMarkupAction(
 
     const services = await db.service.findMany({
       where: { id: { in: ids.data } },
-      select: { id: true, rate: true, providerCurrency: true }
+      select: { id: true, name: true, rate: true, providerCurrency: true }
     });
 
     const updates = services.map(s => {
@@ -314,12 +331,19 @@ export async function batchResetMarkupAction(
         calculatedMarkup = SAFETY_FLOOR_MARKUP;
       }
 
+      const rawRetailRub = applyBeautifulRounding(costRub * calculatedMarkup);
+      const antiLoss = applyAntiNegativeMargin(costRub, rawRetailRub);
+
+      if (antiLoss.finalRetailPer1kRub > UPPER_SANITY_LIMIT_RUB) {
+        throw new Error(`Услуга "${s.name}" превышает верхний лимит ${UPPER_SANITY_LIMIT_RUB.toLocaleString('ru-RU')} ₽`);
+      }
+
       return db.service.update({
         where: { id: s.id },
         data: { 
           markup: calculatedMarkup,
           costPer1kRub: costRub,
-          pricePer1000Cents: Math.round(applyBeautifulRounding(costRub * calculatedMarkup) * 100)
+          pricePer1000Cents: antiLoss.finalRetailPer1kCents
         }
       });
     });

@@ -37,7 +37,7 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
 
       case 'RECONCILE_PRICES': {
         const { batchSize = 500 } = payload;
-        log.info(`[CatalogProcessor] Starting price reconciliation (batchSize: ${batchSize})...`);
+        log.info(`[CatalogProcessor] Starting paginated price reconciliation (batchSize: ${batchSize})...`);
         const { SettingsProvider } = await import('@/lib/settings');
         const { db } = await import('@/lib/db');
         const { getCostRub } = await import('@/lib/pricing/currency-invariant');
@@ -47,96 +47,116 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
         const usdRate = await SettingsProvider.getExchangeRateUSD();
         const liveCrossRates = await CBRRateService.getLiveCrossRates();
 
-        const activeServices = await db.service.findMany({
-          where: { isActive: true },
-          take: batchSize,
-          select: {
-            id: true,
-            name: true,
-            rate: true,
-            providerCurrency: true,
-            costPer1kRub: true,
-            pricePer1000Cents: true,
-            markup: true,
-            tenantId: true,
-          }
-        });
-
         let scanned = 0;
         let costCacheFixed = 0;
         let lossQuarantined = 0;
         let upperQuarantined = 0;
         let currencyQuarantined = 0;
         let lowMarkupReported = 0;
+        let lastId: string | undefined = undefined;
 
-        for (const s of activeServices) {
-          scanned++;
-          let freshCostRub = 0;
-          try {
-            freshCostRub = getCostRub(s.rate, s.providerCurrency || '', usdRate, liveCrossRates);
-          } catch (currErr) {
-            // Invalid/missing currency -> Quarantine
-            await db.service.update({
-              where: { id: s.id },
-              data: {
-                isActive: false,
-                isQuarantined: true,
-                quarantinedAt: new Date(),
-                quarantineReason: `Invalid Currency (${s.providerCurrency || 'NULL'}): ${currErr instanceof Error ? currErr.message : String(currErr)}`
-              }
-            });
-            currencyQuarantined++;
-            continue;
-          }
+        while (true) {
+          const whereClause = lastId
+            ? { isActive: true, id: { gt: lastId } }
+            : { isActive: true };
 
-          // 1. Check cost cache drift > 2%
-          const currentCost = s.costPer1kRub;
-          const costDelta = currentCost == null 
-            ? 1 
-            : Math.abs(currentCost - freshCostRub) / Math.max(currentCost, 1);
+          const activeServices: Array<{
+            id: string;
+            name: string;
+            rate: number;
+            providerCurrency: string;
+            costPer1kRub: number | null;
+            pricePer1000Cents: number;
+            markup: number;
+            tenantId: string;
+          }> = await db.service.findMany({
+            where: whereClause,
+            take: batchSize,
+            orderBy: { id: 'asc' },
+            select: {
+              id: true,
+              name: true,
+              rate: true,
+              providerCurrency: true,
+              costPer1kRub: true,
+              pricePer1000Cents: true,
+              markup: true,
+              tenantId: true,
+            }
+          });
 
-          if (currentCost == null || costDelta > 0.02) {
-            await db.service.update({
-              where: { id: s.id },
-              data: { costPer1kRub: freshCostRub }
-            });
-            costCacheFixed++;
-          }
+          if (activeServices.length === 0) break;
+          lastId = activeServices[activeServices.length - 1].id;
 
-          // 2. Loss check (retail price per 1k < purchase cost)
-          const retailRub = (s.pricePer1000Cents || 0) / 100;
-          if (retailRub < freshCostRub) {
-            await db.service.update({
-              where: { id: s.id },
-              data: {
-                isActive: false,
-                isQuarantined: true,
-                quarantinedAt: new Date(),
-                quarantineReason: `Loss Prevention: Retail price ${retailRub.toFixed(2)} ₽ < Cost ${freshCostRub.toFixed(2)} ₽/1k`
-              }
-            });
-            lossQuarantined++;
-            continue;
-          }
+          for (const s of activeServices) {
+            scanned++;
+            let freshCostRub = 0;
+            try {
+              freshCostRub = getCostRub(s.rate, s.providerCurrency || '', usdRate, liveCrossRates);
+            } catch (currErr) {
+              // Invalid/missing currency -> Quarantine
+              await db.service.update({
+                where: { id: s.id },
+                data: {
+                  isActive: false,
+                  isQuarantined: true,
+                  quarantinedAt: new Date(),
+                  quarantineReason: `Invalid Currency (${s.providerCurrency || 'NULL'}): ${currErr instanceof Error ? currErr.message : String(currErr)}`
+                }
+              });
+              currencyQuarantined++;
+              continue;
+            }
 
-          // 3. Upper sanity limit check
-          if (retailRub > UPPER_SANITY_LIMIT_RUB) {
-            await db.service.update({
-              where: { id: s.id },
-              data: {
-                isActive: false,
-                isQuarantined: true,
-                quarantinedAt: new Date(),
-                quarantineReason: `Upper Sanity Limit Exceeded: Retail price ${retailRub.toFixed(2)} ₽ > ${UPPER_SANITY_LIMIT_RUB} ₽/1k`
-              }
-            });
-            upperQuarantined++;
-            continue;
-          }
+            // 1. Check cost cache drift > 2%
+            const currentCost = s.costPer1kRub;
+            const costDelta = currentCost == null 
+              ? 1 
+              : Math.abs(currentCost - freshCostRub) / Math.max(currentCost, 1);
 
-          // 4. Low markup check (< 1.0)
-          if (s.markup > 0 && s.markup < 1.0) {
-            lowMarkupReported++;
+            if (currentCost == null || costDelta > 0.02) {
+              await db.service.update({
+                where: { id: s.id },
+                data: { costPer1kRub: freshCostRub }
+              });
+              costCacheFixed++;
+            }
+
+            // 2. Loss check (retail price per 1k < purchase cost)
+            const retailRub = (s.pricePer1000Cents || 0) / 100;
+            if (retailRub < freshCostRub) {
+              await db.service.update({
+                where: { id: s.id },
+                data: {
+                  isActive: false,
+                  isQuarantined: true,
+                  quarantinedAt: new Date(),
+                  quarantineReason: `Loss Prevention: Retail price ${retailRub.toFixed(2)} ₽ < Cost ${freshCostRub.toFixed(2)} ₽/1k`
+                }
+              });
+              lossQuarantined++;
+              continue;
+            }
+
+            // 3. Upper sanity limit check
+            if (retailRub > UPPER_SANITY_LIMIT_RUB) {
+              await db.service.update({
+                where: { id: s.id },
+                data: {
+                  isActive: false,
+                  isQuarantined: true,
+                  quarantinedAt: new Date(),
+                  quarantineReason: `Upper Sanity Limit Exceeded: Retail price ${retailRub.toFixed(2)} ₽ > ${UPPER_SANITY_LIMIT_RUB} ₽/1k`
+                }
+              });
+              upperQuarantined++;
+              continue;
+            }
+
+            // 4. Low markup check (< 1.0)
+            if (s.markup > 0 && s.markup < 1.0) {
+              lowMarkupReported++;
+            }
           }
         }
 

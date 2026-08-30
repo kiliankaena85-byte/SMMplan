@@ -1,7 +1,5 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { SettingsProvider } from '@/lib/settings';
-import { adminCatalogService } from '@/services/admin/catalog.service';
 import { getRedisConnection, catalogQueue } from '@/lib/queue-manager';
 import crypto from 'crypto';
 
@@ -20,7 +18,7 @@ export async function GET(req: NextRequest) {
     isAuthorized = crypto.timingSafeEqual(Buffer.from(authHeader), Buffer.from(expectedAuth));
   }
 
-  if (!isAuthorized && process.env.NODE_ENV === 'production') {
+  if (!isAuthorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -35,19 +33,14 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const usdRate = await SettingsProvider.getExchangeRateUSD();
-    const result = await adminCatalogService.syncDenormalizedPrices(usdRate);
-
-    // Also queue cache revalidation
-    await catalogQueue.add('sync-prices-bg', {
-      type: 'SYNC_PRICES',
-      usdToRub: usdRate,
+    const job = await catalogQueue.add('reconcile-prices-job', {
+      type: 'RECONCILE_PRICES',
     });
 
     return NextResponse.json({
       success: true,
-      usdRate,
-      updatedCount: result.updatedCount,
+      queued: true,
+      jobId: job.id,
       timestamp: new Date().toISOString(),
     });
   } catch (error: unknown) {

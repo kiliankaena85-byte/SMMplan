@@ -128,8 +128,12 @@ export class CBRRateService {
     }
 
     const usdRate = await SettingsManager.getExchangeRateUSD(tenantId);
+    if (!usdRate || usdRate <= 0 || !Number.isFinite(usdRate)) {
+      throw new Error('INVALID_USD_RATE: Exchange rate USD is not configured in SystemSettings');
+    }
+
     return {
-      usdToRub: usdRate || 95.0,
+      usdToRub: usdRate,
       eurToUsd: 1.08,
       uahToUsd: 0.027,
       kztToUsd: 0.0023,
