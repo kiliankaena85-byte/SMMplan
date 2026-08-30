@@ -215,7 +215,8 @@ export function CatalogTable({
 
   const handleSort = (column: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.delete('cursor'); // Reset cursor on sort
+    params.delete('cursor');
+    params.delete('page'); // Reset to page 1 on sort
 
     if (currentSortBy === column) {
       if (currentSortOrder === 'asc') {

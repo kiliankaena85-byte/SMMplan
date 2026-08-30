@@ -1,7 +1,21 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 07:51 (МСК)
+> **Последнее обновление:** 2026-08-30 07:58 (МСК)
+
+- **Admin Catalog Modern Pagination & UX Architecture (100% COMPLETE & VERIFIED):**
+  - **1. Numbered Offset Pagination:** В `src/lib/pagination.ts` внедрена поддержка offset-пагинации с расчётом `totalPages`, `currentPage`, `pageSize` и точного диапазона записей.
+  - **2. Backend Services Support:** `adminCatalogService.listServices` теперь принимает `page` и `pageSize`, возвращая отфильтрованный `totalCount` (вместо нефильтрованного глобального счётчика) и вычисляемые страницы.
+  - **3. Rich Interactive UI (`catalog-pagination.tsx`):**
+    - Нумерованные кнопки страниц с «умным» многоточием (`1`, `2`, `...`, `10`, `11`, `12`, `...`, `50`).
+    - Быстрый переход на любую страницу (Jump-to-page input с валидацией границ `1..totalPages`).
+    - Селектор строк на странице (`20`, `50`, `100`, `200`) с сохранением контекста.
+    - Точный счётчик диапазона: *"Показано 1–50 из 340 услуг (всего в базе: 1 243)"*.
+    - Сохранение всех активных фильтров (поиск, категория, соцсеть, провайдер, сортировка) при смене страниц и автоматический сброс на страницу 1 при изменении фильтров.
+  - **4. Тестирование и верификация:** 
+    - Новый юнит-сьют: `src/__tests__/catalog-pagination-offset.test.ts` (**7/7 PASS**).
+    - Полная батарея юнит-тестов: `vitest.unit.config.ts` (**73/73 PASS**).
+    - Строгая проверка типов: `npx tsc --noEmit` (**0 ошибок**).
 
 - **Financial Security Audit v1 — 66/66 PASS + P0 Ledger-First Fix (COMPLETE):**
   - **P0 Fix — `WalletOps.refund` Ledger-First Violation:** В `src/services/financial/wallet-ops.ts` исправлен критический дефект: `ledgerEntry.create` теперь выполняется строго **ДО** `user.update` (balance increment). Предотвращает ситуацию, когда баланс зачисляется без audit trail при сбое БД.

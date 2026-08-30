@@ -31,6 +31,8 @@ const SAFETY_MULTIPLIER = (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUC
 type Props = {
   searchParams: Promise<{
     q?: string;
+    page?: string;
+    pageSize?: string;
     cursor?: string;
     category?: string;
     providerId?: string;
@@ -74,6 +76,9 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
   const resolvedTenant = resolveAdminTenantContext(user, effectiveParamTenant);
   const selectedTenant = resolvedTenant !== 'all' ? resolvedTenant : (headerTenant || 'smmplan');
   const search = params.q?.trim() || undefined;
+  const pageNum = params.page ? Math.max(1, parseInt(params.page, 10) || 1) : 1;
+  const rawPageSize = params.pageSize ? parseInt(params.pageSize, 10) : 50;
+  const pageSize = [20, 50, 100, 200].includes(rawPageSize) ? rawPageSize : 50;
   const cursor = params.cursor || undefined;
   const categoryId = (params.category && params.category !== 'all') ? params.category : undefined;
   const providerId = (params.providerId && params.providerId !== 'all') ? params.providerId : undefined;
@@ -87,7 +92,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
   const platform = (params.platform && params.platform !== 'ALL' && params.platform !== 'all') ? params.platform : undefined;
 
   const [
-    { items: rawServices, nextCursor, hasMore },
+    { items: rawServices, nextCursor, hasMore, totalCount: filteredTotalCount, totalPages, currentPage },
     usdToRub,
     categories,
     catalogHealth,
@@ -105,7 +110,8 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
       providerStatus,
       externalId,
       cursor,
-      pageSize: 50,
+      page: cursor ? undefined : pageNum,
+      pageSize,
       sortBy,
       sortOrder,
       networkSlug: platform,
@@ -251,12 +257,13 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
         selectedTenant={selectedTenant}
       />
       
-      {/* Modular Pagination with Progress & Active Filters */}
+      {/* Modular Pagination with Numbered Pages, PageSize & Jump */}
       <CatalogPagination
-        totalCount={stats.totalServices}
-        currentCount={services.length}
-        hasMore={hasMore}
-        nextCursor={nextCursor}
+        totalCount={filteredTotalCount}
+        globalTotalCount={stats.totalServices}
+        currentPage={currentPage || pageNum}
+        totalPages={totalPages || 1}
+        pageSize={pageSize}
         selectedTenant={selectedTenant}
       />
     </div>

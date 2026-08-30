@@ -312,6 +312,7 @@ class AdminCatalogService {
    */
   async listServices(params: {
     cursor?: string;
+    page?: number;
     search?: string;
     categoryId?: string;
     providerId?: string;
@@ -443,6 +444,7 @@ class AdminCatalogService {
 
     return paginatedQuery<CatalogRow>(db.service, {
       cursor: params.cursor,
+      page: params.page,
       pageSize: params.pageSize || 50,
       where,
       orderBy,

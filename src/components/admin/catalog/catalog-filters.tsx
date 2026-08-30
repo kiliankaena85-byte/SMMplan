@@ -176,8 +176,10 @@ export function CatalogFilters({ categories, providers, selectedTenant }: Catalo
 
     const sortBy = searchParams.get('sortBy');
     const sortOrder = searchParams.get('sortOrder');
+    const pageSize = searchParams.get('pageSize');
     if (sortBy) params.set('sortBy', sortBy);
     if (sortOrder) params.set('sortOrder', sortOrder);
+    if (pageSize) params.set('pageSize', pageSize);
 
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
@@ -251,7 +253,11 @@ export function CatalogFilters({ categories, providers, selectedTenant }: Catalo
     setLocalProviderStatus('all');
     setLocalHideDeleted(false);
     const currentTenant = searchParams.get('tenant');
-    const resetUrl = currentTenant ? `${pathname}?tenant=${currentTenant}` : pathname;
+    const currentPageSize = searchParams.get('pageSize');
+    const params = new URLSearchParams();
+    if (currentTenant) params.set('tenant', currentTenant);
+    if (currentPageSize) params.set('pageSize', currentPageSize);
+    const resetUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
     router.push(resetUrl, { scroll: false });
   };
 
