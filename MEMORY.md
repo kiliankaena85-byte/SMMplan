@@ -281,3 +281,13 @@ npx @next/codemod@latest middleware-to-proxy
   - `src/proxy.ts`: извлекает `x-forwarded-host` и `x-forwarded-proto` с защитой от дублирования (`split(',')[0].trim()`), выполняет раннюю валидацию `isKnownOrAllowedHost` ДО построения `originBase` и явно синхронизирует заголовки для Next.js Server Actions.
   - Тестовый сьют: `src/__tests__/dynamic-tunnel-and-server-actions-proxy.test.ts` (8/8 PASS).
 
+---
+
+## 9. 🐛 Баг-репорты и инциденты (Backlog Incidents)
+
+- **[BUG-PROMO-CALC] Аномалия пересчета суммы при вводе промокода на витрине:**
+  - *Описание:* При вводе любого числа или текста в поле промокода в чекауте сумма заказа некорректно увеличивается на 6 руб 18 коп (например, с 12.00 ₽ становится 18.18 ₽ вместо скидки или ошибки невалидного кода).
+  - *Контекст для исправления:* Исследовать `src/services/marketing.service.ts` (`calculatePrice`), форму чекаута / калькулятора заказа в модальном окне, обработку минимального депозита эквайринга (`isMicroOrder` / 1000 коп) и наценки.
+
+
+
