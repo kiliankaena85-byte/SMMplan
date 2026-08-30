@@ -1,7 +1,15 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 07:00 (МСК)  
+> **Последнее обновление:** 2026-08-30 07:51 (МСК)
+
+- **Financial Security Audit v1 — 66/66 PASS + P0 Ledger-First Fix (COMPLETE):**
+  - **P0 Fix — `WalletOps.refund` Ledger-First Violation:** В `src/services/financial/wallet-ops.ts` исправлен критический дефект: `ledgerEntry.create` теперь выполняется строго **ДО** `user.update` (balance increment). Предотвращает ситуацию, когда баланс зачисляется без audit trail при сбое БД.
+  - **Новый тестовый сьют:** `src/__tests__/financial/financial-security-audit.test.ts` — **66 pure unit тестов** (без реальной БД) по 10 разделам: §1 Валютные операции, §2 BPS/Margin math, §3 Error hygiene, §4 Race conditions, §5 Idempotency, §6 Float drift/BigInt, §7 Partial refunds, §8 VAT/54-FZ, §9 Ledger-First call-order, §10 UX error quality.
+  - **Новый конфиг:** `vitest.unit.config.ts` — запуск unit-тестов без БД (`setupFiles: []`).
+  - **Commit:** `f1f19d3dc` — pushed to `origin/main`.
+  - **TSC:** 0 ошибок. **Tests:** 66/66 PASS (494ms).
+
 - **Устранение сбоя проверки на робота / Turnstile CAPTCHA (100% RESOLVED & VERIFIED):**
   - **Проблема:** Сбойная загрузка Cloudflare Turnstile на нестандартных и боевых доменах (ошибка `Troubleshoot`) блокировала форму входа `/login` с сообщением *"Подтвердите, что вы не робот"*.
   - **Решение:** Удален зависимый сторонний виджет Turnstile и блокирующая проверка из `login-form.tsx` и `password-login.ts`.
