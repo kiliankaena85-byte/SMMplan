@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, Mail, Ticket, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { suggestEmailCorrection } from "@/lib/email-typo-guard";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { getServiceFlags } from "@/utils/url-analyzer";
 
@@ -139,6 +140,22 @@ export function DrawerFormInputs({
             }`}
           />
         </motion.div>
+
+        {/* Smart Typo Guard suggestion */}
+        {(() => {
+          const suggestion = suggestEmailCorrection(email);
+          if (!suggestion) return null;
+          return (
+            <button
+              type="button"
+              onClick={() => setEmail(suggestion)}
+              className="inline-flex items-center gap-1.5 text-xs text-primary font-bold bg-primary/10 hover:bg-primary/20 px-2.5 py-1.5 rounded-lg border border-primary/25 transition-all duration-200 cursor-pointer text-left animate-in fade-in slide-in-from-top-1"
+            >
+              <span>💡 Возможно, опечатка? Нажмите, чтобы исправить на <strong className="underline">{suggestion}</strong></span>
+            </button>
+          );
+        })()}
+
         <p className="text-xs text-muted-foreground font-medium ml-1">
           {emailHasError ? (
             <span className="text-destructive font-bold">Введите корректный email адрес для чека</span>

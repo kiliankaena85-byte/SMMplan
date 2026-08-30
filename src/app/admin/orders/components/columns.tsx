@@ -208,7 +208,7 @@ function EtaTooltipContent({ service }: { service: OrderColumn['service'] }) {
 function InfoColumnCell({ order, canSeeRates }: { order: OrderColumn; canSeeRates: boolean }) {
   const [copied, setCopied] = useState(false);
   const s = order.service;
-  const netName = s.category.network?.name || 'Платформа';
+  const netName = s.category.network?.name || 'Соцсеть';
   const catName = s.category.name;
   const srvName = s.name;
   const dateFormatted = new Date(order.createdAt).toISOString().replace('T', ' ').slice(0, 19);

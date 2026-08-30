@@ -34,13 +34,14 @@ import {
   type FilterCategoryItem,
   type FilterProviderItem,
   type FilterNetworkItem,
+  formatCleanCategoryName,
   formatCleanActivityName,
 } from './catalog/catalog-filters';
 
 const SAFETY_MULTIPLIER = (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
 
 export type { FilterCategoryItem as CatalogTableCategory, FilterProviderItem as CatalogTableProvider, FilterNetworkItem as CatalogTableNetwork };
-export { formatCleanActivityName };
+export { formatCleanCategoryName, formatCleanActivityName };
 
 export function calcDisplayPrice(rate: number, markup: number, usdToRub: number, curr: 'RUB' | 'USD', vol: 'UNIT' | '1K') {
   if (vol === '1K') {
@@ -497,7 +498,7 @@ export function CatalogTable({
                 const categoryObj = categories.find(c => c.id === s.categoryId);
                 const networkName = categoryObj?.network?.name || s.networkName;
                 const networkSlug = categoryObj?.network?.slug || s.networkSlug || 'telegram';
-                const cleanActivityName = formatCleanActivityName(categoryObj?.name || s.categoryName, networkName || undefined);
+                const cleanCategoryName = formatCleanCategoryName(categoryObj?.name || s.categoryName, networkName || undefined);
                 const providerObj = providers.find(p => p.id === s.providerId);
                 const providerName = providerObj?.name || (s.providerId ? 'Провайдер' : '—');
 
@@ -558,8 +559,8 @@ export function CatalogTable({
 
                     {/* 5. КАТЕГОРИЯ */}
                     <Table.Cell className="py-2 px-2">
-                      <span className="text-xs text-muted-foreground font-medium truncate max-w-[120px] block" title={cleanActivityName}>
-                        {cleanActivityName}
+                      <span className="text-xs text-muted-foreground font-medium truncate max-w-[120px] block" title={cleanCategoryName}>
+                        {cleanCategoryName}
                       </span>
                     </Table.Cell>
 

@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { sendOrderPaidMail } from '@/lib/smtp';
 import { logPromoCodeUsageIfNeeded } from '@/services/marketing-utils';
 import { PromoAutomationService } from '../users/promo-automation.service';
+import { SecurityAlertService } from '@/services/security/security-alert.service';
 
 function safeRevalidatePath(path: string, type?: 'layout' | 'page') {
   try {
@@ -115,6 +116,17 @@ export class PaymentService {
         // [SECURITY CR-4 FIX] Exact Amount Verification: Reject both underpayment and overpayment exploits
         if (currentPayment && currentPayment.amount !== receivedAmountBigInt) {
           console.error(`[Payment] Amount mismatch exploit attempt for ${gatewayId}: expected ${currentPayment.amount}, got ${receivedAmountBigInt}`);
+          void SecurityAlertService.record({
+            event: 'PAYMENT_AMOUNT_MISMATCH_EXPLOIT',
+            severity: 'CRITICAL',
+            details: {
+              paymentId: currentPayment.id,
+              expectedAmount: currentPayment.amount.toString(),
+              receivedAmount: receivedAmountBigInt.toString(),
+              gatewayId,
+              gatewayType
+            }
+          });
           throw new Error('PAYMENT_AMOUNT_MISMATCH: Amount received from gateway does not match expected payment amount.');
         }
 
@@ -175,6 +187,17 @@ export class PaymentService {
             // [FIN-P0 Guard] Ensure credited amount is strictly >= order.charge to prevent underpaid activation
             if (creditAmount < order.charge) {
               console.error(`[SECURITY] Underpaid order activation blocked: order #${order.numericId} requires ${order.charge} kopecks, but payment credited only ${creditAmount} kopecks.`);
+              void SecurityAlertService.record({
+                event: 'UNDERPAID_ORDER_EXPLOIT_ATTEMPT',
+                severity: 'CRITICAL',
+                details: {
+                  orderId: linkedOrderId,
+                  orderNumericId: order.numericId,
+                  requiredCharge: order.charge.toString(),
+                  creditedAmount: creditAmount.toString(),
+                  paymentId: processedPaymentId
+                }
+              });
               throw new Error(`UNDERPAID_ORDER: Credited amount (${creditAmount}) is less than required order charge (${order.charge})`);
             }
 

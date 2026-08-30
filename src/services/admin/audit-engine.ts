@@ -46,7 +46,7 @@ export class ServiceAuditEngine {
       { pattern: /накрутки/gi, replacement: "продвижения" },
       { pattern: /накрутка/gi, replacement: "продвижение" },
       { pattern: /накрутить/gi, replacement: "увеличить" },
-      { pattern: /накручено/gi, replacement: "активность" },
+      { pattern: /накручено/gi, replacement: "добавлено" },
     ];
 
     for (const { pattern, replacement } of wordReplacements) {

@@ -59,7 +59,7 @@ function InfoStack({ order }: { order: OrderColumn }) {
   const s = order.service;
   const [copied, setCopied] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const netName = s?.category?.network?.name || 'Платформа';
+  const netName = s?.category?.network?.name || 'Соцсеть';
   const catName = s?.category?.name || '—';
   const srvName = s?.name || 'Услуга';
   

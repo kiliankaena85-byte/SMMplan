@@ -184,7 +184,7 @@ export function ServicesTable({
             onClick={() => handleSort('platform')}
           >
             <div className="flex items-center gap-1.5">
-              <span>Платформа и теги</span>
+              <span>Соцсеть и теги</span>
               {getSortIcon('platform')}
             </div>
           </div>

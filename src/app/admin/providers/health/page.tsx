@@ -45,7 +45,7 @@ export default function ProviderHealthMonitorPage() {
             <ShieldCheck className="w-4 h-4 text-emerald-500" />
           </div>
           <div className="text-2xl font-bold text-foreground">8 / 8</div>
-          <p className="text-xs text-emerald-500 font-medium">100% сервисов доступны</p>
+          <p className="text-xs text-emerald-500 font-medium">100% услуг доступны</p>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-5 space-y-1">

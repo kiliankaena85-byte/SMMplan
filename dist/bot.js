@@ -97428,17 +97428,29 @@ async function sendOrderCompletedMail(email, orderId, serviceName, tenantId) {
 async function sendOrderPaidMail(email, orderId, serviceName, tenantId) {
   const { companyName, supportDomain } = await getEmailContext(tenantId);
   const htmlContent = `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #e4e4e7;">
-      <h2 style="color: #10b981;">\u0417\u0430\u043A\u0430\u0437 #<span>${orderId}</span> \u043E\u043F\u043B\u0430\u0447\u0435\u043D \u0438 \u0432\u0437\u044F\u0442 \u0432 \u0440\u0430\u0431\u043E\u0442\u0443! \u{1F680}</h2>
-      <p style="color: #71717a; line-height: 1.5;">\u0412\u0430\u0448 \u0437\u0430\u043A\u0430\u0437 \u043D\u0430 \u0443\u0441\u043B\u0443\u0433\u0443 <strong>${serviceName}</strong> \u0432 \u0441\u0435\u0440\u0432\u0438\u0441\u0435 ${companyName} \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u043E\u043F\u043B\u0430\u0447\u0435\u043D.</p>
-      <div style="margin-top: 32px; text-align: center;">
-        <a href="https://${supportDomain}/dashboard/orders" style="background-color: #18181b; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block;">
-          \u041F\u043E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u043C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; padding: 28px; border-radius: 16px; border: 1px solid #e4e4e7; color: #18181b;">
+      <h2 style="color: #10b981; margin-top: 0; font-size: 22px;">\u0417\u0430\u043A\u0430\u0437 #<span>${orderId}</span> \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u043E\u043F\u043B\u0430\u0447\u0435\u043D! \u{1F680}</h2>
+      <p style="color: #52525b; line-height: 1.6; font-size: 15px;">
+        \u0412\u0430\u0448 \u0437\u0430\u043A\u0430\u0437 \u043D\u0430 \u0443\u0441\u043B\u0443\u0433\u0443 <strong>${serviceName}</strong> \u0432 \u0441\u0435\u0440\u0432\u0438\u0441\u0435 ${companyName} \u043F\u0440\u0438\u043D\u044F\u0442 \u0438 \u0437\u0430\u043F\u0443\u0449\u0435\u043D \u0432 \u043E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0443.
+      </p>
+      
+      <div style="background: #f4f4f5; padding: 16px; border-radius: 12px; margin: 20px 0; font-size: 13px; line-height: 1.5; color: #3f3f46;">
+        <div>\u{1F4C4} <strong>\u042D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u044B\u0439 \u0447\u0435\u043A 54-\u0424\u0417:</strong> \u0441\u0444\u043E\u0440\u043C\u0438\u0440\u043E\u0432\u0430\u043D \u0438 \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u0435\u043D \u0432 \u041E\u0424\u0414.</div>
+        <div style="margin-top: 6px;">\u26A1 <strong>\u0421\u0442\u0430\u0440\u0442 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F:</strong> \u0432 \u0442\u0435\u0447\u0435\u043D\u0438\u0435 1\u20135 \u043C\u0438\u043D\u0443\u0442.</div>
+      </div>
+
+      <div style="margin: 28px 0; text-align: center;">
+        <a href="https://${supportDomain}/dashboard/orders" style="background-color: #0284c7; color: #ffffff; padding: 13px 28px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 15px; display: inline-block;">
+          \u041F\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043B\u0438\u0447\u043D\u044B\u0439 \u043A\u0430\u0431\u0438\u043D\u0435\u0442 \u2192
         </a>
+      </div>
+
+      <div style="border-top: 1px solid #e4e4e7; padding-top: 16px; font-size: 12px; color: #a1a1aa; line-height: 1.5;">
+        \u{1F4A1} <em>\u0415\u0441\u043B\u0438 \u0432\u044B \u0434\u043E\u043F\u0443\u0441\u0442\u0438\u043B\u0438 \u043E\u043F\u0435\u0447\u0430\u0442\u043A\u0443 \u0432 email \u0438\u043B\u0438 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442\u0435 \u0432\u043E\u0439\u0442\u0438 \u0432 \u0430\u043A\u043A\u0430\u0443\u043D\u0442, \u043E\u0431\u0440\u0430\u0442\u0438\u0442\u0435\u0441\u044C \u0432 \u043D\u0430\u0448\u0443 \u0441\u043B\u0443\u0436\u0431\u0443 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0438 \u0441 \u043D\u043E\u043C\u0435\u0440\u043E\u043C \u0437\u0430\u043A\u0430\u0437\u0430 #${orderId} \u0438 \u0447\u0435\u043A\u043E\u043C \u043E\u043F\u043B\u0430\u0442\u044B.</em>
       </div>
     </div>
   `;
-  return sendMail(email, `\u0412\u0430\u0448 \u0437\u0430\u043A\u0430\u0437 #${orderId} \u043E\u043F\u043B\u0430\u0447\u0435\u043D \u2014 ${companyName}!`, htmlContent, void 0, tenantId);
+  return sendMail(email, `\u0427\u0435\u043A \u0438 \u0437\u0430\u043F\u0443\u0441\u043A \u0437\u0430\u043A\u0430\u0437\u0430 #${orderId} \u2014 ${companyName}`, htmlContent, void 0, tenantId);
 }
 async function sendOrderCanceledMail(email, orderId, serviceName, tenantId) {
   const { companyName, supportDomain } = await getEmailContext(tenantId);

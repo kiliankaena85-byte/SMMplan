@@ -114,7 +114,7 @@ export function RefundMonitorWidget({ stats }: Props) {
       {/* ── 3. Top Failing Services Section ── */}
       <div className="space-y-1.5 pt-1">
         <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
-          <span>Сервисы с наибольшим числом сбоев:</span>
+          <span>Услуги с наибольшим числом сбоев:</span>
           {stats.topFailingServices.length > 0 && (
             <span className="text-muted-foreground font-normal lowercase">
               Топ-{stats.topFailingServices.length}

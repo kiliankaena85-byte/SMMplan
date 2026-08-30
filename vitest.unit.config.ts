@@ -29,6 +29,7 @@ export default defineConfig({
       'src/__tests__/checkout-payments/checkout-resilience-and-bypass.test.ts',
       'src/__tests__/mobile-wizard-smoke.test.tsx',
       'src/__tests__/admin-nav-active.test.ts',
+      'src/lib/__tests__/order-token-and-typo-guard.test.ts',
     ],
   }
 });

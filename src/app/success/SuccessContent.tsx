@@ -57,10 +57,12 @@ export function SuccessContent() {
     if (!orderId && !paymentId) return;
     if (manual) setIsManualFetching(true);
     try {
+      const effectiveToken = token || (typeof window !== 'undefined' && orderId ? localStorage.getItem(`guest_order_${orderId}`) : null);
+
       const params = new URLSearchParams();
       if (orderId) params.append('orderId', orderId);
       if (paymentId) params.append('paymentId', paymentId);
-      if (token) params.append('token', token);
+      if (effectiveToken) params.append('token', effectiveToken);
 
       const res = await fetch(`/api/order-status?${params.toString()}`);
       if (!res.ok) {

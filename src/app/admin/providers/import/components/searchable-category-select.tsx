@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, Plus, Check, X, Layers, ChevronDown, Loader2 } from 'lucide-react';
@@ -211,7 +211,7 @@ export function SearchableCategorySelect({
             <>
               <span className="shrink-0">{getNetIcon(selectedCat.network?.name)}</span>
               <span className="text-muted-foreground font-normal shrink-0">
-                {selectedCat.network?.name || 'Платформа'} •
+                {selectedCat.network?.name || 'Соцсеть'} •
               </span>
               <span className="font-semibold truncate text-foreground">{selectedCat.name}</span>
             </>

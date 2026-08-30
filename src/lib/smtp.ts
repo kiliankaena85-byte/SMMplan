@@ -225,17 +225,29 @@ export async function sendOrderPaidMail(email: string, orderId: string, serviceN
   const { companyName, supportDomain } = await getEmailContext(tenantId);
 
   const htmlContent = `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #e4e4e7;">
-      <h2 style="color: #10b981;">Заказ #<span>${orderId}</span> оплачен и взят в работу! 🚀</h2>
-      <p style="color: #71717a; line-height: 1.5;">Ваш заказ на услугу <strong>${serviceName}</strong> в сервисе ${companyName} успешно оплачен.</p>
-      <div style="margin-top: 32px; text-align: center;">
-        <a href="https://${supportDomain}/dashboard/orders" style="background-color: #18181b; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block;">
-          Посмотреть мои заказы
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; padding: 28px; border-radius: 16px; border: 1px solid #e4e4e7; color: #18181b;">
+      <h2 style="color: #10b981; margin-top: 0; font-size: 22px;">Заказ #<span>${orderId}</span> успешно оплачен! 🚀</h2>
+      <p style="color: #52525b; line-height: 1.6; font-size: 15px;">
+        Ваш заказ на услугу <strong>${serviceName}</strong> в сервисе ${companyName} принят и запущен в обработку.
+      </p>
+      
+      <div style="background: #f4f4f5; padding: 16px; border-radius: 12px; margin: 20px 0; font-size: 13px; line-height: 1.5; color: #3f3f46;">
+        <div>📄 <strong>Электронный чек 54-ФЗ:</strong> сформирован и отправлен в ОФД.</div>
+        <div style="margin-top: 6px;">⚡ <strong>Старт выполнения:</strong> в течение 1–5 минут.</div>
+      </div>
+
+      <div style="margin: 28px 0; text-align: center;">
+        <a href="https://${supportDomain}/dashboard/orders" style="background-color: #0284c7; color: #ffffff; padding: 13px 28px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 15px; display: inline-block;">
+          Перейти в личный кабинет →
         </a>
+      </div>
+
+      <div style="border-top: 1px solid #e4e4e7; padding-top: 16px; font-size: 12px; color: #a1a1aa; line-height: 1.5;">
+        💡 <em>Если вы допустили опечатку в email или не можете войти в аккаунт, обратитесь в нашу службу поддержки с номером заказа #${orderId} и чеком оплаты.</em>
       </div>
     </div>
   `;
-  return sendMail(email, `Ваш заказ #${orderId} оплачен — ${companyName}!`, htmlContent, undefined, tenantId);
+  return sendMail(email, `Чек и запуск заказа #${orderId} — ${companyName}`, htmlContent, undefined, tenantId);
 }
 
 export async function sendOrderCanceledMail(email: string, orderId: string, serviceName: string, tenantId?: string) {

@@ -72,7 +72,7 @@ export function MobileNavDrawer({ userEmail, roleInfo, navigation }: MobileNavDr
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger
-        className="md:hidden flex items-center justify-center h-9 w-9 rounded-xl border border-border/50 text-foreground hover:bg-muted/80 transition-all cursor-pointer"
+        className="md:hidden flex items-center justify-center h-11 w-11 min-h-[44px] min-w-[44px] rounded-xl border border-border/50 text-foreground hover:bg-muted/80 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none transition-all cursor-pointer"
         aria-label="Открыть меню навигации"
       >
         <Menu className="h-5 w-5" />
@@ -94,7 +94,7 @@ export function MobileNavDrawer({ userEmail, roleInfo, navigation }: MobileNavDr
               </h2>
             </div>
             <SheetClose
-              className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+              className="h-11 w-11 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none cursor-pointer"
               aria-label="Закрыть"
             >
               <X className="h-4 w-4" />
@@ -131,7 +131,7 @@ export function MobileNavDrawer({ userEmail, roleInfo, navigation }: MobileNavDr
                       key={item.href}
                       href={item.href}
                       className={cn(
-                        "flex items-center px-2.5 py-2 text-xs font-semibold rounded-lg transition-all duration-200",
+                        "flex items-center px-3 min-h-[44px] h-11 text-xs font-semibold rounded-lg transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none",
                         isActive
                           ? "bg-primary text-primary-foreground font-bold shadow-xs"
                           : "text-muted-foreground hover:bg-muted hover:text-foreground"

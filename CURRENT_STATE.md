@@ -1,7 +1,27 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 18:24 (МСК)
+> **Последнее обновление:** 2026-08-30 19:00 (МСК)
+
+- **Guest Order Capability Tokens, Smart Email Typo Guard & Anti-Spam Magic Link Flow (100% COMPLETE & VERIFIED):**
+  - **1. Защита от захвата чужих аккаунтов (Account Takeover / ATO Immunity — OWASP A07:2025):** 
+    - Разработан криптографический модуль [`src/lib/order-token.ts`](file:///d:/SMM_plan_2/src/lib/order-token.ts) (`generateGuestOrderToken`, `verifyGuestOrderToken` через `crypto.timingSafeEqual`).
+    - Оплата на чужой email дает доступ **СТРОГО к купленному заказу** через capability token, полностью исключая несанкционированную выдачу сессии чужого аккаунта.
+  - **2. Упреждающий фильтр опечаток (Smart Email Typo Guard):**
+    - В [`src/lib/email-typo-guard.ts`](file:///d:/SMM_plan_2/src/lib/email-typo-guard.ts) и [`DrawerFormInputs.tsx`](file:///d:/SMM_plan_2/src/components/landing/order-engine/drawer/DrawerFormInputs.tsx) интегрирован подсказчик частых опечаток (`gmai.com`, `yandx.ru`, `mil.ru`), предотвращающий 90% ошибок ввода email до оплаты.
+  - **3. Локальный сейф заказов (Local Order Vault):**
+    - В [`useCheckoutOrchestrator.ts`](file:///d:/SMM_plan_2/src/components/landing/order-engine/useCheckoutOrchestrator.ts) и [`SuccessContent.tsx`](file:///d:/SMM_plan_2/src/app/success/SuccessContent.tsx) токен заказа кэшируется в `localStorage`, позволяя мгновенно открыть статус заказа даже при случайной ошибке в email.
+  - **4. Транзакционные письма и защита Magic Link от антиспам-ботов:**
+    - В [`src/lib/smtp.ts`](file:///d:/SMM_plan_2/src/lib/smtp.ts) шаблон `sendOrderPaidMail` обновлен: содержит фискальный чек 54-ФЗ, прямой переход в кабинет и инструкцию для привязки через техподдержку.
+  - **5. Верификация:** Создан специализированный сьют `src/lib/__tests__/order-token-and-typo-guard.test.ts` (6/6 PASS). Общий сьют `vitest.unit.config.ts` — **18/18 test suites, 164/164 tests PASS (100% GREEN)**, `npx tsc --noEmit` — **0 ошибок**.
+
+- **Catalog Terminology Unification: Network / Category / Service (100% COMPLETE & VERIFIED):**
+  - **1. Иерархия терминов каталога:** Зафиксирован канонический стандарт: Уровень 1 — **«Соцсеть»** (`Network`), Уровень 2 — **«Категория»** (`Category`), Уровень 3 — **«Услуга»** (`Service`).
+  - **2. Устранение устаревших терминов («Активность» / «Сервисы»):**
+    - В менеджере категорий ([`category-manager.tsx`](file:///d:/SMM_plan_2/src/app/admin/catalog/categories/components/category-manager.tsx)) шапка, счётчик, тосты создания/обновления/слияния и селекторы переведены на «Категории» и «Соцсети».
+    - В фильтрах каталога ([`catalog-filters.tsx`](file:///d:/SMM_plan_2/src/components/admin/catalog/catalog-filters.tsx)) фильтр `isActive` переименован в «Статус услуги», хелпер `formatCleanActivityName` обновлён до `formatCleanCategoryName` (с обратной совместимостью).
+    - Во всех дашбордах, алертах и формах импорта ([`RefundMonitorWidget.tsx`](file:///d:/SMM_plan_2/src/app/admin/dashboard/RefundMonitorWidget.tsx), [`recommendations-client.tsx`](file:///d:/SMM_plan_2/src/app/admin/economics/recommendations/recommendations-client.tsx), [`health/page.tsx`](file:///d:/SMM_plan_2/src/app/admin/providers/health/page.tsx), [`ai-pricing-telegram-dispatcher.ts`](file:///d:/SMM_plan_2/src/services/admin/ai-pricing-telegram-dispatcher.ts), [`confirmation-modal.tsx`](file:///d:/SMM_plan_2/src/app/admin/providers/import/components/confirmation-modal.tsx), [`services-table.tsx`](file:///d:/SMM_plan_2/src/app/admin/providers/import/components/services-table.tsx)) заменены «Сервисы к оптимизации», «Разбивка по платформам», «Сервисы сбоев» на «Услуги» и «Соцсети».
+  - **3. Верификация:** `npx tsc --noEmit` — **0 ошибок**, `vitest.unit.config.ts` — **158/158 PASS (100% GREEN)**.
 
 - **Admin Navigation Best Match Rule & Single Tab Highlight Fix (100% COMPLETE, TESTED & DEPLOYED):**
   - **1. Алгоритм наибольшей специфичности («Best Match Rule»):** В утилиту `isNavTabActive` ([`src/components/admin/navigation-data.ts`](file:///d:/SMM_plan_2/src/components/admin/navigation-data.ts)) внедрена точная логика сопоставления URL. Устранено паразитное одновременное подсвечивание родительских маршрутов (`/admin/catalog` или `/admin/finance`) при переходе на более специфичные дочерние страницы (`/admin/catalog/categories` или `/admin/finance/balance-requests`).

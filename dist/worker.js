@@ -123778,17 +123778,29 @@ async function sendOrderCompletedMail(email, orderId, serviceName, tenantId) {
 async function sendOrderPaidMail(email, orderId, serviceName, tenantId) {
   const { companyName, supportDomain } = await getEmailContext(tenantId);
   const htmlContent = `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #e4e4e7;">
-      <h2 style="color: #10b981;">\u0417\u0430\u043A\u0430\u0437 #<span>${orderId}</span> \u043E\u043F\u043B\u0430\u0447\u0435\u043D \u0438 \u0432\u0437\u044F\u0442 \u0432 \u0440\u0430\u0431\u043E\u0442\u0443! \u{1F680}</h2>
-      <p style="color: #71717a; line-height: 1.5;">\u0412\u0430\u0448 \u0437\u0430\u043A\u0430\u0437 \u043D\u0430 \u0443\u0441\u043B\u0443\u0433\u0443 <strong>${serviceName}</strong> \u0432 \u0441\u0435\u0440\u0432\u0438\u0441\u0435 ${companyName} \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u043E\u043F\u043B\u0430\u0447\u0435\u043D.</p>
-      <div style="margin-top: 32px; text-align: center;">
-        <a href="https://${supportDomain}/dashboard/orders" style="background-color: #18181b; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block;">
-          \u041F\u043E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u043C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; padding: 28px; border-radius: 16px; border: 1px solid #e4e4e7; color: #18181b;">
+      <h2 style="color: #10b981; margin-top: 0; font-size: 22px;">\u0417\u0430\u043A\u0430\u0437 #<span>${orderId}</span> \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u043E\u043F\u043B\u0430\u0447\u0435\u043D! \u{1F680}</h2>
+      <p style="color: #52525b; line-height: 1.6; font-size: 15px;">
+        \u0412\u0430\u0448 \u0437\u0430\u043A\u0430\u0437 \u043D\u0430 \u0443\u0441\u043B\u0443\u0433\u0443 <strong>${serviceName}</strong> \u0432 \u0441\u0435\u0440\u0432\u0438\u0441\u0435 ${companyName} \u043F\u0440\u0438\u043D\u044F\u0442 \u0438 \u0437\u0430\u043F\u0443\u0449\u0435\u043D \u0432 \u043E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0443.
+      </p>
+      
+      <div style="background: #f4f4f5; padding: 16px; border-radius: 12px; margin: 20px 0; font-size: 13px; line-height: 1.5; color: #3f3f46;">
+        <div>\u{1F4C4} <strong>\u042D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u044B\u0439 \u0447\u0435\u043A 54-\u0424\u0417:</strong> \u0441\u0444\u043E\u0440\u043C\u0438\u0440\u043E\u0432\u0430\u043D \u0438 \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u0435\u043D \u0432 \u041E\u0424\u0414.</div>
+        <div style="margin-top: 6px;">\u26A1 <strong>\u0421\u0442\u0430\u0440\u0442 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F:</strong> \u0432 \u0442\u0435\u0447\u0435\u043D\u0438\u0435 1\u20135 \u043C\u0438\u043D\u0443\u0442.</div>
+      </div>
+
+      <div style="margin: 28px 0; text-align: center;">
+        <a href="https://${supportDomain}/dashboard/orders" style="background-color: #0284c7; color: #ffffff; padding: 13px 28px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 15px; display: inline-block;">
+          \u041F\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043B\u0438\u0447\u043D\u044B\u0439 \u043A\u0430\u0431\u0438\u043D\u0435\u0442 \u2192
         </a>
+      </div>
+
+      <div style="border-top: 1px solid #e4e4e7; padding-top: 16px; font-size: 12px; color: #a1a1aa; line-height: 1.5;">
+        \u{1F4A1} <em>\u0415\u0441\u043B\u0438 \u0432\u044B \u0434\u043E\u043F\u0443\u0441\u0442\u0438\u043B\u0438 \u043E\u043F\u0435\u0447\u0430\u0442\u043A\u0443 \u0432 email \u0438\u043B\u0438 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442\u0435 \u0432\u043E\u0439\u0442\u0438 \u0432 \u0430\u043A\u043A\u0430\u0443\u043D\u0442, \u043E\u0431\u0440\u0430\u0442\u0438\u0442\u0435\u0441\u044C \u0432 \u043D\u0430\u0448\u0443 \u0441\u043B\u0443\u0436\u0431\u0443 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0438 \u0441 \u043D\u043E\u043C\u0435\u0440\u043E\u043C \u0437\u0430\u043A\u0430\u0437\u0430 #${orderId} \u0438 \u0447\u0435\u043A\u043E\u043C \u043E\u043F\u043B\u0430\u0442\u044B.</em>
       </div>
     </div>
   `;
-  return sendMail(email, `\u0412\u0430\u0448 \u0437\u0430\u043A\u0430\u0437 #${orderId} \u043E\u043F\u043B\u0430\u0447\u0435\u043D \u2014 ${companyName}!`, htmlContent, void 0, tenantId);
+  return sendMail(email, `\u0427\u0435\u043A \u0438 \u0437\u0430\u043F\u0443\u0441\u043A \u0437\u0430\u043A\u0430\u0437\u0430 #${orderId} \u2014 ${companyName}`, htmlContent, void 0, tenantId);
 }
 async function sendOrderCanceledMail(email, orderId, serviceName, tenantId) {
   const { companyName, supportDomain } = await getEmailContext(tenantId);
@@ -138848,6 +138860,184 @@ var PromoAutomationService = class {
   }
 };
 
+// src/services/security/security-alert.service.ts
+init_db();
+init_notifications();
+init_redis();
+var SecurityAlertService = class {
+  static {
+    this.THROTTLE_PREFIX = "security:alert:throttle:";
+  }
+  static {
+    this.THROTTLE_TTL_SEC = 60;
+  }
+  static {
+    // 1 alert per minute per event+ip pair
+    this.STREAM_CHANNEL = "security:events:stream";
+  }
+  /**
+   * Records a security event to DB, broadcasts via Redis Pub/Sub,
+   * and sends an immediate Telegram alert to admins if CRITICAL/HIGH (with anti-flooding).
+   */
+  static async record(input) {
+    const { event, severity, ip, tenantId = "smmplan", details = {} } = input;
+    let created = null;
+    try {
+      if (db.securityEvent) {
+        created = await db.securityEvent.create({
+          data: {
+            event,
+            severity,
+            ip: ip || null,
+            tenantId: tenantId || "smmplan",
+            details: details ? details : void 0
+          }
+        });
+      }
+    } catch (err) {
+      console.error("[SecurityAlertService] Failed to insert securityEvent into DB:", err);
+    }
+    try {
+      const payload = JSON.stringify({
+        id: created?.id || `temp-${Date.now()}`,
+        event,
+        severity,
+        ip: ip || null,
+        tenantId: tenantId || "smmplan",
+        details,
+        createdAt: created?.createdAt || (/* @__PURE__ */ new Date()).toISOString()
+      });
+      await redis.publish(this.STREAM_CHANNEL, payload).catch(() => {
+      });
+    } catch {
+    }
+    if (severity === "CRITICAL" || severity === "HIGH") {
+      await this.dispatchRealtimeAlert(event, severity, ip, tenantId, details).catch((err) => {
+        console.error("[SecurityAlertService] Failed to dispatch admin alert:", err);
+      });
+    }
+    return created;
+  }
+  /**
+   * Dispatches formatted Telegram alert with anti-flooding guard.
+   */
+  static async dispatchRealtimeAlert(event, severity, ip, tenantId, details) {
+    const cleanIp = ip || "unknown";
+    const throttleKey = `${this.THROTTLE_PREFIX}${event}:${cleanIp}`;
+    try {
+      const isThrottled = await redis.get(throttleKey);
+      if (isThrottled) {
+        await redis.incr(`${throttleKey}:suppressed`).catch(() => {
+        });
+        return;
+      }
+      await redis.set(throttleKey, "1", "EX", this.THROTTLE_TTL_SEC);
+    } catch {
+    }
+    const gateway = String(details?.gateway || details?.provider || "api");
+    const moscowTime = (/* @__PURE__ */ new Date()).toLocaleString("ru-RU", { timeZone: "Europe/Moscow" });
+    const emoji = severity === "CRITICAL" ? "\u{1F6A8}" : "\u26A0\uFE0F";
+    const safeDetailsStr = JSON.stringify(details, null, 2);
+    const truncatedDetails = safeDetailsStr.length > 500 ? `${safeDetailsStr.slice(0, 500)}...` : safeDetailsStr;
+    const isConfigWarning = event === "MISCONFIGURED_WEBHOOK_SECRET";
+    const alertTitle = isConfigWarning ? `[${severity}] \u0422\u0420\u0415\u0411\u0423\u0415\u0422\u0421\u042F \u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0410: \u0421\u0435\u043A\u0440\u0435\u0442\u043D\u044B\u0439 \u043A\u043B\u044E\u0447 ${gateway.toUpperCase()}` : `[${severity}] \u041F\u0420\u0415\u0414\u0423\u041F\u0420\u0415\u0416\u0414\u0415\u041D\u0418\u0415 \u0411\u0415\u0417\u041E\u041F\u0410\u0421\u041D\u041E\u0421\u0422\u0418: ${event}`;
+    const message = [
+      `${emoji} <b>${alertTitle}</b>`,
+      "",
+      `<b>\u0421\u043E\u0431\u044B\u0442\u0438\u0435:</b> <code>${event}</code>`,
+      `<b>\u0428\u043B\u044E\u0437/\u041C\u043E\u0434\u0443\u043B\u044C:</b> <code>${gateway}</code>`,
+      `<b>IP \u0438\u0441\u0442\u043E\u0447\u043D\u0438\u043A\u0430:</b> <code>${cleanIp}</code>`,
+      `<b>\u0421\u0430\u0439\u0442/\u0422\u0435\u043D\u0430\u043D\u0442:</b> <code>${tenantId || "smmplan"}</code>`,
+      `<b>\u0414\u0435\u0442\u0430\u043B\u0438:</b> <pre>${truncatedDetails}</pre>`,
+      "",
+      isConfigWarning ? "\u{1F4A1} <i>\u0414\u043B\u044F \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u043E\u0433\u043E \u0437\u0430\u0447\u0438\u0441\u043B\u0435\u043D\u0438\u044F \u043F\u043B\u0430\u0442\u0435\u0436\u0435\u0439 \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0435\u043A\u0440\u0435\u0442\u043D\u044B\u0439 \u043A\u043B\u044E\u0447 \u0432\u0435\u0431\u0445\u0443\u043A\u0430 \u0432 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430\u0445.</i>" : "\u{1F6E1}\uFE0F <i>\u0417\u0430\u043F\u0440\u043E\u0441 \u043E\u0442\u043A\u043B\u043E\u043D\u0435\u043D \u0441\u0438\u0441\u0442\u0435\u043C\u043E\u0439 \u0437\u0430\u0449\u0438\u0442\u044B.</i>",
+      "",
+      `<i>\u0424\u0438\u043A\u0441\u0430\u0446\u0438\u044F: ${moscowTime}</i>`
+    ].join("\n");
+    sendAdminAlert(message, severity === "CRITICAL" ? "CRITICAL" : "WARNING");
+  }
+  /**
+   * Fetches paginated security events for the admin panel.
+   */
+  static async getRecentEvents(options) {
+    const { limit = 50, offset = 0, severity, event, ip, tenantId } = options || {};
+    const where = {};
+    if (severity && severity !== "ALL") where.severity = severity;
+    if (event && event !== "ALL") where.event = event;
+    if (ip) where.ip = { contains: ip };
+    if (tenantId && tenantId !== "ALL") where.tenantId = tenantId;
+    try {
+      const [events, total] = await Promise.all([
+        db.securityEvent.findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+          take: Math.min(limit, 100),
+          skip: offset
+        }),
+        db.securityEvent.count({ where })
+      ]);
+      return { events, total };
+    } catch (err) {
+      console.error("[SecurityAlertService] Failed to query security events:", err);
+      return { events: [], total: 0 };
+    }
+  }
+  /**
+   * Returns aggregated statistics for security events in the past 24 hours.
+   */
+  static async getSecurityDashboardStats(tenantId) {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1e3);
+    const isSingleTenant = tenantId && tenantId !== "all";
+    const whereClause = { createdAt: { gte: since } };
+    if (isSingleTenant) {
+      whereClause.tenantId = tenantId;
+    }
+    try {
+      const [total24h, critical24h, high24h, warning24h, recentEvents] = await Promise.all([
+        db.securityEvent.count({ where: whereClause }),
+        db.securityEvent.count({ where: { ...whereClause, severity: "CRITICAL" } }),
+        db.securityEvent.count({ where: { ...whereClause, severity: "HIGH" } }),
+        db.securityEvent.count({ where: { ...whereClause, severity: "WARNING" } }),
+        db.securityEvent.findMany({
+          where: whereClause,
+          select: { event: true, ip: true },
+          take: 1e3
+        })
+      ]);
+      const eventMap = /* @__PURE__ */ new Map();
+      const ipMap = /* @__PURE__ */ new Map();
+      for (const item of recentEvents) {
+        eventMap.set(item.event, (eventMap.get(item.event) || 0) + 1);
+        if (item.ip) {
+          ipMap.set(item.ip, (ipMap.get(item.ip) || 0) + 1);
+        }
+      }
+      const topEvents = Array.from(eventMap.entries()).map(([event, count]) => ({ event, count })).sort((a, b) => b.count - a.count).slice(0, 5);
+      const topIps = Array.from(ipMap.entries()).map(([ip, count]) => ({ ip, count })).sort((a, b) => b.count - a.count).slice(0, 5);
+      return {
+        total24h,
+        critical24h,
+        high24h,
+        warning24h,
+        uniqueIpsCount: ipMap.size,
+        topEvents,
+        topIps
+      };
+    } catch (err) {
+      console.error("[SecurityAlertService] Failed to calculate dashboard stats:", err);
+      return {
+        total24h: 0,
+        critical24h: 0,
+        high24h: 0,
+        warning24h: 0,
+        uniqueIpsCount: 0,
+        topEvents: [],
+        topIps: []
+      };
+    }
+  }
+};
+
 // src/services/financial/payment.service.ts
 function safeRevalidatePath(path, type) {
   try {
@@ -138927,6 +139117,17 @@ var PaymentService = class {
         }
         if (currentPayment && currentPayment.amount !== receivedAmountBigInt) {
           console.error(`[Payment] Amount mismatch exploit attempt for ${gatewayId}: expected ${currentPayment.amount}, got ${receivedAmountBigInt}`);
+          void SecurityAlertService.record({
+            event: "PAYMENT_AMOUNT_MISMATCH_EXPLOIT",
+            severity: "CRITICAL",
+            details: {
+              paymentId: currentPayment.id,
+              expectedAmount: currentPayment.amount.toString(),
+              receivedAmount: receivedAmountBigInt.toString(),
+              gatewayId,
+              gatewayType
+            }
+          });
           throw new Error("PAYMENT_AMOUNT_MISMATCH: Amount received from gateway does not match expected payment amount.");
         }
         let processedPaymentId;
@@ -138968,6 +139169,17 @@ var PaymentService = class {
           if (order && order.status === "AWAITING_PAYMENT") {
             if (creditAmount < order.charge) {
               console.error(`[SECURITY] Underpaid order activation blocked: order #${order.numericId} requires ${order.charge} kopecks, but payment credited only ${creditAmount} kopecks.`);
+              void SecurityAlertService.record({
+                event: "UNDERPAID_ORDER_EXPLOIT_ATTEMPT",
+                severity: "CRITICAL",
+                details: {
+                  orderId: linkedOrderId,
+                  orderNumericId: order.numericId,
+                  requiredCharge: order.charge.toString(),
+                  creditedAmount: creditAmount.toString(),
+                  paymentId: processedPaymentId
+                }
+              });
               throw new Error(`UNDERPAID_ORDER: Credited amount (${creditAmount}) is less than required order charge (${order.charge})`);
             }
             await tx.order.update({
@@ -139377,186 +139589,6 @@ async function checkWebhookHealth() {
 // src/lib/security/login-anomaly-detector.ts
 init_db();
 init_notifications();
-
-// src/services/security/security-alert.service.ts
-init_db();
-init_notifications();
-init_redis();
-var SecurityAlertService = class {
-  static {
-    this.THROTTLE_PREFIX = "security:alert:throttle:";
-  }
-  static {
-    this.THROTTLE_TTL_SEC = 60;
-  }
-  static {
-    // 1 alert per minute per event+ip pair
-    this.STREAM_CHANNEL = "security:events:stream";
-  }
-  /**
-   * Records a security event to DB, broadcasts via Redis Pub/Sub,
-   * and sends an immediate Telegram alert to admins if CRITICAL/HIGH (with anti-flooding).
-   */
-  static async record(input) {
-    const { event, severity, ip, tenantId = "smmplan", details = {} } = input;
-    let created = null;
-    try {
-      if (db.securityEvent) {
-        created = await db.securityEvent.create({
-          data: {
-            event,
-            severity,
-            ip: ip || null,
-            tenantId: tenantId || "smmplan",
-            details: details ? details : void 0
-          }
-        });
-      }
-    } catch (err) {
-      console.error("[SecurityAlertService] Failed to insert securityEvent into DB:", err);
-    }
-    try {
-      const payload = JSON.stringify({
-        id: created?.id || `temp-${Date.now()}`,
-        event,
-        severity,
-        ip: ip || null,
-        tenantId: tenantId || "smmplan",
-        details,
-        createdAt: created?.createdAt || (/* @__PURE__ */ new Date()).toISOString()
-      });
-      await redis.publish(this.STREAM_CHANNEL, payload).catch(() => {
-      });
-    } catch {
-    }
-    if (severity === "CRITICAL" || severity === "HIGH") {
-      await this.dispatchRealtimeAlert(event, severity, ip, tenantId, details).catch((err) => {
-        console.error("[SecurityAlertService] Failed to dispatch admin alert:", err);
-      });
-    }
-    return created;
-  }
-  /**
-   * Dispatches formatted Telegram alert with anti-flooding guard.
-   */
-  static async dispatchRealtimeAlert(event, severity, ip, tenantId, details) {
-    const cleanIp = ip || "unknown";
-    const throttleKey = `${this.THROTTLE_PREFIX}${event}:${cleanIp}`;
-    try {
-      const isThrottled = await redis.get(throttleKey);
-      if (isThrottled) {
-        await redis.incr(`${throttleKey}:suppressed`).catch(() => {
-        });
-        return;
-      }
-      await redis.set(throttleKey, "1", "EX", this.THROTTLE_TTL_SEC);
-    } catch {
-    }
-    const gateway = String(details?.gateway || details?.provider || "api");
-    const moscowTime = (/* @__PURE__ */ new Date()).toLocaleString("ru-RU", { timeZone: "Europe/Moscow" });
-    const emoji = severity === "CRITICAL" ? "\u{1F6A8}" : "\u26A0\uFE0F";
-    const safeDetailsStr = JSON.stringify(details, null, 2);
-    const truncatedDetails = safeDetailsStr.length > 500 ? `${safeDetailsStr.slice(0, 500)}...` : safeDetailsStr;
-    const isConfigWarning = event === "MISCONFIGURED_WEBHOOK_SECRET";
-    const alertTitle = isConfigWarning ? `[${severity}] \u0422\u0420\u0415\u0411\u0423\u0415\u0422\u0421\u042F \u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0410: \u0421\u0435\u043A\u0440\u0435\u0442\u043D\u044B\u0439 \u043A\u043B\u044E\u0447 ${gateway.toUpperCase()}` : `[${severity}] \u041F\u0420\u0415\u0414\u0423\u041F\u0420\u0415\u0416\u0414\u0415\u041D\u0418\u0415 \u0411\u0415\u0417\u041E\u041F\u0410\u0421\u041D\u041E\u0421\u0422\u0418: ${event}`;
-    const message = [
-      `${emoji} <b>${alertTitle}</b>`,
-      "",
-      `<b>\u0421\u043E\u0431\u044B\u0442\u0438\u0435:</b> <code>${event}</code>`,
-      `<b>\u0428\u043B\u044E\u0437/\u041C\u043E\u0434\u0443\u043B\u044C:</b> <code>${gateway}</code>`,
-      `<b>IP \u0438\u0441\u0442\u043E\u0447\u043D\u0438\u043A\u0430:</b> <code>${cleanIp}</code>`,
-      `<b>\u0421\u0430\u0439\u0442/\u0422\u0435\u043D\u0430\u043D\u0442:</b> <code>${tenantId || "smmplan"}</code>`,
-      `<b>\u0414\u0435\u0442\u0430\u043B\u0438:</b> <pre>${truncatedDetails}</pre>`,
-      "",
-      isConfigWarning ? "\u{1F4A1} <i>\u0414\u043B\u044F \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u043E\u0433\u043E \u0437\u0430\u0447\u0438\u0441\u043B\u0435\u043D\u0438\u044F \u043F\u043B\u0430\u0442\u0435\u0436\u0435\u0439 \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0435\u043A\u0440\u0435\u0442\u043D\u044B\u0439 \u043A\u043B\u044E\u0447 \u0432\u0435\u0431\u0445\u0443\u043A\u0430 \u0432 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430\u0445.</i>" : "\u{1F6E1}\uFE0F <i>\u0417\u0430\u043F\u0440\u043E\u0441 \u043E\u0442\u043A\u043B\u043E\u043D\u0435\u043D \u0441\u0438\u0441\u0442\u0435\u043C\u043E\u0439 \u0437\u0430\u0449\u0438\u0442\u044B.</i>",
-      "",
-      `<i>\u0424\u0438\u043A\u0441\u0430\u0446\u0438\u044F: ${moscowTime}</i>`
-    ].join("\n");
-    sendAdminAlert(message, severity === "CRITICAL" ? "CRITICAL" : "WARNING");
-  }
-  /**
-   * Fetches paginated security events for the admin panel.
-   */
-  static async getRecentEvents(options) {
-    const { limit = 50, offset = 0, severity, event, ip, tenantId } = options || {};
-    const where = {};
-    if (severity && severity !== "ALL") where.severity = severity;
-    if (event && event !== "ALL") where.event = event;
-    if (ip) where.ip = { contains: ip };
-    if (tenantId && tenantId !== "ALL") where.tenantId = tenantId;
-    try {
-      const [events, total] = await Promise.all([
-        db.securityEvent.findMany({
-          where,
-          orderBy: { createdAt: "desc" },
-          take: Math.min(limit, 100),
-          skip: offset
-        }),
-        db.securityEvent.count({ where })
-      ]);
-      return { events, total };
-    } catch (err) {
-      console.error("[SecurityAlertService] Failed to query security events:", err);
-      return { events: [], total: 0 };
-    }
-  }
-  /**
-   * Returns aggregated statistics for security events in the past 24 hours.
-   */
-  static async getSecurityDashboardStats(tenantId) {
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1e3);
-    const isSingleTenant = tenantId && tenantId !== "all";
-    const whereClause = { createdAt: { gte: since } };
-    if (isSingleTenant) {
-      whereClause.tenantId = tenantId;
-    }
-    try {
-      const [total24h, critical24h, high24h, warning24h, recentEvents] = await Promise.all([
-        db.securityEvent.count({ where: whereClause }),
-        db.securityEvent.count({ where: { ...whereClause, severity: "CRITICAL" } }),
-        db.securityEvent.count({ where: { ...whereClause, severity: "HIGH" } }),
-        db.securityEvent.count({ where: { ...whereClause, severity: "WARNING" } }),
-        db.securityEvent.findMany({
-          where: whereClause,
-          select: { event: true, ip: true },
-          take: 1e3
-        })
-      ]);
-      const eventMap = /* @__PURE__ */ new Map();
-      const ipMap = /* @__PURE__ */ new Map();
-      for (const item of recentEvents) {
-        eventMap.set(item.event, (eventMap.get(item.event) || 0) + 1);
-        if (item.ip) {
-          ipMap.set(item.ip, (ipMap.get(item.ip) || 0) + 1);
-        }
-      }
-      const topEvents = Array.from(eventMap.entries()).map(([event, count]) => ({ event, count })).sort((a, b) => b.count - a.count).slice(0, 5);
-      const topIps = Array.from(ipMap.entries()).map(([ip, count]) => ({ ip, count })).sort((a, b) => b.count - a.count).slice(0, 5);
-      return {
-        total24h,
-        critical24h,
-        high24h,
-        warning24h,
-        uniqueIpsCount: ipMap.size,
-        topEvents,
-        topIps
-      };
-    } catch (err) {
-      console.error("[SecurityAlertService] Failed to calculate dashboard stats:", err);
-      return {
-        total24h: 0,
-        critical24h: 0,
-        high24h: 0,
-        warning24h: 0,
-        uniqueIpsCount: 0,
-        topEvents: [],
-        topIps: []
-      };
-    }
-  }
-};
-
-// src/lib/security/login-anomaly-detector.ts
 init_logger();
 var log13 = logger.child({ component: "LoginAnomalyDetector" });
 async function detectLoginAnomalies() {
@@ -140574,7 +140606,7 @@ var ServiceAuditEngine = class {
       { pattern: /накрутки/gi, replacement: "\u043F\u0440\u043E\u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F" },
       { pattern: /накрутка/gi, replacement: "\u043F\u0440\u043E\u0434\u0432\u0438\u0436\u0435\u043D\u0438\u0435" },
       { pattern: /накрутить/gi, replacement: "\u0443\u0432\u0435\u043B\u0438\u0447\u0438\u0442\u044C" },
-      { pattern: /накручено/gi, replacement: "\u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442\u044C" }
+      { pattern: /накручено/gi, replacement: "\u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u043E" }
     ];
     for (const { pattern, replacement } of wordReplacements) {
       cleaned = cleaned.replace(pattern, (match) => {

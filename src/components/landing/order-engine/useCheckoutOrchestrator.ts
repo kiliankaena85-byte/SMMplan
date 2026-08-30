@@ -355,6 +355,17 @@ export function useCheckoutOrchestrator({
           gateway: directGateway
         });
         if (res.success) {
+          if (res.data?.orderId && res.data?.guestOrderToken) {
+            try {
+              localStorage.setItem(`guest_order_${res.data.orderId}`, res.data.guestOrderToken);
+              const existing: string[] = JSON.parse(localStorage.getItem('guest_orders') || '[]');
+              if (!existing.includes(res.data.orderId)) {
+                existing.unshift(res.data.orderId);
+                localStorage.setItem('guest_orders', JSON.stringify(existing.slice(0, 10)));
+              }
+            } catch {}
+          }
+
           if (res.data?.paymentUrl) {
             const redirected = executePaymentRedirect(res.data.paymentUrl);
             if (!redirected) {
@@ -363,7 +374,8 @@ export function useCheckoutOrchestrator({
             }
             return;
           } else if (res.data?.orderId) {
-            window.location.href = `/success?orderId=${res.data.orderId}`;
+            const tokenQuery = res.data.guestOrderToken ? `&token=${res.data.guestOrderToken}` : '';
+            window.location.href = `/success?orderId=${res.data.orderId}${tokenQuery}`;
           } else if (res.data?.paymentId) {
             window.location.href = `/success?paymentId=${res.data.paymentId}`;
           }
@@ -473,11 +485,24 @@ export function useCheckoutOrchestrator({
       });
       setIsSubmitting(false);
       setShowPaymentModal(false);
-      if (res.success && res.data?.paymentUrl) {
-        const redirected = executePaymentRedirect(res.data.paymentUrl);
-        if (!redirected) {
-          const errorMessage = 'Ошибка: не удалось открыть платёжный шлюз.';
-          window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&serviceId=${pendingCheckoutParams.serviceId}&gateway=${gateway}&email=${encodeURIComponent(pendingCheckoutParams.email || '')}&quantity=${pendingCheckoutParams.quantity}&url=${encodeURIComponent(pendingCheckoutParams.link || '')}&paymentId=&orderId=`;
+      if (res.success) {
+        if (res.data?.orderId && res.data?.guestOrderToken) {
+          try {
+            localStorage.setItem(`guest_order_${res.data.orderId}`, res.data.guestOrderToken);
+            const existing: string[] = JSON.parse(localStorage.getItem('guest_orders') || '[]');
+            if (!existing.includes(res.data.orderId)) {
+              existing.unshift(res.data.orderId);
+              localStorage.setItem('guest_orders', JSON.stringify(existing.slice(0, 10)));
+            }
+          } catch {}
+        }
+
+        if (res.data?.paymentUrl) {
+          const redirected = executePaymentRedirect(res.data.paymentUrl);
+          if (!redirected) {
+            const errorMessage = 'Ошибка: не удалось открыть платёжный шлюз.';
+            window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&serviceId=${pendingCheckoutParams.serviceId}&gateway=${gateway}&email=${encodeURIComponent(pendingCheckoutParams.email || '')}&quantity=${pendingCheckoutParams.quantity}&url=${encodeURIComponent(pendingCheckoutParams.link || '')}&paymentId=&orderId=`;
+          }
         }
       } else if (!res.success) {
         if (res.error?.includes("Telegram-аккаунт") || res.error?.includes("привяжите ваш Telegram-аккаунт")) {

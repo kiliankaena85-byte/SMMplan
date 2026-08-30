@@ -35,16 +35,18 @@ export interface FilterNetworkItem {
   slug: string;
 }
 
-export function formatCleanActivityName(activityName?: string, networkName?: string): string {
-  if (!activityName) return '—';
-  let clean = activityName.trim();
+export function formatCleanCategoryName(categoryName?: string, networkName?: string): string {
+  if (!categoryName) return '—';
+  let clean = categoryName.trim();
   if (networkName) {
     const netPattern = new RegExp(`^${networkName.trim()}\\s*[-–—:]?\\s*`, 'i');
     clean = clean.replace(netPattern, '');
   }
   clean = clean.replace(/^(Telegram|ВКонтакте|VK|Instagram|YouTube|TikTok|Rutube|Discord|Facebook|Twitter|Twitch|TenChat|Яндекс|OK|Threads)\\s*[-–—:]?\\s*/i, '');
-  return clean.trim() || activityName;
+  return clean.trim() || categoryName;
 }
+
+export const formatCleanActivityName = formatCleanCategoryName;
 
 interface CatalogFiltersProps {
   categories: FilterCategoryItem[];
@@ -345,7 +347,7 @@ export function CatalogFilters({ categories, providers, selectedTenant }: Catalo
           </div>
         </div>
 
-        {/* 2. Внешний ID сервиса провайдера */}
+        {/* 2. Внешний ID услуги провайдера */}
         <div className="space-y-1 flex flex-col justify-end">
           <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Внешний ID (Provider ID)</label>
           <input
@@ -401,7 +403,7 @@ export function CatalogFilters({ categories, providers, selectedTenant }: Catalo
                   if (value === 'all') return 'Все категории';
                   const c = categories.find(cat => cat.id === value);
                   if (!c) return value;
-                  const cleanName = formatCleanActivityName(c.name, c.network?.name);
+                  const cleanName = formatCleanCategoryName(c.name, c.network?.name);
                   return localPlatform === 'ALL' && c.network?.name 
                     ? `${c.network.name} → ${cleanName}` 
                     : cleanName;
@@ -414,7 +416,7 @@ export function CatalogFilters({ categories, providers, selectedTenant }: Catalo
               </SelectItem>
               {filteredCategories.map(c => {
                 const count = c.serviceCount ?? c._count?.services ?? 0;
-                const cleanName = formatCleanActivityName(c.name, c.network?.name);
+                const cleanName = formatCleanCategoryName(c.name, c.network?.name);
                 const label = localPlatform === 'ALL' && c.network?.name 
                   ? `${c.network.name} → ${cleanName}` 
                   : cleanName;
@@ -434,7 +436,7 @@ export function CatalogFilters({ categories, providers, selectedTenant }: Catalo
         </div>
       </div>
 
-      {/* ROW 2: Провайдер | Статус активности | Статус провайдера */}
+      {/* ROW 2: Провайдер | Статус услуги | Статус провайдера */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
         {/* 5. Провайдер */}
         <div className="space-y-1 flex flex-col justify-end">
@@ -459,9 +461,9 @@ export function CatalogFilters({ categories, providers, selectedTenant }: Catalo
           </Select>
         </div>
 
-        {/* 6. Статус активности */}
+        {/* 6. Статус услуги */}
         <div className="space-y-1 flex flex-col justify-end">
-          <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Статус активности</label>
+          <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Статус услуги</label>
           <Select value={localIsActive} onValueChange={val => handleIsActiveChange(val || 'all')}>
             <SelectTrigger className="w-full h-8.5 border border-border bg-background text-foreground text-xs rounded-lg cursor-pointer px-2.5">
               <SelectValue placeholder="Все статусы">

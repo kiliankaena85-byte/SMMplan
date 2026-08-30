@@ -6,6 +6,7 @@ import { verifySession } from '@/lib/session';
 import { SettingsManager } from '@/lib/settings';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { getClientIp } from '@/utils/ip';
+import { verifyGuestOrderToken } from '@/lib/order-token';
 
 /**
  * GET /api/order-status?orderId=xxx
@@ -55,6 +56,10 @@ export async function GET(req: NextRequest) {
 
       if (!order) {
         return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      }
+
+      if (token && !isTokenValid && verifyGuestOrderToken(order.id, order.numericId, token)) {
+        isTokenValid = true;
       }
 
       if (!session && !isTokenValid) {

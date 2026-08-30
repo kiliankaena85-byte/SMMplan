@@ -184,7 +184,7 @@ export function RecommendationsClient({ initialSnapshot, allSnapshots }: Props) 
         <div className="bg-card border border-border p-4 rounded-xl shadow-xs">
           <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             <AlertTriangle className="w-4 h-4 text-amber-500" />
-            Сервисов к оптимизации
+            Услуг к оптимизации
           </div>
           <div className="text-2xl font-bold font-mono text-amber-500 mt-2">
             {snapshot.leakingServicesCount} <span className="text-xs font-normal text-muted-foreground">позиций</span>

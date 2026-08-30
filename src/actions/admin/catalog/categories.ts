@@ -298,7 +298,7 @@ export async function createNetworkAction(rawData: { name: string; slug: string;
       }
     });
     if (existing) {
-      return { success: false as const, error: 'Сеть с таким названием или slug уже существует' };
+      return { success: false as const, error: 'Соцсеть с таким названием или slug уже существует' };
     }
 
     const network = await db.network.create({
@@ -356,7 +356,7 @@ export async function updateNetworkAction(id: string, rawData: { name: string; s
       }
     });
     if (existing) {
-      return { success: false as const, error: 'Сеть с таким названием или slug уже существует' };
+      return { success: false as const, error: 'Соцсеть с таким названием или slug уже существует' };
     }
 
     const updatedNetwork = await db.network.update({
@@ -405,7 +405,7 @@ export async function deleteNetworkAction(id: string) {
     if (categoryCount > 0) {
       return {
         success: false as const,
-        error: `Невозможно удалить сеть. Она содержит ${categoryCount} категорий. Удалите или переместите их сначала.`
+        error: `Невозможно удалить соцсеть. Она содержит ${categoryCount} категорий. Удалите или переместите их сначала.`
       };
     }
 

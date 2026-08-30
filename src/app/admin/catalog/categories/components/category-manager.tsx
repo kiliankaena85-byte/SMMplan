@@ -203,11 +203,11 @@ export function CategoryManager({
       if (editingCategory) {
         const res = await updateCategory(editingCategory.id, payload);
         if (!res.success) throw new Error(res.error);
-        toast.success("Активность успешно обновлена");
+        toast.success("Категория успешно обновлена");
       } else {
         const res = await createCategory(payload);
         if (!res.success) throw new Error(res.error);
-        toast.success("Активность успешно создана");
+        toast.success("Категория успешно создана");
       }
 
       setCategoryModalOpen(false);
@@ -291,18 +291,18 @@ export function CategoryManager({
   // Handlers for Merge
   const executeMerge = () => {
     if (!sourceCatId || !targetCatId) {
-      toast.error("Выберите обе активности");
+      toast.error("Выберите обе категории");
       return;
     }
     if (sourceCatId === targetCatId) {
-      toast.error("Активности не могут совпадать");
+      toast.error("Категории не могут совпадать");
       return;
     }
 
     startMergeTransition(async () => {
       const res = await mergeCategoriesAction(sourceCatId, targetCatId);
       if (res.success) {
-        toast.success("Активности успешно объединены");
+        toast.success("Категории успешно объединены");
         setMergeModalOpen(false);
         setSourceCatId("");
         setTargetCatId("");
@@ -331,10 +331,10 @@ export function CategoryManager({
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-black text-foreground tracking-tight flex items-center gap-2">
               <Layers className="w-5 h-5 text-primary" />
-              Соцсети & Активности
+              Соцсети & Категории
             </h1>
             <span className="text-xs font-mono font-bold text-muted-foreground bg-muted/60 px-2.5 py-0.5 rounded-full border border-border/50">
-              {networks.length} соцсетей · {categories.length} активностей
+              {networks.length} соцсетей · {categories.length} категорий
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
@@ -628,10 +628,10 @@ export function CategoryManager({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-muted-foreground">Соцсеть (Network)</label>
+                <label className="block text-xs font-bold text-muted-foreground">Соцсеть</label>
                 <Select value={catNetworkId} onValueChange={val => setCatNetworkId(val || '')}>
                   <SelectTrigger className="w-full h-9 border border-border bg-background text-foreground text-xs rounded-xl cursor-pointer px-3">
-                    <SelectValue placeholder="-- Выберите сеть --">
+                    <SelectValue placeholder="-- Выберите соцсеть --">
                       {(value: string) => networks.find(n => n.id === value)?.name ?? value}
                     </SelectValue>
                   </SelectTrigger>
@@ -759,10 +759,10 @@ export function CategoryManager({
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
               <Globe className="w-4 h-4 text-primary" />
-              Управление Соцсетями (Networks)
+              Управление соцсетями
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Добавляйте и редактируйте поддерживаемые платформы каталога.
+              Добавляйте и редактируйте поддерживаемые соцсети каталога.
             </DialogDescription>
           </DialogHeader>
 
@@ -852,14 +852,14 @@ export function CategoryManager({
                       setNetSort(String(n.sort));
                     }}
                     className="p-1 text-muted-foreground hover:text-primary cursor-pointer"
-                    aria-label={`Редактировать сеть ${n.name}`}
+                    aria-label={`Редактировать соцсеть ${n.name}`}
                   >
                     <Pencil className="w-3 h-3" />
                   </button>
                   <button
                     onClick={() => handleDeleteNetwork(n.id)}
                     className="p-1 text-muted-foreground hover:text-destructive cursor-pointer"
-                    aria-label={`Удалить сеть ${n.name}`}
+                    aria-label={`Удалить соцсеть ${n.name}`}
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
@@ -918,7 +918,7 @@ export function CategoryManager({
                         <span className="flex items-center justify-between w-full gap-2">
                           <span>{c.network?.name}: {c.name}</span>
                           {!isSameNetwork && (
-                            <span className="text-[10px] text-destructive font-bold bg-destructive/10 px-1 py-0.5 rounded">Другая сеть</span>
+                            <span className="text-[10px] text-destructive font-bold bg-destructive/10 px-1 py-0.5 rounded">Другая соцсеть</span>
                           )}
                         </span>
                       </SelectItem>

@@ -401,6 +401,18 @@ export default function AddFundsForm() {
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5 leading-snug">{note}</div>
+
+                    {/* Sub-chips for payment options clarity per ISO 9241-110 */}
+                    {id === 'yookassa' && (
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                        <span className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-md bg-secondary/80 text-foreground/80 border border-border/60">
+                          💳 МИР / Visa / Mastercard
+                        </span>
+                        <span className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          ⚡ СБП (0% комиссии)
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-1 sm:mt-0 transition-colors ${

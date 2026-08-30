@@ -10,6 +10,7 @@ import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { getClientIp } from '@/utils/ip';
+import { generateGuestOrderToken } from '@/lib/order-token';
 import { WalletOps, WalletInsufficientFundsError, WalletUserNotFoundError, WalletInvalidAmountError } from '@/services/financial/wallet-ops';
 import { handleServerError } from '@/utils/error-handler';
 import { sendOrderPaidMail } from "@/lib/smtp";
@@ -867,10 +868,14 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       // Ignore when running outside HTTP request scope (e.g. tests / CLI)
     }
 
+    const guestOrderToken = generateGuestOrderToken(result.orderId, result.numericId);
+
     return { 
       orderId: result.orderId, 
       paymentId: result.paymentId,
-      paymentUrl
+      paymentUrl,
+      guestOrderToken,
+      numericId: result.numericId
     };
   });
 };

@@ -26,7 +26,7 @@ export class AiPricingTelegramDispatcher {
     const lines: string[] = [
       `🤖 <b>[AI Economic Optimizer] Ночной аудит (${tenantId.toUpperCase()})</b>`,
       `💰 Обнаруженная ежемесячная утечка маржи: <b>${Math.round(totalLeakageRub).toLocaleString('ru-RU')} ₽</b>`,
-      `📦 Сервисов, требующих коррекции: <b>${leakingServicesCount} шт.</b>`,
+      `📦 Услуг, требующих коррекции: <b>${leakingServicesCount} шт.</b>`,
       '',
       `<b>ТОП-3 Рекомендаций по прибыли:</b>`,
     ];

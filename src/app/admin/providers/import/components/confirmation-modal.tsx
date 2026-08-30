@@ -93,7 +93,7 @@ export function ConfirmationModal({
           )}
           {platformBreakdown.length > 0 && (
             <div className="space-y-2">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Разбивка по платформам</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Разбивка по соцсетям</p>
               <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                 {platformBreakdown.map((item) => (
                   <div key={item.name} className="flex items-center justify-between px-3 py-2 bg-muted/30 rounded-[8px]">
