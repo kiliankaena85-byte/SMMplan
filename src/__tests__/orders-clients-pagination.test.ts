@@ -29,7 +29,7 @@ describe('Numbered Offset Pagination for Orders and Clients', () => {
   });
 
   it('calculates totalPages, currentPage, and sliced items correctly for page 1', async () => {
-    const result = await paginatedQuery(mockModel, { page: 1, pageSize: 50 });
+    const result = await paginatedQuery<typeof mockOrders[number]>(mockModel, { page: 1, pageSize: 50 });
 
     expect(result.totalCount).toBe(125);
     expect(result.totalPages).toBe(3);
@@ -41,7 +41,7 @@ describe('Numbered Offset Pagination for Orders and Clients', () => {
   });
 
   it('calculates page 2 with exact offset skip of 50 items', async () => {
-    const result = await paginatedQuery(mockModel, { page: 2, pageSize: 50 });
+    const result = await paginatedQuery<typeof mockOrders[number]>(mockModel, { page: 2, pageSize: 50 });
 
     expect(result.totalCount).toBe(125);
     expect(result.totalPages).toBe(3);
@@ -58,7 +58,7 @@ describe('Numbered Offset Pagination for Orders and Clients', () => {
   });
 
   it('calculates final page 3 with remainder items and hasMore=false', async () => {
-    const result = await paginatedQuery(mockModel, { page: 3, pageSize: 50 });
+    const result = await paginatedQuery<typeof mockOrders[number]>(mockModel, { page: 3, pageSize: 50 });
 
     expect(result.totalCount).toBe(125);
     expect(result.totalPages).toBe(3);

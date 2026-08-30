@@ -74,7 +74,7 @@ interface TableScrollContainerProps extends React.HTMLAttributes<HTMLDivElement>
 }
 
 const TableScrollContainer = ({ children, className, ...props }: TableScrollContainerProps) => (
-  <div className={cn("rounded-xl border border-warm-border/60 shadow-[0_8px_30px_rgba(39,39,42,0.02)] bg-warm-card overflow-hidden", className)} {...props}>
+  <div className={cn("w-full overflow-x-auto", className)} {...props}>
     {children}
   </div>
 );
@@ -109,14 +109,14 @@ export const Table = Object.assign(
 
     if (hasWrapperChild) {
       return (
-        <div className={className} aria-label={ariaLabel} data-slot="table-root-wrapper">
+        <div className={cn("w-full", className)} aria-label={ariaLabel} data-slot="table-root-wrapper">
           {children}
         </div>
       );
     }
 
     return (
-      <div className={cn("relative w-full rounded-2xl border border-border/80 bg-card overflow-hidden", className)}>
+      <div className={cn("relative w-full overflow-x-auto", className)}>
         <ShadcnTable aria-label={ariaLabel}>
           {children}
         </ShadcnTable>
