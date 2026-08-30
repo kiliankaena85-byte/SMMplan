@@ -17,7 +17,7 @@ describe('Admin Design System: Dark Mode Invariants', () => {
   const dropdownContent = fs.readFileSync(dropdownPath, 'utf-8');
 
   it('declares valid Tailwind 4 dark variant directive', () => {
-    expect(cssContent).match(/@variant\s+variant|dark/);
+    expect(cssContent).match(/@(custom-)?variant\s+dark/);
     expect(cssContent).contains('@import "tailwindcss";');
   });
 

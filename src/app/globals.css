@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@variant dark (&:where(.dark, [class*="dark"], [data-theme*="dark"], .dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   /* ── Background & Off-white base ── */
@@ -132,13 +132,6 @@
 }
 /* --- DARK THEMES VARIABLES OVERRIDE --- */
 .dark,
-.sky-dark,
-.emerald-dark,
-.violet-dark,
-.warm-dark,
-.telegram-dark,
-[class*="dark"],
-[data-theme*="dark"],
 [data-theme="dark"] {
   --color-background: #0f172a; /* Soft, premium slate-900 instead of pitch-black */
   --color-foreground: #f8fafc; /* slate-50 */
@@ -480,12 +473,6 @@
 /* --- Custom Telegram Chat Wallpaper Background --- */
 .telegram-chat-bg {
   position: relative;
-  background-color: #eef2f6 !important;
-}
-.telegram-light .telegram-chat-bg,
-[data-theme="telegram-light"] .telegram-chat-bg,
-.light .telegram-chat-bg,
-[data-theme="light"] .telegram-chat-bg {
   background-color: #e3e8ee !important; /* Calm, muted Telegram neutral background */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%2394a3b8' stroke-width='1.1' stroke-linecap='round' stroke-linejoin='round' opacity='0.18'%3E%3Cpath d='M15 15 L28 10 L23 23 L20 18 Z M20 18 L23 10' /%3E%3Cpath d='M80 20 C78 18, 74 18, 72 20 C70 22, 70 26, 72 28 L80 36 L88 28 C90 26, 90 22, 88 20 C86 18, 82 18, 80 20 Z' /%3E%3Cpath d='M25 75 H37 C39 75, 41 77, 41 79 V87 C41 89, 39 91, 37 91 H31 L25 95 V91 C23 91, 21 89, 21 87 V79 C21 77, 23 75, 25 75 Z' /%3E%3Cpath d='M95 70 L97 74 L102 75 L98 78 L99 83 L95 81 L91 83 L92 78 L88 75 L93 74 Z' /%3E%3Cpath d='M56 50 H64 V56 H56 Z M58 50 V47 C58 45, 62 45, 62 47 V50' /%3E%3Ccircle cx='60' cy='100' r='8' /%3E%3Cpath d='M57 99 V98 M63 99 V98 M57 102 C58 104, 62 104, 63 102' /%3E%3Ccircle cx='15' cy='50' r='4' /%3E%3Cpath d='M15 44 V46 M15 54 V56 M9 50 H11 M19 50 H21' /%3E%3C/g%3E%3C/svg%3E") !important;
   background-size: 120px 120px !important;
