@@ -105,6 +105,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const activeTenantId = normalizeTenantId(cookieTenant) || user.tenantId || 'smmplan';
   const isTestMode = await SettingsManager.isTestMode(activeTenantId);
 
+  const canEditSettings = user.role === 'OWNER' || user.role === 'ADMIN' || Boolean(
+    user.staffRole?.permissions?.some((p: { section: string; canEdit: boolean }) => p.section.toUpperCase() === 'SETTINGS' && p.canEdit)
+  );
+
   return (
     <ShortcutsProvider>
       <div data-tenant={activeTenantId} className="h-screen w-full overflow-hidden bg-muted/10 dark:bg-background flex flex-col md:flex-row relative selection:bg-primary/20 selection:text-foreground font-sans">
@@ -129,7 +133,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                 navigation={navigation}
               />
               <GlobalSiteSwitcher currentTenant={activeTenantId} />
-              <EnvironmentModeSwitcher />
+              <EnvironmentModeSwitcher readOnly={!canEditSettings} />
             </div>
             <div className="flex items-center gap-2">
               <AdminProfileDropdown

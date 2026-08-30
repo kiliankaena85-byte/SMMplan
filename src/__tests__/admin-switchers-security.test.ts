@@ -140,7 +140,9 @@ describe('Admin Switchers Security & Reactivity', () => {
       const res = await setEnvironmentModeAction({ mode: 'HYBRID', tenantId: 'flux' });
 
       expect(res.success).toBe(true);
-      expect(res.mode).toBe('HYBRID');
+      if (res.success) {
+        expect(res.mode).toBe('HYBRID');
+      }
       expect(mockRevalidatePath).toHaveBeenCalledWith('/admin', 'layout');
       expect(mockRevalidatePath).toHaveBeenCalledWith('/', 'layout');
     });

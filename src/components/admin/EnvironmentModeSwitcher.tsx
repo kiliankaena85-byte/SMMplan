@@ -75,9 +75,11 @@ const MODES: ModeConfig[] = [
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export function EnvironmentModeSwitcher({
-  initialMode = 'SANDBOX'
+  initialMode = 'SANDBOX',
+  readOnly = false,
 }: {
   initialMode?: EnvironmentMode;
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -112,6 +114,7 @@ export function EnvironmentModeSwitcher({
   const ActiveIcon = activeConfig.icon;
 
   const handleSelectMode = (mode: EnvironmentMode) => {
+    if (readOnly) return;
     setIsOpen(false);
     if (mode === currentMode) return;
     if (mode === 'PRODUCTION' || mode === 'HYBRID') {
@@ -122,6 +125,7 @@ export function EnvironmentModeSwitcher({
   };
 
   const executeSwitch = (mode: EnvironmentMode) => {
+    if (readOnly) return;
     startTransition(async () => {
       const res = await setEnvironmentModeAction({ mode, tenantId });
       if (res.success) {
@@ -140,10 +144,16 @@ export function EnvironmentModeSwitcher({
       {/* Trigger Button */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        disabled={isPending}
-        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all duration-200 shadow-sm ${activeConfig.badgeClass} hover:opacity-90 active:scale-95`}
-        title="Переключение режимов окружения (Оплата x Провайдер)"
+        onClick={() => !readOnly && setIsOpen(!isOpen)}
+        disabled={isPending || readOnly}
+        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all duration-200 shadow-sm ${activeConfig.badgeClass} ${
+          readOnly ? 'cursor-default opacity-85' : 'hover:opacity-90 active:scale-95 cursor-pointer'
+        }`}
+        title={
+          readOnly
+            ? `Текущий режим: ${activeConfig.label} (только просмотр)`
+            : 'Переключение режимов окружения (Оплата x Провайдер)'
+        }
       >
         {isPending ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -151,11 +161,11 @@ export function EnvironmentModeSwitcher({
           <ActiveIcon className="w-3.5 h-3.5 shrink-0" />
         )}
         <span className="truncate max-w-[120px]">{activeConfig.badge}</span>
-        <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
+        {!readOnly && <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />}
       </button>
 
       {/* Dropdown Menu */}
-      {isOpen && (
+      {!readOnly && isOpen && (
         <div className="absolute right-0 mt-1.5 w-80 rounded-xl border border-border bg-card shadow-2xl p-1.5 z-50 animate-in fade-in-0 zoom-in-95">
           <div className="px-2 py-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/50 mb-1">
             Режимы платформы (Оплата × Исполнение)
