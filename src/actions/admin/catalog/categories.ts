@@ -11,6 +11,7 @@ const categorySchema = z.object({
   name: z.string().min(1).max(255, "Category name too long"),
   networkId: z.string().min(1, "Network ID required"),
   sort: z.coerce.number().int().default(0),
+  tenantId: z.string().optional().nullable(),
   activityType: z.string().optional().nullable(),
   requireWarning: z.coerce.boolean().default(false),
   warningMessage: z.string().max(1000, "Предупреждение слишком длинное").optional().nullable(),
@@ -19,7 +20,7 @@ const categorySchema = z.object({
 
 const idSchema = z.string().min(1);
 
-export async function createCategory(rawData: { name: string; networkId: string; sort: number; activityType?: string | null; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null }) {
+export async function createCategory(rawData: { name: string; networkId: string; sort: number; tenantId?: string | null; activityType?: string | null; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null }) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const data = categorySchema.parse(rawData);
     const cat = await db.category.create({
@@ -27,6 +28,7 @@ export async function createCategory(rawData: { name: string; networkId: string;
         name: data.name,
         networkId: data.networkId,
         sort: data.sort,
+        tenantId: data.tenantId || 'all',
         activityType: data.activityType,
         requireWarning: data.requireWarning,
         warningMessage: data.warningMessage,
@@ -40,17 +42,18 @@ export async function createCategory(rawData: { name: string; networkId: string;
       action: "CATEGORY_CREATE",
       target: cat.id,
       targetType: "SETTINGS",
-      newValue: { name: cat.name, networkId: cat.networkId, activityType: cat.activityType, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage, analyzerTags: cat.analyzerTags }
+      newValue: { name: cat.name, networkId: cat.networkId, tenantId: cat.tenantId, activityType: cat.activityType, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage, analyzerTags: cat.analyzerTags }
     });
 
     revalidatePath("/admin/catalog/categories");
+    revalidatePath("/admin/catalog");
     revalidateTag("catalog", 'default');
     revalidateTag("services", 'default');
-    return { success: true, error: undefined, categoryId: cat.id };
+    return { success: true, error: undefined, categoryId: cat.id, category: cat };
   });
 }
 
-export async function updateCategory(rawId: string, rawData: { name: string; networkId: string; sort: number; activityType?: string | null; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null }) {
+export async function updateCategory(rawId: string, rawData: { name: string; networkId: string; sort: number; tenantId?: string | null; activityType?: string | null; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null }) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const id = idSchema.parse(rawId);
     const data = categorySchema.parse(rawData);
@@ -60,6 +63,7 @@ export async function updateCategory(rawId: string, rawData: { name: string; net
         name: data.name,
         networkId: data.networkId,
         sort: data.sort,
+        ...(data.tenantId ? { tenantId: data.tenantId } : {}),
         activityType: data.activityType,
         requireWarning: data.requireWarning,
         warningMessage: data.warningMessage,
@@ -73,10 +77,11 @@ export async function updateCategory(rawId: string, rawData: { name: string; net
       action: "CATEGORY_UPDATE",
       target: cat.id,
       targetType: "SETTINGS",
-      newValue: { name: cat.name, networkId: cat.networkId, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage, analyzerTags: cat.analyzerTags }
+      newValue: { name: cat.name, networkId: cat.networkId, tenantId: cat.tenantId, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage, analyzerTags: cat.analyzerTags }
     });
 
     revalidatePath("/admin/catalog/categories");
+    revalidatePath("/admin/catalog");
     revalidateTag("catalog", 'default');
     revalidateTag("services", 'default');
     return { success: true, error: undefined };

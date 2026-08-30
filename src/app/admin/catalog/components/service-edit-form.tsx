@@ -3,7 +3,7 @@
 import React, { useState, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Save, Loader2, Layers, ShieldCheck, Target, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Layers, ShieldCheck, Target, AlertTriangle, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { updateServiceAction } from '@/actions/admin/catalog/services';
@@ -240,7 +240,12 @@ export function ServiceEditForm({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-foreground mb-1 block">Категория</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-foreground block">Категория</label>
+                  <Link href="/admin/catalog/categories" target="_blank" className="text-[11px] text-primary hover:underline flex items-center gap-1 font-medium">
+                    <Plus className="w-3 h-3" /> Создать категорию
+                  </Link>
+                </div>
                 <select
                   value={categoryId}
                   onChange={e => setCategoryId(e.target.value)}

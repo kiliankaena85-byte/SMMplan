@@ -45,6 +45,7 @@ const ADMIN_NAVIGATION = [
       { href: '/admin/dashboard',                 icon: 'Home',          label: 'Дашборд',              section: 'dashboard' },
       { href: '/admin/orders',                    icon: 'Package',       label: 'Заказы',               section: 'orders' },
       { href: '/admin/catalog',                   icon: 'ShoppingCart',  label: 'Каталог услуг',        section: 'catalog' },
+      { href: '/admin/catalog/categories',        icon: 'Layers',        label: 'Категории & Соцсети',  section: 'catalog' },
       { href: '/admin/providers',                 icon: 'Link',          label: 'Провайдеры',           section: 'providers' },
       { href: '/admin/tickets',                   icon: 'MessageSquare', label: 'Поддержка',            section: 'tickets' },
       { href: '/admin/clients',                   icon: 'Users',         label: 'Клиенты',              section: 'clients' },

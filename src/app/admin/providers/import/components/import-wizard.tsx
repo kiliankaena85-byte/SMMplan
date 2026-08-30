@@ -23,7 +23,7 @@ import {
   SelectGroup,
   SelectLabel,
 } from "@/components/ui/select";
-import { Download, Search, SlidersHorizontal, RotateCcw, Package, ListChecks, CheckSquare, AlertTriangle, ChevronDown, ChevronUp, X } from "lucide-react";
+import { Download, Search, SlidersHorizontal, RotateCcw, Package, ListChecks, CheckSquare, AlertTriangle, ChevronDown, ChevronUp, X, Layers } from "lucide-react";
 import type { ExternalServiceItem, CategoryItem, ProviderItem } from "../types";
 
 /* ── AI Auto-Mapping ── */
@@ -928,6 +928,16 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
             >
               Назначить ({selectedIds.size || services.length})
             </button>
+            <a
+              href="/admin/catalog/categories"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Открыть управление категориями и соцсетями в новой вкладке"
+              className="px-2.5 py-2 bg-card border border-border hover:bg-muted text-muted-foreground hover:text-primary text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">+ Категории</span>
+            </a>
           </div>
         </div>
 

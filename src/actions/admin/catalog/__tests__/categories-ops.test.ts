@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { db } from '@/lib/db';
 import { verifySession } from '@/lib/session';
 import { batchReassignServicesCategoryAction } from '@/actions/admin/catalog/batch';
-import { mergeCategoriesAction, createNetworkAction, updateNetworkAction, deleteNetworkAction } from '@/actions/admin/catalog/categories';
+import { mergeCategoriesAction, createNetworkAction, updateNetworkAction, deleteNetworkAction, createCategory, updateCategory, deleteCategory } from '@/actions/admin/catalog/categories';
 import { createServiceAction, updateServiceAction } from '@/actions/admin/catalog/services';
 import { revalidatePath, revalidateTag } from 'next/cache';
 
@@ -61,11 +61,25 @@ describe.sequential('Milestone 5: Catalog CRUD & Categories Operations Test Suit
       await db.user.deleteMany();
     } catch {}
 
+    // 2. Ensure default tenants exist before systemSettings
+    try {
+      await db.tenant.upsert({
+        where: { id: 'smmplan' },
+        update: {},
+        create: { id: 'smmplan', name: 'SMMplan', slug: 'smmplan', domain: 'smmplan.pro' },
+      });
+      await db.tenant.upsert({
+        where: { id: 'global' },
+        update: {},
+        create: { id: 'global', name: 'Global', slug: 'global', domain: 'global.smmplan.pro' },
+      });
+    } catch {}
+
     // 2. Enable test mode in systemSettings
     await db.systemSettings.upsert({
-      where: { id: 'global' },
+      where: { id: 'smmplan' },
       update: { isTestMode: true, exchangeRateUSD: 95.0 },
-      create: { id: 'global', isTestMode: true, exchangeRateUSD: 95.0 },
+      create: { id: 'smmplan', isTestMode: true, exchangeRateUSD: 95.0 },
     });
 
     // 3. Create Admin/Owner user for RBAC testing
@@ -279,6 +293,122 @@ describe.sequential('Milestone 5: Catalog CRUD & Categories Operations Test Suit
       if (!result.success) {
         expect(result.error).toBe('Forbidden: Administrator/Staff context required');
       }
+    });
+  });
+
+  describe('Category CRUD Operations (Direct Admin Creation & Tenant Scoping)', () => {
+    it('should successfully create a new category under a network with tenantId and record audit log', async () => {
+      vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
+
+      const network = await db.network.create({
+        data: { name: 'Telegram', slug: 'telegram' },
+      });
+
+      const payload = {
+        name: 'Telegram Реакции Премиум',
+        networkId: network.id,
+        sort: 5,
+        tenantId: 'all',
+        activityType: 'REACTIONS',
+        requireWarning: true,
+        warningMessage: 'Канал должен быть публичным для зачисления реакций',
+        analyzerTags: 'channel,post',
+      };
+
+      const result = await createCategory(payload);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.categoryId).toBeDefined();
+      }
+
+      // Verify in DB
+      const cat = await db.category.findUnique({ where: { id: result.success ? result.categoryId : '' } });
+      expect(cat).toBeDefined();
+      expect(cat!.name).toBe('Telegram Реакции Премиум');
+      expect(cat!.networkId).toBe(network.id);
+      expect(cat!.tenantId).toBe('all');
+      expect(cat!.requireWarning).toBe(true);
+      expect(cat!.warningMessage).toBe('Канал должен быть публичным для зачисления реакций');
+      expect(cat!.analyzerTags).toBe('channel,post');
+
+      // Verify audit log
+      const auditLog = await getAuditLog('CATEGORY_CREATE');
+      expect(auditLog).toBeDefined();
+      expect(auditLog!.target).toBe(cat!.id);
+      expect(auditLog!.adminId).toBe(adminUser.id);
+
+      // Verify revalidations
+      expect(revalidatePath).toHaveBeenCalledWith('/admin/catalog/categories');
+      expect(revalidatePath).toHaveBeenCalledWith('/admin/catalog');
+    });
+
+    it('should successfully update category fields including tenantId and warning settings', async () => {
+      vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
+
+      const network = await db.network.create({
+        data: { name: 'VK', slug: 'vk' },
+      });
+
+      const cat = await db.category.create({
+        data: { name: 'VK Лайки', networkId: network.id, sort: 1, tenantId: 'smmplan' },
+      });
+
+      const updatePayload = {
+        name: 'VK Лайки на посты и фото',
+        networkId: network.id,
+        sort: 10,
+        tenantId: 'flux',
+        activityType: 'LIKES',
+        requireWarning: false,
+        warningMessage: null,
+        analyzerTags: 'post,photo',
+      };
+
+      const result = await updateCategory(cat.id, updatePayload);
+      expect(result.success).toBe(true);
+
+      // Verify in DB
+      const updated = await db.category.findUnique({ where: { id: cat.id } });
+      expect(updated!.name).toBe('VK Лайки на посты и фото');
+      expect(updated!.tenantId).toBe('flux');
+      expect(updated!.sort).toBe(10);
+      expect(updated!.analyzerTags).toBe('post,photo');
+
+      // Verify audit log
+      const auditLog = await getAuditLog('CATEGORY_UPDATE');
+      expect(auditLog).toBeDefined();
+      expect(auditLog!.target).toBe(cat.id);
+    });
+
+    it('should reject category deletion if it contains active services', async () => {
+      vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
+
+      const network = await db.network.create({
+        data: { name: 'YouTube', slug: 'youtube' },
+      });
+      const cat = await db.category.create({
+        data: { name: 'YouTube Просмотры', networkId: network.id },
+      });
+      await db.service.create({
+        data: { name: 'YT Views 100k', categoryId: cat.id, rate: 1.0, markup: 2.0 },
+      });
+
+      const result = await deleteCategory(cat.id);
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Категория содержит 1 услуг');
+    });
+
+    it('should fail category creation for non-admin user (RBAC protection)', async () => {
+      vi.mocked(verifySession).mockResolvedValue({ userId: regularUser.id });
+
+      const result = await createCategory({
+        name: 'Unauthorized Cat',
+        networkId: 'net_1',
+        sort: 0,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Forbidden: Administrator/Staff context required');
     });
   });
 

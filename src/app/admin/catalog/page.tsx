@@ -223,6 +223,15 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
               </Button>
             </Link>
           )}
+          <Link href={`/admin/catalog/categories?tenant=${selectedTenant}`}>
+            <Button
+              intent="outline"
+              size="sm"
+              className="font-bold h-9 bg-background text-muted-foreground hover:text-foreground"
+            >
+              Категории & Соцсети
+            </Button>
+          </Link>
           <Link href={`/admin/providers/import?tenant=${selectedTenant}`}>
             <Button
               intent="outline"
