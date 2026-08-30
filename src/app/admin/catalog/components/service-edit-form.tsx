@@ -71,6 +71,20 @@ const TARGET_TYPE_OPTIONS = [
   { value: TargetTypeEnum.CUSTOM, label: '⚙️ Свой / Произвольный' },
 ];
 
+function getSafeReturnUrl(rawUrl: string | null | undefined, fallback: string = '/admin/catalog'): string {
+  if (!rawUrl || typeof rawUrl !== 'string') return fallback;
+  const trimmed = rawUrl.trim();
+  if (
+    trimmed.startsWith('/admin') &&
+    !trimmed.startsWith('//') &&
+    !trimmed.includes('\\') &&
+    !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed)
+  ) {
+    return trimmed;
+  }
+  return fallback;
+}
+
 export function ServiceEditForm({
   initialData,
   networks,
@@ -80,7 +94,8 @@ export function ServiceEditForm({
 }: ServiceEditFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const effectiveReturnUrl = returnUrl || searchParams.get('returnUrl') || '/admin/catalog';
+  const rawTarget = returnUrl || searchParams.get('returnUrl');
+  const effectiveReturnUrl = getSafeReturnUrl(rawTarget, '/admin/catalog');
   const [isPending, startTransition] = useTransition();
 
   const [name, setName] = useState(initialData.name);
