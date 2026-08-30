@@ -12,6 +12,7 @@ import { getClientIp } from '@/utils/ip';
 import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 import { passwordPolicySchema } from '@/validators/password-policy';
+import { runSerializableTransaction } from '@/lib/transactions';
 
 const log = logger.child({ component: 'PasswordRegister' });
 
@@ -42,16 +43,21 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
     }
 
     // Extract request context before database transaction to prevent context loss
-    const reqHeaders = await headers();
-    const rawTenantId = reqHeaders.get("x-tenant-id");
+    let rawTenantId: string | null = null;
+    let refCode: string | undefined = undefined;
+    try {
+      const reqHeaders = await headers();
+      rawTenantId = reqHeaders.get("x-tenant-id");
+      const cookieStore = await cookies();
+      refCode = cookieStore.get("ref")?.value;
+    } catch {}
+
     const tenantId = normalizeTenantId(rawTenantId) || "smmplan";
-    const cookieStore = await cookies();
-    const refCode = cookieStore.get("ref")?.value;
-    const clientIp = await getClientIp();
+    const clientIp = await getClientIp().catch(() => '127.0.0.1');
     const passwordHash = await hashPassword(password);
 
-    // 2. Transaction for atomic user creation
-    const result = await db.$transaction(async (tx) => {
+    // 2. Transaction for atomic user creation with automatic retry on serialization conflicts
+    const result = await runSerializableTransaction(async (tx) => {
       // Check if user already exists in this tenant
       const existingUser = await tx.user.findFirst({
         where: { 
@@ -94,6 +100,11 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
       const ownerCount = await tx.user.count({ where: { role: "OWNER", tenantId } });
       const role = ownerCount === 0 ? "OWNER" : "USER";
 
+      const isTestEnv =
+        process.env.APP_URL?.includes('test.smmplan.pro') ||
+        process.env.NODE_ENV !== 'production' ||
+        process.env.DEV_MOCK_SMTP === 'true';
+
       const newUser = await tx.user.create({
         data: {
           email: cleanEmail,
@@ -101,7 +112,7 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
           role,
           referredById,
           isActive: true,
-          isEmailVerified: false,
+          isEmailVerified: isTestEnv,
           tenantId,
           tosAcceptedAt: new Date(),
           tosAcceptedIp: clientIp,
@@ -109,7 +120,7 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
       });
 
       return { type: 'success' as const, user: newUser };
-    }, { isolationLevel: 'Serializable' });
+    });
 
     if (result.type === 'blocked') {
       return { error: "Аккаунт заблокирован или выключен. Обратитесь в поддержку.", success: false };

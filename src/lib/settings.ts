@@ -411,9 +411,11 @@ export class SettingsProvider {
     const activeTenantId = tenantId || await this.getTenantId();
     try {
       const { redis } = await import('./redis');
-      const cachedVal = await redis.get(`settings:${activeTenantId}:isTestMode`);
-      if (cachedVal !== null) {
-        return cachedVal === 'true';
+      if (redis.status === 'ready') {
+        const cachedVal = await redis.get(`settings:${activeTenantId}:isTestMode`);
+        if (cachedVal !== null) {
+          return cachedVal === 'true';
+        }
       }
     } catch (err) {
       console.warn('[SettingsProvider] Redis is unavailable in isTestMode:', err instanceof Error ? err.message : String(err));
@@ -430,9 +432,11 @@ export class SettingsProvider {
     const activeTenantId = tenantId || await this.getTenantId();
     try {
       const { redis } = await import('./redis');
-      const cachedVal = await redis.get(`settings:${activeTenantId}:maintenanceMode`);
-      if (cachedVal !== null) {
-        return cachedVal === 'true';
+      if (redis.status === 'ready') {
+        const cachedVal = await redis.get(`settings:${activeTenantId}:maintenanceMode`);
+        if (cachedVal !== null) {
+          return cachedVal === 'true';
+        }
       }
     } catch (err) {
       console.warn('[SettingsProvider] Redis is unavailable in isMaintenanceMode:', err instanceof Error ? err.message : String(err));

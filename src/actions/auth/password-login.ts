@@ -63,8 +63,11 @@ export async function loginWithPasswordAction(prevState: unknown, formData: Form
     }
 
     // 4. Find User
-    const reqHeaders = await headers();
-    const rawTenantId = reqHeaders.get("x-tenant-id");
+    let rawTenantId: string | null = null;
+    try {
+      const reqHeaders = await headers();
+      rawTenantId = reqHeaders.get("x-tenant-id");
+    } catch {}
     const tenantId = normalizeTenantId(rawTenantId) || "smmplan";
     
     let user = await db.user.findFirst({
@@ -133,27 +136,12 @@ export async function loginWithPasswordAction(prevState: unknown, formData: Form
       return { error: "Неверный email или пароль", success: false };
     }
 
-    if (!user.isEmailVerified) {
-      log.warn('Password login: Email not verified', { email: cleanEmail });
-      const isTestEnv =
-        process.env.APP_URL?.includes('test.smmplan.pro') ||
-        process.env.NODE_ENV !== 'production' ||
-        process.env.DEV_MOCK_SMTP === 'true';
-      if (isTestEnv) {
-        return { error: "Email не подтверждён. В тестовом режиме: скопируйте ссылку из логов сервера и откройте её в браузере.", success: false };
-      }
-      return { error: "Пожалуйста, подтвердите email по ссылке из письма", success: false };
-    }
-
     if (!user.passwordHash) {
       log.info('Auth login: Account authentication method check', { userId: user.id });
-      
-      const isSmtpConfigured = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD;
-      if (!isSmtpConfigured) {
-        return { error: "Вход по ссылке временно недоступен (ошибка почты). Обратитесь в поддержку для установки пароля.", success: false };
-      }
-      
-      return { error: "Для вашего аккаунта не установлен пароль. Пожалуйста, войдите по ссылке на почту.", success: false };
+      return { 
+        error: "Для вашего аккаунта вход выполняется по ссылке. Пожалуйста, переключитесь на вкладку «Войти по ссылке».", 
+        success: false 
+      };
     }
 
     // 4. Compare Password
@@ -168,6 +156,25 @@ export async function loginWithPasswordAction(prevState: unknown, formData: Form
         details: { reason: 'Invalid password' }
       });
       return { error: "Неверный email или пароль", success: false };
+    }
+
+    // 4.5. Check Email Verification
+    if (!user.isEmailVerified) {
+      log.warn('Password login: Email not verified', { email: cleanEmail });
+      const isTestEnv =
+        process.env.APP_URL?.includes('test.smmplan.pro') ||
+        process.env.NODE_ENV !== 'production' ||
+        process.env.DEV_MOCK_SMTP === 'true';
+      if (isTestEnv) {
+        // Auto-verify on valid password in test/dev environment
+        await db.user.update({
+          where: { id: user.id },
+          data: { isEmailVerified: true }
+        });
+        log.info('Password login: Auto-verified email in test environment', { userId: user.id });
+      } else {
+        return { error: "Пожалуйста, подтвердите email по ссылке из письма", success: false };
+      }
     }
 
     // 5. Two-Factor Authentication (2FA) Verification
@@ -246,6 +253,8 @@ export async function loginWithPasswordAction(prevState: unknown, formData: Form
     let redirectTo = '/dashboard';
     if (["OWNER", "ADMIN", "MANAGER", "SUPPORT"].includes(user.role)) {
       redirectTo = '/admin/dashboard';
+    } else if (tenantId === 'flux' || user.tenantId === 'flux') {
+      redirectTo = '/dashboard?tenant=flux';
     }
 
     return { success: true, error: null, redirectTo };

@@ -1,4 +1,4 @@
-﻿'use server';
+'use server';
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -30,7 +30,7 @@ export async function logoutAction() {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 365, // 1 year
+    maxAge: 60 * 5, // 5 minutes
   });
 
   redirect('/login');

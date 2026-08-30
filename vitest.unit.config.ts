@@ -30,6 +30,9 @@ export default defineConfig({
       'src/__tests__/mobile-wizard-smoke.test.tsx',
       'src/__tests__/admin-nav-active.test.ts',
       'src/lib/__tests__/order-token-and-typo-guard.test.ts',
+      'src/__tests__/financial/yookassa-signed-webhook-verification.test.ts',
+      'src/__tests__/auth/logout-and-proxy-redirects.test.ts',
+      'src/__tests__/auth/user-login-and-logout-resilience.test.ts',
     ],
   }
 });

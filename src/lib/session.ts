@@ -57,10 +57,16 @@ export async function createSession(userId: string, canResetPassword: boolean = 
     .sign(getEncodedKey());
     
   try {
-    // Clear explicit logout cookie if it exists
-    (await cookies()).delete('explicit_logout');
+    const cookieStore = await cookies();
+    cookieStore.set('explicit_logout', '', {
+      path: '/',
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 0,
+    });
 
-    (await cookies()).set('session_token', sessionToken, {
+    cookieStore.set('session_token', sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       expires: expiresAt,
@@ -78,19 +84,20 @@ export async function createSession(userId: string, canResetPassword: boolean = 
 
 export async function verifySession(requiredTenantId?: string): Promise<{ userId: string; canResetPassword?: boolean; role?: string; tenantId?: string } | null> {
   let sessionToken: string | undefined;
+  let explicitLogout: string | undefined;
   try {
     const cookieStore = await cookies();
-    const explicitLogout = cookieStore.get('explicit_logout')?.value;
-    if (explicitLogout === 'true') {
-      return null;
-    }
     sessionToken = cookieStore.get('session_token')?.value;
+    explicitLogout = cookieStore.get('explicit_logout')?.value;
   } catch {
     // If called outside Next.js request scope (e.g. background tasks or CLI)
     return null;
   }
 
   if (!sessionToken) {
+    if (explicitLogout === 'true') {
+      return null;
+    }
     return handleDevAutoLogin();
   }
 
@@ -138,9 +145,10 @@ export async function verifySession(requiredTenantId?: string): Promise<{ userId
     }
 
     // F-7.3 Strict Contour Isolation:
-    // Regular users and operators cannot cross-use tokens between test.smmplan.pro and prod smmplan.pro
+    // Regular users and operators cannot cross-use tokens between test and prod environments
     const tokenContour = (payload.contour as ContourId) || (userTenantId === 'flux' ? 'flux' : 'test');
-    if (user.role !== 'OWNER' && tokenContour !== currentContour) {
+    const isStrictMismatch = user.role !== 'OWNER' && tokenContour !== currentContour && (tokenContour === 'prod' || currentContour === 'prod' || tokenContour === 'flux' || currentContour === 'flux');
+    if (isStrictMismatch) {
       console.warn(`[verifySession] Contour mismatch: token was issued for "${tokenContour}", request is on "${currentContour}"`);
       try {
         const cookieStore = await cookies();

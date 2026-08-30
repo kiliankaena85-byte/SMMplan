@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import PasswordCard from '@/components/dashboard/settings/PasswordCard';
 import DeleteAccountCard from '@/components/dashboard/settings/DeleteAccountCard';
+import LogoutCard from '@/components/dashboard/settings/LogoutCard';
 import TelegramCard from '@/components/dashboard/settings/TelegramCard';
 import Consent152FzCard from '@/components/dashboard/settings/Consent152FzCard';
 import CompanyRequisitesCard from '@/components/dashboard/settings/CompanyRequisitesCard';
@@ -218,6 +219,9 @@ export default async function ClientSettingsPage() {
 
       {/* Password Management */}
       <PasswordCard hasPassword={!!user.passwordHash} canResetPassword={canResetPassword} />
+
+      {/* Session & Logout Card */}
+      <LogoutCard tenantId={session.tenantId} />
 
       {/* Account Soft Deletion */}
       <DeleteAccountCard hasPassword={!!user.passwordHash} />

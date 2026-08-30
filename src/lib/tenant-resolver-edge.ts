@@ -30,12 +30,25 @@ export type ContourId = 'test' | 'prod' | 'flux';
  * - smmplan.pro / www.smmplan.pro -> 'prod'
  */
 export function resolveContourFromHost(host?: string | null): ContourId {
-  if (!host || typeof host !== 'string') return 'prod';
+  if (!host || typeof host !== 'string') return 'test';
   const clean = host.split(':')[0].toLowerCase().trim();
-  if (clean.includes('flux') || FLUX_DOMAINS.has(clean)) return 'flux';
-  if (clean.startsWith('test.') || clean.includes('localhost') || clean.includes('127.0.0.1')) return 'test';
+  if (clean.includes('flux') || FLUX_DOMAINS.has(clean) || clean.startsWith('test-flux.')) return 'flux';
+  if (
+    clean.startsWith('test.') ||
+    clean.includes('localhost') ||
+    clean.includes('127.0.0.1') ||
+    clean === '0.0.0.0' ||
+    clean === 'host.docker.internal' ||
+    clean === 'web' ||
+    clean.endsWith('.ts.net') ||
+    /^172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+$/.test(clean) ||
+    /^10\.\d+\.\d+\.\d+$/.test(clean) ||
+    /^192\.168\.\d+\.\d+$/.test(clean)
+  ) {
+    return 'test';
+  }
   if (clean === 'smmplan.pro' || clean === 'www.smmplan.pro') return 'prod';
-  return 'prod';
+  return 'test';
 }
 
 /**

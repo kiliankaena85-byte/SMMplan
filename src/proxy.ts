@@ -322,22 +322,30 @@ export async function proxy(request: NextRequest) {
 
   // 1. Instant UI Logout Interception (/logout or /api/auth/logout)
   if (pathname === '/logout' || pathname === '/api/auth/logout') {
-    const res = NextResponse.redirect(resolveRedirectUrl(ROUTES.AUTH.LOGIN), 307);
-    res.cookies.set('explicit_logout', 'true', {
-      path: '/',
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 5, // 5 minutes
-    });
-    res.cookies.set('session_token', '', {
-      path: '/',
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 0,
-    });
-    return applyStickyCookie(res);
+    const isApi = pathname.startsWith('/api/');
+    const isFetch = request.headers.get('sec-fetch-mode') === 'cors' || 
+                    request.headers.get('accept')?.includes('application/json') ||
+                    request.headers.get('content-type')?.includes('application/json') ||
+                    request.method === 'POST';
+
+    if (!isApi || !isFetch) {
+      const res = NextResponse.redirect(resolveRedirectUrl(ROUTES.AUTH.LOGIN), 307);
+      res.cookies.set('explicit_logout', 'true', {
+        path: '/',
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 5, // 5 minutes
+      });
+      res.cookies.set('session_token', '', {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 0,
+      });
+      return applyStickyCookie(res);
+    }
   }
 
   // 1.5 Production Maintenance Gate
@@ -414,8 +422,8 @@ export async function proxy(request: NextRequest) {
 
     // Enforce contour matching in JWT (tokens issued in test contour cannot be used in prod contour)
     const currentContour = resolveContourFromHost(host);
-    const tokenContour = payload?.contour || (normalizeTenantId(payload?.tenantId) === 'flux' ? 'flux' : 'test');
-    const isContourMismatch = payload?.role !== 'OWNER' && tokenContour !== currentContour;
+    const tokenContour = (payload?.contour as ContourId) || (normalizeTenantId(payload?.tenantId) === 'flux' ? 'flux' : 'test');
+    const isContourMismatch = payload?.role !== 'OWNER' && tokenContour !== currentContour && (tokenContour === 'prod' || currentContour === 'prod' || tokenContour === 'flux' || currentContour === 'flux');
 
     if (!payload || isTenantMismatch || isContourMismatch) {
       if (isRSC) {
