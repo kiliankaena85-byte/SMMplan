@@ -121,14 +121,6 @@ class YooKassaGateway extends BasePaymentGateway {
     const idempString = `yookassa_${params.userId}_${params.paymentId}_${Math.floor(Date.now() / 60000)}`;
     const idempKey = crypto.createHash('sha256').update(idempString).digest('hex').substring(0, 36);
 
-    // Test mode bypass for development & CI verification
-    if (params.isTestMode) {
-      return {
-        paymentUrl: `${params.successUrl}${params.successUrl.includes('?') ? '&' : '?'}testMode=true&paymentId=${params.paymentId}`,
-        remoteGatewayId: `test_yk_${params.paymentId}`
-      };
-    }
-
     let resp: Response;
     try {
       resp = await fetch('https://api.yookassa.ru/v3/payments', {

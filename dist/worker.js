@@ -142741,12 +142741,6 @@ var YooKassaGateway = class extends BasePaymentGateway {
     };
     const idempString = `yookassa_${params.userId}_${params.paymentId}_${Math.floor(Date.now() / 6e4)}`;
     const idempKey = import_crypto5.default.createHash("sha256").update(idempString).digest("hex").substring(0, 36);
-    if (params.isTestMode) {
-      return {
-        paymentUrl: `${params.successUrl}${params.successUrl.includes("?") ? "&" : "?"}testMode=true&paymentId=${params.paymentId}`,
-        remoteGatewayId: `test_yk_${params.paymentId}`
-      };
-    }
     let resp;
     try {
       resp = await fetch("https://api.yookassa.ru/v3/payments", {
