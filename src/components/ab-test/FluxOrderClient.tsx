@@ -189,7 +189,8 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
         runs: isDripFeedEnabled ? dripRuns : undefined,
         interval: isDripFeedEnabled ? dripInterval : undefined,
         customData: (selectedService.customDataType && selectedService.customDataType !== 'NONE') ? customData : undefined,
-        isRequirementsConfirmed: isRequirementsConfirmed
+        isRequirementsConfirmed: isRequirementsConfirmed,
+        tenantId: tenantId || 'flux'
       });
 
       if (res && res.success && res.data?.paymentUrl) {

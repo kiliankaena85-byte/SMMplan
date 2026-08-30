@@ -390,9 +390,10 @@ export async function proxy(request: NextRequest) {
   }
 
   // Set headers for layout detection and tenant isolation
+  const rawIncomingHost = fwdHost || hostHeader || cleanHost;
   requestHeaders.set('x-pathname', pathname);
-  requestHeaders.set('x-host', cleanHost);
-  requestHeaders.set('x-forwarded-host', cleanHost);
+  requestHeaders.set('x-host', rawIncomingHost);
+  requestHeaders.set('x-forwarded-host', rawIncomingHost);
 
   // Generate cryptographic Nonce for strict-dynamic CSP (V-05)
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
@@ -402,15 +403,15 @@ export async function proxy(request: NextRequest) {
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://yookassa.ru https://auth.robokassa.ru;
-    style-src 'self' 'unsafe-inline';
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     img-src 'self' blob: data: https:;
-    font-src 'self' data:;
+    font-src 'self' data: https://fonts.gstatic.com;
     object-src 'none';
     base-uri 'self';
     form-action 'self' https://yookassa.ru https://auth.robokassa.ru;
     frame-ancestors 'self';
-    frame-src 'self' https://challenges.cloudflare.com https://yookassa.ru https://auth.robokassa.ru;
-    connect-src 'self' https://challenges.cloudflare.com https://yookassa.ru https://auth.robokassa.ru https://api.cryptobot.org https://api.telegram.org;
+    frame-src 'self' https://challenges.cloudflare.com https://yookassa.ru https://auth.robokassa.ru https://pay.crypt.bot;
+    connect-src 'self' https://challenges.cloudflare.com https://yookassa.ru https://auth.robokassa.ru https://api.cryptobot.org https://api.telegram.org https://pay.crypt.bot;
     report-uri /api/telemetry/csp-report;
     upgrade-insecure-requests;
   `.replace(/\s{2,}/g, ' ').trim();

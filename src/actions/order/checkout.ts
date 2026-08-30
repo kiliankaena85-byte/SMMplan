@@ -104,12 +104,13 @@ const checkoutSchema = z.object({
   isSmartDrip: z.boolean().optional(),
   smartDripDays: z.number().int().min(1).max(30).optional(),
   abVariant: z.enum(['A', 'B', 'C']).optional(),
-  isRequirementsConfirmed: z.boolean().optional()
+  isRequirementsConfirmed: z.boolean().optional(),
+  tenantId: z.string().optional()
 });
 
 export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
   return createSafeAction(checkoutSchema, input, async (data) => {
-    const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway, idempotencyKey, mediaGroupUrl, isLinkOverridden, isSmartDrip, smartDripDays, abVariant, isRequirementsConfirmed } = data;
+    const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway, idempotencyKey, mediaGroupUrl, isLinkOverridden, isSmartDrip, smartDripDays, abVariant, isRequirementsConfirmed, tenantId: inputTenantId } = data;
     const normalizedPromo = promoCodeStr ? promoCodeStr.trim().toUpperCase() : undefined;
     
     if (gateway === 'balance' && (!idempotencyKey || idempotencyKey.trim().length < 10)) {
@@ -197,7 +198,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
     } catch {
       // CLI / fallback
     }
-    const currentTenantId = normalizeTenantId(rawTenantId) || "smmplan";
+    const currentTenantId = normalizeTenantId(inputTenantId || rawTenantId) || "smmplan";
     if (service.tenantId && service.tenantId !== currentTenantId && service.tenantId !== "all") {
       throw new Error("Услуга недоступна для текущей площадки");
     }

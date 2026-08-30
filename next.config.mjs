@@ -21,13 +21,13 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
       allowedOrigins: isProd
-        ? ['smmplan.pro', 'www.smmplan.pro', 'test.smmplan.pro', 'stage.smmplan.pro', 'smmflux.ru', 'www.smmflux.ru']
-        : ['smmplan.pro', 'www.smmplan.pro', 'test.smmplan.pro', 'localhost:3000', '127.0.0.1:3000', 'localhost:3001', '127.0.0.1:3001'],
+        ? ['smmplan.pro', 'www.smmplan.pro', 'test.smmplan.pro', 'flux.smmplan.pro', 'stage.smmplan.pro', 'smmflux.ru', 'www.smmflux.ru', 'desktop-25m6el7.tailbb9d28.ts.net']
+        : ['smmplan.pro', 'www.smmplan.pro', 'test.smmplan.pro', 'flux.smmplan.pro', 'localhost:3000', '127.0.0.1:3000', 'localhost:3001', '127.0.0.1:3001', 'desktop-25m6el7.tailbb9d28.ts.net'],
     },
   },
   allowedDevOrigins: isProd
-    ? []
-    : ["127.0.0.1:3001", "localhost:3001", "127.0.0.1", "localhost"],
+    ? ['desktop-25m6el7.tailbb9d28.ts.net']
+    : ["127.0.0.1:3001", "localhost:3001", "127.0.0.1", "localhost", "desktop-25m6el7.tailbb9d28.ts.net"],
   
   // OSAD-V2: Distributed Cache Sync for Redis (Disabled for standalone container portability)
   cacheHandler: undefined,
