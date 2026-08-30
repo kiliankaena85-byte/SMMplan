@@ -696,11 +696,16 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
         <div className="flex items-center gap-2">
           <Select value={providerId} onValueChange={handleProviderChange}>
             <SelectTrigger className="w-[260px] h-10 text-sm font-semibold" aria-label="Выбор провайдера для импорта">
-              <SelectValue placeholder="Выберите провайдера..." />
+              <SelectValue placeholder="Выберите провайдера...">
+                {(val: string) => {
+                  const provider = providers.find((p) => p.id === val);
+                  return provider ? provider.name : val || "Выберите провайдера...";
+                }}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {providers.map((p) => (
-                <SelectItem key={p.id} value={p.id} className="text-sm">
+                <SelectItem key={p.id} value={p.id} label={p.name} className="text-sm cursor-pointer">
                   {p.name}
                 </SelectItem>
               ))}
@@ -892,7 +897,12 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
             </button>
             <Select value={bulkCategory} onValueChange={(val) => setBulkCategory(val || "")}>
               <SelectTrigger className="w-[200px] h-9 text-xs">
-                <SelectValue placeholder="Массовая категория..." />
+                <SelectValue placeholder="Массовая категория...">
+                  {(val: string) => {
+                    const cat = categories.find((c) => c.id === val);
+                    return cat ? `${(cat.network?.name || '')} • ${cat.name}` : val || "Массовая категория...";
+                  }}
+                </SelectValue>
               </SelectTrigger>
               {/* PATCH P1-4: grouped categories */}
               <SelectContent>
@@ -902,7 +912,7 @@ export function ImportWizard({ categories, providers }: { categories: CategoryIt
                       {group.network}
                     </SelectLabel>
                     {group.items.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id} className="text-xs">
+                      <SelectItem key={cat.id} value={cat.id} label={cat.name} className="text-xs cursor-pointer">
                         {cat.name}
                       </SelectItem>
                     ))}
