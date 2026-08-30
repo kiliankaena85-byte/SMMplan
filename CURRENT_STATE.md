@@ -1,19 +1,19 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 15:05 (МСК)
+> **Последнее обновление:** 2026-08-30 15:40 (МСК)
 
-- **Comprehensive Storefront & Backend Hardening (9 Test Findings 100% COMPLETE & VERIFIED):**
-  - **1. Валидация ссылок и HTTPS:** Решена проблема ложных ошибок HTTPS. `mutateLink()` интегрирован во все клиентские и серверные точки входа (`useOrderEngine`, `SmmplanOrderWizard`, `useCheckoutOrchestrator`, `FluxNewOrderWorkspace`). Комбинаторный тест `scratch/verify-all-social-links.ts` показал **68/68 PASS (100%)** по 18 платформам.
-  - **2. Дублирование иконок ссылок:** Удалены лишние иконки перехода в таблицах и канбан-досках заказов (`FluxOrdersList`, `FluxOrdersKanban`), оставлена единая компактная кнопка копирования `CopyText`.
-  - **3. Темная тема (Sky Blue):** `NextThemesProvider` в `providers.tsx` обновлен для маппинга `*-dark` тем на класс `dark` (`sky-dark dark`), правила в `globals.css` упорядочены для безупречной активации Tailwind 4 `@variant dark`.
-  - **4. Лендинг (API Hub -> Преимущества):** Блок API в `WhyUs.tsx` заменен на карточку преимуществ платформы (скорость запуска от 30 сек, защита от списаний, прямые оптовые цены).
+- **Comprehensive Storefront & Backend Hardening (All Issues 100% COMPLETE, DEPLOYED & HEALTHY):**
+  - **1. Валидация ссылок и HTTPS:** Решена проблема ложных ошибок HTTPS. `mutateLink()` интегрирован во все точки входа. Добавлена нормализация `generic_link`/`OTHER` в `link-service-compatibility.ts`. В `useCheckoutOrchestrator.ts` сообщение об ошибке валидации снабжено подсказкой перехода на режим «Использовать как есть» (`isLinkOverridden`). Комбинаторный тест показал **68/68 PASS (100%)**.
+  - **2. Дублирование иконок ссылок:** Удалены лишние иконки перехода в таблицах и канбан-досках заказов (`FluxOrdersList`, `FluxOrdersKanban`).
+  - **3. Темная тема (Sky Blue):** `NextThemesProvider` в `providers.tsx` обновлен для маппинга `*-dark` тем на класс `dark` (`sky-dark dark`), правила в `globals.css` упорядочены.
+  - **4. Лендинг (API Hub -> Преимущества):** Блок API в `WhyUs.tsx` заменен на карточку преимуществ платформы.
   - **5. Футер:** Удалена надпись «Designed with ❤ for Organic Growth» в `MegaFooter.tsx`.
   - **6. FAQ:** Удален вопрос о скидках из API в `FAQ.tsx`.
-  - **7. Промокод (исправление бага +6.18 ₽):** В `marketing.service.ts` расчет базовой цены синхронизирован строго с ценой каталога `service.pricePer1000Cents` без искусственного завышения себестоимости. В `SmmplanOrderWizard.tsx` добавлена кнопка «Применить» с явной валидацией, бейджем активного промокода и кнопкой удаления.
-  - **8. Drip-Feed:** Проверены инварианты `DripFeedFloorInvariant` ($\lfloor \text{quantity} / \text{runs} \rfloor \ge \text{service.minQty}$), сохранение полей `runs`, `interval`, `isDripFeed: true` и тесты (`18/18 PASS`).
-  - **9. Magic Link & SMTP Resilience:** `sendMagicLink` и `requestMagicLink` обновлены: URL авторизации генерируется динамически с учетом хоста (`test.smmplan.pro` / `localhost`) и тенанта, magic-ссылка всегда логируется в консоль сервера для разработчиков и операторов, а сбои локального SMTP не приводят к удалению пользователей.
-  - **Верификация:** `npx tsc --noEmit` — **0 ошибок**, Vitest тесты — **100% PASS**.
+  - **7. Промокод (OWASP + UI Feedback):** Защита OWASP A03/A04 в `marketing.service.ts` и `checkout.ts` (9/9 OWASP тестов PASS). Добавлены визуальные бейджи статуса в `DrawerFormInputs.tsx` (проверка/успех/ваучер/ошибка).
+  - **8. Drip-Feed:** Инварианты `DripFeedFloorInvariant` подтверждены (18/18 PASS).
+  - **9. Magic Link & SMTP Resilience:** `sendMagicLink` и `requestMagicLink` обновлены: в dev/test среде при недоступности SMTP исключение не бросается, новый пользователь НЕ удаляется, ссылка всегда печатается в консоли сервера с четким разделителем `====`.
+  - **10. Контейнеризация:** Выполнен полный `npm run build` (0 ошибок TypeScript, 0 утечек секретов CI-Gate) и перезапуск Docker `smmplan_web` (Статус: **Up, Healthy**).
 
 - **Systemic Beautiful Pricing Invariant & Zero-Ugly-Fractions Engine (100% COMPLETE & VERIFIED):**
   - **1. Архитектурный 4-уровневый инвариант (Layered Invariant Guard):**
