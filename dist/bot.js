@@ -10303,7 +10303,11 @@ function getDatasourceUrl() {
   if (process.env.CONTOUR === "prod" && process.env.DATABASE_URL_PROD) {
     return process.env.DATABASE_URL_PROD;
   }
-  return process.env.DATABASE_URL;
+  let url = process.env.DATABASE_URL || process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL;
+  if (url && url.startsWith("prisma://")) {
+    url = process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL_UNPOOLED || process.env.DIRECT_URL || url.replace(/^prisma:\/\//, "postgresql://");
+  }
+  return url;
 }
 function createPrismaClient() {
   if (typeof window !== "undefined" || process.env.NEXT_RUNTIME === "edge") {

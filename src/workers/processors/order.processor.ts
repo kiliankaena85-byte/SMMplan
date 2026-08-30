@@ -348,11 +348,17 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
       // Halt immediately, move order to PENDING_CHECK and alert operator to prevent service quality drift.
       if (route.failoverMode !== 'automatic') {
         log.warn(`[OrderProcessor] Failover mode is '${route.failoverMode}' for route ${route.id}. Halting cascade to prevent quality drift.`);
+        const isBalanceErr = originalError.toLowerCase().includes('not enough') || 
+                             originalError.toLowerCase().includes('balance') || 
+                             originalError.toLowerCase().includes('недостаточно') ||
+                             originalError.toLowerCase().includes('funds');
+        const tag = isBalanceErr ? '[INSUFFICIENT_PROVIDER_BALANCE] ' : '';
+
         await db.order.update({
           where: { id: order.id },
           data: {
             status: 'PENDING_CHECK',
-            error: `Ошибка поставщика ${route.provider.name}: ${originalError}. Авто-переключение отключено (manual mode). Требуется проверка оператором.`
+            error: `${tag}Ошибка поставщика ${route.provider.name}: ${originalError}. Авто-переключение отключено (manual mode). Требуется проверка оператором.`
           }
         });
 

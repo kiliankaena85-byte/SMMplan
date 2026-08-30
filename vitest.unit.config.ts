@@ -33,6 +33,9 @@ export default defineConfig({
       'src/__tests__/financial/yookassa-signed-webhook-verification.test.ts',
       'src/__tests__/auth/logout-and-proxy-redirects.test.ts',
       'src/__tests__/auth/user-login-and-logout-resilience.test.ts',
+      'src/lib/icons/__tests__/safe-svg.test.ts',
+      'src/__tests__/order-actions-and-support-ops.test.ts',
+      'src/__tests__/providers/balance-autoflush-resilience.test.ts',
     ],
   }
 });

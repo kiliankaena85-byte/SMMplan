@@ -36,5 +36,7 @@ export interface CatalogServiceDTO {
   clientRequirement?: string | null;
   clientConfirmation?: string | null;
   qualityTier?: string | null;
+  icon?: string | null;
+  categoryIcon?: string | null;
   createdAt?: Date | string | null;
 }

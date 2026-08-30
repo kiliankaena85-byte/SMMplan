@@ -5,8 +5,20 @@ import {
   PlayCircle, Globe, ThumbsDown, Star, Bookmark, AlertTriangle, 
   Radio, Crown, RotateCcw, Box
 } from "lucide-react";
+import { UniversalIcon } from "@/components/ui/UniversalIcon";
 
-export const CategoryIcon = ({ name, className, size = 20 }: { name: string, className?: string, size?: number }) => {
+export interface CategoryIconProps {
+  name?: string;
+  icon?: string | null;
+  className?: string;
+  size?: number;
+}
+
+export const CategoryIcon = ({ name = "", icon, className, size = 20 }: CategoryIconProps) => {
+  if (icon) {
+    return <UniversalIcon icon={icon} className={className} size={size} />;
+  }
+
   const norm = (name || "").toLowerCase();
   
   let IconCmp = Box;
@@ -42,3 +54,4 @@ export const cleanCategoryName = (rawName: string) => {
   if (!rawName) return "";
   return rawName.trim();
 };
+

@@ -75,7 +75,7 @@ export function MobileStep2Category({
                       ? "bg-current/20 text-current" 
                       : "bg-primary/5 text-primary"
                   }`}>
-                    <CategoryIcon name={cat.name} size={14} />
+                    <CategoryIcon name={cat.name} icon={(cat as { icon?: string | null }).icon} size={14} />
                   </div>
                   <span className="truncate flex-1 text-[11px] leading-tight">{cleanCategoryName(cat.name)}</span>
                   {isActive && (

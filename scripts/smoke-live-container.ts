@@ -1,3 +1,11 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
+const pgUrl = process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL_UNPOOLED || process.env.DIRECT_URL || (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgresql://') ? process.env.DATABASE_URL : 'postgresql://postgres:postgres@localhost:5432/smmplan');
+process.env.DATABASE_URL = pgUrl;
+process.env.POSTGRES_PRISMA_URL = pgUrl;
+process.env.POSTGRES_URL = pgUrl;
+
 import { db } from '../src/lib/db';
 import { SettingsProvider, SettingsManager } from '../src/lib/settings';
 import { getAvailableGatewaysAction } from '../src/actions/order/checkout';

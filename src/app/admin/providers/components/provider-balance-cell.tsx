@@ -28,6 +28,16 @@ export function ProviderBalanceCell({ providerId, initialData }: ProviderBalance
       if (res.success) {
         setData(res.data);
         setError(null);
+
+        // If manual refresh and balance is healthy, trigger Smart Auto-Flush for pending orders
+        if (forceRefresh && res.data.balanceRub >= 50) {
+          const { syncAndFlushProviderOrdersAction } = await import('@/actions/admin/providers/balance');
+          const flushRes = await syncAndFlushProviderOrdersAction(providerId);
+          if (flushRes.success && flushRes.data && flushRes.data.flushedCount > 0) {
+            const { toast } = await import('sonner');
+            toast.success(`Баланс обновлен! Отправлено в очередь: ${flushRes.data.flushedCount} отложенных заказов.`);
+          }
+        }
       } else {
         setError(res.error || 'Не удалось получить баланс');
       }

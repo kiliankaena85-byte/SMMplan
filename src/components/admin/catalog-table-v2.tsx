@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import type { CatalogServiceDTO } from '@/types/catalog.dto';
 import { SocialIcon } from '@/components/ui/SocialIcon';
+import { UniversalIcon } from '@/components/ui/UniversalIcon';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import {
   toggleServiceActiveAction,
@@ -531,10 +532,13 @@ export function CatalogTable({
                     {/* 3. НАЗВАНИЕ */}
                     <Table.Cell className="py-2 px-2 max-w-[180px]">
                       <div className="flex flex-col gap-0.5">
-                        <span className="font-semibold text-xs text-foreground truncate block" title={s.name}>
-                          {s.name}
-                        </span>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <UniversalIcon icon={s.icon || s.categoryIcon || (networkSlug ? `brand:${networkSlug}` : null)} size={14} className="shrink-0 text-primary" />
+                          <span className="font-semibold text-xs text-foreground truncate block" title={s.name}>
+                            {s.name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 pl-5">
                           {s.qualityTier && (
                             <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-muted text-muted-foreground font-bold">
                               {s.qualityTier}
@@ -552,16 +556,17 @@ export function CatalogTable({
                     {/* 4. СОЦСЕТЬ */}
                     <Table.Cell className="py-2 px-2">
                       <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                        {networkSlug && <SocialIcon slug={networkSlug} size={14} />}
+                        {networkSlug && <UniversalIcon icon={networkSlug ? `brand:${networkSlug}` : null} size={14} />}
                         <span className="truncate max-w-[80px]">{networkName || '—'}</span>
                       </div>
                     </Table.Cell>
 
                     {/* 5. КАТЕГОРИЯ */}
                     <Table.Cell className="py-2 px-2">
-                      <span className="text-xs text-muted-foreground font-medium truncate max-w-[120px] block" title={cleanCategoryName}>
-                        {cleanCategoryName}
-                      </span>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium truncate max-w-[120px]" title={cleanCategoryName}>
+                        {s.categoryIcon && <UniversalIcon icon={s.categoryIcon} size={12} className="shrink-0" />}
+                        <span className="truncate">{cleanCategoryName}</span>
+                      </div>
                     </Table.Cell>
 
                     {/* 6. ПРОВАЙДЕР */}

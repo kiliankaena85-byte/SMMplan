@@ -18,6 +18,8 @@ import { Loader2, Plus, Globe, GitMerge, Pencil, Trash2, Search, EyeOff, Layers,
 import { Button } from '@/components/ui/button';
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { SocialIcon } from '@/components/ui/SocialIcon';
+import { UniversalIcon } from '@/components/ui/UniversalIcon';
+import { IconPicker } from '@/components/admin/icon-picker/IconPicker';
 import {
   Dialog,
   DialogContent,
@@ -67,6 +69,7 @@ interface CategoryItem {
   requireWarning?: boolean;
   warningMessage?: string | null;
   analyzerTags?: string | null;
+  icon?: string | null;
   network?: NetworkItem | null;
   _count: { services: number };
 }
@@ -93,6 +96,7 @@ export function CategoryManager({
   // Category Edit State
   const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
   const [catName, setCatName] = useState("");
+  const [catIcon, setCatIcon] = useState<string | null>(null);
   const [catNetworkId, setCatNetworkId] = useState(networks[0]?.id || "");
   const [catSort, setCatSort] = useState("0");
   const [catRequireWarning, setCatRequireWarning] = useState(false);
@@ -109,6 +113,7 @@ export function CategoryManager({
   const [editingNetworkId, setEditingNetworkId] = useState<string | null>(null);
   const [netName, setNetName] = useState("");
   const [netSlug, setNetSlug] = useState("");
+  const [netIcon, setNetIcon] = useState<string | null>(null);
   const [netSort, setNetSort] = useState("0");
   const [netError, setNetError] = useState<string | null>(null);
   const [isNetPending, startNetTransition] = useTransition();
@@ -137,6 +142,7 @@ export function CategoryManager({
   const openNewCategoryModal = () => {
     setEditingCategory(null);
     setCatName("");
+    setCatIcon(null);
     setCatNetworkId(selectedNetworkFilter !== "ALL" ? selectedNetworkFilter : (networks[0]?.id || ""));
     setCatSort("0");
     setCatRequireWarning(false);
@@ -168,6 +174,7 @@ export function CategoryManager({
   const openEditCategoryModal = (cat: CategoryItem) => {
     setEditingCategory(cat);
     setCatName(cat.name);
+    setCatIcon(cat.icon || null);
     setCatNetworkId(cat.networkId || networks[0]?.id || "");
     setCatSort(String(cat.sort));
     setCatRequireWarning(cat.requireWarning ?? false);
@@ -197,7 +204,8 @@ export function CategoryManager({
         sort: parseInt(catSort, 10) || 0,
         requireWarning: catRequireWarning,
         warningMessage: catRequireWarning ? catWarningMessage.trim() : null,
-        analyzerTags: catAnalyzerTags.trim() || null
+        analyzerTags: catAnalyzerTags.trim() || null,
+        icon: catIcon
       };
 
       if (editingCategory) {
@@ -255,7 +263,8 @@ export function CategoryManager({
       const payload = {
         name: netName.trim(),
         slug: netSlug.trim().toLowerCase(),
-        sort: parseInt(netSort, 10) || 0
+        sort: parseInt(netSort, 10) || 0,
+        icon: netIcon
       };
 
       const res = editingNetworkId 
@@ -267,6 +276,7 @@ export function CategoryManager({
         setEditingNetworkId(null);
         setNetName("");
         setNetSlug("");
+        setNetIcon(null);
         setNetSort("0");
         setNetError(null);
         router.refresh();
@@ -494,13 +504,18 @@ export function CategoryManager({
                           {netCategories.map((c) => (
                             <Table.Row key={c.id} className="hover:bg-muted/30 transition-colors duration-150 border-b border-border/40">
                               <Table.Cell className="px-4 py-3">
-                                <div className="flex flex-col">
-                                  <span className="font-bold text-foreground text-xs">{c.name}</span>
-                                  {c.requireWarning && (
-                                    <span className="text-[10px] text-amber-500 font-medium truncate max-w-xs" title={c.warningMessage || ''}>
-                                      ⚠️ {c.warningMessage}
-                                    </span>
-                                  )}
+                                <div className="flex items-center gap-2.5">
+                                  <div className="w-7 h-7 rounded-lg bg-muted/60 border border-border/50 flex items-center justify-center shrink-0 text-foreground">
+                                    <UniversalIcon icon={c.icon || c.network?.icon || `brand:${net.slug}`} size={16} />
+                                  </div>
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="font-bold text-foreground text-xs truncate">{c.name}</span>
+                                    {c.requireWarning && (
+                                      <span className="text-[10px] text-amber-500 font-medium truncate max-w-xs" title={c.warningMessage || ''}>
+                                        ⚠️ {c.warningMessage}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </Table.Cell>
                               <Table.Cell className="py-3">
@@ -624,6 +639,17 @@ export function CategoryManager({
                   <span>{duplicateCategoryWarning}</span>
                 </div>
               )}
+            </div>
+
+            {/* Visual Icon Picker */}
+            <div className="pt-1 pb-1">
+              <IconPicker
+                label="Визуальная иконка категории"
+                context="category"
+                value={catIcon}
+                onChange={setCatIcon}
+                suggestName={catName}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -791,6 +817,17 @@ export function CategoryManager({
               />
             </div>
 
+            {/* Network Icon Picker */}
+            <div className="pt-0.5 pb-0.5">
+              <IconPicker
+                label="Логотип / Иконка соцсети"
+                context="network"
+                value={netIcon}
+                onChange={setNetIcon}
+                suggestName={netName}
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <label className="text-[10px] font-extrabold text-muted-foreground uppercase">Slug (строчные)</label>
@@ -819,7 +856,7 @@ export function CategoryManager({
               {editingNetworkId && (
                 <button
                   type="button"
-                  onClick={() => { setEditingNetworkId(null); setNetName(""); setNetSlug(""); setNetSort("0"); }}
+                  onClick={() => { setEditingNetworkId(null); setNetName(""); setNetSlug(""); setNetIcon(null); setNetSort("0"); }}
                   className="px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   Отмена
@@ -837,7 +874,7 @@ export function CategoryManager({
             {networks.map(n => (
               <div key={n.id} className="flex items-center justify-between p-2 rounded-xl bg-background border border-border/60 hover:bg-muted/40 transition-colors">
                 <div className="flex items-center gap-2">
-                  <SocialIcon slug={n.slug} size={16} />
+                  <UniversalIcon icon={n.icon || `brand:${n.slug}`} size={16} />
                   <span className="text-xs font-bold text-foreground">{n.name}</span>
                   <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                     {n.slug}
@@ -849,6 +886,7 @@ export function CategoryManager({
                       setEditingNetworkId(n.id);
                       setNetName(n.name);
                       setNetSlug(n.slug);
+                      setNetIcon(n.icon || null);
                       setNetSort(String(n.sort));
                     }}
                     className="p-1 text-muted-foreground hover:text-primary cursor-pointer"

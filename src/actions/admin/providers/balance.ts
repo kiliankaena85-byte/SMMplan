@@ -69,7 +69,28 @@ export async function getGlobalProviderLiquidityAction(
         data: summary,
       };
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'Не удалось рассчитать общую ликвидность.';
+      const errMsg = err instanceof Error ? err.message : 'Не удалось получить сводку по ликвидности.';
+      return { success: false, error: errMsg };
+    }
+  });
+}
+
+/**
+ * Server Action: Synchronizes provider balance and auto-flushes any waiting PENDING_CHECK orders.
+ */
+export async function syncAndFlushProviderOrdersAction(
+  providerId: string
+): Promise<{ success: boolean; data?: import('@/services/providers/balance-autoflush.service').AutoFlushResult; error?: string }> {
+  return requireStaffPermission('providers', 'edit', async (admin) => {
+    try {
+      const { BalanceAutoFlushService } = await import('@/services/providers/balance-autoflush.service');
+      const result = await BalanceAutoFlushService.checkAndFlushProvider(providerId, {
+        initiatedBy: { id: admin.id, email: admin.email },
+        forceRefresh: true
+      });
+      return { success: true, data: result };
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Не удалось выполнить синхронизацию и запуск заказов.';
       return { success: false, error: errMsg };
     }
   });

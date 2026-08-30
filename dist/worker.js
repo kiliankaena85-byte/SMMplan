@@ -42210,7 +42210,11 @@ function getDatasourceUrl() {
   if (process.env.CONTOUR === "prod" && process.env.DATABASE_URL_PROD) {
     return process.env.DATABASE_URL_PROD;
   }
-  return process.env.DATABASE_URL;
+  let url = process.env.DATABASE_URL || process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL;
+  if (url && url.startsWith("prisma://")) {
+    url = process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL_UNPOOLED || process.env.DIRECT_URL || url.replace(/^prisma:\/\//, "postgresql://");
+  }
+  return url;
 }
 function createPrismaClient() {
   if (typeof window !== "undefined" || process.env.NEXT_RUNTIME === "edge") {
@@ -125069,6 +125073,850 @@ var init_smart_feedback_loop_processor = __esm({
   }
 });
 
+// src/services/admin/provider-diagnostic.service.ts
+var ProviderDiagnosticService;
+var init_provider_diagnostic_service = __esm({
+  "src/services/admin/provider-diagnostic.service.ts"() {
+    "use strict";
+    init_ssrf_guard2();
+    init_universal_provider();
+    ProviderDiagnosticService = class {
+      /**
+       * Cleans and normalizes provider URL (strips slashes, adds https, trims whitespace).
+       */
+      static sanitizeUrl(rawUrl) {
+        let url = (rawUrl || "").trim().replace(/[\r\n\t]/g, "");
+        if (!url) return { cleanUrl: "" };
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+          url = "https://" + url;
+        }
+        url = url.replace(/\/+$/, "");
+        let suggestedUrl;
+        try {
+          const parsed = new URL(url);
+          if (!parsed.pathname || parsed.pathname === "/" || parsed.pathname === "") {
+            suggestedUrl = `${url}/api/v2`;
+          }
+        } catch {
+        }
+        return { cleanUrl: url, suggestedUrl };
+      }
+      /**
+       * Sanitizes API key by stripping invisible control chars, spaces, and line breaks.
+       */
+      static sanitizeKey(rawKey) {
+        return (rawKey || "").replace(/[\u200B-\u200D\uFEFF]/g, "").replace(/[\r\n\t]/g, "").trim();
+      }
+      /**
+       * Translates raw API / Network errors into user-friendly actionable Russian text.
+       */
+      static translateError(error, targetUrl) {
+        const rawMsg = error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error || "");
+        if (rawMsg.includes("Invalid API key") || rawMsg.includes("API key") || rawMsg.includes("Unauthorized") || rawMsg.includes("401")) {
+          return {
+            message: "\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0439 API-\u043A\u043B\u044E\u0447 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430.",
+            suggestedFix: "\u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0438 \u0441\u043A\u043E\u043F\u0438\u0440\u0443\u0439\u0442\u0435 \u0430\u043A\u0442\u0443\u0430\u043B\u044C\u043D\u044B\u0439 API-\u043A\u043B\u044E\u0447 \u0432 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430\u0445 \u0432\u0430\u0448\u0435\u0433\u043E \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430 \u043D\u0430 \u0441\u0430\u0439\u0442\u0435 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430."
+          };
+        }
+        if (rawMsg.includes("403") || rawMsg.includes("Cloudflare") || rawMsg.includes("ddos-guard") || rawMsg.includes("Forbidden")) {
+          return {
+            message: "\u0417\u0430\u043F\u0440\u043E\u0441 \u043E\u0442\u043A\u043B\u043E\u043D\u0435\u043D \u0437\u0430\u0449\u0438\u0442\u043E\u0439 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 (Cloudflare / WAF 403).",
+            suggestedFix: "\u0423\u0431\u0435\u0434\u0438\u0442\u0435\u0441\u044C, \u0447\u0442\u043E \u0432\u0430\u0448 IP-\u0430\u0434\u0440\u0435\u0441 \u043D\u0435 \u0437\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D \u0432 \u043B\u0438\u0447\u043D\u043E\u043C \u043A\u0430\u0431\u0438\u043D\u0435\u0442\u0435 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 (\u043F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0440\u0430\u0437\u0434\u0435\u043B API Whitelist)."
+          };
+        }
+        if (rawMsg.includes("404") || rawMsg.includes("Cannot POST") || rawMsg.includes("Not Found") || rawMsg.includes("HTML")) {
+          const { cleanUrl } = this.sanitizeUrl(targetUrl);
+          const isMissingApiV2 = !cleanUrl.endsWith("/api/v2") && !cleanUrl.endsWith("/api");
+          return {
+            message: "\u042D\u043D\u0434\u043F\u043E\u0438\u043D\u0442 API \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D (404 / HTML \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0430 \u0432\u043C\u0435\u0441\u0442\u043E JSON).",
+            suggestedFix: isMissingApiV2 ? `\u0412\u043E\u0437\u043C\u043E\u0436\u043D\u043E, \u043F\u0440\u043E\u043F\u0443\u0449\u0435\u043D \u043F\u0443\u0442\u044C \u043A API. \u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C \u0430\u0434\u0440\u0435\u0441: ${cleanUrl}/api/v2` : "\u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0442\u043E\u0447\u043D\u044B\u0439 \u0430\u0434\u0440\u0435\u0441 API \u0432 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0430\u0446\u0438\u0438 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430.",
+            suggestedUrl: isMissingApiV2 ? `${cleanUrl}/api/v2` : void 0
+          };
+        }
+        if (rawMsg.includes("ENOTFOUND") || rawMsg.includes("getaddrinfo")) {
+          return {
+            message: "\u0414\u043E\u043C\u0435\u043D \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D (\u043E\u0448\u0438\u0431\u043A\u0430 DNS).",
+            suggestedFix: "\u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u043F\u0440\u0430\u0432\u0438\u043B\u044C\u043D\u043E\u0441\u0442\u044C \u043D\u0430\u043F\u0438\u0441\u0430\u043D\u0438\u044F \u0434\u043E\u043C\u0435\u043D\u043D\u043E\u0433\u043E \u0438\u043C\u0435\u043D\u0438 \u0441\u0430\u0439\u0442\u0430 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430."
+          };
+        }
+        if (rawMsg.includes("ECONNREFUSED")) {
+          return {
+            message: "\u0421\u0435\u0440\u0432\u0435\u0440 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 \u0441\u0431\u0440\u043E\u0441\u0438\u043B \u0441\u043E\u0435\u0434\u0438\u043D\u0435\u043D\u0438\u0435 (Connection Refused).",
+            suggestedFix: "\u0421\u0435\u0440\u0432\u0435\u0440 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 \u0441\u0435\u0439\u0447\u0430\u0441 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D \u0438\u043B\u0438 \u043D\u0435 \u043F\u0440\u0438\u043D\u0438\u043C\u0430\u0435\u0442 \u0432\u0445\u043E\u0434\u044F\u0449\u0438\u0435 API \u0437\u0430\u043F\u0440\u043E\u0441\u044B."
+          };
+        }
+        if (rawMsg.includes("ETIMEDOUT") || rawMsg.includes("timeout") || rawMsg.includes("\u0422\u0430\u0439\u043C\u0430\u0443\u0442") || rawMsg.includes("Timeout")) {
+          return {
+            message: "\u0422\u0430\u0439\u043C\u0430\u0443\u0442 \u043E\u0442\u0432\u0435\u0442\u0430 \u043E\u0442 \u0441\u0435\u0440\u0432\u0435\u0440\u0430 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 (>10 \u0441\u0435\u043A).",
+            suggestedFix: "\u0421\u0435\u0440\u0432\u0435\u0440 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 \u043F\u0435\u0440\u0435\u0433\u0440\u0443\u0436\u0435\u043D \u0438\u043B\u0438 \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E \u043D\u0435 \u043E\u0442\u0432\u0435\u0447\u0430\u0435\u0442. \u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u044C \u043F\u043E\u043F\u044B\u0442\u043A\u0443 \u043F\u043E\u0437\u0436\u0435."
+          };
+        }
+        if (rawMsg.includes("fetch failed")) {
+          return {
+            message: "\u0421\u0435\u0442\u0435\u0432\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430 \u0441\u043E\u0435\u0434\u0438\u043D\u0435\u043D\u0438\u044F \u0441 \u0441\u0435\u0440\u0432\u0435\u0440\u043E\u043C \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430.",
+            suggestedFix: "\u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0441\u0442\u044C \u0441\u0430\u0439\u0442\u0430 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 \u0438 \u043F\u0440\u0430\u0432\u0438\u043B\u044C\u043D\u043E\u0441\u0442\u044C \u0443\u043A\u0430\u0437\u0430\u043D\u043D\u043E\u0433\u043E \u043F\u0440\u043E\u0442\u043E\u043A\u043E\u043B\u0430 (https://)."
+          };
+        }
+        return {
+          message: rawMsg || "\u041D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430 \u0441\u0432\u044F\u0437\u0438 \u0441 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u043E\u043C.",
+          suggestedFix: "\u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u043F\u0440\u0430\u0432\u0438\u043B\u044C\u043D\u043E\u0441\u0442\u044C URL \u0438 \u043A\u043B\u044E\u0447\u0430 \u0432 \u0434\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0430\u0446\u0438\u0438 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430."
+        };
+      }
+      /**
+       * Executes full health probe: Ping -> Balance & Auto-Currency -> Catalog Sampling.
+       */
+      static async probe(rawUrl, rawKey, mapping, timeoutMs = 1e4) {
+        const { cleanUrl, suggestedUrl } = this.sanitizeUrl(rawUrl);
+        const cleanKey = this.sanitizeKey(rawKey);
+        const result = {
+          success: false,
+          sanitizedUrl: cleanUrl,
+          sanitizedKey: cleanKey,
+          latencyMs: 0,
+          balanceSuccess: false,
+          servicesSuccess: false,
+          suggestedUrl
+        };
+        if (!cleanUrl) {
+          result.errorMessage = "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 URL \u0430\u0434\u0440\u0435\u0441 API \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430.";
+          return result;
+        }
+        if (!cleanKey) {
+          result.errorMessage = "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 API-\u043A\u043B\u044E\u0447 \u0434\u043B\u044F \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438 \u043F\u043E\u0434\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u044F.";
+          return result;
+        }
+        try {
+          await assertSafeUrl(cleanUrl);
+        } catch (e) {
+          result.errorMessage = `URL \u0437\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D \u043F\u043E\u043B\u0438\u0442\u0438\u043A\u043E\u0439 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u0438: ${e instanceof Error ? e.message : String(e)}`;
+          return result;
+        }
+        const providerInstance = new UniversalProvider(cleanUrl, cleanKey, { mapping: mapping || null });
+        const startTime = Date.now();
+        try {
+          const balanceData = await providerInstance.getBalance();
+          result.balanceSuccess = true;
+          result.balance = balanceData.balance;
+          result.detectedCurrency = (balanceData.currency || "USD").toUpperCase();
+        } catch (err) {
+          const translated = this.translateError(err, cleanUrl);
+          result.errorMessage = translated.message;
+          result.suggestedFix = translated.suggestedFix;
+          if (translated.suggestedUrl) result.suggestedUrl = translated.suggestedUrl;
+          result.latencyMs = Date.now() - startTime;
+          return result;
+        }
+        result.latencyMs = Date.now() - startTime;
+        try {
+          const services = await providerInstance.getServices();
+          result.servicesSuccess = true;
+          result.servicesCount = services.length;
+          result.sampleServices = services.slice(0, 5).map((s) => ({
+            serviceId: String(s.service),
+            name: s.name || "\u0411\u0435\u0437 \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u044F",
+            category: s.category || "\u041E\u0431\u0449\u0430\u044F \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u044F",
+            rate: String(s.rate),
+            min: String(s.min),
+            max: String(s.max),
+            type: s.type
+          }));
+        } catch (err) {
+          const translated = this.translateError(err, cleanUrl);
+          result.errorMessage = `\u0411\u0430\u043B\u0430\u043D\u0441 \u043F\u043E\u043B\u0443\u0447\u0435\u043D, \u043D\u043E \u043A\u0430\u0442\u0430\u043B\u043E\u0433 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D: ${translated.message}`;
+          result.suggestedFix = translated.suggestedFix;
+        }
+        result.success = result.balanceSuccess && result.servicesSuccess;
+        return result;
+      }
+    };
+  }
+});
+
+// src/services/admin/provider-balance.service.ts
+var ProviderBalanceService, providerBalanceService;
+var init_provider_balance_service = __esm({
+  "src/services/admin/provider-balance.service.ts"() {
+    "use strict";
+    init_db();
+    init_redis();
+    init_settings();
+    init_provider_service();
+    init_provider_diagnostic_service();
+    ProviderBalanceService = class {
+      constructor() {
+        this.CACHE_TTL_SECONDS = 60;
+        this.ERROR_CACHE_TTL_SECONDS = 15;
+        this.TIMEOUT_MS = 3e3;
+      }
+      /**
+       * Retrieves current balance for a specific provider with 60-second Redis caching
+       * and 5s timeout protection.
+       */
+      async getProviderBalance(providerId, forceRefresh = false) {
+        const cacheKey = `provider:${providerId}:balance`;
+        if (!forceRefresh) {
+          try {
+            const cached = await redis.get(cacheKey);
+            if (cached) {
+              return JSON.parse(cached);
+            }
+          } catch (err) {
+            console.warn(`[ProviderBalanceService] Redis read error for ${cacheKey}:`, err);
+          }
+        }
+        const provider = await db.provider.findUnique({
+          where: { id: providerId }
+        });
+        if (!provider) {
+          const now = Date.now();
+          return {
+            providerId,
+            providerName: "Unknown",
+            balance: 0,
+            rawBalance: "0",
+            currency: "USD",
+            balanceUsd: 0,
+            balanceRub: 0,
+            status: "error",
+            latencyMs: 0,
+            cachedAt: now,
+            expiresAt: now + this.ERROR_CACHE_TTL_SECONDS * 1e3,
+            error: "\u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D \u0432 \u0431\u0430\u0437\u0435 \u0434\u0430\u043D\u043D\u044B\u0445."
+          };
+        }
+        const startTime = Date.now();
+        let latencyMs = 0;
+        try {
+          const instance = await providerService.getProviderInstance(provider);
+          let timeoutId;
+          const timeoutPromise = new Promise((_, reject) => {
+            timeoutId = setTimeout(() => reject(new Error("ETIMEDOUT: Connection timed out after 5000ms")), this.TIMEOUT_MS);
+          });
+          let balanceData;
+          try {
+            balanceData = await Promise.race([
+              instance.getBalance(),
+              timeoutPromise
+            ]);
+          } finally {
+            if (timeoutId) clearTimeout(timeoutId);
+          }
+          latencyMs = Date.now() - startTime;
+          const rawBalance = balanceData.balance ?? "0";
+          let numBalance = 0;
+          if (typeof rawBalance === "number") {
+            numBalance = isNaN(rawBalance) ? 0 : rawBalance;
+          } else {
+            const str = String(rawBalance).trim();
+            const parsed = parseFloat(str.replace(/,/g, "."));
+            numBalance = isNaN(parsed) ? 0 : parsed;
+          }
+          const reportedCurrency = balanceData.currency?.toUpperCase().trim();
+          const storedCurrency = provider.balanceCurrency?.toUpperCase().trim();
+          let currency;
+          if (reportedCurrency && reportedCurrency !== "UNKNOWN" && reportedCurrency.length >= 3) {
+            currency = reportedCurrency;
+          } else if (storedCurrency && storedCurrency.length >= 3) {
+            currency = storedCurrency;
+          } else {
+            currency = "USD";
+            console.warn(`[ProviderBalance] Provider ${provider.name} returned no currency and none stored in DB; fallback to USD`);
+          }
+          let usdRate = 95;
+          try {
+            usdRate = await SettingsProvider.getExchangeRateUSD();
+            if (!usdRate || usdRate <= 0) usdRate = 95;
+          } catch {
+            usdRate = 95;
+          }
+          let balanceUsd = 0;
+          let balanceRub = 0;
+          if (currency === "USD") {
+            balanceUsd = numBalance;
+            balanceRub = numBalance * usdRate;
+          } else if (currency === "RUB") {
+            balanceRub = numBalance;
+            balanceUsd = usdRate > 0 ? numBalance / usdRate : 0;
+          } else if (currency === "EUR") {
+            balanceUsd = numBalance * 1.08;
+            balanceRub = balanceUsd * usdRate;
+          } else {
+            balanceUsd = numBalance;
+            balanceRub = numBalance * usdRate;
+          }
+          let status = "healthy";
+          if (balanceUsd > 50) {
+            status = "healthy";
+          } else if (balanceUsd >= 10) {
+            status = "warning";
+          } else {
+            status = "critical";
+          }
+          const now = Date.now();
+          const result = {
+            providerId: provider.id,
+            providerName: provider.name,
+            balance: numBalance,
+            rawBalance,
+            currency,
+            balanceUsd: Math.round(balanceUsd * 100) / 100,
+            balanceRub: Math.round(balanceRub * 100) / 100,
+            status,
+            latencyMs,
+            cachedAt: now,
+            expiresAt: now + this.CACHE_TTL_SECONDS * 1e3
+          };
+          try {
+            await redis.set(cacheKey, JSON.stringify(result), "EX", this.CACHE_TTL_SECONDS);
+          } catch (cacheErr) {
+            console.warn(`[ProviderBalanceService] Redis write error for ${cacheKey}:`, cacheErr);
+          }
+          if (status === "critical" || status === "warning") {
+            const alertKey = `provider:${provider.id}:balance_alert:${status}`;
+            try {
+              const alreadyAlerted = await redis.get(alertKey);
+              if (!alreadyAlerted) {
+                const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+                const emoji = status === "critical" ? "\u{1F6A8}" : "\u26A0\uFE0F";
+                const level = status === "critical" ? "CRITICAL" : "WARNING";
+                const thresholdUsd = status === "critical" ? 10 : 50;
+                const thresholdRub = thresholdUsd * usdRate;
+                let formattedBalance = "";
+                let formattedThreshold = "";
+                if (currency === "RUB") {
+                  formattedBalance = `${numBalance.toFixed(2)} \u20BD (~$${balanceUsd.toFixed(2)})`;
+                  formattedThreshold = `${thresholdRub.toLocaleString("ru-RU")} \u20BD ($${thresholdUsd}.00)`;
+                } else if (currency === "USD") {
+                  formattedBalance = `$${numBalance.toFixed(2)} (~${balanceRub.toFixed(2)} \u20BD)`;
+                  formattedThreshold = `$${thresholdUsd}.00 (~${thresholdRub.toLocaleString("ru-RU")} \u20BD)`;
+                } else if (currency === "EUR") {
+                  formattedBalance = `\u20AC${numBalance.toFixed(2)} (~$${balanceUsd.toFixed(2)} / ~${balanceRub.toFixed(2)} \u20BD)`;
+                  formattedThreshold = `\u20AC${(thresholdUsd / 1.08).toFixed(2)} ($${thresholdUsd}.00 / ${thresholdRub.toLocaleString("ru-RU")} \u20BD)`;
+                } else {
+                  formattedBalance = `${numBalance.toFixed(2)} ${currency} (~$${balanceUsd.toFixed(2)} / ~${balanceRub.toFixed(2)} \u20BD)`;
+                  formattedThreshold = `$${thresholdUsd}.00 (~${thresholdRub.toLocaleString("ru-RU")} \u20BD)`;
+                }
+                await sendAdminAlert2(
+                  `${emoji} \u0411\u0430\u043B\u0430\u043D\u0441 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 "${provider.name}" = ${formattedBalance} \u2014 \u043D\u0438\u0436\u0435 \u043F\u043E\u0440\u043E\u0433\u0430 ${formattedThreshold}. \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435 \u0434\u0435\u043F\u043E\u0437\u0438\u0442!`,
+                  level
+                );
+                await redis.set(alertKey, "1", "EX", 3600);
+              }
+            } catch (alertErr) {
+              console.warn(`[ProviderBalanceService] Balance alert failed for ${provider.name}:`, alertErr);
+            }
+          }
+          try {
+            const prevAvg = provider.avgResponseMs || 0;
+            const newAvg = prevAvg > 0 ? Math.round(prevAvg * 0.7 + latencyMs * 0.3) : latencyMs;
+            await db.provider.update({
+              where: { id: provider.id },
+              data: {
+                lastSuccessAt: /* @__PURE__ */ new Date(),
+                avgResponseMs: newAvg,
+                errorCount5m: 0
+              }
+            });
+          } catch (dbErr) {
+            console.warn(`[ProviderBalanceService] SLA update failed for provider ${provider.id}:`, dbErr);
+          }
+          return result;
+        } catch (err) {
+          latencyMs = Date.now() - startTime;
+          const translated = ProviderDiagnosticService.translateError(err, provider.apiUrl);
+          const now = Date.now();
+          const errorResult = {
+            providerId: provider.id,
+            providerName: provider.name,
+            balance: 0,
+            rawBalance: "0",
+            currency: provider.balanceCurrency || "USD",
+            balanceUsd: 0,
+            balanceRub: 0,
+            status: "error",
+            latencyMs,
+            cachedAt: now,
+            expiresAt: now + this.ERROR_CACHE_TTL_SECONDS * 1e3,
+            error: translated.message,
+            suggestedFix: translated.suggestedFix
+          };
+          try {
+            await redis.set(cacheKey, JSON.stringify(errorResult), "EX", this.ERROR_CACHE_TTL_SECONDS);
+          } catch (cacheErr) {
+            console.warn(`[ProviderBalanceService] Redis write error for error record ${cacheKey}:`, cacheErr);
+          }
+          try {
+            const updated = await db.provider.update({
+              where: { id: provider.id },
+              data: {
+                lastErrorAt: /* @__PURE__ */ new Date(),
+                errorCount5m: { increment: 1 }
+              },
+              select: { errorCount5m: true, name: true, isActive: true }
+            });
+            const ENABLE_AUTO_DEACTIVATION = false;
+            const AUTO_DEACTIVATION_THRESHOLD = 5;
+            if (ENABLE_AUTO_DEACTIVATION && updated.isActive && updated.errorCount5m >= AUTO_DEACTIVATION_THRESHOLD) {
+              await db.provider.update({
+                where: { id: provider.id },
+                data: { isActive: false }
+              });
+              const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+              await sendAdminAlert2(
+                `\u{1F534} \u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 "${provider.name}" \u0410\u0412\u0422\u041E\u041C\u0410\u0422\u0418\u0427\u0415\u0421\u041A\u0418 \u041E\u0422\u041A\u041B\u042E\u0427\u0401\u041D: ${updated.errorCount5m} \u043E\u0448\u0438\u0431\u043E\u043A \u043F\u043E\u0434\u0440\u044F\u0434. \u0412\u043A\u043B\u044E\u0447\u0438\u0442\u0435 \u0432\u0440\u0443\u0447\u043D\u0443\u044E \u0432 /admin/providers \u043F\u043E\u0441\u043B\u0435 \u0443\u0441\u0442\u0440\u0430\u043D\u0435\u043D\u0438\u044F.`,
+                "CRITICAL"
+              );
+              console.warn(`[ProviderBalanceService] Auto-deactivation triggered for provider ${provider.id} (${provider.name}): ${updated.errorCount5m} errors`);
+            } else if (updated.errorCount5m >= AUTO_DEACTIVATION_THRESHOLD) {
+              const alertKey = `provider:${provider.id}:error_alert`;
+              const alreadyAlerted = await redis.get(alertKey).catch(() => null);
+              if (!alreadyAlerted) {
+                const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+                await sendAdminAlert2(
+                  `\u26A0\uFE0F \u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 "${provider.name}" \u043D\u0430\u043A\u043E\u043F\u0438\u043B ${updated.errorCount5m} \u043E\u0448\u0438\u0431\u043E\u043A \u0437\u0430 5 \u043C\u0438\u043D. \u0422\u0440\u0435\u0431\u0443\u0435\u0442 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438. \u0410\u0432\u0442\u043E-\u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435 \u0412\u042B\u041A\u041B\u042E\u0427\u0415\u041D\u041E \u2014 \u0434\u0435\u0439\u0441\u0442\u0432\u0443\u0439 \u0432\u0440\u0443\u0447\u043D\u0443\u044E \u0432 /admin/providers.`,
+                  "WARNING"
+                );
+                await redis.set(alertKey, "1", "EX", 3600).catch(() => null);
+              }
+            }
+          } catch (dbErr) {
+            console.warn(`[ProviderBalanceService] SLA error update failed for provider ${provider.id}:`, dbErr);
+          }
+          return errorResult;
+        }
+      }
+      /**
+       * Retrieves balances for all active providers in parallel.
+       */
+      async getAllProviderBalances(forceRefresh = false) {
+        const providers = await db.provider.findMany({
+          where: { isActive: true },
+          orderBy: { name: "asc" }
+        });
+        const balancePromises = providers.map((p) => this.getProviderBalance(p.id, forceRefresh));
+        const results = await Promise.allSettled(balancePromises);
+        return results.map((res, index) => {
+          if (res.status === "fulfilled") {
+            return res.value;
+          }
+          const provider = providers[index];
+          const now = Date.now();
+          return {
+            providerId: provider.id,
+            providerName: provider.name,
+            balance: 0,
+            rawBalance: "0",
+            currency: provider.balanceCurrency || "USD",
+            balanceUsd: 0,
+            balanceRub: 0,
+            status: "error",
+            latencyMs: 0,
+            cachedAt: now,
+            expiresAt: now + this.ERROR_CACHE_TTL_SECONDS * 1e3,
+            error: res.reason?.message || "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u043E\u043B\u0443\u0447\u0438\u0442\u044C \u0431\u0430\u043B\u0430\u043D\u0441 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430."
+          };
+        });
+      }
+      /**
+       * Calculates aggregated global liquidity across all active providers,
+       * including 24h burn rate and estimated runway in days.
+       */
+      async getGlobalLiquiditySummary(forceRefresh = false) {
+        const cacheKey = "providers:global:liquidity";
+        if (!forceRefresh) {
+          try {
+            const cached = await redis.get(cacheKey);
+            if (cached) {
+              return JSON.parse(cached);
+            }
+          } catch (err) {
+            console.warn(`[ProviderBalanceService] Redis read error for ${cacheKey}:`, err);
+          }
+        }
+        const providerBalances = await this.getAllProviderBalances(forceRefresh);
+        const yesterday = /* @__PURE__ */ new Date();
+        yesterday.setHours(yesterday.getHours() - 24);
+        let burnRate24hRub = 0;
+        try {
+          const aggregate = await db.order.aggregate({
+            _sum: { providerCost: true },
+            where: {
+              createdAt: { gte: yesterday },
+              status: { notIn: ["ERROR", "CANCELED"] }
+            }
+          });
+          const burnRate24hCents = Number(aggregate._sum.providerCost || 0);
+          burnRate24hRub = burnRate24hCents / 100;
+        } catch (orderErr) {
+          console.warn("[ProviderBalanceService] Failed to query orders for burn rate calculation:", orderErr);
+        }
+        let totalRub = 0;
+        let totalUsd = 0;
+        let healthyCount = 0;
+        let warningCount = 0;
+        let criticalCount = 0;
+        let errorCount = 0;
+        for (const p of providerBalances) {
+          if (p.status !== "error") {
+            totalRub += p.balanceRub;
+            totalUsd += p.balanceUsd;
+          }
+          if (p.status === "healthy") healthyCount++;
+          else if (p.status === "warning") warningCount++;
+          else if (p.status === "critical") criticalCount++;
+          else if (p.status === "error") errorCount++;
+        }
+        const runwayDays = burnRate24hRub > 0 ? Math.floor(totalRub / burnRate24hRub) : null;
+        const now = Date.now();
+        const summary = {
+          totalRub: Math.round(totalRub * 100) / 100,
+          totalUsd: Math.round(totalUsd * 100) / 100,
+          activeCount: providerBalances.length,
+          healthyCount,
+          warningCount,
+          criticalCount,
+          errorCount,
+          burnRate24hRub: Math.round(burnRate24hRub * 100) / 100,
+          runwayDays,
+          providers: providerBalances,
+          cachedAt: now
+        };
+        try {
+          await redis.set(cacheKey, JSON.stringify(summary), "EX", this.CACHE_TTL_SECONDS);
+        } catch (cacheErr) {
+          console.warn(`[ProviderBalanceService] Redis write error for ${cacheKey}:`, cacheErr);
+        }
+        return summary;
+      }
+    };
+    providerBalanceService = new ProviderBalanceService();
+  }
+});
+
+// src/lib/admin-audit.ts
+function safeSerialize(value) {
+  if (value === void 0 || value === null) return null;
+  const seen = /* @__PURE__ */ new Set();
+  function recurse(val) {
+    if (val === null || val === void 0) {
+      return val;
+    }
+    if (typeof val === "bigint") {
+      return val.toString();
+    }
+    if (typeof val !== "object") {
+      return val;
+    }
+    if (seen.has(val)) {
+      return "[Circular]";
+    }
+    seen.add(val);
+    if (Array.isArray(val)) {
+      const arr = val.map((item) => recurse(item));
+      seen.delete(val);
+      return arr;
+    }
+    if (val instanceof Date) {
+      return val.toISOString();
+    }
+    if (val instanceof RegExp) {
+      return val.toString();
+    }
+    const obj = val;
+    const result = {};
+    const sensitiveKeys = ["password", "pass", "hash", "token", "secret", "key", "credentials", "yookassa", "vault"];
+    for (const k of Object.keys(obj)) {
+      const lowerKey = k.toLowerCase();
+      const isSensitive = sensitiveKeys.some((sensitive) => lowerKey.includes(sensitive));
+      if (isSensitive) {
+        result[k] = "[SCRUBBED]";
+      } else {
+        result[k] = recurse(obj[k]);
+      }
+    }
+    seen.delete(val);
+    return result;
+  }
+  try {
+    const cleaned = recurse(value);
+    return JSON.stringify(cleaned);
+  } catch (err) {
+    console.error("[AdminAudit] Failed to serialize:", err);
+    return "[Serialization Failed]";
+  }
+}
+function auditAdmin(params) {
+  void db.adminAuditLog.create({
+    data: {
+      adminId: params.adminId,
+      adminEmail: params.adminEmail,
+      action: params.action,
+      target: params.target,
+      targetType: params.targetType,
+      oldValue: safeSerialize(params.oldValue),
+      newValue: safeSerialize(params.newValue),
+      ipAddress: params.ipAddress ?? null
+    }
+  }).catch((err) => {
+    console.error("[AdminAudit] Failed to write log:", err);
+  });
+}
+async function auditAdminAwaitable(params) {
+  return db.adminAuditLog.create({
+    data: {
+      adminId: params.adminId,
+      adminEmail: params.adminEmail,
+      action: params.action,
+      target: params.target,
+      targetType: params.targetType,
+      oldValue: safeSerialize(params.oldValue),
+      newValue: safeSerialize(params.newValue),
+      ipAddress: params.ipAddress ?? null
+    }
+  });
+}
+var init_admin_audit = __esm({
+  "src/lib/admin-audit.ts"() {
+    "use strict";
+    init_db();
+  }
+});
+
+// src/services/providers/balance-autoflush.service.ts
+var balance_autoflush_service_exports = {};
+__export2(balance_autoflush_service_exports, {
+  BalanceAutoFlushService: () => BalanceAutoFlushService
+});
+var BalanceAutoFlushService;
+var init_balance_autoflush_service = __esm({
+  "src/services/providers/balance-autoflush.service.ts"() {
+    "use strict";
+    init_db();
+    init_redis();
+    init_queue_manager();
+    init_provider_balance_service();
+    init_admin_audit();
+    BalanceAutoFlushService = class {
+      static {
+        this.providerBalanceService = new ProviderBalanceService();
+      }
+      static {
+        this.PROVIDER_LOCK_TTL_SECONDS = 45;
+      }
+      static {
+        this.MIN_BALANCE_THRESHOLD_RUB = 50;
+      }
+      static {
+        // Minimum 50 RUB balance to attempt flush
+        this.BATCH_LIMIT = 50;
+      }
+      // Process max 50 orders per cycle to prevent queue choking
+      /**
+       * Checks if an order's hold error is strictly due to provider balance insufficiency.
+       */
+      static isBalanceRelatedError(errorMessage) {
+        if (!errorMessage) return false;
+        const lower = errorMessage.toLowerCase();
+        const balanceKeywords = [
+          "insufficient_provider_balance",
+          "not enough funds",
+          "not enough balance",
+          "low balance",
+          "balance too low",
+          "insufficient balance",
+          "\u043D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u043E\u0447\u043D\u043E \u0441\u0440\u0435\u0434\u0441\u0442\u0432",
+          "\u043D\u0435\u0442 \u0434\u0435\u043D\u0435\u0433",
+          "\u043D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u043E\u0447\u043D\u043E \u0434\u0435\u043D\u0435\u0433",
+          "\u043F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435 \u0431\u0430\u043B\u0430\u043D\u0441",
+          "error_not_enough_funds",
+          "not_enough_funds",
+          "not_enough_balance",
+          "out of balance"
+        ];
+        const fatalKeywords = [
+          "invalid link",
+          "private",
+          "link is broken",
+          "closed profile",
+          "bad link",
+          "\u043D\u0435\u0432\u0430\u043B\u0438\u0434\u043D\u0430\u044F \u0441\u0441\u044B\u043B\u043A\u0430",
+          "\u0437\u0430\u043A\u0440\u044B\u0442\u044B\u0439 \u043F\u0440\u043E\u0444\u0438\u043B\u044C",
+          "price_drift_hold"
+        ];
+        const hasFatal = fatalKeywords.some((k) => lower.includes(k));
+        if (hasFatal) return false;
+        return balanceKeywords.some((k) => lower.includes(k));
+      }
+      /**
+       * Flushes PENDING_CHECK orders for a specific provider if its balance is healthy.
+       * Thread-safe with Redis distributed mutex.
+       */
+      static async checkAndFlushProvider(providerId, options) {
+        try {
+          const killSwitch = await redis.get("autoflush:enabled");
+          if (killSwitch === "false" || killSwitch === "0") {
+            return {
+              providerId,
+              providerName: "Unknown",
+              flushedCount: 0,
+              skippedCount: 0,
+              currentBalanceRub: 0,
+              status: "DISABLED_KILLSWITCH",
+              message: "Auto-Flush \u0433\u043B\u043E\u0431\u0430\u043B\u044C\u043D\u043E \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D \u0430\u0432\u0430\u0440\u0438\u0439\u043D\u044B\u043C \u0440\u0443\u0431\u0438\u043B\u044C\u043D\u0438\u043A\u043E\u043C (Kill-Switch)."
+            };
+          }
+        } catch {
+        }
+        const lockKey = `lock:provider:flush:${providerId}`;
+        let lockAcquired = false;
+        try {
+          const acquired = await redis.set(lockKey, "1", "EX", this.PROVIDER_LOCK_TTL_SECONDS, "NX");
+          lockAcquired = acquired === "OK";
+        } catch {
+          lockAcquired = true;
+        }
+        if (!lockAcquired) {
+          return {
+            providerId,
+            providerName: "Unknown",
+            flushedCount: 0,
+            skippedCount: 0,
+            currentBalanceRub: 0,
+            status: "LOCKED",
+            message: "\u041F\u0440\u043E\u0446\u0435\u0441\u0441 \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0438 \u0434\u043B\u044F \u0434\u0430\u043D\u043D\u043E\u0433\u043E \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 \u0443\u0436\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u044F\u0435\u0442\u0441\u044F \u0434\u0440\u0443\u0433\u0438\u043C \u043F\u043E\u0442\u043E\u043A\u043E\u043C."
+          };
+        }
+        try {
+          const provider = await db.provider.findUnique({
+            where: { id: providerId },
+            select: { id: true, name: true, isActive: true, balanceCurrency: true }
+          });
+          if (!provider || !provider.isActive) {
+            return {
+              providerId,
+              providerName: provider?.name || "Unknown",
+              flushedCount: 0,
+              skippedCount: 0,
+              currentBalanceRub: 0,
+              status: "SKIPPED",
+              message: "\u041F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D \u0438\u043B\u0438 \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D."
+            };
+          }
+          const balanceData = await this.providerBalanceService.getProviderBalance(
+            providerId,
+            options?.forceRefresh ?? true
+          );
+          if (balanceData.status === "error" || balanceData.balanceRub < this.MIN_BALANCE_THRESHOLD_RUB) {
+            return {
+              providerId,
+              providerName: provider.name,
+              flushedCount: 0,
+              skippedCount: 0,
+              currentBalanceRub: balanceData.balanceRub,
+              status: "HALTED_NO_BALANCE",
+              message: `\u0411\u0430\u043B\u0430\u043D\u0441 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 (${balanceData.balanceRub.toFixed(2)} \u20BD) \u043D\u0438\u0436\u0435 \u043C\u0438\u043D\u0438\u043C\u0430\u043B\u044C\u043D\u043E\u0433\u043E \u043F\u043E\u0440\u043E\u0433\u0430 (${this.MIN_BALANCE_THRESHOLD_RUB} \u20BD). \u0417\u0430\u043A\u0430\u0437\u044B \u043D\u0435 \u0437\u0430\u043F\u0443\u0449\u0435\u043D\u044B.`
+            };
+          }
+          const candidateOrders = await db.order.findMany({
+            where: {
+              providerId,
+              status: "PENDING_CHECK"
+            },
+            orderBy: { createdAt: "asc" },
+            take: this.BATCH_LIMIT,
+            select: {
+              id: true,
+              numericId: true,
+              error: true,
+              charge: true,
+              providerCost: true,
+              retryCount: true
+            }
+          });
+          if (candidateOrders.length === 0) {
+            return {
+              providerId,
+              providerName: provider.name,
+              flushedCount: 0,
+              skippedCount: 0,
+              currentBalanceRub: balanceData.balanceRub,
+              status: "SUCCESS",
+              message: "\u041D\u0435\u0442 \u043E\u0442\u043B\u043E\u0436\u0435\u043D\u043D\u044B\u0445 \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u0432 \u0441\u0442\u0430\u0442\u0443\u0441\u0435 PENDING_CHECK \u0434\u043B\u044F \u0434\u0430\u043D\u043D\u043E\u0433\u043E \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430."
+            };
+          }
+          const eligibleOrders = candidateOrders.filter(
+            (o) => this.isBalanceRelatedError(o.error)
+          );
+          const skippedCount = candidateOrders.length - eligibleOrders.length;
+          let flushedCount = 0;
+          for (const order of eligibleOrders) {
+            await db.order.update({
+              where: { id: order.id },
+              data: {
+                status: "PENDING",
+                error: null,
+                retryCount: { increment: 1 }
+              }
+            });
+            const jobId = `dispatch-${order.id}-${Date.now()}`;
+            await ordersQueue.add("order-dispatch", { orderId: order.id }, { jobId });
+            flushedCount++;
+          }
+          if (options?.initiatedBy && flushedCount > 0) {
+            await auditAdminAwaitable({
+              adminId: options.initiatedBy.id,
+              adminEmail: options.initiatedBy.email,
+              action: "PROVIDER_BATCH_AUTOFLUSH",
+              target: providerId,
+              targetType: "PROVIDER",
+              newValue: {
+                flushedCount,
+                skippedCount,
+                balanceRub: balanceData.balanceRub
+              }
+            });
+          }
+          return {
+            providerId,
+            providerName: provider.name,
+            flushedCount,
+            skippedCount,
+            currentBalanceRub: balanceData.balanceRub,
+            status: "SUCCESS",
+            message: `\u0423\u0441\u043F\u0435\u0448\u043D\u043E \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u043E \u0432 \u043E\u0447\u0435\u0440\u0435\u0434\u044C: ${flushedCount} \u0437\u0430\u043A\u0430\u0437\u043E\u0432. \u041F\u0440\u043E\u043F\u0443\u0449\u0435\u043D\u043E (\u043D\u0435 \u0431\u0430\u043B\u0430\u043D\u0441\u043E\u0432\u044B\u0435 \u043E\u0448\u0438\u0431\u043A\u0438): ${skippedCount}.`
+          };
+        } finally {
+          try {
+            await redis.del(lockKey);
+          } catch {
+          }
+        }
+      }
+      /**
+       * Sweeps all active providers and flushes eligible orders if balance was restored.
+       */
+      static async sweepAllProviders() {
+        const activeProviders = await db.provider.findMany({
+          where: { isActive: true },
+          select: { id: true }
+        });
+        const results = [];
+        for (const p of activeProviders) {
+          try {
+            const res = await this.checkAndFlushProvider(p.id, { forceRefresh: false });
+            if (res.flushedCount > 0) {
+              results.push(res);
+            }
+          } catch (err) {
+            console.error(`[BalanceAutoFlush] Error sweeping provider ${p.id}:`, err);
+          }
+        }
+        return results;
+      }
+    };
+  }
+});
+
 // node_modules/entities/dist/commonjs/decode-codepoint.js
 var require_decode_codepoint = __commonJS({
   "node_modules/entities/dist/commonjs/decode-codepoint.js"(exports2) {
@@ -138309,11 +139157,13 @@ async function orderProcessor(job) {
       log6.error(`[OrderProcessor] Provider error on route ${route.provider.name} for order ${order.id}: ${originalError}`);
       if (route.failoverMode !== "automatic") {
         log6.warn(`[OrderProcessor] Failover mode is '${route.failoverMode}' for route ${route.id}. Halting cascade to prevent quality drift.`);
+        const isBalanceErr = originalError.toLowerCase().includes("not enough") || originalError.toLowerCase().includes("balance") || originalError.toLowerCase().includes("\u043D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u043E\u0447\u043D\u043E") || originalError.toLowerCase().includes("funds");
+        const tag = isBalanceErr ? "[INSUFFICIENT_PROVIDER_BALANCE] " : "";
         await db.order.update({
           where: { id: order.id },
           data: {
             status: "PENDING_CHECK",
-            error: `\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 ${route.provider.name}: ${originalError}. \u0410\u0432\u0442\u043E-\u043F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435 \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u043E (manual mode). \u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u043E\u043C.`
+            error: `${tag}\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 ${route.provider.name}: ${originalError}. \u0410\u0432\u0442\u043E-\u043F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435 \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u043E (manual mode). \u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u043E\u043C.`
           }
         });
         try {
@@ -139720,6 +140570,15 @@ async function runCleanup() {
     log14.error("Failed to prune old ProviderProxyLog records", { error: err });
   }
   try {
+    const { BalanceAutoFlushService: BalanceAutoFlushService2 } = await Promise.resolve().then(() => (init_balance_autoflush_service(), balance_autoflush_service_exports));
+    const flushed = await BalanceAutoFlushService2.sweepAllProviders();
+    if (flushed.length > 0) {
+      log14.info(`[Cleanup] Smart Balance Auto-Flush dispatched ${flushed.reduce((acc, f) => acc + f.flushedCount, 0)} orders across ${flushed.length} providers.`);
+    }
+  } catch (err) {
+    log14.error("Failed to run BalanceAutoFlushService sweep", { error: err });
+  }
+  try {
     const securityEventThreshold = new Date(now);
     securityEventThreshold.setDate(securityEventThreshold.getDate() - 90);
     const securityEventResult = await db.securityEvent.deleteMany({
@@ -140471,91 +141330,8 @@ async function paginatedQuery(model, params) {
   };
 }
 
-// src/lib/admin-audit.ts
-init_db();
-function safeSerialize(value) {
-  if (value === void 0 || value === null) return null;
-  const seen = /* @__PURE__ */ new Set();
-  function recurse(val) {
-    if (val === null || val === void 0) {
-      return val;
-    }
-    if (typeof val === "bigint") {
-      return val.toString();
-    }
-    if (typeof val !== "object") {
-      return val;
-    }
-    if (seen.has(val)) {
-      return "[Circular]";
-    }
-    seen.add(val);
-    if (Array.isArray(val)) {
-      const arr = val.map((item) => recurse(item));
-      seen.delete(val);
-      return arr;
-    }
-    if (val instanceof Date) {
-      return val.toISOString();
-    }
-    if (val instanceof RegExp) {
-      return val.toString();
-    }
-    const obj = val;
-    const result = {};
-    const sensitiveKeys = ["password", "pass", "hash", "token", "secret", "key", "credentials", "yookassa", "vault"];
-    for (const k of Object.keys(obj)) {
-      const lowerKey = k.toLowerCase();
-      const isSensitive = sensitiveKeys.some((sensitive) => lowerKey.includes(sensitive));
-      if (isSensitive) {
-        result[k] = "[SCRUBBED]";
-      } else {
-        result[k] = recurse(obj[k]);
-      }
-    }
-    seen.delete(val);
-    return result;
-  }
-  try {
-    const cleaned = recurse(value);
-    return JSON.stringify(cleaned);
-  } catch (err) {
-    console.error("[AdminAudit] Failed to serialize:", err);
-    return "[Serialization Failed]";
-  }
-}
-function auditAdmin(params) {
-  void db.adminAuditLog.create({
-    data: {
-      adminId: params.adminId,
-      adminEmail: params.adminEmail,
-      action: params.action,
-      target: params.target,
-      targetType: params.targetType,
-      oldValue: safeSerialize(params.oldValue),
-      newValue: safeSerialize(params.newValue),
-      ipAddress: params.ipAddress ?? null
-    }
-  }).catch((err) => {
-    console.error("[AdminAudit] Failed to write log:", err);
-  });
-}
-async function auditAdminAwaitable(params) {
-  return db.adminAuditLog.create({
-    data: {
-      adminId: params.adminId,
-      adminEmail: params.adminEmail,
-      action: params.action,
-      target: params.target,
-      targetType: params.targetType,
-      oldValue: safeSerialize(params.oldValue),
-      newValue: safeSerialize(params.newValue),
-      ipAddress: params.ipAddress ?? null
-    }
-  });
-}
-
 // src/services/admin/catalog.service.ts
+init_admin_audit();
 init_notifications();
 init_provider_service();
 init_settings();
@@ -141135,7 +141911,7 @@ var AdminCatalogService = class {
       where,
       orderBy,
       include: {
-        category: { select: { id: true, name: true, network: { select: { name: true, slug: true } } } },
+        category: { select: { id: true, name: true, icon: true, network: { select: { name: true, slug: true, icon: true } } } },
         _count: { select: { orders: true } }
       }
     });
@@ -143578,6 +144354,7 @@ init_notifications();
 // src/services/financial/ledger-reconciliation.service.ts
 init_db();
 var import_client4 = require("@prisma/client");
+init_admin_audit();
 var LedgerReconciliationService = class {
   /**
    * Fast platform-wide summary statistics using high-performance SQL aggregation.

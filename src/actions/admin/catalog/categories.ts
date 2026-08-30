@@ -6,6 +6,7 @@ import { requireStaffPermission } from "@/lib/server/rbac";
 import { auditAdmin, auditAdminAwaitable } from "@/lib/admin-audit";
 import { z } from "zod";
 import { revalidatePath, revalidateTag } from "next/cache";
+import { normalizeIconDescriptor } from "@/lib/icons/safe-svg";
 
 const categorySchema = z.object({
   name: z.string().min(1, "Название категории обязательно").max(255, "Category name too long"),
@@ -15,7 +16,8 @@ const categorySchema = z.object({
   activityType: z.string().optional().nullable(),
   requireWarning: z.coerce.boolean().default(false),
   warningMessage: z.string().max(1000, "Предупреждение слишком длинное").optional().nullable(),
-  analyzerTags: z.string().max(255).optional().nullable()
+  analyzerTags: z.string().max(255).optional().nullable(),
+  icon: z.string().max(35000, "Icon payload too large").optional().nullable()
 }).refine(data => !data.requireWarning || (typeof data.warningMessage === 'string' && data.warningMessage.trim().length > 0), {
   message: "Укажите текст предупреждения при включённой опции предупреждения",
   path: ["warningMessage"]
@@ -23,9 +25,16 @@ const categorySchema = z.object({
 
 const idSchema = z.string().min(1);
 
-export async function createCategory(rawData: { name: string; networkId: string; sort: number; tenantId?: string | null; activityType?: string | null; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null }) {
+export async function createCategory(rawData: { name: string; networkId: string; sort: number; tenantId?: string | null; activityType?: string | null; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null; icon?: string | null }) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const data = categorySchema.parse(rawData);
+    
+    // Normalize and sanitize icon
+    const iconResult = normalizeIconDescriptor(data.icon);
+    if (!iconResult.success) {
+      return { success: false, error: iconResult.error || 'Некорректная иконка' };
+    }
+
     const cat = await db.category.create({
       data: {
         name: data.name,
@@ -35,7 +44,8 @@ export async function createCategory(rawData: { name: string; networkId: string;
         activityType: data.activityType,
         requireWarning: data.requireWarning,
         warningMessage: data.warningMessage,
-        analyzerTags: data.analyzerTags
+        analyzerTags: data.analyzerTags,
+        icon: iconResult.normalized
       }
     });
 
@@ -60,10 +70,17 @@ export async function createCategory(rawData: { name: string; networkId: string;
   });
 }
 
-export async function updateCategory(rawId: string, rawData: { name: string; networkId: string; sort: number; tenantId?: string | null; activityType?: string | null; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null }) {
+export async function updateCategory(rawId: string, rawData: { name: string; networkId: string; sort: number; tenantId?: string | null; activityType?: string | null; requireWarning?: boolean; warningMessage?: string | null; analyzerTags?: string | null; icon?: string | null }) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const id = idSchema.parse(rawId);
     const data = categorySchema.parse(rawData);
+
+    // Normalize and sanitize icon
+    const iconResult = normalizeIconDescriptor(data.icon);
+    if (!iconResult.success) {
+      return { success: false, error: iconResult.error || 'Некорректная иконка' };
+    }
+
     const cat = await db.category.update({
       where: { id },
       data: {
@@ -74,7 +91,8 @@ export async function updateCategory(rawId: string, rawData: { name: string; net
         activityType: data.activityType,
         requireWarning: data.requireWarning,
         warningMessage: data.warningMessage,
-        analyzerTags: data.analyzerTags
+        analyzerTags: data.analyzerTags,
+        icon: iconResult.normalized
       }
     });
 
@@ -84,7 +102,7 @@ export async function updateCategory(rawId: string, rawData: { name: string; net
       action: "CATEGORY_UPDATE",
       target: cat.id,
       targetType: "SETTINGS",
-      newValue: { name: cat.name, networkId: cat.networkId, tenantId: cat.tenantId, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage, analyzerTags: cat.analyzerTags }
+      newValue: { name: cat.name, networkId: cat.networkId, tenantId: cat.tenantId, requireWarning: cat.requireWarning, warningMessage: cat.warningMessage, analyzerTags: cat.analyzerTags, icon: cat.icon }
     });
 
     revalidatePath("/admin/catalog/categories");
@@ -276,17 +294,24 @@ export async function mergeCategoriesAction(sourceCategoryId: string, targetCate
 const networkSchema = z.object({
   name: z.string().min(1, "Name is required").max(255, "Name too long"),
   slug: z.string().min(1, "Slug is required").max(255, "Slug too long").regex(/^[a-z0-9-_]+$/, "Slug must be lowercase alphanumeric, dashes or underscores"),
-  sort: z.coerce.number().int().default(0)
+  sort: z.coerce.number().int().default(0),
+  icon: z.string().max(35000, "Icon payload too large").optional().nullable()
 });
 
 /** Create a new network with Zod validation and unique constraint check */
-export async function createNetworkAction(rawData: { name: string; slug: string; sort: number }) {
+export async function createNetworkAction(rawData: { name: string; slug: string; sort: number; icon?: string | null }) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     const parsed = networkSchema.safeParse(rawData);
     if (!parsed.success) {
       return { success: false as const, error: parsed.error.errors[0]?.message || 'Invalid network data' };
     }
     const data = parsed.data;
+
+    // Normalize and sanitize icon
+    const iconResult = normalizeIconDescriptor(data.icon);
+    if (!iconResult.success) {
+      return { success: false as const, error: iconResult.error || 'Некорректная иконка' };
+    }
 
     // Check uniqueness of name and slug
     const existing = await db.network.findFirst({
@@ -305,7 +330,8 @@ export async function createNetworkAction(rawData: { name: string; slug: string;
       data: {
         name: data.name,
         slug: data.slug,
-        sort: data.sort
+        sort: data.sort,
+        icon: iconResult.normalized
       }
     });
 
@@ -315,7 +341,7 @@ export async function createNetworkAction(rawData: { name: string; slug: string;
       action: 'NETWORK_CREATE',
       target: network.id,
       targetType: 'SETTINGS',
-      newValue: { name: network.name, slug: network.slug, sort: network.sort }
+      newValue: { name: network.name, slug: network.slug, sort: network.sort, icon: network.icon }
     });
 
     revalidatePath("/admin/catalog/categories");
@@ -327,7 +353,7 @@ export async function createNetworkAction(rawData: { name: string; slug: string;
 }
 
 /** Update an existing network with Zod validation and unique constraint check */
-export async function updateNetworkAction(id: string, rawData: { name: string; slug: string; sort: number }) {
+export async function updateNetworkAction(id: string, rawData: { name: string; slug: string; sort: number; icon?: string | null }) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     if (!id || typeof id !== 'string') {
       return { success: false as const, error: 'Network ID is required' };
@@ -338,6 +364,12 @@ export async function updateNetworkAction(id: string, rawData: { name: string; s
       return { success: false as const, error: parsed.error.errors[0]?.message || 'Invalid network data' };
     }
     const data = parsed.data;
+
+    // Normalize and sanitize icon
+    const iconResult = normalizeIconDescriptor(data.icon);
+    if (!iconResult.success) {
+      return { success: false as const, error: iconResult.error || 'Некорректная иконка' };
+    }
 
     // Check network exists
     const network = await db.network.findUnique({ where: { id } });
@@ -359,12 +391,13 @@ export async function updateNetworkAction(id: string, rawData: { name: string; s
       return { success: false as const, error: 'Соцсеть с таким названием или slug уже существует' };
     }
 
-    const updatedNetwork = await db.network.update({
+    const updated = await db.network.update({
       where: { id },
       data: {
         name: data.name,
         slug: data.slug,
-        sort: data.sort
+        sort: data.sort,
+        icon: iconResult.normalized
       }
     });
 
@@ -374,8 +407,8 @@ export async function updateNetworkAction(id: string, rawData: { name: string; s
       action: 'NETWORK_UPDATE',
       target: id,
       targetType: 'SETTINGS',
-      oldValue: { name: network.name, slug: network.slug, sort: network.sort },
-      newValue: { name: updatedNetwork.name, slug: updatedNetwork.slug, sort: updatedNetwork.sort }
+      oldValue: { name: network.name, slug: network.slug, sort: network.sort, icon: network.icon },
+      newValue: { name: updated.name, slug: updated.slug, sort: updated.sort, icon: updated.icon }
     });
 
     revalidatePath("/admin/catalog/categories");

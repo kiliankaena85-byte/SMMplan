@@ -232,6 +232,7 @@ model Category {
   requireWarning Boolean   @default(false)
   warningMessage String?
   analyzerTags   String?   // Comma-separated list of Link Analyzer types (e.g. "private_post,channel")
+  icon           String?   // SVG content or icon key ("lucide:heart", "brand:telegram", "custom:<svg>...")
   services       Service[]
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -246,6 +247,7 @@ model Service {
   numericId        Int       @unique @default(autoincrement())
   name             String
   description      String? // Public SEO description (shown to clients)
+  icon             String? // SVG content or icon key ("lucide:zap", "brand:telegram", "custom:<svg>...")
   features         Json? // Structured metadata extracted by AI (geo, speed, warranty)
   categoryId       String
   category         Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)

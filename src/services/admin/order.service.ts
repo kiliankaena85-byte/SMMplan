@@ -427,14 +427,18 @@ class AdminOrderService {
         include: { user: true }
       });
 
-      if (order.status !== 'ERROR') {
+      if (order.status !== 'ERROR' && order.status !== 'PENDING_CHECK' && order.status !== 'CANCELED') {
         throw new Error(`Order ${order.numericId} cannot be restarted (status: ${order.status}). Используйте "Дублировать заказ".`);
       }
 
-      await WalletOps.charge(tx, order.userId, Number(order.charge),
-        `Перезапуск заказа ${order.numericId} администратором - Повторное списание`,
-        { adminId: admin.id }
-      );
+      // If previously in terminal refunded status (ERROR / CANCELED), re-charge customer.
+      // If in PENDING_CHECK, money was already charged and held in escrow, so do NOT charge again!
+      if (order.status === 'ERROR' || order.status === 'CANCELED') {
+        await WalletOps.charge(tx, order.userId, Number(order.charge),
+          `Перезапуск заказа ${order.numericId} администратором - Повторное списание`,
+          { adminId: admin.id }
+        );
+      }
 
       // Reset order state
       await tx.order.update({
@@ -452,6 +456,15 @@ class AdminOrderService {
       return { orderNumericId: order.numericId, oldStatus: order.status, oldError: order.error, charge: order.charge };
     });
 
+    // Enqueue into BullMQ dispatcher queue
+    try {
+      const { ordersQueue } = await import('@/lib/queue-manager');
+      const jobId = `dispatch-${orderId}-${Date.now()}`;
+      await ordersQueue.add('order-dispatch', { orderId }, { jobId });
+    } catch (queueErr) {
+      console.error(`[AdminOrderService] Failed to enqueue restarted order ${orderId}:`, queueErr);
+    }
+
     await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
@@ -459,7 +472,7 @@ class AdminOrderService {
       target: orderId,
       targetType: 'ORDER',
       oldValue: { status: result.oldStatus, error: result.oldError },
-      newValue: { status: 'PENDING', reChargeCents: result.charge },
+      newValue: { status: 'PENDING', reChargeCents: result.oldStatus === 'PENDING_CHECK' ? 0 : result.charge },
     });
 
     return { orderNumericId: result.orderNumericId };

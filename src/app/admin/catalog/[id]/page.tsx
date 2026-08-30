@@ -71,6 +71,7 @@ export default async function AdminEditServicePage({ params, searchParams }: Pro
     id: service.id,
     name: service.name,
     description: service.description,
+    icon: service.icon,
     categoryId: service.categoryId || '',
     rate: service.rate || 0.01,
     markup: service.markup || 1.5,

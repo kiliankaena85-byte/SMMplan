@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { updateServiceAction } from '@/actions/admin/catalog/services';
 import { applyBeautifulRounding, SAFETY_FLOOR_MARKUP } from '@/lib/financial-constants';
+import { IconPicker } from '@/components/admin/icon-picker/IconPicker';
 import {
   TargetTypeEnum,
   inferTargetTypeFromName,
@@ -36,6 +37,7 @@ export interface InitialServiceData {
   id?: string;
   name: string;
   description: string | null;
+  icon?: string | null;
   categoryId: string;
   rate: number;
   markup: number;
@@ -100,6 +102,7 @@ export function ServiceEditForm({
 
   const [name, setName] = useState(initialData.name);
   const [description, setDescription] = useState(initialData.description || '');
+  const [icon, setIcon] = useState<string | null>(initialData.icon || null);
   const [categoryId, setCategoryId] = useState(initialData.categoryId);
   const [targetType, setTargetType] = useState<string>(
     initialData.targetType || inferTargetTypeFromName(initialData.name)
@@ -167,6 +170,7 @@ export function ServiceEditForm({
         const res = await updateServiceAction(initialData.id!, {
           name,
           description: description || null,
+          icon,
           categoryId,
           targetType,
           providerId: providerId || null,
@@ -258,6 +262,17 @@ export function ServiceEditForm({
                 onChange={e => setName(e.target.value)}
                 required
                 className="w-full px-3 py-2 rounded-xl border border-border bg-background text-foreground text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              />
+            </div>
+
+            {/* Visual Icon Picker */}
+            <div>
+              <IconPicker
+                label="Визуальная иконка тарифа / услуги"
+                context="service"
+                value={icon}
+                onChange={setIcon}
+                suggestName={name}
               />
             </div>
 

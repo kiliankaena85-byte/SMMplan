@@ -110,6 +110,17 @@ export async function runCleanup(): Promise<void> {
     log.error('Failed to prune old ProviderProxyLog records', { error: err });
   }
 
+  // ── 3.9. Smart Auto-Flush: PENDING_CHECK orders if provider balance restored ──
+  try {
+    const { BalanceAutoFlushService } = await import('@/services/providers/balance-autoflush.service');
+    const flushed = await BalanceAutoFlushService.sweepAllProviders();
+    if (flushed.length > 0) {
+      log.info(`[Cleanup] Smart Balance Auto-Flush dispatched ${flushed.reduce((acc, f) => acc + f.flushedCount, 0)} orders across ${flushed.length} providers.`);
+    }
+  } catch (err) {
+    log.error('Failed to run BalanceAutoFlushService sweep', { error: err });
+  }
+
   // ── 3.9. SecurityEvent: INFO / WARNING older than 90 days (Storage Optimization) ───
   // Note: CRITICAL security events are kept indefinitely for audit integrity.
   try {

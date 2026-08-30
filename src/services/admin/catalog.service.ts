@@ -210,6 +210,7 @@ export type CatalogRow = {
   numericId: number;
   name: string;
   description: string | null;
+  icon?: string | null;
   externalId: string | null;
   providerId: string | null;
   rate: number;       // provider cost per 1000 (USD)
@@ -234,7 +235,7 @@ export type CatalogRow = {
   clientConfirmation?: string | null;
   qualityTier?: string | null;
   createdAt?: Date | string | null;
-  category: { id: string; name: string; network?: { name: string; slug: string } | null };
+  category: { id: string; name: string; icon?: string | null; network?: { name: string; slug: string; icon?: string | null } | null };
   _count: { orders: number };
 };
 
@@ -449,7 +450,7 @@ class AdminCatalogService {
       where,
       orderBy,
       include: {
-        category: { select: { id: true, name: true, network: { select: { name: true, slug: true } } } },
+        category: { select: { id: true, name: true, icon: true, network: { select: { name: true, slug: true, icon: true } } } },
         _count: { select: { orders: true } },
       },
     });

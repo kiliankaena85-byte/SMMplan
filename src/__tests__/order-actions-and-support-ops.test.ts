@@ -254,5 +254,44 @@ describe('Order Management & Support Actions — Comprehensive E2E Suite', () =>
       expect(restarted.error).toBeNull();
       expect(restarted.retryCount).toBe(0);
     });
+
+    it('restarts order in PENDING_CHECK without charging customer again', async () => {
+      const userBefore = await db.user.findUniqueOrThrow({ where: { id: testUserId } });
+      const balanceBefore = userBefore.balance;
+
+      const order = await db.order.create({
+        data: {
+          numericId: Math.floor(Date.now() / 1000) + 1,
+          userId: testUserId,
+          serviceId: testServiceId,
+          providerId: testProviderId,
+          status: 'PENDING_CHECK',
+          error: 'Ошибка поставщика VexBoost: Not enough funds. Авто-переключение отключено (manual mode). Требуется проверка оператором.',
+          quantity: 100,
+          remains: 100,
+          charge: BigInt(5000),
+          providerCost: BigInt(2000),
+          link: 'https://t.me/durov',
+          tenantId: 'smmplan',
+        }
+      });
+
+      const res = await adminOrderService.restartOrder(order.id, {
+        id: testUserId,
+        email: 'admin@smmplan.pro',
+      });
+
+      expect(res.orderNumericId).toBe(order.numericId);
+
+      const restarted = await db.order.findUniqueOrThrow({ where: { id: order.id } });
+      expect(restarted.status).toBe('PENDING');
+      expect(restarted.error).toBeNull();
+      expect(restarted.retryCount).toBe(0);
+
+      // Verify user balance was NOT charged a second time
+      const userAfter = await db.user.findUniqueOrThrow({ where: { id: testUserId } });
+      expect(userAfter.balance).toBe(balanceBefore);
+    });
   });
 });
+

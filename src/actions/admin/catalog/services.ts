@@ -10,6 +10,7 @@ import { SettingsProvider } from "@/lib/settings";
 import { applyBeautifulRounding } from "@/lib/financial-constants";
 import { inferTargetTypeFromCategory } from "@/utils/target-type";
 import { validateRegexSafetyAndSmoke } from "@/validators/link-mutators";
+import { normalizeIconDescriptor } from "@/lib/icons/safe-svg";
 
 export async function ensureTaxonomyTenantAccess(categoryId: string) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
@@ -57,6 +58,7 @@ const serviceSchema = z.object({
   tenantId: z.enum(["smmplan", "flux"]).default("smmplan"),
   name: z.string().min(1, "Название услуги обязательно").max(255, "Название слишком длинное"),
   description: z.string().optional().nullable(),
+  icon: z.string().max(35000, "Icon payload too large").optional().nullable(),
   categoryId: z.string().min(1, "Категория обязательна"),
   providerId: z.string().optional().nullable(),
   rate: z.coerce.number().min(0, "Тариф провайдера должен быть больше или равен 0"),
@@ -142,6 +144,12 @@ export async function createServiceAction(rawData: unknown) {
     const exchangeRate = providerCurrency === 'RUB' ? 1.0 : usdToRub;
     const pricePer1000Cents = Math.round(applyBeautifulRounding(data.rate * data.markup * exchangeRate) * 100);
 
+    // Normalize and sanitize icon
+    const iconResult = normalizeIconDescriptor(data.icon);
+    if (!iconResult.success) {
+      return { success: false as const, error: iconResult.error || 'Некорректная иконка' };
+    }
+
     // Atomically create the service
     const service = await db.$transaction(async (tx) => {
       return await tx.service.create({
@@ -150,6 +158,7 @@ export async function createServiceAction(rawData: unknown) {
           slug: slugCandidate,
           name: data.name,
           description: data.description,
+          icon: iconResult.normalized,
           categoryId: data.categoryId,
           providerId: data.providerId,
           rate: data.rate,
@@ -278,6 +287,12 @@ export async function updateServiceAction(id: string, rawData: unknown) {
     const exchangeRate = providerCurrency === 'RUB' ? 1.0 : usdToRub;
     const pricePer1000Cents = Math.round(applyBeautifulRounding(effectiveRate * data.markup * exchangeRate) * 100);
 
+    // Normalize and sanitize icon
+    const iconResult = normalizeIconDescriptor(data.icon);
+    if (!iconResult.success) {
+      return { success: false as const, error: iconResult.error || 'Некорректная иконка' };
+    }
+
     // Check if name or description were customized
     const isCustomName = data.name !== service.name ? true : service.isCustomName;
     const isCustomDescription = data.description !== service.description ? true : service.isCustomDescription;
@@ -289,6 +304,7 @@ export async function updateServiceAction(id: string, rawData: unknown) {
         data: {
           name: data.name,
           description: data.description,
+          icon: iconResult.normalized,
           isCustomName,
           isCustomDescription,
           categoryId: data.categoryId,

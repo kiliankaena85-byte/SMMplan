@@ -1,7 +1,37 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-30 19:50 (МСК)
+> **Последнее обновление:** 2026-08-30 20:41 (МСК)
+
+- **Smart Provider Balance Recovery & Auto-Flush Engine (100% COMPLETE & VERIFIED):**
+  - **1. Разрешение безопасного перезапуска заказов `PENDING_CHECK`:**
+    - В [`src/services/admin/order.service.ts`](file:///d:/SMM_plan_2/src/services/admin/order.service.ts) устранена ошибка блокировки *«Используйте "Дублировать заказ"»*. Заказы `PENDING_CHECK` теперь перезапускаются без повторного списания с клиента (деньги сохранены в Escrow) и мгновенно ставятся в очередь воркера.
+  - **2. Интеллектуальный классификатор и движок авто-сброса (`BalanceAutoFlushService`):**
+    - Создан сервис [`src/services/providers/balance-autoflush.service.ts`](file:///d:/SMM_plan_2/src/services/providers/balance-autoflush.service.ts) с распределенным мьютексом (`lock:provider:flush:${providerId}`), фильтрацией балансовых ошибок (`INSUFFICIENT_PROVIDER_BALANCE`), аварийным стоп-краном (`autoflush:enabled`) и защитой от Rate Limit 429.
+  - **3. Интеграция в фоновые процессы и панель управления:**
+    - Фоновый воркер [`cleanup.processor.ts`](file:///d:/SMM_plan_2/src/workers/processors/cleanup.processor.ts) периодически опрашивает баланс активных поставщиков и автоматически отправляет отложенные заказы при появлении средств.
+    - В карточку баланса провайдера [`provider-balance-cell.tsx`](file:///d:/SMM_plan_2/src/app/admin/providers/components/provider-balance-cell.tsx) и Server Actions [`balance.ts`](file:///d:/SMM_plan_2/src/actions/admin/providers/balance.ts) добавлена функция `syncAndFlushProviderOrdersAction` (ручной запуск и отчёт по отправленным заказам).
+  - **4. Верификация:**
+    - Новый юнит-сьют: [`balance-autoflush-resilience.test.ts`](file:///d:/SMM_plan_2/src/__tests__/providers/balance-autoflush-resilience.test.ts) (**4/4 PASS**).
+    - Общий сьют `vitest.unit.config.ts`: **24/24 test suites, 207/207 tests PASS (100% GREEN)**.
+    - Проверка типов: `npx tsc --noEmit` $\rightarrow$ **0 ошибок**.
+
+
+- **OmniSMM Smart Icon Engine v1.0: Vector & SVG Icons for Networks, Categories & Services (100% COMPLETE & VERIFIED):**
+  - **1. Интеллектуальный реестр и санитизация SVG (OWASP A03/A07 Pentest Immunity):**
+    - Разработан отказоустойчивый санитизатор [`src/lib/icons/safe-svg.ts`](file:///d:/SMM_plan_2/src/lib/icons/safe-svg.ts) с белым списком безопасных SVG-тегов и защитой от Stored XSS, XXE, `<script>`, `onload=` и `javascript:` псевдопротоколов.
+    - Реализован реестр [`src/lib/icons/icon-registry.ts`](file:///d:/SMM_plan_2/src/lib/icons/icon-registry.ts) с русско-английским полнотекстовым поиском по синонимам и алгоритмом автоподбора иконок по названию (`suggestIconsFromName`).
+    - Создан изоморфный компонент [`UniversalIcon.tsx`](file:///d:/SMM_plan_2/src/components/ui/UniversalIcon.tsx), поддерживающий `lucide:...`, `brand:...` и `custom:<svg>...` с нулевым раздутием бандла.
+  - **2. Интеграция во все 3 сущности каталога:**
+    - **Соцсети (Networks):** В модальное окно создания/редактирования соцсетей ([`category-manager.tsx`](file:///d:/SMM_plan_2/src/app/admin/catalog/categories/components/category-manager.tsx)) интегрирован `<IconPicker context="network" />`.
+    - **Категории (Categories):** Добавлено поле `icon` в Prisma и форму категории с умными подсказками (1-клик выбор). Иконки отображаются в таблице категорий.
+    - **Услуги (Services):** В [`service-edit-form.tsx`](file:///d:/SMM_plan_2/src/app/admin/catalog/components/service-edit-form.tsx) и [`catalog-table-v2.tsx`](file:///d:/SMM_plan_2/src/components/admin/catalog-table-v2.tsx) подключен выбор и отображение визуальных иконок тарифов.
+    - **Мобильный визард & Витрины:** В [`MobileStep2Category.tsx`](file:///d:/SMM_plan_2/src/components/landing/order-engine/wizard-steps/MobileStep2Category.tsx) и [`CategoryIcon.tsx`](file:///d:/SMM_plan_2/src/components/ui/CategoryIcon.tsx) добавлена бесшовная поддержка дескрипторов иконок.
+  - **3. Верификация:**
+    - Новый юнит-сьют: [`src/lib/icons/__tests__/safe-svg.test.ts`](file:///d:/SMM_plan_2/src/lib/icons/__tests__/safe-svg.test.ts) (**15/15 PASS**).
+    - Общий сьют `vitest.unit.config.ts`: **22/22 test suites, 194/194 tests PASS (100% GREEN)**.
+    - Проверка типов: `npx tsc --noEmit` $\rightarrow$ **0 ошибок**.
+    - Смок-тест живого контейнера: `scripts/smoke-live-container.ts` $\rightarrow$ **15/15 PASS (100%)**.
 
 - **Authentication System & Personal Cabinet Login/Logout Flow Audit (100% FIXED & VERIFIED):**
   - **1. Диагностика и устранение причин сбоя входа в личный кабинет:**

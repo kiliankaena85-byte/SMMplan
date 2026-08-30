@@ -160,6 +160,8 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
       warningMessage: s.warningMessage ?? null,
       cooldownReason: s.cooldownReason ?? null,
       qualityTier: s.qualityTier ?? null,
+      icon: s.icon ?? null,
+      categoryIcon: s.category.icon ?? null,
       createdAt: s.createdAt ?? null,
     };
   });
