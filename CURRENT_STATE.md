@@ -8,7 +8,8 @@
   - **2. Гранулярное скрытие недоступных виджетов в админке (`/admin/dashboard`):** Для роли `SUPPORT` и сотрудников с ограниченными правами скрыты виджет внешней ликвидности (`ProviderLiquidityWidget`), сводка (`ExecutiveAiDigestCard`), кнопки `Kill-Switch` / обновления / Telegram и системный журнал аудита безопасности.
   - **3. Синхронизация баланса пользователя:** Устранен рассинхрон между сайдбаром и карточкой на главной (`balanceCents` и `balance` синхронизированы в `userForClient`).
   - **4. Безопасная активация сертификатов и ваучеров (`activatePromoCodeAction`):** Устранены сбои `Server component render`, внедрен строгий typed-контракт `{ success, amount, error }` с понятными текстами валидации для клиента.
-  - **5. Верификация:** `npx tsc --noEmit` $\rightarrow$ **0 ошибок**, `vitest` $\rightarrow$ **37/37 файлов (291/291 PASS, 100% GREEN)**.
+  - **5. Скрытие кнопки «Отменить заказ» для Саппорта при отключенной отмене у поставщика (Loss Prevention):** В `unified-workspace.tsx`, `OrderDetailsModal.tsx`, `order-standalone-view.tsx`, `columns.tsx` и `orders-table.tsx` кнопка «Отменить» полностью скрыта из DOM, если заказ уже передан поставщику (`IN_PROGRESS`), а у поставщика отключена функция отмены (`isCancelEnabled: false`). Исключена ложная выдача ошибок саппорту после клика.
+  - **6. Верификация:** `npx tsc --noEmit` $\rightarrow$ **0 ошибок**, `vitest` $\rightarrow$ **38/38 файлов (313/313 PASS, 100% GREEN)**.
 
 
 - **Интеграция входящей почты в техподдержку (Inbound Email Support to Tickets — 100% COMPLETE & VERIFIED):**
