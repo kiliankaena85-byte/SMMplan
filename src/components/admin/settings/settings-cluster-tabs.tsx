@@ -48,9 +48,10 @@ export function SettingsClusterTabs({ activeTab }: SettingsClusterTabsProps) {
             <Link
               key={cluster.id}
               href={targetHref}
+              scroll={false}
               className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 cursor-pointer ${
                 isSelected
-                  ? 'bg-card text-foreground shadow-sm border border-border font-bold'
+                  ? 'bg-card text-foreground shadow-sm border border-border font-bold scale-[1.01]'
                   : 'text-muted-foreground hover:text-foreground hover:bg-card/40 border border-transparent'
               }`}
             >
@@ -93,6 +94,7 @@ export function SettingsClusterTabs({ activeTab }: SettingsClusterTabsProps) {
             <Link
               key={subTab.id}
               href={`?tab=${subTab.id}`}
+              scroll={false}
               className={`flex items-center gap-2 py-2 px-4 rounded-xl text-xs font-bold transition-all shrink-0 snap-start cursor-pointer border ${
                 isSubActive
                   ? 'bg-primary/10 text-primary border-primary/30 shadow-xs'

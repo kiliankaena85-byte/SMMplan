@@ -64,15 +64,25 @@ export function SystemHealthOverview({ settings }: SystemHealthOverviewProps) {
     });
   };
 
+  const [isClient, setIsClient] = React.useState(false);
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const formatTime = (d?: Date | string | null) => {
     if (!d) return 'Не синхронизировался';
-    const date = new Date(d);
-    return date.toLocaleString('ru-RU', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    if (!isClient) return 'Загрузка...';
+    try {
+      const date = new Date(d);
+      return date.toLocaleString('ru-RU', {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return 'Не синхронизировался';
+    }
   };
 
   return (

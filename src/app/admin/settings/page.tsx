@@ -19,8 +19,7 @@ const ProviderProxyManager = dynamicImport(() => import('./provider-proxy-manage
 const SupportTemplatesSettings = dynamicImport(() => import('./support-templates').then(m => m.SupportTemplatesSettings), {
   loading: () => <div className="p-8 text-center text-xs text-muted-foreground animate-pulse">Загрузка шаблонов ответов...</div>
 });
-import { DataTable } from '@/components/ui/data-table';
-import { columns as auditColumns } from './audit-columns';
+import { AuditLogsTab } from '@/components/admin/settings/audit-logs-tab';
 import Link from 'next/link';
 import { enforceSectionAccess } from '@/lib/server/rbac';
 import { SettingsProvider } from '@/lib/settings';
@@ -119,13 +118,12 @@ export default async function AdminSettingsPage({
   const regularUsers = users.filter((u) => u.id !== admin.id);
 
   return (
-    <div className="space-y-6 w-full min-w-0 animate-in fade-in duration-300 ease-out sm:px-2 md:px-0 min-h-full pb-10">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2">
+    <div className="space-y-6 max-w-5xl mx-auto w-full min-w-0 animate-in fade-in duration-300 ease-out px-1 sm:px-4 min-h-full pb-16">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-1">
         <AdminTabbedHeader
           icon={Settings}
           title="Настройки системы"
           description="Глобальная конфигурация платформы, безопасность и персонал."
-          tabs={SYSTEM_TABS}
           onboardingKey="settings"
           onboarding={ONBOARDING_CONFIGS.settings}
         />
@@ -202,18 +200,7 @@ export default async function AdminSettingsPage({
 
         {/* ── TAB 4: AUDIT ── */}
         {activeTab === 'audit' && (
-          <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
-            <div className="rounded-2xl border border-border shadow-sm bg-card overflow-hidden">
-              <div className="p-0">
-                <DataTable 
-                  columns={auditColumns} 
-                  data={recentLogs}
-                  searchKey="action"
-                  searchPlaceholder="Поиск по действию..."
-                />
-              </div>
-            </div>
-          </div>
+          <AuditLogsTab logs={recentLogs} />
         )}
       </div>
     </div>

@@ -210,6 +210,7 @@ export function OnboardingReadinessBar({ settings }: OnboardingReadinessBarProps
 
                 <Link
                   href={step.tabHref}
+                  scroll={false}
                   className={`text-[11px] font-bold flex items-center justify-between p-1.5 px-2.5 rounded-lg border transition-colors ${
                     step.isCompleted
                       ? 'bg-background/60 text-muted-foreground hover:text-foreground border-border/40'
