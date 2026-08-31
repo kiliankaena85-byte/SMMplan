@@ -106,8 +106,10 @@ describe.sequential('Milestone 5: Catalog CRUD & Categories Operations Test Suit
       vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
 
       // Create network & categories
-      const network = await db.network.create({
-        data: { name: 'Telegram', slug: 'telegram' },
+      const network = await db.network.upsert({
+        where: { slug: 'telegram' },
+        update: {},
+        create: { name: 'Telegram', slug: 'telegram' },
       });
       const catA = await db.category.create({
         data: { name: 'Category A', networkId: network.id },
@@ -164,8 +166,10 @@ describe.sequential('Milestone 5: Catalog CRUD & Categories Operations Test Suit
     it('should fail if target category does not exist', async () => {
       vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
 
-      const network = await db.network.create({
-        data: { name: 'Telegram', slug: 'telegram' },
+      const network = await db.network.upsert({
+        where: { slug: 'telegram' },
+        update: {},
+        create: { name: 'Telegram', slug: 'telegram' },
       });
       const catA = await db.category.create({
         data: { name: 'Category A', networkId: network.id },
@@ -197,8 +201,10 @@ describe.sequential('Milestone 5: Catalog CRUD & Categories Operations Test Suit
     it('should successfully merge category A into category B and delete A atomically', async () => {
       vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
 
-      const network = await db.network.create({
-        data: { name: 'Telegram', slug: 'telegram' },
+      const network = await db.network.upsert({
+        where: { slug: 'telegram' },
+        update: {},
+        create: { name: 'Telegram', slug: 'telegram' },
       });
       const catA = await db.category.create({
         data: { name: 'Category A', networkId: network.id },
@@ -254,8 +260,10 @@ describe.sequential('Milestone 5: Catalog CRUD & Categories Operations Test Suit
     it('should fail if source category does not exist', async () => {
       vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
 
-      const network = await db.network.create({
-        data: { name: 'Telegram', slug: 'telegram' },
+      const network = await db.network.upsert({
+        where: { slug: 'telegram' },
+        update: {},
+        create: { name: 'Telegram', slug: 'telegram' },
       });
       const catB = await db.category.create({
         data: { name: 'Category B', networkId: network.id },
@@ -271,8 +279,10 @@ describe.sequential('Milestone 5: Catalog CRUD & Categories Operations Test Suit
     it('should fail if target category does not exist', async () => {
       vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
 
-      const network = await db.network.create({
-        data: { name: 'Telegram', slug: 'telegram' },
+      const network = await db.network.upsert({
+        where: { slug: 'telegram' },
+        update: {},
+        create: { name: 'Telegram', slug: 'telegram' },
       });
       const catA = await db.category.create({
         data: { name: 'Category A', networkId: network.id },
@@ -300,8 +310,10 @@ describe.sequential('Milestone 5: Catalog CRUD & Categories Operations Test Suit
     it('should successfully create a new category under a network with tenantId and record audit log', async () => {
       vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
 
-      const network = await db.network.create({
-        data: { name: 'Telegram', slug: 'telegram' },
+      const network = await db.network.upsert({
+        where: { slug: 'telegram' },
+        update: {},
+        create: { name: 'Telegram', slug: 'telegram' },
       });
 
       const payload = {
@@ -504,8 +516,10 @@ describe.sequential('Milestone 5: Catalog CRUD & Categories Operations Test Suit
     it('should prevent deleting a network with associated categories', async () => {
       vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
 
-      const network = await db.network.create({
-        data: { name: 'Telegram', slug: 'telegram' },
+      const network = await db.network.upsert({
+        where: { slug: 'telegram' },
+        update: {},
+        create: { name: 'Telegram', slug: 'telegram' },
       });
       await db.category.create({
         data: { name: 'Telegram Members', networkId: network.id },
@@ -525,8 +539,9 @@ describe.sequential('Milestone 5: Catalog CRUD & Categories Operations Test Suit
     it('should successfully delete an empty network', async () => {
       vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
 
+      const ts = Date.now() + Math.floor(Math.random() * 1000000);
       const network = await db.network.create({
-        data: { name: 'Telegram', slug: 'telegram' },
+        data: { name: `Empty Net ${ts}`, slug: `empty-net-${ts}` },
       });
 
       const result = await deleteNetworkAction(network.id);
@@ -548,8 +563,10 @@ describe.sequential('Milestone 5: Catalog CRUD & Categories Operations Test Suit
       vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
 
       // Create category under network
-      const network = await db.network.create({
-        data: { name: 'Telegram', slug: 'telegram' },
+      const network = await db.network.upsert({
+        where: { slug: 'telegram' },
+        update: {},
+        create: { name: 'Telegram', slug: 'telegram' },
       });
       // Name includes 'подписчик' to test targetType auto-inference -> CHANNEL
       const category = await db.category.create({
@@ -606,8 +623,10 @@ describe.sequential('Milestone 5: Catalog CRUD & Categories Operations Test Suit
     it('should successfully update service parameters and write correct audit logging', async () => {
       vi.mocked(verifySession).mockResolvedValue({ userId: adminUser.id });
 
-      const network = await db.network.create({
-        data: { name: 'Telegram', slug: 'telegram' },
+      const network = await db.network.upsert({
+        where: { slug: 'telegram' },
+        update: {},
+        create: { name: 'Telegram', slug: 'telegram' },
       });
       const category = await db.category.create({
         data: { name: 'Лайки ВК', networkId: network.id }, // falls back to POST targetType

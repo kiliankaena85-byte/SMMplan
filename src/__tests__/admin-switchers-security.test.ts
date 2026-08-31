@@ -23,6 +23,15 @@ vi.mock('next/cache', () => ({
   unstable_cache: (fn: any) => fn,
 }));
 
+vi.mock('@/lib/redis', () => ({
+  redis: {
+    status: 'ready',
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue('OK'),
+    del: vi.fn().mockResolvedValue(1),
+  },
+}));
+
 let mockSessionUser: { userId: string; role: string; email: string; tenantId: string } | null = {
   userId: 'usr_admin',
   role: 'OWNER',
@@ -53,6 +62,10 @@ vi.mock('@/lib/db', () => ({
         tenantId: mockSessionUser?.tenantId,
         staffRole: null,
       })),
+    },
+    tenant: {
+      findUnique: vi.fn().mockImplementation(async ({ where }: any) => ({ id: where.slug || 'smmplan', slug: where.slug || 'smmplan' })),
+      findFirst: vi.fn().mockResolvedValue({ id: 'smmplan', slug: 'smmplan' }),
     },
     systemSettings: {
       upsert: vi.fn().mockResolvedValue({}),

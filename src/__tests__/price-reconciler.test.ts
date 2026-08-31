@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { db } from '@/lib/db';
 import catalogProcessor from '@/workers/processors/catalog.processor';
 import { UPPER_SANITY_LIMIT_RUB } from '@/lib/financial-constants';
@@ -14,6 +14,18 @@ describe.sequential('Price Reconciler Engine (P-D Unit Tests)', () => {
       update: { isTestMode: true, exchangeRateUSD: 100.0 },
       create: { id: 'smmplan', isTestMode: true, exchangeRateUSD: 100.0 },
     });
+  });
+
+  afterAll(async () => {
+    // Cleanup: remove all test providers/categories/services created by this suite
+    const testProviders = await db.provider.findMany({
+      where: { apiUrl: { startsWith: 'http://a/' }, apiKey: { startsWith: 'k' } },
+      select: { id: true }
+    });
+    const providerIds = testProviders.map(p => p.id);
+    await db.service.deleteMany({ where: { providerId: { in: providerIds } } }).catch(() => {});
+    await db.category.deleteMany({ where: { name: { startsWith: 'Cat ' }, services: { none: {} } } }).catch(() => {});
+    await db.provider.deleteMany({ where: { id: { in: providerIds } } }).catch(() => {});
   });
 
   it('1. Updates costPer1kRub when cost drifts > 2% without changing retail price', async () => {

@@ -1,6 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { db } from '@/lib/db';
 
+const mockCookieStore = {
+  get: vi.fn((key: string) => (key === 'x_admin_tenant' ? { value: 'smmplan' } : undefined)),
+  set: vi.fn(),
+  delete: vi.fn(),
+};
+
+vi.mock('next/headers', () => ({
+  cookies: vi.fn(async () => mockCookieStore),
+  headers: vi.fn(async () => new Headers({ 'x-forwarded-for': '127.0.0.1' })),
+}));
+
+
 vi.mock('@/lib/redis', () => ({
   redis: {
     status: 'ready',

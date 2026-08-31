@@ -72309,13 +72309,13 @@ var init_settings = __esm({
         const settings = await this.get(activeTenantId);
         let defaultSiteName = "SMMplan";
         let defaultDomain = "smmplan.pro";
-        let defaultTgBot = process.env.TELEGRAM_SUPPORT_BOT || process.env.TELEGRAM_BOT_USERNAME || "SMMplansapport_bot";
-        let defaultTgChannel = "smmplan_support";
+        let defaultTgBot = process.env.TELEGRAM_SUPPORT_BOT || process.env.TELEGRAM_BOT_USERNAME || "smmplan_support_bot";
+        let defaultTgChannel = "smmplan_news";
         if (activeTenantId === "flux" || activeTenantId === "lovable") {
           defaultSiteName = "SMMflux";
           defaultDomain = "smmflux.ru";
-          defaultTgBot = process.env.FLUX_TELEGRAM_BOT || "SMMplansapport_bot";
-          defaultTgChannel = "smmflux_support";
+          defaultTgBot = process.env.FLUX_TELEGRAM_BOT || "smmflux_support_bot";
+          defaultTgChannel = "smmflux_news";
         }
         return {
           SITE_NAME: settings.siteName || defaultSiteName,

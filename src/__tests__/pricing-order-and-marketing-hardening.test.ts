@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import { db } from '@/lib/db';
 import { marketingService } from '@/services/marketing.service';
 import { getServiceBySlugAction } from '@/actions/order/catalog';
@@ -18,6 +18,19 @@ describe.sequential('Pricing Hardening: Marketing Engine, Storefront Parity & Ad
       update: { isTestMode: true, exchangeRateUSD: 100.0 },
       create: { id: 'smmplan', isTestMode: true, exchangeRateUSD: 100.0 },
     });
+  });
+
+  afterAll(async () => {
+    // Cleanup test-created providers, categories, services and networks by pattern
+    const testProviders = await db.provider.findMany({
+      where: { OR: [{ apiKey: { startsWith: 'k' }, apiUrl: { startsWith: 'http://a/' } }] },
+      select: { id: true }
+    });
+    const provIds = testProviders.map(p => p.id);
+    await db.service.deleteMany({ where: { providerId: { in: provIds } } }).catch(() => {});
+    await db.provider.deleteMany({ where: { id: { in: provIds } } }).catch(() => {});
+    // Orphaned categories created in this test (no network, no services left)
+    await db.category.deleteMany({ where: { networkId: null, services: { none: {} } } }).catch(() => {});
   });
 
   describe('1. Marketing Service Multi-Currency & Cross-Rate Accuracy', () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { db } from '@/lib/db';
 import { orderService } from '@/services/core/order.service';
 import { getTenantConfig } from '@/config/tenant-config';
@@ -8,6 +8,8 @@ describe('Multi-Tenant Architecture & Isolation Security Test Suite', () => {
   let userPlanId: string;
   let userFluxId: string;
   let orderPlanId: string;
+  let providerId: string;
+  let serviceId: string;
 
   beforeEach(async () => {
     // 1. Create SMMplan User
@@ -72,6 +74,9 @@ describe('Multi-Tenant Architecture & Isolation Security Test Suite', () => {
       }
     });
 
+    providerId = provider.id;
+    serviceId = service.id;
+
     // 4. Create SMMplan order
     const orderPlan = await db.order.create({
       data: {
@@ -88,6 +93,16 @@ describe('Multi-Tenant Architecture & Isolation Security Test Suite', () => {
       }
     });
     orderPlanId = orderPlan.id;
+  });
+
+  afterEach(async () => {
+    try {
+      if (orderPlanId) await db.order.deleteMany({ where: { id: orderPlanId } }).catch(() => {});
+      if (serviceId) await db.service.deleteMany({ where: { id: serviceId } }).catch(() => {});
+      if (providerId) await db.provider.deleteMany({ where: { id: providerId } }).catch(() => {});
+      if (userPlanId) await db.user.deleteMany({ where: { id: userPlanId } }).catch(() => {});
+      if (userFluxId) await db.user.deleteMany({ where: { id: userFluxId } }).catch(() => {});
+    } catch { /* ignore */ }
   });
 
   describe('1. Cross-Tenant IDOR Attack Defense', () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { db } from '@/lib/db';
 import { createOfflineTicketAction } from '../offline-ticket';
 import { RateLimitService } from '@/services/core/rate-limit.service';
@@ -22,17 +22,18 @@ describe.sequential('createOfflineTicketAction', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
+    const ts = Date.now() + Math.floor(Math.random() * 1000000);
     network = await db.network.create({
-      data: { name: 'Telegram', slug: 'telegram' }
+      data: { name: `Telegram ${ts}`, slug: `tg-offline-${ts}` }
     });
 
     category = await db.category.create({
-      data: { name: 'Подписчики Telegram', networkId: network.id }
+      data: { name: `Подписчики Telegram ${ts}`, networkId: network.id }
     });
 
     service = await db.service.create({
       data: {
-        name: 'TG Subscribers Premium',
+        name: `TG Subscribers Premium ${ts}`,
         categoryId: category.id,
         rate: 0.1,
         markup: 3.0,
@@ -41,6 +42,23 @@ describe.sequential('createOfflineTicketAction', () => {
         isActive: true,
       }
     });
+  });
+
+  afterEach(async () => {
+    try {
+      if (service?.id) await db.service.deleteMany({ where: { id: service.id } }).catch(() => {});
+      if (category?.id) await db.category.deleteMany({ where: { id: category.id } }).catch(() => {});
+      if (network?.id) await db.network.deleteMany({ where: { id: network.id } }).catch(() => {});
+      await db.ticketMessage.deleteMany({ where: { ticket: { user: { email: { contains: '@smmplan.local' } } } } }).catch(() => {});
+      await db.ticket.deleteMany({ where: { user: { email: { contains: '@smmplan.local' } } } }).catch(() => {});
+      await db.user.deleteMany({ where: { email: { contains: '@smmplan.local' } } }).catch(() => {});
+    } catch { /* ignore */ }
+  });
+
+  afterAll(async () => {
+    try {
+      await db.network.deleteMany({ where: { slug: { startsWith: 'tg-offline-' } } }).catch(() => {});
+    } catch { /* ignore */ }
   });
 
   it('should successfully create an offline ticket for a new guest', async () => {

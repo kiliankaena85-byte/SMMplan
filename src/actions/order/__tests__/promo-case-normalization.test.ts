@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { db } from '@/lib/db';
 import { calculatePriceAction, checkoutAction } from '@/actions/order/checkout';
 
@@ -28,6 +28,9 @@ let mockUserEmail = '';
 
 describe('D1.2: Promo Code Case Normalization (CHK-07)', () => {
   let serviceId: string;
+  let categoryId: string;
+  let providerId: string;
+  let promoCodeName: string;
 
   beforeEach(async () => {
     // 1. Create User
@@ -62,12 +65,31 @@ describe('D1.2: Promo Code Case Normalization (CHK-07)', () => {
         isActive: true,
       }
     });
+    categoryId = category.id;
+    providerId = provider.id;
     serviceId = service.id;
+  });
+
+  afterEach(async () => {
+    try {
+      if (mockUserId) {
+        await db.ledgerEntry.deleteMany({ where: { userId: mockUserId } }).catch(() => {});
+        await db.order.deleteMany({ where: { userId: mockUserId } }).catch(() => {});
+        await db.user.deleteMany({ where: { id: mockUserId } }).catch(() => {});
+      }
+      if (promoCodeName) {
+        await db.promoCode.deleteMany({ where: { code: promoCodeName } }).catch(() => {});
+      }
+      if (serviceId) await db.service.deleteMany({ where: { id: serviceId } }).catch(() => {});
+      if (categoryId) await db.category.deleteMany({ where: { id: categoryId } }).catch(() => {});
+      if (providerId) await db.provider.deleteMany({ where: { id: providerId } }).catch(() => {});
+    } catch { /* ignore */ }
   });
 
   it('applies lowercase and mixed-case input to uppercase promo code in calculatePriceAction and checkoutAction', async () => {
     // 1. Create uppercase promo code
     const promoCode = `SALE10_${Date.now()}`;
+    promoCodeName = promoCode;
     await db.promoCode.create({
       data: {
         code: promoCode,

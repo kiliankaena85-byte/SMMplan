@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { db } from '@/lib/db';
 import { adminOrderService } from '@/services/admin/order.service';
 import { calculatePartialRefund } from '@/utils/refund';
@@ -72,6 +72,15 @@ describe('Order Management & Support Actions — Comprehensive E2E Suite', () =>
       });
     }
     testServiceId = service.id;
+  });
+
+  afterAll(async () => {
+    // Cleanup persistent test fixtures created by findFirst+create pattern
+    await db.order.deleteMany({ where: { userId: testUserId } }).catch(() => {});
+    await db.service.deleteMany({ where: { id: testServiceId } }).catch(() => {});
+    await db.category.deleteMany({ where: { name: 'E2E Order Test Category' } }).catch(() => {});
+    await db.provider.deleteMany({ where: { name: 'E2E_Mock_Provider' } }).catch(() => {});
+    await db.user.deleteMany({ where: { email: 'e2e-order-support@smmplan.pro' } }).catch(() => {});
   });
 
   describe('1. Order Cancellation & Refund Mechanics', () => {

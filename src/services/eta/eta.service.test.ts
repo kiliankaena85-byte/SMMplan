@@ -1,20 +1,19 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest';
 import { db } from '@/lib/db';
 import { recalculateAllETAs } from '@/services/eta/eta.service';
 
 /**
  * Integration + Edge Case tests for the Adaptive Percentile Window ETA system.
- * Uses REAL test PostgreSQL database (SMMplan convention: no Prisma mocks).
- * Tables are truncated before each test by test/setup.ts.
  */
 
 // ── Test Helpers ──
 
 /** Create minimal service hierarchy (Network → Category → Service) */
 async function createTestService(name: string = 'Test Likes') {
-  const network = await db.network.create({ data: { name: 'Instagram', slug: 'instagram' } });
+  const ts = Date.now() + Math.floor(Math.random() * 1000000);
+  const network = await db.network.create({ data: { name: `Instagram ${ts}`, slug: `ig-test-${ts}` } });
   const category = await db.category.create({
-    data: { name: 'Instagram Likes', networkId: network.id },
+    data: { name: `Instagram Likes ${ts}`, networkId: network.id },
   });
   return db.service.create({
     data: {
@@ -65,7 +64,37 @@ describe('ETA Service — recalculateAllETAs()', () => {
   let testUser: any;
 
   beforeEach(async () => {
-    testUser = await db.user.create({ data: { email: 'eta-test@test.com' } });
+    testUser = await db.user.create({ data: { email: `eta-test-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@test.com` } });
+  });
+
+  afterEach(async () => {
+    try {
+      if (testUser?.id) {
+        await db.order.deleteMany({ where: { userId: testUser.id } }).catch(() => {});
+        await db.user.deleteMany({ where: { id: testUser.id } }).catch(() => {});
+      }
+    } catch { /* ignore */ }
+  });
+
+  afterAll(async () => {
+    try {
+      // Global cleanup of ETA test networks and categories
+      const testNets = await db.network.findMany({
+        where: { slug: { startsWith: 'ig-test-' } },
+        select: { id: true }
+      });
+      const netIds = testNets.map(n => n.id);
+      const testCats = await db.category.findMany({
+        where: { networkId: { in: netIds } },
+        select: { id: true }
+      });
+      const catIds = testCats.map(c => c.id);
+      await db.order.deleteMany({ where: { service: { categoryId: { in: catIds } } } }).catch(() => {});
+      await db.service.deleteMany({ where: { categoryId: { in: catIds } } }).catch(() => {});
+      await db.category.deleteMany({ where: { id: { in: catIds } } }).catch(() => {});
+      await db.network.deleteMany({ where: { id: { in: netIds } } }).catch(() => {});
+      await db.user.deleteMany({ where: { email: { contains: '@test.com' } } }).catch(() => {});
+    } catch { /* ignore */ }
   });
 
   // ── Layer 2: Integration Tests ──

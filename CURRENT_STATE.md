@@ -1,7 +1,17 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-31 07:30 (МСК)
+> **Последнее обновление:** 2026-08-31 08:00 (МСК)
+
+- **Диагностика и устранение бага с фантомными соцсетями и моковыми провайдерами (100% RESOLVED & CLEANED):**
+  - 🔍 **Первопричина:** Автоматические интеграционные тесты (`sync-provider-catalog`, `full-spectrum-4wave-runner`, `order-actions-and-support-ops`, `price-reconciler`, `pricing-order-and-marketing-hardening`, `eta.service`, `offline-ticket`, `promo-case-normalization`) создавали моковые провайдеры (`Mock Provider...`, `Sync Test Provider...`), соцсети (`Telegram 1788...`, `Mock Net...`, `Net...`) и категории напрямую в PostgreSQL базе без очистки в `afterEach`/`afterAll`.
+  - 💥 **Проявление в UI:** Компонент `SocialIcon` сопоставлял имя сети по правилу `norm.includes('telegram')`, в результате чего 108 фейковых сетей с именем вида `Telegram 178814...` отображались как иконка Telegram с цифрами timestamp вместо реального каталога.
+  - 🧹 **Глубокая очистка БД (`smmplan_lite`):** Каскадно удалены 108 мусорных сетей, 102 фейковые категории, 198 услуг, 48 прайс-историй и все временные мок-провайдеры. В БД сохранено ровно 34 легитимные социальные сети (Telegram, ВКонтакте, YouTube, Instagram, TikTok, Twitch и др.).
+  - 🛡️ **Защита от повторного накопления:**
+    - Создана централизованная утилита очистки `test/helpers/db-cleanup.ts` (`TestDbCleaner`).
+    - Во все 9 проблемных файлов тестов внедрены строгие `afterEach` и `afterAll` хуки автоматического удаления тестовых сущностей.
+    - В `full-spectrum-4wave-runner.ts` создание ресурсов перенесено внутрь безопасных блоков `try...finally`.
+  - ⚡ **Кэш:** Сброшен Redis (`FLUSHDB`) для мгновенного отображения чистого каталога на витрине и в мастере нового заказа.
 
 - **Архитектурный контур: Контур защиты от деструктивных действий, DLP-Sentinel и Real-Time Telegram P0 Алертинг (100% COMPLETE & VERIFIED):**
   - **1. Real-Time Alerting на мутации настроек (`src/actions/admin/settings.ts`):**

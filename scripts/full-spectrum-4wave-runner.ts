@@ -181,68 +181,74 @@ async function runFullSpectrumWaves() {
   console.log('\n--- 🌊 EXECUTING WAVE 2: PROVIDER AUTO-FLUSH & LIFECYCLE GATE ---');
 
   await recordTest('WAVE 2: Provider Lifecycle', 'Auto-Flush Engine: Transition PENDING_CHECK to PENDING on refill', async () => {
-    // 1. Create a test provider
-    const provider = await db.provider.create({
-      data: {
-        name: `Mock Provider ${Date.now()}`,
-        apiUrl: 'https://mock-provider.test/api/v2',
-        apiKey: 'mock_api_key_test',
-        providerType: 'SMM_PANEL',
-        isActive: true
-      }
-    });
-
-    const testUser = await db.user.create({
-      data: {
-        email: `flush_cust_${Date.now()}@smmplan.pro`,
-        passwordHash: 'hash_test_dummy',
-        balance: 100000n,
-        tenantId: 'smmplan'
-      }
-    });
-
-    // 2. Create test network, category, and service
-    const network = await db.network.create({
-      data: { name: `Mock Net ${Date.now()}`, slug: `mock-net-${Date.now()}`, isActive: true }
-    });
-    const category = await db.category.create({
-      data: {
-        name: `Mock Cat ${Date.now()}`,
-        slug: `mock-cat-${Date.now()}`,
-        network: { connect: { id: network.id } },
-        tenantId: 'smmplan'
-      }
-    });
-    const service = await db.service.create({
-      data: {
-        name: 'Mock Auto-Flush Service',
-        slug: `mock-flush-srv-${Date.now()}`,
-        categoryId: category.id,
-        providerId: provider.id,
-        rate: 1.0,
-        minQty: 10,
-        maxQty: 10000,
-        isActive: true
-      }
-    });
-
-    // 3. Create test order in PENDING_CHECK
-    const order = await db.order.create({
-      data: {
-        userId: testUser.id,
-        serviceId: service.id,
-        providerId: provider.id,
-        quantity: 100,
-        charge: 10000n,
-        providerCost: 5000n,
-        link: 'https://t.me/test_channel_flush',
-        status: 'PENDING_CHECK',
-        error: 'INSUFFICIENT_PROVIDER_BALANCE',
-        tenantId: 'smmplan'
-      }
-    });
+    let provider: any;
+    let testUser: any;
+    let network: any;
+    let category: any;
+    let service: any;
+    let order: any;
 
     try {
+      // 1. Create a test provider
+      provider = await db.provider.create({
+        data: {
+          name: `Mock Provider ${Date.now()}`,
+          apiUrl: 'https://mock-provider.test/api/v2',
+          apiKey: 'mock_api_key_test',
+          providerType: 'SMM_PANEL',
+          isActive: true
+        }
+      });
+
+      testUser = await db.user.create({
+        data: {
+          email: `flush_cust_${Date.now()}@smmplan.pro`,
+          passwordHash: 'hash_test_dummy',
+          balance: 100000n,
+          tenantId: 'smmplan'
+        }
+      });
+
+      // 2. Create test network, category, and service
+      network = await db.network.create({
+        data: { name: `Mock Net ${Date.now()}`, slug: `mock-net-${Date.now()}`, isActive: true }
+      });
+      category = await db.category.create({
+        data: {
+          name: `Mock Cat ${Date.now()}`,
+          slug: `mock-cat-${Date.now()}`,
+          network: { connect: { id: network.id } },
+          tenantId: 'smmplan'
+        }
+      });
+      service = await db.service.create({
+        data: {
+          name: 'Mock Auto-Flush Service',
+          slug: `mock-flush-srv-${Date.now()}`,
+          categoryId: category.id,
+          providerId: provider.id,
+          rate: 1.0,
+          minQty: 10,
+          maxQty: 10000,
+          isActive: true
+        }
+      });
+
+      // 3. Create test order in PENDING_CHECK
+      order = await db.order.create({
+        data: {
+          userId: testUser.id,
+          serviceId: service.id,
+          providerId: provider.id,
+          quantity: 100,
+          charge: 10000n,
+          providerCost: 5000n,
+          link: 'https://t.me/test_channel_flush',
+          status: 'PENDING_CHECK',
+          error: 'INSUFFICIENT_PROVIDER_BALANCE',
+          tenantId: 'smmplan'
+        }
+      });
       // 4. Prime Redis provider balance cache to 5000.00 RUB
       const cacheKey = `provider:${provider.id}:balance`;
       await redis.set(
@@ -294,46 +300,52 @@ async function runFullSpectrumWaves() {
 
   // 3.1 Strict Multi-Tenant Data Isolation
   await recordTest('WAVE 3: Multi-Tenant & Security', 'Cross-Tenant Isolation: SMMflux order inaccessible from SMMplan', async () => {
-    const fluxUser = await db.user.create({
-      data: { email: `flux_${Date.now()}@smmflux.ru`, passwordHash: 'hash', balance: 50000n, tenantId: 'flux' }
-    });
-
-    const network = await db.network.create({ data: { name: `Net ${Date.now()}`, slug: `net-${Date.now()}`, isActive: true } });
-    const category = await db.category.create({
-      data: {
-        name: `Cat ${Date.now()}`,
-        slug: `cat-${Date.now()}`,
-        network: { connect: { id: network.id } },
-        tenantId: 'flux'
-      }
-    });
-    const service = await db.service.create({
-      data: {
-        name: 'Flux Srv',
-        slug: `flux-srv-${Date.now()}`,
-        categoryId: category.id,
-        rate: 0.5,
-        minQty: 10,
-        maxQty: 1000,
-        isActive: true,
-        tenantId: 'flux'
-      }
-    });
-
-    const fluxOrder = await db.order.create({
-      data: {
-        userId: fluxUser.id,
-        serviceId: service.id,
-        quantity: 50,
-        charge: 2500n,
-        providerCost: 1000n,
-        link: 'https://vk.com/flux_page',
-        status: 'PENDING',
-        tenantId: 'flux'
-      }
-    });
+    let fluxUser: any;
+    let network: any;
+    let category: any;
+    let service: any;
+    let fluxOrder: any;
 
     try {
+      fluxUser = await db.user.create({
+        data: { email: `flux_${Date.now()}@smmflux.ru`, passwordHash: 'hash', balance: 50000n, tenantId: 'flux' }
+      });
+
+      network = await db.network.create({ data: { name: `Net ${Date.now()}`, slug: `net-${Date.now()}`, isActive: true } });
+      category = await db.category.create({
+        data: {
+          name: `Cat ${Date.now()}`,
+          slug: `cat-${Date.now()}`,
+          network: { connect: { id: network.id } },
+          tenantId: 'flux'
+        }
+      });
+      service = await db.service.create({
+        data: {
+          name: 'Flux Srv',
+          slug: `flux-srv-${Date.now()}`,
+          categoryId: category.id,
+          rate: 0.5,
+          minQty: 10,
+          maxQty: 1000,
+          isActive: true,
+          tenantId: 'flux'
+        }
+      });
+
+      fluxOrder = await db.order.create({
+        data: {
+          userId: fluxUser.id,
+          serviceId: service.id,
+          quantity: 50,
+          charge: 2500n,
+          providerCost: 1000n,
+          link: 'https://vk.com/flux_page',
+          status: 'PENDING',
+          tenantId: 'flux'
+        }
+      });
+
       // Query order with SMMplan tenant context
       const queryWithWrongTenant = await db.order.findFirst({
         where: { id: fluxOrder.id, tenantId: 'smmplan' }
@@ -350,14 +362,18 @@ async function runFullSpectrumWaves() {
         details: `Wrong tenant query found: ${queryWithWrongTenant !== null}, Correct tenant query found: ${queryWithCorrectTenant !== null}`
       };
     } finally {
-      await db.order.deleteMany({ where: { id: fluxOrder.id } });
-      await db.service.deleteMany({ where: { id: service.id } });
-      await db.category.deleteMany({ where: { id: category.id } });
-      await db.network.deleteMany({ where: { id: network.id } });
-      await db.user.update({
-        where: { id: fluxUser.id },
-        data: { isDeleted: true, email: `deleted_${fluxUser.id}@smmflux.ru` }
-      });
+      if (fluxOrder?.id) await db.order.deleteMany({ where: { id: fluxOrder.id } });
+      if (service?.id) await db.service.deleteMany({ where: { id: service.id } });
+      if (category?.id) await db.category.deleteMany({ where: { id: category.id } });
+      if (network?.id) await db.network.deleteMany({ where: { id: network.id } });
+      if (fluxUser?.id) {
+        await db.user.deleteMany({ where: { id: fluxUser.id } }).catch(async () => {
+          await db.user.update({
+            where: { id: fluxUser.id },
+            data: { isDeleted: true, email: `deleted_${fluxUser.id}@smmflux.ru` }
+          });
+        });
+      }
     }
   });
 

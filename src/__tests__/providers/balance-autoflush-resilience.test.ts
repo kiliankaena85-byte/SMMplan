@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 import { BalanceAutoFlushService } from '@/services/providers/balance-autoflush.service';
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
@@ -72,6 +72,15 @@ describe('BalanceAutoFlushService — Smart Balance Recovery & Red Team Guards',
     await redis.del(`provider:${testProviderId}:balance`);
 
     vi.spyOn(ordersQueue, 'add').mockResolvedValue({} as any);
+  });
+
+  afterAll(async () => {
+    // Cleanup persistent test fixtures (findFirst+create pattern — no timestamps)
+    await db.order.deleteMany({ where: { userId: testUserId } }).catch(() => {});
+    await db.service.deleteMany({ where: { name: 'AutoFlush Test Service' } }).catch(() => {});
+    await db.category.deleteMany({ where: { name: 'AutoFlush Test Category' } }).catch(() => {});
+    await db.provider.deleteMany({ where: { name: 'AutoFlush_Test_Provider' } }).catch(() => {});
+    await db.user.deleteMany({ where: { email: 'autoflush-test@smmplan.pro' } }).catch(() => {});
   });
 
   describe('1. Error Classifier Accuracy', () => {

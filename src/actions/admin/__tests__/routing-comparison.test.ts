@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { db } from '@/lib/db';
 import { verifySession } from '@/lib/session';
 import { getProviderComparisonData, executeHotSwap } from '@/actions/admin/routing.actions';
@@ -115,6 +115,20 @@ describe('Operational Routing: Comparison Matrix & SLA Analytics Tests', () => {
     });
 
     vi.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    // Cleanup all test entities created in beforeEach (each run creates new records)
+    if (routeA?.id) await db.serviceRoute.deleteMany({ where: { id: routeA.id } }).catch(() => {});
+    if (routeB?.id) await db.serviceRoute.deleteMany({ where: { id: routeB.id } }).catch(() => {});
+    if (service?.id) await db.service.deleteMany({ where: { id: service.id } }).catch(() => {});
+    if (category?.id) await db.category.deleteMany({ where: { id: category.id } }).catch(() => {});
+    // Delete the 'telegram' network only if it was freshly created (may conflict with real one)
+    await db.network.deleteMany({ where: { slug: 'telegram', name: 'Telegram', categories: { none: {} } } }).catch(() => {});
+    if (providerA?.id) await db.provider.deleteMany({ where: { id: providerA.id } }).catch(() => {});
+    if (providerB?.id) await db.provider.deleteMany({ where: { id: providerB.id } }).catch(() => {});
+    if (adminUser?.id) await db.user.deleteMany({ where: { id: adminUser.id } }).catch(() => {});
+    if (regularUser?.id) await db.user.deleteMany({ where: { id: regularUser.id } }).catch(() => {});
   });
 
   it('should fail with Forbidden error response if queried by a regular user', async () => {
