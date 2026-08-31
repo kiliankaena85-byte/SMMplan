@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { updateGlobalSettings } from '@/actions/admin/settings';
+import { syncCBRExchangeRateAction } from '@/actions/admin/cbr-sync';
 import { toast } from 'sonner';
 import { useActionState, useEffect, useState } from 'react';
 import { Loader2, Calculator, TrendingUp, Coins, Sparkles, HelpCircle, RefreshCw, CheckCircle2, RotateCcw } from 'lucide-react';
@@ -20,25 +21,28 @@ interface CatalogSettingsProps {
 
 export function CatalogSettings({ settings, tenantId = 'smmplan' }: CatalogSettingsProps) {
   const [isTestingCBR, setIsTestingCBR] = useState(false);
-  const [cbrPingResult, setCbrPingResult] = useState<{ success: boolean; rate?: number; pingMs?: number } | null>(null);
+  const [cbrPingResult, setCbrPingResult] = useState<{ success: boolean; rate?: number; nominalRate?: number; pingMs?: number } | null>(null);
 
   const handleTestCBR = async () => {
     setIsTestingCBR(true);
     const start = performance.now();
     try {
-      const res = await fetch('https://www.cbr-xml-daily.ru/daily_json.js', { cache: 'no-store' });
+      const res = await syncCBRExchangeRateAction(tenantId);
       const duration = Math.round(performance.now() - start);
-      if (res.ok) {
-        const data = await res.json();
-        const usdRate = data?.Valute?.USD?.Value;
-        setCbrPingResult({ success: true, rate: usdRate, pingMs: duration });
-        toast.success(`ЦБ РФ доступен: 1 USD = ${usdRate?.toFixed(2)} ₽ (Ping: ${duration}ms)`);
+      if (res && res.success) {
+        setCbrPingResult({ 
+          success: true, 
+          rate: res.rate, 
+          nominalRate: res.nominalRate, 
+          pingMs: duration 
+        });
+        toast.success(`ЦБ РФ синхронизирован: 1 USD = ${res.nominalRate?.toFixed(2) || res.rate.toFixed(2)} ₽ (Спецкурс +3%: ${res.rate.toFixed(2)} ₽)`);
       } else {
-        throw new Error(`HTTP ${res.status}`);
+        throw new Error(res?.error || 'Ошибка синхронизации');
       }
     } catch (e) {
       setCbrPingResult({ success: false, pingMs: Math.round(performance.now() - start) });
-      toast.error('Не удалось связаться с сервером ЦБ РФ');
+      toast.error(e instanceof Error ? e.message : 'Не удалось связаться с сервером ЦБ РФ');
     } finally {
       setIsTestingCBR(false);
     }

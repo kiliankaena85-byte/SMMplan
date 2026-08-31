@@ -12,8 +12,96 @@ export interface LiveCrossRates {
  * Service for fetching and syncing exchange rates from the Central Bank of Russia (CBR).
  */
 export class CBRRateService {
-  private static readonly CBR_API_URL = "https://www.cbr-xml-daily.ru/daily_json.js";
+  private static readonly CBR_OFFICIAL_XML_URL = "https://www.cbr.ru/scripts/XML_daily.asp";
+  private static readonly CBR_JSON_MIRROR_URL = "https://www.cbr-xml-daily.ru/daily_json.js";
+  private static readonly GLOBAL_FX_API_URL = "https://open.er-api.com/v6/latest/USD";
   private static readonly SPREAD_MULTIPLIER = 1.03; // +3% Margin Safety Net (PB-003)
+
+  /**
+   * Fetches raw currency rates from CBR with multi-tiered fallback.
+   */
+  private static async fetchRawRates(): Promise<{
+    usdRate: number;
+    eurRate: number | null;
+    uahRate: number | null;
+    kztRate: number | null;
+    source: string;
+  }> {
+    const parseVal = (str: string) => parseFloat(str.replace(',', '.'));
+
+    // Tier 1: Official CBR XML API
+    try {
+      const response = await fetch(this.CBR_OFFICIAL_XML_URL, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) OmniSMM/1.0' },
+        signal: AbortSignal.timeout(6000),
+        next: { revalidate: 3600 }
+      });
+      if (response.ok) {
+        const text = await response.text();
+        const usdMatch = text.match(/<Valute ID="R01235">[\s\S]*?<Value>([\d,]+)<\/Value>/);
+        const eurMatch = text.match(/<Valute ID="R01239">[\s\S]*?<Value>([\d,]+)<\/Value>/);
+        const uahMatch = text.match(/<Valute ID="R01720">[\s\S]*?<Nominal>(\d+)<\/Nominal>[\s\S]*?<Value>([\d,]+)<\/Value>/);
+        const kztMatch = text.match(/<Valute ID="R01335">[\s\S]*?<Nominal>(\d+)<\/Nominal>[\s\S]*?<Value>([\d,]+)<\/Value>/);
+
+        const usd = usdMatch ? parseVal(usdMatch[1]) : null;
+        if (usd && !isNaN(usd) && usd > 0) {
+          const eur = eurMatch ? parseVal(eurMatch[1]) : null;
+          const uah = uahMatch ? parseVal(uahMatch[2]) / parseInt(uahMatch[1], 10) : null;
+          const kzt = kztMatch ? parseVal(kztMatch[2]) / parseInt(kztMatch[1], 10) : null;
+          return { usdRate: usd, eurRate: eur, uahRate: uah, kztRate: kzt, source: 'CBR_OFFICIAL_XML' };
+        }
+      }
+    } catch (err: unknown) {
+      console.warn("[CBRRateService] Tier 1 (CBR Official XML) fetch error:", (err instanceof Error ? err.message : String(err)));
+    }
+
+    // Tier 2: CBR JSON Mirror
+    try {
+      const response = await fetch(this.CBR_JSON_MIRROR_URL, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) OmniSMM/1.0' },
+        signal: AbortSignal.timeout(6000),
+        next: { revalidate: 3600 }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const usd = data?.Valute?.USD?.Value;
+        if (typeof usd === 'number' && !isNaN(usd) && usd > 0) {
+          const eur = data?.Valute?.EUR?.Value ?? null;
+          const uahNominal = data?.Valute?.UAH?.Nominal || 10;
+          const uahVal = data?.Valute?.UAH?.Value;
+          const uah = uahVal ? uahVal / uahNominal : null;
+          const kztNominal = data?.Valute?.KZT?.Nominal || 100;
+          const kztVal = data?.Valute?.KZT?.Value;
+          const kzt = kztVal ? kztVal / kztNominal : null;
+          return { usdRate: usd, eurRate: eur, uahRate: uah, kztRate: kzt, source: 'CBR_JSON_MIRROR' };
+        }
+      }
+    } catch (err: unknown) {
+      console.warn("[CBRRateService] Tier 2 (CBR JSON Mirror) fetch error:", (err instanceof Error ? err.message : String(err)));
+    }
+
+    // Tier 3: Global FX API Fallback
+    try {
+      const response = await fetch(this.GLOBAL_FX_API_URL, {
+        signal: AbortSignal.timeout(6000),
+        next: { revalidate: 3600 }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const rub = data?.rates?.RUB;
+        if (typeof rub === 'number' && !isNaN(rub) && rub > 0) {
+          const eur = data?.rates?.EUR ? 1 / data.rates.EUR : null;
+          const uah = data?.rates?.UAH ? rub / data.rates.UAH : null;
+          const kzt = data?.rates?.KZT ? rub / data.rates.KZT : null;
+          return { usdRate: rub, eurRate: eur, uahRate: uah, kztRate: kzt, source: 'GLOBAL_FX_API' };
+        }
+      }
+    } catch (err: unknown) {
+      console.warn("[CBRRateService] Tier 3 (Global FX API) fetch error:", (err instanceof Error ? err.message : String(err)));
+    }
+
+    throw new Error('All exchange rate providers (CBR Official, Mirror, Global FX) are unreachable');
+  }
 
   /**
    * Fetches the latest USD, EUR, UAH, KZT exchange rates from CBR, applies a 3% safety spread, 
@@ -26,34 +114,24 @@ export class CBRRateService {
     systemRate: number;
     crossRates: LiveCrossRates;
     updated: boolean;
+    source?: string;
   }> {
     try {
       let usdRate: number | null = null;
       let eurRate: number | null = null;
       let uahRate: number | null = null;
       let kztRate: number | null = null;
+      let source = 'CBR_OFFICIAL_XML';
 
-      // 1. Fetch CBR daily JSON mirror
       try {
-        const response = await fetch(this.CBR_API_URL, {
-          signal: AbortSignal.timeout(6000),
-          next: { revalidate: 3600 }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          usdRate = data?.Valute?.USD?.Value;
-          eurRate = data?.Valute?.EUR?.Value;
-          const uahNominal = data?.Valute?.UAH?.Nominal || 10;
-          const uahVal = data?.Valute?.UAH?.Value;
-          if (uahVal) uahRate = uahVal / uahNominal;
-
-          const kztNominal = data?.Valute?.KZT?.Nominal || 100;
-          const kztVal = data?.Valute?.KZT?.Value;
-          if (kztVal) kztRate = kztVal / kztNominal;
-        }
+        const fetched = await this.fetchRawRates();
+        usdRate = fetched.usdRate;
+        eurRate = fetched.eurRate;
+        uahRate = fetched.uahRate;
+        kztRate = fetched.kztRate;
+        source = fetched.source;
       } catch (err: unknown) {
-        console.warn("[CBRRateService] CBR JSON fetch error:", (err instanceof Error ? err.message : String(err)));
+        console.warn("[CBRRateService] Rate fetch error:", (err instanceof Error ? err.message : String(err)));
       }
 
       if (typeof usdRate !== 'number' || isNaN(usdRate) || usdRate <= 0) {
