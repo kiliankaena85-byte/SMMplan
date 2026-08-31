@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
@@ -60,6 +60,7 @@ export function DensityProvider({ children }: { children: React.ReactNode }) {
     applyDensityToDOM(newDensity);
     try {
       localStorage.setItem(STORAGE_KEY, newDensity === 'compact' ? 'true' : 'false');
+      document.cookie = `x_admin_density=${newDensity}; path=/; max-age=31536000; SameSite=Lax`;
       window.dispatchEvent(new CustomEvent('table-density-change', { detail: { density: newDensity } }));
     } catch {}
   }, [applyDensityToDOM]);

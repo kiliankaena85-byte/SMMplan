@@ -114,7 +114,7 @@ export function DataTable<TData, TValue>({
             <Table.Content aria-label="Data Table" className="w-full">
               <Table.Header className="bg-muted/40">
                 {table.getFlatHeaders().map((header, index) => (
-                  <Table.Column isRowHeader={index === 0} key={header.id} className="py-4 px-6 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  <Table.Column isRowHeader={index === 0} key={header.id} className="py-[var(--table-head-py,1rem)] px-[var(--table-head-px,1.5rem)] text-left text-xs font-bold text-muted-foreground uppercase tracking-wider transition-all duration-150">
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -133,7 +133,7 @@ export function DataTable<TData, TValue>({
                       className="hover:bg-muted/30 even:bg-muted/10 transition-colors"
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <Table.Cell key={cell.id} className="py-5 px-6 text-sm text-foreground">
+                        <Table.Cell key={cell.id} className="py-[var(--table-cell-py,1.25rem)] px-[var(--table-cell-px,1.5rem)] text-[length:var(--table-font,0.875rem)] text-foreground transition-all duration-150">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </Table.Cell>
                       ))}
