@@ -23,6 +23,7 @@ export type OperatorOrderRow = {
   service: {
     id: string;
     name: string;
+    isCancelEnabled?: boolean;
     category: {
       name: string;
       network: { name: string } | null;
@@ -96,7 +97,8 @@ export function OrdersTable({ data }: OrdersTableProps) {
         </Table.Header>
         <Table.Body emptyContent="Заказы не найдены">
           {data.map((order) => {
-            const canCancel = ['PENDING', 'PROCESSING', 'PENDING_CHECK', 'IN_PROGRESS'].includes(order.status);
+            const isPendingState = ['PENDING', 'PROCESSING', 'PENDING_CHECK'].includes(order.status);
+            const canCancel = isPendingState || (order.service.isCancelEnabled === true && order.status === 'IN_PROGRESS');
             const canRestart = ['ERROR', 'PENDING_CHECK', 'CANCELED'].includes(order.status);
 
             return (

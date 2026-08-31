@@ -71,6 +71,7 @@ interface UnifiedTicketsWorkspaceProps {
   currentSearch: string;
   canSeeRates?: boolean;
   canSeeFinances?: boolean;
+  userRole?: string;
 }
 
 import { TicketsSidebar } from './tickets-sidebar';
@@ -89,7 +90,8 @@ export function UnifiedTicketsWorkspace({
   currentIsB2b,
   currentSearch,
   canSeeRates = true,
-  canSeeFinances = canSeeRates
+  canSeeFinances = canSeeRates,
+  userRole = 'SUPPORT'
 }: UnifiedTicketsWorkspaceProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -467,21 +469,28 @@ export function UnifiedTicketsWorkspace({
                             <div className="font-bold text-foreground mt-0.5">{(Number(activeTicket.order.charge) / 100).toFixed(2)} ₽</div>
                           </div>
                           <div className="flex gap-2">
-                            {['PENDING', 'AWAITING_PAYMENT', 'IN_PROGRESS', 'ERROR'].includes(activeTicket.order.status) && (
-                              <Button
-                                intent="destructive"
-                                size="sm"
-                                onClick={(e) => { e.stopPropagation(); handleCancelOrder(); }}
-                                disabled={isPending}
-                                className="min-h-[44px] touch-target-expand px-3 py-1 cursor-pointer bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-                                style={{
-                                  borderRadius: figmaStyles.layout.miniAppButtonRadius,
-                                  padding: figmaStyles.layout.miniAppButtonPadding
-                                }}
-                              >
-                                Отменить
-                              </Button>
-                            )}
+                            {(() => {
+                              const isPendingState = ['PENDING', 'PENDING_CHECK', 'AWAITING_PAYMENT'].includes(activeTicket.order.status);
+                              const canCancelOrder = userRole !== 'SUPPORT' || isPendingState || activeTicket.order.isCancelEnabled === true;
+                              const isStatusCancelable = ['PENDING', 'AWAITING_PAYMENT', 'IN_PROGRESS', 'ERROR'].includes(activeTicket.order.status);
+                              
+                              if (!canCancelOrder || !isStatusCancelable) return null;
+                              return (
+                                <Button
+                                  intent="destructive"
+                                  size="sm"
+                                  onClick={(e) => { e.stopPropagation(); handleCancelOrder(); }}
+                                  disabled={isPending}
+                                  className="min-h-[44px] touch-target-expand px-3 py-1 cursor-pointer bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                                  style={{
+                                    borderRadius: figmaStyles.layout.miniAppButtonRadius,
+                                    padding: figmaStyles.layout.miniAppButtonPadding
+                                  }}
+                                >
+                                  Отменить
+                                </Button>
+                              );
+                            })()}
                             {['CANCELED', 'ERROR'].includes(activeTicket.order.status) && (
                               <Button
                                 intent="primary"

@@ -344,4 +344,45 @@ describe('🛡️ QA Deep Adversarial & OWASP Top 10 (2025/2026) Audit Suite', (
       expect(getSocialNetworkPlural(25)).toBe('25 соцсетей');
     });
   });
+
+  // ════════════════════════════════════════════════════════════════════════
+  // 5. Loss Prevention & Cancel Button Rendering Invariants
+  // ════════════════════════════════════════════════════════════════════════
+  describe('5. Loss Prevention & Cancel Button Visibility Rules', () => {
+    const isCancelButtonVisible = (
+      userRole: string,
+      orderStatus: string,
+      isCancelEnabled: boolean
+    ): boolean => {
+      const isPendingState = ['PENDING', 'PENDING_CHECK', 'AWAITING_PAYMENT'].includes(orderStatus);
+      const isCancelAllowed = userRole !== 'SUPPORT' || isPendingState || isCancelEnabled === true;
+      const isStatusCancelable = ['PENDING', 'PENDING_CHECK', 'AWAITING_PAYMENT', 'IN_PROGRESS', 'ERROR'].includes(orderStatus);
+      return isCancelAllowed && isStatusCancelable && !['COMPLETED', 'CANCELED'].includes(orderStatus);
+    };
+
+    it('SUPPRESSES cancel button for SUPPORT when order is IN_PROGRESS and provider has isCancelEnabled: false', () => {
+      const visible = isCancelButtonVisible('SUPPORT', 'IN_PROGRESS', false);
+      expect(visible).toBe(false);
+    });
+
+    it('RENDERS cancel button for SUPPORT when order is in PENDING state even if isCancelEnabled: false', () => {
+      const visible = isCancelButtonVisible('SUPPORT', 'PENDING', false);
+      expect(visible).toBe(true);
+    });
+
+    it('RENDERS cancel button for SUPPORT when order is IN_PROGRESS and provider supports cancellation (isCancelEnabled: true)', () => {
+      const visible = isCancelButtonVisible('SUPPORT', 'IN_PROGRESS', true);
+      expect(visible).toBe(true);
+    });
+
+    it('RENDERS cancel button for OWNER even when isCancelEnabled: false (Forced Override Privilege)', () => {
+      const visible = isCancelButtonVisible('OWNER', 'IN_PROGRESS', false);
+      expect(visible).toBe(true);
+    });
+
+    it('SUPPRESSES cancel button for all roles once order is COMPLETED or CANCELED', () => {
+      expect(isCancelButtonVisible('OWNER', 'COMPLETED', true)).toBe(false);
+      expect(isCancelButtonVisible('SUPPORT', 'CANCELED', true)).toBe(false);
+    });
+  });
 });

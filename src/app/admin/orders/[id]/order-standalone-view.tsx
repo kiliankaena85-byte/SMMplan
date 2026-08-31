@@ -38,9 +38,11 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string; borderCls: str
 export function OrderStandaloneView({
   order,
   canSeeRates = true,
+  userRole = 'SUPPORT',
 }: {
   order: OrderModalColumn;
   canSeeRates?: boolean;
+  userRole?: string;
 }) {
   const [currentOrder, setCurrentOrder] = useState<OrderModalColumn>(order);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -196,17 +198,26 @@ export function OrderStandaloneView({
             <CheckCircle className="w-3.5 h-3.5" />
             <span>Завершить</span>
           </button>
-          <button
-            onClick={() => {
-              setConfirmAction('cancel');
-              setConfirmOpen(true);
-            }}
-            disabled={isPending || currentOrder.status === 'CANCELED'}
-            className="px-3.5 py-2 rounded-xl bg-destructive hover:bg-destructive/90 disabled:opacity-40 text-destructive-foreground font-bold text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-          >
-            <XCircle className="w-3.5 h-3.5" />
-            <span>Отменить и вернуть</span>
-          </button>
+          {(() => {
+            const isPendingState = ['PENDING', 'PENDING_CHECK', 'AWAITING_PAYMENT'].includes(currentOrder.status);
+            const isCancelAllowed = userRole !== 'SUPPORT' || isPendingState || currentOrder.service?.isCancelEnabled === true;
+            const canCancel = isCancelAllowed && !['COMPLETED', 'CANCELED'].includes(currentOrder.status);
+
+            if (!canCancel) return null;
+            return (
+              <button
+                onClick={() => {
+                  setConfirmAction('cancel');
+                  setConfirmOpen(true);
+                }}
+                disabled={isPending}
+                className="px-3.5 py-2 rounded-xl bg-destructive hover:bg-destructive/90 disabled:opacity-40 text-destructive-foreground font-bold text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <XCircle className="w-3.5 h-3.5" />
+                <span>Отменить и вернуть</span>
+              </button>
+            );
+          })()}
         </div>
       </div>
 

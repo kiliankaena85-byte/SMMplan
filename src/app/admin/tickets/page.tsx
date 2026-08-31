@@ -109,6 +109,7 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
           currentIsB2b={isB2bFilter}
           currentSearch={search}
           canSeeRates={canSeeRates}
+          userRole={user?.role || 'SUPPORT'}
         />
       </div>
     </div>

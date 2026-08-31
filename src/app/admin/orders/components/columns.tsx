@@ -35,6 +35,7 @@ export type OrderColumn = {
   tenantId?: string;
   service: { 
     name: string;
+    isCancelEnabled?: boolean;
     etaP50Seconds: number | null;
     etaP90Seconds: number | null;
     etaSampleCount: number | null;
@@ -131,6 +132,9 @@ export function RowActions({ order }: { order: OrderColumn }) {
     });
   }
 
+  const isPendingState = ['PENDING', 'PENDING_CHECK', 'AWAITING_PAYMENT'].includes(order.status);
+  const canCancel = (isPendingState || order.service?.isCancelEnabled === true) && !['COMPLETED', 'CANCELED', 'PARTIAL', 'ERROR'].includes(order.status);
+
   return (
     <div className="flex items-center gap-1.5">
       <Link
@@ -140,14 +144,16 @@ export function RowActions({ order }: { order: OrderColumn }) {
       >
         <Edit2 className="w-3.5 h-3.5" />
       </Link>
-      <button
-        onClick={() => setConfirmOpen(true)}
-        disabled={isPending || ['COMPLETED', 'CANCELED', 'PARTIAL', 'IN_PROGRESS', 'ERROR'].includes(order.status)}
-        className="inline-flex items-center justify-center p-1.5 bg-rose-50 text-rose-600 rounded hover:bg-rose-100 transition-colors disabled:opacity-40"
-        title="Отменить заказ"
-      >
-        <X className="w-3.5 h-3.5" />
-      </button>
+      {canCancel && (
+        <button
+          onClick={() => setConfirmOpen(true)}
+          disabled={isPending}
+          className="inline-flex items-center justify-center p-1.5 bg-rose-50 text-rose-600 rounded hover:bg-rose-100 transition-colors disabled:opacity-40"
+          title="Отменить заказ"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
 
       <ConfirmModal
         isOpen={confirmOpen}

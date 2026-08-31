@@ -87,6 +87,7 @@ export interface ActiveTicketDTO {
     charge: number;
     createdAt: string;
     serviceName: string;
+    isCancelEnabled?: boolean;
     externalId?: string | null;
     provider?: { name: string; apiUrl?: string } | null;
   } | null;

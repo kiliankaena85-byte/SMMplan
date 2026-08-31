@@ -238,7 +238,7 @@ class AdminTicketService {
             status: true,
             charge: true,
             createdAt: true,
-            service: { select: { name: true } },
+            service: { select: { name: true, isCancelEnabled: true } },
           }
         },
         user: {
@@ -443,7 +443,8 @@ class AdminTicketService {
         status: ticket.order.status,
         charge: Number(ticket.order.charge),
         createdAt: ticket.order.createdAt.toISOString(),
-        serviceName: ticket.order.service?.name || 'Услуга'
+        serviceName: ticket.order.service?.name || 'Услуга',
+        isCancelEnabled: ticket.order.service?.isCancelEnabled ?? false,
       } : null,
       attachedOrders,
       createdAt: ticket.createdAt,

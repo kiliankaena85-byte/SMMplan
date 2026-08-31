@@ -60,6 +60,7 @@ export interface OrderModalColumn {
   tenantId?: string;
   service?: {
     name: string;
+    isCancelEnabled?: boolean;
     category: {
       name: string;
       network: { name: string } | null;
@@ -72,6 +73,7 @@ export interface OrderDetailsModalProps {
   isOpen?: boolean;
   onClose: () => void;
   canSeeRates?: boolean;
+  userRole?: string;
   addOptimisticUpdate?: (update: { id: string; status: string; remains?: number }) => void;
   onSuccess?: () => void;
 }
@@ -135,6 +137,7 @@ export function OrderDetailsModal({
   isOpen = true,
   onClose,
   canSeeRates = true,
+  userRole = 'SUPPORT',
   addOptimisticUpdate,
   onSuccess,
 }: OrderDetailsModalProps) {
@@ -898,18 +901,27 @@ export function OrderDetailsModal({
             </button>
 
             {/* Cancel & Refund */}
-            <button
-              onClick={() => {
-                setConfirmAction('cancel');
-                setConfirmOpen(true);
-              }}
-              disabled={isPending || currentOrder.status === 'CANCELED'}
-              className="px-3.5 py-2 rounded-xl bg-destructive hover:bg-destructive/90 disabled:opacity-40 text-destructive-foreground font-bold text-xs transition-all shadow-md active:scale-95 flex items-center gap-1.5 cursor-pointer"
-              title="Отменить заказ и вернуть средства на баланс (Alt+C)"
-            >
-              <XCircle className="w-3.5 h-3.5" />
-              <span>Отменить и вернуть</span>
-            </button>
+            {(() => {
+              const isPendingState = ['PENDING', 'PENDING_CHECK', 'AWAITING_PAYMENT'].includes(currentOrder.status);
+              const isCancelAllowed = userRole !== 'SUPPORT' || isPendingState || currentOrder.service?.isCancelEnabled === true;
+              const canCancel = isCancelAllowed && !['COMPLETED', 'CANCELED'].includes(currentOrder.status);
+
+              if (!canCancel) return null;
+              return (
+                <button
+                  onClick={() => {
+                    setConfirmAction('cancel');
+                    setConfirmOpen(true);
+                  }}
+                  disabled={isPending}
+                  className="px-3.5 py-2 rounded-xl bg-destructive hover:bg-destructive/90 disabled:opacity-40 text-destructive-foreground font-bold text-xs transition-all shadow-md active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                  title="Отменить заказ и вернуть средства на баланс (Alt+C)"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                  <span>Отменить и вернуть</span>
+                </button>
+              );
+            })()}
           </div>
         </div>
       </motion.div>
