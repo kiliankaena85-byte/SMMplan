@@ -31,7 +31,8 @@ describe('GDPR & 152-ФЗ Data Privacy & Protection Suite', () => {
       const encrypted = encrypt(plaintext);
 
       expect(encrypted).not.toBe(plaintext);
-      expect(encrypted.split(':').length).toBe(3); // iv:authTag:cipherHex
+      expect(encrypted.split(':').length).toBe(4); // v1:iv:authTag:cipherHex
+      expect(encrypted.startsWith('v1:')).toBe(true);
 
       const decrypted = decrypt(encrypted);
       expect(decrypted).toBe(plaintext);

@@ -201,6 +201,34 @@ export async function proxy(request: NextRequest) {
   const rawFwdClean = (fwdHost || '').split(':')[0].toLowerCase().trim();
   const isSecurityTxt = pathname === '/.well-known/security.txt' || pathname === '/security.txt';
 
+  // CORS Whitelist for API routes
+  const origin = request.headers.get('origin');
+  let isAllowedOrigin = false;
+  if (origin) {
+    try {
+      const originHost = new URL(origin).host.toLowerCase();
+      if (isKnownOrAllowedHost(originHost)) {
+        isAllowedOrigin = true;
+      }
+    } catch {
+      isAllowedOrigin = false;
+    }
+  }
+
+  // Handle CORS preflight requests for API routes
+  if (pathname.startsWith('/api') && request.method === 'OPTIONS') {
+    const preflightHeaders = new Headers();
+    if (isAllowedOrigin && origin) {
+      preflightHeaders.set('Access-Control-Allow-Origin', origin);
+      preflightHeaders.set('Access-Control-Allow-Credentials', 'true');
+      preflightHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      preflightHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-tenant-id, idempotency-key');
+      preflightHeaders.set('Access-Control-Max-Age', '86400');
+      return new NextResponse(null, { status: 204, headers: preflightHeaders });
+    }
+    return new NextResponse(null, { status: 204 });
+  }
+
   // EARLY REJECTION — before any host is used for redirects/cookies
   if (rawHostClean && !isKnownOrAllowedHost(rawHostClean) && !isSecurityTxt) {
     return NextResponse.json({ error: 'Forbidden: Invalid Host header' }, { status: 403 });
@@ -476,9 +504,13 @@ export async function proxy(request: NextRequest) {
 
   // Nonce-based Content Security Policy (PCI DSS 4.0 / OWASP ASVS 4.0.3)
   const isDev = process.env.NODE_ENV === 'development';
+  const scriptSrcDirective = isDev
+    ? `'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://yookassa.ru https://auth.robokassa.ru`
+    : `'self' 'nonce-${nonce}' 'strict-dynamic' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://yookassa.ru https://auth.robokassa.ru`;
+
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://yookassa.ru https://auth.robokassa.ru;
+    script-src ${scriptSrcDirective};
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     img-src 'self' blob: data: https:;
     font-src 'self' data: https://fonts.gstatic.com;
@@ -501,6 +533,14 @@ export async function proxy(request: NextRequest) {
       headers: requestHeaders,
     },
   });
+
+  // Inject CORS headers for API routes when requested with an allowed origin
+  if (pathname.startsWith('/api') && isAllowedOrigin && origin) {
+    response.headers.set('Access-Control-Allow-Origin', origin);
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-tenant-id, idempotency-key');
+  }
 
   response.headers.set('x-tenant-id', finalTenantId);
   response.headers.set('x-nonce', nonce);

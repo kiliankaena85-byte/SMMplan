@@ -1,7 +1,29 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-31 10:10 (МСК)
+> **Последнее обновление:** 2026-08-31 11:35 (МСК)
+
+- **Аудит безопасности и реализация мер защиты (Неделя 1 Critical & Неделя 2-3 High, 100% COMPLETE & VERIFIED):**
+  - **1. Key Versioning & Zero-Downtime Key Rotation (`src/lib/crypto/encryption.ts`):**
+    - Реализован версионированный формат AES-256-GCM шифротекста: `v{version}:{iv}:{authTag}:{cipherHex}`.
+    - Внедрена поддержка связки ключей в среде через `APP_ENCRYPTION_KEYS="v2:key2,v1:key1"`, где первый ключ выступает primary для новых шифрований, а остальные используются для чтения существующих данных.
+    - Обеспечена 100% обратная совместимость для legacy-записей в БД без префикса (3 части `iv:authTag:cipherHex` расшифровываются ключом `v1`).
+    - Реализована функция безопасного ре-шифрования `reEncrypt()`.
+  - **2. Nonce-based Strict Content Security Policy (`src/proxy.ts`):**
+    - В продакшене для `script-src` удален `'unsafe-inline'`, внедрен строгий `'nonce-${nonce}'` и `'strict-dynamic'`.
+    - Криптографический nonce генерируется на каждый запрос и прокидывается в заголовки `x-nonce` и `Content-Security-Policy`.
+  - **3. CORS Whitelist Middleware & Preflight (`src/proxy.ts`):**
+    - Для роутов `/api/*` внедрена явная проверка `Origin` по доверенному белому списку доменов (`isKnownOrAllowedHost`).
+    - Реализован автоматический ответ на preflight `OPTIONS` с кодом `204 No Content` и полным набором `Access-Control-*` заголовков.
+  - **4. Dual-Key Verification для сессий JWT (`src/lib/session-edge.ts`):**
+    - Подтверждена поддержка бесшовной ротации JWT ключей через `JWT_VERIFY_PREVIOUS_KEYS` без разлогинивания пользователей.
+  - **5. Production Docker Compose Hardening (`docker-compose.prod.yml`):**
+    - Устранены небезопасные дефолты `${POSTGRES_USER:-smmplan}` и `${POSTGRES_DB:-smmplan}` из сервисов `worker` и `bot`, переводя конфигурацию в строгий fail-closed режим.
+  - **6. Верификация сьютов:**
+    - `src/__tests__/encryption-versioning.test.ts`: **5/5 PASS (100%)**.
+    - `src/__tests__/proxy-stress-and-self-healing.test.ts`: **4/4 PASS (100%)**.
+    - `src/__tests__/gdpr-152fz-compliance.test.ts`: **8/8 PASS (100%)**.
+    - `npx tsc --noEmit`: **0 ошибок (TypeScript Strict)**.
 
 - **Мульти-тенантная изоляция настроек, отвязка Telegram-бота и адаптация цветов заказов (100% COMPLETE & VERIFIED):**
   - **1. Изоляция отвязки Telegram-бота по тенантам (`src/actions/admin/settings.ts`):**
