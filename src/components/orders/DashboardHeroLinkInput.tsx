@@ -232,7 +232,7 @@ export function DashboardHeroLinkInput({
           <button
             type="button"
             onClick={handleStartOrder}
-            className="rounded-full px-3.5 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-primary via-indigo-600 to-primary text-primary-foreground font-extrabold text-xs sm:text-sm shadow-md shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.02] active:scale-95 transition-all shrink-0 flex items-center gap-1.5 cursor-pointer"
+            className="rounded-full px-3.5 sm:px-6 py-2.5 sm:py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-extrabold text-xs sm:text-sm shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all shrink-0 flex items-center gap-1.5 cursor-pointer"
           >
             <span className="hidden sm:inline">{selectedService ? 'К оформлению' : 'Продолжить'}</span>
             <span className="sm:hidden">{selectedService ? 'Далее' : 'Старт'}</span>

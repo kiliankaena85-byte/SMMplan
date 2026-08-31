@@ -128,7 +128,7 @@ export function ClassicDashboardHome({
           <div className="flex items-center gap-3 shrink-0">
             <Link
               href="/dashboard/new-order"
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-primary via-indigo-600 to-primary text-primary-foreground font-bold text-xs sm:text-sm shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs sm:text-sm shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
             >
               <Zap className="w-4 h-4" />
               <span>Создать заказ</span>

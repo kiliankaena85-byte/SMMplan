@@ -229,7 +229,7 @@ export function PreLaunchHoldingScreen({
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="min-h-[48px] px-6 py-3 rounded-xl bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-primary-foreground font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/25 transition-all duration-200 active:scale-98 cursor-pointer disabled:opacity-50 shrink-0"
+                    className="min-h-[48px] px-6 py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all duration-200 active:scale-98 cursor-pointer disabled:opacity-50 shrink-0"
                   >
                     {isLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
