@@ -1,7 +1,21 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-31 08:00 (МСК)
+> **Последнее обновление:** 2026-08-31 08:10 (МСК)
+
+- **Архитектурный контур: Полноценная система плотности таблиц (Comfortable vs Compact Data-Dense — 100% COMPLETE & VERIFIED):**
+  - **1. CSS Custom Properties & Слой дизайн-токенов (`globals.css`):**
+    - Внедрены динамические переменные с безопасными дефолтными фолбэками: `--table-head-py`, `--table-head-px`, `--table-cell-py`, `--table-cell-px`, `--table-font`, `--table-row-min-h`.
+    - **Режим «Стандарт» (Comfortable):** просторные отступы `16px/20px`, высота строки `44–48px`, шрифт `13–14px`.
+    - **Режим «Компакт» (Compact Data-Dense):** ультра-плотная сетка `4px/8px`, высота строки `28–30px`, шрифт `12px tabular-nums`, компактные инпуты `h-6.5` и бэйджи.
+  - **2. Корневой компонент `DataTable` (`src/components/ui/data-table.tsx`):**
+    - Заменил жесткие классы на связку с CSS-переменными и фолбэками (`py-[var(--table-cell-py,1.25rem)] ...`), что физически гарантирует 100% сохранение стандартного вида при выключенном режиме.
+  - **3. Провайдер и синхронизация (`density-provider.tsx` & `AdminProfileDropdown.tsx`):**
+    - Сохранение состояния в `localStorage` + `cookie` (`x_admin_density`) + класс `.compact-density` на корневом теге `<html>`.
+    - Мгновенное переключение плотности (0ms latency, zero layout shift) с toast-оповещением.
+  - **4. Верификация:**
+    - `src/__tests__/table-density.test.ts`: **3/3 PASS (100%)**.
+    - TypeScript Strict: `npx tsc --noEmit` $\rightarrow$ **0 ошибок**.
 
 - **Диагностика и устранение бага с фантомными соцсетями и моковыми провайдерами (100% RESOLVED & CLEANED):**
   - 🔍 **Первопричина:** Автоматические интеграционные тесты (`sync-provider-catalog`, `full-spectrum-4wave-runner`, `order-actions-and-support-ops`, `price-reconciler`, `pricing-order-and-marketing-hardening`, `eta.service`, `offline-ticket`, `promo-case-normalization`) создавали моковые провайдеры (`Mock Provider...`, `Sync Test Provider...`), соцсети (`Telegram 1788...`, `Mock Net...`, `Net...`) и категории напрямую в PostgreSQL базе без очистки в `afterEach`/`afterAll`.
