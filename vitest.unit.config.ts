@@ -48,6 +48,7 @@ export default defineConfig({
       'src/__tests__/catalog/empty-categories-cleanup.test.ts',
       'src/__tests__/security/optimization-security-and-rbac.test.ts',
       'src/__tests__/security/swarm-optimization-premortem-security.test.ts',
+      'src/__tests__/security/pentest-owasp-defense-invariants.test.ts',
     ],
   }
 });
