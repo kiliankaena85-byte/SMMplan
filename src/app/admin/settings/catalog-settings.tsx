@@ -15,9 +15,10 @@ import { SystemSettings } from '@prisma/client';
 
 interface CatalogSettingsProps {
   settings: SystemSettings;
+  tenantId?: string;
 }
 
-export function CatalogSettings({ settings }: CatalogSettingsProps) {
+export function CatalogSettings({ settings, tenantId = 'smmplan' }: CatalogSettingsProps) {
   const [isTestingCBR, setIsTestingCBR] = useState(false);
   const [cbrPingResult, setCbrPingResult] = useState<{ success: boolean; rate?: number; pingMs?: number } | null>(null);
 
@@ -103,6 +104,7 @@ export function CatalogSettings({ settings }: CatalogSettingsProps) {
 
   return (
     <form key={settings.updatedAt?.toString() || 'catalog'} action={formAction} className="space-y-6">
+      <input type="hidden" name="tenantId" value={tenantId} />
       <input type="hidden" name="_isCatalogSettings" value="1" />
 
       {/* 1. Pricing Rules & Interactive Simulator */}

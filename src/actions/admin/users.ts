@@ -16,6 +16,7 @@ import { z } from 'zod';
 
 import { getEncodedKey } from '@/lib/session';
 import { SupportBalancePolicyService } from '@/services/financial/support-balance-policy.service';
+import { sendAdminAlert } from '@/lib/notifications';
 
 export async function updateBalanceAction(formData: FormData) {
   return requireStaffPermission('finance', 'edit', async (admin) => {
@@ -184,6 +185,19 @@ export async function updateBalanceAction(formData: FormData) {
       newValue: { amountCents: amount, reason: reason.trim(), status: escrowResult.status },
       ipAddress
     });
+
+    const rubAmount = (Number(amount) / 100).toFixed(2);
+    const isCredit = amount >= 0;
+    const isBigAmount = Math.abs(amount) >= 100000; // >= 1000 RUB
+    sendAdminAlert(
+      `${isBigAmount ? '🚨' : '💳'} <b>РУЧНАЯ КОРРЕКТИРОВКА БАЛАНСА КЛИЕНТА</b>\n` +
+      `<b>Сотрудник:</b> ${admin.email} (IP: ${ipAddress || 'unknown'})\n` +
+      `<b>Клиент ID:</b> <code>${userId}</code>\n` +
+      `<b>Операция:</b> ${isCredit ? '➕ Начисление' : '➖ Списание'} <b>${rubAmount} ₽</b>\n` +
+      `<b>Статус:</b> <code>${escrowResult.status}</code>\n` +
+      `<b>Причина:</b> <i>${reason.trim()}</i>`,
+      isBigAmount ? 'CRITICAL' : 'INFO'
+    );
 
     revalidatePath(`/admin/clients/${userId}`);
     revalidatePath('/admin/clients');
@@ -399,6 +413,13 @@ export async function banUserAction(formData: FormData) {
       ipAddress
     });
 
+    sendAdminAlert(
+      `🚫 <b>ПОЛЬЗОВАТЕЛЬ ЗАБЛОКИРОВАН (БАН)</b>\n` +
+      `<b>Сотрудник:</b> ${admin.email} (IP: ${ipAddress || 'unknown'})\n` +
+      `<b>Клиент ID:</b> <code>${userId}</code>`,
+      'WARNING'
+    );
+
     revalidatePath('/admin/clients');
     return { success: true as const };
   });
@@ -426,6 +447,13 @@ export async function unbanUserAction(formData: FormData) {
       targetType: 'USER',
       ipAddress
     });
+
+    sendAdminAlert(
+      `✅ <b>ПОЛЬЗОВАТЕЛЬ РАЗБЛОКИРОВАН</b>\n` +
+      `<b>Сотрудник:</b> ${admin.email} (IP: ${ipAddress || 'unknown'})\n` +
+      `<b>Клиент ID:</b> <code>${userId}</code>`,
+      'INFO'
+    );
 
     revalidatePath('/admin/clients');
     return { success: true as const };
@@ -492,6 +520,14 @@ export async function loginAsAction(formData: FormData) {
       newValue: { targetEmail: targetUser.email, sessionExpires: expiresAt.toISOString(), impersonatedBy: admin.id },
       ipAddress
     });
+
+    sendAdminAlert(
+      `🕵️‍♂️ <b>ВХОД ОТ ИМЕНИ ПОЛЬЗОВАТЕЛЯ (ИМПЕРСОНАЦИЯ)</b>\n` +
+      `<b>Сотрудник:</b> ${admin.email} (IP: ${ipAddress || 'unknown'})\n` +
+      `<b>Клиент:</b> ${targetUser.email} (ID: <code>${userId}</code>)\n` +
+      `⚠️ <i>Создана временная сессия сотрудника под аккаунтом клиента.</i>`,
+      'WARNING'
+    );
 
     revalidatePath('/dashboard/new-order');
     return { success: true as const };
@@ -582,6 +618,14 @@ export async function adminChangeUserPasswordAction(userId: string, newPass: str
       ipAddress
     });
 
+    sendAdminAlert(
+      `🔑 <b>АДМИНИСТРАТИВНЫЙ СБРОС ПАРОЛЯ</b>\n` +
+      `<b>Сотрудник:</b> ${admin.email} (IP: ${ipAddress || 'unknown'})\n` +
+      `<b>Пользователь:</b> ${targetUser.email} (ID: <code>${userId}</code>)\n` +
+      `⚠️ <i>Все активные сессии пользователя аннулированы.</i>`,
+      'WARNING'
+    );
+
     revalidatePath(`/admin/clients/${userId}`);
     return { success: true as const };
   });
@@ -643,6 +687,14 @@ export async function adminDeleteUserAction(formData: FormData) {
       newValue: { isDeleted: true },
       ipAddress
     });
+
+    sendAdminAlert(
+      `🚨 <b>[P0 CRITICAL] ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ УДАЛЁН</b>\n` +
+      `<b>Сотрудник:</b> ${admin.email} (IP: ${ipAddress || 'unknown'})\n` +
+      `<b>Пользователь:</b> ${targetUser.email} (ID: <code>${userId}</code>)\n` +
+      `⚠️ <i>Аккаунт деактивирован, данные замаскированы, сессии закрыты.</i>`,
+      'CRITICAL'
+    );
 
     revalidatePath('/admin/clients');
     return { success: true as const };
@@ -712,6 +764,16 @@ export async function adminChangeUserEmailAction(userId: string, newEmail: strin
       newValue: { email: cleanNewEmail, reason: parsed.data.reason.trim() },
       ipAddress
     });
+
+    sendAdminAlert(
+      `📧 <b>АДМИНИСТРАТИВНАЯ СМЕНА EMAIL КЛИЕНТА</b>\n` +
+      `<b>Сотрудник:</b> ${admin.email} (IP: ${ipAddress || 'unknown'})\n` +
+      `<b>Клиент ID:</b> <code>${parsed.data.userId}</code>\n` +
+      `<b>Старый Email:</b> ${targetUser.email}\n` +
+      `<b>Новый Email:</b> ${cleanNewEmail}\n` +
+      `<b>Причина:</b> <i>${parsed.data.reason.trim()}</i>`,
+      'WARNING'
+    );
 
     revalidatePath(`/admin/clients/${parsed.data.userId}`);
     revalidatePath('/admin/clients');

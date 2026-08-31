@@ -10,24 +10,25 @@ import { auditAdminAwaitable } from "@/lib/admin-audit";
  * Toggles the global mock test mode.
  */
 export async function adminToggleTestMode(enable: boolean) {
-  return requireStaffPermission('SETTINGS', 'edit', async (admin) => {
+  return requireStaffPermission('settings', 'edit', async (admin, _role, tenantId) => {
+    const activeTenantId = tenantId || 'smmplan';
     const ipAddress = await getClientIp('unknown');
-    const oldSettings = await db.systemSettings.findUnique({ where: { id: 'global' }, select: { isTestMode: true } });
+    const oldSettings = await db.systemSettings.findUnique({ where: { id: activeTenantId }, select: { isTestMode: true } });
     
-    await SettingsManager.setTestMode(enable);
+    await SettingsManager.setTestMode(enable, activeTenantId);
 
     await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'SYSTEM_TEST_MODE_TOGGLE',
-      target: 'global',
+      target: activeTenantId,
       targetType: 'SETTINGS',
       oldValue: oldSettings,
       newValue: { isTestMode: enable },
       ipAddress
     });
 
-    return { success: true, message: `Test mode is now ${enable ? 'ON' : 'OFF'}` };
+    return { success: true, message: `Режим тестирования для ${activeTenantId}: ${enable ? 'ВКЛ' : 'ВЫКЛ'}` };
   });
 }
 
@@ -36,19 +37,20 @@ export async function adminToggleTestMode(enable: boolean) {
  * This is the Nucleus Clear for the Mock Environment.
  */
 export async function adminClearTestData() {
-  return requireStaffPermission('SETTINGS', 'edit', async (admin) => {
+  return requireStaffPermission('settings', 'edit', async (admin, _role, tenantId) => {
+    const activeTenantId = tenantId || 'smmplan';
     const ipAddress = await getClientIp('unknown');
     try {
       // Deleting Orders cascading relationships
       const resultOrders = await db.order.deleteMany({
-        where: { isTest: true }
+        where: { isTest: true, tenantId: activeTenantId }
       });
       
       await auditAdminAwaitable({
         adminId: admin.id,
         adminEmail: admin.email,
         action: 'SYSTEM_TEST_DATA_CLEAR',
-        target: 'global',
+        target: activeTenantId,
         targetType: 'SETTINGS',
         newValue: { deletedOrdersCount: resultOrders.count },
         ipAddress
@@ -56,11 +58,11 @@ export async function adminClearTestData() {
 
       return { 
         success: true, 
-        message: `Cleared ${resultOrders.count} test orders and associated data.` 
+        message: `Удалено ${resultOrders.count} тестовых заказов для бренда ${activeTenantId}.` 
       };
     } catch (e: unknown) {
       console.error("Failed to clear test data:", e);
-      return { success: false, error: "Failed to perform Nucleus Clear." };
+      return { success: false, error: "Ошибка при очистке тестовых данных." };
     }
   });
 }

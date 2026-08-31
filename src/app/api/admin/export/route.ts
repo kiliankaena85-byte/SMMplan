@@ -49,6 +49,9 @@ function getPeriodStartDate(period: string | null): Date | undefined {
   return undefined;
 }
 
+import { DataLossPreventionService } from '@/services/security/data-loss-prevention.service';
+import { SecurityAlertService } from '@/services/security/security-alert.service';
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type') || 'orders';
@@ -67,12 +70,45 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
+  // Cross-tenant breach sentinel: if non-OWNER attempts to query other tenant data
+  const requestedTenant = searchParams.get('tenant') || searchParams.get('tenantId');
+  if (user.role !== 'OWNER' && requestedTenant && requestedTenant !== 'all' && requestedTenant !== user.tenantId) {
+    await SecurityAlertService.record({
+      event: 'CROSS_TENANT_DATA_ACCESS_ATTEMPT',
+      severity: 'HIGH',
+      tenantId: user.tenantId || 'smmplan',
+      details: {
+        staffUserId: user.id,
+        staffEmail: user.email,
+        assignedTenant: user.tenantId,
+        requestedTenant,
+        endpoint: '/api/admin/export',
+        type
+      }
+    });
+    return NextResponse.json({ error: 'Forbidden: Access to other tenant data is denied' }, { status: 403 });
+  }
+
+  // DLP Sentinel: rate limit and detect bulk scraping
+  const dlpAction = type === 'users' ? 'EXPORT_USERS' : 'EXPORT_ORDERS';
+  const dlpCheck = await DataLossPreventionService.checkStaffDataAccess({
+    userId: user.id,
+    userEmail: user.email,
+    userRole: user.role,
+    action: dlpAction,
+    recordCount: 1,
+    tenantId: user.tenantId || 'smmplan',
+  });
+
+  if (!dlpCheck.allowed) {
+    return NextResponse.json({ error: dlpCheck.error || 'Превышен лимит выгрузки данных' }, { status: 429 });
+  }
+
   try {
     let csv = '';
     let filename = 'export.csv';
 
     // Multi-tenant isolation: non-OWNER staff are restricted strictly to their tenant
-    const requestedTenant = searchParams.get('tenant') || searchParams.get('tenantId');
     const effectiveTenantId = user.role === 'OWNER'
       ? (requestedTenant && requestedTenant !== 'all' ? requestedTenant : undefined)
       : (user.tenantId ?? 'smmplan');

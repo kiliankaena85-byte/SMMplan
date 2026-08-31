@@ -91,6 +91,11 @@ vi.mock('ioredis', () => {
       this.store.set(key, current);
       return current;
     });
+    incrby = vi.fn().mockImplementation(async (key: string, increment: number) => {
+      const current = (this.store.get(key) || 0) + increment;
+      this.store.set(key, current);
+      return current;
+    });
     setex = vi.fn().mockImplementation(async (key: string, seconds: number, value: any) => {
       this.store.set(key, value);
       return 'OK';

@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
+import { sendAdminAlert } from '@/lib/notifications';
 
 const CreateTenantSchema = z.object({
   name: z.string().min(2, 'Название бренда должно быть не менее 2 символов').max(60),
@@ -113,6 +114,16 @@ export async function createTenantAction(formData: z.infer<typeof CreateTenantSc
         newValue: { name, slug: cleanSlug, domain: cleanDomain },
       });
 
+      sendAdminAlert(
+        `🏢 <b>СОЗДАН НОВЫЙ ТЕНАНТ / БРЕНД</b>\n` +
+        `<b>Название:</b> ${name}\n` +
+        `<b>Slug / ID:</b> <code>${cleanSlug}</code>\n` +
+        `<b>Домен:</b> <code>${cleanDomain}</code>\n` +
+        `<b>Сотрудник:</b> ${staffUser.email}`,
+        'INFO',
+        cleanSlug
+      );
+
       revalidatePath('/admin/tenants');
       return { success: true, data: tenant };
     } catch (error) {
@@ -186,6 +197,15 @@ export async function toggleTenantStatusAction(id: string, isActive: boolean) {
         targetType: 'Tenant',
         newValue: { isActive },
       });
+
+      sendAdminAlert(
+        `🚨 <b>СТАТУС ТЕНАНТА ИЗМЕНЁН</b>\n` +
+        `<b>Тенант:</b> <code>${id}</code>\n` +
+        `<b>Статус:</b> ${isActive ? '🟢 АКТИВЕН' : '🔴 ДЕАКТИВИРОВАН'}\n` +
+        `<b>Сотрудник:</b> ${staffUser.email}`,
+        isActive ? 'INFO' : 'CRITICAL',
+        id
+      );
 
       revalidatePath('/admin/tenants');
       return { success: true, data: updated };

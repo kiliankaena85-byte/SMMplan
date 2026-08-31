@@ -30,17 +30,26 @@ import { SettingsClusterTabs } from '@/components/admin/settings/settings-cluste
 import { resolveSettingsNavigation } from '@/components/admin/settings/settings-navigation-config';
 import { AdminAuditLog, StaffRole, StaffPermission, SupportTemplate, SystemSettings, Provider } from '@prisma/client';
 
+import { cookies } from 'next/headers';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
+
 export const dynamic = 'force-dynamic';
 
 export default async function AdminSettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; tenant?: string }>;
 }) {
   // 1. RBAC Guard: Evaluate access ceiling first
   const admin = await enforceSectionAccess('settings');
   
   const params = await searchParams;
+  const cookieStore = await cookies();
+  const urlTenant = normalizeTenantId(params.tenant);
+  const cookieTenant = normalizeTenantId(cookieStore.get('x_admin_tenant')?.value);
+  const headerTenant = await SettingsProvider.getTenantId();
+  const activeTenantId = urlTenant || cookieTenant || normalizeTenantId(headerTenant) || 'smmplan';
+
   const rawTab = params.tab || 'system';
   const { activeSubTab } = resolveSettingsNavigation(rawTab);
   const activeTab = activeSubTab;
@@ -56,7 +65,7 @@ export default async function AdminSettingsPage({
   let providers: Provider[] = [];
 
   try {
-    const settingsPromise = settingsService.getSystemSettings();
+    const settingsPromise = settingsService.getSystemSettings(activeTenantId);
 
     if (activeTab === 'team') {
       const [s, stUsers, uList, roles] = await Promise.all([
@@ -118,7 +127,7 @@ export default async function AdminSettingsPage({
   const regularUsers = users.filter((u) => u.id !== admin.id);
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto w-full min-w-0 animate-in fade-in duration-300 ease-out px-1 sm:px-4 min-h-full pb-16">
+    <div className="space-y-6 max-w-4xl mx-auto w-full min-w-0 animate-in fade-in duration-300 ease-out px-1 sm:px-4 min-h-full pb-16">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-1">
         <AdminTabbedHeader
           icon={Settings}
@@ -146,28 +155,28 @@ export default async function AdminSettingsPage({
         {activeTab === 'system' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
             <TestModePanel initialIsTestMode={sanitizedSettings.isTestMode} isTestEnvironment={SettingsProvider.isTestEnvironment()} />
-            <GeneralSettings settings={sanitizedSettings} />
+            <GeneralSettings settings={sanitizedSettings} tenantId={activeTenantId} />
           </div>
         )}
 
         {/* ── TAB 1.5: CATALOG ── */}
         {activeTab === 'catalog' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
-            <CatalogSettings settings={sanitizedSettings} />
+            <CatalogSettings settings={sanitizedSettings} tenantId={activeTenantId} />
           </div>
         )}
 
         {/* ── TAB 2: INTEGRATIONS ── */}
         {activeTab === 'integrations' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
-            <IntegrationsSettings settings={sanitizedSettings} />
+            <IntegrationsSettings settings={sanitizedSettings} tenantId={activeTenantId} />
           </div>
         )}
 
         {/* ── TAB 2.5: TELEGRAM BOT ── */}
         {activeTab === 'telegram' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
-            <TelegramBotSettings settings={sanitizedSettings} />
+            <TelegramBotSettings settings={sanitizedSettings} tenantId={activeTenantId} />
           </div>
         )}
 

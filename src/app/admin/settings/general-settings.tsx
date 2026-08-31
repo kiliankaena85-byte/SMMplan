@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { updateGlobalSettings } from '@/actions/admin/settings';
+import { updateGlobalSettings, disconnectTelegramBotAction } from '@/actions/admin/settings';
 import { toast } from 'sonner';
-import { useActionState, useEffect, useState } from 'react';
+import { useActionState, useEffect, useState, useTransition } from 'react';
 import { 
   Loader2, 
   UploadCloud, 
@@ -23,7 +23,8 @@ import {
   Trash2,
   HelpCircle,
   AlertTriangle,
-  Check
+  Check,
+  Unlink
 } from 'lucide-react';
 import { SystemSettings } from '@prisma/client';
 import {
@@ -37,10 +38,13 @@ import {
 
 interface GeneralSettingsProps {
   settings: SystemSettings;
+  tenantId?: string;
 }
 
-export function GeneralSettings({ settings }: GeneralSettingsProps) {
+export function GeneralSettings({ settings, tenantId = 'smmplan' }: GeneralSettingsProps) {
   const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
+  const [isDisconnectBotModalOpen, setIsDisconnectBotModalOpen] = useState(false);
+  const [isDisconnectingBot, startDisconnectBotTransition] = useTransition();
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const copyToClipboard = (text: string, fieldName: string) => {
@@ -67,15 +71,36 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
 
   const formState = state as { success?: boolean; error?: string; errors?: Record<string, string[]> } | null;
 
-  // Live Preview States
+  // Live Preview States (Tenant-Aware Defaults)
+  const defaultSiteName = tenantId === 'flux' ? 'SMMflux' : 'SMMplan';
+  const defaultEmail = tenantId === 'flux' ? 'support@smmflux.ru' : 'support@smmplan.pro';
+
   const [maintenance, setMaintenance] = useState<boolean>(Boolean(settings.maintenanceMode));
-  const [siteName, setSiteName] = useState<string>(settings.siteName || 'SMMplan');
+  const [siteName, setSiteName] = useState<string>(settings.siteName || defaultSiteName);
   const [siteDescription, setSiteDescription] = useState<string>(settings.siteDescription || '');
-  const [supportEmail, setSupportEmail] = useState<string>(settings.contactSupportEmail || 'support@smmplan.pro');
-  const [telegramBot, setTelegramBot] = useState<string>(settings.contactTelegramBot || 'SMMplansapport_bot');
+  const [supportEmail, setSupportEmail] = useState<string>(settings.contactSupportEmail || defaultEmail);
+  const [telegramBot, setTelegramBot] = useState<string>(settings.contactTelegramBot || '');
   const [companyName, setCompanyName] = useState<string>(settings.legalCompanyName || 'ИП Иванов И. И.');
   const [companyInn, setCompanyInn] = useState<string>(settings.legalCompanyInn || '770000000000');
   const [companyOgrnip, setCompanyOgrnip] = useState<string>(settings.legalCompanyOgrnip || '300000000000000');
+
+  // Handle explicit bot disconnect
+  const handleDisconnectBot = () => {
+    setIsDisconnectBotModalOpen(false);
+    startDisconnectBotTransition(async () => {
+      try {
+        const res = await disconnectTelegramBotAction(tenantId);
+        if (res.success) {
+          setTelegramBot('');
+          toast.success(res.message);
+        } else if ('error' in res) {
+          toast.error(res.error || 'Ошибка при отвязке бота');
+        }
+      } catch (err) {
+        toast.error(String(err));
+      }
+    });
+  };
 
   // Bot test states
   const [isTestingBot, setIsTestingBot] = useState(false);
@@ -191,6 +216,7 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
 
   return (
     <form key={settings.updatedAt?.toString() || 'general'} action={formAction} className="space-y-6">
+      <input type="hidden" name="tenantId" value={tenantId} />
       <input type="hidden" name="_isGeneralSettings" value="1" />
       {logoUrl && <input type="hidden" name="siteLogoUrl" value={logoUrl} />}
       {faviconUrl && <input type="hidden" name="siteFaviconUrl" value={faviconUrl} />}
@@ -490,28 +516,86 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
 
       {/* 3. Telegram Support Bot Configuration & Live Diagnostics */}
       <Card className="rounded-3xl border border-border/60 shadow-lg bg-card/70 backdrop-blur-xl p-6 sm:p-8 space-y-6">
-        <div className="flex items-center justify-between border-b border-border/50 pb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 pb-5">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl border border-blue-500/20">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-foreground">Telegram Бот Поддержки</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-foreground">Telegram Бот Поддержки</h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                  {tenantId === 'flux' ? 'SMMflux' : 'SMMplan'}
+                </span>
+              </div>
               <p className="text-xs text-muted-foreground">
                 Прием сообщений от клиентов из Telegram и отправка ответов операторов из единой админки.
               </p>
             </div>
           </div>
-          <Button
-            type="button"
-            onClick={handleTestBot}
-            disabled={isTestingBot}
-            className="text-xs font-bold gap-2 cursor-pointer shrink-0 h-9 px-3.5 border border-border bg-muted/40 hover:bg-muted text-foreground"
-          >
-            {isTestingBot ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />}
-            <span>Проверить статус API</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            {telegramBot && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsDisconnectBotModalOpen(true)}
+                disabled={isDisconnectingBot}
+                className="text-xs font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/30 gap-1.5 h-9"
+              >
+                <Unlink className="w-3.5 h-3.5" />
+                <span>Отвязать бота</span>
+              </Button>
+            )}
+            <Button
+              type="button"
+              onClick={handleTestBot}
+              disabled={isTestingBot}
+              className="text-xs font-bold gap-2 cursor-pointer shrink-0 h-9 px-3.5 border border-border bg-muted/40 hover:bg-muted text-foreground"
+            >
+              {isTestingBot ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />}
+              <span>Проверить статус API</span>
+            </Button>
+          </div>
         </div>
+
+        {/* Bot Disconnect Confirmation Dialog */}
+        <Dialog open={isDisconnectBotModalOpen} onOpenChange={setIsDisconnectBotModalOpen}>
+          <DialogContent className="sm:max-w-md bg-card border-border">
+            <DialogHeader>
+              <div className="flex items-center gap-3 text-rose-500 pb-2">
+                <AlertTriangle className="w-6 h-6" />
+                <DialogTitle className="text-lg font-bold">Отвязать Telegram-бота?</DialogTitle>
+              </div>
+              <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                Вы уверены, что хотите отвязать бота <strong className="text-foreground">@{telegramBot}</strong> от бренда <strong className="text-foreground">{tenantId === 'flux' ? 'SMMflux' : 'SMMplan'}</strong>?
+                <br /><br />
+                ⚠️ Клиенты сайта <strong className="text-foreground">{tenantId === 'flux' ? 'smmflux.ru' : 'smmplan.pro'}</strong> потеряют возможность обращаться в поддержку через Telegram, пока не будет подключен новый бот. Настройки других брендов затронуты не будут.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsDisconnectBotModalOpen(false)}
+              >
+                Отмена
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={handleDisconnectBot}
+                disabled={isDisconnectingBot}
+                className="font-bold gap-1.5"
+              >
+                {isDisconnectingBot ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                Отвязать бота
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
@@ -522,10 +606,14 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
               name="contactTelegramBot"
               value={telegramBot}
               onChange={(e) => setTelegramBot(e.target.value)}
-              placeholder="SMMplansapport_bot"
+              placeholder={tenantId === 'flux' ? 'smmflux_support_bot' : 'smmplan_support_bot'}
             />
             <p className="text-[11px] text-muted-foreground">
-              Клиенты на сайте видят ссылку <span className="font-mono text-primary font-bold">t.me/{telegramBot}</span>
+              {telegramBot ? (
+                <>Клиенты на сайте видят ссылку <span className="font-mono text-primary font-bold">t.me/{telegramBot}</span></>
+              ) : (
+                <span className="text-amber-500/90 font-medium">⚠️ Бот не указан: ссылка на Telegram в шапке сайта будет скрыта</span>
+              )}
             </p>
           </div>
 
@@ -533,19 +621,28 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Статус подключения бота
             </Label>
-            <div className="p-3 rounded-xl bg-muted/30 border border-border/60 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="font-bold text-foreground">@{telegramBot}</span>
-              </div>
-              <a
-                href={`https://t.me/${telegramBot}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline font-bold text-[11px] flex items-center gap-1"
-              >
-                Открыть в Telegram ↗
-              </a>
+            <div className="p-3 rounded-xl bg-muted/30 border border-border/60 flex items-center justify-between text-xs min-h-[46px]">
+              {telegramBot ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="font-bold text-foreground">@{telegramBot}</span>
+                  </div>
+                  <a
+                    href={`https://t.me/${telegramBot}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline font-bold text-[11px] flex items-center gap-1"
+                  >
+                    Открыть в Telegram ↗
+                  </a>
+                </>
+              ) : (
+                <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                  <div className="w-2.5 h-2.5 rounded-full bg-zinc-500" />
+                  <span>Бот не привязан к {tenantId === 'flux' ? 'SMMflux' : 'SMMplan'}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

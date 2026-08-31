@@ -7,10 +7,12 @@ import { roleSchema, globalSettingsSchema } from '@/validators/admin.validators'
 import { db } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { settingsService } from '@/services/admin/settings.service';
+import { SettingsProvider } from '@/lib/settings';
 import { catalogQueue } from '@/lib/queue-manager';
 import { VaultService } from '@/lib/vault';
 import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 import { getClientIp } from '@/utils/ip';
+import { sendAdminAlert } from '@/lib/notifications';
 
 
 // ── User Role Update ──
@@ -53,6 +55,16 @@ export async function updateUserRole(formData: FormData) {
       ipAddress
     });
 
+    const isHighPrivilege = ['ADMIN', 'OWNER'].includes(newRole) || ['ADMIN', 'OWNER'].includes(targetUser.role);
+    sendAdminAlert(
+      `${isHighPrivilege ? '🚨' : '⚠️'} <b>СМЕНА РОЛИ СОТРУДНИКА / ПОЛЬЗОВАТЕЛЯ</b>\n` +
+      `<b>Администратор:</b> ${admin.email} (IP: ${ipAddress || 'unknown'})\n` +
+      `<b>Пользователь:</b> ${targetUser.email} (ID: <code>${targetUserId}</code>)\n` +
+      `<b>Старая роль:</b> <code>${targetUser.role}</code>\n` +
+      `<b>Новая роль:</b> <code>${newRole}</code>`,
+      isHighPrivilege ? 'CRITICAL' : 'WARNING'
+    );
+
     revalidatePath('/admin/settings');
     return { success: true as const };
   });
@@ -72,6 +84,11 @@ export async function updateGlobalSettings(formData: FormData) {
         errors: parsed.error.flatten().fieldErrors 
       };
     }
+
+    // ── CRITICAL: Resolve active tenantId from formData or x-tenant-id header ──
+    const formTenant = formData.get('tenantId') as string | null;
+    const headerTenant = await SettingsProvider.getTenantId();
+    const activeTenantId = (formTenant && formTenant.trim()) || headerTenant || 'smmplan';
     
     const {
       siteName,
@@ -119,7 +136,7 @@ export async function updateGlobalSettings(formData: FormData) {
       geminiProxy,
     } = parsed.data;
 
-    const oldSettings = await db.systemSettings.findUnique({ where: { id: 'global' } });
+    const oldSettings = await db.systemSettings.findUnique({ where: { id: activeTenantId } });
 
     const dataToUpdate: Prisma.SystemSettingsUpdateInput = {};
     if (formData.has('_isGeneralSettings')) {
@@ -130,8 +147,12 @@ export async function updateGlobalSettings(formData: FormData) {
     if (formData.has('usnScheme')) dataToUpdate.usnScheme = usnScheme;
     if (formData.has('contactSupportEmail')) dataToUpdate.contactSupportEmail = contactSupportEmail;
     if (formData.has('contactPrivacyEmail')) dataToUpdate.contactPrivacyEmail = contactPrivacyEmail;
-    if (formData.has('contactTelegramBot')) dataToUpdate.contactTelegramBot = contactTelegramBot;
-    if (formData.has('contactTelegramChannel')) dataToUpdate.contactTelegramChannel = contactTelegramChannel;
+    if (formData.has('contactTelegramBot')) {
+      dataToUpdate.contactTelegramBot = contactTelegramBot && contactTelegramBot.trim() ? contactTelegramBot.trim() : null;
+    }
+    if (formData.has('contactTelegramChannel')) {
+      dataToUpdate.contactTelegramChannel = contactTelegramChannel && contactTelegramChannel.trim() ? contactTelegramChannel.trim() : null;
+    }
     if (formData.has('contactWhatsApp')) dataToUpdate.contactWhatsApp = contactWhatsApp;
     if (formData.has('contactVk')) dataToUpdate.contactVk = contactVk;
     if (formData.has('legalCompanyName')) dataToUpdate.legalCompanyName = legalCompanyName;
@@ -284,7 +305,7 @@ export async function updateGlobalSettings(formData: FormData) {
       }
     }
 
-    await settingsService.updateSystemSettings(dataToUpdate as Parameters<typeof settingsService.updateSystemSettings>[0]);
+    await settingsService.updateSystemSettings(dataToUpdate as Parameters<typeof settingsService.updateSystemSettings>[0], activeTenantId);
 
     // Atomic Re-pricing: trigger background sync if rate changed
     if (isRateChanged && finalExchangeRate) {
@@ -315,12 +336,93 @@ export async function updateGlobalSettings(formData: FormData) {
       adminId: user.id,
       adminEmail: user.email,
       action: 'SYSTEM_SETTINGS_UPDATE',
-      target: 'global',
+      target: activeTenantId,
       targetType: 'SETTINGS',
       oldValue: oldValueToLog,
       newValue: safeDataToUpdate,
       ipAddress
     });
+
+    // ── DISPATCH REALTIME ADMIN ALERTS (P0) ──
+    const changedPaymentKeys: string[] = [];
+    const changedTgKeys: string[] = [];
+    const changedEmailKeys: string[] = [];
+
+    const paymentKeysList = ['yookassaShopId', 'yookassaSecretKey', 'yookassaWebhookSecret', 'yookassaTestShopId', 'yookassaTestSecretKey', 'cryptoBotToken', 'robokassaLogin', 'robokassaPassword', 'robokassaWebhookPassword', 'safetyFloor', 'globalMarkup'];
+    const tgKeysList = ['telegramBotToken', 'telegramBotMode', 'contactTelegramBot', 'contactTelegramChannel'];
+    const emailKeysList = ['emailProvider', 'resendApiKey', 'smtpHost', 'smtpPort', 'smtpUser', 'smtpPassword', 'inboundEmailWebhookSecret'];
+
+    for (const key of Object.keys(dataToUpdate)) {
+      if (paymentKeysList.includes(key)) changedPaymentKeys.push(key);
+      else if (tgKeysList.includes(key)) changedTgKeys.push(key);
+      else if (emailKeysList.includes(key)) changedEmailKeys.push(key);
+    }
+
+    // 1. Payment Gateways Alert (CRITICAL)
+    if (changedPaymentKeys.length > 0) {
+      sendAdminAlert(
+        `🚨 <b>[P0 CRITICAL] ИЗМЕНЕНИЕ ПЛАТЁЖНЫХ ШЛЮЗОВ</b>\n` +
+        `<b>Тенант / Бренд:</b> <code>${activeTenantId}</code>\n` +
+        `<b>Администратор:</b> ${user.email} (IP: ${ipAddress || 'unknown'})\n` +
+        `<b>Изменённые параметры:</b> <code>${changedPaymentKeys.join(', ')}</code>\n` +
+        `⚠️ <i>Проверьте тестовые платежи для верификации доступности шлюзов.</i>`,
+        'CRITICAL',
+        activeTenantId
+      );
+    }
+
+    // 2. Telegram Bot Alert (HIGH)
+    if (changedTgKeys.length > 0) {
+      const newBotUsername = dataToUpdate.contactTelegramBot ? `@${String(dataToUpdate.contactTelegramBot).replace('@', '')}` : 'Отвязан/Сброшен';
+      sendAdminAlert(
+        `⚠️ <b>ИЗМЕНЕНИЕ НАСТРОЕК TELEGRAM-БОТА</b>\n` +
+        `<b>Тенант / Бренд:</b> <code>${activeTenantId}</code>\n` +
+        `<b>Администратор:</b> ${user.email} (IP: ${ipAddress || 'unknown'})\n` +
+        `<b>Бот поддержки:</b> <code>${newBotUsername}</code>\n` +
+        `<b>Изменённые параметры:</b> <code>${changedTgKeys.join(', ')}</code>`,
+        'WARNING',
+        activeTenantId
+      );
+    }
+
+    // 3. Maintenance Mode Alert (HIGH)
+    if (dataToUpdate.maintenanceMode !== undefined && oldSettings?.maintenanceMode !== dataToUpdate.maintenanceMode) {
+      const state = dataToUpdate.maintenanceMode ? '🔴 ВКЛЮЧЁН (Сайт недоступен)' : '🟢 ВЫКЛЮЧЕН (Сайт в штатном режиме)';
+      sendAdminAlert(
+        `🚨 <b>РЕЖИМ ТЕХРАБОТ ИЗМЕНЁН</b>\n` +
+        `<b>Тенант / Бренд:</b> <code>${activeTenantId}</code>\n` +
+        `<b>Статус:</b> ${state}\n` +
+        `<b>Администратор:</b> ${user.email} (IP: ${ipAddress || 'unknown'})`,
+        'CRITICAL',
+        activeTenantId
+      );
+    }
+
+    // 4. Exchange Rate USD Alert (INFO)
+    if (isRateChanged && finalExchangeRate) {
+      const oldRate = oldSettings?.exchangeRateUSD ? `${oldSettings.exchangeRateUSD} ₽` : 'Не задан';
+      sendAdminAlert(
+        `💱 <b>КУРС USD К РУБЛЮ ОБНОВЛЁН</b>\n` +
+        `<b>Тенант / Бренд:</b> <code>${activeTenantId}</code>\n` +
+        `<b>Старый курс:</b> ${oldRate}\n` +
+        `<b>Новый курс:</b> <b>${finalExchangeRate} ₽</b>\n` +
+        `<b>Администратор:</b> ${user.email} (IP: ${ipAddress || 'unknown'})`,
+        'INFO',
+        activeTenantId
+      );
+    }
+
+    // 5. Email / SMTP Alert (WARNING)
+    if (changedEmailKeys.length > 0) {
+      sendAdminAlert(
+        `📧 <b>ИЗМЕНЕНИЕ ПОЧТОВЫХ СЕРВЕРОВ (SMTP / Resend)</b>\n` +
+        `<b>Тенант / Бренд:</b> <code>${activeTenantId}</code>\n` +
+        `<b>Администратор:</b> ${user.email} (IP: ${ipAddress || 'unknown'})\n` +
+        `<b>Изменённые параметры:</b> <code>${changedEmailKeys.join(', ')}</code>`,
+        'WARNING',
+        activeTenantId
+      );
+    }
 
     // Invalidate the SettingsProvider cache so changes apply instantly (SMTP, Keys, Rates, Maintenance)
     try {
@@ -347,12 +449,13 @@ export async function updateGlobalSettings(formData: FormData) {
 // ── Generate Inbound Mail Webhook Secret ──
 export async function generateInboundSecretAction() {
   const result = await requireStaffPermission("settings", "edit", async (admin) => {
+    const tenantId = await SettingsProvider.getTenantId();
     const rawSecret = crypto.randomBytes(32).toString('hex');
     const encryptedSecret = VaultService.encrypt(rawSecret);
 
     await settingsService.updateSystemSettings({
       inboundEmailWebhookSecret: encryptedSecret
-    });
+    }, tenantId);
 
     const ipAddress = await getClientIp();
 
@@ -360,10 +463,18 @@ export async function generateInboundSecretAction() {
       adminId: admin.id,
       adminEmail: admin.email,
       action: 'INBOUND_SECRET_GENERATE',
-      target: 'global',
+      target: tenantId,
       targetType: 'SETTINGS',
       ipAddress
     });
+
+    sendAdminAlert(
+      `🔑 <b>СГЕНЕРИРОВАН НОВЫЙ СЕКРЕТ ВХОДЯЩЕЙ ПОЧТЫ</b>\n` +
+      `<b>Тенант / Бренд:</b> <code>${tenantId}</code>\n` +
+      `<b>Администратор:</b> ${admin.email} (IP: ${ipAddress || 'unknown'})`,
+      'WARNING',
+      tenantId
+    );
 
     try {
       const { revalidateTag } = (await import('next/cache')) as unknown as { revalidateTag: (tag: string) => unknown };
@@ -385,7 +496,8 @@ export async function generateInboundSecretAction() {
 // ── Get Masked Settings Action (P0 Secret Protection) ──
 export async function getSettingsAction() {
   return requireStaffPermission('settings', 'view', async () => {
-    const settings = await settingsService.getSystemSettings();
+    const tenantId = await SettingsProvider.getTenantId();
+    const settings = await settingsService.getSystemSettings(tenantId);
     return {
       ...settings,
       yookassaSecretKey: settings.yookassaSecretKey ? '••••••••' + (settings.yookassaSecretKey.length >= 4 ? settings.yookassaSecretKey.slice(-4) : '') : '',
@@ -413,7 +525,8 @@ export async function getSettingsAction() {
 export async function testSmtpConnectionAction(host?: string, port?: number, user?: string, pass?: string) {
   return requireStaffPermission('settings', 'view', async () => {
     const { isPublicHost } = await import('@/lib/ssrf-guard');
-    const settings = await settingsService.getSystemSettings();
+    const tenantId = await SettingsProvider.getTenantId();
+    const settings = await settingsService.getSystemSettings(tenantId);
 
     const targetHost = host || settings.smtpHost;
     const targetPort = port || settings.smtpPort || 465;
@@ -452,7 +565,8 @@ export async function testSmtpConnectionAction(host?: string, port?: number, use
 export async function testGeminiAiConnectionAction(apiKey?: string, proxy?: string) {
   return requireStaffPermission('settings', 'view', async () => {
     const { isPublicHost } = await import('@/lib/ssrf-guard');
-    const settings = await settingsService.getSystemSettings();
+    const tenantId = await SettingsProvider.getTenantId();
+    const settings = await settingsService.getSystemSettings(tenantId);
 
     let targetKey = apiKey;
     if (!targetKey || targetKey.includes('•••')) {
@@ -586,6 +700,52 @@ export async function updateStaffGeminiApiKeyAction(targetUserId: string, apiKey
 
     revalidatePath('/admin/settings');
     return { success: true };
+  });
+}
+
+// ── Disconnect Telegram Bot for Specific Tenant ──
+export async function disconnectTelegramBotAction(tenantId?: string) {
+  return requireStaffPermission('settings', 'edit', async (admin) => {
+    const activeTenantId = tenantId || await SettingsProvider.getTenantId();
+    
+    await db.systemSettings.update({
+      where: { id: activeTenantId },
+      data: {
+        contactTelegramBot: null,
+        telegramBotToken: null,
+      }
+    });
+
+    const ipAddress = await getClientIp();
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'TELEGRAM_BOT_DISCONNECTED',
+      target: activeTenantId,
+      targetType: 'SETTINGS',
+      oldValue: { action: 'DISCONNECT_BOT' },
+      newValue: { contactTelegramBot: null, telegramBotToken: null },
+      ipAddress
+    });
+
+    sendAdminAlert(
+      `🚨 <b>TELEGRAM-БОТ ПОДДЕРЖКИ ОТВЯЗАН</b>\n` +
+      `<b>Тенант / Бренд:</b> <code>${activeTenantId}</code>\n` +
+      `<b>Администратор:</b> ${admin.email} (IP: ${ipAddress || 'unknown'})\n` +
+      `⚠️ <i>Уведомления и поддержка через бота для бренда ${activeTenantId} остановлены.</i>`,
+      'WARNING',
+      activeTenantId
+    );
+
+    try {
+      const { revalidateTag } = (await import('next/cache')) as unknown as { revalidateTag: (tag: string) => unknown };
+      revalidateTag('settings');
+      revalidatePath('/admin/settings');
+      revalidatePath('/', 'layout');
+    } catch {}
+
+    return { success: true, message: `Telegram-бот успешно отвязан от бренда ${activeTenantId}` };
   });
 }
 

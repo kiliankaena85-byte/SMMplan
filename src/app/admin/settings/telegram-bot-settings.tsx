@@ -64,6 +64,7 @@ import { TelegramLivePreview } from './telegram/telegram-live-preview';
 
 interface TelegramBotSettingsProps {
   settings: SystemSettings;
+  tenantId?: string;
 }
 
 export type TelegramSubTab = 
@@ -77,14 +78,14 @@ export type TelegramSubTab =
   | 'errors' 
   | 'security';
 
-export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
+export function TelegramBotSettings({ settings, tenantId = 'smmplan' }: TelegramBotSettingsProps) {
   const [activeTab, setActiveTab] = useState<TelegramSubTab>('general');
   const [diagnostics, setDiagnostics] = useState<TelegramBotDiagnostics | null>(null);
   const [loadingDiag, setLoadingDiag] = useState(false);
   const [isPendingReset, startTransitionReset] = useTransition();
 
   // General Settings State
-  const botUsername = settings.contactTelegramBot || 'SMMplansapport_bot';
+  const botUsername = settings.contactTelegramBot || (tenantId === 'flux' ? 'smmflux_support_bot' : 'smmplan_support_bot');
 
   // Enterprise Config States for Live Preview Synchronization
   const [menuButtons, setMenuButtons] = useState<TelegramMenuButton[]>(
@@ -434,6 +435,7 @@ export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
           {activeTab === 'general' && (
             <ConnectionPanel 
               settings={settings} 
+              tenantId={tenantId}
               diagnostics={diagnostics} 
               onRefresh={fetchDiagnostics} 
             />

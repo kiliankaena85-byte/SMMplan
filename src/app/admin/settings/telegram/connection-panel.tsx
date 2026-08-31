@@ -6,21 +6,32 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useActionState, useTransition, useState } from 'react';
-import { Loader2, Send, RotateCcw, Radio, ExternalLink, Key, ShieldCheck, CheckCircle, AlertCircle, Wifi, WifiOff, Server } from 'lucide-react';
-import { updateGlobalSettings } from '@/actions/admin/settings';
+import { Loader2, Send, RotateCcw, Radio, ExternalLink, Key, ShieldCheck, CheckCircle, AlertCircle, Wifi, WifiOff, Server, AlertTriangle, Unlink, Trash2 } from 'lucide-react';
+import { updateGlobalSettings, disconnectTelegramBotAction } from '@/actions/admin/settings';
 import { sendTelegramTestAlertAction } from '@/actions/admin/telegram-bot';
 import type { TelegramBotDiagnostics } from '@/types/telegram';
 import type { SystemSettings } from '@prisma/client';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Props {
   settings: SystemSettings;
+  tenantId?: string;
   diagnostics: TelegramBotDiagnostics | null;
   onRefresh: () => void;
 }
 
-export function ConnectionPanel({ settings, diagnostics, onRefresh }: Props) {
+export function ConnectionPanel({ settings, tenantId = 'smmplan', diagnostics, onRefresh }: Props) {
   const [isPendingReset, startTransitionReset] = useTransition();
   const [isPendingTestMsg, startTransitionTestMsg] = useTransition();
+  const [isDisconnectBotModalOpen, setIsDisconnectBotModalOpen] = useState(false);
+  const [isDisconnectingBot, startDisconnectBotTransition] = useTransition();
   const [testChatId, setTestChatId] = useState('');
   const [testMsgText, setTestMsgText] = useState('Проверка доставки уведомлений из панели управления.');
 
@@ -55,22 +66,89 @@ export function ConnectionPanel({ settings, diagnostics, onRefresh }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Bot Disconnect Confirmation Dialog */}
+      <Dialog open={isDisconnectBotModalOpen} onOpenChange={setIsDisconnectBotModalOpen}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <div className="flex items-center gap-3 text-rose-500 pb-2">
+              <AlertTriangle className="w-6 h-6" />
+              <DialogTitle className="text-lg font-bold">Отвязать Telegram-бота?</DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              Вы уверены, что хотите отвязать бота от бренда <strong className="text-foreground">{tenantId === 'flux' ? 'SMMflux' : 'SMMplan'}</strong>?
+              <br /><br />
+              ⚠️ Токен бота и юзернейм для этого бренда будут очищены. Настройки других брендов затронуты не будут.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDisconnectBotModalOpen(false)}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                setIsDisconnectBotModalOpen(false);
+                startDisconnectBotTransition(async () => {
+                  try {
+                    const res = await disconnectTelegramBotAction(tenantId);
+                    if (res.success) {
+                      toast.success(res.message);
+                      onRefresh();
+                    } else if ('error' in res) {
+                      toast.error(res.error || 'Ошибка при отвязке бота');
+                    }
+                  } catch (err) { toast.error(String(err)); }
+                });
+              }}
+              disabled={isDisconnectingBot}
+              className="font-bold gap-1.5"
+            >
+              {isDisconnectingBot ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+              Отвязать бота
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <form action={formAction} className="space-y-6">
+        <input type="hidden" name="tenantId" value={tenantId} />
         {/* Auth & Secrets */}
         <Card className="rounded-3xl border border-border/80 shadow-sm bg-card p-6 space-y-5">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
-            <span className="p-1 px-2.5 bg-primary/10 text-primary rounded-md text-[10px] font-bold">AUTH</span>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Идентификаторы и Секреты</h3>
+          <div className="flex items-center justify-between pb-3 border-b border-border/60">
+            <div className="flex items-center gap-2.5">
+              <span className="p-1 px-2.5 bg-primary/10 text-primary rounded-md text-[10px] font-bold">AUTH</span>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Идентификаторы и Секреты ({tenantId === 'flux' ? 'SMMflux' : 'SMMplan'})</h3>
+            </div>
+            {settings.contactTelegramBot && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsDisconnectBotModalOpen(true)}
+                disabled={isDisconnectingBot}
+                className="text-xs font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/30 gap-1.5 h-8 cursor-pointer"
+              >
+                <Unlink className="w-3.5 h-3.5" />
+                <span>Отвязать бота</span>
+              </Button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Юзернейм бота (без @)</Label>
-              <Input name="contactTelegramBot" defaultValue={settings.contactTelegramBot || ''} placeholder="SMMplansapport_bot" className="font-mono text-xs" />
+              <Input name="contactTelegramBot" defaultValue={settings.contactTelegramBot || ''} placeholder={tenantId === 'flux' ? 'smmflux_support_bot' : 'smmplan_support_bot'} className="font-mono text-xs" />
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Официальный канал</Label>
-              <Input name="contactTelegramChannel" defaultValue={settings.contactTelegramChannel || ''} placeholder="@smmplan_news" className="font-mono text-xs" />
+              <Input name="contactTelegramChannel" defaultValue={settings.contactTelegramChannel || ''} placeholder={tenantId === 'flux' ? '@smmflux_news' : '@smmplan_news'} className="font-mono text-xs" />
             </div>
           </div>
 

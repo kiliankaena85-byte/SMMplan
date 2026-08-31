@@ -35,8 +35,9 @@ export async function fetchPaginatedExternalServices(
     page: number,
     pageSize: number
 ) {
-    return requireStaffPermission('catalog', 'view', async () => {
+    return requireStaffPermission('catalog', 'view', async (_user, _role, tenantId) => {
         try {
+            const activeTenantId = tenantId || 'smmplan';
             const shadowCount = await db.shadowService.count({ where: { providerId } });
             if (shadowCount === 0) {
                 return { success: false, error: 'Теневой каталог пуст. Нажмите «Загрузить каталог».', emptyCache: true };
@@ -45,7 +46,7 @@ export async function fetchPaginatedExternalServices(
             // 0. Currency & Rate Settings
             const [provider, settings] = await Promise.all([
                 db.provider.findUnique({ where: { id: providerId }, select: { balanceCurrency: true } }),
-                db.systemSettings.findUnique({ where: { id: "global" }, select: { exchangeRateUSD: true } })
+                db.systemSettings.findUnique({ where: { id: activeTenantId }, select: { exchangeRateUSD: true } })
             ]);
             const currency = provider?.balanceCurrency || 'USD';
             const usdRate = settings?.exchangeRateUSD || 90.0;

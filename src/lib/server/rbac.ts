@@ -74,14 +74,59 @@ export async function requireStaffPermission<T>(
     const permission = user.staffRole.permissions.find(p => p.section.toUpperCase() === normalizedSection);
     
     if (!permission) {
+        import('@/services/security/security-alert.service').then(({ SecurityAlertService }) => {
+          SecurityAlertService.record({
+            event: 'STAFF_PERMISSION_VIOLATION',
+            severity: 'HIGH',
+            tenantId,
+            details: {
+              staffUserId: user.id,
+              staffEmail: user.email,
+              role: user.role,
+              targetSection: section,
+              actionMode,
+              reason: 'No permission entry for section'
+            }
+          }).catch(() => {});
+        }).catch(() => {});
         return { success: false, error: `Forbidden: No permissions for section [${section}]` };
     }
 
     if (actionMode === 'edit' && !permission.canEdit) {
+        import('@/services/security/security-alert.service').then(({ SecurityAlertService }) => {
+          SecurityAlertService.record({
+            event: 'STAFF_PERMISSION_VIOLATION',
+            severity: 'HIGH',
+            tenantId,
+            details: {
+              staffUserId: user.id,
+              staffEmail: user.email,
+              role: user.role,
+              targetSection: section,
+              actionMode,
+              reason: 'No edit permission for section'
+            }
+          }).catch(() => {});
+        }).catch(() => {});
         return { success: false, error: `Forbidden: Cannot modify [${section}]` };
     }
 
     if (actionMode === 'view' && !permission.canView && !permission.canEdit) {
+        import('@/services/security/security-alert.service').then(({ SecurityAlertService }) => {
+          SecurityAlertService.record({
+            event: 'STAFF_PERMISSION_VIOLATION',
+            severity: 'HIGH',
+            tenantId,
+            details: {
+              staffUserId: user.id,
+              staffEmail: user.email,
+              role: user.role,
+              targetSection: section,
+              actionMode,
+              reason: 'No view permission for section'
+            }
+          }).catch(() => {});
+        }).catch(() => {});
         return { success: false, error: `Forbidden: Cannot view [${section}]` };
     }
 
@@ -104,12 +149,26 @@ export async function requireOwnerPermission<T>(
     const user = await db.user.findUnique({ where: { id: userId } });
     if (!user) return { success: false, error: "Forbidden: User not found" };
 
+    const tenantId = user.tenantId ?? 'smmplan';
+
     if (user.role !== 'OWNER') {
        console.warn(`[RBAC] User ${userId} attempted to execute OWNER Action but has role ${user.role}`);
+       import('@/services/security/security-alert.service').then(({ SecurityAlertService }) => {
+         SecurityAlertService.record({
+           event: 'UNAUTHORIZED_OWNER_ACTION_ATTEMPT',
+           severity: 'CRITICAL',
+           tenantId,
+           details: {
+             staffUserId: user.id,
+             staffEmail: user.email,
+             role: user.role,
+             reason: 'Non-owner attempted OWNER-only action'
+           }
+         }).catch(() => {});
+       }).catch(() => {});
        return { success: false, error: "Forbidden: OWNER context required" };
     }
 
-    const tenantId = user.tenantId ?? 'smmplan';
     return await action(user, tenantId);
   } catch (error: unknown) {
     console.error("[RBAC] Execution Error:", error);

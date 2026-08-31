@@ -387,8 +387,8 @@ export function SmartDripClient({
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto w-full">
-              <Table aria-label="Список кампаний умного dripfeed" className="table-fixed min-w-[1000px] w-full">
+            <div className="w-full">
+              <Table aria-label="Список кампаний умного dripfeed" className="table-fixed w-full">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[15%] py-4 px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">ID / Создана</TableHead>
@@ -589,8 +589,8 @@ export function SmartDripClient({
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto w-full">
-              <Table aria-label="Конфигурация умного dripfeed для услуг" className="table-fixed min-w-[900px] w-full">
+            <div className="w-full">
+              <Table aria-label="Конфигурация умного dripfeed для услуг" className="table-fixed w-full">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[12%] py-4 px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Сеть / Категория</TableHead>

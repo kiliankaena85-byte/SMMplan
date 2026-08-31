@@ -13,9 +13,10 @@ import {
   testGeminiAiConnectionAction,
   testTelegramBotConnectionAction,
   testYooKassaConnectionAction,
+  disconnectTelegramBotAction,
 } from '@/actions/admin/settings';
 import { toast } from 'sonner';
-import { useActionState, useEffect, useState } from 'react';
+import { useActionState, useEffect, useState, useTransition } from 'react';
 import { 
   Loader2, 
   Eye, 
@@ -30,7 +31,9 @@ import {
   HelpCircle,
   Copy,
   Check,
-  AlertTriangle
+  AlertTriangle,
+  Unlink,
+  Trash2
 } from 'lucide-react';
 import { SystemSettings } from '@prisma/client';
 import {
@@ -44,9 +47,13 @@ import {
 
 interface IntegrationsSettingsProps {
   settings: SystemSettings;
+  tenantId?: string;
 }
 
-export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
+export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: IntegrationsSettingsProps) {
+  const [isDisconnectBotModalOpen, setIsDisconnectBotModalOpen] = useState(false);
+  const [isDisconnectingBot, startDisconnectBotTransition] = useTransition();
+
   const [testingSmtp, setTestingSmtp] = useState(false);
   const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -227,6 +234,19 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {settings.contactTelegramBot && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsDisconnectBotModalOpen(true)}
+                  disabled={isDisconnectingBot}
+                  className="font-bold text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/30 gap-1.5 h-9 cursor-pointer"
+                >
+                  <Unlink className="w-3.5 h-3.5" />
+                  <span>Отвязать бота</span>
+                </Button>
+              )}
               <Button
                 type="button"
                 intent="secondary"
@@ -241,6 +261,53 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
             </div>
           </div>
 
+          {/* Bot Disconnect Confirmation Dialog */}
+          <Dialog open={isDisconnectBotModalOpen} onOpenChange={setIsDisconnectBotModalOpen}>
+            <DialogContent className="sm:max-w-md bg-card border-border">
+              <DialogHeader>
+                <div className="flex items-center gap-3 text-rose-500 pb-2">
+                  <AlertTriangle className="w-6 h-6" />
+                  <DialogTitle className="text-lg font-bold">Отвязать Telegram-бота?</DialogTitle>
+                </div>
+                <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                  Вы уверены, что хотите отвязать бота <strong className="text-foreground">@{settings.contactTelegramBot}</strong> от бренда <strong className="text-foreground">{tenantId === 'flux' ? 'SMMflux' : 'SMMplan'}</strong>?
+                  <br /><br />
+                  ⚠️ Клиенты сайта <strong className="text-foreground">{tenantId === 'flux' ? 'smmflux.ru' : 'smmplan.pro'}</strong> потеряют возможность обращаться в поддержку через Telegram, пока не будет подключен новый бот. Настройки других брендов затронуты не будут.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="flex gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsDisconnectBotModalOpen(false)}
+                >
+                  Отмена
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    setIsDisconnectBotModalOpen(false);
+                    startDisconnectBotTransition(async () => {
+                      try {
+                        const res = await disconnectTelegramBotAction(tenantId);
+                        if (res.success) toast.success(res.message);
+                        else if ('error' in res) toast.error(res.error || 'Ошибка при отвязке бота');
+                      } catch (err) { toast.error(String(err)); }
+                    });
+                  }}
+                  disabled={isDisconnectingBot}
+                  className="font-bold gap-1.5"
+                >
+                  {isDisconnectingBot ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  Отвязать бота
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           {telegramTestResult && (
             <div className={`p-3.5 rounded-xl border text-xs font-semibold flex items-center gap-2 ${
               telegramTestResult.success 
@@ -253,6 +320,7 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
           )}
           
           <form action={formAction} className="space-y-6">
+            <input type="hidden" name="tenantId" value={tenantId} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -260,11 +328,15 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
                 </Label>
                 <Input
                   name="contactTelegramBot"
-                  defaultValue={settings.contactTelegramBot || 'SMMplansapport_bot'}
-                  placeholder="SMMplansapport_bot"
+                  defaultValue={settings.contactTelegramBot || ''}
+                  placeholder={tenantId === 'flux' ? 'smmflux_support_bot' : 'smmplan_support_bot'}
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Клиенты в интерфейсе и письмах видят ссылку: <span className="font-mono text-primary font-bold">t.me/{settings.contactTelegramBot || 'SMMplansapport_bot'}</span>
+                  {settings.contactTelegramBot ? (
+                    <>Клиенты в интерфейсе и письмах видят ссылку: <span className="font-mono text-primary font-bold">t.me/{settings.contactTelegramBot}</span></>
+                  ) : (
+                    <span className="text-amber-500/90 font-medium">⚠️ Бот не указан: ссылка на Telegram будет скрыта</span>
+                  )}
                 </p>
               </div>
 
@@ -275,7 +347,7 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
                 <Input
                   name="contactTelegramChannel"
                   defaultValue={settings.contactTelegramChannel || ''}
-                  placeholder="@smmplan_news"
+                  placeholder={tenantId === 'flux' ? '@smmflux_news' : '@smmplan_news'}
                 />
                 <p className="text-[11px] text-muted-foreground">
                   Официальный информационный канал платформы для клиентов.
@@ -289,7 +361,7 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
                 name="welcomeMessage"
                 defaultValue={settings.welcomeMessage || ''}
                 rows={3}
-                placeholder="Добро пожаловать в SMMplan! Ваш персональный кабинет готов к работе."
+                placeholder={`Добро пожаловать в ${tenantId === 'flux' ? 'SMMflux' : 'SMMplan'}! Ваш персональный кабинет готов к работе.`}
               />
               <p className="text-[11px] text-muted-foreground">
                 Текст, отправляемый пользователю при первом запуске бота или команде /start.
@@ -346,6 +418,7 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
           </div>
 
           <form action={formAction} className="space-y-8">
+            <input type="hidden" name="tenantId" value={tenantId} />
             {/* YooKassa section */}
             <div className="space-y-6">
               <div className="flex items-center justify-between border-b border-border pb-2">
@@ -523,6 +596,7 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
           </div>
 
           <form action={formAction} className="space-y-8">
+            <input type="hidden" name="tenantId" value={tenantId} />
             <div className="space-y-6">
               <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground border-b border-border pb-1">Отправка писем</div>
               
@@ -763,6 +837,7 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
           </div>
 
           <form action={formAction} className="space-y-6">
+            <input type="hidden" name="tenantId" value={tenantId} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* API Keys Pool */}
               <div className="space-y-2">
