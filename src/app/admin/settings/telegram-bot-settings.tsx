@@ -101,7 +101,7 @@ export function TelegramBotSettings({ settings, tenantId = 'smmplan' }: Telegram
   const fetchDiagnostics = useCallback(async () => {
     setLoadingDiag(true);
     try {
-      const res = await getTelegramBotDiagnosticsAction();
+      const res = await getTelegramBotDiagnosticsAction(tenantId);
       setDiagnostics(res);
       if (res.success && res.bot) {
         toast.success(`Бот @${res.bot.username} онлайн (Ping: ${res.pingMs}ms)`);
@@ -113,23 +113,35 @@ export function TelegramBotSettings({ settings, tenantId = 'smmplan' }: Telegram
     } finally {
       setLoadingDiag(false);
     }
-  }, []);
+  }, [tenantId]);
 
-  const loadEnterpriseConfig = async () => {
+  const loadEnterpriseConfig = useCallback(async () => {
     try {
-      const res = await getTelegramEnterpriseConfigAction();
+      const res = await getTelegramEnterpriseConfigAction(tenantId);
       if (res.success && res.config) {
         if (res.config.menuButtons) setMenuButtons(res.config.menuButtons);
         if (res.config.ratingReasons) setRatingReasons(res.config.ratingReasons);
         if (res.config.templates) setTemplates(res.config.templates);
       }
     } catch { /* ignore */ }
-  };
+  }, [tenantId]);
 
   useEffect(() => {
     fetchDiagnostics();
     loadEnterpriseConfig();
-  }, [fetchDiagnostics]);
+  }, [fetchDiagnostics, loadEnterpriseConfig]);
+
+  useEffect(() => {
+    if (settings.telegramMenuConfig) {
+      setMenuButtons(settings.telegramMenuConfig as unknown as TelegramMenuButton[]);
+    }
+    if (settings.telegramRatingReasons) {
+      setRatingReasons(settings.telegramRatingReasons as unknown as TelegramRatingReasonsConfig);
+    }
+    if (settings.telegramTemplates) {
+      setTemplates(settings.telegramTemplates as unknown as TelegramMessageTemplatesConfig);
+    }
+  }, [settings, tenantId]);
 
   const [isResetWebhookModalOpen, setIsResetWebhookModalOpen] = useState(false);
 
@@ -137,7 +149,7 @@ export function TelegramBotSettings({ settings, tenantId = 'smmplan' }: Telegram
     setIsResetWebhookModalOpen(false);
     startTransitionReset(async () => {
       try {
-        const res = await resetTelegramWebhookAction();
+        const res = await resetTelegramWebhookAction(tenantId);
         if (res.success) {
           toast.success(res.message);
           fetchDiagnostics();
@@ -446,6 +458,7 @@ export function TelegramBotSettings({ settings, tenantId = 'smmplan' }: Telegram
             <TelegramMenuTab
               initialButtons={menuButtons}
               onButtonsChange={setMenuButtons}
+              tenantId={tenantId}
             />
           )}
 
@@ -454,6 +467,7 @@ export function TelegramBotSettings({ settings, tenantId = 'smmplan' }: Telegram
             <TelegramTemplatesTab
               initialTemplates={templates}
               onTemplatesChange={setTemplates}
+              tenantId={tenantId}
             />
           )}
 
@@ -462,6 +476,7 @@ export function TelegramBotSettings({ settings, tenantId = 'smmplan' }: Telegram
             <TelegramCsatTab
               initialReasons={ratingReasons}
               onReasonsChange={setRatingReasons}
+              tenantId={tenantId}
             />
           )}
 

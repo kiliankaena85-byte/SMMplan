@@ -19,6 +19,15 @@ interface KeyRegistry {
   keys: Map<string, Buffer>;
 }
 
+function deriveKeyBuffer(secret: string): Buffer {
+  // If exactly 64 hex characters (32 bytes hex), parse directly as Buffer for legacy VaultService compatibility
+  if (secret.length === 64 && /^[0-9a-fA-F]+$/.test(secret)) {
+    return Buffer.from(secret, 'hex');
+  }
+  // Otherwise, use SHA-256 hash to generate deterministic 32-byte key
+  return createHash('sha256').update(secret).digest();
+}
+
 function getKeyRegistry(): KeyRegistry {
   const keysMap = new Map<string, Buffer>();
   let primaryVersion = DEFAULT_KEY_VERSION;
@@ -38,8 +47,7 @@ function getKeyRegistry(): KeyRegistry {
       if (!version || !secret) {
         throw new Error(`[Encryption] Empty version or secret in APP_ENCRYPTION_KEYS entry "${entry}"`);
       }
-      const keyBuffer = createHash('sha256').update(secret).digest();
-      keysMap.set(version, keyBuffer);
+      keysMap.set(version, deriveKeyBuffer(secret));
 
       // The first listed key is treated as the primary (latest) key for new encryptions
       if (isFirst) {
@@ -52,7 +60,7 @@ function getKeyRegistry(): KeyRegistry {
   // 2. Singular fallback keys
   const singleKeyStr = process.env.APP_ENCRYPTION_KEY || process.env.DATA_ENCRYPTION_KEY || process.env.VAULT_MASTER_KEY;
   if (singleKeyStr) {
-    const singleBuffer = createHash('sha256').update(singleKeyStr).digest();
+    const singleBuffer = deriveKeyBuffer(singleKeyStr);
     // If not already in map under v1, assign it
     if (!keysMap.has(DEFAULT_KEY_VERSION)) {
       keysMap.set(DEFAULT_KEY_VERSION, singleBuffer);

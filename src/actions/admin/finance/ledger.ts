@@ -89,7 +89,12 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
         andConditions.push({ createdAt: { gte: periodStart } });
       }
       if (activeTenantId && activeTenantId !== 'all') {
-        andConditions.push({ user: { tenantId: activeTenantId } });
+        andConditions.push({
+          OR: [
+            { tenantId: activeTenantId },
+            { user: { tenantId: activeTenantId } },
+          ],
+        });
       }
 
       if (p.type === 'TOPUP') {

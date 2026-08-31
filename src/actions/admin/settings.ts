@@ -13,6 +13,7 @@ import { VaultService } from '@/lib/vault';
 import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 import { getClientIp } from '@/utils/ip';
 import { sendAdminAlert } from '@/lib/notifications';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 
 // ── User Role Update ──
@@ -706,14 +707,21 @@ export async function updateStaffGeminiApiKeyAction(targetUserId: string, apiKey
 // ── Disconnect Telegram Bot for Specific Tenant ──
 export async function disconnectTelegramBotAction(tenantId?: string) {
   return requireStaffPermission('settings', 'edit', async (admin) => {
-    const activeTenantId = tenantId || await SettingsProvider.getTenantId();
+    const rawTenant = tenantId || await SettingsProvider.getTenantId();
+    const activeTenantId = normalizeTenantId(rawTenant) || 'smmplan';
     
-    await db.systemSettings.update({
+    await db.systemSettings.upsert({
       where: { id: activeTenantId },
-      data: {
+      update: {
         contactTelegramBot: null,
         telegramBotToken: null,
-      }
+      },
+      create: {
+        id: activeTenantId,
+        siteName: activeTenantId === 'flux' ? 'SMMflux' : 'SMMplan',
+        contactTelegramBot: null,
+        telegramBotToken: null,
+      },
     });
 
     const ipAddress = await getClientIp();

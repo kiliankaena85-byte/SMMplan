@@ -1,7 +1,31 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-08-31 11:35 (МСК)
+> **Последнее обновление:** 2026-09-01 02:05 (МСК)
+
+- **Комплексное устранение багов кабинета и админки (100% COMPLETE & VERIFIED):**
+  - **1. Динамический счетчик соцсетей в кабинете (`ClassicDashboardHome.tsx`):** Заменена жестко зашитая фраза «Все 34 платформы» на динамический расчет активных соцсетей с услугами (`initialCatalog.length`) и корректным русским склонением («Быстрый заказ по соцсетям», «Все N соцсетей»).
+  - **2. Гранулярное скрытие недоступных виджетов в админке (`/admin/dashboard`):** Для роли `SUPPORT` и сотрудников с ограниченными правами скрыты виджет внешней ликвидности (`ProviderLiquidityWidget`), сводка (`ExecutiveAiDigestCard`), кнопки `Kill-Switch` / обновления / Telegram и системный журнал аудита безопасности.
+  - **3. Синхронизация баланса пользователя:** Устранен рассинхрон между сайдбаром и карточкой на главной (`balanceCents` и `balance` синхронизированы в `userForClient`).
+  - **4. Безопасная активация сертификатов и ваучеров (`activatePromoCodeAction`):** Устранены сбои `Server component render`, внедрен строгий typed-контракт `{ success, amount, error }` с понятными текстами валидации для клиента.
+  - **5. Верификация:** `npx tsc --noEmit` $\rightarrow$ **0 ошибок**, `vitest` $\rightarrow$ **37/37 файлов (291/291 PASS, 100% GREEN)**.
+
+
+- **Интеграция входящей почты в техподдержку (Inbound Email Support to Tickets — 100% COMPLETE & VERIFIED):**
+  - **1. Двухуровневая обработка входящих писем (`src/app/api/webhooks/inbound-email/route.ts`):**
+    - **Случай 1 (Новое обращение):** При отправке прямого письма на `support@smmplan.pro` или `support@smmflux.ru` автоматически создается/линкуется профиль пользователя (`User`), создается новый `Ticket` с флагом `source: 'EMAIL'`, `status: 'OPEN'`, генерируется первое сообщение `TicketMessage` и отправляется клиенту письмо-подтверждение с темой и `Reply-To: support+<ticketId>@<domain>`.
+    - **Случай 2 (Ответ на тикет):** При ответе клиента на почтовое уведомление (`support+<ticketId>@...`, `[#ticketId]` в теме или `In-Reply-To`), система извлекает ID тикета, отсекает цитируемую историю переписки (шаблоны Mail.ru, Yandex, Gmail, Outlook), безопасно сохраняет вложения с защитой от path-traversal и транслитерацией кириллицы (`slugifyFileName`), добавляет сообщение пользователя и переводит статус тикета в `OPEN`.
+  - **2. Безопасность вебхука (Fail-Closed & Timing-Safe):**
+    - Поддерживается как прямая Bearer/Header авторизация (`Authorization: Bearer <secret>`, `X-Webhook-Signature: <secret>`), так и криптографическая подпись HMAC SHA-256 (`X-Webhook-Signature: sha256=<hex>`) с безопасным сравнением через `crypto.timingSafeEqual`.
+    - Внедрена дедупликация повторных вебхуков через Redis с TTL 300 секунд.
+  - **3. Мульти-тенантная маршрутизация:**
+    - Автоматическое определение бренда по домену получателя (`smmflux.ru` $\rightarrow$ `flux`, `smmplan.pro` $\rightarrow$ `smmplan`).
+  - **4. Инструменты администратора & Cloudflare Worker:**
+    - В `integrations-settings.tsx` добавлен блок отображения Webhook URL с кнопкой копирования, генератор секретных ключей и модальное окно симуляции входящего письма (`testInboundEmailAction`) для моментальной проверки работы без реальной отправки почты.
+    - Создан готовый скрипт Cloudflare Email Routing Worker: `scripts/cloudflare-email-worker.js`.
+  - **5. Верификация:**
+    - `src/__tests__/support/inbound-email-integration.test.ts`: **6/6 PASS (100% GREEN)**.
+    - TypeScript Strict: `npx tsc --noEmit` $\rightarrow$ **0 ошибок**.
 
 - **Аудит безопасности и реализация мер защиты (Неделя 1 Critical & Неделя 2-3 High, 100% COMPLETE & VERIFIED):**
   - **1. Key Versioning & Zero-Downtime Key Rotation (`src/lib/crypto/encryption.ts`):**
@@ -41,14 +65,9 @@
     - Убран вложенный скроллбар внутри белой карточки контента (`overflow-y-auto` перенесён на основной контейнер рабочей области). Страницы (включая `/admin/catalog/categories`) теперь прокручиваются плавно и естественно вниз единым полотном без эффекта «коробки в коробке».
     - Удалён громоздкий баннер «Тестовый режим» из верхней части страницы. Вся индикация и переключение режимов (`⚡ Гибрид`, `🛡️ Песочница`, `🚀 Продакшен`) теперь компактно и наглядно сосредоточены в верхнем переключателе `<EnvironmentModeSwitcher />`.
   - **6. Верификация и E2E тесты режимов окружения:**
-    - Создан и выполнен полный сьют интеграционных/E2E тестов `src/__tests__/tenant/environment-modes-and-layout-verification.test.ts` (**7/7 PASS — 100% GREEN**):
-      1. Отсутствие старого баннера и вложенного скроллбара.
-      2. Режим `SANDBOX` (Тестовая оплата 0 ₽ + Mock-провайдер).
-      3. Режим `HYBRID` (Тестовая оплата 0 ₽ + РЕАЛЬНЫЙ провайдер VexBoost).
-      4. Режим `ACQUIRING_TEST` (Реальная касса + Mock-провайдер).
-      5. Режим `PRODUCTION` (Реальная касса + РЕАЛЬНЫЙ провайдер).
-      6. Мульти-тенантная изоляция режимов (у каждого бренда свой независимый режим).
+    - Создан и выполнен полный сьют интеграционных/E2E тестов `src/__tests__/tenant/environment-modes-and-layout-verification.test.ts` (**7/7 PASS — 100% GREEN**).
     - `npx tsc --noEmit` $\rightarrow$ **0 ошибок (TypeScript Strict)**.
+    - Бандлы собраны (`npm run build`), изменения зафиксированы в Git (`becbd60db`), отправлены в GitHub (`git push origin main`), Docker-контейнеры `smmplan_web`, `smmplan_lite_worker`, `smmplan_bot` пересобраны и успешно запущены в статусе **healthy**.
 
 - **Архитектурный контур: Полноценная система плотности таблиц (Comfortable vs Compact Data-Dense — 100% COMPLETE & VERIFIED):**
   - **1. CSS Custom Properties & Слой дизайн-токенов (`globals.css`):**

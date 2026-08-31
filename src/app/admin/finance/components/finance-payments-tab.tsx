@@ -174,8 +174,6 @@ export function FinancePaymentsTab({ initial, period: initPeriod, tenantId }: Fi
         <DataTable
           columns={paymentColumns}
           data={data.items}
-          searchKey="userEmail"
-          searchPlaceholder="Фильтр по email или ID платежа..."
           renderMobileView={renderMobilePayments}
         />
       </div>

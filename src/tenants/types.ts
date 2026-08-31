@@ -3,7 +3,7 @@ import React from 'react';
 export interface BaseUserProps {
   id?: string;
   email: string;
-  balance?: bigint;
+  balance?: bigint | number;
   balanceCents?: number;
   totalSpent?: bigint | number;
   referralCode?: string | null;

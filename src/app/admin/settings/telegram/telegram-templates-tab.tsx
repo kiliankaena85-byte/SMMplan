@@ -28,6 +28,7 @@ import {
 interface TelegramTemplatesTabProps {
   initialTemplates: TelegramMessageTemplatesConfig;
   onTemplatesChange?: (templates: TelegramMessageTemplatesConfig) => void;
+  tenantId?: string;
 }
 
 interface TemplateMeta {
@@ -90,11 +91,17 @@ const TEMPLATES_LIST: TemplateMeta[] = [
   }
 ];
 
-export function TelegramTemplatesTab({ initialTemplates, onTemplatesChange }: TelegramTemplatesTabProps) {
+export function TelegramTemplatesTab({ initialTemplates, onTemplatesChange, tenantId = 'smmplan' }: TelegramTemplatesTabProps) {
   const [templates, setTemplates] = React.useState<TelegramMessageTemplatesConfig>(
     initialTemplates?.welcome ? initialTemplates : DEFAULT_TELEGRAM_MESSAGE_TEMPLATES
   );
   const [isSaving, startTransition] = React.useTransition();
+
+  React.useEffect(() => {
+    if (initialTemplates?.welcome) {
+      setTemplates(initialTemplates);
+    }
+  }, [initialTemplates, tenantId]);
 
   const updateTemplate = (key: keyof TelegramMessageTemplatesConfig, value: string) => {
     const updated = { ...templates, [key]: value };
@@ -118,7 +125,7 @@ export function TelegramTemplatesTab({ initialTemplates, onTemplatesChange }: Te
   const handleSave = () => {
     startTransition(async () => {
       try {
-        const res = await saveTelegramTemplatesAction(templates);
+        const res = await saveTelegramTemplatesAction(templates, tenantId);
         if (res.success) {
           toast.success(res.message);
         } else {

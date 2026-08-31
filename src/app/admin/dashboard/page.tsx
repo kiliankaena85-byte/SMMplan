@@ -73,7 +73,14 @@ export default async function AdminDashboardPage({
   searchParams: Promise<{ period?: string; tenant?: string }>;
 }) {
   const session = await verifySession();
-  const user = session ? await db.user.findUnique({ where: { id: session.userId } }) : null;
+  const user = session ? await db.user.findUnique({
+    where: { id: session.userId },
+    include: {
+      staffRole: {
+        include: { permissions: true }
+      }
+    }
+  }) : null;
 
   const resolvedSearchParams = await searchParams;
   const period = resolvedSearchParams.period || 'all';
@@ -154,7 +161,22 @@ export default async function AdminDashboardPage({
     stormDetectorService.auditServiceStorms({ windowHours: 72, tenantId: tenantFilter }),
   ]);
 
-  const canSeeFinancials = user?.role === 'OWNER' || user?.role === 'ADMIN';
+  const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
+  const hasPermission = (section: string, mode: 'view' | 'edit' = 'view') => {
+    if (isOwnerOrAdmin) return true;
+    if (!user?.staffRole) return false;
+    const sec = section.toUpperCase();
+    return user.staffRole.permissions.some(
+      (p) => p.section.toUpperCase() === sec && (mode === 'edit' ? p.canEdit : (p.canView || p.canEdit))
+    );
+  };
+
+  const canSeeFinancials = isOwnerOrAdmin || hasPermission('finance');
+  const canSeeProviders = isOwnerOrAdmin || hasPermission('providers');
+  const canSeeAnalytics = isOwnerOrAdmin || hasPermission('analytics');
+  const canSeeSettings = isOwnerOrAdmin || hasPermission('settings');
+  const canEditAnalytics = isOwnerOrAdmin || hasPermission('analytics', 'edit');
+  const canEditSettings = isOwnerOrAdmin || hasPermission('settings', 'edit');
 
   const revenueGross = metrics.revenueGross;
   const profitNet = metrics.profitNet;
@@ -312,7 +334,7 @@ export default async function AdminDashboardPage({
       {/* ── 5. INCIDENT DISPATCHER & PROVIDER LIQUIDITY (6 + 6 GRID) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left 6 col: Incident Dispatcher & Financial Escalation */}
-        <div className="lg:col-span-6">
+        <div className={canSeeProviders ? "lg:col-span-6" : "lg:col-span-12"}>
           <FinancialEscalationWidget
             errorOrdersCount={oStats.error}
             openTicketsCount={tStats.open}
@@ -321,9 +343,11 @@ export default async function AdminDashboardPage({
         </div>
 
         {/* Right 6 col: Provider Liquidity Widget */}
-        <div className="lg:col-span-6">
-          <ProviderLiquidityWidget />
-        </div>
+        {canSeeProviders && (
+          <div className="lg:col-span-6">
+            <ProviderLiquidityWidget />
+          </div>
+        )}
       </div>
 
       {/* ── 6. CATALOG REVENUE & PAYMENT GATEWAYS (6 + 6 GRID) ── */}
@@ -398,7 +422,12 @@ export default async function AdminDashboardPage({
       )}
 
       {/* ── 7.5. EXECUTIVE AI OBSERVER & DAILY DIGEST ── */}
-      <ExecutiveAiDigestCard />
+      {canSeeAnalytics && (
+        <ExecutiveAiDigestCard
+          canEditSettings={canEditSettings}
+          canEditAnalytics={canEditAnalytics}
+        />
+      )}
 
       {/* ── 8. TECHNICAL METRICS & REFUND MONITOR (6 + 6 GRID) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
@@ -414,23 +443,25 @@ export default async function AdminDashboardPage({
       </div>
 
       {/* ── 9. RECENT AUDIT LOG (BOTTOM STRIP) ── */}
-      <div className="bg-card text-card-foreground rounded-lg p-5 border border-border/70 shadow-sm space-y-4">
-        <div className="flex justify-between items-center border-b border-border/50 pb-3">
-          <div>
-            <h4 className="font-bold text-xs uppercase tracking-wider text-foreground">Журнал безопасности и действий (Audit Trail)</h4>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Фиксация ключевых изменений с привязкой к аккаунту и времени</p>
+      {canSeeSettings && (
+        <div className="bg-card text-card-foreground rounded-lg p-5 border border-border/70 shadow-sm space-y-4">
+          <div className="flex justify-between items-center border-b border-border/50 pb-3">
+            <div>
+              <h4 className="font-bold text-xs uppercase tracking-wider text-foreground">Журнал безопасности и действий (Audit Trail)</h4>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Фиксация ключевых изменений с привязкой к аккаунту и времени</p>
+            </div>
+            <Link
+              href="/admin/settings?tab=audit"
+              className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
+            >
+              <span>Полный журнал</span>
+              <ArrowRight className="w-3 h-3" />
+            </Link>
           </div>
-          <Link
-            href="/admin/settings?tab=audit"
-            className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
-          >
-            <span>Полный журнал</span>
-            <ArrowRight className="w-3 h-3" />
-          </Link>
-        </div>
 
-        <RecentAuditTable logs={recentAudit} />
-      </div>
+          <RecentAuditTable logs={recentAudit} />
+        </div>
+      )}
 
     </div>
   );

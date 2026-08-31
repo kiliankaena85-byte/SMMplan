@@ -15,6 +15,7 @@ import {
   testYooKassaConnectionAction,
   disconnectTelegramBotAction,
 } from '@/actions/admin/settings';
+import { testInboundEmailAction } from '@/actions/admin/test-inbound-email';
 import { toast } from 'sonner';
 import { useActionState, useEffect, useState, useTransition } from 'react';
 import { 
@@ -33,7 +34,10 @@ import {
   Check,
   AlertTriangle,
   Unlink,
-  Trash2
+  Trash2,
+  Mail,
+  Send,
+  ExternalLink
 } from 'lucide-react';
 import { SystemSettings } from '@prisma/client';
 import {
@@ -209,7 +213,7 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
       const res = await generateInboundSecretAction();
       if (res && res.success && res.secret) {
         setInboundSecret(res.secret);
-        setShowSecret(true); // Automatically show secret so admin can copy it immediately
+        setShowSecret(true);
         toast.success('Секретный ключ вебхука входящей почты сгенерирован!');
       } else {
         throw new Error('Не удалось сгенерировать секрет');
@@ -219,6 +223,49 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
       toast.error(errorMsg || 'Ошибка генерации секрета');
     } finally {
       setGeneratingSecret(false);
+    }
+  };
+
+  const [isTestEmailModalOpen, setIsTestEmailModalOpen] = React.useState(false);
+  const [testFromEmail, setTestFromEmail] = React.useState('customer@example.com');
+  const [testSubject, setTestSubject] = React.useState('Не могу войти в аккаунт');
+  const [testBody, setTestBody] = React.useState('Здравствуйте! Пополнил баланс на 500 рублей, но заказ не запускается. Проверьте, пожалуйста.');
+  const [isSendingTestEmail, setIsSendingTestEmail] = React.useState(false);
+  const [testEmailResult, setTestEmailResult] = React.useState<{ success: boolean; message: string; ticketId?: string } | null>(null);
+  const [copiedWebhookUrl, setCopiedWebhookUrl] = React.useState(false);
+
+  const copyWebhookUrl = () => {
+    const url = typeof window !== 'undefined' 
+      ? `${window.location.origin}/api/webhooks/inbound-email` 
+      : 'https://smmplan.pro/api/webhooks/inbound-email';
+    navigator.clipboard.writeText(url);
+    setCopiedWebhookUrl(true);
+    toast.success('URL вебхука входящей почты скопирован в буфер обмена');
+    setTimeout(() => setCopiedWebhookUrl(false), 2000);
+  };
+
+  const handleSendTestEmail = async () => {
+    setIsSendingTestEmail(true);
+    setTestEmailResult(null);
+    try {
+      const res = await testInboundEmailAction({
+        fromEmail: testFromEmail,
+        subject: testSubject,
+        textBody: testBody,
+        tenantId
+      });
+      if (res && res.success) {
+        setTestEmailResult({ success: true, message: res.message || 'Письмо успешно доставлено в тикеты', ticketId: res.ticketId });
+        toast.success(res.message || 'Тикет успешно создан из входящего письма!');
+      } else {
+        setTestEmailResult({ success: false, message: res?.error || 'Ошибка создания тикета' });
+        toast.error(res?.error || 'Не удалось сымитировать входящее письмо');
+      }
+    } catch (err: any) {
+      setTestEmailResult({ success: false, message: err?.message || 'Внутренняя ошибка' });
+      toast.error('Произошла ошибка при отправке теста');
+    } finally {
+      setIsSendingTestEmail(false);
     }
   };
 
@@ -766,6 +813,56 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
                   </p>
                 </div>
 
+                {/* Webhook Endpoint URL */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    URL вебхука входящей почты
+                    <span title="URL эндпоинта, на который Cloudflare Email Worker или почтовый шлюз отправляет POST-запросы.">
+                      <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                    </span>
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      readOnly
+                      value={typeof window !== 'undefined' ? `${window.location.origin}/api/webhooks/inbound-email` : 'https://smmplan.pro/api/webhooks/inbound-email'}
+                      className="font-mono text-xs bg-muted/30"
+                    />
+                    <Button
+                      type="button"
+                      intent="outline"
+                      size="sm"
+                      onClick={copyWebhookUrl}
+                      className="font-bold text-xs gap-1 h-10 px-3 shrink-0"
+                      title="Скопировать URL вебхука"
+                    >
+                      {copiedWebhookUrl ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span className="hidden sm:inline">{copiedWebhookUrl ? 'Скопировано' : 'Копировать'}</span>
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    Укажите этот URL в переменной <code>WEBHOOK_URL</code> в Cloudflare Email Worker.
+                  </p>
+                </div>
+
+                {/* Test Webhook Simulator Button */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Проверка интеграции</Label>
+                  <div>
+                    <Button
+                      type="button"
+                      intent="outline"
+                      onClick={() => setIsTestEmailModalOpen(true)}
+                      className="font-bold text-xs gap-1.5 h-10 px-4 w-full sm:w-auto"
+                    >
+                      <Mail className="w-3.5 h-3.5 text-primary" />
+                      Симуляция входящего письма
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    Позволяет протестировать создание тикета в системе без отправки реального email.
+                  </p>
+                </div>
+
                 {/* Regenerate Webhook Secret Modal */}
                 <Dialog open={isRegenerateModalOpen} onOpenChange={setIsRegenerateModalOpen}>
                   <DialogContent className="sm:max-w-md bg-card border-border">
@@ -803,8 +900,84 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
+
+                {/* Test Email Simulator Modal */}
+                <Dialog open={isTestEmailModalOpen} onOpenChange={setIsTestEmailModalOpen}>
+                  <DialogContent className="sm:max-w-lg bg-card border-border">
+                    <DialogHeader>
+                      <div className="flex items-center gap-3 text-primary pb-2">
+                        <Mail className="w-6 h-6" />
+                        <DialogTitle className="text-lg font-bold">Симуляция входящего письма (Inbound)</DialogTitle>
+                      </div>
+                      <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                        Отправка тестового обращения в тикет-систему для проверки маршрутизации и авто-создания пользователей.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-muted-foreground">Email клиента (Отправитель)</Label>
+                        <Input
+                          value={testFromEmail}
+                          onChange={(e) => setTestFromEmail(e.target.value)}
+                          placeholder="client@example.com"
+                          className="text-xs font-mono"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-muted-foreground">Тема письма</Label>
+                        <Input
+                          value={testSubject}
+                          onChange={(e) => setTestSubject(e.target.value)}
+                          placeholder="Тема обращения"
+                          className="text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-muted-foreground">Текст сообщения</Label>
+                        <Textarea
+                          value={testBody}
+                          onChange={(e) => setTestBody(e.target.value)}
+                          rows={4}
+                          placeholder="Текст письма..."
+                          className="text-xs resize-none"
+                        />
+                      </div>
+                      {testEmailResult && (
+                        <div className={`p-3 rounded-lg text-xs font-medium ${testEmailResult.success ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 'bg-destructive/10 text-destructive border border-destructive/20'}`}>
+                          {testEmailResult.message}
+                          {testEmailResult.ticketId && (
+                            <div className="mt-1 font-mono text-[11px]">
+                              ID тикета: {testEmailResult.ticketId}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter className="flex gap-2 pt-2">
+                      <Button
+                        type="button"
+                        intent="secondary"
+                        size="sm"
+                        onClick={() => setIsTestEmailModalOpen(false)}
+                      >
+                        Закрыть
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={isSendingTestEmail}
+                        onClick={handleSendTestEmail}
+                        className="font-bold gap-1.5 cursor-pointer"
+                      >
+                        {isSendingTestEmail ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                        Отправить тестовое письмо
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
+
 
             <div className="pt-4 border-t border-border flex flex-wrap justify-between items-center gap-3">
               <div className="flex items-center gap-2">

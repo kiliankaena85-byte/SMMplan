@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { useActionState, useTransition, useState } from 'react';
+import { useActionState, useTransition, useState, useEffect } from 'react';
 import { Loader2, Send, RotateCcw, Radio, ExternalLink, Key, ShieldCheck, CheckCircle, AlertCircle, Wifi, WifiOff, Server, AlertTriangle, Unlink, Trash2 } from 'lucide-react';
 import { updateGlobalSettings, disconnectTelegramBotAction } from '@/actions/admin/settings';
 import { sendTelegramTestAlertAction } from '@/actions/admin/telegram-bot';
@@ -34,6 +34,13 @@ export function ConnectionPanel({ settings, tenantId = 'smmplan', diagnostics, o
   const [isDisconnectingBot, startDisconnectBotTransition] = useTransition();
   const [testChatId, setTestChatId] = useState('');
   const [testMsgText, setTestMsgText] = useState('Проверка доставки уведомлений из панели управления.');
+  const [botName, setBotName] = useState(settings.contactTelegramBot || '');
+  const [channelName, setChannelName] = useState(settings.contactTelegramChannel || '');
+
+  useEffect(() => {
+    setBotName(settings.contactTelegramBot || '');
+    setChannelName(settings.contactTelegramChannel || '');
+  }, [settings.contactTelegramBot, settings.contactTelegramChannel, tenantId]);
 
   const [state, formAction, isPendingSave] = useActionState(
     async (prevState: unknown, formData: FormData) => {
@@ -56,6 +63,7 @@ export function ConnectionPanel({ settings, tenantId = 'smmplan', diagnostics, o
   const handleSendTestMessage = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    formData.set('tenantId', tenantId);
     startTransitionTestMsg(async () => {
       try {
         const res = await sendTelegramTestAlertAction(formData);
@@ -99,6 +107,8 @@ export function ConnectionPanel({ settings, tenantId = 'smmplan', diagnostics, o
                   try {
                     const res = await disconnectTelegramBotAction(tenantId);
                     if (res.success) {
+                      setBotName('');
+                      setChannelName('');
                       toast.success(res.message);
                       onRefresh();
                     } else if ('error' in res) {
@@ -126,7 +136,7 @@ export function ConnectionPanel({ settings, tenantId = 'smmplan', diagnostics, o
               <span className="p-1 px-2.5 bg-primary/10 text-primary rounded-md text-[10px] font-bold">AUTH</span>
               <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">Идентификаторы и Секреты ({tenantId === 'flux' ? 'SMMflux' : 'SMMplan'})</h3>
             </div>
-            {settings.contactTelegramBot && (
+            {Boolean(botName || settings.telegramBotToken) && (
               <Button
                 type="button"
                 variant="outline"
@@ -144,11 +154,11 @@ export function ConnectionPanel({ settings, tenantId = 'smmplan', diagnostics, o
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Юзернейм бота (без @)</Label>
-              <Input name="contactTelegramBot" defaultValue={settings.contactTelegramBot || ''} placeholder={tenantId === 'flux' ? 'smmflux_support_bot' : 'smmplan_support_bot'} className="font-mono text-xs" />
+              <Input name="contactTelegramBot" value={botName} onChange={(e) => setBotName(e.target.value)} placeholder={tenantId === 'flux' ? 'smmflux_support_bot' : 'smmplan_support_bot'} className="font-mono text-xs" />
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Официальный канал</Label>
-              <Input name="contactTelegramChannel" defaultValue={settings.contactTelegramChannel || ''} placeholder={tenantId === 'flux' ? '@smmflux_news' : '@smmplan_news'} className="font-mono text-xs" />
+              <Input name="contactTelegramChannel" value={channelName} onChange={(e) => setChannelName(e.target.value)} placeholder={tenantId === 'flux' ? '@smmflux_news' : '@smmplan_news'} className="font-mono text-xs" />
             </div>
           </div>
 

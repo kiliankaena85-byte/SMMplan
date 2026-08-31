@@ -229,10 +229,13 @@ export default function AddFundsForm() {
     startPromoTransition(async () => {
       try {
         const res = await activatePromoCodeAction(promoCode);
-        if (!res) throw new Error('Неизвестная ошибка при активации');
-        setPromoSuccess(`Промокод активирован! Начислено ${(res.amount / 100).toFixed(2)} ₽`);
-        setPromoCode('');
-        router.refresh();
+        if (res.success && res.amount) {
+          setPromoSuccess(`Промокод активирован! Начислено ${(res.amount / 100).toFixed(2)} ₽`);
+          setPromoCode('');
+          router.refresh();
+        } else {
+          setPromoError(res.error || 'Ошибка активации промокода');
+        }
       } catch (e: unknown) {
         setPromoError(e instanceof Error ? e.message : 'Ошибка активации');
       }

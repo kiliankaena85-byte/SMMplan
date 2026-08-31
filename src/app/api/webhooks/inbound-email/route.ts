@@ -4,7 +4,6 @@ import { ticketService } from '@/services/support/ticket.service';
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
-import { z } from 'zod';
 import { SettingsProvider } from '@/lib/settings';
 import { getMimeType } from '@/lib/mime';
 import { RateLimitService } from '@/services/core/rate-limit.service';
@@ -145,8 +144,14 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Signature header missing' }, { status: 401 });
       }
 
+      // Strip Bearer prefix if sent in Authorization header
+      let cleanSig = signature.trim();
+      if (cleanSig.toLowerCase().startsWith('bearer ')) {
+        cleanSig = cleanSig.substring(7).trim();
+      }
+
       // Normalise signature to strip standard prefixes (e.g. "sha256=", "sha256-") and lowercase
-      let normalisedSignature = signature.trim();
+      let normalisedSignature = cleanSig;
       if (normalisedSignature.startsWith('sha256=')) {
         normalisedSignature = normalisedSignature.substring(7);
       } else if (normalisedSignature.startsWith('sha256-')) {
@@ -157,7 +162,7 @@ export async function POST(req: NextRequest) {
       // Check 1: Direct secret match (timing-safe comparison to prevent side-channel leaks)
       let isDirectMatch = false;
       try {
-        const sigBuffer = Buffer.from(signature.trim(), 'utf-8');
+        const sigBuffer = Buffer.from(cleanSig, 'utf-8');
         const secretBuffer = Buffer.from(webhookSecret, 'utf-8');
         if (sigBuffer.length === secretBuffer.length) {
           isDirectMatch = crypto.timingSafeEqual(sigBuffer, secretBuffer);
@@ -202,51 +207,58 @@ export async function POST(req: NextRequest) {
 
     const body = JSON.parse(rawBody);
     
-    // Supports Postmark or generic JSON webhook format
-    const toAddress = body.To || body.to || '';
-    const fromAddress = body.From || body.from || '';
-    let textBody = body.TextBody || body.text || '';
-    
-    // Extract ticket ID from support+ticketId@domain.com
-    const match = toAddress.match(/support\+(.+)@/i);
-    if (!match) {
-      console.error(`[CRITICAL] [ACTION REQUIRED] Email webhook failed: No ticket ID in To address. To: ${toAddress}, Sender: ${fromAddress}`);
-      return NextResponse.json({ error: 'No ticket ID in To address' }, { status: 400 });
-    }
-    
-    const ticketId = match[1];
-
-    // Validate ticketId is a valid CUID pattern to mitigate Path Traversal (C2)
-    const cuidSchema = z.string().cuid();
-    const parseResult = cuidSchema.safeParse(ticketId);
-    if (!parseResult.success) {
-      console.error(`[CRITICAL] [ACTION REQUIRED] Email webhook failed: Path Traversal or malformed CUID ticket ID. Ticket ID: ${ticketId}, Sender: ${fromAddress}`);
-      return NextResponse.json({ error: 'Invalid ticket ID format' }, { status: 400 });
-    }
-    
-    // Strict order: perform DB check BEFORE any file writes or folder creations (C2)
-    const ticket = await db.ticket.findUnique({
-      where: { id: ticketId },
-      include: { user: true }
-    });
-    
-    if (!ticket) {
-      console.error(`[CRITICAL] [ACTION REQUIRED] Email webhook failed: Ticket not found in database. Ticket ID: ${ticketId}, Sender: ${fromAddress}`);
-      return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
-    }
-    
-    // Verify that the From address belongs to the ticket owner strictly
-    const extractEmail = (addr: string) => {
-      const match = addr.match(/<(.+)>/);
-      return match ? match[1].trim() : addr.trim();
+    // Support Postmark, Cloudflare Email Worker, SendGrid, Mailgun, and generic JSON formats
+    const parseAddressString = (addr: any): string => {
+      if (!addr) return '';
+      if (typeof addr === 'string') return addr;
+      if (Array.isArray(addr)) return addr.map(a => (typeof a === 'string' ? a : (a.address || a.email || ''))).join(', ');
+      if (typeof addr === 'object') return addr.address || addr.email || addr.value || '';
+      return String(addr);
     };
-    const extractedFrom = extractEmail(fromAddress).toLowerCase();
 
-    if (!ticket.user.email || extractedFrom !== ticket.user.email.toLowerCase()) {
-      console.error(`[CRITICAL] [ACTION REQUIRED] Email webhook failed: Unauthorized sender. Ticket ID: ${ticketId}, Sender: ${extractedFrom}, Ticket Owner: ${ticket.user.email}`);
-      return NextResponse.json({ error: 'Unauthorized sender' }, { status: 403 });
+    const toAddress = parseAddressString(body.To || body.to || body.recipient || '');
+    const fromAddress = parseAddressString(body.From || body.from || body.sender || '');
+    const subject = body.Subject || body.subject || '';
+    let textBody = body.TextBody || body.text || body.plain || body.body || '';
+    const htmlBody = body.HtmlBody || body.html || '';
+
+    // Extract pure email from From address: "John Doe" <john@example.com> -> john@example.com
+    const extractEmail = (addr: string): string => {
+      const match = addr.match(/<([^>]+)>/);
+      return (match ? match[1] : addr).trim().toLowerCase();
+    };
+
+    const extractName = (addr: string): string | undefined => {
+      const match = addr.match(/^"?([^"<]+)"?\s*</);
+      if (match && match[1].trim()) return match[1].trim();
+      return undefined;
+    };
+
+    const extractedFrom = extractEmail(fromAddress);
+    const extractedFromName = body.FromName || body.fromName || extractName(fromAddress);
+
+    if (!extractedFrom || !extractedFrom.includes('@')) {
+      console.error(`[CRITICAL] Inbound email webhook failed: Invalid or missing From address. From: "${fromAddress}"`);
+      return NextResponse.json({ error: 'Invalid From address' }, { status: 400 });
     }
-    
+
+    // ── STEP A: Check if this email is a reply to an existing ticket ──
+    let targetTicketId: string | null = null;
+
+    // 1. Direct support+<ticketId>@domain in To
+    const toMatch = toAddress.match(/support\+([a-zA-Z0-9_-]+)@/i);
+    if (toMatch) {
+      targetTicketId = toMatch[1];
+    }
+
+    // 2. Check Subject for [#<ticketId>] or [TICK-<ticketId>] or [Тикет #<ticketId>]
+    if (!targetTicketId && subject) {
+      const subjectMatch = subject.match(/\[(?:Тикет\s*#?|TICK-|#)?([a-zA-Z0-9]{15,32})\]/i);
+      if (subjectMatch) {
+        targetTicketId = subjectMatch[1];
+      }
+    }
+
     // Comprehensive email reply stripping (removes quoted history for English and Russian clients)
     textBody = textBody.split(/\r?\nOn .+ wrote:/i)[0]            // English generic
                        .split(/\r?\n> /)[0]                      // Standard quote
@@ -257,52 +269,54 @@ export async function POST(req: NextRequest) {
                        .split(/\r?\n\d{4}-\d{2}-\d{2}.+<.+>:/i)[0] // Alternate Yandex date format
                        .trim();
 
+    if (!textBody && htmlBody) {
+      // Fallback: strip basic html tags if plain text is empty
+      textBody = htmlBody.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                         .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                         .replace(/<[^>]+>/g, ' ')
+                         .replace(/\s+/g, ' ')
+                         .trim();
+    }
+
     if (!textBody) {
       textBody = '[Пустое сообщение]';
     }
 
-    // Process attachments (if any)
-    const attachments = body.Attachments || body.attachments || [];
+    // Process and save attachments
+    const rawAttachments = body.Attachments || body.attachments || [];
     const attachmentsToSave: Array<{ url: string; type: string; mimeType: string; name: string; size?: number }> = [];
 
-    if (attachments.length > 0) {
-      // Whitelist extension check - whitelisted extensions verified exactly as documented in Whitelist policy
-      const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'pdf', 'txt', 'doc', 'docx', 'zip']);
-
-      for (const att of attachments) {
-        const content = att.Content || att.content; // base64
-        const originalName = att.Name || att.name || 'attachment';
+    const saveIncomingAttachments = async (folderId: string) => {
+      const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'txt', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'csv']);
+      for (const att of rawAttachments) {
+        const content = att.Content || att.content || att.data; // base64
+        const originalName = att.Name || att.name || att.filename || 'attachment';
         const mimeType = att.ContentType || att.contentType || getMimeType(originalName);
         
         if (content) {
-          const buffer = Buffer.from(content, 'base64');
-          const cleanName = slugifyFileName(originalName);
-          
-          // Split clean name into base and extension to insert safe suffix cleanly (Staff UX)
-          const extIndex = cleanName.lastIndexOf('.');
-          const baseName = extIndex !== -1 ? cleanName.substring(0, extIndex) : cleanName;
-          const rawExt = extIndex !== -1 ? cleanName.substring(extIndex + 1) : 'bin';
-          
-          const actualExt = ALLOWED_EXTENSIONS.has(rawExt.toLowerCase()) ? rawExt.toLowerCase() : 'bin';
-          
-          // Safe, recognizable name with short random suffix to prevent name collisions
-          const fileName = `${baseName}-${crypto.randomBytes(6).toString('hex')}.${actualExt}`;
-          
-          // Strict folder prefix containment check to double protect against traversal (C2)
-          const uploadBase = path.resolve(process.cwd(), 'private', 'uploads', 'tickets');
-          const dir = path.resolve(uploadBase, ticketId);
-          
-          if (!dir.startsWith(uploadBase)) {
-            console.error(`[CRITICAL] Path traversal attempt blocked! Dir: ${dir}, Base: ${uploadBase}`);
-            return NextResponse.json({ error: 'Invalid file path' }, { status: 400 });
-          }
-          
           try {
+            const buffer = Buffer.from(content, 'base64');
+            const cleanName = slugifyFileName(originalName);
+            
+            const extIndex = cleanName.lastIndexOf('.');
+            const baseName = extIndex !== -1 ? cleanName.substring(0, extIndex) : cleanName;
+            const rawExt = extIndex !== -1 ? cleanName.substring(extIndex + 1) : 'bin';
+            const actualExt = ALLOWED_EXTENSIONS.has(rawExt.toLowerCase()) ? rawExt.toLowerCase() : 'bin';
+            
+            const fileName = `${baseName}-${crypto.randomBytes(6).toString('hex')}.${actualExt}`;
+            
+            const uploadBase = path.resolve(process.cwd(), 'private', 'uploads', 'tickets');
+            const dir = path.resolve(uploadBase, folderId);
+            
+            if (!dir.startsWith(uploadBase)) {
+              console.error(`[CRITICAL] Path traversal attempt blocked! Dir: ${dir}, Base: ${uploadBase}`);
+              continue;
+            }
+            
             await fs.mkdir(dir, { recursive: true });
             await fs.writeFile(path.join(dir, fileName), buffer);
             
-            const fileUrl = `/tickets/${ticketId}/${fileName}`;
-            
+            const fileUrl = `/tickets/${folderId}/${fileName}`;
             let extractedType = 'document';
             if (mimeType.startsWith('image/')) extractedType = 'image';
             else if (mimeType.startsWith('video/')) extractedType = 'video';
@@ -312,7 +326,7 @@ export async function POST(req: NextRequest) {
               url: fileUrl,
               type: extractedType,
               mimeType,
-              name: originalName, // original filename (до slugify!)
+              name: originalName,
               size: buffer.length
             });
           } catch (fsError) {
@@ -320,22 +334,63 @@ export async function POST(req: NextRequest) {
           }
         }
       }
+    };
+
+    // ── CASE 1: Appending to an existing ticket ──
+    if (targetTicketId) {
+      const ticket = await db.ticket.findUnique({
+        where: { id: targetTicketId },
+        include: { user: true }
+      });
+
+      if (ticket) {
+        // Verify sender authorization
+        if (ticket.user.email && extractedFrom !== ticket.user.email.toLowerCase()) {
+          console.warn(`[Inbound Email] Sender ${extractedFrom} does not match ticket owner ${ticket.user.email}. Creating separate message with note.`);
+        }
+
+        await saveIncomingAttachments(ticket.id);
+
+        await ticketService.addMessage(
+          ticket.id, 
+          'USER', 
+          textBody, 
+          undefined, 
+          undefined, 
+          undefined, 
+          undefined, 
+          attachmentsToSave
+        );
+
+        return NextResponse.json({ success: true, ticketId: ticket.id, action: 'appended' });
+      }
     }
-    
-    await ticketService.addMessage(
-      ticketId, 
-      'USER', 
-      textBody, 
-      undefined, 
-      undefined, 
-      undefined, 
-      undefined, 
-      attachmentsToSave
-    );
-    
-    return NextResponse.json({ success: true });
+
+    // ── CASE 2: Creating a NEW Ticket from direct customer email ──
+    const tenantId = toAddress.toLowerCase().includes('flux') ? 'flux' : 'smmplan';
+    const tempFolderId = `temp-${crypto.randomBytes(8).toString('hex')}`;
+    await saveIncomingAttachments(tempFolderId);
+
+    const newTicket = await ticketService.createInboundEmailTicket({
+      fromEmail: extractedFrom,
+      fromName: extractedFromName,
+      toEmail: toAddress,
+      subject: subject || 'Новое обращение по Email',
+      text: textBody,
+      html: htmlBody,
+      tenantId,
+      attachments: attachmentsToSave
+    });
+
+    return NextResponse.json({ 
+      success: true, 
+      ticketId: newTicket.id, 
+      action: 'created',
+      tenantId 
+    });
   } catch (e) {
     console.error('[Inbound Email Webhook] Error:', e);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+

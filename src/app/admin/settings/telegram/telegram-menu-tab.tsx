@@ -37,6 +37,7 @@ import {
 interface TelegramMenuTabProps {
   initialButtons: TelegramMenuButton[];
   onButtonsChange?: (buttons: TelegramMenuButton[]) => void;
+  tenantId?: string;
 }
 
 const ACTION_LABELS: Record<TelegramMenuButtonAction, { label: string; icon: React.ComponentType<{ className?: string }>; desc: string }> = {
@@ -52,11 +53,17 @@ const ACTION_LABELS: Record<TelegramMenuButtonAction, { label: string; icon: Rea
   TEXT_REPLY: { label: 'Быстрый автоответ (FAQ)', icon: MessageSquare, desc: 'Отправляет готовый текст или инструкцию клиенту' },
 };
 
-export function TelegramMenuTab({ initialButtons, onButtonsChange }: TelegramMenuTabProps) {
+export function TelegramMenuTab({ initialButtons, onButtonsChange, tenantId = 'smmplan' }: TelegramMenuTabProps) {
   const [buttons, setButtons] = React.useState<TelegramMenuButton[]>(
     Array.isArray(initialButtons) && initialButtons.length > 0 ? initialButtons : DEFAULT_TELEGRAM_MENU_BUTTONS
   );
   const [isSaving, startTransition] = React.useTransition();
+
+  React.useEffect(() => {
+    if (Array.isArray(initialButtons) && initialButtons.length > 0) {
+      setButtons(initialButtons);
+    }
+  }, [initialButtons, tenantId]);
 
   const updateButtons = (newButtons: TelegramMenuButton[]) => {
     setButtons(newButtons);
@@ -128,7 +135,7 @@ export function TelegramMenuTab({ initialButtons, onButtonsChange }: TelegramMen
   const handleSave = () => {
     startTransition(async () => {
       try {
-        const res = await saveTelegramMenuConfigAction(buttons);
+        const res = await saveTelegramMenuConfigAction(buttons, tenantId);
         if (res.success) {
           toast.success(res.message);
         } else {

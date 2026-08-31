@@ -9,6 +9,7 @@ import {
 import type { UserAuditTimelineDTO } from '@/services/financial/ledger-reconciliation.service';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { LEDGER_TYPE_CONFIG, resolveLedgerTypeForDisplay } from '@/lib/financial/ledger-types';
 import { Textarea } from '@/components/ui/textarea';
 import {
   X,
@@ -415,17 +416,21 @@ export function LedgerAuditDrawer({
                                 }`}>
                                   {fmt(entry.amount, true)}
                                 </span>
+                                {(() => {
+                                  const resolvedType = resolveLedgerTypeForDisplay(entry.transactionType, entry.amount, entry.adminId);
+                                  const cfg = LEDGER_TYPE_CONFIG[resolvedType] || LEDGER_TYPE_CONFIG.TOPUP;
+                                  return (
+                                    <Badge intent="outline" className={`text-[9px] font-bold px-1.5 py-0 h-4 rounded ${cfg.badgeClass}`}>
+                                      {cfg.emoji} {cfg.label}
+                                    </Badge>
+                                  );
+                                })()}
                                 <Badge
                                   intent="outline"
                                   className={`text-[9px] font-bold uppercase px-1.5 py-0 h-4 rounded ${badgeInfo.className}`}
                                 >
                                   {badgeInfo.label}
                                 </Badge>
-                                {entry.transactionType && (
-                                  <span className="text-[10px] font-mono font-semibold text-muted-foreground uppercase">
-                                    [{entry.transactionType}]
-                                  </span>
-                                )}
                               </div>
                               <p className="text-xs text-foreground font-medium leading-relaxed">
                                 {entry.reason}

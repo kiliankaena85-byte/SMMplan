@@ -28,13 +28,20 @@ import {
 interface TelegramCsatTabProps {
   initialReasons: TelegramRatingReasonsConfig;
   onReasonsChange?: (reasons: TelegramRatingReasonsConfig) => void;
+  tenantId?: string;
 }
 
-export function TelegramCsatTab({ initialReasons, onReasonsChange }: TelegramCsatTabProps) {
+export function TelegramCsatTab({ initialReasons, onReasonsChange, tenantId = 'smmplan' }: TelegramCsatTabProps) {
   const [reasons, setReasons] = React.useState<TelegramRatingReasonsConfig>(
     initialReasons?.negative ? initialReasons : DEFAULT_TELEGRAM_RATING_REASONS
   );
   const [isSaving, startTransition] = React.useTransition();
+
+  React.useEffect(() => {
+    if (initialReasons?.negative) {
+      setReasons(initialReasons);
+    }
+  }, [initialReasons, tenantId]);
 
   const [newNegative, setNewNegative] = React.useState('');
   const [newNeutral, setNewNeutral] = React.useState('');
@@ -80,7 +87,7 @@ export function TelegramCsatTab({ initialReasons, onReasonsChange }: TelegramCsa
   const handleSave = () => {
     startTransition(async () => {
       try {
-        const res = await saveTelegramRatingReasonsAction(reasons);
+        const res = await saveTelegramRatingReasonsAction(reasons, tenantId);
         if (res.success) {
           toast.success(res.message);
         } else {

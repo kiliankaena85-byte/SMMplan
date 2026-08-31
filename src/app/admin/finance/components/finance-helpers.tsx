@@ -6,6 +6,7 @@ import { type PaymentDTO } from '@/actions/admin/finance/payments';
 import { type LedgerEntryDTO } from '@/actions/admin/finance/ledger';
 import { Badge } from '@/components/ui/badge';
 import { CopyButton } from '../payment-columns';
+import { LEDGER_TYPE_CONFIG, resolveLedgerTypeForDisplay } from '@/lib/financial/ledger-types';
 import Link from 'next/link';
 
 export const PERIOD_OPTIONS = [
@@ -192,22 +193,33 @@ export function renderMobileLedger(table: Table<LedgerEntryDTO>) {
               </p>
             </div>
             
-            <div className="flex justify-between items-center text-xs pt-2 border-t border-border/40">
+            <div className="flex justify-between items-center text-xs pt-2 border-t border-border/40 gap-2 flex-wrap">
               <span className="text-muted-foreground font-mono text-[11px] tabular-nums">
                 {new Date(item.createdAt).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
               </span>
-              <Badge 
-                intent="outline" 
-                className={`text-[9px] font-bold uppercase py-0 px-1.5 h-4 rounded ${
-                  item.status === 'APPROVED' 
-                    ? 'bg-success/15 text-success border-success/20' 
-                    : item.status === 'QUARANTINE' 
-                    ? 'bg-warning/15 text-warning border-warning/20' 
-                    : 'bg-destructive/15 text-destructive border-destructive/20'
-                }`}
-              >
-                {LEDGER_STATUS_LABELS[item.status] || item.status}
-              </Badge>
+              <div className="flex items-center gap-1.5">
+                {(() => {
+                  const resolvedType = resolveLedgerTypeForDisplay(item.transactionType, item.amount, item.adminId);
+                  const cfg = LEDGER_TYPE_CONFIG[resolvedType] || LEDGER_TYPE_CONFIG.TOPUP;
+                  return (
+                    <Badge intent="outline" className={`text-[9px] font-bold px-1.5 py-0 h-4 rounded ${cfg.badgeClass}`}>
+                      {cfg.emoji} {cfg.label}
+                    </Badge>
+                  );
+                })()}
+                <Badge 
+                  intent="outline" 
+                  className={`text-[9px] font-bold uppercase py-0 px-1.5 h-4 rounded ${
+                    item.status === 'APPROVED' 
+                      ? 'bg-success/15 text-success border-success/20' 
+                      : item.status === 'QUARANTINE' 
+                      ? 'bg-warning/15 text-warning border-warning/20' 
+                      : 'bg-destructive/15 text-destructive border-destructive/20'
+                  }`}
+                >
+                  {LEDGER_STATUS_LABELS[item.status] || item.status}
+                </Badge>
+              </div>
             </div>
           </div>
         );

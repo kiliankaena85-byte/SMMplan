@@ -18,7 +18,116 @@ interface AddMessageOptions {
   orderId?: string;
 }
 
+export interface InboundAttachment {
+  url: string;
+  type: string;
+  mimeType: string;
+  name: string;
+  size?: number;
+}
+
+export interface CreateInboundEmailTicketParams {
+  fromEmail: string;
+  fromName?: string;
+  toEmail?: string;
+  subject: string;
+  text: string;
+  html?: string;
+  tenantId?: string;
+  attachments?: InboundAttachment[];
+}
+
 class TicketService {
+  /**
+   * Create a new ticket from an incoming customer email.
+   * Auto-provisions customer user profile if email does not exist yet.
+   */
+  async createInboundEmailTicket(params: CreateInboundEmailTicketParams) {
+    const normalizedEmail = params.fromEmail.trim().toLowerCase();
+    
+    // Resolve tenant from toEmail or parameter
+    let resolvedTenant = params.tenantId;
+    if (!resolvedTenant && params.toEmail) {
+      resolvedTenant = params.toEmail.toLowerCase().includes('flux') ? 'flux' : 'smmplan';
+    }
+    if (!resolvedTenant) {
+      resolvedTenant = 'smmplan';
+    }
+
+    // Find or create customer
+    let user = await db.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } }
+    });
+
+    if (!user) {
+      user = await db.user.create({
+        data: {
+          email: normalizedEmail,
+          role: 'USER',
+          tenantId: resolvedTenant,
+          isEmailVerified: true,
+          isActive: true,
+        }
+      });
+    }
+
+    const cleanSubject = params.subject?.trim() || 'Новое обращение по Email';
+    const cleanText = params.text?.trim() || (params.attachments && params.attachments.length > 0 ? '[Вложенные файлы]' : '[Пустое сообщение]');
+
+    const ticket = await db.ticket.create({
+      data: {
+        userId: user.id,
+        subject: cleanSubject,
+        source: 'EMAIL',
+        status: 'OPEN',
+        tenantId: resolvedTenant,
+        messages: {
+          create: {
+            sender: 'USER',
+            text: cleanText,
+            attachments: params.attachments && params.attachments.length > 0 ? {
+              create: params.attachments.map(att => ({
+                url: att.url,
+                type: att.type || 'document',
+                mimeType: att.mimeType || 'application/octet-stream',
+                name: att.name || 'attachment',
+                size: att.size || null
+              }))
+            } : undefined
+          }
+        }
+      },
+      include: {
+        user: true,
+        messages: {
+          include: {
+            attachments: true
+          }
+        }
+      }
+    });
+
+    // Send confirmation auto-reply to customer
+    try {
+      const { sendTicketCreatedMail } = await import('@/lib/smtp');
+      await sendTicketCreatedMail(user.email, ticket.id, ticket.subject, resolvedTenant);
+    } catch (mailErr) {
+      console.error('[TicketService] Failed to send email confirmation for new ticket:', mailErr);
+    }
+
+    // Realtime broadcast for active admin ticket workspace
+    try {
+      const initialMessageId = ticket.messages?.[0]?.id;
+      if (initialMessageId) {
+        void publishMessageSSE(ticket.id, initialMessageId);
+      }
+    } catch (sseErr) {
+      console.error('[TicketService] Failed to publish SSE for new ticket:', sseErr);
+    }
+
+    return ticket;
+  }
+
   async getOrCreateTicket(userId: string, subject: string, source: TicketSource = 'WEB', tenantId?: string) {
     return await db.$transaction(async (tx) => {
       const user = await tx.user.findUniqueOrThrow({
@@ -245,7 +354,7 @@ class TicketService {
     }
 
     // Realtime SSE broadcast to all active live chat tabs
-    void publishMessageSSE(ticketId, message.id).catch((err) => {
+    void Promise.resolve(publishMessageSSE(ticketId, message.id)).catch((err) => {
       console.error('[TicketService] SSE broadcast error:', err);
     });
 

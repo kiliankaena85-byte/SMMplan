@@ -75,51 +75,53 @@ export class SettingsProvider {
 
   /**
    * Fetches settings for a given tenant with a 5-minute cache TTL.
-   * Uses Next.js unstable_cache for high-performance retrieval in Server Components.
    */
-  static getCached = unstable_cache(
-    async (tenantId: string) => {
-      // In tests, we want the most fresh data to avoid race conditions between test cases
-      if (SettingsProvider.isTestEnvironment()) {
-        return await db.systemSettings.upsert({
-          where: { id: tenantId },
-          update: {},
-          create: { id: tenantId, taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: (tenantId === 'flux' || tenantId === 'lovable') ? 'SMMflux' : 'SMMplan', exchangeRateUSD: 95 }
-        });
-      }
-
-      const defaultName = (tenantId === 'flux' || tenantId === 'lovable') ? 'SMMflux' : 'SMMplan';
-      const defaultEmail = (tenantId === 'flux' || tenantId === 'lovable') ? 'support@smmflux.ru' : 'support@smmplan.pro';
-      const defaultPrivacyEmail = (tenantId === 'flux' || tenantId === 'lovable') ? 'privacy@smmflux.ru' : 'privacy@smmplan.pro';
-      const defaultBot = (tenantId === 'flux' || tenantId === 'lovable') ? 'smmflux_support_bot' : 'smmplan_support_bot';
-      const defaultChannel = (tenantId === 'flux' || tenantId === 'lovable') ? 'smmflux_support' : 'smmplan_support';
-
-      return await db.systemSettings.upsert({
-        where: { id: tenantId },
-        update: {},
-        create: {
-          id: tenantId,
-          taxRate: 6.0,
-          opexMonthly: 0,
-          maintenanceMode: false,
-          isTestMode: false,
-          siteName: defaultName,
-          siteDescription: "",
-          exchangeRateUSD: 95.0,
-          contactSupportEmail: defaultEmail,
-          contactPrivacyEmail: defaultPrivacyEmail,
-          contactTelegramBot: defaultBot,
-          contactTelegramChannel: defaultChannel,
-          legalCompanyName: "ИП Соколов Артём Андреевич",
-          legalCompanyInn: "695006320024",
-          legalCompanyOgrnip: "",
-          legalCompanyAddress: "Российская Федерация, Тверская область, г. Тверь",
+  static getCached(tenantId: string) {
+    const cleanTenant = normalizeTenantId(tenantId) || 'smmplan';
+    return unstable_cache(
+      async () => {
+        // In tests, we want the most fresh data to avoid race conditions between test cases
+        if (SettingsProvider.isTestEnvironment()) {
+          return await db.systemSettings.upsert({
+            where: { id: cleanTenant },
+            update: {},
+            create: { id: cleanTenant, taxRate: 6, opexMonthly: 0, maintenanceMode: false, isTestMode: true, siteName: (cleanTenant === 'flux' || cleanTenant === 'lovable') ? 'SMMflux' : 'SMMplan', exchangeRateUSD: 95 }
+          });
         }
-      });
-    },
-    ['system-settings-tenant-v2'],
-    { revalidate: 300, tags: ['settings'] }
-  );
+
+        const defaultName = (cleanTenant === 'flux' || cleanTenant === 'lovable') ? 'SMMflux' : 'SMMplan';
+        const defaultEmail = (cleanTenant === 'flux' || cleanTenant === 'lovable') ? 'support@smmflux.ru' : 'support@smmplan.pro';
+        const defaultPrivacyEmail = (cleanTenant === 'flux' || cleanTenant === 'lovable') ? 'privacy@smmflux.ru' : 'privacy@smmplan.pro';
+        const defaultBot = (cleanTenant === 'flux' || cleanTenant === 'lovable') ? 'smmflux_support_bot' : 'smmplan_support_bot';
+        const defaultChannel = (cleanTenant === 'flux' || cleanTenant === 'lovable') ? 'smmflux_support' : 'smmplan_support';
+
+        return await db.systemSettings.upsert({
+          where: { id: cleanTenant },
+          update: {},
+          create: {
+            id: cleanTenant,
+            taxRate: 6.0,
+            opexMonthly: 0,
+            maintenanceMode: false,
+            isTestMode: false,
+            siteName: defaultName,
+            siteDescription: "",
+            exchangeRateUSD: 95.0,
+            contactSupportEmail: defaultEmail,
+            contactPrivacyEmail: defaultPrivacyEmail,
+            contactTelegramBot: defaultBot,
+            contactTelegramChannel: defaultChannel,
+            legalCompanyName: "ИП Соколов Артём Андреевич",
+            legalCompanyInn: "695006320024",
+            legalCompanyOgrnip: "",
+            legalCompanyAddress: "Российская Федерация, Тверская область, г. Тверь",
+          }
+        });
+      },
+      [`system-settings-${cleanTenant}-v3`],
+      { revalidate: 300, tags: ['settings', `settings-${cleanTenant}`] }
+    )();
+  }
 
   /**
    * Direct database fetch (uncached). Use only for Admin UI or logic that requires real-time data.

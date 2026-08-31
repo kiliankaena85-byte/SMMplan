@@ -70,6 +70,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ te
 
   const userForClient = {
     email: user.email,
+    balance: user.balance ?? BigInt(0),
     balanceCents: Number(user.balance ?? 0),
     totalSpent: Number(user.totalSpent ?? 0),
     referralCode: user.referralCode,

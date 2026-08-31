@@ -84,6 +84,17 @@ export function GeneralSettings({ settings, tenantId = 'smmplan' }: GeneralSetti
   const [companyInn, setCompanyInn] = useState<string>(settings.legalCompanyInn || '770000000000');
   const [companyOgrnip, setCompanyOgrnip] = useState<string>(settings.legalCompanyOgrnip || '300000000000000');
 
+  useEffect(() => {
+    setMaintenance(Boolean(settings.maintenanceMode));
+    setSiteName(settings.siteName || (tenantId === 'flux' ? 'SMMflux' : 'SMMplan'));
+    setSiteDescription(settings.siteDescription || '');
+    setSupportEmail(settings.contactSupportEmail || (tenantId === 'flux' ? 'support@smmflux.ru' : 'support@smmplan.pro'));
+    setTelegramBot(settings.contactTelegramBot || '');
+    setCompanyName(settings.legalCompanyName || 'ИП Иванов И. И.');
+    setCompanyInn(settings.legalCompanyInn || '770000000000');
+    setCompanyOgrnip(settings.legalCompanyOgrnip || '300000000000000');
+  }, [settings, tenantId]);
+
   // Handle explicit bot disconnect
   const handleDisconnectBot = () => {
     setIsDisconnectBotModalOpen(false);

@@ -37,6 +37,7 @@ import {
   sanitizeTelegramHtml,
   extractTemplateVariables,
 } from '@/schemas/telegram';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 export type { TelegramBotDiagnostics };
 import {
   DEFAULT_TELEGRAM_MENU_BUTTONS,
@@ -72,33 +73,34 @@ function generateCuid2(): string {
   return `${timestamp}${random}`;
 }
 
-async function getBotToken(): Promise<string | null> {
-  let token = process.env.TELEGRAM_BOT_TOKEN;
-  if (!token || token === 'dummy_token') {
-    try {
-      const { VaultService } = await import('@/lib/vault');
-      const settings = await db.systemSettings.findFirst();
-      if (settings?.telegramBotToken) {
-        const decrypted = VaultService.decrypt(settings.telegramBotToken);
-        if (decrypted && decrypted.trim().length > 10) {
-          token = decrypted.trim();
-        }
-      }
-    } catch {
-      // Silent fail — token retrieval from vault is best-effort
-    }
-  }
-  if (!token || token === 'dummy_token') return null;
-  return token;
+async function getTenantId(explicitTenantId?: string): Promise<string> {
+  if (explicitTenantId) return (normalizeTenantId(explicitTenantId) as string) || 'smmplan';
+  try {
+    const { headers: getHeaders } = await import('next/headers');
+    const reqHeaders = await getHeaders();
+    const headerTenant = reqHeaders.get('x-tenant-id');
+    if (headerTenant) return (normalizeTenantId(headerTenant) as string) || 'smmplan';
+  } catch {}
+  return 'smmplan';
 }
 
-async function getTenantId(): Promise<string> {
- try {
-    const settings = await db.systemSettings.findFirst({ select: { id: true } });
-    return settings?.id || 'smmplan';
+async function getBotToken(targetTenantId?: string): Promise<string | null> {
+  const tenantId = await getTenantId(targetTenantId);
+  try {
+    const { VaultService } = await import('@/lib/vault');
+    const settings = await db.systemSettings.findUnique({ where: { id: tenantId } });
+    if (settings?.telegramBotToken) {
+      const decrypted = VaultService.decrypt(settings.telegramBotToken);
+      if (decrypted && decrypted.trim().length > 10) {
+        return decrypted.trim();
+      }
+    }
   } catch {
-    return 'smmplan';
+    // Silent fail — token retrieval from vault is best-effort
   }
+  let token = process.env.TELEGRAM_BOT_TOKEN;
+  if (token && token !== 'dummy_token' && tenantId === 'smmplan') return token;
+  return null;
 }
 
 // OWASP A10: SSRF protection — only allow Telegram API domains
@@ -116,16 +118,16 @@ async function safeTelegramFetch(url: string, init?: RequestInit): Promise<Respo
 // SECTION 1: DIAGNOSTICS
 // ==============================================================
 
-export async function getTelegramBotDiagnosticsAction(): Promise<TelegramBotDiagnostics> {
+export async function getTelegramBotDiagnosticsAction(targetTenantId?: string): Promise<TelegramBotDiagnostics> {
   return requireStaffPermission('settings', 'view', async () => {
-    const token = await getBotToken();
-    const tenantId = await getTenantId();
+    const tenantId = await getTenantId(targetTenantId);
+    const token = await getBotToken(tenantId);
 
     if (!token) {
       return {
         success: false,
         daemonRunning: false,
-        error: 'Токен бота не настроен (ни в .env, ни в базе данных)',
+        error: `Токен бота для бренда ${tenantId === 'flux' ? 'SMMflux' : 'SMMplan'} не настроен`,
       };
     }
 
@@ -137,7 +139,7 @@ export async function getTelegramBotDiagnosticsAction(): Promise<TelegramBotDiag
       let heartbeatAgeMs: number | undefined;
       try {
         const { redis } = await import('@/lib/redis');
-        const lastHb = await redis.get('bot:heartbeat');
+        const lastHb = await redis.get(`bot:${tenantId}:heartbeat`) || await redis.get('bot:heartbeat');
         if (lastHb) {
           const age = Date.now() - parseInt(lastHb, 10);
           if (age < 65_000) {
@@ -150,9 +152,9 @@ export async function getTelegramBotDiagnosticsAction(): Promise<TelegramBotDiag
       const [getMeRes, webhookRes, linkedUsersCount, telegramTicketsCount, totalOrdersCount, activeButtonsCount, activeTemplatesCount, unresolvedErrorsCount] = await Promise.all([
         safeTelegramFetch(`https://api.telegram.org/bot${token}/getMe`),
         safeTelegramFetch(`https://api.telegram.org/bot${token}/getWebhookInfo`),
-        db.user.count({ where: { telegramId: { not: null } } }),
-        db.ticket.count({ where: { source: 'TELEGRAM' } }),
-        db.order.count(),
+        db.user.count({ where: { telegramId: { not: null }, tenantId } }),
+        db.ticket.count({ where: { source: 'TELEGRAM', tenantId } }),
+        db.order.count({ where: { tenantId } }),
         db.telegramButton.count({ where: { tenantId, isVisible: true } }),
         db.telegramTemplate.count({ where: { tenantId, isActive: true } }),
         db.telegramErrorLog.count({ where: { tenantId, isResolved: false } }),
@@ -171,10 +173,16 @@ export async function getTelegramBotDiagnosticsAction(): Promise<TelegramBotDiag
       }
 
       // Security info
-      const settings = await db.systemSettings.findFirst({ select: {
-        telegramWebhookSecret: true, telegramAllowedIps: true,
-        telegramRateLimitPerMin: true, telegramMaintenanceMode: true, telegramProxyId: true,
-      } });
+      const settings = await db.systemSettings.findUnique({
+        where: { id: tenantId },
+        select: {
+          telegramWebhookSecret: true,
+          telegramAllowedIps: true,
+          telegramRateLimitPerMin: true,
+          telegramMaintenanceMode: true,
+          telegramProxyId: true,
+        },
+      });
 
       // Proxy info
       let proxy: TelegramBotDiagnostics['proxy'];
@@ -224,10 +232,11 @@ export async function getTelegramBotDiagnosticsAction(): Promise<TelegramBotDiag
 // SECTION 2: WEBHOOK MANAGEMENT
 // ==============================================================
 
-export async function resetTelegramWebhookAction(): Promise<TelegramActionResponse> {
+export async function resetTelegramWebhookAction(targetTenantId?: string): Promise<TelegramActionResponse> {
   return requireStaffPermission('settings', 'edit', async (admin) => {
-    const token = await getBotToken();
-    if (!token) return { success: false, error: 'TELEGRAM_BOT_TOKEN не задан' };
+    const tenantId = await getTenantId(targetTenantId);
+    const token = await getBotToken(tenantId);
+    if (!token) return { success: false, error: `TELEGRAM_BOT_TOKEN для бренда ${tenantId === 'flux' ? 'SMMflux' : 'SMMplan'} не задан` };
 
     try {
       const res = await safeTelegramFetch(
@@ -241,10 +250,10 @@ export async function resetTelegramWebhookAction(): Promise<TelegramActionRespon
         await auditAdminAwaitable({
           adminId: admin.id, adminEmail: admin.email,
           action: 'TELEGRAM_WEBHOOK_RESET',
-          target: 'telegram_bot', targetType: 'SYSTEM_SETTINGS', ipAddress,
+          target: `telegram_bot_${tenantId}`, targetType: 'SYSTEM_SETTINGS', ipAddress,
         });
         revalidatePath('/admin/settings');
-        return { success: true, message: 'Вебхук и зависшие апдейты успешно сброшены. Бот переведен в режим Polling.' };
+        return { success: true, message: `Вебхук и зависшие апдейты успешно сброшены для бренда ${tenantId === 'flux' ? 'SMMflux' : 'SMMplan'}.` };
       }
       return { success: false, error: data.description || 'Не удалось сбросить вебхук' };
     } catch (err) {
@@ -1166,14 +1175,15 @@ export async function logTelegramError(params: {
 /**
  * Retrieves the full Enterprise Telegram configuration (menu, reasons, templates)
  */
-export async function getTelegramEnterpriseConfigAction(): Promise<{
+export async function getTelegramEnterpriseConfigAction(targetTenantId?: string): Promise<{
   success: boolean;
   config?: TelegramEnterpriseConfig;
   error?: string;
 }> {
   return requireStaffPermission('settings', 'view', async () => {
     try {
-      const settings = await db.systemSettings.findFirst();
+      const tenantId = await getTenantId(targetTenantId);
+      const settings = await db.systemSettings.findUnique({ where: { id: tenantId } });
       const menuButtons = (settings?.telegramMenuConfig as unknown as TelegramMenuButton[]) || DEFAULT_TELEGRAM_MENU_BUTTONS;
       const ratingReasons = (settings?.telegramRatingReasons as unknown as TelegramRatingReasonsConfig) || DEFAULT_TELEGRAM_RATING_REASONS;
       const templates = (settings?.telegramTemplates as unknown as TelegramMessageTemplatesConfig) || DEFAULT_TELEGRAM_MESSAGE_TEMPLATES;
@@ -1208,7 +1218,7 @@ const saveMenuConfigSchema = z.array(
 /**
  * Saves custom Telegram Reply Keyboard & Menu Buttons
  */
-export async function saveTelegramMenuConfigAction(buttons: TelegramMenuButton[]) {
+export async function saveTelegramMenuConfigAction(buttons: TelegramMenuButton[], targetTenantId?: string) {
   return requireStaffPermission('settings', 'edit', async (admin) => {
     const parsed = saveMenuConfigSchema.safeParse(buttons);
     if (!parsed.success) {
@@ -1216,14 +1226,16 @@ export async function saveTelegramMenuConfigAction(buttons: TelegramMenuButton[]
     }
 
     try {
-      const settings = await db.systemSettings.findFirst();
-      if (!settings) {
-        return { success: false, error: 'Настройки системы не найдены' };
-      }
+      const tenantId = await getTenantId(targetTenantId);
 
-      await db.systemSettings.update({
-        where: { id: settings.id },
-        data: { telegramMenuConfig: parsed.data as unknown as object },
+      await db.systemSettings.upsert({
+        where: { id: tenantId },
+        update: { telegramMenuConfig: parsed.data as unknown as object },
+        create: {
+          id: tenantId,
+          siteName: tenantId === 'flux' ? 'SMMflux' : 'SMMplan',
+          telegramMenuConfig: parsed.data as unknown as object,
+        },
       });
 
       const ipAddress = await getClientIp();
@@ -1231,14 +1243,14 @@ export async function saveTelegramMenuConfigAction(buttons: TelegramMenuButton[]
         adminId: admin.id,
         adminEmail: admin.email,
         action: 'TELEGRAM_MENU_UPDATE',
-        target: 'telegram_menu_config',
+        target: `telegram_menu_${tenantId}`,
         targetType: 'SYSTEM_SETTINGS',
         ipAddress,
         newValue: { buttonCount: parsed.data.length }
       });
 
       revalidatePath('/admin/settings');
-      return { success: true, message: 'Конфигурация кнопок меню успешно сохранена' };
+      return { success: true, message: `Конфигурация кнопок меню успешно сохранена для бренда ${tenantId === 'flux' ? 'SMMflux' : 'SMMplan'}` };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       return { success: false, error: `Ошибка сохранения кнопок: ${msg}` };
@@ -1249,21 +1261,23 @@ export async function saveTelegramMenuConfigAction(buttons: TelegramMenuButton[]
 /**
  * Saves configurable CSAT Rating Reason tags
  */
-export async function saveTelegramRatingReasonsAction(reasons: TelegramRatingReasonsConfig) {
+export async function saveTelegramRatingReasonsAction(reasons: TelegramRatingReasonsConfig, targetTenantId?: string) {
   return requireStaffPermission('settings', 'edit', async (admin) => {
     if (!reasons.negative?.length || !reasons.neutral?.length || !reasons.positive?.length) {
       return { success: false, error: 'Каждая категория должна содержать хотя бы одну причину оценки' };
     }
 
     try {
-      const settings = await db.systemSettings.findFirst();
-      if (!settings) {
-        return { success: false, error: 'Настройки системы не найдены' };
-      }
+      const tenantId = await getTenantId(targetTenantId);
 
-      await db.systemSettings.update({
-        where: { id: settings.id },
-        data: { telegramRatingReasons: reasons as unknown as object },
+      await db.systemSettings.upsert({
+        where: { id: tenantId },
+        update: { telegramRatingReasons: reasons as unknown as object },
+        create: {
+          id: tenantId,
+          siteName: tenantId === 'flux' ? 'SMMflux' : 'SMMplan',
+          telegramRatingReasons: reasons as unknown as object,
+        },
       });
 
       const ipAddress = await getClientIp();
@@ -1271,13 +1285,13 @@ export async function saveTelegramRatingReasonsAction(reasons: TelegramRatingRea
         adminId: admin.id,
         adminEmail: admin.email,
         action: 'TELEGRAM_RATING_REASONS_UPDATE',
-        target: 'telegram_rating_reasons',
+        target: `telegram_rating_reasons_${tenantId}`,
         targetType: 'SYSTEM_SETTINGS',
         ipAddress
       });
 
       revalidatePath('/admin/settings');
-      return { success: true, message: 'Теги причин оценок успешно сохранены' };
+      return { success: true, message: `Теги причин оценок успешно сохранены для бренда ${tenantId === 'flux' ? 'SMMflux' : 'SMMplan'}` };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       return { success: false, error: `Ошибка сохранения причин: ${msg}` };
@@ -1288,17 +1302,19 @@ export async function saveTelegramRatingReasonsAction(reasons: TelegramRatingRea
 /**
  * Saves configurable message templates
  */
-export async function saveTelegramTemplatesAction(templates: TelegramMessageTemplatesConfig) {
+export async function saveTelegramTemplatesAction(templates: TelegramMessageTemplatesConfig, targetTenantId?: string) {
   return requireStaffPermission('settings', 'edit', async (admin) => {
     try {
-      const settings = await db.systemSettings.findFirst();
-      if (!settings) {
-        return { success: false, error: 'Настройки системы не найдены' };
-      }
+      const tenantId = await getTenantId(targetTenantId);
 
-      await db.systemSettings.update({
-        where: { id: settings.id },
-        data: { telegramTemplates: templates as unknown as object },
+      await db.systemSettings.upsert({
+        where: { id: tenantId },
+        update: { telegramTemplates: templates as unknown as object },
+        create: {
+          id: tenantId,
+          siteName: tenantId === 'flux' ? 'SMMflux' : 'SMMplan',
+          telegramTemplates: templates as unknown as object,
+        },
       });
 
       const ipAddress = await getClientIp();
@@ -1306,13 +1322,13 @@ export async function saveTelegramTemplatesAction(templates: TelegramMessageTemp
         adminId: admin.id,
         adminEmail: admin.email,
         action: 'TELEGRAM_TEMPLATES_UPDATE',
-        target: 'telegram_templates',
+        target: `telegram_templates_${tenantId}`,
         targetType: 'SYSTEM_SETTINGS',
         ipAddress
       });
 
       revalidatePath('/admin/settings');
-      return { success: true, message: 'Шаблоны сообщений успешно сохранены' };
+      return { success: true, message: `Шаблоны сообщений успешно сохранены для бренда ${tenantId === 'flux' ? 'SMMflux' : 'SMMplan'}` };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       return { success: false, error: `Ошибка сохранения шаблонов: ${msg}` };

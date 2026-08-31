@@ -6,7 +6,13 @@ import { toast } from 'sonner';
 import { getLatestAiDigestAction, triggerAiObserverManualAction, toggleAiObserverKillswitchAction } from '@/actions/admin/observer';
 import { type ExecutiveDigestResult } from '@/services/observer/ai-observer.service';
 
-export function ExecutiveAiDigestCard() {
+export function ExecutiveAiDigestCard({
+  canEditSettings = true,
+  canEditAnalytics = true,
+}: {
+  canEditSettings?: boolean;
+  canEditAnalytics?: boolean;
+}) {
   const [digestData, setDigestData] = useState<ExecutiveDigestResult | null>(null);
   const [isKilled, setIsKilled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,32 +93,38 @@ export function ExecutiveAiDigestCard() {
 
         {/* Action Controls */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleToggleKillswitch}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 ${isKilled ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/20' : 'bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/20'}`}
-            title="Master Kill-Switch (Мгновенное отключение модуля)"
-          >
-            <Power className="w-3.5 h-3.5" />
-            {isKilled ? 'Включить модуль' : 'Kill-Switch'}
-          </button>
+          {canEditSettings && (
+            <button
+              onClick={handleToggleKillswitch}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 ${isKilled ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/20' : 'bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/20'}`}
+              title="Master Kill-Switch (Мгновенное отключение модуля)"
+            >
+              <Power className="w-3.5 h-3.5" />
+              {isKilled ? 'Включить модуль' : 'Kill-Switch'}
+            </button>
+          )}
 
-          <button
-            disabled={isGenerating}
-            onClick={() => handleManualRun(false)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-muted border border-border text-foreground hover:bg-card transition-all duration-200 disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
-            Обновить
-          </button>
+          {canEditAnalytics && (
+            <>
+              <button
+                disabled={isGenerating}
+                onClick={() => handleManualRun(false)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-muted border border-border text-foreground hover:bg-card transition-all duration-200 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
+                Обновить
+              </button>
 
-          <button
-            disabled={isGenerating}
-            onClick={() => handleManualRun(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 disabled:opacity-50"
-          >
-            <Send className="w-3.5 h-3.5" />
-            Отправить в Telegram
-          </button>
+              <button
+                disabled={isGenerating}
+                onClick={() => handleManualRun(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 disabled:opacity-50"
+              >
+                <Send className="w-3.5 h-3.5" />
+                Отправить в Telegram
+              </button>
+            </>
+          )}
         </div>
       </div>
 

@@ -53,9 +53,10 @@ const TOP_LAUNCHPAD = [
 
 
 export interface ClassicDashboardUser {
-  id: string;
+  id?: string;
   email?: string | null;
-  balance: number | bigint;
+  balance?: number | bigint;
+  balanceCents?: number | bigint;
   totalSpent?: number | bigint;
   referralCode?: string | null;
   referralBalance?: number | bigint;
@@ -67,8 +68,8 @@ export interface ClassicDashboardOrder {
   status: string;
   charge: number | bigint;
   quantity: number;
-  link: string;
-  serviceId: string;
+  link?: string;
+  serviceId?: string;
   service?: {
     name: string;
     category?: {
@@ -86,6 +87,7 @@ export function ClassicDashboardHome({
   activeOrders,
   hasPendingPayments,
   origin,
+  initialCatalog = [],
 }: {
   user: ClassicDashboardUser;
   orders: ClassicDashboardOrder[];
@@ -93,6 +95,7 @@ export function ClassicDashboardHome({
   activeOrders: number;
   hasPendingPayments: boolean;
   origin: string;
+  initialCatalog?: Array<{ id: string; name: string; slug: string; [key: string]: unknown }>;
 }) {
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -158,7 +161,7 @@ export function ClassicDashboardHome({
           </div>
           <div>
             <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-indigo-500 to-pink-500 dark:from-sky-400 dark:via-indigo-400 dark:to-pink-400">
-              {formatBalance(user.balance)}
+              {formatBalance(user.balanceCents ?? user.balance)}
             </div>
             <span className="text-[11px] text-muted-foreground font-medium block mt-0.5">
               Доступно для моментального списания
@@ -185,7 +188,7 @@ export function ClassicDashboardHome({
           <div>
             <div className="flex items-baseline gap-1.5">
               <span className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-foreground">
-                {(Number(user.totalSpent) / 100).toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
+                {(Number(user.totalSpent ?? 0) / 100).toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
               </span>
               <span className="text-sm font-bold text-muted-foreground">₽</span>
             </div>
@@ -201,7 +204,7 @@ export function ClassicDashboardHome({
           </Link>
         </div>
 
-        {/* В работе (с живым пульсом) */}
+        {/* В работе */}
         <div className="group relative overflow-hidden bg-card/85 backdrop-blur-xl border border-border/80 rounded-3xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:border-sky-500/40 transition-all duration-300 flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
@@ -218,13 +221,13 @@ export function ClassicDashboardHome({
             <div className="text-2xl sm:text-3xl font-black text-foreground font-mono tracking-tight flex items-center gap-2">
               <span>{activeOrders}</span>
               {activeOrders > 0 && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  Активны
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full animate-pulse">
+                  Активно
                 </span>
               )}
             </div>
             <span className="text-[11px] text-muted-foreground font-medium block mt-0.5">
-              Обрабатываются провайдерами
+              {activeOrders > 0 ? 'Выполняются в фоновом режиме' : 'Нет активных задач прямо сейчас'}
             </span>
           </div>
           <Link
@@ -235,26 +238,40 @@ export function ClassicDashboardHome({
           </Link>
         </div>
 
-        {/* Реферальная программа */}
-        <div className="group relative overflow-hidden bg-card/85 backdrop-blur-xl border border-border/80 rounded-3xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:border-purple-500/40 transition-all duration-300 flex flex-col justify-between space-y-4">
+        {/* Партнерка */}
+        <div className="group relative overflow-hidden bg-card/85 backdrop-blur-xl border border-border/80 rounded-3xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:border-emerald-500/40 transition-all duration-300 flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
               Рефералы
             </span>
-            <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-500 group-hover:scale-110 transition-transform">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
               <Users className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-foreground">
-                {referralCount}
-              </span>
-              <span className="text-sm font-bold text-muted-foreground">чел.</span>
+            <div className="text-2xl sm:text-3xl font-black text-foreground font-mono tracking-tight flex items-baseline gap-1.5">
+              <span>{referralCount}</span>
+              <span className="text-xs font-bold text-muted-foreground">партнёров</span>
             </div>
-            <span className="text-[11px] text-muted-foreground font-medium block mt-0.5">
-              Партнерская комиссия до 10%
-            </span>
+            <div className="flex items-center gap-1.5 mt-1">
+              <button
+                type="button"
+                onClick={handleCopyReferral}
+                className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1"
+              >
+                {copiedLink ? (
+                  <>
+                    <Check className="w-3 h-3 text-emerald-500" />
+                    <span>Скопировано!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3 h-3" />
+                    <span>Скопировать реф-ссылку</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
           <Link
             href="/dashboard/referrals"
@@ -265,51 +282,58 @@ export function ClassicDashboardHome({
         </div>
       </div>
 
-      {/* ══════════ QUICK LAUNCHPAD (БЫСТРЫЙ ЗАКАЗ ПО ПЛАТФОРМАМ) ══════════ */}
-      <section className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <h2 className="text-base sm:text-lg font-black text-foreground tracking-tight">
-              Быстрый заказ по платформам
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Выберите соцсеть для мгновенного перехода в визард
-            </p>
-          </div>
-          <Link
-            href="/dashboard/new-order"
-            className="text-xs font-bold text-primary hover:underline flex items-center gap-1 shrink-0 self-start sm:self-auto"
-          >
-            <span>Все 34 платформы</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-          {TOP_LAUNCHPAD.map((item) => (
-            <Link
-              key={item.slug}
-              href={`/dashboard/new-order?network=${item.slug}`}
-              className={`group bg-card/90 backdrop-blur-md border border-border/70 rounded-2xl p-4 flex flex-col justify-between space-y-3 hover:-translate-y-1 hover:shadow-xl transition-all duration-200 ${item.bg}`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-secondary/80 flex items-center justify-center p-2 group-hover:scale-110 transition-transform">
-                  <SocialIcon slug={item.slug} className="w-6 h-6" />
-                </div>
-                <ArrowUpRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
-              </div>
+      {/* ══════════ QUICK LAUNCHPAD (БЫСТРЫЙ ЗАКАЗ ПО СОЦСЕТЯМ) ══════════ */}
+      {(() => {
+        const activeNetworksCount = initialCatalog.length > 0 ? initialCatalog.length : TOP_LAUNCHPAD.length;
+        const n = activeNetworksCount;
+        const pluralWord = (n % 10 === 1 && n % 100 !== 11) ? 'соцсеть' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? 'соцсети' : 'соцсетей';
+        return (
+          <section className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <div className="font-extrabold text-sm text-foreground group-hover:text-primary transition-colors">
-                  {item.name}
-                </div>
-                <div className="text-[10px] text-muted-foreground font-medium line-clamp-1 mt-0.5">
-                  {item.desc}
-                </div>
+                <h2 className="text-base sm:text-lg font-black text-foreground tracking-tight">
+                  Быстрый заказ по соцсетям
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Выберите соцсеть для мгновенного перехода в визард
+                </p>
               </div>
-            </Link>
-          ))}
-        </div>
-      </section>
+              <Link
+                href="/dashboard/new-order"
+                className="text-xs font-bold text-primary hover:underline flex items-center gap-1 shrink-0 self-start sm:self-auto"
+              >
+                <span>Все {n} {pluralWord}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+              {TOP_LAUNCHPAD.map((item) => (
+                <Link
+                  key={item.slug}
+                  href={`/dashboard/new-order?network=${item.slug}`}
+                  className={`group bg-card/90 backdrop-blur-md border border-border/70 rounded-2xl p-4 flex flex-col justify-between space-y-3 hover:-translate-y-1 hover:shadow-xl transition-all duration-200 ${item.bg}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-xl bg-secondary/80 flex items-center justify-center p-2 group-hover:scale-110 transition-transform">
+                      <SocialIcon slug={item.slug} className="w-6 h-6" />
+                    </div>
+                    <ArrowUpRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm text-foreground group-hover:text-primary transition-colors">
+                      {item.name}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground font-medium line-clamp-1 mt-0.5">
+                      {item.desc}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* ══════════ RECENT ORDERS FEED ══════════ */}
       <section className="space-y-4">
@@ -374,7 +398,7 @@ export function ClassicDashboardHome({
                     </div>
 
                     <Link
-                      href={`/dashboard/new-order?serviceId=${order.serviceId}&link=${encodeURIComponent(order.link)}&quantity=${order.quantity}`}
+                      href={`/dashboard/new-order?serviceId=${order.serviceId}&link=${encodeURIComponent(order.link || '')}&quantity=${order.quantity}`}
                       title="Повторить этот заказ"
                       className="p-2.5 rounded-xl bg-secondary hover:bg-primary/10 hover:text-primary text-muted-foreground border border-border/60 transition-all duration-200"
                     >

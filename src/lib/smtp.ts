@@ -267,3 +267,45 @@ export async function sendOrderCanceledMail(email: string, orderId: string, serv
   return sendMail(email, `Ваш заказ #${orderId} отменен — ${companyName}`, htmlContent, undefined, tenantId);
 }
 
+export async function sendTicketCreatedMail(
+  email: string,
+  ticketId: string,
+  ticketSubject: string,
+  tenantId?: string
+) {
+  const { companyName, supportDomain } = await getEmailContext(tenantId);
+  const shortId = ticketId.slice(-6).toUpperCase();
+  const replyTo = `support+${ticketId}@${supportDomain}`;
+
+  const htmlContent = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0;">
+      <div style="border-bottom: 2px solid #3b82f6; padding-bottom: 12px; margin-bottom: 20px;">
+        <h2 style="color: #0f172a; margin: 0; font-size: 20px;">Служба поддержки ${companyName}</h2>
+      </div>
+      <p style="color: #334155; font-size: 15px; line-height: 1.6;">
+        Здравствуйте! Ваше обращение успешно зарегистрировано в тикет-системе.
+      </p>
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0;">
+        <p style="margin: 0 0 8px 0; font-size: 13px; color: #64748b;">Номер тикета:</p>
+        <p style="margin: 0 0 12px 0; font-size: 16px; font-weight: bold; color: #1e293b;">#${ticketId}</p>
+        <p style="margin: 0 0 8px 0; font-size: 13px; color: #64748b;">Тема:</p>
+        <p style="margin: 0; font-size: 14px; font-weight: 500; color: #1e293b;">${ticketSubject}</p>
+      </div>
+      <p style="color: #334155; font-size: 14px; line-height: 1.6;">
+        Специалист поддержки ответит вам в ближайшее время.
+      </p>
+      <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px; border-radius: 4px; margin-top: 20px;">
+        <p style="margin: 0; font-size: 13px; color: #1d4ed8; font-weight: 500;">
+          💡 <strong>Как продолжить диалог:</strong> Вы можете отвечать прямо на это письмо со своей почты — все ответы автоматически добавятся в ваш тикет.
+        </p>
+      </div>
+      <div style="margin-top: 28px; padding-top: 16px; border-top: 1px solid #e2e8f0; text-align: center;">
+        <a href="https://${supportDomain}/dashboard/tickets?ticketId=${ticketId}" style="background-color: #0f172a; color: #ffffff; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 600; display: inline-block;">
+          Открыть тикет в личном кабинете
+        </a>
+      </div>
+    </div>
+  `;
+
+  return sendMail(email, `[Тикет #${shortId}] ${ticketSubject}`, htmlContent, replyTo, tenantId);
+}

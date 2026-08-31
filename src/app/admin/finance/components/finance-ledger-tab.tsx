@@ -11,6 +11,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { DataTable } from '@/components/ui/data-table';
 import { columns } from '../ledger-columns';
 import { 
@@ -18,11 +19,13 @@ import {
   RotateCcw,
   CheckCircle2,
   Clock,
-  Ban
+  Ban,
+  Search
 } from 'lucide-react';
 import { 
   PERIOD_OPTIONS, 
   LEDGER_STATUS_OPTIONS, 
+  LEDGER_TYPE_OPTIONS,
   fmt, 
   downloadCsvExport, 
   renderMobileLedger 
@@ -38,15 +41,17 @@ export function FinanceLedgerTab({ initial, period: initPeriod, tenantId }: Fina
   const [period, setPeriod]       = useState(initPeriod);
   const [status, setStatus]       = useState<string>('ALL');
   const [type, setType]           = useState<string>('ALL');
+  const [search, setSearch]       = useState<string>('');
   const [data,   setData]         = useState<LedgerPageResult>(initial);
   const [isPending, startTransition] = useTransition();
 
-  const load = useCallback((newPeriod: string, newStatus: string, newType: string) => {
+  const load = useCallback((newPeriod: string, newStatus: string, newType: string, newSearch: string) => {
     startTransition(async () => {
       const r = await getLedgerAction({
         period:   newPeriod as 'today' | 'week' | 'month' | 'all',
         status:   newStatus as 'ALL' | 'APPROVED' | 'QUARANTINE' | 'REJECTED',
         type:     newType as any,
+        search:   newSearch.trim() || undefined,
         pageSize: 100,
         tenantId,
       });
@@ -61,25 +66,30 @@ export function FinanceLedgerTab({ initial, period: initPeriod, tenantId }: Fina
   function applyPeriod(v: string | null) {
     if (!v) return;
     setPeriod(v);
-    load(v, status, type);
+    load(v, status, type, search);
   }
 
   function applyStatus(v: string | null) {
     if (!v) return;
     setStatus(v);
-    load(period, v, type);
+    load(period, v, type, search);
   }
 
   function applyType(v: string | null) {
     if (!v) return;
     setType(v);
-    load(period, status, v);
+    load(period, status, v, search);
+  }
+
+  function applySearch(val: string) {
+    setSearch(val);
+    load(period, status, type, val);
   }
 
   function setQuickFilter(quickType: string, quickStatus = 'ALL') {
     setType(quickType);
     setStatus(quickStatus);
-    load(period, quickStatus, quickType);
+    load(period, quickStatus, quickType, search);
   }
 
   const QUICK_FILTERS = [
@@ -157,8 +167,8 @@ export function FinanceLedgerTab({ initial, period: initPeriod, tenantId }: Fina
         ))}
       </div>
 
-      {/* Action Bar: Filters & 1-Click CSV Export */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-2xl border border-border/70 bg-card/60 backdrop-blur-md shadow-xs">
+      {/* Action Bar: Filters, Search & 1-Click CSV Export */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 p-4 rounded-2xl border border-border/70 bg-card/60 backdrop-blur-md shadow-xs">
         <div className="flex flex-wrap items-center gap-3">
           {/* Transaction Type Filter (with Top-up in first place!) */}
           <div className="flex items-center gap-1.5">
@@ -166,18 +176,13 @@ export function FinanceLedgerTab({ initial, period: initPeriod, tenantId }: Fina
             <Select defaultValue={type} onValueChange={applyType}>
               <SelectTrigger className="w-[180px] h-9 text-xs" size="sm">
                 <SelectValue placeholder="Тип операции">
-                  {(value: string) => import('./finance-helpers').then(m => m.LEDGER_TYPE_OPTIONS.find(t => t.value === value)?.label ?? value)}
+                  {(value: string) => LEDGER_TYPE_OPTIONS.find(t => t.value === value)?.label ?? value}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">Все операции</SelectItem>
-                <SelectItem value="TOPUP">💳 Пополнение баланса</SelectItem>
-                <SelectItem value="ORDER_CHARGE">🛒 Оплата заказа</SelectItem>
-                <SelectItem value="ORDER_CANCEL">🚫 Отмена заказа</SelectItem>
-                <SelectItem value="REFUND">↩️ Авто-возврат</SelectItem>
-                <SelectItem value="REROUTE">🔄 Перезапуск заказа</SelectItem>
-                <SelectItem value="COMPENSATION">🎁 Компенсация / Бонус</SelectItem>
-                <SelectItem value="ADJUSTMENT">⚙️ Ручная корректировка</SelectItem>
+                {LEDGER_TYPE_OPTIONS.map(t => (
+                  <SelectItem key={t.value} value={t.value} label={t.label}>{t.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -216,7 +221,7 @@ export function FinanceLedgerTab({ initial, period: initPeriod, tenantId }: Fina
 
           <Button
             size="sm"
-            onClick={() => load(period, status, type)}
+            onClick={() => load(period, status, type, search)}
             disabled={isPending}
             className="h-9 px-3 border border-border bg-card hover:bg-muted text-foreground"
             title="Обновить"
@@ -225,14 +230,27 @@ export function FinanceLedgerTab({ initial, period: initPeriod, tenantId }: Fina
           </Button>
         </div>
 
-        <Button
-          size="sm"
-          onClick={() => downloadCsvExport({ type: 'ledger', period, status, tenantId })}
-          className="h-9 gap-1.5 font-bold uppercase tracking-wider text-[11px] shadow-xs"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span>Экспорт в CSV</span>
-        </Button>
+        {/* Search & Export Buttons */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => applySearch(e.target.value)}
+              placeholder="Поиск по email или ID..."
+              className="pl-8 h-9 text-xs bg-background/80"
+            />
+          </div>
+
+          <Button
+            size="sm"
+            onClick={() => downloadCsvExport({ type: 'ledger', period, status, tenantId, search })}
+            className="h-9 gap-1.5 font-bold uppercase tracking-wider text-[11px] shadow-xs shrink-0"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Экспорт в CSV</span>
+          </Button>
+        </div>
       </div>
 
       {/* Main DataTable / Mobile Cards */}
@@ -240,8 +258,6 @@ export function FinanceLedgerTab({ initial, period: initPeriod, tenantId }: Fina
         <DataTable
           columns={columns}
           data={data.items}
-          searchKey="userEmail"
-          searchPlaceholder="Фильтр по email или ID проводки..."
           renderMobileView={renderMobileLedger}
         />
       </div>
