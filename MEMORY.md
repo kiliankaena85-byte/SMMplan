@@ -6,6 +6,15 @@
 
 ## 1. 🏗️ Архитектурные решения (ADR)
 
+- **BGS-2026: Zero-Defect Blue-Green Stage & Visual Approval Pipeline (Mandatory Deployment Policy):**
+  - *Решение:* Категорически запрещена прямая пересборка рабочего боевого контейнера (`docker-compose up -d --build web`) поверх живых пользователей без предварительной изоляции. Внедрен 5-шаговый протокол:
+    1. *Stage-контур (Порт 3005):* Все правки собираются и тестируются в изолированном preview-контуре (`smmplan_stage`), оставляя боевой контейнер на порту `3000` неприкосновенным.
+    2. *Headless Browser Visual Audit (Puppeteer MCP):* Автоматический сквозной прогон под ролями `USER`, `SUPPORT`, `OWNER` с проверкой верстки, DOM и сохранением скриншотов.
+    3. *Human Approval Gate:* Предоставление отчета со скриншотами "До/После", проверкой секретов и OWASP тестами человеку.
+    4. *Прямое подтверждение:* Переключение боевого контейнера разрешено СТРОГО после явного текстового подтверждения пользователя.
+    5. *Instant Rollback Backup:* Предыдущий рабочий образ сохраняется как `smmplan_backup` для отката за 5 секунд.
+  - *Причина:* Исключение непредвиденных сбоев продакшена, поломки интерфейса для реальных клиентов и соблюдение международных стандартов SRE / Zero-Downtime 99.99%.
+
 - **Federated Swarm Council 4.0 & Pre-Mortem Security Invariants (OpenRouter Free Swarm + Antigravity Engine):**
   - *Решение:* Развернут федеративный совет из 5 специализированных ролей на базе бесплатных моделей OpenRouter (`nvidia/nemotron-3.5-content-safety`, `inclusionai/ling-3.0-flash-fin`, `cohere/north-mini-code`, `nvidia/nemotron-3.5-lightning`, `minimax/minimax-m3`) с автоматическим переключением на `gemini-3-flash`. Внедрен строгий премортем-анализ оптимизаций:
     1. *Price Tampering Shield:* Клиентские пресеты и авто-детекция ссылок — исключительно UI/UX. Все денежные суммы рассчитываются строго на бэкенде через `ExactMath.calculateOrderCostKopecks()` из базы данных в `BigInt` копейках.

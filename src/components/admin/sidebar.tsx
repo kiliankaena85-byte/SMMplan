@@ -158,7 +158,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
         collapsed && "pt-20 space-y-2"
       )}>
         <div className={cn("mb-3 px-1", collapsed && "hidden")}>
-          <CommandMenu />
+          <CommandMenu navigation={navigation} />
         </div>
 
         {/* ── PINNED ITEMS (⭐ ИЗБРАННОЕ) ── */}

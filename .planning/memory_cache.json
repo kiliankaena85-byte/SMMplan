@@ -144,6 +144,19 @@
         "settings",
         "ergonomics"
       ]
+    },
+    {
+      "title": "BGS-2026: Zero-Defect Blue-Green Stage and Visual Approval Pipeline",
+      "context": "Prevent accidental broken builds from rolling directly into production without human preview",
+      "decision": "Enforce candidate preview build on port 3005, Puppeteer MCP visual inspection with screenshots, human visual approval gate before production container switch, and 5-second instant rollback image backup",
+      "rationale": "Eliminates risk of in-place production container breakages and conforms to enterprise SRE Zero-Downtime standards",
+      "tags": [
+        "deployment",
+        "blue-green",
+        "puppeteer",
+        "qa",
+        "safety"
+      ]
     }
   ]
 }

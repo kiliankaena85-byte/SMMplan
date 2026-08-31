@@ -4,6 +4,7 @@ import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { ArrowLeft, Package } from 'lucide-react';
 import { OrderStandaloneView } from './order-standalone-view';
+import { enforceSectionAccess } from '@/lib/server/rbac';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,7 @@ export default async function AdminOrderDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await enforceSectionAccess('orders');
   const session = await verifySession();
   if (!session) {
     redirect('/login');

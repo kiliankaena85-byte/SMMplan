@@ -14,7 +14,14 @@ import { ReferrersTable } from './client-referrers-table';
 export const dynamic = 'force-dynamic';
 
 export default async function MarketingPage() {
-  await enforceSectionAccess('marketing');
+  const admin = await enforceSectionAccess('marketing');
+
+  const isSuperAdmin = admin.role === 'OWNER' || admin.role === 'ADMIN';
+  const canEdit = isSuperAdmin || Boolean(
+    admin.staffRole?.permissions?.some(
+      (p) => p.section.toUpperCase() === 'MARKETING' && p.canEdit
+    )
+  );
 
   let promos, stats, rawTopReferrers, chartData;
   
@@ -60,7 +67,7 @@ export default async function MarketingPage() {
                 <div>
                   <CardTitle className="text-foreground text-sm font-extrabold uppercase tracking-wider">Список промокодов</CardTitle>
                 </div>
-                <CreatePromoModal />
+                {canEdit && <CreatePromoModal />}
               </CardHeader>
               <CardContent className="pt-4">
                 <PromoCodeTable data={promos} />

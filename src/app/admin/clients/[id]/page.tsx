@@ -245,36 +245,40 @@ export default async function ClientDetailPage({ params }: Props) {
 
         {/* Quick actions */}
         <div className="flex gap-2 flex-wrap">
-          <ActionForm action={loginAsAction}>
-            <input type="hidden" name="userId" value={user.id} />
-            <SubmitButton variant="outline" className="text-xs h-9 gap-1.5 shadow-sm active:scale-95 transition-all">
-              🔑 Войти как клиент
-            </SubmitButton>
-          </ActionForm>
-          {user.role === 'BANNED' ? (
-            <ActionForm action={unbanUserAction}>
+          {(isOwner || currentUser?.role === 'ADMIN') && (
+            <ActionForm action={loginAsAction}>
               <input type="hidden" name="userId" value={user.id} />
-              <SubmitButton
-                variant="outline"
-                className="text-xs h-9 text-emerald-700 border-emerald-300 hover:bg-success/10 shadow-sm active:scale-95 transition-all"
-                confirmMessage="Снять блокировку?"
-              >
-                ✅ Разбанить
-              </SubmitButton>
-            </ActionForm>
-          ) : (
-            <ActionForm action={banUserAction}>
-              <input type="hidden" name="userId" value={user.id} />
-              <SubmitButton
-                variant="outline"
-                className="text-xs h-9 text-destructive border-rose-300 hover:bg-destructive/10 shadow-sm active:scale-95 transition-all"
-                confirmMessage="Забанить клиента? Он потеряет доступ к сервису."
-              >
-                🚫 Забанить
+              <SubmitButton variant="outline" className="text-xs h-9 gap-1.5 shadow-sm active:scale-95 transition-all">
+                🔑 Войти как клиент
               </SubmitButton>
             </ActionForm>
           )}
-          {isOwner || currentUser?.role === 'ADMIN' ? (
+          {(isOwner || currentUser?.role === 'ADMIN' || !isSupport) && (
+            user.role === 'BANNED' ? (
+              <ActionForm action={unbanUserAction}>
+                <input type="hidden" name="userId" value={user.id} />
+                <SubmitButton
+                  variant="outline"
+                  className="text-xs h-9 text-emerald-700 border-emerald-300 hover:bg-success/10 shadow-sm active:scale-95 transition-all"
+                  confirmMessage="Снять блокировку?"
+                >
+                  ✅ Разбанить
+                </SubmitButton>
+              </ActionForm>
+            ) : (
+              <ActionForm action={banUserAction}>
+                <input type="hidden" name="userId" value={user.id} />
+                <SubmitButton
+                  variant="outline"
+                  className="text-xs h-9 text-destructive border-rose-300 hover:bg-destructive/10 shadow-sm active:scale-95 transition-all"
+                  confirmMessage="Забанить клиента? Он потеряет доступ к сервису."
+                >
+                  🚫 Забанить
+                </SubmitButton>
+              </ActionForm>
+            )
+          )}
+          {(isOwner || currentUser?.role === 'ADMIN') && (
             <ActionForm action={adminDeleteUserAction}>
               <input type="hidden" name="userId" value={user.id} />
               <SubmitButton
@@ -285,7 +289,7 @@ export default async function ClientDetailPage({ params }: Props) {
                 🗑️ Удалить профиль
               </SubmitButton>
             </ActionForm>
-          ) : null}
+          )}
         </div>
       </div>
 

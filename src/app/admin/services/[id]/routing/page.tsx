@@ -1,11 +1,11 @@
-import { requireStaffPermission } from '@/lib/server/rbac';
+import { enforceSectionAccess } from '@/lib/server/rbac';
 import { db } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import { RoutingPanelClient } from '@/components/admin/routing/RoutingPanelClient';
 import { getProviderComparisonData } from '@/actions/admin/routing.actions';
 
 export default async function ServiceRoutingPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireStaffPermission('catalog', 'view', async () => {});
+  await enforceSectionAccess('catalog');
   const { id } = await params;
 
   const service = await db.service.findUnique({

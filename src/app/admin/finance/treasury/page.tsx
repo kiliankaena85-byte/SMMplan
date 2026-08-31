@@ -1,5 +1,5 @@
 import React from 'react';
-import { requireStaffPermission } from '@/lib/server/rbac';
+import { enforceSectionAccess } from '@/lib/server/rbac';
 import { getTreasuryFinancialHealthAction } from '@/actions/admin/finance/treasury';
 import { TreasuryClient } from './treasury-client';
 import { Landmark } from 'lucide-react';
@@ -10,58 +10,47 @@ export const metadata = {
 };
 
 export default async function AdminTreasuryPage() {
-  const authResult = await requireStaffPermission('FINANCE', 'view', async (admin) => {
-    const tenantId = admin.tenantId || 'smmplan';
-    const reportRes = await getTreasuryFinancialHealthAction(tenantId);
+  const admin = await enforceSectionAccess('finance');
+  const tenantId = admin.tenantId || 'smmplan';
+  const reportRes = await getTreasuryFinancialHealthAction(tenantId);
 
-    const initialReport = reportRes.data || {
-      totalLiquidAssetsRub: 400000,
-      totalCustomerEscrowLiabilityRub: 120000,
-      customerRealDepositsRub: 100000,
-      customerBonusCreditsRub: 15000,
-      estimatedQuarterlyTaxDueRub: 24000,
-      gatewayRollingReserveRub: 7500,
-      minimumWorkingCapitalBufferRub: 100000,
-      safeOwnerDrawCapacityRub: 148500,
-      liquidityHealthStatus: 'SOLVENT_GREEN' as const,
-      accountingCausalityBreakdown: ['Инициализация отчета казначейства...'],
-      recommendations: ['Система готова к расчету.'],
-    };
+  const initialReport = reportRes.data || {
+    totalLiquidAssetsRub: 400000,
+    totalCustomerEscrowLiabilityRub: 120000,
+    customerRealDepositsRub: 100000,
+    customerBonusCreditsRub: 15000,
+    estimatedQuarterlyTaxDueRub: 24000,
+    gatewayRollingReserveRub: 7500,
+    minimumWorkingCapitalBufferRub: 100000,
+    safeOwnerDrawCapacityRub: 148500,
+    liquidityHealthStatus: 'SOLVENT_GREEN' as const,
+    accountingCausalityBreakdown: ['Инициализация отчета казначейства...'],
+    recommendations: ['Система готова к расчету.'],
+  };
 
-    return (
-      <div className="p-6 space-y-6 max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-primary uppercase tracking-wider">
-              <Landmark className="w-4 h-4" />
-              SMMpanel 1.0 Финансовое Казначейство
-            </div>
-            <h1 className="text-2xl font-bold text-foreground mt-1">
-              Эскроу Клиентов, Налоги & Безопасный Вывод Прибыли
-            </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Автоматическое разграничение кредиторской задолженности, налогов и свободной чистой прибыли
-            </p>
+  return (
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-semibold text-primary uppercase tracking-wider">
+            <Landmark className="w-4 h-4" />
+            SMMpanel 1.0 Финансовое Казначейство
           </div>
+          <h1 className="text-2xl font-bold text-foreground mt-1">
+            Эскроу Клиентов, Налоги & Безопасный Вывод Прибыли
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Автоматическое разграничение кредиторской задолженности, налогов и свободной чистой прибыли
+          </p>
         </div>
-
-        <TreasuryClient
-          initialReport={initialReport}
-          initialBankAccount={reportRes.bankAccount}
-          initialBankSource={reportRes.bankSource}
-          tenantId={tenantId}
-        />
       </div>
-    );
-  });
 
-  if (authResult && typeof authResult === 'object' && 'success' in authResult && !authResult.success) {
-    return (
-      <div className="p-8 text-center text-rose-500 font-medium">
-        {authResult.error || 'Доступ запрещен'}
-      </div>
-    );
-  }
-
-  return authResult as React.ReactNode;
+      <TreasuryClient
+        initialReport={initialReport}
+        initialBankAccount={reportRes.bankAccount}
+        initialBankSource={reportRes.bankSource}
+        tenantId={tenantId}
+      />
+    </div>
+  );
 }

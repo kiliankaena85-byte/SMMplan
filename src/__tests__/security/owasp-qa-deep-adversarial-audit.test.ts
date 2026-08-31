@@ -122,7 +122,9 @@ describe('🛡️ QA Deep Adversarial & OWASP Top 10 (2025/2026) Audit Suite', (
 
       const result = await getGlobalProviderLiquidityAction();
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Forbidden');
+      if (!result.success) {
+        expect(result.error).toContain('Forbidden');
+      }
     });
 
     it('allows OWNER and ADMIN to bypass granular permission checks', async () => {
@@ -288,7 +290,7 @@ describe('🛡️ QA Deep Adversarial & OWASP Top 10 (2025/2026) Audit Suite', (
   describe('3. User Balance Formatting & Exact Financial Invariants', () => {
     it('formats 0 kopecks correctly as "0.00 ₽"', () => {
       expect(formatBalance(0)).toBe('0.00 ₽');
-      expect(formatBalance(0n)).toBe('0.00 ₽');
+      expect(formatBalance(BigInt(0))).toBe('0.00 ₽');
       expect(formatBalance(undefined)).toBe('0.00 ₽');
       expect(formatBalance(null)).toBe('0.00 ₽');
     });
@@ -298,12 +300,12 @@ describe('🛡️ QA Deep Adversarial & OWASP Top 10 (2025/2026) Audit Suite', (
       expect(formatBalance(150)).toBe('1.50 ₽');
       expect(formatBalance(105)).toBe('1.05 ₽');
       expect(formatBalance(125050).replace(/\u00A0/g, ' ')).toBe('1 250.50 ₽');
-      expect(formatBalance(100000000n).replace(/\u00A0/g, ' ')).toBe('1 000 000.00 ₽');
+      expect(formatBalance(BigInt(100000000)).replace(/\u00A0/g, ' ')).toBe('1 000 000.00 ₽');
     });
 
     it('handles negative values safely by flooring to 0.00 ₽ without leaking negative artifacts', () => {
       expect(formatBalance(-500)).toBe('0.00 ₽');
-      expect(formatBalance(-1n)).toBe('0.00 ₽');
+      expect(formatBalance(BigInt(-1))).toBe('0.00 ₽');
     });
   });
 
