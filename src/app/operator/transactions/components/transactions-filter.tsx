@@ -56,11 +56,15 @@ export function TransactionsFilter() {
   ];
 
   const QUICK_TYPES = [
-    { label: '💳 Пополнения баланса', type: 'TOPUP', status: 'ALL' },
-    { label: '🔻 Списания', type: 'DEBIT', status: 'ALL' },
-    { label: '↩️ Возвраты', type: 'REFUND', status: 'ALL' },
-    { label: '⏳ В карантине', type: 'ALL', status: 'QUARANTINE' },
-    { label: '📋 Все транзакции', type: 'ALL', status: 'ALL' },
+    { label: '💳 Пополнения',    type: 'TOPUP',        status: 'ALL' },
+    { label: '🛒 Оплата заказов', type: 'ORDER_CHARGE',  status: 'ALL' },
+    { label: '🚫 Отмены',         type: 'ORDER_CANCEL',  status: 'ALL' },
+    { label: '↩️ Авто-возвраты',  type: 'REFUND',        status: 'ALL' },
+    { label: '🔄 Перезапуски',    type: 'REROUTE',       status: 'ALL' },
+    { label: '🎁 Бонусы',         type: 'COMPENSATION',  status: 'ALL' },
+    { label: '⚙️ Корректировки',  type: 'ADJUSTMENT',    status: 'ALL' },
+    { label: '⏳ В карантине',    type: 'ALL',           status: 'QUARANTINE' },
+    { label: '📋 Все',            type: 'ALL',           status: 'ALL' },
   ];
 
   return (
@@ -153,10 +157,12 @@ export function TransactionsFilter() {
           >
             <option value="ALL">Все операции</option>
             <option value="TOPUP">💳 Пополнение баланса</option>
-            <option value="DEBIT">🔻 Списание / Оплата</option>
-            <option value="REFUND">↩️ Возврат средств</option>
+            <option value="ORDER_CHARGE">🛒 Оплата заказа</option>
+            <option value="ORDER_CANCEL">🚫 Отмена заказа</option>
+            <option value="REFUND">↩️ Авто-возврат средств</option>
+            <option value="REROUTE">🔄 Перезапуск заказа</option>
             <option value="COMPENSATION">🎁 Компенсация / Бонус</option>
-            <option value="ADJUSTMENT">⚙️ Корректировка</option>
+            <option value="ADJUSTMENT">⚙️ Корректировка оператором</option>
           </select>
         </div>
 

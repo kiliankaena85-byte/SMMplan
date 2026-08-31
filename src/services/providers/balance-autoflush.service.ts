@@ -146,7 +146,7 @@ export class BalanceAutoFlushService {
       // 4. Live Balance Check
       const balanceData = await this.providerBalanceService.getProviderBalance(
         providerId,
-        options?.forceRefresh ?? true
+        options?.forceRefresh ?? false
       );
 
       if (balanceData.status === 'error' || balanceData.balanceRub < this.MIN_BALANCE_THRESHOLD_RUB) {
@@ -215,7 +215,19 @@ export class BalanceAutoFlushService {
         flushedCount++;
       }
 
-      // 8. Audit Log
+      // 8. Audit Log & Team Alert
+      if (flushedCount > 0) {
+        try {
+          const { OrderTriageAlertService } = await import('@/services/orders/order-triage-alert.service');
+          await OrderTriageAlertService.sendBalanceAutoFlushAlert({
+            providerName: provider.name,
+            balanceRub: balanceData.balanceRub,
+            flushedCount,
+            skippedCount,
+          });
+        } catch { /* ignore */ }
+      }
+
       if (options?.initiatedBy && flushedCount > 0) {
         await auditAdminAwaitable({
           adminId: options.initiatedBy.id,

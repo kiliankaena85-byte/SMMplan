@@ -183,7 +183,7 @@ describe('EscrowService — Integration Tests (Real DB)', () => {
       expect(Number(user.quarantineBalance)).toBe(0);
 
       const entry = await db.ledgerEntry.findUniqueOrThrow({ where: { id: quarantinedEntryId } });
-      expect(entry.status).toBe('APPROVE');
+      expect(entry.status).toBe('APPROVED');
     });
 
     it('REJECT removes funds from quarantine WITHOUT crediting balance', async () => {
@@ -194,7 +194,7 @@ describe('EscrowService — Integration Tests (Real DB)', () => {
       expect(Number(user.quarantineBalance)).toBe(0);
 
       const entry = await db.ledgerEntry.findUniqueOrThrow({ where: { id: quarantinedEntryId } });
-      expect(entry.status).toBe('REJECT');
+      expect(entry.status).toBe('REJECTED');
     });
 
     it('Double-resolve throws error (race condition prevented)', async () => {

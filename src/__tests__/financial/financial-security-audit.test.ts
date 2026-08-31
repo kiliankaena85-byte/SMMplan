@@ -516,10 +516,10 @@ describe('§9 Ledger-First Invariant (call-order assertions)', () => {
     expect(callOrder.indexOf('ledgerCreate')).toBeLessThan(callOrder.indexOf('userUpdate'));
   });
 
-  it('charge ledger entry has transactionType=PAYMENT and status=APPROVED', async () => {
+  it('charge ledger entry has transactionType=ORDER_CHARGE and status=APPROVED', async () => {
     const tx = makeTx();
     const result = await WalletOps.charge(tx as never, 'u1', BigInt(500), 'Order');
-    expect(result.entry).toMatchObject({ transactionType: 'PAYMENT', status: 'APPROVED' });
+    expect(result.entry).toMatchObject({ transactionType: 'ORDER_CHARGE', status: 'APPROVED' });
   });
 
   it('refund ledger entry has transactionType=REFUND and status=APPROVED', async () => {

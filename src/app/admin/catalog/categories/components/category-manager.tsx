@@ -10,7 +10,8 @@ import {
   mergeCategoriesAction,
   createNetworkAction,
   updateNetworkAction,
-  deleteNetworkAction
+  deleteNetworkAction,
+  cleanupEmptyCategoriesAction
 } from "@/actions/admin/catalog/categories";
 import { cyrillicToSlug } from "@/utils/slugify";
 import { Table } from '@/components/admin/hero-ui';
@@ -89,11 +90,13 @@ export function CategoryManager({
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedNetworkFilter, setSelectedNetworkFilter] = useState("ALL");
+  const [emptyFilter, setEmptyFilter] = useState<'ALL' | 'WITH_SERVICES' | 'EMPTY'>('ALL');
 
   // Modals state
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [networkModalOpen, setNetworkModalOpen] = useState(false);
   const [mergeModalOpen, setMergeModalOpen] = useState(false);
+  const [cleanupConfirmOpen, setCleanupConfirmOpen] = useState(false);
 
   // Category Edit State
   const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
@@ -125,6 +128,16 @@ export function CategoryManager({
   const [sourceCatId, setSourceCatId] = useState("");
   const [targetCatId, setTargetCatId] = useState("");
   const [isMergePending, startMergeTransition] = useTransition();
+  const [isCleanupPending, startCleanupTransition] = useTransition();
+
+  const emptyCategoriesCount = useMemo(() => {
+    return categories.filter(c => (c._count?.services || 0) === 0).length;
+  }, [categories]);
+
+  const selectedNetworkEmptyCount = useMemo(() => {
+    if (selectedNetworkFilter === 'ALL') return emptyCategoriesCount;
+    return categories.filter(c => c.networkId === selectedNetworkFilter && (c._count?.services || 0) === 0).length;
+  }, [categories, selectedNetworkFilter, emptyCategoriesCount]);
 
   const sourceCat = useMemo(() => categories.find(c => c.id === sourceCatId), [categories, sourceCatId]);
   const targetCat = useMemo(() => categories.find(c => c.id === targetCatId), [categories, targetCatId]);
@@ -133,13 +146,19 @@ export function CategoryManager({
   const filteredCategories = useMemo(() => {
     return categories.filter(c => {
       const matchNetwork = selectedNetworkFilter === "ALL" || c.networkId === selectedNetworkFilter;
+      const count = c._count?.services || 0;
+      const matchEmpty = emptyFilter === "ALL" 
+        ? true 
+        : emptyFilter === "WITH_SERVICES" 
+          ? count > 0 
+          : count === 0;
       const matchQuery = !searchQuery.trim() || 
         c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
         c.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (c.network?.name && c.network.name.toLowerCase().includes(searchQuery.toLowerCase()));
-      return matchNetwork && matchQuery;
+      return matchNetwork && matchEmpty && matchQuery;
     });
-  }, [categories, selectedNetworkFilter, searchQuery]);
+  }, [categories, selectedNetworkFilter, emptyFilter, searchQuery]);
 
   // Handlers for Category
   const openNewCategoryModal = () => {
@@ -329,6 +348,20 @@ export function CategoryManager({
     });
   };
 
+  const executeCleanupEmpty = () => {
+    startCleanupTransition(async () => {
+      const targetNet = selectedNetworkFilter !== "ALL" ? selectedNetworkFilter : null;
+      const res = await cleanupEmptyCategoriesAction(targetNet);
+      if (res.success) {
+        toast.success(res.message);
+        setCleanupConfirmOpen(false);
+        router.refresh();
+      } else {
+        toast.error(res.error || "Ошибка при очистке пустых категорий");
+      }
+    });
+  };
+
   const toggleTag = (tagId: string) => {
     const currentTags = catAnalyzerTags.split(',').map(t => t.trim()).filter(Boolean);
     if (currentTags.includes(tagId)) {
@@ -359,6 +392,18 @@ export function CategoryManager({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {emptyCategoriesCount > 0 && (
+            <Button
+              intent="destructive"
+              size="sm"
+              onClick={() => setCleanupConfirmOpen(true)}
+              className="font-bold h-9 bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20 cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+              Очистить пустые ({selectedNetworkFilter !== 'ALL' && selectedNetworkEmptyCount > 0 ? `${selectedNetworkEmptyCount} в сети` : emptyCategoriesCount})
+            </Button>
+          )}
+
           <Button
             intent="outline"
             size="sm"
@@ -400,7 +445,7 @@ export function CategoryManager({
 
       {/* ─── Filter & Search Bar ─── */}
       <div className="flex flex-col sm:flex-row items-center gap-3 bg-card p-3 rounded-2xl border border-border shadow-xs">
-        <div className="relative w-full sm:w-80">
+        <div className="relative w-full sm:w-72">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <input
             type="text"
@@ -411,7 +456,7 @@ export function CategoryManager({
           />
         </div>
 
-        <div className="w-full sm:w-60">
+        <div className="w-full sm:w-56">
           <Select value={selectedNetworkFilter} onValueChange={val => setSelectedNetworkFilter(val || 'ALL')}>
             <SelectTrigger className="w-full h-9 border border-border bg-background text-foreground text-xs rounded-xl cursor-pointer px-3">
               <SelectValue placeholder="Все соцсети">
@@ -435,12 +480,40 @@ export function CategoryManager({
           </Select>
         </div>
 
-        {(searchQuery || selectedNetworkFilter !== "ALL") && (
+        {/* Filter chips: Все / С услугами / Пустые */}
+        <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-xl border border-border/50 text-xs">
           <button
-            onClick={() => { setSearchQuery(""); setSelectedNetworkFilter("ALL"); }}
+            onClick={() => setEmptyFilter('ALL')}
+            className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+              emptyFilter === 'ALL' ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Все ({categories.length})
+          </button>
+          <button
+            onClick={() => setEmptyFilter('WITH_SERVICES')}
+            className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+              emptyFilter === 'WITH_SERVICES' ? 'bg-background text-primary shadow-xs' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            С услугами ({categories.length - emptyCategoriesCount})
+          </button>
+          <button
+            onClick={() => setEmptyFilter('EMPTY')}
+            className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer flex items-center gap-1 ${
+              emptyFilter === 'EMPTY' ? 'bg-destructive/15 text-destructive font-black shadow-xs' : 'text-muted-foreground hover:text-destructive'
+            }`}
+          >
+            Пустые ({emptyCategoriesCount})
+          </button>
+        </div>
+
+        {(searchQuery || selectedNetworkFilter !== "ALL" || emptyFilter !== "ALL") && (
+          <button
+            onClick={() => { setSearchQuery(""); setSelectedNetworkFilter("ALL"); setEmptyFilter("ALL"); }}
             className="text-xs text-muted-foreground hover:text-foreground font-semibold px-2 py-1 cursor-pointer transition-colors"
           >
-            Сбросить фильтры
+            Сбросить
           </button>
         )}
       </div>
@@ -533,9 +606,15 @@ export function CategoryManager({
                                 <span className="text-muted-foreground text-xs font-mono font-bold">{c.sort}</span>
                               </Table.Cell>
                               <Table.Cell className="py-3 text-center">
-                                <span className="text-xs font-mono font-bold bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-md">
-                                  {c._count.services}
-                                </span>
+                                {c._count.services > 0 ? (
+                                  <span className="text-xs font-mono font-bold bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-md">
+                                    {c._count.services}
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-mono font-bold bg-destructive/10 text-destructive border border-destructive/25 px-2 py-0.5 rounded-md">
+                                    0 (пустая)
+                                  </span>
+                                )}
                               </Table.Cell>
                               <Table.Cell className="py-3">
                                 {c.analyzerTags ? (
@@ -564,8 +643,12 @@ export function CategoryManager({
                                       setCategoryToDelete(c);
                                       setDeleteConfirmOpen(true);
                                     }}
-                                    title="Удалить категорию"
-                                    className="p-1.5 rounded-lg border border-border/60 hover:border-destructive/50 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-150 cursor-pointer"
+                                    title={c._count.services === 0 ? "Удалить пустую категорию" : "Удалить категорию"}
+                                    className={`p-1.5 rounded-lg border transition-all duration-150 cursor-pointer ${
+                                      c._count.services === 0
+                                        ? "border-destructive/40 text-destructive bg-destructive/10 hover:bg-destructive/20 hover:border-destructive"
+                                        : "border-border/60 hover:border-destructive/50 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                    }`}
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
                                   </button>
@@ -1021,6 +1104,28 @@ export function CategoryManager({
         Вы действительно хотите удалить категорию «{categoryToDelete?.name}»? Все услуги этой категории должны быть предварительно удалены или перенесены.
       </ConfirmModal>
 
+      {/* Bulk Cleanup Empty Categories Confirm Modal */}
+      <ConfirmModal
+        isOpen={cleanupConfirmOpen}
+        onClose={() => setCleanupConfirmOpen(false)}
+        onConfirm={executeCleanupEmpty}
+        title="Очистка пустых категорий"
+        isDanger={true}
+        confirmText={isCleanupPending ? "Удаление..." : "Удалить пустые"}
+        cancelText="Отмена"
+      >
+        {selectedNetworkFilter !== 'ALL' && selectedNetworkEmptyCount > 0 ? (
+          <span>
+            Вы действительно хотите удалить <strong>{selectedNetworkEmptyCount}</strong> пустых категорий без услуг в выбранной соцсети? Это действие необратимо.
+          </span>
+        ) : (
+          <span>
+            Вы действительно хотите удалить все <strong>{emptyCategoriesCount}</strong> пустых категорий без услуг по всему каталогу? Это действие необратимо.
+          </span>
+        )}
+      </ConfirmModal>
+
     </div>
   );
 }
+

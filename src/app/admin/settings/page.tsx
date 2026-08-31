@@ -8,10 +8,17 @@ import { GeneralSettings } from './general-settings';
 import { CatalogSettings } from './catalog-settings';
 import { IntegrationsSettings } from './integrations-settings';
 import { TelegramBotSettings } from './telegram-bot-settings';
-import { TeamManagement } from './team-management';
-import { ProviderProxyManager } from './provider-proxy-manager';
+import dynamicImport from 'next/dynamic';
 
-import { SupportTemplatesSettings } from './support-templates';
+const TeamManagement = dynamicImport(() => import('./team-management').then(m => m.TeamManagement), {
+  loading: () => <div className="p-8 text-center text-xs text-muted-foreground animate-pulse">Загрузка панели команды...</div>
+});
+const ProviderProxyManager = dynamicImport(() => import('./provider-proxy-manager').then(m => m.ProviderProxyManager), {
+  loading: () => <div className="p-8 text-center text-xs text-muted-foreground animate-pulse">Загрузка прокси провайдеров...</div>
+});
+const SupportTemplatesSettings = dynamicImport(() => import('./support-templates').then(m => m.SupportTemplatesSettings), {
+  loading: () => <div className="p-8 text-center text-xs text-muted-foreground animate-pulse">Загрузка шаблонов ответов...</div>
+});
 import { DataTable } from '@/components/ui/data-table';
 import { columns as auditColumns } from './audit-columns';
 import Link from 'next/link';
@@ -22,48 +29,72 @@ import { AdminAuditLog, StaffRole, StaffPermission, SupportTemplate, SystemSetti
 
 export const dynamic = 'force-dynamic';
 
-interface SettingsPageData {
-  staffUsers: Awaited<ReturnType<typeof settingsService.listStaffUsers>>;
-  users: Awaited<ReturnType<typeof settingsService.listUsers>>;
-  settings: SystemSettings;
-  recentLogs: AdminAuditLog[];
-  staffRoles: (StaffRole & { permissions: StaffPermission[] })[];
-  templates: SupportTemplate[];
-  providers: Provider[];
-}
-
 export default async function AdminSettingsPage({
   searchParams,
 }: {
   searchParams: Promise<{ tab?: string; q?: string }>;
 }) {
+  // 1. RBAC Guard: Evaluate access ceiling first
   const admin = await enforceSectionAccess('settings');
   
   const params = await searchParams;
   const activeTab = params.tab || 'system';
   const searchQuery = params.q || '';
 
-  let pageData: SettingsPageData;
+  // 2. Tab-Scoped Optimized Queries: Fetch settings + conditionally only the active tab data
+  let settings: SystemSettings;
+  let staffUsers: Awaited<ReturnType<typeof settingsService.listStaffUsers>> = [];
+  let users: Awaited<ReturnType<typeof settingsService.listUsers>> = [];
+  let recentLogs: AdminAuditLog[] = [];
+  let staffRoles: (StaffRole & { permissions: StaffPermission[] })[] = [];
+  let templates: SupportTemplate[] = [];
+  let providers: Provider[] = [];
 
   try {
-    const [staffUsers, users, settings, recentLogs, staffRoles, templates, providers] = await Promise.all([
-      settingsService.listStaffUsers(),
-      searchQuery ? settingsService.listUsers(searchQuery) : Promise.resolve([]),
-      settingsService.getSystemSettings(),
-      activeTab === 'audit' ? db.adminAuditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 50 }) : Promise.resolve([]),
-      db.staffRole.findMany({ include: { permissions: true }, orderBy: { name: 'asc' } }),
-      db.supportTemplate.findMany({ orderBy: { sort: 'asc' } }),
-      db.provider.findMany({ orderBy: { name: 'asc' } }),
-    ]);
+    const settingsPromise = settingsService.getSystemSettings();
 
-    pageData = { staffUsers, users, settings, recentLogs, staffRoles, templates, providers };
+    if (activeTab === 'team') {
+      const [s, stUsers, uList, roles] = await Promise.all([
+        settingsPromise,
+        settingsService.listStaffUsers(),
+        searchQuery ? settingsService.listUsers(searchQuery) : Promise.resolve([]),
+        db.staffRole.findMany({ include: { permissions: true }, orderBy: { name: 'asc' } }),
+      ]);
+      settings = s;
+      staffUsers = stUsers;
+      users = uList;
+      staffRoles = roles;
+    } else if (activeTab === 'proxy') {
+      const [s, pList] = await Promise.all([
+        settingsPromise,
+        db.provider.findMany({ orderBy: { name: 'asc' } }),
+      ]);
+      settings = s;
+      providers = pList;
+    } else if (activeTab === 'templates') {
+      const [s, tList] = await Promise.all([
+        settingsPromise,
+        db.supportTemplate.findMany({ orderBy: { sort: 'asc' } }),
+      ]);
+      settings = s;
+      templates = tList;
+    } else if (activeTab === 'audit') {
+      const [s, logs] = await Promise.all([
+        settingsPromise,
+        db.adminAuditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 50 }),
+      ]);
+      settings = s;
+      recentLogs = logs;
+    } else {
+      // Default tabs: 'system', 'catalog', 'integrations', 'telegram' only need settings
+      settings = await settingsPromise;
+    }
   } catch (error) {
     console.error('[AdminSettingsPage] Failed to load settings data:', error);
     throw new Error('Не удалось загрузить данные настроек. Попробуйте обновить страницу.');
   }
 
-  const { staffUsers, users, settings, recentLogs, staffRoles, templates, providers } = pageData;
-
+  // 3. Security Sanitize: Mask all 11 critical secrets before passing to client components
   const sanitizedSettings = {
     ...settings,
     telegramBotToken: settings.telegramBotToken ? '••••••••••••••••' : null,
@@ -91,8 +122,9 @@ export default async function AdminSettingsPage({
     { id: 'templates', label: 'Шаблоны', icon: MessageSquare },
     { id: 'audit', label: 'Аудит', icon: History },
   ];
+
   return (
-    <div className="space-y-6 w-full min-w-0 animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
+    <div className="space-y-6 w-full min-w-0 animate-in fade-in duration-300 ease-out sm:px-2 md:px-0 min-h-full pb-10">
       <AdminTabbedHeader
         icon={Settings}
         title="Настройки системы"
@@ -126,7 +158,7 @@ export default async function AdminSettingsPage({
       <div className="space-y-8 mt-4">
         {/* ── TAB 1: SYSTEM ── */}
         {activeTab === 'system' && (
-          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-400">
+          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
             <TestModePanel initialIsTestMode={sanitizedSettings.isTestMode} isTestEnvironment={SettingsProvider.isTestEnvironment()} />
             <GeneralSettings settings={sanitizedSettings} />
           </div>
@@ -134,35 +166,35 @@ export default async function AdminSettingsPage({
 
         {/* ── TAB 1.5: CATALOG ── */}
         {activeTab === 'catalog' && (
-          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-400">
+          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
             <CatalogSettings settings={sanitizedSettings} />
           </div>
         )}
 
         {/* ── TAB 2: INTEGRATIONS ── */}
         {activeTab === 'integrations' && (
-          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-400">
+          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
             <IntegrationsSettings settings={sanitizedSettings} />
           </div>
         )}
 
         {/* ── TAB 2.5: TELEGRAM BOT ── */}
         {activeTab === 'telegram' && (
-          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-400">
+          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
             <TelegramBotSettings settings={sanitizedSettings} />
           </div>
         )}
 
         {/* ── TAB 2.8: PROVIDER PROXIES ── */}
         {activeTab === 'proxy' && (
-          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-400">
+          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
             <ProviderProxyManager providers={providers} />
           </div>
         )}
 
         {/* ── TAB 3: TEAM ── */}
         {activeTab === 'team' && (
-          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-400">
+          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
             <TeamManagement 
               staffUsers={staffUsers} 
               regularUsers={regularUsers} 
@@ -175,14 +207,14 @@ export default async function AdminSettingsPage({
 
         {/* ── TAB 3.7: SUPPORT TEMPLATES ── */}
         {activeTab === 'templates' && (
-          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-400">
+          <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
             <SupportTemplatesSettings initialTemplates={templates} />
           </div>
         )}
 
         {/* ── TAB 4: AUDIT ── */}
         {activeTab === 'audit' && (
-          <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-400">
+          <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
             <div className="rounded-2xl border border-border shadow-sm bg-card overflow-hidden">
               <div className="p-0">
                 <DataTable 

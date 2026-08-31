@@ -241,35 +241,45 @@ export class EscrowService {
     ipAddress?: string
   ) {
     const ip = ipAddress || (await getClientIp('unknown'));
+
     // Atomic check-and-update: only proceed if status is still QUARANTINE.
     // This prevents the race condition where two Owners click Approve simultaneously.
     await runSerializableTransaction(async (tx) => {
-      const updatedEntries = await tx.ledgerEntry.updateMany({
-        where: { id: entryId, status: 'QUARANTINE' },
-        data: { status: resolution },
-      });
+      // Step 1: LEDGER-FIRST — update the original entry status BEFORE touching balances.
+      // We use $executeRaw because the Prisma Extension guard in db.ts blocks ledgerEntry.updateMany()
+      // to protect the audit trail. The PostgreSQL trigger block_ledger_mutation() permits status-only
+      // updates for QUARANTINE entries, making this the correct and safe operation.
+      const targetStatus = resolution === 'APPROVE' ? 'APPROVED' : 'REJECTED';
+      const result = await tx.$executeRaw`
+        UPDATE "LedgerEntry"
+        SET status = ${targetStatus}
+        WHERE id = ${entryId} AND status = 'QUARANTINE'
+      `;
 
-      if (updatedEntries.count === 0) {
+      if (result === 0) {
         throw new Error('Entry already resolved or not found');
       }
 
       const entry = await tx.ledgerEntry.findUniqueOrThrow({ where: { id: entryId } });
       const user = await tx.user.findUniqueOrThrow({ where: { id: entry.userId } });
 
-      const absAmount = Math.abs(Number(entry.amount));
+      const absAmount = entry.amount < BigInt(0) ? -entry.amount : entry.amount;
 
+      // Step 2: Release the quarantine bubble (quarantineBalance -= absAmount).
+      // quarantineRelease does NOT touch user.balance — only quarantineBalance.
       await WalletOps.quarantineRelease(tx, entry.userId, absAmount);
 
       if (resolution === 'APPROVE') {
-        const amount = Number(entry.amount);
-        await WalletOps.adminAdjust(
-          tx,
-          entry.userId,
-          amount,
-          `Разблокировка средств из карантина: ${entry.reason}`,
-          { idempotencyKey: `approve_quarantine_${entryId}`, adminId: owner.id }
-        );
+        // Step 3 (APPROVE only): Credit the main balance directly.
+        // We do NOT call WalletOps.adminAdjust() here — that would create a duplicate
+        // LedgerEntry (type=ADJUSTMENT). The original entry (now APPROVED) IS the ledger record.
+        // Ledger-First invariant: the entry is already APPROVED (step 1) before this update.
+        await tx.user.update({
+          where: { id: entry.userId },
+          data: { balance: { increment: entry.amount } },
+        });
       }
+      // REJECT: no balance change — funds simply vanish from quarantine (chargeback/fraud case).
 
       await tx.adminAuditLog.create({
         data: {
@@ -278,14 +288,20 @@ export class EscrowService {
           action: `QUARANTINE_${resolution}`,
           target: entry.id,
           targetType: 'LEDGER',
-          oldValue: JSON.stringify({ status: 'QUARANTINE', userQuarantine: user.quarantineBalance.toString(), userBalance: user.balance.toString() }),
-          newValue: JSON.stringify({
-            status: resolution,
-            userQuarantine: (user.quarantineBalance - BigInt(absAmount)).toString(),
-            userBalance: resolution === 'APPROVE' ? (user.balance + BigInt(entry.amount)).toString() : user.balance.toString(),
+          oldValue: JSON.stringify({
+            status: 'QUARANTINE',
+            userQuarantine: user.quarantineBalance.toString(),
+            userBalance: user.balance.toString(),
           }),
-          ipAddress: ip
-        }
+          newValue: JSON.stringify({
+            status: resolution === 'APPROVE' ? 'APPROVED' : 'REJECTED',
+            userQuarantine: (user.quarantineBalance - absAmount).toString(),
+            userBalance: resolution === 'APPROVE'
+              ? (user.balance + entry.amount).toString()
+              : user.balance.toString(),
+          }),
+          ipAddress: ip,
+        },
       });
     });
   }

@@ -472,8 +472,9 @@ Output valid JSON matching RedTeamAttackSchema.`;
   const redRawResponse = await callOpenRouterWithFallback({
     models: [
       'minimax/minimax-m3:free',
-      'z-ai/glm-5.2:free',
-      'poolside/laguna-s-2.1:free',
+      'cohere/north-mini-code:free',
+      'nvidia/nemotron-3.5-lightning:free',
+      'inclusionai/ling-3.0-flash-fin:free',
       'openrouter/free',
     ],
     systemPrompt: redSystemPrompt,
@@ -494,7 +495,7 @@ Output valid JSON matching RedTeamAttackSchema.`;
   // --------------------------------------------------------------------------
   // ROUND 2: BLUE TEAM DEFENSE
   // --------------------------------------------------------------------------
-  console.log('\n\x1b[1m\x1b[34m[ROUND 2/3] 🔵 Blue Team Defense (MiniMax M2.7 / Nemotron / Llama Defense)...\x1b[0m');
+  console.log('\n\x1b[1m\x1b[34m[ROUND 2/3] 🔵 Blue Team Defense (Cohere North Mini Code / Ling Fin / Nemotron)...\x1b[0m');
   const r2Start = Date.now();
 
   const blueSystemPrompt = `You are the Principal Systems Architect & Production Defense Lead (Blue Team) for OmniSMM 1.0.
@@ -511,9 +512,10 @@ Output valid JSON matching BlueTeamDefenseSchema.`;
 
   const blueRawResponse = await callOpenRouterWithFallback({
     models: [
-      'minimax/minimax-m2.7:free',
-      'nvidia/nemotron-3-ultra-550b-a55b:free',
       'cohere/north-mini-code:free',
+      'minimax/minimax-m2.7:free',
+      'inclusionai/ling-3.0-flash-fin:free',
+      'nvidia/nemotron-3.5-lightning:free',
       'openrouter/free',
     ],
     systemPrompt: blueSystemPrompt,
@@ -535,7 +537,7 @@ Output valid JSON matching BlueTeamDefenseSchema.`;
   // --------------------------------------------------------------------------
   // ROUND 3: CTO ARBITER CONSENSUS
   // --------------------------------------------------------------------------
-  console.log('\n\x1b[1m\x1b[35m[ROUND 3/3] ⚖️  CTO Arbiter Consensus (MiniMax M3 / Gemini Synthesis)...\x1b[0m');
+  console.log('\n\x1b[1m\x1b[35m[ROUND 3/3] ⚖️  CTO Arbiter Consensus (MiniMax M3 / Dots3 Note / Gemini Synthesis)...\x1b[0m');
   const r3Start = Date.now();
 
   const ctoSystemPrompt = `You are the Fractional CTO & Chief Arbiter for OmniSMM 1.0.
@@ -553,7 +555,9 @@ Output valid JSON matching CTOArbiterConsensusSchema.`;
   const ctoRawResponse = await callOpenRouterWithFallback({
     models: [
       'minimax/minimax-m3:free',
-      'poolside/laguna-s-2.1:free',
+      'dots-studio/dots-3-note-preview:free',
+      'nvidia/nemotron-3.5-lightning:free',
+      'cohere/north-mini-code:free',
       'openrouter/free',
     ],
     systemPrompt: ctoSystemPrompt,

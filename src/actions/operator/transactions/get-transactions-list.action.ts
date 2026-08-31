@@ -7,7 +7,12 @@ import { requireOperatorPermission } from '@/lib/operator/rbac';
 
 const ledgerParamsSchema = z.object({
   status: z.enum(['ALL', 'APPROVED', 'QUARANTINE', 'REJECTED']).default('ALL'),
-  type:   z.enum(['ALL', 'TOPUP', 'DEBIT', 'REFUND', 'COMPENSATION', 'ADJUSTMENT']).default('ALL'),
+  type:   z.enum([
+    'ALL', 'TOPUP', 'ORDER_CHARGE', 'ORDER_CANCEL',
+    'REFUND', 'COMPENSATION', 'ADJUSTMENT', 'REROUTE', 'PAYMENT',
+    // legacy aliases kept for backward compat
+    'DEBIT',
+  ]).default('ALL'),
   period: z.enum(['today', 'week', 'month', 'all']).default('month'),
   search: z.string().max(255).optional(),
   cursor: z.string().optional(),
@@ -78,27 +83,50 @@ export async function getTransactionsListAction(
       }
 
       if (p.type === 'TOPUP') {
-        andConditions.push({ amount: { gt: 0 }, transactionType: { not: 'REFUND' } });
-      } else if (p.type === 'DEBIT') {
-        andConditions.push({ amount: { lt: 0 } });
+        // Прямой тип + legacy PAYMENT с amount > 0
+        andConditions.push({
+          OR: [
+            { transactionType: 'TOPUP' },
+            { transactionType: 'PAYMENT', amount: { gt: 0 } },
+          ],
+        });
+      } else if (p.type === 'ORDER_CHARGE' || p.type === 'DEBIT') {
+        // Прямой тип + legacy PAYMENT с amount < 0
+        andConditions.push({
+          OR: [
+            { transactionType: 'ORDER_CHARGE' },
+            { transactionType: 'PAYMENT', amount: { lt: 0 } },
+          ],
+        });
+      } else if (p.type === 'ORDER_CANCEL') {
+        andConditions.push({ transactionType: 'ORDER_CANCEL' });
       } else if (p.type === 'REFUND') {
         andConditions.push({
           OR: [
             { transactionType: 'REFUND' },
-            { reason: { contains: 'возврат', mode: 'insensitive' as const } },
-            { reason: { contains: 'refund', mode: 'insensitive' as const } }
-          ]
+            { reason: { contains: 'авто-возврат', mode: 'insensitive' as const } },
+            { reason: { contains: 'Fail-Fast', mode: 'insensitive' as const } },
+          ],
         });
       } else if (p.type === 'COMPENSATION') {
+        andConditions.push({ transactionType: 'COMPENSATION' });
+      } else if (p.type === 'ADJUSTMENT') {
         andConditions.push({
           OR: [
-            { transactionType: 'COMPENSATION' },
-            { reason: { contains: 'компенсац', mode: 'insensitive' as const } },
-            { reason: { contains: 'бонус', mode: 'insensitive' as const } }
-          ]
+            { transactionType: 'ADJUSTMENT' },
+            // legacy: adminId-only записи без явного типа
+            { transactionType: 'COMPENSATION', adminId: { not: null } },
+          ],
         });
-      } else if (p.type === 'ADJUSTMENT') {
-        andConditions.push({ adminId: { not: null } });
+      } else if (p.type === 'REROUTE') {
+        andConditions.push({
+          OR: [
+            { transactionType: 'REROUTE' },
+            { reason: { contains: 'перезапуск', mode: 'insensitive' as const } },
+          ],
+        });
+      } else if (p.type === 'PAYMENT') {
+        andConditions.push({ transactionType: 'PAYMENT' });
       }
 
       if (searchTrim) {

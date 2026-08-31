@@ -37,16 +37,18 @@ describe.sequential('Zombie Eraser & Pricing Auto-recalculation / Quarantine Tes
   let serviceB: any;
 
   beforeEach(async () => {
+    // 1. Ensure tenant exists
+    await db.tenant.upsert({
+      where: { id: 'smmplan' },
+      update: {},
+      create: { id: 'smmplan', name: 'SMMplan', slug: 'smmplan', domain: 'smmplan.local', vaultSalt: 'test-salt' },
+    });
+
     // 2. Setup systemSettings with exchange rates
     await db.systemSettings.upsert({
       where: { id: 'smmplan' },
       update: { isTestMode: true, exchangeRateUSD: 100.0 },
       create: { id: 'smmplan', isTestMode: true, exchangeRateUSD: 100.0 },
-    });
-    await db.systemSettings.upsert({
-      where: { id: 'global' },
-      update: { isTestMode: true, exchangeRateUSD: 100.0 },
-      create: { id: 'global', isTestMode: true, exchangeRateUSD: 100.0 },
     });
 
     // 3. Create Admin

@@ -5,43 +5,19 @@ import Link from 'next/link';
 import { Table } from '@/components/admin/hero-ui';
 import { Badge } from '@/components/ui/badge';
 import { LedgerEntryDTO } from '@/actions/operator/transactions/get-transactions-list.action';
+import { LEDGER_TYPE_CONFIG, resolveLedgerTypeForDisplay } from '@/lib/financial/ledger-types';
 
 interface TransactionsTableProps {
   data: LedgerEntryDTO[];
 }
 
 function renderTypeBadge(item: LedgerEntryDTO) {
-  if (item.adminId) {
-    return (
-      <Badge intent="outline" className="text-[10px] font-bold px-2 py-0.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20">
-        ⚙️ Корректировка
-      </Badge>
-    );
-  }
-  if (item.transactionType === 'REFUND' || item.reason?.toLowerCase().includes('возврат')) {
-    return (
-      <Badge intent="outline" className="text-[10px] font-bold px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
-        ↩️ Возврат
-      </Badge>
-    );
-  }
-  if (item.transactionType === 'COMPENSATION') {
-    return (
-      <Badge intent="outline" className="text-[10px] font-bold px-2 py-0.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20">
-        🎁 Бонус
-      </Badge>
-    );
-  }
-  if (item.amount > 0) {
-    return (
-      <Badge intent="outline" className="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">
-        💳 Пополнение
-      </Badge>
-    );
-  }
+  const resolvedType = resolveLedgerTypeForDisplay(item.transactionType, item.amount, item.adminId);
+  const cfg = LEDGER_TYPE_CONFIG[resolvedType] || LEDGER_TYPE_CONFIG.TOPUP;
+
   return (
-    <Badge intent="outline" className="text-[10px] font-bold px-2 py-0.5 bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20">
-      🔻 Списание
+    <Badge intent="outline" className={`text-[10px] font-bold px-2 py-0.5 ${cfg.badgeClass}`}>
+      {cfg.emoji} {cfg.label}
     </Badge>
   );
 }

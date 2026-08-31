@@ -30,7 +30,13 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
   const order = await db.order.findUnique({
     where: { id: orderId },
     include: {
-      service: { include: { provider: true } },
+      service: {
+        include: {
+          provider: true,
+          category: { include: { network: true } }
+        }
+      },
+      user: { select: { id: true, email: true, tenantId: true } },
       smartCampaign: true
     }
   });
@@ -142,9 +148,33 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
       const { QuarantineService } = await import('../../services/providers/quarantine.service');
       await QuarantineService.evaluateTriggerA(order.serviceId, noRoutesMsg);
     } catch { /* ignore */ }
-    const { orderService } = await import('../../services/core/order.service');
-    await orderService.failOrderTerminalFast(order.id, noRoutesMsg);
-    throw new UnrecoverableError(`Fail-Fast: ${noRoutesMsg}`);
+
+    await db.order.update({
+      where: { id: order.id },
+      data: {
+        status: 'PENDING_CHECK',
+        error: `[NO_ACTIVE_PROVIDER] ${noRoutesMsg} Заказ ожидает назначения поставщика оператором.`
+      }
+    });
+
+    try {
+      const { OrderTriageAlertService } = await import('@/services/orders/order-triage-alert.service');
+      await OrderTriageAlertService.sendOrderCheckAlert({
+        orderId: order.id,
+        numericId: order.numericId,
+        serviceName: order.service?.name || '',
+        categoryName: order.service?.category?.name,
+        networkName: order.service?.category?.network?.name,
+        link: order.link,
+        quantity: order.quantity,
+        chargeKopecks: order.charge,
+        userEmail: order.user?.email,
+        tenantId: order.tenantId,
+        providerName: 'Не назначен',
+      }, noRoutesMsg, 'Не назначен');
+    } catch { /* ignore */ }
+
+    throw new UnrecoverableError(`No active routes: ${noRoutesMsg}`);
   }
 
   const primaryProviderId = candidateRoutes.find(r => r.isPrimary)?.providerId || candidateRoutes[0]?.providerId;
@@ -273,7 +303,6 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
       }
 
       const extId = response.order ? response.order.toString() : '';
-      const waitingUntil = new Date(Date.now() + 60 * 60 * 1000);
 
       try {
         await db.order.update({
@@ -282,8 +311,7 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
             externalId: extId,
             providerId: route.providerId,
             providerServiceId: route.providerServiceId,
-            status: 'IN_PROGRESS',
-            waitingUntil
+            status: 'IN_PROGRESS'
           }
         });
       } catch (dbError) {
@@ -348,28 +376,33 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
       // Halt immediately, move order to PENDING_CHECK and alert operator to prevent service quality drift.
       if (route.failoverMode !== 'automatic') {
         log.warn(`[OrderProcessor] Failover mode is '${route.failoverMode}' for route ${route.id}. Halting cascade to prevent quality drift.`);
-        const isBalanceErr = originalError.toLowerCase().includes('not enough') || 
-                             originalError.toLowerCase().includes('balance') || 
-                             originalError.toLowerCase().includes('недостаточно') ||
-                             originalError.toLowerCase().includes('funds');
-        const tag = isBalanceErr ? '[INSUFFICIENT_PROVIDER_BALANCE] ' : '';
+        
+        const { OrderTriageAlertService } = await import('@/services/orders/order-triage-alert.service');
+        const classification = OrderTriageAlertService.classifyError(originalError);
+        const formattedError = OrderTriageAlertService.formatOrderErrorMessage(classification, originalError, route.provider.name);
 
         await db.order.update({
           where: { id: order.id },
           data: {
             status: 'PENDING_CHECK',
-            error: `${tag}Ошибка поставщика ${route.provider.name}: ${originalError}. Авто-переключение отключено (manual mode). Требуется проверка оператором.`
+            error: formattedError
           }
         });
 
         try {
-          const { sendAdminAlert } = await import('@/lib/notifications');
-          sendAdminAlert(
-            `⚠️ [ТРЕБУЕТСЯ ПРОВЕРКА ОПЕРАТОРОМ] Заказ #${order.numericId} (Услуга: ${order.service?.name || ''})\n` +
-            `Поставщик ${route.provider.name} вернул ошибку: ${originalError}\n` +
-            `Авто-переключение на других поставщиков отключено для сохранения качества услуги (режим: manual). Заказ переведён в статус «На проверке» (PENDING_CHECK).`,
-            'WARNING'
-          );
+          await OrderTriageAlertService.sendOrderCheckAlert({
+            orderId: order.id,
+            numericId: order.numericId,
+            serviceName: order.service?.name || '',
+            categoryName: order.service?.category?.name,
+            networkName: order.service?.category?.network?.name,
+            link: order.link,
+            quantity: order.quantity,
+            chargeKopecks: order.charge,
+            userEmail: order.user?.email,
+            tenantId: order.tenantId,
+            providerName: route.provider.name,
+          }, originalError, route.provider.name);
         } catch { /* ignore */ }
 
         throw new UnrecoverableError(`Manual failover mode: operator triage required`);
@@ -402,19 +435,26 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
       });
 
       try {
-        const { sendAdminAlert } = await import('@/lib/notifications');
-        await sendAdminAlert(
-          `🚨 [PRICE DRIFT HOLD] Заказ #${order.numericId} (Услуга: ${order.service?.name || ''})\n` +
-          `Поставщик поднял цену или изменился курс валют. Себестоимость превысила сумму оплаты клиента!\n` +
-          `Заказ переведён в статус «На проверке» (PENDING_CHECK). Проверьте заказ в панели оператора: смените провайдера или отмените заказ с возвратом средств.`,
-          'CRITICAL'
-        );
+        const { OrderTriageAlertService } = await import('@/services/orders/order-triage-alert.service');
+        await OrderTriageAlertService.sendOrderCheckAlert({
+          orderId: order.id,
+          numericId: order.numericId,
+          serviceName: order.service?.name || '',
+          categoryName: order.service?.category?.name,
+          networkName: order.service?.category?.network?.name,
+          link: order.link,
+          quantity: order.quantity,
+          chargeKopecks: order.charge,
+          userEmail: order.user?.email,
+          tenantId: order.tenantId,
+          providerName: candidateRoutes[0]?.provider?.name,
+        }, holdMessage, candidateRoutes[0]?.provider?.name);
       } catch { /* ignore */ }
 
       throw new UnrecoverableError(`Price Drift Hold: ${holdMessage}`);
     }
 
-    log.error(`[OrderProcessor] FAIL-FAST for Order ${order.id}: ${lastError}`);
+    log.error(`[OrderProcessor] All routes failed for Order ${order.id}. Moving to PENDING_CHECK: ${lastError}`);
 
     try {
       const { QuarantineService } = await import('../../services/providers/quarantine.service');
@@ -423,9 +463,34 @@ export default async function orderProcessor(job: Job<OrderJobPayload>) {
       log.error(`[OrderProcessor] Quarantine evaluation failed: ${quarantineErr instanceof Error ? quarantineErr.message : String(quarantineErr)}`);
     }
 
-    const { orderService } = await import('../../services/core/order.service');
-    await orderService.failOrderTerminalFast(order.id, lastError);
+    const { OrderTriageAlertService } = await import('@/services/orders/order-triage-alert.service');
+    const classification = OrderTriageAlertService.classifyError(lastError);
+    const formattedError = OrderTriageAlertService.formatOrderErrorMessage(classification, lastError, candidateRoutes[0]?.provider?.name);
 
-    throw new UnrecoverableError(`Fail-Fast: ${lastError}`);
+    await db.order.update({
+      where: { id: order.id },
+      data: {
+        status: 'PENDING_CHECK',
+        error: formattedError
+      }
+    });
+
+    try {
+      await OrderTriageAlertService.sendOrderCheckAlert({
+        orderId: order.id,
+        numericId: order.numericId,
+        serviceName: order.service?.name || '',
+        categoryName: order.service?.category?.name,
+        networkName: order.service?.category?.network?.name,
+        link: order.link,
+        quantity: order.quantity,
+        chargeKopecks: order.charge,
+        userEmail: order.user?.email,
+        tenantId: order.tenantId,
+        providerName: candidateRoutes[0]?.provider?.name,
+      }, lastError, candidateRoutes[0]?.provider?.name);
+    } catch { /* ignore */ }
+
+    throw new UnrecoverableError(`Order moved to PENDING_CHECK: ${lastError}`);
   }
 }

@@ -120,17 +120,16 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
       if (res.success && res.data) {
         setAvailableGateways(res.data);
         const active = res.data;
-        if (!active[selectedGateway as keyof typeof active]) {
+        setSelectedGateway((prev) => {
+          if (active[prev as keyof typeof active]) return prev;
           const firstAvailable = (["yookassa", "robokassa", "cryptobot"] as const).find(
             (id) => active[id]
           );
-          if (firstAvailable) {
-            setSelectedGateway(firstAvailable);
-          }
-        }
+          return firstAvailable || prev;
+        });
       }
     });
-  }, [selectedGateway]);
+  }, []);
 
   useEffect(() => {
     if (window.matchMedia('(pointer: fine)').matches) {

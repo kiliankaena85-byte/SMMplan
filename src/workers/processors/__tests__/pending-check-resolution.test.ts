@@ -70,7 +70,7 @@ describe('WRK-03: PENDING_CHECK Auto-Resolution (runPendingCheckResolution)', ()
     expect(orderService.failOrderTerminalFast).not.toHaveBeenCalled();
   });
 
-  it('fails order terminal with refund when provider does not know the order (null status)', async () => {
+  it('does NOT fail order when provider status is temporarily unavailable (transient API timeout)', async () => {
     const mockOrder = {
       id: 'order-pc-2',
       numericId: 1002,
@@ -95,10 +95,8 @@ describe('WRK-03: PENDING_CHECK Auto-Resolution (runPendingCheckResolution)', ()
     await runPendingCheckResolution();
 
     expect(orderService.processStatusUpdate).not.toHaveBeenCalled();
-    expect(orderService.failOrderTerminalFast).toHaveBeenCalledWith(
-      'order-pc-2',
-      'PENDING_CHECK auto-resolved: provider timeout exceeded 6h'
-    );
+    // Safety Invariant: Must NOT auto-cancel customer order on transient provider timeout
+    expect(orderService.failOrderTerminalFast).not.toHaveBeenCalled();
   });
 
   it('does not touch PENDING_CHECK orders younger than 6 hours threshold', async () => {

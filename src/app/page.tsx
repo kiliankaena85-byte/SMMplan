@@ -65,7 +65,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
   const isHoldingMode = isHoldingParam || (isProdHost && params.contour !== "test");
 
   const userBalanceCents = 0;
-  const catalogResult = await getPublicCatalogAction(tenantId);
+  const [catalogResult, settings, session, baseUrl] = await Promise.all([
+    getPublicCatalogAction(tenantId),
+    SettingsProvider.getContactAndLegalSettings(),
+    verifySession(),
+    getBaseUrlAsync()
+  ]);
+
   const catalog = catalogResult.success && catalogResult.data ? catalogResult.data : [];
   
   // SSR Pre-fetch default category services to eliminate client waterfall latency
@@ -77,13 +83,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
   }
   const initialServices = targetCategoryId ? await getServicesByCategoryAction(targetCategoryId, tenantId) : [];
 
-  const settings = await SettingsProvider.getContactAndLegalSettings();
   const tenantConfig = TENANTS.find(t => t.id === tenantId);
   const siteName = tenantConfig?.name || settings.SITE_NAME || "SMMplan";
-  const baseUrl = await getBaseUrlAsync();
 
   // Resolve user session and email
-  const session = await verifySession();
   let userEmail: string | undefined = undefined;
   if (session?.userId) {
     const user = await db.user.findUnique({

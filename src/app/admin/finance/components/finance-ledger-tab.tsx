@@ -46,7 +46,7 @@ export function FinanceLedgerTab({ initial, period: initPeriod, tenantId }: Fina
       const r = await getLedgerAction({
         period:   newPeriod as 'today' | 'week' | 'month' | 'all',
         status:   newStatus as 'ALL' | 'APPROVED' | 'QUARANTINE' | 'REJECTED',
-        type:     newType as 'ALL' | 'TOPUP' | 'DEBIT' | 'REFUND' | 'COMPENSATION' | 'ADJUSTMENT',
+        type:     newType as any,
         pageSize: 100,
         tenantId,
       });
@@ -83,11 +83,15 @@ export function FinanceLedgerTab({ initial, period: initPeriod, tenantId }: Fina
   }
 
   const QUICK_FILTERS = [
-    { label: '💳 Пополнения баланса', type: 'TOPUP', status: 'ALL' },
-    { label: '🔻 Списания / Оплата', type: 'DEBIT', status: 'ALL' },
-    { label: '↩️ Возвраты', type: 'REFUND', status: 'ALL' },
-    { label: '⏳ В карантине', type: 'ALL', status: 'QUARANTINE' },
-    { label: '📋 Все проводки', type: 'ALL', status: 'ALL' },
+    { label: '💳 Пополнения',    type: 'TOPUP',        status: 'ALL' },
+    { label: '🛒 Оплата заказов', type: 'ORDER_CHARGE',  status: 'ALL' },
+    { label: '🚫 Отмены',         type: 'ORDER_CANCEL',  status: 'ALL' },
+    { label: '↩️ Авто-возвраты',  type: 'REFUND',        status: 'ALL' },
+    { label: '🔄 Перезапуски',    type: 'REROUTE',       status: 'ALL' },
+    { label: '🎁 Бонусы',         type: 'COMPENSATION',  status: 'ALL' },
+    { label: '⚙️ Корректировки',  type: 'ADJUSTMENT',    status: 'ALL' },
+    { label: '⏳ В карантине',    type: 'ALL',           status: 'QUARANTINE' },
+    { label: '📋 Все проводки',   type: 'ALL',           status: 'ALL' },
   ];
 
   return (
@@ -168,8 +172,10 @@ export function FinanceLedgerTab({ initial, period: initPeriod, tenantId }: Fina
               <SelectContent>
                 <SelectItem value="ALL">Все операции</SelectItem>
                 <SelectItem value="TOPUP">💳 Пополнение баланса</SelectItem>
-                <SelectItem value="DEBIT">🔻 Списание / Оплата</SelectItem>
-                <SelectItem value="REFUND">↩️ Возврат средств</SelectItem>
+                <SelectItem value="ORDER_CHARGE">🛒 Оплата заказа</SelectItem>
+                <SelectItem value="ORDER_CANCEL">🚫 Отмена заказа</SelectItem>
+                <SelectItem value="REFUND">↩️ Авто-возврат</SelectItem>
+                <SelectItem value="REROUTE">🔄 Перезапуск заказа</SelectItem>
                 <SelectItem value="COMPENSATION">🎁 Компенсация / Бонус</SelectItem>
                 <SelectItem value="ADJUSTMENT">⚙️ Ручная корректировка</SelectItem>
               </SelectContent>

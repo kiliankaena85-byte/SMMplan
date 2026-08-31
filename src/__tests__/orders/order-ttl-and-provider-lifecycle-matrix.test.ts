@@ -280,11 +280,12 @@ describe('🛡️ Comprehensive Order TTL & Provider Lifecycle Matrix (Real E2E)
     );
   });
 
-  it('7. [PENDING_CHECK 24H SWEEP] Order stuck in PENDING_CHECK >24h MUST be refunded 100%', async () => {
+  it('7. [PENDING_CHECK 24H SWEEP] Orders in PENDING_CHECK are kept active unless provider confirms cancellation', async () => {
     const thirtyHoursAgo = new Date(Date.now() - 30 * 60 * 60 * 1000);
 
-    const mockPendingOrder = {
-      id: 'ord_stuck_pending_check',
+    // Scenario A: Order in PENDING_CHECK without terminal provider failure is kept active (never canceled)
+    const mockActiveOrder = {
+      id: 'ord_active_pending_check',
       numericId: 107,
       userId: 'user_7',
       charge: BigInt(2500),
@@ -293,7 +294,30 @@ describe('🛡️ Comprehensive Order TTL & Provider Lifecycle Matrix (Real E2E)
       createdAt: thirtyHoursAgo,
     };
 
-    vi.spyOn(db.order, 'findMany').mockResolvedValueOnce([mockPendingOrder as any]);
+    vi.spyOn(db.order, 'findMany').mockResolvedValueOnce([mockActiveOrder as any]);
+    await runPendingCheckTTLSweep();
+    expect(WalletOps.refund).not.toHaveBeenCalled();
+
+    // Scenario B: Order confirmed canceled by provider API is refunded
+    const mockCanceledOrder = {
+      id: 'ord_canceled_pending_check',
+      numericId: 108,
+      userId: 'user_8',
+      charge: BigInt(3000),
+      quantity: 1000,
+      externalId: 'ext_888',
+      status: 'PENDING_CHECK',
+      createdAt: thirtyHoursAgo,
+      service: {
+        provider: { id: 'prov_8', type: 'STANDARD' }
+      }
+    };
+
+    vi.spyOn(db.order, 'findMany').mockResolvedValueOnce([mockCanceledOrder as any]);
+    const { providerService } = await import('@/services/providers/provider.service');
+    vi.spyOn(providerService, 'getWorkerProviderInstance').mockResolvedValueOnce({
+      getOrderStatus: vi.fn().mockResolvedValue({ status: 'Canceled' })
+    } as any);
 
     const txMock = {
       order: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
@@ -308,10 +332,10 @@ describe('🛡️ Comprehensive Order TTL & Provider Lifecycle Matrix (Real E2E)
 
     expect(WalletOps.refund).toHaveBeenCalledWith(
       expect.anything(),
-      'user_7',
-      2500,
+      'user_8',
+      3000,
       expect.stringContaining('завис в PENDING_CHECK'),
-      { idempotencyKey: 'refund-pending-check-ttl-ord_stuck_pending_check' }
+      { idempotencyKey: 'refund-pending-check-ttl-ord_canceled_pending_check' }
     );
   });
 });

@@ -70,6 +70,8 @@ describe('BalanceAutoFlushService — Smart Balance Recovery & Red Team Guards',
     await redis.del('autoflush:enabled');
     await redis.del(`lock:provider:flush:${testProviderId}`);
     await redis.del(`provider:${testProviderId}:balance`);
+
+    vi.spyOn(ordersQueue, 'add').mockResolvedValue({} as any);
   });
 
   describe('1. Error Classifier Accuracy', () => {

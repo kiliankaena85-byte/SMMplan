@@ -142,6 +142,22 @@ export async function runCleanup(): Promise<void> {
     log.error('Failed to prune old low-severity SecurityEvent records', { error: err });
   }
 
+  // ── 3.10. Empty Categories Sweep: Remove stale categories with 0 services ───
+  try {
+    const emptyCats = await db.category.findMany({
+      where: { services: { none: {} } },
+      select: { id: true, name: true }
+    });
+    if (emptyCats.length > 0) {
+      const deleteResult = await db.category.deleteMany({
+        where: { id: { in: emptyCats.map(c => c.id) } }
+      });
+      log.info('Empty categories cleanup done', { deleted: deleteResult.count });
+    }
+  } catch (err) {
+    log.error('Failed to cleanup empty categories in maintenance cycle', { error: err });
+  }
+
   // ── 4. Orders: Zombie AWAITING_PAYMENT ────────────────────────────────────
   // W2-1 FIX: Don't blindly cancel — check if a payment was recently confirmed.
   // YooKassa webhooks can arrive up to 5 minutes late. Cancelling a paid order
@@ -294,11 +310,12 @@ export async function runPendingCheckResolution(): Promise<void> {
             continue;
           }
         }
-        // If provider doesn't know about this order or has no externalId → fail terminal with refund
-        await orderService.failOrderTerminalFast(pOrder.id, 'PENDING_CHECK auto-resolved: provider timeout exceeded 6h');
-        log.info(`[Cleanup] Auto-failed stale PENDING_CHECK Order #${pOrder.numericId}`);
+        // If order was never sent to any provider (no externalId), log for manual operator review instead of blind destructive cancel
+        if (!pOrder.externalId) {
+          log.warn(`[Cleanup] PENDING_CHECK Order #${pOrder.numericId} has no externalId after 6h. Kept in queue for operator review.`);
+        }
       } catch (err) {
-        log.error(`[Cleanup] Failed to auto-resolve PENDING_CHECK Order #${pOrder.numericId}`, { error: err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err) });
+        log.error(`[Cleanup] Failed to poll status for PENDING_CHECK Order #${pOrder.numericId}`, { error: err instanceof Error ? err.message : String(err) });
       }
     }
   }
@@ -573,23 +590,9 @@ export async function runInProgressTTLSweep(): Promise<void> {
         delivered = Math.max(0, quantity - remains);
         reasonText = `Заказ частично выполнен провайдером. Выполнено ${delivered} из ${quantity}. Невыполненный остаток возвращён на баланс.`;
       } else {
-        // Fallback for orders without an active external provider (local sandbox/seed or orphaned orders)
-        if (remains <= 0) {
-          targetStatus = 'COMPLETED';
-          refundCents = 0;
-          delivered = quantity;
-          reasonText = `Заказ завершён по таймауту (72ч IN_PROGRESS). Выполнено ${delivered} из ${quantity}.`;
-        } else if (remains >= quantity) {
-          targetStatus = 'ERROR';
-          refundCents = Number(charge);
-          delivered = 0;
-          reasonText = `Заказ завершён по таймауту (72ч IN_PROGRESS). Выполнено 0 из ${quantity}. Стоимость возвращена на баланс.`;
-        } else {
-          targetStatus = 'PARTIAL';
-          refundCents = calculatePartialRefund({ remains, quantity, charge });
-          delivered = Math.max(0, quantity - remains);
-          reasonText = `Заказ завершён по таймауту (72ч IN_PROGRESS). Выполнено ${delivered} из ${quantity}. Невыполненный остаток возвращён на баланс.`;
-        }
+        // Safe Invariant: Never auto-cancel long-running orders unless the provider explicitly answered terminal status
+        log.info(`Order ${order.id} has no terminal status from provider (status: ${statusFromProvider || 'unknown'}). Keeping in IN_PROGRESS.`);
+        continue;
       }
 
       try {
@@ -701,7 +704,7 @@ export async function runPendingCheckTTLSweep(): Promise<void> {
   for (const order of stuckOrders) {
     let statusFromProvider: string | null = null;
 
-    if (order.externalId && order.service.provider) {
+    if (order.externalId && order.service?.provider) {
       try {
         const provider = await providerService.getWorkerProviderInstance(order.service.provider);
         const providerStatus = await provider.getOrderStatus(order.externalId);
@@ -715,10 +718,21 @@ export async function runPendingCheckTTLSweep(): Promise<void> {
           continue;
         }
       }
-    }
 
-    if (statusFromProvider === 'completed' || statusFromProvider === 'processing' || statusFromProvider === 'in progress') {
-      log.warn(`Order ${order.id} is active at provider (status: ${statusFromProvider}). Skipping auto-refund to prevent loss.`);
+      const normalizedStatus = (statusFromProvider || '').toLowerCase().replace(/[\s-]+/g, '_');
+      if (normalizedStatus === 'completed' || normalizedStatus === 'processing' || normalizedStatus === 'in_progress' || normalizedStatus === 'pending') {
+        log.warn(`Order ${order.id} is active at provider (status: ${statusFromProvider}). Skipping auto-refund to prevent loss.`);
+        continue;
+      }
+
+      // Only cancel if provider explicitly confirmed terminal cancellation or failure
+      if (!['canceled', 'cancelled', 'error', 'fail', 'failed'].includes(normalizedStatus)) {
+        log.info(`Skipping order ${order.id} PENDING_CHECK sweep (status: ${statusFromProvider || 'unknown'}). Order kept active.`);
+        continue;
+      }
+    } else {
+      // If order was never sent or has no externalId, do NOT auto-cancel. Keep for staff triage.
+      log.warn(`Order #${order.numericId} (${order.id}) in PENDING_CHECK has no externalId. Kept for operator review / auto-flush.`);
       continue;
     }
 

@@ -388,7 +388,8 @@ beforeEach(async () => {
         'price-reconciler',
         'pricing-hardening',
         'pricing-order-and-marketing',
-        'pricing-invariants'
+        'pricing-invariants',
+        'sync-provider-catalog'
       ];
       if (skipPatterns.some(pattern => testPath.toLowerCase().includes(pattern.toLowerCase()))) {
         shouldReset = false;

@@ -256,7 +256,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
     log.error('Failed to execute Quarantine Service tasks', { cause: e });
   }
 
-  // Sweep Orphaned PENDING Orders (> 15m)
+  // Sweep Orphaned PENDING Orders (> 15m) — Re-enqueue instead of destructive auto-cancel
   try {
     const orphanThreshold = new Date(Date.now() - 15 * 60 * 1000);
     const orphanOrders = await db.order.findMany({
@@ -269,17 +269,31 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
     });
 
     if (orphanOrders.length > 0) {
-      log.warn(`Found ${orphanOrders.length} orphaned PENDING orders. Sweeping...`);
-      const { orderService } = await import('../../services/core/order.service');
+      log.warn(`Found ${orphanOrders.length} orphaned PENDING orders. Re-enqueuing to dispatch queue...`);
+      const { ordersQueue } = await import('@/lib/queue-manager');
       for (const orphan of orphanOrders) {
-        await orderService.failOrderTerminal(orphan.id, 'Авто-отмена: заказ завис в очереди на отправку (Timeout > 15m)');
+        try {
+          await ordersQueue.add('order-dispatch', { orderId: orphan.id }, { jobId: `dispatch-${orphan.id}` });
+          log.info(`[SyncProcessor] Re-enqueued orphan order #${orphan.numericId} (ID: ${orphan.id})`);
+        } catch (enqueueErr) {
+          log.error(`[SyncProcessor] Failed to re-enqueue orphan order #${orphan.numericId}`, { error: enqueueErr });
+        }
       }
     }
   } catch (e: unknown) {
     log.error('Failed to execute Orphan Sweeper', { cause: e });
   }
 
-
+  // Smart Auto-Flush: PENDING_CHECK orders if provider balance restored
+  try {
+    const { BalanceAutoFlushService } = await import('@/services/providers/balance-autoflush.service');
+    const flushed = await BalanceAutoFlushService.sweepAllProviders();
+    if (flushed.length > 0) {
+      log.info(`[SyncProcessor] Smart Balance Auto-Flush dispatched ${flushed.reduce((acc, f) => acc + f.flushedCount, 0)} orders across ${flushed.length} providers.`);
+    }
+  } catch (err) {
+    log.error('Failed to run BalanceAutoFlushService sweep in sync processor', { error: err });
+  }
 
   // Smart Drip 2.5: Auto-compensation tick
   try {
@@ -290,41 +304,28 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
     log.error('[SyncProcessor] SmartFeedbackLoop tick failed', { error: errMsg });
   }
 
-  // WRK-02: Zero-start detector — provider hasn't started the order within the
-  // waiting window (remains == full quantity). Escalate to PENDING_CHECK so the
-  // existing 6h auto-resolution asks the provider directly.
+  // Delayed Order Monitoring (Non-destructive): Logs warnings for orders delayed > 48h without altering order status
   try {
-    const candidates = await db.order.findMany({
+    const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    const slowOrders = await db.order.findMany({
       where: {
         status: 'IN_PROGRESS',
-        waitingUntil: { lt: new Date() },
+        createdAt: { lt: twoDaysAgo },
         externalId: { not: null },
         isDripFeed: false,
       },
-      select: { id: true, numericId: true, serviceId: true, quantity: true, remains: true },
-      take: 50
+      select: { id: true, numericId: true, quantity: true, remains: true, createdAt: true },
+      take: 20
     });
 
-    const zeroStartOrders = candidates.filter(o => o.remains === o.quantity);
-
-    for (const order of zeroStartOrders) {
-      await db.order.update({
-        where: { id: order.id },
-        data: {
-          status: 'PENDING_CHECK',
-          error: 'Авто-эскалация: провайдер не начал выполнение в течение часа (zero-start detector)'
-        }
-      });
-      log.warn(`[SyncProcessor] Zero-start escalation for Order #${order.numericId} → PENDING_CHECK`);
-
-      const { sendAdminAlert } = await import('@/lib/notifications');
-      sendAdminAlert(
-        `⏱ [ZERO-START] Заказ #${order.numericId}: провайдер не начал выполнение за час. Переведён в PENDING_CHECK для сверки со статусом провайдера.`,
-        'WARNING'
-      );
+    for (const order of slowOrders) {
+      if (order.remains === order.quantity) {
+        const hoursWaiting = Math.floor((Date.now() - order.createdAt.getTime()) / (1000 * 60 * 60));
+        log.info(`[SyncProcessor] Order #${order.numericId} in progress for ${hoursWaiting}h awaiting provider execution (remains: ${order.remains}/${order.quantity}). Kept active.`);
+      }
     }
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : String(err);
-    log.error('[SyncProcessor] Zero-start detector failed', { error: errMsg });
+    log.error('[SyncProcessor] Delayed order monitor failed', { error: errMsg });
   }
 }

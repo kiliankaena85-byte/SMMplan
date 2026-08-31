@@ -107517,7 +107517,7 @@ var init_wallet_ops = __esm({
         if (rawCents <= BigInt(0) || rawCents > MAX_SINGLE_CHARGE_CENTS) {
           throw new WalletInvalidAmountError("Charge");
         }
-        const { idempotencyKey, adminId, tenantId } = opts || {};
+        const { idempotencyKey, adminId, tenantId, transactionType: txTypeOverride } = opts || {};
         const user = await tx.user.findUnique({
           where: { id: userId },
           select: { id: true, balance: true, tenantId: true }
@@ -107550,7 +107550,7 @@ var init_wallet_ops = __esm({
               reason,
               status: "APPROVED",
               idempotencyKey,
-              transactionType: "PAYMENT"
+              transactionType: txTypeOverride ?? "ORDER_CHARGE"
             }
           });
           const updatedUserBatch = await tx.user.updateMany({
@@ -107598,7 +107598,7 @@ var init_wallet_ops = __esm({
         if (rawCents <= BigInt(0) || rawCents > MAX_SINGLE_CREDIT_CENTS) {
           throw new WalletInvalidAmountError("Credit");
         }
-        const { idempotencyKey, adminId, tenantId } = opts || {};
+        const { idempotencyKey, adminId, tenantId, transactionType: txTypeOverride } = opts || {};
         const user = await tx.user.findUnique({
           where: { id: userId },
           select: { id: true, tenantId: true }
@@ -107630,7 +107630,7 @@ var init_wallet_ops = __esm({
               reason,
               status: "APPROVED",
               idempotencyKey,
-              transactionType: "PAYMENT"
+              transactionType: txTypeOverride ?? "TOPUP"
             }
           });
           const updatedUser = await tx.user.update({
@@ -107661,7 +107661,7 @@ var init_wallet_ops = __esm({
         if (rawCents === BigInt(0)) {
           throw new WalletInvalidAmountError("Adjustment");
         }
-        const { idempotencyKey, adminId, tenantId } = opts || {};
+        const { idempotencyKey, adminId, tenantId, transactionType: txTypeOverride } = opts || {};
         if (tenantId) {
           const user = await tx.user.findUnique({
             where: { id: userId },
@@ -107693,7 +107693,7 @@ var init_wallet_ops = __esm({
             reason,
             status: "APPROVED",
             idempotencyKey,
-            transactionType: "COMPENSATION"
+            transactionType: txTypeOverride ?? "ADJUSTMENT"
           }
         });
         const updatedUser = await tx.user.update({
@@ -107711,7 +107711,7 @@ var init_wallet_ops = __esm({
         if (rawCents <= BigInt(0)) {
           throw new WalletInvalidAmountError("Refund");
         }
-        const { idempotencyKey, adminId, tenantId } = opts || {};
+        const { idempotencyKey, adminId, tenantId, transactionType: txTypeOverride } = opts || {};
         if (tenantId) {
           const user = await tx.user.findUnique({
             where: { id: userId },
@@ -107746,7 +107746,8 @@ var init_wallet_ops = __esm({
             reason,
             status: "APPROVED",
             idempotencyKey,
-            transactionType: "REFUND"
+            // adminId present → ручная отмена заказа (ORDER_CANCEL), иначе авто-возврат (REFUND)
+            transactionType: txTypeOverride ?? (adminId ? "ORDER_CANCEL" : "REFUND")
           }
         });
         const updatedUser = await tx.user.update({
@@ -107795,35 +107796,23 @@ var init_wallet_ops = __esm({
       },
       /**
        * Release or clear quarantine balance for a user.
+       *
+       * CONTRACT: quarantineRelease ONLY decrements quarantineBalance.
+       * It does NOT create a new LedgerEntry — the original QUARANTINE entry
+       * in the journal (now APPROVED or REJECTED) IS the audit record.
+       * Creating another entry here would produce duplicates in financial reports.
        */
       async quarantineRelease(tx, userId, amountCents, opts) {
         const rawCents = typeof amountCents === "bigint" ? amountCents : BigInt(amountCents);
         const absAmount = rawCents < BigInt(0) ? -rawCents : rawCents;
-        const { idempotencyKey, adminId, tenantId, reason } = opts || {};
         const updated = await tx.user.updateMany({
           where: { id: userId, quarantineBalance: { gte: absAmount } },
           data: { quarantineBalance: { decrement: absAmount } }
         });
         if (updated.count === 0) {
-          console.error(`[WalletOps.quarantineRelease] CRITICAL: Cannot release ${absAmount} kopecks from quarantine for user ${userId} \u2014 insufficient quarantine balance. Manual intervention required.`);
+          console.error(`[WalletOps.quarantineRelease] CRITICAL: Cannot release ${absAmount} kopecks from quarantine for user ${userId} \u2014 insufficient quarantine balance.`);
           throw new Error(`Quarantine release failed: insufficient quarantine balance (requested: ${absAmount}, user: ${userId}). Manual review required.`);
         }
-        const user = await tx.user.findUnique({
-          where: { id: userId },
-          select: { tenantId: true }
-        });
-        return await tx.ledgerEntry.create({
-          data: {
-            userId,
-            tenantId: tenantId || user?.tenantId || "smmplan",
-            adminId,
-            amount: -absAmount,
-            reason: reason || "\u0421\u043D\u044F\u0442\u0438\u0435 / \u0440\u0430\u0437\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u043A\u0430 \u0441\u0440\u0435\u0434\u0441\u0442\u0432 \u0438\u0437 \u043A\u0430\u0440\u0430\u043D\u0442\u0438\u043D\u0430",
-            status: "APPROVED",
-            idempotencyKey,
-            transactionType: "COMPENSATION"
-          }
-        });
       }
     };
   }
@@ -124617,6 +124606,183 @@ ${expired.map((s) => `- ${s.name}`).join("\n")}`, "INFO");
   }
 });
 
+// src/services/orders/order-triage-alert.service.ts
+var order_triage_alert_service_exports = {};
+__export2(order_triage_alert_service_exports, {
+  OrderTriageAlertService: () => OrderTriageAlertService
+});
+var OrderTriageAlertService;
+var init_order_triage_alert_service = __esm({
+  "src/services/orders/order-triage-alert.service.ts"() {
+    "use strict";
+    init_notifications();
+    init_error_interpreter();
+    OrderTriageAlertService = class {
+      /**
+       * Deterministically classifies an error message returned by a provider or internal system.
+       */
+      static classifyError(errorMessage) {
+        const raw = String(errorMessage || "").trim();
+        const lower = raw.toLowerCase();
+        if (lower.includes("not enough funds") || lower.includes("not enough balance") || lower.includes("low balance") || lower.includes("balance too low") || lower.includes("insufficient balance") || lower.includes("insufficient_provider_balance") || lower.includes("\u043D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u043E\u0447\u043D\u043E \u0441\u0440\u0435\u0434\u0441\u0442\u0432") || lower.includes("\u043D\u0435\u0442 \u0434\u0435\u043D\u0435\u0433") || lower.includes("\u043D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u043E\u0447\u043D\u043E \u0434\u0435\u043D\u0435\u0433") || lower.includes("\u043F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435 \u0431\u0430\u043B\u0430\u043D\u0441") || lower.includes("out of balance") || lower.includes("error_not_enough_funds") || lower.includes("not_enough_funds") || lower.includes("not_enough_balance") || lower.includes("balance") && lower.includes("error")) {
+          return {
+            type: "INSUFFICIENT_PROVIDER_BALANCE",
+            tag: "[INSUFFICIENT_PROVIDER_BALANCE]",
+            title: "\u{1F4B0} \u0417\u0430\u043A\u043E\u043D\u0447\u0438\u043B\u0441\u044F \u0431\u0430\u043B\u0430\u043D\u0441 \u0443 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430",
+            explanation: "\u041D\u0430 \u043B\u0438\u0446\u0435\u0432\u043E\u043C \u0441\u0447\u0451\u0442\u0435 \u0432\u043D\u0435\u0448\u043D\u0435\u0433\u043E \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 \u0437\u0430\u043A\u043E\u043D\u0447\u0438\u043B\u0438\u0441\u044C \u0441\u0440\u0435\u0434\u0441\u0442\u0432\u0430.",
+            supportAction: "\u0417\u0430\u043A\u0430\u0437 \u043E\u0436\u0438\u0434\u0430\u0435\u0442 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u043E\u0433\u043E \u043F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F \u0431\u0430\u043B\u0430\u043D\u0441\u0430 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430. \u041F\u043E\u0441\u043B\u0435 \u043F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F \u0441\u0438\u0441\u0442\u0435\u043C\u0430 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442 \u0437\u0430\u043A\u0430\u0437 \u0431\u0435\u0437 \u0440\u0443\u0447\u043D\u044B\u0445 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0439.",
+            isBalanceRelated: true
+          };
+        }
+        if (lower.includes("private") || lower.includes("closed") || lower.includes("hidden") || lower.includes("\u043F\u0440\u0438\u0432\u0430\u0442\u043D\u044B\u0439") || lower.includes("\u0437\u0430\u043A\u0440\u044B\u0442\u044B\u0439") || lower.includes("restricted") || lower.includes("account is private") || lower.includes("profile is private") || lower.includes("channel is private") || lower.includes("group is private")) {
+          return {
+            type: "PRIVATE_ACCOUNT",
+            tag: "[PRIVATE_ACCOUNT]",
+            title: "\u{1F512} \u0417\u0430\u043A\u0440\u044B\u0442\u044B\u0439 \u043F\u0440\u043E\u0444\u0438\u043B\u044C / \u041F\u0440\u0438\u0432\u0430\u0442\u043D\u044B\u0439 \u043A\u0430\u043D\u0430\u043B",
+            explanation: "\u0426\u0435\u043B\u0435\u0432\u043E\u0439 \u0430\u043A\u043A\u0430\u0443\u043D\u0442, \u043A\u0430\u043D\u0430\u043B \u0438\u043B\u0438 \u0433\u0440\u0443\u043F\u043F\u0430 \u0437\u0430\u043A\u0440\u044B\u0442\u044B \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430\u043C\u0438 \u043F\u0440\u0438\u0432\u0430\u0442\u043D\u043E\u0441\u0442\u0438. \u041F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A \u043D\u0435 \u043C\u043E\u0436\u0435\u0442 \u043F\u043E\u043B\u0443\u0447\u0438\u0442\u044C \u0434\u043E\u0441\u0442\u0443\u043F \u043A \u043E\u0431\u044A\u0435\u043A\u0442\u0443.",
+            supportAction: "1. \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443. 2. \u0421\u0432\u044F\u0436\u0438\u0442\u0435\u0441\u044C \u0441 \u043A\u043B\u0438\u0435\u043D\u0442\u043E\u043C \u0447\u0435\u0440\u0435\u0437 \u0442\u0438\u043A\u0435\u0442 \u0438\u043B\u0438 Telegram: \u043F\u043E\u043F\u0440\u043E\u0441\u0438\u0442\u0435 \u043E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u043E\u0444\u0438\u043B\u044C/\u043A\u0430\u043D\u0430\u043B \u043D\u0430 \u0432\u0440\u0435\u043C\u044F \u043D\u0430\u043A\u0440\u0443\u0442\u043A\u0438. 3. \u041F\u043E\u0441\u043B\u0435 \u043E\u0442\u043A\u0440\u044B\u0442\u0438\u044F \u043D\u0430\u0436\u043C\u0438\u0442\u0435 \xAB\u041F\u0435\u0440\u0435\u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u044C \u0437\u0430\u043A\u0430\u0437\xBB \u0432 \u043F\u0430\u043D\u0435\u043B\u0438 \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u0430.",
+            isBalanceRelated: false
+          };
+        }
+        if (lower.includes("invalid link") || lower.includes("bad link") || lower.includes("link is broken") || lower.includes("\u043D\u0435\u0432\u0430\u043B\u0438\u0434\u043D\u0430\u044F \u0441\u0441\u044B\u043B\u043A\u0430") || lower.includes("\u043D\u0435\u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u0430\u044F \u0441\u0441\u044B\u043B\u043A\u0430") || lower.includes("link format") || lower.includes("invalid url") || lower.includes("not a valid link") || lower.includes("wrong link") || lower.includes("post not found") || lower.includes("not found") || lower.includes("link_service_mismatch")) {
+          return {
+            type: "INVALID_LINK",
+            tag: "[INVALID_LINK]",
+            title: "\u{1F517} \u041D\u0435\u0432\u0435\u0440\u043D\u0430\u044F \u0441\u0441\u044B\u043B\u043A\u0430 / \u041E\u0431\u044A\u0435\u043A\u0442 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D",
+            explanation: "\u0424\u043E\u0440\u043C\u0430\u0442 \u0441\u0441\u044B\u043B\u043A\u0438 \u043D\u0435 \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u0442\u0440\u0435\u0431\u043E\u0432\u0430\u043D\u0438\u044F\u043C \u0443\u0441\u043B\u0443\u0433\u0438, \u043B\u0438\u0431\u043E \u043E\u0431\u044A\u0435\u043A\u0442 (\u043F\u043E\u0441\u0442, \u043F\u0440\u043E\u0444\u0438\u043B\u044C, \u0432\u0438\u0434\u0435\u043E) \u0443\u0434\u0430\u043B\u0451\u043D \u0438\u043B\u0438 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D.",
+            supportAction: "1. \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u043F\u0440\u0430\u0432\u0438\u043B\u044C\u043D\u043E\u0441\u0442\u044C \u0444\u043E\u0440\u043C\u0430\u0442\u0430 \u0441\u0441\u044B\u043B\u043A\u0438 (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440, \u0441\u0441\u044B\u043B\u043A\u0430 \u043D\u0430 \u043F\u043E\u0441\u0442 \u0432\u043C\u0435\u0441\u0442\u043E \u043F\u0440\u043E\u0444\u0438\u043B\u044F). 2. \u0423\u0442\u043E\u0447\u043D\u0438\u0442\u0435 \u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443 \u0443 \u043A\u043B\u0438\u0435\u043D\u0442\u0430 \u0447\u0435\u0440\u0435\u0437 \u0442\u0438\u043A\u0435\u0442. 3. \u0418\u0437\u043C\u0435\u043D\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u0438\u043B\u0438 \u043D\u0430\u0436\u043C\u0438\u0442\u0435 \xAB\u041F\u0435\u0440\u0435\u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u044C \u0437\u0430\u043A\u0430\u0437\xBB.",
+            isBalanceRelated: false
+          };
+        }
+        if (lower.includes("min") || lower.includes("max") || lower.includes("quantity") || lower.includes("limit") || lower.includes("\u043C\u0438\u043D\u0438\u043C\u0430\u043B") || lower.includes("\u043C\u0430\u043A\u0441\u0438\u043C\u0430\u043B") || lower.includes("exceed") || lower.includes("too small") || lower.includes("too large")) {
+          return {
+            type: "LIMITS_VIOLATION",
+            tag: "[LIMITS_VIOLATION]",
+            title: "\u{1F4CF} \u041D\u0435\u0441\u043E\u0431\u043B\u044E\u0434\u0435\u043D\u0438\u0435 \u043B\u0438\u043C\u0438\u0442\u043E\u0432 \u0443\u0441\u043B\u0443\u0433\u0438 (Min/Max)",
+            explanation: "\u041E\u0431\u044A\u0451\u043C \u0437\u0430\u043A\u0430\u0437\u0430 \u043D\u0435 \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u0434\u043E\u043F\u0443\u0441\u0442\u0438\u043C\u044B\u043C \u0433\u0440\u0430\u043D\u0438\u0446\u0430\u043C \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430.",
+            supportAction: "1. \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0442\u0435\u043A\u0443\u0449\u0438\u0435 \u043B\u0438\u043C\u0438\u0442\u044B min/max \u0432 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0435 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430. 2. \u041F\u0440\u0438 \u043D\u0435\u043E\u0431\u0445\u043E\u0434\u0438\u043C\u043E\u0441\u0442\u0438 \u0440\u0430\u0437\u0431\u0435\u0439\u0442\u0435 \u0437\u0430\u043A\u0430\u0437 \u0438\u043B\u0438 \u0441\u043A\u043E\u0440\u0440\u0435\u043A\u0442\u0438\u0440\u0443\u0439\u0442\u0435 \u043F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B.",
+            isBalanceRelated: false
+          };
+        }
+        if (lower.includes("disabled") || lower.includes("maintenance") || lower.includes("inactive") || lower.includes("not available") || lower.includes("service down") || lower.includes("\u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0430") || lower.includes("\u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0430")) {
+          return {
+            type: "SERVICE_DISABLED",
+            tag: "[SERVICE_DISABLED]",
+            title: "\u26D4 \u0423\u0441\u043B\u0443\u0433\u0430 \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0430 \u0443 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430",
+            explanation: "\u0423\u0441\u043B\u0443\u0433\u0430 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 \u043D\u0430\u0445\u043E\u0434\u0438\u0442\u0441\u044F \u043D\u0430 \u0442\u0435\u0445\u043D\u0438\u0447\u0435\u0441\u043A\u043E\u043C \u043E\u0431\u0441\u043B\u0443\u0436\u0438\u0432\u0430\u043D\u0438\u0438 \u0438\u043B\u0438 \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0430 \u043D\u0430 \u0441\u0442\u043E\u0440\u043E\u043D\u0435 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430.",
+            supportAction: "1. \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u043D\u0430\u043B\u0438\u0447\u0438\u0435 \u0430\u043B\u044C\u0442\u0435\u0440\u043D\u0430\u0442\u0438\u0432\u043D\u044B\u0445 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u043E\u0432 \u0432 \u043F\u0430\u043D\u0435\u043B\u0438 \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u043E\u0432. 2. \u041F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0438\u0442\u0435 \u0437\u0430\u043A\u0430\u0437 \u043D\u0430 \u0440\u0435\u0437\u0435\u0440\u0432\u043D\u043E\u0433\u043E \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 \u0447\u0435\u0440\u0435\u0437 \u043F\u0430\u043D\u0435\u043B\u044C \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u0430.",
+            isBalanceRelated: false
+          };
+        }
+        if (lower.includes("timeout") || lower.includes("etimedout") || lower.includes("econnreset") || lower.includes("socket hang up") || lower.includes("eai_again")) {
+          return {
+            type: "TIMEOUT_OR_NETWORK",
+            tag: "[NETWORK_TIMEOUT]",
+            title: "\u23F1\uFE0F \u0421\u0435\u0442\u0435\u0432\u043E\u0439 \u0442\u0430\u0439\u043C\u0430\u0443\u0442 / \u041E\u0431\u0440\u044B\u0432 \u0441\u0432\u044F\u0437\u0438",
+            explanation: "\u041F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A \u043D\u0435 \u043E\u0442\u0432\u0435\u0442\u0438\u043B \u0437\u0430 \u043E\u0442\u0432\u0435\u0434\u0451\u043D\u043D\u043E\u0435 \u0432\u0440\u0435\u043C\u044F (HTTP Timeout / Network Glitch).",
+            supportAction: "\u0417\u0430\u043A\u0430\u0437 \u043D\u0430\u0445\u043E\u0434\u0438\u0442\u0441\u044F \u043D\u0430 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0435. \u0423\u0431\u0435\u0434\u0438\u0442\u0435\u0441\u044C \u0432 \u043A\u0430\u0431\u0438\u043D\u0435\u0442\u0435 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430, \u0447\u0442\u043E \u0437\u0430\u043A\u0430\u0437 \u043D\u0435 \u0431\u044B\u043B \u0441\u043E\u0437\u0434\u0430\u043D, \u043F\u043E\u0441\u043B\u0435 \u0447\u0435\u0433\u043E \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0443.",
+            isBalanceRelated: false
+          };
+        }
+        if (lower.includes("price_drift_hold") || lower.includes("\u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442")) {
+          return {
+            type: "PRICE_DRIFT",
+            tag: "[PRICE_DRIFT_HOLD]",
+            title: "\u{1F4C8} \u041F\u0440\u0435\u0432\u044B\u0448\u0435\u043D\u0438\u0435 \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u0438 (Price Drift Hold)",
+            explanation: "\u041F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A \u043F\u043E\u0434\u043D\u044F\u043B \u0442\u0430\u0440\u0438\u0444 \u0438\u043B\u0438 \u0438\u0437\u043C\u0435\u043D\u0438\u043B\u0441\u044F \u043A\u0443\u0440\u0441 \u0432\u0430\u043B\u044E\u0442, \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u043F\u0440\u0435\u0432\u044B\u0441\u0438\u043B\u0430 \u0441\u0443\u043C\u043C\u0443 \u043E\u043F\u043B\u0430\u0442\u044B \u043A\u043B\u0438\u0435\u043D\u0442\u0430.",
+            supportAction: "\u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0442\u0430\u0440\u0438\u0444\u044B \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 \u0432 \u0430\u0434\u043C\u0438\u043D\u043A\u0435 \u0438\u043B\u0438 \u0441\u043C\u0435\u043D\u0438\u0442\u0435 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 \u043D\u0430 \u0431\u043E\u043B\u0435\u0435 \u0432\u044B\u0433\u043E\u0434\u043D\u043E\u0433\u043E.",
+            isBalanceRelated: false
+          };
+        }
+        return {
+          type: "GENERAL_PROVIDER_ERROR",
+          tag: "[PROVIDER_ERROR]",
+          title: "\u26A0\uFE0F \u0422\u0435\u0445\u043D\u0438\u0447\u0435\u0441\u043A\u0438\u0439 \u043E\u0442\u043A\u0430\u0437 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430",
+          explanation: "\u0412\u043D\u0435\u0448\u043D\u0438\u0439 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A \u0432\u0435\u0440\u043D\u0443\u043B \u043E\u0448\u0438\u0431\u043A\u0443 \u043F\u0440\u0438 \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u0438 \u0437\u0430\u043A\u0430\u0437\u0430.",
+          supportAction: "\u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0441\u0442\u0430\u0442\u0443\u0441 API \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 \u0432 \u043F\u0430\u043D\u0435\u043B\u0438 \u0430\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F \u0438\u043B\u0438 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u043F\u044B\u0442\u043A\u0443 \u0437\u0430\u043F\u0443\u0441\u043A\u0430.",
+          isBalanceRelated: false
+        };
+      }
+      /**
+       * Generates a descriptive Russian error message to store in the Order record.
+       */
+      static formatOrderErrorMessage(classification, originalError, providerName) {
+        const pName = providerName ? ` [\u041F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A: ${providerName}]` : "";
+        if (classification.isBalanceRelated) {
+          return `${classification.tag} \u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E \u0438\u0441\u0447\u0435\u0440\u043F\u0430\u043B \u0431\u0430\u043B\u0430\u043D\u0441${pName}. \u0417\u0430\u043A\u0430\u0437 \u043E\u0436\u0438\u0434\u0430\u0435\u0442 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u043E\u0433\u043E \u043F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F \u0431\u0430\u043B\u0430\u043D\u0441\u0430 \u0438 \u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u0441\u044F \u0441\u0440\u0430\u0437\u0443 \u043F\u043E\u0441\u043B\u0435 \u043F\u043E\u0441\u0442\u0443\u043F\u043B\u0435\u043D\u0438\u044F \u0441\u0440\u0435\u0434\u0441\u0442\u0432. (${originalError})`;
+        }
+        return `${classification.tag} \u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430${pName}: ${originalError}. ${classification.supportAction}`;
+      }
+      /**
+       * Sends a structured support alert to the Telegram admin/support channel.
+       */
+      static async sendOrderCheckAlert(order, originalError, providerName) {
+        const classification = this.classifyError(originalError);
+        const pName = providerName || order.providerName || "\u041D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u044B\u0439 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A";
+        if (classification.isBalanceRelated) {
+          const balanceMsg = [
+            `\u26A0\uFE0F <b>[\u0417\u0410\u041A\u041E\u041D\u0427\u0418\u041B\u0421\u042F \u0411\u0410\u041B\u0410\u041D\u0421 \u0423 \u041F\u041E\u0421\u0422\u0410\u0412\u0429\u0418\u041A\u0410]</b>`,
+            `\u{1F3E2} <b>\u041F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A:</b> <code>${ErrorInterpreter.escapeHtml(pName)}</code>`,
+            `\u{1F4E6} <b>\u0417\u0430\u043A\u0430\u0437:</b> <code>#${order.numericId}</code> (\u0423\u0441\u043B\u0443\u0433\u0430: ${ErrorInterpreter.escapeHtml(order.serviceName)})`,
+            `\u{1F310} <b>\u0421\u043E\u0446\u0441\u0435\u0442\u044C:</b> ${ErrorInterpreter.escapeHtml(order.networkName || "\u2014")} \u2022 ${ErrorInterpreter.escapeHtml(order.categoryName || "\u2014")}`,
+            "",
+            `\u2139\uFE0F <b>\u0421\u0442\u0430\u0442\u0443\u0441:</b> \u0417\u0430\u043A\u0430\u0437 \u043F\u0435\u0440\u0435\u0432\u0435\u0434\u0451\u043D \u0432 <code>PENDING_CHECK</code> \u0438 <b>\u041D\u0415 \u043E\u0442\u043C\u0435\u043D\u044F\u0435\u0442\u0441\u044F</b>.`,
+            `\u{1F504} <b>\u0410\u0432\u0442\u043E\u043E\u043F\u0440\u043E\u0441:</b> \u041A\u0430\u043A \u0442\u043E\u043B\u044C\u043A\u043E \u0431\u0430\u043B\u0430\u043D\u0441 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 \u0431\u0443\u0434\u0435\u0442 \u043F\u043E\u043F\u043E\u043B\u043D\u0435\u043D, \u0441\u0438\u0441\u0442\u0435\u043C\u0430 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442 \u0437\u0430\u043A\u0430\u0437 \u0431\u0435\u0437 \u0443\u0447\u0430\u0441\u0442\u0438\u044F \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u0430.`,
+            "",
+            `\u{1F6E0}\uFE0F <a href="https://smmplan.pro/admin/providers">\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430\u043C\u0438</a>`
+          ].join("\n");
+          await sendAdminAlertSync(balanceMsg, "WARNING", order.tenantId).catch(() => {
+          });
+          return;
+        }
+        const chargeRub = (Number(order.chargeKopecks) / 100).toFixed(2);
+        const operatorLink = `https://smmplan.pro/operator/orders?search=${order.numericId}`;
+        const supportMsg = [
+          `\u{1F6A8} <b>[\u0422\u0420\u0415\u0411\u0423\u0415\u0422\u0421\u042F \u041F\u0420\u041E\u0412\u0415\u0420\u041A\u0410 \u0417\u0410\u041A\u0410\u0417\u0410 \u2014 \u0421\u0410\u041F\u041F\u041E\u0420\u0422]</b>`,
+          `\u{1F4E6} <b>\u0417\u0430\u043A\u0430\u0437:</b> <code>#${order.numericId}</code> (ID: <code>${order.orderId}</code>)`,
+          `\u{1F464} <b>\u041A\u043B\u0438\u0435\u043D\u0442:</b> <code>${ErrorInterpreter.escapeHtml(order.userEmail || "\u0413\u043E\u0441\u0442\u044C")}</code>`,
+          `\u{1F310} <b>\u0421\u043E\u0446\u0441\u0435\u0442\u044C / \u041A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u044F:</b> ${ErrorInterpreter.escapeHtml(order.networkName || "\u2014")} \u2022 ${ErrorInterpreter.escapeHtml(order.categoryName || "\u2014")}`,
+          `\u{1F4CC} <b>\u0423\u0441\u043B\u0443\u0433\u0430:</b> ${ErrorInterpreter.escapeHtml(order.serviceName)}`,
+          `\u{1F4B5} <b>\u0421\u0443\u043C\u043C\u0430:</b> ${chargeRub} \u20BD (\u041A\u043E\u043B-\u0432\u043E: ${order.quantity.toLocaleString("ru-RU")} \u0448\u0442)`,
+          `\u{1F517} <b>\u0421\u0441\u044B\u043B\u043A\u0430 \u0432 \u0437\u0430\u043A\u0430\u0437\u0435:</b> <code>${ErrorInterpreter.escapeHtml(order.link)}</code>`,
+          `\u{1F3E2} <b>\u041F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A:</b> <code>${ErrorInterpreter.escapeHtml(pName)}</code>`,
+          "",
+          `\u26A0\uFE0F <b>\u041F\u0440\u0438\u0447\u0438\u043D\u0430 \u043F\u0435\u0440\u0435\u0432\u043E\u0434\u0430 \u043D\u0430 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0443:</b>`,
+          `<b>${classification.title}</b>`,
+          `<i>"${ErrorInterpreter.escapeHtml(originalError)}"</i>`,
+          "",
+          `\u{1F4A1} <b>\u0427\u0442\u043E \u043F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u043E:</b>
+${classification.explanation}`,
+          "",
+          `\u{1F6E0}\uFE0F <b>\u0427\u0442\u043E \u0441\u0434\u0435\u043B\u0430\u0442\u044C \u0441\u0430\u043F\u043F\u043E\u0440\u0442\u0443 / \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u0443:</b>
+${classification.supportAction}`,
+          "",
+          `\u{1F449} <a href="${operatorLink}">\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0437\u0430\u043A\u0430\u0437 \u0432 \u043F\u0430\u043D\u0435\u043B\u0438 \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u0430</a>`
+        ].join("\n");
+        await sendAdminAlertSync(supportMsg, "CRITICAL", order.tenantId).catch(() => {
+        });
+      }
+      /**
+       * Sends an informational notification when Auto-Flush successfully launches waiting orders after balance restoration.
+       */
+      static async sendBalanceAutoFlushAlert(params) {
+        if (params.flushedCount <= 0) return;
+        const msg = [
+          `\u{1F680} <b>[\u0410\u0412\u0422\u041E-\u0417\u0410\u041F\u0423\u0421\u041A \u0417\u0410\u041A\u0410\u0417\u041E\u0412]</b> \u0411\u0430\u043B\u0430\u043D\u0441 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 <b>${ErrorInterpreter.escapeHtml(params.providerName)}</b> \u043F\u043E\u043F\u043E\u043B\u043D\u0435\u043D!`,
+          "",
+          `\u{1F4B0} <b>\u0422\u0435\u043A\u0443\u0449\u0438\u0439 \u0431\u0430\u043B\u0430\u043D\u0441 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430:</b> ${params.balanceRub.toFixed(2)} \u20BD`,
+          `\u{1F4E6} <b>\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0437\u0430\u043F\u0443\u0449\u0435\u043D\u043E \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u0438\u0437 \u043E\u0447\u0435\u0440\u0435\u0434\u0438:</b> <b>${params.flushedCount} \u0448\u0442.</b>`,
+          params.skippedCount > 0 ? `\u2139\uFE0F <b>\u041E\u0441\u0442\u0430\u043B\u043E\u0441\u044C \u043D\u0430 \u0440\u0443\u0447\u043D\u043E\u0439 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0435 (\u0434\u0440\u0443\u0433\u0438\u0435 \u043E\u0448\u0438\u0431\u043A\u0438):</b> ${params.skippedCount} \u0448\u0442.` : "",
+          "",
+          `<i>\u0417\u0430\u043A\u0430\u0437\u044B \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u043F\u0435\u0440\u0435\u0432\u0435\u0434\u0435\u043D\u044B \u0432 \u0441\u0442\u0430\u0442\u0443\u0441 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F (IN_PROGRESS).</i>`
+        ].filter(Boolean).join("\n");
+        await sendAdminAlertSync(msg, "INFO", null).catch(() => {
+        });
+      }
+    };
+  }
+});
+
 // src/services/providers/adaptive-rate-limiter.service.ts
 var adaptive_rate_limiter_service_exports = {};
 __export2(adaptive_rate_limiter_service_exports, {
@@ -125047,29 +125213,6 @@ var init_dripfeed_processor = __esm({
     import_client3 = require("@prisma/client");
     init_logger();
     log8 = logger.child({ component: "DripfeedProcessor" });
-  }
-});
-
-// src/workers/processors/smart-feedback-loop.processor.ts
-var smart_feedback_loop_processor_exports = {};
-__export2(smart_feedback_loop_processor_exports, {
-  SmartFeedbackLoopProcessor: () => SmartFeedbackLoopProcessor
-});
-var log9, SmartFeedbackLoopProcessor;
-var init_smart_feedback_loop_processor = __esm({
-  "src/workers/processors/smart-feedback-loop.processor.ts"() {
-    "use strict";
-    init_logger();
-    log9 = logger.child({ component: "SmartFeedbackLoopProcessor" });
-    SmartFeedbackLoopProcessor = class {
-      /**
-       * Main cron/tick executor. Checks all running campaigns for drops and compensates if needed.
-       */
-      static async runSmartFeedbackLoopTick() {
-        log9.info("[Smart Drip 2.5] Smart Feedback-Loop Simulator is disabled by admin request.");
-        return;
-      }
-    };
   }
 });
 
@@ -125804,7 +125947,7 @@ var init_balance_autoflush_service = __esm({
           }
           const balanceData = await this.providerBalanceService.getProviderBalance(
             providerId,
-            options?.forceRefresh ?? true
+            options?.forceRefresh ?? false
           );
           if (balanceData.status === "error" || balanceData.balanceRub < this.MIN_BALANCE_THRESHOLD_RUB) {
             return {
@@ -125862,6 +126005,18 @@ var init_balance_autoflush_service = __esm({
             await ordersQueue.add("order-dispatch", { orderId: order.id }, { jobId });
             flushedCount++;
           }
+          if (flushedCount > 0) {
+            try {
+              const { OrderTriageAlertService: OrderTriageAlertService2 } = await Promise.resolve().then(() => (init_order_triage_alert_service(), order_triage_alert_service_exports));
+              await OrderTriageAlertService2.sendBalanceAutoFlushAlert({
+                providerName: provider.name,
+                balanceRub: balanceData.balanceRub,
+                flushedCount,
+                skippedCount
+              });
+            } catch {
+            }
+          }
           if (options?.initiatedBy && flushedCount > 0) {
             await auditAdminAwaitable({
               adminId: options.initiatedBy.id,
@@ -125912,6 +126067,29 @@ var init_balance_autoflush_service = __esm({
           }
         }
         return results;
+      }
+    };
+  }
+});
+
+// src/workers/processors/smart-feedback-loop.processor.ts
+var smart_feedback_loop_processor_exports = {};
+__export2(smart_feedback_loop_processor_exports, {
+  SmartFeedbackLoopProcessor: () => SmartFeedbackLoopProcessor
+});
+var log9, SmartFeedbackLoopProcessor;
+var init_smart_feedback_loop_processor = __esm({
+  "src/workers/processors/smart-feedback-loop.processor.ts"() {
+    "use strict";
+    init_logger();
+    log9 = logger.child({ component: "SmartFeedbackLoopProcessor" });
+    SmartFeedbackLoopProcessor = class {
+      /**
+       * Main cron/tick executor. Checks all running campaigns for drops and compensates if needed.
+       */
+      static async runSmartFeedbackLoopTick() {
+        log9.info("[Smart Drip 2.5] Smart Feedback-Loop Simulator is disabled by admin request.");
+        return;
       }
     };
   }
@@ -138899,7 +139077,13 @@ async function orderProcessor(job) {
   const order = await db.order.findUnique({
     where: { id: orderId },
     include: {
-      service: { include: { provider: true } },
+      service: {
+        include: {
+          provider: true,
+          category: { include: { network: true } }
+        }
+      },
+      user: { select: { id: true, email: true, tenantId: true } },
       smartCampaign: true
     }
   });
@@ -138994,9 +139178,31 @@ async function orderProcessor(job) {
       await QuarantineService2.evaluateTriggerA(order.serviceId, noRoutesMsg);
     } catch {
     }
-    const { orderService: orderService2 } = await Promise.resolve().then(() => (init_order_service(), order_service_exports));
-    await orderService2.failOrderTerminalFast(order.id, noRoutesMsg);
-    throw new import_bullmq2.UnrecoverableError(`Fail-Fast: ${noRoutesMsg}`);
+    await db.order.update({
+      where: { id: order.id },
+      data: {
+        status: "PENDING_CHECK",
+        error: `[NO_ACTIVE_PROVIDER] ${noRoutesMsg} \u0417\u0430\u043A\u0430\u0437 \u043E\u0436\u0438\u0434\u0430\u0435\u0442 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u044F \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u043E\u043C.`
+      }
+    });
+    try {
+      const { OrderTriageAlertService: OrderTriageAlertService2 } = await Promise.resolve().then(() => (init_order_triage_alert_service(), order_triage_alert_service_exports));
+      await OrderTriageAlertService2.sendOrderCheckAlert({
+        orderId: order.id,
+        numericId: order.numericId,
+        serviceName: order.service?.name || "",
+        categoryName: order.service?.category?.name,
+        networkName: order.service?.category?.network?.name,
+        link: order.link,
+        quantity: order.quantity,
+        chargeKopecks: order.charge,
+        userEmail: order.user?.email,
+        tenantId: order.tenantId,
+        providerName: "\u041D\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D"
+      }, noRoutesMsg, "\u041D\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D");
+    } catch {
+    }
+    throw new import_bullmq2.UnrecoverableError(`No active routes: ${noRoutesMsg}`);
   }
   const primaryProviderId = candidateRoutes.find((r) => r.isPrimary)?.providerId || candidateRoutes[0]?.providerId;
   let dispatched = false;
@@ -139098,7 +139304,6 @@ async function orderProcessor(job) {
         throw new Error(response.error);
       }
       const extId = response.order ? response.order.toString() : "";
-      const waitingUntil = new Date(Date.now() + 60 * 60 * 1e3);
       try {
         await db.order.update({
           where: { id: order.id },
@@ -139106,8 +139311,7 @@ async function orderProcessor(job) {
             externalId: extId,
             providerId: route.providerId,
             providerServiceId: route.providerServiceId,
-            status: "IN_PROGRESS",
-            waitingUntil
+            status: "IN_PROGRESS"
           }
         });
       } catch (dbError) {
@@ -139157,23 +139361,30 @@ async function orderProcessor(job) {
       log6.error(`[OrderProcessor] Provider error on route ${route.provider.name} for order ${order.id}: ${originalError}`);
       if (route.failoverMode !== "automatic") {
         log6.warn(`[OrderProcessor] Failover mode is '${route.failoverMode}' for route ${route.id}. Halting cascade to prevent quality drift.`);
-        const isBalanceErr = originalError.toLowerCase().includes("not enough") || originalError.toLowerCase().includes("balance") || originalError.toLowerCase().includes("\u043D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u043E\u0447\u043D\u043E") || originalError.toLowerCase().includes("funds");
-        const tag = isBalanceErr ? "[INSUFFICIENT_PROVIDER_BALANCE] " : "";
+        const { OrderTriageAlertService: OrderTriageAlertService2 } = await Promise.resolve().then(() => (init_order_triage_alert_service(), order_triage_alert_service_exports));
+        const classification = OrderTriageAlertService2.classifyError(originalError);
+        const formattedError = OrderTriageAlertService2.formatOrderErrorMessage(classification, originalError, route.provider.name);
         await db.order.update({
           where: { id: order.id },
           data: {
             status: "PENDING_CHECK",
-            error: `${tag}\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 ${route.provider.name}: ${originalError}. \u0410\u0432\u0442\u043E-\u043F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435 \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u043E (manual mode). \u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u043E\u043C.`
+            error: formattedError
           }
         });
         try {
-          const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-          sendAdminAlert2(
-            `\u26A0\uFE0F [\u0422\u0420\u0415\u0411\u0423\u0415\u0422\u0421\u042F \u041F\u0420\u041E\u0412\u0415\u0420\u041A\u0410 \u041E\u041F\u0415\u0420\u0410\u0422\u041E\u0420\u041E\u041C] \u0417\u0430\u043A\u0430\u0437 #${order.numericId} (\u0423\u0441\u043B\u0443\u0433\u0430: ${order.service?.name || ""})
-\u041F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A ${route.provider.name} \u0432\u0435\u0440\u043D\u0443\u043B \u043E\u0448\u0438\u0431\u043A\u0443: ${originalError}
-\u0410\u0432\u0442\u043E-\u043F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435 \u043D\u0430 \u0434\u0440\u0443\u0433\u0438\u0445 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u043E\u0432 \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u043E \u0434\u043B\u044F \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u0430 \u0443\u0441\u043B\u0443\u0433\u0438 (\u0440\u0435\u0436\u0438\u043C: manual). \u0417\u0430\u043A\u0430\u0437 \u043F\u0435\u0440\u0435\u0432\u0435\u0434\u0451\u043D \u0432 \u0441\u0442\u0430\u0442\u0443\u0441 \xAB\u041D\u0430 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0435\xBB (PENDING_CHECK).`,
-            "WARNING"
-          );
+          await OrderTriageAlertService2.sendOrderCheckAlert({
+            orderId: order.id,
+            numericId: order.numericId,
+            serviceName: order.service?.name || "",
+            categoryName: order.service?.category?.name,
+            networkName: order.service?.category?.network?.name,
+            link: order.link,
+            quantity: order.quantity,
+            chargeKopecks: order.charge,
+            userEmail: order.user?.email,
+            tenantId: order.tenantId,
+            providerName: route.provider.name
+          }, originalError, route.provider.name);
         } catch {
         }
         throw new import_bullmq2.UnrecoverableError(`Manual failover mode: operator triage required`);
@@ -139201,27 +139412,58 @@ async function orderProcessor(job) {
         }
       });
       try {
-        const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-        await sendAdminAlert2(
-          `\u{1F6A8} [PRICE DRIFT HOLD] \u0417\u0430\u043A\u0430\u0437 #${order.numericId} (\u0423\u0441\u043B\u0443\u0433\u0430: ${order.service?.name || ""})
-\u041F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A \u043F\u043E\u0434\u043D\u044F\u043B \u0446\u0435\u043D\u0443 \u0438\u043B\u0438 \u0438\u0437\u043C\u0435\u043D\u0438\u043B\u0441\u044F \u043A\u0443\u0440\u0441 \u0432\u0430\u043B\u044E\u0442. \u0421\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u043F\u0440\u0435\u0432\u044B\u0441\u0438\u043B\u0430 \u0441\u0443\u043C\u043C\u0443 \u043E\u043F\u043B\u0430\u0442\u044B \u043A\u043B\u0438\u0435\u043D\u0442\u0430!
-\u0417\u0430\u043A\u0430\u0437 \u043F\u0435\u0440\u0435\u0432\u0435\u0434\u0451\u043D \u0432 \u0441\u0442\u0430\u0442\u0443\u0441 \xAB\u041D\u0430 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0435\xBB (PENDING_CHECK). \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0437\u0430\u043A\u0430\u0437 \u0432 \u043F\u0430\u043D\u0435\u043B\u0438 \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u0430: \u0441\u043C\u0435\u043D\u0438\u0442\u0435 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 \u0438\u043B\u0438 \u043E\u0442\u043C\u0435\u043D\u0438\u0442\u0435 \u0437\u0430\u043A\u0430\u0437 \u0441 \u0432\u043E\u0437\u0432\u0440\u0430\u0442\u043E\u043C \u0441\u0440\u0435\u0434\u0441\u0442\u0432.`,
-          "CRITICAL"
-        );
+        const { OrderTriageAlertService: OrderTriageAlertService3 } = await Promise.resolve().then(() => (init_order_triage_alert_service(), order_triage_alert_service_exports));
+        await OrderTriageAlertService3.sendOrderCheckAlert({
+          orderId: order.id,
+          numericId: order.numericId,
+          serviceName: order.service?.name || "",
+          categoryName: order.service?.category?.name,
+          networkName: order.service?.category?.network?.name,
+          link: order.link,
+          quantity: order.quantity,
+          chargeKopecks: order.charge,
+          userEmail: order.user?.email,
+          tenantId: order.tenantId,
+          providerName: candidateRoutes[0]?.provider?.name
+        }, holdMessage, candidateRoutes[0]?.provider?.name);
       } catch {
       }
       throw new import_bullmq2.UnrecoverableError(`Price Drift Hold: ${holdMessage}`);
     }
-    log6.error(`[OrderProcessor] FAIL-FAST for Order ${order.id}: ${lastError}`);
+    log6.error(`[OrderProcessor] All routes failed for Order ${order.id}. Moving to PENDING_CHECK: ${lastError}`);
     try {
       const { QuarantineService: QuarantineService2 } = await Promise.resolve().then(() => (init_quarantine_service(), quarantine_service_exports));
       await QuarantineService2.evaluateTriggerA(order.serviceId, lastError);
     } catch (quarantineErr) {
       log6.error(`[OrderProcessor] Quarantine evaluation failed: ${quarantineErr instanceof Error ? quarantineErr.message : String(quarantineErr)}`);
     }
-    const { orderService: orderService2 } = await Promise.resolve().then(() => (init_order_service(), order_service_exports));
-    await orderService2.failOrderTerminalFast(order.id, lastError);
-    throw new import_bullmq2.UnrecoverableError(`Fail-Fast: ${lastError}`);
+    const { OrderTriageAlertService: OrderTriageAlertService2 } = await Promise.resolve().then(() => (init_order_triage_alert_service(), order_triage_alert_service_exports));
+    const classification = OrderTriageAlertService2.classifyError(lastError);
+    const formattedError = OrderTriageAlertService2.formatOrderErrorMessage(classification, lastError, candidateRoutes[0]?.provider?.name);
+    await db.order.update({
+      where: { id: order.id },
+      data: {
+        status: "PENDING_CHECK",
+        error: formattedError
+      }
+    });
+    try {
+      await OrderTriageAlertService2.sendOrderCheckAlert({
+        orderId: order.id,
+        numericId: order.numericId,
+        serviceName: order.service?.name || "",
+        categoryName: order.service?.category?.name,
+        networkName: order.service?.category?.network?.name,
+        link: order.link,
+        quantity: order.quantity,
+        chargeKopecks: order.charge,
+        userEmail: order.user?.email,
+        tenantId: order.tenantId,
+        providerName: candidateRoutes[0]?.provider?.name
+      }, lastError, candidateRoutes[0]?.provider?.name);
+    } catch {
+    }
+    throw new import_bullmq2.UnrecoverableError(`Order moved to PENDING_CHECK: ${lastError}`);
   }
 }
 
@@ -139546,14 +139788,28 @@ async function syncProcessor(job) {
       select: { id: true, numericId: true }
     });
     if (orphanOrders.length > 0) {
-      log10.warn(`Found ${orphanOrders.length} orphaned PENDING orders. Sweeping...`);
-      const { orderService: orderService2 } = await Promise.resolve().then(() => (init_order_service(), order_service_exports));
+      log10.warn(`Found ${orphanOrders.length} orphaned PENDING orders. Re-enqueuing to dispatch queue...`);
+      const { ordersQueue: ordersQueue2 } = await Promise.resolve().then(() => (init_queue_manager(), queue_manager_exports));
       for (const orphan of orphanOrders) {
-        await orderService2.failOrderTerminal(orphan.id, "\u0410\u0432\u0442\u043E-\u043E\u0442\u043C\u0435\u043D\u0430: \u0437\u0430\u043A\u0430\u0437 \u0437\u0430\u0432\u0438\u0441 \u0432 \u043E\u0447\u0435\u0440\u0435\u0434\u0438 \u043D\u0430 \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0443 (Timeout > 15m)");
+        try {
+          await ordersQueue2.add("order-dispatch", { orderId: orphan.id }, { jobId: `dispatch-${orphan.id}` });
+          log10.info(`[SyncProcessor] Re-enqueued orphan order #${orphan.numericId} (ID: ${orphan.id})`);
+        } catch (enqueueErr) {
+          log10.error(`[SyncProcessor] Failed to re-enqueue orphan order #${orphan.numericId}`, { error: enqueueErr });
+        }
       }
     }
   } catch (e) {
     log10.error("Failed to execute Orphan Sweeper", { cause: e });
+  }
+  try {
+    const { BalanceAutoFlushService: BalanceAutoFlushService2 } = await Promise.resolve().then(() => (init_balance_autoflush_service(), balance_autoflush_service_exports));
+    const flushed = await BalanceAutoFlushService2.sweepAllProviders();
+    if (flushed.length > 0) {
+      log10.info(`[SyncProcessor] Smart Balance Auto-Flush dispatched ${flushed.reduce((acc, f) => acc + f.flushedCount, 0)} orders across ${flushed.length} providers.`);
+    }
+  } catch (err) {
+    log10.error("Failed to run BalanceAutoFlushService sweep in sync processor", { error: err });
   }
   try {
     const { SmartFeedbackLoopProcessor: SmartFeedbackLoopProcessor2 } = await Promise.resolve().then(() => (init_smart_feedback_loop_processor(), smart_feedback_loop_processor_exports));
@@ -139563,35 +139819,26 @@ async function syncProcessor(job) {
     log10.error("[SyncProcessor] SmartFeedbackLoop tick failed", { error: errMsg });
   }
   try {
-    const candidates = await db.order.findMany({
+    const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1e3);
+    const slowOrders = await db.order.findMany({
       where: {
         status: "IN_PROGRESS",
-        waitingUntil: { lt: /* @__PURE__ */ new Date() },
+        createdAt: { lt: twoDaysAgo },
         externalId: { not: null },
         isDripFeed: false
       },
-      select: { id: true, numericId: true, serviceId: true, quantity: true, remains: true },
-      take: 50
+      select: { id: true, numericId: true, quantity: true, remains: true, createdAt: true },
+      take: 20
     });
-    const zeroStartOrders = candidates.filter((o) => o.remains === o.quantity);
-    for (const order of zeroStartOrders) {
-      await db.order.update({
-        where: { id: order.id },
-        data: {
-          status: "PENDING_CHECK",
-          error: "\u0410\u0432\u0442\u043E-\u044D\u0441\u043A\u0430\u043B\u0430\u0446\u0438\u044F: \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 \u043D\u0435 \u043D\u0430\u0447\u0430\u043B \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u0432 \u0442\u0435\u0447\u0435\u043D\u0438\u0435 \u0447\u0430\u0441\u0430 (zero-start detector)"
-        }
-      });
-      log10.warn(`[SyncProcessor] Zero-start escalation for Order #${order.numericId} \u2192 PENDING_CHECK`);
-      const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-      sendAdminAlert2(
-        `\u23F1 [ZERO-START] \u0417\u0430\u043A\u0430\u0437 #${order.numericId}: \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 \u043D\u0435 \u043D\u0430\u0447\u0430\u043B \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u0437\u0430 \u0447\u0430\u0441. \u041F\u0435\u0440\u0435\u0432\u0435\u0434\u0451\u043D \u0432 PENDING_CHECK \u0434\u043B\u044F \u0441\u0432\u0435\u0440\u043A\u0438 \u0441\u043E \u0441\u0442\u0430\u0442\u0443\u0441\u043E\u043C \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430.`,
-        "WARNING"
-      );
+    for (const order of slowOrders) {
+      if (order.remains === order.quantity) {
+        const hoursWaiting = Math.floor((Date.now() - order.createdAt.getTime()) / (1e3 * 60 * 60));
+        log10.info(`[SyncProcessor] Order #${order.numericId} in progress for ${hoursWaiting}h awaiting provider execution (remains: ${order.remains}/${order.quantity}). Kept active.`);
+      }
     }
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
-    log10.error("[SyncProcessor] Zero-start detector failed", { error: errMsg });
+    log10.error("[SyncProcessor] Delayed order monitor failed", { error: errMsg });
   }
 }
 
@@ -140594,6 +140841,20 @@ async function runCleanup() {
   } catch (err) {
     log14.error("Failed to prune old low-severity SecurityEvent records", { error: err });
   }
+  try {
+    const emptyCats = await db.category.findMany({
+      where: { services: { none: {} } },
+      select: { id: true, name: true }
+    });
+    if (emptyCats.length > 0) {
+      const deleteResult = await db.category.deleteMany({
+        where: { id: { in: emptyCats.map((c) => c.id) } }
+      });
+      log14.info("Empty categories cleanup done", { deleted: deleteResult.count });
+    }
+  } catch (err) {
+    log14.error("Failed to cleanup empty categories in maintenance cycle", { error: err });
+  }
   const zombieThreshold = new Date(now);
   zombieThreshold.setHours(zombieThreshold.getHours() - 24);
   const safeZombieThreshold = new Date(now);
@@ -140716,10 +140977,11 @@ async function runPendingCheckResolution() {
             continue;
           }
         }
-        await orderService.failOrderTerminalFast(pOrder.id, "PENDING_CHECK auto-resolved: provider timeout exceeded 6h");
-        log14.info(`[Cleanup] Auto-failed stale PENDING_CHECK Order #${pOrder.numericId}`);
+        if (!pOrder.externalId) {
+          log14.warn(`[Cleanup] PENDING_CHECK Order #${pOrder.numericId} has no externalId after 6h. Kept in queue for operator review.`);
+        }
       } catch (err) {
-        log14.error(`[Cleanup] Failed to auto-resolve PENDING_CHECK Order #${pOrder.numericId}`, { error: err instanceof Error ? err instanceof Error ? err.message : String(err) : String(err) });
+        log14.error(`[Cleanup] Failed to poll status for PENDING_CHECK Order #${pOrder.numericId}`, { error: err instanceof Error ? err.message : String(err) });
       }
     }
   }
@@ -140954,22 +141216,8 @@ async function runInProgressTTLSweep() {
         delivered = Math.max(0, quantity - remains);
         reasonText = `\u0417\u0430\u043A\u0430\u0437 \u0447\u0430\u0441\u0442\u0438\u0447\u043D\u043E \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u043E\u043C. \u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043E ${delivered} \u0438\u0437 ${quantity}. \u041D\u0435\u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043D\u044B\u0439 \u043E\u0441\u0442\u0430\u0442\u043E\u043A \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0451\u043D \u043D\u0430 \u0431\u0430\u043B\u0430\u043D\u0441.`;
       } else {
-        if (remains <= 0) {
-          targetStatus = "COMPLETED";
-          refundCents = 0;
-          delivered = quantity;
-          reasonText = `\u0417\u0430\u043A\u0430\u0437 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D \u043F\u043E \u0442\u0430\u0439\u043C\u0430\u0443\u0442\u0443 (72\u0447 IN_PROGRESS). \u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043E ${delivered} \u0438\u0437 ${quantity}.`;
-        } else if (remains >= quantity) {
-          targetStatus = "ERROR";
-          refundCents = Number(charge);
-          delivered = 0;
-          reasonText = `\u0417\u0430\u043A\u0430\u0437 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D \u043F\u043E \u0442\u0430\u0439\u043C\u0430\u0443\u0442\u0443 (72\u0447 IN_PROGRESS). \u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043E 0 \u0438\u0437 ${quantity}. \u0421\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0435\u043D\u0430 \u043D\u0430 \u0431\u0430\u043B\u0430\u043D\u0441.`;
-        } else {
-          targetStatus = "PARTIAL";
-          refundCents = calculatePartialRefund({ remains, quantity, charge });
-          delivered = Math.max(0, quantity - remains);
-          reasonText = `\u0417\u0430\u043A\u0430\u0437 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D \u043F\u043E \u0442\u0430\u0439\u043C\u0430\u0443\u0442\u0443 (72\u0447 IN_PROGRESS). \u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043E ${delivered} \u0438\u0437 ${quantity}. \u041D\u0435\u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043D\u044B\u0439 \u043E\u0441\u0442\u0430\u0442\u043E\u043A \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0451\u043D \u043D\u0430 \u0431\u0430\u043B\u0430\u043D\u0441.`;
-        }
+        log14.info(`Order ${order.id} has no terminal status from provider (status: ${statusFromProvider || "unknown"}). Keeping in IN_PROGRESS.`);
+        continue;
       }
       try {
         await db.$transaction(async (tx) => {
@@ -141059,7 +141307,7 @@ async function runPendingCheckTTLSweep() {
   let processedCount = 0;
   for (const order of stuckOrders) {
     let statusFromProvider = null;
-    if (order.externalId && order.service.provider) {
+    if (order.externalId && order.service?.provider) {
       try {
         const provider = await providerService.getWorkerProviderInstance(order.service.provider);
         const providerStatus = await provider.getOrderStatus(order.externalId);
@@ -141073,9 +141321,17 @@ async function runPendingCheckTTLSweep() {
           continue;
         }
       }
-    }
-    if (statusFromProvider === "completed" || statusFromProvider === "processing" || statusFromProvider === "in progress") {
-      log14.warn(`Order ${order.id} is active at provider (status: ${statusFromProvider}). Skipping auto-refund to prevent loss.`);
+      const normalizedStatus = (statusFromProvider || "").toLowerCase().replace(/[\s-]+/g, "_");
+      if (normalizedStatus === "completed" || normalizedStatus === "processing" || normalizedStatus === "in_progress" || normalizedStatus === "pending") {
+        log14.warn(`Order ${order.id} is active at provider (status: ${statusFromProvider}). Skipping auto-refund to prevent loss.`);
+        continue;
+      }
+      if (!["canceled", "cancelled", "error", "fail", "failed"].includes(normalizedStatus)) {
+        log14.info(`Skipping order ${order.id} PENDING_CHECK sweep (status: ${statusFromProvider || "unknown"}). Order kept active.`);
+        continue;
+      }
+    } else {
+      log14.warn(`Order #${order.numericId} (${order.id}) in PENDING_CHECK has no externalId. Kept for operator review / auto-flush.`);
       continue;
     }
     try {
@@ -145861,8 +146117,16 @@ async function handleDeadLetter(queueName, job, err) {
       if (queueName === "ordersQueue") {
         const payload = job.data;
         if (payload?.orderId) {
-          await orderService.failOrderTerminal(payload.orderId, err.message);
-          log29.info(`Auto-refunded dead-letter order ${payload.orderId}`);
+          const currentOrder = await db.order.findUnique({
+            where: { id: payload.orderId },
+            select: { status: true, numericId: true }
+          });
+          if (currentOrder && (currentOrder.status === "PENDING_CHECK" || currentOrder.status === "IN_PROGRESS")) {
+            log29.info(`[WORKER] Order #${currentOrder.numericId} (${payload.orderId}) is in '${currentOrder.status}'. Skipping auto-fail to allow operator triage / balance autoflush.`);
+          } else {
+            await orderService.failOrderTerminal(payload.orderId, err.message);
+            log29.info(`Auto-refunded dead-letter order ${payload.orderId}`);
+          }
         }
       }
       if (queueName === "refillQueue") {

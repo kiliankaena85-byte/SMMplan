@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { runSerializableTransaction } from '@/lib/transactions';
 import { ExactMath } from '@/lib/financial/exact-math';
+import type { LedgerTransactionType } from '@/lib/financial/ledger-types';
 
 export { ExactMath };
 
@@ -35,6 +36,8 @@ export interface WalletOpsOptions {
   idempotencyKey?: string;
   adminId?: string;
   tenantId?: string;
+  /** Явный тип транзакции. Если не задан — метод использует свой дефолт. */
+  transactionType?: LedgerTransactionType;
 }
 
 export const WalletOps = {
@@ -56,7 +59,7 @@ export const WalletOps = {
       throw new WalletInvalidAmountError('Charge');
     }
 
-    const { idempotencyKey, adminId, tenantId } = opts || {};
+    const { idempotencyKey, adminId, tenantId, transactionType: txTypeOverride } = opts || {};
 
     // 1. Validate User existence and tenant isolation
     const user = await tx.user.findUnique({
@@ -100,7 +103,7 @@ export const WalletOps = {
           reason,
           status: 'APPROVED',
           idempotencyKey,
-          transactionType: 'PAYMENT'
+          transactionType: txTypeOverride ?? 'ORDER_CHARGE',
         }
       });
 
@@ -167,7 +170,7 @@ export const WalletOps = {
       throw new WalletInvalidAmountError('Credit');
     }
 
-    const { idempotencyKey, adminId, tenantId } = opts || {};
+    const { idempotencyKey, adminId, tenantId, transactionType: txTypeOverride } = opts || {};
 
     // Fetch user once for both tenant-check and tenantId fallback
     const user = await tx.user.findUnique({
@@ -204,7 +207,7 @@ export const WalletOps = {
           reason,
           status: 'APPROVED',
           idempotencyKey,
-          transactionType: 'PAYMENT'
+          transactionType: txTypeOverride ?? 'TOPUP',
         }
       });
 
@@ -252,7 +255,7 @@ export const WalletOps = {
       throw new WalletInvalidAmountError('Adjustment');
     }
 
-    const { idempotencyKey, adminId, tenantId } = opts || {};
+    const { idempotencyKey, adminId, tenantId, transactionType: txTypeOverride } = opts || {};
 
     if (tenantId) {
       const user = await tx.user.findUnique({
@@ -291,7 +294,7 @@ export const WalletOps = {
         reason,
         status: 'APPROVED',
         idempotencyKey,
-        transactionType: 'COMPENSATION'
+        transactionType: txTypeOverride ?? 'ADJUSTMENT',
       }
     });
 
@@ -319,7 +322,7 @@ export const WalletOps = {
       throw new WalletInvalidAmountError('Refund');
     }
 
-    const { idempotencyKey, adminId, tenantId } = opts || {};
+    const { idempotencyKey, adminId, tenantId, transactionType: txTypeOverride } = opts || {};
 
     if (tenantId) {
       const user = await tx.user.findUnique({
@@ -364,7 +367,8 @@ export const WalletOps = {
         reason,
         status: 'APPROVED',
         idempotencyKey,
-        transactionType: 'REFUND',
+        // adminId present → ручная отмена заказа (ORDER_CANCEL), иначе авто-возврат (REFUND)
+        transactionType: txTypeOverride ?? (adminId ? 'ORDER_CANCEL' : 'REFUND'),
       }
     });
 
@@ -426,6 +430,11 @@ export const WalletOps = {
 
   /**
    * Release or clear quarantine balance for a user.
+   *
+   * CONTRACT: quarantineRelease ONLY decrements quarantineBalance.
+   * It does NOT create a new LedgerEntry — the original QUARANTINE entry
+   * in the journal (now APPROVED or REJECTED) IS the audit record.
+   * Creating another entry here would produce duplicates in financial reports.
    */
   async quarantineRelease(
     tx: PrismaTx,
@@ -435,7 +444,6 @@ export const WalletOps = {
   ) {
     const rawCents = typeof amountCents === 'bigint' ? amountCents : BigInt(amountCents);
     const absAmount = rawCents < BigInt(0) ? -rawCents : rawCents;
-    const { idempotencyKey, adminId, tenantId, reason } = opts || {};
 
     const updated = await tx.user.updateMany({
       where: { id: userId, quarantineBalance: { gte: absAmount } },
@@ -443,32 +451,15 @@ export const WalletOps = {
     });
 
     if (updated.count === 0) {
-      // H-4 FIX: Log critical alert instead of silently zeroing quarantine balance.
-      // The caller requested release of more than available — this indicates a data
-      // integrity issue or concurrent modification. Zeroing the balance destroys
-      // remaining quarantine funds without audit trail.
-      console.error(`[WalletOps.quarantineRelease] CRITICAL: Cannot release ${absAmount} kopecks from quarantine for user ${userId} — insufficient quarantine balance. Manual intervention required.`);
+      // Insufficient quarantine balance — data integrity violation.
+      console.error(`[WalletOps.quarantineRelease] CRITICAL: Cannot release ${absAmount} kopecks from quarantine for user ${userId} — insufficient quarantine balance.`);
       throw new Error(`Quarantine release failed: insufficient quarantine balance (requested: ${absAmount}, user: ${userId}). Manual review required.`);
     }
 
-    const user = await tx.user.findUnique({
-      where: { id: userId },
-      select: { tenantId: true }
-    });
-
-    return await tx.ledgerEntry.create({
-      data: {
-        userId,
-        tenantId: tenantId || user?.tenantId || 'smmplan',
-        adminId,
-        amount: -absAmount,
-        reason: reason || 'Снятие / разблокировка средств из карантина',
-        status: 'APPROVED',
-        idempotencyKey,
-        transactionType: 'COMPENSATION'
-      }
-    });
-  }
+    // No ledgerEntry.create here intentionally.
+    // The caller (escrow.service resolveQuarantine) already updated the original
+    // QUARANTINE entry to APPROVED/REJECTED via updateMany before calling this method.
+  },
 };
 
 /**

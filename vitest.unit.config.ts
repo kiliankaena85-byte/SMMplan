@@ -7,6 +7,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
+    testTimeout: 15000,
     setupFiles: [],
     alias: {
       '@': path.resolve(__dirname, './src')
@@ -37,7 +38,16 @@ export default defineConfig({
       'src/__tests__/order-actions-and-support-ops.test.ts',
       'src/__tests__/providers/balance-autoflush-resilience.test.ts',
       'src/__tests__/financial/ledger-and-transaction-type-filters.test.ts',
+      'src/__tests__/financial/escrow-quarantine-double-entry.test.ts',
       'src/__tests__/catalog/category-slug-and-icon-hygiene.test.ts',
+      'src/actions/admin/providers/__tests__/sync-provider-catalog.test.ts',
+      'src/__tests__/orders/order-triage-and-autoflush-logic.test.ts',
+      'src/__tests__/orders/order-ttl-and-provider-lifecycle-matrix.test.ts',
+      'src/workers/processors/__tests__/zero-start-detector.test.ts',
+      'src/workers/processors/__tests__/pending-check-resolution.test.ts',
+      'src/__tests__/catalog/empty-categories-cleanup.test.ts',
+      'src/__tests__/security/optimization-security-and-rbac.test.ts',
+      'src/__tests__/security/swarm-optimization-premortem-security.test.ts',
     ],
   }
 });

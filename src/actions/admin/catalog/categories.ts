@@ -496,3 +496,66 @@ export async function deleteNetworkAction(id: string) {
   });
 }
 
+/**
+ * Deletes all empty categories (categories with 0 services).
+ * Optionally filtered by networkId.
+ */
+export async function cleanupEmptyCategoriesAction(networkId?: string | null) {
+  return requireStaffPermission('CATALOG', 'edit', async (admin) => {
+    const whereClause: Record<string, unknown> = {
+      services: { none: {} }
+    };
+    if (networkId && networkId !== 'ALL') {
+      whereClause.networkId = networkId;
+    }
+
+    const emptyCats = await db.category.findMany({
+      where: whereClause,
+      select: { id: true, name: true, networkId: true, tenantId: true }
+    });
+
+    if (emptyCats.length === 0) {
+      return {
+        success: true as const,
+        deletedCount: 0,
+        message: 'Пустых категорий без услуг не обнаружено.'
+      };
+    }
+
+    const deleteResult = await db.category.deleteMany({
+      where: {
+        id: { in: emptyCats.map(c => c.id) }
+      }
+    });
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'CATEGORY_BULK_CLEANUP_EMPTY',
+      target: networkId || 'ALL',
+      targetType: 'SETTINGS',
+      newValue: {
+        deletedCount: deleteResult.count,
+        categories: emptyCats.map(c => ({ id: c.id, name: c.name }))
+      }
+    });
+
+    revalidatePath("/admin/catalog/categories");
+    revalidatePath("/admin/catalog/tree");
+    revalidatePath("/admin/catalog");
+    revalidateTag("catalog", 'default');
+    revalidateTag("services", 'default');
+    revalidateTag("catalog-smmplan", 'default');
+    revalidateTag("catalog-flux", 'default');
+    revalidateTag("services-smmplan", 'default');
+    revalidateTag("services-flux", 'default');
+
+    return {
+      success: true as const,
+      deletedCount: deleteResult.count,
+      message: `Успешно удалено ${deleteResult.count} пустых категорий без услуг.`
+    };
+  });
+}
+
+

@@ -126,16 +126,19 @@ export function EnvironmentModeSwitcher({
 
   const executeSwitch = (mode: EnvironmentMode) => {
     if (readOnly) return;
+    const prevMode = currentMode;
+    setCurrentMode(mode); // ⚡ Optimistic UI update
+    setConfirmModalMode(null);
+
     startTransition(async () => {
       const res = await setEnvironmentModeAction({ mode, tenantId });
       if (res.success) {
-        setCurrentMode(mode);
         toast.success(`Режим окружения изменён на ${mode}`);
-        router.refresh(); // Crucial: Re-render Server Components (e.g. Test Mode Banner in Layout)
+        router.refresh();
       } else {
+        setCurrentMode(prevMode); // Rollback state on error
         toast.error(res.error || 'Не удалось переключить режим');
       }
-      setConfirmModalMode(null);
     });
   };
 

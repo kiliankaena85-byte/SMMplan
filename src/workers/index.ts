@@ -138,12 +138,20 @@ async function handleDeadLetter(
         failedAt: new Date().toISOString(),
       });
 
-      // 🔥 Option B: Automatic Refund & State transition
+      // 🔥 Safe State Handling: PENDING_CHECK orders are parked for triage/autoflush and MUST NOT be auto-failed
       if (queueName === 'ordersQueue') {
-                const payload = job.data as { orderId?: string; refillId?: string };
+        const payload = job.data as { orderId?: string; refillId?: string };
         if (payload?.orderId) {
-           await orderService.failOrderTerminal(payload.orderId, err.message);
-           log.info(`Auto-refunded dead-letter order ${payload.orderId}`);
+          const currentOrder = await db.order.findUnique({
+            where: { id: payload.orderId },
+            select: { status: true, numericId: true }
+          });
+          if (currentOrder && (currentOrder.status === 'PENDING_CHECK' || currentOrder.status === 'IN_PROGRESS')) {
+            log.info(`[WORKER] Order #${currentOrder.numericId} (${payload.orderId}) is in '${currentOrder.status}'. Skipping auto-fail to allow operator triage / balance autoflush.`);
+          } else {
+            await orderService.failOrderTerminal(payload.orderId, err.message);
+            log.info(`Auto-refunded dead-letter order ${payload.orderId}`);
+          }
         }
       }
 

@@ -25,8 +25,10 @@ export const LEDGER_STATUS_OPTIONS = [
 export const LEDGER_TYPE_OPTIONS = [
   { value: 'ALL',          label: 'Все операции' },
   { value: 'TOPUP',        label: '💳 Пополнение баланса' },
-  { value: 'DEBIT',        label: '🔻 Списание / Оплата' },
-  { value: 'REFUND',       label: '↩️ Возврат средств' },
+  { value: 'ORDER_CHARGE', label: '🛒 Оплата заказа' },
+  { value: 'ORDER_CANCEL', label: '🚫 Отмена заказа' },
+  { value: 'REFUND',       label: '↩️ Авто-возврат средств' },
+  { value: 'REROUTE',      label: '🔄 Перезапуск заказа' },
   { value: 'COMPENSATION', label: '🎁 Компенсация / Бонус' },
   { value: 'ADJUSTMENT',   label: '⚙️ Ручная корректировка' },
 ] as const;

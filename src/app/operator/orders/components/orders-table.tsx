@@ -97,7 +97,7 @@ export function OrdersTable({ data }: OrdersTableProps) {
         <Table.Body emptyContent="Заказы не найдены">
           {data.map((order) => {
             const canCancel = ['PENDING', 'PROCESSING', 'PENDING_CHECK', 'IN_PROGRESS'].includes(order.status);
-            const canRestart = order.status === 'ERROR';
+            const canRestart = ['ERROR', 'PENDING_CHECK', 'CANCELED'].includes(order.status);
 
             return (
               <Table.Row key={order.id}>

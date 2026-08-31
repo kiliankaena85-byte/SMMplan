@@ -70,6 +70,10 @@ export function TenantSwitcher({ currentTenant = 'smmplan', className = '', vari
     // 1. Set cookie on client for immediate network fetch availability
     try {
       document.cookie = `x_admin_tenant=${tenantId}; path=/; max-age=31536000; SameSite=Lax`;
+      const adminContainer = document.querySelector('[data-tenant]');
+      if (adminContainer) {
+        adminContainer.setAttribute('data-tenant', tenantId);
+      }
     } catch {}
 
     // 2. Server Action for atomic cookie set and layout cache invalidation
@@ -81,8 +85,7 @@ export function TenantSwitcher({ currentTenant = 'smmplan', className = '', vari
       params.delete('cursor');
       params.delete('page');
 
-      router.replace(`${pathname}?${params.toString()}`);
-      router.refresh();
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     });
   };
 

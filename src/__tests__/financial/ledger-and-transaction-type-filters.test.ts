@@ -83,6 +83,32 @@ describe('Financial Ledger & Transaction Status / Type Filters Suite', () => {
         idempotencyKey: `quarantine-${Date.now()}-4`,
       }
     });
+
+    // 5. Order Cancel (Отмена заказа администратором)
+    await db.ledgerEntry.create({
+      data: {
+        userId: testUserId,
+        amount: BigInt(150000), // +1500 RUB
+        reason: 'Отмена заказа 999111 администратором - Возврат средств',
+        transactionType: 'ORDER_CANCEL',
+        status: 'APPROVED',
+        tenantId: 'smmplan',
+        idempotencyKey: `cancel-${Date.now()}-5`,
+      }
+    });
+
+    // 6. Reroute (Перезапуск заказа)
+    await db.ledgerEntry.create({
+      data: {
+        userId: testUserId,
+        amount: BigInt(-150000), // -1500 RUB
+        reason: 'Перезапуск заказа 999111 администратором - Повторное списание',
+        transactionType: 'REROUTE',
+        status: 'APPROVED',
+        tenantId: 'smmplan',
+        idempotencyKey: `reroute-${Date.now()}-6`,
+      }
+    });
   });
 
   it('1. Correctly filters ONLY Top-up (Пополнения баланса) transactions', async () => {
@@ -95,7 +121,6 @@ describe('Financial Ledger & Transaction Status / Type Filters Suite', () => {
     expect('items' in res).toBe(true);
     if ('items' in res) {
       expect(res.items.length).toBeGreaterThanOrEqual(1);
-      // All items must have positive amount and not be refunds
       for (const item of res.items) {
         expect(item.amount).toBeGreaterThan(0);
         expect(item.transactionType).not.toBe('REFUND');
@@ -103,9 +128,9 @@ describe('Financial Ledger & Transaction Status / Type Filters Suite', () => {
     }
   });
 
-  it('2. Correctly filters ONLY Debit (Списания) transactions', async () => {
+  it('2. Correctly filters ONLY Debit (Списания / ORDER_CHARGE) transactions', async () => {
     const res = await getLedgerAction({
-      type: 'DEBIT',
+      type: 'ORDER_CHARGE',
       search: testUserEmail,
       period: 'all',
     });
@@ -149,19 +174,59 @@ describe('Financial Ledger & Transaction Status / Type Filters Suite', () => {
     }
   });
 
-  it('5. Operator transaction action successfully filters Top-ups', async () => {
-    const res = await getTransactionsListAction({
-      type: 'TOPUP',
-      userId: testUserId,
+  it('5. Correctly filters ORDER_CANCEL transactions', async () => {
+    const res = await getLedgerAction({
+      type: 'ORDER_CANCEL',
+      search: testUserEmail,
       period: 'all',
     });
 
     expect('items' in res).toBe(true);
     if ('items' in res) {
-      expect(res.items.length).toBeGreaterThanOrEqual(1);
-      for (const item of res.items) {
+      expect(res.items.length).toBe(1);
+      expect(res.items[0].transactionType).toBe('ORDER_CANCEL');
+    }
+  });
+
+  it('6. Correctly filters REROUTE transactions', async () => {
+    const res = await getLedgerAction({
+      type: 'REROUTE',
+      search: testUserEmail,
+      period: 'all',
+    });
+
+    expect('items' in res).toBe(true);
+    if ('items' in res) {
+      expect(res.items.length).toBe(1);
+      expect(res.items[0].transactionType).toBe('REROUTE');
+    }
+  });
+
+  it('7. Operator transaction action successfully filters Top-ups and Reroutes', async () => {
+    const resTopup = await getTransactionsListAction({
+      type: 'TOPUP',
+      userId: testUserId,
+      period: 'all',
+    });
+
+    expect('items' in resTopup).toBe(true);
+    if ('items' in resTopup) {
+      expect(resTopup.items.length).toBeGreaterThanOrEqual(1);
+      for (const item of resTopup.items) {
         expect(item.amount).toBeGreaterThan(0);
       }
+    }
+
+    const resReroute = await getTransactionsListAction({
+      type: 'REROUTE',
+      userId: testUserId,
+      period: 'all',
+    });
+
+    expect('items' in resReroute).toBe(true);
+    if ('items' in resReroute) {
+      expect(resReroute.items.length).toBe(1);
+      expect(resReroute.items[0].transactionType).toBe('REROUTE');
     }
   });
 });

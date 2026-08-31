@@ -70,7 +70,48 @@ export async function getCachedServicesByCategory(categoryId: string, tenantId: 
           tenantId: tenantVisibilityFilter(tenantId),
           OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }]
         },
-        include: { smartConfig: true },
+        select: {
+          id: true,
+          numericId: true,
+          slug: true,
+          categoryId: true,
+          name: true,
+          description: true,
+          minQty: true,
+          maxQty: true,
+          isDripFeedEnabled: true,
+          isRefillEnabled: true,
+          targetType: true,
+          qualityTier: true,
+          customDataType: true,
+          customDataLabel: true,
+          clientRequirement: true,
+          clientConfirmation: true,
+          features: true,
+          cooldownUntil: true,
+          etaP50Seconds: true,
+          etaP90Seconds: true,
+          etaSpeedClass: true,
+          requireWarning: true,
+          warningMessage: true,
+          providerCurrency: true,
+          costPer1kRub: true,
+          pricePer1000Cents: true,
+          markup: true,
+          rate: true,
+          smartConfig: {
+            select: {
+              isEnabled: true,
+              isTestMode: true,
+              minChunk: true,
+              maxChunk: true,
+              markup: true,
+              useInviteBuffer: true,
+              autoCompensate: true,
+              checkIntervalMins: true
+            }
+          }
+        },
         orderBy: { rate: 'asc' },
         take: CATEGORY_SERVICES_HARD_LIMIT + 1
       });
