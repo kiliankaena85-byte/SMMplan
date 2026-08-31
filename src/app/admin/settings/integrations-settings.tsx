@@ -16,8 +16,31 @@ import {
 } from '@/actions/admin/settings';
 import { toast } from 'sonner';
 import { useActionState, useEffect, useState } from 'react';
-import { Loader2, Eye, EyeOff, Key, Sparkles, Bot, ShieldCheck, Radio, CheckCircle, AlertCircle } from 'lucide-react';
+import { 
+  Loader2, 
+  Eye, 
+  EyeOff, 
+  Key, 
+  Sparkles, 
+  Bot, 
+  ShieldCheck, 
+  Radio, 
+  CheckCircle, 
+  AlertCircle,
+  HelpCircle,
+  Copy,
+  Check,
+  AlertTriangle
+} from 'lucide-react';
 import { SystemSettings } from '@prisma/client';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface IntegrationsSettingsProps {
   settings: SystemSettings;
@@ -152,6 +175,15 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
   const [inboundSecret, setInboundSecret] = React.useState(settings.inboundEmailWebhookSecret || '');
   const [showSecret, setShowSecret] = React.useState(false);
   const [generatingSecret, setGeneratingSecret] = React.useState(false);
+  const [isRegenerateModalOpen, setIsRegenerateModalOpen] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
+
+  const copySecret = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    toast.success('Секретный ключ скопирован в буфер обмена');
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleGenerateSecret = async () => {
     setGeneratingSecret(true);
@@ -582,9 +614,14 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Секретный ключ вебхука</Label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    Секретный ключ вебхука
+                    <span title="Секретный ключ для подписи и проверки подлинности входящих писем от Cloudflare Email Routing / SendGrid.">
+                      <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                    </span>
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    <div className="relative flex-1 min-w-[200px]">
                       <Input
                         name="inboundEmailWebhookSecret"
                         type={showSecret ? 'text' : 'password'}
@@ -597,16 +634,32 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
                         type="button"
                         onClick={() => setShowSecret(!showSecret)}
                         className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground transition-colors"
+                        title={showSecret ? 'Скрыть секрет' : 'Показать секрет'}
                       >
                         {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
+
+                    {inboundSecret && (
+                      <Button
+                        type="button"
+                        intent="outline"
+                        size="sm"
+                        onClick={() => copySecret(inboundSecret)}
+                        className="font-bold text-xs gap-1 h-10 px-3"
+                        title="Скопировать секрет в буфер обмена"
+                      >
+                        {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span className="hidden sm:inline">{copied ? 'Скопировано' : 'Копировать'}</span>
+                      </Button>
+                    )}
+
                     <Button
                       type="button"
                       disabled={generatingSecret}
-                      onClick={handleGenerateSecret}
+                      onClick={() => setIsRegenerateModalOpen(true)}
                       intent="outline"
-                      className="font-bold text-xs gap-1"
+                      className="font-bold text-xs gap-1 h-10 px-3"
                     >
                       {generatingSecret ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -620,6 +673,44 @@ export function IntegrationsSettings({ settings }: IntegrationsSettingsProps) {
                     Используется для валидации входящих вебхуков писем от почтового шлюза.
                   </p>
                 </div>
+
+                {/* Regenerate Webhook Secret Modal */}
+                <Dialog open={isRegenerateModalOpen} onOpenChange={setIsRegenerateModalOpen}>
+                  <DialogContent className="sm:max-w-md bg-card border-border">
+                    <DialogHeader>
+                      <div className="flex items-center gap-3 text-amber-500 pb-2">
+                        <AlertTriangle className="w-6 h-6" />
+                        <DialogTitle className="text-lg font-bold">Перегенерация секрета вебхука</DialogTitle>
+                      </div>
+                      <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                        Вы собираетесь сгенерировать новый секретный ключ для входящей почты.
+                        <br /><br />
+                        ⚠️ <strong>Внимание:</strong> Предыдущий ключ будет немедленно инвалидирован! Вам потребуется обновить URL и подпись в настройках Cloudflare / почтового шлюза.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="flex gap-2 pt-4">
+                      <Button
+                        type="button"
+                        intent="secondary"
+                        size="sm"
+                        onClick={() => setIsRegenerateModalOpen(false)}
+                      >
+                        Отмена
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          setIsRegenerateModalOpen(false);
+                          handleGenerateSecret();
+                        }}
+                        className="font-bold bg-amber-600 hover:bg-amber-700 text-white gap-1.5"
+                      >
+                        Сгенерировать новый ключ
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
 

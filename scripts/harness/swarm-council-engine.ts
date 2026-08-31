@@ -288,8 +288,13 @@ Output JSON: { "domain": "UX_UI", "verdict": "APPROVED"|"REQUIRES_GUARD"|"REJECT
   console.log(`\n\x1b[32m✔ Swarm Council Audit Complete! Total Consensus Score: ${report.totalScore}/100\x1b[0m`);
   console.log(`💾 Saved Consensus Report to ${outPath}\n`);
 
-  return report;
+export async function runSwarmCouncilAudit(customOptions?: { taskTitle?: string; contextData?: string; proposedChanges?: string }) {
+  return executeSwarmCouncilAudit(customOptions);
 }
+
+export const SwarmCouncilEngine = {
+  runFederatedAudit: runSwarmCouncilAudit,
+};
 
 if (require.main === module) {
   runSwarmCouncilAudit().catch(console.error);

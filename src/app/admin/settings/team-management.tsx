@@ -28,9 +28,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, ShieldAlert, UserPlus, Loader2, Trash2, Plus, Check, Lock, ShieldCheck } from 'lucide-react';
+import { Search, ShieldAlert, UserPlus, Loader2, Trash2, Plus, Check, Lock, ShieldCheck, AlertTriangle, HelpCircle } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 import { StaffRole, StaffPermission } from '@prisma/client';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 export interface StaffUser {
   id: string;
@@ -222,12 +230,16 @@ export function TeamManagement({
     });
   };
 
-  const handleDeleteRole = async (roleId: string) => {
-    if (!confirm('Вы уверены, что хотите удалить эту роль? Все связанные сотрудники потеряют доступ к панели.')) return;
+  const [roleToDelete, setRoleToDelete] = useState<{ id: string; name: string } | null>(null);
+
+  const confirmDeleteRole = () => {
+    if (!roleToDelete) return;
+    const { id } = roleToDelete;
+    setRoleToDelete(null);
     
     startTransition(async () => {
       const formData = new FormData();
-      formData.append('roleId', roleId);
+      formData.append('roleId', id);
 
       const res = await deleteStaffRoleAction(formData);
       if (res.success) {
@@ -238,8 +250,48 @@ export function TeamManagement({
     });
   };
 
+  const handleDeleteRole = (roleId: string, roleName: string) => {
+    setRoleToDelete({ id: roleId, name: roleName });
+  };
+
   return (
     <div className="space-y-8">
+      {/* Role Deletion Confirmation Dialog */}
+      <Dialog open={!!roleToDelete} onOpenChange={(open) => !open && setRoleToDelete(null)}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <div className="flex items-center gap-3 text-rose-500 pb-2">
+              <AlertTriangle className="w-6 h-6" />
+              <DialogTitle className="text-lg font-bold">Удаление роли</DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              Вы уверены, что хотите удалить роль <strong className="text-foreground">«{roleToDelete?.name}»</strong>?
+              <br /><br />
+              ⚠️ Все сотрудники с этой ролью потеряют доступ к административным разделам, пока им не будет назначена новая роль.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setRoleToDelete(null)}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={confirmDeleteRole}
+              className="font-bold gap-1.5"
+            >
+              Удалить роль
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* ── SECTION 1: Staff List & Escrow Guard ── */}
       <Card className="rounded-2xl border-border shadow-sm bg-card overflow-hidden">
         <CardContent className="p-4 sm:p-8 space-y-6">
@@ -721,7 +773,7 @@ export function TeamManagement({
 
                       {!role.isSystem && (
                         <button 
-                          onClick={() => handleDeleteRole(role.id)}
+                          onClick={() => handleDeleteRole(role.id, role.name)}
                           disabled={isPending}
                           aria-label={`Удалить роль ${role.name}`}
                           className="h-9 w-9 flex items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40 cursor-pointer"

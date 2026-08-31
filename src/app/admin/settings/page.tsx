@@ -25,6 +25,9 @@ import Link from 'next/link';
 import { enforceSectionAccess } from '@/lib/server/rbac';
 import { SettingsProvider } from '@/lib/settings';
 import { SystemHealthOverview } from '@/components/admin/settings/system-health-overview';
+import { OnboardingReadinessBar } from '@/components/admin/settings/onboarding-readiness-bar';
+import { SettingsSearchCommand } from '@/components/admin/settings/settings-search-command';
+import { SettingsClusterTabs, resolveSettingsNavigation } from '@/components/admin/settings/settings-cluster-tabs';
 import { AdminAuditLog, StaffRole, StaffPermission, SupportTemplate, SystemSettings, Provider } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -38,7 +41,9 @@ export default async function AdminSettingsPage({
   const admin = await enforceSectionAccess('settings');
   
   const params = await searchParams;
-  const activeTab = params.tab || 'system';
+  const rawTab = params.tab || 'system';
+  const { activeSubTab } = resolveSettingsNavigation(rawTab);
+  const activeTab = activeSubTab;
   const searchQuery = params.q || '';
 
   // 2. Tab-Scoped Optimized Queries: Fetch settings + conditionally only the active tab data
@@ -112,48 +117,30 @@ export default async function AdminSettingsPage({
 
   const regularUsers = users.filter((u) => u.id !== admin.id);
 
-  const tabs = [
-    { id: 'system', label: 'Система', icon: Globe },
-    { id: 'catalog', label: 'Каталог', icon: Database },
-    { id: 'integrations', label: 'Интеграции', icon: LinkIcon },
-    { id: 'telegram', label: 'Telegram Бот', icon: Bot },
-    { id: 'proxy', label: 'Прокси провайдеров', icon: Server },
-    { id: 'team', label: 'Команда', icon: Users },
-    { id: 'templates', label: 'Шаблоны', icon: MessageSquare },
-    { id: 'audit', label: 'Аудит', icon: History },
-  ];
-
   return (
     <div className="space-y-6 w-full min-w-0 animate-in fade-in duration-300 ease-out sm:px-2 md:px-0 min-h-full pb-10">
-      <AdminTabbedHeader
-        icon={Settings}
-        title="Настройки системы"
-        description="Глобальная конфигурация платформы, безопасность и персонал."
-        tabs={SYSTEM_TABS}
-        onboardingKey="settings"
-        onboarding={ONBOARDING_CONFIGS.settings}
-      />
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2">
+        <AdminTabbedHeader
+          icon={Settings}
+          title="Настройки системы"
+          description="Глобальная конфигурация платформы, безопасность и персонал."
+          tabs={SYSTEM_TABS}
+          onboardingKey="settings"
+          onboarding={ONBOARDING_CONFIGS.settings}
+        />
+        <div className="shrink-0 self-start lg:self-center w-full sm:w-auto">
+          <SettingsSearchCommand />
+        </div>
+      </div>
+
+      {/* ── Onboarding Readiness & Goal-Gradient Bar ── */}
+      <OnboardingReadinessBar settings={sanitizedSettings} />
 
       {/* ── Dynamic System Health Pulse & Quick Actions ── */}
       <SystemHealthOverview settings={sanitizedSettings} />
 
-      {/* ── Custom URL-based Tabs ── */}
-      <div className="flex gap-1 border-b border-border overflow-x-auto w-full min-w-0 no-scrollbar snap-x snap-mandatory">
-        {tabs.map((t) => (
-          <Link
-            key={t.id}
-            href={`?tab=${t.id}`}
-            className={`flex items-center gap-2 py-3 px-5 transition-all -mb-px text-[11px] font-black uppercase tracking-widest border-b-2 whitespace-nowrap shrink-0 snap-start ${
-              activeTab === t.id
-                ? 'border-primary text-primary bg-card rounded-t-xl shadow-xs'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <t.icon className="w-4 h-4" />
-            {t.label}
-          </Link>
-        ))}
-      </div>
+      {/* ── Level 1 & Level 2 Master Cluster Navigation ── */}
+      <SettingsClusterTabs activeTab={activeTab} />
 
       <div className="space-y-8 mt-4">
         {/* ── TAB 1: SYSTEM ── */}

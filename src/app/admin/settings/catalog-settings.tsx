@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { updateGlobalSettings } from '@/actions/admin/settings';
 import { toast } from 'sonner';
 import { useActionState, useEffect, useState } from 'react';
-import { Loader2, Calculator, TrendingUp, Coins, Sparkles } from 'lucide-react';
+import { Loader2, Calculator, TrendingUp, Coins, Sparkles, HelpCircle, RefreshCw, CheckCircle2, RotateCcw } from 'lucide-react';
 import { applyBeautifulRounding } from '@/lib/financial-constants';
 import { formatPricePerUnit, formatRubles } from '@/utils/format-price';
 import { SystemSettings } from '@prisma/client';
@@ -18,6 +18,30 @@ interface CatalogSettingsProps {
 }
 
 export function CatalogSettings({ settings }: CatalogSettingsProps) {
+  const [isTestingCBR, setIsTestingCBR] = useState(false);
+  const [cbrPingResult, setCbrPingResult] = useState<{ success: boolean; rate?: number; pingMs?: number } | null>(null);
+
+  const handleTestCBR = async () => {
+    setIsTestingCBR(true);
+    const start = performance.now();
+    try {
+      const res = await fetch('https://www.cbr-xml-daily.ru/daily_json.js', { cache: 'no-store' });
+      const duration = Math.round(performance.now() - start);
+      if (res.ok) {
+        const data = await res.json();
+        const usdRate = data?.Valute?.USD?.Value;
+        setCbrPingResult({ success: true, rate: usdRate, pingMs: duration });
+        toast.success(`ЦБ РФ доступен: 1 USD = ${usdRate?.toFixed(2)} ₽ (Ping: ${duration}ms)`);
+      } else {
+        throw new Error(`HTTP ${res.status}`);
+      }
+    } catch (e) {
+      setCbrPingResult({ success: false, pingMs: Math.round(performance.now() - start) });
+      toast.error('Не удалось связаться с сервером ЦБ РФ');
+    } finally {
+      setIsTestingCBR(false);
+    }
+  };
   const [state, formAction, isPending] = useActionState(
     async (prevState: unknown, formData: FormData) => {
       try {
@@ -104,8 +128,11 @@ export function CatalogSettings({ settings }: CatalogSettingsProps) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 Глобальная наценка (множитель)
+                <span title="Множитель применяется к оптовой цене услуг. Диапазон 1.05–100. При коэффициенте 3.0 услуга за 100 ₽ продается за 300 ₽.">
+                  <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                </span>
               </Label>
               <span className="text-xs font-black font-mono text-primary">x{liveMarkup.toFixed(2)}</span>
             </div>
@@ -129,8 +156,11 @@ export function CatalogSettings({ settings }: CatalogSettingsProps) {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
               Порог безопасности (Safety Floor)
+              <span title="Нижняя граница наценки (мин. 1.05). Даже при ручных скидках цена не упадет ниже себестоимость * этот множитель.">
+                <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+              </span>
             </Label>
             <Input
               name="safetyFloor"
@@ -150,8 +180,11 @@ export function CatalogSettings({ settings }: CatalogSettingsProps) {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
               Порог карантина скачка цен (%)
+              <span title="Если поставщик внезапно поднимает цену выше указанного процента (например +20%), услуга уходит в карантин до подтверждения админом.">
+                <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+              </span>
             </Label>
             <Input
               name="quarantineThreshold"
@@ -172,11 +205,27 @@ export function CatalogSettings({ settings }: CatalogSettingsProps) {
 
         {/* ── LIVE INTERACTIVE PRICING & BEAUTIFUL ROUNDING SIMULATOR ── */}
         <div className="p-5 sm:p-6 rounded-2xl border border-primary/20 bg-primary/5 backdrop-blur-md space-y-4">
-          <div className="flex items-center gap-2">
-            <Calculator className="w-4 h-4 text-primary" />
-            <span className="text-xs font-black uppercase tracking-wider text-foreground">
-              Калькулятор наценки & Красивого округления (Маркетинговая цена)
-            </span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Calculator className="w-4 h-4 text-primary" />
+              <span className="text-xs font-black uppercase tracking-wider text-foreground">
+                Калькулятор наценки & Красивого округления (Маркетинговая цена)
+              </span>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSampleWholesale(142.5);
+                setLiveMarkup(settings.globalMarkup || 3.0);
+              }}
+              className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground gap-1"
+              title="Сбросить симулятор к исходным значениям"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span className="hidden sm:inline">Сбросить</span>
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center sm:text-left">
@@ -233,22 +282,48 @@ export function CatalogSettings({ settings }: CatalogSettingsProps) {
 
       {/* 2. Exchange Rate & CBR API */}
       <Card className="rounded-3xl border border-border/60 shadow-lg bg-card/70 backdrop-blur-xl p-6 sm:p-8 space-y-6">
-        <div className="flex items-center gap-3 border-b border-border/50 pb-5">
-          <div className="p-2.5 bg-primary/10 text-primary rounded-xl border border-primary/20">
-            <Coins className="w-5 h-5" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/50 pb-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-primary/10 text-primary rounded-xl border border-primary/20">
+              <Coins className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-foreground">Валютный курс ЦБ РФ & Конвертация</h3>
+              <p className="text-xs text-muted-foreground">
+                Автоматическая ежедневная синхронизация курса доллара США через официальный шлюз Центробанка РФ.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-base font-bold text-foreground">Валютный курс ЦБ РФ & Конвертация</h3>
-            <p className="text-xs text-muted-foreground">
-              Автоматическая ежедневная синхронизация курса доллара США через официальный шлюз Центробанка РФ.
-            </p>
-          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleTestCBR}
+            disabled={isTestingCBR}
+            className="h-9 px-3.5 text-xs font-bold gap-2 shrink-0 self-start sm:self-auto"
+          >
+            {isTestingCBR ? <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" /> : <RefreshCw className="w-3.5 h-3.5 text-emerald-500" />}
+            <span>Проверить курс ЦБ РФ</span>
+          </Button>
         </div>
+
+        {cbrPingResult && (
+          <div className={`p-3 rounded-xl border text-xs flex items-center justify-between ${cbrPingResult.success ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400'}`}>
+            <span className="font-bold flex items-center gap-1.5">
+              {cbrPingResult.success ? <CheckCircle2 className="w-4 h-4" /> : null}
+              {cbrPingResult.success ? `ЦБ РФ онлайн: 1 USD = ${cbrPingResult.rate?.toFixed(2)} ₽` : 'Ошибка соединения с сервером ЦБ РФ'}
+            </span>
+            <span className="font-mono text-[11px] font-semibold">Ping: {cbrPingResult.pingMs}ms</span>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
               Фиксированный курс USD к RUB (0 = Авто ЦБ РФ)
+              <span title="Укажите 0, чтобы курс автоматически подтягивался из ЦБ РФ каждый день в 04:00 МСК. Либо задайте фиксированный курс вручную.">
+                <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+              </span>
             </Label>
             <Input
               name="exchangeRateUSD"

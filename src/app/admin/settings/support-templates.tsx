@@ -9,8 +9,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { upsertTemplate, deleteTemplate } from '@/actions/support/template';
 import { toast } from 'sonner';
 import { useState, useTransition } from 'react';
-import { Loader2, Plus, Edit2, Trash2, Tag, Zap, Activity } from 'lucide-react';
+import { Loader2, Plus, Edit2, Trash2, Tag, Zap, Activity, HelpCircle, AlertTriangle, Eye, Copy, Check } from 'lucide-react';
 import { SupportTemplate } from '@prisma/client';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 export type TemplateWithUseCount = SupportTemplate;
 
@@ -21,6 +29,7 @@ interface SupportTemplatesSettingsProps {
 export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesSettingsProps) {
   const [templates, setTemplates] = useState<TemplateWithUseCount[]>(initialTemplates);
   const [editingTemplate, setEditingTemplate] = useState<TemplateWithUseCount | null>(null);
+  const [templateToDelete, setTemplateToDelete] = useState<TemplateWithUseCount | null>(null);
   const [label, setLabel] = useState('');
   const [shortcut, setShortcut] = useState('');
   const [text, setText] = useState('');
@@ -124,8 +133,14 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
     });
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Вы действительно хотите удалить этот шаблон?')) return;
+  const handleDelete = (template: TemplateWithUseCount) => {
+    setTemplateToDelete(template);
+  };
+
+  const confirmDelete = async () => {
+    if (!templateToDelete) return;
+    const id = templateToDelete.id;
+    setTemplateToDelete(null);
 
     startTransition(async () => {
       try {
@@ -143,6 +158,41 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-24">
+      {/* Delete Confirmation Modal */}
+      <Dialog open={!!templateToDelete} onOpenChange={(open) => !open && setTemplateToDelete(null)}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <div className="flex items-center gap-3 text-rose-500 pb-2">
+              <AlertTriangle className="w-6 h-6" />
+              <DialogTitle className="text-lg font-bold">Удаление шаблона</DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              Вы уверены, что хотите удалить шаблон <strong className="text-foreground">«{templateToDelete?.label}»</strong>?
+              <br /><br />
+              Операторы поддержки больше не смогут вызывать его по шорткату <code className="text-primary font-mono font-bold">/{templateToDelete?.shortcut || 'нет'}</code>.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 pt-4">
+            <Button
+              type="button"
+              intent="secondary"
+              size="sm"
+              onClick={() => setTemplateToDelete(null)}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={confirmDelete}
+              className="font-bold bg-rose-600 hover:bg-rose-700 text-white gap-1.5"
+            >
+              Удалить шаблон
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* CRUD Form card */}
       <div className="lg:col-span-1 space-y-6">
         <Card className="rounded-2xl border-border shadow-sm bg-card">
@@ -155,7 +205,12 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Название (для оператора)</Label>
+                <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  Название (для оператора)
+                  <span title="Понятное название шаблона в выпадающем списке оператора">
+                    <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                  </span>
+                </Label>
                 <Input
                   required
                   value={label}
@@ -165,7 +220,12 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Шорткат (вызов по /шорткат)</Label>
+                <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  Шорткат (вызов по /шорткат)
+                  <span title="Короткая команда для мгновенной подстановки текста в тикете, например /delay">
+                    <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                  </span>
+                </Label>
                 <div className="relative flex items-center">
                   <span className="absolute left-3 text-sm font-mono font-bold text-slate-400">/</span>
                   <Input
@@ -176,7 +236,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
                     className="pl-6 font-mono"
                   />
                 </div>
-                <p className="text-[10px] text-muted-foreground">Только латиница, цифры, дефис и подчеркивание. Позволяет мгновенно подставить шаблон по слэшу.</p>
+                <p className="text-[10px] text-muted-foreground">Только латиница, цифры, дефис и подчеркивание.</p>
               </div>
 
               <div className="space-y-2">
@@ -215,18 +275,49 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
                   className="flex min-h-[120px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                 />
                 <div className="flex flex-wrap gap-1 mt-2">
-                  {['{user_name}', '{order_id}', '{service_name}', '{order_status}', '{ticket_id}', '{user_email}', '{domain}', '{current_date}'].map(tag => (
+                  {[
+                    { tag: '{user_name}', title: 'Имя клиента' },
+                    { tag: '{order_id}', title: 'ID заказа' },
+                    { tag: '{service_name}', title: 'Название услуги' },
+                    { tag: '{order_status}', title: 'Статус заказа' },
+                    { tag: '{ticket_id}', title: 'ID тикета' },
+                    { tag: '{user_email}', title: 'Email клиента' },
+                    { tag: '{domain}', title: 'Текущий домен' },
+                    { tag: '{current_date}', title: 'Текущая дата' },
+                  ].map(({ tag, title }) => (
                     <button
                       key={tag}
                       type="button"
                       onClick={() => setText(prev => prev + tag)}
-                      className="text-[9px] font-mono font-bold bg-muted hover:bg-muted/80 text-muted-foreground px-1.5 py-0.5 rounded transition-colors"
+                      title={title}
+                      className="text-[9px] font-mono font-bold bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded transition-colors cursor-pointer"
                     >
                       {tag}
                     </button>
                   ))}
                 </div>
               </div>
+
+              {/* Dynamic Preview if text has variables */}
+              {text && text.includes('{') && (
+                <div className="p-3 rounded-xl bg-muted/30 border border-border/60 text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    <Eye className="w-3 h-3 text-primary" />
+                    <span>Пример отображения для клиента:</span>
+                  </div>
+                  <p className="text-[11px] text-foreground font-normal leading-relaxed whitespace-pre-wrap">
+                    {text
+                      .replace(/{user_name}/g, 'Алексей')
+                      .replace(/{order_id}/g, '#10492')
+                      .replace(/{service_name}/g, 'Telegram Подписчики Премиум')
+                      .replace(/{order_status}/g, 'В работе')
+                      .replace(/{ticket_id}/g, 'TK-842')
+                      .replace(/{user_email}/g, 'client@example.com')
+                      .replace(/{domain}/g, 'smmplan.pro')
+                      .replace(/{current_date}/g, new Date().toLocaleDateString('ru-RU'))}
+                  </p>
+                </div>
+              )}
 
               <div className="flex items-center gap-3 pt-2">
                 <Checkbox
@@ -340,7 +431,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDelete(t.id)}
+                            onClick={() => handleDelete(t)}
                             className="p-1.5 hover:bg-muted text-muted-foreground hover:text-destructive transition-colors rounded-lg"
                             title="Удалить"
                             aria-label="Удалить шаблон"

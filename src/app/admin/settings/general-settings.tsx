@@ -18,15 +18,37 @@ import {
   Building2, 
   PhoneCall, 
   SlidersHorizontal,
-  Eye
+  Eye,
+  Copy,
+  Trash2,
+  HelpCircle,
+  AlertTriangle,
+  Check
 } from 'lucide-react';
 import { SystemSettings } from '@prisma/client';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface GeneralSettingsProps {
   settings: SystemSettings;
 }
 
 export function GeneralSettings({ settings }: GeneralSettingsProps) {
+  const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, fieldName: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldName);
+    toast.success(`Скопировано: ${text}`);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
   const [state, formAction, isPending] = useActionState(
     async (prevState: unknown, formData: FormData) => {
       try {
@@ -192,6 +214,9 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
             <div className="space-y-1 pr-4">
               <Label htmlFor="maintenanceMode" className="text-sm font-bold text-foreground cursor-pointer flex items-center gap-2">
                 Режим технического обслуживания (Maintenance)
+                <span title="Аварийный выключатель: при включении все клиенты мгновенно увидят экран техработ. Действие требует подтверждения.">
+                  <HelpCircle className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground cursor-help" />
+                </span>
               </Label>
               <p className="text-xs text-muted-foreground">
                 Закрывает витрину для клиентов и показывает специализированный экран техработ (статус узлов, сохранность балансов, экстренная связь с дежурным инженером в Telegram).
@@ -207,13 +232,61 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
                   id="maintenanceMode"
                   name="maintenanceMode"
                   checked={maintenance}
-                  onChange={(e) => setMaintenance(e.target.checked)}
+                  onChange={(e) => {
+                    if (!maintenance) {
+                      setIsMaintenanceModalOpen(true);
+                    } else {
+                      setMaintenance(false);
+                    }
+                  }}
                   className="sr-only peer"
                 />
                 <div className="w-12 h-6.5 bg-muted-foreground/40 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-background after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
               </label>
             </div>
           </div>
+
+          {/* Maintenance Mode Confirmation Modal */}
+          <Dialog open={isMaintenanceModalOpen} onOpenChange={setIsMaintenanceModalOpen}>
+            <DialogContent className="sm:max-w-md bg-card border-border">
+              <DialogHeader>
+                <div className="flex items-center gap-3 text-rose-500 pb-2">
+                  <AlertTriangle className="w-6 h-6" />
+                  <DialogTitle className="text-lg font-bold">Включение режима техработ</DialogTitle>
+                </div>
+                <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                  Вы собираетесь перевести платформу в режим технического обслуживания.
+                  <br /><br />
+                  • Витрина и мастер заказа станут временно недоступны для посетителей.<br />
+                  • Клиенты увидят экран информирования о плановых работах.<br />
+                  • Авторизованные администраторы сохранят доступ к панели управления.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="flex gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsMaintenanceModalOpen(false)}
+                >
+                  Отмена
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    setMaintenance(true);
+                    setIsMaintenanceModalOpen(false);
+                    toast.warning('Режим техработ активирован в форме. Нажмите «Сохранить все настройки» для применения.');
+                  }}
+                  className="font-bold gap-1.5"
+                >
+                  Включить техработы
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           <div className="p-3.5 rounded-xl border border-border/40 bg-card/60 text-xs text-muted-foreground space-y-1.5">
             <div className="flex items-center gap-2 font-semibold text-foreground">
@@ -243,7 +316,12 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Название сайта (Brand)</Label>
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              Название сайта (Brand)
+              <span title="Публичное название платформы. Используется в шапке, OpenGraph, title и email-уведомлениях.">
+                <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+              </span>
+            </Label>
             <Input
               name="siteName"
               value={siteName}
@@ -257,7 +335,12 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">SEO Описание (Meta Description)</Label>
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              SEO Описание (Meta Description)
+              <span title="Meta description для поисковых систем (120–160 символов). Отображается в выдаче Яндекса/Google и превью мессенджеров.">
+                <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+              </span>
+            </Label>
             <Input
               name="siteDescription"
               value={siteDescription}
@@ -276,7 +359,7 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
           <div className="space-y-2">
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Логотип платформы</Label>
             <div className="flex items-center gap-5 p-4 rounded-2xl border border-border bg-muted/10">
-              <div className="w-16 h-16 rounded-xl border border-border flex items-center justify-center bg-card overflow-hidden relative shadow-inner">
+              <div className="w-16 h-16 rounded-xl border border-border flex items-center justify-center bg-card overflow-hidden relative shadow-inner shrink-0">
                 {logoUrl ? (
                   <img src={logoUrl} alt="Logo" className="w-full h-full object-contain p-1.5" />
                 ) : (
@@ -288,7 +371,7 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
                   </div>
                 )}
               </div>
-              <div className="flex-1 space-y-1.5">
+              <div className="flex-1 space-y-1.5 min-w-0">
                 <input
                   type="file"
                   id="logo-file"
@@ -297,12 +380,42 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
                   onChange={(e) => handleBrandingUpload(e, 'logo')}
                   disabled={logoUploading}
                 />
-                <label
-                  htmlFor="logo-file"
-                  className="inline-flex items-center justify-center rounded-xl px-3.5 py-2 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all cursor-pointer shadow-sm"
-                >
-                  Загрузить лого
-                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label
+                    htmlFor="logo-file"
+                    className="inline-flex items-center justify-center rounded-xl px-3.5 py-2 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all cursor-pointer shadow-sm"
+                  >
+                    Загрузить лого
+                  </label>
+                  {logoUrl && (
+                    <>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(logoUrl, 'logo')}
+                        className="h-8 px-2.5 text-xs gap-1"
+                        title="Скопировать URL логотипа"
+                      >
+                        {copiedField === 'logo' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span className="hidden sm:inline">Копировать URL</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setLogoUrl(null);
+                          toast.info('Логотип удален (нажмите Сохранить для подтверждения)');
+                        }}
+                        className="h-8 px-2.5 text-xs text-rose-500 hover:text-rose-600 gap-1"
+                        title="Удалить логотип"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </>
+                  )}
+                </div>
                 <p className="text-[10px] text-muted-foreground">PNG, SVG, WEBP до 2 МБ</p>
               </div>
             </div>
@@ -311,7 +424,7 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
           <div className="space-y-2">
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Фавикон браузера</Label>
             <div className="flex items-center gap-5 p-4 rounded-2xl border border-border bg-muted/10">
-              <div className="w-16 h-16 rounded-xl border border-border flex items-center justify-center bg-card overflow-hidden relative shadow-inner">
+              <div className="w-16 h-16 rounded-xl border border-border flex items-center justify-center bg-card overflow-hidden relative shadow-inner shrink-0">
                 {faviconUrl ? (
                   <img src={faviconUrl} alt="Favicon" className="w-8 h-8 object-contain" />
                 ) : (
@@ -323,7 +436,7 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
                   </div>
                 )}
               </div>
-              <div className="flex-1 space-y-1.5">
+              <div className="flex-1 space-y-1.5 min-w-0">
                 <input
                   type="file"
                   id="favicon-file"
@@ -332,12 +445,42 @@ export function GeneralSettings({ settings }: GeneralSettingsProps) {
                   onChange={(e) => handleBrandingUpload(e, 'favicon')}
                   disabled={faviconUploading}
                 />
-                <label
-                  htmlFor="favicon-file"
-                  className="inline-flex items-center justify-center rounded-xl px-3.5 py-2 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all cursor-pointer shadow-sm"
-                >
-                  Загрузить иконку
-                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label
+                    htmlFor="favicon-file"
+                    className="inline-flex items-center justify-center rounded-xl px-3.5 py-2 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all cursor-pointer shadow-sm"
+                  >
+                    Загрузить иконку
+                  </label>
+                  {faviconUrl && (
+                    <>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(faviconUrl, 'favicon')}
+                        className="h-8 px-2.5 text-xs gap-1"
+                        title="Скопировать URL фавикона"
+                      >
+                        {copiedField === 'favicon' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span className="hidden sm:inline">Копировать URL</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setFaviconUrl(null);
+                          toast.info('Фавикон удален (нажмите Сохранить для подтверждения)');
+                        }}
+                        className="h-8 px-2.5 text-xs text-rose-500 hover:text-rose-600 gap-1"
+                        title="Удалить фавикон"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </>
+                  )}
+                </div>
                 <p className="text-[10px] text-muted-foreground">ICO, SVG, PNG до 500 КБ</p>
               </div>
             </div>

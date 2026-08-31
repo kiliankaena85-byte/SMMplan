@@ -141340,7 +141340,7 @@ async function runPendingCheckTTLSweep() {
           where: { id: order.id, status: "PENDING_CHECK" },
           data: {
             status: "ERROR",
-            error: `\u0410\u0432\u0442\u043E\u043E\u0442\u043C\u0435\u043D\u0430: \u0437\u0430\u043A\u0430\u0437 \u0437\u0430\u0432\u0438\u0441 \u0432 PENDING_CHECK \u0431\u043E\u043B\u0435\u0435 ${PENDING_CHECK_TTL_HOURS}\u0447`,
+            error: `\u0417\u0430\u043A\u0430\u0437 \u043E\u0442\u043C\u0435\u043D\u0451\u043D \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u043E\u043C (\u0441\u0442\u0430\u0442\u0443\u0441: ${statusFromProvider || "error"})`,
             updatedAt: /* @__PURE__ */ new Date()
           }
         });
@@ -141354,7 +141354,7 @@ async function runPendingCheckTTLSweep() {
               tx,
               order.userId,
               Number(order.charge),
-              `\u0410\u0432\u0442\u043E-\u0432\u043E\u0437\u0432\u0440\u0430\u0442: \u0437\u0430\u043A\u0430\u0437 #${order.numericId} \u0437\u0430\u0432\u0438\u0441 \u0432 PENDING_CHECK`,
+              `\u0410\u0432\u0442\u043E-\u0432\u043E\u0437\u0432\u0440\u0430\u0442: \u0437\u0430\u043A\u0430\u0437 #${order.numericId} \u043E\u0442\u043C\u0435\u043D\u0451\u043D \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u043E\u043C`,
               { idempotencyKey: refundKey }
             );
           }

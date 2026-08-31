@@ -27,6 +27,14 @@ import {
 import type { ProviderProxyWithUsage, ProxyHealthSummary, ProxyProtocol, ProxyCategory } from '@/types/provider-proxy';
 import { GEO_OPTIONS, PROXY_PROTOCOL_LABELS } from '@/types/provider-proxy';
 import type { Provider } from '@prisma/client';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface FormData {
   label: string;
@@ -81,6 +89,7 @@ export function ProviderProxyManager({ providers = [] }: Props) {
   const [expandedProxyId, setExpandedProxyId] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState('');
   const [testUrl, setTestUrl] = useState('https://httpbin.org/ip');
+  const [proxyToDelete, setProxyToDelete] = useState<{ id: string; label: string } | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -142,7 +151,14 @@ export function ProviderProxyManager({ providers = [] }: Props) {
   };
 
   const handleDelete = (id: string, label: string) => {
-    if (!confirm(`Удалить прокси "${label}"?\nВсе привязанные провайдеры будут переведены на прямое подключение.`)) return;
+    setProxyToDelete({ id, label });
+  };
+
+  const confirmDeleteProxy = () => {
+    if (!proxyToDelete) return;
+    const { id } = proxyToDelete;
+    setProxyToDelete(null);
+
     startTransition(async () => {
       const res = await deleteProviderProxyAction(id);
       if (res.success) {
@@ -272,6 +288,42 @@ export function ProviderProxyManager({ providers = [] }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Proxy Deletion Confirmation Dialog */}
+      <Dialog open={!!proxyToDelete} onOpenChange={(open) => !open && setProxyToDelete(null)}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <div className="flex items-center gap-3 text-rose-500 pb-2">
+              <AlertTriangle className="w-6 h-6" />
+              <DialogTitle className="text-lg font-bold">Удаление прокси-сервера</DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              Вы уверены, что хотите удалить прокси <strong className="text-foreground">«{proxyToDelete?.label}»</strong>?
+              <br /><br />
+              ⚠️ Все провайдеры услуг, привязанные к данному прокси, будут автоматически переведены на прямое подключение без защиты прокси.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setProxyToDelete(null)}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={confirmDeleteProxy}
+              className="font-bold gap-1.5"
+            >
+              Удалить прокси
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* ── HEALTH SUMMARY ── */}
       {health && (
         <Card className="rounded-3xl border border-border/80 shadow-sm bg-card p-6">

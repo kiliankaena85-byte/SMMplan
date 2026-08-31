@@ -27,6 +27,14 @@ import {
   Activity
 } from 'lucide-react';
 import { SystemSettings } from '@prisma/client';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 import { 
   getTelegramBotDiagnosticsAction, 
@@ -122,7 +130,10 @@ export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
     loadEnterpriseConfig();
   }, [fetchDiagnostics]);
 
-  const handleResetWebhook = () => {
+  const [isResetWebhookModalOpen, setIsResetWebhookModalOpen] = useState(false);
+
+  const executeResetWebhook = () => {
+    setIsResetWebhookModalOpen(false);
     startTransitionReset(async () => {
       try {
         const res = await resetTelegramWebhookAction();
@@ -193,7 +204,7 @@ export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
               type="button"
               intent="outline"
               size="sm"
-              onClick={handleResetWebhook}
+              onClick={() => setIsResetWebhookModalOpen(true)}
               disabled={isPendingReset}
               className="font-bold text-xs h-9 px-3.5 cursor-pointer gap-1.5 border-border hover:bg-muted/40"
               title="Удаляет вебхуки и сбрасывает подвисшие апдейты в Telegram"
@@ -201,6 +212,43 @@ export function TelegramBotSettings({ settings }: TelegramBotSettingsProps) {
               {isPendingReset ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5 text-amber-400" />}
               <span>Сбросить очередь</span>
             </Button>
+
+            {/* Reset Webhook Confirmation Modal */}
+            <Dialog open={isResetWebhookModalOpen} onOpenChange={setIsResetWebhookModalOpen}>
+              <DialogContent className="sm:max-w-md bg-card border-border">
+                <DialogHeader>
+                  <div className="flex items-center gap-3 text-amber-500 pb-2">
+                    <AlertTriangle className="w-6 h-6" />
+                    <DialogTitle className="text-lg font-bold">Сброс очереди Telegram</DialogTitle>
+                  </div>
+                  <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                    Действие вызовет метод <code>deleteWebhook(&#123; drop_pending_updates: true &#125;)</code> на серверах Telegram.
+                    <br /><br />
+                    • Все зависшие очереди входящих сообщений будут очищены.<br />
+                    • Активные вебхуки будут удалены в пользу Long Polling демона.<br />
+                    • Рекомендуется применять при ошибках <code>409 Conflict</code>.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="flex gap-2 pt-4">
+                  <Button
+                    type="button"
+                    intent="secondary"
+                    size="sm"
+                    onClick={() => setIsResetWebhookModalOpen(false)}
+                  >
+                    Отмена
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={executeResetWebhook}
+                    className="font-bold bg-amber-600 hover:bg-amber-700 text-white gap-1.5"
+                  >
+                    Сбросить очередь
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             <a
               href={`https://t.me/${botUsername}`}
