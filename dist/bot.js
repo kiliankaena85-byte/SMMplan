@@ -10594,7 +10594,7 @@ var init_wallet_ops = __esm({
         if (rawCents <= BigInt(0) || rawCents > MAX_SINGLE_CHARGE_CENTS) {
           throw new WalletInvalidAmountError("Charge");
         }
-        const { idempotencyKey, adminId, tenantId } = opts || {};
+        const { idempotencyKey, adminId, tenantId, transactionType: txTypeOverride } = opts || {};
         const user = await tx.user.findUnique({
           where: { id: userId },
           select: { id: true, balance: true, tenantId: true }
@@ -10627,7 +10627,7 @@ var init_wallet_ops = __esm({
               reason,
               status: "APPROVED",
               idempotencyKey,
-              transactionType: "PAYMENT"
+              transactionType: txTypeOverride ?? "ORDER_CHARGE"
             }
           });
           const updatedUserBatch = await tx.user.updateMany({
@@ -10675,7 +10675,7 @@ var init_wallet_ops = __esm({
         if (rawCents <= BigInt(0) || rawCents > MAX_SINGLE_CREDIT_CENTS) {
           throw new WalletInvalidAmountError("Credit");
         }
-        const { idempotencyKey, adminId, tenantId } = opts || {};
+        const { idempotencyKey, adminId, tenantId, transactionType: txTypeOverride } = opts || {};
         const user = await tx.user.findUnique({
           where: { id: userId },
           select: { id: true, tenantId: true }
@@ -10707,7 +10707,7 @@ var init_wallet_ops = __esm({
               reason,
               status: "APPROVED",
               idempotencyKey,
-              transactionType: "PAYMENT"
+              transactionType: txTypeOverride ?? "TOPUP"
             }
           });
           const updatedUser = await tx.user.update({
@@ -10738,7 +10738,7 @@ var init_wallet_ops = __esm({
         if (rawCents === BigInt(0)) {
           throw new WalletInvalidAmountError("Adjustment");
         }
-        const { idempotencyKey, adminId, tenantId } = opts || {};
+        const { idempotencyKey, adminId, tenantId, transactionType: txTypeOverride } = opts || {};
         if (tenantId) {
           const user = await tx.user.findUnique({
             where: { id: userId },
@@ -10770,7 +10770,7 @@ var init_wallet_ops = __esm({
             reason,
             status: "APPROVED",
             idempotencyKey,
-            transactionType: "COMPENSATION"
+            transactionType: txTypeOverride ?? "ADJUSTMENT"
           }
         });
         const updatedUser = await tx.user.update({
@@ -10788,7 +10788,7 @@ var init_wallet_ops = __esm({
         if (rawCents <= BigInt(0)) {
           throw new WalletInvalidAmountError("Refund");
         }
-        const { idempotencyKey, adminId, tenantId } = opts || {};
+        const { idempotencyKey, adminId, tenantId, transactionType: txTypeOverride } = opts || {};
         if (tenantId) {
           const user = await tx.user.findUnique({
             where: { id: userId },
@@ -10823,7 +10823,8 @@ var init_wallet_ops = __esm({
             reason,
             status: "APPROVED",
             idempotencyKey,
-            transactionType: "REFUND"
+            // adminId present → ручная отмена заказа (ORDER_CANCEL), иначе авто-возврат (REFUND)
+            transactionType: txTypeOverride ?? (adminId ? "ORDER_CANCEL" : "REFUND")
           }
         });
         const updatedUser = await tx.user.update({
@@ -10872,35 +10873,23 @@ var init_wallet_ops = __esm({
       },
       /**
        * Release or clear quarantine balance for a user.
+       *
+       * CONTRACT: quarantineRelease ONLY decrements quarantineBalance.
+       * It does NOT create a new LedgerEntry — the original QUARANTINE entry
+       * in the journal (now APPROVED or REJECTED) IS the audit record.
+       * Creating another entry here would produce duplicates in financial reports.
        */
       async quarantineRelease(tx, userId, amountCents, opts) {
         const rawCents = typeof amountCents === "bigint" ? amountCents : BigInt(amountCents);
         const absAmount = rawCents < BigInt(0) ? -rawCents : rawCents;
-        const { idempotencyKey, adminId, tenantId, reason } = opts || {};
         const updated = await tx.user.updateMany({
           where: { id: userId, quarantineBalance: { gte: absAmount } },
           data: { quarantineBalance: { decrement: absAmount } }
         });
         if (updated.count === 0) {
-          console.error(`[WalletOps.quarantineRelease] CRITICAL: Cannot release ${absAmount} kopecks from quarantine for user ${userId} \u2014 insufficient quarantine balance. Manual intervention required.`);
+          console.error(`[WalletOps.quarantineRelease] CRITICAL: Cannot release ${absAmount} kopecks from quarantine for user ${userId} \u2014 insufficient quarantine balance.`);
           throw new Error(`Quarantine release failed: insufficient quarantine balance (requested: ${absAmount}, user: ${userId}). Manual review required.`);
         }
-        const user = await tx.user.findUnique({
-          where: { id: userId },
-          select: { tenantId: true }
-        });
-        return await tx.ledgerEntry.create({
-          data: {
-            userId,
-            tenantId: tenantId || user?.tenantId || "smmplan",
-            adminId,
-            amount: -absAmount,
-            reason: reason || "\u0421\u043D\u044F\u0442\u0438\u0435 / \u0440\u0430\u0437\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u043A\u0430 \u0441\u0440\u0435\u0434\u0441\u0442\u0432 \u0438\u0437 \u043A\u0430\u0440\u0430\u043D\u0442\u0438\u043D\u0430",
-            status: "APPROVED",
-            idempotencyKey,
-            transactionType: "COMPENSATION"
-          }
-        });
       }
     };
   }
