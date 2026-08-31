@@ -190,7 +190,7 @@ Output JSON: { "domain": "UX_UI", "verdict": "APPROVED"|"REQUIRES_GUARD"|"REJECT
       contextData
     ),
     callModel(
-      ['cohere/north-mini-code:free', 'minimax/minimax-m3:free', 'nvidia/nemotron-3.5-lightning:free'],
+      ['poolside/laguna-s-2.1:free', 'cohere/north-mini-code:free', 'minimax/minimax-m3:free', 'nvidia/nemotron-3.5-lightning:free'],
       codePrompt,
       contextData
     ),

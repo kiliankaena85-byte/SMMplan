@@ -471,6 +471,7 @@ Output valid JSON matching RedTeamAttackSchema.`;
 
   const redRawResponse = await callOpenRouterWithFallback({
     models: [
+      'poolside/laguna-s-2.1:free',
       'minimax/minimax-m3:free',
       'cohere/north-mini-code:free',
       'nvidia/nemotron-3.5-lightning:free',
@@ -495,7 +496,7 @@ Output valid JSON matching RedTeamAttackSchema.`;
   // --------------------------------------------------------------------------
   // ROUND 2: BLUE TEAM DEFENSE
   // --------------------------------------------------------------------------
-  console.log('\n\x1b[1m\x1b[34m[ROUND 2/3] 🔵 Blue Team Defense (Cohere North Mini Code / Ling Fin / Nemotron)...\x1b[0m');
+  console.log('\n\x1b[1m\x1b[34m[ROUND 2/3] 🔵 Blue Team Defense (Laguna S / Cohere North Mini / Ling Fin / Nemotron)...\x1b[0m');
   const r2Start = Date.now();
 
   const blueSystemPrompt = `You are the Principal Systems Architect & Production Defense Lead (Blue Team) for OmniSMM 1.0.
@@ -512,6 +513,7 @@ Output valid JSON matching BlueTeamDefenseSchema.`;
 
   const blueRawResponse = await callOpenRouterWithFallback({
     models: [
+      'poolside/laguna-s-2.1:free',
       'cohere/north-mini-code:free',
       'minimax/minimax-m2.7:free',
       'inclusionai/ling-3.0-flash-fin:free',
