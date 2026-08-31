@@ -742,7 +742,7 @@ export async function runPendingCheckTTLSweep(): Promise<void> {
           where: { id: order.id, status: 'PENDING_CHECK' },
           data: {
             status: 'ERROR',
-            error: `Автоотмена: заказ завис в PENDING_CHECK более ${PENDING_CHECK_TTL_HOURS}ч`,
+            error: `Заказ отменён провайдером (статус: ${statusFromProvider || 'error'})`,
             updatedAt: new Date()
           }
         });
@@ -759,7 +759,7 @@ export async function runPendingCheckTTLSweep(): Promise<void> {
               tx,
               order.userId,
               Number(order.charge),
-              `Авто-возврат: заказ #${order.numericId} завис в PENDING_CHECK`,
+              `Авто-возврат: заказ #${order.numericId} отменён провайдером`,
               { idempotencyKey: refundKey }
             );
           }

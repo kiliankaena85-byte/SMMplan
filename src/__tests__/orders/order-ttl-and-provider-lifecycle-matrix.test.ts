@@ -334,7 +334,7 @@ describe('🛡️ Comprehensive Order TTL & Provider Lifecycle Matrix (Real E2E)
       expect.anything(),
       'user_8',
       3000,
-      expect.stringContaining('завис в PENDING_CHECK'),
+      expect.stringContaining('отменён провайдером'),
       { idempotencyKey: 'refund-pending-check-ttl-ord_canceled_pending_check' }
     );
   });
