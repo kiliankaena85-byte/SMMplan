@@ -49,6 +49,7 @@ export default defineConfig({
       'src/__tests__/security/optimization-security-and-rbac.test.ts',
       'src/__tests__/security/swarm-optimization-premortem-security.test.ts',
       'src/__tests__/security/pentest-owasp-defense-invariants.test.ts',
+      'src/__tests__/security/owasp-qa-deep-adversarial-audit.test.ts',
       'src/__tests__/settings/settings-cluster-navigation.test.ts',
     ],
   }
