@@ -115,11 +115,14 @@ export async function POST(req: NextRequest) {
     }
 
     // --- SECURITY PROTOCOL (YooKassa Official Specification): ---
-    // YooKassa delivers webhooks from official IP ranges (verified above) and does not send HMAC signatures by default.
-    // 1. If an optional custom HMAC secret is configured AND a signature header is provided, verify cryptographic HMAC.
-    // 2. If signature is provided but fails, reject immediately.
-    // 3. Authenticity is double-checked by paymentService.confirmPayment directly querying https://api.yookassa.ru/v3/payments/{id}.
-    if (expectedSecret && providedSignature) {
+    // YooKassa delivers webhooks from official IP ranges (verified above) and optionally HMAC signatures.
+    // Fail-Closed Guard:
+    if (providedSignature) {
+      if (!expectedSecret) {
+        console.error('[YooKassa] Webhook signature provided but secret is not configured on server (Fail-Closed)');
+        return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
+      }
+
       const crypto = (await import('crypto')).default;
       const expectedSig = crypto
         .createHmac('sha256', expectedSecret)
@@ -149,6 +152,10 @@ export async function POST(req: NextRequest) {
         });
         return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
       }
+    } else if (expectedSecret) {
+      // Secret is configured but signature header is missing -> Fail-Closed reject
+      console.error('[YooKassa] Missing signature header when webhook secret is configured');
+      return NextResponse.json({ error: 'Missing webhook signature' }, { status: 401 });
     }
 
     const rawBody: YooKassaWebhookPayload = JSON.parse(rawText);
