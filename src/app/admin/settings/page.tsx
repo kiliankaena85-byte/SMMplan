@@ -27,7 +27,8 @@ import { SettingsProvider } from '@/lib/settings';
 import { SystemHealthOverview } from '@/components/admin/settings/system-health-overview';
 import { OnboardingReadinessBar } from '@/components/admin/settings/onboarding-readiness-bar';
 import { SettingsSearchCommand } from '@/components/admin/settings/settings-search-command';
-import { SettingsClusterTabs, resolveSettingsNavigation } from '@/components/admin/settings/settings-cluster-tabs';
+import { SettingsClusterTabs } from '@/components/admin/settings/settings-cluster-tabs';
+import { resolveSettingsNavigation } from '@/components/admin/settings/settings-navigation-config';
 import { AdminAuditLog, StaffRole, StaffPermission, SupportTemplate, SystemSettings, Provider } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';

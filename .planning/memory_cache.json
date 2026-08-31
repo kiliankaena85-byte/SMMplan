@@ -132,6 +132,18 @@
         "owasp",
         "exactmath"
       ]
+    },
+    {
+      "title": "OmniSMM Admin Settings Smart Hybrid Ergonomics Redesign",
+      "context": "Admin felt visual overload and disorientation from 8 cluttered tabs.",
+      "decision": "Implemented Smart Hybrid Navigation: 4-step onboarding readiness bar (0-100%), 3 master clusters, and Ctrl+K search command.",
+      "rationale": "Reduces cognitive load, adheres to Miller Law, improves safety with Dialog confirmations.",
+      "tags": [
+        "admin",
+        "ux",
+        "settings",
+        "ergonomics"
+      ]
     }
   ]
 }
