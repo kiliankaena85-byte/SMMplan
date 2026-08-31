@@ -16,7 +16,8 @@ import {
   updateSupportLimit, 
   createStaffRoleAction, 
   updateStaffRolePermissionsAction, 
-  deleteStaffRoleAction 
+  deleteStaffRoleAction,
+  removeStaffMemberAction,
 } from '@/actions/admin/team';
 import { updateUserRole, updateStaffGeminiApiKeyAction } from '@/actions/admin/settings';
 import { toast } from 'sonner';
@@ -28,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, ShieldAlert, UserPlus, Loader2, Trash2, Plus, Check, Lock, ShieldCheck, AlertTriangle, HelpCircle } from 'lucide-react';
+import { Search, ShieldAlert, UserPlus, UserMinus, Loader2, Trash2, Plus, Check, Lock, ShieldCheck, AlertTriangle, HelpCircle } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 import { StaffRole, StaffPermission } from '@prisma/client';
 import {
@@ -231,6 +232,7 @@ export function TeamManagement({
   };
 
   const [roleToDelete, setRoleToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [staffToRemove, setStaffToRemove] = useState<{ id: string; email: string; role: string } | null>(null);
 
   const confirmDeleteRole = () => {
     if (!roleToDelete) return;
@@ -252,6 +254,31 @@ export function TeamManagement({
 
   const handleDeleteRole = (roleId: string, roleName: string) => {
     setRoleToDelete({ id: roleId, name: roleName });
+  };
+
+  const confirmRemoveStaff = () => {
+    if (!staffToRemove) return;
+    const { id, email } = staffToRemove;
+    setStaffToRemove(null);
+
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.append('userId', id);
+
+      const res = await removeStaffMemberAction(formData);
+      if (res && res.success) {
+        toast.success(`Сотрудник ${email} разжалован до роли USER`);
+      } else {
+        toast.error((res && res.error) || 'Ошибка при разжаловании');
+      }
+    });
+  };
+
+  const canDemote = (targetRole: string, targetId: string): boolean => {
+    if (targetId === (undefined as unknown as string)) return false;
+    if (!isOwner && ['OWNER', 'ADMIN'].includes(targetRole)) return false;
+    if (!['OWNER', 'ADMIN'].includes(currentAdminRole || '')) return false;
+    return true;
   };
 
   return (
@@ -287,6 +314,49 @@ export function TeamManagement({
               className="font-bold gap-1.5"
             >
               Удалить роль
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Staff Demote Confirmation Dialog */}
+      <Dialog open={!!staffToRemove} onOpenChange={(open) => !open && setStaffToRemove(null)}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <div className="flex items-center gap-3 text-amber-500 pb-2">
+              <UserMinus className="w-6 h-6" />
+              <DialogTitle className="text-lg font-bold">Разжаловать сотрудника</DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              Вы уверены, что хотите разжаловать{' '}
+              <strong className="text-foreground font-mono">{staffToRemove?.email}</strong>?
+              <br /><br />
+              🔻 Текущая роль: <strong className="text-foreground">{staffToRemove?.role}</strong>
+              <br />
+              ✅ Новая роль: <strong className="text-foreground">USER</strong> (обычный клиент)
+              <br /><br />
+              Сотрудник немедленно потеряет доступ к панели управления. Аккаунт и история заказов сохраняются.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setStaffToRemove(null)}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={confirmRemoveStaff}
+              disabled={isPending}
+              className="font-bold gap-1.5"
+            >
+              {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserMinus className="w-3 h-3" />}
+              Разжаловать
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -371,10 +441,11 @@ export function TeamManagement({
             <Table aria-label="Список активных членов команды саппорта" className="w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="px-4 py-3 text-xs font-bold w-[22%]">EMAIL</TableHead>
-                  <TableHead className="px-4 py-3 text-xs font-bold w-[38%]">НАЗНАЧЕНИЕ РОЛИ И ПРАВ</TableHead>
-                  <TableHead className="px-4 py-3 text-xs font-bold w-[22%]">GEMINI AI КЛЮЧ</TableHead>
-                  <TableHead className="px-4 py-3 text-xs font-bold text-right w-[18%]">ДНЕВНОЙ ЛИМИТ (₽)</TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold w-[20%]">EMAIL</TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold w-[35%]">НАЗНАЧЕНИЕ РОЛИ И ПРАВ</TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold w-[20%]">GEMINI AI КЛЮЧ</TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold text-right w-[15%]">ДНЕВНОЙ ЛИМИТ (₽)</TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold text-center w-[10%]">ДЕЙСТВИЯ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -485,6 +556,20 @@ export function TeamManagement({
                             />
                             <SubmitButton label="Сохранить" className="h-9 px-2 min-w-[70px]" />
                           </form>
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-center">
+                          {canDemote(u.role, u.id) && (
+                            <button
+                              type="button"
+                              onClick={() => setStaffToRemove({ id: u.id, email: u.email, role: u.role })}
+                              disabled={isPending}
+                              title={`Разжаловать ${u.email}`}
+                              aria-label={`Разжаловать ${u.email}`}
+                              className="h-8 w-8 flex items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 hover:border-amber-500/30 transition-colors disabled:opacity-40 cursor-pointer mx-auto"
+                            >
+                              <UserMinus className="w-4 h-4" />
+                            </button>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
@@ -640,6 +725,19 @@ export function TeamManagement({
                         <SubmitButton label="Сохранить" className="h-10 text-xs" />
                       </div>
                     </form>
+
+                    {/* Mobile Demote Button */}
+                    {canDemote(u.role, u.id) && (
+                      <button
+                        type="button"
+                        onClick={() => setStaffToRemove({ id: u.id, email: u.email, role: u.role })}
+                        disabled={isPending}
+                        className="w-full flex items-center justify-center gap-2 h-10 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 text-xs font-bold transition-colors disabled:opacity-40 cursor-pointer"
+                      >
+                        <UserMinus className="w-4 h-4" />
+                        Разжаловать сотрудника
+                      </button>
+                    )}
                   </div>
                 );
               })

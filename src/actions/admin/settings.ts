@@ -15,12 +15,14 @@ import { getClientIp } from '@/utils/ip';
 
 // ── User Role Update ──
 export async function updateUserRole(formData: FormData) {
-  const result = await requireOwnerPermission(async (admin) => {
+  return requireOwnerPermission(async (admin) => {
     const parsed = roleSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) return { success: false as const, error: 'Некорректные данные' };
     const { userId: targetUserId, role: newRole, staffRoleId } = parsed.data;
 
-    if (targetUserId === admin.id) throw new Error('Cannot change own role');
+    if (targetUserId === admin.id) {
+      return { success: false as const, error: 'Нельзя изменить собственную роль' };
+    }
 
     // SECURITY: Only OWNER can assign high-level administrative roles
     if (['ADMIN', 'OWNER'].includes(newRole) && admin.role !== 'OWNER') {
@@ -51,14 +53,9 @@ export async function updateUserRole(formData: FormData) {
       ipAddress
     });
 
-
     revalidatePath('/admin/settings');
     return { success: true as const };
   });
-
-  if (result && typeof result === 'object' && 'success' in result && !result.success) {
-    throw new Error(result.error);
-  }
 }
 
 

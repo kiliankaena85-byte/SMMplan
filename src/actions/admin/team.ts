@@ -228,3 +228,67 @@ export async function deleteStaffRoleAction(formData: FormData) {
     return { success: true as const };
   });
 }
+
+// ── Remove Staff Member (Demote to USER) ──
+const removeStaffSchema = z.object({
+  userId: z.string().min(1, 'userId обязателен'),
+});
+
+export async function removeStaffMemberAction(formData: FormData) {
+  return requireStaffPermission('settings', 'edit', async (admin) => {
+    const parsed = removeStaffSchema.safeParse({ userId: formData.get('userId') });
+    if (!parsed.success) {
+      return { success: false as const, error: 'Некорректные параметры' };
+    }
+
+    const { userId } = parsed.data;
+
+    // SECURITY: Cannot demote yourself
+    if (userId === admin.id) {
+      return { success: false as const, error: 'Нельзя разжаловать самого себя' };
+    }
+
+    const target = await db.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, role: true, staffRoleId: true },
+    });
+
+    if (!target) {
+      return { success: false as const, error: 'Пользователь не найден' };
+    }
+
+    // SECURITY: Grant Ceiling — ADMIN cannot demote OWNERs or other ADMINs
+    if (['OWNER', 'ADMIN'].includes(target.role) && admin.role !== 'OWNER') {
+      return { success: false as const, error: 'Только Владелец может разжаловать Администраторов и Владельцев' };
+    }
+
+    // SECURITY: Only OWNER or ADMIN can demote staff
+    if (!['OWNER', 'ADMIN'].includes(admin.role)) {
+      return { success: false as const, error: 'Недостаточно прав для разжалования сотрудника' };
+    }
+
+    const ipAddress = await getClientIp('unknown');
+
+    await db.user.update({
+      where: { id: userId },
+      data: {
+        role: 'USER',
+        staffRoleId: null,
+      },
+    });
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'STAFF_DEMOTED',
+      target: userId,
+      targetType: 'USER',
+      oldValue: { role: target.role, staffRoleId: target.staffRoleId, email: target.email },
+      newValue: { role: 'USER', staffRoleId: null },
+      ipAddress,
+    });
+
+    revalidatePath('/admin/settings');
+    return { success: true as const };
+  });
+}
