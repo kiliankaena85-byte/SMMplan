@@ -133,8 +133,8 @@ export class ProviderService {
    * In test mode, redirects ALL provider traffic to the internal mock-provider API.
    * This protects real provider balance from being charged during QA testing.
    */
-  async getWorkerProviderInstance(config: Provider): Promise<BaseProvider> {
-    const isMockProvider = await SettingsManager.isMockProviderEnabled();
+  async getWorkerProviderInstance(config: Provider, tenantId?: string): Promise<BaseProvider> {
+    const isMockProvider = await SettingsManager.isMockProviderEnabled(tenantId);
     if (isMockProvider) {
       const mockKey = process.env.MOCK_PROVIDER_KEY || 'mock_master_key_2026';
       const port = process.env.PORT || '3000';

@@ -72307,32 +72307,25 @@ var init_settings = __esm({
       static async getContactAndLegalSettings(tenantId) {
         const activeTenantId = tenantId || await this.getTenantId();
         const settings = await this.get(activeTenantId);
-        let defaultSiteName = "SMMplan";
-        let defaultDomain = "smmplan.pro";
-        let defaultTgBot = process.env.TELEGRAM_SUPPORT_BOT || process.env.TELEGRAM_BOT_USERNAME || "smmplan_support_bot";
-        let defaultTgChannel = "smmplan_news";
-        if (activeTenantId === "flux" || activeTenantId === "lovable") {
-          defaultSiteName = "SMMflux";
-          defaultDomain = "smmflux.ru";
-          defaultTgBot = process.env.FLUX_TELEGRAM_BOT || "smmflux_support_bot";
-          defaultTgChannel = "smmflux_news";
-        }
+        const isFlux = activeTenantId === "flux" || activeTenantId === "lovable";
+        const defaultSiteName = isFlux ? "SMMflux" : "SMMplan";
+        const defaultDomain = isFlux ? "smmflux.ru" : "smmplan.pro";
         return {
           SITE_NAME: settings.siteName || defaultSiteName,
           SITE_DESCRIPTION: settings.siteDescription || "",
           SUPPORT_EMAIL: settings.contactSupportEmail || `support@${defaultDomain}`,
           PRIVACY_EMAIL: settings.contactPrivacyEmail || `privacy@${defaultDomain}`,
-          TELEGRAM_SUPPORT_BOT: settings.contactTelegramBot || defaultTgBot,
-          TELEGRAM_SUPPORT_CHANNEL: settings.contactTelegramChannel || defaultTgChannel,
+          TELEGRAM_SUPPORT_BOT: settings.contactTelegramBot || "",
+          TELEGRAM_SUPPORT_CHANNEL: settings.contactTelegramChannel || "",
           WHATSAPP: settings.contactWhatsApp || "",
           VK: settings.contactVk || "",
           COMPANY_NAME: settings.legalCompanyName || defaultSiteName,
-          COMPANY_INN: settings.legalCompanyInn || "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0418\u041D\u041D",
-          COMPANY_OGRNIP: settings.legalCompanyOgrnip || "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u041E\u0413\u0420\u041D\u0418\u041F",
-          COMPANY_ADDRESS: settings.legalCompanyAddress || "\u0433. \u041C\u043E\u0441\u043A\u0432\u0430",
-          LEGAL_INN: settings.legalCompanyInn || "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0418\u041D\u041D",
-          LEGAL_OGRNIP: settings.legalCompanyOgrnip || "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u041E\u0413\u0420\u041D\u0418\u041F",
-          LEGAL_ADDRESS: settings.legalCompanyAddress || "\u0433. \u041C\u043E\u0441\u043A\u0432\u0430"
+          COMPANY_INN: settings.legalCompanyInn || "",
+          COMPANY_OGRNIP: settings.legalCompanyOgrnip || "",
+          COMPANY_ADDRESS: settings.legalCompanyAddress || "",
+          LEGAL_INN: settings.legalCompanyInn || "",
+          LEGAL_OGRNIP: settings.legalCompanyOgrnip || "",
+          LEGAL_ADDRESS: settings.legalCompanyAddress || ""
         };
       }
       /**
@@ -107168,8 +107161,8 @@ var init_provider_service = __esm({
        * In test mode, redirects ALL provider traffic to the internal mock-provider API.
        * This protects real provider balance from being charged during QA testing.
        */
-      async getWorkerProviderInstance(config) {
-        const isMockProvider = await SettingsManager.isMockProviderEnabled();
+      async getWorkerProviderInstance(config, tenantId) {
+        const isMockProvider = await SettingsManager.isMockProviderEnabled(tenantId);
         if (isMockProvider) {
           const mockKey = process.env.MOCK_PROVIDER_KEY || "mock_master_key_2026";
           const port = process.env.PORT || "3000";
@@ -138555,12 +138548,89 @@ var init_cbr_rate_service = __esm({
     init_settings();
     CBRRateService = class {
       static {
-        this.CBR_API_URL = "https://www.cbr-xml-daily.ru/daily_json.js";
+        this.CBR_OFFICIAL_XML_URL = "https://www.cbr.ru/scripts/XML_daily.asp";
+      }
+      static {
+        this.CBR_JSON_MIRROR_URL = "https://www.cbr-xml-daily.ru/daily_json.js";
+      }
+      static {
+        this.GLOBAL_FX_API_URL = "https://open.er-api.com/v6/latest/USD";
       }
       static {
         this.SPREAD_MULTIPLIER = 1.03;
       }
       // +3% Margin Safety Net (PB-003)
+      /**
+       * Fetches raw currency rates from CBR with multi-tiered fallback.
+       */
+      static async fetchRawRates() {
+        const parseVal = (str) => parseFloat(str.replace(",", "."));
+        try {
+          const response = await fetch(this.CBR_OFFICIAL_XML_URL, {
+            headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) OmniSMM/1.0" },
+            signal: AbortSignal.timeout(6e3),
+            next: { revalidate: 3600 }
+          });
+          if (response.ok) {
+            const text = await response.text();
+            const usdMatch = text.match(/<Valute ID="R01235">[\s\S]*?<Value>([\d,]+)<\/Value>/);
+            const eurMatch = text.match(/<Valute ID="R01239">[\s\S]*?<Value>([\d,]+)<\/Value>/);
+            const uahMatch = text.match(/<Valute ID="R01720">[\s\S]*?<Nominal>(\d+)<\/Nominal>[\s\S]*?<Value>([\d,]+)<\/Value>/);
+            const kztMatch = text.match(/<Valute ID="R01335">[\s\S]*?<Nominal>(\d+)<\/Nominal>[\s\S]*?<Value>([\d,]+)<\/Value>/);
+            const usd = usdMatch ? parseVal(usdMatch[1]) : null;
+            if (usd && !isNaN(usd) && usd > 0) {
+              const eur = eurMatch ? parseVal(eurMatch[1]) : null;
+              const uah = uahMatch ? parseVal(uahMatch[2]) / parseInt(uahMatch[1], 10) : null;
+              const kzt = kztMatch ? parseVal(kztMatch[2]) / parseInt(kztMatch[1], 10) : null;
+              return { usdRate: usd, eurRate: eur, uahRate: uah, kztRate: kzt, source: "CBR_OFFICIAL_XML" };
+            }
+          }
+        } catch (err) {
+          console.warn("[CBRRateService] Tier 1 (CBR Official XML) fetch error:", err instanceof Error ? err.message : String(err));
+        }
+        try {
+          const response = await fetch(this.CBR_JSON_MIRROR_URL, {
+            headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) OmniSMM/1.0" },
+            signal: AbortSignal.timeout(6e3),
+            next: { revalidate: 3600 }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            const usd = data?.Valute?.USD?.Value;
+            if (typeof usd === "number" && !isNaN(usd) && usd > 0) {
+              const eur = data?.Valute?.EUR?.Value ?? null;
+              const uahNominal = data?.Valute?.UAH?.Nominal || 10;
+              const uahVal = data?.Valute?.UAH?.Value;
+              const uah = uahVal ? uahVal / uahNominal : null;
+              const kztNominal = data?.Valute?.KZT?.Nominal || 100;
+              const kztVal = data?.Valute?.KZT?.Value;
+              const kzt = kztVal ? kztVal / kztNominal : null;
+              return { usdRate: usd, eurRate: eur, uahRate: uah, kztRate: kzt, source: "CBR_JSON_MIRROR" };
+            }
+          }
+        } catch (err) {
+          console.warn("[CBRRateService] Tier 2 (CBR JSON Mirror) fetch error:", err instanceof Error ? err.message : String(err));
+        }
+        try {
+          const response = await fetch(this.GLOBAL_FX_API_URL, {
+            signal: AbortSignal.timeout(6e3),
+            next: { revalidate: 3600 }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            const rub = data?.rates?.RUB;
+            if (typeof rub === "number" && !isNaN(rub) && rub > 0) {
+              const eur = data?.rates?.EUR ? 1 / data.rates.EUR : null;
+              const uah = data?.rates?.UAH ? rub / data.rates.UAH : null;
+              const kzt = data?.rates?.KZT ? rub / data.rates.KZT : null;
+              return { usdRate: rub, eurRate: eur, uahRate: uah, kztRate: kzt, source: "GLOBAL_FX_API" };
+            }
+          }
+        } catch (err) {
+          console.warn("[CBRRateService] Tier 3 (Global FX API) fetch error:", err instanceof Error ? err.message : String(err));
+        }
+        throw new Error("All exchange rate providers (CBR Official, Mirror, Global FX) are unreachable");
+      }
       /**
        * Fetches the latest USD, EUR, UAH, KZT exchange rates from CBR, applies a 3% safety spread, 
        * and updates SystemSettings & Redis FX cache. If network fails, leaves the old rate.
@@ -138573,24 +138643,16 @@ var init_cbr_rate_service = __esm({
           let eurRate = null;
           let uahRate = null;
           let kztRate = null;
+          let source = "CBR_OFFICIAL_XML";
           try {
-            const response = await fetch(this.CBR_API_URL, {
-              signal: AbortSignal.timeout(6e3),
-              next: { revalidate: 3600 }
-            });
-            if (response.ok) {
-              const data = await response.json();
-              usdRate = data?.Valute?.USD?.Value;
-              eurRate = data?.Valute?.EUR?.Value;
-              const uahNominal = data?.Valute?.UAH?.Nominal || 10;
-              const uahVal = data?.Valute?.UAH?.Value;
-              if (uahVal) uahRate = uahVal / uahNominal;
-              const kztNominal = data?.Valute?.KZT?.Nominal || 100;
-              const kztVal = data?.Valute?.KZT?.Value;
-              if (kztVal) kztRate = kztVal / kztNominal;
-            }
+            const fetched = await this.fetchRawRates();
+            usdRate = fetched.usdRate;
+            eurRate = fetched.eurRate;
+            uahRate = fetched.uahRate;
+            kztRate = fetched.kztRate;
+            source = fetched.source;
           } catch (err) {
-            console.warn("[CBRRateService] CBR JSON fetch error:", err instanceof Error ? err.message : String(err));
+            console.warn("[CBRRateService] Rate fetch error:", err instanceof Error ? err.message : String(err));
           }
           if (typeof usdRate !== "number" || isNaN(usdRate) || usdRate <= 0) {
             const existingRate = await SettingsManager.getExchangeRateUSD(tenantId);
@@ -143784,14 +143846,9 @@ var YooKassaGateway = class extends BasePaymentGateway {
     const isTestMode = await SettingsProvider.isTestMode() || Boolean(params.isTestMode) || SettingsProvider.isTestEnvironment();
     const isDummyKeys = !shopId || !secretKey || shopId.trim().length === 0 || secretKey.trim().length === 0;
     if (isDummyKeys) {
-      if (isTestMode) {
-        console.warn("[YooKassaGateway] Test Mode: Dummy keys detected, returning sandbox payment URL.");
-        return {
-          paymentUrl: params.successUrl || `${await getBaseUrlAsync()}/dashboard/add-funds?success=1`,
-          remoteGatewayId: `yoo_test_mock_${Date.now()}`
-        };
-      }
-      throw new Error("\u041F\u043B\u0430\u0442\u0451\u0436\u043D\u044B\u0439 \u0448\u043B\u044E\u0437 \u042EKassa \u043D\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 Shop ID \u0438 Secret Key \u0432 \u043F\u0430\u043D\u0435\u043B\u0438 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F.");
+      throw new Error(
+        isTestMode ? "\u041F\u043B\u0430\u0442\u0451\u0436\u043D\u044B\u0439 \u0448\u043B\u044E\u0437 \u042EKassa \u043D\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D \u0434\u043B\u044F \u0442\u0435\u0441\u0442\u043E\u0432\u043E\u0433\u043E \u0440\u0435\u0436\u0438\u043C\u0430. \u0423\u043A\u0430\u0436\u0438\u0442\u0435 Test Shop ID \u0438 Test Secret Key \u0432 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430\u0445." : "\u041F\u043B\u0430\u0442\u0451\u0436\u043D\u044B\u0439 \u0448\u043B\u044E\u0437 \u042EKassa \u043D\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 Shop ID \u0438 Secret Key \u0432 \u043F\u0430\u043D\u0435\u043B\u0438 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F."
+      );
     }
     const authHeader = "Basic " + Buffer.from(`${shopId}:${secretKey}`).toString("base64");
     const supportDomain = await SettingsProvider.getSupportEmailDomain();
@@ -143831,25 +143888,11 @@ var YooKassaGateway = class extends BasePaymentGateway {
       });
     } catch (netErr) {
       console.error("[YooKassaGateway] Connection failed:", netErr);
-      if (isTestMode) {
-        console.warn("[YooKassaGateway] Test Mode: YooKassa API unreachable, falling back to simulated sandbox payment URL.");
-        return {
-          paymentUrl: params.successUrl || `${await getBaseUrlAsync()}/dashboard/add-funds?success=1`,
-          remoteGatewayId: `yoo_test_mock_${Date.now()}`
-        };
-      }
       throw new Error("\u041E\u0448\u0438\u0431\u043A\u0430 \u0441\u043E\u0435\u0434\u0438\u043D\u0435\u043D\u0438\u044F \u0441\u043E \u0448\u043B\u044E\u0437\u043E\u043C \u042EKassa. \u0421\u0435\u0440\u0432\u0435\u0440 \u043E\u043F\u043B\u0430\u0442\u044B \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D \u2014 \u043F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u0421\u0411\u041F \u0438\u043B\u0438 CryptoBot.");
     }
     if (!resp.ok) {
       const errBody = await resp.text();
       console.error("[YooKassaGateway] API Error:", resp.status, errBody);
-      if (isTestMode) {
-        console.warn("[YooKassaGateway] Test Mode: YooKassa API returned error, falling back to simulated sandbox payment URL.");
-        return {
-          paymentUrl: params.successUrl || `${await getBaseUrlAsync()}/dashboard/add-funds?success=1`,
-          remoteGatewayId: `yoo_test_mock_${Date.now()}`
-        };
-      }
       let descriptiveError = "\u041E\u0448\u0438\u0431\u043A\u0430 \u0448\u043B\u044E\u0437\u0430 YooKassa";
       try {
         const parsed = JSON.parse(errBody);
@@ -144403,9 +144446,10 @@ var import_undici = __toESM(require_undici());
 init_db();
 init_vault();
 var FALLBACK_MODEL_CASCADES = [
+  "gemini-flash-latest",
+  "gemini-latest",
   "gemini-3-flash-preview",
   "gemini-3-flash",
-  "gemini-flash-latest",
   "gemini-2.5-flash",
   "gemini-flash-lite-latest"
 ];

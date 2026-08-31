@@ -87,7 +87,7 @@ class SettingsService {
     const activeTenantId = tenantId || await SettingsProvider.getTenantId();
     let settings = await db.systemSettings.findUnique({ where: { id: activeTenantId } });
     if (!settings) {
-      const defaultName = activeTenantId === 'lovable' ? 'Lovable Boost' : 'SMMplan';
+      const defaultName = (activeTenantId === 'flux' || activeTenantId === 'lovable') ? 'SMMflux' : 'SMMplan';
       settings = await db.systemSettings.create({
         data: { id: activeTenantId, taxRate: 6.0, opexMonthly: 0, maintenanceMode: false, siteName: defaultName, siteDescription: '' }
       });

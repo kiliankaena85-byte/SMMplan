@@ -135,7 +135,7 @@ export function RowActions({ order }: { order: OrderColumn }) {
     <div className="flex items-center gap-1.5">
       <Link
         href={`?edit_order_id=${order.id}`}
-        className="inline-flex items-center justify-center p-1.5 bg-sky-50 text-sky-600 rounded hover:bg-sky-100 transition-colors"
+        className="inline-flex items-center justify-center p-1.5 bg-primary/10 text-primary rounded hover:bg-primary/20 transition-colors"
         title="Открыть панель деталей"
       >
         <Edit2 className="w-3.5 h-3.5" />
@@ -248,7 +248,7 @@ function InfoColumnCell({ order, canSeeRates }: { order: OrderColumn; canSeeRate
           href={order.link}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sky-600 dark:text-sky-400 hover:underline break-all font-medium truncate max-w-[280px]"
+          className="text-primary hover:underline break-all font-medium truncate max-w-[280px]"
           title={order.link}
           onClick={(e) => e.stopPropagation()}
         >
@@ -286,7 +286,7 @@ function InfoColumnCell({ order, canSeeRates }: { order: OrderColumn; canSeeRate
 
       {/* 4. Раскрывающийся спойлер деталей провайдера */}
       <details className="mt-1 group/details" onClick={(e) => e.stopPropagation()}>
-        <summary className="text-sky-600 dark:text-sky-400 hover:text-sky-700 cursor-pointer text-[10px] select-none list-none inline-flex items-center gap-1 font-semibold transition-colors">
+        <summary className="text-primary hover:text-primary/80 cursor-pointer text-[10px] select-none list-none inline-flex items-center gap-1 font-semibold transition-colors">
           <span className="group-open/details:hidden">▸ Показать детали</span>
           <span className="hidden group-open/details:inline">▾ Скрыть детали</span>
         </summary>
@@ -413,7 +413,7 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
           </div>
           <Link
             href={`/admin/clients?q=${encodeURIComponent(email)}`}
-            className="text-sky-600 hover:text-sky-800 hover:underline text-xs font-semibold truncate max-w-[150px]"
+            className="text-primary hover:underline text-xs font-semibold truncate max-w-[150px]"
             title={email}
             onClick={(e) => e.stopPropagation()}
           >
@@ -489,7 +489,7 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
         success: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
         warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
         danger: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
-        primary: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20',
+        primary: 'bg-primary/10 text-primary border-primary/20',
         default: 'bg-muted text-muted-foreground border-border/80',
       };
  

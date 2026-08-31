@@ -366,34 +366,26 @@ export class SettingsProvider {
     const activeTenantId = tenantId || await this.getTenantId();
     const settings = await this.get(activeTenantId);
     
-    let defaultSiteName = 'SMMplan';
-    let defaultDomain = 'smmplan.pro';
-    let defaultTgBot = process.env.TELEGRAM_SUPPORT_BOT || process.env.TELEGRAM_BOT_USERNAME || 'smmplan_support_bot';
-    let defaultTgChannel = 'smmplan_news';
-
-    if (activeTenantId === 'flux' || activeTenantId === 'lovable') {
-      defaultSiteName = 'SMMflux';
-      defaultDomain = 'smmflux.ru';
-      defaultTgBot = process.env.FLUX_TELEGRAM_BOT || 'smmflux_support_bot';
-      defaultTgChannel = 'smmflux_news';
-    }
+    const isFlux = activeTenantId === 'flux' || activeTenantId === 'lovable';
+    const defaultSiteName = isFlux ? 'SMMflux' : 'SMMplan';
+    const defaultDomain = isFlux ? 'smmflux.ru' : 'smmplan.pro';
 
     return {
       SITE_NAME: settings.siteName || defaultSiteName,
       SITE_DESCRIPTION: settings.siteDescription || "",
       SUPPORT_EMAIL: settings.contactSupportEmail || `support@${defaultDomain}`,
       PRIVACY_EMAIL: settings.contactPrivacyEmail || `privacy@${defaultDomain}`,
-      TELEGRAM_SUPPORT_BOT: settings.contactTelegramBot || defaultTgBot,
-      TELEGRAM_SUPPORT_CHANNEL: settings.contactTelegramChannel || defaultTgChannel,
+      TELEGRAM_SUPPORT_BOT: settings.contactTelegramBot || "",
+      TELEGRAM_SUPPORT_CHANNEL: settings.contactTelegramChannel || "",
       WHATSAPP: settings.contactWhatsApp || "",
       VK: settings.contactVk || "",
       COMPANY_NAME: settings.legalCompanyName || defaultSiteName,
-      COMPANY_INN: settings.legalCompanyInn || "Укажите ИНН",
-      COMPANY_OGRNIP: settings.legalCompanyOgrnip || "Укажите ОГРНИП",
-      COMPANY_ADDRESS: settings.legalCompanyAddress || "г. Москва",
-      LEGAL_INN: settings.legalCompanyInn || "Укажите ИНН",
-      LEGAL_OGRNIP: settings.legalCompanyOgrnip || "Укажите ОГРНИП",
-      LEGAL_ADDRESS: settings.legalCompanyAddress || "г. Москва",
+      COMPANY_INN: settings.legalCompanyInn || "",
+      COMPANY_OGRNIP: settings.legalCompanyOgrnip || "",
+      COMPANY_ADDRESS: settings.legalCompanyAddress || "",
+      LEGAL_INN: settings.legalCompanyInn || "",
+      LEGAL_OGRNIP: settings.legalCompanyOgrnip || "",
+      LEGAL_ADDRESS: settings.legalCompanyAddress || "",
     };
   }
 

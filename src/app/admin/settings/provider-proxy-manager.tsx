@@ -11,7 +11,7 @@ import {
   Plus, Trash2, Edit3, Save, Globe, Zap, CheckCircle,
   Loader2, AlertTriangle, Link2,
   ChevronDown, ChevronUp, RefreshCw, Search,
-  Radio, Database, ShieldCheck, Sparkles,
+  Radio, Database, ShieldCheck, Sparkles, Download, FileText, Check, Layers
 } from 'lucide-react';
 import {
   listProviderProxiesAction,
@@ -22,7 +22,11 @@ import {
   assignProxyToProviderAction,
   getProxyHealthSummaryAction,
   syncSubscriptionAction,
+  syncAllSubscriptionsAction,
   harvestFreeProxiesAction,
+  importSubscriptionAction,
+  importRawProxyListAction,
+  batchAssignProxyToAllProvidersAction,
 } from '@/actions/admin/provider-proxy';
 import type { ProviderProxyWithUsage, ProxyHealthSummary, ProxyProtocol, ProxyCategory } from '@/types/provider-proxy';
 import { GEO_OPTIONS, PROXY_PROTOCOL_LABELS } from '@/types/provider-proxy';
@@ -35,6 +39,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 interface FormData {
   label: string;
@@ -90,6 +95,27 @@ export function ProviderProxyManager({ providers = [] }: Props) {
   const [tagInput, setTagInput] = useState('');
   const [testUrl, setTestUrl] = useState('https://httpbin.org/ip');
   const [proxyToDelete, setProxyToDelete] = useState<{ id: string; label: string } | null>(null);
+
+  // 1-Click Subscription Import Modal State
+  const [showImportSubscriptionModal, setShowImportSubscriptionModal] = useState(false);
+  const [subForm, setSubForm] = useState({
+    subscriptionUrl: '',
+    label: '',
+    category: 'PAID_PREMIUM' as ProxyCategory,
+    protocol: 'socks5' as ProxyProtocol,
+    inboundHost: '127.0.0.1',
+    inboundPort: '7891',
+    autoAssignToProviders: true,
+  });
+
+  // Bulk Raw List Import Modal State
+  const [showImportRawModal, setShowImportRawModal] = useState(false);
+  const [rawForm, setRawForm] = useState({
+    rawListText: '',
+    category: 'PAID_PREMIUM' as ProxyCategory,
+    defaultProtocol: 'socks5' as ProxyProtocol,
+    tag: '',
+  });
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -228,6 +254,82 @@ export function ProviderProxyManager({ providers = [] }: Props) {
     });
   };
 
+  const handleImportSubscription = () => {
+    if (!subForm.subscriptionUrl.trim()) {
+      toast.error('Введите URL подписки');
+      return;
+    }
+    startTransition(async () => {
+      const res = await importSubscriptionAction({
+        ...subForm,
+        inboundPort: parseInt(subForm.inboundPort, 10) || 7891,
+      });
+      if (res.success) {
+        toast.success(res.message);
+        setShowImportSubscriptionModal(false);
+        setSubForm({
+          subscriptionUrl: '',
+          label: '',
+          category: 'PAID_PREMIUM',
+          protocol: 'socks5',
+          inboundHost: '127.0.0.1',
+          inboundPort: '7891',
+          autoAssignToProviders: true,
+        });
+        loadData();
+      } else {
+        toast.error(res.error || 'Ошибка импорта подписки');
+      }
+    });
+  };
+
+  const handleImportRawList = () => {
+    if (!rawForm.rawListText.trim()) {
+      toast.error('Вставьте список прокси');
+      return;
+    }
+    startTransition(async () => {
+      const res = await importRawProxyListAction(rawForm);
+      if (res.success) {
+        toast.success(res.message);
+        setShowImportRawModal(false);
+        setRawForm({
+          rawListText: '',
+          category: 'PAID_PREMIUM',
+          defaultProtocol: 'socks5',
+          tag: '',
+        });
+        loadData();
+      } else {
+        toast.error(res.error || 'Ошибка импорта списка');
+      }
+    });
+  };
+
+  const handleSyncAllSubscriptions = () => {
+    startTransition(async () => {
+      const res = await syncAllSubscriptionsAction();
+      if (res.success) {
+        toast.success(res.message);
+        loadData();
+      } else {
+        toast.error(res.error || 'Ошибка обновления подписок');
+      }
+    });
+  };
+
+  const handleAssignAllProviders = (proxyId: string | null) => {
+    startTransition(async () => {
+      const res = await batchAssignProxyToAllProvidersAction(proxyId);
+      if (res.success) {
+        toast.success(res.message);
+        loadData();
+      } else {
+        toast.error(res.error || 'Ошибка массовой привязки');
+      }
+    });
+  };
+
   const startEdit = (p: ProviderProxyWithUsage) => {
     setEditingId(p.id);
     setForm({
@@ -360,6 +462,38 @@ export function ProviderProxyManager({ providers = [] }: Props) {
           <div className="flex items-center gap-2 flex-wrap">
             <Button
               type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => setShowImportSubscriptionModal(true)}
+              className="font-bold text-xs h-8 gap-1.5 cursor-pointer shadow-sm"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Импорт подписки
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowImportRawModal(true)}
+              className="font-bold text-xs h-8 gap-1.5 cursor-pointer"
+            >
+              <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+              Импорт списком
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleSyncAllSubscriptions}
+              disabled={isPending}
+              className="font-bold text-xs h-8 gap-1.5 cursor-pointer"
+              title="Обновить срок и трафик всех активных подписок"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-emerald-500 ${isPending ? 'animate-spin' : ''}`} />
+              Обновить подписки
+            </Button>
+            <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={handleHarvestFree}
@@ -367,7 +501,7 @@ export function ProviderProxyManager({ providers = [] }: Props) {
               className="font-bold text-xs h-8 gap-1.5 cursor-pointer"
             >
               {isHarvesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-primary" />}
-              Собрать бесплатные SOCKS5
+              Бесплатные SOCKS5
             </Button>
             <Button
               type="button"
@@ -376,7 +510,7 @@ export function ProviderProxyManager({ providers = [] }: Props) {
               onClick={() => { setShowCreate(true); setForm(EMPTY_FORM); }}
               className="font-bold text-xs h-8 gap-1.5 cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" /> Добавить
+              <Plus className="w-3.5 h-3.5" /> Вручную
             </Button>
             <button
               type="button"
@@ -842,6 +976,236 @@ export function ProviderProxyManager({ providers = [] }: Props) {
           </div>
         </Card>
       )}
+
+      {/* ── 1-CLICK SUBSCRIPTION IMPORT MODAL ── */}
+      <Dialog open={showImportSubscriptionModal} onOpenChange={setShowImportSubscriptionModal}>
+        <DialogContent className="sm:max-w-xl bg-card border-border">
+          <DialogHeader>
+            <div className="flex items-center gap-2.5 text-primary pb-1">
+              <Download className="w-5 h-5" />
+              <DialogTitle className="text-base font-bold">Импорт подписки в 1 клик</DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              Вставьте ссылку на подписку (Quattro VPN, Clash, V2Ray, Shadowsocks). Платформа автоматически запросит лимиты трафика, оставшиеся дни и настроит проксирование запросов к SMM-провайдерам.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                URL подписки *
+              </Label>
+              <Input
+                value={subForm.subscriptionUrl}
+                onChange={(e) => setSubForm((prev) => ({ ...prev, subscriptionUrl: e.target.value }))}
+                placeholder="https://auth.quattro-cloud.ru/VMzjeCDftAx4PP6H"
+                className="font-mono text-xs"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Поддерживаются ссылки Quattro Cloud, Clash, V2RayN, Sing-box, Shadowsocks.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Название (опционально)
+                </Label>
+                <Input
+                  value={subForm.label}
+                  onChange={(e) => setSubForm((prev) => ({ ...prev, label: e.target.value }))}
+                  placeholder="Quattro VPN - Основной канал"
+                  className="text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Категория
+                </Label>
+                <select
+                  value={subForm.category}
+                  onChange={(e) => setSubForm((prev) => ({ ...prev, category: e.target.value as ProxyCategory }))}
+                  className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs font-medium focus:ring-1 focus:ring-primary focus:outline-none"
+                >
+                  <option value="PAID_PREMIUM">💎 Платный Premium (Quattro VPN)</option>
+                  <option value="BACKUP_RESERVE">🛡️ Резервный канал</option>
+                  <option value="FREE_PUBLIC">🌿 Бесплатный пул</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Протокол
+                </Label>
+                <select
+                  value={subForm.protocol}
+                  onChange={(e) => setSubForm((prev) => ({ ...prev, protocol: e.target.value as ProxyProtocol }))}
+                  className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs font-medium focus:ring-1 focus:ring-primary focus:outline-none"
+                >
+                  <option value="socks5">SOCKS5 (рекомендуется)</option>
+                  <option value="http">HTTP</option>
+                  <option value="https">HTTPS</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Локальный Хост / IP
+                </Label>
+                <Input
+                  value={subForm.inboundHost}
+                  onChange={(e) => setSubForm((prev) => ({ ...prev, inboundHost: e.target.value }))}
+                  placeholder="127.0.0.1"
+                  className="font-mono text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Входящий порт туннеля
+                </Label>
+                <Input
+                  type="number"
+                  value={subForm.inboundPort}
+                  onChange={(e) => setSubForm((prev) => ({ ...prev, inboundPort: e.target.value }))}
+                  placeholder="7891"
+                  className="font-mono text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2 pt-2">
+              <Checkbox
+                id="autoAssignSub"
+                checked={subForm.autoAssignToProviders}
+                onCheckedChange={(checked) => setSubForm((prev) => ({ ...prev, autoAssignToProviders: Boolean(checked) }))}
+              />
+              <label
+                htmlFor="autoAssignSub"
+                className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                Автоматически привязать всех активных провайдеров без прокси к этой подписке
+              </label>
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowImportSubscriptionModal(false)}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={handleImportSubscription}
+              disabled={isPending || !subForm.subscriptionUrl.trim()}
+              className="font-bold text-xs gap-1.5 cursor-pointer"
+            >
+              {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+              Импортировать и подключить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── BULK RAW LIST IMPORT MODAL ── */}
+      <Dialog open={showImportRawModal} onOpenChange={setShowImportRawModal}>
+        <DialogContent className="sm:max-w-xl bg-card border-border">
+          <DialogHeader>
+            <div className="flex items-center gap-2.5 text-primary pb-1">
+              <FileText className="w-5 h-5" />
+              <DialogTitle className="text-base font-bold">Массовый импорт прокси списком</DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              Вставьте список прокси (каждый с новой строки). Поддерживаются форматы: <code className="font-mono text-foreground">host:port</code>, <code className="font-mono text-foreground">host:port:user:pass</code> или <code className="font-mono text-foreground">socks5://user:pass@host:port</code>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Список прокси (до 500 строк) *
+              </Label>
+              <Textarea
+                rows={6}
+                value={rawForm.rawListText}
+                onChange={(e) => setRawForm((prev) => ({ ...prev, rawListText: e.target.value }))}
+                placeholder={`185.209.29.226:1080\n45.74.31.30:6154:user:pass\nsocks5://admin:secret@95.81.103.220:1080`}
+                className="font-mono text-xs"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Категория
+                </Label>
+                <select
+                  value={rawForm.category}
+                  onChange={(e) => setRawForm((prev) => ({ ...prev, category: e.target.value as ProxyCategory }))}
+                  className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs font-medium focus:ring-1 focus:ring-primary focus:outline-none"
+                >
+                  <option value="PAID_PREMIUM">💎 Платный Premium</option>
+                  <option value="FREE_PUBLIC">🌿 Бесплатный пул</option>
+                  <option value="BACKUP_RESERVE">🛡️ Резерв</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Протокол по умолчанию
+                </Label>
+                <select
+                  value={rawForm.defaultProtocol}
+                  onChange={(e) => setRawForm((prev) => ({ ...prev, defaultProtocol: e.target.value as ProxyProtocol }))}
+                  className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs font-medium focus:ring-1 focus:ring-primary focus:outline-none"
+                >
+                  <option value="socks5">SOCKS5</option>
+                  <option value="http">HTTP</option>
+                  <option value="https">HTTPS</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Тег (опционально)
+                </Label>
+                <Input
+                  value={rawForm.tag}
+                  onChange={(e) => setRawForm((prev) => ({ ...prev, tag: e.target.value }))}
+                  placeholder="batch-2026"
+                  className="text-xs"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowImportRawModal(false)}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={handleImportRawList}
+              disabled={isPending || !rawForm.rawListText.trim()}
+              className="font-bold text-xs gap-1.5 cursor-pointer"
+            >
+              {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Layers className="w-3.5 h-3.5" />}
+              Импортировать список
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

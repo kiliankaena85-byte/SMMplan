@@ -2,11 +2,12 @@ import { ProxyAgent } from 'undici';
 import { db } from '@/lib/db';
 import { VaultService } from '@/lib/vault';
 
-// Приоритетный каскад проверенных рабочих моделей (gemini-3-flash / gemini-3-flash-preview)
+// Приоритетный каскад: всегда новейшая модель (gemini-flash-latest / gemini-latest) с плавным фоллбэком
 const FALLBACK_MODEL_CASCADES = [
+  'gemini-flash-latest',
+  'gemini-latest',
   'gemini-3-flash-preview',
   'gemini-3-flash',
-  'gemini-flash-latest',
   'gemini-2.5-flash',
   'gemini-flash-lite-latest',
 ];

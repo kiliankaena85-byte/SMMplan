@@ -22,6 +22,8 @@ import {
   assignProxySchema,
   batchAssignSchema,
   proxyLogQuerySchema,
+  importSubscriptionSchema,
+  importRawListSchema,
 } from '@/schemas/provider-proxy';
 import type {
   ProviderProxyWithUsage,
@@ -488,5 +490,319 @@ export async function cleanupProxyLogsAction(daysToKeep: number = 30) {
     });
 
     return { success: true as const, message: `Удалено ${result.count} записей старше ${daysToKeep} дней` };
+  });
+}
+
+// ── 1-CLICK SUBSCRIPTION IMPORT ──
+export async function importSubscriptionAction(raw: Record<string, unknown>) {
+  return requireStaffPermission('providers', 'edit', async (admin) => {
+    const parsed = importSubscriptionSchema.safeParse(raw);
+    if (!parsed.success) return { success: false as const, error: parsed.error.issues[0]?.message };
+
+    const {
+      subscriptionUrl,
+      label,
+      category,
+      protocol,
+      inboundHost,
+      inboundPort,
+      autoAssignToProviders,
+    } = parsed.data;
+
+    // 1. SSRF Guard verification on subscription URL
+    const { assertSafeOutboundUrl } = await import('@/lib/security/ssrf-guard');
+    const ssrfCheck = await assertSafeOutboundUrl(subscriptionUrl);
+    if (!ssrfCheck.ok) {
+      return { success: false as const, error: `URL подписки заблокирован политикой безопасности: ${ssrfCheck.reason}` };
+    }
+
+    // 2. Fetch subscription metadata & Userinfo
+    const { SubscriptionSyncService } = await import('@/services/providers/subscription-sync.service');
+    let subInfo: ReturnType<typeof SubscriptionSyncService.parseUserinfo> | null = null;
+
+    try {
+      const response = await fetch(subscriptionUrl, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'ClashforWindows/0.20.39 (SMMpanel Subscription Engine)',
+          Accept: '*/*',
+        },
+        signal: AbortSignal.timeout(10000),
+      });
+
+      const userinfoHeader =
+        response.headers.get('subscription-userinfo') ||
+        response.headers.get('Subscription-Userinfo') ||
+        response.headers.get('Subscription-UserInfo');
+
+      if (userinfoHeader) {
+        subInfo = SubscriptionSyncService.parseUserinfo(userinfoHeader);
+      }
+    } catch (fetchErr) {
+      console.warn('[importSubscriptionAction] Warning: Failed to pre-fetch subscription headers:', fetchErr);
+    }
+
+    // 3. Determine label
+    const domainPart = (() => {
+      try {
+        return new URL(subscriptionUrl).hostname;
+      } catch {
+        return 'VPN';
+      }
+    })();
+    const finalLabel = label && label.trim() ? label.trim() : `Подписка ${domainPart}`;
+
+    const usedBytes = subInfo ? subInfo.uploadBytes + subInfo.downloadBytes : BigInt(0);
+
+    // 4. Create ProviderProxy record in DB
+    const createdProxy = await db.providerProxy.create({
+      data: {
+        label: finalLabel,
+        description: `Импортировано из подписки: ${domainPart}`,
+        protocol,
+        category,
+        host: inboundHost,
+        port: inboundPort,
+        subscriptionUrl,
+        trafficUsedBytes: usedBytes,
+        trafficTotalBytes: subInfo ? subInfo.totalBytes : BigInt(0),
+        expiresAt: subInfo?.expiresAt || null,
+        lastSyncAt: new Date(),
+        tags: JSON.stringify(['subscription', domainPart, protocol]),
+        isActive: true,
+      },
+    });
+
+    // 5. Optionally bind active providers currently on direct connection
+    let assignedProvidersCount = 0;
+    if (autoAssignToProviders) {
+      const unassignedProviders = await db.provider.findMany({
+        where: { proxyId: null, isActive: true },
+      });
+      if (unassignedProviders.length > 0) {
+        await db.provider.updateMany({
+          where: { proxyId: null, isActive: true },
+          data: { proxyId: createdProxy.id },
+        });
+        assignedProvidersCount = unassignedProviders.length;
+      }
+    }
+
+    // 6. Run quick test probe in background
+    const ipAddress = await getClientIp();
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'PROVIDER_PROXY_SUBSCRIPTION_IMPORT',
+      target: createdProxy.id,
+      targetType: 'PROVIDER_PROXY',
+      ipAddress,
+      newValue: JSON.stringify({
+        label: finalLabel,
+        subscriptionUrl,
+        assignedProvidersCount,
+      }),
+    });
+
+    revalidatePath('/admin/providers');
+    revalidatePath('/admin/settings');
+
+    return {
+      success: true as const,
+      message: `Подписка "${finalLabel}" успешно импортирована! ${
+        assignedProvidersCount > 0 ? `Привязано ${assignedProvidersCount} провайдеров.` : ''
+      }`,
+      data: createdProxy,
+    };
+  });
+}
+
+// ── BULK RAW PROXY LIST IMPORT ──
+export async function importRawProxyListAction(raw: Record<string, unknown>) {
+  return requireStaffPermission('providers', 'edit', async (admin) => {
+    const parsed = importRawListSchema.safeParse(raw);
+    if (!parsed.success) return { success: false as const, error: parsed.error.issues[0]?.message };
+
+    const { rawListText, category, defaultProtocol, tag } = parsed.data;
+
+    const lines = rawListText.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
+    if (lines.length === 0) {
+      return { success: false as const, error: 'Список пуст или содержит только комментарии' };
+    }
+
+    const { VaultService } = await import('@/lib/vault');
+
+    let addedCount = 0;
+    const errors: string[] = [];
+
+    for (let idx = 0; idx < lines.length; idx++) {
+      const line = lines[idx];
+      let protocol = defaultProtocol;
+      let host = '';
+      let port = 0;
+      let username: string | undefined;
+      let password: string | undefined;
+
+      try {
+        // Format 1: protocol://user:pass@host:port or protocol://host:port
+        if (line.includes('://')) {
+          const url = new URL(line);
+          const proto = url.protocol.replace(':', '');
+          if (['http', 'https', 'socks5'].includes(proto)) {
+            protocol = proto as 'http' | 'https' | 'socks5';
+          }
+          host = url.hostname;
+          port = parseInt(url.port, 10);
+          username = url.username || undefined;
+          password = url.password || undefined;
+        } else {
+          // Format 2: host:port:user:pass or host:port
+          const parts = line.split(':');
+          if (parts.length >= 2) {
+            host = parts[0];
+            port = parseInt(parts[1], 10);
+            if (parts.length >= 4) {
+              username = parts[2];
+              password = parts[3];
+            }
+          }
+        }
+
+        if (!host || isNaN(port) || port < 1 || port > 65535) {
+          errors.push(`Строка ${idx + 1}: некорректный хост или порт (${line})`);
+          continue;
+        }
+
+        const label = `${protocol.toUpperCase()} ${host}:${port}`;
+        const tags = ['imported', protocol];
+        if (tag && tag.trim()) tags.push(tag.trim().toLowerCase());
+
+        const existing = await db.providerProxy.findFirst({
+          where: { host, port, protocol },
+        });
+
+        const passwordEncrypted = password ? VaultService.encrypt(password) : null;
+
+        if (existing) {
+          await db.providerProxy.update({
+            where: { id: existing.id },
+            data: {
+              label,
+              category,
+              username: username || existing.username,
+              passwordEncrypted: passwordEncrypted || existing.passwordEncrypted,
+              tags: JSON.stringify(tags),
+              isActive: true,
+            },
+          });
+        } else {
+          await db.providerProxy.create({
+            data: {
+              label,
+              protocol,
+              category,
+              host,
+              port,
+              username,
+              passwordEncrypted,
+              tags: JSON.stringify(tags),
+              isActive: true,
+            },
+          });
+        }
+        addedCount++;
+      } catch (lineErr) {
+        errors.push(`Строка ${idx + 1}: ${lineErr instanceof Error ? lineErr.message : String(lineErr)}`);
+      }
+    }
+
+    const ipAddress = await getClientIp();
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'PROVIDER_PROXY_BULK_IMPORT',
+      target: `${addedCount} proxies`,
+      targetType: 'PROVIDER_PROXY',
+      ipAddress,
+      newValue: JSON.stringify({ addedCount, errorCount: errors.length, category }),
+    });
+
+    revalidatePath('/admin/providers');
+    revalidatePath('/admin/settings');
+
+    return {
+      success: true as const,
+      message: `Успешно импортировано и обновлено ${addedCount} прокси!${
+        errors.length > 0 ? ` (Ошибок в строках: ${errors.length})` : ''
+      }`,
+      addedCount,
+      errors: errors.slice(0, 5),
+    };
+  });
+}
+
+// ── SYNC ALL SUBSCRIPTIONS ACTION ──
+export async function syncAllSubscriptionsAction() {
+  return requireStaffPermission('providers', 'edit', async (admin) => {
+    const { SubscriptionSyncService } = await import('@/services/providers/subscription-sync.service');
+    const res = await SubscriptionSyncService.syncAllActiveSubscriptions();
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'PROVIDER_PROXY_SYNC_ALL_SUBSCRIPTIONS',
+      target: 'all-subscriptions',
+      targetType: 'SYSTEM',
+      ipAddress: await getClientIp(),
+      newValue: JSON.stringify(res),
+    });
+
+    revalidatePath('/admin/providers');
+    revalidatePath('/admin/settings');
+
+    return {
+      success: true as const,
+      message: `Синхронизировано ${res.syncedCount} подписок${
+        res.errors.length > 0 ? ` (С ошибками: ${res.errors.length})` : ''
+      }`,
+      data: res,
+    };
+  });
+}
+
+// ── BATCH ASSIGN PROXY TO ALL ACTIVE PROVIDERS ──
+export async function batchAssignProxyToAllProvidersAction(proxyId: string | null) {
+  return requireStaffPermission('providers', 'edit', async (admin) => {
+    let proxyLabel = 'Прямое подключение (Без прокси)';
+    if (proxyId) {
+      const proxy = await db.providerProxy.findUnique({ where: { id: proxyId } });
+      if (!proxy) return { success: false as const, error: 'Прокси не найден' };
+      proxyLabel = proxy.label;
+    }
+
+    const updated = await db.provider.updateMany({
+      where: { isActive: true },
+      data: { proxyId },
+    });
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: proxyId ? 'PROVIDER_PROXY_ASSIGN_ALL' : 'PROVIDER_PROXY_UNASSIGN_ALL',
+      target: `${updated.count} providers`,
+      targetType: 'PROVIDER',
+      ipAddress: await getClientIp(),
+      newValue: JSON.stringify({ proxyId, proxyLabel, count: updated.count }),
+    });
+
+    revalidatePath('/admin/providers');
+    revalidatePath('/admin/settings');
+
+    return {
+      success: true as const,
+      message: proxyId
+        ? `Все ${updated.count} активных провайдеров переведены на прокси "${proxyLabel}"`
+        : `Все ${updated.count} активных провайдеров переведены на прямое подключение`,
+    };
   });
 }

@@ -235,7 +235,7 @@ export function OrdersFilterForm({ networks = [] }: { networks?: NetworkOption[]
           )}
 
           {currentNetworkSlug && currentNetworkSlug !== 'ALL' && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20 text-[11px] font-medium">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 text-[11px] font-medium">
               🌐 {networks.find(n => n.slug === currentNetworkSlug)?.name || currentNetworkSlug}
               <button onClick={() => removeFilter('networkSlug')} className="hover:opacity-75 cursor-pointer">
                 <X className="w-3 h-3" />

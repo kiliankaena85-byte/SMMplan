@@ -178,6 +178,17 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
     }
   }, [formState]);
 
+  // Telegram Form States
+  const [telegramBot, setTelegramBot] = React.useState(settings.contactTelegramBot || '');
+  const [telegramChannel, setTelegramChannel] = React.useState(settings.contactTelegramChannel || '');
+  const [welcomeMessage, setWelcomeMessage] = React.useState(settings.welcomeMessage || '');
+
+  React.useEffect(() => {
+    setTelegramBot(settings.contactTelegramBot || '');
+    setTelegramChannel(settings.contactTelegramChannel || '');
+    setWelcomeMessage(settings.welcomeMessage || '');
+  }, [settings.contactTelegramBot, settings.contactTelegramChannel, settings.welcomeMessage]);
+
   // Webhook Secret States
   const [inboundSecret, setInboundSecret] = React.useState(settings.inboundEmailWebhookSecret || '');
   const [showSecret, setShowSecret] = React.useState(false);
@@ -293,8 +304,12 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
                     startDisconnectBotTransition(async () => {
                       try {
                         const res = await disconnectTelegramBotAction(tenantId);
-                        if (res.success) toast.success(res.message);
-                        else if ('error' in res) toast.error(res.error || 'Ошибка при отвязке бота');
+                        if (res.success) {
+                          setTelegramBot('');
+                          toast.success(res.message);
+                        } else if ('error' in res) {
+                          toast.error(res.error || 'Ошибка при отвязке бота');
+                        }
                       } catch (err) { toast.error(String(err)); }
                     });
                   }}
@@ -328,12 +343,13 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
                 </Label>
                 <Input
                   name="contactTelegramBot"
-                  defaultValue={settings.contactTelegramBot || ''}
+                  value={telegramBot}
+                  onChange={(e) => setTelegramBot(e.target.value)}
                   placeholder={tenantId === 'flux' ? 'smmflux_support_bot' : 'smmplan_support_bot'}
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  {settings.contactTelegramBot ? (
-                    <>Клиенты в интерфейсе и письмах видят ссылку: <span className="font-mono text-primary font-bold">t.me/{settings.contactTelegramBot}</span></>
+                  {telegramBot ? (
+                    <>Клиенты в интерфейсе и письмах видят ссылку: <span className="font-mono text-primary font-bold">t.me/{telegramBot}</span></>
                   ) : (
                     <span className="text-amber-500/90 font-medium">⚠️ Бот не указан: ссылка на Telegram будет скрыта</span>
                   )}
@@ -346,7 +362,8 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
                 </Label>
                 <Input
                   name="contactTelegramChannel"
-                  defaultValue={settings.contactTelegramChannel || ''}
+                  value={telegramChannel}
+                  onChange={(e) => setTelegramChannel(e.target.value)}
                   placeholder={tenantId === 'flux' ? '@smmflux_news' : '@smmplan_news'}
                 />
                 <p className="text-[11px] text-muted-foreground">
@@ -359,7 +376,8 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Приветственное сообщение (/start)</Label>
               <Textarea
                 name="welcomeMessage"
-                defaultValue={settings.welcomeMessage || ''}
+                value={welcomeMessage}
+                onChange={(e) => setWelcomeMessage(e.target.value)}
                 rows={3}
                 placeholder={`Добро пожаловать в ${tenantId === 'flux' ? 'SMMflux' : 'SMMplan'}! Ваш персональный кабинет готов к работе.`}
               />
@@ -827,7 +845,7 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-foreground">Google Gemini AI & Прокси для РФ</h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
-                  gemini-3-flash
+                  gemini-latest (Auto)
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">

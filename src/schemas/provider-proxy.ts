@@ -56,3 +56,20 @@ export const proxyLogQuerySchema = z.object({
   errorOnly: z.boolean().default(false),
   limit: z.number().int().min(1).max(200).default(50),
 });
+
+export const importSubscriptionSchema = z.object({
+  subscriptionUrl: z.string().url('Некорректный URL подписки').max(2048),
+  label: safeString(128, 'Название').optional(),
+  category: z.enum(['PAID_PREMIUM', 'FREE_PUBLIC', 'BACKUP_RESERVE']).default('PAID_PREMIUM'),
+  protocol: z.enum(['http', 'https', 'socks5']).default('socks5'),
+  inboundHost: proxyHostSchema.default('127.0.0.1'),
+  inboundPort: z.number().int().min(1).max(65535).default(7891),
+  autoAssignToProviders: z.boolean().default(true),
+});
+
+export const importRawListSchema = z.object({
+  rawListText: z.string().min(1, 'Список прокси не может быть пустым').max(50000),
+  category: z.enum(['PAID_PREMIUM', 'FREE_PUBLIC', 'BACKUP_RESERVE']).default('PAID_PREMIUM'),
+  defaultProtocol: z.enum(['http', 'https', 'socks5']).default('socks5'),
+  tag: safeString(32, 'Тег').optional(),
+});

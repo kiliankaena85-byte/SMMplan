@@ -604,7 +604,7 @@ export async function testGeminiAiConnectionAction(apiKey?: string, proxy?: stri
       });
       const pingMs = Date.now() - startTime;
       if (response && typeof response === 'string') {
-        return { success: true, message: `Gemini API (gemini-3-flash) отвечает штатно (${pingMs}ms)` };
+        return { success: true, message: `Gemini API (gemini-latest) отвечает штатно (${pingMs}ms)` };
       }
       return { success: true, message: `Gemini API доступен (${pingMs}ms)` };
     } catch (err) {
@@ -739,8 +739,12 @@ export async function disconnectTelegramBotAction(tenantId?: string) {
     );
 
     try {
-      const { revalidateTag } = (await import('next/cache')) as unknown as { revalidateTag: (tag: string) => unknown };
+      const { revalidateTag, revalidatePath } = (await import('next/cache')) as unknown as { 
+        revalidateTag: (tag: string) => unknown;
+        revalidatePath: (path: string, type?: 'layout' | 'page') => unknown;
+      };
       revalidateTag('settings');
+      revalidateTag(`settings-${activeTenantId}`);
       revalidatePath('/admin/settings');
       revalidatePath('/', 'layout');
     } catch {}

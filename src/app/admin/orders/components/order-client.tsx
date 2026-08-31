@@ -37,7 +37,7 @@ interface Props {
 const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string }> = {
   AWAITING_PAYMENT: { label: 'Ожидает оплаты', dot: 'bg-zinc-400',                   bg: 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/20' },
   PENDING:          { label: 'В очереди',      dot: 'bg-amber-500',                  bg: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20' },
-  IN_PROGRESS:      { label: 'В работе',       dot: 'bg-sky-500 animate-pulse',      bg: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20' },
+  IN_PROGRESS:      { label: 'В работе',       dot: 'bg-primary animate-pulse',      bg: 'bg-primary/10 text-primary border-primary/20' },
   COMPLETED:        { label: 'Выполнен',       dot: 'bg-emerald-500',                bg: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20' },
   PARTIAL:          { label: 'Частично',       dot: 'bg-orange-500',                 bg: 'bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20' },
   CANCELED:         { label: 'Отменён',        dot: 'bg-rose-500',                   bg: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20' },
@@ -85,7 +85,7 @@ function InfoStack({ order }: { order: OrderColumn }) {
       {/* Соцсеть */}
       <div className="flex items-baseline gap-1.5 min-w-0">
         <span className="text-foreground/70 shrink-0 font-normal">Соцсеть:</span>
-        <span className="text-sky-600 dark:text-sky-400 font-medium truncate" title={netName}>
+        <span className="text-primary font-semibold truncate" title={netName}>
           {netName}
         </span>
       </div>
@@ -93,7 +93,7 @@ function InfoStack({ order }: { order: OrderColumn }) {
       {/* Категория */}
       <div className="flex items-baseline gap-1.5 min-w-0">
         <span className="text-foreground/70 shrink-0 font-normal">Категория:</span>
-        <span className="text-sky-600 dark:text-sky-400 font-medium truncate" title={catName}>
+        <span className="text-primary font-semibold truncate" title={catName}>
           {catName}
         </span>
       </div>
@@ -101,7 +101,7 @@ function InfoStack({ order }: { order: OrderColumn }) {
       {/* Услуга */}
       <div className="flex items-baseline gap-1.5 min-w-0">
         <span className="text-foreground/70 shrink-0 font-normal">Услуга:</span>
-        <span className="text-sky-600 dark:text-sky-400 font-medium break-words">
+        <span className="text-primary font-medium break-words">
           {srvName}
         </span>
       </div>
@@ -114,7 +114,7 @@ function InfoStack({ order }: { order: OrderColumn }) {
             href={order.link} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="text-sky-600 dark:text-sky-400 hover:underline truncate font-mono text-[11px]"
+            className="text-primary hover:underline truncate font-mono text-[11px]"
             title={order.link}
             onClick={(e) => e.stopPropagation()}
           >
@@ -160,7 +160,7 @@ function InfoStack({ order }: { order: OrderColumn }) {
             e.stopPropagation();
             setDetailsOpen(!detailsOpen);
           }}
-          className="text-sky-600 dark:text-sky-400 hover:underline text-xs font-medium inline-flex items-center gap-1 cursor-pointer"
+          className="text-primary hover:underline text-xs font-medium inline-flex items-center gap-1 cursor-pointer"
         >
           {detailsOpen ? 'Скрыть детали' : 'Показать детали'}
         </button>
@@ -169,7 +169,7 @@ function InfoStack({ order }: { order: OrderColumn }) {
           <div className="mt-1.5 space-y-1 text-xs pt-1 border-t border-border/40">
             <div className="flex items-baseline gap-1.5">
               <span className="text-foreground/70 shrink-0">Провайдер:</span>
-              <span className="text-sky-600 dark:text-sky-400 font-medium">
+              <span className="text-primary font-medium">
                 {order.providerName || '—'} {order.externalId ? `(${order.externalId})` : ''}
               </span>
             </div>
@@ -517,7 +517,7 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                 <span className="text-muted-foreground">Клиент:</span>
                 <Link
                   href={`/admin/clients?q=${encodeURIComponent(order.user.email)}`}
-                  className="font-semibold text-sky-600 dark:text-sky-400 hover:underline truncate max-w-[200px]"
+                  className="font-semibold text-primary hover:underline truncate max-w-[200px]"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {order.user.email}

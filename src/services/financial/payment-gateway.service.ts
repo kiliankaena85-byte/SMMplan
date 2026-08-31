@@ -71,14 +71,11 @@ class YooKassaGateway extends BasePaymentGateway {
     const isDummyKeys = !shopId || !secretKey || shopId.trim().length === 0 || secretKey.trim().length === 0;
 
     if (isDummyKeys) {
-      if (isTestMode) {
-        console.warn('[YooKassaGateway] Test Mode: Dummy keys detected, returning sandbox payment URL.');
-        return {
-          paymentUrl: params.successUrl || `${await getBaseUrlAsync()}/dashboard/add-funds?success=1`,
-          remoteGatewayId: `yoo_test_mock_${Date.now()}`
-        };
-      }
-      throw new Error('Платёжный шлюз ЮKassa не настроен. Пожалуйста, укажите Shop ID и Secret Key в панели управления.');
+      throw new Error(
+        isTestMode 
+          ? 'Платёжный шлюз ЮKassa не настроен для тестового режима. Укажите Test Shop ID и Test Secret Key в настройках.' 
+          : 'Платёжный шлюз ЮKassa не настроен. Пожалуйста, укажите Shop ID и Secret Key в панели управления.'
+      );
     }
 
     const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
@@ -143,26 +140,12 @@ class YooKassaGateway extends BasePaymentGateway {
       });
     } catch (netErr: unknown) {
       console.error('[YooKassaGateway] Connection failed:', netErr);
-      if (isTestMode) {
-        console.warn('[YooKassaGateway] Test Mode: YooKassa API unreachable, falling back to simulated sandbox payment URL.');
-        return {
-          paymentUrl: params.successUrl || `${await getBaseUrlAsync()}/dashboard/add-funds?success=1`,
-          remoteGatewayId: `yoo_test_mock_${Date.now()}`
-        };
-      }
       throw new Error('Ошибка соединения со шлюзом ЮKassa. Сервер оплаты временно недоступен — попробуйте СБП или CryptoBot.');
     }
 
     if (!resp.ok) {
       const errBody = await resp.text();
       console.error('[YooKassaGateway] API Error:', resp.status, errBody);
-      if (isTestMode) {
-        console.warn('[YooKassaGateway] Test Mode: YooKassa API returned error, falling back to simulated sandbox payment URL.');
-        return {
-          paymentUrl: params.successUrl || `${await getBaseUrlAsync()}/dashboard/add-funds?success=1`,
-          remoteGatewayId: `yoo_test_mock_${Date.now()}`
-        };
-      }
       let descriptiveError = 'Ошибка шлюза YooKassa';
       try {
         const parsed = JSON.parse(errBody);
