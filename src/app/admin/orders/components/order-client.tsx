@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useState, useTransition, useOptimistic } from 'react';
 import { toast } from 'sonner';
-import { OrderColumn, TenantBrandBadge } from './columns';
+import { OrderColumn, TenantBrandBadge, STATUS_LABELS } from './columns';
 import Link from 'next/link';
 import { 
   Clock, 
@@ -240,6 +240,13 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+  // Status-Locked Selection (Poka-Yoke): Lock selection to homogeneous order status
+  const lockedStatus = React.useMemo(() => {
+    if (selectedIds.size === 0) return null;
+    const firstSelected = optimisticData.find(o => selectedIds.has(o.id));
+    return firstSelected ? firstSelected.status : null;
+  }, [selectedIds, optimisticData]);
+
   // Confirm Modals state for single row actions
   const [cancelModalOrder, setCancelModalOrder] = useState<OrderColumn | null>(null);
   const [, startTransition] = useTransition();
@@ -251,16 +258,27 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
     if (next.has(id)) {
       next.delete(id);
     } else {
+      const targetOrder = optimisticData.find(o => o.id === id);
+      if (lockedStatus && targetOrder && targetOrder.status !== lockedStatus) {
+        toast.warning(`Выбор заблокирован по статусу «${STATUS_LABELS[lockedStatus] || lockedStatus}». Нельзя смешивать разные статусы.`);
+        return;
+      }
       next.add(id);
     }
     setSelectedIds(next);
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === optimisticData.length) {
+    if (selectedIds.size > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(optimisticData.map(o => o.id)));
+      // Select all of the FIRST available order status or all if homogeneous
+      const targetStatus = lockedStatus || optimisticData[0]?.status;
+      if (targetStatus) {
+        const matchingIds = optimisticData.filter(o => o.status === targetStatus).map(o => o.id);
+        setSelectedIds(new Set(matchingIds));
+        toast.info(`Выбрано ${matchingIds.length} заказов со статусом «${STATUS_LABELS[targetStatus] || targetStatus}»`);
+      }
     }
   };
 
@@ -329,7 +347,7 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
     <div className="w-full space-y-4">
       {/* Top Toolbar: Selection Mode Toggle & Page Controls */}
       <div className="flex items-center justify-between gap-3 bg-muted/20 border border-border/60 rounded-lg px-3 py-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={() => {
@@ -352,38 +370,57 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
               onClick={toggleSelectAll}
               className="px-2.5 py-1 text-xs font-medium bg-muted hover:bg-muted/80 text-foreground border border-border/60 rounded-md transition-all cursor-pointer"
             >
-              {selectedIds.size === optimisticData.length ? 'Снять всё' : `Выбрать все (${optimisticData.length})`}
+              {selectedIds.size > 0 
+                ? 'Снять всё' 
+                : lockedStatus 
+                ? `Выбрать все (${STATUS_LABELS[lockedStatus] || lockedStatus})`
+                : `Выбрать все (${optimisticData.length})`}
             </button>
           )}
 
-          {/* Быстрые действия прямо в верхней панели */}
+          {/* Status Lock Badge Indicator */}
+          {selectionMode && lockedStatus && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 animate-in fade-in">
+              <span>🔒 Статус: {STATUS_LABELS[lockedStatus] || lockedStatus}</span>
+            </span>
+          )}
+
+          {/* Быстрые действия прямо в верхней панели (Contextual for locked status) */}
           {selectionMode && selectedIds.size > 0 && (
             <div className="flex items-center gap-1.5 pl-2 border-l border-border/60 animate-in fade-in duration-150">
-              <span className="text-xs font-bold text-primary mr-1">
+              <span className="text-xs font-bold text-foreground mr-1">
                 {selectedIds.size} шт:
               </span>
-              <button
-                type="button"
-                onClick={() => {
-                  const bulkPanelCancel = document.querySelector('button[title*="Отменить выбранные заказы"]') as HTMLButtonElement;
-                  if (bulkPanelCancel) bulkPanelCancel.click();
-                }}
-                className="px-2.5 py-1 text-xs font-bold bg-rose-500 hover:bg-rose-600 text-white rounded-md transition-all flex items-center gap-1 cursor-pointer shadow-xs"
-              >
-                <XCircle className="w-3.5 h-3.5" />
-                <span>Отменить и вернуть ({selectedIds.size})</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const bulkPanelRestart = document.querySelector('button[title*="Перезапустить выбранные"]') as HTMLButtonElement;
-                  if (bulkPanelRestart) bulkPanelRestart.click();
-                }}
-                className="px-2.5 py-1 text-xs font-bold bg-primary text-primary-foreground hover:opacity-90 rounded-md transition-all flex items-center gap-1 cursor-pointer shadow-xs"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Перезапустить</span>
-              </button>
+
+              {/* Кнопка отмены доступна ТОЛЬКО для нефинализированных и ошибочных заказов */}
+              {!['COMPLETED', 'CANCELED'].includes(lockedStatus || '') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const bulkPanelCancel = document.querySelector('button[title*="Отменить выбранные заказы"]') as HTMLButtonElement;
+                    if (bulkPanelCancel) bulkPanelCancel.click();
+                  }}
+                  className="px-2.5 py-1 text-xs font-bold bg-rose-500 hover:bg-rose-600 active:scale-95 text-white rounded-md transition-all flex items-center gap-1 cursor-pointer shadow-xs"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                  <span>Отменить и вернуть ({selectedIds.size})</span>
+                </button>
+              )}
+
+              {/* Кнопка перезапуска доступна для ERROR / PENDING / PENDING_CHECK */}
+              {['ERROR', 'PENDING', 'PENDING_CHECK'].includes(lockedStatus || '') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const bulkPanelRestart = document.querySelector('button[title*="Перезапустить выбранные"]') as HTMLButtonElement;
+                    if (bulkPanelRestart) bulkPanelRestart.click();
+                  }}
+                  className="px-2.5 py-1 text-xs font-bold bg-primary text-primary-foreground hover:opacity-90 active:scale-95 rounded-md transition-all flex items-center gap-1 cursor-pointer shadow-xs"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Перезапустить ({selectedIds.size})</span>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -410,6 +447,7 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
           <tbody className="divide-y divide-border/40">
             {optimisticData.map((order) => {
               const isSelected = selectedIds.has(order.id);
+              const isLockedOut = lockedStatus !== null && order.status !== lockedStatus;
               const dateObj = new Date(order.createdAt);
               const formattedDate = dateObj.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' });
               const formattedTime = dateObj.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
@@ -419,14 +457,19 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                   key={order.id}
                   onClick={() => {
                     if (selectionMode) {
-                      toggleSelectRow(order.id);
+                      if (!isLockedOut) toggleSelectRow(order.id);
                     } else {
                       openDrawer(order.id);
                     }
                   }}
-                  className={`hover:bg-muted/30 transition-colors cursor-pointer group ${
-                    isSelected ? 'bg-primary/5' : ''
+                  className={`transition-colors cursor-pointer group ${
+                    isSelected 
+                      ? 'bg-primary/5' 
+                      : isLockedOut
+                      ? 'opacity-40 bg-muted/10 cursor-not-allowed'
+                      : 'hover:bg-muted/30'
                   }`}
+                  title={isLockedOut ? `Нельзя смешивать со статусом «${STATUS_LABELS[lockedStatus] || lockedStatus}»` : undefined}
                 >
                   {/* ID */}
                   <td className="py-3 px-3 align-top font-mono text-xs font-semibold text-muted-foreground group-hover:text-primary transition-colors">
@@ -435,9 +478,13 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                         <input
                           type="checkbox"
                           checked={isSelected}
+                          disabled={isLockedOut}
                           onChange={() => toggleSelectRow(order.id)}
                           onClick={(e) => e.stopPropagation()}
-                          className="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer shrink-0"
+                          className={`w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary shrink-0 ${
+                            isLockedOut ? 'cursor-not-allowed opacity-30' : 'cursor-pointer'
+                          }`}
+                          title={isLockedOut ? `Нельзя выбрать: активна фиксация на статусе «${STATUS_LABELS[lockedStatus] || lockedStatus}»` : undefined}
                         />
                       )}
                       <span className="truncate">#{order.numericId}</span>
@@ -536,19 +583,24 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
       <div className="block lg:hidden space-y-3">
         {optimisticData.map((order) => {
           const isSelected = selectedIds.has(order.id);
+          const isLockedOut = lockedStatus !== null && order.status !== lockedStatus;
 
           return (
             <article
               key={order.id}
               onClick={() => {
                 if (selectionMode) {
-                  toggleSelectRow(order.id);
+                  if (!isLockedOut) toggleSelectRow(order.id);
                 } else {
                   openDrawer(order.id);
                 }
               }}
               className={`bg-card border border-border/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all space-y-3 cursor-pointer ${
-                isSelected ? 'ring-2 ring-primary/40 bg-primary/5' : ''
+                isSelected 
+                  ? 'ring-2 ring-primary/40 bg-primary/5' 
+                  : isLockedOut 
+                  ? 'opacity-40 bg-muted/10 cursor-not-allowed'
+                  : ''
               }`}
             >
               {/* Header */}
@@ -558,9 +610,12 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                     <input
                       type="checkbox"
                       checked={isSelected}
+                      disabled={isLockedOut}
                       onChange={() => toggleSelectRow(order.id)}
                       onClick={(e) => e.stopPropagation()}
-                      className="w-4 h-4 rounded border-border text-primary"
+                      className={`w-4 h-4 rounded border-border text-primary ${
+                        isLockedOut ? 'cursor-not-allowed opacity-30' : 'cursor-pointer'
+                      }`}
                     />
                   )}
                   <span className="font-mono font-bold text-sm text-primary">#{order.numericId}</span>

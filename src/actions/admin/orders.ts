@@ -264,18 +264,28 @@ export async function bulkCancelOrdersAction(
       return { success: false as const, error: 'Заказы не найдены' };
     }
 
+    // Fail-Closed Guard (Poka-Yoke): Reject if request attempts to cancel completed orders
+    const hasCompletedOrders = orders.some(o => o.status === 'COMPLETED');
+    if (hasCompletedOrders) {
+      return {
+        success: false as const,
+        error: 'Запрещено: среди выбранных заказов есть уже выполненные (COMPLETED). Двойной возврат средств заблокирован.'
+      };
+    }
+
     // RBAC & Anti-Sabotage Policy:
     // OWNER & ADMIN can bulk-cancel across all clients.
-    // SUPPORT is ONLY permitted to bulk-cancel if ALL selected orders belong to the SAME user (e.g. within client CRM or single ticket).
+    // SUPPORT can bulk-cancel orders for single client or batch-cancel ERROR orders with audit log.
     if (admin.role === 'SUPPORT') {
       const distinctUserIds = new Set(orders.map(o => o.userId));
-      if (distinctUserIds.size > 1) {
+      const hasNonError = orders.some(o => o.status !== 'ERROR' && o.status !== 'PENDING_CHECK');
+      if (distinctUserIds.size > 1 && hasNonError) {
         return {
           success: false as const,
-          error: 'Запрещено массовое действие: саппорт может массово отменять заказы только по одному конкретному клиенту'
+          error: 'Запрещено массовое действие: саппорт может массово отменять активные заказы только по одному конкретному клиенту'
         };
       }
-    } else if (!['OWNER', 'ADMIN'].includes(admin.role)) {
+    } else if (!['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'].includes(admin.role)) {
       return {
         success: false as const,
         error: 'Недостаточно прав для массовой отмены заказов'
@@ -286,16 +296,16 @@ export async function bulkCancelOrdersAction(
     let count = 0;
 
     for (const order of orders) {
-      if (!['COMPLETED', 'CANCELED', 'ERROR'].includes(order.status)) {
+      if (!['COMPLETED', 'CANCELED'].includes(order.status)) {
         try {
           await runSerializableTransaction(async (tx) => {
             const safeOrder = await tx.order.findFirst({
               where: { id: order.id, tenantId: admin.tenantId ?? 'smmplan' }
             });
             
-            if (!safeOrder || ['COMPLETED', 'CANCELED', 'ERROR'].includes(safeOrder.status)) return;
+            if (!safeOrder || ['COMPLETED', 'CANCELED'].includes(safeOrder.status)) return;
 
-            const refundCents = (['PENDING', 'AWAITING_PAYMENT', 'PENDING_CHECK'].includes(safeOrder.status))
+            const refundCents = (['PENDING', 'AWAITING_PAYMENT', 'PENDING_CHECK', 'ERROR'].includes(safeOrder.status))
               ? Number(safeOrder.charge)
               : calculatePartialRefund(safeOrder);
 
