@@ -85,54 +85,181 @@ export async function updateClientDiscountAction(
 
 import { SUPPORT_CREDIT_REASONS, SUPPORT_DEBIT_REASONS } from '@/lib/constants/support-reasons';
 
-/** Update internal admin note for a client */
-export async function updateClientNoteAction(userId: string, note: string) {
+/** Get all historical notes for a client */
+export async function getClientNotesAction(userId: string) {
+  return requireStaffPermission('clients', 'view', async () => {
+    if (!userId) {
+      return { success: false as const, error: 'Не указан ID клиента' };
+    }
+
+    const notes = await db.userNote.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        author: {
+          select: { email: true }
+        }
+      }
+    });
+
+    return {
+      success: true as const,
+      notes: notes.map(n => ({
+        id: n.id,
+        userId: n.userId,
+        content: n.content,
+        authorEmail: n.author?.email || 'Оператор',
+        createdAt: n.createdAt.toISOString(),
+      }))
+    };
+  });
+}
+
+/** Create a new internal operator note in client history */
+export async function createClientNoteAction(userId: string, content: string) {
   return requireStaffPermission('clients', 'edit', async (admin) => {
-    const parsed = noteSchema.safeParse({ userId, note });
-    if (!parsed.success) {
+    const trimmed = content?.trim();
+    if (!userId || !trimmed) {
+      return { success: false as const, error: 'Текст заметки не может быть пустым' };
+    }
+    if (trimmed.length > 2000) {
       return { success: false as const, error: 'Заметка слишком длинная (макс 2000 символов)' };
     }
 
-    const trimmed = parsed.data.note?.trim() || null;
+    const newNote = await db.userNote.create({
+      data: {
+        userId,
+        authorId: admin.id,
+        content: trimmed,
+      },
+      include: {
+        author: { select: { email: true } }
+      }
+    });
 
-    const updatedUser = await db.user.update({
-      where: { id: parsed.data.userId },
+    // Sync latest note to User.adminNote for backward compatibility
+    await db.user.update({
+      where: { id: userId },
       data: {
         adminNote: trimmed,
-        adminNoteUpdatedAt: trimmed ? new Date() : null,
-        adminNoteUpdatedBy: trimmed ? admin.email : null,
-      },
-      select: {
-        adminNote: true,
-        adminNoteUpdatedAt: true,
-        adminNoteUpdatedBy: true,
+        adminNoteUpdatedAt: newNote.createdAt,
+        adminNoteUpdatedBy: admin.email,
       }
     });
 
     auditAdmin({
       adminId: admin.id,
       adminEmail: admin.email,
-      action: 'CLIENT_NOTE_UPDATE',
-      target: parsed.data.userId,
+      action: 'CLIENT_NOTE_CREATE',
+      target: userId,
       targetType: 'USER',
     });
 
-    revalidatePath(`/admin/clients/${parsed.data.userId}`);
-    return { 
+    revalidatePath(`/admin/clients/${userId}`);
+    return {
       success: true as const,
-      note: updatedUser.adminNote,
-      updatedAt: updatedUser.adminNoteUpdatedAt?.toISOString() ?? null,
-      updatedBy: updatedUser.adminNoteUpdatedBy,
+      note: {
+        id: newNote.id,
+        userId: newNote.userId,
+        content: newNote.content,
+        authorEmail: newNote.author?.email || admin.email,
+        createdAt: newNote.createdAt.toISOString(),
+      }
     };
   });
 }
 
-/** Clear / delete internal admin note for a client */
+/** Edit existing client note */
+export async function editClientNoteAction(noteId: string, userId: string, content: string) {
+  return requireStaffPermission('clients', 'edit', async (admin) => {
+    const trimmed = content?.trim();
+    if (!noteId || !trimmed) {
+      return { success: false as const, error: 'Текст заметки не может быть пустым' };
+    }
+
+    const updated = await db.userNote.update({
+      where: { id: noteId },
+      data: { content: trimmed },
+      include: { author: { select: { email: true } } }
+    });
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'CLIENT_NOTE_EDIT',
+      target: noteId,
+      targetType: 'USER',
+    });
+
+    revalidatePath(`/admin/clients/${userId}`);
+    return {
+      success: true as const,
+      note: {
+        id: updated.id,
+        userId: updated.userId,
+        content: updated.content,
+        authorEmail: updated.author?.email || admin.email,
+        createdAt: updated.createdAt.toISOString(),
+      }
+    };
+  });
+}
+
+/** Delete an individual note from client history */
+export async function deleteClientNoteAction(noteId: string, userId: string) {
+  return requireStaffPermission('clients', 'edit', async (admin) => {
+    if (!noteId) {
+      return { success: false as const, error: 'Не указан ID заметки' };
+    }
+
+    await db.userNote.delete({
+      where: { id: noteId }
+    }).catch(() => null);
+
+    // Sync latest remaining note to User.adminNote
+    const latest = await db.userNote.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      include: { author: { select: { email: true } } }
+    });
+
+    await db.user.update({
+      where: { id: userId },
+      data: {
+        adminNote: latest?.content || null,
+        adminNoteUpdatedAt: latest?.createdAt || null,
+        adminNoteUpdatedBy: latest?.author?.email || null,
+      }
+    });
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'CLIENT_NOTE_DELETE',
+      target: noteId,
+      targetType: 'USER',
+    });
+
+    revalidatePath(`/admin/clients/${userId}`);
+    return { success: true as const };
+  });
+}
+
+/** Update internal admin note for a client (single-field legacy compatibility) */
+export async function updateClientNoteAction(userId: string, note: string) {
+  return createClientNoteAction(userId, note);
+}
+
+/** Clear / delete all internal admin notes for a client */
 export async function clearClientNoteAction(userId: string) {
   return requireStaffPermission('clients', 'edit', async (admin) => {
     if (!userId) {
       return { success: false as const, error: 'Не указан ID клиента' };
     }
+
+    await db.userNote.deleteMany({
+      where: { userId }
+    });
 
     await db.user.update({
       where: { id: userId },
@@ -146,7 +273,7 @@ export async function clearClientNoteAction(userId: string) {
     auditAdmin({
       adminId: admin.id,
       adminEmail: admin.email,
-      action: 'CLIENT_NOTE_DELETE',
+      action: 'CLIENT_NOTES_CLEAR',
       target: userId,
       targetType: 'USER',
     });

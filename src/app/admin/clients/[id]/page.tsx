@@ -83,7 +83,7 @@ export default async function ClientDetailPage({ params }: Props) {
 
   if (!user) notFound();
 
-  const [orders, payments, countResult, loginLogs, rawLedgerEntries, rawSummary] = await Promise.all([
+  const [orders, payments, countResult, loginLogs, rawLedgerEntries, rawSummary, rawNotes] = await Promise.all([
     db.order.findMany({
       where: { userId: id },
       orderBy: { createdAt: 'desc' },
@@ -151,6 +151,13 @@ export default async function ClientDetailPage({ params }: Props) {
       by: ['transactionType'],
       where: { userId: id },
       _sum: { amount: true },
+    }),
+    db.userNote.findMany({
+      where: { userId: id },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        author: { select: { email: true } }
+      }
     })
   ]);
 
@@ -200,6 +207,25 @@ export default async function ClientDetailPage({ params }: Props) {
     totalRefundedRub: Number(totalRefundedKopecks) / 100,
     totalAdjustedRub: Number(totalAdjustedKopecks) / 100,
   };
+
+  const initialNotes = rawNotes.map(n => ({
+    id: n.id,
+    userId: n.userId,
+    content: n.content,
+    authorEmail: n.author?.email || 'Оператор',
+    createdAt: n.createdAt.toISOString(),
+  }));
+
+  // If user has a legacy adminNote but no UserNotes yet, include it
+  if (initialNotes.length === 0 && user.adminNote) {
+    initialNotes.push({
+      id: 'legacy-note',
+      userId: user.id,
+      content: user.adminNote,
+      authorEmail: user.adminNoteUpdatedBy || 'Оператор',
+      createdAt: (user.adminNoteUpdatedAt || user.createdAt).toISOString(),
+    });
+  }
 
   const ordersCount = countResult?._count.orders ?? 0;
   const ticketsCount = countResult?._count.tickets ?? 0;
@@ -383,6 +409,7 @@ export default async function ClientDetailPage({ params }: Props) {
         orders={ordersDto} 
         ledgerEntries={initialLedgerEntries}
         ledgerSummary={initialLedgerSummary}
+        initialNotes={initialNotes}
         canSeeFinances={canSeeFinances} 
         operatorRole={currentUser?.role} 
       />

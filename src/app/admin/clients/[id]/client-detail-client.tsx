@@ -14,7 +14,7 @@ import {
   CreditCard,
   Building2,
 } from 'lucide-react';
-import { UserDTO, PaymentDTO, OrderDTO, LoginLogDTO, ClientLedgerEntryDTO, ClientLedgerSummaryDTO } from './tabs/types';
+import { UserDTO, PaymentDTO, OrderDTO, LoginLogDTO, ClientLedgerEntryDTO, ClientLedgerSummaryDTO, UserNoteDTO } from './tabs/types';
 import { BalanceTab } from './tabs/balance-tab';
 import { PaymentsTab } from './tabs/payments-tab';
 import { B2bTab } from './tabs/b2b-tab';
@@ -22,7 +22,7 @@ import { NotesTab } from './tabs/notes-tab';
 import { SecurityTab } from './tabs/security-tab';
 import { SupportCommandCenter } from './support-command-center';
 
-export type { UserDTO, PaymentDTO, OrderDTO, LoginLogDTO, ClientLedgerEntryDTO, ClientLedgerSummaryDTO };
+export type { UserDTO, PaymentDTO, OrderDTO, LoginLogDTO, ClientLedgerEntryDTO, ClientLedgerSummaryDTO, UserNoteDTO };
 
 interface Props {
   user: UserDTO;
@@ -31,6 +31,7 @@ interface Props {
   orders: OrderDTO[];
   ledgerEntries?: ClientLedgerEntryDTO[];
   ledgerSummary?: ClientLedgerSummaryDTO;
+  initialNotes?: UserNoteDTO[];
   canSeeFinances: boolean;
   /** Current operator's role (passed from Server Component) */
   operatorRole?: string;
@@ -43,6 +44,7 @@ export function ClientDetailClient({
   orders, 
   ledgerEntries = [], 
   ledgerSummary = { totalDepositedRub: 0, totalSpentRub: 0, totalRefundedRub: 0, totalAdjustedRub: 0 }, 
+  initialNotes = [],
   canSeeFinances, 
   operatorRole 
 }: Props) {
@@ -61,6 +63,7 @@ export function ClientDetailClient({
         orders={orders}
         ledgerEntries={ledgerEntries}
         ledgerSummary={ledgerSummary}
+        initialNotes={initialNotes}
       />
     );
   }
@@ -120,7 +123,7 @@ export function ClientDetailClient({
         />
       )}
       {activeTab === 'b2b' && <B2bTab user={user} />}
-      {activeTab === 'notes' && <NotesTab user={user} canSeeFinances={canSeeFinances} />}
+      {activeTab === 'notes' && <NotesTab user={user} canSeeFinances={canSeeFinances} initialNotes={initialNotes} />}
       {activeTab === 'security' && <SecurityTab user={user} loginLogs={loginLogs} />}
     </div>
   );

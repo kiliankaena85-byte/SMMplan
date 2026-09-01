@@ -32,7 +32,8 @@ import { SecurityEmailModal } from './tabs/security-email-modal';
 import { SecurityLoginLogs } from './tabs/security-login-logs';
 import { PaymentsTab } from './tabs/payments-tab';
 import { ClientLedgerTable } from './components/client-ledger-table';
-import { ClientLedgerEntryDTO, ClientLedgerSummaryDTO } from './tabs/types';
+import { ClientNotesManager } from './components/client-notes-manager';
+import { ClientLedgerEntryDTO, ClientLedgerSummaryDTO, UserNoteDTO } from './tabs/types';
 
 function fmtBalance(kopecks: number | undefined): string {
   if (kopecks === undefined || kopecks === null) return '—';
@@ -48,14 +49,19 @@ interface Props {
   orders: OrderDTO[];
   ledgerEntries?: ClientLedgerEntryDTO[];
   ledgerSummary?: ClientLedgerSummaryDTO;
+  initialNotes?: UserNoteDTO[];
 }
 
-export function SupportCommandCenter({ user, loginLogs, payments, orders, ledgerEntries = [], ledgerSummary = { totalDepositedRub: 0, totalSpentRub: 0, totalRefundedRub: 0, totalAdjustedRub: 0 } }: Props) {
-  const [note, setNote] = useState(user.adminNote || '');
-  const [noteAuthor, setNoteAuthor] = useState(user.adminNoteUpdatedBy || null);
-  const [noteDate, setNoteDate] = useState(user.adminNoteUpdatedAt || null);
+export function SupportCommandCenter({ 
+  user, 
+  loginLogs, 
+  payments, 
+  orders, 
+  ledgerEntries = [], 
+  ledgerSummary = { totalDepositedRub: 0, totalSpentRub: 0, totalRefundedRub: 0, totalAdjustedRub: 0 },
+  initialNotes = []
+}: Props) {
   const [discount, setDiscount] = useState(user.personalDiscount || 0);
-  const [isPendingNote, startNoteTransition] = useTransition();
   const [isPendingDiscount, startDiscountTransition] = useTransition();
 
   const [adjAmount, setAdjAmount] = useState('');
@@ -87,38 +93,6 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders, ledger
   function handleDirectionChange(d: 'CREDIT' | 'DEBIT') {
     setAdjDirection(d);
     setAdjReason(d === 'CREDIT' ? SUPPORT_CREDIT_REASONS[0] : SUPPORT_DEBIT_REASONS[0]);
-  }
-
-  function saveNote() {
-    if (!note.trim()) {
-      handleClearNote();
-      return;
-    }
-    startNoteTransition(async () => {
-      const r = await updateClientNoteAction(user.id, note);
-      if (r.success) {
-        toast.success('Заметка сохранена');
-        setNoteAuthor(r.updatedBy);
-        setNoteDate(r.updatedAt);
-      } else {
-        toast.error(r.error ?? 'Ошибка сохранения заметки');
-      }
-    });
-  }
-
-  function handleClearNote() {
-    if (!confirm('Удалить заметку оператора по этому клиенту?')) return;
-    startNoteTransition(async () => {
-      const r = await clearClientNoteAction(user.id);
-      if (r.success) {
-        toast.success('Заметка удалена');
-        setNote('');
-        setNoteAuthor(null);
-        setNoteDate(null);
-      } else {
-        toast.error(r.error ?? 'Ошибка удаления заметки');
-      }
-    });
   }
 
   function saveDiscount() {
@@ -362,40 +336,13 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders, ledger
           </div>
         </div>
 
-        {/* Колонка 3: Заметка + Заказы */}
+        {/* Колонка 3: Заметки оператора + Заказы */}
         <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-5 ring-1 ring-border/5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
-              <span className="bg-amber-500/10 text-amber-600 p-1 rounded-md"><FileText className="w-3.5 h-3.5" /></span>
-              Заметка оператора
-            </h3>
-            {noteAuthor && (
-              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-lg border border-border/40 font-mono">
-                {noteAuthor.split('@')[0]}
-              </span>
-            )}
-          </div>
-          {noteDate && (
-            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground bg-muted/50 px-2.5 py-1 rounded-lg border border-border/40">
-              <AlertCircle className="w-3 h-3 shrink-0 text-amber-600" />
-              <span>Обновлено: {new Date(noteDate).toLocaleString('ru-RU')}</span>
-            </div>
-          )}
-          <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Внутренняя заметка (клиент не видит)..." rows={4}
-            className="w-full text-xs px-3 py-2 rounded-xl border border-border/60 bg-background/50 shadow-sm text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-primary resize-none" />
-          <div className="flex gap-2">
-            <button type="button" onClick={saveNote} disabled={isPendingNote}
-              className="flex-1 h-9 rounded-xl text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 active:scale-95 transition-all disabled:opacity-50 cursor-pointer shadow-2xs">
-              {isPendingNote ? 'Сохранение...' : 'Сохранить заметку'}
-            </button>
-            {note && (
-              <button type="button" onClick={handleClearNote} disabled={isPendingNote}
-                className="h-9 px-3 rounded-xl text-xs font-bold bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20 active:scale-95 transition-all disabled:opacity-50 cursor-pointer shadow-2xs"
-                title="Очистить и удалить заметку">
-                Очистить
-              </button>
-            )}
-          </div>
+          <ClientNotesManager
+            userId={user.id}
+            initialNotes={initialNotes}
+            compact={true}
+          />
 
           <div className="pt-3 border-t border-border/40 space-y-2">
             <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-muted-foreground">

@@ -79,6 +79,14 @@ export interface ClientLedgerSummaryDTO {
   totalAdjustedRub: number;
 }
 
+export interface UserNoteDTO {
+  id: string;
+  userId: string;
+  content: string;
+  authorEmail: string | null;
+  createdAt: string;
+}
+
 export function parseUserAgent(ua: string) {
   if (!ua) return 'Unknown Browser / OS';
   let browser = 'Other Browser';

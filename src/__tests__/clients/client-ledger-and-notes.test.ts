@@ -12,7 +12,10 @@ vi.mock('@/lib/server/rbac', () => ({
 import { 
   supportGoodwillCreditAction,
   clearClientNoteAction,
-  updateClientNoteAction
+  createClientNoteAction,
+  deleteClientNoteAction,
+  editClientNoteAction,
+  getClientNotesAction
 } from '@/actions/admin/clients';
 import { 
   SUPPORT_CREDIT_REASONS, 
@@ -50,6 +53,14 @@ describe('Client CRM, Ledger & Poka-Yoke Invariants', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error).toContain('Недопустимая причина для списания');
+    }
+  });
+
+  it('should validate empty content in createClientNoteAction', async () => {
+    const res = await createClientNoteAction('user_123', '   ');
+    expect(res.success).toBe(false);
+    if (!res.success) {
+      expect(res.error).toContain('не может быть пустым');
     }
   });
 });
