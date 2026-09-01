@@ -422,6 +422,7 @@ export async function proxy(request: NextRequest) {
   const protectedPaths = ['/admin', '/dashboard', '/operator'];
   if (protectedPaths.some(p => pathname.startsWith(p))) {
     const sessionToken = request.cookies.get('session_token')?.value;
+    const isRSC = request.headers.has('rsc') || request.headers.has('next-action');
     if (!sessionToken) {
       if (isRSC) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
