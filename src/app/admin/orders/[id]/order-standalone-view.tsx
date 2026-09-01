@@ -231,8 +231,9 @@ export function OrderStandaloneView({
           </div>
         </div>
 
-        {/* Быстрые действия оператора */}
+        {/* Контекстные действия оператора */}
         <div className="flex items-center gap-2 shrink-0 self-start sm:self-center flex-wrap">
+          {/* Кнопка смены провайдера */}
           <button
             onClick={() => {
               if (!isFailoverOpen) {
@@ -248,6 +249,8 @@ export function OrderStandaloneView({
             <Zap className="w-3.5 h-3.5" />
             <span>Сменить провайдера</span>
           </button>
+
+          {/* Перезапуск / Повторная отправка */}
           <button
             onClick={() => {
               setConfirmAction('restart');
@@ -255,21 +258,29 @@ export function OrderStandaloneView({
             }}
             disabled={isPending || ['COMPLETED', 'CANCELED'].includes(currentOrder.status)}
             className="px-3.5 py-2 rounded-xl bg-muted/80 hover:bg-muted text-foreground font-bold text-xs transition-all border border-border/60 shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+            title={currentOrder.error?.includes('PRICE_DRIFT_HOLD') ? 'Повторно отправить текущему поставщику' : 'Перезапустить заказ'}
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Перезапустить</span>
+            <span>{currentOrder.error?.includes('PRICE_DRIFT_HOLD') ? 'Отправить повторно' : 'Перезапустить'}</span>
           </button>
-          <button
-            onClick={() => {
-              setConfirmAction('complete');
-              setConfirmOpen(true);
-            }}
-            disabled={isPending || currentOrder.status === 'COMPLETED'}
-            className="px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
-          >
-            <CheckCircle className="w-3.5 h-3.5" />
-            <span>Завершить</span>
-          </button>
+
+          {/* Кнопка «Завершить» доступна ТОЛЬКО для заказов, которые уже в работе (IN_PROGRESS / PARTIAL) */}
+          {['IN_PROGRESS', 'PARTIAL'].includes(currentOrder.status) && (
+            <button
+              onClick={() => {
+                setConfirmAction('complete');
+                setConfirmOpen(true);
+              }}
+              disabled={isPending}
+              className="px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+              title="Пометить как выполненный (если накрутка уже завершена вручную)"
+            >
+              <CheckCircle className="w-3.5 h-3.5" />
+              <span>Пометить выполненным</span>
+            </button>
+          )}
+
+          {/* Кнопка отмены с возвратом */}
           {(() => {
             const isPendingState = ['PENDING', 'PENDING_CHECK', 'AWAITING_PAYMENT'].includes(currentOrder.status);
             const isCancelAllowed = userRole !== 'SUPPORT' || isPendingState || currentOrder.service?.isCancelEnabled === true;
@@ -284,6 +295,7 @@ export function OrderStandaloneView({
                 }}
                 disabled={isPending}
                 className="px-3.5 py-2 rounded-xl bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-40 font-bold text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                title="Отменить заказ и вернуть 100% денег на баланс клиента"
               >
                 <XCircle className="w-3.5 h-3.5" />
                 <span>Отменить и вернуть</span>
