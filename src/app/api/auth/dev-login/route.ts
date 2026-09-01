@@ -85,10 +85,9 @@ export async function GET(request: Request) {
     expires: expiresAt,
   });
 
-  cookieStore.set('x_admin_tenant', user.tenantId || 'smmplan', {
-    path: '/',
-    expires: expiresAt,
-  });
+  const hostHeader = reqHeaders.get('host') || 'localhost:3005';
+  const cleanHost = hostHeader.includes('0.0.0.0') ? hostHeader.replace('0.0.0.0', 'localhost') : hostHeader;
+  const redirectTarget = new URL(redirectTo, `http://${cleanHost}`);
 
-  return NextResponse.redirect(new URL(redirectTo, request.url));
+  return NextResponse.redirect(redirectTarget);
 }

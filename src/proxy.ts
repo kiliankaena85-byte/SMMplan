@@ -244,6 +244,9 @@ export async function proxy(request: NextRequest) {
   if (isInternalHost(host) || !host) {
     host = process.env.APP_URL ? new URL(process.env.APP_URL).host : 'test.smmplan.pro';
   }
+  if (host.includes('0.0.0.0')) {
+    host = host.replace('0.0.0.0', 'localhost');
+  }
 
   const proto = fwdProto || (process.env.NODE_ENV === 'production' && !isInternalHost(host) ? 'https' : 'http');
   const originBase = `${proto}://${host}`;
