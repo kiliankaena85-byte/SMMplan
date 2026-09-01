@@ -24,6 +24,7 @@ import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
+import { ERROR_TAXONOMY } from '@/lib/order-error-classifier';
 
 export const dynamic = 'force-dynamic';
 
@@ -396,6 +397,60 @@ export default async function OrderStatusesDocPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* ── PROFESSIONAL ERROR TAXONOMY CATALOG ── */}
+      <div className="bg-card border border-border/80 rounded-2xl shadow-xs overflow-hidden space-y-4 p-5">
+        <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-border/60">
+          <div>
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-rose-500" />
+              <span>Справочник кодов ошибок платформы и шлюзов (Error Codes Taxonomy)</span>
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Стандартизированные системные коды для быстрой классификации сбоев поставщиков, некорректных ссылок и сетевых таймаутов.
+            </p>
+          </div>
+          <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg bg-muted border border-border text-foreground">
+            {Object.keys(ERROR_TAXONOMY).length} системных кодов
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          {Object.entries(ERROR_TAXONOMY).map(([code, item]) => (
+            <div 
+              key={code} 
+              className="p-4 rounded-xl bg-muted/20 border border-border/60 hover:border-border transition-colors flex flex-col justify-between space-y-2.5"
+            >
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className={`px-2 py-0.5 rounded font-mono text-[11px] font-bold border ${item.badgeBg} ${item.badgeText} ${item.badgeBorder}`}>
+                    {code}
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2 py-0.5 rounded bg-muted/60">
+                    {item.category === 'LINK' ? '🔗 Ссылка / Клиент' :
+                     item.category === 'PROVIDER' ? '🏢 Провайдер' :
+                     item.category === 'GATEWAY' ? '🌐 Сеть / Шлюз' :
+                     item.category === 'LIMIT' ? '📊 Лимит объема' :
+                     item.category === 'PAYMENT' ? '💳 Платежи' : '⚙️ Система'}
+                  </span>
+                </div>
+
+                <div className="text-xs font-bold text-foreground">
+                  {item.titleRu}
+                </div>
+
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  {item.descriptionRu}
+                </p>
+              </div>
+
+              <div className="pt-2 border-t border-border/40 text-[11px] text-primary font-medium">
+                👉 <strong>Действие:</strong> {item.recommendedAction}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

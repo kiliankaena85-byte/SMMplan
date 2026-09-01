@@ -36,6 +36,7 @@ import {
   getOrderDetailsAction,
 } from '@/actions/admin/orders';
 import { formatKopecks } from '@/utils/format-kopecks';
+import { classifyOrderError } from '@/lib/order-error-classifier';
 
 export interface OrderModalColumn {
   id: string;
@@ -621,13 +622,13 @@ export function OrderDetailsModal({
                           onChange={(e) => setSelectedStatus(e.target.value)}
                           className="flex-1 bg-muted/60 border border-border rounded-lg px-2.5 py-1.5 text-xs font-bold text-foreground outline-none cursor-pointer"
                         >
-                          <option value="PENDING">В очереди (PENDING)</option>
-                          <option value="IN_PROGRESS">В работе (IN_PROGRESS)</option>
-                          <option value="COMPLETED">Выполнен (COMPLETED)</option>
-                          <option value="PARTIAL">Частично (PARTIAL)</option>
-                          <option value="CANCELED">Отменён (CANCELED)</option>
-                          <option value="ERROR">Ошибка (ERROR)</option>
-                          <option value="AWAITING_PAYMENT">Ожидает оплату</option>
+                          <option value="PENDING">⏳ В очереди</option>
+                          <option value="IN_PROGRESS">⚡ В работе</option>
+                          <option value="COMPLETED">🟢 Выполнен</option>
+                          <option value="PARTIAL">🟠 Частично выполнен</option>
+                          <option value="CANCELED">❌ Отменён</option>
+                          <option value="ERROR">🔴 Ошибка</option>
+                          <option value="AWAITING_PAYMENT">⚪ Ожидает оплаты</option>
                         </select>
                         <button
                           onClick={handleSetStatus}
@@ -694,6 +695,28 @@ export function OrderDetailsModal({
                       </div>
                     </div>
 
+                    {/* PRICE DRIFT HOLD ALERT & ACTION GUIDANCE */}
+                    {currentOrder.error && currentOrder.error.includes('PRICE_DRIFT_HOLD') && (
+                      <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-3 space-y-2 text-xs">
+                        <div className="flex items-center gap-1.5 font-extrabold text-rose-600 dark:text-rose-400">
+                          <AlertTriangle className="w-4 h-4 shrink-0" />
+                          <span>Защита от убытка (Отрицательная маржа)</span>
+                        </div>
+                        <p className="text-[11px] text-foreground/90 leading-snug">
+                          Поставщик поднял закупочную цену (<strong>{costRub.toFixed(2)} ₽</strong>), из-за чего выполнение заказа принесет убыток платформе (клиент оплатил <strong>{chargeRub.toFixed(2)} ₽</strong>).
+                        </p>
+                        <div className="pt-2 border-t border-border/40 space-y-1.5 text-[11px]">
+                          <div className="font-bold text-foreground">Что делать сотруднику:</div>
+                          <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                            1. <strong>«Сменить провайдера»</strong> — выбрать альтернативного поставщика с положительной маржой.
+                          </div>
+                          <div className="flex items-center gap-1 text-rose-600 dark:text-rose-400">
+                            2. <strong>«Отменить и вернуть»</strong> — вернуть клиенту 100% средств на баланс, если дешевых поставщиков нет.
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Cost & Margin (Separated: Cost visible in modal to Support & Admin, Margin strictly OWNER/ADMIN) */}
                     <div className="bg-card border border-border/60 rounded-xl p-3 space-y-2">
                       <div className="flex items-center justify-between text-xs">
@@ -737,23 +760,43 @@ export function OrderDetailsModal({
 
               </div>
 
-              {/* PROVIDER ERROR BANNER (IF ANY) */}
-              {currentOrder.error && (
-                <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 space-y-1">
-                  <div className="flex items-center gap-2 text-xs font-extrabold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
-                    <ShieldAlert className="w-4 h-4" />
-                    <span>Ответ / Ошибка провайдера:</span>
-                  </div>
-                  <div className="text-sm font-bold text-rose-700 dark:text-rose-300">
-                    {localizedError || currentOrder.error}
-                  </div>
-                  {localizedError && localizedError !== currentOrder.error && (
-                    <div className="text-[11px] text-muted-foreground font-mono break-all pt-1">
-                      Raw: {currentOrder.error}
+              {/* PROVIDER ERROR BANNER WITH ERROR TAXONOMY */}
+              {currentOrder.error && (() => {
+                const classified = classifyOrderError(currentOrder.error);
+                return (
+                  <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 space-y-2.5">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2 text-xs font-extrabold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+                        <ShieldAlert className="w-4 h-4" />
+                        <span>Ответ / Ошибка провайдера:</span>
+                      </div>
+                      {classified && (
+                        <span className={`px-2 py-0.5 rounded-md font-mono text-[11px] font-bold border ${classified.badgeBg} ${classified.badgeText} ${classified.badgeBorder}`}>
+                          {classified.code}
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
-              )}
+
+                    <div className="text-sm font-bold text-rose-700 dark:text-rose-300">
+                      {classified ? classified.titleRu : currentOrder.error}
+                    </div>
+
+                    {classified && (
+                      <div className="text-xs text-foreground/85 leading-relaxed bg-card/60 p-2.5 rounded-xl border border-border/50">
+                        <div className="font-semibold text-[11px] text-muted-foreground uppercase mb-0.5">Пояснение:</div>
+                        {classified.descriptionRu}
+                        <div className="mt-2 pt-1.5 border-t border-border/40 text-[11px] text-primary font-medium">
+                          💡 <strong>Действие:</strong> {classified.recommendedAction}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="text-[10px] text-muted-foreground font-mono break-all pt-0.5">
+                      Сырой ответ: {currentOrder.error}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* FAILOVER PREVIEW SECTION (INLINE ACCORDION) */}
               {isFailoverOpen && failoverPreview && (

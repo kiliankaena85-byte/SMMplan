@@ -28,6 +28,7 @@ import { OrderDetailsModal } from '@/components/admin/OrderDetailsModal';
 import { BulkActionsPanel } from '@/components/admin/bulk-actions/BulkActionsPanel';
 import { formatKopecks } from '@/utils/format-kopecks';
 import { cancelOrderAction, restartOrderAction } from '@/actions/admin/orders';
+import { classifyOrderError } from '@/lib/order-error-classifier';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 
 interface Props {
@@ -39,6 +40,7 @@ interface Props {
 const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string }> = {
   AWAITING_PAYMENT: { label: 'Ожидает оплаты', dot: 'bg-zinc-400',                   bg: 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/20' },
   PENDING:          { label: 'В очереди',      dot: 'bg-amber-500',                  bg: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20' },
+  PENDING_CHECK:    { label: 'Проверка ссылки', dot: 'bg-sky-500 animate-pulse',      bg: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20' },
   IN_PROGRESS:      { label: 'В работе',       dot: 'bg-primary animate-pulse',      bg: 'bg-primary/10 text-primary border-primary/20' },
   COMPLETED:        { label: 'Выполнен',       dot: 'bg-emerald-500',                bg: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20' },
   PARTIAL:          { label: 'Частично',       dot: 'bg-orange-500',                 bg: 'bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20' },
@@ -166,11 +168,33 @@ function InfoStack({ order }: { order: OrderColumn }) {
               </span>
             </div>
 
-            <div className="flex items-start gap-1.5">
-              <span className="text-foreground/70 shrink-0">Комментарий провайдера:</span>
-              <span className="text-muted-foreground break-all">
-                {order.error || '-'}
-              </span>
+            <div className="flex items-start gap-1.5 pt-0.5">
+              <span className="text-foreground/70 shrink-0">Статус провайдера:</span>
+              <div className="space-y-1 flex-1">
+                {order.error ? (() => {
+                  const classified = classifyOrderError(order.error);
+                  if (classified) {
+                    return (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`px-1.5 py-0.5 rounded font-mono text-[10px] font-bold border ${classified.badgeBg} ${classified.badgeText} ${classified.badgeBorder}`}>
+                            {classified.code}
+                          </span>
+                          <span className="font-semibold text-foreground text-[11px]">
+                            {classified.titleRu}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-muted-foreground break-all">
+                          {order.error}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return <span className="text-muted-foreground break-all">{order.error}</span>;
+                })() : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </div>
             </div>
           </div>
         )}
