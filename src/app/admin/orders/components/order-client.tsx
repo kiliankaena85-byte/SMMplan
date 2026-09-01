@@ -365,17 +365,36 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
           </button>
 
           {selectionMode && (
-            <button
-              type="button"
-              onClick={toggleSelectAll}
-              className="px-2.5 py-1 text-xs font-medium bg-muted hover:bg-muted/80 text-foreground border border-border/60 rounded-md transition-all cursor-pointer"
-            >
-              {selectedIds.size > 0 
-                ? 'Снять всё' 
-                : lockedStatus 
-                ? `Выбрать все (${STATUS_LABELS[lockedStatus] || lockedStatus})`
-                : `Выбрать все (${optimisticData.length})`}
-            </button>
+            <>
+              {/* Кнопка "Выбрать все" с учетом зафиксированного статуса */}
+              <button
+                type="button"
+                onClick={() => {
+                  const targetStatus = lockedStatus || optimisticData[0]?.status;
+                  if (targetStatus) {
+                    const matchingIds = optimisticData.filter(o => o.status === targetStatus).map(o => o.id);
+                    setSelectedIds(new Set(matchingIds));
+                    toast.info(`Выбрано ${matchingIds.length} заказов со статусом «${STATUS_LABELS[targetStatus] || targetStatus}»`);
+                  }
+                }}
+                className="px-2.5 py-1 text-xs font-medium bg-muted hover:bg-muted/80 text-foreground border border-border/60 rounded-md transition-all cursor-pointer"
+              >
+                {lockedStatus 
+                  ? `Выбрать все (${STATUS_LABELS[lockedStatus] || lockedStatus}: ${optimisticData.filter(o => o.status === lockedStatus).length})`
+                  : `Выбрать все (${optimisticData.length})`}
+              </button>
+
+              {/* Кнопка "Снять всё" появляется, когда есть выбранные элементы */}
+              {selectedIds.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedIds(new Set())}
+                  className="px-2.5 py-1 text-xs font-medium bg-background hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60 rounded-md transition-all cursor-pointer"
+                >
+                  Снять всё
+                </button>
+              )}
+            </>
           )}
 
           {/* Status Lock Badge Indicator */}
