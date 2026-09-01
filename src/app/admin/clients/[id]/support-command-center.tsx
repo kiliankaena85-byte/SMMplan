@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import {
   Wallet, KeyRound, FileText, Sparkles, Check, Copy,
   Link as LinkIcon, LogOut, Mail, Percent, Shield,
-  TrendingUp, CreditCard, ShoppingBag, AlertCircle
+  TrendingUp, CreditCard, ShoppingBag, AlertCircle, Eye, EyeOff, Globe
 } from 'lucide-react';
 import { UserDTO, PaymentDTO, OrderDTO, LoginLogDTO } from './tabs/types';
 import {
@@ -54,6 +54,7 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders }: Prop
   const [isPendingAdj, startAdjTransition] = useTransition();
 
   const [newPass, setNewPass] = useState('');
+  const [showPass, setShowPass] = useState(true);
   const [copiedPass, setCopiedPass] = useState(false);
   const [copiedMagic, setCopiedMagic] = useState(false);
   const [isPendingPass, startPassTransition] = useTransition();
@@ -62,9 +63,13 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders }: Prop
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showPayments, setShowPayments] = useState(false);
 
+  const currentBalanceRub = (user.balance ?? 0) / 100;
+
   function generatePass() {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*';
-    setNewPass(Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join(''));
+    const p = Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    setNewPass(p);
+    setShowPass(true);
   }
 
   function saveNote() {
@@ -85,15 +90,32 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders }: Prop
 
   function applyAdj() {
     const amount = parseFloat(adjAmount);
-    if (!adjAmount || isNaN(amount) || amount <= 0) { toast.error('Укажите корректную сумму'); return; }
+    if (!adjAmount || isNaN(amount) || amount <= 0) {
+      toast.error('Укажите корректную сумму');
+      return;
+    }
+
+    if (adjDirection === 'DEBIT' && amount > currentBalanceRub) {
+      toast.error(`Невозможно списать больше текущего баланса (${currentBalanceRub.toLocaleString('ru-RU')} ₽)`);
+      return;
+    }
+
     startAdjTransition(async () => {
       const fd = new FormData();
-      fd.set('userId', user.id); fd.set('amount', adjAmount);
-      fd.set('direction', adjDirection); fd.set('reason', adjReason); fd.set('comment', adjComment);
+      fd.set('userId', user.id);
+      fd.set('amount', adjAmount);
+      fd.set('direction', adjDirection);
+      fd.set('reason', adjReason);
+      fd.set('comment', adjComment);
       const r = await supportGoodwillCreditAction(fd);
       if (r.success) {
-        toast.success(`${adjDirection === 'CREDIT' ? 'Начислено' : 'Списано'} ${amount} ₽`);
-        setAdjAmount(''); setAdjComment('');
+        if ('pendingApproval' in r && r.pendingApproval) {
+          toast.info(r.message || 'Заявка отправлена администратору на согласование');
+        } else {
+          toast.success(r.message || `${adjDirection === 'CREDIT' ? 'Начислено' : 'Списано'} ${amount} ₽`);
+        }
+        setAdjAmount('');
+        setAdjComment('');
       } else {
         toast.error((r as { error?: string }).error ?? 'Ошибка операции');
       }
@@ -116,7 +138,9 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders }: Prop
     if (!newPass || newPass.length < 8) { toast.error('Минимум 8 символов'); return; }
     startPassTransition(async () => {
       const r = await adminChangeUserPasswordAction(user.id, newPass);
-      if (r.success) { toast.success('Пароль установлен, сессии сброшены'); setNewPass(''); }
+      if (r.success) { 
+        toast.success('Пароль установлен, сессии сброшены'); 
+      }
       else toast.error(r.error ?? 'Ошибка');
     });
   }
@@ -128,6 +152,8 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders }: Prop
       if (r.success) toast.success(r.message); else toast.error(r.error || 'Ошибка');
     });
   }
+
+  const lastLog = loginLogs[0];
 
   const stats = [
     { label: 'Баланс', value: fmtBalance(user.balance), sub: (user.quarantineBalance ?? 0) > 0 ? `Эскроу: ${fmtBalance(user.quarantineBalance)}` : null, color: 'text-success' },
@@ -165,10 +191,13 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders }: Prop
 
         {/* Колонка 1: Баланс */}
         <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-5 ring-1 ring-border/5 space-y-4">
-          <h3 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
-            <span className="bg-success/10 text-success p-1 rounded-md"><Wallet className="w-3.5 h-3.5" /></span>
-            Баланс клиента
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
+              <span className="bg-success/10 text-success p-1 rounded-md"><Wallet className="w-3.5 h-3.5" /></span>
+              Баланс клиента
+            </h3>
+            <span className="text-[10px] text-muted-foreground font-mono">Доступно: {currentBalanceRub.toLocaleString('ru-RU')} ₽</span>
+          </div>
 
           <div className="flex gap-2">
             {(['CREDIT', 'DEBIT'] as const).map(d => (
@@ -182,9 +211,16 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders }: Prop
           </div>
 
           <div>
-            <label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1 block">Сумма (₽)</label>
-            <input type="number" min="1" step="0.01" value={adjAmount} onChange={e => setAdjAmount(e.target.value)} placeholder="100.00"
+            <label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1 block">
+              {adjDirection === 'CREDIT' ? 'Сумма начисления (₽)' : `Сумма списания (₽, макс ${currentBalanceRub.toFixed(0)} ₽)`}
+            </label>
+            <input type="number" min="1" max={adjDirection === 'DEBIT' ? currentBalanceRub : undefined} step="0.01" value={adjAmount} onChange={e => setAdjAmount(e.target.value)} placeholder="100.00"
               className="w-full h-9 px-3 text-sm font-mono rounded-xl border border-border/60 bg-background/50 shadow-sm text-foreground outline-none focus:border-primary" />
+            {adjDirection === 'CREDIT' && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                ⚡ Мгновенно до 2 000 ₽. Суммы выше создадут заявку администратору.
+              </p>
+            )}
           </div>
           <div>
             <label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1 block">Причина</label>
@@ -229,19 +265,29 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders }: Prop
 
         {/* Колонка 2: Безопасность */}
         <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-5 ring-1 ring-border/5 space-y-4">
-          <h3 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
-            <span className="bg-primary/10 text-primary p-1 rounded-md"><Shield className="w-3.5 h-3.5" /></span>
-            Безопасность и доступ
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
+              <span className="bg-primary/10 text-primary p-1 rounded-md"><Shield className="w-3.5 h-3.5" /></span>
+              Безопасность и доступ
+            </h3>
+            {lastLog && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-lg">
+                <Globe className="w-3 h-3" /> {lastLog.ipAddress}
+              </span>
+            )}
+          </div>
+
           <button type="button" onClick={handleMagic} disabled={isPendingMagic}
             className="w-full h-9 rounded-xl text-xs font-bold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50">
             {copiedMagic ? <Check className="w-3.5 h-3.5 text-success" /> : <LinkIcon className="w-3.5 h-3.5" />}
             {isPendingMagic ? 'Генерация...' : copiedMagic ? 'Скопировано!' : 'Magic Link (15 мин)'}
           </button>
+
           <button type="button" onClick={() => setShowEmailModal(true)}
             className="w-full h-9 rounded-xl text-xs font-bold bg-muted text-foreground border border-border/60 hover:bg-muted/80 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
             <Mail className="w-3.5 h-3.5 text-muted-foreground" /> Исправить Email клиента
           </button>
+
           <button type="button" onClick={handleRevoke} disabled={isPendingRevoke}
             className="w-full h-9 rounded-xl text-xs font-bold bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50">
             <LogOut className="w-3.5 h-3.5" />
@@ -258,19 +304,27 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders }: Prop
                 <Sparkles className="w-3 h-3" /> Сгенерировать
               </button>
             </div>
-            <div className="relative">
-              <input type="text" value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="Введите пароль..."
-                className="w-full h-9 text-xs px-3 pr-9 rounded-xl border border-border/60 bg-background/50 shadow-sm text-foreground font-mono outline-none focus:border-primary" />
-              {newPass && (
-                <button type="button" onClick={async () => { await navigator.clipboard.writeText(newPass); setCopiedPass(true); toast.success('Скопировано'); setTimeout(() => setCopiedPass(false), 2000); }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-                  {copiedPass ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
-                </button>
-              )}
+            <div className="relative flex items-center">
+              <input type={showPass ? "text" : "password"} value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="Введите пароль..."
+                className="w-full h-9 text-xs pl-3 pr-16 rounded-xl border border-border/60 bg-background/50 shadow-sm text-foreground font-mono outline-none focus:border-primary" />
+              <div className="absolute right-1.5 flex items-center gap-1">
+                {newPass && (
+                  <button type="button" onClick={() => setShowPass(!showPass)}
+                    className="p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" title={showPass ? "Скрыть" : "Показать"}>
+                    {showPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                )}
+                {newPass && (
+                  <button type="button" onClick={async () => { await navigator.clipboard.writeText(newPass); setCopiedPass(true); toast.success('Пароль скопирован'); setTimeout(() => setCopiedPass(false), 2000); }}
+                    className="p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" title="Скопировать пароль">
+                    {copiedPass ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                )}
+              </div>
             </div>
             <button type="button" onClick={handleSetPass} disabled={isPendingPass || !newPass}
               className="w-full h-9 rounded-xl text-xs font-bold bg-warning text-warning-foreground shadow-xs hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 cursor-pointer">
-              {isPendingPass ? 'Сохранение...' : 'Установить пароль'}
+              {isPendingPass ? 'Сохранение...' : 'Установить пароль клиенту'}
             </button>
           </div>
 

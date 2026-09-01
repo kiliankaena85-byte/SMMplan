@@ -1,7 +1,15 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-09-01 02:05 (МСК)
+> **Последнее обновление:** 2026-09-01 04:51 (МСК)
+
+- **Support Command Center & RBAC Fix (100% COMPLETE & VERIFIED):**
+  - **1. BUG FIX — Сохранение заметок оператора (clients.ts):** `updateClientNoteAction` исправлен с секции `'finance'` на `'clients'`. Ошибка *"No permissions for section [finance]"* устранена.
+  - **2. RBAC — BUILTIN_ROLE_PERMISSIONS (rbac.ts):** Добавлена таблица встроенных прав для ролей `SUPPORT` (clients/orders/tickets/balance_requests), `MANAGER` (+ catalog/finance view), `OPERATOR` (orders/tickets/support). Роли работают без ручной настройки прав в БД.
+  - **3. Раскрытие финансов для SUPPORT:** Убрана маскировка `canSeeFinances = isOwner || !isSupport` в `/admin/clients/[id]/page.tsx` и `/admin/clients/page.tsx`. Саппорт видит реальный баланс, LTV, реферальный баланс.
+  - **4. Новые Server Actions (clients.ts):** `supportGoodwillCreditAction` (начисление/списание с аудитом, лимит 10 000 ₽ для саппорта), `sendPasswordResetEmailAction` (генерация токена сброса).
+  - **5. SupportCommandCenter (NEW `support-command-center.tsx`):** Единая CRM-панель без вкладок для SUPPORT: 3 колонки — [Баланс+Скидка], [Безопасность+Пароль+Журнал], [Заметка+Заказы]. OWNER/ADMIN по-прежнему видят 5-вкладочный интерфейс.
+  - **6. Верификация:** `npx tsc --noEmit` → **0 ошибок**, HTTP 200 на `/admin/clients`, git commit `76c89324` pushed to `origin/main`.
 
 - **Комплексное устранение багов кабинета и админки (100% COMPLETE & VERIFIED):**
   - **1. Динамический счетчик соцсетей в кабинете (`ClassicDashboardHome.tsx`):** Заменена жестко зашитая фраза «Все 34 платформы» на динамический расчет активных соцсетей с услугами (`initialCatalog.length`) и корректным русским склонением («Быстрый заказ по соцсетям», «Все N соцсетей»).

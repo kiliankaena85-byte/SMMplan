@@ -157,12 +157,13 @@ export async function sendPasswordResetEmailAction(userId: string) {
   });
 }
 
-/** Staff Goodwill / Compensation Balance Credit */
+/** Staff Balance Credit / Debit / Goodwill with policy limits and admin escalation */
 export async function supportGoodwillCreditAction(formData: FormData) {
   return requireStaffPermission('clients', 'edit', async (admin, _role, tenantId) => {
     const userId = formData.get('userId') as string;
     const amountStr = formData.get('amount') as string;
-    const reason = (formData.get('reason') as string) || 'Компенсация техподдержки (Goodwill)';
+    const direction = ((formData.get('direction') as string) || 'CREDIT').toUpperCase() as 'CREDIT' | 'DEBIT';
+    const reason = (formData.get('reason') as string) || 'Операция техподдержки';
     const comment = (formData.get('comment') as string) || '';
 
     if (!userId || !amountStr) {
@@ -174,42 +175,104 @@ export async function supportGoodwillCreditAction(formData: FormData) {
       return { success: false as const, error: 'Сумма должна быть положительным числом' };
     }
 
-    const MAX_GOODWILL_RUB = 10000;
-    if (amountRub > MAX_GOODWILL_RUB && admin.role === 'SUPPORT') {
-      return { success: false as const, error: `Максимальная компенсация для саппорта — ${MAX_GOODWILL_RUB} ₽` };
+    const targetUser = await db.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, balance: true, tenantId: true }
+    });
+
+    if (!targetUser) {
+      return { success: false as const, error: 'Клиент не найден' };
     }
 
     const amountKopecks = BigInt(Math.round(amountRub * 100));
+
+    // GUARD: Zero-negative invariant for DEBIT operations
+    if (direction === 'DEBIT') {
+      if (amountKopecks > targetUser.balance) {
+        const currentRub = Number(targetUser.balance) / 100;
+        return {
+          success: false as const,
+          error: `Невозможно списать в минус. Текущий баланс клиента: ${currentRub.toLocaleString('ru-RU')} ₽, запрошено списание: ${amountRub} ₽`
+        };
+      }
+    }
+
+    // Dynamic Policy Limit Check for SUPPORT
+    const { getEffectiveBalancePolicy } = await import('@/services/admin/balance-policy.service');
+    const policy = await getEffectiveBalancePolicy(admin.id);
+    
+    // Default limit: 2 000 ₽ per request if policy not configured
+    const maxInstantLimitKopecks = policy?.maxCreditPerRequest ?? BigInt(200_000);
+    const maxInstantLimitRub = Number(maxInstantLimitKopecks) / 100;
+
+    // If SUPPORT wants to credit more than instant limit -> Escalate to Admin approval flow
+    if (direction === 'CREDIT' && admin.role === 'SUPPORT' && amountKopecks > maxInstantLimitKopecks) {
+      const { createBalanceAdjustmentRequestAction } = await import('@/actions/admin/balance-adjustments');
+      const reqFormData = new FormData();
+      reqFormData.set('targetUserId', userId);
+      reqFormData.set('direction', 'CREDIT');
+      reqFormData.set('amountCents', amountKopecks.toString());
+      reqFormData.set('reasonCode', 'GOODWILL');
+      reqFormData.set('reasonNote', `Goodwill > ${maxInstantLimitRub} ₽: ${reason}${comment ? ` (${comment})` : ''}`);
+
+      const requestRes = await createBalanceAdjustmentRequestAction(reqFormData);
+      if (requestRes.success) {
+        return {
+          success: true as const,
+          pendingApproval: true,
+          message: `Сумма ${amountRub} ₽ превышает ваш мгновенный лимит (${maxInstantLimitRub} ₽). Заявка отправлена администратору на согласование.`
+        };
+      }
+      return { success: false as const, error: requestRes.error || 'Ошибка создания заявки администратору' };
+    }
 
     const { WalletOps } = await import('@/services/financial/wallet-ops');
     const { auditAdminAwaitable } = await import('@/lib/admin-audit');
 
     const result = await db.$transaction(async (tx) => {
-      return await WalletOps.credit(
-        tx,
-        userId,
-        amountKopecks,
-        `Goodwill: ${reason}${comment ? ` (${comment})` : ''}`,
-        {
-          adminId: admin.id,
-          tenantId: tenantId || 'smmplan',
-          transactionType: 'ADJUSTMENT'
-        }
-      );
+      if (direction === 'CREDIT') {
+        return await WalletOps.credit(
+          tx,
+          userId,
+          amountKopecks,
+          `Goodwill: ${reason}${comment ? ` (${comment})` : ''}`,
+          {
+            adminId: admin.id,
+            tenantId: tenantId || targetUser.tenantId || 'smmplan',
+            transactionType: 'ADJUSTMENT'
+          }
+        );
+      } else {
+        return await WalletOps.charge(
+          tx,
+          userId,
+          amountKopecks,
+          `Списание оператором: ${reason}${comment ? ` (${comment})` : ''}`,
+          {
+            adminId: admin.id,
+            tenantId: tenantId || targetUser.tenantId || 'smmplan',
+            transactionType: 'ADJUSTMENT'
+          }
+        );
+      }
     });
 
     await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
-      action: 'SUPPORT_GOODWILL_CREDIT',
+      action: direction === 'CREDIT' ? 'SUPPORT_GOODWILL_CREDIT' : 'SUPPORT_BALANCE_DEBIT',
       target: userId,
       targetType: 'USER',
-      newValue: { amountRub, reason, comment },
+      newValue: { amountRub, direction, reason, comment },
     });
 
     revalidatePath(`/admin/clients/${userId}`);
     revalidatePath('/admin/clients');
-    return { success: true as const, newBalanceRub: Number(result.balance) / 100 };
+    return { 
+      success: true as const, 
+      newBalanceRub: Number(result.balance) / 100,
+      message: `${direction === 'CREDIT' ? 'Начислено' : 'Списано'} ${amountRub} ₽`
+    };
   });
 }
 
