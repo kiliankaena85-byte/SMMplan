@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 import { 
   RefreshCw, 
   XCircle, 
-  MoreHorizontal, 
   Download, 
   ShieldAlert, 
   X 
@@ -13,7 +12,6 @@ import {
 import { OrderColumn } from '@/app/admin/orders/components/columns';
 import { bulkCancelOrdersAction, bulkRestartOrdersAction } from '@/actions/admin/orders';
 import { formatKopecks } from '@/utils/format-kopecks';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface Props {
   selectedOrders: OrderColumn[];

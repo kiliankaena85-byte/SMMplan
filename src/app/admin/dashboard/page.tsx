@@ -225,9 +225,12 @@ export default async function AdminDashboardPage({
       {canSeeFinancials ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Валовый оборот */}
-          <div className="bg-card text-card-foreground border border-border/70 rounded-lg p-4 shadow-sm flex flex-col justify-between space-y-2">
+          <Link
+            href="/admin/finance/overview"
+            className="bg-card text-card-foreground border border-border/70 hover:border-primary/50 hover:shadow-md rounded-lg p-4 shadow-sm flex flex-col justify-between space-y-2 transition-all cursor-pointer group"
+          >
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Валовый оборот (GMV)</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground group-hover:text-primary transition-colors">Валовый оборот (GMV)</span>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
                 Поступления
               </span>
@@ -239,12 +242,15 @@ export default async function AdminDashboardPage({
               <span>Эквайринг: {formatKopecks(metrics.gatewayFees)}</span>
               <span className="font-semibold text-foreground">100%</span>
             </div>
-          </div>
+          </Link>
 
           {/* Card 2: Чистая маржа */}
-          <div className="bg-card text-card-foreground border border-border/70 rounded-lg p-4 shadow-sm flex flex-col justify-between space-y-2">
+          <Link
+            href="/admin/finance/pricing"
+            className="bg-card text-card-foreground border border-border/70 hover:border-primary/50 hover:shadow-md rounded-lg p-4 shadow-sm flex flex-col justify-between space-y-2 transition-all cursor-pointer group"
+          >
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Чистая маржа</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground group-hover:text-primary transition-colors">Чистая маржа</span>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
                 profitMargin >= 30
                   ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
@@ -260,12 +266,15 @@ export default async function AdminDashboardPage({
               <span>Себестоимость: {formatKopecks(metrics.cogs)}</span>
               <span className="font-semibold text-emerald-600 dark:text-emerald-400">+{profitMargin.toFixed(0)}%</span>
             </div>
-          </div>
+          </Link>
 
           {/* Card 3: Поток заказов */}
-          <div className="bg-card text-card-foreground border border-border/70 rounded-lg p-4 shadow-sm flex flex-col justify-between space-y-2">
+          <Link
+            href="/admin/orders"
+            className="bg-card text-card-foreground border border-border/70 hover:border-primary/50 hover:shadow-md rounded-lg p-4 shadow-sm flex flex-col justify-between space-y-2 transition-all cursor-pointer group"
+          >
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Всего заказов</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground group-hover:text-primary transition-colors">Всего заказов</span>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20">
                 Успех {successOrderRate}%
               </span>
@@ -277,12 +286,15 @@ export default async function AdminDashboardPage({
               <span>В работе: {oStats.inProgress} шт</span>
               <span>В очереди: {oStats.pending} шт</span>
             </div>
-          </div>
+          </Link>
 
           {/* Card 4: Клиентская база */}
-          <div className="bg-card text-card-foreground border border-border/70 rounded-lg p-4 shadow-sm flex flex-col justify-between space-y-2">
+          <Link
+            href="/admin/clients"
+            className="bg-card text-card-foreground border border-border/70 hover:border-primary/50 hover:shadow-md rounded-lg p-4 shadow-sm flex flex-col justify-between space-y-2 transition-all cursor-pointer group"
+          >
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Клиенты & Каталог</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground group-hover:text-primary transition-colors">Клиенты & Каталог</span>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/50">
                 {cStats.activeServices} услуг
               </span>
@@ -294,27 +306,51 @@ export default async function AdminDashboardPage({
               <span>Активных: {uStats.active}</span>
               <span className="text-primary font-semibold">База растет</span>
             </div>
-          </div>
+          </Link>
         </div>
       ) : (
-        /* Support-Only 4-Card Strip */
+        /* Support-Only 4-Card Strip (100% Clickable with live filters) */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-card border border-border/70 rounded-lg p-4 shadow-sm">
-            <div className="text-xs text-muted-foreground font-bold uppercase">Заказов в работе</div>
+          <Link
+            href="/admin/orders?status=IN_PROGRESS"
+            className="bg-card border border-border/70 hover:border-primary/50 hover:shadow-md rounded-lg p-4 shadow-sm transition-all cursor-pointer group block"
+          >
+            <div className="text-xs text-muted-foreground font-bold uppercase group-hover:text-primary transition-colors flex items-center justify-between">
+              <span>Заказов в работе</span>
+              <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
             <div className="text-2xl font-bold font-mono text-foreground mt-1">{oStats.inProgress} шт</div>
-          </div>
-          <div className="bg-card border border-border/70 rounded-lg p-4 shadow-sm">
-            <div className="text-xs text-muted-foreground font-bold uppercase">Заказов в очереди</div>
+          </Link>
+          <Link
+            href="/admin/orders?status=PENDING"
+            className="bg-card border border-border/70 hover:border-primary/50 hover:shadow-md rounded-lg p-4 shadow-sm transition-all cursor-pointer group block"
+          >
+            <div className="text-xs text-muted-foreground font-bold uppercase group-hover:text-primary transition-colors flex items-center justify-between">
+              <span>Заказов в очереди</span>
+              <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
             <div className="text-2xl font-bold font-mono text-foreground mt-1">{oStats.pending} шт</div>
-          </div>
-          <div className="bg-card border border-border/70 rounded-lg p-4 shadow-sm">
-            <div className="text-xs text-muted-foreground font-bold uppercase">Сбои / Ошибки</div>
+          </Link>
+          <Link
+            href="/admin/orders?status=ERROR"
+            className="bg-card border border-border/70 hover:border-rose-500/50 hover:shadow-md rounded-lg p-4 shadow-sm transition-all cursor-pointer group block"
+          >
+            <div className="text-xs text-rose-600 dark:text-rose-400 font-bold uppercase flex items-center justify-between">
+              <span>Сбои / Ошибки</span>
+              <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
             <div className="text-2xl font-bold font-mono text-rose-600 mt-1">{oStats.error} сбоев</div>
-          </div>
-          <div className="bg-card border border-border/70 rounded-lg p-4 shadow-sm">
-            <div className="text-xs text-muted-foreground font-bold uppercase">Тикетов в очереди</div>
+          </Link>
+          <Link
+            href="/admin/tickets?status=OPEN"
+            className="bg-card border border-border/70 hover:border-amber-500/50 hover:shadow-md rounded-lg p-4 shadow-sm transition-all cursor-pointer group block"
+          >
+            <div className="text-xs text-amber-600 dark:text-amber-400 font-bold uppercase flex items-center justify-between">
+              <span>Тикетов в очереди</span>
+              <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
             <div className="text-2xl font-bold font-mono text-amber-600 mt-1">{tStats.open} тикетов</div>
-          </div>
+          </Link>
         </div>
       )}
 

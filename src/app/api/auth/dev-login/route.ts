@@ -16,8 +16,14 @@ export async function GET(request: Request) {
                       role === 'SUPPORT' ? 'support@smmplan.pro' : 'testclient1@example.com';
 
   let user = await db.user.findFirst({
-    where: { role: role as any }
+    where: { email: targetEmail }
   });
+
+  if (!user) {
+    user = await db.user.findFirst({
+      where: { role: role as any }
+    });
+  }
 
   if (!user) {
     // Try finding by email first, then create if missing
