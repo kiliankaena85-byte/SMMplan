@@ -64,7 +64,7 @@ describe('Admin Tenant Switcher Server-Side Session & Audit (P1-8)', () => {
     expect(redis.set).toHaveBeenCalledWith('staff:staff-456:active_tenant', 'flux', 'EX', 86400 * 30);
     expect(auditAdminAwaitable).toHaveBeenCalledWith(expect.objectContaining({
       action: 'TENANT_SWITCH',
-      targetId: 'flux',
+      target: 'flux',
     }));
   });
 });
