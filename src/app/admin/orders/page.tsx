@@ -1,5 +1,5 @@
 import { adminOrderService } from '@/services/admin/order.service';
-import { Package, Download } from 'lucide-react';
+import { Package, Download, BookOpen, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { OrderClient } from './components/order-client';
@@ -185,14 +185,27 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
         title="Заказы"
         description={`Всего: ${stats.total} • В очереди: ${stats.pending} • В работе: ${stats.inProgress} • Ошибки: ${stats.error}`}
         currentTenant={tenantFilter}
-        action={isSuperAdmin ? (
-          <a
-            href={`/api/admin/export${buildQueryString({ type: 'orders' })}`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-foreground bg-card border border-border/70 shadow-sm rounded-md hover:bg-muted hover:text-primary transition-colors h-8"
-          >
-            <Download className="w-3.5 h-3.5" /> Экспорт CSV
-          </a>
-        ) : undefined}
+        action={
+          <div className="flex items-center gap-2">
+            <Link
+              href="/admin/docs/order-statuses"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-foreground bg-card border border-border/70 shadow-2xs rounded-lg hover:bg-muted hover:text-primary transition-colors h-8"
+              title="Открыть технический регламент и описание всех статусов"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-primary" />
+              <span>Справка по статусам</span>
+            </Link>
+
+            {isSuperAdmin && (
+              <a
+                href={`/api/admin/export${buildQueryString({ type: 'orders' })}`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-foreground bg-card border border-border/70 shadow-2xs rounded-lg hover:bg-muted hover:text-primary transition-colors h-8"
+              >
+                <Download className="w-3.5 h-3.5" /> Экспорт CSV
+              </a>
+            )}
+          </div>
+        }
       />
 
       {/* Search + Filters & Orders Table Container */}

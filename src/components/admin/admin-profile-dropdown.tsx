@@ -15,7 +15,8 @@ import {
   ChevronDown, 
   ShieldCheck, 
   Sparkles,
-  LayoutGrid
+  LayoutGrid,
+  HelpCircle
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useShortcuts } from './shortcuts-provider';
@@ -222,6 +223,15 @@ export function AdminProfileDropdown({
             >
               <ArrowLeft className="w-4 h-4 text-muted-foreground" />
               В кабинет клиента
+            </Link>
+
+            <Link
+              href="/admin/docs/order-statuses"
+              onClick={() => setIsOpen(false)}
+              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              <HelpCircle className="w-4 h-4 text-primary" />
+              Справочник статусов
             </Link>
 
             <Link
