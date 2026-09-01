@@ -175,17 +175,6 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders }: Prop
 
   return (
     <div className="space-y-5">
-      {/* Финансовая сводка */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {stats.map(s => (
-          <div key={s.label} className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-4 flex flex-col justify-between">
-            <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1">{s.label}</div>
-            <div className={`text-lg font-bold tabular-nums font-mono ${s.color}`}>{s.value}</div>
-            {s.sub && <div className="text-[10px] text-muted-foreground mt-1 font-medium">{s.sub}</div>}
-          </div>
-        ))}
-      </div>
-
       {/* Основная сетка 3 колонки */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 

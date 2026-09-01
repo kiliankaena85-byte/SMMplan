@@ -33,6 +33,17 @@ const getCachedAnomalyCount = unstable_cache(
   { revalidate: 60, tags: ['catalog', 'anomaly-count'] }
 );
 
+// Cached count of OPEN tickets requiring staff response
+const getCachedOpenTicketCount = unstable_cache(
+  async () => db.ticket.count({
+    where: {
+      status: 'OPEN'
+    }
+  }),
+  ['admin-open-tickets-count-v1'],
+  { revalidate: 30, tags: ['tickets', 'open-count'] }
+);
+
 // RBAC: Allowed roles for admin panel access
 const ADMIN_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'];
 
@@ -80,6 +91,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   }
 
   const anomalyCount = await getCachedAnomalyCount();
+  const openTicketCount = await getCachedOpenTicketCount();
 
   // Filter navigation based on canonical RBAC sections
   const navigation = ADMIN_NAVIGATION.map(group => ({
@@ -87,6 +99,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     items: group.items.map(item => {
       if (item.section === 'catalog' && anomalyCount > 0) {
         return { ...item, badge: anomalyCount };
+      }
+      if (item.section === 'tickets' && openTicketCount > 0) {
+        return { ...item, badge: openTicketCount };
       }
       return item;
     }).filter(item => {

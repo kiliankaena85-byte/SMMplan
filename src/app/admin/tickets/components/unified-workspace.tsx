@@ -96,7 +96,7 @@ export function UnifiedTicketsWorkspace({
   const router = useRouter();
   const searchParams = useSearchParams();
   const isMobile = useMediaQuery('(max-width: 1023px)');
-  const [showProfile, setShowProfile] = useState(false);
+  const [showProfile, setShowProfile] = useState(true);
   const [isOrderDrawerOpen, setIsOrderDrawerOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<OrderModalColumn | null>(null);
   const [searchVal, setSearchVal] = useState(currentSearch);

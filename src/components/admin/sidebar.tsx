@@ -263,15 +263,12 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
                         
                         {/* Badge counter */}
                         {!collapsed && tab.badge !== undefined && tab.badge > 0 && (
-                          <StatusBadge 
-                            status="OPEN" 
-                            label="" 
-                            count={tab.badge} 
-                            className="ml-auto mr-1 bg-destructive/10 text-destructive border-destructive/20 shadow-sm"
-                          />
+                          <span className="ml-auto mr-1.5 px-2 py-0.5 text-[10px] font-black leading-none rounded-full bg-rose-500 text-white shadow-sm shadow-rose-500/30 flex items-center justify-center animate-pulse">
+                            {tab.badge > 99 ? '99+' : tab.badge}
+                          </span>
                         )}
                         {collapsed && tab.badge !== undefined && tab.badge > 0 && (
-                          <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-destructive border border-card shadow-sm" />
+                          <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-card shadow-sm animate-pulse" />
                         )}
 
                         {/* Pin / Favorite button on hover */}

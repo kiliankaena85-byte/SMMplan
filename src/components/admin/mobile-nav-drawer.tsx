@@ -147,12 +147,9 @@ export function MobileNavDrawer({ userEmail, roleInfo, navigation }: MobileNavDr
                       <span className="flex-1 truncate">{item.label}</span>
 
                       {item.badge !== undefined && item.badge > 0 && (
-                        <StatusBadge
-                          status="OPEN"
-                          label=""
-                          count={item.badge}
-                          className="ml-1.5 bg-destructive/10 text-destructive border-destructive/20 text-[10px]"
-                        />
+                        <span className="ml-auto px-2 py-0.5 text-[10px] font-black leading-none rounded-full bg-rose-500 text-white shadow-sm shadow-rose-500/30">
+                          {item.badge > 99 ? '99+' : item.badge}
+                        </span>
                       )}
                     </Link>
                   );
