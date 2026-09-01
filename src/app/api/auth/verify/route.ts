@@ -24,53 +24,80 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL(`${loginBase}error=InvalidToken`, baseUrl));
   }
 
-  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-
-  const authToken = await db.authToken.findUnique({
-    where: {
-      token_tenantId: {
-        token: hashedToken,
-        tenantId: tenant,
-      },
-    },
-  });
-
-  if (!authToken || authToken.expiresAt < new Date()) {
-    return NextResponse.redirect(new URL(`${loginBase}error=ExpiredToken`, baseUrl));
-  }
-
   const ipUsed = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "127.0.0.1";
   const userAgentUsed = request.headers.get("user-agent") || "Unknown";
 
-  // Atomic race-condition guard
-  const result = await db.authToken.updateMany({
-    where: { id: authToken.id, used: false },
-    data: {
-      used: true,
-      usedAt: new Date(),
-      ipUsed,
-      userAgentUsed,
-    },
-  });
-
-  if (result.count === 0) {
-    // If recently verified within last 10 seconds, allow graceful login instead of hard error
-    const isRecent = authToken.usedAt && (Date.now() - authToken.usedAt.getTime() < 10000);
-    if (!isRecent) {
-      return NextResponse.redirect(new URL(`${loginBase}error=AlreadyUsed`, baseUrl));
+  // Rate limiting: 10 req/min per IP (P2-13)
+  const rateLimitKey = `rate:auth_verify:${ipUsed}`;
+  try {
+    const { redis } = await import('@/lib/redis');
+    const currentCount = await redis.incr(rateLimitKey);
+    if (currentCount === 1) {
+      await redis.expire(rateLimitKey, 60);
     }
-  }
+    if (currentCount > 10) {
+      return NextResponse.redirect(new URL(`${loginBase}error=TooManyRequests`, baseUrl));
+    }
+  } catch {}
 
-  const user = await db.user.findUnique({ where: { id: authToken.userId } });
-  if (!user || user.isDeleted || !user.isActive) {
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+  // Wrap in Serializable transaction with tight 2s grace window (P2-17)
+  const txResult = await db.$transaction(async (tx) => {
+    const record = await tx.authToken.findUnique({
+      where: {
+        token_tenantId: {
+          token: hashedToken,
+          tenantId: tenant,
+        },
+      },
+    });
+
+    if (!record || record.expiresAt < new Date()) {
+      return { status: 'expired' as const };
+    }
+
+    if (record.used) {
+      const isWithinGraceWindow = record.usedAt && (Date.now() - record.usedAt.getTime() < 2000);
+      if (!isWithinGraceWindow) {
+        return { status: 'already_used' as const };
+      }
+    } else {
+      await tx.authToken.update({
+        where: { id: record.id },
+        data: {
+          used: true,
+          usedAt: new Date(),
+          ipUsed,
+          userAgentUsed,
+        },
+      });
+    }
+
+    const targetUser = await tx.user.findUnique({ where: { id: record.userId } });
+    if (!targetUser || targetUser.isDeleted || !targetUser.isActive) {
+      return { status: 'blocked' as const };
+    }
+
+    if (!targetUser.isEmailVerified) {
+      await tx.user.update({ where: { id: targetUser.id }, data: { isEmailVerified: true } });
+    }
+
+    return { status: 'success' as const, user: targetUser };
+  }, { isolationLevel: 'Serializable' });
+
+  if (txResult.status === 'expired') {
+    return NextResponse.redirect(new URL(`${loginBase}error=ExpiredToken`, baseUrl));
+  }
+  if (txResult.status === 'already_used') {
+    return NextResponse.redirect(new URL(`${loginBase}error=AlreadyUsed`, baseUrl));
+  }
+  if (txResult.status === 'blocked') {
     return NextResponse.redirect(new URL(`${loginBase}error=AccountBlocked`, baseUrl));
   }
 
-  if (!user.isEmailVerified) {
-    await db.user.update({ where: { id: user.id }, data: { isEmailVerified: true } });
-  }
-
-  const { sessionToken, expiresAt } = await createSession(authToken.userId, true);
+  const user = txResult.user;
+  const { sessionToken, expiresAt } = await createSession(user.id, true);
 
   let destination = sanitizeRedirectUrl(customRedirect, user.role && ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'].includes(user.role) ? '/admin/dashboard' : '/dashboard');
 
