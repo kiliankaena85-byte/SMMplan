@@ -244,7 +244,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {(process.env.NODE_ENV === 'development' || process.env.ENABLE_QA_TOOLS === 'true') && (
             <FloatingQADock />
           )}
-          <CookieConsent />
+          {!normalized.startsWith('/admin') && <CookieConsent />}
         </Providers>
         <Toaster
           position="top-right"
