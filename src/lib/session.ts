@@ -159,18 +159,41 @@ export async function verifySession(requiredTenantId?: string): Promise<{ userId
 
 
 
-    // OSAD-V2 SECURITY FIX: Session Fixation / Hijacking Protection (User-Agent verify)
-    const currentUserAgent = reqHeaders.get('user-agent') || 'unknown';
-    if (session.userAgent && session.userAgent !== 'unknown' && session.userAgent !== currentUserAgent) {
-      // Не блокируем — UA меняется при обновлении браузера, это норма
-      // Обновляем UA в сессии (дедупликация будущих событий)
-      // Логируем в SecurityEvent для audit trail
-      console.warn(
-        `[Session] UA changed for session ${sessionId}: "${session.userAgent}" → "${currentUserAgent}". Updating.`
-      );
+    // Staff roles (OWNER, ADMIN, MANAGER, SUPPORT, OPERATOR)
+    const isStaff = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR'].includes(user.role);
 
-      // Fire-and-forget: не блокируем запрос на запись в БД
-      Promise.all([
+    // OSAD-V2 SECURITY FIX: Session Fixation / Hijacking Protection & Staff Invariants (P1-6)
+    const currentUserAgent = reqHeaders.get('user-agent') || 'unknown';
+    const currentIp = await getClientIp(reqHeaders);
+
+    if (session.userAgent && session.userAgent !== 'unknown' && session.userAgent !== currentUserAgent) {
+      if (isStaff) {
+        console.warn(`[Session] Staff UA mismatch for ${user.role} (session ${sessionId}). Revoking session.`);
+        await db.securityEvent.create({
+          data: {
+            event: 'STAFF_SESSION_UA_MISMATCH_REVOKED',
+            severity: 'CRITICAL',
+            details: {
+              sessionId,
+              userId: session.userId,
+              role: user.role,
+              oldUserAgent: session.userAgent,
+              newUserAgent: currentUserAgent,
+              ip: currentIp,
+            },
+          },
+        }).catch(() => {});
+
+        await db.session.deleteMany({ where: { id: sessionId } }).catch(() => {});
+        try {
+          const cookieStore = await cookies();
+          cookieStore.delete('session_token');
+        } catch {}
+        return null;
+      }
+
+      // Regular user: Update UA and log audit trail with await
+      await Promise.all([
         db.session.update({
           where: { id: sessionId },
           data: { userAgent: currentUserAgent },
@@ -190,6 +213,37 @@ export async function verifySession(requiredTenantId?: string): Promise<{ userId
       ]).catch(err => {
         console.error('[Session] Failed to update UA audit trail:', err.message);
       });
+    }
+
+    // IP-Pinning validation for Staff roles
+    if (isStaff && session.ipAddress && session.ipAddress !== '127.0.0.1' && currentIp !== '127.0.0.1' && currentIp !== '0.0.0.0') {
+      const sessionIpPrefix = session.ipAddress.split('.').slice(0, 3).join('.');
+      const currentIpPrefix = currentIp.split('.').slice(0, 3).join('.');
+      const isSubnetMismatch = sessionIpPrefix !== currentIpPrefix && !session.ipAddress.includes(':') && !currentIp.includes(':');
+
+      if (isSubnetMismatch && session.ipAddress !== currentIp) {
+        console.warn(`[Session] Staff IP subnet mismatch for ${user.role} (${session.ipAddress} → ${currentIp}). Revoking session.`);
+        await db.securityEvent.create({
+          data: {
+            event: 'STAFF_SESSION_IP_MISMATCH_REVOKED',
+            severity: 'CRITICAL',
+            details: {
+              sessionId,
+              userId: session.userId,
+              role: user.role,
+              originalIp: session.ipAddress,
+              currentIp,
+            },
+          },
+        }).catch(() => {});
+
+        await db.session.deleteMany({ where: { id: sessionId } }).catch(() => {});
+        try {
+          const cookieStore = await cookies();
+          cookieStore.delete('session_token');
+        } catch {}
+        return null;
+      }
     }
 
     return { 
