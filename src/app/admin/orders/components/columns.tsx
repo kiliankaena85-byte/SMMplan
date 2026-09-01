@@ -419,7 +419,7 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
           </div>
           <Link
             href={`/admin/clients?q=${encodeURIComponent(email)}`}
-            className="text-primary hover:underline text-xs font-semibold truncate max-w-[150px]"
+            className="text-primary hover:underline text-xs font-semibold break-all whitespace-normal leading-snug"
             title={email}
             onClick={(e) => e.stopPropagation()}
           >

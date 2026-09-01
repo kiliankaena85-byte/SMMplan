@@ -389,13 +389,13 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                     </div>
                   </td>
 
-                  {/* User Email */}
-                  <td className="py-3 px-3 align-top min-w-0">
+                  {/* User Email (Never clipped — wraps softly) */}
+                  <td className="py-3 px-3 align-top min-w-[140px] max-w-[200px]">
                     <Link
                       href={`/admin/clients?q=${encodeURIComponent(order.user.email)}`}
                       title={order.user.email}
                       onClick={(e) => e.stopPropagation()}
-                      className="text-xs font-medium text-foreground/90 hover:text-primary hover:underline truncate block max-w-[150px]"
+                      className="text-xs font-medium text-foreground/90 hover:text-primary hover:underline break-all whitespace-normal leading-snug block"
                     >
                       {order.user.email}
                     </Link>
