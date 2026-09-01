@@ -272,16 +272,16 @@ export default function ClientProfileSidebar({
           );
         })()}
 
-        {/* High-Contrast Prominent Profile Button */}
+        {/* High-Contrast Signature Dark Brand Profile Button */}
         <Link
           href={`/admin/clients/${user.id}`}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="Открыть полный профиль клиента"
-          className="mt-3 w-full min-h-[40px] flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 active:scale-98 text-primary-foreground transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md"
+          aria-label="Открыть профиль клиента"
+          className="mt-3 w-full min-h-[42px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white border border-slate-950/20 dark:border-white/20 shadow-md hover:shadow-lg active:scale-98 transition-all duration-200 cursor-pointer select-none tracking-wide"
         >
-          <User className="w-4 h-4" /> 
-          <span>Перейти в профиль клиента →</span>
+          <User className="w-4 h-4 text-sky-400 dark:text-sky-600 shrink-0" /> 
+          <span>В профиль клиента →</span>
         </Link>
       </div>
 
