@@ -83,88 +83,71 @@ function InfoStack({ order }: { order: OrderColumn }) {
   };
 
   return (
-    <div className="flex flex-col space-y-1 text-xs min-w-0 py-0.5 leading-snug">
-      {/* Соцсеть */}
-      <div className="flex items-baseline gap-1.5 min-w-0">
-        <span className="text-foreground/70 shrink-0 font-normal">Соцсеть:</span>
-        <span className="text-primary font-semibold truncate" title={netName}>
+    <div className="flex flex-col space-y-1 text-xs min-w-0 py-0.5">
+      {/* 1. Соцсеть · Категория · Название */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold text-[10px] uppercase select-none tracking-wide">
           {netName}
         </span>
-      </div>
-
-      {/* Категория */}
-      <div className="flex items-baseline gap-1.5 min-w-0">
-        <span className="text-foreground/70 shrink-0 font-normal">Категория:</span>
-        <span className="text-primary font-semibold truncate" title={catName}>
+        <span className="font-bold text-foreground text-xs">
           {catName}
         </span>
-      </div>
-
-      {/* Услуга */}
-      <div className="flex items-baseline gap-1.5 min-w-0">
-        <span className="text-foreground/70 shrink-0 font-normal">Услуга:</span>
-        <span className="text-primary font-medium break-words">
-          {srvName}
+        <span className="text-muted-foreground font-normal">·</span>
+        <span className="text-muted-foreground font-medium truncate max-w-[220px]" title={srvName}>
+          «{srvName}»
         </span>
       </div>
 
-      {/* Ссылка */}
-      <div className="flex items-center gap-1.5 min-w-0">
-        <span className="text-foreground/70 shrink-0 font-normal">Ссылка:</span>
-        <div className="flex items-center gap-1 min-w-0 max-w-[280px] sm:max-w-[400px]">
-          <a 
-            href={order.link} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-primary hover:underline truncate font-mono text-[11px]"
-            title={order.link}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {order.link}
-          </a>
-          <button
-            type="button"
-            onClick={handleCopyLink}
-            className="p-0.5 rounded hover:bg-muted text-muted-foreground/60 hover:text-foreground transition-all cursor-pointer shrink-0"
-            title="Скопировать ссылку"
-          >
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-          </button>
-        </div>
+      {/* 2. Ссылка */}
+      <div className="flex items-center gap-1.5 text-[11px] font-mono">
+        <span className="text-muted-foreground select-none">Ссылка:</span>
+        <a 
+          href={order.link} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-primary hover:underline truncate max-w-[280px]"
+          title={order.link}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {order.link}
+        </a>
+        <button
+          type="button"
+          onClick={handleCopyLink}
+          className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-all cursor-pointer shrink-0"
+          title="Скопировать ссылку"
+        >
+          {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+        </button>
       </div>
 
-      {/* Кол-во */}
-      <div className="flex items-baseline gap-1.5 min-w-0">
-        <span className="text-foreground/70 shrink-0 font-normal">Кол-во:</span>
-        <span className="text-foreground font-semibold tabular-nums">
-          {order.quantity.toLocaleString('ru-RU')}
-          {order.remains > 0 && (
-            <span className="text-amber-600 dark:text-amber-400 ml-1 font-normal text-[11px]">
-              (остаток: {order.remains.toLocaleString('ru-RU')})
-            </span>
-          )}
+      {/* 3. Количество и остаток */}
+      <div className="flex items-center gap-2 text-[11px] tabular-nums text-muted-foreground">
+        <span>
+          Кол-во: <strong className="text-foreground font-semibold">{order.quantity.toLocaleString('ru-RU')} шт.</strong>
         </span>
+        {order.remains > 0 ? (
+          <span className="text-amber-600 dark:text-amber-400 font-semibold">
+            (остаток: {order.remains.toLocaleString('ru-RU')})
+          </span>
+        ) : (
+          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+            (остаток: 0)
+          </span>
+        )}
       </div>
 
-      {/* Дата создания */}
-      <div className="flex items-baseline gap-1.5 min-w-0">
-        <span className="text-foreground/70 shrink-0 font-normal">Дата создания:</span>
-        <span className="text-foreground font-mono text-[11px] tabular-nums">
-          {dateFormatted}
-        </span>
-      </div>
-
-      {/* Скрыть / Показать детали */}
-      <div className="pt-1">
+      {/* 4. Раскрывающийся спойлер деталей провайдера */}
+      <div className="pt-0.5">
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             setDetailsOpen(!detailsOpen);
           }}
-          className="text-primary hover:underline text-xs font-medium inline-flex items-center gap-1 cursor-pointer"
+          className="text-primary hover:underline text-[10px] font-semibold inline-flex items-center gap-1 cursor-pointer"
         >
-          {detailsOpen ? 'Скрыть детали' : 'Показать детали'}
+          {detailsOpen ? '▾ Скрыть детали провайдера' : '▸ Показать детали провайдера'}
         </button>
 
         {detailsOpen && (
