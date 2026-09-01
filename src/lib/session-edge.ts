@@ -23,6 +23,16 @@ export function getEncodedKey(): Uint8Array {
       'This is required for session security. Add it to your .env file.'
     );
   }
+
+  // Security Invariant: Abort if placeholder secret is used in production (P3-22)
+  if (process.env.NODE_ENV === 'production' && (
+    secret.includes('CHANGE_ME') || 
+    secret.includes('GENERATE_WITH') || 
+    secret.includes('INSECURE')
+  )) {
+    throw new Error('FATAL [SECURITY]: Insecure default JWT_SECRET placeholder detected in production environment!');
+  }
+
   cachedEncodedKey = new TextEncoder().encode(secret);
   return cachedEncodedKey;
 }

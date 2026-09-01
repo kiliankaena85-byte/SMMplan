@@ -74,6 +74,14 @@ function getKeyRegistry(): KeyRegistry {
     throw new Error('[Encryption] APP_ENCRYPTION_KEY, APP_ENCRYPTION_KEYS or DATA_ENCRYPTION_KEY must be configured in environment');
   }
 
+  // Security Invariant: Abort if default placeholder is left in production (P3-22)
+  if (process.env.NODE_ENV === 'production') {
+    const rawKey = singleKeyStr || '';
+    if (rawKey.includes('CHANGE_ME') || rawKey.includes('GENERATE_WITH') || rawKey.includes('INSECURE')) {
+      throw new Error('FATAL [SECURITY]: Insecure default APP_ENCRYPTION_KEY placeholder detected in production environment!');
+    }
+  }
+
   return { primaryVersion, keys: keysMap };
 }
 
