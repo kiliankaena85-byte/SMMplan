@@ -509,10 +509,14 @@ export async function proxy(request: NextRequest) {
     ? `'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://yookassa.ru https://auth.robokassa.ru`
     : `'self' 'nonce-${nonce}' 'strict-dynamic' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://yookassa.ru https://auth.robokassa.ru`;
 
+  const styleSrcDirective = isDev
+    ? `'self' 'unsafe-inline' https://fonts.googleapis.com`
+    : `'self' 'nonce-${nonce}' https://fonts.googleapis.com`;
+
   const cspHeader = `
     default-src 'self';
     script-src ${scriptSrcDirective};
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    style-src ${styleSrcDirective};
     img-src 'self' blob: data: https:;
     font-src 'self' data: https://fonts.gstatic.com;
     object-src 'none';
