@@ -14,9 +14,9 @@ import { providerService } from '@/services/providers/provider.service';
  */
 export async function isOwnerOrAdmin(tgId: string | number): Promise<boolean> {
   const strId = String(tgId);
-  const adminChatId = process.env.ADMIN_ALERT_CHAT_ID || '268747191';
+  const adminChatId = process.env.ADMIN_ALERT_CHAT_ID;
 
-  if (adminChatId && (strId === String(adminChatId) || strId === '268747191')) {
+  if (adminChatId && strId === String(adminChatId)) {
     return true;
   }
 

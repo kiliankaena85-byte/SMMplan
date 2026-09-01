@@ -11,7 +11,10 @@
 
 function getTelegramConfig() {
   const token = process.env.ADMIN_ALERT_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.ADMIN_ALERT_CHAT_ID || '268747191';
+  const chatId = process.env.ADMIN_ALERT_CHAT_ID;
+  if (!chatId && process.env.NODE_ENV === 'production' && process.env.APP_ENV !== 'test') {
+    console.error('🚨 [SECURITY CONFIG] ADMIN_ALERT_CHAT_ID is missing in production environment!');
+  }
   return { token, chatId };
 }
 
