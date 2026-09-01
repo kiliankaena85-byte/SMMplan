@@ -93,7 +93,14 @@ export async function requireStaffPermission<T>(
     const normalizedSection = section.toUpperCase();
     const explicitPermission = user.staffRole?.permissions?.find(p => p.section.toUpperCase() === normalizedSection);
     const builtin = BUILTIN_ROLE_PERMISSIONS[user.role]?.[normalizedSection];
-    const permission = explicitPermission || builtin;
+
+    // Merge explicit DB permission with builtin using OR:
+    // If either source grants a right, the operator gets it.
+    // This prevents a partial/stale DB row from blocking a role's built-in capabilities.
+    const permission = (explicitPermission || builtin) ? {
+      canView: (explicitPermission?.canView ?? false) || (builtin?.canView ?? false),
+      canEdit: (explicitPermission?.canEdit ?? false) || (builtin?.canEdit ?? false),
+    } : null;
     
     if (!permission) {
         import('@/services/security/security-alert.service').then(({ SecurityAlertService }) => {
