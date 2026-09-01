@@ -346,12 +346,12 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
         </div>
       </div>
 
-      {/* Desktop View: Grid (lg+) — Zero horizontal scroll */}
+      {/* Desktop View: Clean Multi-Column Table (lg+) — Zero horizontal scroll */}
       <div className="hidden lg:block w-full bg-card border border-border/80 rounded-xl shadow-2xs overflow-hidden">
         {/* Grid Header */}
-        <div role="row" className="grid grid-cols-[60px_160px_minmax(0,1fr)_100px_90px_110px_100px] gap-2.5 items-center px-4 py-2.5 bg-muted/40 border-b border-border/60 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground select-none">
+        <div role="row" className="grid grid-cols-[65px_170px_minmax(0,1fr)_115px_95px_115px_110px] gap-3 items-center px-4 py-3 bg-muted/50 border-b border-border font-bold text-[11px] uppercase tracking-wider text-muted-foreground select-none">
           <div>ID</div>
-          <div>Клиент</div>
+          <div>Почта (Клиент)</div>
           <div>Информация о заказе</div>
           <div>Дата</div>
           <div className="text-right">Сумма</div>
@@ -360,7 +360,7 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
         </div>
 
         {/* Grid Rows */}
-        <div className="divide-y divide-border/40">
+        <div className="divide-y divide-border/50">
           {optimisticData.map((order) => {
             const isSelected = selectedIds.has(order.id);
             const dateObj = new Date(order.createdAt);
@@ -378,12 +378,12 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                     openDrawer(order.id);
                   }
                 }}
-                className={`grid grid-cols-[60px_160px_minmax(0,1fr)_100px_90px_110px_100px] gap-2.5 items-start px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer group ${
+                className={`grid grid-cols-[65px_170px_minmax(0,1fr)_115px_95px_115px_110px] gap-3 items-center px-4 py-3.5 hover:bg-muted/30 transition-colors cursor-pointer group ${
                   isSelected ? 'bg-primary/5' : ''
                 }`}
               >
-                {/* ID */}
-                <div className="font-mono text-xs font-semibold text-muted-foreground group-hover:text-primary transition-colors flex items-center gap-1.5 min-w-0">
+                {/* 1. ID */}
+                <div className="font-mono text-xs font-bold text-muted-foreground group-hover:text-primary transition-colors flex items-center gap-1.5 min-w-0">
                   {selectionMode && (
                     <input
                       type="checkbox"
@@ -396,54 +396,59 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                   <span className="truncate">#{order.numericId}</span>
                 </div>
 
-                {/* User Email */}
-                <div className="min-w-0">
+                {/* 2. Почта / Клиент */}
+                <div className="min-w-0 pr-1">
                   <Link
                     href={`/admin/clients?q=${encodeURIComponent(order.user.email)}`}
                     title={order.user.email}
                     onClick={(e) => e.stopPropagation()}
-                    className="text-xs font-medium text-foreground/90 hover:text-primary hover:underline truncate block"
+                    className="text-xs font-semibold text-foreground/90 hover:text-primary hover:underline truncate block"
                   >
                     {order.user.email}
                   </Link>
+                  <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                    {order.tenantId ? `Бренд: ${order.tenantId}` : 'SMMplan'}
+                  </div>
                 </div>
 
-                {/* Information Stack */}
-                <InfoStack order={order} />
+                {/* 3. Информация о заказе */}
+                <div className="min-w-0 pr-2">
+                  <InfoStack order={order} />
+                </div>
 
-                {/* Dedicated Date Column */}
-                <div className="flex flex-col text-xs leading-normal py-0.5 whitespace-nowrap font-mono">
-                  <span className="font-semibold text-foreground tabular-nums text-[11px]" suppressHydrationWarning>
-                    {dateObj.toISOString().slice(0, 10).split('-').reverse().join('.')} {dateObj.toISOString().slice(11, 16)}
+                {/* 4. Дата */}
+                <div className="flex flex-col text-xs leading-tight py-0.5 whitespace-nowrap font-mono">
+                  <span className="font-bold text-foreground tabular-nums text-[11px]" suppressHydrationWarning>
+                    {formattedDate} {formattedTime}
                   </span>
-                  <span className="text-[10px] text-muted-foreground font-sans font-medium" suppressHydrationWarning>
+                  <span className="text-[10px] text-muted-foreground font-sans font-medium mt-0.5" suppressHydrationWarning>
                     {timeRelative(order.createdAt)}
                   </span>
                 </div>
 
-                {/* Price & Margin */}
+                {/* 5. Сумма */}
                 <div className="flex flex-col items-end text-xs leading-tight font-medium text-right min-w-0 font-mono">
-                  <div className="font-bold text-foreground tabular-nums text-xs">
+                  <div className="font-extrabold text-foreground tabular-nums text-xs">
                     {formatKopecks(order.charge)}
                   </div>
                   {canSeeRates && (
-                    <div className="text-muted-foreground/70 text-[10px] select-none tabular-nums font-mono">
+                    <div className="text-muted-foreground/70 text-[10px] select-none tabular-nums font-mono mt-0.5">
                       закуп: {formatKopecks(order.providerCost)}
                     </div>
                   )}
                 </div>
 
-                {/* Status Badge + Quick Status Select */}
+                {/* 6. Статус */}
                 <div className="min-w-0" onClick={(e) => e.stopPropagation()}>
                   <StatusBadge status={order.status} />
                 </div>
 
-                {/* Row Actions: Edit/Details, Restart, Cancel */}
-                <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                {/* 7. Действия */}
+                <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
                   <button
                     type="button"
                     onClick={() => openDrawer(order.id)}
-                    className="p-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-all cursor-pointer"
+                    className="p-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all cursor-pointer shadow-2xs"
                     title="Редактировать / Сменить статус / Детали"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
@@ -452,7 +457,7 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                   <button
                     type="button"
                     onClick={() => handleSingleRestart(order)}
-                    className="p-1.5 rounded-md bg-muted text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all cursor-pointer"
+                    className="p-1.5 rounded-lg bg-muted text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all cursor-pointer"
                     title="Перезапустить заказ"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
@@ -462,7 +467,7 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                     <button
                       type="button"
                       onClick={() => handleSingleCancel(order)}
-                      className="p-1.5 rounded-md bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 transition-all cursor-pointer"
+                      className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 hover:bg-rose-500 hover:text-white transition-all cursor-pointer"
                       title="Отменить и вернуть"
                     >
                       <XCircle className="w-3.5 h-3.5" />
@@ -507,7 +512,7 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                     />
                   )}
                   <span className="font-mono font-bold text-sm text-primary">#{order.numericId}</span>
-                  <span className="text-xs text-muted-foreground" title={new Date(order.createdAt).toLocaleString('ru-RU')}>
+                  <span className="text-xs text-muted-foreground" suppressHydrationWarning>
                     {timeRelative(order.createdAt)}
                   </span>
                 </div>
