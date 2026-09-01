@@ -85,9 +85,14 @@ export async function sendAdminAlertSync(message: string, severity: AlertSeverit
       ? message
       : ErrorInterpreter.formatTelegramMessage(message, severity, tenantId);
 
+    const { getTelegramDispatcher } = await import('@/lib/telegram-agent');
+    const dispatcher = getTelegramDispatcher();
+
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      // @ts-expect-error Node.js undici dispatcher support
+      dispatcher,
       body: JSON.stringify({
         chat_id: chatId,
         text,

@@ -105,13 +105,16 @@ async function getBotToken(targetTenantId?: string): Promise<string | null> {
 
 // OWASP A10: SSRF protection — only allow Telegram API domains
 const ALLOWED_TELEGRAM_HOSTS = ['api.telegram.org'];
+import { getTelegramDispatcher } from '@/lib/telegram-agent';
 
 async function safeTelegramFetch(url: string, init?: RequestInit): Promise<Response> {
   const parsedUrl = new URL(url);
   if (!ALLOWED_TELEGRAM_HOSTS.includes(parsedUrl.hostname)) {
     throw new Error(`SSRF blocked: hostname ${parsedUrl.hostname} not in allowlist`);
   }
-  return fetch(url, { ...init, cache: 'no-store' });
+  const dispatcher = getTelegramDispatcher();
+  // @ts-expect-error Node.js undici dispatcher support
+  return fetch(url, { ...init, dispatcher, cache: 'no-store' });
 }
 
 // ==============================================================

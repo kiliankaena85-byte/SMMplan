@@ -43,7 +43,14 @@ if (!TOKEN || TOKEN === 'dummy_token') {
   console.warn('[Bot] TELEGRAM_BOT_TOKEN not set. Telegram bot will NOT start.');
 }
 
-export const bot = new Telegraf<BotContext>(TOKEN || 'dummy_token');
+import { getTelegramProxyAgent } from '@/lib/telegram-agent';
+const agent = getTelegramProxyAgent();
+
+export const bot = new Telegraf<BotContext>(TOKEN || 'dummy_token', {
+  telegram: {
+    agent,
+  },
+});
 
 const botTenantId = process.env.BOT_TENANT_ID || 'smmplan';
 const botSiteName = (botTenantId === 'flux' || botTenantId === 'lovable') ? 'SMMflux' : 'SMMplan';
