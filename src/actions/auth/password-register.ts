@@ -140,6 +140,7 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
       await db.authToken.create({
         data: {
           token: hashedToken,
+          tenantId,
           userId: user.id,
           expiresAt: new Date(Date.now() + 1000 * 60 * 15),
         }

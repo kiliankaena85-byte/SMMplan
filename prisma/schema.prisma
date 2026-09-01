@@ -33,6 +33,7 @@ model User {
   phoneHash       String? @unique // SHA-256 hash of verified Telegram contact
   isKycVerified   Boolean @default(false)
   isEmailVerified Boolean @default(true)
+  isBotOnly       Boolean @default(false)
   isActive        Boolean @default(true)
   isDeleted       Boolean @default(false)
 
@@ -162,7 +163,8 @@ model PromoCode {
 
 model AuthToken {
   id              String    @id @default(cuid())
-  token           String    @unique
+  token           String
+  tenantId        String    @default("smmplan")
   userId          String
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   used            Boolean   @default(false)
@@ -174,6 +176,7 @@ model AuthToken {
   userAgentUsed   String?
   createdAt       DateTime  @default(now())
 
+  @@unique([token, tenantId])
   @@index([userId, createdAt])
   @@index([expiresAt])
 }

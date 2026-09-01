@@ -26,12 +26,12 @@ export async function GET(request: Request) {
 
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
-  let authToken = await db.authToken.findFirst({
+  const authToken = await db.authToken.findUnique({
     where: {
-      OR: [
-        { token: hashedToken },
-        { token: token },
-      ],
+      token_tenantId: {
+        token: hashedToken,
+        tenantId: tenant,
+      },
     },
   });
 

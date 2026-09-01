@@ -105,6 +105,7 @@ export async function requestMagicLink(prevState: unknown, formData: FormData) {
         data: {
           userId: user.id,
           token: hashedToken,
+          tenantId,
           expiresAt,
           ipIssued: clientIp,
           userAgentIssued: userAgent,
