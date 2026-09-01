@@ -19,7 +19,7 @@ export class EmergencyEmailService {
 
     const host = process.env.SMTP_HOST || 'smtp.yandex.ru';
     const port = parseInt(process.env.SMTP_PORT || '465', 10);
-    const user = process.env.SMTP_USER || 'infosokoloff@yandex.ru';
+    const user = process.env.SMTP_USER || 'support@smmplan.pro';
     const pass = process.env.SMTP_PASSWORD || process.env.SMTP_PASS;
 
     if (!user || !pass) {
@@ -44,7 +44,7 @@ export class EmergencyEmailService {
    * Safe, non-blocking, never throws.
    */
   static async sendAlert(payload: EmergencyEmailPayload): Promise<{ success: boolean; messageId?: string }> {
-    const toEmail = process.env.ADMIN_ALERT_EMAIL || process.env.SMTP_USER || 'infosokoloff@yandex.ru';
+    const toEmail = process.env.ADMIN_ALERT_EMAIL || process.env.SMTP_USER || 'support@smmplan.pro';
     const transporter = this.getTransporter();
 
     if (!transporter) {
@@ -100,7 +100,7 @@ export class EmergencyEmailService {
 
     try {
       const info = await transporter.sendMail({
-        from: `"OmniSMM 1.0 Security" <${process.env.SMTP_USER || 'infosokoloff@yandex.ru'}>`,
+        from: `"OmniSMM 1.0 Security" <${process.env.SMTP_USER || 'support@smmplan.pro'}>`,
         to: toEmail,
         subject: `${emoji} [${severity}] ${title} — OmniSMM Monitor`,
         html,

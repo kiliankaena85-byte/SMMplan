@@ -180,7 +180,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <html lang="ru" data-tenant={tenantId} className={`theme-${tenantId}`} suppressHydrationWarning>
+    <html lang="ru" className={`theme-${tenantId}`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -229,7 +229,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           );
         })()}
       </head>
-      <body className={`font-sans antialiased bg-background text-foreground theme-${tenantId}`} data-tenant={tenantId} suppressHydrationWarning>
+      <body className={`font-sans antialiased bg-background text-foreground theme-${tenantId}`} suppressHydrationWarning>
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary text-primary-foreground px-4 py-2 rounded-lg z-[9999] font-semibold outline-none focus:ring-2 focus:ring-primary transition-all">
           Перейти к основному контенту
         </a>

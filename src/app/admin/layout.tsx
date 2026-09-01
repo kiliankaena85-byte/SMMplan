@@ -131,7 +131,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   return (
     <DensityProvider>
       <ShortcutsProvider>
-        <div data-tenant={activeTenantId} className="h-screen w-full overflow-hidden bg-muted/10 dark:bg-background flex flex-col md:flex-row relative selection:bg-primary/20 selection:text-foreground font-sans">
+        <div className="h-screen w-full overflow-hidden bg-muted/10 dark:bg-background flex flex-col md:flex-row relative selection:bg-primary/20 selection:text-foreground font-sans">
           {/* Soft Ambient Background */}
           <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20 pointer-events-none z-0" />
 

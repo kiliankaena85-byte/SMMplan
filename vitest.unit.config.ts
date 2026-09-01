@@ -63,6 +63,7 @@ export default defineConfig({
       'src/__tests__/security/notifications-config.test.ts',
       'src/__tests__/security/auth-token-tenant-isolation.test.ts',
       'src/__tests__/security/staff-session-pinning.test.ts',
+      'src/__tests__/security/layout-privacy-and-dom.test.ts',
       'src/__tests__/dashboard-bugs-fix-verification.test.ts',
       'src/__tests__/telegram-proxy-agent.test.ts',
     ],
