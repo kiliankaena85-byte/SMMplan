@@ -79,6 +79,16 @@ export class SecurityAlertService {
     return created;
   }
 
+  private static escapeHtml(str: string): string {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   /**
    * Dispatches formatted Telegram alert with anti-flooding guard.
    */
@@ -114,19 +124,26 @@ export class SecurityAlertService {
     const safeDetailsStr = JSON.stringify(details, null, 2);
     const truncatedDetails = safeDetailsStr.length > 500 ? `${safeDetailsStr.slice(0, 500)}...` : safeDetailsStr;
 
+    // OWASP A03 / Telegram HTML Injection Defense (P2-15)
+    const cleanEvent = this.escapeHtml(event);
+    const cleanGateway = this.escapeHtml(gateway);
+    const cleanEscapedIp = this.escapeHtml(cleanIp);
+    const cleanTenant = this.escapeHtml(tenantId || 'smmplan');
+    const cleanDetails = this.escapeHtml(truncatedDetails);
+
     const isConfigWarning = event === 'MISCONFIGURED_WEBHOOK_SECRET';
     const alertTitle = isConfigWarning
-      ? `[${severity}] ТРЕБУЕТСЯ НАСТРОЙКА: Секретный ключ ${gateway.toUpperCase()}`
-      : `[${severity}] ПРЕДУПРЕЖДЕНИЕ БЕЗОПАСНОСТИ: ${event}`;
+      ? `[${severity}] ТРЕБУЕТСЯ НАСТРОЙКА: Секретный ключ ${cleanGateway.toUpperCase()}`
+      : `[${severity}] ПРЕДУПРЕЖДЕНИЕ БЕЗОПАСНОСТИ: ${cleanEvent}`;
 
     const message = [
       `${emoji} <b>${alertTitle}</b>`,
       '',
-      `<b>Событие:</b> <code>${event}</code>`,
-      `<b>Шлюз/Модуль:</b> <code>${gateway}</code>`,
-      `<b>IP источника:</b> <code>${cleanIp}</code>`,
-      `<b>Сайт/Тенант:</b> <code>${tenantId || 'smmplan'}</code>`,
-      `<b>Детали:</b> <pre>${truncatedDetails}</pre>`,
+      `<b>Событие:</b> <code>${cleanEvent}</code>`,
+      `<b>Шлюз/Модуль:</b> <code>${cleanGateway}</code>`,
+      `<b>IP источника:</b> <code>${cleanEscapedIp}</code>`,
+      `<b>Сайт/Тенант:</b> <code>${cleanTenant}</code>`,
+      `<b>Детали:</b> <pre>${cleanDetails}</pre>`,
       '',
       isConfigWarning
         ? '💡 <i>Для автоматического зачисления платежей укажите секретный ключ вебхука в настройках.</i>'
