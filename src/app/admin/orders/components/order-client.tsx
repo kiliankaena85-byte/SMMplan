@@ -19,8 +19,7 @@ import {
   CheckSquare, 
   Square,
   Copy,
-  Check,
-  Edit2
+  Check
 } from 'lucide-react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { OrderDetailsModal } from '@/components/admin/OrderDetailsModal';
@@ -142,6 +141,14 @@ function InfoStack({ order }: { order: OrderColumn }) {
               (остаток: {order.remains.toLocaleString('ru-RU')})
             </span>
           )}
+        </span>
+      </div>
+
+      {/* Дата создания */}
+      <div className="flex items-baseline gap-1.5 min-w-0">
+        <span className="text-foreground/70 shrink-0 font-normal">Дата создания:</span>
+        <span className="text-foreground font-mono text-[11px] tabular-nums">
+          {dateFormatted}
         </span>
       </div>
 
@@ -346,26 +353,26 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
         </div>
       </div>
 
-      {/* Desktop View: Clean Multi-Column Table (lg+) — Zero horizontal scroll */}
+      {/* Desktop View: Grid (lg+) — Zero horizontal scroll */}
       <div className="hidden lg:block w-full bg-card border border-border/80 rounded-xl shadow-2xs overflow-hidden">
         {/* Grid Header */}
-        <div role="row" className="grid grid-cols-[65px_170px_minmax(0,1fr)_115px_95px_115px_110px] gap-3 items-center px-4 py-3 bg-muted/50 border-b border-border font-bold text-[11px] uppercase tracking-wider text-muted-foreground select-none">
+        <div role="row" className="grid grid-cols-[60px_180px_minmax(0,1fr)_100px_110px_80px] gap-3 items-center px-4 py-2.5 bg-muted/40 border-b border-border/60 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground select-none">
           <div>ID</div>
-          <div>Почта (Клиент)</div>
+          <div>Клиент</div>
           <div>Информация о заказе</div>
-          <div>Дата</div>
           <div className="text-right">Сумма</div>
           <div>Статус</div>
           <div className="text-right">Действия</div>
         </div>
 
         {/* Grid Rows */}
-        <div className="divide-y divide-border/50">
+        <div className="divide-y divide-border/40">
           {optimisticData.map((order) => {
             const isSelected = selectedIds.has(order.id);
-            const dateObj = new Date(order.createdAt);
-            const formattedDate = dateObj.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' });
-            const formattedTime = dateObj.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            const chargeBig = BigInt(order.charge || '0');
+            const costBig = BigInt(order.providerCost || '0');
+            const marginKopecks = chargeBig - costBig;
+            const marginPercent = chargeBig > BigInt(0) ? Math.round((Number(marginKopecks) / Number(chargeBig)) * 100) : 0;
 
             return (
               <div
@@ -378,12 +385,12 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                     openDrawer(order.id);
                   }
                 }}
-                className={`grid grid-cols-[65px_170px_minmax(0,1fr)_115px_95px_115px_110px] gap-3 items-center px-4 py-3.5 hover:bg-muted/30 transition-colors cursor-pointer group ${
+                className={`grid grid-cols-[60px_180px_minmax(0,1fr)_100px_110px_80px] gap-3 items-start px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer group ${
                   isSelected ? 'bg-primary/5' : ''
                 }`}
               >
-                {/* 1. ID */}
-                <div className="font-mono text-xs font-bold text-muted-foreground group-hover:text-primary transition-colors flex items-center gap-1.5 min-w-0">
+                {/* ID */}
+                <div className="font-mono text-xs font-semibold text-muted-foreground group-hover:text-primary transition-colors flex items-center gap-1.5 min-w-0">
                   {selectionMode && (
                     <input
                       type="checkbox"
@@ -396,69 +403,54 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                   <span className="truncate">#{order.numericId}</span>
                 </div>
 
-                {/* 2. Почта / Клиент */}
-                <div className="min-w-0 pr-1">
+                {/* User Email */}
+                <div className="min-w-0">
                   <Link
                     href={`/admin/clients?q=${encodeURIComponent(order.user.email)}`}
                     title={order.user.email}
                     onClick={(e) => e.stopPropagation()}
-                    className="text-xs font-semibold text-foreground/90 hover:text-primary hover:underline truncate block"
+                    className="text-xs font-medium text-foreground/90 hover:text-primary hover:underline truncate block"
                   >
                     {order.user.email}
                   </Link>
-                  <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
-                    {order.tenantId ? `Бренд: ${order.tenantId}` : 'SMMplan'}
-                  </div>
                 </div>
 
-                {/* 3. Информация о заказе */}
-                <div className="min-w-0 pr-2">
-                  <InfoStack order={order} />
-                </div>
+                {/* Information Stack */}
+                <InfoStack order={order} />
 
-                {/* 4. Дата */}
-                <div className="flex flex-col text-xs leading-tight py-0.5 whitespace-nowrap font-mono">
-                  <span className="font-bold text-foreground tabular-nums text-[11px]" suppressHydrationWarning>
-                    {formattedDate} {formattedTime}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground font-sans font-medium mt-0.5" suppressHydrationWarning>
-                    {timeRelative(order.createdAt)}
-                  </span>
-                </div>
-
-                {/* 5. Сумма */}
+                {/* Price & Margin */}
                 <div className="flex flex-col items-end text-xs leading-tight font-medium text-right min-w-0 font-mono">
-                  <div className="font-extrabold text-foreground tabular-nums text-xs">
+                  <div className="font-bold text-foreground tabular-nums text-xs">
                     {formatKopecks(order.charge)}
                   </div>
                   {canSeeRates && (
-                    <div className="text-muted-foreground/70 text-[10px] select-none tabular-nums font-mono mt-0.5">
+                    <div className="text-muted-foreground/70 text-[10px] select-none tabular-nums font-mono">
                       закуп: {formatKopecks(order.providerCost)}
                     </div>
                   )}
                 </div>
 
-                {/* 6. Статус */}
-                <div className="min-w-0" onClick={(e) => e.stopPropagation()}>
+                {/* Status Badge */}
+                <div>
                   <StatusBadge status={order.status} />
                 </div>
 
-                {/* 7. Действия */}
-                <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                {/* Row Actions */}
+                <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
                   <button
                     type="button"
                     onClick={() => openDrawer(order.id)}
-                    className="p-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all cursor-pointer shadow-2xs"
-                    title="Редактировать / Сменить статус / Детали"
+                    className="p-1 rounded text-muted-foreground/60 hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                    title="Подробнее о заказе"
                   >
-                    <Edit2 className="w-3.5 h-3.5" />
+                    <Info className="w-3.5 h-3.5" />
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleSingleRestart(order)}
-                    className="p-1.5 rounded-lg bg-muted text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all cursor-pointer"
-                    title="Перезапустить заказ"
+                    className="p-1 rounded text-muted-foreground/60 hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                    title="Перезапустить"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                   </button>
@@ -467,7 +459,7 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                     <button
                       type="button"
                       onClick={() => handleSingleCancel(order)}
-                      className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 hover:bg-rose-500 hover:text-white transition-all cursor-pointer"
+                      className="p-1 rounded text-muted-foreground/60 hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
                       title="Отменить и вернуть"
                     >
                       <XCircle className="w-3.5 h-3.5" />
@@ -512,7 +504,7 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                     />
                   )}
                   <span className="font-mono font-bold text-sm text-primary">#{order.numericId}</span>
-                  <span className="text-xs text-muted-foreground" suppressHydrationWarning>
+                  <span className="text-xs text-muted-foreground" title={new Date(order.createdAt).toLocaleString('ru-RU')}>
                     {timeRelative(order.createdAt)}
                   </span>
                 </div>

@@ -125,8 +125,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           {/* Floating Main Content Area */}
           <div className="flex-1 min-w-0 h-screen overflow-y-auto p-0 md:p-3.5 z-10 relative flex flex-col">
             <SystemEmergencyBanner />
-            {/* Top Header Bar with Mobile Drawer, Global Site Switcher & Profile Dropdown */}
-            <header className="mb-2 px-3 md:px-1 flex items-center justify-between gap-3 shrink-0">
+            {/* Top Sticky Header Bar with Mobile Drawer, Global Site Switcher & Profile Dropdown */}
+            <header className="sticky top-0 z-30 mb-2 px-3 md:px-3 py-2 md:py-2.5 flex items-center justify-between gap-3 shrink-0 bg-background/90 backdrop-blur-md border-b border-border/50 shadow-xs md:rounded-xl">
               <div className="flex items-center gap-2 md:gap-3">
                 <MobileNavDrawer
                   userEmail={user.email}

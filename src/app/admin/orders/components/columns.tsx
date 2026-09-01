@@ -542,56 +542,6 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
     },
   },
   {
-    accessorKey: 'createdAt',
-    id: 'createdAt',
-    header: ({ column }) => (
-      <button
-        onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-        className="flex items-center gap-1 hover:text-foreground transition-colors font-bold text-foreground text-xs whitespace-nowrap cursor-pointer"
-      >
-        ДАТА
-        <ArrowUpDown className="w-3 h-3 ml-1" />
-      </button>
-    ),
-    cell: ({ row }) => {
-      const order = row.original;
-      const d = new Date(order.createdAt);
-      const now = new Date();
-      const diffMs = now.getTime() - d.getTime();
-      const diffMins = Math.floor(diffMs / 60000);
-      const diffHours = Math.floor(diffMins / 60);
-      const diffDays = Math.floor(diffHours / 24);
-
-      let relativeTime = '';
-      if (diffMins < 1) relativeTime = 'только что';
-      else if (diffMins < 60) relativeTime = `${diffMins} мин назад`;
-      else if (diffHours < 24) relativeTime = `${diffHours} ч назад`;
-      else if (diffDays < 30) relativeTime = `${diffDays} д назад`;
-      else relativeTime = `${Math.floor(diffDays / 30)} мес назад`;
-
-      const formattedDate = d.toLocaleDateString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: '2-digit',
-      });
-      const formattedTime = d.toLocaleTimeString('ru-RU', {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-
-      return (
-        <div className="flex flex-col text-xs leading-normal py-1 whitespace-nowrap font-mono">
-          <span className="font-semibold text-foreground tabular-nums text-[11px]" title={`${formattedDate} ${formattedTime}`}>
-            {formattedDate} {formattedTime}
-          </span>
-          <span className="text-[10px] text-muted-foreground font-sans font-medium">
-            {relativeTime}
-          </span>
-        </div>
-      );
-    },
-  },
-  {
     id: 'actions',
     header: 'ДЕЙСТВИЯ',
     cell: ({ row }) => <RowActions order={row.original} />
