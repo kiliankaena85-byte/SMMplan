@@ -66,13 +66,19 @@ async function main() {
   await page.click('button:has-text("График смен & Календарь")');
   await page.waitForTimeout(1000);
 
+  // Take screenshot of "Сетка месяца" (default active view)
+  const monthScreenshotPath = 'C:\\Users\\Артём\\.gemini\\antigravity\\brain\\825b8dde-0bec-45fa-8205-d3b2d05f1962\\50_stage_staff_schedule_month_grid_fixed.png';
+  await page.screenshot({ path: monthScreenshotPath, fullPage: false });
+  console.log('📸 Month Grid Screenshot saved to:', monthScreenshotPath);
+
   // Click on "Расписание недели"
   await page.click('button:has-text("Расписание недели")');
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(1000);
 
-  const screenshotPath = 'C:\\Users\\Артём\\.gemini\\antigravity\\brain\\825b8dde-0bec-45fa-8205-d3b2d05f1962\\49_stage_staff_schedule_week_matrix_grid.png';
-  await page.screenshot({ path: screenshotPath, fullPage: false });
-  console.log('📸 Screenshot saved to:', screenshotPath);
+  // Take screenshot of "Расписание недели"
+  const weekScreenshotPath = 'C:\\Users\\Артём\\.gemini\\antigravity\\brain\\825b8dde-0bec-45fa-8205-d3b2d05f1962\\51_stage_staff_schedule_week_matrix_fixed.png';
+  await page.screenshot({ path: weekScreenshotPath, fullPage: false });
+  console.log('📸 Week Timetable Screenshot saved to:', weekScreenshotPath);
 
   await browser.close();
   process.exit(0);

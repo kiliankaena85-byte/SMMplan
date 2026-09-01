@@ -541,14 +541,20 @@ export function StaffScheduleTab({
       {viewMode === 'calendar' && (
         <div className="bg-card border border-border/80 rounded-2xl overflow-hidden shadow-xs">
           {/* Weekday Header */}
-          <div className="grid grid-cols-7 border-b border-border/70 bg-muted/30 text-center font-bold text-[11px] uppercase tracking-wider text-muted-foreground py-2">
+          <div
+            className="grid grid-cols-7 border-b border-border/70 bg-muted/30 text-center font-bold text-[11px] uppercase tracking-wider text-muted-foreground py-2"
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}
+          >
             {WEEKDAY_NAMES.map((wd, i) => (
               <div key={wd} className={i >= 5 ? 'text-rose-500' : ''}>{wd}</div>
             ))}
           </div>
 
           {/* 7x5 Days Grid */}
-          <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-border/40 bg-background/50">
+          <div
+            className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-border/40 bg-background/50"
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}
+          >
             {/* Empty Offset Days from Previous Month */}
             {Array.from({ length: firstDayOfMonth }).map((_, idx) => (
               <div key={`offset-${idx}`} className="min-h-[100px] p-1.5 bg-muted/10 opacity-30 select-none" />
