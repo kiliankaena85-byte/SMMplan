@@ -62,14 +62,6 @@ export async function createSession(userId: string, canResetPassword: boolean = 
     
   try {
     const cookieStore = await cookies();
-    cookieStore.set('explicit_logout', '', {
-      path: '/',
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 0,
-    });
-
     cookieStore.set('session_token', sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -88,20 +80,15 @@ export async function createSession(userId: string, canResetPassword: boolean = 
 
 export async function verifySession(requiredTenantId?: string): Promise<{ userId: string; canResetPassword?: boolean; role?: string; tenantId?: string } | null> {
   let sessionToken: string | undefined;
-  let explicitLogout: string | undefined;
   try {
     const cookieStore = await cookies();
     sessionToken = cookieStore.get('session_token')?.value;
-    explicitLogout = cookieStore.get('explicit_logout')?.value;
   } catch {
     // If called outside Next.js request scope (e.g. background tasks or CLI)
     return null;
   }
 
   if (!sessionToken) {
-    if (explicitLogout === 'true') {
-      return null;
-    }
     return handleDevAutoLogin();
   }
 
@@ -112,6 +99,16 @@ export async function verifySession(requiredTenantId?: string): Promise<{ userId
     }
     
     const sessionId = payload.sessionId;
+
+    // Server-side session blacklist check (P2-19)
+    try {
+      const { redis } = await import('@/lib/redis');
+      const isRevoked = await redis.get(`blacklist:session:${sessionId}`);
+      if (isRevoked) {
+        return null;
+      }
+    } catch {}
+
     const session = await db.session.findUnique({
       where: { id: sessionId },
       include: { user: true }

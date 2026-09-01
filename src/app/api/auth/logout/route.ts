@@ -9,6 +9,10 @@ async function deleteSessionFromDB(token?: string) {
       const payload = await decryptSessionToken(token);
       if (payload && payload.sessionId) {
         await db.session.deleteMany({ where: { id: String(payload.sessionId) } }).catch(() => {});
+        try {
+          const { redis } = await import('@/lib/redis');
+          await redis.set(`blacklist:session:${payload.sessionId}`, '1', 'EX', 86400);
+        } catch {}
       }
     } catch {
       // ignore validation errors on logout
@@ -17,10 +21,10 @@ async function deleteSessionFromDB(token?: string) {
 }
 
 export async function GET(request: Request) {
-  // Sec-Fetch-Site check to prevent Logout CSRF via <img> tags from third-party sites
+  // Fail-Closed: GET logout is rejected unless Sec-Fetch-Site is same-origin or same-site (P2-18)
   const secFetchSite = request.headers.get('sec-fetch-site');
-  if (secFetchSite && secFetchSite !== 'same-origin' && secFetchSite !== 'same-site' && secFetchSite !== 'none') {
-    return NextResponse.json({ error: 'Cross-site logout rejected' }, { status: 403 });
+  if (!secFetchSite || (secFetchSite !== 'same-origin' && secFetchSite !== 'same-site')) {
+    return NextResponse.json({ error: 'GET logout rejected. Use POST method.' }, { status: 405 });
   }
   return POST(request);
 }
@@ -31,13 +35,6 @@ export async function POST(request: Request) {
   await deleteSessionFromDB(token);
   
   cookieStore.delete('session_token');
-  cookieStore.set('explicit_logout', 'true', {
-    path: '/',
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 5, // 5 minutes
-  });
 
   const reqHeaders = await headers();
   const hostHeader = reqHeaders.get('host');
