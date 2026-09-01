@@ -28,7 +28,16 @@ Object.getPrototypeOf = function (obj: any) {
 import { Scenes, session, Telegraf, Markup } from 'telegraf';
 import { db } from '@/lib/db';
 import { WalletOps } from '@/services/financial/wallet-ops';
+import { auditAdminAwaitable } from '@/lib/admin-audit';
 import type { BotContext } from './types/bot-context';
+
+function sanitizeTelegramTemplate(template: string): string {
+  if (!template) return '';
+  return template
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '');
+}
 
 // Scenes — only import wizards that have been migrated to Lite core
 import { orderWizard, ORDER_WIZARD } from './scenes/order.wizard';
@@ -238,19 +247,33 @@ bot.start(async (ctx: BotContext) => {
     }
   }
 
-  // Level 2: Referral start parameter (?start=ref_CODE)
+  // Level 2: Referral start parameter (?start=ref_CODE) with Rate Limiting (P2-12)
   let referredByUserId: string | undefined;
   if (payload && payload.startsWith('ref_')) {
     const refCode = payload.replace('ref_', '');
-    const referrer = await db.user.findFirst({
-      where: { referralCode: refCode, tenantId: botTenantId }
-    });
-    if (referrer) {
-      referredByUserId = referrer.id;
+    const rateLimitKey = `bot:ref_rate:${tgId}`;
+    let isRateLimited = false;
+    try {
+      const { redis } = await import('@/lib/redis');
+      const existing = await redis.get(rateLimitKey);
+      if (existing) {
+        isRateLimited = true;
+      } else {
+        await redis.set(rateLimitKey, '1', 'EX', 3600); // 1 hour rate limit
+      }
+    } catch {}
+
+    if (!isRateLimited) {
+      const referrer = await db.user.findFirst({
+        where: { referralCode: refCode, tenantId: botTenantId }
+      });
+      if (referrer) {
+        referredByUserId = referrer.id;
+      }
     }
   }
 
-  // Auto-register or fetch user
+  // Auto-register or fetch user (mark unlinked Telegram accounts as isBotOnly) (P2-11)
   const emailStub = `tg_${tgId}@${botTenantId}.bot`;
   let user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
 
@@ -265,16 +288,17 @@ bot.start(async (ctx: BotContext) => {
         telegramId: tgId,
         referredById: referredByUserId,
         tenantId: botTenantId,
+        isBotOnly: true,
       }
     });
 
-    // Notify referrer
+    // Notify referrer (Note: commission bonus credited only upon qualifying deposit action)
     if (referredByUserId) {
       const refUser = await db.user.findUnique({ where: { id: referredByUserId } });
       if (refUser?.telegramId) {
         bot.telegram.sendMessage(
           refUser.telegramId,
-          `🎉 <b>Новый реферал!</b>\n\nПо вашей ссылке зарегистрировался ${escapeHtml(tgName)}.`,
+          `🎉 <b>Новый реферал!</b>\n\nПо вашей ссылке зарегистрировался ${escapeHtml(tgName)}. Бонус будет начислен после первого пополнения счета.`,
           { parse_mode: 'HTML' }
         ).catch(() => {});
       }
@@ -293,7 +317,7 @@ bot.start(async (ctx: BotContext) => {
     const settings = await db.systemSettings.findFirst({ select: { telegramTemplates: true } });
     const templates = settings?.telegramTemplates as { welcome?: string } | null;
     if (templates?.welcome && templates.welcome.trim().length > 0) {
-      welcomeTpl = templates.welcome;
+      welcomeTpl = sanitizeTelegramTemplate(templates.welcome);
     }
   } catch { /* use default */ }
 
@@ -467,6 +491,14 @@ bot.action('nav_owner_hub', async (ctx: BotContext) => {
   if (!ctx.from || !(await isOwnerOrAdmin(ctx.from.id))) {
     return ctx.reply('⛔ Доступ ограничен.');
   }
+  await auditAdminAwaitable({
+    action: 'BOT_OWNER_HUB_ACCESS',
+    details: {
+      telegramId: String(ctx.from.id),
+      username: ctx.from.username,
+    },
+    targetId: String(ctx.from.id),
+  }).catch(() => {});
   return ctx.scene.enter('owner-hub');
 });
 
@@ -474,6 +506,14 @@ bot.command('owner', async (ctx: BotContext) => {
   if (!ctx.from || !(await isOwnerOrAdmin(ctx.from.id))) {
     return ctx.reply('⛔ Доступ ограничен. Этот раздел доступен только владельцу платформы.');
   }
+  await auditAdminAwaitable({
+    action: 'BOT_OWNER_HUB_ACCESS',
+    details: {
+      telegramId: String(ctx.from.id),
+      username: ctx.from.username,
+    },
+    targetId: String(ctx.from.id),
+  }).catch(() => {});
   return ctx.scene.enter('owner-hub');
 });
 
