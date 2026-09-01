@@ -19,7 +19,9 @@ import {
   CheckSquare, 
   Square,
   Copy,
-  Check
+  Check,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { OrderDetailsModal } from '@/components/admin/OrderDetailsModal';
@@ -353,13 +355,14 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
         </div>
       </div>
 
-      {/* Desktop View: Grid (lg+) — Zero horizontal scroll */}
+      {/* Desktop View: Table Grid (lg+) — Zero horizontal scroll */}
       <div className="hidden lg:block w-full bg-card border border-border/80 rounded-xl shadow-2xs overflow-hidden">
         {/* Grid Header */}
-        <div role="row" className="grid grid-cols-[60px_180px_minmax(0,1fr)_100px_110px_80px] gap-3 items-center px-4 py-2.5 bg-muted/40 border-b border-border/60 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground select-none">
+        <div role="row" className="grid grid-cols-[60px_160px_minmax(0,1fr)_120px_90px_110px_90px] gap-3 items-center px-4 py-2.5 bg-muted/40 border-b border-border/60 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground select-none">
           <div>ID</div>
           <div>Клиент</div>
           <div>Информация о заказе</div>
+          <div>Дата</div>
           <div className="text-right">Сумма</div>
           <div>Статус</div>
           <div className="text-right">Действия</div>
@@ -369,10 +372,9 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
         <div className="divide-y divide-border/40">
           {optimisticData.map((order) => {
             const isSelected = selectedIds.has(order.id);
-            const chargeBig = BigInt(order.charge || '0');
-            const costBig = BigInt(order.providerCost || '0');
-            const marginKopecks = chargeBig - costBig;
-            const marginPercent = chargeBig > BigInt(0) ? Math.round((Number(marginKopecks) / Number(chargeBig)) * 100) : 0;
+            const dateObj = new Date(order.createdAt);
+            const formattedDate = dateObj.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' });
+            const formattedTime = dateObj.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
             return (
               <div
@@ -385,7 +387,7 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                     openDrawer(order.id);
                   }
                 }}
-                className={`grid grid-cols-[60px_180px_minmax(0,1fr)_100px_110px_80px] gap-3 items-start px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer group ${
+                className={`grid grid-cols-[60px_160px_minmax(0,1fr)_120px_90px_110px_90px] gap-3 items-start px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer group ${
                   isSelected ? 'bg-primary/5' : ''
                 }`}
               >
@@ -418,6 +420,16 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                 {/* Information Stack */}
                 <InfoStack order={order} />
 
+                {/* Date Column */}
+                <div className="flex flex-col text-xs leading-normal py-0.5 whitespace-nowrap font-mono">
+                  <span className="font-semibold text-foreground tabular-nums text-[11px]" suppressHydrationWarning>
+                    {formattedDate} {formattedTime}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground font-sans font-medium" suppressHydrationWarning>
+                    {timeRelative(order.createdAt)}
+                  </span>
+                </div>
+
                 {/* Price & Margin */}
                 <div className="flex flex-col items-end text-xs leading-tight font-medium text-right min-w-0 font-mono">
                   <div className="font-bold text-foreground tabular-nums text-xs">
@@ -435,22 +447,22 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                   <StatusBadge status={order.status} />
                 </div>
 
-                {/* Row Actions */}
-                <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
+                {/* Row Actions: Edit (Pencil), Restart, Cancel/Delete */}
+                <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                   <button
                     type="button"
                     onClick={() => openDrawer(order.id)}
-                    className="p-1 rounded text-muted-foreground/60 hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-                    title="Подробнее о заказе"
+                    className="p-1.5 rounded-md text-primary bg-primary/10 hover:bg-primary/20 transition-all cursor-pointer"
+                    title="Редактировать заказ / Сменить статус"
                   >
-                    <Info className="w-3.5 h-3.5" />
+                    <Edit2 className="w-3.5 h-3.5" />
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleSingleRestart(order)}
-                    className="p-1 rounded text-muted-foreground/60 hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-                    title="Перезапустить"
+                    className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all cursor-pointer"
+                    title="Перезапустить заказ"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                   </button>
@@ -459,10 +471,10 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                     <button
                       type="button"
                       onClick={() => handleSingleCancel(order)}
-                      className="p-1 rounded text-muted-foreground/60 hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                      title="Отменить и вернуть"
+                      className="p-1.5 rounded-md text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 transition-all cursor-pointer"
+                      title="Отменить / Удалить заказ с возвратом"
                     >
-                      <XCircle className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
