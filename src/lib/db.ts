@@ -43,31 +43,43 @@ function createPrismaClient(): PrismaClient {
   }).$extends({
     query: {
       service: {
-                async deleteMany({ args, query }: { args: Prisma.ServiceDeleteManyArgs; query: (args: Prisma.ServiceDeleteManyArgs) => Promise<Prisma.BatchPayload> }) {
+        async deleteMany({ args, query }: { args: Prisma.ServiceDeleteManyArgs; query: (args: Prisma.ServiceDeleteManyArgs) => Promise<Prisma.BatchPayload> }) {
           if (!args?.where || Object.keys(args.where).length === 0) {
+            if (process.env.NODE_ENV === 'production') {
+              throw new Error('🚨 [SAFE-GUARD] Unconditional Service.deleteMany() is strictly blocked in production!');
+            }
             if (process.env.APP_ENV !== 'test' && process.env.ALLOW_UNSAFE_PURGE !== 'true') {
               throw new Error('🚨 [SAFE-GUARD] Unconditional Service.deleteMany() is blocked to prevent catalog loss!');
             }
+            console.warn('⚠️ [AUDIT WARNING] Unconditional Service purge executed!');
           }
           return query(args);
         },
       },
       category: {
-                async deleteMany({ args, query }: { args: Prisma.ServiceDeleteManyArgs; query: (args: Prisma.ServiceDeleteManyArgs) => Promise<Prisma.BatchPayload> }) {
+        async deleteMany({ args, query }: { args: Prisma.ServiceDeleteManyArgs; query: (args: Prisma.ServiceDeleteManyArgs) => Promise<Prisma.BatchPayload> }) {
           if (!args?.where || Object.keys(args.where).length === 0) {
+            if (process.env.NODE_ENV === 'production') {
+              throw new Error('🚨 [SAFE-GUARD] Unconditional Category.deleteMany() is strictly blocked in production!');
+            }
             if (process.env.APP_ENV !== 'test' && process.env.ALLOW_UNSAFE_PURGE !== 'true') {
               throw new Error('🚨 [SAFE-GUARD] Unconditional Category.deleteMany() is blocked to prevent catalog loss!');
             }
+            console.warn('⚠️ [AUDIT WARNING] Unconditional Category purge executed!');
           }
           return query(args);
         },
       },
       network: {
-                async deleteMany({ args, query }: { args: Prisma.ServiceDeleteManyArgs; query: (args: Prisma.ServiceDeleteManyArgs) => Promise<Prisma.BatchPayload> }) {
+        async deleteMany({ args, query }: { args: Prisma.ServiceDeleteManyArgs; query: (args: Prisma.ServiceDeleteManyArgs) => Promise<Prisma.BatchPayload> }) {
           if (!args?.where || Object.keys(args.where).length === 0) {
+            if (process.env.NODE_ENV === 'production') {
+              throw new Error('🚨 [SAFE-GUARD] Unconditional Network.deleteMany() is strictly blocked in production!');
+            }
             if (process.env.APP_ENV !== 'test' && process.env.ALLOW_UNSAFE_PURGE !== 'true') {
               throw new Error('🚨 [SAFE-GUARD] Unconditional Network.deleteMany() is blocked to prevent catalog loss!');
             }
+            console.warn('⚠️ [AUDIT WARNING] Unconditional Network purge executed!');
           }
           return query(args);
         },
