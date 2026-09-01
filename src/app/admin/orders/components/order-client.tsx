@@ -338,133 +338,143 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
         </div>
       </div>
 
-      {/* Desktop View: Table Grid (lg+) — Zero horizontal scroll */}
+      {/* Desktop View: Clean Semantic Table (lg+) — Zero horizontal scroll & True tabular alignment */}
       <div className="hidden lg:block w-full bg-card border border-border/80 rounded-xl shadow-2xs overflow-hidden">
-        {/* Grid Header */}
-        <div role="row" className="grid grid-cols-[60px_160px_minmax(0,1fr)_120px_90px_110px_90px] gap-3 items-center px-4 py-2.5 bg-muted/40 border-b border-border/60 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground select-none">
-          <div>ID</div>
-          <div>Клиент</div>
-          <div>Информация о заказе</div>
-          <div>Дата</div>
-          <div className="text-right">Сумма</div>
-          <div>Статус</div>
-          <div className="text-right">Действия</div>
-        </div>
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-muted/40 border-b border-border/60 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground select-none">
+              <th scope="col" className="py-2.5 px-3 w-[70px]">ID</th>
+              <th scope="col" className="py-2.5 px-3 w-[160px]">Клиент</th>
+              <th scope="col" className="py-2.5 px-3">Информация о заказе</th>
+              <th scope="col" className="py-2.5 px-3 w-[130px]">Дата</th>
+              <th scope="col" className="py-2.5 px-3 w-[100px] text-right">Сумма</th>
+              <th scope="col" className="py-2.5 px-3 w-[120px]">Статус</th>
+              <th scope="col" className="py-2.5 px-3 w-[90px] text-right">Действия</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/40">
+            {optimisticData.map((order) => {
+              const isSelected = selectedIds.has(order.id);
+              const dateObj = new Date(order.createdAt);
+              const formattedDate = dateObj.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' });
+              const formattedTime = dateObj.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
-        {/* Grid Rows */}
-        <div className="divide-y divide-border/40">
-          {optimisticData.map((order) => {
-            const isSelected = selectedIds.has(order.id);
-            const dateObj = new Date(order.createdAt);
-            const formattedDate = dateObj.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' });
-            const formattedTime = dateObj.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-
-            return (
-              <div
-                key={order.id}
-                role="row"
-                onClick={() => {
-                  if (selectionMode) {
-                    toggleSelectRow(order.id);
-                  } else {
-                    openDrawer(order.id);
-                  }
-                }}
-                className={`grid grid-cols-[60px_160px_minmax(0,1fr)_120px_90px_110px_90px] gap-3 items-start px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer group ${
-                  isSelected ? 'bg-primary/5' : ''
-                }`}
-              >
-                {/* ID */}
-                <div className="font-mono text-xs font-semibold text-muted-foreground group-hover:text-primary transition-colors flex items-center gap-1.5 min-w-0">
-                  {selectionMode && (
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleSelectRow(order.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer shrink-0"
-                    />
-                  )}
-                  <span className="truncate">#{order.numericId}</span>
-                </div>
-
-                {/* User Email */}
-                <div className="min-w-0">
-                  <Link
-                    href={`/admin/clients?q=${encodeURIComponent(order.user.email)}`}
-                    title={order.user.email}
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-xs font-medium text-foreground/90 hover:text-primary hover:underline truncate block"
-                  >
-                    {order.user.email}
-                  </Link>
-                </div>
-
-                {/* Information Stack */}
-                <InfoStack order={order} />
-
-                {/* Date Column */}
-                <div className="flex flex-col text-xs leading-normal py-0.5 whitespace-nowrap font-mono">
-                  <span className="font-semibold text-foreground tabular-nums text-[11px]" suppressHydrationWarning>
-                    {formattedDate} {formattedTime}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground font-sans font-medium" suppressHydrationWarning>
-                    {timeRelative(order.createdAt)}
-                  </span>
-                </div>
-
-                {/* Price & Margin */}
-                <div className="flex flex-col items-end text-xs leading-tight font-medium text-right min-w-0 font-mono">
-                  <div className="font-bold text-foreground tabular-nums text-xs">
-                    {formatKopecks(order.charge)}
-                  </div>
-                  {canSeeRates && (
-                    <div className="text-muted-foreground/70 text-[10px] select-none tabular-nums font-mono">
-                      закуп: {formatKopecks(order.providerCost)}
+              return (
+                <tr
+                  key={order.id}
+                  onClick={() => {
+                    if (selectionMode) {
+                      toggleSelectRow(order.id);
+                    } else {
+                      openDrawer(order.id);
+                    }
+                  }}
+                  className={`hover:bg-muted/30 transition-colors cursor-pointer group ${
+                    isSelected ? 'bg-primary/5' : ''
+                  }`}
+                >
+                  {/* ID */}
+                  <td className="py-3 px-3 align-top font-mono text-xs font-semibold text-muted-foreground group-hover:text-primary transition-colors">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {selectionMode && (
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectRow(order.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-3.5 h-3.5 rounded border-border text-primary focus:ring-primary cursor-pointer shrink-0"
+                        />
+                      )}
+                      <span className="truncate">#{order.numericId}</span>
                     </div>
-                  )}
-                </div>
+                  </td>
 
-                {/* Status Badge */}
-                <div>
-                  <StatusBadge status={order.status} />
-                </div>
-
-                {/* Row Actions: Edit (Pencil), Restart, Cancel/Delete */}
-                <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    type="button"
-                    onClick={() => openDrawer(order.id)}
-                    className="p-1.5 rounded-md text-primary bg-primary/10 hover:bg-primary/20 transition-all cursor-pointer"
-                    title="Редактировать заказ / Сменить статус"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleSingleRestart(order)}
-                    className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all cursor-pointer"
-                    title="Перезапустить заказ"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                  </button>
-
-                  {canCancel && !['COMPLETED', 'CANCELED'].includes(order.status) && (
-                    <button
-                      type="button"
-                      onClick={() => handleSingleCancel(order)}
-                      className="p-1.5 rounded-md text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 transition-all cursor-pointer"
-                      title="Отменить / Удалить заказ с возвратом"
+                  {/* User Email */}
+                  <td className="py-3 px-3 align-top min-w-0">
+                    <Link
+                      href={`/admin/clients?q=${encodeURIComponent(order.user.email)}`}
+                      title={order.user.email}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-xs font-medium text-foreground/90 hover:text-primary hover:underline truncate block max-w-[150px]"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                      {order.user.email}
+                    </Link>
+                  </td>
+
+                  {/* Information Stack */}
+                  <td className="py-3 px-3 align-top">
+                    <InfoStack order={order} />
+                  </td>
+
+                  {/* Date Column */}
+                  <td className="py-3 px-3 align-top whitespace-nowrap">
+                    <div className="flex flex-col text-xs leading-normal font-mono">
+                      <span className="font-semibold text-foreground tabular-nums text-[11px]" suppressHydrationWarning>
+                        {formattedDate} {formattedTime}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground font-sans font-medium" suppressHydrationWarning>
+                        {timeRelative(order.createdAt)}
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* Price & Margin */}
+                  <td className="py-3 px-3 align-top text-right whitespace-nowrap font-mono">
+                    <div className="flex flex-col items-end text-xs leading-tight font-medium">
+                      <div className="font-bold text-foreground tabular-nums text-xs">
+                        {formatKopecks(order.charge)}
+                      </div>
+                      {canSeeRates && (
+                        <div className="text-muted-foreground/70 text-[10px] select-none tabular-nums font-mono">
+                          закуп: {formatKopecks(order.providerCost)}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* Status Badge */}
+                  <td className="py-3 px-3 align-top whitespace-nowrap">
+                    <StatusBadge status={order.status} />
+                  </td>
+
+                  {/* Row Actions */}
+                  <td className="py-3 px-3 align-top text-right whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => openDrawer(order.id)}
+                        className="p-1.5 rounded-md text-primary bg-primary/10 hover:bg-primary/20 transition-all cursor-pointer"
+                        title="Редактировать заказ / Сменить статус"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSingleRestart(order)}
+                        className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all cursor-pointer"
+                        title="Перезапустить заказ"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      </button>
+
+                      {canCancel && !['COMPLETED', 'CANCELED'].includes(order.status) && (
+                        <button
+                          type="button"
+                          onClick={() => handleSingleCancel(order)}
+                          className="p-1.5 rounded-md text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 transition-all cursor-pointer"
+                          title="Отменить / Удалить заказ с возвратом"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       {/* Mobile Card Stack (< lg) — Zero horizontal scroll */}
