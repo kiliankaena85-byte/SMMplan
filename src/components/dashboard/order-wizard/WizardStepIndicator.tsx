@@ -26,7 +26,7 @@ export function WizardStepIndicator({
   ] as const;
 
   return (
-    <div className="w-full bg-card/60 backdrop-blur-xl border border-border/30 rounded-2xl p-2.5 sm:p-3 shadow-sm mb-6 flex items-center justify-between overflow-x-auto scrollbar-none">
+    <nav aria-label="Шаги оформления заказа" className="w-full bg-card/60 backdrop-blur-xl border border-border/30 rounded-2xl p-2.5 sm:p-3 shadow-sm mb-6 flex items-center justify-between overflow-x-auto scrollbar-none">
       <div className="flex items-center gap-1 sm:gap-2 min-w-max mx-auto">
         {steps.map((step, idx) => {
           const isDone = currentStep > step.number;
@@ -38,8 +38,10 @@ export function WizardStepIndicator({
               <button
                 type="button"
                 disabled={!isClickable}
+                aria-current={isActive ? 'step' : undefined}
+                aria-label={`Шаг ${step.number}: ${step.label}${isActive ? ' (текущий шаг)' : isDone ? ' (завершено)' : ''}`}
                 onClick={() => isClickable && onStepClick(step.number)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-2 px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold transition-all ${
                   isActive
                     ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-[1.02]'
                     : isDone
@@ -68,6 +70,6 @@ export function WizardStepIndicator({
           );
         })}
       </div>
-    </div>
+    </nav>
   );
 }

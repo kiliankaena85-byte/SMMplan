@@ -5,7 +5,8 @@ import { Activity } from "lucide-react";
 
 export default function DashboardLoading() {
   return (
-    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0" role="status" aria-busy="true" aria-live="polite">
+      <span className="sr-only">Загрузка аналитики и метрик...</span>
       <AdminPageHeader
         icon={Activity}
         title="Панель управления"

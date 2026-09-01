@@ -40,11 +40,18 @@ export function useCheckoutOrchestrator({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [linkHasError, setLinkHasError] = useState(false);
+  const [quantityHasError, setQuantityHasError] = useState(false);
   const [showMassConfirmModal, setShowMassConfirmModal] = useState(false);
   const [emailHasError, setEmailHasError] = useState(false);
   const [termsHasError, setTermsHasError] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-    const [pendingCheckoutParams, setPendingCheckoutParams] = useState<OrchestratorCheckoutParams | null>(null);
+  const [pendingCheckoutParams, setPendingCheckoutParams] = useState<OrchestratorCheckoutParams | null>(null);
+
+  useEffect(() => {
+    if (engine.quantity > 0) {
+      setQuantityHasError(false);
+    }
+  }, [engine.quantity]);
 
   useEffect(() => {
     if (engine.email && engine.email.includes('@')) {
@@ -268,19 +275,29 @@ export function useCheckoutOrchestrator({
       return;
     }
 
-    if (quantity < (selectedService.minQty || 1)) {
-      toast.error(`Минимальное количество для заказа: ${selectedService.minQty}`, { position: 'top-center' });
+    if (!quantity || quantity < (selectedService.minQty || 1)) {
+      setQuantityHasError(true);
+      toast.error(`Минимальное количество для заказа: ${selectedService.minQty || 1} шт.`, { position: 'top-center' });
+      if (typeof window !== 'undefined') {
+        const qtyInput = document.querySelector('input[type="text"][inputmode="numeric"]') as HTMLInputElement;
+        if (qtyInput) {
+          qtyInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          qtyInput.focus();
+        }
+      }
       return;
     }
     if (engine.dripFeedEnabled && engine.runs > 0) {
       const chunk = Math.floor(quantity / engine.runs);
       if (chunk < (selectedService.minQty || 1)) {
+        setQuantityHasError(true);
         toast.error(`Для Drip-feed количество на один запуск (${chunk}) не может быть меньше минимального (${selectedService.minQty || 1})`, { position: 'top-center' });
         return;
       }
     } else if (engine.isSmartDrip && engine.smartDripDays > 0) {
       const chunk = Math.floor(quantity / engine.smartDripDays);
       if (chunk < (selectedService.minQty || 1)) {
+        setQuantityHasError(true);
         toast.error(`Для Умного Drip-feed количество на 1 день (${chunk}) не может быть меньше минимального (${selectedService.minQty || 1})`, { position: 'top-center' });
         return;
       }
@@ -572,6 +589,7 @@ export function useCheckoutOrchestrator({
     setShowMassConfirmModal,
     handleMassCheckoutConfirm,
     handleCheckout,
+    quantityHasError,
     emailHasError,
     termsHasError,
     showPaymentModal,

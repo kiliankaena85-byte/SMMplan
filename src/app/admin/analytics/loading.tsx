@@ -3,7 +3,8 @@ import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 
 export default function AnalyticsLoading() {
   return (
-    <div className="space-y-6 w-full min-w-0 animate-in fade-in duration-300 ease-out sm:px-2 md:px-0 min-h-full pb-10" role="status" aria-busy="true">
+    <div className="space-y-6 w-full min-w-0 animate-in fade-in duration-300 ease-out sm:px-2 md:px-0 min-h-full pb-10" role="status" aria-busy="true" aria-live="polite">
+      <span className="sr-only">Загрузка сводных отчетов и графиков активности...</span>
       <AdminTabbedHeader
         icon={BarChart3}
         title="Аналитика платформы"

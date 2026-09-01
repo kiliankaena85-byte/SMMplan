@@ -31,6 +31,7 @@ interface InlineCheckoutFormProps {
   onClearSelection: () => void;
   emailInputRef?: React.RefObject<HTMLInputElement | null>;
   emailHasError?: boolean;
+  quantityHasError?: boolean;
   termsHasError?: boolean;
   engine: OrderEngine;
   onOpenDocument?: (slug: string) => void;
@@ -54,6 +55,7 @@ export function InlineCheckoutForm({
   onClearSelection,
   emailInputRef,
   emailHasError,
+  quantityHasError,
   termsHasError,
   engine,
   onOpenDocument,
@@ -140,6 +142,7 @@ export function InlineCheckoutForm({
             setQuantity={setQuantity}
             pricing={pricing}
             engine={engine}
+            quantityHasError={quantityHasError}
           />
 
           {/* Drip-Feed configurator */}

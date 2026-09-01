@@ -86,6 +86,7 @@ export function TenantSwitcher({ currentTenant = 'smmplan', className = '', vari
       params.delete('page');
 
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      router.refresh();
     });
   };
 
@@ -104,7 +105,7 @@ export function TenantSwitcher({ currentTenant = 'smmplan', className = '', vari
                 key={t.id}
                 type="button"
                 onClick={() => handleSelect(t.id)}
-                className={`px-3 py-1.5 min-h-[36px] sm:min-h-[44px] flex items-center justify-center text-xs font-extrabold rounded-lg transition-all duration-200 active:scale-95 cursor-pointer ${
+                className={`px-3 py-2 min-h-[44px] flex items-center justify-center text-xs font-extrabold rounded-lg transition-all duration-200 active:scale-95 cursor-pointer ${
                   isActive
                     ? 'bg-background text-primary shadow-sm ring-1 ring-border/50'
                     : 'text-muted-foreground hover:text-foreground hover:bg-background/40'
@@ -127,7 +128,7 @@ export function TenantSwitcher({ currentTenant = 'smmplan', className = '', vari
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-haspopup="true"
-        className="flex items-center gap-2 px-3 py-1.5 h-9 sm:h-10 bg-card/90 hover:bg-card border border-border/80 hover:border-primary/50 text-foreground font-semibold rounded-xl transition-all duration-200 shadow-sm active:scale-95 cursor-pointer text-xs sm:text-sm select-none"
+        className="flex items-center gap-2 px-3.5 py-2 min-h-[44px] bg-card/90 hover:bg-card border border-border/80 hover:border-primary/50 text-foreground font-semibold rounded-xl transition-all duration-200 shadow-sm active:scale-95 cursor-pointer text-xs sm:text-sm select-none"
       >
         <div className="w-5 h-5 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
           {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}

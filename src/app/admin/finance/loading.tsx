@@ -4,7 +4,8 @@ import { FINANCE_TABS } from '@/components/admin/navigation-data';
 
 export default function FinanceLoading() {
   return (
-    <div className="space-y-6 w-full min-w-0 animate-in fade-in duration-300 ease-out sm:px-2 md:px-0 min-h-full pb-10" role="status" aria-busy="true">
+    <div className="space-y-6 w-full min-w-0 animate-in fade-in duration-300 ease-out sm:px-2 md:px-0 min-h-full pb-10" role="status" aria-busy="true" aria-live="polite">
+      <span className="sr-only">Загрузка финансовых метрик и транзакций...</span>
       <AdminTabbedHeader
         icon={CreditCard}
         title="Финансы & Касса"

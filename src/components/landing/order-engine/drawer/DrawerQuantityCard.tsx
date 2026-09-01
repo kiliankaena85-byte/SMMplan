@@ -2,17 +2,19 @@
 import { PublicService } from '@/actions/order/catalog';
 
 import React from "react";
+import { motion } from "framer-motion";
 import { Plus, Minus, Lock } from "lucide-react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { getServiceFlags } from "@/utils/url-analyzer";
 import { formatPricePerUnit } from "@/utils/format-price";
 
 interface DrawerQuantityCardProps {
-    selectedService: PublicService | null;
+  selectedService: PublicService | null;
   quantity: number;
   setQuantity: (q: number) => void;
-    pricing: OrderEngine["pricing"];
+  pricing: OrderEngine["pricing"];
   engine: OrderEngine;
+  quantityHasError?: boolean;
 }
 
 export function DrawerQuantityCard({
@@ -20,7 +22,8 @@ export function DrawerQuantityCard({
   quantity,
   setQuantity,
   pricing,
-  engine
+  engine,
+  quantityHasError = false
 }: DrawerQuantityCardProps) {
   if (!selectedService) return null;
   const dripMultiplier = engine.dripFeedEnabled ? engine.runs : (engine.isSmartDrip ? engine.smartDripDays : 1);
@@ -62,7 +65,15 @@ export function DrawerQuantityCard({
   };
 
   return (
-    <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-4.5 space-y-3 shadow-sm ring-1 ring-primary/5">
+    <motion.div
+      animate={quantityHasError ? { x: [0, -6, 6, -6, 6, 0] } : {}}
+      transition={{ duration: 0.4 }}
+      className={`bg-card border rounded-2xl p-4 sm:p-4.5 space-y-3 shadow-sm ring-1 transition-all ${
+        quantityHasError
+          ? "border-destructive ring-destructive/30 bg-destructive/5"
+          : "border-border/80 ring-primary/5"
+      }`}
+    >
       <div className="flex items-center justify-between">
         <label className="text-xs sm:text-sm font-black text-foreground uppercase tracking-wider">
           Количество заказа
@@ -141,6 +152,6 @@ export function DrawerQuantityCard({
         </span>
         <span>Макс: <strong className="text-foreground font-mono">{max.toLocaleString("ru-RU")}</strong></span>
       </div>
-    </div>
+    </motion.div>
   );
 }

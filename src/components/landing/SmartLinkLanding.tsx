@@ -146,6 +146,7 @@ export function SmartLinkLanding({
     isSubmitting,
     showLinkModal, setShowLinkModal,
     linkHasError, setLinkHasError,
+    quantityHasError,
     showMassConfirmModal, setShowMassConfirmModal,
     handleMassCheckoutConfirm,
     handleCheckout,
@@ -158,8 +159,6 @@ export function SmartLinkLanding({
     desktopEmailInputRef, 
     mobileEmailInputRef
   });
-
-
 
   const checkoutVariantProps = React.useMemo(() => ({
     selectedService,
@@ -178,6 +177,7 @@ export function SmartLinkLanding({
     onClose: () => setSelectedService(null),
     emailInputRef: desktopEmailInputRef,
     emailHasError,
+    quantityHasError,
     termsHasError,
     engine,
     onOpenDocument: setActiveLegalSlug,
@@ -185,7 +185,7 @@ export function SmartLinkLanding({
   }), [
     selectedService, url, setShowLinkModal, quantity, setQuantity, pricing,
     email, setEmail, engine, isSubmitting, handleCheckout,
-    setSelectedService, desktopEmailInputRef, emailHasError, termsHasError,
+    setSelectedService, desktopEmailInputRef, emailHasError, quantityHasError, termsHasError,
     setActiveLegalSlug, userBalanceCents
   ]);
 

@@ -5,7 +5,8 @@ import { Users } from "lucide-react";
 
 export default function ClientsLoading() {
   return (
-    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0" role="status" aria-busy="true" aria-live="polite">
+      <span className="sr-only">Загрузка списка клиентов...</span>
       <AdminPageHeader
         icon={Users}
         title="Клиенты"
