@@ -111,8 +111,21 @@ async function main() {
   await page.screenshot({ path: shot4Local, fullPage: false });
   fs.copyFileSync(shot4Local, shot4Brain);
 
+  // 5. Admin Tickets Workspace
+  console.log('Capturing 5. Admin Tickets Workspace...');
+  const firstTicket = await db.ticket.findFirst({ orderBy: { createdAt: 'desc' } });
+  const ticketUrl = firstTicket 
+    ? `http://127.0.0.1:3005/admin/tickets?ticketId=${firstTicket.id}`
+    : 'http://127.0.0.1:3005/admin/tickets';
+  await page.goto(ticketUrl, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1500);
+  const shot5Local = path.join(localArtifactsDir, '05_stage_tickets_workspace.png');
+  const shot5Brain = path.join(brainDir, '05_stage_tickets_workspace.png');
+  await page.screenshot({ path: shot5Local, fullPage: false });
+  fs.copyFileSync(shot5Local, shot5Brain);
+
   await browser.close();
-  console.log('✅ All 4 Stage screenshots captured and saved successfully!');
+  console.log('✅ All 5 Stage screenshots captured and saved successfully!');
 }
 
 main().catch(err => {

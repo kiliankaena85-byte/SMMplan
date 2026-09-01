@@ -100,10 +100,10 @@ export function TicketsSidebar({
 
   return (
     <div 
-      className="w-full lg:w-[380px] xl:w-[420px] shrink-0 border-r border-border flex flex-col h-full select-none bg-background"
+      className="w-full lg:w-[300px] xl:w-[340px] shrink-0 border-r border-border flex flex-col h-full select-none bg-background min-w-0"
     >
       {/* List Header */}
-      <div className="p-4 border-b border-border space-y-3 bg-card text-card-foreground">
+      <div className="p-3.5 border-b border-border space-y-2.5 bg-card text-card-foreground">
         <div className="flex items-center justify-between">
           <h1 className="font-black text-base flex items-center gap-2">
             <Headphones className="w-5 h-5 text-primary" />

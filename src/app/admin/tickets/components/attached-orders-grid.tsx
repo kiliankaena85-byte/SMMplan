@@ -159,15 +159,15 @@ export function AttachedOrdersGrid({ orders, ticketId, isB2bClient }: AttachedOr
         </div>
 
         {/* Card-based Premium Grid instead of Legacy Table */}
-        <div className="max-h-[220px] overflow-y-auto custom-scrollbar p-0.5">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="max-h-[220px] overflow-y-auto custom-scrollbar p-0.5 min-w-0">
+          <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-2.5 min-w-0">
             {orders.map((o) => {
               const isSelected = selectedIds.includes(o.id);
               return (
                 <div 
                   key={o.id}
                   onClick={() => handleSelectRow(o.id)}
-                  className={`relative p-3.5 border rounded-xl cursor-pointer transition-all duration-200 ${
+                  className={`relative p-2.5 sm:p-3 border rounded-xl cursor-pointer transition-all duration-200 min-w-0 overflow-hidden ${
                     isSelected 
                       ? 'border-primary shadow-sm bg-primary/10' 
                       : 'border-border hover:border-border/80 bg-card'
