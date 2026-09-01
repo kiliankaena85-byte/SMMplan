@@ -204,28 +204,40 @@ export async function verifySession(requiredTenantId?: string): Promise<{ userId
   }
 }
 
-async function handleDevAutoLogin() {
-  if (process.env.APP_ENV === 'test') {
+// Startup assert: ensure DEV_AUTO_LOGIN is NEVER enabled outside test environment
+if (
+  process.env.APP_ENV !== 'test' &&
+  (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')
+) {
+  console.error('🚨 [SECURITY FATAL] DEV_AUTO_LOGIN=true is strictly forbidden outside of APP_ENV=test!');
+  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
+    process.exit(1);
+  }
+}
+
+export async function handleDevAutoLogin() {
+  if (process.env.APP_ENV !== 'test') {
+    if (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1') {
+      const errMsg = '🚨 [SECURITY CRITICAL] DEV_AUTO_LOGIN triggered in non-test environment!';
+      console.error(errMsg);
+      throw new Error(errMsg);
+    }
     return null;
   }
-  if (
-    process.env.NODE_ENV === 'development' &&
-    (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')
-  ) {
+
+  if (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1') {
     const bypassEmail = process.env.DEV_BYPASS_EMAIL;
-    console.info("[verifySession] DEV_AUTO_LOGIN triggered. bypassEmail:", bypassEmail);
-    
     const devUser = await db.user.findFirst({ 
       where: bypassEmail 
         ? { email: bypassEmail, isDeleted: false, isActive: true } 
         : { role: 'OWNER', isDeleted: false, isActive: true } 
     });
-    console.info("[verifySession] devUser found:", !!devUser);
     if (devUser && devUser.role !== 'BANNED') {
       return { userId: devUser.id, role: devUser.role, tenantId: devUser.tenantId };
     }
   }
   return null;
 }
+
 
 
