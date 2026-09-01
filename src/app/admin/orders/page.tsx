@@ -37,6 +37,10 @@ type Props = {
     sort?: string;
     order?: string;
     tenant?: string;
+    providerId?: string;
+    errorCategory?: string;
+    dateFrom?: string;
+    dateTo?: string;
   }>;
 };
 
@@ -61,6 +65,18 @@ const getCachedNetworks = unstable_cache(
   },
   ['admin_orders_networks_list'],
   { revalidate: 60, tags: ['catalog', 'networks'] }
+);
+
+const getCachedProviders = unstable_cache(
+  async () => {
+    return db.provider.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' }
+    });
+  },
+  ['admin_orders_providers_list'],
+  { revalidate: 60, tags: ['providers'] }
 );
 
 export default async function AdminOrdersPage({ searchParams }: Props) {
@@ -88,6 +104,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   const tenantFilter = resolvedTenant !== 'all' ? resolvedTenant : undefined;
 
   const networks = await getCachedNetworks();
+  const providers = await getCachedProviders();
 
   const isDripFeed = params.isDripFeed === 'true';
   const noProvider = params.noProvider === 'true';
@@ -117,6 +134,10 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
     tenantId: tenantFilter,
     isDripFeed: params.isDripFeed ? isDripFeed : undefined,
     noProvider: params.noProvider ? noProvider : undefined,
+    providerId: params.providerId || undefined,
+    errorCategory: params.errorCategory || undefined,
+    dateFrom: params.dateFrom || undefined,
+    dateTo: params.dateTo || undefined,
     staleMinutes: !isNaN(staleMinutes || NaN) ? staleMinutes : undefined,
     sortField: params.sort || undefined,
     sortOrder: (params.order === 'asc' || params.order === 'desc') ? params.order : undefined,
@@ -212,7 +233,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
       <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl shadow-sm ring-1 ring-border/5 overflow-hidden flex flex-col">
         {/* Top Ultra-Compact Filters Section */}
         <div className="p-3 sm:p-4 border-b border-border/40 bg-muted/10">
-          <OrdersFilterForm networks={networks} />
+          <OrdersFilterForm networks={networks} providers={providers} />
         </div>
 
         {/* Table Section */}

@@ -47,10 +47,11 @@ type OrderSearchParams = {
   tenantId?: string;
   isDripFeed?: boolean;
   hasError?: boolean;
+  errorCategory?: 'BALANCE' | 'LINK' | 'SERVICE' | 'ALL' | string;
   noProvider?: boolean;
   staleMinutes?: number;
-  dateFrom?: Date;
-  dateTo?: Date;
+  dateFrom?: Date | string;
+  dateTo?: Date | string;
   providerId?: string;
   sortField?: string;
   sortOrder?: 'asc' | 'desc';
@@ -221,9 +222,45 @@ class AdminOrderService {
       where.error = { not: null };
     }
 
+    // ── Error Category Grouping (BALANCE vs LINK vs SERVICE) ──
+    if (params.errorCategory && params.errorCategory !== 'ALL') {
+      if (params.errorCategory === 'BALANCE') {
+        andConditions.push({
+          OR: [
+            { error: { contains: 'balance', mode: 'insensitive' } },
+            { error: { contains: 'funds', mode: 'insensitive' } },
+            { error: { contains: 'средств', mode: 'insensitive' } },
+            { error: { contains: 'денег', mode: 'insensitive' } },
+          ]
+        });
+      } else if (params.errorCategory === 'LINK') {
+        andConditions.push({
+          OR: [
+            { error: { contains: 'link', mode: 'insensitive' } },
+            { error: { contains: 'url', mode: 'insensitive' } },
+            { error: { contains: 'private', mode: 'insensitive' } },
+            { error: { contains: 'ссылк', mode: 'insensitive' } },
+            { error: { contains: 'закрыт', mode: 'insensitive' } },
+            { error: { contains: '404', mode: 'insensitive' } },
+          ]
+        });
+      } else if (params.errorCategory === 'SERVICE') {
+        andConditions.push({
+          AND: [
+            { error: { not: null } },
+            { NOT: { error: { contains: 'balance', mode: 'insensitive' } } },
+            { NOT: { error: { contains: 'funds', mode: 'insensitive' } } },
+            { NOT: { error: { contains: 'средств', mode: 'insensitive' } } },
+            { NOT: { error: { contains: 'link', mode: 'insensitive' } } },
+            { NOT: { error: { contains: 'ссылк', mode: 'insensitive' } } },
+          ]
+        });
+      }
+    }
+
     if (params.noProvider) {
       where.providerId = null;
-    } else if (params.providerId) {
+    } else if (params.providerId && params.providerId !== 'ALL') {
       where.providerId = params.providerId;
     }
 
@@ -234,10 +271,10 @@ class AdminOrderService {
     }
 
     // ── Date Filtering & Presets ──
-    let computedDateFrom = params.dateFrom;
-    let computedDateTo = params.dateTo;
+    let computedDateFrom: Date | undefined = params.dateFrom ? new Date(params.dateFrom) : undefined;
+    let computedDateTo: Date | undefined = params.dateTo ? new Date(params.dateTo) : undefined;
 
-    if (params.datePreset) {
+    if (params.datePreset && params.datePreset !== 'ALL') {
       const now = new Date();
       if (params.datePreset === 'today') {
         computedDateFrom = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
@@ -258,8 +295,8 @@ class AdminOrderService {
 
     if (computedDateFrom || computedDateTo) {
       const dateFilter: Prisma.DateTimeFilter = {};
-      if (computedDateFrom) dateFilter.gte = computedDateFrom;
-      if (computedDateTo) dateFilter.lte = computedDateTo;
+      if (computedDateFrom && !isNaN(computedDateFrom.getTime())) dateFilter.gte = computedDateFrom;
+      if (computedDateTo && !isNaN(computedDateTo.getTime())) dateFilter.lte = computedDateTo;
       where.createdAt = dateFilter;
     }
 

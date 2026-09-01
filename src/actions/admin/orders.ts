@@ -642,4 +642,73 @@ export async function getOrderDetailsAction(orderId: string) {
   });
 }
 
+export async function sendReorderOfferAction(orderId: string, customNote?: string) {
+  return requireStaffPermission('orders', 'edit', async (admin) => {
+    const order = await db.order.findFirst({
+      where: { id: orderId },
+      include: {
+        user: { select: { id: true, email: true, balance: true } },
+        service: { select: { id: true, name: true } }
+      }
+    });
+
+    if (!order) {
+      return { success: false as const, error: 'Заказ не найден' };
+    }
+
+    if (order.status !== 'CANCELED') {
+      return { success: false as const, error: 'Предложение перезапуска доступно только для отменённых заказов' };
+    }
+
+    // Find or create active support ticket with customer
+    let ticket = await db.ticket.findFirst({
+      where: { userId: order.userId, status: { in: ['OPEN', 'PENDING'] } },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (!ticket) {
+      ticket = await db.ticket.create({
+        data: {
+          userId: order.userId,
+          subject: `Возобновление заказа #${order.numericId} («${order.service.name}»)`,
+          status: 'OPEN',
+          source: 'WEB',
+          orderId: order.id,
+          tenantId: order.tenantId ?? 'smmplan'
+        }
+      });
+    }
+
+    const formattedCost = (Number(order.charge) / 100).toFixed(2);
+    const offerMessageText = `⚡ **Поставщик устранил сбой по услуге «${order.service.name}»!**\n\nМы можем автоматически перезапустить ваш отменённый заказ #${order.numericId} (${order.quantity} шт.) с вашего баланса (${formattedCost} ₽).\n\n${customNote ? `💬 Комментарий поддержки: ${customNote}\n\n` : ''}Для подтверждения нажмите кнопку подтверждения в личном кабинете или ответьте в этом диалоге.`;
+
+    await db.ticketMessage.create({
+      data: {
+        ticketId: ticket.id,
+        sender: 'STAFF',
+        text: offerMessageText,
+        orderId: order.id
+      }
+    });
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'ORDER_REORDER_OFFER_SENT',
+      target: order.id,
+      targetType: 'ORDER',
+      newValue: { numericId: order.numericId, clientEmail: order.user.email, ticketId: ticket.id }
+    });
+
+    revalidatePath(`/admin/orders`);
+    revalidatePath(`/admin/tickets`);
+    return { 
+      success: true as const, 
+      ticketId: ticket.id, 
+      message: `Предложение перезапуска отправлено клиенту в тикет #${ticket.id}` 
+    };
+  });
+}
+
+
 
