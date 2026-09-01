@@ -326,22 +326,29 @@ export async function updateStaffMemberAction(input: z.infer<typeof updateStaffS
       return { success: false as const, error: 'Запрещено изменять собственную роль или лимиты (Grant Ceiling)' };
     }
 
-    // Only OWNER can promote to ADMIN/OWNER
-    if (['ADMIN', 'OWNER'].includes(input.role) && admin.role !== 'OWNER') {
-      return { success: false as const, error: 'Только Владелец может назначать Администраторов' };
-    }
-
     const targetUser = await db.user.findUnique({ where: { id: input.userId } });
     if (!targetUser) {
       return { success: false as const, error: 'Сотрудник не найден' };
     }
 
-    // H-03 FIX 2: Protect OWNER and ADMIN accounts from demotion/modification by lower roles
+    // H-03 FIX 2: Absolute protection for OWNER (cannot be demoted by anyone) and hierarchy guards
+    if (targetUser.role === 'OWNER' && input.role !== 'OWNER') {
+      return { success: false as const, error: 'Запрещено понижать роль Владельца платформы' };
+    }
     if (targetUser.role === 'OWNER' && admin.role !== 'OWNER') {
       return { success: false as const, error: 'Запрещено изменять роль или параметры Владельца' };
     }
     if (targetUser.role === 'ADMIN' && admin.role !== 'OWNER') {
       return { success: false as const, error: 'Только Владелец может изменять профили Администраторов' };
+    }
+    // Staff roles (SUPPORT, MANAGER, OPERATOR) cannot modify other staff members
+    if (['SUPPORT', 'MANAGER', 'OPERATOR'].includes(admin.role)) {
+      return { success: false as const, error: 'У вас недостаточно прав для управления профилями сотрудников' };
+    }
+
+    // Only OWNER can promote to ADMIN/OWNER
+    if (['ADMIN', 'OWNER'].includes(input.role) && admin.role !== 'OWNER') {
+      return { success: false as const, error: 'Только Владелец может назначать Администраторов' };
     }
 
     const newLimitCents = Math.round(input.supportLimitRubles * 100);

@@ -30,8 +30,21 @@ export async function updateSupportLimit(formData: FormData) {
 
     const { userId, limit: limitCents } = parsed.data;
 
+    // Self-modification guard
+    if (userId === admin.id) {
+      return { success: false as const, error: 'Запрещено изменять собственный лимит доверия' };
+    }
+
     const target = await db.user.findUnique({ where: { id: userId } });
     if (!target) return { success: false as const, error: 'Пользователь не найден' };
+
+    // Hierarchy Guard: Non-OWNER cannot change parameters of OWNER or ADMIN
+    if (target.role === 'OWNER' && admin.role !== 'OWNER') {
+      return { success: false as const, error: 'Запрещено изменять параметры Владельца' };
+    }
+    if (target.role === 'ADMIN' && admin.role !== 'OWNER') {
+      return { success: false as const, error: 'Только Владелец может изменять параметры Администратора' };
+    }
 
     await db.user.update({
       where: { id: userId },

@@ -35,6 +35,11 @@ export async function updateUserRole(formData: FormData) {
     const targetUser = await db.user.findUnique({ where: { id: targetUserId }, select: { role: true, email: true } });
     if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
 
+    // SECURITY: OWNER role cannot be demoted by anyone
+    if (targetUser.role === 'OWNER' && newRole !== 'OWNER') {
+      return { success: false as const, error: 'Запрещено понижать роль Владельца платформы' };
+    }
+
     // SECURITY: Only OWNER can change roles of existing ADMINs or OWNERs
     if (['ADMIN', 'OWNER'].includes(targetUser.role) && admin.role !== 'OWNER') {
       return { success: false as const, error: 'Только Владелец может изменять права администраторов' };

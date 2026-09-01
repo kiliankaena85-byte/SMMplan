@@ -602,8 +602,16 @@ export async function adminChangeUserPasswordAction(userId: string, newPass: str
     const { hashPassword } = await import('@/lib/auth/password');
     const hashed = await hashPassword(newPass);
 
-    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true } });
+    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true, role: true } });
     if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+
+    // Hierarchy Guard: Protecting OWNER & Staff accounts from unauthorized password resets
+    if (targetUser.role === 'OWNER' && admin.role !== 'OWNER') {
+      return { success: false as const, error: 'Запрещено сбрасывать пароль Владельца платформы' };
+    }
+    if (['ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR'].includes(targetUser.role) && !['OWNER', 'ADMIN'].includes(admin.role)) {
+      return { success: false as const, error: 'Только Владелец и Администратор могут сбрасывать пароли сотрудников' };
+    }
 
     await db.user.update({
       where: { id: userId },
@@ -660,8 +668,16 @@ export async function adminDeleteUserAction(formData: FormData) {
       return { success: false as const, error: 'Вы не можете удалить собственный профиль' };
     }
 
-    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true } });
+    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true, role: true } });
     if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+
+    // Hierarchy Guard: OWNER cannot be deleted, ADMIN can only be deleted by OWNER
+    if (targetUser.role === 'OWNER') {
+      return { success: false as const, error: 'Категорически запрещено удалять аккаунт Владельца платформы' };
+    }
+    if (targetUser.role === 'ADMIN' && admin.role !== 'OWNER') {
+      return { success: false as const, error: 'Только Владелец может удалять аккаунты Администраторов' };
+    }
 
     await db.$transaction(async (tx) => {
       await tx.user.update({
@@ -732,9 +748,17 @@ export async function adminChangeUserEmailAction(userId: string, newEmail: strin
 
     const targetUser = await db.user.findUnique({
       where: { id: parsed.data.userId },
-      select: { id: true, email: true, balance: true, tenantId: true }
+      select: { id: true, email: true, balance: true, tenantId: true, role: true }
     });
     if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+
+    // Hierarchy Guard: Protecting OWNER & Staff accounts from unauthorized email changes
+    if (targetUser.role === 'OWNER' && admin.role !== 'OWNER') {
+      return { success: false as const, error: 'Запрещено изменять email Владельца платформы' };
+    }
+    if (['ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR'].includes(targetUser.role) && admin.role !== 'OWNER') {
+      return { success: false as const, error: 'Только Владелец может изменять email сотрудников' };
+    }
 
     // Проверка уникальности
     const existing = await db.user.findFirst({

@@ -113,7 +113,7 @@ describe('Auditor Findings Remediation Test Suite (C-01 to C-03, H-01 to H-05)',
     });
   });
 
-  describe('H-03: updateStaffMemberAction Role and Limit Protection', () => {
+  describe('H-03 & Role Hierarchy Invariants: Complete Protection against Demotion and Privilege Escalation', () => {
     it('prevents self-modification of limits and roles', async () => {
       const adminUser = await db.user.create({
         data: {
@@ -141,6 +141,134 @@ describe('Auditor Findings Remediation Test Suite (C-01 to C-03, H-01 to H-05)',
       if ('error' in result) {
         expect(result.error).toMatch(/Запрещено изменять собственную роль или лимиты/i);
       }
+    });
+
+    it('strictly forbids ANYONE from demoting an OWNER to USER or BANNED', async () => {
+      const ownerUser = await db.user.create({
+        data: {
+          email: `root_owner_${Date.now()}@smmplan.pro`,
+          role: 'OWNER',
+          tenantId: 'smmplan',
+        },
+      });
+
+      const anotherOwner = await db.user.create({
+        data: {
+          email: `co_owner_${Date.now()}@smmplan.pro`,
+          role: 'OWNER',
+          tenantId: 'smmplan',
+        },
+      });
+
+      vi.mocked(verifySession).mockResolvedValue({
+        userId: anotherOwner.id,
+        sessionId: 'sess_owner_1',
+        role: 'OWNER',
+        canResetPassword: false,
+        sessionVer: 1,
+      } as any);
+
+      const result = await updateStaffMemberAction({
+        userId: ownerUser.id,
+        role: 'USER',
+        supportLimitRubles: 0,
+      });
+
+      expect(result.success).toBe(false);
+      if ('error' in result) {
+        expect(result.error).toMatch(/Запрещено понижать роль Владельца платформы/i);
+      }
+    });
+
+    it('strictly forbids ADMIN from modifying or demoting OWNER or another ADMIN', async () => {
+      const ownerUser = await db.user.create({
+        data: {
+          email: `victim_owner_${Date.now()}@smmplan.pro`,
+          role: 'OWNER',
+          tenantId: 'smmplan',
+        },
+      });
+
+      const adminUser = await db.user.create({
+        data: {
+          email: `rogue_admin_${Date.now()}@smmplan.pro`,
+          role: 'ADMIN',
+          tenantId: 'smmplan',
+        },
+      });
+
+      vi.mocked(verifySession).mockResolvedValue({
+        userId: adminUser.id,
+        sessionId: 'sess_admin_rogue',
+        role: 'ADMIN',
+        canResetPassword: false,
+        sessionVer: 1,
+      } as any);
+
+      const result = await updateStaffMemberAction({
+        userId: ownerUser.id,
+        role: 'ADMIN',
+        supportLimitRubles: 0,
+      });
+
+      expect(result.success).toBe(false);
+      if ('error' in result) {
+        expect(result.error).toMatch(/Запрещено (понижать роль|изменять роль или параметры) Владельца/i);
+      }
+
+      // Also test that ADMIN cannot modify another ADMIN
+      const anotherAdmin = await db.user.create({
+        data: {
+          email: `target_admin_${Date.now()}@smmplan.pro`,
+          role: 'ADMIN',
+          tenantId: 'smmplan',
+        },
+      });
+
+      const adminOnAdminResult = await updateStaffMemberAction({
+        userId: anotherAdmin.id,
+        role: 'SUPPORT',
+        supportLimitRubles: 1000,
+      });
+
+      expect(adminOnAdminResult.success).toBe(false);
+      if ('error' in adminOnAdminResult) {
+        expect(adminOnAdminResult.error).toMatch(/Только Владелец может изменять профили Администраторов/i);
+      }
+    });
+
+    it('strictly forbids SUPPORT or MANAGER from managing staff profiles', async () => {
+      const supportUser = await db.user.create({
+        data: {
+          email: `support_user_${Date.now()}@smmplan.pro`,
+          role: 'SUPPORT',
+          tenantId: 'smmplan',
+        },
+      });
+
+      const targetUser = await db.user.create({
+        data: {
+          email: `target_client_${Date.now()}@smmplan.pro`,
+          role: 'USER',
+          tenantId: 'smmplan',
+        },
+      });
+
+      vi.mocked(verifySession).mockResolvedValue({
+        userId: supportUser.id,
+        sessionId: 'sess_support_test',
+        role: 'SUPPORT',
+        canResetPassword: false,
+        sessionVer: 1,
+      } as any);
+
+      const result = await updateStaffMemberAction({
+        userId: targetUser.id,
+        role: 'MANAGER',
+        supportLimitRubles: 1000,
+      });
+
+      expect(result.success).toBe(false);
     });
   });
 
