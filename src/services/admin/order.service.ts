@@ -472,8 +472,11 @@ class AdminOrderService {
       // If in PENDING_CHECK, money was already charged and held in escrow, so do NOT charge again!
       if (order.status === 'ERROR' || order.status === 'CANCELED') {
         await WalletOps.charge(tx, order.userId, Number(order.charge),
-          `Перезапуск заказа ${order.numericId} администратором - Повторное списание`,
-          { adminId: admin.id }
+          `Перезапуск заказа #${order.numericId} администратором - Повторное списание`,
+          { 
+            adminId: admin.id,
+            idempotencyKey: `restart-charge-${order.id}-${order.updatedAt.getTime()}`,
+          }
         );
       }
 

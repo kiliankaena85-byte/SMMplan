@@ -340,6 +340,26 @@ export async function manualApprovePaymentAction(input: z.infer<typeof manualApp
       }
     }
 
+    // Support must not approve payments targeted at staff accounts
+    const targetRole = payment.user?.role;
+    if (targetRole && ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR'].includes(targetRole) && !['OWNER', 'ADMIN'].includes(admin.role)) {
+      return { success: false as const, error: 'Запрещено подтверждать платежи по аккаунтам сотрудников. Передайте Администратору.' };
+    }
+
+    // M-07 FIX: Payments bound to orders must fulfill the order (credit+charge+activate)
+    if (payment.orderId) {
+      const { paymentService } = await import('@/services/financial/payment.service');
+      const ok = await paymentService.confirmPaymentById(payment.id);
+      if (!ok) {
+        return { success: false as const, error: 'Не удалось активировать заказ, привязанный к платежу' };
+      }
+      safeRevalidatePath('/admin/orders');
+      safeRevalidatePath('/admin/transactions');
+      safeRevalidatePath('/admin/finance');
+      safeRevalidatePath(`/admin/clients/${payment.userId}`);
+      return { success: true as const };
+    }
+
     const ipAddress = await getClientIp('unknown');
 
     try {

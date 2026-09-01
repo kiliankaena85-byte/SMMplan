@@ -8,7 +8,13 @@
 
 import crypto from 'crypto';
 
-const ORDER_TOKEN_SALT = process.env.ORDER_TOKEN_SECRET || process.env.SESSION_SECRET || 'smmplan-guest-order-token-salt-2026';
+function getOrderTokenSalt(): string {
+  const secret = process.env.ORDER_TOKEN_SECRET || process.env.SESSION_SECRET || process.env.JWT_SECRET;
+  if (!secret && process.env.NODE_ENV === 'production' && process.env.APP_ENV !== 'test') {
+    throw new Error('[SECURITY FATAL] ORDER_TOKEN_SECRET or JWT_SECRET must be configured in production!');
+  }
+  return secret || 'smmplan-guest-order-token-salt-2026';
+}
 
 /**
  * Generates a tamper-proof capability token for a specific order.
@@ -16,7 +22,7 @@ const ORDER_TOKEN_SALT = process.env.ORDER_TOKEN_SECRET || process.env.SESSION_S
 export function generateGuestOrderToken(orderId: string, numericId: number): string {
   const payload = `order:${orderId}:${numericId}`;
   return crypto
-    .createHmac('sha256', ORDER_TOKEN_SALT)
+    .createHmac('sha256', getOrderTokenSalt())
     .update(payload)
     .digest('hex');
 }
