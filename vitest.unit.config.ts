@@ -53,6 +53,10 @@ export default defineConfig({
       'src/__tests__/settings/settings-cluster-navigation.test.ts',
       'src/__tests__/clients/client-ledger-and-notes.test.ts',
       'src/__tests__/support/ai-response-sanitizer.test.ts',
+      'src/__tests__/staff/staff-shifts-collisions.test.ts',
+      'src/__tests__/finance/manual-payment-approval.test.ts',
+      'src/__tests__/security/owasp-2026-comprehensive-adversarial.test.ts',
+      'src/__tests__/security/pci-dss-fintech-concurrency-audit.test.ts',
     ],
   }
 });

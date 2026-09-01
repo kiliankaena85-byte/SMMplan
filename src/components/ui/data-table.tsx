@@ -35,6 +35,7 @@ interface DataTableProps<TData, TValue> {
   hideClientPagination?: boolean;
   initialColumnVisibility?: VisibilityState;
   renderMobileView?: (table: ReactTable<TData>) => React.ReactNode;
+  meta?: Record<string, any>;
 }
 
 export function DataTable<TData, TValue>({
@@ -46,6 +47,7 @@ export function DataTable<TData, TValue>({
   hideClientPagination = false,
   initialColumnVisibility = {},
   renderMobileView,
+  meta,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -55,6 +57,7 @@ export function DataTable<TData, TValue>({
   const table = useReactTable({
     data,
     columns,
+    meta,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,

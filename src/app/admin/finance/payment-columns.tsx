@@ -184,4 +184,28 @@ export const columns: ColumnDef<PaymentDTO>[] = [
       </span>
     ),
   },
+  {
+    id: 'actions',
+    header: () => <div className="text-right">Действие</div>,
+    cell: ({ row, table }) => {
+      const p = row.original;
+      const isPending = p.status === 'PENDING';
+      const meta = table.options.meta as { onApprovePayment?: (payment: PaymentDTO) => void } | undefined;
+
+      if (!isPending || !meta?.onApprovePayment) return null;
+
+      return (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => meta.onApprovePayment!(p)}
+            className="px-2.5 py-1 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 rounded-lg text-[11px] font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1"
+            title="Подтвердить зачисление по чеку/письму"
+          >
+            <span>✓ Подтвердить</span>
+          </button>
+        </div>
+      );
+    },
+  },
 ];

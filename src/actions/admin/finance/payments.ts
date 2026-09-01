@@ -10,6 +10,18 @@ import { db } from '@/lib/db';
 import { z } from 'zod';
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { resolveAdminTenantContext } from '@/utils/admin-tenant';
+import { WalletOps } from '@/services/financial/wallet-ops';
+import { auditAdminAwaitable } from '@/lib/admin-audit';
+import { getClientIp } from '@/utils/ip';
+import { revalidatePath } from 'next/cache';
+
+function safeRevalidatePath(path: string) {
+  try {
+    revalidatePath(path);
+  } catch {
+    // ignore outside Next.js request context (e.g. in vitest runner)
+  }
+}
 
 const paymentsParamsSchema = z.object({
   status:   z.enum(['ALL', 'PENDING', 'SUCCEEDED', 'CANCELED']).default('ALL'),
@@ -271,5 +283,120 @@ export async function getPaymentDisputePackAction(paymentId: string): Promise<Pa
         createdAt: l.createdAt.toISOString(),
       })),
     };
+  });
+}
+
+const manualApproveSchema = z.object({
+  paymentId: z.string().min(1),
+  gatewayTransactionId: z.string().min(3, 'Укажите ID транзакции или номер квитанции из письма'),
+  notes: z.string().min(5, 'Укажите подробное обоснование (например: «Проверено по чеку от ЮKassa №...»)'),
+});
+
+/**
+ * Manually approves a pending payment that was confirmed via bank receipt / gateway email.
+ * Enforces Hybrid RBAC limit (Support up to 3 000 RUB / supportLimitCents, Owner/Admin unlimited).
+ */
+export async function manualApprovePaymentAction(input: z.infer<typeof manualApproveSchema>) {
+  return requireStaffPermission('finance', 'view', async (admin) => {
+    const parsed = manualApproveSchema.safeParse(input);
+    if (!parsed.success) {
+      return { success: false as const, error: parsed.error.issues[0]?.message || 'Некорректные параметры' };
+    }
+
+    const payment = await db.payment.findUnique({
+      where: { id: parsed.data.paymentId },
+      include: { user: true },
+    });
+
+    if (!payment) {
+      return { success: false as const, error: 'Платёж не найден' };
+    }
+
+    if (payment.status !== 'PENDING') {
+      return { success: false as const, error: `Платёж уже имеет статус «${payment.status}»` };
+    }
+
+    // Hybrid RBAC & Support Limit Check (Default 3 000 RUB = 300 000 kopecks)
+    const isOwnerOrAdmin = ['OWNER', 'ADMIN'].includes(admin.role);
+    if (!isOwnerOrAdmin) {
+      // Support limit check
+      const effectiveLimitCents = admin.supportLimitCents ? BigInt(admin.supportLimitCents) : BigInt(300000); // 3 000 RUB
+      if (payment.amount > effectiveLimitCents) {
+        const limitRub = Number(effectiveLimitCents) / 100;
+        const amountRub = Number(payment.amount) / 100;
+        return { 
+          success: false as const, 
+          error: `Сумма платежа (${amountRub} ₽) превышает ваш лимит ручного подтверждения (${limitRub} ₽). Передайте платёж Администратору.` 
+        };
+      }
+    }
+
+    const ipAddress = await getClientIp('unknown');
+
+    try {
+      await db.$transaction(async (tx) => {
+        // 1. Atomic status transition: update only if still PENDING
+        const updateResult = await tx.payment.updateMany({
+          where: { id: payment.id, status: 'PENDING' },
+          data: {
+            status: 'SUCCEEDED',
+            gatewayId: parsed.data.gatewayTransactionId,
+          },
+        });
+
+        if (updateResult.count === 0) {
+          throw new Error('PAYMENT_ALREADY_PROCESSED');
+        }
+
+        // 2. Credit wallet via WalletOps with full audit ledger
+        const idempotencyKey = `manual-approve-${payment.id}-${admin.id}`;
+        await WalletOps.credit(
+          tx,
+          payment.userId,
+          payment.amount,
+          `Ручное подтверждение платежа (Чек: ${parsed.data.gatewayTransactionId})`,
+          {
+            idempotencyKey,
+            adminId: admin.id,
+            tenantId: payment.user?.tenantId || 'smmplan',
+            transactionType: 'TOPUP',
+          }
+        );
+
+        // 3. Audit log
+        await auditAdminAwaitable({
+          adminId: admin.id,
+          adminEmail: admin.email,
+          action: 'UPDATE_USER_BALANCE',
+          target: payment.id,
+          targetType: 'PAYMENT_MANUAL_APPROVE',
+          oldValue: { status: 'PENDING', amount: Number(payment.amount) },
+          newValue: { 
+            status: 'SUCCEEDED', 
+            amount: Number(payment.amount), 
+            gatewayId: parsed.data.gatewayTransactionId,
+            notes: parsed.data.notes,
+            adminRole: admin.role,
+          },
+          ipAddress,
+          tx,
+        });
+      }, { timeout: 15000, maxWait: 10000 });
+
+      safeRevalidatePath('/admin/transactions');
+      safeRevalidatePath('/admin/finance');
+      safeRevalidatePath(`/admin/clients/${payment.userId}`);
+
+      return { success: true as const };
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === 'PAYMENT_ALREADY_PROCESSED') {
+        return { success: false as const, error: 'Платёж уже был обработан другим процессом или вебхуком' };
+      }
+      if (typeof err === 'object' && err !== null && 'code' in err && (err as { code: string }).code === 'P2002') {
+        return { success: false as const, error: 'Транзакция с таким номером или квитанцией уже была зарегистрирована в системе ранее' };
+      }
+      console.error('[ManualPaymentApproval] Error:', err);
+      return { success: false as const, error: 'Сбой при проведении платежа' };
+    }
   });
 }

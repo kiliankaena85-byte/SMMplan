@@ -7,6 +7,14 @@ import { getClientIp } from '@/utils/ip';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
+function safeRevalidatePath(path: string) {
+  try {
+    revalidatePath(path);
+  } catch {
+    // ignore outside Next.js request context (e.g. in vitest runner)
+  }
+}
+
 export interface ShiftInfo {
   id: string;
   userId: string;
@@ -42,6 +50,21 @@ export interface StaffMemberOption {
   role: string;
 }
 
+export interface AvailableSubstituteDTO {
+  id: string;
+  email: string;
+  role: string;
+  isAvailable: boolean;
+  statusBadge: 'FREE' | 'BUSY_SAME_SLOT' | 'BUSY_OTHER_SLOT' | 'VACATION' | 'SICK';
+  statusText: string;
+  availableReciprocalShifts: Array<{
+    id: string;
+    dateStr: string;
+    dayNumber: number;
+    shiftType: string;
+  }>;
+}
+
 export interface PayrollRow {
   userId: string;
   userEmail: string;
@@ -65,12 +88,10 @@ export interface PayrollRow {
  */
 export async function getMonthShiftsAction(year: number, month: number) {
   return requireStaffPermission('staff', 'view', async (admin) => {
-    // Start and end of month in UTC
     const startOfMonth = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
     const endOfMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
     const daysInMonth = new Date(year, month, 0).getDate();
 
-    // Fetch all staff users
     const staffUsers = await db.user.findMany({
       where: {
         OR: [
@@ -83,7 +104,6 @@ export async function getMonthShiftsAction(year: number, month: number) {
 
     const staffIds = staffUsers.map((u) => u.id);
 
-    // Fetch all shifts for the month
     const shifts = await db.staffShift.findMany({
       where: {
         OR: [
@@ -102,7 +122,6 @@ export async function getMonthShiftsAction(year: number, month: number) {
       orderBy: { date: 'asc' },
     });
 
-    // Map shifts by userId
     const scheduleRows: StaffScheduleRow[] = staffUsers.map((staff) => {
       const userShifts = shifts.filter((s) => s.userId === staff.id);
       const shiftsMap: Record<number, ShiftInfo> = {};
@@ -141,7 +160,7 @@ export async function getMonthShiftsAction(year: number, month: number) {
         if (s.status === 'SWAPPED') {
           swappedCount++;
           if (s.substituteHours > 0) {
-            actualCount++; // partially worked
+            actualCount++;
           }
         }
         if (s.status === 'VACATION') {
@@ -195,7 +214,7 @@ const assignShiftSchema = z.object({
 
 /**
  * Assigns or updates a single shift for a staff member.
- * Operators can set their own shift; Admins can assign to anyone.
+ * Includes Poka-Yoke collision checks against existing shifts and time off.
  */
 export async function assignShiftAction(input: z.infer<typeof assignShiftSchema>) {
   return requireStaffPermission('staff', 'view', async (admin) => {
@@ -210,6 +229,22 @@ export async function assignShiftAction(input: z.infer<typeof assignShiftSchema>
     }
 
     const shiftDate = new Date(`${input.dateStr}T00:00:00.000Z`);
+
+    // Check if user is currently on Vacation/Sick on this day
+    const existingSameDay = await db.staffShift.findFirst({
+      where: {
+        userId: input.userId,
+        date: shiftDate,
+        status: { in: ['VACATION', 'SICK', 'DAY_OFF'] },
+      },
+    });
+
+    if (existingSameDay && ['PLANNED', 'COMPLETED'].includes(input.status)) {
+      return {
+        success: false as const,
+        error: `Нельзя назначить рабочую смену: сотрудник находится в статусе «${existingSameDay.status === 'VACATION' ? 'Отпуск' : existingSameDay.status === 'SICK' ? 'Больничный' : 'Отгул'}». Сначала снимите отпуск.`,
+      };
+    }
 
     const shift = await db.staffShift.upsert({
       where: {
@@ -245,8 +280,111 @@ export async function assignShiftAction(input: z.infer<typeof assignShiftSchema>
       ipAddress,
     });
 
-    revalidatePath('/admin/staff');
+    safeRevalidatePath('/admin/staff');
     return { success: true as const, shift };
+  });
+}
+
+/**
+ * Evaluates substitute availability and reciprocal shift candidates for a given shift.
+ */
+export async function getAvailableSubstitutesAction(shiftId: string) {
+  return requireStaffPermission('staff', 'view', async () => {
+    const shift = await db.staffShift.findUnique({
+      where: { id: shiftId },
+      include: { user: true },
+    });
+
+    if (!shift) {
+      return { success: false as const, error: 'Смена не найдена' };
+    }
+
+    const targetDate = shift.date;
+    const year = targetDate.getUTCFullYear();
+    const month = targetDate.getUTCMonth() + 1;
+    const startOfMonth = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
+    const endOfMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+
+    // Fetch all other staff members
+    const staffUsers = await db.user.findMany({
+      where: {
+        id: { not: shift.userId },
+        OR: [
+          { role: { in: ['SUPPORT', 'MANAGER', 'ADMIN', 'OWNER'] } },
+          { staffRoleId: { not: null } },
+        ],
+      },
+      orderBy: [{ role: 'asc' }, { email: 'asc' }],
+    });
+
+    // Fetch shifts of all candidates for the target date and the month
+    const candidateShifts = await db.staffShift.findMany({
+      where: {
+        userId: { in: staffUsers.map(u => u.id) },
+        date: { gte: startOfMonth, lte: endOfMonth },
+      },
+    });
+
+    const result: AvailableSubstituteDTO[] = staffUsers.map((candidate) => {
+      const candidateShiftsThisMonth = candidateShifts.filter(s => s.userId === candidate.id);
+      const shiftOnTargetDate = candidateShiftsThisMonth.find(s => s.date.getTime() === targetDate.getTime());
+
+      let isAvailable = true;
+      let statusBadge: AvailableSubstituteDTO['statusBadge'] = 'FREE';
+      let statusText = 'Свободен для подмены ✅';
+
+      if (shiftOnTargetDate) {
+        if (shiftOnTargetDate.status === 'VACATION') {
+          isAvailable = false;
+          statusBadge = 'VACATION';
+          statusText = 'В отпуске 🌴 (недоступен)';
+        } else if (shiftOnTargetDate.status === 'SICK') {
+          isAvailable = false;
+          statusBadge = 'SICK';
+          statusText = 'На больничном 🩹 (недоступен)';
+        } else if (shiftOnTargetDate.shiftType === shift.shiftType && ['PLANNED', 'COMPLETED', 'SWAPPED'].includes(shiftOnTargetDate.status)) {
+          isAvailable = false;
+          statusBadge = 'BUSY_SAME_SLOT';
+          statusText = 'Уже дежурит в этот же слот ⚠️';
+        } else if (['PLANNED', 'COMPLETED', 'SWAPPED'].includes(shiftOnTargetDate.status)) {
+          // Works another shift on the same day (e.g. night vs day)
+          isAvailable = true; // Can do partial or 24h, but warn
+          statusBadge = 'BUSY_OTHER_SLOT';
+          statusText = 'Дежурит в другую смену (24ч подряд) ⚠️';
+        }
+      }
+
+      // Find candidates reciprocal shifts for 2-way swap
+      const availableReciprocalShifts = candidateShiftsThisMonth
+        .filter(s => ['PLANNED', 'COMPLETED'].includes(s.status) && s.id !== shift.id)
+        .map(s => ({
+          id: s.id,
+          dateStr: s.date.toISOString().split('T')[0],
+          dayNumber: s.date.getUTCDate(),
+          shiftType: s.shiftType,
+        }));
+
+      return {
+        id: candidate.id,
+        email: candidate.email,
+        role: candidate.role,
+        isAvailable,
+        statusBadge,
+        statusText,
+        availableReciprocalShifts,
+      };
+    });
+
+    return {
+      success: true as const,
+      shift: {
+        id: shift.id,
+        dateStr: shift.date.toISOString().split('T')[0],
+        shiftType: shift.shiftType,
+        userEmail: shift.user.email,
+      },
+      candidates: result,
+    };
   });
 }
 
@@ -254,11 +392,12 @@ const swapShiftSchema = z.object({
   shiftId: z.string().min(1),
   substituteUserId: z.string().min(1),
   substituteHours: z.number().min(0).max(24).optional().default(0), // 0 = полная смена, >0 = часы подмены
+  reciprocalShiftId: z.string().optional(), // Опциональная встречная смена для взаимного обмена (2-Way Swap)
   notes: z.string().min(1),
 });
 
 /**
- * Records a shift swap or partial hourly cover between staff members.
+ * Records a shift swap or reciprocal 2-way shift exchange with full Poka-Yoke collision prevention.
  */
 export async function swapShiftAction(input: z.input<typeof swapShiftSchema>) {
   return requireStaffPermission('staff', 'view', async (admin) => {
@@ -285,18 +424,75 @@ export async function swapShiftAction(input: z.input<typeof swapShiftSchema>) {
       return { success: false as const, error: 'Нельзя назначить подмену на самого себя' };
     }
 
-    const updated = await db.staffShift.update({
-      where: { id: input.shiftId },
-      data: {
-        status: 'SWAPPED',
-        substituteUserId: input.substituteUserId,
-        substituteHours: input.substituteHours,
-        notes: input.notes,
-      },
-      include: {
-        substituteUser: true,
+    // Poka-Yoke Collision Check on Substitute's status on that target date
+    const targetDate = existing.date;
+    const substituteExistingShift = await db.staffShift.findFirst({
+      where: {
+        userId: input.substituteUserId,
+        date: targetDate,
       },
     });
+
+    if (substituteExistingShift) {
+      if (['VACATION', 'SICK', 'DAY_OFF'].includes(substituteExistingShift.status)) {
+        return {
+          success: false as const,
+          error: `Коллега недоступен в этот день (${substituteExistingShift.status === 'VACATION' ? 'в отпуске' : 'на больничном'}). Выберите другого сотрудника.`,
+        };
+      }
+      if (
+        substituteExistingShift.shiftType === existing.shiftType &&
+        ['PLANNED', 'COMPLETED', 'SWAPPED'].includes(substituteExistingShift.status)
+      ) {
+        return {
+          success: false as const,
+          error: `Коллега уже назначен на смену в этот же временной слот (${existing.shiftType === 'DAY' ? 'Дневная' : 'Ночная'}). Выберите другого сотрудника.`,
+        };
+      }
+    }
+
+    // Atomic Execution: 1-Way Cover OR 2-Way Reciprocal Exchange
+    if (input.reciprocalShiftId) {
+      const reciprocalShift = await db.staffShift.findUnique({
+        where: { id: input.reciprocalShiftId },
+        include: { user: true },
+      });
+
+      if (!reciprocalShift || reciprocalShift.userId !== input.substituteUserId) {
+        return { success: false as const, error: 'Встречная смена коллеги не найдена' };
+      }
+
+      await db.$transaction([
+        db.staffShift.update({
+          where: { id: input.shiftId },
+          data: {
+            status: 'SWAPPED',
+            substituteUserId: input.substituteUserId,
+            substituteHours: input.substituteHours,
+            notes: `Взаимный обмен: ${input.notes}`,
+          },
+        }),
+        db.staffShift.update({
+          where: { id: input.reciprocalShiftId },
+          data: {
+            status: 'SWAPPED',
+            substituteUserId: existing.userId,
+            substituteHours: input.substituteHours,
+            notes: `Взаимный обмен: ${input.notes}`,
+          },
+        }),
+      ]);
+    } else {
+      await db.staffShift.update({
+        where: { id: input.shiftId },
+        data: {
+          status: 'SWAPPED',
+          substituteUserId: input.substituteUserId,
+          substituteHours: input.substituteHours,
+          notes: input.notes,
+        },
+      });
+    }
 
     const ipAddress = await getClientIp('unknown');
     await auditAdminAwaitable({
@@ -306,11 +502,11 @@ export async function swapShiftAction(input: z.input<typeof swapShiftSchema>) {
       target: input.shiftId,
       targetType: 'STAFF_SHIFT_SWAP',
       oldValue: { scheduledUser: existing.user.email },
-      newValue: { substituteUser: updated.substituteUser?.email, notes: input.notes },
+      newValue: { substituteUserId: input.substituteUserId, reciprocalShiftId: input.reciprocalShiftId, notes: input.notes },
       ipAddress,
     });
 
-    revalidatePath('/admin/staff');
+    safeRevalidatePath('/admin/staff');
     return { success: true as const };
   });
 }
@@ -337,7 +533,7 @@ export async function deleteShiftAction(shiftId: string) {
       where: { id: shiftId },
     });
 
-    revalidatePath('/admin/staff');
+    safeRevalidatePath('/admin/staff');
     return { success: true as const };
   });
 }
@@ -352,6 +548,7 @@ const timeOffSchema = z.object({
 
 /**
  * Batch registers a vacation, sick leave or day off period for a staff member.
+ * Automatically clears scheduled working shifts and alerts about freed slots.
  */
 export async function requestTimeOffAction(input: z.infer<typeof timeOffSchema>) {
   return requireStaffPermission('staff', 'view', async (admin) => {
@@ -374,9 +571,24 @@ export async function requestTimeOffAction(input: z.infer<typeof timeOffSchema>)
 
     const curr = new Date(fromDate);
     let count = 0;
+    let freedWorkShifts = 0;
 
     while (curr <= toDate) {
       const shiftDate = new Date(curr);
+
+      // Check if user had a planned work shift on this date
+      const existingWorkShift = await db.staffShift.findFirst({
+        where: {
+          userId: input.userId,
+          date: shiftDate,
+          status: { in: ['PLANNED', 'COMPLETED', 'SWAPPED'] },
+        },
+      });
+
+      if (existingWorkShift) {
+        freedWorkShifts++;
+      }
+
       await db.staffShift.upsert({
         where: {
           userId_date_shiftType: {
@@ -390,12 +602,15 @@ export async function requestTimeOffAction(input: z.infer<typeof timeOffSchema>)
           date: shiftDate,
           shiftType: 'DAY',
           status: input.status,
+          substituteUserId: null,
           rateRubles: 0,
           notes: input.notes || (input.status === 'VACATION' ? 'Отпуск' : input.status === 'SICK' ? 'Больничный' : 'Отгул'),
         },
         update: {
           status: input.status,
-          notes: input.notes,
+          substituteUserId: null,
+          rateRubles: 0,
+          notes: input.notes || (input.status === 'VACATION' ? 'Отпуск' : input.status === 'SICK' ? 'Больничный' : 'Отгул'),
         },
       });
 
@@ -403,8 +618,8 @@ export async function requestTimeOffAction(input: z.infer<typeof timeOffSchema>)
       curr.setDate(curr.getDate() + 1);
     }
 
-    revalidatePath('/admin/staff');
-    return { success: true as const, daysCount: count };
+    safeRevalidatePath('/admin/staff');
+    return { success: true as const, daysCount: count, freedWorkShifts };
   });
 }
 
@@ -432,7 +647,7 @@ export async function applyShiftTemplateAction(input: z.infer<typeof bulkTemplat
 
       if (input.templateType === '5_2') {
         const dateObj = new Date(input.year, input.month - 1, day);
-        const dayOfWeek = dateObj.getDay(); // 0 is Sunday, 6 is Saturday
+        const dayOfWeek = dateObj.getDay();
         isWorking = dayOfWeek !== 0 && dayOfWeek !== 6;
       } else if (input.templateType === '2_2_DAY' || input.templateType === '2_2_NIGHT') {
         const diff = (day - input.startDay) % 4;
@@ -454,7 +669,6 @@ export async function applyShiftTemplateAction(input: z.infer<typeof bulkTemplat
       }
     }
 
-    // Upsert shifts
     for (const rec of recordsToCreate) {
       await db.staffShift.upsert({
         where: {
@@ -483,7 +697,7 @@ export async function applyShiftTemplateAction(input: z.infer<typeof bulkTemplat
       ipAddress,
     });
 
-    revalidatePath('/admin/staff');
+    safeRevalidatePath('/admin/staff');
     return { success: true as const, createdCount: recordsToCreate.length };
   });
 }
@@ -496,7 +710,6 @@ export async function getMonthlyPayrollAction(year: number, month: number) {
     const startOfMonth = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
     const endOfMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
 
-    // Fetch all staff users
     const staffUsers = await db.user.findMany({
       where: {
         OR: [
@@ -509,7 +722,6 @@ export async function getMonthlyPayrollAction(year: number, month: number) {
 
     const staffIds = staffUsers.map((u) => u.id);
 
-    // Fetch all shifts in month
     const allShifts = await db.staffShift.findMany({
       where: {
         OR: [
@@ -520,7 +732,6 @@ export async function getMonthlyPayrollAction(year: number, month: number) {
       },
     });
 
-    // Count tickets closed/replied in month per staff from AdminAuditLog
     const staffLogs = await db.adminAuditLog.findMany({
       where: {
         adminId: { in: staffIds },
@@ -536,9 +747,7 @@ export async function getMonthlyPayrollAction(year: number, month: number) {
     });
 
     const payrollRows: PayrollRow[] = staffUsers.map((staff) => {
-      // 1. Shifts scheduled for this user
       const scheduled = allShifts.filter((s) => s.userId === staff.id);
-      // 2. Shifts where this user worked as substitute for someone else
       const substitutedForOthers = allShifts.filter((s) => s.substituteUserId === staff.id);
 
       let plannedCount = 0;
@@ -563,7 +772,6 @@ export async function getMonthlyPayrollAction(year: number, month: number) {
         if (s.status === 'SWAPPED') {
           swappedOutCount++;
           if (s.substituteHours && s.substituteHours > 0) {
-            // Partial cover: e.g. 3 hours out of 12h
             const hoursCovered = Math.min(12, s.substituteHours);
             const hourlyRate = s.rateRubles / 12;
             const transferred = Math.round(hoursCovered * hourlyRate);
@@ -580,7 +788,6 @@ export async function getMonthlyPayrollAction(year: number, month: number) {
         }
       });
 
-      // Add pay from shifts worked for others (full or hourly)
       let coversCount = 0;
       substitutedForOthers.forEach((s) => {
         coversCount++;
@@ -597,8 +804,6 @@ export async function getMonthlyPayrollAction(year: number, month: number) {
 
       const actualShifts = Math.round((ownWorkedCount + (substitutedForOthers.reduce((acc, s) => acc + (s.substituteHours && s.substituteHours > 0 ? s.substituteHours / 12 : 1), 0))) * 10) / 10;
       const ticketsHandled = ticketCountsByStaff.get(staff.id) || 0;
-
-      // KPI bonus: e.g. +10 ₽ for every ticket handled above 200
       const kpiBonus = ticketsHandled > 200 ? (ticketsHandled - 200) * 10 : 0;
       totalBonus += kpiBonus;
 
@@ -622,8 +827,6 @@ export async function getMonthlyPayrollAction(year: number, month: number) {
       };
     });
 
-    // 🔒 PRIVACY / ETHICS FILTER (152-FZ & Article 88 of Labor Code):
-    // Only OWNER and ADMIN can see team-wide payroll & FOT. Regular staff see ONLY their own row.
     const isFullAccess = admin.role === 'OWNER' || admin.role === 'ADMIN';
     const visibleRows = isFullAccess 
       ? payrollRows 

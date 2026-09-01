@@ -1,7 +1,38 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-09-01 07:50 (МСК)
+> **Последнее обновление:** 2026-09-01 08:16 (МСК)
+
+- **OWASP Top 10:2026, PCI DSS v4.0.1 Concurrency & OpenRouter Swarm Audit (100% COMPLETE & VERIFIED):**
+  - **1. Состязательный мозговой штурм и пре-мортем анализ (OpenRouter Security Swarm):**
+    - Проведены консультации с профильными моделями OpenRouter (`nvidia/nemotron-3.5-lightning`, `minimax/minimax-m3`, `google/gemma-4-31b-it`, `z-ai/glm-5.2`) по векторам атак 2026 года (двойные списания/начисления, гонки между ручным подтверждением и вебхуками, обход лимитов саппорта, DDE/CSV инъекции, коллизии смен и 54-ФЗ / 152-ФЗ).
+  - **2. Специализированный тестовый сьют OWASP Top 10:2026 (`owasp-2026-comprehensive-adversarial.test.ts`):**
+    - **A01:2026 Broken Access Control & IDOR**: Блокировка вызовов `manualApprovePaymentAction` для `USER` и `BANNED` пользователей; строгий контроль Grant Ceiling (саппорт не может подтвердить $> 3 000$ ₽ или назначить смену третьим лицам).
+    - **A03:2026 Injection & CSV Sanitization**: Защита от DDE/CSV инъекций (`=cmd|'...`, `@SUM()`) в полях обоснований и заметок.
+    - **A09:2026 Security Logging & Non-Repudiation**: Обязательная запись в `adminAuditLog` с реальным IP-адресом оператора и деталями чека.
+  - **3. Специализированный тестовый сьют PCI DSS v4.0.1 Concurrency (`pci-dss-fintech-concurrency-audit.test.ts`):**
+    - **High-Concurrency Stress**: 10 одновременных параллельных запросов (`Promise.all`) на подтверждение одного платежа $\rightarrow$ **строго 1 успешный ответ, 9 отклонено, баланс зачислен ровно 1 раз, 0 дубликатов в Ledger**.
+    - **Race Condition (Manual vs Webhook)**: Запоздалый вебхук шлюза после ручного подтверждения оператором $\rightarrow$ **безопасно определяет `already processed` (idempotency hit), баланс не задваивается**.
+    - **ExactMath Invariant**: Проверка строгого целочисленного учета `BigInt` (копейки) без погрешностей округления.
+  - **4. Верификация:**
+    - `npx tsc --noEmit` $\rightarrow$ **0 ошибок (100% CLEAN)**.
+    - `vitest` $\rightarrow$ **44/44 файлов (340/340 PASS, 100% GREEN)**.
+
+- **Manual Payment Approval & Hybrid Support Limit Guard (100% COMPLETE & VERIFIED):**
+  - **1. Безопасное ручное подтверждение платежей (`manualApprovePaymentAction`):**
+    - Позволяет подтверждать зависшие платежи (`status: PENDING`), когда вебхук шлюза не дошёл, но подтверждение/квитанция получена на корпоративную почту.
+    - Атомарная транзакция `db.$transaction`: проверка `status === 'PENDING'`, защита от двойного зачисления (Race Conditions / Idempotency), автоматическое начисление через `WalletOps.credit()` с типом `TOPUP`.
+    - Неизменяемый аудит-лог `auditAdminAwaitable` с фиксацией роли оператора, IP-адреса, внешнего номера квитанции (`gatewayId`) и обоснования.
+  - **2. Гибридный режим с лимитом саппорта (Hybrid RBAC Limit):**
+    - `OWNER` и `ADMIN`: могут подтверждать любые суммы без ограничений.
+    - `SUPPORT` и `MANAGER`: могут подтверждать платежи **только в пределах доверенного лимита (по умолчанию 3 000 ₽ / `user.supportLimitCents`)**.
+    - Платежи свыше лимита блокируются с понятным сообщением о необходимости передать чек Администратору/Владельцу.
+  - **3. Интерактивное модальное окно `ManualPaymentApprovalModal`:**
+    - Развернуто в таблице платежей (`/admin/finance/payments` / `finance-payments-tab.tsx`) и в карточке клиента (`ClientPaymentsModal.tsx`).
+    - Включает сводку по клиенту, шлюзу и сумме, поля ввода номера квитанции и обоснования, чекбокс персональной ответственности и индикатор роли/лимита.
+  - **4. Верификация:**
+    - `npx tsc --noEmit` $\rightarrow$ **0 ошибок**.
+    - `vitest` $\rightarrow$ 100% Unit Tests PASS (`staff-shifts-collisions.test.ts`, `manual-payment-approval.test.ts`).
 
 - **WFM Support Schedule Calendar, Zero-Scroll Transactions & RBAC CSV Security (100% COMPLETE & VERIFIED):**
   - **1. Интерактивный Календарь смен и Расписание саппорта (OmniSMM WFM Calendar — `/admin/staff`):**

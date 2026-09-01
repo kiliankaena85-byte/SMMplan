@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition, useCallback } from 'react';
+import React, { useState, useEffect, useTransition, useCallback } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { getLedgerAction, type LedgerPageResult, type LedgerEntryDTO } from '@/actions/admin/finance/ledger';
@@ -96,12 +96,17 @@ export function TransactionsClient({
   tenantId = 'smmplan',
   canExport = false,
 }: TransactionsClientProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const [data, setData] = useState<LedgerPageResult>(initial);
   const [period, setPeriod] = useState<string>(initialPeriod);
   const [status, setStatus] = useState<string>('ALL');
   const [type, setType] = useState<string>('ALL');
   const [search, setSearch] = useState<string>('');
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const loadData = useCallback((
     newPeriod = period,
@@ -296,7 +301,7 @@ export function TransactionsClient({
               <span className="hidden sm:inline">Обновить</span>
             </button>
 
-            {canExport && (
+            {isMounted && canExport && (
               <button
                 type="button"
                 onClick={handleExportCsv}

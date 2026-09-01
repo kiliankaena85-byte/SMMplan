@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useCallback } from 'react';
 import { toast } from 'sonner';
-import { getPaymentsAction, type PaymentsPageResult } from '@/actions/admin/finance/payments';
+import { getPaymentsAction, type PaymentsPageResult, type PaymentDTO } from '@/actions/admin/finance/payments';
 import { 
   Select, 
   SelectContent, 
@@ -26,6 +26,10 @@ import {
   downloadCsvExport, 
   renderMobilePayments 
 } from './finance-helpers';
+import { 
+  ManualPaymentApprovalModal, 
+  PendingPaymentTarget 
+} from '@/components/admin/finance/manual-payment-approval-modal';
 
 export interface FinancePaymentsTabProps {
   initial: PaymentsPageResult;
@@ -39,6 +43,7 @@ export function FinancePaymentsTab({ initial, period: initPeriod, tenantId }: Fi
   const [gateway, setGateway]     = useState<string>('ALL');
   const [search, setSearch]       = useState<string>('');
   const [data,   setData]         = useState<PaymentsPageResult>(initial);
+  const [approvalTarget, setApprovalTarget] = useState<PendingPaymentTarget | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const load = useCallback((newPeriod: string, newStatus: string, newGateway: string, newSearch: string) => {
@@ -175,8 +180,33 @@ export function FinancePaymentsTab({ initial, period: initPeriod, tenantId }: Fi
           columns={paymentColumns}
           data={data.items}
           renderMobileView={renderMobilePayments}
+          meta={{
+            onApprovePayment: (p: PaymentDTO) => {
+              setApprovalTarget({
+                id: p.id,
+                userEmail: p.userEmail,
+                amountCents: p.amount,
+                gateway: p.gateway,
+                gatewayId: p.gatewayId,
+                createdAt: p.createdAt,
+              });
+            },
+          }}
         />
       </div>
+
+      {approvalTarget && (
+        <ManualPaymentApprovalModal
+          payment={approvalTarget}
+          currentUserRole="ADMIN"
+          supportLimitRub={3000}
+          onClose={() => setApprovalTarget(null)}
+          onSuccess={() => {
+            setApprovalTarget(null);
+            load(period, status, gateway, search);
+          }}
+        />
+      )}
     </div>
   );
 }

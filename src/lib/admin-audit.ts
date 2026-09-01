@@ -117,8 +117,10 @@ export async function auditAdminAwaitable(params: {
   oldValue?: unknown;
   newValue?: unknown;
   ipAddress?: string;
+  tx?: any;
 }) {
-  return db.adminAuditLog.create({
+  const client = params.tx || db;
+  return client.adminAuditLog.create({
     data: {
       adminId: params.adminId,
       adminEmail: params.adminEmail,

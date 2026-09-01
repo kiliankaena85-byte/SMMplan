@@ -8,6 +8,8 @@ import {
   deleteShiftAction,
   requestTimeOffAction,
   applyShiftTemplateAction,
+  getAvailableSubstitutesAction,
+  AvailableSubstituteDTO,
   StaffScheduleRow,
   StaffMemberOption,
   ShiftInfo
@@ -87,12 +89,16 @@ export function StaffScheduleTab({
   const [templateStartDay, setTemplateStartDay] = useState(1);
   const [templateRate, setTemplateRate] = useState(2500);
 
-  // Swap Modal
+  // Swap Modal & Collision Poka-Yoke
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
   const [swapShift, setSwapShift] = useState<ShiftInfo | null>(null);
   const [substituteUserId, setSubstituteUserId] = useState<string>('');
   const [swapHours, setSwapHours] = useState<number>(0);
   const [swapNotes, setSwapNotes] = useState<string>('');
+  const [substituteCandidates, setSubstituteCandidates] = useState<AvailableSubstituteDTO[]>([]);
+  const [isCandidatesLoading, setIsCandidatesLoading] = useState<boolean>(false);
+  const [isReciprocalSwap, setIsReciprocalSwap] = useState<boolean>(false);
+  const [reciprocalShiftId, setReciprocalShiftId] = useState<string>('');
 
   // Time Off Modal
   const [isTimeOffModalOpen, setIsTimeOffModalOpen] = useState(false);
@@ -228,10 +234,38 @@ export function StaffScheduleTab({
     });
   };
 
+  // Open Swap Modal & Load Candidate Availability
+  const handleOpenSwapModal = async (shift: ShiftInfo) => {
+    setSwapShift(shift);
+    setSubstituteUserId('');
+    setSwapHours(0);
+    setSwapNotes('');
+    setIsReciprocalSwap(false);
+    setReciprocalShiftId('');
+    setIsSwapModalOpen(true);
+    setIsCandidatesLoading(true);
+
+    try {
+      const res = await getAvailableSubstitutesAction(shift.id);
+      if (res.success && res.candidates) {
+        setSubstituteCandidates(res.candidates);
+      }
+    } catch {
+      toast.error('Не удалось загрузить доступность коллег');
+    } finally {
+      setIsCandidatesLoading(false);
+    }
+  };
+
   // Execute Swap
   const handleExecuteSwap = () => {
     if (!swapShift || !substituteUserId || !swapNotes) {
-      toast.error('Заполните все поля подмены');
+      toast.error('Заполните все обязательные поля подмены');
+      return;
+    }
+
+    if (isReciprocalSwap && !reciprocalShiftId) {
+      toast.error('Выберите встречную смену коллеги для взаимного обмена');
       return;
     }
 
@@ -241,11 +275,12 @@ export function StaffScheduleTab({
           shiftId: swapShift.id,
           substituteUserId,
           substituteHours: swapHours,
+          reciprocalShiftId: isReciprocalSwap && reciprocalShiftId ? reciprocalShiftId : undefined,
           notes: swapNotes,
         });
 
         if (res.success) {
-          toast.success('Подмена успешно зафиксирована');
+          toast.success(isReciprocalSwap ? 'Взаимный обмен сменами зафиксирован' : 'Подмена успешно зафиксирована');
           setIsSwapModalOpen(false);
           setSwapShift(null);
           loadMonthData(currentYear, currentMonth);
@@ -805,10 +840,7 @@ export function StaffScheduleTab({
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
-                        onClick={() => {
-                          setSwapShift(s);
-                          setIsSwapModalOpen(true);
-                        }}
+                        onClick={() => handleOpenSwapModal(s)}
                         className="px-2.5 py-1 text-xs font-bold rounded-lg border border-border/70 hover:bg-muted text-foreground flex items-center gap-1 cursor-pointer transition-colors"
                       >
                         <ArrowLeftRight className="w-3 h-3 text-blue-500" />
@@ -959,14 +991,14 @@ export function StaffScheduleTab({
         </div>
       )}
 
-      {/* ── MODAL 2: Shift Swap Modal (Передача смены коллеге) ── */}
+      {/* ── MODAL 2: Shift Swap Modal (Передача смены коллеге / Взаимный обмен) ── */}
       {isSwapModalOpen && swapShift && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border/80 rounded-2xl w-full max-w-md p-5 shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-card border border-border/80 rounded-2xl w-full max-w-lg p-5 shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-border/60">
               <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                 <ArrowLeftRight className="w-4 h-4 text-blue-500" />
-                <span>Передать смену коллеге</span>
+                <span>Передача смены / Взаимный обмен</span>
               </h3>
               <button
                 type="button"
@@ -978,45 +1010,129 @@ export function StaffScheduleTab({
             </div>
 
             <div className="p-3 bg-muted/30 border border-border/50 rounded-xl text-xs space-y-1 font-medium">
-              <div>Дата: <span className="font-bold font-mono">{swapShift.dateStr}</span> ({swapShift.shiftType === 'DAY' ? '☀️ Дневная' : '🌙 Ночная'})</div>
+              <div>Дата вашей смены: <span className="font-bold font-mono text-primary">{swapShift.dateStr}</span> ({swapShift.shiftType === 'DAY' ? '☀️ Дневная (09:00–21:00)' : '🌙 Ночная (21:00–09:00)'})</div>
               <div>Текущий дежурный: <span className="font-bold">{swapShift.userEmail}</span></div>
+            </div>
+
+            {/* Mode Selector */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-muted/50 rounded-xl border border-border/60 text-xs">
+              <button
+                type="button"
+                onClick={() => setIsReciprocalSwap(false)}
+                className={`py-1.5 px-3 rounded-lg font-bold transition-all cursor-pointer ${
+                  !isReciprocalSwap 
+                    ? 'bg-card text-foreground shadow-2xs border border-border/80' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                1-Way: Передать дежурство
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsReciprocalSwap(true)}
+                className={`py-1.5 px-3 rounded-lg font-bold transition-all cursor-pointer ${
+                  isReciprocalSwap 
+                    ? 'bg-card text-foreground shadow-2xs border border-border/80 text-blue-600 dark:text-blue-400' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                2-Way: Взаимный обмен
+              </button>
             </div>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold text-muted-foreground mb-1">Коллега на подмену:</label>
+                <label className="block font-bold text-muted-foreground mb-1">
+                  Коллега для подмены:
+                  {isCandidatesLoading && <span className="ml-2 font-normal text-muted-foreground animate-pulse">Проверка занятости...</span>}
+                </label>
                 <select
                   value={substituteUserId}
-                  onChange={(e) => setSubstituteUserId(e.target.value)}
-                  className="w-full h-8 px-2 bg-background border border-border/60 rounded-xl text-foreground"
+                  onChange={(e) => {
+                    setSubstituteUserId(e.target.value);
+                    setReciprocalShiftId('');
+                  }}
+                  className="w-full h-9 px-2 bg-background border border-border/60 rounded-xl text-foreground font-medium"
                 >
-                  <option value="">-- Выберите коллегу --</option>
-                  {staffList.filter(s => s.id !== swapShift.userId).map(s => (
-                    <option key={s.id} value={s.id}>{s.email} ({s.role})</option>
-                  ))}
+                  <option value="">-- Выберите коллегу из команды --</option>
+                  {substituteCandidates.length > 0
+                    ? substituteCandidates.map((c) => (
+                        <option 
+                          key={c.id} 
+                          value={c.id}
+                          disabled={!c.isAvailable && c.statusBadge !== 'BUSY_OTHER_SLOT'}
+                        >
+                          {c.email} — {c.statusText}
+                        </option>
+                      ))
+                    : staffList.filter(s => s.id !== swapShift.userId).map(s => (
+                        <option key={s.id} value={s.id}>{s.email} ({s.role})</option>
+                      ))}
                 </select>
               </div>
 
-              <div>
-                <label className="block font-bold text-muted-foreground mb-1">Объем подмены:</label>
-                <select
-                  value={swapHours}
-                  onChange={(e) => setSwapHours(Number(e.target.value))}
-                  className="w-full h-8 px-2 bg-background border border-border/60 rounded-xl text-foreground font-mono"
-                >
-                  <option value={0}>Полная смена (12 часов)</option>
-                  <option value={4}>Частично: 4 часа</option>
-                  <option value={6}>Частично: 6 часов (половина смены)</option>
-                  <option value={8}>Частично: 8 часов</option>
-                </select>
-              </div>
+              {/* Reciprocal Shift Selector (for 2-way swaps) */}
+              {isReciprocalSwap && (
+                <div className="p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl space-y-2">
+                  <label className="block font-bold text-blue-600 dark:text-blue-400">
+                    Встречная смена коллеги (которую отработаете вы):
+                  </label>
+                  {(() => {
+                    const selectedCandidate = substituteCandidates.find(c => c.id === substituteUserId);
+                    const shifts = selectedCandidate?.availableReciprocalShifts || [];
+
+                    if (!substituteUserId) {
+                      return <div className="text-muted-foreground italic text-[11px]">Сначала выберите коллегу выше</div>;
+                    }
+
+                    if (shifts.length === 0) {
+                      return (
+                        <div className="text-amber-600 dark:text-amber-400 text-[11px] font-medium">
+                          ⚠️ У коллеги нет других запланированных смен в этом месяце для встречного обмена. Используйте одностороннюю передачу дежурства.
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <select
+                        value={reciprocalShiftId}
+                        onChange={(e) => setReciprocalShiftId(e.target.value)}
+                        className="w-full h-8 px-2 bg-background border border-blue-500/30 rounded-xl text-foreground font-mono font-medium"
+                      >
+                        <option value="">-- Выберите смену коллеги для отработки --</option>
+                        {shifts.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.dateStr} — {s.shiftType === 'DAY' ? '☀️ Дневная смена' : '🌙 Ночная смена'}
+                          </option>
+                        ))}
+                      </select>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {!isReciprocalSwap && (
+                <div>
+                  <label className="block font-bold text-muted-foreground mb-1">Объем подмены:</label>
+                  <select
+                    value={swapHours}
+                    onChange={(e) => setSwapHours(Number(e.target.value))}
+                    className="w-full h-8 px-2 bg-background border border-border/60 rounded-xl text-foreground font-mono"
+                  >
+                    <option value={0}>Полная смена (12 часов)</option>
+                    <option value={4}>Частично: 4 часа</option>
+                    <option value={6}>Частично: 6 часов (половина смены)</option>
+                    <option value={8}>Частично: 8 часов</option>
+                  </select>
+                </div>
+              )}
 
               <div>
-                <label className="block font-bold text-muted-foreground mb-1">Причина / Примечание:</label>
+                <label className="block font-bold text-muted-foreground mb-1">Причина / Договоренность:</label>
                 <textarea
                   value={swapNotes}
                   onChange={(e) => setSwapNotes(e.target.value)}
-                  placeholder="Например: Договорились в Telegram, меняемся со вторником"
+                  placeholder="Например: Договорились в Telegram, я выхожу за него в пятницу"
                   rows={2}
                   className="w-full p-2 bg-background border border-border/60 rounded-xl text-foreground"
                 />
@@ -1033,10 +1149,10 @@ export function StaffScheduleTab({
                 <button
                   type="button"
                   onClick={handleExecuteSwap}
-                  disabled={isPending}
+                  disabled={isPending || (isReciprocalSwap && !reciprocalShiftId)}
                   className="h-8 px-4 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold cursor-pointer shadow-2xs"
                 >
-                  Подтвердить подмену
+                  {isReciprocalSwap ? 'Зафиксировать взаимный обмен' : 'Подтвердить передачу смены'}
                 </button>
               </div>
             </div>
