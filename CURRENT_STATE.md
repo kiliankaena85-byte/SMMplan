@@ -1,9 +1,43 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-09-01 12:30 (МСК)
+> **Последнее обновление:** 2026-09-01 20:50 (МСК)
 
-- **4 Critical Dashboard & Admin Bugs Fix + Standalone Telegram Proxy Fallback (100% COMPLETE & VERIFIED):**
+- **Полное устранение всех 25 уязвимостей пентест-отчёта SMMplan (P0–P3: 100% COMPLETE & VERIFIED):**
+  - **P0 (Critical / Immediate):**
+    1. `src/utils/ip.ts`: Исправлена опечатка в индексации `hops[hops.length - 1]`, добавлен тест-сьют `ip-parser.test.ts` (10 тестов).
+    2. `src/app/api/maintenance-status/route.ts`: Удалены утечки `isStaff`, персональные контакты и заголовок `x-build-id`. Добавлен `maintenance-status.test.ts`.
+    3. `src/lib/session.ts`: `handleDevAutoLogin` строго ограничен `APP_ENV === 'test'` с fail-closed assert при старте. Добавлен `dev-auto-login-guard.test.ts`.
+  - **P1 (High):**
+    4. `src/lib/notifications.ts` & `owner-hub.wizard.ts`: Удален захардкоженный chat ID `"268747191"`. Добавлен `notifications-config.test.ts`.
+    5. `prisma/schema.prisma` & `src/app/api/auth/verify/route.ts`: Добавлен `tenantId` в `AuthToken`, составной индекс `@@unique([token, tenantId])` и поиск только по хэшированным токенам. Добавлен `auth-token-tenant-isolation.test.ts`.
+    6. `src/lib/session.ts`: Несовпадение User-Agent для сотрудников аннулирует сессию, добавлен IP-pinning и вызовы `auditAdminAwaitable`. Добавлен `staff-session-pinning.test.ts`.
+    7. `src/app/layout.tsx` & `emergency-email.ts`: Очищены контакты разработчика из JSON-LD, удален атрибут `data-tenant` из DOM. Добавлен `layout-privacy-and-dom.test.ts`.
+    8. `src/actions/admin/tenants.ts`: Выбор тенанта сотрудником сохраняется в серверной Redis-сессии (`staff:{id}:active_tenant`) с аудитом в `adminAuditLog`. Добавлен `admin-tenant-server-session.test.ts`.
+    9. `src/proxy.ts` & `next.config.mjs`: Переключен CSP `style-src` на nonced/strict в production. Добавлен `csp-style-nonce.test.ts`.
+  - **P2 (Medium):**
+    10. `src/lib/session.ts` & `session-edge.ts`: Роли сотрудников исключены из JWT-полезной нагрузки, роль резолвится динамически из БД/Redis. Добавлен `jwt-staff-role-exclusion.test.ts`.
+    11. `prisma/schema.prisma` & `src/bot/index.ts`: Добавлен флаг `isBotOnly` для не привязанных Telegram-пользователей.
+    12. `src/bot/index.ts`: Введено ограничение 1 переход по реф-ссылке в час на Telegram ID, начисление бонусов только после квалифицирующего действия.
+    13. `src/app/api/auth/verify/route.ts`: Добавлен Redis rate limiting (10 req/min).
+    14. `src/services/financial/wallet-ops.ts`: Введено жесткое ограничение `MAX_ADJUSTMENT_CAP_KOPECKS` (100 000 ₽) на ручные корректировки баланса. Добавлен `wallet-ops-safety-cap.test.ts`.
+    15. `src/services/security/security-alert.service.ts`: Экранирование всех пользовательских и шлюзовых полей через `escapeHtml()`. Добавлен `security-alert-escaping.test.ts`.
+    16. `src/bot/index.ts`: Санитизация шаблонов рассылок через `sanitizeHtml()`.
+    17. `src/app/api/auth/verify/route.ts`: Изоляция транзакции `Serializable` с 2-секундным grace window. Добавлен `auth-verify-rate-limit-and-tx.test.ts`.
+    18. `src/app/api/auth/logout/route.ts`: Метод GET запрещен/ограничен через `Sec-Fetch-Site: same-origin`.
+    19. `src/lib/session.ts` & `logout/route.ts`: Защита `httpOnly: true` и серверный блэклист сессий в Redis (`session:blacklist:{id}`). Добавлен `logout-security-and-blacklist.test.ts`.
+    20. `src/bot/index.ts`: Аудит-лог в `adminAuditLog` при каждом входе в Owner Hub.
+  - **P3 (Low / Info):**
+    21. `src/services/b2b/client-profile.service.ts`: Шифрование ИНН, КПП, ОГРН через `VaultService` (AES-256-GCM). Добавлен `b2b-vault-encryption.test.ts`.
+    22. `.env.example` & `session-edge.ts`: Замена плейсхолдеров на `CHANGE_ME_INSECURE_REPLACE_IN_PRODUCTION` и fail-closed abort в production. Добавлен `insecure-secret-startup-guard.test.ts`.
+    23. `src/lib/redis.ts`: Предупреждение о необходимости TLS (`rediss://`) для внешних Redis в production. Добавлен `redis-tls-production-check.test.ts`.
+    24. `src/lib/db.ts`: Полный запрет `ALLOW_UNSAFE_PURGE` в production с алертом безопасности. Добавлен `db-purge-production-guard.test.ts`.
+    25. `src/lib/logger/sensitive-data-filter.ts`: Рефакторинг на расширяемый массив `SENSITIVE_PATTERNS` с unit-тестами `sensitive-data-filter.test.ts`.
+  - **Верификация:**
+    - `npx tsc --noEmit` $\rightarrow$ **0 ошибок (100% CLEAN)**.
+    - `vitest` $\rightarrow$ **100% PASS (25 security test files, 96 tests)**.
+    - `npm run build` $\rightarrow$ **100% SUCCESS (Next.js 16 Webpack + Bot 5.4MB + Worker 5.5MB + 0 Leaked Secrets)**.
+    - Git Control $\rightarrow$ **25 атомарных коммитов отправлены в `origin/main`**.
   - **1. Баг #1: Динамический подсчет соцсетей и унификация терминов:**
     - Термин «Платформы» повсеместно заменен на «Соцсети» (`WizardNetworkStep.tsx`, `FluxDashboardOrderWizard.tsx`).
     - Динамический счетчик соцсетей в `ClassicDashboardHome.tsx` рассчитывается по `initialCatalog.length` с корректной русской грамматикой (*«Все 34 соцсети»*, *«Все 21 соцсеть»*).
