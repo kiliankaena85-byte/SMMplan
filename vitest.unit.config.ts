@@ -76,6 +76,7 @@ export default defineConfig({
       'src/__tests__/security/insecure-secret-startup-guard.test.ts',
       'src/__tests__/security/redis-tls-production-check.test.ts',
       'src/__tests__/security/db-purge-production-guard.test.ts',
+      'src/__tests__/security/sensitive-data-filter.test.ts',
       'src/__tests__/dashboard-bugs-fix-verification.test.ts',
       'src/__tests__/telegram-proxy-agent.test.ts',
     ],
