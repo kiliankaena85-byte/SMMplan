@@ -58,6 +58,7 @@ export default defineConfig({
       'src/__tests__/security/owasp-2026-comprehensive-adversarial.test.ts',
       'src/__tests__/security/pci-dss-fintech-concurrency-audit.test.ts',
       'src/__tests__/dashboard-bugs-fix-verification.test.ts',
+      'src/__tests__/telegram-proxy-agent.test.ts',
     ],
   }
 });
