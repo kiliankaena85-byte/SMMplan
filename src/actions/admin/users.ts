@@ -734,11 +734,12 @@ export async function adminChangeUserEmailAction(userId: string, newEmail: strin
     }
 
     // SD-04 SECURITY GUARD: Require high-privilege confirmation for email change on accounts with balance > 0
+    // SUPPORT is allowed — they must provide a mandatory reason, and a Telegram WARNING alert is always sent.
     if (targetUser.balance > BigInt(0)) {
-      if (admin.role !== 'OWNER' && admin.role !== 'ADMIN') {
+      if (admin.role !== 'OWNER' && admin.role !== 'ADMIN' && admin.role !== 'SUPPORT') {
         return { 
           success: false as const, 
-          error: 'Смена email для аккаунтов с положительным балансом разрешена только Администраторам' 
+          error: 'Смена email для аккаунтов с положительным балансом разрешена только Администраторам и Саппорту' 
         };
       }
     }
