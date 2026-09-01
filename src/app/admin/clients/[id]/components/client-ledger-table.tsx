@@ -66,10 +66,19 @@ const TYPE_MAP: Record<string, { label: string; icon: React.ReactNode; badgeCls:
   }
 };
 
-export function ClientLedgerTable({ userId, initialEntries, initialSummary }: ClientLedgerTableProps) {
+export function ClientLedgerTable({ 
+  userId, 
+  initialEntries = [], 
+  initialSummary = { totalDepositedRub: 0, totalSpentRub: 0, totalRefundedRub: 0, totalAdjustedRub: 0 } 
+}: ClientLedgerTableProps) {
   const [filterType, setFilterType] = useState<string>('ALL');
-  const [entries, setEntries] = useState<ClientLedgerEntryDTO[]>(initialEntries);
-  const [summary, setSummary] = useState<ClientLedgerSummaryDTO>(initialSummary);
+  const [entries, setEntries] = useState<ClientLedgerEntryDTO[]>(initialEntries || []);
+  const [summary, setSummary] = useState<ClientLedgerSummaryDTO>(initialSummary || {
+    totalDepositedRub: 0,
+    totalSpentRub: 0,
+    totalRefundedRub: 0,
+    totalAdjustedRub: 0
+  });
   const [isPending, startTransition] = useTransition();
 
   const handleFilterChange = (type: string) => {

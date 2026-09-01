@@ -33,6 +33,8 @@ export const BUILTIN_ROLE_PERMISSIONS: Record<string, Record<string, { canView: 
     TICKETS: { canView: true, canEdit: true },
     SUPPORT: { canView: true, canEdit: true },
     BALANCE_REQUESTS: { canView: true, canEdit: true },
+    TRANSACTIONS: { canView: true, canEdit: false },
+    FINANCE: { canView: true, canEdit: false },
   },
   MANAGER: {
     CLIENTS: { canView: true, canEdit: true },

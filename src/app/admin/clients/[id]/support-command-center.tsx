@@ -33,6 +33,8 @@ import { SecurityLoginLogs } from './tabs/security-login-logs';
 import { PaymentsTab } from './tabs/payments-tab';
 import { ClientLedgerTable } from './components/client-ledger-table';
 import { ClientNotesManager } from './components/client-notes-manager';
+import { ClientLedgerModal } from './components/client-ledger-modal';
+import { ClientPaymentsModal } from './components/client-payments-modal';
 import { ClientLedgerEntryDTO, ClientLedgerSummaryDTO, UserNoteDTO } from './tabs/types';
 
 function fmtBalance(kopecks: number | undefined): string {
@@ -78,8 +80,8 @@ export function SupportCommandCenter({
   const [isPendingMagic, startMagicTransition] = useTransition();
   const [isPendingRevoke, startRevokeTransition] = useTransition();
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [showPayments, setShowPayments] = useState(false);
-  const [showLedger, setShowLedger] = useState(false);
+  const [isLedgerModalOpen, setIsLedgerModalOpen] = useState(false);
+  const [isPaymentsModalOpen, setIsPaymentsModalOpen] = useState(false);
 
   const currentBalanceRub = (user.balance ?? 0) / 100;
 
@@ -252,16 +254,32 @@ export function SupportCommandCenter({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <button type="button" onClick={() => setShowLedger(v => !v)}
-              className="w-full h-8 rounded-xl text-xs font-semibold bg-muted text-muted-foreground border border-border/50 hover:bg-muted/80 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
-              <CreditCard className="w-3.5 h-3.5" />
-              {showLedger ? 'Скрыть транзакции Ledger' : 'Показать транзакции Ledger'}
+          <div className="space-y-2 pt-1">
+            <button 
+              type="button" 
+              onClick={() => setIsLedgerModalOpen(true)}
+              className="w-full h-9 rounded-xl text-xs font-bold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 active:scale-98 transition-all flex items-center justify-between px-3 cursor-pointer shadow-2xs"
+            >
+              <span className="flex items-center gap-2">
+                <CreditCard className="w-3.5 h-3.5 text-primary" />
+                <span>Книга транзакций Ledger</span>
+              </span>
+              <span className="text-[10px] font-mono font-bold bg-primary/20 px-1.5 py-0.5 rounded text-primary">
+                {ledgerEntries.length} операций ↗
+              </span>
             </button>
-            <button type="button" onClick={() => setShowPayments(v => !v)}
-              className="w-full h-8 rounded-xl text-xs font-semibold bg-muted text-muted-foreground border border-border/50 hover:bg-muted/80 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
-              <CreditCard className="w-3.5 h-3.5" />
-              {showPayments ? 'Скрыть платежи' : `Показать платежи (${payments.length})`}
+            <button 
+              type="button" 
+              onClick={() => setIsPaymentsModalOpen(true)}
+              className="w-full h-9 rounded-xl text-xs font-bold bg-muted text-foreground border border-border/60 hover:bg-muted/80 active:scale-98 transition-all flex items-center justify-between px-3 cursor-pointer shadow-2xs"
+            >
+              <span className="flex items-center gap-2">
+                <Wallet className="w-3.5 h-3.5 text-muted-foreground" />
+                <span>Платежи эквайринга</span>
+              </span>
+              <span className="text-[10px] font-mono font-bold bg-muted-foreground/15 px-1.5 py-0.5 rounded text-muted-foreground">
+                {payments.length} пополнений ↗
+              </span>
             </button>
           </div>
         </div>
@@ -369,40 +387,21 @@ export function SupportCommandCenter({
         </div>
       </div>
 
-      {/* Единая книга транзакций Ledger (раскрываемый блок) */}
-      {showLedger && (
-        <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-border/60 bg-muted/20 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-primary" />
-              <h3 className="text-sm font-bold text-foreground">Книга транзакций клиента (Ledger)</h3>
-            </div>
-            <span className="text-xs font-bold text-muted-foreground font-mono">
-              Сквозной финансовый журнал
-            </span>
-          </div>
-          <div className="p-5">
-            <ClientLedgerTable 
-              userId={user.id} 
-              initialEntries={ledgerEntries} 
-              initialSummary={ledgerSummary} 
-            />
-          </div>
-        </div>
-      )}
+      {/* Hoisted Fullscreen Modals */}
+      <ClientLedgerModal
+        isOpen={isLedgerModalOpen}
+        onClose={() => setIsLedgerModalOpen(false)}
+        user={user}
+        entries={ledgerEntries}
+        summary={ledgerSummary}
+      />
 
-      {/* Платежи (раскрываемый блок) */}
-      {showPayments && (
-        <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl overflow-hidden">
-          <div className="px-5 py-3 border-b border-border/60 bg-muted/20 flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-muted-foreground" />
-            <h3 className="text-sm font-bold text-foreground">История внешних платежей (ЮKassa / CryptoBot)</h3>
-          </div>
-          <div className="p-5">
-            <PaymentsTab user={user} payments={payments} canSeeFinances={true} />
-          </div>
-        </div>
-      )}
+      <ClientPaymentsModal
+        isOpen={isPaymentsModalOpen}
+        onClose={() => setIsPaymentsModalOpen(false)}
+        user={user}
+        payments={payments}
+      />
 
       <SecurityEmailModal user={user} isOpen={showEmailModal} onClose={() => setShowEmailModal(false)} />
     </div>

@@ -54,7 +54,8 @@ export const OPERATIONS_TABS = [
 
 export const FINANCE_TABS = [
   { label: 'Клиенты платформы', href: '/admin/clients' },
-  { label: 'Транзакции и биллинг', href: '/admin/finance' },
+  { label: 'Транзакции (Ledger)', href: '/admin/transactions' },
+  { label: 'Финансы & P&L', href: '/admin/finance' },
   { label: 'Маркетинг и промокоды', href: '/admin/marketing' },
 ];
 
