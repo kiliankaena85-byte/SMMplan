@@ -40,13 +40,17 @@ export async function createSession(userId: string, canResetPassword: boolean = 
   });
   const role = user?.role || 'USER';
   const tenantId = user?.tenantId || 'smmplan';
+  const isStaff = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR'].includes(role);
+
+  // For staff: role is never stored in JWT payload (read dynamically from DB/Redis) (P2-10)
+  const jwtRole = isStaff ? undefined : role;
 
   // Шифруем ID сессии в JWT со сроком 24 часа, версией сессии и контуром (F-7.3)
   const sessionToken = await new SignJWT({ 
     sessionId: session.id, 
     userId, 
     canResetPassword, 
-    role, 
+    ...(jwtRole ? { role: jwtRole } : {}), 
     tenantId,
     contour,
     sessionVer: 1

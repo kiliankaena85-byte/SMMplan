@@ -59,7 +59,7 @@ export async function decryptSessionToken(token: string) {
       const parsed = payload as { 
         sessionId: string; 
         userId: string; 
-        role: string; 
+        role?: string; 
         tenantId: string; 
         contour?: ContourId;
         canResetPassword?: boolean;

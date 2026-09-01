@@ -66,6 +66,7 @@ export default defineConfig({
       'src/__tests__/security/layout-privacy-and-dom.test.ts',
       'src/__tests__/security/admin-tenant-server-session.test.ts',
       'src/__tests__/security/csp-style-nonce.test.ts',
+      'src/__tests__/security/jwt-staff-role-exclusion.test.ts',
       'src/__tests__/dashboard-bugs-fix-verification.test.ts',
       'src/__tests__/telegram-proxy-agent.test.ts',
     ],
