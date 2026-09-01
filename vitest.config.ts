@@ -25,7 +25,8 @@ export default defineConfig({
     setupFiles: ['./test/setup.ts'],
     globals: true,
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': path.resolve(__dirname, './src'),
+      'server-only': path.resolve(__dirname, './node_modules/server-only/empty.js'),
     },
     coverage: {
       provider: 'v8',

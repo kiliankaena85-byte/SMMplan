@@ -10401,6 +10401,15 @@ var init_db = __esm({
   }
 });
 
+// node_modules/server-only/index.js
+var init_server_only = __esm({
+  "node_modules/server-only/index.js"() {
+    throw new Error(
+      "This module cannot be imported from a Client Component module. It should only be used from a Server Component."
+    );
+  }
+});
+
 // src/lib/transactions.ts
 async function runSerializableTransaction(fn, maxRetries = 15) {
   let attempt = 0;
@@ -10574,6 +10583,7 @@ var WalletInsufficientFundsError, WalletUserNotFoundError, WalletInvalidAmountEr
 var init_wallet_ops = __esm({
   "src/services/financial/wallet-ops.ts"() {
     "use strict";
+    init_server_only();
     init_db();
     init_transactions();
     init_exact_math();
@@ -11123,6 +11133,7 @@ var import_crypto2, VaultService;
 var init_vault = __esm({
   "src/lib/vault.ts"() {
     "use strict";
+    init_server_only();
     import_crypto2 = __toESM(require("crypto"));
     init_encryption();
     VaultService = class {
@@ -71717,7 +71728,8 @@ var init_link_rules = __esm({
 // src/utils/link-normalizer.ts
 function stripQueryParams(url) {
   if (!url) return "";
-  const trimmed = url.trim();
+  const bounded = url.length > MAX_SAFE_URL_LENGTH ? url.slice(0, MAX_SAFE_URL_LENGTH) : url;
+  const trimmed = bounded.trim();
   try {
     const parsed = new URL(trimmed);
     const searchParams = parsed.searchParams;
@@ -71752,9 +71764,11 @@ function stripQueryParams(url) {
     return cleaned;
   }
 }
+var MAX_SAFE_URL_LENGTH;
 var init_link_normalizer = __esm({
   "src/utils/link-normalizer.ts"() {
     "use strict";
+    MAX_SAFE_URL_LENGTH = 2048;
   }
 });
 
@@ -71907,7 +71921,8 @@ var init_link_analyzer = __esm({
         if (!rawUrl || rawUrl.trim() === "") {
           return this.getFallbackResult(rawUrl);
         }
-        let cleanUrl = rawUrl.trim();
+        const boundedRaw = rawUrl.length > 2048 ? rawUrl.slice(0, 2048) : rawUrl;
+        let cleanUrl = boundedRaw.trim();
         if (!cleanUrl.includes("/") && !cleanUrl.includes(".")) {
           const rawHandle = cleanUrl.startsWith("@") ? cleanUrl.substring(1) : cleanUrl;
           if (/^[a-zA-Z0-9_]+$/.test(rawHandle)) {

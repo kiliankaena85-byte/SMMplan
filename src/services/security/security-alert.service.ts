@@ -1,3 +1,4 @@
+import 'server-only';
 import { db } from '@/lib/db';
 import { sendAdminAlert } from '@/lib/notifications';
 import { redis } from '@/lib/redis';

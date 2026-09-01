@@ -10,7 +10,8 @@ export default defineConfig({
     testTimeout: 15000,
     setupFiles: [],
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': path.resolve(__dirname, './src'),
+      'server-only': path.resolve(__dirname, './node_modules/server-only/empty.js'),
     },
     include: [
       'src/__tests__/financial/financial-security-audit.test.ts',
@@ -79,6 +80,7 @@ export default defineConfig({
       'src/__tests__/security/sensitive-data-filter.test.ts',
       'src/__tests__/dashboard-bugs-fix-verification.test.ts',
       'src/__tests__/telegram-proxy-agent.test.ts',
+      'src/__tests__/security/server-only-and-url-bounds.test.ts',
     ],
   }
 });

@@ -28,7 +28,8 @@ export class IntelligenceLinkAnalyzer {
         if (!rawUrl || rawUrl.trim() === '') {
              return this.getFallbackResult(rawUrl);
         }
-        let cleanUrl = rawUrl.trim();
+        const boundedRaw = rawUrl.length > 2048 ? rawUrl.slice(0, 2048) : rawUrl;
+        let cleanUrl = boundedRaw.trim();
         // If it's a plain handle without slash or dot, e.g. "durov" or "@durov"
         if (!cleanUrl.includes('/') && !cleanUrl.includes('.')) {
             const rawHandle = cleanUrl.startsWith('@') ? cleanUrl.substring(1) : cleanUrl;

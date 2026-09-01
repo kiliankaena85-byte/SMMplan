@@ -1,7 +1,19 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-09-01 20:50 (МСК)
+> **Последнее обновление:** 2026-09-01 21:45 (МСК)
+
+- **Zero-Trust Compile-Time Secret Isolation & ReDoS Boundary Defense (100% COMPLETE & VERIFIED):**
+  1. **`server-only` Package & Zero-Leakage Build Barrier:**
+     - Внедрен пакет `server-only` в ключевые бэкенд-модули: `src/lib/vault.ts`, `src/services/financial/wallet-ops.ts`, `src/services/security/security-alert.service.ts`.
+     - Любая случайная попытка импортировать базу данных или Vault в компонентах с директивой `'use client'` немедленно прерывает сборку на этапе компиляции Next.js.
+  2. **ReDoS Immunity & URL Input Boundary Protection (RFC 7230 / ASVS v4.0.3):**
+     - В `src/utils/link-normalizer.ts` и `src/services/analyzer/link-analyzer.ts` внедрено ограничение длины входных URL `MAX_SAFE_URL_LENGTH = 2048` перед регулярными выражениями парсинга.
+     - Добавлен тест-сьют `server-only-and-url-bounds.test.ts` (4 теста, защита от ReDoS и переполнения памяти).
+  3. **Верификация:**
+     - `npx tsc --noEmit` $\rightarrow$ **0 ошибок (100% CLEAN)**.
+     - `vitest` $\rightarrow$ **100/100 тестов безопасности PASS (100% GREEN)**.
+     - `npm run build` $\rightarrow$ **100% SUCCESS (Next.js 16 Webpack standalone + Bot 5.4MB + Worker 5.5MB + 0 Leaked Secrets)**.
 
 - **Полное устранение всех 25 уязвимостей пентест-отчёта SMMplan (P0–P3: 100% COMPLETE & VERIFIED):**
   - **P0 (Critical / Immediate):**

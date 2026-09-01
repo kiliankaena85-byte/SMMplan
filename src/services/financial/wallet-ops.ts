@@ -1,3 +1,4 @@
+import 'server-only';
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { runSerializableTransaction } from '@/lib/transactions';

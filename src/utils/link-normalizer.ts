@@ -3,13 +3,16 @@
  * Prevents orders failure due to UTM tracking garbage or incorrect username formatting.
  */
 
+export const MAX_SAFE_URL_LENGTH = 2048;
+
 /**
  * Strips tracking parameters from social media URLs while maintaining their core identity.
  * Handles parameters like utm_*, igsh, fbclid, w (in some contexts).
  */
 export function stripQueryParams(url: string): string {
   if (!url) return "";
-  const trimmed = url.trim();
+  const bounded = url.length > MAX_SAFE_URL_LENGTH ? url.slice(0, MAX_SAFE_URL_LENGTH) : url;
+  const trimmed = bounded.trim();
 
   // Try parsing with standard URL parser
   try {
@@ -53,7 +56,8 @@ export function stripQueryParams(url: string): string {
  */
 export function inferPlatformFromInput(input: string): "instagram" | "telegram" | "vk" | null {
   if (!input) return null;
-  const str = input.toLowerCase();
+  const bounded = input.length > MAX_SAFE_URL_LENGTH ? input.slice(0, MAX_SAFE_URL_LENGTH) : input;
+  const str = bounded.toLowerCase();
   
   if (str.includes("instagram.com") || str.includes("instagr.am")) {
     return "instagram";
@@ -74,7 +78,8 @@ export function inferPlatformFromInput(input: string): "instagram" | "telegram" 
  */
 export function normalizeUsername(input: string, platform: string): string {
   if (!input) return "";
-  const trimmed = input.trim();
+  const bounded = input.length > MAX_SAFE_URL_LENGTH ? input.slice(0, MAX_SAFE_URL_LENGTH) : input;
+  const trimmed = bounded.trim();
 
   // If already looks like a full URL, just clean it
   if (/^https?:\/\//i.test(trimmed)) {
