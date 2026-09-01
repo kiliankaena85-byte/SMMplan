@@ -40,6 +40,8 @@ export interface WalletOpsOptions {
   transactionType?: LedgerTransactionType;
 }
 
+export const MAX_ADJUSTMENT_CAP_KOPECKS = BigInt(10_000_000); // 100,000.00 RUB safety cap
+
 export const WalletOps = {
   /**
    * Safe charge mechanism without creating a new transaction.
@@ -253,6 +255,14 @@ export const WalletOps = {
     const rawCents = typeof amountCents === 'bigint' ? amountCents : BigInt(amountCents);
     if (rawCents === BigInt(0)) {
       throw new WalletInvalidAmountError('Adjustment');
+    }
+
+    // Safety cap check: prevent unbounded negative/positive adjustments (P2-14)
+    if (rawCents < -MAX_ADJUSTMENT_CAP_KOPECKS) {
+      throw new Error(`🚨 [WALLET-OPS] Negative adjustment exceeds safety cap limit (-${MAX_ADJUSTMENT_CAP_KOPECKS / BigInt(100)} ₽)!`);
+    }
+    if (rawCents > MAX_ADJUSTMENT_CAP_KOPECKS) {
+      throw new Error(`🚨 [WALLET-OPS] Positive adjustment exceeds safety cap limit (+${MAX_ADJUSTMENT_CAP_KOPECKS / BigInt(100)} ₽)!`);
     }
 
     const { idempotencyKey, adminId, tenantId, transactionType: txTypeOverride } = opts || {};

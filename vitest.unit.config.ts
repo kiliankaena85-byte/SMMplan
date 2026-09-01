@@ -69,6 +69,7 @@ export default defineConfig({
       'src/__tests__/security/jwt-staff-role-exclusion.test.ts',
       'src/__tests__/security/telegram-bot-security-invariants.test.ts',
       'src/__tests__/security/auth-verify-rate-limit-and-tx.test.ts',
+      'src/__tests__/financial/wallet-ops-safety-cap.test.ts',
       'src/__tests__/dashboard-bugs-fix-verification.test.ts',
       'src/__tests__/telegram-proxy-agent.test.ts',
     ],
