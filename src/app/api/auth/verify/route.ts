@@ -96,6 +96,13 @@ export async function GET(request: Request) {
     path: '/',
   });
 
+  if (['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR'].includes(user.role)) {
+    try {
+      const { redis } = await import('@/lib/redis');
+      await redis.set(`staff:${user.id}:active_tenant`, user.tenantId || 'smmplan', 'EX', 86400 * 30);
+    } catch {}
+  }
+
   response.cookies.set('x_tenant', user.tenantId || 'smmplan', {
     path: '/',
     expires: expiresAt,

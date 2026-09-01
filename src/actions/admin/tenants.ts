@@ -275,9 +275,11 @@ export async function deleteTenantAction(id: string) {
   }
 }
 
+import { redis } from '@/lib/redis';
+
 /**
  * Explicit and secure Server Action for switching the active administrative tenant.
- * Sets the x_admin_tenant cookie on the server side and invalidates the layout cache.
+ * Persists tenant in server-side staff session, validates staff permissions, and records audit trail.
  */
 export async function switchAdminTenantAction(tenantId: string) {
   const session = await verifySession();
@@ -291,6 +293,21 @@ export async function switchAdminTenantAction(tenantId: string) {
   }
 
   const normalized = normalizeTenantId(tenantId) || 'smmplan';
+
+  // Server-side session storage in Redis for Staff
+  await redis.set(`staff:${session.userId}:active_tenant`, normalized, 'EX', 86400 * 30).catch(() => {});
+
+  // Security audit log for tenant switching
+  await auditAdminAwaitable({
+    action: 'TENANT_SWITCH',
+    details: {
+      userId: session.userId,
+      role: session.role,
+      targetTenant: normalized,
+    },
+    targetId: normalized,
+  }).catch(() => {});
+
   const cookieStore = await cookies();
   cookieStore.set('x_admin_tenant', normalized, {
     path: '/',

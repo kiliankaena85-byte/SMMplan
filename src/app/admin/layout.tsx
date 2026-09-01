@@ -122,7 +122,15 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const roleInfo = ROLE_LABELS[user.role] || { label: user.role, color: 'bg-muted text-foreground' };
   const cookieStore = await cookies();
   const cookieTenant = cookieStore.get('x_admin_tenant')?.value;
-  const activeTenantId = normalizeTenantId(cookieTenant) || user.tenantId || 'smmplan';
+
+  // Check server-side session in Redis first, then cookie, then user tenant
+  let serverSessionTenant: string | null = null;
+  try {
+    const { redis } = await import('@/lib/redis');
+    serverSessionTenant = await redis.get(`staff:${user.id}:active_tenant`);
+  } catch {}
+
+  const activeTenantId = normalizeTenantId(serverSessionTenant || cookieTenant) || user.tenantId || 'smmplan';
 
   const canEditSettings = user.role === 'OWNER' || user.role === 'ADMIN' || Boolean(
     user.staffRole?.permissions?.some((p: { section: string; canEdit: boolean }) => p.section.toUpperCase() === 'SETTINGS' && p.canEdit)
