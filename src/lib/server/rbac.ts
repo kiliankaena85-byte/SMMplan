@@ -312,16 +312,18 @@ export async function enforceAnySectionAccess(sections: string[]) {
     return user;
   }
 
-  if (!user.staffRole) {
-    redirect('/admin/forbidden');
-  }
-
   const normalizedSections = sections.map(s => s.toUpperCase());
-  const hasAny = user.staffRole.permissions.some(p =>
-    normalizedSections.includes(p.section.toUpperCase()) && (p.canView || p.canEdit)
-  );
+  const builtinPerms = BUILTIN_ROLE_PERMISSIONS[user.role] || {};
+  const hasBuiltin = normalizedSections.some(s => {
+    const p = builtinPerms[s];
+    return p && (p.canView || p.canEdit);
+  });
 
-  if (!hasAny) {
+  const hasExplicit = user.staffRole?.permissions.some(p =>
+    normalizedSections.includes(p.section.toUpperCase()) && (p.canView || p.canEdit)
+  ) ?? false;
+
+  if (!hasBuiltin && !hasExplicit) {
     redirect('/admin/forbidden');
   }
 
