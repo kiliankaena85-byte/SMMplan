@@ -57,6 +57,18 @@ const MONTH_NAMES = [
 
 const WEEKDAY_NAMES = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
+function formatOperatorLabel(email?: string | null): string {
+  if (!email) return '—';
+  const prefix = email.split('@')[0];
+  if (prefix.startsWith('support_a_')) {
+    return `Саппорт #${prefix.slice(-4)}`;
+  }
+  if (prefix.length > 16) {
+    return `${prefix.slice(0, 14)}...`;
+  }
+  return prefix;
+}
+
 export function StaffScheduleTab({
   currentUserRole,
 }: StaffScheduleTabProps) {
@@ -618,8 +630,10 @@ export function StaffScheduleTab({
                           ) : (
                             <Moon className="w-2.5 h-2.5 shrink-0 text-indigo-500" />
                           )}
-                          <span className="truncate">{shift.userEmail.split('@')[0]}</span>
-                          {isSwapped && <span className="text-[8px] opacity-75">→{shift.substituteUserEmail?.split('@')[0]}</span>}
+                          <span className="truncate">{formatOperatorLabel(shift.userEmail)}</span>
+                          {isSwapped && shift.substituteUserEmail && (
+                            <span className="text-[8px] opacity-75">→{formatOperatorLabel(shift.substituteUserEmail)}</span>
+                          )}
                         </button>
                       );
                     })}
@@ -642,11 +656,28 @@ export function StaffScheduleTab({
 
       {/* ── VIEW 2: TIMETABLE (Week Schedule / Расписание пар) ── */}
       {viewMode === 'timetable' && (
-        <div className="space-y-3">
-          {/* Week Selector Bar */}
-          <div className="flex items-center justify-between bg-card border border-border/70 rounded-xl p-2.5">
-            <span className="text-xs font-bold text-muted-foreground">Выберите неделю месяца:</span>
-            <div className="flex items-center gap-1">
+        <div className="space-y-4">
+          {/* Week Selector Bar with Navigation */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-card border border-border/80 rounded-2xl p-3.5 shadow-2xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-foreground flex items-center gap-2">
+                  <span>Неделя {Math.ceil(selectedWeekStartDay / 7)}</span>
+                  <span className="text-muted-foreground font-mono text-[11px]">
+                    ({selectedWeekStartDay} – {Math.min(selectedWeekStartDay + 6, daysInMonth)} {MONTH_NAMES[currentMonth - 1]} {currentYear})
+                  </span>
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  Табель дежурств и расписание пар операторов саппорта
+                </div>
+              </div>
+            </div>
+
+            {/* Week Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
               {[1, 8, 15, 22, 29].filter(d => d <= daysInMonth).map((startDay, idx) => {
                 const endDay = Math.min(startDay + 6, daysInMonth);
                 const isActive = selectedWeekStartDay === startDay;
@@ -655,10 +686,10 @@ export function StaffScheduleTab({
                     key={startDay}
                     type="button"
                     onClick={() => setSelectedWeekStartDay(startDay)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border whitespace-nowrap ${
                       isActive
                         ? 'bg-primary text-primary-foreground border-primary shadow-2xs'
-                        : 'bg-background text-muted-foreground border-border/60 hover:bg-muted'
+                        : 'bg-background text-muted-foreground border-border/60 hover:bg-muted hover:text-foreground'
                     }`}
                   >
                     Неделя {idx + 1} ({startDay}–{endDay} {MONTH_NAMES[currentMonth - 1].slice(0, 3)})
@@ -668,103 +699,269 @@ export function StaffScheduleTab({
             </div>
           </div>
 
-          {/* 7 Days Timetable Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-7 gap-2.5">
-            {Array.from({ length: 7 }).map((_, offset) => {
-              const day = selectedWeekStartDay + offset;
-              if (day > daysInMonth) return null;
-              const shifts = dayShiftsMap[day] || [];
-              const dayShifts = shifts.filter(s => s.shiftType === 'DAY');
-              const nightShifts = shifts.filter(s => s.shiftType === 'NIGHT');
-              const leaves = shifts.filter(s => ['VACATION', 'SICK', 'DAY_OFF'].includes(s.status));
-              const isToday = now.getFullYear() === currentYear && now.getMonth() + 1 === currentMonth && now.getDate() === day;
+          {/* Weekly Timetable Matrix Table — 100% Zero Overflow & Clean Academic Grid */}
+          <div className="bg-card border border-border/80 rounded-2xl shadow-xs overflow-hidden">
+            <div className="w-full overflow-x-auto">
+              <table className="w-full text-xs text-left border-collapse table-fixed min-w-[840px]">
+                <thead>
+                  <tr className="border-b border-border/70 bg-muted/40 text-[11px] uppercase font-bold text-muted-foreground">
+                    <th className="w-[140px] px-3 py-3 border-r border-border/50 text-foreground bg-muted/60">
+                      Смена / Время
+                    </th>
+                    {Array.from({ length: 7 }).map((_, offset) => {
+                      const day = selectedWeekStartDay + offset;
+                      if (day > daysInMonth) {
+                        return <th key={`header-empty-${offset}`} className="px-2 py-3 border-r border-border/40 bg-muted/10 opacity-30 text-center">-</th>;
+                      }
+                      const dayOfWeek = (firstDayOfMonth + (day - 1)) % 7;
+                      const isWeekend = dayOfWeek >= 5;
+                      const isToday = now.getFullYear() === currentYear && now.getMonth() + 1 === currentMonth && now.getDate() === day;
 
-              return (
-                <div key={`timetable-day-${day}`} className={`bg-card border rounded-2xl p-3 shadow-2xs space-y-2.5 ${
-                  isToday ? 'border-primary ring-1 ring-primary/40 bg-primary/5' : 'border-border/80'
-                }`}>
-                  {/* Day Title */}
-                  <div className="flex items-center justify-between pb-1.5 border-b border-border/50">
-                    <span className="text-xs font-bold font-mono text-foreground">
-                      {day} {MONTH_NAMES[currentMonth - 1].slice(0, 3)}
-                    </span>
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase">
-                      {WEEKDAY_NAMES[offset]}
-                    </span>
-                  </div>
-
-                  {/* Slot 1: Day Shift */}
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">
-                      <Sun className="w-3 h-3" />
-                      <span>День (09:00–21:00)</span>
-                    </div>
-                    {dayShifts.length > 0 ? (
-                      dayShifts.map(s => (
-                        <div
-                          key={s.id}
-                          onClick={() => setSelectedShiftModal({ day, shift: s })}
-                          className="p-1.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs font-bold cursor-pointer hover:bg-amber-500/20 transition-colors"
+                      return (
+                        <th
+                          key={`header-day-${day}`}
+                          className={`px-2.5 py-3 border-r border-border/40 text-center transition-colors ${
+                            isToday ? 'bg-primary/10 text-primary font-black' : isWeekend ? 'text-rose-500 bg-muted/20' : ''
+                          }`}
                         >
-                          <div className="text-foreground truncate">{s.userEmail.split('@')[0]}</div>
-                          {s.substituteUserEmail && (
-                            <div className="text-[9px] text-blue-600 font-normal">Подмена: {s.substituteUserEmail.split('@')[0]}</div>
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <button
-                        onClick={() => setSelectedShiftModal({ day, isNew: true })}
-                        className="w-full py-1 text-center text-[10px] text-muted-foreground/60 border border-dashed border-border/60 rounded-lg hover:border-amber-500/50 hover:text-amber-500 transition-colors"
-                      >
-                        + Назначить
-                      </button>
-                    )}
-                  </div>
+                          <div className="flex flex-col items-center">
+                            <span className="text-[10px] tracking-wider uppercase font-extrabold">{WEEKDAY_NAMES[dayOfWeek]}</span>
+                            <span className={`text-sm font-mono font-bold mt-0.5 px-2 py-0.5 rounded-md ${
+                              isToday ? 'bg-primary text-primary-foreground' : 'text-foreground'
+                            }`}>
+                              {day} {MONTH_NAMES[currentMonth - 1].slice(0, 3)}
+                            </span>
+                            {isToday && (
+                              <span className="text-[9px] font-black uppercase text-primary tracking-widest mt-0.5">Сегодня</span>
+                            )}
+                          </div>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40 font-medium">
+                  {/* Row 1: DAY SHIFT */}
+                  <tr className="hover:bg-muted/10 transition-colors">
+                    <td className="px-3 py-3.5 border-r border-border/50 bg-amber-500/5 align-top">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 mb-1">
+                        <Sun className="w-4 h-4 shrink-0 text-amber-500 animate-pulse" />
+                        <span>Дневная</span>
+                      </div>
+                      <div className="text-[11px] font-mono text-muted-foreground font-semibold">09:00 – 21:00</div>
+                      <div className="text-[10px] text-muted-foreground/70 mt-0.5">12 часов</div>
+                    </td>
 
-                  {/* Slot 2: Night Shift */}
-                  <div className="space-y-1 pt-1">
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">
-                      <Moon className="w-3 h-3" />
-                      <span>Ночь (21:00–09:00)</span>
-                    </div>
-                    {nightShifts.length > 0 ? (
-                      nightShifts.map(s => (
-                        <div
-                          key={s.id}
-                          onClick={() => setSelectedShiftModal({ day, shift: s })}
-                          className="p-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-xs font-bold cursor-pointer hover:bg-indigo-500/20 transition-colors"
+                    {Array.from({ length: 7 }).map((_, offset) => {
+                      const day = selectedWeekStartDay + offset;
+                      if (day > daysInMonth) {
+                        return <td key={`day-empty-${offset}`} className="px-2 py-3 border-r border-border/40 bg-muted/10 opacity-30" />;
+                      }
+                      const shifts = dayShiftsMap[day] || [];
+                      const dayShifts = shifts.filter(s => s.shiftType === 'DAY' && s.status !== 'VACATION' && s.status !== 'SICK');
+                      const isToday = now.getFullYear() === currentYear && now.getMonth() + 1 === currentMonth && now.getDate() === day;
+
+                      return (
+                        <td
+                          key={`cell-day-${day}`}
+                          className={`px-2 py-2.5 border-r border-border/40 align-top transition-colors ${
+                            isToday ? 'bg-primary/5' : ''
+                          }`}
                         >
-                          <div className="text-foreground truncate">{s.userEmail.split('@')[0]}</div>
-                          {s.substituteUserEmail && (
-                            <div className="text-[9px] text-blue-600 font-normal">Подмена: {s.substituteUserEmail.split('@')[0]}</div>
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <button
-                        onClick={() => setSelectedShiftModal({ day, isNew: true })}
-                        className="w-full py-1 text-center text-[10px] text-muted-foreground/60 border border-dashed border-border/60 rounded-lg hover:border-indigo-500/50 hover:text-indigo-500 transition-colors"
-                      >
-                        + Назначить
-                      </button>
-                    )}
-                  </div>
+                          <div className="space-y-1.5 min-h-[70px] flex flex-col justify-between">
+                            <div className="space-y-1">
+                              {dayShifts.map((shift) => {
+                                const isMyShift = shift.userId === currentUserId;
+                                const isSwapped = shift.status === 'SWAPPED';
+                                const label = formatOperatorLabel(shift.userEmail);
 
-                  {/* Slot 3: Leaves */}
-                  {leaves.length > 0 && (
-                    <div className="space-y-1 pt-1 border-t border-border/40">
-                      <div className="text-[9px] font-bold text-muted-foreground uppercase">Отпуска / Больничные</div>
-                      {leaves.map(s => (
-                        <div key={s.id} className="p-1 bg-muted/40 rounded text-[10px] font-medium text-muted-foreground truncate">
-                          {s.status === 'VACATION' ? '🌴 ' : '🩹 '}{s.userEmail.split('@')[0]}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                                return (
+                                  <button
+                                    key={shift.id}
+                                    type="button"
+                                    onClick={() => setSelectedShiftModal({ day, shift })}
+                                    className={`w-full text-left p-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs hover:scale-[1.02] flex items-center justify-between gap-1.5 ${
+                                      isSwapped
+                                        ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30'
+                                        : 'bg-amber-500/15 text-amber-800 dark:text-amber-200 border-amber-500/30 hover:bg-amber-500/25'
+                                    } ${isMyShift ? 'ring-1.5 ring-primary font-black shadow-xs' : ''}`}
+                                    title={`${shift.userEmail} (Дневная смена)`}
+                                  >
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <div className="w-5 h-5 rounded-full bg-amber-500/30 text-amber-900 dark:text-amber-100 flex items-center justify-center text-[10px] font-black shrink-0">
+                                        {label.slice(0, 2).toUpperCase()}
+                                      </div>
+                                      <div className="truncate">
+                                        <div className="truncate">{label}</div>
+                                        {isSwapped && shift.substituteUserEmail && (
+                                          <div className="text-[9px] text-blue-600 dark:text-blue-400 font-normal truncate">
+                                            ⇄ {formatOperatorLabel(shift.substituteUserEmail)}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => setSelectedShiftModal({ day, isNew: true })}
+                              className="w-full py-1 text-center text-[10px] font-bold text-muted-foreground/60 hover:text-amber-600 dark:hover:text-amber-400 border border-dashed border-border/60 hover:border-amber-500/50 rounded-lg hover:bg-amber-500/5 transition-all cursor-pointer flex items-center justify-center gap-1"
+                            >
+                              <Plus className="w-3 h-3" />
+                              <span>{dayShifts.length > 0 ? '+ Еще' : 'Назначить'}</span>
+                            </button>
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+
+                  {/* Row 2: NIGHT SHIFT */}
+                  <tr className="hover:bg-muted/10 transition-colors">
+                    <td className="px-3 py-3.5 border-r border-border/50 bg-indigo-500/5 align-top">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-1">
+                        <Moon className="w-4 h-4 shrink-0 text-indigo-500" />
+                        <span>Ночная</span>
+                      </div>
+                      <div className="text-[11px] font-mono text-muted-foreground font-semibold">21:00 – 09:00</div>
+                      <div className="text-[10px] text-muted-foreground/70 mt-0.5">12 часов</div>
+                    </td>
+
+                    {Array.from({ length: 7 }).map((_, offset) => {
+                      const day = selectedWeekStartDay + offset;
+                      if (day > daysInMonth) {
+                        return <td key={`night-empty-${offset}`} className="px-2 py-3 border-r border-border/40 bg-muted/10 opacity-30" />;
+                      }
+                      const shifts = dayShiftsMap[day] || [];
+                      const nightShifts = shifts.filter(s => s.shiftType === 'NIGHT' && s.status !== 'VACATION' && s.status !== 'SICK');
+                      const isToday = now.getFullYear() === currentYear && now.getMonth() + 1 === currentMonth && now.getDate() === day;
+
+                      return (
+                        <td
+                          key={`cell-night-${day}`}
+                          className={`px-2 py-2.5 border-r border-border/40 align-top transition-colors ${
+                            isToday ? 'bg-primary/5' : ''
+                          }`}
+                        >
+                          <div className="space-y-1.5 min-h-[70px] flex flex-col justify-between">
+                            <div className="space-y-1">
+                              {nightShifts.map((shift) => {
+                                const isMyShift = shift.userId === currentUserId;
+                                const isSwapped = shift.status === 'SWAPPED';
+                                const label = formatOperatorLabel(shift.userEmail);
+
+                                return (
+                                  <button
+                                    key={shift.id}
+                                    type="button"
+                                    onClick={() => setSelectedShiftModal({ day, shift })}
+                                    className={`w-full text-left p-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs hover:scale-[1.02] flex items-center justify-between gap-1.5 ${
+                                      isSwapped
+                                        ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30'
+                                        : 'bg-indigo-500/15 text-indigo-800 dark:text-indigo-200 border-indigo-500/30 hover:bg-indigo-500/25'
+                                    } ${isMyShift ? 'ring-1.5 ring-primary font-black shadow-xs' : ''}`}
+                                    title={`${shift.userEmail} (Ночная смена)`}
+                                  >
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <div className="w-5 h-5 rounded-full bg-indigo-500/30 text-indigo-900 dark:text-indigo-100 flex items-center justify-center text-[10px] font-black shrink-0">
+                                        {label.slice(0, 2).toUpperCase()}
+                                      </div>
+                                      <div className="truncate">
+                                        <div className="truncate">{label}</div>
+                                        {isSwapped && shift.substituteUserEmail && (
+                                          <div className="text-[9px] text-blue-600 dark:text-blue-400 font-normal truncate">
+                                            ⇄ {formatOperatorLabel(shift.substituteUserEmail)}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => setSelectedShiftModal({ day, isNew: true })}
+                              className="w-full py-1 text-center text-[10px] font-bold text-muted-foreground/60 hover:text-indigo-600 dark:hover:text-indigo-400 border border-dashed border-border/60 hover:border-indigo-500/50 rounded-lg hover:bg-indigo-500/5 transition-all cursor-pointer flex items-center justify-center gap-1"
+                            >
+                              <Plus className="w-3 h-3" />
+                              <span>{nightShifts.length > 0 ? '+ Еще' : 'Назначить'}</span>
+                            </button>
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+
+                  {/* Row 3: LEAVES & SICK DAYS */}
+                  <tr className="hover:bg-muted/10 transition-colors">
+                    <td className="px-3 py-3 border-r border-border/50 bg-emerald-500/5 align-top">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-1">
+                        <Palmtree className="w-4 h-4 shrink-0 text-emerald-500" />
+                        <span>Отсутствия</span>
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">Отпуска / Больничные</div>
+                    </td>
+
+                    {Array.from({ length: 7 }).map((_, offset) => {
+                      const day = selectedWeekStartDay + offset;
+                      if (day > daysInMonth) {
+                        return <td key={`leave-empty-${offset}`} className="px-2 py-3 border-r border-border/40 bg-muted/10 opacity-30" />;
+                      }
+                      const shifts = dayShiftsMap[day] || [];
+                      const leaves = shifts.filter(s => ['VACATION', 'SICK', 'DAY_OFF'].includes(s.status));
+                      const isToday = now.getFullYear() === currentYear && now.getMonth() + 1 === currentMonth && now.getDate() === day;
+
+                      return (
+                        <td
+                          key={`cell-leave-${day}`}
+                          className={`px-2 py-2 border-r border-border/40 align-top transition-colors ${
+                            isToday ? 'bg-primary/5' : ''
+                          }`}
+                        >
+                          <div className="space-y-1 min-h-[40px]">
+                            {leaves.map((l) => {
+                              const isVac = l.status === 'VACATION';
+                              const isSick = l.status === 'SICK';
+                              const label = formatOperatorLabel(l.userEmail);
+
+                              return (
+                                <div
+                                  key={l.id}
+                                  onClick={() => setSelectedShiftModal({ day, shift: l })}
+                                  className={`p-1 rounded-lg text-[10px] font-bold border truncate flex items-center gap-1 cursor-pointer transition-colors ${
+                                    isVac
+                                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25'
+                                      : isSick
+                                      ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30 hover:bg-rose-500/25'
+                                      : 'bg-muted text-muted-foreground border-border/50'
+                                  }`}
+                                  title={`${l.userEmail} (${l.status})`}
+                                >
+                                  <span>{isVac ? '🌴' : isSick ? '🩹' : '☕'}</span>
+                                  <span className="truncate">{label}</span>
+                                </div>
+                              );
+                            })}
+                            {leaves.length === 0 && (
+                              <div className="text-[10px] text-muted-foreground/40 text-center py-2 select-none">
+                                —
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
