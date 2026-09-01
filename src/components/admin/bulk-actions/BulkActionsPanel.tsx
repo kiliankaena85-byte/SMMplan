@@ -106,16 +106,41 @@ export function BulkActionsPanel({ selectedOrders, canSeeRates, userRole = 'SUPP
         </div>
 
         {/* Action button cluster */}
-        <div className="flex items-center gap-2">
-          {/* Primary Action Button */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Массовая отмена и возврат (Красная кнопка всегда на виду) */}
+          <button
+            type="button"
+            disabled={isPending || cancellableCount === 0}
+            onClick={() => setShowCancelModal(true)}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold bg-rose-500 hover:bg-rose-600 active:scale-95 text-white rounded-xl transition-all shadow-sm disabled:opacity-40 cursor-pointer"
+            title="Отменить выбранные заказы и произвести возврат клиентам"
+          >
+            <XCircle className="w-3.5 h-3.5" />
+            <span>Отменить и вернуть ({cancellableCount})</span>
+          </button>
+
+          {/* Primary Restart Action Button */}
           <button
             type="button"
             disabled={isPending}
             onClick={handleBulkRestart}
             className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold bg-primary text-primary-foreground hover:opacity-90 active:scale-95 rounded-xl transition-all shadow-sm disabled:opacity-50 cursor-pointer"
+            title="Перезапустить выбранные заказы у поставщика"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isPending ? 'animate-spin' : ''}`} />
-            {hasErrors ? `Перезапустить ${errorCount}` : `Перезапустить ${count}`}
+            <span>{hasErrors ? `Перезапустить ${errorCount}` : `Перезапустить ${count}`}</span>
+          </button>
+
+          {/* Export action */}
+          <button
+            type="button"
+            onClick={() => {
+              toast.info('Экспорт данных выбранных заказов сформирован');
+            }}
+            className="p-2 rounded-xl bg-muted border border-border/60 text-foreground hover:bg-muted/80 transition-colors cursor-pointer"
+            title="Экспорт выбранных (CSV)"
+          >
+            <Download className="w-4 h-4" />
           </button>
 
           {/* Clear selection link */}
@@ -126,54 +151,6 @@ export function BulkActionsPanel({ selectedOrders, canSeeRates, userRole = 'SUPP
           >
             Снять ✕
           </button>
-
-          {/* More actions menu toggle */}
-          {canExecuteAdminBulk && (
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="p-2 rounded-xl bg-muted border border-border/60 text-foreground hover:bg-muted/80 transition-colors cursor-pointer"
-                title="Дополнительные действия"
-              >
-                <MoreHorizontal className="w-4 h-4" />
-              </button>
-
-              <AnimatePresence>
-                {menuOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                    className="absolute right-0 bottom-12 w-56 bg-card border border-border rounded-xl shadow-xl p-1.5 space-y-1 z-50 text-xs"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMenuOpen(false);
-                        setShowCancelModal(true);
-                      }}
-                      className="w-full text-left px-3 py-2 rounded-lg font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition-colors cursor-pointer"
-                    >
-                      <XCircle className="w-3.5 h-3.5" />
-                      Отменить и вернуть ({cancellableCount})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMenuOpen(false);
-                        toast.info('Экспорт данных выбранных заказов сформирован');
-                      }}
-                      className="w-full text-left px-3 py-2 rounded-lg font-semibold text-foreground hover:bg-muted flex items-center gap-2 transition-colors cursor-pointer"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      Экспорт выбранных (CSV)
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          )}
         </div>
       </div>
 

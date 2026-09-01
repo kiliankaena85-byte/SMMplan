@@ -355,6 +355,37 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
               {selectedIds.size === optimisticData.length ? 'Снять всё' : `Выбрать все (${optimisticData.length})`}
             </button>
           )}
+
+          {/* Быстрые действия прямо в верхней панели */}
+          {selectionMode && selectedIds.size > 0 && (
+            <div className="flex items-center gap-1.5 pl-2 border-l border-border/60 animate-in fade-in duration-150">
+              <span className="text-xs font-bold text-primary mr-1">
+                {selectedIds.size} шт:
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const bulkPanelCancel = document.querySelector('button[title*="Отменить выбранные заказы"]') as HTMLButtonElement;
+                  if (bulkPanelCancel) bulkPanelCancel.click();
+                }}
+                className="px-2.5 py-1 text-xs font-bold bg-rose-500 hover:bg-rose-600 text-white rounded-md transition-all flex items-center gap-1 cursor-pointer shadow-xs"
+              >
+                <XCircle className="w-3.5 h-3.5" />
+                <span>Отменить и вернуть ({selectedIds.size})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const bulkPanelRestart = document.querySelector('button[title*="Перезапустить выбранные"]') as HTMLButtonElement;
+                  if (bulkPanelRestart) bulkPanelRestart.click();
+                }}
+                className="px-2.5 py-1 text-xs font-bold bg-primary text-primary-foreground hover:opacity-90 rounded-md transition-all flex items-center gap-1 cursor-pointer shadow-xs"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Перезапустить</span>
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="text-xs text-muted-foreground">
