@@ -25,6 +25,8 @@ import {
   restartOrderAction,
   setOrderStatusAction,
   forceCompleteOrderAction,
+  getFailoverPreview,
+  manualRerouteOrder,
 } from '@/actions/admin/orders';
 import { formatKopecks } from '@/utils/format-kopecks';
 import { OrderModalColumn } from '@/components/admin/OrderDetailsModal';
@@ -54,6 +56,10 @@ export function OrderStandaloneView({
   const [currentOrder, setCurrentOrder] = useState<OrderModalColumn>(order);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
+  const [failoverPreview, setFailoverPreview] = useState<{ success: boolean; routes: Array<{ routeId: string; providerName: string; priceUnknown?: boolean; newCostCents: number | null; marginCents: number | null; marginPercent: number | null; isMarginPositive: boolean }>; clientPaidCents: number; currentBalance: number } | null>(null);
+  const [isFailoverOpen, setIsFailoverOpen] = useState(false);
+  const [selectedRouteId, setSelectedRouteId] = useState<string>('');
+  const [acknowledgeBlindReroute, setAcknowledgeBlindReroute] = useState(false);
   const [manualStatus, setManualStatus] = useState(order.status);
   const [isPending, startTransition] = useTransition();
 
@@ -154,6 +160,46 @@ export function OrderStandaloneView({
     }
   };
 
+  const handleFailoverClick = () => {
+    startTransition(async () => {
+      try {
+        const preview = await getFailoverPreview(currentOrder.id);
+        if (preview.success) {
+          if (preview.routes.length > 0) {
+            setSelectedRouteId(preview.routes[0].routeId);
+          }
+          setFailoverPreview(preview);
+          setIsFailoverOpen(true);
+        } else {
+          toast.error(('error' in preview ? preview.error : undefined) || 'Нет доступных альтернативных маршрутов');
+        }
+      } catch (e) {
+        toast.error((e as Error).message || 'Ошибка загрузки маршрутов');
+      }
+    });
+  };
+
+  const handleConfirmFailover = () => {
+    if (!selectedRouteId) return;
+    startTransition(async () => {
+      try {
+        const r = await manualRerouteOrder(currentOrder.id, selectedRouteId, acknowledgeBlindReroute);
+        if (r.success) {
+          toast.success(`Заказ #${currentOrder.numericId} переведен на резервный маршрут`);
+          setIsFailoverOpen(false);
+          setAcknowledgeBlindReroute(false);
+          setCurrentOrder(prev => ({ ...prev, status: 'PENDING', error: null }));
+        } else {
+          toast.error(r.error || 'Ошибка перевода заказа');
+        }
+      } catch (e) {
+        toast.error((e as Error).message || 'Ошибка при перезапуске');
+      }
+    });
+  };
+
+  const selectedRoute = failoverPreview?.routes.find(r => r.routeId === selectedRouteId);
+
   return (
     <div className="w-full space-y-5 pb-16">
       {/* ── 1. ГЛАВНАЯ ШАПКА ЗАКАЗА (Номер, Услуга, Статус и Действия) ── */}
@@ -187,6 +233,21 @@ export function OrderStandaloneView({
 
         {/* Быстрые действия оператора */}
         <div className="flex items-center gap-2 shrink-0 self-start sm:self-center flex-wrap">
+          <button
+            onClick={() => {
+              if (!isFailoverOpen) {
+                handleFailoverClick();
+              } else {
+                setIsFailoverOpen(false);
+              }
+            }}
+            disabled={isPending}
+            className="px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-bold text-xs transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+            title="Выбрать резервного поставщика для заказа"
+          >
+            <Zap className="w-3.5 h-3.5" />
+            <span>Сменить провайдера</span>
+          </button>
           <button
             onClick={() => {
               setConfirmAction('restart');
@@ -231,6 +292,92 @@ export function OrderStandaloneView({
           })()}
         </div>
       </div>
+
+      {/* FAILOVER PREVIEW SECTION (INLINE ACCORDION) */}
+      {isFailoverOpen && failoverPreview && (
+        <div className="bg-amber-500/5 border border-amber-500/30 rounded-2xl p-5 space-y-4 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-amber-500" />
+              <h3 className="font-extrabold text-sm text-foreground">
+                Резервные маршруты (Failover Provider Switch)
+              </h3>
+            </div>
+            <button
+              onClick={() => setIsFailoverOpen(false)}
+              className="text-xs text-muted-foreground hover:text-foreground font-bold cursor-pointer"
+            >
+              Скрыть ✕
+            </button>
+          </div>
+
+          {failoverPreview.routes.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Для данной услуги нет настроенных резервных маршрутов в каталоге.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                {failoverPreview.routes.map((route) => {
+                  const isSelected = selectedRouteId === route.routeId;
+                  return (
+                    <div
+                      key={route.routeId}
+                      onClick={() => setSelectedRouteId(route.routeId)}
+                      className={`p-3 rounded-xl border transition-all cursor-pointer text-xs space-y-1.5 ${
+                        isSelected
+                          ? 'bg-amber-500/15 border-amber-500 text-foreground ring-1 ring-amber-500 shadow-sm'
+                          : 'bg-card border-border/60 hover:border-amber-500/40 text-muted-foreground'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between font-bold">
+                        <span className="text-foreground">{route.providerName}</span>
+                        <span className={route.isMarginPositive ? 'text-emerald-500' : 'text-rose-500'}>
+                          {route.marginPercent !== null ? `${route.marginPercent}%` : '—'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span>Новая закупка:</span>
+                        <span className="font-mono font-bold">
+                          {route.newCostCents !== null ? `${(route.newCostCents / 100).toFixed(2)} ₽` : 'Неизвестно'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {selectedRoute && !selectedRoute.isMarginPositive && (
+                <div className="bg-rose-500/10 border border-rose-500/30 p-3 rounded-xl text-xs space-y-2">
+                  <p className="text-rose-600 dark:text-rose-400 font-bold">
+                    ⚠️ Внимание: Выбранный провайдер сделает маржу отрицательной (убыток).
+                  </p>
+                  <label className="flex items-center gap-2 cursor-pointer font-semibold">
+                    <input
+                      type="checkbox"
+                      checked={acknowledgeBlindReroute}
+                      onChange={(e) => setAcknowledgeBlindReroute(e.target.checked)}
+                      className="rounded border-border"
+                    />
+                    <span>Я осознаю финансовый риск и подтверждаю перевод заказа</span>
+                  </label>
+                </div>
+              )}
+
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={handleConfirmFailover}
+                  disabled={isPending || (!selectedRoute?.isMarginPositive && !acknowledgeBlindReroute)}
+                  className="px-4 py-2 bg-primary text-primary-foreground font-extrabold text-xs rounded-xl hover:bg-primary/90 disabled:opacity-40 transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Перевести заказ на {selectedRoute?.providerName || 'маршрут'}</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── 2. БАННЕР ВНИМАНИЯ: ОШИБКА / ЗАЩИТА ОТ УБЫТКА (Сверху, в фокусе) ── */}
       {currentOrder.error && (

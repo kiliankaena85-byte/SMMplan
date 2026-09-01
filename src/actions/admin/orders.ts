@@ -398,8 +398,8 @@ export async function getFailoverPreview(orderId: string) {
     });
 
     if (!order) throw new Error('Order not found');
-    if (!['ERROR', 'CANCELED'].includes(order.status)) {
-      throw new Error('Заказ должен быть в статусе ERROR или CANCELED для перезапуска');
+    if (!['ERROR', 'CANCELED', 'PENDING_CHECK'].includes(order.status)) {
+      throw new Error('Заказ должен быть в статусе ERROR, PENDING_CHECK или CANCELED для перезапуска');
     }
 
     const usdToRub = await SettingsManager.getExchangeRateUSD();
@@ -473,7 +473,7 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string, ac
       });
 
       if (!order) throw new Error('Order not found');
-      if (!['ERROR', 'CANCELED'].includes(order.status)) {
+      if (!['ERROR', 'CANCELED', 'PENDING_CHECK'].includes(order.status)) {
         throw new Error('Заказ уже обрабатывается');
       }
 
