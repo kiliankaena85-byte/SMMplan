@@ -288,7 +288,7 @@ export async function proxy(request: NextRequest) {
       isAllowedQueryTenant = false;
     } else {
       const payload = await decryptSessionToken(sessionToken);
-      if (!payload || !payload.role || !STAFF_ROLES.has(payload.role)) {
+      if (!payload || payload.role === 'USER') {
         isAllowedQueryTenant = false;
       }
     }
@@ -442,17 +442,18 @@ export async function proxy(request: NextRequest) {
     }
 
     const payload = await decryptSessionToken(sessionToken);
-    const isStaffRole = payload?.role && ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR'].includes(payload.role);
+    const isCustomer = payload?.role === 'USER';
+    const isStaffRole = !isCustomer && Boolean(payload?.userId);
     const isAdminPath = pathname.startsWith('/admin');
     const isOperatorPath = pathname.startsWith('/operator');
 
     // Enforce tenant isolation for regular users (Staff roles have global multi-tenant access)
-    const isTenantMismatch = !isStaffRole && !isAdminPath && !isOperatorPath && (!payload || normalizeTenantId(payload.tenantId) !== finalTenantId);
+    const isTenantMismatch = isCustomer && !isAdminPath && !isOperatorPath && (!payload || normalizeTenantId(payload.tenantId) !== finalTenantId);
 
     // Enforce contour matching in JWT (tokens issued in test contour cannot be used in prod contour)
     const currentContour = resolveContourFromHost(host);
     const tokenContour = (payload?.contour as ContourId) || (normalizeTenantId(payload?.tenantId) === 'flux' ? 'flux' : 'test');
-    const isContourMismatch = payload?.role !== 'OWNER' && tokenContour !== currentContour && (tokenContour === 'prod' || currentContour === 'prod' || tokenContour === 'flux' || currentContour === 'flux');
+    const isContourMismatch = tokenContour !== currentContour && (tokenContour === 'prod' || currentContour === 'prod' || tokenContour === 'flux' || currentContour === 'flux');
 
     if (!payload || isTenantMismatch || isContourMismatch) {
       if (isRSC) {
@@ -469,22 +470,19 @@ export async function proxy(request: NextRequest) {
       return applyStickyCookie(response);
     }
 
-    // Role verification for /admin and /operator
+    // Role verification for /admin and /operator:
+    // Fast-reject explicit customers at edge; staff (role: undefined per P2-10) passes to Server Component for DB-backed RBAC
     if (isAdminPath) {
-      const isAdminRole = payload.role && ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'].includes(payload.role);
-      if (!isAdminRole) {
+      if (isCustomer) {
         if (isRSC) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-        }
-        if (payload.role === 'OPERATOR') {
-          return applyStickyCookie(NextResponse.redirect(resolveRedirectUrl('/operator'), 307));
         }
         return applyStickyCookie(NextResponse.redirect(resolveRedirectUrl(ROUTES.DASHBOARD.HOME), 307));
       }
     }
 
     if (isOperatorPath) {
-      if (!isStaffRole) {
+      if (isCustomer) {
         if (isRSC) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }

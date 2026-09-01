@@ -65,6 +65,19 @@ const providersData = [
 async function main() {
   console.log('🚀 Seeding QA Providers and Payment Settings into PostgreSQL...');
 
+  const isProd = process.env.NODE_ENV === 'production' && process.env.APP_ENV !== 'test';
+  const missingKeys = providersData.filter(p => !process.env[`${p.name.toUpperCase().replace(/[^A-Z0-9]/g, '_')}_API_KEY`]);
+
+  if (isProd && missingKeys.length > 0) {
+    throw new Error(
+      `[CRITICAL] Production seeding aborted: Missing API keys in environment for: ${missingKeys.map(k => k.name).join(', ')}`
+    );
+  }
+
+  if (missingKeys.length > 0) {
+    console.warn(`⚠️ [DEV/TEST] Using encrypted placeholder keys for ${missingKeys.length} providers (set env vars for live testing)`);
+  }
+
   // 1. Providers
   for (const prov of providersData) {
     const encryptedKey = VaultService.encrypt(prov.apiKey);

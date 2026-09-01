@@ -82,11 +82,14 @@ export async function GET(request: Request) {
     }
   });
 
+  const isStaff = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR'].includes(user.role);
+  const jwtRole = isStaff ? undefined : user.role;
+
   const sessionToken = await new SignJWT({
     sessionId: session.id,
     userId: user.id,
     canResetPassword: false,
-    role: user.role,
+    ...(jwtRole ? { role: jwtRole } : {}),
     tenantId: user.tenantId || 'smmplan',
     contour: 'test',
     sessionVer: 1,
@@ -96,17 +99,20 @@ export async function GET(request: Request) {
     .setExpirationTime('24h')
     .sign(getEncodedKey());
 
-  const cookieStore = await cookies();
-  
+  const hostHeader = host || 'localhost:3005';
+  const cleanHost = hostHeader.includes('0.0.0.0') ? hostHeader.replace('0.0.0.0', 'localhost') : hostHeader;
+  const redirectTarget = new URL(redirectTo, `http://${cleanHost}`);
+
+  const response = NextResponse.redirect(redirectTarget, 307);
+
   // Wipe any explicit logout blocker
-  cookieStore.delete('explicit_logout');
-  cookieStore.set('explicit_logout', '', {
+  response.cookies.set('explicit_logout', '', {
     path: '/',
     maxAge: 0,
     expires: new Date(0),
   });
 
-  cookieStore.set('session_token', sessionToken, {
+  response.cookies.set('session_token', sessionToken, {
     httpOnly: true,
     secure: false,
     sameSite: 'lax',
@@ -114,14 +120,10 @@ export async function GET(request: Request) {
     expires: expiresAt,
   });
 
-  cookieStore.set('x_tenant', user.tenantId || 'smmplan', {
+  response.cookies.set('x_tenant', user.tenantId || 'smmplan', {
     path: '/',
     expires: expiresAt,
   });
 
-  const hostHeader = host || 'localhost:3005';
-  const cleanHost = hostHeader.includes('0.0.0.0') ? hostHeader.replace('0.0.0.0', 'localhost') : hostHeader;
-  const redirectTarget = new URL(redirectTo, `http://${cleanHost}`);
-
-  return NextResponse.redirect(redirectTarget);
+  return response;
 }

@@ -16,7 +16,7 @@ describe('Auditor Findings Remediation Test Suite (C-01 to C-03, H-01 to H-05)',
     vi.restoreAllMocks();
   });
 
-  describe('C-01: Dev-Login Backdoor Prevention', () => {
+  describe('C-01 & M-01: Dev-Login Backdoor Prevention & JWT Zero-Trust Role Exclusion', () => {
     it('returns 404 Not Found when APP_ENV is production and NODE_ENV is production', async () => {
       const originalNodeEnv = process.env.NODE_ENV;
       const originalAppEnv = process.env.APP_ENV;
@@ -37,6 +37,37 @@ describe('Auditor Findings Remediation Test Suite (C-01 to C-03, H-01 to H-05)',
         (process.env as any).NODE_ENV = originalNodeEnv;
         process.env.APP_ENV = originalAppEnv;
         if (originalPlaywright) process.env.PLAYWRIGHT_TEST = originalPlaywright;
+      }
+    });
+
+    it('excludes role from JWT payload for staff members (P2-10 Zero-Trust)', async () => {
+      const originalNodeEnv = process.env.NODE_ENV;
+      const originalAppEnv = process.env.APP_ENV;
+      try {
+        (process.env as any).NODE_ENV = 'development';
+        process.env.APP_ENV = 'test';
+
+        const req = new Request('http://localhost:3005/api/auth/dev-login?role=OWNER', {
+          headers: { host: 'localhost:3005' },
+        });
+
+        const res = await devLoginGet(req);
+        expect(res.status).toBe(307);
+
+        // Find session_token cookie
+        const setCookie = res.headers.get('set-cookie') || '';
+        const tokenMatch = setCookie.match(/session_token=([^;]+)/);
+        expect(tokenMatch).toBeTruthy();
+
+        if (tokenMatch) {
+          const { decryptSessionToken } = await import('@/lib/session-edge');
+          const payload = await decryptSessionToken(tokenMatch[1]);
+          expect(payload?.role).toBeUndefined(); // Role MUST be excluded for staff in JWT payload
+          expect(payload?.userId).toBeTruthy();
+        }
+      } finally {
+        (process.env as any).NODE_ENV = originalNodeEnv;
+        process.env.APP_ENV = originalAppEnv;
       }
     });
   });
