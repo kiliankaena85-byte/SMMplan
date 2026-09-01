@@ -4,6 +4,42 @@
 
 ---
 
+## 0. 🚨 КРИТИЧЕСКИЕ ВЫУЧЕННЫЕ УРОКИ — Слепые зоны безопасности (2026-09-01)
+
+> **Источник:** Внешний аудитор нашёл 3 CRITICAL + 5 HIGH при уже существующих 68+ тест-файлах.  
+> **Вывод: Passing tests ≠ Secure code. Злоумышленник атакует реальные точки входа, а не абстрактные утилиты.**
+
+### 🔴 УРОК 1 — Proxy Coverage Anti-Pattern (C-01)
+**Что случилось:** Тест `dev-auto-login-guard.test.ts` проверял `handleDevAutoLogin()` в `lib/session.ts`. Параллельно существовал Route Handler `/api/auth/dev-login/route.ts` с **полностью другим кодом** — без каких-либо тестов.  
+**Правило:** Каждый Route Handler с auth/access-логикой (`/api/**/route.ts`) ОБЯЗАН иметь тест, вызывающий **именно этот handler** через `GET(new Request(...))`, а не вспомогательные функции.
+
+### 🔴 УРОК 2 — Narrow Scope CI Gate (C-02, C-03)
+**Что случилось:** `check-bundle-secrets.mjs` сканировал только `dist/` и `.next/static/`. Файлы `scripts/*.ps1`, `scripts/*.ts`, `scripts/*.sh` не входили в скоуп — в них спокойно лежали JWT-токены и API-ключи.  
+**Правило:** CI-гейт секретов ОБЯЗАН покрывать **весь репозиторий**, включая `scripts/`. Шаблон поиска: JWT (`eyJ...`), API-ключи в присваиваниях, приватные ключи RSA/EC.  
+**Реализация:** Расширен `check-bundle-secrets.mjs` → добавлена функция `runScriptsSecretCheck()`.
+
+### 🔴 УРОК 3 — Financial State Machine Gap (H-01)
+**Что случилось:** Тесты отмены заказов покрывали `PENDING`, `IN_PROGRESS`, `AWAITING_PAYMENT`, но пропустили `ERROR`. Статус `ERROR` = заказ **уже был автоматически рефандирован** через `failOrderTerminal()`. `bulkCancelOrdersAction` делал двойной возврат.  
+**Правило:** Каждый финансовый статус ОБЯЗАН быть задокументирован с явным флагом: "компенсация уже применена?":
+- `ERROR` → ДА (refund = 0 при отмене)
+- `AWAITING_PAYMENT` → НЕТ (денег не было)
+- `IN_PROGRESS` → частичный refund за остаток
+- `COMPLETED` → нет возврата
+
+### 🔴 УРОК 4 — Spec vs Implementation Testing (H-02, H-03)
+**Что случилось:** `pentest-owasp-defense-invariants.test.ts` проверял абстрактную функцию `canGrantRole()` — красивую логику, которой **не было в реальных Server Actions**. `manualApprovePaymentAction` и `updateStaffMemberAction` не содержали self-check вообще.  
+**Правило:** Любой admin Server Action с параметром `userId` ОБЯЗАН содержать guard:
+```typescript
+if (input.userId === admin.id) return { success: false, error: 'Запрещено изменять собственные данные' };
+```
+И этот guard ОБЯЗАН быть покрыт **интеграционным тестом вызывающим реальный Server Action**, а не изолированную функцию.
+
+### 🔴 УРОК 5 — Composite Prisma Unique Exploit (H-05)
+**Что случилось:** `@@unique([idempotencyKey, transactionType])` — составной индекс. Злоумышленник мог использовать один `idempotencyKey` с разными `transactionType` и создать несколько ledger-записей (дублирование кредитов).  
+**Правило:** При любом изменении `prisma/schema.prisma` финансовых таблиц (`LedgerEntry`, `Payment`, `Order`) проверять: нет ли составных `@@unique`, которые можно обойти заменой одного из полей? Для idempotency — всегда `@@unique([idempotencyKey])` без дополнительных полей.
+
+---
+
 ## 1. 🏗️ Архитектурные решения (ADR)
 
 - **BGS-2026: Zero-Defect Blue-Green Stage & Visual Approval Pipeline (Mandatory Deployment Policy):**

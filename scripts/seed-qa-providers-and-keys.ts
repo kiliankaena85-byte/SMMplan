@@ -1,4 +1,4 @@
-﻿import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { VaultService } from '../src/lib/vault';
 
 const prisma = new PrismaClient();
@@ -7,56 +7,56 @@ const providersData = [
   {
     name: 'Soc-Rocket',
     apiUrl: 'https://soc-rocket.ru/api/v2',
-    apiKey: 'emrNjCPOuNMYKmMcxvHb532Xix99uAxM',
+    apiKey: process.env.SOC_ROCKET_API_KEY || 'test_soc_rocket_key_placeholder',
     balanceCurrency: 'RUB',
     isActive: true,
   },
   {
     name: 'SMM Prime',
     apiUrl: 'https://smmprime.com/api/v2',
-    apiKey: '6833e1ceef531d34e7442d492b8e1021',
+    apiKey: process.env.SMM_PRIME_API_KEY || 'test_smm_prime_key_placeholder',
     balanceCurrency: 'USD',
     isActive: true,
   },
   {
     name: 'Stream-Promotion',
     apiUrl: 'https://stream-promotion.ru/api/v2',
-    apiKey: 'fGOsh7PtBk3Ckyq3UmqH6HVNYTC2gGTH',
+    apiKey: process.env.STREAM_PROMOTION_API_KEY || 'test_stream_promotion_key_placeholder',
     balanceCurrency: 'RUB',
     isActive: true,
   },
   {
     name: 'Likedrom',
     apiUrl: 'https://likedrom.com/api/v2',
-    apiKey: '4f2aa7f20c56399b4790a4cd73f5b8c9',
+    apiKey: process.env.LIKEDROM_API_KEY || 'test_likedrom_key_placeholder',
     balanceCurrency: 'RUB',
     isActive: true,
   },
   {
     name: 'SMMPanelUS',
     apiUrl: 'https://smmpanelus.com/api/v2',
-    apiKey: '758711b4ba2800cf4c5e1438f0146307',
+    apiKey: process.env.SMMPANELUS_API_KEY || 'test_smmpanelus_key_placeholder',
     balanceCurrency: 'USD',
     isActive: true,
   },
   {
     name: 'Soc-Proof',
     apiUrl: 'https://soc-proof.su/api/v2',
-    apiKey: 'a465d4013f1265153a2ca12bdd3cad06',
+    apiKey: process.env.SOC_PROOF_API_KEY || 'test_soc_proof_key_placeholder',
     balanceCurrency: 'RUB',
     isActive: true,
   },
   {
     name: 'Telegram Shop',
     apiUrl: 'https://telegram.shop/api/v2',
-    apiKey: 'abcd6e54ff5b77a11dc8077074445e04',
+    apiKey: process.env.TELEGRAM_SHOP_API_KEY || 'test_telegram_shop_key_placeholder',
     balanceCurrency: 'USD',
     isActive: true,
   },
   {
     name: 'VexBoost',
     apiUrl: 'https://vexboost.ru/api/v2',
-    apiKey: '5jG8DOFkpi1302QMSrEnc46ViH558qamfsPScvoLD14w4f34yyVrogaoVtts',
+    apiKey: process.env.VEXBOOST_API_KEY || 'test_vexboost_key_placeholder',
     balanceCurrency: 'RUB',
     isActive: true,
   },
@@ -101,8 +101,8 @@ async function main() {
   }
 
   // 2. SystemSettings (YooKassa test keys)
-  const yookassaShopId = '1155075';
-  const yookassaSecret = 'test_Bz5eSTzvWGA92wbksyOApJbxi-sfJ67LLgMTZSSOulA';
+  const yookassaShopId = process.env.YOOKASSA_SHOP_ID || process.env.YOOKASSA_TEST_SHOP_ID || 'test_shop_id';
+  const yookassaSecret = process.env.YOOKASSA_SECRET_KEY || process.env.YOOKASSA_TEST_SECRET_KEY || 'test_secret_key_placeholder';
   const encryptedYookassaSecret = VaultService.encrypt(yookassaSecret);
 
   const settings = await prisma.systemSettings.findFirst();

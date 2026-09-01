@@ -316,12 +316,21 @@ export async function manualApprovePaymentAction(input: z.infer<typeof manualApp
       return { success: false as const, error: `Платёж уже имеет статус «${payment.status}»` };
     }
 
+    // H-02 FIX: Prevent self-approval (Support/Admin cannot approve their own payments)
+    if (payment.userId === admin.id) {
+      return { success: false as const, error: 'Запрещено подтверждать собственные платежи (Self-Approval Guard)' };
+    }
+
     // Hybrid RBAC & Support Limit Check (Default 3 000 RUB = 300 000 kopecks)
     const isOwnerOrAdmin = ['OWNER', 'ADMIN'].includes(admin.role);
     if (!isOwnerOrAdmin) {
-      // Support limit check
-      const effectiveLimitCents = admin.supportLimitCents ? BigInt(admin.supportLimitCents) : BigInt(300000); // 3 000 RUB
-      if (payment.amount > effectiveLimitCents) {
+      // Support limit check (0 must be respected as 0 limit, not falsy fallback to 3000 RUB)
+      const rawLimit = admin.supportLimitCents;
+      const effectiveLimitCents = (rawLimit !== null && rawLimit !== undefined) 
+        ? BigInt(rawLimit) 
+        : BigInt(300000); // 3 000 RUB
+
+      if (effectiveLimitCents <= BigInt(0) || payment.amount > effectiveLimitCents) {
         const limitRub = Number(effectiveLimitCents) / 100;
         const amountRub = Number(payment.amount) / 100;
         return { 

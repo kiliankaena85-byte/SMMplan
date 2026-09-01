@@ -314,14 +314,16 @@ const updateStaffSchema = z.object({
   supportLimitRubles: z.number().min(0).max(100000),
 });
 
-/**
- * Updates staff member role, permissions and daily trust limit.
- */
 export async function updateStaffMemberAction(input: z.infer<typeof updateStaffSchema>) {
   return requireStaffPermission('settings', 'edit', async (admin) => {
-    // Prevent self-role-assignment
-    if (admin.id === input.userId && input.role !== admin.role) {
-      return { success: false as const, error: 'Запрещено изменять собственную роль' };
+    const parsed = updateStaffSchema.safeParse(input);
+    if (!parsed.success) {
+      return { success: false as const, error: 'Некорректные параметры' };
+    }
+
+    // H-03 FIX 1: Prevent self-modification of role or limits
+    if (admin.id === input.userId) {
+      return { success: false as const, error: 'Запрещено изменять собственную роль или лимиты (Grant Ceiling)' };
     }
 
     // Only OWNER can promote to ADMIN/OWNER
@@ -329,14 +331,17 @@ export async function updateStaffMemberAction(input: z.infer<typeof updateStaffS
       return { success: false as const, error: 'Только Владелец может назначать Администраторов' };
     }
 
-    const parsed = updateStaffSchema.safeParse(input);
-    if (!parsed.success) {
-      return { success: false as const, error: 'Некорректные параметры' };
-    }
-
     const targetUser = await db.user.findUnique({ where: { id: input.userId } });
     if (!targetUser) {
       return { success: false as const, error: 'Сотрудник не найден' };
+    }
+
+    // H-03 FIX 2: Protect OWNER and ADMIN accounts from demotion/modification by lower roles
+    if (targetUser.role === 'OWNER' && admin.role !== 'OWNER') {
+      return { success: false as const, error: 'Запрещено изменять роль или параметры Владельца' };
+    }
+    if (targetUser.role === 'ADMIN' && admin.role !== 'OWNER') {
+      return { success: false as const, error: 'Только Владелец может изменять профили Администраторов' };
     }
 
     const newLimitCents = Math.round(input.supportLimitRubles * 100);

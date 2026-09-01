@@ -305,9 +305,16 @@ export async function bulkCancelOrdersAction(
             
             if (!safeOrder || ['COMPLETED', 'CANCELED'].includes(safeOrder.status)) return;
 
-            const refundCents = (['PENDING', 'AWAITING_PAYMENT', 'PENDING_CHECK', 'ERROR'].includes(safeOrder.status))
-              ? Number(safeOrder.charge)
-              : calculatePartialRefund(safeOrder);
+            // H-01 FIX: Prevent double-refund on orders that are already in ERROR status (already refunded at failure time)
+            let refundCents = 0;
+            if (['PENDING', 'AWAITING_PAYMENT', 'PENDING_CHECK'].includes(safeOrder.status)) {
+              refundCents = Number(safeOrder.charge);
+            } else if (['IN_PROGRESS', 'PARTIAL'].includes(safeOrder.status)) {
+              refundCents = calculatePartialRefund(safeOrder);
+            } else {
+              // ERROR or already terminal: 0 refund
+              refundCents = 0;
+            }
 
             await tx.order.update({
               where: { id: safeOrder.id },

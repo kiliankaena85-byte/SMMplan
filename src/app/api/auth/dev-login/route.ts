@@ -6,6 +6,29 @@ import { getEncodedKey } from '@/lib/session-edge';
 import { resolveContourFromHost } from '@/lib/tenant-resolver-edge';
 
 export async function GET(request: Request) {
+  let host = '';
+  try {
+    host = request.headers.get('host') || '';
+    if (!host) {
+      const reqHeaders = await headers();
+      host = reqHeaders.get('host') || '';
+    }
+  } catch {
+    host = '';
+  }
+  const isDev = process.env.NODE_ENV === 'development';
+  const isTest = process.env.APP_ENV === 'test' || process.env.PLAYWRIGHT_TEST === 'true';
+  const isAllowedHost = host.includes('localhost') || host.includes('127.0.0.1') || host.includes('3005');
+
+  // Strict Fail-Closed: Never allow dev-login in production or outside isolated local/stage environments
+  if (!isDev && !isTest) {
+    return new NextResponse('Not Found', { status: 404 });
+  }
+
+  if (!isAllowedHost && !isDev) {
+    return new NextResponse('Forbidden', { status: 403 });
+  }
+
   const url = new URL(request.url);
   const role = (url.searchParams.get('role') || 'SUPPORT').toUpperCase();
   const redirectTo = url.searchParams.get('redirect') || '/admin/tickets';
@@ -46,9 +69,7 @@ export async function GET(request: Request) {
     }
   }
 
-  const reqHeaders = await headers();
-  const userAgent = reqHeaders.get('user-agent') || 'stage-browser';
-  const host = reqHeaders.get('host') || '';
+  const userAgent = request.headers.get('user-agent') || 'stage-browser';
   const contour = resolveContourFromHost(host);
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
@@ -98,7 +119,7 @@ export async function GET(request: Request) {
     expires: expiresAt,
   });
 
-  const hostHeader = reqHeaders.get('host') || 'localhost:3005';
+  const hostHeader = host || 'localhost:3005';
   const cleanHost = hostHeader.includes('0.0.0.0') ? hostHeader.replace('0.0.0.0', 'localhost') : hostHeader;
   const redirectTarget = new URL(redirectTo, `http://${cleanHost}`);
 

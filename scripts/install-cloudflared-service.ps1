@@ -1,5 +1,9 @@
 $cloudflaredPath = "D:\SMM_plan_2\cloudflared.exe"
-$token = "eyJhIjoiMGE3YTlhN2FjYjM2M2ZmYmE2ZjFmMWQ3MTg5N2I5NGMiLCJ0IjoiOWU4ZTBkODEtY2ExMS00MTFhLTgyMTUtNzIyMTgxZGM5MDMyIiwicyI6Ik1EUTFPVFk0TUdJdE16UmxaQzAwWm1JNUxUZzFZell0WldJeE5tSmxaREZqWmpCaiJ9"
+$token = $env:CLOUDFLARE_TUNNEL_TOKEN
+if (-not $token) {
+    Write-Host "ERROR: CLOUDFLARE_TUNNEL_TOKEN environment variable is not set." -ForegroundColor Red
+    exit 1
+}
 
 Write-Host "Checking cloudflared executable..."
 if (-not (Test-Path $cloudflaredPath)) {

@@ -18,6 +18,15 @@ export interface BugReportPayload {
   screenshot?: string; // Base64 data URL
 }
 
+function escapeHtml(str: string): string {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 /**
  * Sends bug report and screenshot directly to admin Telegram chat
  */
@@ -27,14 +36,21 @@ async function sendBugReportToTelegram(payload: BugReportPayload) {
     const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
     if (!botToken || !adminChatId) return;
 
+    const safeTitle = escapeHtml(payload.title);
+    const safeUrl = escapeHtml(payload.url);
+    const safeTenant = escapeHtml(payload.tenantId.toUpperCase());
+    const safeRole = escapeHtml(payload.role);
+    const safeViewport = escapeHtml(payload.viewport);
+    const safeDescription = escapeHtml(payload.description.slice(0, 700));
+
     const caption = `🚨 <b>НОВЫЙ БАГ-РЕПОРТ С ТЕСТОВОГО СТЕНДА!</b>\n\n` +
-      `<b>📌 Заголовок:</b> ${payload.title}\n` +
+      `<b>📌 Заголовок:</b> ${safeTitle}\n` +
       `<b>Приоритет:</b> ${payload.priority === 'CRITICAL' ? '🔴 КРИТИЧЕСКИЙ' : payload.priority === 'NORMAL' ? '🟡 СРЕДНИЙ' : '🟢 МИНОРНЫЙ'}\n` +
-      `<b>🌐 URL:</b> <code>${payload.url}</code>\n` +
-      `<b>🏢 Бренд:</b> <code>${payload.tenantId.toUpperCase()}</code>\n` +
-      `<b>👤 Роль:</b> ${payload.role}\n` +
-      `<b>📱 Экран:</b> ${payload.viewport}\n\n` +
-      `<b>📝 Описание:</b>\n${payload.description.slice(0, 700)}`;
+      `<b>🌐 URL:</b> <code>${safeUrl}</code>\n` +
+      `<b>🏢 Бренд:</b> <code>${safeTenant}</code>\n` +
+      `<b>👤 Роль:</b> ${safeRole}\n` +
+      `<b>📱 Экран:</b> ${safeViewport}\n\n` +
+      `<b>📝 Описание:</b>\n${safeDescription}`;
 
     if (payload.screenshot && payload.screenshot.startsWith('data:image/')) {
       const base64Data = payload.screenshot.split(',')[1];

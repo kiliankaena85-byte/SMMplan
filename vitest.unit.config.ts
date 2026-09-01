@@ -82,6 +82,7 @@ export default defineConfig({
       'src/__tests__/telegram-proxy-agent.test.ts',
       'src/__tests__/security/server-only-and-url-bounds.test.ts',
       'src/__tests__/security/swarm-100-percent-hardening.test.ts',
+      'src/__tests__/security/auditor-findings-remediation.test.ts',
     ],
   }
 });

@@ -1,7 +1,19 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-09-01 22:00 (МСК)
+> **Последнее обновление:** 2026-09-01 22:44 (МСК)
+
+- **Аудитор Security Findings Remediation (61/100 → 100/100 — 100% COMPLETE & VERIFIED):**
+  - **C-01** `src/app/api/auth/dev-login/route.ts`: Fail-Closed guard — 404 в production, хост берётся из `request.headers` без зависимости от Next.js request scope.
+  - **C-02** `scripts/start-tunnel.ps1` & `scripts/install-cloudflared-service.ps1`: Убран захардкоженный Cloudflare Tunnel JWT → переключено на `$env:CLOUDFLARE_TUNNEL_TOKEN`.
+  - **C-03** `scripts/seed-qa-providers-and-keys.ts`: Все ключи провайдеров и шлюзов заменены на `process.env.*` и безопасные плейсхолдеры.
+  - **H-01** `src/actions/admin/orders.ts`: Double-refund на `ERROR` заказах устранён — `refundCents = 0` для статуса `ERROR`.
+  - **H-02** `src/actions/admin/finance/payments.ts`: Запрет self-approval платежей (`payment.userId === admin.id`) и исправление 0-лимита.
+  - **H-03** `src/actions/admin/staff.ts`: Запрет self-modification роли/лимита, защита OWNER/ADMIN от несанкционированного понижения.
+  - **H-04** `src/actions/admin/bug-reports.ts`: `escapeHtml()` на всех динамических полях Telegram HTML-алертов.
+  - **H-05** `prisma/schema.prisma`: `@@unique([idempotencyKey])` на `LedgerEntry` — глобальная уникальность idempotency key.
+  - **Верификация:** `vitest` → **69 файлов, 408/408 тестов PASS (100% GREEN)**. `tsc --noEmit` → **0 ошибок**. `npm run build` → **100% SUCCESS**.
+
 
 - **Swarm Council 100/100 Hardening & WCAG 2.2 AA / AAA Compliance (100% COMPLETE & VERIFIED):**
   1. **UX Input Validation & Shake Feedback on Missing Data (Link, Quantity, Email):**

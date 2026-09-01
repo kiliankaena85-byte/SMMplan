@@ -1018,7 +1018,7 @@ model LedgerEntry {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  @@unique([idempotencyKey, transactionType])
+  @@unique([idempotencyKey])
   @@index([userId])
   @@index([status])
   @@index([adminId])
