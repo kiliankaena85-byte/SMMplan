@@ -189,13 +189,17 @@ export function StaffPayrollTab() {
           </div>
         </div>
 
-        <button
-          onClick={handleExportCSV}
-          className="px-3.5 py-2 text-xs font-bold rounded-lg border border-border/80 bg-background hover:bg-muted text-foreground transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
-        >
-          <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
-          Экспорт ведомости (CSV)
-        </button>
+        {isFullAccess && (
+          <button
+            type="button"
+            onClick={handleExportCSV}
+            className="px-3.5 py-2 text-xs font-bold rounded-lg border border-border/80 bg-background hover:bg-muted text-foreground transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+            title="Экспорт расчетной ведомости (только для Администратора/Владельца)"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
+            Экспорт ведомости (CSV)
+          </button>
+        )}
       </div>
 
       {/* ── PAYROLL TABLE ── */}

@@ -68,6 +68,7 @@ export interface ClientLedgerEntryDTO {
   reason: string;
   status: string;
   transactionType: string;
+  idempotencyKey?: string | null;
   adminEmail: string | null;
   createdAt: string;
 }

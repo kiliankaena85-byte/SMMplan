@@ -24,7 +24,8 @@ const ledgerParamsSchema = z.object({
   period:   z.enum(['today', 'week', 'month', 'all']).default('month'),
   search:   z.string().max(255).optional(),
   cursor:   z.string().optional(),
-  pageSize: z.number().int().min(1).max(200).default(50),
+  page:     z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(200).default(50),
   tenantId: z.string().optional(),
 });
 
@@ -39,12 +40,17 @@ export type LedgerEntryDTO = {
   reason: string;
   status: string;
   transactionType: string;
+  idempotencyKey?: string | null;
   createdAt: string;
   tenantId?: string;
 };
 
 export type LedgerPageResult = {
   items: LedgerEntryDTO[];
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+  pageSize: number;
   nextCursor: string | null;
   hasMore: boolean;
   totals: { approved: number; quarantine: number; refunds: number };
@@ -146,53 +152,52 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
           OR: [
             { user: { is: { email: { contains: searchTrim, mode: 'insensitive' as const } } } },
             { id: { contains: searchTrim, mode: 'insensitive' as const } },
-            { idempotencyKey: { contains: searchTrim, mode: 'insensitive' as const } }
+            { idempotencyKey: { contains: searchTrim, mode: 'insensitive' as const } },
+            { reason: { contains: searchTrim, mode: 'insensitive' as const } }
           ]
         });
       }
 
       const where: Prisma.LedgerEntryWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
-      const { SafePagination } = await import('@/lib/pagination/safe-pagination');
-      const pagination = SafePagination.sanitize({ pageSize: p.pageSize, cursor: p.cursor });
-      const pageSize = pagination.take;
+      const skip = (p.page - 1) * p.pageSize;
 
-      const entries = await db.ledgerEntry.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        take: pageSize + 1,
-        ...(p.cursor ? { cursor: { id: p.cursor }, skip: 1 } : {}),
-        select: {
-          id: true,
-          userId: true,
-          adminId: true,
-          amount: true,
-          reason: true,
-          status: true,
-          transactionType: true,
-          createdAt: true,
-          tenantId: true,
-          user: {
-            select: {
-              email: true,
-              tenantId: true,
+      const [totalCount, entries, approvedAgg, quarantineAgg, refundsAgg] = await Promise.all([
+        db.ledgerEntry.count({ where }),
+        db.ledgerEntry.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          take: p.pageSize,
+          skip,
+          select: {
+            id: true,
+            userId: true,
+            adminId: true,
+            amount: true,
+            reason: true,
+            status: true,
+            transactionType: true,
+            idempotencyKey: true,
+            createdAt: true,
+            tenantId: true,
+            user: {
+              select: {
+                email: true,
+                tenantId: true,
+              },
             },
           },
-        },
-      });
-
-      const hasMore = entries.length > pageSize;
-      const page = hasMore ? entries.slice(0, pageSize) : entries;
-
-      // Totals for the same where clause (summary strip)
-      const [approvedAgg, quarantineAgg, refundsAgg] = await Promise.all([
+        }),
         db.ledgerEntry.aggregate({ _sum: { amount: true }, where: { ...where, status: 'APPROVED', amount: { gt: 0 } } }),
         db.ledgerEntry.aggregate({ _sum: { amount: true }, where: { ...where, status: 'QUARANTINE' } }),
         db.ledgerEntry.aggregate({ _sum: { amount: true }, where: { ...where, status: 'APPROVED', amount: { lt: 0 } } }),
       ]);
 
+      const totalPages = Math.ceil(totalCount / p.pageSize) || 1;
+      const hasMore = p.page < totalPages;
+
       return {
-        items: page.map(e => ({
+        items: entries.map(e => ({
           id: e.id,
           userId: e.userId,
           userEmail: e.user?.email ?? e.userId,
@@ -201,10 +206,15 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
           reason: e.reason,
           status: e.status,
           transactionType: e.transactionType || (Number(e.amount) >= 0 ? 'PAYMENT' : 'DEBIT'),
+          idempotencyKey: e.idempotencyKey ?? null,
           createdAt: e.createdAt.toISOString(),
           tenantId: e.tenantId ?? e.user?.tenantId ?? 'smmplan',
         })),
-        nextCursor: hasMore ? page[page.length - 1].id : null,
+        totalCount,
+        totalPages,
+        currentPage: p.page,
+        pageSize: p.pageSize,
+        nextCursor: hasMore && entries.length > 0 ? entries[entries.length - 1].id : null,
         hasMore,
         totals: {
           approved: Number(approvedAgg._sum?.amount ?? 0),

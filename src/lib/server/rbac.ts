@@ -20,6 +20,7 @@ export type StaffPermissionSection =
   | 'marketing'
   | 'analytics'
   | 'settings'
+  | 'staff'
   | 'balance_requests'
   | 'balance_approvals'
   | 'balance_stats'
@@ -32,6 +33,7 @@ export const BUILTIN_ROLE_PERMISSIONS: Record<string, Record<string, { canView: 
     ORDERS: { canView: true, canEdit: true },
     TICKETS: { canView: true, canEdit: true },
     SUPPORT: { canView: true, canEdit: true },
+    STAFF: { canView: true, canEdit: false },
     BALANCE_REQUESTS: { canView: true, canEdit: true },
     TRANSACTIONS: { canView: true, canEdit: false },
     FINANCE: { canView: true, canEdit: false },
@@ -42,6 +44,7 @@ export const BUILTIN_ROLE_PERMISSIONS: Record<string, Record<string, { canView: 
     CATALOG: { canView: true, canEdit: true },
     TICKETS: { canView: true, canEdit: true },
     SUPPORT: { canView: true, canEdit: true },
+    STAFF: { canView: true, canEdit: false },
     MARKETING: { canView: true, canEdit: true },
     CONTENT: { canView: true, canEdit: true },
     BALANCE_REQUESTS: { canView: true, canEdit: true },

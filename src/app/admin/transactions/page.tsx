@@ -16,6 +16,8 @@ interface Props {
     type?: string;
     status?: string;
     search?: string;
+    page?: string;
+    pageSize?: string;
     tenant?: string;
   }>;
 }
@@ -36,6 +38,8 @@ export default async function TransactionsPage({ searchParams }: Props) {
 
   const params = await searchParams;
   const period = params.period || 'month';
+  const page = parseInt(params.page || '1', 10) || 1;
+  const pageSize = parseInt(params.pageSize || '50', 10) || 50;
   const activeTenantId = resolveAdminTenantContext(user, params.tenant);
 
   const initialLedger = await getLedgerAction({
@@ -43,7 +47,8 @@ export default async function TransactionsPage({ searchParams }: Props) {
     type: (params.type as any) || 'ALL',
     status: (params.status as any) || 'ALL',
     search: params.search,
-    pageSize: 100,
+    page,
+    pageSize,
     tenantId: activeTenantId,
   });
 
@@ -54,6 +59,8 @@ export default async function TransactionsPage({ searchParams }: Props) {
       </div>
     );
   }
+
+  const canExport = ['OWNER', 'ADMIN'].includes(user.role);
 
   return (
     <div className="space-y-6 w-full max-w-7xl mx-auto pb-12">
@@ -68,6 +75,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
         initial={initialLedger}
         initialPeriod={period}
         tenantId={activeTenantId}
+        canExport={canExport}
       />
     </div>
   );

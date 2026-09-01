@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useState, useTransition, useEffect } from 'react';
+import React, { useState, useTransition, useEffect, useMemo } from 'react';
 import { 
   getMonthShiftsAction, 
   assignShiftAction, 
   swapShiftAction, 
+  deleteShiftAction,
+  requestTimeOffAction,
   applyShiftTemplateAction,
   StaffScheduleRow,
+  StaffMemberOption,
   ShiftInfo
 } from '@/actions/admin/shifts';
 import { formatRubles } from '@/utils/format-price';
@@ -24,8 +27,17 @@ import {
   X, 
   Check, 
   SlidersHorizontal,
-  Download,
-  Clock
+  Clock,
+  UserCheck,
+  User,
+  Shield,
+  Trash2,
+  AlertTriangle,
+  Sparkles,
+  CalendarDays,
+  LayoutGrid,
+  CalendarRange,
+  Coffee
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -41,6 +53,8 @@ const MONTH_NAMES = [
   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
 ];
 
+const WEEKDAY_NAMES = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
 export function StaffScheduleTab({
   currentUserRole,
 }: StaffScheduleTabProps) {
@@ -48,15 +62,22 @@ export function StaffScheduleTab({
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(now.getMonth() + 1); // 1..12
   const [scheduleRows, setScheduleRows] = useState<StaffScheduleRow[]>([]);
+  const [staffList, setStaffList] = useState<StaffMemberOption[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
   const [daysInMonth, setDaysInMonth] = useState(31);
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
 
+  // View modes: 'calendar' (7x5 Month Grid), 'timetable' (Week Schedule), 'my_shifts' (Personal Operator View)
+  const [viewMode, setViewMode] = useState<'calendar' | 'timetable' | 'my_shifts'>('calendar');
+  const [selectedWeekStartDay, setSelectedWeekStartDay] = useState(1);
+
   // Modals state
-  const [selectedCell, setSelectedCell] = useState<{
-    staff: StaffScheduleRow;
+  const [selectedShiftModal, setSelectedShiftModal] = useState<{
+    staff?: StaffScheduleRow;
     day: number;
     shift?: ShiftInfo;
+    isNew?: boolean;
   } | null>(null);
 
   // Template Modal
@@ -70,8 +91,16 @@ export function StaffScheduleTab({
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
   const [swapShift, setSwapShift] = useState<ShiftInfo | null>(null);
   const [substituteUserId, setSubstituteUserId] = useState<string>('');
-  const [swapHours, setSwapHours] = useState<number>(0); // 0 = full shift, >0 = partial hours
+  const [swapHours, setSwapHours] = useState<number>(0);
   const [swapNotes, setSwapNotes] = useState<string>('');
+
+  // Time Off Modal
+  const [isTimeOffModalOpen, setIsTimeOffModalOpen] = useState(false);
+  const [timeOffUserId, setTimeOffUserId] = useState<string>('');
+  const [timeOffType, setTimeOffType] = useState<'VACATION' | 'SICK' | 'DAY_OFF'>('VACATION');
+  const [timeOffDateFrom, setTimeOffDateFrom] = useState('');
+  const [timeOffDateTo, setTimeOffDateTo] = useState('');
+  const [timeOffNotes, setTimeOffNotes] = useState('');
 
   // Fetch Month Schedule
   const loadMonthData = async (y: number, m: number) => {
@@ -81,6 +110,8 @@ export function StaffScheduleTab({
       if (res.success) {
         setScheduleRows(res.rows);
         setDaysInMonth(res.daysInMonth);
+        setStaffList(res.staffList || []);
+        if (res.currentUserId) setCurrentUserId(res.currentUserId);
       }
     } catch {
       toast.error('Не удалось загрузить график смен');
@@ -117,7 +148,8 @@ export function StaffScheduleTab({
     day: number,
     shiftType: 'DAY' | 'NIGHT' | 'CUSTOM',
     status: 'PLANNED' | 'VACATION' | 'SICK' | 'DAY_OFF',
-    rate = 2500
+    rate = 2500,
+    notes = ''
   ) => {
     const dayStr = String(day).padStart(2, '0');
     const monthStr = String(currentMonth).padStart(2, '0');
@@ -131,17 +163,36 @@ export function StaffScheduleTab({
           shiftType,
           status,
           rateRubles: rate,
+          notes,
         });
 
         if (res.success) {
-          toast.success('Смена обновлена');
+          toast.success('Смена сохранена');
           loadMonthData(currentYear, currentMonth);
-          setSelectedCell(null);
+          setSelectedShiftModal(null);
         } else {
           toast.error(res.error || 'Ошибка назначения');
         }
       } catch {
         toast.error('Сбой при сохранении');
+      }
+    });
+  };
+
+  // Delete Shift
+  const handleDeleteShift = (shiftId: string) => {
+    startTransition(async () => {
+      try {
+        const res = await deleteShiftAction(shiftId);
+        if (res.success) {
+          toast.success('Смена удалена');
+          loadMonthData(currentYear, currentMonth);
+          setSelectedShiftModal(null);
+        } else {
+          toast.error(res.error || 'Ошибка удаления');
+        }
+      } catch {
+        toast.error('Сбой при удалении');
       }
     });
   };
@@ -207,484 +258,1004 @@ export function StaffScheduleTab({
     });
   };
 
-  const daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  // Submit Time Off Request
+  const handleTimeOffSubmit = () => {
+    if (!timeOffUserId || !timeOffDateFrom || !timeOffDateTo) {
+      toast.error('Укажите сотрудника и даты');
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const res = await requestTimeOffAction({
+          userId: timeOffUserId,
+          dateFromStr: timeOffDateFrom,
+          dateToStr: timeOffDateTo,
+          status: timeOffType,
+          notes: timeOffNotes,
+        });
+
+        if (res.success) {
+          toast.success(`Заявка оформлена (${res.daysCount} дней)`);
+          setIsTimeOffModalOpen(false);
+          loadMonthData(currentYear, currentMonth);
+        } else {
+          toast.error(res.error || 'Ошибка оформления');
+        }
+      } catch {
+        toast.error('Сбой при оформлении');
+      }
+    });
+  };
+
+  // Aggregate shifts by Day Number (1..31) for Month Grid and Timetable
+  const dayShiftsMap = useMemo(() => {
+    const map: Record<number, ShiftInfo[]> = {};
+    for (let d = 1; d <= daysInMonth; d++) map[d] = [];
+
+    scheduleRows.forEach((row) => {
+      Object.values(row.shifts).forEach((s) => {
+        if (!map[s.dayNumber]) map[s.dayNumber] = [];
+        map[s.dayNumber].push(s);
+      });
+    });
+    return map;
+  }, [scheduleRows, daysInMonth]);
+
+  // Coverage statistics: check how many days have 0 day shift or 0 night shift
+  const coverageStats = useMemo(() => {
+    let unstaffedDays = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dayList = dayShiftsMap[d] || [];
+      const hasDay = dayList.some(s => s.shiftType === 'DAY' && ['PLANNED', 'COMPLETED', 'SWAPPED'].includes(s.status));
+      const hasNight = dayList.some(s => s.shiftType === 'NIGHT' && ['PLANNED', 'COMPLETED', 'SWAPPED'].includes(s.status));
+      if (!hasDay || !hasNight) unstaffedDays++;
+    }
+    return {
+      unstaffedDays,
+      totalDays: daysInMonth,
+      coveragePercent: Math.round(((daysInMonth - unstaffedDays) / daysInMonth) * 100),
+    };
+  }, [dayShiftsMap, daysInMonth]);
+
+  // Current logged in operator shifts
+  const myRow = useMemo(() => {
+    return scheduleRows.find(r => r.userId === currentUserId);
+  }, [scheduleRows, currentUserId]);
+
+  const myShiftsList = useMemo(() => {
+    if (!myRow) return [];
+    return Object.values(myRow.shifts).sort((a, b) => a.dayNumber - b.dayNumber);
+  }, [myRow]);
+
+  // First day of month (0 = Sunday, 1 = Monday, etc.)
+  const firstDayOfMonth = useMemo(() => {
+    const d = new Date(currentYear, currentMonth - 1, 1).getDay();
+    return (d + 6) % 7; // Convert to Mon=0, Sun=6
+  }, [currentYear, currentMonth]);
 
   return (
-    <div className="space-y-4">
-      {/* ── TOP CONTROLS ── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card border border-border/60 rounded-xl p-3.5 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border border-border/50">
+    <div className="space-y-5 w-full">
+      {/* ── TOP BAR: Navigation, View Mode & Action Buttons ── */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-card border border-border/70 rounded-2xl p-3.5 shadow-xs">
+        
+        {/* Month Selector */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/50">
             <button
               onClick={handlePrevMonth}
-              className="p-1.5 rounded-md hover:bg-background text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg hover:bg-background text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              title="Предыдущий месяц"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="font-bold text-xs sm:text-sm text-foreground px-3 min-w-[130px] text-center">
+            <span className="font-bold text-xs sm:text-sm text-foreground px-3 min-w-[130px] text-center font-mono">
               {MONTH_NAMES[currentMonth - 1]} {currentYear}
             </span>
             <button
               onClick={handleNextMonth}
-              className="p-1.5 rounded-md hover:bg-background text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg hover:bg-background text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              title="Следующий месяц"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-          <span className="text-xs text-muted-foreground hidden md:inline">
-            Кликните на ячейку для назначения смены или фиксации отпуска/подмены
+
+          <button
+            onClick={() => loadMonthData(currentYear, currentMonth)}
+            disabled={isLoading || isPending}
+            className="p-2 rounded-xl border border-border/60 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            title="Обновить данные"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading || isPending ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+
+        {/* View Switcher: Calendar / Timetable / My Shifts */}
+        <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-xl border border-border/50 self-start sm:self-auto">
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              viewMode === 'calendar'
+                ? 'bg-card text-foreground shadow-2xs border border-border/60'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <CalendarDays className="w-3.5 h-3.5 text-primary" />
+            <span>Сетка месяца</span>
+          </button>
+
+          <button
+            onClick={() => setViewMode('timetable')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              viewMode === 'timetable'
+                ? 'bg-card text-foreground shadow-2xs border border-border/60'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <LayoutGrid className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Расписание недели</span>
+          </button>
+
+          <button
+            onClick={() => setViewMode('my_shifts')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              viewMode === 'my_shifts'
+                ? 'bg-card text-foreground shadow-2xs border border-border/60'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <User className="w-3.5 h-3.5 text-amber-500" />
+            <span>Мой график</span>
+          </button>
+        </div>
+
+        {/* Action Buttons: Template, Time Off, Shift Request */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <button
+            onClick={() => {
+              setTimeOffUserId(currentUserId || staffList[0]?.id || '');
+              setTimeOffDateFrom(`${currentYear}-${String(currentMonth).padStart(2, '0')}-01`);
+              setTimeOffDateTo(`${currentYear}-${String(currentMonth).padStart(2, '0')}-05`);
+              setIsTimeOffModalOpen(true);
+            }}
+            className="px-3 py-1.5 text-xs font-bold rounded-xl border border-border/70 bg-card hover:bg-muted text-foreground flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+          >
+            <Palmtree className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Отпуск / Больничный</span>
+          </button>
+
+          {['OWNER', 'ADMIN', 'MANAGER'].includes(currentUserRole) && (
+            <button
+              onClick={() => {
+                if (staffList.length > 0) setTemplateUserId(staffList[0].id);
+                setIsTemplateModalOpen(true);
+              }}
+              className="px-3 py-1.5 text-xs font-bold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Авто-шаблон (2/2, 5/2)</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── 24/7 COVERAGE STRIP ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="bg-card/70 border border-border/70 rounded-xl p-3 flex items-center justify-between shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+              <CalendarIcon className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-[10px] uppercase font-bold text-muted-foreground">Всего смен в месяце</div>
+              <div className="text-sm font-bold font-mono text-foreground">
+                {Object.values(dayShiftsMap).reduce((acc, list) => acc + list.length, 0)} смен
+              </div>
+            </div>
+          </div>
+          <span className="text-[11px] text-muted-foreground">{daysInMonth} календарных дней</span>
+        </div>
+
+        <div className="bg-card/70 border border-border/70 rounded-xl p-3 flex items-center justify-between shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${coverageStats.unstaffedDays === 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'}`}>
+              <Shield className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-[10px] uppercase font-bold text-muted-foreground">Покрытие 24/7</div>
+              <div className={`text-sm font-bold font-mono ${coverageStats.unstaffedDays === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                {coverageStats.coveragePercent}% укомплектовано
+              </div>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
+            {coverageStats.unstaffedDays === 0 ? 'Без пробелов' : `⚠️ ${coverageStats.unstaffedDays} смен без дежурного`}
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              if (scheduleRows.length > 0) {
-                setTemplateUserId(scheduleRows[0].userId);
-              }
-              setIsTemplateModalOpen(true);
-            }}
-            className="px-3 py-2 text-xs font-bold rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-1.5 shadow-xs"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            Заполнить по шаблону (2/2, 5/2)
-          </button>
+        <div className="bg-card/70 border border-border/70 rounded-xl p-3 flex items-center justify-between shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 flex items-center justify-center">
+              <ArrowLeftRight className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-[10px] uppercase font-bold text-muted-foreground">Биржа подмен саппорта</div>
+              <div className="text-sm font-bold font-mono text-indigo-600 dark:text-indigo-400">
+                {scheduleRows.reduce((acc, r) => acc + r.swappedCount, 0)} передано
+              </div>
+            </div>
+          </div>
+          <span className="text-[11px] text-muted-foreground">Взаимовыручка</span>
         </div>
       </div>
 
-      {/* ── SCHEDULE MATRIX ── */}
-      <div className="bg-card border border-border/60 rounded-xl shadow-sm overflow-hidden">
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-24 text-muted-foreground space-y-3">
-            <RefreshCw className="w-6 h-6 animate-spin text-primary" />
-            <span className="text-xs font-medium">Загрузка сетки смен...</span>
+      {/* ── VIEW 1: MONTH GRID (7x5 Calendar) ── */}
+      {viewMode === 'calendar' && (
+        <div className="bg-card border border-border/80 rounded-2xl overflow-hidden shadow-xs">
+          {/* Weekday Header */}
+          <div className="grid grid-cols-7 border-b border-border/70 bg-muted/30 text-center font-bold text-[11px] uppercase tracking-wider text-muted-foreground py-2">
+            {WEEKDAY_NAMES.map((wd, i) => (
+              <div key={wd} className={i >= 5 ? 'text-rose-500' : ''}>{wd}</div>
+            ))}
           </div>
-        ) : scheduleRows.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground text-xs">
-            Сотрудники не найдены
-          </div>
-        ) : (
-          <div className="overflow-x-auto max-w-full">
-            <table className="w-full text-center border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-border/60 bg-muted/20 text-[10px] font-bold text-muted-foreground uppercase">
-                  <th className="sticky left-0 z-20 bg-card/95 backdrop-blur-md px-3 py-3 text-left min-w-[160px] border-r border-border/60">
-                    Сотрудник
-                  </th>
-                  {daysArray.map((day) => {
-                    const dateObj = new Date(currentYear, currentMonth - 1, day);
-                    const dayOfWeek = dateObj.getDay();
-                    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-                    return (
-                      <th
-                        key={day}
-                        className={`p-1.5 min-w-[34px] border-r border-border/40 font-mono ${
-                          isWeekend ? 'bg-muted/40 text-amber-500 font-bold' : ''
-                        }`}
-                      >
-                        <div>{day}</div>
-                        <div className="text-[8px] font-normal text-muted-foreground">
-                          {['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][dayOfWeek]}
-                        </div>
-                      </th>
-                    );
-                  })}
-                  <th className="px-3 py-3 text-right min-w-[80px]">План / Факт</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {scheduleRows.map((staff) => (
-                  <tr key={staff.userId} className="hover:bg-muted/20 transition-colors">
-                    {/* Fixed staff name column */}
-                    <td className="sticky left-0 z-10 bg-card/95 backdrop-blur-md px-3 py-2.5 text-left border-r border-border/60">
-                      <div className="font-bold text-foreground text-xs truncate max-w-[140px]" title={staff.userEmail}>
-                        {staff.userEmail.split('@')[0]}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground">{staff.role}</div>
-                    </td>
+          {/* 7x5 Days Grid */}
+          <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-border/40 bg-background/50">
+            {/* Empty Offset Days from Previous Month */}
+            {Array.from({ length: firstDayOfMonth }).map((_, idx) => (
+              <div key={`offset-${idx}`} className="min-h-[100px] p-1.5 bg-muted/10 opacity-30 select-none" />
+            ))}
 
-                    {/* 1..31 Days Cells */}
-                    {daysArray.map((day) => {
-                      const shift = staff.shifts[day];
-                      const isPlanned = shift?.status === 'PLANNED';
-                      const isSwapped = shift?.status === 'SWAPPED';
-                      const isVacation = shift?.status === 'VACATION';
-                      const isSick = shift?.status === 'SICK';
-                      const isDay = shift?.shiftType === 'DAY';
-                      const isNight = shift?.shiftType === 'NIGHT';
+            {/* Days of Current Month */}
+            {Array.from({ length: daysInMonth }).map((_, idx) => {
+              const day = idx + 1;
+              const isToday = now.getFullYear() === currentYear && now.getMonth() + 1 === currentMonth && now.getDate() === day;
+              const shiftsOnDay = dayShiftsMap[day] || [];
+              const dayOfWeek = (firstDayOfMonth + idx) % 7;
+              const isWeekend = dayOfWeek >= 5;
+
+              return (
+                <div
+                  key={`day-${day}`}
+                  className={`min-h-[110px] p-1.5 flex flex-col justify-between transition-colors hover:bg-muted/20 relative group ${
+                    isToday ? 'bg-primary/5 ring-1 ring-inset ring-primary/40' : ''
+                  }`}
+                >
+                  {/* Day Header & Plus Button */}
+                  <div className="flex items-center justify-between mb-1">
+                    <span className={`text-xs font-mono font-bold w-5 h-5 flex items-center justify-center rounded-md ${
+                      isToday
+                        ? 'bg-primary text-primary-foreground font-black'
+                        : isWeekend
+                        ? 'text-rose-500'
+                        : 'text-foreground'
+                    }`}>
+                      {day}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedShiftModal({ day, isNew: true })}
+                      className="opacity-0 group-hover:opacity-100 p-0.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-opacity cursor-pointer"
+                      title="Добавить смену"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Shifts List for Day */}
+                  <div className="space-y-1 flex-1 overflow-hidden">
+                    {shiftsOnDay.map((shift) => {
+                      const isDayShift = shift.shiftType === 'DAY';
+                      const isNightShift = shift.shiftType === 'NIGHT';
+                      const isVacation = shift.status === 'VACATION';
+                      const isSick = shift.status === 'SICK';
+                      const isSwapped = shift.status === 'SWAPPED';
+                      const isMyShift = shift.userId === currentUserId;
 
                       return (
-                        <td
-                          key={day}
-                          onClick={() => setSelectedCell({ staff, day, shift })}
-                          className="p-1 border-r border-border/40 cursor-pointer hover:bg-primary/10 transition-colors relative group/cell"
+                        <button
+                          key={shift.id}
+                          type="button"
+                          onClick={() => setSelectedShiftModal({ day, shift })}
+                          className={`w-full text-left px-1.5 py-0.5 rounded-md text-[10px] font-bold border transition-all cursor-pointer truncate flex items-center gap-1 ${
+                            isVacation
+                              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                              : isSick
+                              ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30'
+                              : isSwapped
+                              ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30'
+                              : isDayShift
+                              ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                              : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30'
+                          } ${isMyShift ? 'ring-1 ring-primary font-black shadow-2xs' : ''}`}
+                          title={`${shift.userEmail} (${shift.shiftType} / ${shift.status})`}
                         >
-                          {shift ? (
-                            <div
-                              className={`w-full h-7 rounded-md flex items-center justify-center text-[10px] font-bold transition-all shadow-2xs ${
-                                isVacation
-                                  ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                                  : isSick
-                                  ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30'
-                                  : isSwapped
-                                  ? 'bg-sky-500/20 text-sky-600 dark:text-sky-400 border border-sky-500/30'
-                                  : isNight
-                                  ? 'bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30'
-                                  : 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30'
-                              }`}
-                              title={
-                                isVacation
-                                  ? '🌴 Отпуск'
-                                  : isSick
-                                  ? '🏥 Больничный'
-                                  : isSwapped
-                                  ? shift.substituteHours && shift.substituteHours > 0
-                                    ? `🔄 Почасовая подмена на ${shift.substituteHours}ч: вышел ${shift.substituteUserEmail}`
-                                    : `🔄 Полная подмена: вышел ${shift.substituteUserEmail}`
-                                  : isNight
-                                  ? '🌙 Ночь (21:00-09:00)'
-                                  : '☀️ День (09:00-21:00)'
-                              }
-                            >
-                              {isVacation ? (
-                                <Palmtree className="w-3 h-3" />
-                              ) : isSick ? (
-                                <HeartPulse className="w-3 h-3" />
-                              ) : isSwapped ? (
-                                shift.substituteHours && shift.substituteHours > 0 ? (
-                                  <span className="text-[9px] font-black">{shift.substituteHours}ч</span>
-                                ) : (
-                                  <ArrowLeftRight className="w-3 h-3" />
-                                )
-                              ) : isNight ? (
-                                <Moon className="w-3 h-3" />
-                              ) : (
-                                <Sun className="w-3 h-3" />
-                              )}
-                            </div>
+                          {isVacation ? (
+                            <Palmtree className="w-2.5 h-2.5 shrink-0 text-emerald-500" />
+                          ) : isSick ? (
+                            <HeartPulse className="w-2.5 h-2.5 shrink-0 text-rose-500" />
+                          ) : isSwapped ? (
+                            <ArrowLeftRight className="w-2.5 h-2.5 shrink-0 text-blue-500" />
+                          ) : isDayShift ? (
+                            <Sun className="w-2.5 h-2.5 shrink-0 text-amber-500" />
                           ) : (
-                            <div className="w-full h-7 rounded-md border border-dashed border-transparent group-hover/cell:border-border/60 flex items-center justify-center text-muted-foreground/30 group-hover/cell:text-muted-foreground">
-                              +
-                            </div>
+                            <Moon className="w-2.5 h-2.5 shrink-0 text-indigo-500" />
                           )}
-                        </td>
+                          <span className="truncate">{shift.userEmail.split('@')[0]}</span>
+                          {isSwapped && <span className="text-[8px] opacity-75">→{shift.substituteUserEmail?.split('@')[0]}</span>}
+                        </button>
                       );
                     })}
 
-                    {/* Summary plan/fact */}
-                    <td className="px-3 py-2.5 text-right font-mono font-bold text-foreground">
-                      <span>{staff.plannedShiftsCount}</span>
-                      <span className="text-muted-foreground font-normal"> / </span>
-                      <span className="text-primary">{staff.actualWorkedCount}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    {shiftsOnDay.length === 0 && (
+                      <div
+                        onClick={() => setSelectedShiftModal({ day, isNew: true })}
+                        className="h-8 border border-dashed border-border/40 rounded-md flex items-center justify-center text-[10px] text-muted-foreground/40 hover:text-muted-foreground hover:border-border cursor-pointer transition-colors"
+                      >
+                        + Смена
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* ── CELL ACTIONS MODAL ── */}
-      {selectedCell && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-xs p-4">
-          <div className="bg-card border border-border rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-border/60 pb-3">
-              <div>
-                <h3 className="text-sm font-bold text-foreground">
-                  {selectedCell.day} {MONTH_NAMES[currentMonth - 1]} {currentYear}
-                </h3>
-                <p className="text-xs text-muted-foreground">{selectedCell.staff.userEmail}</p>
+      {/* ── VIEW 2: TIMETABLE (Week Schedule / Расписание пар) ── */}
+      {viewMode === 'timetable' && (
+        <div className="space-y-3">
+          {/* Week Selector Bar */}
+          <div className="flex items-center justify-between bg-card border border-border/70 rounded-xl p-2.5">
+            <span className="text-xs font-bold text-muted-foreground">Выберите неделю месяца:</span>
+            <div className="flex items-center gap-1">
+              {[1, 8, 15, 22, 29].filter(d => d <= daysInMonth).map((startDay, idx) => {
+                const endDay = Math.min(startDay + 6, daysInMonth);
+                const isActive = selectedWeekStartDay === startDay;
+                return (
+                  <button
+                    key={startDay}
+                    type="button"
+                    onClick={() => setSelectedWeekStartDay(startDay)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground border-primary shadow-2xs'
+                        : 'bg-background text-muted-foreground border-border/60 hover:bg-muted'
+                    }`}
+                  >
+                    Неделя {idx + 1} ({startDay}–{endDay} {MONTH_NAMES[currentMonth - 1].slice(0, 3)})
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 7 Days Timetable Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-7 gap-2.5">
+            {Array.from({ length: 7 }).map((_, offset) => {
+              const day = selectedWeekStartDay + offset;
+              if (day > daysInMonth) return null;
+              const shifts = dayShiftsMap[day] || [];
+              const dayShifts = shifts.filter(s => s.shiftType === 'DAY');
+              const nightShifts = shifts.filter(s => s.shiftType === 'NIGHT');
+              const leaves = shifts.filter(s => ['VACATION', 'SICK', 'DAY_OFF'].includes(s.status));
+              const isToday = now.getFullYear() === currentYear && now.getMonth() + 1 === currentMonth && now.getDate() === day;
+
+              return (
+                <div key={`timetable-day-${day}`} className={`bg-card border rounded-2xl p-3 shadow-2xs space-y-2.5 ${
+                  isToday ? 'border-primary ring-1 ring-primary/40 bg-primary/5' : 'border-border/80'
+                }`}>
+                  {/* Day Title */}
+                  <div className="flex items-center justify-between pb-1.5 border-b border-border/50">
+                    <span className="text-xs font-bold font-mono text-foreground">
+                      {day} {MONTH_NAMES[currentMonth - 1].slice(0, 3)}
+                    </span>
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                      {WEEKDAY_NAMES[offset]}
+                    </span>
+                  </div>
+
+                  {/* Slot 1: Day Shift */}
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">
+                      <Sun className="w-3 h-3" />
+                      <span>День (09:00–21:00)</span>
+                    </div>
+                    {dayShifts.length > 0 ? (
+                      dayShifts.map(s => (
+                        <div
+                          key={s.id}
+                          onClick={() => setSelectedShiftModal({ day, shift: s })}
+                          className="p-1.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs font-bold cursor-pointer hover:bg-amber-500/20 transition-colors"
+                        >
+                          <div className="text-foreground truncate">{s.userEmail.split('@')[0]}</div>
+                          {s.substituteUserEmail && (
+                            <div className="text-[9px] text-blue-600 font-normal">Подмена: {s.substituteUserEmail.split('@')[0]}</div>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <button
+                        onClick={() => setSelectedShiftModal({ day, isNew: true })}
+                        className="w-full py-1 text-center text-[10px] text-muted-foreground/60 border border-dashed border-border/60 rounded-lg hover:border-amber-500/50 hover:text-amber-500 transition-colors"
+                      >
+                        + Назначить
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Slot 2: Night Shift */}
+                  <div className="space-y-1 pt-1">
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">
+                      <Moon className="w-3 h-3" />
+                      <span>Ночь (21:00–09:00)</span>
+                    </div>
+                    {nightShifts.length > 0 ? (
+                      nightShifts.map(s => (
+                        <div
+                          key={s.id}
+                          onClick={() => setSelectedShiftModal({ day, shift: s })}
+                          className="p-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-xs font-bold cursor-pointer hover:bg-indigo-500/20 transition-colors"
+                        >
+                          <div className="text-foreground truncate">{s.userEmail.split('@')[0]}</div>
+                          {s.substituteUserEmail && (
+                            <div className="text-[9px] text-blue-600 font-normal">Подмена: {s.substituteUserEmail.split('@')[0]}</div>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <button
+                        onClick={() => setSelectedShiftModal({ day, isNew: true })}
+                        className="w-full py-1 text-center text-[10px] text-muted-foreground/60 border border-dashed border-border/60 rounded-lg hover:border-indigo-500/50 hover:text-indigo-500 transition-colors"
+                      >
+                        + Назначить
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Slot 3: Leaves */}
+                  {leaves.length > 0 && (
+                    <div className="space-y-1 pt-1 border-t border-border/40">
+                      <div className="text-[9px] font-bold text-muted-foreground uppercase">Отпуска / Больничные</div>
+                      {leaves.map(s => (
+                        <div key={s.id} className="p-1 bg-muted/40 rounded text-[10px] font-medium text-muted-foreground truncate">
+                          {s.status === 'VACATION' ? '🌴 ' : '🩹 '}{s.userEmail.split('@')[0]}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── VIEW 3: MY SHIFTS (Personal Operator Dashboard) ── */}
+      {viewMode === 'my_shifts' && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="bg-card border border-border/80 rounded-2xl p-4 shadow-xs">
+              <div className="text-[10px] uppercase font-bold text-muted-foreground">Моих смен в этом месяце</div>
+              <div className="text-2xl font-black font-mono text-primary mt-1">{myShiftsList.length}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">По расписанию</div>
+            </div>
+
+            <div className="bg-card border border-border/80 rounded-2xl p-4 shadow-xs">
+              <div className="text-[10px] uppercase font-bold text-muted-foreground">Отработано часов</div>
+              <div className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400 mt-1">
+                {myShiftsList.length * 12} ч
               </div>
+              <div className="text-xs text-muted-foreground mt-0.5">12 ч / смена</div>
+            </div>
+
+            <div className="bg-card border border-border/80 rounded-2xl p-4 shadow-xs">
+              <div className="text-[10px] uppercase font-bold text-muted-foreground">Подмен оформлено</div>
+              <div className="text-2xl font-black font-mono text-blue-600 dark:text-blue-400 mt-1">
+                {myShiftsList.filter(s => s.status === 'SWAPPED').length}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">Взаимовыручка</div>
+            </div>
+
+            <div className="bg-card border border-border/80 rounded-2xl p-4 shadow-xs">
+              <div className="text-[10px] uppercase font-bold text-muted-foreground">Оплата за смены (план)</div>
+              <div className="text-2xl font-black font-mono text-foreground mt-1">
+                {formatRubles(myShiftsList.reduce((acc, s) => acc + s.rateRubles, 0))}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">До учета бонусов и KPI</div>
+            </div>
+          </div>
+
+          {/* Upcoming Shifts Table */}
+          <div className="bg-card border border-border/80 rounded-2xl p-4 shadow-xs">
+            <h3 className="text-xs font-bold text-foreground mb-3 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-primary" />
+              <span>Список моих рабочих смен на {MONTH_NAMES[currentMonth - 1]} {currentYear}</span>
+            </h3>
+
+            {myShiftsList.length === 0 ? (
+              <div className="py-8 text-center text-muted-foreground text-xs">
+                У вас пока нет запланированных смен на этот месяц
+              </div>
+            ) : (
+              <div className="divide-y divide-border/40">
+                {myShiftsList.map((s) => (
+                  <div key={s.id} className="py-2.5 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-muted/60 border border-border/50 flex flex-col items-center justify-center font-mono">
+                        <span className="text-xs font-black">{s.dayNumber}</span>
+                        <span className="text-[9px] text-muted-foreground uppercase">{MONTH_NAMES[currentMonth - 1].slice(0, 3)}</span>
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                          {s.shiftType === 'DAY' ? '☀️ Дневная смена (09:00 – 21:00)' : '🌙 Ночная смена (21:00 – 09:00)'}
+                          <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-muted text-muted-foreground">
+                            {s.status}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
+                          Ставка: {formatRubles(s.rateRubles)} {s.notes ? `• ${s.notes}` : ''}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSwapShift(s);
+                          setIsSwapModalOpen(true);
+                        }}
+                        className="px-2.5 py-1 text-xs font-bold rounded-lg border border-border/70 hover:bg-muted text-foreground flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <ArrowLeftRight className="w-3 h-3 text-blue-500" />
+                        <span>Передать коллеге</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 1: Shift Details / Quick Assign ── */}
+      {selectedShiftModal && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border/80 rounded-2xl w-full max-w-md p-5 shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-border/60">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4 text-primary" />
+                <span>
+                  {selectedShiftModal.shift ? 'Редактирование смены' : 'Назначение смены'} — {selectedShiftModal.day} {MONTH_NAMES[currentMonth - 1]}
+                </span>
+              </h3>
               <button
-                onClick={() => setSelectedCell(null)}
-                className="p-1 rounded-lg text-muted-foreground hover:text-foreground"
+                type="button"
+                onClick={() => setSelectedShiftModal(null)}
+                className="p-1 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-foreground uppercase tracking-wider">
-                Назначить статус смены:
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() =>
-                    handleAssignShift(selectedCell.staff.userId, selectedCell.day, 'DAY', 'PLANNED')
-                  }
-                  className="p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-amber-500/20 transition-all cursor-pointer"
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const userId = (formData.get('userId') as string) || currentUserId || staffList[0]?.id;
+                const shiftType = formData.get('shiftType') as 'DAY' | 'NIGHT' | 'CUSTOM';
+                const status = formData.get('status') as 'PLANNED' | 'VACATION' | 'SICK' | 'DAY_OFF';
+                const rate = Number(formData.get('rate')) || 2500;
+                const notes = formData.get('notes') as string;
+
+                handleAssignShift(userId, selectedShiftModal.day, shiftType, status, rate, notes);
+              }}
+              className="space-y-3 text-xs"
+            >
+              <div>
+                <label className="block font-bold text-muted-foreground mb-1">Сотрудник:</label>
+                <select
+                  name="userId"
+                  defaultValue={selectedShiftModal.shift?.userId || currentUserId || staffList[0]?.id}
+                  disabled={!['OWNER', 'ADMIN', 'MANAGER'].includes(currentUserRole)}
+                  className="w-full h-8 px-2 bg-background border border-border/60 rounded-xl text-foreground"
                 >
-                  <Sun className="w-4 h-4" /> ☀️ День (09-21)
-                </button>
-                <button
-                  onClick={() =>
-                    handleAssignShift(selectedCell.staff.userId, selectedCell.day, 'NIGHT', 'PLANNED')
-                  }
-                  className="p-2.5 rounded-xl border border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-purple-500/20 transition-all cursor-pointer"
-                >
-                  <Moon className="w-4 h-4" /> 🌙 Ночь (21-09)
-                </button>
-                <button
-                  onClick={() =>
-                    handleAssignShift(selectedCell.staff.userId, selectedCell.day, 'DAY', 'VACATION', 0)
-                  }
-                  className="p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-emerald-500/20 transition-all cursor-pointer"
-                >
-                  <Palmtree className="w-4 h-4" /> 🌴 Отпуск
-                </button>
-                <button
-                  onClick={() =>
-                    handleAssignShift(selectedCell.staff.userId, selectedCell.day, 'DAY', 'SICK', 0)
-                  }
-                  className="p-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-rose-500/20 transition-all cursor-pointer"
-                >
-                  <HeartPulse className="w-4 h-4" /> 🏥 Больничный
-                </button>
+                  {staffList.map((s) => (
+                    <option key={s.id} value={s.id}>{s.email} ({s.role})</option>
+                  ))}
+                </select>
               </div>
 
-              {selectedCell.shift && selectedCell.shift.status === 'PLANNED' && (
-                <button
-                  onClick={() => {
-                    setSwapShift(selectedCell.shift!);
-                    const otherStaff = scheduleRows.filter((s) => s.userId !== selectedCell.staff.userId);
-                    if (otherStaff.length > 0) {
-                      setSubstituteUserId(otherStaff[0].userId);
-                    }
-                    setIsSwapModalOpen(true);
-                    setSelectedCell(null);
-                  }}
-                  className="w-full mt-2 p-2.5 rounded-xl border border-sky-500/30 bg-sky-500/10 text-sky-600 dark:text-sky-400 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-sky-500/20 transition-all cursor-pointer"
-                >
-                  <ArrowLeftRight className="w-4 h-4" /> Оформить подмену сотрудника
-                </button>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-bold text-muted-foreground mb-1">Тип смены:</label>
+                  <select
+                    name="shiftType"
+                    defaultValue={selectedShiftModal.shift?.shiftType || 'DAY'}
+                    className="w-full h-8 px-2 bg-background border border-border/60 rounded-xl text-foreground"
+                  >
+                    <option value="DAY">☀️ Дневная (09-21)</option>
+                    <option value="NIGHT">🌙 Ночная (21-09)</option>
+                    <option value="CUSTOM">⚙️ Усиление/Кастом</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-muted-foreground mb-1">Статус:</label>
+                  <select
+                    name="status"
+                    defaultValue={selectedShiftModal.shift?.status || 'PLANNED'}
+                    className="w-full h-8 px-2 bg-background border border-border/60 rounded-xl text-foreground"
+                  >
+                    <option value="PLANNED">Запланировано</option>
+                    <option value="COMPLETED">Отработано</option>
+                    <option value="VACATION">🌴 Отпуск</option>
+                    <option value="SICK">🩹 Больничный</option>
+                    <option value="DAY_OFF">Отгул</option>
+                  </select>
+                </div>
+              </div>
+
+              {['OWNER', 'ADMIN', 'MANAGER'].includes(currentUserRole) && (
+                <div>
+                  <label className="block font-bold text-muted-foreground mb-1">Ставка за смену (₽):</label>
+                  <input
+                    type="number"
+                    name="rate"
+                    defaultValue={selectedShiftModal.shift?.rateRubles || 2500}
+                    className="w-full h-8 px-2 bg-background border border-border/60 rounded-xl text-foreground font-mono"
+                  />
+                </div>
               )}
+
+              <div>
+                <label className="block font-bold text-muted-foreground mb-1">Примечание / Комментарий:</label>
+                <input
+                  type="text"
+                  name="notes"
+                  defaultValue={selectedShiftModal.shift?.notes || ''}
+                  placeholder="Например: Замена на первую половину дня"
+                  className="w-full h-8 px-2 bg-background border border-border/60 rounded-xl text-foreground"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                {selectedShiftModal.shift && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteShift(selectedShiftModal.shift!.id)}
+                    className="h-8 px-3 rounded-xl border border-rose-500/30 text-rose-600 hover:bg-rose-500/10 flex items-center gap-1 font-bold cursor-pointer transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Удалить смену</span>
+                  </button>
+                )}
+
+                <div className="flex items-center gap-2 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedShiftModal(null)}
+                    className="h-8 px-3 rounded-xl border border-border/60 hover:bg-muted text-muted-foreground font-bold cursor-pointer"
+                  >
+                    Отмена
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isPending}
+                    className="h-8 px-4 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold cursor-pointer shadow-2xs"
+                  >
+                    Сохранить
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 2: Shift Swap Modal (Передача смены коллеге) ── */}
+      {isSwapModalOpen && swapShift && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border/80 rounded-2xl w-full max-w-md p-5 shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-border/60">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <ArrowLeftRight className="w-4 h-4 text-blue-500" />
+                <span>Передать смену коллеге</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsSwapModalOpen(false)}
+                className="p-1 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-muted/30 border border-border/50 rounded-xl text-xs space-y-1 font-medium">
+              <div>Дата: <span className="font-bold font-mono">{swapShift.dateStr}</span> ({swapShift.shiftType === 'DAY' ? '☀️ Дневная' : '🌙 Ночная'})</div>
+              <div>Текущий дежурный: <span className="font-bold">{swapShift.userEmail}</span></div>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-muted-foreground mb-1">Коллега на подмену:</label>
+                <select
+                  value={substituteUserId}
+                  onChange={(e) => setSubstituteUserId(e.target.value)}
+                  className="w-full h-8 px-2 bg-background border border-border/60 rounded-xl text-foreground"
+                >
+                  <option value="">-- Выберите коллегу --</option>
+                  {staffList.filter(s => s.id !== swapShift.userId).map(s => (
+                    <option key={s.id} value={s.id}>{s.email} ({s.role})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-muted-foreground mb-1">Объем подмены:</label>
+                <select
+                  value={swapHours}
+                  onChange={(e) => setSwapHours(Number(e.target.value))}
+                  className="w-full h-8 px-2 bg-background border border-border/60 rounded-xl text-foreground font-mono"
+                >
+                  <option value={0}>Полная смена (12 часов)</option>
+                  <option value={4}>Частично: 4 часа</option>
+                  <option value={6}>Частично: 6 часов (половина смены)</option>
+                  <option value={8}>Частично: 8 часов</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-muted-foreground mb-1">Причина / Примечание:</label>
+                <textarea
+                  value={swapNotes}
+                  onChange={(e) => setSwapNotes(e.target.value)}
+                  placeholder="Например: Договорились в Telegram, меняемся со вторником"
+                  rows={2}
+                  className="w-full p-2 bg-background border border-border/60 rounded-xl text-foreground"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsSwapModalOpen(false)}
+                  className="h-8 px-3 rounded-xl border border-border/60 hover:bg-muted text-muted-foreground font-bold cursor-pointer"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExecuteSwap}
+                  disabled={isPending}
+                  className="h-8 px-4 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold cursor-pointer shadow-2xs"
+                >
+                  Подтвердить подмену
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── TEMPLATE MODAL ── */}
-      {isTemplateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-xs p-4">
-          <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-border/60 pb-3">
-              <h3 className="text-base font-bold text-foreground">
-                Автозаполнение графика на {MONTH_NAMES[currentMonth - 1]}
+      {/* ── MODAL 3: Time Off Modal (Отпуск / Больничный) ── */}
+      {isTimeOffModalOpen && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border/80 rounded-2xl w-full max-w-md p-5 shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-border/60">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Palmtree className="w-4 h-4 text-emerald-500" />
+                <span>Оформление отпуска / больничного</span>
               </h3>
               <button
-                onClick={() => setIsTemplateModalOpen(false)}
-                className="p-1 rounded-lg text-muted-foreground hover:text-foreground"
+                type="button"
+                onClick={() => setIsTimeOffModalOpen(false)}
+                className="p-1 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-foreground">Сотрудник:</label>
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-muted-foreground mb-1">Сотрудник:</label>
                 <select
-                  value={templateUserId}
-                  onChange={(e) => setTemplateUserId(e.target.value)}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-xs text-foreground"
+                  value={timeOffUserId}
+                  onChange={(e) => setTimeOffUserId(e.target.value)}
+                  disabled={!['OWNER', 'ADMIN', 'MANAGER'].includes(currentUserRole)}
+                  className="w-full h-8 px-2 bg-background border border-border/60 rounded-xl text-foreground"
                 >
-                  {scheduleRows.map((s) => (
-                    <option key={s.userId} value={s.userId}>
-                      {s.userEmail} ({s.role})
-                    </option>
+                  {staffList.map((s) => (
+                    <option key={s.id} value={s.id}>{s.email} ({s.role})</option>
                   ))}
                 </select>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-foreground">Шаблон смен:</label>
-                <select
-                  value={templateType}
-                  onChange={(e) => setTemplateType(e.target.value as "2_2_DAY" | "2_2_NIGHT" | "5_2" | "DAILY")}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-xs text-foreground"
+              <div>
+                <label className="block font-bold text-muted-foreground mb-1">Тип отсутствия:</label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setTimeOffType('VACATION')}
+                    className={`py-1.5 rounded-xl font-bold border transition-all cursor-pointer ${
+                      timeOffType === 'VACATION'
+                        ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40'
+                        : 'bg-background text-muted-foreground border-border/60 hover:bg-muted'
+                    }`}
+                  >
+                    🌴 Отпуск
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTimeOffType('SICK')}
+                    className={`py-1.5 rounded-xl font-bold border transition-all cursor-pointer ${
+                      timeOffType === 'SICK'
+                        ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40'
+                        : 'bg-background text-muted-foreground border-border/60 hover:bg-muted'
+                    }`}
+                  >
+                    🩹 Больничный
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTimeOffType('DAY_OFF')}
+                    className={`py-1.5 rounded-xl font-bold border transition-all cursor-pointer ${
+                      timeOffType === 'DAY_OFF'
+                        ? 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-500/40'
+                        : 'bg-background text-muted-foreground border-border/60 hover:bg-muted'
+                    }`}
+                  >
+                    ☕ Отгул
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-bold text-muted-foreground mb-1">Дата начала:</label>
+                  <input
+                    type="date"
+                    value={timeOffDateFrom}
+                    onChange={(e) => setTimeOffDateFrom(e.target.value)}
+                    className="w-full h-8 px-2 bg-background border border-border/60 rounded-xl text-foreground font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-muted-foreground mb-1">Дата окончания:</label>
+                  <input
+                    type="date"
+                    value={timeOffDateTo}
+                    onChange={(e) => setTimeOffDateTo(e.target.value)}
+                    className="w-full h-8 px-2 bg-background border border-border/60 rounded-xl text-foreground font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-muted-foreground mb-1">Причина / Комментарий:</label>
+                <input
+                  type="text"
+                  value={timeOffNotes}
+                  onChange={(e) => setTimeOffNotes(e.target.value)}
+                  placeholder="Например: Ежегодный оплачиваемый отпуск"
+                  className="w-full h-8 px-2 bg-background border border-border/60 rounded-xl text-foreground"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsTimeOffModalOpen(false)}
+                  className="h-8 px-3 rounded-xl border border-border/60 hover:bg-muted text-muted-foreground font-bold cursor-pointer"
                 >
-                  <option value="2_2_DAY">2 через 2 (Дневные смены 09:00–21:00)</option>
-                  <option value="2_2_NIGHT">2 через 2 (Ночные смены 21:00–09:00)</option>
-                  <option value="5_2">5 через 2 (Пн–Пт стандартный)</option>
-                  <option value="DAILY">Каждый день без выходных</option>
+                  Отмена
+                </button>
+                <button
+                  type="button"
+                  onClick={handleTimeOffSubmit}
+                  disabled={isPending}
+                  className="h-8 px-4 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold cursor-pointer shadow-2xs"
+                >
+                  Оформить заявку
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 4: Auto-fill Template Modal (2/2, 5/2) ── */}
+      {isTemplateModalOpen && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border/80 rounded-2xl w-full max-w-md p-5 shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-border/60">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-primary" />
+                <span>Авто-шаблон графика ({MONTH_NAMES[currentMonth - 1]} {currentYear})</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsTemplateModalOpen(false)}
+                className="p-1 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-muted-foreground mb-1">Сотрудник:</label>
+                <select
+                  value={templateUserId}
+                  onChange={(e) => setTemplateUserId(e.target.value)}
+                  className="w-full h-8 px-2 bg-background border border-border/60 rounded-xl text-foreground"
+                >
+                  {staffList.map((s) => (
+                    <option key={s.id} value={s.id}>{s.email} ({s.role})</option>
+                  ))}
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-foreground">Первый рабочий день:</label>
+              <div>
+                <label className="block font-bold text-muted-foreground mb-1">Паттерн расписания:</label>
+                <select
+                  value={templateType}
+                  onChange={(e) => setTemplateType(e.target.value as any)}
+                  className="w-full h-8 px-2 bg-background border border-border/60 rounded-xl text-foreground font-semibold"
+                >
+                  <option value="2_2_DAY">График 2/2 (Дневные смены 09:00–21:00)</option>
+                  <option value="2_2_NIGHT">График 2/2 (Ночные смены 21:00–09:00)</option>
+                  <option value="5_2">График 5/2 (Пн–Пт с выходными Сб–Вс)</option>
+                  <option value="DAILY">Ежедневно (Все дни месяца)</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-bold text-muted-foreground mb-1">День старта смены:</label>
                   <input
                     type="number"
                     min={1}
                     max={31}
                     value={templateStartDay}
                     onChange={(e) => setTemplateStartDay(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-xs text-foreground"
+                    className="w-full h-8 px-2 bg-background border border-border/60 rounded-xl text-foreground font-mono"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-foreground">Ставка за смену (₽):</label>
+                <div>
+                  <label className="block font-bold text-muted-foreground mb-1">Ставка за смену (₽):</label>
                   <input
                     type="number"
-                    step={100}
                     value={templateRate}
                     onChange={(e) => setTemplateRate(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-xs text-foreground"
+                    className="w-full h-8 px-2 bg-background border border-border/60 rounded-xl text-foreground font-mono"
                   />
                 </div>
               </div>
-            </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/60">
-              <button
-                type="button"
-                onClick={() => setIsTemplateModalOpen(false)}
-                className="px-3 py-1.5 text-xs font-bold rounded-lg border border-border text-foreground hover:bg-muted"
-              >
-                Отмена
-              </button>
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={handleApplyTemplate}
-                className="px-4 py-1.5 text-xs font-bold rounded-lg bg-primary text-primary-foreground hover:opacity-90"
-              >
-                {isPending ? 'Применение...' : 'Применить шаблон'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── SWAP MODAL ── */}
-      {isSwapModalOpen && swapShift && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-xs p-4">
-          <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-border/60 pb-3">
-              <div>
-                <h3 className="text-base font-bold text-foreground">Взаимная договоренность о подмене</h3>
-                <p className="text-[11px] text-muted-foreground">Для порядка и прозрачности в графике</p>
-              </div>
-              <button
-                onClick={() => setIsSwapModalOpen(false)}
-                className="p-1 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-muted-foreground leading-relaxed bg-primary/5 p-3 rounded-xl border border-primary/15">
-              🤝 Вы можете свободно договариваться между собой. Достаточно отметить коллегу, чтобы смена и оплата за этот день автоматически зачислились тому, кто фактически выйдет на работу.
-            </p>
-
-            <div className="p-3 bg-muted/40 rounded-xl border border-border/50 text-xs space-y-1">
-              <div><strong>Дата смены:</strong> {swapShift.dateStr}</div>
-              <div><strong>Плановый сотрудник:</strong> {swapShift.userEmail}</div>
-              <div><strong>Ставка за смену (12ч):</strong> {formatRubles(swapShift.rateRubles)} (~{Math.round(swapShift.rateRubles / 12)} ₽/час)</div>
-            </div>
-
-            {/* Swap Format Switcher */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-foreground">Формат подмены:</label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setSwapHours(0)}
-                  className={`p-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                    swapHours === 0
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border bg-background text-muted-foreground hover:bg-muted'
-                  }`}
+                  onClick={() => setIsTemplateModalOpen(false)}
+                  className="h-8 px-3 rounded-xl border border-border/60 hover:bg-muted text-muted-foreground font-bold cursor-pointer"
                 >
-                  <ArrowLeftRight className="w-3.5 h-3.5" /> Вся смена (12ч)
+                  Отмена
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSwapHours(swapHours > 0 ? swapHours : 3)}
-                  className={`p-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                    swapHours > 0
-                      ? 'border-sky-500 bg-sky-500/10 text-sky-600 dark:text-sky-400'
-                      : 'border-border bg-background text-muted-foreground hover:bg-muted'
-                  }`}
+                  onClick={handleApplyTemplate}
+                  disabled={isPending}
+                  className="h-8 px-4 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold cursor-pointer shadow-2xs"
                 >
-                  <Clock className="w-3.5 h-3.5" /> По часам в сутки
+                  Применить график
                 </button>
               </div>
-            </div>
-
-            {swapHours > 0 && (
-              <div className="p-3 bg-sky-500/5 rounded-xl border border-sky-500/20 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-foreground">Сколько часов подменял:</span>
-                  <span className="font-mono font-black text-sky-600 dark:text-sky-400 text-sm">
-                    {swapHours} {swapHours === 1 ? 'час' : swapHours < 5 ? 'часа' : 'часов'}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={1}
-                  max={11}
-                  step={1}
-                  value={swapHours}
-                  onChange={(e) => setSwapHours(Number(e.target.value))}
-                  className="w-full cursor-pointer accent-sky-500"
-                />
-                <div className="text-[11px] text-muted-foreground flex justify-between font-mono">
-                  <span>1ч</span>
-                  <span className="text-sky-600 font-bold">
-                    ~{Math.round(swapHours * (swapShift.rateRubles / 12))} ₽ сменщику
-                  </span>
-                  <span>11ч</span>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-foreground">Кто выйдет по договоренности:</label>
-                <select
-                  value={substituteUserId}
-                  onChange={(e) => setSubstituteUserId(e.target.value)}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-xs text-foreground"
-                >
-                  {scheduleRows
-                    .filter((s) => s.userId !== swapShift.userId)
-                    .map((s) => (
-                      <option key={s.userId} value={s.userId}>
-                        {s.userEmail} ({s.role})
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-foreground">Заметка / Причина (для руководства):</label>
-                <textarea
-                  value={swapNotes}
-                  onChange={(e) => setSwapNotes(e.target.value)}
-                  placeholder="Например: Договорились поменяться сменами / Личные дела..."
-                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-xs text-foreground h-16"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/60">
-              <button
-                type="button"
-                onClick={() => setIsSwapModalOpen(false)}
-                className="px-3 py-1.5 text-xs font-bold rounded-lg border border-border text-foreground hover:bg-muted cursor-pointer"
-              >
-                Отмена
-              </button>
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={handleExecuteSwap}
-                className="px-4 py-1.5 text-xs font-bold rounded-lg bg-primary text-primary-foreground hover:opacity-90 cursor-pointer"
-              >
-                {isPending ? 'Сохранение...' : 'Зафиксировать договоренность'}
-              </button>
             </div>
           </div>
         </div>

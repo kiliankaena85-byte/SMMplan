@@ -33,6 +33,13 @@ export interface StaffScheduleRow {
   actualWorkedCount: number;
   swappedCount: number;
   vacationDaysCount: number;
+  sickDaysCount: number;
+}
+
+export interface StaffMemberOption {
+  id: string;
+  email: string;
+  role: string;
 }
 
 export interface PayrollRow {
@@ -53,10 +60,11 @@ export interface PayrollRow {
 }
 
 /**
- * Fetches the entire staff schedule matrix for a given month.
+ * Fetches the entire staff schedule matrix for a given month,
+ * including caller context for personalized views.
  */
 export async function getMonthShiftsAction(year: number, month: number) {
-  return requireStaffPermission('settings', 'view', async () => {
+  return requireStaffPermission('staff', 'view', async (admin) => {
     // Start and end of month in UTC
     const startOfMonth = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
     const endOfMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
@@ -103,6 +111,7 @@ export async function getMonthShiftsAction(year: number, month: number) {
       let actualCount = 0;
       let swappedCount = 0;
       let vacationCount = 0;
+      let sickCount = 0;
 
       userShifts.forEach((s) => {
         const day = new Date(s.date).getUTCDate();
@@ -138,6 +147,9 @@ export async function getMonthShiftsAction(year: number, month: number) {
         if (s.status === 'VACATION') {
           vacationCount++;
         }
+        if (s.status === 'SICK') {
+          sickCount++;
+        }
       });
 
       return {
@@ -149,14 +161,24 @@ export async function getMonthShiftsAction(year: number, month: number) {
         actualWorkedCount: actualCount,
         swappedCount,
         vacationDaysCount: vacationCount,
+        sickDaysCount: sickCount,
       };
     });
+
+    const staffOptions: StaffMemberOption[] = staffUsers.map((u) => ({
+      id: u.id,
+      email: u.email,
+      role: u.role,
+    }));
 
     return {
       success: true as const,
       daysInMonth,
       year,
       month,
+      currentUserId: admin.id,
+      currentUserRole: admin.role,
+      staffList: staffOptions,
       rows: scheduleRows,
     };
   });
@@ -173,12 +195,18 @@ const assignShiftSchema = z.object({
 
 /**
  * Assigns or updates a single shift for a staff member.
+ * Operators can set their own shift; Admins can assign to anyone.
  */
 export async function assignShiftAction(input: z.infer<typeof assignShiftSchema>) {
-  return requireStaffPermission('settings', 'edit', async (admin) => {
+  return requireStaffPermission('staff', 'view', async (admin) => {
     const parsed = assignShiftSchema.safeParse(input);
     if (!parsed.success) {
       return { success: false as const, error: 'Некорректные параметры смены' };
+    }
+
+    const isPrivileged = ['OWNER', 'ADMIN', 'MANAGER'].includes(admin.role);
+    if (!isPrivileged && admin.id !== input.userId) {
+      return { success: false as const, error: 'Вы можете выставлять смены только для себя' };
     }
 
     const shiftDate = new Date(`${input.dateStr}T00:00:00.000Z`);
@@ -210,7 +238,7 @@ export async function assignShiftAction(input: z.infer<typeof assignShiftSchema>
     await auditAdminAwaitable({
       adminId: admin.id,
       adminEmail: admin.email,
-      action: 'UPDATE_SERVICE_PRICE', // general staff audit event
+      action: 'UPDATE_SERVICE_PRICE',
       target: shift.id,
       targetType: 'STAFF_SHIFT',
       newValue: { userId: input.userId, date: input.dateStr, status: input.status },
@@ -230,13 +258,13 @@ const swapShiftSchema = z.object({
 });
 
 /**
- * Records a shift swap or partial hourly cover (substitute employee works instead of scheduled employee).
+ * Records a shift swap or partial hourly cover between staff members.
  */
 export async function swapShiftAction(input: z.input<typeof swapShiftSchema>) {
-  return requireStaffPermission('settings', 'edit', async (admin) => {
+  return requireStaffPermission('staff', 'view', async (admin) => {
     const parsed = swapShiftSchema.safeParse(input);
     if (!parsed.success) {
-      return { success: false as const, error: 'Заполните причину и выберите сменщика' };
+      return { success: false as const, error: 'Заполните причину и выберите коллегу для подмены' };
     }
 
     const existing = await db.staffShift.findUnique({
@@ -246,6 +274,11 @@ export async function swapShiftAction(input: z.input<typeof swapShiftSchema>) {
 
     if (!existing) {
       return { success: false as const, error: 'Смена не найдена' };
+    }
+
+    const isPrivileged = ['OWNER', 'ADMIN', 'MANAGER'].includes(admin.role);
+    if (!isPrivileged && admin.id !== existing.userId) {
+      return { success: false as const, error: 'Вы можете передать только собственную смену' };
     }
 
     if (existing.userId === input.substituteUserId) {
@@ -282,6 +315,99 @@ export async function swapShiftAction(input: z.input<typeof swapShiftSchema>) {
   });
 }
 
+/**
+ * Deletes / cancels a shift slot.
+ */
+export async function deleteShiftAction(shiftId: string) {
+  return requireStaffPermission('staff', 'view', async (admin) => {
+    const existing = await db.staffShift.findUnique({
+      where: { id: shiftId },
+    });
+
+    if (!existing) {
+      return { success: false as const, error: 'Смена не найдена' };
+    }
+
+    const isPrivileged = ['OWNER', 'ADMIN', 'MANAGER'].includes(admin.role);
+    if (!isPrivileged && admin.id !== existing.userId) {
+      return { success: false as const, error: 'Вы можете отменить только свою смену' };
+    }
+
+    await db.staffShift.delete({
+      where: { id: shiftId },
+    });
+
+    revalidatePath('/admin/staff');
+    return { success: true as const };
+  });
+}
+
+const timeOffSchema = z.object({
+  userId: z.string().min(1),
+  dateFromStr: z.string().min(10),
+  dateToStr: z.string().min(10),
+  status: z.enum(['VACATION', 'SICK', 'DAY_OFF']),
+  notes: z.string().optional(),
+});
+
+/**
+ * Batch registers a vacation, sick leave or day off period for a staff member.
+ */
+export async function requestTimeOffAction(input: z.infer<typeof timeOffSchema>) {
+  return requireStaffPermission('staff', 'view', async (admin) => {
+    const parsed = timeOffSchema.safeParse(input);
+    if (!parsed.success) {
+      return { success: false as const, error: 'Некорректные даты периода' };
+    }
+
+    const isPrivileged = ['OWNER', 'ADMIN', 'MANAGER'].includes(admin.role);
+    if (!isPrivileged && admin.id !== input.userId) {
+      return { success: false as const, error: 'Вы можете оформить заявку только на себя' };
+    }
+
+    const fromDate = new Date(`${input.dateFromStr}T00:00:00.000Z`);
+    const toDate = new Date(`${input.dateToStr}T00:00:00.000Z`);
+
+    if (fromDate > toDate) {
+      return { success: false as const, error: 'Дата начала не может быть позже даты окончания' };
+    }
+
+    const curr = new Date(fromDate);
+    let count = 0;
+
+    while (curr <= toDate) {
+      const shiftDate = new Date(curr);
+      await db.staffShift.upsert({
+        where: {
+          userId_date_shiftType: {
+            userId: input.userId,
+            date: shiftDate,
+            shiftType: 'DAY',
+          },
+        },
+        create: {
+          userId: input.userId,
+          date: shiftDate,
+          shiftType: 'DAY',
+          status: input.status,
+          rateRubles: 0,
+          notes: input.notes || (input.status === 'VACATION' ? 'Отпуск' : input.status === 'SICK' ? 'Больничный' : 'Отгул'),
+        },
+        update: {
+          status: input.status,
+          notes: input.notes,
+        },
+      });
+
+      count++;
+      curr.setDate(curr.getDate() + 1);
+    }
+
+    revalidatePath('/admin/staff');
+    return { success: true as const, daysCount: count };
+  });
+}
+
 const bulkTemplateSchema = z.object({
   userId: z.string().min(1),
   year: z.number(),
@@ -295,7 +421,7 @@ const bulkTemplateSchema = z.object({
  * Bulk applies a shift pattern (2/2, 5/2) for a staff member for the entire month.
  */
 export async function applyShiftTemplateAction(input: z.infer<typeof bulkTemplateSchema>) {
-  return requireStaffPermission('settings', 'edit', async (admin) => {
+  return requireStaffPermission('staff', 'edit', async (admin) => {
     const daysInMonth = new Date(input.year, input.month, 0).getDate();
     const shiftType = input.templateType === '2_2_NIGHT' ? 'NIGHT' : 'DAY';
 
@@ -366,7 +492,7 @@ export async function applyShiftTemplateAction(input: z.infer<typeof bulkTemplat
  * Calculates monthly timesheet and payroll for all staff members.
  */
 export async function getMonthlyPayrollAction(year: number, month: number) {
-  return requireStaffPermission('settings', 'view', async (admin) => {
+  return requireStaffPermission('staff', 'view', async (admin) => {
     const startOfMonth = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
     const endOfMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
 

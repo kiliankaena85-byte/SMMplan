@@ -504,6 +504,7 @@ export async function getClientLedgerAction(userId: string, filterType = 'ALL') 
           reason: true,
           status: true,
           transactionType: true,
+          idempotencyKey: true,
           adminId: true,
           createdAt: true,
         }
@@ -556,6 +557,7 @@ export async function getClientLedgerAction(userId: string, filterType = 'ALL') 
           reason: e.reason,
           status: e.status,
           transactionType: e.transactionType,
+          idempotencyKey: e.idempotencyKey ?? null,
           adminEmail: e.adminId ? (adminMap.get(e.adminId) || 'Оператор') : null,
           createdAt: e.createdAt.toISOString(),
         };

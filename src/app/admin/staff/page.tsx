@@ -8,7 +8,7 @@ import { Users, Shield } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 export default async function AdminStaffPage() {
-  const admin = await enforceSectionAccess('settings');
+  const admin = await enforceSectionAccess('staff');
 
   const staffRes = await getStaffMembersWithMetrics();
   const staffMembers = staffRes.success ? staffRes.data : [];

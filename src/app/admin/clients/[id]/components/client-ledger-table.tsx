@@ -11,11 +11,34 @@ import {
   RefreshCw,
   Clock,
   CheckCircle2,
-  FileText
+  FileText,
+  Copy,
+  Check
 } from 'lucide-react';
 import { ClientLedgerEntryDTO, ClientLedgerSummaryDTO } from '../tabs/types';
 import { getClientLedgerAction } from '@/actions/admin/clients';
 import { toast } from 'sonner';
+
+function CopyBtn({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    toast.success('Скопировано');
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded transition-colors"
+      title="Скопировать ID / UUID"
+    >
+      {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+    </button>
+  );
+}
 
 interface ClientLedgerTableProps {
   userId: string;
@@ -172,6 +195,7 @@ export function ClientLedgerTable({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-border/60 text-[10px] uppercase font-bold tracking-wider text-muted-foreground bg-muted/25">
+                <th className="py-2.5 px-3">ID / UUID проводки</th>
                 <th className="py-2.5 px-3">Дата / Время</th>
                 <th className="py-2.5 px-3">Тип</th>
                 <th className="py-2.5 px-3">Сумма</th>
@@ -188,9 +212,28 @@ export function ClientLedgerTable({
                   badgeCls: 'bg-muted text-muted-foreground border-border'
                 };
                 const isIncome = item.direction === 'INCOME';
+                const displayUuid = item.idempotencyKey || item.id;
 
                 return (
                   <tr key={item.id} className="hover:bg-muted/20 transition-colors">
+                    {/* ID / UUID */}
+                    <td className="py-2.5 px-3 whitespace-nowrap font-mono text-[11px]">
+                      <div className="flex items-center gap-1">
+                        <span
+                          className="px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground border border-border/50 text-[10px] font-bold truncate max-w-[120px] inline-block select-all"
+                          title={displayUuid}
+                        >
+                          {displayUuid.startsWith('gateway-credit-')
+                            ? `yoo:${displayUuid.replace('gateway-credit-', '').slice(0, 8)}...`
+                            : displayUuid.startsWith('gateway-charge-')
+                            ? `order:${displayUuid.replace('gateway-charge-', '').slice(0, 8)}...`
+                            : displayUuid.startsWith('deposit-')
+                            ? `topup:${displayUuid.replace('deposit-', '').slice(0, 8)}...`
+                            : `${displayUuid.slice(0, 10)}...`}
+                        </span>
+                        <CopyBtn text={displayUuid} />
+                      </div>
+                    </td>
                     <td className="py-2.5 px-3 whitespace-nowrap text-muted-foreground font-mono text-[11px]">
                       {new Date(item.createdAt).toLocaleString('ru-RU', {
                         day: '2-digit',
