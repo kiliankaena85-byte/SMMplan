@@ -1,7 +1,28 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-09-01 08:16 (МСК)
+> **Последнее обновление:** 2026-09-01 12:30 (МСК)
+
+- **4 Critical Dashboard & Admin Bugs Fix + Standalone Telegram Proxy Fallback (100% COMPLETE & VERIFIED):**
+  - **1. Баг #1: Динамический подсчет соцсетей и унификация терминов:**
+    - Термин «Платформы» повсеместно заменен на «Соцсети» (`WizardNetworkStep.tsx`, `FluxDashboardOrderWizard.tsx`).
+    - Динамический счетчик соцсетей в `ClassicDashboardHome.tsx` рассчитывается по `initialCatalog.length` с корректной русской грамматикой (*«Все 34 соцсети»*, *«Все 21 соцсеть»*).
+  - **2. Баг #2: Глубокая реализация RBAC (Скрытие элементов из DOM):**
+    - Создан централизованный модуль `src/lib/permissions.ts` с матрицей `ROLE_PERMISSIONS` и `getRolePermissions()`.
+    - Компоненты `<ExecutiveAiDigestCard />`, `<ProviderLiquidityWidget />`, `<RecentAuditTable />`, кнопка **Kill-Switch**, кнопки ручного запуска и Telegram-рассылки полностью удаляются из DOM при отсутствии соответствующих прав у ролей (`SUPPORT`/`MANAGER`).
+  - **3. Баг #3: Глобальная синхронизация баланса пользователя (`useUserBalance`):**
+    - Реализован хук `useUserBalance` с событийной шиной `smmplan:balance_updated` и фоновым обновлением при фокусе вкладки (`visibilitychange`/`focus`).
+    - Подключен в `BalanceDisplay`, `ClassicDashboardHome`, `FluxDashboardHome` и `client-page.tsx` (пополнение и промокоды) для синхронного обновления всех блоков без перезагрузки страницы.
+  - **4. Баг #4: Защита модуля промокодов и подарочных сертификатов:**
+    - Изоляция в `'use client'`, `useTransition` с защитой от множественных кликов (`isPending`), безопасная обработка ошибок и понятные русские сообщения.
+  - **5. Автономный Telegram Proxy Cascade (Docker Standalone):**
+    - Создан модуль `src/lib/telegram-agent.ts` с поддержкой SOCKS5/HTTP прокси, `undici.ProxyAgent` для нативного `fetch` и `SocksProxyAgent`/`HttpsProxyAgent` для Telegraf.
+    - Двухуровневая резолюция: переменные окружения (`TELEGRAM_PROXY_URL`) $\rightarrow$ автоматическое чтение из БД (`TelegramProxy`) с расшифровкой ключей через `VaultService`.
+  - **6. Верификация:**
+    - `npx tsc --noEmit` $\rightarrow$ **0 ошибок (100% CLEAN)**.
+    - `vitest` $\rightarrow$ 100% Pass (`dashboard-bugs-fix-verification.test.ts`, `telegram-proxy-agent.test.ts`).
+    - CI Gate Secret Scan $\rightarrow$ 0 утечек секретов.
+    - Слияние в ветку `main` $\rightarrow$ Fast-forward merge, 0 конфликтов, push в `origin/main` (`06c1cfca`).
 
 - **OWASP Top 10:2026, PCI DSS v4.0.1 Concurrency & OpenRouter Swarm Audit (100% COMPLETE & VERIFIED):**
   - **1. Состязательный мозговой штурм и пре-мортем анализ (OpenRouter Security Swarm):**
