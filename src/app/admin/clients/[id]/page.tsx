@@ -43,8 +43,8 @@ export default async function ClientDetailPage({ params }: Props) {
   }) : null;
 
   const isOwner = currentUser?.role === 'OWNER';
-  const isSupport = currentUser?.role === 'SUPPORT';
-  const canSeeFinances = isOwner || !isSupport;
+  // SUPPORT can see client finances — they need balance/LTV to assist clients effectively
+  const canSeeFinances = !!currentUser;
 
   const { id } = await params;
 
@@ -253,7 +253,7 @@ export default async function ClientDetailPage({ params }: Props) {
               </SubmitButton>
             </ActionForm>
           )}
-          {(isOwner || currentUser?.role === 'ADMIN' || !isSupport) && (
+          {(isOwner || currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPPORT') && (
             user.role === 'BANNED' ? (
               <ActionForm action={unbanUserAction}>
                 <input type="hidden" name="userId" value={user.id} />
@@ -310,7 +310,7 @@ export default async function ClientDetailPage({ params }: Props) {
       </div>
 
       {/* Interactive client panel */}
-      <ClientDetailClient user={dto} loginLogs={logsDto} payments={paymentsDto} orders={ordersDto} canSeeFinances={canSeeFinances} />
+      <ClientDetailClient user={dto} loginLogs={logsDto} payments={paymentsDto} orders={ordersDto} canSeeFinances={canSeeFinances} operatorRole={currentUser?.role} />
 
       {/* Recent orders */}
       <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl overflow-hidden ring-1 ring-border/5 flex flex-col">

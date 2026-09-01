@@ -26,6 +26,32 @@ export type StaffPermissionSection =
   | 'balance_policy'
   | 'tickets';
 
+export const BUILTIN_ROLE_PERMISSIONS: Record<string, Record<string, { canView: boolean; canEdit: boolean }>> = {
+  SUPPORT: {
+    CLIENTS: { canView: true, canEdit: true },
+    ORDERS: { canView: true, canEdit: true },
+    TICKETS: { canView: true, canEdit: true },
+    SUPPORT: { canView: true, canEdit: true },
+    BALANCE_REQUESTS: { canView: true, canEdit: true },
+  },
+  MANAGER: {
+    CLIENTS: { canView: true, canEdit: true },
+    ORDERS: { canView: true, canEdit: true },
+    CATALOG: { canView: true, canEdit: true },
+    TICKETS: { canView: true, canEdit: true },
+    SUPPORT: { canView: true, canEdit: true },
+    MARKETING: { canView: true, canEdit: true },
+    CONTENT: { canView: true, canEdit: true },
+    BALANCE_REQUESTS: { canView: true, canEdit: true },
+    FINANCE: { canView: true, canEdit: false },
+  },
+  OPERATOR: {
+    ORDERS: { canView: true, canEdit: true },
+    TICKETS: { canView: true, canEdit: true },
+    SUPPORT: { canView: true, canEdit: true },
+  },
+};
+
 /**
  * Strict RBAC Wrapper for Server Actions
  * Protects actions based on the user's assigned StaffRole and granular permissions.
@@ -64,14 +90,10 @@ export async function requireStaffPermission<T>(
       return await action(user, user.staffRole, tenantId);
     }
 
-    // Requires StaffRole for granular permissions
-    if (!user.staffRole) {
-       console.error(`[RBAC] User ${userId} attempted to execute Admin Action without StaffRole.`);
-       return { success: false, error: "Forbidden: Administrator/Staff context required" };
-    }
-
     const normalizedSection = section.toUpperCase();
-    const permission = user.staffRole.permissions.find(p => p.section.toUpperCase() === normalizedSection);
+    const explicitPermission = user.staffRole?.permissions?.find(p => p.section.toUpperCase() === normalizedSection);
+    const builtin = BUILTIN_ROLE_PERMISSIONS[user.role]?.[normalizedSection];
+    const permission = explicitPermission || builtin;
     
     if (!permission) {
         import('@/services/security/security-alert.service').then(({ SecurityAlertService }) => {
@@ -238,12 +260,10 @@ export async function enforceSectionAccess(section: string) {
     return user;
   }
 
-  if (!user.staffRole) {
-    redirect('/admin/forbidden');
-  }
-
   const normalizedSection = section.toUpperCase();
-  const permission = user.staffRole.permissions.find(p => p.section.toUpperCase() === normalizedSection);
+  const explicitPermission = user.staffRole?.permissions?.find(p => p.section.toUpperCase() === normalizedSection);
+  const builtin = BUILTIN_ROLE_PERMISSIONS[user.role]?.[normalizedSection];
+  const permission = explicitPermission || builtin;
 
   if (!permission || (!permission.canView && !permission.canEdit)) {
     redirect('/admin/forbidden');

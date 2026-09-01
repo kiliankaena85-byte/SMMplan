@@ -20,17 +20,24 @@ export async function GET(request: Request) {
   });
 
   if (!user) {
-    user = await db.user.upsert({
-      where: { email: targetEmail },
-      update: { role: role as any, tenantId },
-      create: {
-        email: targetEmail,
-        passwordHash: 'dummy_hash',
-        role: role as any,
-        tenantId,
-        balance: BigInt(500000),
-      }
-    });
+    // Try finding by email first, then create if missing
+    user = await db.user.findFirst({ where: { email: targetEmail } });
+    if (!user) {
+      user = await db.user.create({
+        data: {
+          email: targetEmail,
+          passwordHash: 'dummy_hash',
+          role: role as any,
+          tenantId,
+          balance: BigInt(500000),
+        }
+      });
+    } else {
+      user = await db.user.update({
+        where: { id: user.id },
+        data: { role: role as any, tenantId },
+      });
+    }
   }
 
   const reqHeaders = await headers();

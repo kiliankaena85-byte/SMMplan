@@ -84,7 +84,7 @@ export async function updateClientDiscountAction(
 
 /** Update internal admin note for a client */
 export async function updateClientNoteAction(userId: string, note: string) {
-  return requireStaffPermission('finance', 'edit', async (admin) => {
+  return requireStaffPermission('clients', 'edit', async (admin) => {
     const parsed = noteSchema.safeParse({ userId, note });
     if (!parsed.success) {
       return { success: false as const, error: 'Заметка слишком длинная (макс 2000 символов)' };
@@ -112,10 +112,111 @@ export async function updateClientNoteAction(userId: string, note: string) {
   });
 }
 
+/** Send password reset link to client email */
+export async function sendPasswordResetEmailAction(userId: string) {
+  return requireStaffPermission('clients', 'edit', async (admin) => {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, tenantId: true },
+    });
+
+    if (!user) {
+      return { success: false as const, error: 'Клиент не найден' };
+    }
+
+    const rawToken = (await import('crypto')).randomBytes(32).toString('hex');
+    const hashedToken = (await import('crypto')).createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await db.authToken.create({
+      data: {
+        userId: user.id,
+        token: hashedToken,
+        expiresAt,
+        ipIssued: '127.0.0.1',
+        // Encode purpose in userAgentIssued since AuthToken has no 'type' field
+        userAgentIssued: `password-reset:staff:${admin.email}`,
+      },
+    });
+
+    const resetUrl = `/login?tab=reset&token=${rawToken}`;
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'CLIENT_PASSWORD_RESET_SENT',
+      target: user.id,
+      targetType: 'USER',
+    });
+
+    return { 
+      success: true as const, 
+      message: `Ссылка для сброса пароля сгенерирована: ${resetUrl}`,
+      resetUrl 
+    };
+  });
+}
+
+/** Staff Goodwill / Compensation Balance Credit */
+export async function supportGoodwillCreditAction(formData: FormData) {
+  return requireStaffPermission('clients', 'edit', async (admin, _role, tenantId) => {
+    const userId = formData.get('userId') as string;
+    const amountStr = formData.get('amount') as string;
+    const reason = (formData.get('reason') as string) || 'Компенсация техподдержки (Goodwill)';
+    const comment = (formData.get('comment') as string) || '';
+
+    if (!userId || !amountStr) {
+      return { success: false as const, error: 'Не указан клиент или сумма' };
+    }
+
+    const amountRub = parseFloat(amountStr);
+    if (isNaN(amountRub) || amountRub <= 0) {
+      return { success: false as const, error: 'Сумма должна быть положительным числом' };
+    }
+
+    const MAX_GOODWILL_RUB = 10000;
+    if (amountRub > MAX_GOODWILL_RUB && admin.role === 'SUPPORT') {
+      return { success: false as const, error: `Максимальная компенсация для саппорта — ${MAX_GOODWILL_RUB} ₽` };
+    }
+
+    const amountKopecks = BigInt(Math.round(amountRub * 100));
+
+    const { WalletOps } = await import('@/services/financial/wallet-ops');
+    const { auditAdminAwaitable } = await import('@/lib/admin-audit');
+
+    const result = await db.$transaction(async (tx) => {
+      return await WalletOps.credit(
+        tx,
+        userId,
+        amountKopecks,
+        `Goodwill: ${reason}${comment ? ` (${comment})` : ''}`,
+        {
+          adminId: admin.id,
+          tenantId: tenantId || 'smmplan',
+          transactionType: 'ADJUSTMENT'
+        }
+      );
+    });
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'SUPPORT_GOODWILL_CREDIT',
+      target: userId,
+      targetType: 'USER',
+      newValue: { amountRub, reason, comment },
+    });
+
+    revalidatePath(`/admin/clients/${userId}`);
+    revalidatePath('/admin/clients');
+    return { success: true as const, newBalanceRub: Number(result.balance) / 100 };
+  });
+}
+
 /** Fetch full client profile for the detail page */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function getClientProfileAction(userId: string) {
-  return requireStaffPermission('finance', 'view', async () => {
+  return requireStaffPermission('clients', 'view', async () => {
     const user = await db.user.findUnique({
       where: { id: userId },
       select: {

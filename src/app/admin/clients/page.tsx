@@ -32,8 +32,8 @@ export default async function AdminClientsPage({ searchParams }: Props) {
   }) : null;
 
   const isOwner = user?.role === 'OWNER';
-  const isSupport = user?.role === 'SUPPORT';
-  const canSeeFinances = isOwner || !isSupport;
+  // SUPPORT can see client finances for effective client assistance
+  const canSeeFinances = !!user && user.role !== 'USER';
 
   const params = await searchParams;
   const search = params.q || '';

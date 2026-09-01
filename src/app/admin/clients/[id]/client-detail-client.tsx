@@ -2,12 +2,8 @@
 
 /**
  * ClientDetailClient — Enterprise FinTech CRM Client Workspace
- * Orchestrates 5 specialized tabs:
- * 1. Balance & Goodwill adjustments (BalanceTab)
- * 2. Payments & Card Refunds (PaymentsTab)
- * 3. B2B Configuration & Legal Details (B2bTab)
- * 4. Discounts & Operator Notes (NotesTab)
- * 5. Security & Access Control (SecurityTab)
+ * For SUPPORT: renders SupportCommandCenter (single-pane, all actions visible at once)
+ * For OWNER/ADMIN: renders the full 5-tab layout
  */
 
 import { useState } from 'react';
@@ -24,6 +20,7 @@ import { PaymentsTab } from './tabs/payments-tab';
 import { B2bTab } from './tabs/b2b-tab';
 import { NotesTab } from './tabs/notes-tab';
 import { SecurityTab } from './tabs/security-tab';
+import { SupportCommandCenter } from './support-command-center';
 
 export type { UserDTO, PaymentDTO, OrderDTO, LoginLogDTO };
 
@@ -33,13 +30,27 @@ interface Props {
   payments: PaymentDTO[];
   orders: OrderDTO[];
   canSeeFinances: boolean;
+  /** Current operator's role (passed from Server Component) */
+  operatorRole?: string;
 }
 
-export function ClientDetailClient({ user, loginLogs, payments, orders, canSeeFinances }: Props) {
-  // Navigation tabs
+export function ClientDetailClient({ user, loginLogs, payments, orders, canSeeFinances, operatorRole }: Props) {
+  // Navigation tabs (only for non-SUPPORT operators)
   const [activeTab, setActiveTab] = useState<'balance' | 'b2b' | 'payments' | 'security' | 'notes'>('balance');
 
   const isB2b = user.b2bConfig?.isB2b ?? Boolean(user.inn);
+
+  // SUPPORT gets a compact single-pane command center
+  if (operatorRole === 'SUPPORT') {
+    return (
+      <SupportCommandCenter
+        user={user}
+        loginLogs={loginLogs}
+        payments={payments}
+        orders={orders}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -77,7 +88,6 @@ export function ClientDetailClient({ user, loginLogs, payments, orders, canSeeFi
         })}
       </div>
 
-      {/* TAB 1: FULL-WIDTH BALANCE TERMINAL & FINANCIAL ANALYTICS */}
       {activeTab === 'balance' && (
         <BalanceTab
           user={user}
@@ -87,36 +97,12 @@ export function ClientDetailClient({ user, loginLogs, payments, orders, canSeeFi
           onNavigateToPayments={() => setActiveTab('payments')}
         />
       )}
-
-      {/* TAB 2: PAYMENTS & IN-TABLE CARD REFUNDS */}
       {activeTab === 'payments' && (
-        <PaymentsTab
-          user={user}
-          payments={payments}
-          canSeeFinances={canSeeFinances}
-        />
+        <PaymentsTab user={user} payments={payments} canSeeFinances={canSeeFinances} />
       )}
-
-      {/* TAB 3: B2B & LEGAL DETAILS */}
-      {activeTab === 'b2b' && (
-        <B2bTab user={user} />
-      )}
-
-      {/* TAB 4: NOTES & DISCOUNTS */}
-      {activeTab === 'notes' && (
-        <NotesTab
-          user={user}
-          canSeeFinances={canSeeFinances}
-        />
-      )}
-
-      {/* TAB 5: SECURITY CENTER */}
-      {activeTab === 'security' && (
-        <SecurityTab
-          user={user}
-          loginLogs={loginLogs}
-        />
-      )}
+      {activeTab === 'b2b' && <B2bTab user={user} />}
+      {activeTab === 'notes' && <NotesTab user={user} canSeeFinances={canSeeFinances} />}
+      {activeTab === 'security' && <SecurityTab user={user} loginLogs={loginLogs} />}
     </div>
   );
 }
