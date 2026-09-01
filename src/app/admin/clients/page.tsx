@@ -86,7 +86,7 @@ export default async function AdminClientsPage({ searchParams }: Props) {
             )}
           </div>
         }
-        action={(
+        action={(isOwner || user?.role === 'ADMIN') ? (
           <div className="flex items-center gap-3">
             <a
               href={`/api/admin/export?type=users&q=${encodeURIComponent(search)}`}
@@ -95,7 +95,7 @@ export default async function AdminClientsPage({ searchParams }: Props) {
               <Download className="w-4 h-4" /> Экспорт CSV
             </a>
           </div>
-        )}
+        ) : undefined}
         tabs={FINANCE_TABS}
         onboardingKey="clients"
         onboarding={ONBOARDING_CONFIGS.clients}

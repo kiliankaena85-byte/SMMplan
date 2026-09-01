@@ -6,8 +6,9 @@ import { analyticsService } from '@/services/admin/analytics.service';
 import { enforceSectionAccess } from '@/lib/server/rbac';
 
 // SD-06 SECURITY FIX: Restrict export to OWNER/ADMIN only.
-// Export contains providerCost (margin data) and user financial profiles — commercially sensitive.
-const STAFF_ROLES = ['OWNER', 'ADMIN', 'SUPPORT'];
+// Export contains providerCost (margin data), client bases, and user financial profiles — commercially sensitive.
+// SUPPORT is strictly prohibited from bulk exporting data to prevent data exfiltration.
+const STAFF_ROLES = ['OWNER', 'ADMIN'];
 
 function toCsv(headers: string[], rows: string[][]): string {
   const escape = (val: string) => `"${String(val ?? '').replace(/"/g, '""')}"`;

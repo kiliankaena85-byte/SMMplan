@@ -694,15 +694,15 @@ export function OrderDetailsModal({
                       </div>
                     </div>
 
-                    {/* Cost & Margin */}
-                    {canSeeRates ? (
-                      <div className="bg-card border border-border/60 rounded-xl p-3 space-y-2">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Себестоимость:</span>
-                          <span className="font-mono font-bold text-foreground tabular-nums">
-                            {costRub.toFixed(2)} ₽
-                          </span>
-                        </div>
+                    {/* Cost & Margin (Separated: Cost visible in modal to Support & Admin, Margin strictly OWNER/ADMIN) */}
+                    <div className="bg-card border border-border/60 rounded-xl p-3 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Закупочная цена (себестоимость):</span>
+                        <span className="font-mono font-bold text-foreground tabular-nums">
+                          {costRub.toFixed(2)} ₽
+                        </span>
+                      </div>
+                      {canSeeRates ? (
                         <div className="flex items-center justify-between text-xs pt-1.5 border-t border-border/40">
                           <span className="font-bold text-foreground">Чистая маржа:</span>
                           <span className={`font-mono font-extrabold tabular-nums ${
@@ -711,12 +711,12 @@ export function OrderDetailsModal({
                             {marginRub >= 0 ? `+${marginRub.toFixed(2)}` : marginRub.toFixed(2)} ₽ ({marginPercent}%)
                           </span>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="bg-muted/40 p-3 rounded-xl text-center text-xs text-muted-foreground">
-                        🔒 Себестоимость скрыта для вашей роли
-                      </div>
-                    )}
+                      ) : (
+                        <div className="pt-1.5 border-t border-border/40 text-right text-[10px] text-muted-foreground italic">
+                          🔒 Маржа доступна только Администраторам
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Dripfeed / Anomaly Indicator */}

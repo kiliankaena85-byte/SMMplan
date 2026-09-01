@@ -247,16 +247,8 @@ export async function bulkCancelOrdersAction(
   ticketId?: string
 ) {
   return requireStaffPermission('orders', 'edit', async (admin) => {
-    // RBAC Safety: Bulk cancel is strictly restricted to OWNER & ADMIN
-    if (!['OWNER', 'ADMIN'].includes(admin.role)) {
-      return {
-        success: false as const,
-        error: 'Недостаточно прав: массовая отмена с возвратом доступна только Администраторам и Владельцу'
-      };
-    }
-
     const parsed = bulkCancelSchema.safeParse({ orderIds });
-    if (!parsed.success) throw new Error('Invalid IDs or too many items');
+    if (!parsed.success) return { success: false as const, error: 'Invalid IDs or too many items' };
 
     // Hard ceiling: max 100 items per execution batch
     const BATCH_LIMIT = 100;
@@ -265,7 +257,30 @@ export async function bulkCancelOrdersAction(
 
     const orders = await db.order.findMany({
       where: { id: { in: targetIds }, tenantId: admin.tenantId ?? 'smmplan' },
+      select: { id: true, userId: true, numericId: true, status: true, charge: true, quantity: true, remains: true, providerCost: true }
     });
+
+    if (orders.length === 0) {
+      return { success: false as const, error: 'Заказы не найдены' };
+    }
+
+    // RBAC & Anti-Sabotage Policy:
+    // OWNER & ADMIN can bulk-cancel across all clients.
+    // SUPPORT is ONLY permitted to bulk-cancel if ALL selected orders belong to the SAME user (e.g. within client CRM or single ticket).
+    if (admin.role === 'SUPPORT') {
+      const distinctUserIds = new Set(orders.map(o => o.userId));
+      if (distinctUserIds.size > 1) {
+        return {
+          success: false as const,
+          error: 'Запрещено массовое действие: саппорт может массово отменять заказы только по одному конкретному клиенту'
+        };
+      }
+    } else if (!['OWNER', 'ADMIN'].includes(admin.role)) {
+      return {
+        success: false as const,
+        error: 'Недостаточно прав для массовой отмены заказов'
+      };
+    }
 
     let totalRefunded = 0;
     let count = 0;

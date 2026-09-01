@@ -72,8 +72,9 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   }) : null;
 
   const isSuperAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
-  const permissions = user?.staffRole?.permissions || [];
-  const canSeeRates = isSuperAdmin || permissions.some(p => p.section.toLowerCase() === 'finance' && (p.canView || p.canEdit));
+  // Table-level cost/margin visibility is strictly reserved for OWNER and ADMIN.
+  // SUPPORT sees only retail prices in the main table list to avoid confusion and distraction.
+  const canSeeRatesInTable = isSuperAdmin;
 
   const params = await searchParams;
   const query = params.q || '';
@@ -184,14 +185,14 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
         title="Заказы"
         description={`Всего: ${stats.total} • В очереди: ${stats.pending} • В работе: ${stats.inProgress} • Ошибки: ${stats.error}`}
         currentTenant={tenantFilter}
-        action={(
+        action={isSuperAdmin ? (
           <a
             href={`/api/admin/export${buildQueryString({ type: 'orders' })}`}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-foreground bg-card border border-border/70 shadow-sm rounded-md hover:bg-muted hover:text-primary transition-colors h-8"
           >
             <Download className="w-3.5 h-3.5" /> Экспорт CSV
           </a>
-        )}
+        ) : undefined}
       />
 
       {/* Search + Filters & Orders Table Container */}
@@ -225,7 +226,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
             )}
           </div>
           <OrderClient 
-            canSeeRates={canSeeRates}
+            canSeeRates={canSeeRatesInTable}
             userRole={user?.role}
             data={orders.map(o => ({
               id: o.id,
