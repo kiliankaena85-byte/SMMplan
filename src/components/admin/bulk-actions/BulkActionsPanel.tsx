@@ -136,17 +136,19 @@ export function BulkActionsPanel({ selectedOrders, canSeeRates, userRole = 'SUPP
             <span>{hasErrors ? `Перезапустить ${errorCount}` : `Перезапустить ${count}`}</span>
           </button>
 
-          {/* Export action */}
-          <button
-            type="button"
-            onClick={() => {
-              toast.info('Экспорт данных выбранных заказов сформирован');
-            }}
-            className="p-1.5 rounded-xl bg-muted border border-border/60 text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0"
-            title="Экспорт выбранных (CSV)"
-          >
-            <Download className="w-3.5 h-3.5" />
-          </button>
+          {/* Export action (Strictly OWNER / ADMIN DLP protection) */}
+          {canExecuteAdminBulk && (
+            <button
+              type="button"
+              onClick={() => {
+                toast.info('Экспорт данных выбранных заказов сформирован');
+              }}
+              className="p-1.5 rounded-xl bg-muted border border-border/60 text-foreground hover:bg-muted/80 transition-colors cursor-pointer shrink-0"
+              title="Экспорт выбранных (CSV)"
+            >
+              <Download className="w-3.5 h-3.5" />
+            </button>
+          )}
 
           {/* Clear selection link */}
           <button

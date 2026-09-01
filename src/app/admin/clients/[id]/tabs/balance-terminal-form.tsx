@@ -195,16 +195,28 @@ export function BalanceTerminalForm({ user, orders, payments }: BalanceTerminalF
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-[11px] uppercase font-bold tracking-wider text-muted-foreground mb-1.5 block">
-              Причина
+              Причина ({direction === 'CREDIT' ? 'начисления' : 'списания'})
             </label>
             <select
               value={reasonCode}
               onChange={e => setReasonCode(e.target.value)}
               className="w-full h-11 text-xs px-3 py-2 rounded-xl border border-border/60 bg-background/50 shadow-sm text-foreground outline-none focus:border-primary transition-all font-medium cursor-pointer"
             >
-              <option value="GOODWILL_LOYALTY">🎁 Лояльность / Бонус клиенту</option>
-              <option value="ORDER_DELAY_COMPENSATION">⏱️ Компенсация за заказ</option>
-              <option value="MANUAL_CORRECTION">🛠️ Корректировка баланса</option>
+              {direction === 'CREDIT' ? (
+                <>
+                  <option value="ORDER_DELAY_COMPENSATION">⏱️ Компенсация за задержку заказа</option>
+                  <option value="PROVIDER_ERROR">⚠️ Ошибка провайдера (сбой)</option>
+                  <option value="GOODWILL_LOYALTY">🎁 Лояльность / Бонус клиенту</option>
+                  <option value="MANUAL_CORRECTION">🛠️ Ручное пополнение / Корректировка</option>
+                </>
+              ) : (
+                <>
+                  <option value="MANUAL_CORRECTION">🛠️ Корректировка ошибочного начисления</option>
+                  <option value="CHARGEBACK_PENALTY">🚫 Штраф / Чарджбэк платежа</option>
+                  <option value="WITHDRAWAL">💳 Списание по запросу клиента (вывод)</option>
+                  <option value="TECH_ADJUSTMENT">⚙️ Техническая корректировка баланса</option>
+                </>
+              )}
             </select>
           </div>
 

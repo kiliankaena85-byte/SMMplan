@@ -14,7 +14,7 @@ import {
   CreditCard,
   Building2,
 } from 'lucide-react';
-import { UserDTO, PaymentDTO, OrderDTO, LoginLogDTO } from './tabs/types';
+import { UserDTO, PaymentDTO, OrderDTO, LoginLogDTO, ClientLedgerEntryDTO, ClientLedgerSummaryDTO } from './tabs/types';
 import { BalanceTab } from './tabs/balance-tab';
 import { PaymentsTab } from './tabs/payments-tab';
 import { B2bTab } from './tabs/b2b-tab';
@@ -22,19 +22,30 @@ import { NotesTab } from './tabs/notes-tab';
 import { SecurityTab } from './tabs/security-tab';
 import { SupportCommandCenter } from './support-command-center';
 
-export type { UserDTO, PaymentDTO, OrderDTO, LoginLogDTO };
+export type { UserDTO, PaymentDTO, OrderDTO, LoginLogDTO, ClientLedgerEntryDTO, ClientLedgerSummaryDTO };
 
 interface Props {
   user: UserDTO;
   loginLogs: LoginLogDTO[];
   payments: PaymentDTO[];
   orders: OrderDTO[];
+  ledgerEntries?: ClientLedgerEntryDTO[];
+  ledgerSummary?: ClientLedgerSummaryDTO;
   canSeeFinances: boolean;
   /** Current operator's role (passed from Server Component) */
   operatorRole?: string;
 }
 
-export function ClientDetailClient({ user, loginLogs, payments, orders, canSeeFinances, operatorRole }: Props) {
+export function ClientDetailClient({ 
+  user, 
+  loginLogs, 
+  payments, 
+  orders, 
+  ledgerEntries = [], 
+  ledgerSummary = { totalDepositedRub: 0, totalSpentRub: 0, totalRefundedRub: 0, totalAdjustedRub: 0 }, 
+  canSeeFinances, 
+  operatorRole 
+}: Props) {
   // Navigation tabs (only for non-SUPPORT operators)
   const [activeTab, setActiveTab] = useState<'balance' | 'b2b' | 'payments' | 'security' | 'notes'>('balance');
 
@@ -48,6 +59,8 @@ export function ClientDetailClient({ user, loginLogs, payments, orders, canSeeFi
         loginLogs={loginLogs}
         payments={payments}
         orders={orders}
+        ledgerEntries={ledgerEntries}
+        ledgerSummary={ledgerSummary}
       />
     );
   }
@@ -98,7 +111,13 @@ export function ClientDetailClient({ user, loginLogs, payments, orders, canSeeFi
         />
       )}
       {activeTab === 'payments' && (
-        <PaymentsTab user={user} payments={payments} canSeeFinances={canSeeFinances} />
+        <PaymentsTab 
+          user={user} 
+          payments={payments} 
+          canSeeFinances={canSeeFinances} 
+          ledgerEntries={ledgerEntries}
+          ledgerSummary={ledgerSummary}
+        />
       )}
       {activeTab === 'b2b' && <B2bTab user={user} />}
       {activeTab === 'notes' && <NotesTab user={user} canSeeFinances={canSeeFinances} />}

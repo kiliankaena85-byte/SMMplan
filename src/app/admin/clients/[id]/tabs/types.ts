@@ -60,6 +60,25 @@ export interface LoginLogDTO {
   createdAt: string;
 }
 
+export interface ClientLedgerEntryDTO {
+  id: string;
+  amountRub: number;
+  amountCents: number;
+  direction: 'INCOME' | 'EXPENSE';
+  reason: string;
+  status: string;
+  transactionType: string;
+  adminEmail: string | null;
+  createdAt: string;
+}
+
+export interface ClientLedgerSummaryDTO {
+  totalDepositedRub: number;
+  totalSpentRub: number;
+  totalRefundedRub: number;
+  totalAdjustedRub: number;
+}
+
 export function parseUserAgent(ua: string) {
   if (!ua) return 'Unknown Browser / OS';
   let browser = 'Other Browser';

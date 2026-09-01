@@ -54,6 +54,17 @@ export async function updateBalanceAction(formData: FormData) {
       };
     }
 
+    // Poka-Yoke Server Validation: Negative amount cannot have Goodwill/Bonus/Compensation reason
+    if (amount < 0) {
+      const lowerReason = reason.toLowerCase();
+      if (lowerReason.includes('компенсация') || lowerReason.includes('доброй воли') || lowerReason.includes('бонус')) {
+        return {
+          success: false as const,
+          error: 'Недопустимая причина для списания. «Компенсация» и «Бонус» применяются только для начисления средств (+) клиенту.'
+        };
+      }
+    }
+
     const ipAddress = await getClientIp('unknown');
     const reqHeaders = await headers();
     const userAgent = reqHeaders.get('user-agent') || 'Unknown';

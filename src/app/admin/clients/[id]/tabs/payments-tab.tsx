@@ -6,28 +6,52 @@ import {
   Receipt,
   RotateCcw,
 } from 'lucide-react';
-import { UserDTO, PaymentDTO } from './types';
+import { UserDTO, PaymentDTO, ClientLedgerEntryDTO, ClientLedgerSummaryDTO } from './types';
 import { PaymentsRefundModal } from './payments-refund-modal';
+import { ClientLedgerTable } from '../components/client-ledger-table';
 
 interface PaymentsTabProps {
   user: UserDTO;
   payments: PaymentDTO[];
   canSeeFinances: boolean;
+  ledgerEntries?: ClientLedgerEntryDTO[];
+  ledgerSummary?: ClientLedgerSummaryDTO;
 }
 
-export function PaymentsTab({ user, payments, canSeeFinances }: PaymentsTabProps) {
+export function PaymentsTab({ user, payments, canSeeFinances, ledgerEntries = [], ledgerSummary = { totalDepositedRub: 0, totalSpentRub: 0, totalRefundedRub: 0, totalAdjustedRub: 0 } }: PaymentsTabProps) {
   const currentBalanceRub = (user.balance || 0) / 100;
   const [refundModalPayment, setRefundModalPayment] = useState<PaymentDTO | null>(null);
 
   return (
-    <>
-      <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl overflow-hidden ring-1 ring-border/5 space-y-4">
-        <div className="px-5 py-3.5 border-b border-border/60 flex items-center justify-between">
+    <div className="space-y-6">
+      {/* 1. Unified Ledger Table for Client */}
+      <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-5 ring-1 ring-border/5">
+        <div className="border-b border-border/60 pb-3 mb-4 flex items-center justify-between">
           <h3 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
             <span className="bg-primary/10 text-primary p-1 rounded-md">
               <CreditCard className="w-3.5 h-3.5" />
             </span>
-            История платежей и шлюз возврата на карту
+            Книга транзакций клиента (Ledger)
+          </h3>
+          <span className="text-xs font-bold text-muted-foreground font-mono">
+            Все операции
+          </span>
+        </div>
+        <ClientLedgerTable
+          userId={user.id}
+          initialEntries={ledgerEntries}
+          initialSummary={ledgerSummary}
+        />
+      </div>
+
+      {/* 2. External Payment Gateways & Refund Management */}
+      <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl overflow-hidden ring-1 ring-border/5 space-y-4">
+        <div className="px-5 py-3.5 border-b border-border/60 flex items-center justify-between">
+          <h3 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
+            <span className="bg-primary/10 text-primary p-1 rounded-md">
+              <Receipt className="w-3.5 h-3.5" />
+            </span>
+            Внешние пополнения (ЮKassa / CryptoBot) и возврат на карту
           </h3>
           <span className="text-xs font-bold text-muted-foreground font-mono">
             Всего пополнений: {payments.length}
@@ -129,6 +153,6 @@ export function PaymentsTab({ user, payments, canSeeFinances }: PaymentsTabProps
         currentBalanceRub={currentBalanceRub}
         onClose={() => setRefundModalPayment(null)}
       />
-    </>
+    </div>
   );
 }

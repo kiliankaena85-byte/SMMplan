@@ -18,6 +18,7 @@ import { auditAdmin } from '@/lib/admin-audit';
 import { serializeForClient } from '@/lib/bigint-serializer';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import type { Prisma } from '@prisma/client';
 
 const MAX_DISCOUNT = 50; // Business rule: max personal discount
 
@@ -82,6 +83,8 @@ export async function updateClientDiscountAction(
   });
 }
 
+import { SUPPORT_CREDIT_REASONS, SUPPORT_DEBIT_REASONS } from '@/lib/constants/support-reasons';
+
 /** Update internal admin note for a client */
 export async function updateClientNoteAction(userId: string, note: string) {
   return requireStaffPermission('clients', 'edit', async (admin) => {
@@ -90,13 +93,20 @@ export async function updateClientNoteAction(userId: string, note: string) {
       return { success: false as const, error: 'Заметка слишком длинная (макс 2000 символов)' };
     }
 
-    await db.user.update({
+    const trimmed = parsed.data.note?.trim() || null;
+
+    const updatedUser = await db.user.update({
       where: { id: parsed.data.userId },
       data: {
-        adminNote: parsed.data.note?.trim() || null,
-        adminNoteUpdatedAt: new Date(),
-        adminNoteUpdatedBy: admin.email,
+        adminNote: trimmed,
+        adminNoteUpdatedAt: trimmed ? new Date() : null,
+        adminNoteUpdatedBy: trimmed ? admin.email : null,
       },
+      select: {
+        adminNote: true,
+        adminNoteUpdatedAt: true,
+        adminNoteUpdatedBy: true,
+      }
     });
 
     auditAdmin({
@@ -108,6 +118,40 @@ export async function updateClientNoteAction(userId: string, note: string) {
     });
 
     revalidatePath(`/admin/clients/${parsed.data.userId}`);
+    return { 
+      success: true as const,
+      note: updatedUser.adminNote,
+      updatedAt: updatedUser.adminNoteUpdatedAt?.toISOString() ?? null,
+      updatedBy: updatedUser.adminNoteUpdatedBy,
+    };
+  });
+}
+
+/** Clear / delete internal admin note for a client */
+export async function clearClientNoteAction(userId: string) {
+  return requireStaffPermission('clients', 'edit', async (admin) => {
+    if (!userId) {
+      return { success: false as const, error: 'Не указан ID клиента' };
+    }
+
+    await db.user.update({
+      where: { id: userId },
+      data: {
+        adminNote: null,
+        adminNoteUpdatedAt: null,
+        adminNoteUpdatedBy: null,
+      },
+    });
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'CLIENT_NOTE_DELETE',
+      target: userId,
+      targetType: 'USER',
+    });
+
+    revalidatePath(`/admin/clients/${userId}`);
     return { success: true as const };
   });
 }
@@ -134,7 +178,6 @@ export async function sendPasswordResetEmailAction(userId: string) {
         token: hashedToken,
         expiresAt,
         ipIssued: '127.0.0.1',
-        // Encode purpose in userAgentIssued since AuthToken has no 'type' field
         userAgentIssued: `password-reset:staff:${admin.email}`,
       },
     });
@@ -157,13 +200,13 @@ export async function sendPasswordResetEmailAction(userId: string) {
   });
 }
 
-/** Staff Balance Credit / Debit / Goodwill with policy limits and admin escalation */
+/** Staff Balance Credit / Debit / Goodwill with Poka-Yoke policy limits and admin escalation */
 export async function supportGoodwillCreditAction(formData: FormData) {
   return requireStaffPermission('clients', 'edit', async (admin, _role, tenantId) => {
     const userId = formData.get('userId') as string;
     const amountStr = formData.get('amount') as string;
     const direction = ((formData.get('direction') as string) || 'CREDIT').toUpperCase() as 'CREDIT' | 'DEBIT';
-    const reason = (formData.get('reason') as string) || 'Операция техподдержки';
+    const reason = (formData.get('reason') as string) || (direction === 'CREDIT' ? 'Компенсация за задержку заказа' : 'Корректировка ошибочного начисления');
     const comment = (formData.get('comment') as string) || '';
 
     if (!userId || !amountStr) {
@@ -173,6 +216,17 @@ export async function supportGoodwillCreditAction(formData: FormData) {
     const amountRub = parseFloat(amountStr);
     if (isNaN(amountRub) || amountRub <= 0) {
       return { success: false as const, error: 'Сумма должна быть положительным числом' };
+    }
+
+    // Poka-Yoke Server Validation: Ensure Debit operations cannot use Credit compensation reasons
+    if (direction === 'DEBIT') {
+      const lowerReason = reason.toLowerCase();
+      if (lowerReason.includes('компенсация') || lowerReason.includes('доброй воли') || lowerReason.includes('бонус')) {
+        return {
+          success: false as const,
+          error: 'Недопустимая причина для списания. «Компенсация» и «Бонус» применяются только для начисления средств (+) клиенту.'
+        };
+      }
     }
 
     const targetUser = await db.user.findUnique({
@@ -235,7 +289,7 @@ export async function supportGoodwillCreditAction(formData: FormData) {
           tx,
           userId,
           amountKopecks,
-          `Goodwill: ${reason}${comment ? ` (${comment})` : ''}`,
+          `Начисление: ${reason}${comment ? ` (${comment})` : ''}`,
           {
             adminId: admin.id,
             tenantId: tenantId || targetUser.tenantId || 'smmplan',
@@ -247,7 +301,7 @@ export async function supportGoodwillCreditAction(formData: FormData) {
           tx,
           userId,
           amountKopecks,
-          `Списание оператором: ${reason}${comment ? ` (${comment})` : ''}`,
+          `Списание: ${reason}${comment ? ` (${comment})` : ''}`,
           {
             adminId: admin.id,
             tenantId: tenantId || targetUser.tenantId || 'smmplan',
@@ -272,6 +326,119 @@ export async function supportGoodwillCreditAction(formData: FormData) {
       success: true as const, 
       newBalanceRub: Number(result.balance) / 100,
       message: `${direction === 'CREDIT' ? 'Начислено' : 'Списано'} ${amountRub} ₽`
+    };
+  });
+}
+
+/** Get client ledger entries and comprehensive financial summary */
+export async function getClientLedgerAction(userId: string, filterType = 'ALL') {
+  return requireStaffPermission('clients', 'view', async () => {
+    if (!userId) {
+      return { success: false as const, error: 'Не указан ID клиента' };
+    }
+
+    const where: Prisma.LedgerEntryWhereInput = {
+      userId,
+    };
+
+    if (filterType === 'TOPUP') {
+      where.OR = [
+        { transactionType: 'TOPUP' },
+        { transactionType: 'PAYMENT', amount: { gt: BigInt(0) } },
+        { transactionType: 'ADJUSTMENT', amount: { gt: BigInt(0) } },
+      ];
+    } else if (filterType === 'ORDER_CHARGE') {
+      where.OR = [
+        { transactionType: 'ORDER_CHARGE' },
+        { amount: { lt: BigInt(0) }, reason: { contains: 'Заказ' } }
+      ];
+    } else if (filterType === 'REFUND') {
+      where.OR = [
+        { transactionType: 'REFUND' },
+        { transactionType: 'ORDER_CANCEL' },
+        { reason: { contains: 'возврат', mode: 'insensitive' } }
+      ];
+    } else if (filterType === 'ADJUSTMENT') {
+      where.OR = [
+        { transactionType: 'ADJUSTMENT' },
+        { transactionType: 'COMPENSATION' },
+        { adminId: { not: null } }
+      ];
+    }
+
+    const [entries, rawSummary] = await Promise.all([
+      db.ledgerEntry.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        select: {
+          id: true,
+          amount: true,
+          reason: true,
+          status: true,
+          transactionType: true,
+          adminId: true,
+          createdAt: true,
+        }
+      }),
+      db.ledgerEntry.groupBy({
+        by: ['transactionType'],
+        where: { userId },
+        _sum: { amount: true },
+      })
+    ]);
+
+    // Fetch admin emails if needed
+    const adminIds = Array.from(new Set(entries.map(e => e.adminId).filter(Boolean))) as string[];
+    const admins = adminIds.length > 0 ? await db.user.findMany({
+      where: { id: { in: adminIds } },
+      select: { id: true, email: true }
+    }) : [];
+    const adminMap = new Map(admins.map(a => [a.id, a.email]));
+
+    // Calculate aggregated totals
+    let totalDepositedKopecks = BigInt(0);
+    let totalSpentKopecks = BigInt(0);
+    let totalRefundedKopecks = BigInt(0);
+    let totalAdjustedKopecks = BigInt(0);
+
+    for (const group of rawSummary) {
+      const sum = group._sum.amount ?? BigInt(0);
+      const type = group.transactionType;
+
+      if (type === 'TOPUP' || (type === 'PAYMENT' && sum > BigInt(0))) {
+        totalDepositedKopecks += sum;
+      } else if (type === 'ORDER_CHARGE') {
+        totalSpentKopecks += (sum < BigInt(0) ? -sum : sum);
+      } else if (type === 'REFUND' || type === 'ORDER_CANCEL') {
+        totalRefundedKopecks += (sum > BigInt(0) ? sum : -sum);
+      } else if (type === 'ADJUSTMENT' || type === 'COMPENSATION') {
+        totalAdjustedKopecks += sum;
+      }
+    }
+
+    return {
+      success: true as const,
+      entries: entries.map(e => {
+        const amountNum = Number(e.amount) / 100;
+        return {
+          id: e.id,
+          amountRub: Math.abs(amountNum),
+          amountCents: Number(e.amount),
+          direction: e.amount >= BigInt(0) ? ('INCOME' as const) : ('EXPENSE' as const),
+          reason: e.reason,
+          status: e.status,
+          transactionType: e.transactionType,
+          adminEmail: e.adminId ? (adminMap.get(e.adminId) || 'Оператор') : null,
+          createdAt: e.createdAt.toISOString(),
+        };
+      }),
+      summary: {
+        totalDepositedRub: Number(totalDepositedKopecks) / 100,
+        totalSpentRub: Number(totalSpentKopecks) / 100,
+        totalRefundedRub: Number(totalRefundedKopecks) / 100,
+        totalAdjustedRub: Number(totalAdjustedKopecks) / 100,
+      }
     };
   });
 }

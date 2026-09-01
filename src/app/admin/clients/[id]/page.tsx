@@ -83,7 +83,7 @@ export default async function ClientDetailPage({ params }: Props) {
 
   if (!user) notFound();
 
-  const [orders, payments, countResult, loginLogs] = await Promise.all([
+  const [orders, payments, countResult, loginLogs, rawLedgerEntries, rawSummary] = await Promise.all([
     db.order.findMany({
       where: { userId: id },
       orderBy: { createdAt: 'desc' },
@@ -133,7 +133,73 @@ export default async function ClientDetailPage({ params }: Props) {
         createdAt: true,
       },
     }),
+    db.ledgerEntry.findMany({
+      where: { userId: id },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        amount: true,
+        reason: true,
+        status: true,
+        transactionType: true,
+        adminId: true,
+        createdAt: true,
+      },
+    }),
+    db.ledgerEntry.groupBy({
+      by: ['transactionType'],
+      where: { userId: id },
+      _sum: { amount: true },
+    })
   ]);
+
+  // Map admin emails for ledger
+  const adminIds = Array.from(new Set(rawLedgerEntries.map(e => e.adminId).filter(Boolean))) as string[];
+  const admins = adminIds.length > 0 ? await db.user.findMany({
+    where: { id: { in: adminIds } },
+    select: { id: true, email: true }
+  }) : [];
+  const adminMap = new Map(admins.map(a => [a.id, a.email]));
+
+  let totalDepositedKopecks = BigInt(0);
+  let totalSpentKopecks = BigInt(0);
+  let totalRefundedKopecks = BigInt(0);
+  let totalAdjustedKopecks = BigInt(0);
+
+  for (const group of rawSummary) {
+    const sum = group._sum.amount ?? BigInt(0);
+    const type = group.transactionType;
+
+    if (type === 'TOPUP' || (type === 'PAYMENT' && sum > BigInt(0))) {
+      totalDepositedKopecks += sum;
+    } else if (type === 'ORDER_CHARGE') {
+      totalSpentKopecks += (sum < BigInt(0) ? -sum : sum);
+    } else if (type === 'REFUND' || type === 'ORDER_CANCEL') {
+      totalRefundedKopecks += (sum > BigInt(0) ? sum : -sum);
+    } else if (type === 'ADJUSTMENT' || type === 'COMPENSATION') {
+      totalAdjustedKopecks += sum;
+    }
+  }
+
+  const initialLedgerEntries = rawLedgerEntries.map(e => ({
+    id: e.id,
+    amountRub: Math.abs(Number(e.amount) / 100),
+    amountCents: Number(e.amount),
+    direction: e.amount >= BigInt(0) ? ('INCOME' as const) : ('EXPENSE' as const),
+    reason: e.reason,
+    status: e.status,
+    transactionType: e.transactionType,
+    adminEmail: e.adminId ? (adminMap.get(e.adminId) || 'Оператор') : null,
+    createdAt: e.createdAt.toISOString(),
+  }));
+
+  const initialLedgerSummary = {
+    totalDepositedRub: Number(totalDepositedKopecks) / 100,
+    totalSpentRub: Number(totalSpentKopecks) / 100,
+    totalRefundedRub: Number(totalRefundedKopecks) / 100,
+    totalAdjustedRub: Number(totalAdjustedKopecks) / 100,
+  };
 
   const ordersCount = countResult?._count.orders ?? 0;
   const ticketsCount = countResult?._count.tickets ?? 0;
@@ -297,7 +363,7 @@ export default async function ClientDetailPage({ params }: Props) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Баланс', value: canSeeFinances ? formatBalance(user.balance) : '🔒 *** ₽', accent: 'text-foreground', note: (canSeeFinances && user.quarantineBalance > 0) ? `🔒 ${formatBalance(user.quarantineBalance)} эскроу` : null },
-          { label: 'LTV', value: canSeeFinances ? formatBalance(user.totalSpent) : '🔒 *** ₽', accent: 'text-success', note: null },
+          { label: 'LTV (Потрачено)', value: canSeeFinances ? formatBalance(user.totalSpent) : '🔒 *** ₽', accent: 'text-success', note: 'Заказы − Возвраты' },
           { label: 'Заказов', value: ordersCount.toString(), accent: 'text-foreground', note: `${ticketsCount} тикетов` },
           { label: 'Реф. баланс', value: canSeeFinances ? formatBalance(user.referralBalance) : '🔒 *** ₽', accent: 'text-violet-600', note: user.referralCode ? `Код: ${user.referralCode}` : 'Нет кода' },
         ].map(s => (
@@ -310,7 +376,16 @@ export default async function ClientDetailPage({ params }: Props) {
       </div>
 
       {/* Interactive client panel */}
-      <ClientDetailClient user={dto} loginLogs={logsDto} payments={paymentsDto} orders={ordersDto} canSeeFinances={canSeeFinances} operatorRole={currentUser?.role} />
+      <ClientDetailClient 
+        user={dto} 
+        loginLogs={logsDto} 
+        payments={paymentsDto} 
+        orders={ordersDto} 
+        ledgerEntries={initialLedgerEntries}
+        ledgerSummary={initialLedgerSummary}
+        canSeeFinances={canSeeFinances} 
+        operatorRole={currentUser?.role} 
+      />
 
       {/* Recent orders */}
       <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl overflow-hidden ring-1 ring-border/5 flex flex-col">

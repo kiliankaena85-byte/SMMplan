@@ -15,9 +15,14 @@ import {
 import { UserDTO, PaymentDTO, OrderDTO, LoginLogDTO } from './tabs/types';
 import {
   updateClientNoteAction,
+  clearClientNoteAction,
   updateClientDiscountAction,
   supportGoodwillCreditAction,
 } from '@/actions/admin/clients';
+import {
+  SUPPORT_CREDIT_REASONS,
+  SUPPORT_DEBIT_REASONS,
+} from '@/lib/constants/support-reasons';
 import {
   adminGenerateMagicLinkAction,
   adminChangeUserPasswordAction,
@@ -26,6 +31,8 @@ import {
 import { SecurityEmailModal } from './tabs/security-email-modal';
 import { SecurityLoginLogs } from './tabs/security-login-logs';
 import { PaymentsTab } from './tabs/payments-tab';
+import { ClientLedgerTable } from './components/client-ledger-table';
+import { ClientLedgerEntryDTO, ClientLedgerSummaryDTO } from './tabs/types';
 
 function fmtBalance(kopecks: number | undefined): string {
   if (kopecks === undefined || kopecks === null) return '—';
@@ -39,17 +46,21 @@ interface Props {
   loginLogs: LoginLogDTO[];
   payments: PaymentDTO[];
   orders: OrderDTO[];
+  ledgerEntries?: ClientLedgerEntryDTO[];
+  ledgerSummary?: ClientLedgerSummaryDTO;
 }
 
-export function SupportCommandCenter({ user, loginLogs, payments, orders }: Props) {
+export function SupportCommandCenter({ user, loginLogs, payments, orders, ledgerEntries = [], ledgerSummary = { totalDepositedRub: 0, totalSpentRub: 0, totalRefundedRub: 0, totalAdjustedRub: 0 } }: Props) {
   const [note, setNote] = useState(user.adminNote || '');
+  const [noteAuthor, setNoteAuthor] = useState(user.adminNoteUpdatedBy || null);
+  const [noteDate, setNoteDate] = useState(user.adminNoteUpdatedAt || null);
   const [discount, setDiscount] = useState(user.personalDiscount || 0);
   const [isPendingNote, startNoteTransition] = useTransition();
   const [isPendingDiscount, startDiscountTransition] = useTransition();
 
   const [adjAmount, setAdjAmount] = useState('');
   const [adjDirection, setAdjDirection] = useState<'CREDIT' | 'DEBIT'>('CREDIT');
-  const [adjReason, setAdjReason] = useState('Компенсация за задержку');
+  const [adjReason, setAdjReason] = useState<string>(SUPPORT_CREDIT_REASONS[0]);
   const [adjComment, setAdjComment] = useState('');
   const [isPendingAdj, startAdjTransition] = useTransition();
 
@@ -62,6 +73,7 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders }: Prop
   const [isPendingRevoke, startRevokeTransition] = useTransition();
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showPayments, setShowPayments] = useState(false);
+  const [showLedger, setShowLedger] = useState(false);
 
   const currentBalanceRub = (user.balance ?? 0) / 100;
 
@@ -72,11 +84,40 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders }: Prop
     setShowPass(true);
   }
 
+  function handleDirectionChange(d: 'CREDIT' | 'DEBIT') {
+    setAdjDirection(d);
+    setAdjReason(d === 'CREDIT' ? SUPPORT_CREDIT_REASONS[0] : SUPPORT_DEBIT_REASONS[0]);
+  }
+
   function saveNote() {
+    if (!note.trim()) {
+      handleClearNote();
+      return;
+    }
     startNoteTransition(async () => {
       const r = await updateClientNoteAction(user.id, note);
-      if (r.success) toast.success('Заметка сохранена');
-      else toast.error(r.error ?? 'Ошибка');
+      if (r.success) {
+        toast.success('Заметка сохранена');
+        setNoteAuthor(r.updatedBy);
+        setNoteDate(r.updatedAt);
+      } else {
+        toast.error(r.error ?? 'Ошибка сохранения заметки');
+      }
+    });
+  }
+
+  function handleClearNote() {
+    if (!confirm('Удалить заметку оператора по этому клиенту?')) return;
+    startNoteTransition(async () => {
+      const r = await clearClientNoteAction(user.id);
+      if (r.success) {
+        toast.success('Заметка удалена');
+        setNote('');
+        setNoteAuthor(null);
+        setNoteDate(null);
+      } else {
+        toast.error(r.error ?? 'Ошибка удаления заметки');
+      }
     });
   }
 
@@ -155,17 +196,7 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders }: Prop
 
   const lastLog = loginLogs[0];
 
-  const stats = [
-    { label: 'Баланс', value: fmtBalance(user.balance), sub: (user.quarantineBalance ?? 0) > 0 ? `Эскроу: ${fmtBalance(user.quarantineBalance)}` : null, color: 'text-success' },
-    { label: 'LTV (потрачено)', value: fmtBalance(user.totalSpent), sub: `${user.ordersCount} заказов`, color: 'text-foreground' },
-    { label: 'Реф. баланс', value: fmtBalance(user.referralBalance), sub: user.referralCode ? `Код: ${user.referralCode}` : null, color: 'text-violet-600' },
-    { label: 'Платежей', value: String(user.paymentsCount), sub: `${user.ticketsCount} тикетов`, color: 'text-primary' },
-  ];
-
-  const reasons = [
-    'Компенсация за задержку', 'Ошибка провайдера', 'Жест доброй воли',
-    'Реферальная компенсация', 'Технический сбой', 'Иное (см. комментарий)',
-  ];
+  const currentReasons = adjDirection === 'CREDIT' ? SUPPORT_CREDIT_REASONS : SUPPORT_DEBIT_REASONS;
 
   const statusCls = (s: string) =>
     s === 'COMPLETED' ? 'bg-success/10 text-success' :
@@ -182,15 +213,17 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders }: Prop
         <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-5 ring-1 ring-border/5 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
-              <span className="bg-success/10 text-success p-1 rounded-md"><Wallet className="w-3.5 h-3.5" /></span>
-              Баланс клиента
+              <span className="bg-primary/10 text-primary p-1 rounded-md"><Wallet className="w-3.5 h-3.5" /></span>
+              Баланс и операции
             </h3>
-            <span className="text-[10px] text-muted-foreground font-mono">Доступно: {currentBalanceRub.toLocaleString('ru-RU')} ₽</span>
+            <span className="text-xs font-bold font-mono text-success">
+              {currentBalanceRub.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+            </span>
           </div>
 
           <div className="flex gap-2">
             {(['CREDIT', 'DEBIT'] as const).map(d => (
-              <button key={d} type="button" onClick={() => setAdjDirection(d)}
+              <button key={d} type="button" onClick={() => handleDirectionChange(d)}
                 className={`flex-1 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
                   adjDirection === d
                     ? d === 'CREDIT' ? 'bg-success text-success-foreground border-success' : 'bg-destructive text-destructive-foreground border-destructive'
@@ -212,10 +245,10 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders }: Prop
             )}
           </div>
           <div>
-            <label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1 block">Причина</label>
+            <label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mb-1 block">Причина ({adjDirection === 'CREDIT' ? 'начисления' : 'списания'})</label>
             <select value={adjReason} onChange={e => setAdjReason(e.target.value)}
               className="w-full h-9 px-3 text-xs rounded-xl border border-border/60 bg-background/50 shadow-sm text-foreground outline-none focus:border-primary cursor-pointer">
-              {reasons.map(r => <option key={r} value={r}>{r}</option>)}
+              {currentReasons.map((r: string) => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
           <div>
@@ -245,11 +278,18 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders }: Prop
             </div>
           </div>
 
-          <button type="button" onClick={() => setShowPayments(v => !v)}
-            className="w-full h-8 rounded-xl text-xs font-semibold bg-muted text-muted-foreground border border-border/50 hover:bg-muted/80 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
-            <CreditCard className="w-3.5 h-3.5" />
-            {showPayments ? 'Скрыть платежи' : `Показать платежи (${payments.length})`}
-          </button>
+          <div className="space-y-2">
+            <button type="button" onClick={() => setShowLedger(v => !v)}
+              className="w-full h-8 rounded-xl text-xs font-semibold bg-muted text-muted-foreground border border-border/50 hover:bg-muted/80 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
+              <CreditCard className="w-3.5 h-3.5" />
+              {showLedger ? 'Скрыть транзакции Ledger' : 'Показать транзакции Ledger'}
+            </button>
+            <button type="button" onClick={() => setShowPayments(v => !v)}
+              className="w-full h-8 rounded-xl text-xs font-semibold bg-muted text-muted-foreground border border-border/50 hover:bg-muted/80 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
+              <CreditCard className="w-3.5 h-3.5" />
+              {showPayments ? 'Скрыть платежи' : `Показать платежи (${payments.length})`}
+            </button>
+          </div>
         </div>
 
         {/* Колонка 2: Безопасность */}
@@ -324,22 +364,38 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders }: Prop
 
         {/* Колонка 3: Заметка + Заказы */}
         <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-5 ring-1 ring-border/5 space-y-4">
-          <h3 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
-            <span className="bg-amber-500/10 text-amber-600 p-1 rounded-md"><FileText className="w-3.5 h-3.5" /></span>
-            Заметка оператора
-          </h3>
-          {user.adminNoteUpdatedBy && (
-            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground bg-muted px-2 py-1 rounded-lg border border-border/40">
-              <AlertCircle className="w-3 h-3 shrink-0" />
-              <span>{user.adminNoteUpdatedBy.split('@')[0]}{user.adminNoteUpdatedAt ? ' · ' + new Date(user.adminNoteUpdatedAt).toLocaleDateString('ru-RU') : ''}</span>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
+              <span className="bg-amber-500/10 text-amber-600 p-1 rounded-md"><FileText className="w-3.5 h-3.5" /></span>
+              Заметка оператора
+            </h3>
+            {noteAuthor && (
+              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-lg border border-border/40 font-mono">
+                {noteAuthor.split('@')[0]}
+              </span>
+            )}
+          </div>
+          {noteDate && (
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground bg-muted/50 px-2.5 py-1 rounded-lg border border-border/40">
+              <AlertCircle className="w-3 h-3 shrink-0 text-amber-600" />
+              <span>Обновлено: {new Date(noteDate).toLocaleString('ru-RU')}</span>
             </div>
           )}
-          <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Внутренняя заметка (клиент не видит)..." rows={5}
+          <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Внутренняя заметка (клиент не видит)..." rows={4}
             className="w-full text-xs px-3 py-2 rounded-xl border border-border/60 bg-background/50 shadow-sm text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-primary resize-none" />
-          <button type="button" onClick={saveNote} disabled={isPendingNote}
-            className="w-full h-9 rounded-xl text-xs font-bold bg-amber-500/10 text-amber-700 border border-amber-500/20 hover:bg-amber-500/20 active:scale-95 transition-all disabled:opacity-50 cursor-pointer">
-            {isPendingNote ? 'Сохранение...' : 'Сохранить заметку'}
-          </button>
+          <div className="flex gap-2">
+            <button type="button" onClick={saveNote} disabled={isPendingNote}
+              className="flex-1 h-9 rounded-xl text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 active:scale-95 transition-all disabled:opacity-50 cursor-pointer shadow-2xs">
+              {isPendingNote ? 'Сохранение...' : 'Сохранить заметку'}
+            </button>
+            {note && (
+              <button type="button" onClick={handleClearNote} disabled={isPendingNote}
+                className="h-9 px-3 rounded-xl text-xs font-bold bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20 active:scale-95 transition-all disabled:opacity-50 cursor-pointer shadow-2xs"
+                title="Очистить и удалить заметку">
+                Очистить
+              </button>
+            )}
+          </div>
 
           <div className="pt-3 border-t border-border/40 space-y-2">
             <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-muted-foreground">
@@ -366,12 +422,34 @@ export function SupportCommandCenter({ user, loginLogs, payments, orders }: Prop
         </div>
       </div>
 
+      {/* Единая книга транзакций Ledger (раскрываемый блок) */}
+      {showLedger && (
+        <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-border/60 bg-muted/20 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-bold text-foreground">Книга транзакций клиента (Ledger)</h3>
+            </div>
+            <span className="text-xs font-bold text-muted-foreground font-mono">
+              Сквозной финансовый журнал
+            </span>
+          </div>
+          <div className="p-5">
+            <ClientLedgerTable 
+              userId={user.id} 
+              initialEntries={ledgerEntries} 
+              initialSummary={ledgerSummary} 
+            />
+          </div>
+        </div>
+      )}
+
       {/* Платежи (раскрываемый блок) */}
       {showPayments && (
         <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl overflow-hidden">
           <div className="px-5 py-3 border-b border-border/60 bg-muted/20 flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-muted-foreground" />
-            <h3 className="text-sm font-bold text-foreground">История платежей</h3>
+            <h3 className="text-sm font-bold text-foreground">История внешних платежей (ЮKassa / CryptoBot)</h3>
           </div>
           <div className="p-5">
             <PaymentsTab user={user} payments={payments} canSeeFinances={true} />
