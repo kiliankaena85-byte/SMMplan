@@ -58,7 +58,7 @@ export default async function AdminOrderDetailPage({
   const canSeeRates = Boolean(session.role && ['OWNER', 'ADMIN', 'MANAGER'].includes(session.role));
 
   return (
-    <div className="w-full min-h-full flex flex-col gap-4 animate-in fade-in duration-200">
+    <div className="w-full max-w-4xl mx-auto min-h-full flex flex-col gap-5 animate-in fade-in duration-200">
       {/* Top Breadcrumb & Navigation Header */}
       <div className="flex items-center justify-between gap-4 border-b border-border/60 pb-3">
         <div className="flex items-center gap-3">
