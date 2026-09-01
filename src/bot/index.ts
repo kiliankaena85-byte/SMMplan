@@ -155,7 +155,7 @@ bot.start(async (ctx: BotContext) => {
 
   // Level 1: Smart Bind Protocol
   if (payload && payload.startsWith('tg_bind_')) {
-    const bindToken = await db.authToken.findUnique({
+    const bindToken = await db.authToken.findFirst({
       where: { token: payload }
     });
 
@@ -492,12 +492,15 @@ bot.action('nav_owner_hub', async (ctx: BotContext) => {
     return ctx.reply('⛔ Доступ ограничен.');
   }
   await auditAdminAwaitable({
+    adminId: String(ctx.from.id),
+    adminEmail: ctx.from.username ? `@${ctx.from.username}` : String(ctx.from.id),
     action: 'BOT_OWNER_HUB_ACCESS',
-    details: {
+    target: String(ctx.from.id),
+    targetType: 'TELEGRAM_BOT',
+    newValue: {
       telegramId: String(ctx.from.id),
       username: ctx.from.username,
     },
-    targetId: String(ctx.from.id),
   }).catch(() => {});
   return ctx.scene.enter('owner-hub');
 });
@@ -507,12 +510,15 @@ bot.command('owner', async (ctx: BotContext) => {
     return ctx.reply('⛔ Доступ ограничен. Этот раздел доступен только владельцу платформы.');
   }
   await auditAdminAwaitable({
+    adminId: String(ctx.from.id),
+    adminEmail: ctx.from.username ? `@${ctx.from.username}` : String(ctx.from.id),
     action: 'BOT_OWNER_HUB_ACCESS',
-    details: {
+    target: String(ctx.from.id),
+    targetType: 'TELEGRAM_BOT',
+    newValue: {
       telegramId: String(ctx.from.id),
       username: ctx.from.username,
     },
-    targetId: String(ctx.from.id),
   }).catch(() => {});
   return ctx.scene.enter('owner-hub');
 });

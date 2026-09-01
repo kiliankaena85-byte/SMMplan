@@ -37,6 +37,7 @@ export class B2BClientProfileService {
     if (!user) return null;
     return {
       ...user,
+      companyName: user.companyName ?? null,
       inn: user.inn ? VaultService.decrypt(user.inn) : null,
       kpp: user.kpp ? VaultService.decrypt(user.kpp) : null,
       ogrn: user.ogrn ? VaultService.decrypt(user.ogrn) : null,

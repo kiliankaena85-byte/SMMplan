@@ -5,7 +5,7 @@ import { proxy } from '@/proxy';
 describe('CSP Nonce-Based Styles Security Suite (P1-9)', () => {
   it('injects nonce into style-src in production proxy headers', async () => {
     const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'production';
+    (process.env as any).NODE_ENV = 'production';
 
     const req = new NextRequest('https://smmplan.pro/services', {
       headers: {
@@ -20,6 +20,6 @@ describe('CSP Nonce-Based Styles Security Suite (P1-9)', () => {
     expect(csp).toContain("style-src 'self' 'nonce-");
     expect(csp?.includes("style-src 'self' 'unsafe-inline'")).toBe(false);
 
-    process.env.NODE_ENV = originalEnv;
+    (process.env as any).NODE_ENV = originalEnv;
   });
 });

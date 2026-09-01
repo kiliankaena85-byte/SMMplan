@@ -14,7 +14,8 @@ describe('Maintenance Status Security Suite (P0-2)', () => {
 
   it('returns isMaintenanceMode: false and no isStaff or x-build-id when not in maintenance', async () => {
     process.env.MAINTENANCE_MODE = 'false';
-    const response = await GET();
+    const req = new Request('http://localhost:3000/api/maintenance-status');
+    const response = await GET(req);
     const json = await response.json();
 
     expect(json.isMaintenanceMode).toBe(false);
@@ -26,7 +27,8 @@ describe('Maintenance Status Security Suite (P0-2)', () => {
 
   it('returns generic message and no contacts or isStaff when in maintenance', async () => {
     process.env.MAINTENANCE_MODE = 'true';
-    const response = await GET();
+    const req = new Request('http://localhost:3000/api/maintenance-status');
+    const response = await GET(req);
     const json = await response.json();
 
     expect(json.isMaintenanceMode).toBe(true);

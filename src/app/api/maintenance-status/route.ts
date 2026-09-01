@@ -4,11 +4,11 @@ import { SettingsProvider } from '@/lib/settings';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request?: Request) {
+export async function GET(req: Request) {
   let host = '';
   try {
-    if (request?.headers) {
-      host = request.headers.get('host') || request.headers.get('x-forwarded-host') || '';
+    if (req?.headers) {
+      host = req.headers.get('host') || req.headers.get('x-forwarded-host') || '';
     } else {
       const reqHeaders = await headers();
       host = reqHeaders.get('host') || reqHeaders.get('x-forwarded-host') || '';

@@ -93,7 +93,7 @@ describe('PREM-02: Magic Link Hardening & Anomaly Detection', () => {
         },
       });
 
-      const found = await db.authToken.findUnique({
+      const found = await db.authToken.findFirst({
         where: { token: hashedToken },
       });
 

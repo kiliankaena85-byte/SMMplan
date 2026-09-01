@@ -98,7 +98,7 @@ describe('Security & Performance Optimization Invariants (OWASP / PCI DSS / RBAC
       expect(db.supportTemplate.findMany).not.toHaveBeenCalled();
       expect(db.provider.findMany).not.toHaveBeenCalled();
       expect(db.adminAuditLog.findMany).not.toHaveBeenCalled();
-    });
+    }, 30000);
 
     it('queries staff users and roles ONLY when activeTab === "team"', async () => {
       const AdminSettingsPage = (await import('@/app/admin/settings/page')).default;

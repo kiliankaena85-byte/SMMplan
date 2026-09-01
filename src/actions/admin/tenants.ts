@@ -299,13 +299,16 @@ export async function switchAdminTenantAction(tenantId: string) {
 
   // Security audit log for tenant switching
   await auditAdminAwaitable({
+    adminId: session.userId,
+    adminEmail: 'staff@smmplan.pro',
     action: 'TENANT_SWITCH',
-    details: {
+    target: normalized,
+    targetType: 'SYSTEM',
+    newValue: {
       userId: session.userId,
       role: session.role,
       targetTenant: normalized,
     },
-    targetId: normalized,
   }).catch(() => {});
 
   const cookieStore = await cookies();

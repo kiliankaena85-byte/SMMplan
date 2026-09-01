@@ -180,7 +180,7 @@ describe('Settings Extra Server Actions', () => {
       expect(res.deepLink).toContain('?start=tg_bind_');
       expect(res.bindToken).toMatch(/^tg_bind_/);
 
-      const authToken = await db.authToken.findUnique({
+      const authToken = await db.authToken.findFirst({
         where: { token: res.bindToken! },
       });
       expect(authToken).toBeDefined();

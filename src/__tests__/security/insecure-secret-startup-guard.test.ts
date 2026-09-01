@@ -8,7 +8,7 @@ describe('Insecure Secret Startup Guard Suite (P3-22)', () => {
     const originalSigningKey = process.env.JWT_SIGNING_KEY;
 
     try {
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
       delete process.env.JWT_SIGNING_KEY;
       process.env.JWT_SECRET = 'CHANGE_ME_INSECURE_REPLACE_IN_PRODUCTION';
 
@@ -19,7 +19,7 @@ describe('Insecure Secret Startup Guard Suite (P3-22)', () => {
         }
       }).toThrow('Insecure default JWT_SECRET placeholder detected');
     } finally {
-      process.env.NODE_ENV = originalEnv;
+      (process.env as any).NODE_ENV = originalEnv;
       process.env.JWT_SECRET = originalSecret;
       process.env.JWT_SIGNING_KEY = originalSigningKey;
     }
