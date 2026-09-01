@@ -232,6 +232,12 @@ export default function AddFundsForm() {
         if (res.success && res.amount) {
           setPromoSuccess(`Промокод активирован! Начислено ${(res.amount / 100).toFixed(2)} ₽`);
           setPromoCode('');
+          const { refreshBalanceAction } = await import('@/actions/auth/refresh-balance');
+          const { dispatchBalanceUpdate } = await import('@/hooks/use-user-balance');
+          const fresh = await refreshBalanceAction();
+          if (fresh.success && fresh.balanceRub) {
+            dispatchBalanceUpdate({ balanceRub: fresh.balanceRub, source: 'promoActivated' });
+          }
           router.refresh();
         } else {
           setPromoError(res.error || 'Ошибка активации промокода');

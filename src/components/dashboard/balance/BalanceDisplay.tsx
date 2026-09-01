@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { RotateCw, Wallet } from 'lucide-react';
-import { refreshBalanceAction } from '@/actions/auth/refresh-balance';
-import { toast } from 'sonner';
+import { useUserBalance } from '@/hooks/use-user-balance';
 
 interface BalanceDisplayProps {
   initialBalance: string;
@@ -12,49 +11,23 @@ interface BalanceDisplayProps {
 }
 
 export function BalanceDisplay({ initialBalance, variant }: BalanceDisplayProps) {
-  const [balance, setBalance] = useState(initialBalance);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { balance, isRefreshing, refreshBalance } = useUserBalance(initialBalance);
   const [pollCount, setPollCount] = useState(0);
-
-  const triggerRefresh = useCallback(async (isSilent = false) => {
-    if (isRefreshing) return;
-    setIsRefreshing(true);
-    try {
-      const res = await refreshBalanceAction();
-      if (res.success && res.balanceRub) {
-        setBalance(res.balanceRub);
-        if (!isSilent) {
-          toast.success('Баланс успешно обновлен!');
-        }
-      } else {
-        if (!isSilent) {
-          toast.error(res.error || 'Не удалось обновить баланс');
-        }
-      }
-    } catch (e) {
-      console.error(e);
-      if (!isSilent) {
-        toast.error('Произошла ошибка при обновлении баланса');
-      }
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [isRefreshing]);
 
   // Set up short-term polling if user manually refreshes, to catch delayed payment webhooks
   useEffect(() => {
     if (pollCount <= 0) return;
 
     const timer = setTimeout(() => {
-      triggerRefresh(true);
+      refreshBalance(true);
       setPollCount((prev) => prev - 1);
     }, 10000); // poll every 10 seconds
 
     return () => clearTimeout(timer);
-  }, [pollCount, triggerRefresh]);
+  }, [pollCount, refreshBalance]);
 
   const handleManualClick = () => {
-    triggerRefresh(false);
+    refreshBalance(false);
     // Start polling for 12 cycles (2 minutes total) to capture the webhook
     setPollCount(12);
   };

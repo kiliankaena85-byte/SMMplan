@@ -107,12 +107,15 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       return item;
     }).filter(item => {
       if (user.role === 'OWNER' || user.role === 'ADMIN') return true;
-      if (!user.staffRole) return false;
-      const normalizedSection = item.section.toLowerCase();
-      return user.staffRole.permissions.some(
+      if (item.section === 'dashboard') return true;
+      const normalizedSection = item.section.toUpperCase();
+      const { BUILTIN_ROLE_PERMISSIONS } = require('@/lib/server/rbac');
+      const builtin = BUILTIN_ROLE_PERMISSIONS[user.role]?.[normalizedSection];
+      const explicit = user.staffRole?.permissions?.find(
         (p: { section: string; canView: boolean; canEdit: boolean }) =>
-          p.section.toLowerCase() === normalizedSection && (p.canView || p.canEdit)
+          p.section.toUpperCase() === normalizedSection
       );
+      return Boolean((builtin && (builtin.canView || builtin.canEdit)) || (explicit && (explicit.canView || explicit.canEdit)));
     })
   })).filter(group => group.items.length > 0);
 

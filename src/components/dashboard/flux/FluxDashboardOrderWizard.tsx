@@ -598,7 +598,7 @@ function FluxDashboardOrderWizardInner({
 
               {/* Network Grid */}
               <div className="space-y-4">
-                <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">Выберите платформу</h2>
+                <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">Выберите соцсеть</h2>
                 {isLoadingCatalog ? (
                   <div className="py-16 flex justify-center">
                     <Box className="w-10 h-10 text-primary/50 animate-pulse" />

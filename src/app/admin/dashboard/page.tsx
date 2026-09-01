@@ -161,22 +161,17 @@ export default async function AdminDashboardPage({
     stormDetectorService.auditServiceStorms({ windowHours: 72, tenantId: tenantFilter }),
   ]);
 
-  const isOwnerOrAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
-  const hasPermission = (section: string, mode: 'view' | 'edit' = 'view') => {
-    if (isOwnerOrAdmin) return true;
-    if (!user?.staffRole) return false;
-    const sec = section.toUpperCase();
-    return user.staffRole.permissions.some(
-      (p) => p.section.toUpperCase() === sec && (mode === 'edit' ? p.canEdit : (p.canView || p.canEdit))
-    );
-  };
+  const { getRolePermissions } = await import('@/lib/permissions');
+  const perms = getRolePermissions(user?.role, user?.staffRole?.permissions);
 
-  const canSeeFinancials = isOwnerOrAdmin || hasPermission('finance');
-  const canSeeProviders = isOwnerOrAdmin || hasPermission('providers');
-  const canSeeAnalytics = isOwnerOrAdmin || hasPermission('analytics');
-  const canSeeSettings = isOwnerOrAdmin || hasPermission('settings');
-  const canEditAnalytics = isOwnerOrAdmin || hasPermission('analytics', 'edit');
-  const canEditSettings = isOwnerOrAdmin || hasPermission('settings', 'edit');
+  const canSeeFinancials = perms.canViewFinancials;
+  const canSeeProviders = perms.canViewLiquidity;
+  const canSeeAnalytics = perms.canAccessExecutive;
+  const canSeeSettings = perms.canViewAuditLogs;
+  const canEditAnalytics = user?.role === 'OWNER' || user?.role === 'ADMIN' || Boolean(
+    user?.staffRole?.permissions?.some((p) => p.section.toUpperCase() === 'ANALYTICS' && p.canEdit)
+  );
+  const canEditSettings = perms.canUseKillSwitch;
 
   const revenueGross = metrics.revenueGross;
   const profitNet = metrics.profitNet;
@@ -460,6 +455,8 @@ export default async function AdminDashboardPage({
       {/* ── 7.5. EXECUTIVE AI OBSERVER & DAILY DIGEST ── */}
       {canSeeAnalytics && (
         <ExecutiveAiDigestCard
+          canAccessExecutive={perms.canAccessExecutive}
+          canUseKillSwitch={perms.canUseKillSwitch}
           canEditSettings={canEditSettings}
           canEditAnalytics={canEditAnalytics}
         />

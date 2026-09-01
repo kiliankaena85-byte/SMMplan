@@ -60,7 +60,7 @@ export function WizardNetworkStep({
 
       {/* Grid of Available Social Networks */}
       <div className="space-y-2">
-        <span className="text-xs font-bold text-muted-foreground">Или выберите платформу вручную:</span>
+        <span className="text-xs font-bold text-muted-foreground">Или выберите соцсеть вручную:</span>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {catalog.map((net) => {
             const isSelected = selectedNetwork?.id === net.id;

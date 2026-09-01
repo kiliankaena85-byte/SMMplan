@@ -11,6 +11,8 @@ import { getStatusBadgeClass, getStatusLabel } from '@/utils/status-helpers';
 import { formatRub, toCents } from '@/lib/money';
 import { FluxOrder, FluxNetwork } from '@/types/flux';
 
+import { useUserBalance } from '@/hooks/use-user-balance';
+
 export function FluxDashboardHome({
   user,
   orders,
@@ -29,6 +31,7 @@ export function FluxDashboardHome({
   initialCatalog?: FluxNetwork[];
 }) {
   const [copied, setCopied] = React.useState(false);
+  const { balance: liveBalance } = useUserBalance(user.balanceCents);
   const refCode = user.referralCode ?? '';
   const refLink = refCode ? `${origin}?ref=${encodeURIComponent(refCode)}` : origin;
   const isRefLinkAvailable = Boolean(refCode);
@@ -87,7 +90,7 @@ export function FluxDashboardHome({
             </div>
             
             <div className="text-3xl font-black tabular-nums tracking-tight mb-2 text-foreground">
-              {formatBalance(user.balanceCents)}
+              {liveBalance}
             </div>
             
             <div className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">

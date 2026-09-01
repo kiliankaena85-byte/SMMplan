@@ -19,6 +19,7 @@ import {
 import { formatBalance } from '@/lib/utils';
 import { PaymentAutoSync } from '@/components/orders/PaymentAutoSync';
 import { SocialIcon } from '@/components/ui/SocialIcon';
+import { useUserBalance } from '@/hooks/use-user-balance';
 
 const STATUS_LABEL: Record<string, string> = {
   COMPLETED:       'Выполнен',
@@ -98,6 +99,7 @@ export function ClassicDashboardHome({
   initialCatalog?: Array<{ id: string; name: string; slug: string; [key: string]: unknown }>;
 }) {
   const [copiedLink, setCopiedLink] = useState(false);
+  const { balance: liveBalance } = useUserBalance(user.balanceCents ?? user.balance);
 
   const handleCopyReferral = () => {
     if (!user.referralCode) return;
@@ -161,7 +163,7 @@ export function ClassicDashboardHome({
           </div>
           <div>
             <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-primary via-indigo-500 to-pink-500 dark:from-sky-400 dark:via-indigo-400 dark:to-pink-400">
-              {formatBalance(user.balanceCents ?? user.balance)}
+              {liveBalance}
             </div>
             <span className="text-[11px] text-muted-foreground font-medium block mt-0.5">
               Доступно для моментального списания
