@@ -74,6 +74,7 @@ export default defineConfig({
       'src/__tests__/security/logout-security-and-blacklist.test.ts',
       'src/__tests__/security/b2b-vault-encryption.test.ts',
       'src/__tests__/security/insecure-secret-startup-guard.test.ts',
+      'src/__tests__/security/redis-tls-production-check.test.ts',
       'src/__tests__/dashboard-bugs-fix-verification.test.ts',
       'src/__tests__/telegram-proxy-agent.test.ts',
     ],

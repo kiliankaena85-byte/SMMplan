@@ -6,9 +6,15 @@ const globalForRedis = global as unknown as { redis: Redis };
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 const redisPassword = process.env.REDIS_PASSWORD || undefined;
 
-// Security check: Warn in production if connecting without password to remote host
-if (process.env.NODE_ENV === 'production' && !redisPassword && !redisUrl.includes('@') && !redisUrl.includes('localhost') && !redisUrl.includes('127.0.0.1')) {
-  console.warn('⚠️ [SECURITY WARNING] Redis is running in production without explicit authentication!');
+// Security check: Warn in production if connecting without TLS or password to remote host (P3-23)
+if (process.env.NODE_ENV === 'production') {
+  const isLocal = redisUrl.includes('localhost') || redisUrl.includes('127.0.0.1') || redisUrl.includes('smmplan_redis');
+  if (!isLocal && !redisUrl.startsWith('rediss://')) {
+    console.warn('🚨 [SECURITY WARNING] Redis in production is not using TLS (rediss://). Transit encryption recommended!');
+  }
+  if (!redisPassword && !redisUrl.includes('@') && !isLocal) {
+    console.warn('⚠️ [SECURITY WARNING] Redis is running in production without explicit authentication!');
+  }
 }
 
 export const redis =
