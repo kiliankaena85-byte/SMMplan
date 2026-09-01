@@ -2,12 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Cookie, Check } from 'lucide-react';
 
 export function CookieConsent() {
+  const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    // Admin / operator panels do not require public GDPR/152-FZ consent popups
+    if (pathname?.startsWith('/admin')) {
+      setIsVisible(false);
+      return;
+    }
+
     // Check if user has already accepted cookies
     const consent = document.cookie.includes('cookie_consent=true');
     if (!consent) {
@@ -15,7 +23,10 @@ export function CookieConsent() {
       const timer = setTimeout(() => setIsVisible(true), 1000);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [pathname]);
+
+  // Completely omit rendering for admin routes
+  if (pathname?.startsWith('/admin')) return null;
 
   const handleAccept = () => {
     // Save cookie consent for 1 year (compliant with 152-FZ)
