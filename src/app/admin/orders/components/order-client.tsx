@@ -145,14 +145,6 @@ function InfoStack({ order }: { order: OrderColumn }) {
         </span>
       </div>
 
-      {/* Дата создания */}
-      <div className="flex items-baseline gap-1.5 min-w-0">
-        <span className="text-foreground/70 shrink-0 font-normal">Дата создания:</span>
-        <span className="text-foreground font-mono text-[11px] tabular-nums">
-          {dateFormatted}
-        </span>
-      </div>
-
       {/* Скрыть / Показать детали */}
       <div className="pt-1">
         <button
@@ -421,10 +413,10 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
 
                 {/* Dedicated Date Column */}
                 <div className="flex flex-col text-xs leading-normal py-0.5 whitespace-nowrap font-mono">
-                  <span className="font-semibold text-foreground tabular-nums text-[11px]" title={`${formattedDate} ${formattedTime}`}>
-                    {formattedDate} {formattedTime}
+                  <span className="font-semibold text-foreground tabular-nums text-[11px]" suppressHydrationWarning>
+                    {dateObj.toISOString().slice(0, 10).split('-').reverse().join('.')} {dateObj.toISOString().slice(11, 16)}
                   </span>
-                  <span className="text-[10px] text-muted-foreground font-sans font-medium">
+                  <span className="text-[10px] text-muted-foreground font-sans font-medium" suppressHydrationWarning>
                     {timeRelative(order.createdAt)}
                   </span>
                 </div>
