@@ -1,0 +1,94 @@
+import { cookies, headers } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { db } from '@/lib/db';
+import { SignJWT } from 'jose';
+import { getEncodedKey } from '@/lib/session-edge';
+import { resolveContourFromHost } from '@/lib/tenant-resolver-edge';
+
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const role = (url.searchParams.get('role') || 'SUPPORT').toUpperCase();
+  const redirectTo = url.searchParams.get('redirect') || '/admin/tickets';
+  const tenantId = url.searchParams.get('tenant') || 'smmplan';
+
+  const targetEmail = role === 'OWNER' ? 'owner@smmplan.pro' :
+                      role === 'ADMIN' ? 'admin@smmplan.pro' :
+                      role === 'SUPPORT' ? 'support@smmplan.pro' : 'testclient1@example.com';
+
+  let user = await db.user.findFirst({
+    where: { role: role as any }
+  });
+
+  if (!user) {
+    user = await db.user.upsert({
+      where: { email: targetEmail },
+      update: { role: role as any, tenantId },
+      create: {
+        email: targetEmail,
+        passwordHash: 'dummy_hash',
+        role: role as any,
+        tenantId,
+        balance: BigInt(500000),
+      }
+    });
+  }
+
+  const reqHeaders = await headers();
+  const userAgent = reqHeaders.get('user-agent') || 'stage-browser';
+  const host = reqHeaders.get('host') || '';
+  const contour = resolveContourFromHost(host);
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+  const session = await db.session.create({
+    data: {
+      userId: user.id,
+      expiresAt,
+      userAgent,
+      ipAddress: '127.0.0.1',
+    }
+  });
+
+  const sessionToken = await new SignJWT({
+    sessionId: session.id,
+    userId: user.id,
+    canResetPassword: false,
+    role: user.role,
+    tenantId: user.tenantId || 'smmplan',
+    contour: 'test',
+    sessionVer: 1,
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('24h')
+    .sign(getEncodedKey());
+
+  const cookieStore = await cookies();
+  
+  // Wipe any explicit logout blocker
+  cookieStore.delete('explicit_logout');
+  cookieStore.set('explicit_logout', '', {
+    path: '/',
+    maxAge: 0,
+    expires: new Date(0),
+  });
+
+  cookieStore.set('session_token', sessionToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: 'lax',
+    path: '/',
+    expires: expiresAt,
+  });
+
+  cookieStore.set('x_tenant', user.tenantId || 'smmplan', {
+    path: '/',
+    expires: expiresAt,
+  });
+
+  cookieStore.set('x_admin_tenant', user.tenantId || 'smmplan', {
+    path: '/',
+    expires: expiresAt,
+  });
+
+  return NextResponse.redirect(new URL(redirectTo, request.url));
+}
