@@ -551,7 +551,6 @@ export async function proxy(request: NextRequest) {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(self)');
-  response.headers.set('x-build-id', BUILD_ID);
   response.headers.set('X-DNS-Prefetch-Control', 'on');
 
   // Inject X-Robots-Tag for sensitive routes to prevent indexing

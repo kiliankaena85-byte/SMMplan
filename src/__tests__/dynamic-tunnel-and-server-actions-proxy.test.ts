@@ -62,7 +62,7 @@ describe('Zero-Hardcode Dynamic Tunnel & Server Actions Security Suite', () => {
       const res = await proxy(req);
       expect(res.status).toBe(200);
       expect(res.headers.get('x-tenant-id')).toBe('smmplan');
-      expect(res.headers.get('x-build-id')).toBeDefined();
+      expect(res.headers.get('x-build-id')).toBeNull();
     });
 
     it('rejects malicious external Host header with HTTP 403', async () => {
