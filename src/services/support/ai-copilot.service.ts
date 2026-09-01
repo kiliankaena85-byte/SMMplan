@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { GeminiClient } from '@/services/ai/gemini-client';
 import { scanDraftReply } from '@/services/admin/output-policy-engine';
 import { AiObserverSanitizer } from '@/services/observer/ai-observer-sanitizer';
+import { AiResponseSanitizer } from './ai-response-sanitizer';
 import { getTenantHost } from '@/lib/seo-helpers';
 
 export interface CoPilotDraftResult {
@@ -141,7 +142,7 @@ ${recentOrders.length > 0 ? JSON.stringify(recentOrders, null, 2) : 'Нет не
         });
 
         if (aiResponse && aiResponse.trim().length > 20) {
-          draftText = aiResponse.trim();
+          draftText = AiResponseSanitizer.sanitize(aiResponse);
         } else {
           draftText = this.buildDeterministicFallback(ticket.subject, brandName, host);
           source = 'DETERMINISTIC_FALLBACK';
@@ -153,6 +154,8 @@ ${recentOrders.length > 0 ? JSON.stringify(recentOrders, null, 2) : 'Нет не
         source = 'DETERMINISTIC_FALLBACK';
         confidence = 'FALLBACK';
       }
+
+      draftText = AiResponseSanitizer.sanitize(draftText);
 
       // 6. Scan output with OutputPolicyEngine
       const allowedAmounts = [userBalanceRub, ...recentOrders.map((o) => o.chargeRub)];

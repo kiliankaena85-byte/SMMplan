@@ -3,6 +3,7 @@ import { redis } from '@/lib/redis';
 import { GeminiClient } from '@/services/ai/gemini-client';
 import { scanDraftReply, hasBlockingViolation, type PolicyViolation } from './output-policy-engine';
 import { aiKnowledgeRetriever } from './ai-knowledge-retriever.service';
+import { AiResponseSanitizer } from '@/services/support/ai-response-sanitizer';
 
 export interface AiSupportResponse {
   client_sentiment: 'NEUTRAL' | 'ANGRY' | 'CONFUSED' | 'HAPPY';
@@ -160,6 +161,7 @@ ENTERPRISE ПРАВИЛА БЕЗОПАСНОСТИ:
         if (!parsed.draft_reply || typeof parsed.draft_reply !== 'string') {
           throw new Error('Missing or invalid draft_reply field');
         }
+        parsed.draft_reply = AiResponseSanitizer.sanitize(parsed.draft_reply);
         if (!parsed.internal_reasoning || typeof parsed.internal_reasoning !== 'string') {
           throw new Error('Missing or invalid internal_reasoning field');
         }

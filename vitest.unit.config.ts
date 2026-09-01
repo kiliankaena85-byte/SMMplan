@@ -52,6 +52,7 @@ export default defineConfig({
       'src/__tests__/security/owasp-qa-deep-adversarial-audit.test.ts',
       'src/__tests__/settings/settings-cluster-navigation.test.ts',
       'src/__tests__/clients/client-ledger-and-notes.test.ts',
+      'src/__tests__/support/ai-response-sanitizer.test.ts',
     ],
   }
 });

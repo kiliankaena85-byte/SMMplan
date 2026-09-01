@@ -1,9 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect, useMemo } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, X, RotateCcw, Filter, Sparkles, SlidersHorizontal, Loader2 } from 'lucide-react';
+import { Search, X, RotateCcw, Loader2 } from 'lucide-react';
+import { FilterDropdown, type FilterOption } from './filter-dropdown';
 
 interface CategoryOption {
   id: string;
@@ -23,7 +24,7 @@ interface ProviderOption {
   name: string;
 }
 
-const GLOBAL_ACTIVITY_TYPES = [
+const GLOBAL_ACTIVITY_TYPES: FilterOption[] = [
   { id: 'ALL', label: '📂 Все категории' },
   { id: 'subscribers', label: '👥 Подписчики' },
   { id: 'likes', label: '❤️ Лайки' },
@@ -34,7 +35,7 @@ const GLOBAL_ACTIVITY_TYPES = [
   { id: 'watchtime', label: '⏳ Удержание' },
 ];
 
-const DATE_PRESETS = [
+const DATE_PRESETS: FilterOption[] = [
   { id: 'ALL', label: '📅 Все время' },
   { id: 'today', label: '📅 Сегодня' },
   { id: 'yesterday', label: '📅 Вчера' },
@@ -44,7 +45,7 @@ const DATE_PRESETS = [
   { id: 'last_month', label: '📅 Прошлый месяц' },
 ];
 
-const STATUS_OPTIONS = [
+const STATUS_OPTIONS: FilterOption[] = [
   { id: 'ALL', label: '⚙️ Все статусы' },
   { id: 'IN_PROGRESS', label: '⚡ В работе' },
   { id: 'PENDING', label: '⏳ В очереди' },
@@ -55,14 +56,12 @@ const STATUS_OPTIONS = [
   { id: 'AWAITING_PAYMENT', label: '⚪ Ожидает' },
 ];
 
-const ERROR_CATEGORIES = [
+const ERROR_CATEGORIES: FilterOption[] = [
   { id: 'ALL', label: '⚠️ Любой сбой' },
   { id: 'BALANCE', label: '💳 Баланс провайдера' },
   { id: 'LINK', label: '🔗 Ошибка ссылки' },
   { id: 'SERVICE', label: '⚡ Сбой услуги' },
 ];
-
-const SELECT_COMMON_CLASS = "h-8 px-2.5 text-xs font-semibold bg-card/90 text-foreground border border-border/70 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all cursor-pointer shrink-0 shadow-2xs [&>option]:bg-card [&>option]:text-foreground dark:[&>option]:bg-slate-900 dark:[&>option]:text-slate-100";
 
 export function OrdersFilterForm({ 
   networks = [],
@@ -106,6 +105,27 @@ export function OrdersFilterForm({
 
   const selectedNetwork = networks.find(n => n.slug === networkSlug);
   const networkCategories = selectedNetwork?.categories || [];
+
+  // Options mapping
+  const networkOptions: FilterOption[] = useMemo(() => [
+    { id: 'ALL', label: '🌐 Все сети' },
+    ...networks.map(n => ({ id: n.slug, label: n.name }))
+  ], [networks]);
+
+  const categoryOptions: FilterOption[] = useMemo(() => {
+    if (networkCategories.length > 0) {
+      return [
+        { id: 'ALL', label: '📂 Все категории' },
+        ...networkCategories.map(c => ({ id: c.slug, label: c.name }))
+      ];
+    }
+    return GLOBAL_ACTIVITY_TYPES;
+  }, [networkCategories]);
+
+  const providerOptions: FilterOption[] = useMemo(() => [
+    { id: 'ALL', label: '🔌 Все поставщики' },
+    ...providers.map(p => ({ id: p.id, label: p.name }))
+  ], [providers]);
 
   const hasActiveFilters = Boolean(
     searchVal ||
@@ -182,7 +202,7 @@ export function OrdersFilterForm({
       {/* ── ULTRA-COMPACT SINGLE-ROW TOOLBAR (Height ~38px, High-Density) ── */}
       <div className="flex items-center gap-1.5 flex-wrap lg:flex-nowrap bg-card/90 backdrop-blur-sm border border-border/80 rounded-2xl p-1.5 shadow-xs">
         {/* 1. Omni-Search Input */}
-        <form onSubmit={handleSearchSubmit} className="flex-1 min-w-[200px] max-w-[320px] relative">
+        <form onSubmit={handleSearchSubmit} className="flex-1 min-w-[200px] max-w-[300px] relative">
           <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
@@ -206,104 +226,61 @@ export function OrdersFilterForm({
           )}
         </form>
 
-        {/* 2. Social Network Selector */}
-        <select
+        {/* 2. Social Network Dropdown */}
+        <FilterDropdown
           value={networkSlug}
-          onChange={(e) => applyFilter('networkSlug', e.target.value)}
-          aria-label="Фильтр по соцсети"
-          className={SELECT_COMMON_CLASS}
-        >
-          <option value="ALL">🌐 Все сети</option>
-          {networks.map(n => (
-            <option key={n.id} value={n.slug}>
-              {n.name}
-            </option>
-          ))}
-        </select>
+          options={networkOptions}
+          onChange={(val) => applyFilter('networkSlug', val)}
+          ariaLabel="Фильтр по соцсети"
+          className="max-w-[135px]"
+        />
 
-        {/* 3. Category / Activity Type Selector */}
-        <select
+        {/* 3. Category / Activity Type Dropdown */}
+        <FilterDropdown
           value={activityType}
-          onChange={(e) => applyFilter('activityType', e.target.value)}
-          aria-label="Тип услуги / Категория"
-          className={`${SELECT_COMMON_CLASS} max-w-[145px] truncate`}
-        >
-          {networkCategories.length > 0 ? (
-            <>
-              <option value="ALL">📂 Все категории</option>
-              {networkCategories.map(c => (
-                <option key={c.id} value={c.slug}>
-                  {c.name}
-                </option>
-              ))}
-            </>
-          ) : (
-            GLOBAL_ACTIVITY_TYPES.map(t => (
-              <option key={t.id} value={t.id}>
-                {t.label}
-              </option>
-            ))
-          )}
-        </select>
+          options={categoryOptions}
+          onChange={(val) => applyFilter('activityType', val)}
+          ariaLabel="Тип услуги / Категория"
+          className="max-w-[145px]"
+        />
 
-        {/* 4. Status Selector */}
-        <select
+        {/* 4. Status Dropdown */}
+        <FilterDropdown
           value={status}
-          onChange={(e) => applyFilter('status', e.target.value)}
-          aria-label="Статус заказа"
-          className={SELECT_COMMON_CLASS}
-        >
-          {STATUS_OPTIONS.map(s => (
-            <option key={s.id} value={s.id}>
-              {s.label}
-            </option>
-          ))}
-        </select>
+          options={STATUS_OPTIONS}
+          onChange={(val) => applyFilter('status', val)}
+          ariaLabel="Статус заказа"
+          className="max-w-[130px]"
+        />
 
-        {/* 5. Provider Selector */}
+        {/* 5. Provider Dropdown */}
         {providers.length > 0 && (
-          <select
+          <FilterDropdown
             value={providerId}
-            onChange={(e) => applyFilter('providerId', e.target.value)}
-            aria-label="Провайдер"
-            className={`${SELECT_COMMON_CLASS} max-w-[135px] truncate`}
-          >
-            <option value="ALL">🔌 Все поставщики</option>
-            {providers.map(p => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+            options={providerOptions}
+            onChange={(val) => applyFilter('providerId', val)}
+            ariaLabel="Провайдер"
+            className="max-w-[140px]"
+          />
         )}
 
-        {/* 6. Error Category Selector */}
-        <select
+        {/* 6. Error Category Dropdown */}
+        <FilterDropdown
           value={errorCategory}
-          onChange={(e) => applyFilter('errorCategory', e.target.value)}
-          aria-label="Причина сбоя"
-          className={`${SELECT_COMMON_CLASS} max-w-[130px] truncate`}
-        >
-          {ERROR_CATEGORIES.map(e => (
-            <option key={e.id} value={e.id}>
-              {e.label}
-            </option>
-          ))}
-        </select>
+          options={ERROR_CATEGORIES}
+          onChange={(val) => applyFilter('errorCategory', val)}
+          ariaLabel="Причина сбоя"
+          className="max-w-[135px]"
+        />
 
-        {/* 7. Date Preset Range Selector */}
-        <select
+        {/* 7. Date Preset Range Dropdown */}
+        <FilterDropdown
           value={datePreset}
-          onChange={(e) => applyFilter('datePreset', e.target.value)}
-          aria-label="Период дат"
-          className={SELECT_COMMON_CLASS}
-        >
-          {DATE_PRESETS.map(d => (
-            <option key={d.id} value={d.id}>
-              {d.label}
-            </option>
-          ))}
-        </select>
+          options={DATE_PRESETS}
+          onChange={(val) => applyFilter('datePreset', val)}
+          ariaLabel="Период дат"
+          className="max-w-[125px]"
+        />
 
         {/* Loading Spinner Indicator */}
         {isPending && (
