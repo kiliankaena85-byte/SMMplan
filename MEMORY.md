@@ -91,6 +91,14 @@ if (input.userId === admin.id) return { success: false, error: 'Запрещен
     3. `DrawerFormInputs`: в поле кастомных комментариев встроен живой счетчик строк и валидатор минимального объема (`linesCount` / `minQty`), а для опросов (`isPoll`) добавлена поясняющая подсказка.
   - *Причина:* Полная прозрачность ценообразования для клиентов, устранение когнитивного трения и соответствие дизайн-системе B2B/витрин 2026 года.
 
+- **Mobile Wizard Step Machine Invariant & Reset Funnel UX (Wave 1-5):**
+  - *Решение:*
+    1. **Step Transition Guard (Ref-based):** Запрещено помещать текущий шаг (`activeStepRaw`) в массив зависимостей `useEffect` вместе с условиями данных (`if (selectedService) setActiveStep(4)`), так как это создает замкнутый цикл (Step 4 Trap), блокирующий кнопки «Назад» и «Изменить». Переход на шаг 4 обязан вызываться ТОЛЬКО при смене `selectedService.id !== prevSelectedServiceIdRef.current`.
+    2. **Atomic Reset:** Метод `resetOrder()` хука `useOrderEngine` атомарно очищает URL, выбранную услугу, промокоды, ошибки и стирает ключ черновика `smmplan_draft` из `sessionStorage`.
+    3. **Browser History Sync (`popstate`):** Смена шагов визарда транслируется в `history.pushState({ wizardStep })` с хэшем `#step-N`. Слушатель `popstate` плавно отступает по шагам при системном свайпе/кнопке «Назад» без закрытия сайта.
+    4. **Input Sanitization for Mobile:** В мобильных инпутах ссылок использовать `type="text" inputMode="url" autoComplete="url"` вместо `type="url"` для предотвращения скрытых блокировок валидации в мобильных браузерах (iOS Safari/Chrome).
+  - *Причина:* Полная свобода навигации клиента, устранение тупиковых состояний и повышение конверсии чекаута.
+
 - **Security-by-Design, Pentest Immunity & OWASP Top 10:2025 Architecture:**
   - *Решение:*
     1. **Zero-Secrets in Client Bundles:** Категорический запрет любых переменных с секретами в клиентских компонентах Next.js (`NEXT_PUBLIC_*`). Все отладочные/QA флоу изолируются в Server Actions с валидацией через `crypto.timingSafeEqual`.
