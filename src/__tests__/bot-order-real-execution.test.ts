@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterAll } from "vitest";
 import { db } from "@/lib/db";
 import { orderService } from "@/services/core/order.service";
 import { WalletOps } from "@/services/financial/wallet-ops";
@@ -6,6 +6,21 @@ import { isLinkServiceCompatible, normalizeServiceTargetType } from "@/constants
 import { IntelligenceLinkAnalyzer } from "@/services/analyzer/link-analyzer";
 
 describe("Bot Real Order Execution Flow", () => {
+  let createdOrderId: string | null = null;
+
+  afterAll(async () => {
+    if (createdOrderId) {
+      await db.order.deleteMany({ where: { id: createdOrderId } }).catch(() => {});
+      try {
+        const { default: Redis } = await import("ioredis");
+        const redis = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379");
+        const keys = await redis.keys(`*${createdOrderId}*`);
+        if (keys.length > 0) await redis.del(...keys);
+        await redis.del("bullmq:ordersQueue:delayed", "bullmq:ordersQueue:wait", "bullmq:ordersQueue:failed");
+        await redis.quit();
+      } catch {}
+    }
+  });
   it("verifies link compatibility for telegram channel and channel-posts services", async () => {
     const link = "https://t.me/smmMarket69";
     const analyzer = new IntelligenceLinkAnalyzer();
@@ -67,6 +82,7 @@ describe("Bot Real Order Execution Flow", () => {
 
     expect(res.success).toBe(true);
     expect(res.orderId).toBeDefined();
+    createdOrderId = res.orderId!;
     expect(res.error).toBeUndefined();
 
     // Verify order in database
