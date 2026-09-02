@@ -27,6 +27,12 @@ describe('TargetTypeMapper & Normalization Layer (Stage 2 Core Logic)', () => {
     expect(inferTargetTypeFromName('Просмотры историй / Stories')).toBe(TargetTypeEnum.STORY);
     expect(inferTargetTypeFromName('Голоса в опрос Telegram')).toBe(TargetTypeEnum.POLL);
     expect(inferTargetTypeFromName('Пользовательские комментарии')).toBe(TargetTypeEnum.COMMENTS);
+    // [BUG-FIX] "Последних N постов" — auto-views on last N posts of a channel, must be CHANNEL_POSTS not POST
+    expect(inferTargetTypeFromName('Telegram Просмотры на 5 последних постов [Пакет охвата]')).toBe(TargetTypeEnum.CHANNEL_POSTS);
+    expect(inferTargetTypeFromName('🇷🇺 Просмотры [Последних 50 постов]')).toBe(TargetTypeEnum.CHANNEL_POSTS);
+    expect(inferTargetTypeFromName('Просмотры последних 10 постов')).toBe(TargetTypeEnum.CHANNEL_POSTS);
+    expect(inferTargetTypeFromName('Пакет охвата канала')).toBe(TargetTypeEnum.CHANNEL_POSTS);
+    expect(inferTargetTypeFromName('Пакет просмотров на канал')).toBe(TargetTypeEnum.CHANNEL_POSTS);
   });
 
   it('correctly checks compatibility between URL types and Service types', () => {

@@ -99,7 +99,7 @@ export function inferTargetTypeFromName(name: string | null | undefined): Target
   if (!name) return TargetTypeEnum.POST;
   const n = name.toLowerCase();
 
-  // Auto / Future / Subscription services
+  // Auto / Future / Subscription services / Last-N-posts packages
   if (
     n.includes('автопросмотр') ||
     n.includes('автолайк') ||
@@ -110,7 +110,20 @@ export function inferTargetTypeFromName(name: string | null | undefined): Target
     n.includes('подписка на') ||
     n.includes('auto view') ||
     n.includes('future view') ||
-    n.includes('channel posts')
+    n.includes('channel posts') ||
+    // "Просмотры на последних N постов" / "Последних 50 постов" — applies to channel, NOT post
+    n.includes('последних пост') ||
+    n.includes('последних пубил') ||
+    n.includes('последних запис') ||
+    (n.includes('последн') && (n.includes('пост') || n.includes('запис') || n.includes('публик'))) ||
+    n.includes('last post') ||
+    n.includes('last 5 post') ||
+    n.includes('last 10 post') ||
+    n.includes('last 20 post') ||
+    n.includes('last 50 post') ||
+    // "Пакет охвата" — views package on last N posts of a channel
+    (n.includes('пакет') && n.includes('охват')) ||
+    (n.includes('пакет') && n.includes('просмотр'))
   ) {
     return TargetTypeEnum.CHANNEL_POSTS;
   }
