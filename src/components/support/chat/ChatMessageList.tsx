@@ -313,19 +313,19 @@ export function ChatMessageList({
                     {!msg.isDeleted && editingMessageId !== msg.id && (
                       <div
                         className={`absolute ${
-                          msg.sender === 'USER' ? '-right-20' : '-left-20'
-                        } top-2 hidden lg:flex opacity-0 lg:group-hover:opacity-100 gap-1 transition-opacity z-10`}
+                          isMyMessage ? '-left-10' : '-right-10'
+                        } top-1/2 -translate-y-1/2 hidden lg:flex opacity-0 lg:group-hover:opacity-100 gap-1 transition-opacity z-10`}
                       >
                         <button
                           onClick={() => onSetReplyingTo(msg)}
-                          className="w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-primary rounded-full bg-card shadow-sm border border-default-200 cursor-pointer"
+                          className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-primary rounded-full bg-card/90 backdrop-blur-xs shadow-xs border border-border/80 cursor-pointer transition-colors"
                           title="Ответить"
                           aria-label="Ответить"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            width="14"
-                            height="14"
+                            width="13"
+                            height="13"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -341,13 +341,13 @@ export function ChatMessageList({
                         {editTicketMessage && msg.sender !== 'USER' && (
                           isExpired ? (
                             <div
-                              className="w-11 h-11 flex items-center justify-center text-muted-foreground/50 rounded-full bg-card shadow-sm border border-default-200 cursor-not-allowed"
+                              className="w-7 h-7 flex items-center justify-center text-muted-foreground/50 rounded-full bg-card/90 backdrop-blur-xs shadow-xs border border-border/80 cursor-not-allowed"
                               title="Заблокировано Telegram API (>48ч)"
                             >
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                width="14"
-                                height="14"
+                                width="13"
+                                height="13"
                                 viewBox="0 0 24 24"
                                 fill="none"
                                 stroke="currentColor"
@@ -365,14 +365,14 @@ export function ChatMessageList({
                                 setEditingMessageId(msg.id);
                                 setEditingText(msg.text);
                               }}
-                              className="w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-warning-text rounded-full bg-card shadow-sm border border-default-200 cursor-pointer"
+                              className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-warning-text rounded-full bg-card/90 backdrop-blur-xs shadow-xs border border-border/80 cursor-pointer transition-colors"
                               title="Редактировать"
                               aria-label="Редактировать"
                             >
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                width="14"
-                                height="14"
+                                width="13"
+                                height="13"
                                 viewBox="0 0 24 24"
                                 fill="none"
                                 stroke="currentColor"
@@ -394,14 +394,14 @@ export function ChatMessageList({
                                 handleDeleteSubmit(msg.id);
                               }
                             }}
-                            className="w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-destructive rounded-full bg-card shadow-sm border border-default-200 cursor-pointer"
+                            className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-destructive rounded-full bg-card/90 backdrop-blur-xs shadow-xs border border-border/80 cursor-pointer transition-colors"
                             title="Удалить сообщение"
                             aria-label="Удалить сообщение"
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
-                              width="14"
-                              height="14"
+                              width="13"
+                              height="13"
                               viewBox="0 0 24 24"
                               fill="none"
                               stroke="currentColor"
@@ -835,16 +835,6 @@ export function ChatMessageList({
                       </>
                     )}
                   </div>
-                  {msg.sender !== 'USER' && (
-                    <div
-                      className={`w-9 h-9 rounded-full flex items-center justify-center text-primary-foreground font-extrabold text-[11px] tracking-wider shadow-sm bg-gradient-to-br ${getAvatarGradient(
-                        'staff'
-                      )} shrink-0`}
-                      title={msg.sender === 'INTERNAL' ? 'Внутренняя заметка' : 'Поддержка'}
-                    >
-                      {getInitials(msg.sender, clientEmail)}
-                    </div>
-                  )}
                 </div>
               </motion.div>
             );
