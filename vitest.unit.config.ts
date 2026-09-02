@@ -41,6 +41,7 @@ export default defineConfig({
       'src/__tests__/order-actions-and-support-ops.test.ts',
       'src/__tests__/providers/balance-autoflush-resilience.test.ts',
       'src/__tests__/financial/ledger-and-transaction-type-filters.test.ts',
+      'src/__tests__/financial/ledger-price-and-date-range-search.test.ts',
       'src/__tests__/financial/escrow-quarantine-double-entry.test.ts',
       'src/__tests__/catalog/category-slug-and-icon-hygiene.test.ts',
       'src/actions/admin/providers/__tests__/sync-provider-catalog.test.ts',
@@ -85,6 +86,7 @@ export default defineConfig({
       'src/__tests__/security/server-only-and-url-bounds.test.ts',
       'src/__tests__/security/swarm-100-percent-hardening.test.ts',
       'src/__tests__/security/auditor-findings-remediation.test.ts',
+      'src/__tests__/telegram-bot-referral-wizard.test.ts',
     ],
   }
 });
