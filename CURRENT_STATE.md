@@ -3,6 +3,11 @@
 > **Файл-якорь для синхронизации контекста сессий.**  
 > **Последнее обновление:** 2026-09-01 22:44 (МСК)
 
+- **Приватные витрины и эксклюзивные услуги для групп клиентов (Branch: `feat/private-catalog-access` — 100% COMPLETE & VERIFIED):**
+  - **Prisma & Бэкенд:** Реализована модель `ServiceCustomerAccess` и связь `CustomerGroup`. В `src/actions/order/catalog.ts`, `src/services/marketing.service.ts`, `src/actions/order/checkout.ts` и `src/app/api/v2/route.ts` внедрена фильтрация приватных услуг: гости и обычные клиенты не видят закрытые услуги, а клиенты из целевой группы видят их с бейджем `ЭКСКЛЮЗИВ` и индивидуальной ценой без сбивающего округления.
+  - **Админка каталога и CRM:** В `src/app/admin/catalog/components/service-edit-form.tsx` добавлен блок «Доступность услуги» с выбором групп и кастомной цены. В `src/app/admin/clients/[id]/tabs/notes-tab.tsx` добавлен блок «Группа клиента (Приватные витрины)» с мгновенным назначением групп.
+  - **Верификация и Stage:** Тестовый сьют `src/__tests__/security/private-catalog-access.test.ts` (7 тестов PASS). Общий сьют `vitest`: **419/419 тестов PASS (100% GREEN)**, `tsc --noEmit` — 0 ошибок. Сняты и подтверждены скриншоты стейджа (`58_stage_...` по `61_stage_...`).
+
 - **Аудитор Security Findings Remediation (61/100 → 100/100 — 100% COMPLETE & VERIFIED):**
   - **C-01** `src/app/api/auth/dev-login/route.ts`: Fail-Closed guard (404 в production), исключение роли из JWT-пейлоада для staff (P2-10 Zero-Trust), безопасная установка cookie через `NextResponse`.
   - **C-02** `scripts/start-tunnel.ps1` & `scripts/install-cloudflared-service.ps1`: Убран захардкоженный Cloudflare Tunnel JWT → переключено на `$env:CLOUDFLARE_TUNNEL_TOKEN`. CI-gate `check-bundle-secrets.mjs` расширен сканированием папки `scripts/`.
