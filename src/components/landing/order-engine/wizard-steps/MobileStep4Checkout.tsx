@@ -126,7 +126,9 @@ export function MobileStep4Checkout({
           <div>
             <input
               id="mobile-checkout-url-input"
-              type="url"
+              type="text"
+              inputMode="url"
+              autoComplete="url"
               value={url}
               onChange={e => setUrl(e.target.value)}
               aria-describedby={validationErrors?.link ? "step4-url-error" : undefined}
@@ -314,7 +316,11 @@ export function MobileStep4Checkout({
       <LegalCheckbox
         id="standard-legal-checkbox"
         checked={agreedToTerms}
-        onChange={(val) => setAgreedToTerms(val)}
+        onChange={(val) => {
+          setAgreedToTerms(val);
+          if (val && engine.setTermsHasError) engine.setTermsHasError(false);
+        }}
+        hasError={engine.termsHasError}
         labelClassName="text-muted-foreground font-medium text-xs"
         onOpenDocument={onOpenDocument}
       />
