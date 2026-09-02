@@ -309,9 +309,10 @@ bot.start(async (ctx: BotContext) => {
     `👋 <b>{userName}, добро пожаловать в {siteName}!</b>\n\n` +
     `Платформа автоматического продвижения в социальных сетях.\n\n` +
     `💰 Ваш баланс: <b>{balance} ₽</b>\n\n` +
-    `🚀 <b>Что сегодня будем продвигать?</b>\n` +
-    `🔗 <i>Отправьте ссылку на пост, канал или профиль прямо в этот чат — я автоматически определю соцсеть и подберу лучшие тарифы.</i>\n\n` +
-    `Либо выберите раздел в меню ниже:`;
+    `⚡ <b>Как сделать заказ за 2 простых шага:</b>\n` +
+    `1️⃣ Нажмите <b>«🚀 Быстрый заказ по ссылке»</b> или просто <b>отправьте ссылку в этот чат</b>.\n` +
+    `2️⃣ Выберите подходящий тариф и укажите количество.\n\n` +
+    `<i>Либо выберите нужный раздел в меню ниже:</i>`;
 
   try {
     const settings = await db.systemSettings.findFirst({ select: { telegramTemplates: true } });
@@ -329,6 +330,7 @@ bot.start(async (ctx: BotContext) => {
   const keyboard = await getDynamicKeyboard(tgId);
   const isOwner = await isOwnerOrAdmin(tgId);
   const inlineRows = [
+    [Markup.button.callback('🚀 Быстрый заказ по ссылке', 'start_fast_order')],
     [Markup.button.callback('🛍 Каталог услуг', 'shop'), Markup.button.callback('👤 Личный кабинет', 'profile')],
     [Markup.button.callback('🔗 Привязать аккаунт', 'bind_account'), Markup.button.callback('🆘 Поддержка', 'support')]
   ];
@@ -360,7 +362,7 @@ async function getDynamicKeyboard(tgId?: string | number) {
   const isOwner = tgId ? await isOwnerOrAdmin(tgId) : false;
 
   let baseGrid: string[][] = [
-    ['🛍 Каталог услуг', '📦 Мои заказы'],
+    ['🚀 Заказать по ссылке', '🛍 Каталог услуг'],
     ['💰 Пополнить', '👤 Профиль'],
     ['🆘 Поддержка', '👥 Рефералы']
   ];
@@ -430,6 +432,39 @@ async function sendNetworkCatalogMenu(ctx: BotContext, isEdit = false) {
     return await ctx.reply('Произошла ошибка при загрузке каталога.');
   }
 }
+
+async function sendFastOrderPrompt(ctx: BotContext) {
+  await ctx.reply(
+    '🚀 <b>Быстрый заказ по ссылке</b>\n\n' +
+    'Отправьте в ответ ссылку на ваш объект продвижения прямо в этот чат:\n' +
+    '• <b>Telegram</b> (канал, группа, пост)\n' +
+    '• <b>ВКонтакте</b> (стена, группа, видео, клип)\n' +
+    '• <b>YouTube</b> (видео, shorts, канал)\n' +
+    '• <b>Instagram</b>, <b>TikTok</b> и другие соцсети\n\n' +
+    '<i>Я автоматически определю соцсеть, тип объекта и покажу только подходящие тарифы без риска ошибки!</i>',
+    {
+      parse_mode: 'HTML',
+      ...Markup.inlineKeyboard([
+        [Markup.button.callback('🛍 Выбрать из каталога вручную', 'shop')],
+        [Markup.button.callback('❌ Отмена', 'cancel_fast_order')]
+      ])
+    }
+  );
+}
+
+bot.action('start_fast_order', async (ctx: BotContext) => {
+  await ctx.answerCbQuery().catch(() => {});
+  return sendFastOrderPrompt(ctx);
+});
+
+bot.hears(['🚀 Заказать по ссылке', 'Заказать по ссылке', 'Быстрый заказ', 'Ввести ссылку'], async (ctx: BotContext) => {
+  return sendFastOrderPrompt(ctx);
+});
+
+bot.action('cancel_fast_order', async (ctx: BotContext) => {
+  await ctx.answerCbQuery('Отменено').catch(() => {});
+  await ctx.editMessageText('❌ Ожидание ссылки отменено. Вы можете воспользоваться меню ниже:').catch(() => {});
+});
 
 bot.command('shop', async (ctx: BotContext) => {
   await sendNetworkCatalogMenu(ctx, false);
@@ -1031,16 +1066,49 @@ async function handleLinkInput(ctx: BotContext, rawInput: string) {
     if (!ctx.session) (ctx as unknown as { session: Record<string, unknown> }).session = {};
     (ctx.session as Record<string, unknown>).activeLink = canonicalLink;
 
-    const buttons = categories.map((c: { id: string; name: string }) => [Markup.button.callback(c.name, `cat_ctg_${c.id}`)]);
+    // SMART CATEGORY FILTER: Filter out incompatible categories (e.g. post likes for channel links)
+    const { isLinkServiceCompatible, normalizeServiceTargetType } = await import('@/constants/link-service-compatibility');
+    const { inferTargetTypeFromName } = await import('@/utils/target-type-mapper');
+
+    const detectedType = analysis.type || 'generic_link';
+    const compatibleCategories: Array<{ id: string; name: string }> = [];
+
+    for (const c of categories) {
+      const svcs = await BotCatalogService.getVisibleServices(c.id, botTenantId);
+      const hasCompatibleService = svcs.some((s: { targetType?: string | null; name: string }) => {
+        const rawTarget = s.targetType || inferTargetTypeFromName(s.name);
+        const normalized = normalizeServiceTargetType(rawTarget);
+        return isLinkServiceCompatible(detectedType, normalized);
+      });
+      if (hasCompatibleService) {
+        compatibleCategories.push(c);
+      }
+    }
+
+    const displayedCategories = compatibleCategories.length > 0 ? compatibleCategories : categories;
+
+    const buttons = displayedCategories.map((c: { id: string; name: string }) => [
+      Markup.button.callback(c.name, `cat_ctg_${c.id}`)
+    ]);
     buttons.push([Markup.button.callback('⬅️ Все соцсети', 'cat_back_networks')]);
 
-    const typeDesc = analysis.type ? ` (${analysis.type})` : '';
+    const typeLabels: Record<string, string> = {
+      channel: '📢 Канал / Сообщество',
+      post: '📝 Публикация / Пост',
+      profile: '👤 Профиль / Аккаунт',
+      video: '🎬 Видео / Клип / Shorts',
+      story: '⚡ История / Story',
+      poll: '📊 Опрос / Голосование',
+      bot: '🤖 Telegram-бот'
+    };
+    const objectTitle = typeLabels[analysis.type] || (analysis.type ? `(${analysis.type})` : '');
 
     await ctx.reply(
       `🎯 <b>Ссылка успешно распознана!</b>\n` +
-      `🌐 Соцсеть: <b>${network.name}${typeDesc}</b>\n` +
+      `🌐 Соцсеть: <b>${network.name}</b>\n` +
+      (objectTitle ? `📌 Тип объекта: <b>${objectTitle}</b>\n` : '') +
       `🔗 Ссылка: <code>${escapeHtml(canonicalLink)}</code>\n\n` +
-      `Выберите категорию для продвижения:`,
+      `<i>Подобраны только совместимые категории продвижения:</i>`,
       {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard(buttons)

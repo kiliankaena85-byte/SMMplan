@@ -44,7 +44,7 @@ describe("Bot Real Order Execution Flow", () => {
           tgUser!.id,
           5000,
           "Test balance for bot order verification",
-          "admin-system-test"
+          { adminId: "admin-system-test" }
         );
       });
     }
@@ -77,5 +77,37 @@ describe("Bot Real Order Execution Flow", () => {
     expect(orderInDb?.link).toBe(testLink);
     expect(orderInDb?.quantity).toBe(100);
     expect(orderInDb?.charge).toBe(BigInt(500));
+  });
+
+  it("verifies that category filtering selects only compatible categories for a channel link", async () => {
+    const { BotCatalogService } = await import("@/bot/services/bot-catalog.service");
+    const { isLinkServiceCompatible, normalizeServiceTargetType } = await import("@/constants/link-service-compatibility");
+    const { inferTargetTypeFromName } = await import("@/utils/target-type-mapper");
+
+    const network = await BotCatalogService.findNetworkByPlatform("TELEGRAM", "smmplan");
+    expect(network).toBeDefined();
+
+    const allCategories = await BotCatalogService.getVisibleCategories(network!.id, "smmplan");
+    expect(allCategories.length).toBeGreaterThan(0);
+
+    const detectedType = "channel";
+    const compatibleCategories: Array<{ id: string; name: string }> = [];
+
+    for (const c of allCategories) {
+      const svcs = await BotCatalogService.getVisibleServices(c.id, "smmplan");
+      const hasCompatible = svcs.some((s: { targetType?: string | null; name: string }) => {
+        const rawTarget = s.targetType || inferTargetTypeFromName(s.name);
+        return isLinkServiceCompatible(detectedType, normalizeServiceTargetType(rawTarget));
+      });
+      if (hasCompatible) {
+        compatibleCategories.push(c);
+      }
+    }
+
+    // Must include "Подписчики"
+    const hasSubscribersCategory = compatibleCategories.some(c => c.name.includes("Подписчик"));
+    expect(hasSubscribersCategory).toBe(true);
+
+    console.log("Filtered categories for channel link:", compatibleCategories.map(c => c.name));
   });
 });
