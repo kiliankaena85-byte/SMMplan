@@ -19,7 +19,24 @@ export function useMobileWizard(engine: OrderEngine) {
 
   const setActiveStep = useCallback((step: 1 | 2 | 3 | 4) => {
     userManuallyBrowsingRef.current = true;
-    setActiveStepRaw(step);
+    setActiveStepRaw((prevStep) => {
+      if (prevStep === step) return prevStep;
+      
+      if (typeof window !== 'undefined') {
+        if (step > prevStep) {
+          window.history.pushState({ wizardStep: step }, '', '#step-' + step);
+        } else if (step === 1) {
+          if (window.location.hash.startsWith('#step-')) {
+            window.history.replaceState({ wizardStep: 1 }, '', window.location.pathname + window.location.search);
+          }
+        } else {
+          window.history.replaceState({ wizardStep: step }, '', '#step-' + step);
+        }
+      }
+
+      return step;
+    });
+
     // Smooth scroll to the new step without jumping
     setTimeout(() => {
       const refMap: Record<number, React.RefObject<HTMLDivElement | null>> = { 2: step2Ref, 3: step3Ref, 4: step4Ref };
@@ -28,6 +45,28 @@ export function useMobileWizard(engine: OrderEngine) {
         ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }, 100);
+  }, []);
+
+  // Listen to browser Back button / gesture (popstate)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handlePopState = (event: PopStateEvent) => {
+      const hash = window.location.hash;
+      let targetStep: 1 | 2 | 3 | 4 = 1;
+      if (event.state?.wizardStep && typeof event.state.wizardStep === 'number') {
+        targetStep = event.state.wizardStep as 1 | 2 | 3 | 4;
+      } else if (hash.startsWith('#step-')) {
+        const parsed = parseInt(hash.replace('#step-', ''), 10);
+        if (parsed >= 1 && parsed <= 4) targetStep = parsed as 1 | 2 | 3 | 4;
+      }
+
+      userManuallyBrowsingRef.current = true;
+      setActiveStepRaw(targetStep);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   const {

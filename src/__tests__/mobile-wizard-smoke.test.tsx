@@ -258,4 +258,30 @@ describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
     expect(currentPromo).toBe('');
     expect(result.current.currentStep).toBe(1);
   });
+
+  it('11. Supports browser Back button / popstate navigation between wizard steps', () => {
+    const engine = createMockEngine({ url: 'https://t.me/test_channel' });
+    const { result } = renderHook(() => useMobileWizard(engine));
+
+    act(() => {
+      result.current.setActiveStep(3);
+    });
+    expect(result.current.currentStep).toBe(3);
+
+    // Simulate user pressing browser Back button
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate', {
+        state: { wizardStep: 2 }
+      }));
+    });
+    expect(result.current.currentStep).toBe(2);
+
+    // Simulate user pressing browser Back button again to Step 1
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate', {
+        state: { wizardStep: 1 }
+      }));
+    });
+    expect(result.current.currentStep).toBe(1);
+  });
 });
