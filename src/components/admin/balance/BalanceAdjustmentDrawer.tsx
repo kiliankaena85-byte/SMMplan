@@ -33,17 +33,30 @@ export interface BalanceAdjustmentItem {
 interface Props {
   adjustment: BalanceAdjustmentItem | null;
   currentUserId?: string;
+  currentUserRole?: string;
   onClose: () => void;
   onActionComplete: () => void;
 }
 
-export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, onActionComplete }: Props) {
+export function BalanceAdjustmentDrawer({ 
+  adjustment, 
+  currentUserId, 
+  currentUserRole,
+  onClose, 
+  onActionComplete 
+}: Props) {
   const [rejectionReason, setRejectionReason] = useState("");
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!adjustment) return null;
+
+  const isOwnerOrAdmin = currentUserRole === 'OWNER' || currentUserRole === 'ADMIN';
+  const isRequester = Boolean(currentUserId && adjustment.requestedBy === currentUserId);
+  const canApprove = isOwnerOrAdmin || !isRequester;
+  const canReject = isOwnerOrAdmin || !isRequester;
+  const canCancel = isRequester && !isOwnerOrAdmin;
 
   const amountRub = (Number(adjustment.amount) / 100).toFixed(2);
   const isPending = adjustment.status === "PENDING_APPROVAL";
@@ -281,7 +294,7 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
               </div>
             ) : (
               <div className="flex gap-2">
-                {adjustment.requestedBy !== currentUserId && (
+                {canApprove && (
                   <button
                     onClick={handleApprove}
                     disabled={loading}
@@ -291,7 +304,7 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
                   </button>
                 )}
 
-                {adjustment.requestedBy !== currentUserId && (
+                {canReject && (
                   <button
                     onClick={() => setShowRejectInput(true)}
                     disabled={loading}
@@ -301,7 +314,7 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
                   </button>
                 )}
 
-                {adjustment.requestedBy === currentUserId && (
+                {canCancel && (
                   <button
                     onClick={handleCancel}
                     disabled={loading}

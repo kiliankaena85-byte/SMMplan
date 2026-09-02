@@ -327,9 +327,10 @@ export async function approveBalanceAdjustmentAction(formData: FormData) {
       return { success: false, error: `Заявка находится в статусе ${adjustment.status} и не может быть подтверждена` };
     }
 
-    // Prevent self-approval
-    if (adjustment.requestedBy === approver.id) {
-      return { success: false, error: "Запрещено подтверждать собственную заявку" };
+    // Prevent self-approval for subordinate staff (Dual-Custody / Maker-Checker invariant)
+    // Sovereign roles (OWNER and top-tier ADMIN) are authorized to approve their own requests
+    if (adjustment.requestedBy === approver.id && approver.role !== 'OWNER' && approver.role !== 'ADMIN') {
+      return { success: false, error: "Запрещено подтверждать собственную заявку сотрудникам. Требуется подтверждение руководителя или владельца." };
     }
 
     const policy = await getEffectiveBalancePolicy(approver.id);

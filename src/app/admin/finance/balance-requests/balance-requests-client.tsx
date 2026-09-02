@@ -58,7 +58,13 @@ function fmt(cents: number, showSign = false): string {
   return `${sign}${(cents / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽`;
 }
 
-export function BalanceRequestsClient() {
+export function BalanceRequestsClient({ 
+  currentUserId, 
+  currentUserRole 
+}: { 
+  currentUserId?: string; 
+  currentUserRole?: string; 
+}) {
   const [items, setItems] = useState<BalanceAdjustmentItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -411,6 +417,8 @@ export function BalanceRequestsClient() {
       {selectedItem && (
         <BalanceAdjustmentDrawer
           adjustment={selectedItem}
+          currentUserId={currentUserId}
+          currentUserRole={currentUserRole}
           onClose={() => setSelectedItem(null)}
           onActionComplete={fetchAdjustments}
         />

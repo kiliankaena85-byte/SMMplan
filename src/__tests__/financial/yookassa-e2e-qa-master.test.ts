@@ -403,25 +403,43 @@ describe('🏆 YooKassa Enterprise QA Test Suite (Dual-Custody, 54-FZ & FinTech 
     });
 
     it('QA-09: Self-Approval Prevention & RBAC — Staff cannot approve their own refund requests', async () => {
-      // Step A: Financier (who has balance_approvals) creates a refund request
+      // Step A: Create staff role with both request & approval permissions
+      const supervisorRole = await db.staffRole.create({
+        data: {
+          name: `Supervisor_${Date.now()}`,
+          tenantId: 'smmplan',
+          permissions: {
+            create: [
+              { section: 'BALANCE_REQUESTS', canView: true, canEdit: true },
+              { section: 'BALANCE_APPROVALS', canView: true, canEdit: true },
+            ],
+          },
+        },
+      });
+
+      await db.user.update({
+        where: { id: supportStaff.id },
+        data: { staffRoleId: supervisorRole.id },
+      });
+
       (verifySession as any).mockResolvedValue({
-        userId: financierUser.id,
-        email: financierUser.email,
-        role: financierUser.role,
+        userId: supportStaff.id,
+        email: supportStaff.email,
+        role: supportStaff.role,
       });
 
       const fd = new FormData();
       fd.append('userId', clientUser.id);
       fd.append('paymentId', succeededPayment.id);
       fd.append('amountKopecks', '30000');
-      fd.append('reason', 'Тест само-аппрува финансистом');
+      fd.append('reason', 'Тест само-аппрува саппортом');
       await requestCardRefundAction(fd);
 
       const adj = await db.manualBalanceAdjustment.findFirstOrThrow({
-        where: { paymentId: succeededPayment.id, reasonCode: 'REFUND_TO_CARD' },
+        where: { paymentId: succeededPayment.id, reasonCode: 'REFUND_TO_CARD', requestedBy: supportStaff.id },
       });
 
-      // Step B: Same Financier tries to approve their own request -> MUST BE BLOCKED
+      // Step B: Same Staff tries to approve their own request -> MUST BE BLOCKED BY SELF-APPROVAL INVARIANT
       const approveFd = new FormData();
       approveFd.append('id', adj.id);
 
@@ -438,6 +456,38 @@ describe('🏆 YooKassa Enterprise QA Test Suite (Dual-Custody, 54-FZ & FinTech 
 
       const ownerApproveRes = await approveBalanceAdjustmentAction(approveFd);
       expect(ownerApproveRes.success).toBe(true);
+    });
+
+    it('QA-09B: Sovereign Rights — Owner CAN approve their own refund and balance requests', async () => {
+      // Step A: Owner creates a refund request for 250 ₽
+      (verifySession as any).mockResolvedValue({
+        userId: ownerUser.id,
+        email: ownerUser.email,
+        role: ownerUser.role,
+      });
+
+      const fd = new FormData();
+      fd.append('userId', clientUser.id);
+      fd.append('paymentId', succeededPayment.id);
+      fd.append('amountKopecks', '25000');
+      fd.append('reason', 'Возврат, инициированный лично Владельцем');
+      const reqRes = await requestCardRefundAction(fd);
+      expect(reqRes.success).toBe(true);
+
+      const adj = await db.manualBalanceAdjustment.findFirstOrThrow({
+        where: { paymentId: succeededPayment.id, reasonCode: 'REFUND_TO_CARD', requestedBy: ownerUser.id },
+      });
+
+      // Step B: Owner directly approves their own request -> MUST SUCCEED
+      const approveFd = new FormData();
+      approveFd.append('id', adj.id);
+
+      const approveRes = await approveBalanceAdjustmentAction(approveFd);
+      expect(approveRes.success).toBe(true);
+
+      const finalAdj = await db.manualBalanceAdjustment.findUniqueOrThrow({ where: { id: adj.id } });
+      expect(finalAdj.status).toBe('EXECUTED');
+      expect(finalAdj.approvedBy).toBe(ownerUser.id);
     });
 
     it('QA-10: Idempotency Double-Click — Rapid successive calls with same key do not create duplicate debits', async () => {
