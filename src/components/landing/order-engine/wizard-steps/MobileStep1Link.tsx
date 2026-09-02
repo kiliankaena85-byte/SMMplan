@@ -115,7 +115,9 @@ export function MobileStep1Link({
           <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
           <input
             id="standard-url-input"
-            type="url"
+            type="text"
+            inputMode="url"
+            autoComplete="url"
             value={url}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}

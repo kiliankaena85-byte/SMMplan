@@ -174,4 +174,55 @@ describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
     fireEvent.click(promptBtn);
     expect(setActiveStep).toHaveBeenCalledWith(1);
   });
+
+  it('8. Allows user to navigate back to Step 3 or Step 1 from Step 4 without getting trapped', () => {
+    const selectedService = mockCatalog[0].categories[0].services[0];
+    const engine = createMockEngine({
+      url: 'https://t.me/channel',
+      categoryId: 'tg-subs',
+      selectedService: selectedService as any
+    });
+
+    const { result } = renderHook(() => useMobileWizard(engine));
+
+    // Initially on Step 4 because service is selected
+    expect(result.current.currentStep).toBe(4);
+
+    // User clicks "Назад к тарифам" (Step 3)
+    act(() => {
+      result.current.setActiveStep(3);
+    });
+    // MUST remain on Step 3, not forced back to Step 4!
+    expect(result.current.currentStep).toBe(3);
+
+    // User clicks "Сменить ссылку" (Step 1)
+    act(() => {
+      result.current.setActiveStep(1);
+    });
+    // MUST remain on Step 1!
+    expect(result.current.currentStep).toBe(1);
+  });
+
+  it('9. MobileStep1Link input has type="text" and inputMode="url" to prevent iOS Safari validation lock', () => {
+    const engine = createMockEngine({ url: '' });
+
+    render(
+      <MobileStep1Link
+        engine={engine}
+        currentStep={1}
+        setActiveStep={vi.fn()}
+        proceedFromStep1={vi.fn()}
+        isFocused={false}
+        setIsFocused={vi.fn()}
+        localUrlError={null}
+        setLocalUrlError={vi.fn()}
+        catalogHint={false}
+      />
+    );
+
+    const input = document.getElementById('standard-url-input') as HTMLInputElement;
+    expect(input).toBeDefined();
+    expect(input.type).toBe('text');
+    expect(input.getAttribute('inputmode')).toBe('url');
+  });
 });
