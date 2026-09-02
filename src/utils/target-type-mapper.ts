@@ -113,7 +113,7 @@ export function inferTargetTypeFromName(name: string | null | undefined): Target
     n.includes('channel posts') ||
     // "Просмотры на последних N постов" / "Последних 50 постов" — applies to channel, NOT post
     n.includes('последних пост') ||
-    n.includes('последних пубил') ||
+    n.includes('последних публик') ||
     n.includes('последних запис') ||
     (n.includes('последн') && (n.includes('пост') || n.includes('запис') || n.includes('публик'))) ||
     n.includes('last post') ||
