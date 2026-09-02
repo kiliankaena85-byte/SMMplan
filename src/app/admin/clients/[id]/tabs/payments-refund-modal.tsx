@@ -161,12 +161,12 @@ export function PaymentsRefundModal({
 
           <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-700 dark:text-amber-400 space-y-1">
             <p className="font-bold flex items-center gap-1">
-              <Shield className="w-3.5 h-3.5" /> Защита от двойного расхода:
+              <Shield className="w-3.5 h-3.5" /> Двухэтапный регламент возврата:
             </p>
             <p>
-              Сумма будет <strong>моментально списана с баланса в личном кабинете</strong>, а
-              заявка с номером платежа передана финансисту для проведения возврата в ЮKassa /
-              Робокассе.
+              Сумма будет <strong>зарезервирована с баланса клиента</strong>, а заявка передана
+              финансисту/руководителю. При одобрении средства автоматически отправятся на карту
+              через API ЮKassa с фискальным чеком 54-ФЗ. При отклонении — вернутся на баланс.
             </p>
           </div>
 
@@ -186,12 +186,12 @@ export function PaymentsRefundModal({
               {isPendingRefund ? (
                 <span className="inline-flex items-center gap-1.5">
                   <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Списание...
+                  Резервирование...
                 </span>
               ) : (
                 <>
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Списать и передать финансисту</span>
+                  <span>Создать заявку на возврат</span>
                 </>
               )}
             </button>

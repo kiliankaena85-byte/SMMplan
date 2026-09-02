@@ -222,7 +222,7 @@ export async function updateBalanceAction(formData: FormData) {
  * and creates a pending payout request for the financier to execute in YooKassa.
  */
 export async function requestCardRefundAction(formData: FormData) {
-  return requireStaffPermission('finance', 'edit', async (admin) => {
+  return requireStaffPermission('balance_requests', 'edit', async (admin) => {
     const userId = formData.get('userId') as string;
     const paymentId = formData.get('paymentId') as string;
     const amountKopecksRaw = formData.get('amountKopecks') as string;
@@ -250,8 +250,21 @@ export async function requestCardRefundAction(formData: FormData) {
       return { success: false as const, error: 'Возврат возможен только для успешно оплаченных платежей' };
     }
 
-    if (amountKopecks > payment.amount) {
-      return { success: false as const, error: 'Сумма возврата не может превышать сумму исходного платежа' };
+    const existingRefunds = await db.manualBalanceAdjustment.findMany({
+      where: {
+        paymentId: payment.id,
+        reasonCode: 'REFUND_TO_CARD',
+        status: { in: ['PENDING_APPROVAL', 'APPROVED', 'EXECUTED'] }
+      }
+    });
+    const alreadyRefundedOrPendingKopecks = existingRefunds.reduce((acc, r) => acc + r.amount, BigInt(0));
+    const availableForRefundKopecks = payment.amount - alreadyRefundedOrPendingKopecks;
+
+    if (amountKopecks > availableForRefundKopecks) {
+      return { 
+        success: false as const, 
+        error: `Сумма возврата превышает доступный остаток по платежу (${(Number(availableForRefundKopecks) / 100).toFixed(2)} ₽)` 
+      };
     }
 
     // 2. Verify target user balance

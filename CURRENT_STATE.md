@@ -1,7 +1,14 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-09-01 22:44 (МСК)
+> **Последнее обновление:** 2026-09-02 04:10 (МСК)
+
+- **Двухэтапный автоматический возврат на карту через API ЮKassa (Branch: `feat/yookassa-dual-custody-refunds` — 100% COMPLETE & VERIFIED):**
+  - **Архитектура Dual Custody & Защита от двойного списания:** Саппорт/оператор в карточке клиента (`PaymentsTab` / `PaymentsRefundModal`) создает заявку на возврат. Средства **мгновенно резервируются (дебетуются)** с баланса клиента через `WalletOps.charge(...)`, создается заявка `ManualBalanceAdjustment` со статусом `PENDING_APPROVAL` и привязкой к исходному платежу (`paymentId`).
+  - **Лимит возврата (Ceiling Guard):** Реализована кумулятивная проверка остатка платежа — невозможно запросить возврат на сумму, превышающую невозвращенный остаток по конкретной транзакции (`payment.amount - SUM(refunded)`).
+  - **Автоматическое исполнение через API ЮKassa:** Ответственный финансист/владелец в разделе `Финансы -> Заявки на корректировку` утверждает заявку кнопкой *«✓ Одобрить и вернуть в ЮKassa»*. Серверный экшен `approveBalanceAdjustmentAction` вызывает `YooKassaGateway.executeRefund` (`POST https://api.yookassa.ru/v3/refunds`) с фискальным чеком 54-ФЗ (НДС 22% / без НДС), сохраняет `refundReceiptId` в платеже, переводит заявку в `EXECUTED` и **НЕ списывает баланс повторно**.
+  - **Безопасное отклонение и отмена:** При отклонении финансистом (`rejectBalanceAdjustmentAction`) или отмене оператором (`cancelBalanceAdjustmentRequestAction`) зарезервированные средства мгновенно возвращаются на баланс клиента (`WalletOps.credit(...)`).
+  - **Верификация:** Создан тест-сьют `src/__tests__/financial/yookassa-automated-refund.test.ts` (4 теста PASS). Полный сьют `vitest`: **71 файл, 423/423 тестов PASS (100% GREEN)**, `tsc --noEmit` — 0 ошибок.
 
 - **Аудитор Security Findings Remediation (61/100 → 100/100 — 100% COMPLETE & VERIFIED):**
   - **C-01** `src/app/api/auth/dev-login/route.ts`: Fail-Closed guard (404 в production), исключение роли из JWT-пейлоада для staff (P2-10 Zero-Trust), безопасная установка cookie через `NextResponse`.

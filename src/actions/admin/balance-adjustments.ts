@@ -7,6 +7,7 @@ import { requireStaffPermission } from "@/lib/server/rbac";
 import { auditAdminAwaitable } from "@/lib/admin-audit";
 import { getEffectiveBalancePolicy, parsePolicyReasonCodes } from "@/services/admin/balance-policy.service";
 import { WalletOps } from "@/services/financial/wallet-ops";
+import { PaymentGatewayFactory } from "@/services/financial/payment-gateway.service";
 import {
   BALANCE_ADJUSTMENT_DIRECTION,
   BALANCE_ADJUSTMENT_STATUS,
@@ -277,6 +278,19 @@ export async function cancelBalanceAdjustmentRequestAction(formData: FormData) {
       return { success: false, error: `Нельзя отменить заявку в статусе ${adjustment.status}` };
     }
 
+    // If it was a card refund request, return held funds to user balance
+    if (adjustment.reasonCode === 'REFUND_TO_CARD') {
+      await db.$transaction(async (tx) => {
+        await WalletOps.credit(
+          tx,
+          adjustment.userId,
+          adjustment.amount,
+          `Возврат средств: Заявка на возврат на карту отменена инициатором`,
+          { idempotencyKey: `refund_cancel_${adjustment.id}`, adminId: staffUser.id }
+        );
+      });
+    }
+
     const updated = await db.manualBalanceAdjustment.update({
       where: { id },
       data: { status: BALANCE_ADJUSTMENT_STATUS.CANCELED }
@@ -333,14 +347,15 @@ export async function approveBalanceAdjustmentAction(formData: FormData) {
     // Fresh Target User Revalidation before approval execution
     const freshTargetUser = await db.user.findUnique({
       where: { id: adjustment.userId },
-      select: { id: true, balance: true, isDeleted: true, isActive: true, role: true }
+      select: { id: true, email: true, balance: true, isDeleted: true, isActive: true, role: true }
     });
 
     if (!freshTargetUser || freshTargetUser.isDeleted || !freshTargetUser.isActive || freshTargetUser.role === 'BANNED') {
       return { success: false, error: "Целевой пользователь заблокирован, удален или неактивен" };
     }
 
-    if (adjustment.direction === BALANCE_ADJUSTMENT_DIRECTION.DEBIT && freshTargetUser.balance < adjustment.amount) {
+    // For standard manual adjustments (non-refund), verify target balance on debit
+    if (adjustment.reasonCode !== 'REFUND_TO_CARD' && adjustment.direction === BALANCE_ADJUSTMENT_DIRECTION.DEBIT && freshTargetUser.balance < adjustment.amount) {
       return { success: false, error: `У целевого пользователя недостаточно средств для списания: баланс ${freshTargetUser.balance.toString()} коп., требуется ${adjustment.amount.toString()} коп.` };
     }
 
@@ -361,7 +376,79 @@ export async function approveBalanceAdjustmentAction(formData: FormData) {
       return { success: false, error: "Заявка уже обрабатывается или статус был изменен" };
     }
 
-    // Execute balance operation inside atomic transaction
+    // Case 1: Automated Gateway Card Refund (YooKassa / Robokassa)
+    if (adjustment.reasonCode === 'REFUND_TO_CARD') {
+      try {
+        const payment = adjustment.paymentId
+          ? await db.payment.findUnique({ where: { id: adjustment.paymentId } })
+          : null;
+
+        if (!payment) {
+          throw new Error('Привязанный платеж не найден');
+        }
+
+        const gateway = PaymentGatewayFactory.getGateway(payment.gateway);
+        let refundReceiptId: string | undefined;
+
+        if (gateway.executeRefund) {
+          const refundRes = await gateway.executeRefund({
+            paymentGatewayId: payment.gatewayId || payment.id,
+            amountRub: Number(adjustment.amount) / 100,
+            email: freshTargetUser.email || adjustment.user?.email,
+            reason: adjustment.reasonNote || 'Возврат средств по заявке',
+            idempotencyKey: `yoo_refund_${adjustment.id}`,
+          });
+          refundReceiptId = refundRes.receiptRegistration || refundRes.refundId;
+        }
+
+        if (refundReceiptId) {
+          await db.payment.update({
+            where: { id: payment.id },
+            data: { refundReceiptId }
+          });
+        }
+
+        await db.manualBalanceAdjustment.update({
+          where: { id: adjustment.id },
+          data: {
+            status: BALANCE_ADJUSTMENT_STATUS.EXECUTED,
+          }
+        });
+
+        await auditAdminAwaitable({
+          adminId: approver.id,
+          adminEmail: approver.email,
+          action: 'CARD_REFUND_EXECUTED_VIA_GATEWAY',
+          target: adjustment.id,
+          targetType: 'ManualBalanceAdjustment',
+          newValue: {
+            targetUserId: adjustment.userId,
+            paymentId: payment.id,
+            gatewayId: payment.gatewayId,
+            gateway: payment.gateway,
+            amountCents: adjustment.amount.toString(),
+            refundReceiptId,
+          }
+        });
+
+        return { success: true, id: adjustment.id, status: BALANCE_ADJUSTMENT_STATUS.EXECUTED };
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        console.error("[ApproveBalanceAdjustment:Refund] Execution failed:", err);
+
+        await db.manualBalanceAdjustment.update({
+          where: { id: adjustment.id },
+          data: {
+            status: BALANCE_ADJUSTMENT_STATUS.PENDING_APPROVAL,
+            executionError: errMsg || "Ошибка шлюза при возврате"
+          }
+        });
+
+        return { success: false, error: `Сбой при проведении возврата через шлюз: ${errMsg}` };
+      }
+    }
+
+    // Case 2: Standard Balance Adjustment (CREDIT / DEBIT)
     try {
       const executionResult = await db.$transaction(async (tx) => {
         let res;
@@ -442,24 +529,6 @@ const rejectAdjustmentSchema = z.object({
   rejectionReason: z.string().min(5, "Причина отклонения должна содержать минимум 5 символов")
 });
 
-const getAdjustmentsSchema = z.object({
-  status: z.string().optional(),
-  direction: z.string().optional(),
-  userId: z.string().optional(),
-  requestedBy: z.string().optional(),
-  reasonCode: z.string().optional(),
-  ticketId: z.string().optional(),
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20)
-});
-
-const getAdjustmentStatsSchema = z.object({
-  requestedBy: z.string().optional(),
-  direction: z.string().optional(),
-  reasonCode: z.string().optional(),
-  status: z.string().optional()
-});
-
 export async function rejectBalanceAdjustmentAction(formData: FormData) {
   return requireStaffPermission('balance_approvals', 'edit', async (rejecter) => {
     const rawPayload = {
@@ -481,6 +550,19 @@ export async function rejectBalanceAdjustmentAction(formData: FormData) {
 
     if (adjustment.requestedBy === rejecter.id && rejecter.role !== 'OWNER' && rejecter.role !== 'ADMIN') {
       return { success: false, error: "Запрещено отклонять собственную заявку" };
+    }
+
+    // If it was a card refund request, return held funds to user balance
+    if (adjustment.reasonCode === 'REFUND_TO_CARD') {
+      await db.$transaction(async (tx) => {
+        await WalletOps.credit(
+          tx,
+          adjustment.userId,
+          adjustment.amount,
+          `Возврат средств: Заявка на возврат на карту отклонена (${rejectionReason.trim()})`,
+          { idempotencyKey: `refund_reject_${adjustment.id}`, adminId: rejecter.id }
+        );
+      });
     }
 
     const updated = await db.manualBalanceAdjustment.update({
@@ -508,6 +590,24 @@ export async function rejectBalanceAdjustmentAction(formData: FormData) {
     return { success: true, id: updated.id, status: updated.status };
   });
 }
+
+const getAdjustmentsSchema = z.object({
+  status: z.string().optional(),
+  direction: z.string().optional(),
+  userId: z.string().optional(),
+  requestedBy: z.string().optional(),
+  reasonCode: z.string().optional(),
+  ticketId: z.string().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20)
+});
+
+const getAdjustmentStatsSchema = z.object({
+  requestedBy: z.string().optional(),
+  direction: z.string().optional(),
+  reasonCode: z.string().optional(),
+  status: z.string().optional()
+});
 
 export async function getBalanceAdjustmentsAction(formData: FormData) {
   return requireStaffPermission('balance_requests', 'view', async (staffUser) => {

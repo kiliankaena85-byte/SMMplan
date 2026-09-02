@@ -38,6 +38,21 @@ export interface PaymentGatewayResult {
   remoteGatewayId: string;
 }
 
+export interface RefundGatewayParams {
+  paymentGatewayId: string;
+  amountRub: number;
+  email: string | null;
+  reason?: string;
+  idempotencyKey: string;
+}
+
+export interface RefundGatewayResult {
+  refundId: string;
+  status: string;
+  amountRub: number;
+  receiptRegistration?: string;
+}
+
 export interface PaymentGatewayParams {
   paymentId: string;
   orderId?: string;
@@ -55,6 +70,9 @@ export abstract class BasePaymentGateway {
   
   // Optional method for synchronous status checking
   async checkStatusSync?(gatewayId: string): Promise<boolean>;
+
+  // Optional method for automated refunds
+  async executeRefund?(params: RefundGatewayParams): Promise<RefundGatewayResult>;
 }
 
 class YooKassaGateway extends BasePaymentGateway {
@@ -191,6 +209,103 @@ class YooKassaGateway extends BasePaymentGateway {
       console.error('[YooKassaGateway] Error checking status', e);
       return false;
     }
+  }
+
+  async executeRefund(params: RefundGatewayParams): Promise<RefundGatewayResult> {
+    if (params.amountRub <= 0 || Math.round(params.amountRub * 100) <= 0) {
+      throw new Error('Сумма возврата должна быть больше 0');
+    }
+
+    const secrets = await SettingsProvider.getPaymentSecrets();
+    const shopId = secrets.yookassaShopId;
+    const secretKey = secrets.yookassaSecretKey;
+    const isTestMode = (await SettingsProvider.isTestMode()) || SettingsProvider.isTestEnvironment();
+
+    const isDummyKeys = !shopId || !secretKey || shopId.trim().length === 0 || secretKey.trim().length === 0;
+
+    if (params.paymentGatewayId.startsWith('yoo_test_mock_') || params.paymentGatewayId.startsWith('mock_') || (isDummyKeys && isTestMode)) {
+      return {
+        refundId: `mock_refund_${Date.now()}`,
+        status: 'succeeded',
+        amountRub: params.amountRub,
+      };
+    }
+
+    if (isDummyKeys) {
+      throw new Error('Платёжный шлюз ЮKassa не настроен для проведения возвратов.');
+    }
+
+    const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
+    const supportDomain = await SettingsProvider.getSupportEmailDomain();
+    const isVatThresholdExceeded = await checkVatThreshold();
+    const vatCode = isVatThresholdExceeded ? 10 : 1; // 10 = НДС 22% (п. 3 ст. 164 НК РФ), 1 = Без НДС
+
+    const payload = {
+      payment_id: params.paymentGatewayId,
+      amount: {
+        value: params.amountRub.toFixed(2),
+        currency: 'RUB',
+      },
+      receipt: {
+        customer: {
+          email: (params.email?.trim() || `no-reply@${supportDomain}`).slice(0, 64),
+        },
+        items: [
+          {
+            description: (params.reason || 'Возврат средств по услуге').slice(0, 128),
+            quantity: '1.00',
+            amount: {
+              value: params.amountRub.toFixed(2),
+              currency: 'RUB',
+            },
+            vat_code: vatCode,
+            payment_mode: 'full_payment',
+            payment_subject: 'service',
+          },
+        ],
+      },
+    };
+
+    let resp: Response;
+    try {
+      resp = await fetch('https://api.yookassa.ru/v3/refunds', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader,
+          'Idempotence-Key': (params.idempotencyKey || `refund_${Date.now()}`).slice(0, 64),
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(15000),
+      });
+    } catch (netErr: unknown) {
+      console.error('[YooKassaGateway] Refund connection failed:', netErr);
+      throw new Error('Ошибка соединения с сервером ЮKassa при возврате средств.');
+    }
+
+    if (!resp.ok) {
+      const errBody = await resp.text();
+      console.error('[YooKassaGateway] Refund API Error:', resp.status, errBody);
+      let descriptiveError = 'Ошибка проведения возврата в ЮKassa';
+      try {
+        const parsed = JSON.parse(errBody);
+        if (parsed.description) {
+          descriptiveError = `ЮKassa: ${parsed.description}`;
+        } else if (parsed.code) {
+          descriptiveError = `ЮKassa (${parsed.code})`;
+        }
+      } catch {
+        descriptiveError = `ЮKassa HTTP ${resp.status}`;
+      }
+      throw new Error(descriptiveError);
+    }
+
+    const data = await resp.json();
+    return {
+      refundId: data.id,
+      status: data.status,
+      amountRub: parseFloat(data.amount?.value || String(params.amountRub)),
+    };
   }
 }
 

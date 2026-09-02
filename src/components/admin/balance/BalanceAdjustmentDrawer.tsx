@@ -173,7 +173,15 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
 
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Причина:</span>
-                <span className="font-medium text-foreground">{adjustment.reasonCode}</span>
+                <span className="font-medium text-foreground flex items-center gap-1.5">
+                  {adjustment.reasonCode === 'REFUND_TO_CARD' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                      💳 Возврат на карту (ЮKassa)
+                    </span>
+                  ) : (
+                    adjustment.reasonCode
+                  )}
+                </span>
               </div>
             </div>
 
@@ -187,6 +195,13 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
                 <span className="text-xs text-muted-foreground">Оператор (Support):</span>
                 <p className="font-medium text-foreground">{adjustment.requester?.email || adjustment.requestedBy}</p>
               </div>
+
+              {adjustment.paymentId && (
+                <div>
+                  <span className="text-xs text-muted-foreground">ID платежа в эквайринге:</span>
+                  <p className="font-mono text-xs text-primary">{adjustment.paymentId}</p>
+                </div>
+              )}
 
               {adjustment.ticketId && (
                 <div>
@@ -218,6 +233,15 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
                 </div>
               )}
 
+              {adjustment.executionError && (
+                <div>
+                  <span className="text-xs text-destructive font-medium">Ошибка шлюза / исполнения:</span>
+                  <p className="p-3 bg-destructive/10 border border-destructive/30 text-destructive text-xs rounded-lg mt-1 font-mono">
+                    {adjustment.executionError}
+                  </p>
+                </div>
+              )}
+
               {adjustment.ledgerEntryId && (
                 <div>
                   <span className="text-xs text-muted-foreground">ID записи реестра (Ledger):</span>
@@ -243,13 +267,13 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
                   <button
                     onClick={handleReject}
                     disabled={loading}
-                    className="flex-1 py-2 bg-destructive text-destructive-foreground rounded-lg text-xs font-semibold hover:bg-destructive/90"
+                    className="flex-1 py-2 bg-destructive text-destructive-foreground rounded-lg text-xs font-semibold hover:bg-destructive/90 cursor-pointer"
                   >
                     Подтвердить отклонение
                   </button>
                   <button
                     onClick={() => setShowRejectInput(false)}
-                    className="py-2 px-3 border border-border rounded-lg text-xs"
+                    className="py-2 px-3 border border-border rounded-lg text-xs cursor-pointer"
                   >
                     Отмена
                   </button>
@@ -261,9 +285,9 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
                   <button
                     onClick={handleApprove}
                     disabled={loading}
-                    className="flex-1 py-2.5 bg-emerald-600 text-primary-foreground rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors"
+                    className="flex-1 py-2.5 bg-emerald-600 text-primary-foreground rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors cursor-pointer"
                   >
-                    ✓ Утвердить и исполнить
+                    {adjustment.reasonCode === 'REFUND_TO_CARD' ? '✓ Одобрить и вернуть в ЮKassa' : '✓ Утвердить и исполнить'}
                   </button>
                 )}
 
@@ -271,7 +295,7 @@ export function BalanceAdjustmentDrawer({ adjustment, currentUserId, onClose, on
                   <button
                     onClick={() => setShowRejectInput(true)}
                     disabled={loading}
-                    className="py-2.5 px-4 bg-destructive/10 text-destructive border border-destructive/20 rounded-lg text-xs font-semibold hover:bg-red-500/20 transition-colors"
+                    className="py-2.5 px-4 bg-destructive/10 text-destructive border border-destructive/20 rounded-lg text-xs font-semibold hover:bg-red-500/20 transition-colors cursor-pointer"
                   >
                     ✕ Отклонить
                   </button>

@@ -314,11 +314,17 @@ export function BalanceRequestsClient() {
                     {/* Direction & Reason */}
                     <PlanTableCell>
                       <div className="flex flex-col gap-0.5">
-                        <span className={`text-xs font-bold font-mono ${isCredit ? 'text-success' : 'text-destructive'}`}>
-                          {isCredit ? '+ CREDIT (Начисление)' : '- DEBIT (Списание)'}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[220px]" title={item.reasonCode}>
-                          {item.reasonCode}
+                        {item.reasonCode === 'REFUND_TO_CARD' ? (
+                          <span className="text-xs font-bold font-mono text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                            💳 ВОЗВРАТ НА КАРТУ
+                          </span>
+                        ) : (
+                          <span className={`text-xs font-bold font-mono ${isCredit ? 'text-success' : 'text-destructive'}`}>
+                            {isCredit ? '+ CREDIT (Начисление)' : '- DEBIT (Списание)'}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[220px]" title={item.reasonNote || item.reasonCode}>
+                          {item.reasonCode === 'REFUND_TO_CARD' ? (item.reasonNote || 'Возврат через эквайринг ЮKassa') : item.reasonCode}
                         </span>
                       </div>
                     </PlanTableCell>
