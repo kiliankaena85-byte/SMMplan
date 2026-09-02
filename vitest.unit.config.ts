@@ -14,6 +14,7 @@ export default defineConfig({
       'server-only': path.resolve(__dirname, './node_modules/server-only/empty.js'),
     },
     include: [
+      'src/__tests__/financial/yookassa-e2e-qa-master.test.ts',
       'src/__tests__/financial/yookassa-automated-refund.test.ts',
       'src/__tests__/financial/financial-security-audit.test.ts',
       'src/__tests__/catalog-pagination-offset.test.ts',

@@ -97,11 +97,13 @@ describe('Dual-Custody YooKassa Automated Refund Suite', () => {
 
   afterEach(async () => {
     const userIds = [ownerUser?.id, supportStaff?.id, clientUser?.id].filter(Boolean);
-    await db.manualBalanceAdjustment.deleteMany({ where: { OR: [{ userId: { in: userIds } }, { requestedBy: { in: userIds } }] } }).catch(() => {});
-    await db.payment.deleteMany({ where: { userId: { in: userIds } } }).catch(() => {});
-    await db.ledgerEntry.deleteMany({ where: { userId: { in: userIds } } }).catch(() => {});
-    await db.adminAuditLog.deleteMany({ where: { adminId: { in: userIds } } }).catch(() => {});
-    await db.user.deleteMany({ where: { id: { in: userIds } } }).catch(() => {});
+    if (userIds.length > 0) {
+      await db.manualBalanceAdjustment.deleteMany({ where: { OR: [{ userId: { in: userIds } }, { requestedBy: { in: userIds } }, { approvedBy: { in: userIds } }, { rejectedBy: { in: userIds } }] } }).catch(() => {});
+      await db.payment.deleteMany({ where: { userId: { in: userIds } } }).catch(() => {});
+      await db.ledgerEntry.deleteMany({ where: { OR: [{ userId: { in: userIds } }, { adminId: { in: userIds } }] } }).catch(() => {});
+      await db.adminAuditLog.deleteMany({ where: { adminId: { in: userIds } } }).catch(() => {});
+      await db.user.deleteMany({ where: { id: { in: userIds } } }).catch(() => {});
+    }
   });
 
   // TEST 1: End-to-End Approval with Mock Gateway Execution
@@ -143,7 +145,7 @@ describe('Dual-Custody YooKassa Automated Refund Suite', () => {
     const approveFd = new FormData();
     approveFd.append('id', adj.id);
 
-    const approveRes = await approveBalanceAdjustmentAction(approveFd);
+    const approveRes = await approveBalanceAdjustmentAction(approveFd); if (!approveRes.success) console.log('APPROVE_ERROR:', approveRes);
     expect(approveRes.success).toBe(true);
 
     // 3. Verify final state
