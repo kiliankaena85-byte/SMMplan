@@ -413,11 +413,20 @@ async function sendNetworkCatalogMenu(ctx: BotContext, isEdit = false) {
       return await ctx.reply(text);
     }
 
-    const buttons = networks.map((n: { id: string; name: string }) => [Markup.button.callback(n.name, `cat_net_${n.id}`)]);
-    const text = '🛍 <b>Каталог услуг</b>\nВыберите социальную сеть:';
+    const rows: ReturnType<typeof Markup.button.callback>[][] = [];
+    for (let i = 0; i < networks.length; i += 2) {
+      const row = [Markup.button.callback(networks[i].name, `cat_net_${networks[i].id}`)];
+      if (i + 1 < networks.length) {
+        row.push(Markup.button.callback(networks[i + 1].name, `cat_net_${networks[i + 1].id}`));
+      }
+      rows.push(row);
+    }
+    rows.push([Markup.button.callback('🚀 Быстрый заказ по ссылке', 'start_fast_order')]);
+
+    const text = '🛍 <b>Каталог услуг</b>\nВыберите социальную сеть (доступно только с активными услугами):';
     const extra = {
       parse_mode: 'HTML' as const,
-      ...Markup.inlineKeyboard(buttons)
+      ...Markup.inlineKeyboard(rows)
     };
 
     if (isEdit) {
