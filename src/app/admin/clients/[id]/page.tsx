@@ -77,13 +77,22 @@ export default async function ClientDetailPage({ params }: Props) {
           webhookUrl: true,
         },
       },
+      customerGroupId: true,
+      customerGroup: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          discountPercent: true,
+        },
+      },
       createdAt: true,
     },
   });
 
   if (!user) notFound();
 
-  const [orders, payments, countResult, loginLogs, rawLedgerEntries, rawSummary, rawNotes] = await Promise.all([
+  const [orders, payments, countResult, loginLogs, rawLedgerEntries, rawSummary, rawNotes, availableCustomerGroups] = await Promise.all([
     db.order.findMany({
       where: { userId: id },
       orderBy: { createdAt: 'desc' },
@@ -158,6 +167,10 @@ export default async function ClientDetailPage({ params }: Props) {
       include: {
         author: { select: { email: true } }
       }
+    }),
+    db.customerGroup.findMany({
+      select: { id: true, name: true, slug: true, discountPercent: true },
+      orderBy: { createdAt: 'asc' },
     })
   ]);
 
@@ -252,6 +265,8 @@ export default async function ClientDetailPage({ params }: Props) {
       prioritySupport: user.b2bConfig.prioritySupport,
       webhookUrl: user.b2bConfig.webhookUrl ?? '',
     } : null,
+    customerGroupId: user.customerGroupId,
+    customerGroup: user.customerGroup,
     createdAt: user.createdAt.toISOString(),
     ordersCount,
     ticketsCount,
@@ -412,6 +427,7 @@ export default async function ClientDetailPage({ params }: Props) {
         initialNotes={initialNotes}
         canSeeFinances={canSeeFinances} 
         operatorRole={currentUser?.role} 
+        availableCustomerGroups={availableCustomerGroups}
       />
 
       {/* Recent orders */}

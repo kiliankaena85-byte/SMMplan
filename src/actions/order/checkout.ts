@@ -54,9 +54,10 @@ export async function calculatePriceAction(
       return { success: false, error: "Услуга не найдена или неактивна" };
     }
 
+    const session = await verifySession().catch(() => null);
     const totalQuantity = quantity;
     const result = await marketingService.calculatePrice(
-      null, // No user context needed for price preview
+      session?.userId || null,
       serviceId,
       totalQuantity,
       promoCodeStr
@@ -184,10 +185,27 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
     // 2. Validate service exists
     const service = await db.service.findUnique({ 
       where: { id: serviceId },
-      include: { category: { include: { network: true } } }
+      include: { category: { include: { network: true } }, customerAccess: true }
     });
     if (!service || !service.isActive) {
       throw new Error("Услуга не найдена или неактивна");
+    }
+
+    // Customer Group Zero-Trust Access Check
+    if (service.customerAccess && service.customerAccess.length > 0) {
+      const session = await verifySession().catch(() => null);
+      let userGroupId: string | null = null;
+      if (session?.userId) {
+        const user = await db.user.findUnique({
+          where: { id: session.userId },
+          select: { customerGroupId: true }
+        });
+        userGroupId = user?.customerGroupId || null;
+      }
+      const hasAccess = Boolean(userGroupId && service.customerAccess.some(ca => ca.customerGroupId === userGroupId));
+      if (!hasAccess) {
+        throw new Error("Услуга недоступна для вашего аккаунта (эксклюзивный доступ)");
+      }
     }
 
     // Cross-Tenant Security Check (SEC-01)

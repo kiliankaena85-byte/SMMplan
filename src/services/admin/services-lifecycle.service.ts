@@ -627,6 +627,103 @@ export class ServicesLifecycleService {
   }
 
   /**
+   * Получение списка групп клиентов для тенанта
+   */
+  async getCustomerGroups(tenantId: string = 'smmplan') {
+    return db.customerGroup.findMany({
+      where: {
+        tenantId: { in: [tenantId, 'all'] },
+      },
+      include: {
+        _count: {
+          select: {
+            users: true,
+            serviceAccess: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  /**
+   * Удаление группы клиентов
+   */
+  async deleteCustomerGroup(groupId: string, admin: AdminContext) {
+    const group = await db.customerGroup.findUnique({ where: { id: groupId } });
+    if (!group) throw new Error(`Группа клиентов #${groupId} не найдена`);
+
+    await db.customerGroup.delete({ where: { id: groupId } });
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email || 'system@smmplan.pro',
+      action: 'CUSTOMER_GROUP_DELETE',
+      target: groupId,
+      targetType: 'CustomerGroup',
+      oldValue: { name: group.name, slug: group.slug },
+      ipAddress: admin.ip || undefined,
+    });
+
+    return { success: true };
+  }
+
+  /**
+   * Получение привязанных групп и цен для услуги
+   */
+  async getServiceCustomerAccess(serviceId: string) {
+    const accesses = await db.serviceCustomerAccess.findMany({
+      where: { serviceId },
+      include: {
+        customerGroup: {
+          select: { id: true, name: true, slug: true, discountPercent: true },
+        },
+      },
+    });
+
+    return accesses.map((a) => ({
+      groupId: a.customerGroupId,
+      groupName: a.customerGroup.name,
+      groupSlug: a.customerGroup.slug,
+      discountPercent: a.customerGroup.discountPercent,
+      isCustomPrice: a.isCustomPrice,
+      customPriceRub: a.customPriceRub,
+    }));
+  }
+
+  /**
+   * Назначение группы для пользователя (CRM)
+   */
+  async setUserCustomerGroup(userId: string, customerGroupId: string | null, admin: AdminContext) {
+    const user = await db.user.findUnique({ where: { id: userId } });
+    if (!user) throw new Error(`Пользователь #${userId} не найден`);
+
+    if (customerGroupId) {
+      const group = await db.customerGroup.findUnique({ where: { id: customerGroupId } });
+      if (!group) throw new Error(`Группа клиентов #${customerGroupId} не найдена`);
+    }
+
+    const updatedUser = await db.user.update({
+      where: { id: userId },
+      data: { customerGroupId },
+      include: { customerGroup: true },
+    });
+
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email || 'system@smmplan.pro',
+      action: 'USER_CUSTOMER_GROUP_UPDATE',
+      target: userId,
+      targetType: 'User',
+      oldValue: { customerGroupId: user.customerGroupId },
+      newValue: { customerGroupId },
+      ipAddress: admin.ip || undefined,
+    });
+
+    return updatedUser;
+  }
+
+  /**
    * Проверка доступа пользователя к услуге
    */
   async isServiceAccessibleForUser(serviceId: string, userId?: string): Promise<boolean> {

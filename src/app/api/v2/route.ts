@@ -189,8 +189,13 @@ async function handleServices(user: User, formData: FormData) {
   const safeSkip = isNaN(skip) ? 0 : Math.min(skip, 1000);
   const userTenantId = user.tenantId || 'smmplan';
 
+  const userWithGroup = await db.user.findUnique({
+    where: { id: user.id },
+    include: { customerGroup: true }
+  }) || user;
+
   const services = await db.service.findMany({
-    include: { category: true },
+    include: { category: true, customerAccess: true },
     where: {
       isActive: true,
       tenantId: { in: [userTenantId, 'all'] },
@@ -200,7 +205,15 @@ async function handleServices(user: User, formData: FormData) {
     skip: safeSkip
   });
 
-  const finalFormatted = await marketingService.getB2BFormattedServices(user, services);
+  const userGroupId = userWithGroup.customerGroupId || null;
+  const accessibleServices = services.filter(s => {
+    const ca = (s as unknown as { customerAccess?: Array<{ customerGroupId: string }> }).customerAccess || [];
+    if (ca.length === 0) return true;
+    if (!userGroupId) return false;
+    return ca.some(a => a.customerGroupId === userGroupId);
+  });
+
+  const finalFormatted = await marketingService.getB2BFormattedServices(userWithGroup, accessibleServices);
   return NextResponse.json(finalFormatted);
 }
 
@@ -297,7 +310,7 @@ async function handleAdd(user: User, formData: FormData) {
       tenantId: { in: [userTenantId, 'all'] },
       category: { tenantId: { in: [userTenantId, 'all'] } }
     },
-    include: { category: true }
+    include: { category: true, customerAccess: true }
   });
 
   if (!service) {
@@ -308,6 +321,16 @@ async function handleAdd(user: User, formData: FormData) {
       tenantId: userTenantId,
     });
     return NextResponse.json({ error: 'Incorrect service ID' }, { status: 400 });
+  }
+
+  // Customer Group Zero-Trust Access Check
+  const serviceCustomerAccess = (service as unknown as { customerAccess?: Array<{ customerGroupId: string }> }).customerAccess || [];
+  if (serviceCustomerAccess.length > 0) {
+    const userGroupId = user.customerGroupId;
+    const hasAccess = Boolean(userGroupId && serviceCustomerAccess.some(ca => ca.customerGroupId === userGroupId));
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Service is not accessible for your account' }, { status: 403 });
+    }
   }
 
   // W7-SEC04: Category-specific link format validator

@@ -13,6 +13,7 @@ import { tenantVisibilityFilter } from "@/lib/tenant-scope";
 import { sanitizeServiceDescription } from "@/lib/sanitize";
 import { logger } from "@/lib/logger";
 import { SmartAnalyzerLogic } from "@/services/providers/smart-analyzer.logic";
+import { verifySession } from "@/lib/session";
 
 /**
  * AUD-05 (3.1): shared visibility condition for storefront taxonomy.
@@ -99,6 +100,13 @@ export async function getCachedServicesByCategory(categoryId: string, tenantId: 
           pricePer1000Cents: true,
           markup: true,
           rate: true,
+          customerAccess: {
+            select: {
+              customerGroupId: true,
+              isCustomPrice: true,
+              customPriceRub: true,
+            },
+          },
           smartConfig: {
             select: {
               isEnabled: true,
@@ -172,6 +180,7 @@ export type PublicService = {
     autoCompensate?: boolean;
     checkIntervalMins?: number;
   } | null;
+  isExclusive?: boolean;
   requireWarning?: boolean;
   warningMessage?: string | null;
 };
@@ -254,14 +263,13 @@ export async function getPublicCatalogAction(tenantId: string = 'smmplan') {
     return { success: false, error: "Failed to load catalog" };
   }
 }
-
 /**
  * @public Public catalog endpoint for category services
  */
 export async function getServicesByCategoryAction(categoryId: string, tenantId: string = 'smmplan'): Promise<PublicService[]> {
   try {
 
-    const [services, usdToRub] = await Promise.all([
+    const [services, usdToRub, session] = await Promise.all([
       SettingsProvider.isTestEnvironment()
         ? db.service.findMany({
             where: { 
@@ -273,7 +281,6 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
             },
             select: {
               id: true,
-
               numericId: true,
               slug: true,
               categoryId: true,
@@ -299,6 +306,13 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
               providerCurrency: true,
               costPer1kRub: true,
               pricePer1000Cents: true,
+              customerAccess: {
+                select: {
+                  customerGroupId: true,
+                  isCustomPrice: true,
+                  customPriceRub: true,
+                },
+              },
               markup: true,
               rate: true,
               smartConfig: {
@@ -318,10 +332,34 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
             take: CATEGORY_SERVICES_HARD_LIMIT
           })
         : getCachedServices(categoryId, tenantId),
-      SettingsProvider.getExchangeRateUSD()
+      SettingsProvider.getExchangeRateUSD(),
+      verifySession().catch(() => null)
     ]);
 
-    return services.map(s => {
+    // Customer Group Resolution for Storefront Personalization
+    let userGroup: { id: string; discountPercent: number; name: string } | null = null;
+    if (session?.userId) {
+      const user = await db.user.findUnique({
+        where: { id: session.userId },
+        select: {
+          customerGroupId: true,
+          customerGroup: { select: { id: true, discountPercent: true, name: true } },
+        },
+      }).catch(() => null);
+      if (user?.customerGroup) {
+        userGroup = user.customerGroup;
+      }
+    }
+
+    // Filter services: public services + private services authorized for user's group
+    const accessibleServices = services.filter(s => {
+      const ca = (s as unknown as { customerAccess?: Array<{ customerGroupId: string }> }).customerAccess || [];
+      if (ca.length === 0) return true; // Public service visible to all
+      if (!userGroup) return false; // Guest / non-grouped user cannot see private services
+      return ca.some(access => access.customerGroupId === userGroup.id);
+    });
+
+    return accessibleServices.map(s => {
        const lowerName = s.name.toLowerCase();
        const isExplicitNoRefill =
           lowerName.includes('без гарантии') ||
@@ -357,15 +395,21 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
        const parts = s.name.split('•');
        const tierName = parts.length > 1 ? parts[parts.length - 1].trim().toLowerCase() : "";
 
+       const ca = (s as unknown as { customerAccess?: Array<{ customerGroupId: string; isCustomPrice: boolean; customPriceRub: number | null }> }).customerAccess || [];
+       const isExclusive = ca.length > 0;
+       const matchingAccess = userGroup && isExclusive ? ca.find(a => a.customerGroupId === userGroup.id) : null;
+
        // Explicit admin badge from features metadata (if set by admin in catalog)
        const rawCustomBadge = (feat.badge as string | undefined)?.trim();
        let badge = "";
 
-       if (rawCustomBadge) {
+       if (isExclusive) {
+          badge = "ЭКСКЛЮЗИВ";
+       } else if (rawCustomBadge) {
           const upperBadge = rawCustomBadge.toUpperCase();
           if (upperBadge === 'ГАРАНТИЯ' && (!isRefillActive || isExplicitNoRefill)) {
              // Anti-Contradiction Guard: Cannot have 'ГАРАНТИЯ' badge on no-refill service!
-             badge = lowerName.includes('быстр') ? "БЫСТРЫЕ" : (s.rate < 0.1 ? "ХИТ" : "");
+             badge = lowerName.includes('быстр') ? "БЫСТРЫЕ" : (((s as any).rate ?? 1) < 0.1 ? "ХИТ" : "");
           } else if (upperBadge !== 'NONE' && upperBadge !== 'НЕТ' && upperBadge !== 'AUTO') {
              badge = upperBadge;
           }
@@ -378,19 +422,34 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
           else if (tierName === 'стандарт') badge = "СТАНДАРТ";
           else if (isRefillActive && (warrantyDays && warrantyDays > 0) && !isExplicitNoRefill) badge = "ГАРАНТИЯ";
           else if (lowerName.includes('быстр') || lowerName.includes('instant') || lowerName.includes('мгновен')) badge = "БЫСТРЫЕ";
-          else if (s.rate < 0.1) badge = "ХИТ";
+          else if (((s as any).rate ?? 1) < 0.1) badge = "ХИТ";
        }
 
-       // Single Source of Truth & Systemic Beautiful Rounding Invariant
-       const rawPricePer1k = typeof s.pricePer1000Cents === 'number' && s.pricePer1000Cents > 0
-         ? s.pricePer1000Cents / 100
-         : (s.costPer1kRub || (s.rate * (s.providerCurrency === 'RUB' ? 1.0 : usdToRub))) * (s.markup || SAFETY_FLOOR_MARKUP);
-       const pricePer1kRub = applyBeautifulRounding(rawPricePer1k);
+       // Single Source of Truth & Systemic Beautiful Rounding Invariant with Customer Group Override
+       let pricePer1kRub: number;
+       if (matchingAccess && matchingAccess.isCustomPrice && typeof matchingAccess.customPriceRub === 'number' && matchingAccess.customPriceRub > 0) {
+         pricePer1kRub = matchingAccess.customPriceRub;
+       } else {
+         let rawPricePer1k: number;
+         if (typeof s.pricePer1000Cents === 'number' && s.pricePer1000Cents > 0) {
+           rawPricePer1k = s.pricePer1000Cents / 100;
+         } else {
+           rawPricePer1k = (s.costPer1kRub || (((s as any).rate ?? 1) * (s.providerCurrency === 'RUB' ? 1.0 : usdToRub))) * (s.markup || SAFETY_FLOOR_MARKUP);
+         }
+
+         // Apply group percentage discount if no explicit fixed customPriceRub is set
+         if (userGroup && userGroup.discountPercent > 0) {
+           rawPricePer1k = rawPricePer1k * (1 - userGroup.discountPercent / 100);
+         }
+
+         pricePer1kRub = applyBeautifulRounding(rawPricePer1k);
+       }
+
        const pricePerUnitRub = Math.round((pricePer1kRub / 1000) * 10000) / 10000;
 
        const startTime = (feat.startTime as string | undefined) || fallbackAnalysis?.startTime || '5–15 мин';
        const speedDisplay = (feat.speedText as string | undefined) || fallbackAnalysis?.speedText || (lowerName.includes('быстр') ? 'Быстрая' : 'Стандартная');
-       const qualityLabel = (feat.qualityLabel as string | undefined) || fallbackAnalysis?.qualityLabel || (badge || 'Стандарт');
+       const qualityLabel = isExclusive ? 'VIP / Эксклюзив' : ((feat.qualityLabel as string | undefined) || fallbackAnalysis?.qualityLabel || (badge || 'Стандарт'));
 
        return {
           id: s.id,
@@ -432,7 +491,8 @@ export async function getServicesByCategoryAction(categoryId: string, tenantId: 
           clientConfirmation: s.clientConfirmation,
           etaP50Seconds: s.etaP50Seconds,
           etaP90Seconds: s.etaP90Seconds,
-          etaSpeedClass: s.etaSpeedClass
+          etaSpeedClass: s.etaSpeedClass,
+          isExclusive
        };
     });
   } catch (error) {

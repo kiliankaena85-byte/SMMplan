@@ -26,6 +26,13 @@ export interface UserDTO {
   quarantineBalance?: number;
   totalSpent?: number;
   referralBalance?: number;
+  customerGroupId?: string | null;
+  customerGroup?: {
+    id: string;
+    name: string;
+    slug: string;
+    discountPercent: number;
+  } | null;
 }
 
 export interface PaymentDTO {

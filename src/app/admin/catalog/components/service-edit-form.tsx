@@ -3,10 +3,11 @@
 import React, { useState, useTransition, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Save, Loader2, Layers, ShieldCheck, Target, AlertTriangle, Plus } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Layers, ShieldCheck, Target, AlertTriangle, Plus, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { updateServiceAction } from '@/actions/admin/catalog/services';
+import { assignCustomerGroupAccessAction } from '@/actions/admin/services-lifecycle';
 import { applyBeautifulRounding, SAFETY_FLOOR_MARKUP } from '@/lib/financial-constants';
 import { IconPicker } from '@/components/admin/icon-picker/IconPicker';
 import {
@@ -58,6 +59,8 @@ interface ServiceEditFormProps {
   providers: ProviderOption[];
   exchangeRateUsd: number;
   returnUrl?: string;
+  availableCustomerGroups?: Array<{ id: string; name: string; slug: string; discountPercent: number }>;
+  initialCustomerAccess?: Array<{ groupId: string; groupName: string; isCustomPrice: boolean; customPriceRub: number | null }>;
 }
 
 const TARGET_TYPE_OPTIONS = [
@@ -93,6 +96,8 @@ export function ServiceEditForm({
   providers,
   exchangeRateUsd,
   returnUrl,
+  availableCustomerGroups = [],
+  initialCustomerAccess = [],
 }: ServiceEditFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -118,6 +123,18 @@ export function ServiceEditForm({
   const [isActive, setIsActive] = useState(initialData.isActive);
   const [isRefillEnabled, setIsRefillEnabled] = useState(Boolean(initialData.isRefillEnabled));
   const [isCancelEnabled, setIsCancelEnabled] = useState(Boolean(initialData.isCancelEnabled));
+
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>(
+    (initialCustomerAccess || []).map(a => a.groupId)
+  );
+  const [customPrices, setCustomPrices] = useState<Record<string, number>>(
+    (initialCustomerAccess || []).reduce((acc, a) => {
+      if (a.isCustomPrice && typeof a.customPriceRub === 'number') {
+        acc[a.groupId] = a.customPriceRub;
+      }
+      return acc;
+    }, {} as Record<string, number>)
+  );
 
   // Determine if service is bound to an upstream API provider (e.g. VexBoost)
   const isProviderBound = Boolean(initialData.providerId || providerId);
@@ -154,7 +171,7 @@ export function ServiceEditForm({
   }, [selectedCat, targetType]);
 
   // Calculations
-  const markupMultiplier = 1 + markupPercent / 100;
+  const markupMultiplier = Number((1 + markupPercent / 100).toFixed(2));
   const costPer1000Rub = rate * exchangeRateUsd;
   const rawPricePer1000Rub = costPer1000Rub * markupMultiplier;
   const retailPricePer1000Rub = applyBeautifulRounding(rawPricePer1000Rub);
@@ -187,6 +204,13 @@ export function ServiceEditForm({
         });
 
         if (res.success) {
+          if (initialData.id) {
+            await assignCustomerGroupAccessAction(
+              initialData.id,
+              selectedGroupIds,
+              customPrices
+            );
+          }
           toast.success('Услуга успешно обновлена');
           router.push(effectiveReturnUrl);
           router.refresh();
@@ -624,6 +648,108 @@ export function ServiceEditForm({
                   <span className="text-[11px] underline group-hover:translate-x-0.5 transition-transform">Настроить &rarr;</span>
                 </Link>
               </div>
+            )}
+          </div>
+
+          {/* Customer Group Access & Exclusive Pricing */}
+          <div className="bg-card border border-border rounded-2xl p-5 space-y-4 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <span className="p-1 rounded-md bg-violet-500/10 text-violet-500">
+                  <Lock className="w-3.5 h-3.5" />
+                </span>
+                <span>Доступность услуги</span>
+              </h2>
+              {selectedGroupIds.length > 0 ? (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-600 dark:text-violet-400 border border-violet-500/20">
+                  🔒 Эксклюзивная
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border">
+                  🌐 Публичная
+                </span>
+              )}
+            </div>
+
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Если группы не выбраны — услуга доступна всем на витрине. Если выбраны группы — услуга видна строго участникам этих групп.
+            </p>
+
+            {availableCustomerGroups && availableCustomerGroups.length > 0 ? (
+              <div className="space-y-2.5">
+                {availableCustomerGroups.map(group => {
+                  const isChecked = selectedGroupIds.includes(group.id);
+                  const customPrice = customPrices[group.id] !== undefined ? customPrices[group.id] : '';
+
+                  return (
+                    <div
+                      key={group.id}
+                      className={`p-3 rounded-xl border transition-all ${
+                        isChecked
+                          ? 'bg-violet-500/5 border-violet-500/30'
+                          : 'bg-muted/20 border-border/50 hover:bg-muted/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-foreground select-none">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setSelectedGroupIds(prev => [...prev, group.id]);
+                              } else {
+                                setSelectedGroupIds(prev => prev.filter(id => id !== group.id));
+                                setCustomPrices(prev => {
+                                  const next = { ...prev };
+                                  delete next[group.id];
+                                  return next;
+                                });
+                              }
+                            }}
+                            className="w-4 h-4 rounded-md accent-primary cursor-pointer"
+                          />
+                          <span>{group.name}</span>
+                        </label>
+                        <span className="text-[10px] font-mono font-bold text-muted-foreground">
+                          Скидка: {group.discountPercent}%
+                        </span>
+                      </div>
+
+                      {isChecked && (
+                        <div className="mt-2.5 pt-2.5 border-t border-border/50 flex items-center justify-between gap-3">
+                          <label className="text-[11px] text-muted-foreground font-medium">
+                            Спеццена за 1000 шт (₽):
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="По умолчанию"
+                            value={customPrice}
+                            onChange={e => {
+                              const val = parseFloat(e.target.value);
+                              setCustomPrices(prev => {
+                                if (isNaN(val) || val <= 0) {
+                                  const next = { ...prev };
+                                  delete next[group.id];
+                                  return next;
+                                }
+                                return { ...prev, [group.id]: val };
+                              });
+                            }}
+                            className="w-28 px-2.5 py-1 text-xs font-mono font-bold rounded-lg border border-border bg-background text-foreground text-right outline-none focus:border-primary"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">
+                Нет созданных групп клиентов.
+              </p>
             )}
           </div>
         </div>

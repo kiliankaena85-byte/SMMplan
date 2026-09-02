@@ -19,7 +19,7 @@ export default async function AdminEditServicePage({ params, searchParams }: Pro
   const sp = searchParams ? await searchParams : {};
   const returnUrl = sp.returnUrl || undefined;
 
-  const [service, networks, providers, exchangeRateUsd] = await Promise.all([
+  const [service, networks, providers, exchangeRateUsd, customerGroups] = await Promise.all([
     db.service.findUnique({
       where: { id },
       include: {
@@ -34,6 +34,11 @@ export default async function AdminEditServicePage({ params, searchParams }: Pro
             id: true,
             name: true,
             balanceCurrency: true
+          }
+        },
+        customerAccess: {
+          include: {
+            customerGroup: true
           }
         }
       }
@@ -60,7 +65,16 @@ export default async function AdminEditServicePage({ params, searchParams }: Pro
         balanceCurrency: true
       }
     }),
-    SettingsProvider.getExchangeRateUSD()
+    SettingsProvider.getExchangeRateUSD(),
+    db.customerGroup.findMany({
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        discountPercent: true,
+      }
+    })
   ]);
 
   if (!service) {
@@ -86,6 +100,13 @@ export default async function AdminEditServicePage({ params, searchParams }: Pro
     isCancelEnabled: service.isCancelEnabled,
   };
 
+  const initialCustomerAccess = (service.customerAccess || []).map(a => ({
+    groupId: a.customerGroupId,
+    groupName: a.customerGroup.name,
+    isCustomPrice: a.isCustomPrice,
+    customPriceRub: a.customPriceRub,
+  }));
+
   return (
     <div className="p-6 md:p-8 space-y-6">
       <ServiceEditForm
@@ -94,6 +115,8 @@ export default async function AdminEditServicePage({ params, searchParams }: Pro
         providers={providers}
         exchangeRateUsd={exchangeRateUsd || 90.0}
         returnUrl={returnUrl}
+        availableCustomerGroups={customerGroups}
+        initialCustomerAccess={initialCustomerAccess}
       />
     </div>
   );

@@ -35,6 +35,7 @@ interface Props {
   canSeeFinances: boolean;
   /** Current operator's role (passed from Server Component) */
   operatorRole?: string;
+  availableCustomerGroups?: Array<{ id: string; name: string; slug: string; discountPercent: number }>;
 }
 
 export function ClientDetailClient({ 
@@ -46,7 +47,8 @@ export function ClientDetailClient({
   ledgerSummary = { totalDepositedRub: 0, totalSpentRub: 0, totalRefundedRub: 0, totalAdjustedRub: 0 }, 
   initialNotes = [],
   canSeeFinances, 
-  operatorRole 
+  operatorRole,
+  availableCustomerGroups = []
 }: Props) {
   // Navigation tabs (only for non-SUPPORT operators)
   const [activeTab, setActiveTab] = useState<'balance' | 'b2b' | 'payments' | 'security' | 'notes'>('balance');
@@ -123,7 +125,7 @@ export function ClientDetailClient({
         />
       )}
       {activeTab === 'b2b' && <B2bTab user={user} />}
-      {activeTab === 'notes' && <NotesTab user={user} canSeeFinances={canSeeFinances} initialNotes={initialNotes} />}
+      {activeTab === 'notes' && <NotesTab user={user} canSeeFinances={canSeeFinances} initialNotes={initialNotes} availableCustomerGroups={availableCustomerGroups} />}
       {activeTab === 'security' && <SecurityTab user={user} loginLogs={loginLogs} />}
     </div>
   );

@@ -188,6 +188,73 @@ export async function assignCustomerGroupAccessAction(
   });
 }
 
+export async function getCustomerGroupsAction(tenantId: string = 'smmplan') {
+  return requireStaffPermission('clients', 'view', async () => {
+    try {
+      const groups = await servicesLifecycleService.getCustomerGroups(tenantId);
+      return { success: true, groups };
+    } catch (e: unknown) {
+      const err = handleServerError(e);
+      return { success: false, error: err.message };
+    }
+  });
+}
+
+export async function deleteCustomerGroupAction(groupId: string) {
+  return requireStaffPermission('clients', 'edit', async (admin) => {
+    try {
+      const reqHeaders = await headers();
+      const ip = reqHeaders.get('x-forwarded-for') || reqHeaders.get('x-real-ip') || '127.0.0.1';
+
+      await servicesLifecycleService.deleteCustomerGroup(groupId, {
+        id: admin.id,
+        email: admin.email,
+        ip,
+      });
+
+      return { success: true };
+    } catch (e: unknown) {
+      const err = handleServerError(e);
+      return { success: false, error: err.message };
+    }
+  });
+}
+
+export async function getServiceCustomerAccessAction(serviceId: string) {
+  return requireStaffPermission('catalog', 'view', async () => {
+    try {
+      const access = await servicesLifecycleService.getServiceCustomerAccess(serviceId);
+      return { success: true, access };
+    } catch (e: unknown) {
+      const err = handleServerError(e);
+      return { success: false, error: err.message };
+    }
+  });
+}
+
+export async function setUserCustomerGroupAction(userId: string, customerGroupId: string | null) {
+  return requireStaffPermission('clients', 'edit', async (admin) => {
+    try {
+      const reqHeaders = await headers();
+      const ip = reqHeaders.get('x-forwarded-for') || reqHeaders.get('x-real-ip') || '127.0.0.1';
+
+      const updatedUser = await servicesLifecycleService.setUserCustomerGroup(userId, customerGroupId, {
+        id: admin.id,
+        email: admin.email,
+        ip,
+      });
+
+      revalidatePath(`/admin/clients/${userId}`);
+      revalidatePath('/admin/clients');
+
+      return { success: true, user: updatedUser };
+    } catch (e: unknown) {
+      const err = handleServerError(e);
+      return { success: false, error: err.message };
+    }
+  });
+}
+
 export async function getServiceEditHistoryAction(query: { serviceId?: string; draftId?: string }) {
   return requireStaffPermission('catalog', 'view', async () => {
     try {

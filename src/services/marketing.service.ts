@@ -72,14 +72,34 @@ class MarketingService {
     if (userId) {
       user = preloadedContext && preloadedContext.user !== undefined 
           ? preloadedContext.user 
-          : await db.user.findUnique({ where: { id: userId } });
+          : await db.user.findUnique({
+              where: { id: userId },
+              include: { customerGroup: true }
+            });
     }
 
     const service = preloadedContext && preloadedContext.service !== undefined
         ? preloadedContext.service
-        : await db.service.findUnique({ where: { id: serviceId } });
+        : await db.service.findUnique({
+            where: { id: serviceId },
+            include: { customerAccess: true }
+          });
         
     if (!service) throw new Error('Service not found');
+
+    // Customer Group Access Validation (Fail-Closed Private Services)
+    const customerAccess = (service as unknown as { customerAccess?: Array<{ customerGroupId: string; isCustomPrice: boolean; customPriceRub: number | null }> }).customerAccess || [];
+    const userGroupId = (user as unknown as { customerGroupId?: string | null })?.customerGroupId || null;
+
+    if (customerAccess.length > 0) {
+      if (!userGroupId) {
+        throw new Error('Услуга недоступна для вашего аккаунта (приватный доступ)');
+      }
+      const matchingAccess = customerAccess.find(ca => ca.customerGroupId === userGroupId);
+      if (!matchingAccess) {
+        throw new Error('Услуга недоступна для вашего аккаунта (приватный доступ)');
+      }
+    }
 
     if (quantity < service.minQty || quantity > service.maxQty) {
       throw new Error(`Quantity must be between ${service.minQty} and ${service.maxQty}`);
@@ -112,9 +132,15 @@ class MarketingService {
       ? Math.max(1, Math.ceil((providerCostPer1000Cents / 1000) * quantity))
       : 0;
 
-    // 2. Base Retail Price per 1k in Cents (Honors DB pricePer1000Cents for 100% storefront parity)
+    // 2. Base Retail Price per 1k in Cents (Honors Customer Group custom price or DB pricePer1000Cents)
     let retailPer1000Cents: number;
-    if (typeof service.pricePer1000Cents === 'number' && service.pricePer1000Cents > 0) {
+    const matchingGroupAccess = userGroupId && customerAccess.length > 0
+      ? customerAccess.find(ca => ca.customerGroupId === userGroupId)
+      : null;
+
+    if (matchingGroupAccess && matchingGroupAccess.isCustomPrice && typeof matchingGroupAccess.customPriceRub === 'number' && matchingGroupAccess.customPriceRub > 0) {
+      retailPer1000Cents = Math.round(matchingGroupAccess.customPriceRub * 100);
+    } else if (typeof service.pricePer1000Cents === 'number' && service.pricePer1000Cents > 0) {
       retailPer1000Cents = service.pricePer1000Cents;
     } else {
       const markup = (service.markup && service.markup > 0) ? service.markup : SAFETY_FLOOR_MARKUP;
@@ -129,6 +155,7 @@ class MarketingService {
 
     // 2. Discover available discounts
     const volumeTier = user ? this.getVolumeTier(Number(user.totalSpent)) : { name: 'REGULAR', discountPercent: 0.0 };
+    const groupDiscount = (user as unknown as { customerGroup?: { discountPercent?: number } })?.customerGroup?.discountPercent || 0;
     let promoDiscountPercent = 0.0;
     const promoFixedDiscountCents = 0;
     
@@ -150,6 +177,7 @@ class MarketingService {
     let maxDiscountPercent = Math.max(
       user?.personalDiscount || 0,
       volumeTier.discountPercent,
+      groupDiscount,
       promoDiscountPercent
     );
 
@@ -240,7 +268,7 @@ class MarketingService {
    * Protects pricing from dropping below the safety floor.
    */
   async getB2BFormattedServices(
-    user: { totalSpent: number | bigint; personalDiscount?: number | null },
+    user: { totalSpent: number | bigint; personalDiscount?: number | null; customerGroupId?: string | null; customerGroup?: { discountPercent?: number } | null },
     services: {
       numericId: number;
       name: string;
@@ -252,10 +280,12 @@ class MarketingService {
       maxQty: number;
       isDripFeedEnabled?: boolean;
       isCancelEnabled?: boolean;
+      customerAccess?: Array<{ customerGroupId: string; isCustomPrice: boolean; customPriceRub: number | null }>;
     }[]
   ) {
     const volumeTier = this.getVolumeTier(Number(user.totalSpent));
-    let maxDiscountPercent = Math.max(user.personalDiscount || 0, volumeTier.discountPercent);
+    const groupDiscount = user.customerGroup?.discountPercent || 0;
+    let maxDiscountPercent = Math.max(user.personalDiscount || 0, volumeTier.discountPercent, groupDiscount);
 
     // Apply hard ceiling
     if (maxDiscountPercent > MAX_TOTAL_DISCOUNT) {
@@ -263,11 +293,22 @@ class MarketingService {
     }
 
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
+    const userGroupId = user.customerGroupId || null;
 
     return services.map(s => {
       const sExchangeRate = s.providerCurrency === 'RUB' ? 1.0 : usdToRub;
-      // 1. Calculate original rate in normal currency format (RUB, not cents)
-      const originalRatePer1000 = s.rate * s.markup * sExchangeRate;
+      
+      // Check customer group custom price override
+      const matchingAccess = userGroupId && s.customerAccess && s.customerAccess.length > 0
+        ? s.customerAccess.find(ca => ca.customerGroupId === userGroupId)
+        : null;
+
+      let originalRatePer1000: number;
+      if (matchingAccess && matchingAccess.isCustomPrice && typeof matchingAccess.customPriceRub === 'number' && matchingAccess.customPriceRub > 0) {
+        originalRatePer1000 = matchingAccess.customPriceRub;
+      } else {
+        originalRatePer1000 = s.rate * s.markup * sExchangeRate;
+      }
       
       // 2. Apply highest applicable discount
       const discountVal = (originalRatePer1000 * maxDiscountPercent) / 100;
