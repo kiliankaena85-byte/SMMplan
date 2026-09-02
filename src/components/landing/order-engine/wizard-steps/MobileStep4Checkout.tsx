@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Zap, Sliders, ChevronDown, Link2, Pencil, Minus, Plus } from "lucide-react";
+import { Loader2, Zap, Sliders, ChevronDown, Link2, Pencil, Minus, Plus, RotateCcw } from "lucide-react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { DynamicPayloadWarnings } from "../DynamicPayloadWarnings";
 import { DripFeedConfigurator } from "../DripFeedConfigurator";
@@ -325,14 +325,27 @@ export function MobileStep4Checkout({
         onOpenDocument={onOpenDocument}
       />
 
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
         <Button
           type="button"
           intent="outline"
           onClick={() => setActiveStep(3)}
-          className="w-full text-xs font-bold h-11 min-h-[44px] rounded-xl bg-content2 text-foreground border-border/40 hover:bg-content3 cursor-pointer"
+          className="flex-1 text-xs font-bold h-11 min-h-[44px] rounded-xl bg-content2 text-foreground border-border/40 hover:bg-content3 cursor-pointer"
         >
           Назад к тарифам
+        </Button>
+        <Button
+          type="button"
+          intent="ghost"
+          onClick={() => {
+            engine.resetOrder();
+            setActiveStep(1);
+          }}
+          className="text-xs font-bold h-11 min-h-[44px] rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer flex items-center gap-1.5 px-3 shrink-0"
+          title="Сбросить выбранную услугу и ссылку"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          <span>Сбросить всё</span>
         </Button>
       </div>
 

@@ -225,4 +225,37 @@ describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
     expect(input.type).toBe('text');
     expect(input.getAttribute('inputmode')).toBe('url');
   });
+
+  it('10. resetOrder method clears all draft state and returns user to Step 1 cleanly', () => {
+    let currentUrl = 'https://t.me/test_channel';
+    let currentService: any = mockCatalog[0].categories[0].services[0];
+    let currentPromo = 'DISCOUNT10';
+
+    const resetOrder = vi.fn(() => {
+      currentUrl = '';
+      currentService = null;
+      currentPromo = '';
+    });
+
+    const engine = createMockEngine({
+      url: currentUrl,
+      selectedService: currentService,
+      promoCode: currentPromo,
+      resetOrder
+    });
+
+    const { result } = renderHook(() => useMobileWizard(engine));
+    expect(result.current.currentStep).toBe(4);
+
+    act(() => {
+      engine.resetOrder();
+      result.current.setActiveStep(1);
+    });
+
+    expect(resetOrder).toHaveBeenCalled();
+    expect(currentUrl).toBe('');
+    expect(currentService).toBeNull();
+    expect(currentPromo).toBe('');
+    expect(result.current.currentStep).toBe(1);
+  });
 });

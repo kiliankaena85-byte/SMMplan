@@ -114,6 +114,7 @@ export function useOrderEngine(
   const [isLinkOverridden, setIsLinkOverridden] = useState(false);
   const [isWarningConfirmed, setIsWarningConfirmed] = useState(false);
   const [warningHasError, setWarningHasError] = useState(false);
+  const [termsHasError, setTermsHasError] = useState(false);
 
   // BUG-10: Restore session state on mount (url, networkId, categoryId only — no email/promo per PCI DSS)
   useEffect(() => {
@@ -796,6 +797,7 @@ export function useOrderEngine(
     isLinkOverridden, setIsLinkOverridden,
     isWarningConfirmed, setIsWarningConfirmed,
     warningHasError, setWarningHasError,
+    termsHasError, setTermsHasError,
     
     // Drip-feed
     dripFeedEnabled, setDripFeedEnabled,
@@ -833,6 +835,20 @@ export function useOrderEngine(
     isMassCalculating,
     
     // Methods
-    validate
+    validate,
+    resetOrder: useCallback(() => {
+      setUrl("");
+      setSelectedService(null);
+      setPromoCode("");
+      setIsLinkOverridden(false);
+      setIsWarningConfirmed(false);
+      setWarningHasError(false);
+      setTermsHasError(false);
+      setValidationErrors(null);
+      setCompatibilityWarning(null);
+      try {
+        sessionStorage.removeItem('smmplan_draft');
+      } catch { /* SSR or storage disabled */ }
+    }, [])
   };
 }
