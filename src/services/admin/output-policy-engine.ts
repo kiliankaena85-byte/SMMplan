@@ -11,17 +11,16 @@
 const BLOCKED_PHRASES_RU = [
   'гарантирую', 'гарантируем', 'мы гарантируем',
   '100%', 'стопроцентн',
-  'обязательно вернем', 'обязательно компенсир',
-  'на карту', 'на сбербанк', 'на банковск', 'вывод средств', 'вывести на карту',
-  'возместим ущерб', 'компенсируем полностью',
+  'обязательно компенсир', 'возместим ущерб', 'компенсируем полностью',
+  'переведу на вашу карту', 'отправил на карту', 'выплачу на карту', 'прямо сейчас переведу на карту',
+  'вывод на стороннюю карту', 'выплатим наличными',
   'судебн', 'обратитесь в суд',
   'т-банк', 'тинькофф', 'тиньков', 'юмани', 'юmoney', 'usdt', 'trc20', 'криптовалют', 'stars', 'наличными',
 ];
 
 const BLOCKED_PHRASES_EN = [
   'guarantee', 'we guarantee', 'i guarantee',
-  'we confirm full refund', 'refund to your card',
-  'bank transfer', 'wire transfer', 'confirmed refund',
+  'we confirm instant payout', 'i will transfer to your private card',
   'ignore previous', 'ignore your instructions', 'system override',
 ];
 

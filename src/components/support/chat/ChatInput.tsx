@@ -710,143 +710,161 @@ export function ChatInput({
           )}
         </div>
 
-        <div className="flex gap-1.5 w-full items-end">
-          <input
-              type="file"
-              className="hidden"
-              ref={fileInputRef}
-              accept="image/jpeg,image/png,image/webp,application/pdf"
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  setFile(e.target.files[0]);
-                }
-              }}
-          />
-          <button 
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="p-2.5 bg-default-50 border border-border text-muted-foreground hover:bg-default-100 hover:text-foreground transition-colors flex items-center justify-center shrink-0 w-11 h-11 rounded-xl"
-              title="Прикрепить файл (скриншот или PDF чек)"
-              aria-label="Прикрепить файл (скриншот или PDF чек)"
-          >
-              📎
-          </button>
-
-          {initialOrders && initialOrders.length > 0 && (
-            <div className="relative shrink-0 flex">
-              <button 
-                  type="button"
-                  onClick={() => setShowOrdersDropdown(!showOrdersDropdown)}
-                  className={`p-2.5 border text-sm transition-all flex items-center justify-center gap-1 w-11 h-11 rounded-xl ${
-                    showOrdersDropdown 
-                      ? 'bg-primary/10 border-primary/30 text-primary shadow-inner' 
-                      : 'bg-default-50 border-border text-muted-foreground hover:bg-default-100 hover:text-foreground'
-                  }`}
-                  title="Прикрепить заказ"
-                  aria-label="Прикрепить заказ"
-              >
-                  📦
-              </button>
-
-              <AnimatePresence>
-                {showOrdersDropdown && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute bottom-12 left-0 w-80 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden py-2"
-                  >
-                    <div className="px-3 py-1.5 border-b border-divider text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                      Выберите заказ для привязки:
-                    </div>
-                    <div className="max-h-60 overflow-y-auto">
-                      {initialOrders.map((order: ChatInputOrder) => (
-                        <button
-                          key={order.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedOrder(order);
-                            setShowOrdersDropdown(false);
-                          }}
-                          className="w-full text-left px-3 py-2 hover:bg-default-50 flex flex-col gap-0.5 border-b border-divider last:border-0 transition-colors"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-xs text-foreground">Заказ #{order.numericId || order.id.slice(0, 8)}</span>
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                              order.status === 'COMPLETED' ? 'bg-success/15 text-success-text' :
-                              order.status === 'IN_PROGRESS' ? 'bg-primary/15 text-primary' :
-                              order.status === 'PENDING' ? 'bg-warning/15 text-warning-text' :
-                              'bg-default-200/50 text-muted-foreground'
-                            }`}>
-                              {order.status === 'COMPLETED' ? 'Выполнен' :
-                               order.status === 'IN_PROGRESS' ? 'В процессе' :
-                               order.status === 'PENDING' ? 'Ожидание' : order.status}
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-muted-foreground truncate w-full">{order.serviceName}</span>
-                          <span className="text-[10px] font-medium text-foreground opacity-80">{order.charge} ₽</span>
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
+        {/* ── UNIFIED INPUT CARD (Full-Width Textarea + Bottom Action Bar) ── */}
+        <div className="w-full bg-default-50 border border-border rounded-2xl flex flex-col focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all shadow-sm overflow-hidden">
+          {file && (
+            <div className="relative group shrink-0 ml-3 mt-2.5 mb-1 w-fit">
+              <div className="w-14 h-14 rounded-xl bg-default-200 flex items-center justify-center overflow-hidden border border-border shadow-xs">
+                {file.type.startsWith('image/') ? (
+                  <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-xl">📄</span>
                 )}
-              </AnimatePresence>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); setFile(null); }}
+                className="absolute -top-2 -right-2 w-5 h-5 bg-foreground text-background rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-sm cursor-pointer"
+                aria-label="Удалить файл"
+              >
+                ✕
+              </button>
             </div>
           )}
 
-          <div className="flex-1 bg-default-50 border border-border rounded-2xl flex items-end pl-1 pr-1.5 py-1 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all shadow-sm">
-            {file && (
-              <div className="relative group shrink-0 ml-2 mb-1 mt-1">
-                <div className="w-12 h-12 rounded-lg bg-default-200 flex items-center justify-center overflow-hidden border border-border">
-                  {file.type.startsWith('image/') ? (
-                    <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-xl">📄</span>
-                  )}
+          {/* Full-width Textarea */}
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={handleTextChange}
+            onKeyDown={handleKeyDown}
+            placeholder={isStaff ? "Введите ответ или выберите шаблон (напишите /)..." : "Опишите вашу проблему..."}
+            className="w-full bg-transparent px-4 pt-3 pb-2 max-h-[280px] min-h-[56px] resize-none outline-none text-sm text-foreground placeholder:text-muted-foreground/70 leading-relaxed font-sans scrollbar-thin"
+            rows={1}
+          />
+
+          {/* Bottom Toolbar inside the unified card */}
+          <div className="flex items-center justify-between px-3 py-2 border-t border-border/40 bg-default-100/40">
+            {/* Left toolbar tools: Attach file & Link order */}
+            <div className="flex items-center gap-1.5">
+              <input
+                type="file"
+                className="hidden"
+                ref={fileInputRef}
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setFile(e.target.files[0]);
+                  }
+                }}
+              />
+              <button 
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="h-9 px-2.5 bg-background/80 hover:bg-background border border-border text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1.5 rounded-lg text-xs font-medium cursor-pointer shadow-xs"
+                title="Прикрепить файл (скриншот или PDF чек)"
+                aria-label="Прикрепить файл (скриншот или PDF чек)"
+              >
+                <span className="text-sm">📎</span>
+                <span className="hidden sm:inline text-[11px]">Файл</span>
+              </button>
+
+              {initialOrders && initialOrders.length > 0 && (
+                <div className="relative shrink-0 flex">
+                  <button 
+                    type="button"
+                    onClick={() => setShowOrdersDropdown(!showOrdersDropdown)}
+                    className={`h-9 px-2.5 border text-xs transition-all flex items-center justify-center gap-1.5 rounded-lg font-medium cursor-pointer shadow-xs ${
+                      showOrdersDropdown 
+                        ? 'bg-primary/10 border-primary/30 text-primary shadow-inner' 
+                        : 'bg-background/80 border-border text-muted-foreground hover:bg-background hover:text-foreground'
+                    }`}
+                    title="Прикрепить заказ"
+                    aria-label="Прикрепить заказ"
+                  >
+                    <span className="text-sm">📦</span>
+                    <span className="hidden sm:inline text-[11px]">Заказ</span>
+                  </button>
+
+                  <AnimatePresence>
+                    {showOrdersDropdown && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute bottom-11 left-0 w-80 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden py-2"
+                      >
+                        <div className="px-3 py-1.5 border-b border-divider text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                          Выберите заказ для привязки:
+                        </div>
+                        <div className="max-h-60 overflow-y-auto">
+                          {initialOrders.map((order: ChatInputOrder) => (
+                            <button
+                              key={order.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedOrder(order);
+                                setShowOrdersDropdown(false);
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-default-50 flex flex-col gap-0.5 border-b border-divider last:border-0 transition-colors cursor-pointer"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-xs text-foreground">Заказ #{order.numericId || order.id.slice(0, 8)}</span>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                                  order.status === 'COMPLETED' ? 'bg-success/15 text-success-text' :
+                                  order.status === 'IN_PROGRESS' ? 'bg-primary/15 text-primary' :
+                                  order.status === 'PENDING' ? 'bg-warning/15 text-warning-text' :
+                                  'bg-default-200/50 text-muted-foreground'
+                                }`}>
+                                  {order.status === 'COMPLETED' ? 'Выполнен' :
+                                   order.status === 'IN_PROGRESS' ? 'В процессе' :
+                                   order.status === 'PENDING' ? 'Ожидание' : order.status}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-muted-foreground truncate w-full">{order.serviceName}</span>
+                              <span className="text-[10px] font-medium text-foreground opacity-80">{order.charge} ₽</span>
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
+              )}
+            </div>
+
+            {/* Right action buttons: Answer & Close + Send */}
+            <div className="flex items-center gap-2">
+              {isStaff && (
                 <button
                   type="button"
-                  onClick={(e) => { e.preventDefault(); setFile(null); }}
-                  className="absolute -top-2 -right-2 w-5 h-5 bg-foreground text-background rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                  aria-label="Удалить файл"
+                  onClick={(e) => handleSubmit(e, true)}
+                  disabled={(!text.trim() && !file) || sending}
+                  className="h-9 px-3 bg-success/15 hover:bg-success/25 text-success-text border border-success/30 rounded-xl flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-sm font-bold text-xs cursor-pointer"
+                  title="Отправить ответ и сразу закрыть тикет (Ctrl+Shift+Enter)"
                 >
-                  ✕
+                  <CheckCircle className="w-4 h-4 text-success" />
+                  <span className="hidden sm:inline">Ответить и закрыть</span>
                 </button>
-              </div>
-            )}
-            
-            <textarea
-              ref={textareaRef}
-              value={text}
-              onChange={handleTextChange}
-              onKeyDown={handleKeyDown}
-              placeholder={isStaff ? "Введите ответ или выберите шаблон (напишите /)..." : "Опишите вашу проблему..."}
-              className="flex-1 min-w-0 bg-transparent px-3 py-2.5 max-h-[280px] min-h-[44px] resize-none outline-none text-sm text-foreground placeholder:text-muted-foreground/70 leading-relaxed font-sans scrollbar-thin"
-              rows={1}
-            />
-            
-            {isStaff && (
-              <button
-                type="button"
-                onClick={(e) => handleSubmit(e, true)}
-                disabled={(!text.trim() && !file) || sending}
-                className="h-10 px-3 shrink-0 bg-success/15 hover:bg-success/25 text-success-text border border-success/30 rounded-xl flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-sm mb-0.5 ml-1 font-bold text-xs cursor-pointer"
-                title="Отправить ответ и сразу закрыть тикет (Ctrl+Shift+Enter)"
-              >
-                <CheckCircle className="w-4 h-4 text-success" />
-                <span className="hidden sm:inline">Ответить и закрыть</span>
-              </button>
-            )}
+              )}
 
-            <button
-              type="submit"
-              disabled={(!text.trim() && !file) || sending}
-              className="w-10 h-10 shrink-0 bg-primary text-primary-foreground rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors shadow-sm mb-0.5 ml-1 cursor-pointer"
-              title="Отправить сообщение (Ctrl+Enter)"
-              aria-label="Отправить сообщение"
-            >
-              {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 ml-1" />}
-            </button>
+              <button
+                type="submit"
+                disabled={(!text.trim() && !file) || sending}
+                className="h-9 px-3.5 bg-primary text-primary-foreground rounded-xl flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors shadow-sm font-bold text-xs cursor-pointer"
+                title="Отправить сообщение (Ctrl+Enter)"
+                aria-label="Отправить сообщение"
+              >
+                {sending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <span className="hidden sm:inline">Отправить</span>
+                    <Send className="w-4 h-4 ml-0.5" />
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
