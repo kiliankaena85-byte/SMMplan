@@ -1,5 +1,5 @@
 import { Job } from 'bullmq';
-import { CatalogMutationPayload } from '@/lib/queue-manager';
+import { CatalogMutationPayload, catalogQueue } from '@/lib/queue-manager';
 import { adminCatalogService } from '../../services/admin/catalog.service';
 import { logger } from '../../lib/logger';
 import { triggerCacheRevalidation } from '../../lib/revalidate-cache';
@@ -240,10 +240,36 @@ export default async function catalogProcessor(job: Job<CatalogMutationPayload>)
         await triggerCacheRevalidation(['catalog', 'services']);
         break;
       }
+
+      case 'SYNC_CBR_RATE': {
+        // [FIN-005] Automatic CBR exchange rate sync — runs every 6h via BullMQ repeatable job.
+        // Prevents SYSTEM_HALT circuit breaker from blocking orders due to stale rate.
+        log.info('[CatalogProcessor] Starting scheduled CBR exchange rate sync...');
+        try {
+          const { CBRRateService } = await import('@/services/system/cbr-rate.service');
+          const result = await CBRRateService.syncCBRExchangeRate();
+          if (result.updated) {
+            log.info(`[CatalogProcessor] CBR rate updated: nominal=${result.nominalRate}, system=${result.systemRate}. Triggering price sync...`);
+            // Re-denormalize prices with new rate
+            await catalogQueue.add('sync-prices-bg', {
+              type: 'SYNC_PRICES',
+              usdToRub: result.systemRate
+            });
+          } else {
+            log.info(`[CatalogProcessor] CBR rate unchanged (API issue or already current).`);
+          }
+        } catch (cbrErr) {
+          const errMsg = cbrErr instanceof Error ? cbrErr.message : String(cbrErr);
+          log.error(`[CatalogProcessor] CBR sync failed: ${errMsg}`);
+          // Don't rethrow — a failed CBR sync shouldn't DLQ, just log
+        }
+        break;
+      }
         
       default:
         throw new Error(`Unknown catalog mutation type`);
     }
+
   } catch (error: unknown) {
     log.error(`[CatalogProcessor] Failed processing job ${job.id}: ${(error instanceof Error ? error.message : String(error))}`);
     throw error; // Let BullMQ retry and eventually DLQ

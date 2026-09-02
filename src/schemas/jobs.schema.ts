@@ -34,6 +34,10 @@ export const CatalogJobSchema = z.discriminatedUnion('type', [
     markupPercent: z.number(),
      
     admin: z.any()
+  }),
+  z.object({
+    type: z.literal('SYNC_CBR_RATE'),
+    timestamp: z.number()
   })
 ]);
 

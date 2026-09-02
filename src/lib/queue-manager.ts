@@ -84,7 +84,8 @@ export type CatalogMutationPayload =
   | { type: 'RECONCILE_PRICES'; batchSize?: number }
   | { type: 'SYNC_PROVIDER_CATALOG'; providerId: string; admin: unknown }
   | { type: 'SYNC_ALL_CATALOGS'; admin: unknown }
-  | { type: 'BULK_MARKUP'; filter: { categoryId?: string; platform?: string }; markupPercent: number; admin: unknown };
+  | { type: 'BULK_MARKUP'; filter: { categoryId?: string; platform?: string }; markupPercent: number; admin: unknown }
+  | { type: 'SYNC_CBR_RATE'; timestamp: number };
 
 export interface OrderJobPayload {
   orderId: string;
@@ -270,6 +271,24 @@ export async function ensureCatalogSyncCron() {
         pattern: '0 4 * * *' // 4:00 AM daily
       },
       jobId: 'catalog-sync-singleton'
+    }
+  );
+}
+
+/**
+ * [FIN-005] Schedule automatic CBR exchange rate sync every 6 hours.
+ * Prevents SYSTEM_HALT if operators forget to manually trigger CBR sync.
+ * Circuit breaker in order.service.ts blocks orders if rate is >48h stale.
+ */
+export async function ensureCBRSyncCron() {
+  await catalogQueue.add(
+    'cbr-rate-sync',
+    { type: 'SYNC_CBR_RATE', timestamp: Date.now() },
+    {
+      repeat: {
+        pattern: '0 */6 * * *' // Every 6 hours: 00:00, 06:00, 12:00, 18:00
+      },
+      jobId: 'cbr-rate-sync-singleton'
     }
   );
 }

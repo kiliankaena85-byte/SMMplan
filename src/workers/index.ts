@@ -15,6 +15,7 @@ import {
   ensureAiObserverCron,
   ensureAiEconomicOptimizerCron,
   ensureGeoAvailabilityCron,
+  ensureCBRSyncCron,
   dlqQueue, 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   cleanupQueue, 
@@ -246,6 +247,7 @@ ensurePendingCheckCron().catch(e => log.error('Failed to setup PendingCheck Cron
 ensureAiObserverCron().catch(e => log.error('Failed to setup AI Observer Cron', { error: (e as Error).message }));
 ensureAiEconomicOptimizerCron().catch(e => log.error('Failed to setup AI Economic Optimizer Cron', { error: (e as Error).message }));
 ensureGeoAvailabilityCron().catch(e => log.error('Failed to setup Geo Availability Cron', { error: (e as Error).message }));
+ensureCBRSyncCron().catch(e => log.error('Failed to setup CBR Rate Sync Cron', { error: (e as Error).message }));
 
 log.info('All workers started', { queues: ['ordersQueue', 'refillQueue', 'syncQueue', 'catalogQueue', 'cleanup', 'paymentSyncQueue', 'articlePublishQueue', 'aiObserverQueue', 'aiEconomicOptimizerQueue', 'geoAvailabilityQueue'] });
 
