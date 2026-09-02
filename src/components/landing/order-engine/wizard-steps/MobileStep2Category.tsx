@@ -25,7 +25,25 @@ export function MobileStep2Category({
   brandStyle,
   step2Ref
 }: MobileStep2CategoryProps) {
-  const { categoryId, setCategoryId, availableCategories } = engine;
+  const [showAllCategories, setShowAllCategories] = React.useState(false);
+  const { categoryId, setCategoryId, availableCategories, detectedType, platform, url } = engine;
+
+  const allNetworkCategories = engine.activeNetwork?.categories || [];
+  const isLinkActive = url && url.trim().length >= 5;
+  const categoriesToDisplay = (isLinkActive && !showAllCategories) 
+    ? availableCategories 
+    : allNetworkCategories;
+
+  const formatDetectedType = (t: string | null | undefined) => {
+    if (!t) return "";
+    const clean = t.toLowerCase();
+    if (clean === 'post' || clean === 'private_post' || clean === 'photo') return "поста";
+    if (clean === 'channel' || clean === 'chat' || clean === 'group') return "канала";
+    if (clean === 'profile' || clean === 'user' || clean === 'account') return "профиля";
+    if (clean === 'video' || clean === 'reel' || clean === 'reels' || clean === 'clip') return "видео/Reels";
+    if (clean === 'story' || clean === 'stories') return "Stories";
+    return clean;
+  };
 
   if (!(currentStep === 2 || (currentStep !== 2 && !!categoryId)) || !shouldShowCategories || availableCategories.length === 0) {
     return null;
@@ -43,16 +61,23 @@ export function MobileStep2Category({
       {currentStep === 2 ? (
         <>
           <div className="flex items-center justify-between pl-1">
-            <span className="block text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
-              2. Выберите категорию
-            </span>
-            <span className="text-[11px] font-bold text-primary">
-              {availableCategories.length} категорий
+            <div className="flex flex-col">
+              <span className="block text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
+                2. Выберите цель продвижения
+              </span>
+              {isLinkActive && detectedType && (
+                <span className="text-[11px] font-bold text-success flex items-center gap-1 mt-0.5">
+                  <span>✓ Подобрано для {formatDetectedType(detectedType)} {platform || ""}</span>
+                </span>
+              )}
+            </div>
+            <span className="text-[11px] font-bold text-primary shrink-0">
+              {categoriesToDisplay.length} {categoriesToDisplay.length === 1 ? 'категория' : 'категорий'}
             </span>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            {availableCategories.map((cat) => {
+            {categoriesToDisplay.map((cat) => {
               const isActive = categoryId === cat.id;
               return (
                 <button
@@ -81,7 +106,14 @@ export function MobileStep2Category({
                   }`}>
                     <CategoryIcon name={cat.name} icon={(cat as { icon?: string | null }).icon} size={14} />
                   </div>
-                  <span className="truncate flex-1 text-[11px] leading-tight">{cleanCategoryName(cat.name)}</span>
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="truncate text-[11px] leading-tight font-bold">{cleanCategoryName(cat.name)}</span>
+                    {isLinkActive && (
+                      <span className="text-[9px] font-semibold text-success/90 flex items-center gap-0.5 mt-0.5">
+                        <span>Подходит</span>
+                      </span>
+                    )}
+                  </div>
                   {isActive && (
                     <Check className="w-3.5 h-3.5 shrink-0 opacity-80" />
                   )}
@@ -89,6 +121,18 @@ export function MobileStep2Category({
               );
             })}
           </div>
+
+          {isLinkActive && allNetworkCategories.length > availableCategories.length && (
+            <div className="pt-1 text-center">
+              <button
+                type="button"
+                onClick={() => setShowAllCategories(!showAllCategories)}
+                className="text-[11px] font-bold text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+              >
+                {showAllCategories ? "Скрыть другие категории" : `Показать все категории ${engine.activeNetwork?.name || ''} (${allNetworkCategories.length})`}
+              </button>
+            </div>
+          )}
 
           <div className="flex gap-2 pt-1">
             <Button

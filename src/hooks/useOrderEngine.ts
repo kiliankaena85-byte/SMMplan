@@ -220,14 +220,16 @@ export function useOrderEngine(
   const lastPlatformRef = useRef<IntelligencePlatform | null>(null);
   const lastManualPlatformRef = useRef<IntelligencePlatform | null>(null);
 
-  // Keep refs of selectedService and networkId to prevent re-triggering URL analysis on manual selection
+  // Keep refs of selectedService, networkId and categoryId to prevent race conditions during URL analysis
   const selectedServiceRef = useRef<PublicService | null>(null);
   const networkIdRef = useRef(networkId);
+  const categoryIdRef = useRef(categoryId);
   
   useEffect(() => {
     selectedServiceRef.current = selectedService;
     networkIdRef.current = networkId;
-  }, [selectedService, networkId]);
+    categoryIdRef.current = categoryId;
+  }, [selectedService, networkId, categoryId]);
 
   // 1. Initial Catalog Load (if not provided)
   useEffect(() => {
@@ -314,12 +316,11 @@ export function useOrderEngine(
                       if (f.length > 0) filteredCats = f;
                   }
                   if (filteredCats.length > 0) {
-                     if (url.trim().length >= 5) {
-                        if (!selectedServiceRef.current) {
-                           setCategoryId("");
-                        }
-                     } else {
+                     // Smart Adaptive Flow: If current category is incompatible with the detected URL, switch to the 1st compatible category
+                     const isCurrentCompatible = filteredCats.some(c => c.id === categoryIdRef.current);
+                     if (!isCurrentCompatible) {
                         setCategoryId(filteredCats[0].id);
+                        setSelectedService(null);
                      }
                   }
                }
@@ -440,15 +441,15 @@ export function useOrderEngine(
             return 0;
         });
 
-        // If detectedType is active, prioritize or filter compatible services
+        // ZERO-DEAD-END INVARIANT: If detectedType is active, strictly filter compatible services
         let finalSvcs = sortedSvcs;
-        if (detectedType) {
+        if (detectedType && url.trim().length >= 5) {
           const compatibleSvcs = sortedSvcs.filter(s =>
             isLinkServiceCompatible(detectedType, s.targetType || inferTargetTypeFromName(s.name))
           );
-          if (compatibleSvcs.length > 0) {
-            finalSvcs = compatibleSvcs;
-          }
+          // Never fallback to incompatible services. If none match, finalSvcs is empty,
+          // allowing the UI to show a helpful 1-click bridge to compatible categories.
+          finalSvcs = compatibleSvcs;
         }
 
         setServices(finalSvcs);
@@ -724,13 +725,9 @@ export function useOrderEngine(
   const activePlatform = manualPlatform || platform;
   const isMatchingAutodetected = activeNetwork && activePlatform && activePlatform !== IntelligencePlatform.OTHER && activeNetwork.slug.toLowerCase().includes(activePlatform.toLowerCase());
 
-  if (isMatchingAutodetected && (suggestedCategories.length > 0 || detectedType)) {
+  if (isMatchingAutodetected && (suggestedCategories.length > 0 || detectedType) && url.trim().length >= 5) {
     const filteredCats = availableCategories.filter(c => matchesSuggestedCategory(c.name, suggestedCategories, c.analyzerTags, detectedType));
     if (filteredCats.length > 0) {
-      const currentCat = activeNetwork?.categories.find(c => c.id === categoryId);
-      if (currentCat && !filteredCats.some(c => c.id === categoryId)) {
-        filteredCats.push(currentCat);
-      }
       availableCategories = filteredCats;
     }
   }
@@ -809,6 +806,7 @@ export function useOrderEngine(
     smartDripDays, setSmartDripDays,
     
     platform,
+    detectedType,
     manualPlatform,
     setManualPlatform: handleSetManualPlatform,
     activeNetwork,

@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Sparkles, Lightbulb, ArrowRight } from "lucide-react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { TariffCard } from "../TariffCard";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,25 @@ export function MobileStep3Service({
   brandStyle,
   step3Ref
 }: MobileStep3ServiceProps) {
-  const { selectedService, setSelectedService, isLoading, services, networkId } = engine;
+  const [showAllTariffs, setShowAllTariffs] = React.useState(false);
+  const { selectedService, setSelectedService, isLoading, services, networkId, url, detectedType } = engine;
+
+  // RULE OF 3 (CRO Optimization): Group services into Economy, Hit (Recommended), and Premium
+  const displayedServices = React.useMemo(() => {
+    if (services.length <= 3 || showAllTariffs) return services;
+
+    // Pick Economy (cheapest), Premium (most comprehensive), and Hit (popular middle)
+    const sortedByPrice = [...services].sort((a, b) => a.pricePerUnitRub - b.pricePerUnitRub);
+    const economy = sortedByPrice[0];
+    const premium = sortedByPrice[sortedByPrice.length - 1];
+    const hit = sortedByPrice[Math.floor(sortedByPrice.length / 2)];
+
+    const result = [economy];
+    if (hit && hit.id !== economy.id && hit.id !== premium.id) result.push(hit);
+    if (premium && premium.id !== economy.id) result.push(premium);
+
+    return result;
+  }, [services, showAllTariffs]);
 
   if (!(currentStep === 3 || (currentStep !== 3 && !!selectedService)) || !shouldShowTariffs) {
     return null;
@@ -47,7 +65,7 @@ export function MobileStep3Service({
               3. Выберите тариф • {selectedCategoryName}
             </span>
             <span className="text-[11px] font-bold text-primary">
-              {services.length} тарифов
+              {services.length} {services.length === 1 ? 'тариф' : 'тарифов'}
             </span>
           </div>
 
@@ -58,14 +76,32 @@ export function MobileStep3Service({
               ))}
             </div>
           ) : services.length === 0 ? (
-            <div className="text-center py-6 text-xs text-muted-foreground font-semibold bg-content2 rounded-2xl p-4 border border-dashed border-border/50">
-              {!networkId
-                ? "Вставьте ссылку или выберите категорию в каталоге, чтобы загрузить тарифы."
-                : "В этой категории пока нет доступных тарифов. Попробуйте выбрать другую."}
+            <div className="text-center py-6 px-4 bg-primary/5 rounded-2xl border border-primary/20 space-y-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary mx-auto flex items-center justify-center">
+                <Lightbulb className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-foreground">
+                  В категории «{selectedCategoryName}» нет тарифов для вашей ссылки
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Наша система подобрала подходящие категории специально для вашего типа объекта.
+                </p>
+              </div>
+              <div className="pt-1">
+                <Button
+                  type="button"
+                  onClick={() => setActiveStep(2)}
+                  className="w-full h-11 min-h-[44px] text-xs font-bold bg-primary text-primary-foreground rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-primary/20 cursor-pointer active:scale-95"
+                >
+                  <span>Выбрать подходящую категорию</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="flex flex-col gap-2.5">
-              {services.map((srv) => (
+              {displayedServices.map((srv) => (
                 <TariffCard
                   key={srv.id}
                   service={srv}
@@ -77,6 +113,17 @@ export function MobileStep3Service({
                   brandStyle={brandStyle}
                 />
               ))}
+
+              {services.length > 3 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllTariffs(!showAllTariffs)}
+                  className="py-2 px-3 rounded-xl bg-content2 hover:bg-content3 text-[11px] font-extrabold text-primary border border-border/50 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 mt-1"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{showAllTariffs ? "Показать только рекомендуемые (3 тарифа)" : `Показать все ${services.length} тарифов ▾`}</span>
+                </button>
+              )}
             </div>
           )}
 

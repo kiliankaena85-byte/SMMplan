@@ -1,5 +1,5 @@
 import React from "react";
-import { Link2, AlertCircle, ChevronDown, ClipboardPaste } from "lucide-react";
+import { Link2, AlertCircle, ChevronDown, ClipboardPaste, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { DynamicPayloadWarnings } from "../DynamicPayloadWarnings";
 
@@ -135,7 +135,7 @@ export function MobileStep1Link({
             placeholder="https://t.me/channel_or_post"
             aria-label="Введите ссылку на канал, профиль или пост"
             aria-describedby={validationErrors?.link || localUrlError ? "mobile-step1-url-error" : undefined}
-            className="w-full h-11 pl-10 pr-24 rounded-2xl bg-transparent text-base font-semibold text-foreground placeholder:text-muted-foreground/50 outline-none border-none"
+            className={`w-full h-11 pl-10 ${url.trim().length > 0 ? 'pr-9' : 'pr-24'} rounded-2xl bg-transparent text-base font-semibold text-foreground placeholder:text-muted-foreground/50 outline-none border-none transition-all`}
           />
           {url.trim().length === 0 ? (
             <button
@@ -161,6 +161,85 @@ export function MobileStep1Link({
         </div>
       </div>
 
+      {/* Smart Detection Live Badge */}
+      {url.trim().length >= 5 && (
+        <div className="p-2.5 rounded-2xl bg-content2/80 border border-border/50 text-xs flex items-center justify-between gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+          {engine.isLoading ? (
+            <div className="flex items-center gap-2 text-muted-foreground text-[11px] font-medium">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-primary shrink-0" />
+              <span>Определяем соцсеть и тип ссылки...</span>
+            </div>
+          ) : engine.platform ? (
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="px-2 py-0.5 rounded-lg bg-primary/15 text-primary text-[10px] font-black uppercase tracking-wider shrink-0">
+                  {engine.platform}
+                </span>
+                <span className="text-[11px] font-bold text-foreground truncate flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" />
+                  <span>
+                    {engine.detectedType === 'POST' || engine.detectedType === 'PRIVATE_POST' || engine.detectedType === 'PHOTO'
+                      ? "Публикация / Пост"
+                      : engine.detectedType === 'CHANNEL' || engine.detectedType === 'CHAT' || engine.detectedType === 'GROUP'
+                      ? "Канал / Сообщество"
+                      : engine.detectedType === 'PROFILE' || engine.detectedType === 'USER'
+                      ? "Профиль / Пользователь"
+                      : engine.detectedType === 'VIDEO' || engine.detectedType === 'REEL'
+                      ? "Видео / Reels"
+                      : "Объект проверен"}
+                  </span>
+                </span>
+              </div>
+              <span className="text-[10px] font-bold text-success shrink-0">
+                ✓ Ссылка подходит
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+              <AlertCircle className="w-3.5 h-3.5 text-warning shrink-0" />
+              <span>Проверьте формат ссылки (например, https://t.me/...)</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Quick Platform Shortcuts when link is empty */}
+      {url.trim().length === 0 && (
+        <div className="space-y-1.5 pt-1">
+          <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider pl-1">
+            Или выберите соцсеть для заказа:
+          </span>
+          <div className="grid grid-cols-4 gap-1.5">
+            {[
+              { name: "Telegram", slug: "telegram", icon: "✈️" },
+              { name: "ВКонтакте", slug: "vk", icon: "👥" },
+              { name: "Instagram", slug: "instagram", icon: "📸" },
+              { name: "YouTube", slug: "youtube", icon: "▶️" },
+            ].map(net => {
+              const catalogNet = engine.catalog.find(n => n.slug.toLowerCase().includes(net.slug));
+              return (
+                <button
+                  key={net.slug}
+                  type="button"
+                  onClick={() => {
+                    if (catalogNet) {
+                      engine.setNetworkId(catalogNet.id);
+                      const firstCat = catalogNet.categories[0];
+                      if (firstCat) engine.setCategoryId(firstCat.id);
+                      setActiveStep(2);
+                    }
+                  }}
+                  className="p-2 rounded-xl bg-content2 hover:bg-content3 border border-border/40 flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 transition-all text-center"
+                >
+                  <span className="text-base">{net.icon}</span>
+                  <span className="text-[10px] font-bold text-foreground">{net.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {validationErrors?.link && (
         <p id="mobile-step1-url-error" role="alert" aria-live="assertive" className="text-[11px] font-bold text-danger pl-1 animate-pulse">
           {validationErrors.link}
@@ -172,7 +251,8 @@ export function MobileStep1Link({
         </p>
       )}
 
-      {(validationErrors?.link || localUrlError) && (
+      {/* Dynamic Warnings & Smart Bridge */}
+      {url.trim().length >= 5 && (
         <div className="mt-1.5">
           <DynamicPayloadWarnings engine={engine} minimalMode={true} />
         </div>

@@ -111,7 +111,6 @@ export function useMobileWizard(engine: OrderEngine) {
         if (activeStepRaw === 1) {
           userManuallyBrowsingRef.current = true;
           if (selectedService) setActiveStep(4);
-          else if (categoryId) setActiveStep(3);
           else setActiveStep(2);
         }
       }

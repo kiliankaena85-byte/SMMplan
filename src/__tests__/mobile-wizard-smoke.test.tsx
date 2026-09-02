@@ -7,6 +7,7 @@ import { renderHook, act, render, screen, fireEvent } from '@testing-library/rea
 import { useMobileWizard } from '@/components/landing/order-engine/wizard-steps/useMobileWizard';
 import { MobileWizardStepper } from '@/components/landing/order-engine/wizard-steps/MobileWizardStepper';
 import { MobileStep1Link } from '@/components/landing/order-engine/wizard-steps/MobileStep1Link';
+import { MobileStep3Service } from '@/components/landing/order-engine/wizard-steps/MobileStep3Service';
 import { OrderEngine } from '@/hooks/useOrderEngine';
 
 describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
@@ -283,5 +284,71 @@ describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
       }));
     });
     expect(result.current.currentStep).toBe(1);
+  });
+
+  it('12. Smart Adaptive Flow: MobileStep1Link displays smart detection badge when url is entered and platform shortcuts when empty', () => {
+    // Check empty state
+    const engineEmpty = createMockEngine({ url: '' });
+    const { getByText, unmount } = render(
+      <MobileStep1Link
+        engine={engineEmpty}
+        currentStep={1}
+        setActiveStep={vi.fn()}
+        proceedFromStep1={vi.fn()}
+        isFocused={false}
+        setIsFocused={vi.fn()}
+        localUrlError={null}
+        setLocalUrlError={vi.fn()}
+        catalogHint={false}
+      />
+    );
+    expect(getByText('Или выберите соцсеть для заказа:')).toBeDefined();
+    expect(getByText('Telegram')).toBeDefined();
+    expect(getByText('ВКонтакте')).toBeDefined();
+    unmount();
+
+    // Check with detected link
+    const engineWithLink = createMockEngine({
+      url: 'https://t.me/durov/123',
+      platform: 'TELEGRAM' as any,
+      detectedType: 'POST' as any
+    });
+    const { getByText: getByText2 } = render(
+      <MobileStep1Link
+        engine={engineWithLink}
+        currentStep={1}
+        setActiveStep={vi.fn()}
+        proceedFromStep1={vi.fn()}
+        isFocused={false}
+        setIsFocused={vi.fn()}
+        localUrlError={null}
+        setLocalUrlError={vi.fn()}
+        catalogHint={false}
+      />
+    );
+    expect(getByText2('Публикация / Пост')).toBeDefined();
+    expect(getByText2('✓ Ссылка подходит')).toBeDefined();
+  });
+
+  it('13. Zero-Dead-End UX: MobileStep3Service displays friendly bridge guidance when services are filtered', () => {
+    const engineNoServices = createMockEngine({
+      services: [],
+      url: 'https://t.me/durov/123',
+      detectedType: 'POST' as any,
+      categoryId: 'tg-cat'
+    });
+    const { getByText } = render(
+      <MobileStep3Service
+        engine={engineNoServices}
+        currentStep={3}
+        setActiveStep={vi.fn()}
+        shouldShowTariffs={true}
+        selectedCategoryName="Подписчики"
+        step3Ref={{ current: null }}
+      />
+    );
+
+    expect(getByText(/В категории «Подписчики» нет тарифов для вашей ссылки/i)).toBeDefined();
+    expect(getByText(/Выбрать подходящую категорию/i)).toBeDefined();
   });
 });
