@@ -1,5 +1,5 @@
 # --- runner ---
-FROM node:20-alpine AS runner
+FROM node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 RUN apk add --no-cache curl dos2unix openssl libssl3
@@ -30,7 +30,7 @@ ENTRYPOINT ["/bin/sh", "./docker-entrypoint.sh"]
 CMD ["node", "server.js"]
 
 # --- worker-runner ---
-FROM node:20-alpine AS worker-runner
+FROM node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS worker-runner
 WORKDIR /app
 ENV NODE_ENV=production
 RUN apk add --no-cache openssl libssl3 curl
