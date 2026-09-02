@@ -2,7 +2,7 @@
 // audit-disable STR-002
 
 import React, { useState } from "react";
-import { Loader2, Link2, Mail, HelpCircle, Target, CreditCard, Sparkles, Zap, ShieldCheck } from "lucide-react";
+import { Loader2, Link2, Mail, HelpCircle, Target, CreditCard, Sparkles, Zap, ShieldCheck, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { motion, AnimatePresence } from "framer-motion";
@@ -304,6 +304,20 @@ export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasErro
                 placeholder="Вставьте ссылку на канал, группу или пост..."
                 className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm sm:text-base md:text-lg font-semibold text-foreground placeholder:text-muted-foreground px-1.5 sm:px-3 w-full resize-none overflow-hidden whitespace-nowrap self-center leading-tight"
               />
+              {url.trim().length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUrl("");
+                    if (linkHasError) setLinkHasError(false);
+                  }}
+                  className="w-7 h-7 rounded-full bg-content2 hover:bg-content3 border border-border/60 flex items-center justify-center text-muted-foreground hover:text-foreground transition-all cursor-pointer mr-1.5 shrink-0"
+                  title="Очистить ссылку"
+                  aria-label="Очистить ссылку"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
               <Button
                 type="button"
                 onClick={handleStartAction}

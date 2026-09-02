@@ -844,8 +844,7 @@ export function useOrderEngine(
       setIsWarningConfirmed(false);
       setWarningHasError(false);
       setTermsHasError(false);
-      setValidationErrors(null);
-      setCompatibilityWarning(null);
+      setValidationErrors({});
       try {
         sessionStorage.removeItem('smmplan_draft');
       } catch { /* SSR or storage disabled */ }
