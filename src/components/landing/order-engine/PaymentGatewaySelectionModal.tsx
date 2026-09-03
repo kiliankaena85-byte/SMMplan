@@ -85,7 +85,7 @@ export function PaymentGatewaySelectionModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[350] flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-4"
+        className="fixed inset-0 z-[350] flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto"
         onClick={onClose}
       >
         <motion.div
@@ -93,7 +93,7 @@ export function PaymentGatewaySelectionModal({
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="bg-card rounded-[1.5rem] sm:rounded-[2rem] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.2)] p-4 sm:p-6 md:p-8 w-full max-w-lg relative border border-border/60"
+          className="bg-card rounded-[1.5rem] sm:rounded-[2rem] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.2)] p-4 sm:p-6 md:p-8 w-full max-w-lg relative border border-border/60 max-h-[92dvh] flex flex-col my-auto overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -189,11 +189,11 @@ export function PaymentGatewaySelectionModal({
           </div>
 
           {/* Action Row */}
-          <div className="flex flex-col gap-3 mt-2">
+          <div className="flex flex-col gap-3 mt-auto pt-3 shrink-0 border-t border-border/40">
             <Button
               onClick={handlePay}
               disabled={isSubmitting || (available !== null && filteredMethods.length === 0)}
-              className="h-14 w-full rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-base shadow-lg shadow-primary/10 transition-all flex items-center justify-center gap-2 group"
+              className="h-13 sm:h-14 w-full rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-sm sm:text-base shadow-lg shadow-primary/10 transition-all flex items-center justify-center gap-2 group min-h-[48px] cursor-pointer"
             >
               {isSubmitting ? (
                 <Loader2 className="w-5 h-5 animate-spin" />

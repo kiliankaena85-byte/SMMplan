@@ -37,6 +37,12 @@
   2. Смоделировать отказ на 3 шага вперёд (как изменение затронет авторизацию, биллинг, кэш, вебхуки, мобильный визард, заказы).
   3. Прогнать ПОЛНЫЙ регрессионный сьют (`npx vitest run -c vitest.unit.config.ts`, `npx tsc --noEmit`, `npx tsx scripts/smoke-live-container.ts`). Запрещено отчитываться об успехе только по одному точечному файлу.
 
+## 3.6. 🚀 MANDATORY PRODUCTION HARDENING GATE (PROD-SEC-2026 — CRITICAL GATE)
+- **КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО** производить финальную выкатку платформы в продакшн без выполнения и верификации 3 обязательных задач безопасности из бэклога:
+  1. **[SEC-001] Redis Authentication & Encryption (Hardening):** В боевом окружении `REDIS_URL` обязан использовать защищенный протокол с авторизацией (`rediss://...` или `redis://:<STRONG_PASSWORD>@...`), устраняя ворнинг `Redis is running in production without explicit authentication`.
+  2. **[SEC-002] Content-Security-Policy (Strict-Dynamic Migration):** Провести зачистку `'unsafe-inline'` и `'unsafe-eval'` из директивы `script-src` в `src/proxy.ts`, обеспечив полную совместимость клиентских компонентов с криптографическим Nonce.
+  3. **[SEC-003] Production Direct SMTP Verification:** Проверить прямую доставку почты по порту 465 без локальных прокси/TUN-адаптеров (`test-connection` к SMTP Яндекса/Mail.ru на целевом хосте), подтвердив успешную отправку Magic Link реальному пользователю.
+
 ---
 
 # PLANNING MODE TEMPLATE (Spec-Driven Development)

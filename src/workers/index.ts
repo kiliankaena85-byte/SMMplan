@@ -16,6 +16,7 @@ import {
   ensureAiEconomicOptimizerCron,
   ensureGeoAvailabilityCron,
   ensureCBRSyncCron,
+  ensureProxySubscriptionSyncCron,
   dlqQueue, 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   cleanupQueue, 
@@ -82,6 +83,9 @@ const cleanupWorker = new Worker('cleanup', async (job) => {
     await runOrphanSweep();
   } else if (job.name === 'resolve-pending-check') {
     await runPendingCheckResolution();
+  } else if (job.name === 'sync-proxy-subscriptions') {
+    const { SubscriptionSyncService } = await import('@/services/providers/subscription-sync.service');
+    await SubscriptionSyncService.syncAllActiveSubscriptions();
   } else {
     await runCleanup(); 
   }
@@ -248,6 +252,7 @@ ensureAiObserverCron().catch(e => log.error('Failed to setup AI Observer Cron', 
 ensureAiEconomicOptimizerCron().catch(e => log.error('Failed to setup AI Economic Optimizer Cron', { error: (e as Error).message }));
 ensureGeoAvailabilityCron().catch(e => log.error('Failed to setup Geo Availability Cron', { error: (e as Error).message }));
 ensureCBRSyncCron().catch(e => log.error('Failed to setup CBR Rate Sync Cron', { error: (e as Error).message }));
+ensureProxySubscriptionSyncCron().catch(e => log.error('Failed to setup Proxy Subscription Sync Cron', { error: (e as Error).message }));
 
 log.info('All workers started', { queues: ['ordersQueue', 'refillQueue', 'syncQueue', 'catalogQueue', 'cleanup', 'paymentSyncQueue', 'articlePublishQueue', 'aiObserverQueue', 'aiEconomicOptimizerQueue', 'geoAvailabilityQueue'] });
 

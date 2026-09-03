@@ -153,7 +153,8 @@ export function SmartLinkLanding({
     emailHasError,
     termsHasError,
     showPaymentModal, setShowPaymentModal,
-    confirmAndPay
+    confirmAndPay,
+    checkoutError
   } = useCheckoutOrchestrator({ 
     engine, 
     desktopEmailInputRef, 
@@ -319,6 +320,7 @@ export function SmartLinkLanding({
                       onOpenGuide={() => setIsGuideOpen(true)}
                       onOpenDocument={setActiveLegalSlug}
                       onOpenCatalog={() => setShowCatalogModal(true)}
+                      checkoutError={checkoutError}
                     />
 
                     <NetworkSelector engine={engine} />

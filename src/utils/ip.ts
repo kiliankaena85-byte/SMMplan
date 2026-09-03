@@ -20,6 +20,17 @@ function normalizeIp(ip: string): string {
   return trimmed;
 }
 
+export function isInternalOrPrivateIp(ip: string | null | undefined): boolean {
+  if (!ip) return true;
+  const clean = ip.trim().toLowerCase();
+  if (clean === '127.0.0.1' || clean === '::1' || clean === '0.0.0.0' || clean === 'localhost') return true;
+  if (/^172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+$/.test(clean)) return true;
+  if (/^10\.\d+\.\d+\.\d+$/.test(clean)) return true;
+  if (/^192\.168\.\d+\.\d+$/.test(clean)) return true;
+  if (/^100\.(6[4-9]|[7-9]\d|1[0-1]\d|12[0-7])\.\d+\.\d+$/.test(clean)) return true;
+  return false;
+}
+
 /**
  * Извлекает IP-адрес клиента из HTTP-заголовков.
  *

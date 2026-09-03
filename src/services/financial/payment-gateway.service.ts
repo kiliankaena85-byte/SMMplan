@@ -5,6 +5,7 @@ import { WalletOps } from './wallet-ops';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { MutexManager } from '@/lib/redis-lock';
 import crypto from 'crypto';
+import { UniversalNetworkRouter } from '@/lib/network/network-router';
 
 let vatThresholdCache: { result: boolean; expiresAt: number } | null = null;
 
@@ -146,7 +147,7 @@ class YooKassaGateway extends BasePaymentGateway {
 
     let resp: Response;
     try {
-      resp = await fetch('https://api.yookassa.ru/v3/payments', {
+      resp = await UniversalNetworkRouter.fetch('https://api.yookassa.ru/v3/payments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -155,7 +156,7 @@ class YooKassaGateway extends BasePaymentGateway {
         },
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(10000)
-      });
+      }, { service: 'PAYMENTS_RU' });
     } catch (netErr: unknown) {
       console.error('[YooKassaGateway] Connection failed:', netErr);
       throw new Error('Ошибка соединения со шлюзом ЮKassa. Сервер оплаты временно недоступен — попробуйте СБП или CryptoBot.');
@@ -268,7 +269,7 @@ class YooKassaGateway extends BasePaymentGateway {
 
     let resp: Response;
     try {
-      resp = await fetch('https://api.yookassa.ru/v3/refunds', {
+      resp = await UniversalNetworkRouter.fetch('https://api.yookassa.ru/v3/refunds', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -277,7 +278,7 @@ class YooKassaGateway extends BasePaymentGateway {
         },
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(15000),
-      });
+      }, { service: 'PAYMENTS_RU' });
     } catch (netErr: unknown) {
       console.error('[YooKassaGateway] Refund connection failed:', netErr);
       throw new Error('Ошибка соединения с сервером ЮKassa при возврате средств.');
@@ -341,7 +342,7 @@ class CryptoBotGateway extends BasePaymentGateway {
 
     let resp: Response;
     try {
-      resp = await fetch('https://pay.crypt.bot/api/createInvoice', {
+      resp = await UniversalNetworkRouter.fetch('https://pay.crypt.bot/api/createInvoice', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -356,7 +357,7 @@ class CryptoBotGateway extends BasePaymentGateway {
           payload: params.paymentId
         }),
         signal: AbortSignal.timeout(15000)
-      });
+      }, { service: 'PAYMENTS_CRYPTO' });
     } catch (netErr: unknown) {
       console.error('[CryptoBotGateway] Network Error:', netErr);
       if (isTestMode) {
@@ -407,13 +408,13 @@ class CryptoBotGateway extends BasePaymentGateway {
       const cryptoToken = secrets.cryptoBotToken;
       if (!cryptoToken) return false;
 
-      const resp = await fetch(`https://pay.crypt.bot/api/getInvoices?invoice_ids=${gatewayId}`, {
+      const resp = await UniversalNetworkRouter.fetch(`https://pay.crypt.bot/api/getInvoices?invoice_ids=${gatewayId}`, {
         method: 'GET',
         headers: {
           'Crypto-Pay-API-Token': cryptoToken
         },
         signal: AbortSignal.timeout(15000)
-      });
+      }, { service: 'PAYMENTS_CRYPTO' });
 
       if (!resp.ok) return false;
       const data = await resp.json();

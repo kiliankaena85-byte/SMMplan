@@ -46,7 +46,13 @@
 >    - Заложи защитные барьеры (Fail-Closed guards, валидаторы типов, Fallback-значения) ДО применения правки.
 > 3. **Шаг 3: Сквозная верификация всей системы (Full-Spectrum Regression Gate):**
 >    - ❌ **ЗАПРЕЩЕНО** проверять только один точечный файл.
->    - ✅ **ОБЯЗАТЕЛЬНО** прогонять полный сьют регрессионных тестов: `npx vitest run -c vitest.unit.config.ts` (все 17+ файлов), `npx tsc --noEmit` (0 ошибок) и живой смок-тест `npx tsx scripts/smoke-live-container.ts`. Любой сбой в смежном модуле = немедленная отмена релиза и исправление.
+## 0.8. 🚀 MANDATORY PRODUCTION HARDENING GATE (PROD-SEC-2026 — CRITICAL GATE)
+> ⚠️ **ПРАВИЛО ОБЯЗАТЕЛЬНОГО ВЫПОЛНЕНИЯ ПЕРЕД ВЫКАТКОЙ В ПРОДАКШН:**
+> При подготовке и выкатке платформы на боевой продакшн-сервер (Production Rollout) агент **ОБЯЗАН** закрыть и верифицировать следующие три задачи безопасности из бэклога:
+> 1. **[SEC-001] Redis Authentication & Encryption (Hardening):** В боевом окружении `REDIS_URL` обязан использовать защищенный протокол с авторизацией (`rediss://...` или `redis://:<STRONG_PASSWORD>@...`), устраняя ворнинг `Redis is running in production without explicit authentication`.
+> 2. **[SEC-002] Content-Security-Policy (Strict-Dynamic Migration):** Провести зачистку `'unsafe-inline'` и `'unsafe-eval'` из директивы `script-src` в `src/proxy.ts`, обеспечив полную совместимость клиентских компонентов с криптографическим Nonce.
+> 3. **[SEC-003] Production Direct SMTP Verification:** Проверить прямую доставку почты по порту 465 без локальных прокси/TUN-адаптеров (`test-connection` к SMTP Яндекса/Mail.ru на целевом хосте), подтвердив успешную отправку Magic Link реальному пользователю.
+> ❌ **КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО** объявлять продакшн-релиз завершённым без закрытия этих трёх условий.
 
 ### При каждом старте сессии в этом проекте:
 

@@ -858,7 +858,7 @@ export function ChatMessageList({
             </p>
           </motion.div>
         )}
-        <div ref={bottomRef} />
+        <div ref={bottomRef} className="h-3 shrink-0" />
       </div>
 
       {zoomedImage && (

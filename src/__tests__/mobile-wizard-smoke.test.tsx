@@ -351,4 +351,61 @@ describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
     expect(getByText(/В категории «Подписчики» нет тарифов для вашей ссылки/i)).toBeDefined();
     expect(getByText(/Выбрать подходящую категорию/i)).toBeDefined();
   });
+
+  it('14. Channel Subscriber Flow (https://t.me/smmMarket69): Step 1 shows channel badge and Step 3 groups subscriber tariffs into Rule of 3', () => {
+    // Step 1: Channel detection
+    const engineChannel = createMockEngine({
+      url: 'https://t.me/smmMarket69',
+      platform: 'TELEGRAM' as any,
+      detectedType: 'channel' as any
+    });
+    const { getByText, unmount } = render(
+      <MobileStep1Link
+        engine={engineChannel}
+        currentStep={1}
+        setActiveStep={vi.fn()}
+        proceedFromStep1={vi.fn()}
+        isFocused={false}
+        setIsFocused={vi.fn()}
+        localUrlError={null}
+        setLocalUrlError={vi.fn()}
+        catalogHint={false}
+      />
+    );
+    expect(getByText('Канал / Сообщество')).toBeDefined();
+    expect(getByText('✓ Ссылка подходит')).toBeDefined();
+    unmount();
+
+    // Step 3: Subscriber services display top 3 tiers with expand button
+    const mockServices = [
+      { id: 's1', name: 'Telegram Подписчики Быстрые', pricePerUnitRub: 0.05, minQty: 10, maxQty: 10000 },
+      { id: 's2', name: 'Telegram Подписчики Реальные (Хит)', pricePerUnitRub: 0.12, minQty: 20, maxQty: 50000 },
+      { id: 's3', name: 'Telegram Подписчики Премиум Гарантия', pricePerUnitRub: 0.25, minQty: 50, maxQty: 100000 },
+      { id: 's4', name: 'Telegram Подписчики VIP', pricePerUnitRub: 0.50, minQty: 100, maxQty: 50000 },
+    ];
+    const engineStep3 = createMockEngine({
+      url: 'https://t.me/smmMarket69',
+      detectedType: 'channel' as any,
+      categoryId: 'tg-subs',
+      services: mockServices as any,
+      selectedService: null,
+      setSelectedService: vi.fn(),
+    });
+    const { getByText: getByText3 } = render(
+      <MobileStep3Service
+        engine={engineStep3}
+        currentStep={3}
+        setActiveStep={vi.fn()}
+        shouldShowTariffs={true}
+        selectedCategoryName="Подписчики на канал и в группу"
+        step3Ref={{ current: null }}
+      />
+    );
+
+    expect(getByText3('Telegram Подписчики Быстрые')).toBeDefined();
+    expect(getByText3('Telegram Подписчики Реальные (Хит)')).toBeDefined();
+    expect(getByText3('Telegram Подписчики Премиум Гарантия')).toBeDefined();
+    expect(getByText3(/Показать все 4 тарифов/i)).toBeDefined();
+  });
 });
+

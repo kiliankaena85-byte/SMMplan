@@ -59,6 +59,8 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/smmplan_lite?schema=public&connection_limit=5&pool_timeout=30
       - REDIS_URL=redis://redis:6379
       - BOT_TENANT_ID=smmplan
+    volumes:
+      - lite_uploads_data:/app/private/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -111,8 +113,11 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/smmplan_lite?schema=public&connection_limit=5&pool_timeout=30
       - REDIS_URL=redis://redis:6379
       - RUN_MIGRATIONS=false
+      - SKIP_BOT=true
       - HOSTNAME=0.0.0.0
       - PORT=3000
+    volumes:
+      - lite_uploads_data:/app/private/uploads
     ports:
       - "3000:3000"
     dns:
@@ -159,3 +164,4 @@ services:
 volumes:
   lite_postgres_data:
   lite_redis_data:
+  lite_uploads_data:

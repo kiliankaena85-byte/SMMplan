@@ -121,7 +121,7 @@ export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasErro
               <span className="text-sm font-bold text-muted-foreground">Режим массового заказа</span>
             </div>
             <Button
-              onClick={handleCheckout}
+              onClick={() => handleCheckout()}
               disabled={isMassCalculating}
               className="rounded-full px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base shadow-lg shadow-primary/30 transition-all hover:scale-[1.02] active:scale-95"
             >

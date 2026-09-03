@@ -69970,6 +69970,7 @@ __export2(queue_manager_exports, {
   ensureAiEconomicOptimizerCron: () => ensureAiEconomicOptimizerCron,
   ensureAiObserverCron: () => ensureAiObserverCron,
   ensureArticlePublishCron: () => ensureArticlePublishCron,
+  ensureCBRSyncCron: () => ensureCBRSyncCron,
   ensureCatalogSyncCron: () => ensureCatalogSyncCron,
   ensureCleanupCron: () => ensureCleanupCron,
   ensureDripfeedCron: () => ensureDripfeedCron,
@@ -70044,6 +70045,19 @@ async function ensureCatalogSyncCron() {
         // 4:00 AM daily
       },
       jobId: "catalog-sync-singleton"
+    }
+  );
+}
+async function ensureCBRSyncCron() {
+  await catalogQueue.add(
+    "cbr-rate-sync",
+    { type: "SYNC_CBR_RATE", timestamp: Date.now() },
+    {
+      repeat: {
+        pattern: "0 */6 * * *"
+        // Every 6 hours: 00:00, 06:00, 12:00, 18:00
+      },
+      jobId: "cbr-rate-sync-singleton"
     }
   );
 }
@@ -70376,6 +70390,10 @@ function normalizeServiceTargetType(rawType) {
   const clean = rawType.trim().toUpperCase();
   switch (clean) {
     case "CHANNEL":
+    case "GROUP":
+    case "PUBLIC":
+    case "COMMUNITY":
+    case "COMMUNITIES":
     case "SUBSCRIBERS":
     case "MEMBERS":
     case "BOOST":
@@ -71624,6 +71642,13 @@ var init_link_analyzer = __esm({
 });
 
 // src/utils/target-type-mapper.ts
+var target_type_mapper_exports = {};
+__export2(target_type_mapper_exports, {
+  TargetTypeEnum: () => TargetTypeEnum,
+  inferTargetTypeFromName: () => inferTargetTypeFromName,
+  isTargetTypeCompatible: () => isTargetTypeCompatible,
+  normalizeTargetType: () => normalizeTargetType
+});
 function normalizeTargetType(rawType) {
   if (!rawType) return "CUSTOM" /* CUSTOM */;
   const clean = rawType.trim().toUpperCase();
@@ -71675,7 +71700,9 @@ function normalizeTargetType(rawType) {
 function inferTargetTypeFromName(name) {
   if (!name) return "POST" /* POST */;
   const n = name.toLowerCase();
-  if (n.includes("\u0430\u0432\u0442\u043E\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || n.includes("\u0430\u0432\u0442\u043E\u043B\u0430\u0439\u043A") || n.includes("\u0430\u0432\u0442\u043E\u0440\u0435\u0430\u043A\u0446\u0438") || n.includes("\u0430\u0432\u0442\u043E\u0440\u0435\u043F\u043E\u0441\u0442") || n.includes("\u0431\u0443\u0434\u0443\u0449\u0438\u0435 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B") || n.includes("\u043C\u0430\u0441\u0441\u043E\u0432\u044B\u0435 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B") || n.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u043A\u0430 \u043D\u0430") || n.includes("auto view") || n.includes("future view") || n.includes("channel posts")) {
+  if (n.includes("\u0430\u0432\u0442\u043E\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || n.includes("\u0430\u0432\u0442\u043E\u043B\u0430\u0439\u043A") || n.includes("\u0430\u0432\u0442\u043E\u0440\u0435\u0430\u043A\u0446\u0438") || n.includes("\u0430\u0432\u0442\u043E\u0440\u0435\u043F\u043E\u0441\u0442") || n.includes("\u0431\u0443\u0434\u0443\u0449\u0438\u0435 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B") || n.includes("\u043C\u0430\u0441\u0441\u043E\u0432\u044B\u0435 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B") || n.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u043A\u0430 \u043D\u0430") || n.includes("auto view") || n.includes("future view") || n.includes("channel posts") || // "Просмотры на последних N постов" / "Последних 50 постов" — applies to channel, NOT post
+  n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445 \u043F\u043E\u0441\u0442") || n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445 \u043F\u0443\u0431\u043B\u0438\u043A") || n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445 \u0437\u0430\u043F\u0438\u0441") || n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D") && (n.includes("\u043F\u043E\u0441\u0442") || n.includes("\u0437\u0430\u043F\u0438\u0441") || n.includes("\u043F\u0443\u0431\u043B\u0438\u043A")) || n.includes("last post") || n.includes("last 5 post") || n.includes("last 10 post") || n.includes("last 20 post") || n.includes("last 50 post") || // "Пакет охвата" — views package on last N posts of a channel
+  n.includes("\u043F\u0430\u043A\u0435\u0442") && n.includes("\u043E\u0445\u0432\u0430\u0442") || n.includes("\u043F\u0430\u043A\u0435\u0442") && n.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440")) {
     return "CHANNEL_POSTS" /* CHANNEL_POSTS */;
   }
   if (n.includes("\u043E\u043F\u0440\u043E\u0441") || n.includes("\u0433\u043E\u043B\u043E\u0441") || n.includes("poll") || n.includes("vote")) {
@@ -134689,10 +134716,29 @@ ${res.error || "\u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u0
 
 // src/bot/scenes/referral.wizard.ts
 async function resolveUser3(tgId) {
-  return db.user.findFirst({
+  let user = await db.user.findFirst({
     where: { telegramId: String(tgId), tenantId: botTenantId3 },
     select: { id: true, referralCode: true, referralBalance: true, _count: { select: { referrals: true } } }
   });
+  if (!user) {
+    const emailStub = `tg_${tgId}@${botTenantId3}.bot`;
+    const created = await db.user.upsert({
+      where: { email_tenantId: { email: emailStub, tenantId: botTenantId3 } },
+      update: { telegramId: String(tgId) },
+      create: {
+        email: emailStub,
+        telegramId: String(tgId),
+        tenantId: botTenantId3,
+        isBotOnly: true
+      },
+      select: { id: true, referralCode: true, referralBalance: true }
+    });
+    user = {
+      ...created,
+      _count: { referrals: 0 }
+    };
+  }
+  return user;
 }
 var import_telegraf3, REFERRAL_WIZARD, botTenantId3, referralWizard;
 var init_referral_wizard = __esm({
@@ -134707,27 +134753,33 @@ var init_referral_wizard = __esm({
       REFERRAL_WIZARD,
       // ШАГ 1: Показать статистику и ссылку
       async (ctx) => {
-        if (!ctx.from) return ctx.scene.leave();
-        const tgId = ctx.from.id;
-        const user = await resolveUser3(tgId);
-        if (!user) {
-          await ctx.reply("\u274C \u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D. \u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 /start \u0434\u043B\u044F \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438.");
-          return ctx.scene.leave();
-        }
-        if (!user.referralCode) {
-          const newCode = Array.from(Array(8), () => Math.floor(Math.random() * 36).toString(36)).join("").toUpperCase();
-          await db.user.update({
-            where: { id: user.id },
-            data: { referralCode: newCode }
-          });
-          user.referralCode = newCode;
-        }
-        const host = botTenantId3 === "flux" || botTenantId3 === "lovable" ? process.env.FLUX_APP_URL || "https://smmflux.ru" : getBaseUrlSync();
-        const link = `${host}/?ref=${user.referralCode}`;
-        const earned = (user.referralBalance ?? 0) / 100;
-        const refsCount = user._count?.referrals ?? 0;
-        await ctx.reply(
-          `\u{1F465} <b>\u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044C\u043D\u0430\u044F \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u0430</b>
+        try {
+          if (!ctx.from) return ctx.scene.leave();
+          const tgId = ctx.from.id;
+          const user = await resolveUser3(tgId);
+          if (!user) {
+            await ctx.reply("\u274C \u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D. \u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 /start \u0434\u043B\u044F \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438.");
+            return ctx.scene.leave();
+          }
+          if (!user.referralCode) {
+            let newCode = "";
+            for (let attempt = 0; attempt < 5; attempt++) {
+              newCode = Array.from(Array(8), () => Math.floor(Math.random() * 36).toString(36)).join("").toUpperCase();
+              const existing = await db.user.findUnique({ where: { referralCode: newCode } });
+              if (!existing) break;
+            }
+            await db.user.update({
+              where: { id: user.id },
+              data: { referralCode: newCode }
+            });
+            user.referralCode = newCode;
+          }
+          const host = botTenantId3 === "flux" || botTenantId3 === "lovable" ? process.env.FLUX_APP_URL || "https://smmflux.ru" : getBaseUrlSync();
+          const link = `${host}/?ref=${user.referralCode}`;
+          const earned = (user.referralBalance ?? 0) / 100;
+          const refsCount = user._count?.referrals ?? 0;
+          await ctx.reply(
+            `\u{1F465} <b>\u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044C\u043D\u0430\u044F \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u0430</b>
 
 \u041F\u0440\u0438\u0433\u043B\u0430\u0448\u0430\u0439\u0442\u0435 \u0434\u0440\u0443\u0437\u0435\u0439 \u0438 \u043F\u043E\u043B\u0443\u0447\u0430\u0439\u0442\u0435 <b>15%</b> \u0441 \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u0438\u0445 \u0437\u0430\u043A\u0430\u0437\u0430 \u043F\u043E\u0436\u0438\u0437\u043D\u0435\u043D\u043D\u043E!
 
@@ -134739,27 +134791,35 @@ var init_referral_wizard = __esm({
 \u2022 \u0417\u0430\u0440\u0430\u0431\u043E\u0442\u0430\u043D\u043E: <b>${earned.toFixed(2)} \u20BD</b>
 
 <i>\u0414\u043B\u044F \u0432\u044B\u0432\u043E\u0434\u0430 \u0441\u0440\u0435\u0434\u0441\u0442\u0432 \u043D\u0430 \u043E\u0441\u043D\u043E\u0432\u043D\u043E\u0439 \u0431\u0430\u043B\u0430\u043D\u0441 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 \u0432\u0435\u0431-\u0438\u043D\u0442\u0435\u0440\u0444\u0435\u0439\u0441.</i>`,
-          {
-            parse_mode: "HTML",
-            ...import_telegraf3.Markup.inlineKeyboard([
-              [import_telegraf3.Markup.button.url("\u041F\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043B\u0438\u0447\u043D\u044B\u0439 \u043A\u0430\u0431\u0438\u043D\u0435\u0442", `${host}/dashboard/referrals`)],
-              [import_telegraf3.Markup.button.callback("\u274C \u0417\u0430\u043A\u0440\u044B\u0442\u044C", "close_ref")]
-            ])
-          }
-        );
-        return ctx.wizard.next();
+            {
+              parse_mode: "HTML",
+              ...import_telegraf3.Markup.inlineKeyboard([
+                [import_telegraf3.Markup.button.url("\u041F\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043B\u0438\u0447\u043D\u044B\u0439 \u043A\u0430\u0431\u0438\u043D\u0435\u0442", `${host}/dashboard/referrals`)],
+                [import_telegraf3.Markup.button.callback("\u274C \u0417\u0430\u043A\u0440\u044B\u0442\u044C", "close_ref")]
+              ])
+            }
+          );
+          return ctx.wizard.next();
+        } catch (err) {
+          console.error("[ReferralWizard] Error:", err);
+          await ctx.reply("\u274C \u041F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u0430 \u043E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0435 \u0440\u0435\u0444\u0435\u0440\u0430\u043B\u044C\u043D\u043E\u0439 \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u0438. \u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u043F\u043E\u0437\u0436\u0435.");
+          return ctx.scene.leave();
+        }
       },
-      async () => {
+      async (ctx) => {
         return;
       }
     );
-    referralWizard.use(async (ctx, next) => {
-      if (ctx.callbackQuery && "data" in ctx.callbackQuery && ctx.callbackQuery.data === "close_ref") {
-        await ctx.answerCbQuery();
-        await ctx.deleteMessage().catch(() => {
-        });
-        return ctx.scene.leave();
-      }
+    referralWizard.action("close_ref", async (ctx) => {
+      await ctx.answerCbQuery();
+      await ctx.deleteMessage().catch(() => {
+      });
+      return ctx.scene.leave();
+    });
+    referralWizard.command("cancel", async (ctx) => {
+      return ctx.scene.leave();
+    });
+    referralWizard.hears(["\u{1F6CD} \u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433", "\u{1F464} \u041F\u0440\u043E\u0444\u0438\u043B\u044C", "\u{1F198} \u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", "\u{1F4B0} \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C", "\u{1F465} \u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044B", "\u{1F4E6} \u041C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B", "/start", "/shop", "/bind"], async (ctx, next) => {
       await ctx.scene.leave();
       return next();
     });
@@ -137427,8 +137487,12 @@ var init_support_bot_service = __esm({
     SupportBotService = class {
       constructor() {
         this.UPLOAD_DIR_BASE = import_path.default.join(process.cwd(), "private", "uploads", "tickets");
-        if (!import_fs2.default.existsSync(this.UPLOAD_DIR_BASE)) {
-          import_fs2.default.mkdirSync(this.UPLOAD_DIR_BASE, { recursive: true });
+        try {
+          if (!import_fs2.default.existsSync(this.UPLOAD_DIR_BASE)) {
+            import_fs2.default.mkdirSync(this.UPLOAD_DIR_BASE, { recursive: true });
+          }
+        } catch (err) {
+          console.warn("[SupportBotService] Warning: Could not create upload directory on init:", err);
         }
       }
       /**
@@ -137752,7 +137816,7 @@ function escapeHtml3(text) {
 async function getDynamicKeyboard(tgId) {
   const isOwner = tgId ? await isOwnerOrAdmin(tgId) : false;
   let baseGrid = [
-    ["\u{1F6CD} \u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433", "\u{1F4E6} \u041C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B"],
+    ["\u{1F680} \u0417\u0430\u043A\u0430\u0437\u0430\u0442\u044C \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435", "\u{1F6CD} \u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433"],
     ["\u{1F4B0} \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C", "\u{1F464} \u041F\u0440\u043E\u0444\u0438\u043B\u044C"],
     ["\u{1F198} \u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", "\u{1F465} \u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044B"]
   ];
@@ -137800,11 +137864,19 @@ async function sendNetworkCatalogMenu(ctx, isEdit = false) {
       }
       return await ctx.reply(text2);
     }
-    const buttons = networks.map((n) => [import_telegraf5.Markup.button.callback(n.name, `cat_net_${n.id}`)]);
-    const text = "\u{1F6CD} <b>\u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433</b>\n\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0441\u043E\u0446\u0438\u0430\u043B\u044C\u043D\u0443\u044E \u0441\u0435\u0442\u044C:";
+    const rows = [];
+    for (let i = 0; i < networks.length; i += 2) {
+      const row = [import_telegraf5.Markup.button.callback(networks[i].name, `cat_net_${networks[i].id}`)];
+      if (i + 1 < networks.length) {
+        row.push(import_telegraf5.Markup.button.callback(networks[i + 1].name, `cat_net_${networks[i + 1].id}`));
+      }
+      rows.push(row);
+    }
+    rows.push([import_telegraf5.Markup.button.callback("\u{1F680} \u0411\u044B\u0441\u0442\u0440\u044B\u0439 \u0437\u0430\u043A\u0430\u0437 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435", "start_fast_order")]);
+    const text = "\u{1F6CD} <b>\u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433</b>\n\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0441\u043E\u0446\u0438\u0430\u043B\u044C\u043D\u0443\u044E \u0441\u0435\u0442\u044C (\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E \u0442\u043E\u043B\u044C\u043A\u043E \u0441 \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u043C\u0438 \u0443\u0441\u043B\u0443\u0433\u0430\u043C\u0438):";
     const extra = {
       parse_mode: "HTML",
-      ...import_telegraf5.Markup.inlineKeyboard(buttons)
+      ...import_telegraf5.Markup.inlineKeyboard(rows)
     };
     if (isEdit) {
       return await ctx.editMessageText(text, extra).catch(() => {
@@ -137819,6 +137891,18 @@ async function sendNetworkCatalogMenu(ctx, isEdit = false) {
     }
     return await ctx.reply("\u041F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u0430 \u043E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0435 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430.");
   }
+}
+async function sendFastOrderPrompt(ctx) {
+  await ctx.reply(
+    "\u{1F680} <b>\u0411\u044B\u0441\u0442\u0440\u044B\u0439 \u0437\u0430\u043A\u0430\u0437 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435</b>\n\n\u041E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0432 \u043E\u0442\u0432\u0435\u0442 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u0432\u0430\u0448 \u043E\u0431\u044A\u0435\u043A\u0442 \u043F\u0440\u043E\u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F \u043F\u0440\u044F\u043C\u043E \u0432 \u044D\u0442\u043E\u0442 \u0447\u0430\u0442:\n\u2022 <b>Telegram</b> (\u043A\u0430\u043D\u0430\u043B, \u0433\u0440\u0443\u043F\u043F\u0430, \u043F\u043E\u0441\u0442)\n\u2022 <b>\u0412\u041A\u043E\u043D\u0442\u0430\u043A\u0442\u0435</b> (\u0441\u0442\u0435\u043D\u0430, \u0433\u0440\u0443\u043F\u043F\u0430, \u0432\u0438\u0434\u0435\u043E, \u043A\u043B\u0438\u043F)\n\u2022 <b>YouTube</b> (\u0432\u0438\u0434\u0435\u043E, shorts, \u043A\u0430\u043D\u0430\u043B)\n\u2022 <b>Instagram</b>, <b>TikTok</b> \u0438 \u0434\u0440\u0443\u0433\u0438\u0435 \u0441\u043E\u0446\u0441\u0435\u0442\u0438\n\n<i>\u042F \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043E\u043F\u0440\u0435\u0434\u0435\u043B\u044E \u0441\u043E\u0446\u0441\u0435\u0442\u044C, \u0442\u0438\u043F \u043E\u0431\u044A\u0435\u043A\u0442\u0430 \u0438 \u043F\u043E\u043A\u0430\u0436\u0443 \u0442\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0438\u0435 \u0442\u0430\u0440\u0438\u0444\u044B \u0431\u0435\u0437 \u0440\u0438\u0441\u043A\u0430 \u043E\u0448\u0438\u0431\u043A\u0438!</i>",
+    {
+      parse_mode: "HTML",
+      ...import_telegraf5.Markup.inlineKeyboard([
+        [import_telegraf5.Markup.button.callback("\u{1F6CD} \u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0438\u0437 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430 \u0432\u0440\u0443\u0447\u043D\u0443\u044E", "shop")],
+        [import_telegraf5.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_fast_order")]
+      ])
+    }
+  );
 }
 async function sendUserProfile(ctx) {
   if (!ctx.from) return;
@@ -137958,15 +138042,43 @@ async function handleLinkInput(ctx, rawInput) {
     const canonicalLink = analysis.canonicalUrl || rawInput.trim();
     if (!ctx.session) ctx.session = {};
     ctx.session.activeLink = canonicalLink;
-    const buttons = categories.map((c) => [import_telegraf5.Markup.button.callback(c.name, `cat_ctg_${c.id}`)]);
+    const { isLinkServiceCompatible: isLinkServiceCompatible2, normalizeServiceTargetType: normalizeServiceTargetType2 } = await Promise.resolve().then(() => (init_link_service_compatibility(), link_service_compatibility_exports));
+    const { inferTargetTypeFromName: inferTargetTypeFromName2 } = await Promise.resolve().then(() => (init_target_type_mapper(), target_type_mapper_exports));
+    const detectedType = analysis.type || "generic_link";
+    const compatibleCategories = [];
+    for (const c of categories) {
+      const svcs = await BotCatalogService.getVisibleServices(c.id, botTenantId4);
+      const hasCompatibleService = svcs.some((s) => {
+        const rawTarget = s.targetType || inferTargetTypeFromName2(s.name);
+        const normalized = normalizeServiceTargetType2(rawTarget);
+        return isLinkServiceCompatible2(detectedType, normalized);
+      });
+      if (hasCompatibleService) {
+        compatibleCategories.push(c);
+      }
+    }
+    const displayedCategories = compatibleCategories.length > 0 ? compatibleCategories : categories;
+    const buttons = displayedCategories.map((c) => [
+      import_telegraf5.Markup.button.callback(c.name, `cat_ctg_${c.id}`)
+    ]);
     buttons.push([import_telegraf5.Markup.button.callback("\u2B05\uFE0F \u0412\u0441\u0435 \u0441\u043E\u0446\u0441\u0435\u0442\u0438", "cat_back_networks")]);
-    const typeDesc = analysis.type ? ` (${analysis.type})` : "";
+    const typeLabels = {
+      channel: "\u{1F4E2} \u041A\u0430\u043D\u0430\u043B / \u0421\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u043E",
+      post: "\u{1F4DD} \u041F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u044F / \u041F\u043E\u0441\u0442",
+      profile: "\u{1F464} \u041F\u0440\u043E\u0444\u0438\u043B\u044C / \u0410\u043A\u043A\u0430\u0443\u043D\u0442",
+      video: "\u{1F3AC} \u0412\u0438\u0434\u0435\u043E / \u041A\u043B\u0438\u043F / Shorts",
+      story: "\u26A1 \u0418\u0441\u0442\u043E\u0440\u0438\u044F / Story",
+      poll: "\u{1F4CA} \u041E\u043F\u0440\u043E\u0441 / \u0413\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435",
+      bot: "\u{1F916} Telegram-\u0431\u043E\u0442"
+    };
+    const objectTitle = typeLabels[analysis.type] || (analysis.type ? `(${analysis.type})` : "");
     await ctx.reply(
       `\u{1F3AF} <b>\u0421\u0441\u044B\u043B\u043A\u0430 \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u0440\u0430\u0441\u043F\u043E\u0437\u043D\u0430\u043D\u0430!</b>
-\u{1F310} \u0421\u043E\u0446\u0441\u0435\u0442\u044C: <b>${network.name}${typeDesc}</b>
-\u{1F517} \u0421\u0441\u044B\u043B\u043A\u0430: <code>${escapeHtml3(canonicalLink)}</code>
+\u{1F310} \u0421\u043E\u0446\u0441\u0435\u0442\u044C: <b>${network.name}</b>
+` + (objectTitle ? `\u{1F4CC} \u0422\u0438\u043F \u043E\u0431\u044A\u0435\u043A\u0442\u0430: <b>${objectTitle}</b>
+` : "") + `\u{1F517} \u0421\u0441\u044B\u043B\u043A\u0430: <code>${escapeHtml3(canonicalLink)}</code>
 
-\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u044E \u0434\u043B\u044F \u043F\u0440\u043E\u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F:`,
+<i>\u041F\u043E\u0434\u043E\u0431\u0440\u0430\u043D\u044B \u0442\u043E\u043B\u044C\u043A\u043E \u0441\u043E\u0432\u043C\u0435\u0441\u0442\u0438\u043C\u044B\u0435 \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0438 \u043F\u0440\u043E\u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F:</i>`,
       {
         parse_mode: "HTML",
         ...import_telegraf5.Markup.inlineKeyboard(buttons)
@@ -138276,10 +138388,11 @@ var init_index = __esm({
 
 \u{1F4B0} \u0412\u0430\u0448 \u0431\u0430\u043B\u0430\u043D\u0441: <b>{balance} \u20BD</b>
 
-\u{1F680} <b>\u0427\u0442\u043E \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u0431\u0443\u0434\u0435\u043C \u043F\u0440\u043E\u0434\u0432\u0438\u0433\u0430\u0442\u044C?</b>
-\u{1F517} <i>\u041E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u043F\u043E\u0441\u0442, \u043A\u0430\u043D\u0430\u043B \u0438\u043B\u0438 \u043F\u0440\u043E\u0444\u0438\u043B\u044C \u043F\u0440\u044F\u043C\u043E \u0432 \u044D\u0442\u043E\u0442 \u0447\u0430\u0442 \u2014 \u044F \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043E\u043F\u0440\u0435\u0434\u0435\u043B\u044E \u0441\u043E\u0446\u0441\u0435\u0442\u044C \u0438 \u043F\u043E\u0434\u0431\u0435\u0440\u0443 \u043B\u0443\u0447\u0448\u0438\u0435 \u0442\u0430\u0440\u0438\u0444\u044B.</i>
+\u26A1 <b>\u041A\u0430\u043A \u0441\u0434\u0435\u043B\u0430\u0442\u044C \u0437\u0430\u043A\u0430\u0437 \u0437\u0430 2 \u043F\u0440\u043E\u0441\u0442\u044B\u0445 \u0448\u0430\u0433\u0430:</b>
+1\uFE0F\u20E3 \u041D\u0430\u0436\u043C\u0438\u0442\u0435 <b>\xAB\u{1F680} \u0411\u044B\u0441\u0442\u0440\u044B\u0439 \u0437\u0430\u043A\u0430\u0437 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435\xBB</b> \u0438\u043B\u0438 \u043F\u0440\u043E\u0441\u0442\u043E <b>\u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u0432 \u044D\u0442\u043E\u0442 \u0447\u0430\u0442</b>.
+2\uFE0F\u20E3 \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0438\u0439 \u0442\u0430\u0440\u0438\u0444 \u0438 \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E.
 
-\u041B\u0438\u0431\u043E \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0440\u0430\u0437\u0434\u0435\u043B \u0432 \u043C\u0435\u043D\u044E \u043D\u0438\u0436\u0435:`;
+<i>\u041B\u0438\u0431\u043E \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043D\u0443\u0436\u043D\u044B\u0439 \u0440\u0430\u0437\u0434\u0435\u043B \u0432 \u043C\u0435\u043D\u044E \u043D\u0438\u0436\u0435:</i>`;
       try {
         const settings = await db.systemSettings.findFirst({ select: { telegramTemplates: true } });
         const templates = settings?.telegramTemplates;
@@ -138292,6 +138405,7 @@ var init_index = __esm({
       const keyboard = await getDynamicKeyboard(tgId);
       const isOwner = await isOwnerOrAdmin(tgId);
       const inlineRows = [
+        [import_telegraf5.Markup.button.callback("\u{1F680} \u0411\u044B\u0441\u0442\u0440\u044B\u0439 \u0437\u0430\u043A\u0430\u0437 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435", "start_fast_order")],
         [import_telegraf5.Markup.button.callback("\u{1F6CD} \u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433", "shop"), import_telegraf5.Markup.button.callback("\u{1F464} \u041B\u0438\u0447\u043D\u044B\u0439 \u043A\u0430\u0431\u0438\u043D\u0435\u0442", "profile")],
         [import_telegraf5.Markup.button.callback("\u{1F517} \u041F\u0440\u0438\u0432\u044F\u0437\u0430\u0442\u044C \u0430\u043A\u043A\u0430\u0443\u043D\u0442", "bind_account"), import_telegraf5.Markup.button.callback("\u{1F198} \u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", "support")]
       ];
@@ -138303,6 +138417,20 @@ var init_index = __esm({
         parse_mode: "HTML",
         ...keyboard,
         ...startInline
+      });
+    });
+    bot.action("start_fast_order", async (ctx) => {
+      await ctx.answerCbQuery().catch(() => {
+      });
+      return sendFastOrderPrompt(ctx);
+    });
+    bot.hears(["\u{1F680} \u0417\u0430\u043A\u0430\u0437\u0430\u0442\u044C \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435", "\u0417\u0430\u043A\u0430\u0437\u0430\u0442\u044C \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435", "\u0411\u044B\u0441\u0442\u0440\u044B\u0439 \u0437\u0430\u043A\u0430\u0437", "\u0412\u0432\u0435\u0441\u0442\u0438 \u0441\u0441\u044B\u043B\u043A\u0443"], async (ctx) => {
+      return sendFastOrderPrompt(ctx);
+    });
+    bot.action("cancel_fast_order", async (ctx) => {
+      await ctx.answerCbQuery("\u041E\u0442\u043C\u0435\u043D\u0435\u043D\u043E").catch(() => {
+      });
+      await ctx.editMessageText("\u274C \u041E\u0436\u0438\u0434\u0430\u043D\u0438\u0435 \u0441\u0441\u044B\u043B\u043A\u0438 \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u043E. \u0412\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u0432\u043E\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C\u0441\u044F \u043C\u0435\u043D\u044E \u043D\u0438\u0436\u0435:").catch(() => {
       });
     });
     bot.command("shop", async (ctx) => {

@@ -13,13 +13,14 @@ import { useMobileWizard } from "./wizard-steps/useMobileWizard";
 
 interface MobileWizardProps {
   engine: OrderEngine;
-  handleCheckout: () => void;
+  handleCheckout: (gateway?: string, email?: string) => void;
   isSubmitting: boolean;
   emailInputRef?: React.RefObject<HTMLInputElement | null>;
   emailHasError?: boolean;
   onOpenGuide?: () => void;
   onOpenDocument?: (slug: string) => void;
   onOpenCatalog?: () => void;
+  checkoutError?: string | null;
 }
 
 export function MobileWizard({ 
@@ -30,7 +31,8 @@ export function MobileWizard({
   emailHasError,
   onOpenGuide,
   onOpenDocument,
-  onOpenCatalog
+  onOpenCatalog,
+  checkoutError
 }: MobileWizardProps) {
 
   const wizard = useMobileWizard(engine);
@@ -98,6 +100,7 @@ export function MobileWizard({
         handleCheckout={handleCheckout}
         isSubmitting={isSubmitting}
         onOpenDocument={onOpenDocument}
+        checkoutError={checkoutError}
       />
 
       {/* FZ-152 compliance marker: согласие на обработку персональных данных /legal/privacy */}

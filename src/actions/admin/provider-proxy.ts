@@ -568,7 +568,13 @@ export async function importSubscriptionAction(raw: Record<string, unknown>) {
         trafficTotalBytes: subInfo ? subInfo.totalBytes : BigInt(0),
         expiresAt: subInfo?.expiresAt || null,
         lastSyncAt: new Date(),
-        tags: JSON.stringify(['subscription', domainPart, protocol]),
+        geoCountry: /RU|Russia|Россия|🇷🇺|MSK|SPB/i.test(`${finalLabel} ${subscriptionUrl}`) ? 'RU' : null,
+        tags: JSON.stringify([
+          'subscription', 
+          domainPart, 
+          protocol,
+          ...(/RU|Russia|Россия|🇷🇺|MSK|SPB/i.test(`${finalLabel} ${subscriptionUrl}`) ? ['RU', 'SOVEREIGN'] : [])
+        ]),
         isActive: true,
       },
     });
@@ -673,9 +679,11 @@ export async function importRawProxyListAction(raw: Record<string, unknown>) {
           continue;
         }
 
-        const label = `${protocol.toUpperCase()} ${host}:${port}`;
+        const isRu = /RU|Russia|Россия|🇷🇺|MSK|SPB|Moscow/i.test(`${line} ${tag || ''}`);
+        const label = `${protocol.toUpperCase()} ${host}:${port}${isRu ? ' [RU 🇷🇺]' : ''}`;
         const tags = ['imported', protocol];
         if (tag && tag.trim()) tags.push(tag.trim().toLowerCase());
+        if (isRu) tags.push('RU', 'SOVEREIGN');
 
         const existing = await db.providerProxy.findFirst({
           where: { host, port, protocol },
@@ -689,6 +697,7 @@ export async function importRawProxyListAction(raw: Record<string, unknown>) {
             data: {
               label,
               category,
+              geoCountry: isRu ? 'RU' : existing.geoCountry,
               username: username || existing.username,
               passwordEncrypted: passwordEncrypted || existing.passwordEncrypted,
               tags: JSON.stringify(tags),
@@ -701,6 +710,7 @@ export async function importRawProxyListAction(raw: Record<string, unknown>) {
               label,
               protocol,
               category,
+              geoCountry: isRu ? 'RU' : null,
               host,
               port,
               username,

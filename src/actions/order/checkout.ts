@@ -114,11 +114,9 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
     const { serviceId, link, quantity, email, promoCodeStr, runs, interval, customData, gateway, idempotencyKey, mediaGroupUrl, isLinkOverridden, isSmartDrip, smartDripDays, abVariant, isRequirementsConfirmed, tenantId: inputTenantId } = data;
     const normalizedPromo = promoCodeStr ? promoCodeStr.trim().toUpperCase() : undefined;
     
-    if (gateway === 'balance' && (!idempotencyKey || idempotencyKey.trim().length < 10)) {
-      throw new Error("Параметр idempotencyKey обязателен для оплаты с баланса");
-    }
-    
-    const effectiveIdempotencyKey = idempotencyKey || randomUUID();
+    const effectiveIdempotencyKey = (idempotencyKey && idempotencyKey.trim().length >= 10)
+      ? idempotencyKey.trim()
+      : randomUUID();
     const hasMediaGroup = !!(mediaGroupUrl && mediaGroupUrl.trim().length > 5);
 
     // Feature Flags Validation

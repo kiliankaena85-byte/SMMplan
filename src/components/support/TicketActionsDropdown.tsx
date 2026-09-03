@@ -1,6 +1,6 @@
-'use client';
-
 import { useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { CheckCircle, Clock, RefreshCw, ChevronDown } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuGroup } from '@/components/ui/dropdown-menu';
 import { changeTicketStatus } from '@/actions/support/ticket';
@@ -12,6 +12,7 @@ export default function TicketActionsDropdown({
   ticketId: string; 
   currentStatus: string;
 }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const handleStatusChange = (status: 'OPEN' | 'PENDING' | 'CLOSED') => {
@@ -20,7 +21,16 @@ export default function TicketActionsDropdown({
       const fd = new FormData();
       fd.set('ticketId', ticketId);
       fd.set('status', status);
-      await changeTicketStatus(fd);
+      const res = await changeTicketStatus(fd);
+      if (res && typeof res === 'object' && 'success' in res && !res.success) {
+        toast.error((res as { error?: string }).error || 'Ошибка смены статуса');
+      } else {
+        toast.success(
+          status === 'CLOSED' ? 'Тикет успешно закрыт' :
+          status === 'PENDING' ? 'Тикет переведен в ожидание' : 'Тикет взят в работу'
+        );
+        router.refresh();
+      }
     });
   };
 

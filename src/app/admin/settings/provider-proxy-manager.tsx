@@ -11,8 +11,9 @@ import {
   Plus, Trash2, Edit3, Save, Globe, Zap, CheckCircle,
   Loader2, AlertTriangle, Link2,
   ChevronDown, ChevronUp, RefreshCw, Search,
-  Radio, Database, ShieldCheck, Sparkles, Download, FileText, Check, Layers
+  Radio, Database, ShieldCheck, Sparkles, Download, FileText, Check, Layers, Route
 } from 'lucide-react';
+import { NetworkRoutingTab } from './network-routing-tab';
 import {
   listProviderProxiesAction,
   createProviderProxyAction,
@@ -95,6 +96,7 @@ export function ProviderProxyManager({ providers = [] }: Props) {
   const [tagInput, setTagInput] = useState('');
   const [testUrl, setTestUrl] = useState('https://httpbin.org/ip');
   const [proxyToDelete, setProxyToDelete] = useState<{ id: string; label: string } | null>(null);
+  const [activeSubTab, setActiveSubTab] = useState<'routing' | 'proxies'>('routing');
 
   // 1-Click Subscription Import Modal State
   const [showImportSubscriptionModal, setShowImportSubscriptionModal] = useState(false);
@@ -426,6 +428,34 @@ export function ProviderProxyManager({ providers = [] }: Props) {
         </DialogContent>
       </Dialog>
 
+      {/* ── TOP LEVEL SUB-TABS ── */}
+      <div className="flex items-center gap-2 border-b border-border pb-3">
+        <Button
+          type="button"
+          variant={activeSubTab === 'routing' ? 'primary' : 'ghost'}
+          size="sm"
+          onClick={() => setActiveSubTab('routing')}
+          className="h-8 text-xs font-semibold gap-2 cursor-pointer"
+        >
+          <Route className="w-3.5 h-3.5 text-primary" />
+          Маршрутизация трафика (Clash Rules)
+        </Button>
+        <Button
+          type="button"
+          variant={activeSubTab === 'proxies' ? 'primary' : 'ghost'}
+          size="sm"
+          onClick={() => setActiveSubTab('proxies')}
+          className="h-8 text-xs font-semibold gap-2 cursor-pointer"
+        >
+          <Globe className="w-3.5 h-3.5 text-muted-foreground" />
+          Узлы & Прокси-серверы ({proxies.length})
+        </Button>
+      </div>
+
+      {activeSubTab === 'routing' ? (
+        <NetworkRoutingTab proxies={proxies} />
+      ) : (
+        <>
       {/* ── HEALTH SUMMARY ── */}
       {health && (
         <Card className="rounded-3xl border border-border/80 shadow-sm bg-card p-6">
@@ -1206,6 +1236,8 @@ export function ProviderProxyManager({ providers = [] }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </>
+      )}
     </div>
   );
 }

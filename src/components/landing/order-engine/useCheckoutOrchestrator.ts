@@ -46,6 +46,13 @@ export function useCheckoutOrchestrator({
   const [termsHasError, setTermsHasError] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [pendingCheckoutParams, setPendingCheckoutParams] = useState<OrchestratorCheckoutParams | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (checkoutError) {
+      setCheckoutError(null);
+    }
+  }, [engine.url, engine.quantity, engine.email, engine.agreedToTerms]);
 
   useEffect(() => {
     if (engine.quantity > 0) {
@@ -76,12 +83,18 @@ export function useCheckoutOrchestrator({
     setShowPaymentModal(true);
   };
 
-  const handleCheckout = async (directGateway?: string, overrideEmail?: string) => {
+  const handleCheckout = async (directGateway?: string | unknown, overrideEmail?: string) => {
+    // Guard against React SyntheticEvent or non-string arguments
+    const resolvedGateway = typeof directGateway === 'string' && directGateway.trim().length > 0 && directGateway !== '[object Object]'
+      ? directGateway.trim()
+      : undefined;
+
     const { selectedService, url, quantity, customData, agreedToTerms, email: engineEmail, isMassMode, massCalculation, promoCode } = engine;
     const email = overrideEmail?.trim() || engineEmail?.trim();
 
     if (isMassMode) {
       if (!massCalculation || massCalculation.validCount === 0) {
+        setCheckoutError("Нет валидных заказов для оформления. Пожалуйста, исправьте ошибки.");
         toast.error("Нет валидных заказов для оформления. Пожалуйста, исправьте ошибки.", { position: 'top-center' });
         return;
       }
@@ -90,6 +103,7 @@ export function useCheckoutOrchestrator({
     }
 
     if (!selectedService) {
+      setCheckoutError("Пожалуйста, выберите услугу.");
       toast.error("Пожалуйста, выберите услугу.", { position: 'top-center' });
       return;
     }
@@ -315,6 +329,8 @@ export function useCheckoutOrchestrator({
     }
     if (!agreedToTerms) {
       setTermsHasError(true);
+      engine.setTermsHasError(true);
+      setCheckoutError("Пожалуйста, примите условия Оферты и Политики конфиденциальности");
       // Per Article 438 Civil Code RF: acceptance of the offer must be an explicit act by the user.
       // Per 152-FZ: processing of personal data (email) requires explicit consent.
       toast.error("Пожалуйста, примите условия Оферты и Политики конфиденциальности.", {
@@ -324,8 +340,12 @@ export function useCheckoutOrchestrator({
       // Scroll to and highlight the legal checkbox
       setTimeout(() => {
         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-        const checkboxId = isMobile ? "standard-legal-checkbox" : "desktop-legal-checkbox";
-        const checkbox = document.getElementById(checkboxId) || document.getElementById("standard-legal-checkbox");
+        const preferredId = isMobile ? "standard-legal-checkbox" : "desktop-legal-checkbox";
+        const checkbox = 
+          document.getElementById(preferredId) || 
+          document.getElementById("standard-legal-checkbox") || 
+          document.getElementById("wizard-legal-checkbox") || 
+          document.getElementById("desktop-legal-checkbox");
         if (checkbox) {
           checkbox.scrollIntoView({ behavior: "smooth", block: "center" });
           checkbox.focus();
@@ -336,17 +356,20 @@ export function useCheckoutOrchestrator({
 
     if (!email || !email.includes('@')) {
       setEmailHasError(true);
+      setCheckoutError("Пожалуйста, укажите email для получения чека");
       toast.error("Пожалуйста, укажите корректную электронную почту (email) для получения чека.", { position: 'top-center' });
       if (typeof window !== 'undefined') {
-        if (window.innerWidth >= 768) {
-          desktopEmailInputRef?.current?.focus();
-        } else {
-          mobileEmailInputRef?.current?.focus();
+        const emailInput = document.getElementById("email-input") || (window.innerWidth >= 768 ? desktopEmailInputRef?.current : mobileEmailInputRef?.current);
+        if (emailInput) {
+          emailInput.scrollIntoView({ behavior: "smooth", block: "center" });
+          emailInput.focus();
         }
       }
       return;
     }
     
+    setCheckoutError(null);
+
     const checkoutParams = {
       serviceId: selectedService.id,
       link: finalUrl,
@@ -363,13 +386,13 @@ export function useCheckoutOrchestrator({
       abVariant: abVariant || undefined
     };
 
-    if (directGateway) {
+    if (resolvedGateway) {
       setIsSubmitting(true);
       try {
         const { checkoutAction } = await import('@/actions/order/checkout');
         const res = await checkoutAction({
           ...checkoutParams,
-          gateway: directGateway
+          gateway: resolvedGateway
         });
         if (res.success) {
           if (res.data?.orderId && res.data?.guestOrderToken) {
@@ -594,6 +617,8 @@ export function useCheckoutOrchestrator({
     termsHasError,
     showPaymentModal,
     setShowPaymentModal,
-    confirmAndPay
+    confirmAndPay,
+    checkoutError,
+    setCheckoutError
   };
 }

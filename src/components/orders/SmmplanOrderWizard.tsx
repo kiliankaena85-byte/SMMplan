@@ -423,6 +423,7 @@ function SmmplanOrderWizardInner({
         customData: selectedService!.customDataType !== 'NONE' ? customData : undefined,
         isRequirementsConfirmed,
         gateway,
+        idempotencyKey: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `bal_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`,
       });
 
       if (res.success && res.data) {

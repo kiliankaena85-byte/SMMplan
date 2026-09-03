@@ -652,7 +652,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
                 animate={{ opacity: 1 }} 
                 transition={{ delay: 0.3, duration: 0.5 }}
               >
-                <form action={formAction}>
+                <form action={formAction} noValidate>
                   {/* 1. Количество */}
                 <div id="field-quantity" className="mb-3">
                   <label className="block text-xs font-bold text-foreground/80 uppercase tracking-wider mb-1 ml-1">Количество</label>
@@ -816,7 +816,8 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
                   <input 
                     ref={linkRef}
                     name="link"
-                    type="url" 
+                    type="text" 
+                    inputMode="url"
                     placeholder="https://..."
                     value={link}
                     onChange={(e) => setLink(e.target.value)}

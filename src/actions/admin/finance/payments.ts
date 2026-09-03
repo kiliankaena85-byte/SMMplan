@@ -28,6 +28,10 @@ const paymentsParamsSchema = z.object({
   period:   z.enum(['today', 'week', 'month', 'all']).default('month'),
   gateway:  z.string().optional(),
   search:   z.string().max(255).optional(),
+  minAmount: z.coerce.number().min(0).optional(),
+  maxAmount: z.coerce.number().min(0).optional(),
+  dateFrom: z.string().optional(),
+  dateTo:   z.string().optional(),
   cursor:   z.string().optional(),
   pageSize: z.number().int().min(1).max(200).default(50),
   tenantId: z.string().optional(),
@@ -85,10 +89,42 @@ export async function getPaymentsAction(params: Partial<PaymentsParams>): Promis
       const searchTrim = p.search?.trim();
       const activeTenantId = resolveAdminTenantContext(admin, p.tenantId);
 
+      // Date filtering
+      let createdAtFilter: { gte?: Date; lte?: Date } | undefined = undefined;
+      if (p.dateFrom) {
+        const dFrom = new Date(p.dateFrom);
+        if (!isNaN(dFrom.getTime())) {
+          dFrom.setHours(0, 0, 0, 0);
+          createdAtFilter = { ...(createdAtFilter || {}), gte: dFrom };
+        }
+      } else if (periodStart) {
+        createdAtFilter = { ...(createdAtFilter || {}), gte: periodStart };
+      }
+
+      if (p.dateTo) {
+        const dTo = new Date(p.dateTo);
+        if (!isNaN(dTo.getTime())) {
+          dTo.setHours(23, 59, 59, 999);
+          createdAtFilter = { ...(createdAtFilter || {}), lte: dTo };
+        }
+      }
+
+      // Amount filtering (in cents)
+      const minCents = p.minAmount !== undefined && !isNaN(p.minAmount) ? Math.round(p.minAmount * 100) : undefined;
+      const maxCents = p.maxAmount !== undefined && !isNaN(p.maxAmount) ? Math.round(p.maxAmount * 100) : undefined;
+      let amountFilter: { gte?: number; lte?: number } | undefined = undefined;
+      if (minCents !== undefined) {
+        amountFilter = { ...(amountFilter || {}), gte: minCents };
+      }
+      if (maxCents !== undefined) {
+        amountFilter = { ...(amountFilter || {}), lte: maxCents };
+      }
+
       const where = {
         ...(p.status !== 'ALL' ? { status: p.status } : {}),
         ...(p.gateway ? { gateway: p.gateway } : {}),
-        ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
+        ...(createdAtFilter ? { createdAt: createdAtFilter } : {}),
+        ...(amountFilter ? { amount: amountFilter } : {}),
         ...(activeTenantId && activeTenantId !== 'all' ? { tenantId: activeTenantId } : {}),
         ...(searchTrim ? {
           OR: [

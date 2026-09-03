@@ -173,8 +173,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
               </div>
             </header>
 
-            <main id="main-content" tabIndex={-1} className="w-full flex-1 flex flex-col relative transition-all duration-200 bg-card md:rounded-xl md:border md:border-border/60 md:shadow-sm outline-none">
-              <div className="w-full p-3 md:p-4.5 flex flex-col">
+            <main id="main-content" tabIndex={-1} className="w-full flex-1 min-h-fit flex flex-col relative transition-all duration-200 bg-card md:rounded-xl md:border md:border-border/60 md:shadow-sm outline-none has-[.tickets-workspace]:h-full has-[.tickets-workspace]:overflow-hidden">
+              <div className="w-full flex-1 min-h-fit flex flex-col relative p-3 md:p-4.5 has-[.tickets-workspace]:p-0 has-[.tickets-workspace]:h-full">
                 {children}
               </div>
             </main>

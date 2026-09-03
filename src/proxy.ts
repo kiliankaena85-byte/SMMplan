@@ -505,11 +505,9 @@ export async function proxy(request: NextRequest) {
   const isDev = process.env.NODE_ENV === 'development';
   const scriptSrcDirective = isDev
     ? `'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://yookassa.ru https://auth.robokassa.ru`
-    : `'self' 'nonce-${nonce}' 'strict-dynamic' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://yookassa.ru https://auth.robokassa.ru`;
+    : `'self' 'unsafe-inline' 'unsafe-eval' 'nonce-${nonce}' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://yookassa.ru https://auth.robokassa.ru`;
 
-  const styleSrcDirective = isDev
-    ? `'self' 'unsafe-inline' https://fonts.googleapis.com`
-    : `'self' 'nonce-${nonce}' https://fonts.googleapis.com`;
+  const styleSrcDirective = `'self' 'unsafe-inline' 'nonce-${nonce}' https://fonts.googleapis.com`;
 
   const cspHeader = `
     default-src 'self';

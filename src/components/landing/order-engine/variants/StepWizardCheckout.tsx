@@ -81,7 +81,7 @@ export function StepWizardCheckout({
   return (
     <AnimatePresence>
       {selectedService && (
-        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-5 overflow-hidden">
+        <div className="hidden md:flex fixed inset-0 z-[200] items-end sm:items-center justify-center p-0 sm:p-5 overflow-hidden">
           {/* Backdrop Blur */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -334,7 +334,11 @@ export function StepWizardCheckout({
                     <LegalCheckbox
                       id="wizard-legal-checkbox"
                       checked={engine?.agreedToTerms ?? false}
-                      onChange={(val) => engine?.setAgreedToTerms(val)}
+                      onChange={(val) => {
+                        engine?.setAgreedToTerms(val);
+                        if (val && engine?.setTermsHasError) engine.setTermsHasError(false);
+                      }}
+                      hasError={termsHasError || engine?.termsHasError}
                       className="w-full text-[10px] font-bold text-muted-foreground justify-start"
                       onOpenDocument={onOpenDocument}
                     />

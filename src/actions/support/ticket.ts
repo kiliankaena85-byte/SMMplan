@@ -314,6 +314,7 @@ export async function changeTicketStatus(formData: FormData) {
 
     revalidatePath(`/admin/tickets/${ticketId}`);
     revalidatePath(`/admin/tickets`);
+    return { success: true as const };
   });
 }
 

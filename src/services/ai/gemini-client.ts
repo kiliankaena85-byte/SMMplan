@@ -65,7 +65,20 @@ export class GeminiClient {
       .filter((p) => p.startsWith('http://') || p.startsWith('https://') || p.startsWith('socks5://'));
 
     if (proxyUrls.length === 0) {
-      // Direct connection by default (zero latency timeout penalty)
+      try {
+        const { UniversalNetworkRouter } = await import('@/lib/network/network-router');
+        const resolution = await UniversalNetworkRouter.resolveRoute('https://generativelanguage.googleapis.com', {
+          service: 'AI_GEMINI',
+        });
+        if (resolution.proxyConfig) {
+          const { createProxyDispatcher } = await import('@/lib/http/proxy-fetch');
+          const disp = await createProxyDispatcher(resolution.proxyConfig);
+          return [disp as unknown as ProxyAgent];
+        }
+      } catch (err) {
+        console.warn('[GeminiClient] Could not resolve proxy from NetworkRouter:', err);
+      }
+      // Direct connection fallback
       return [undefined];
     }
 

@@ -28,15 +28,23 @@ export class ProxyPoolService {
     try {
       if (!db || !db.providerProxy) return null;
 
+      const notExpired = {
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: new Date() } },
+        ],
+      };
+
       // 1. Check if provider has dedicated proxy assigned
       if (providerId) {
         const dedicated = await db.providerProxy.findFirst({
           where: {
             providers: {
-              some: { id: providerId }
+              some: { id: providerId },
             },
             isActive: true,
-          }
+            ...notExpired,
+          },
         });
         if (dedicated) {
           const isQuarantined = await this.isProxyQuarantined(dedicated.id);
@@ -51,6 +59,7 @@ export class ProxyPoolService {
         where: {
           isActive: true,
           category,
+          ...notExpired,
         },
         orderBy: {
           lastTestLatencyMs: 'asc',
@@ -63,6 +72,7 @@ export class ProxyPoolService {
         pool = await db.providerProxy.findMany({
           where: {
             isActive: true,
+            ...notExpired,
           },
           orderBy: {
             updatedAt: 'desc',
@@ -95,6 +105,55 @@ export class ProxyPoolService {
       return healthyList[randomIndex];
     } catch (err) {
       console.error('[ProxyPoolService] Error selecting healthy proxy:', err);
+      return null;
+    }
+  }
+
+  /**
+   * Fetch active, healthy Russian proxy (RU_SOVEREIGN_POOL)
+   * used as a secure domestic bridge when platform is hosted overseas.
+   */
+  public static async getHealthyRuProxy(): Promise<ProxyConfig | null> {
+    try {
+      if (!db || !db.providerProxy) return null;
+
+      const ruPool = await db.providerProxy.findMany({
+        where: {
+          isActive: true,
+          OR: [
+            { expiresAt: null },
+            { expiresAt: { gt: new Date() } },
+          ],
+          AND: [
+            {
+              OR: [
+                { geoCountry: 'RU' },
+                { tags: { hasSome: ['RU', 'Russia', 'Россия', 'SOVEREIGN'] } },
+                { label: { contains: 'Россия', mode: 'insensitive' } },
+                { label: { contains: 'RU', mode: 'insensitive' } },
+              ],
+            },
+          ],
+        },
+        orderBy: {
+          lastTestLatencyMs: 'asc',
+        },
+        take: 10,
+      });
+
+      if (!ruPool || ruPool.length === 0) return null;
+
+      for (const p of ruPool) {
+        const isQuarantined = await this.isProxyQuarantined(p.id);
+        if (!isQuarantined) {
+          const cfg = this.hydrateProxyConfig(p);
+          if (cfg) return cfg;
+        }
+      }
+
+      return this.hydrateProxyConfig(ruPool[0]);
+    } catch (err) {
+      console.error('[ProxyPoolService] Error selecting healthy RU proxy:', err);
       return null;
     }
   }

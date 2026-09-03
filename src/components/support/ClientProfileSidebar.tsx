@@ -97,7 +97,7 @@ export default function ClientProfileSidebar({
   }
 
   return (
-    <div className="w-[340px] shrink-0 h-full bg-card border border-border rounded-2xl flex flex-col relative animate-in slide-in-from-right-8 duration-300 shadow-sm overflow-hidden">
+    <div className="w-full h-full bg-card border-l border-border flex flex-col relative animate-in slide-in-from-right-8 duration-300 shadow-sm overflow-hidden min-w-0">
       {/* Profile header */}
       <div className="p-4 border-b border-border/60 bg-muted/10 relative flex flex-col items-center text-center">
         {/* Absolute close button neatly aligned */}
@@ -258,29 +258,29 @@ export default function ClientProfileSidebar({
                   {badgeText}
                 </span>
               </div>
-              <div className="space-y-1 text-[11px]">
+              <div className="space-y-1 text-xs">
                 <div className="flex justify-between leading-tight">
-                  <span className="opacity-80">Потрачено:</span>
-                  <span className="font-bold font-mono">{(spentCents / 100).toFixed(0)} ₽ / {(limitCents / 100).toFixed(0)} ₽</span>
+                  <span className="text-muted-foreground font-medium">Потрачено:</span>
+                  <span className="font-bold font-mono text-foreground">{(spentCents / 100).toFixed(0)} ₽ / {(limitCents / 100).toFixed(0)} ₽</span>
                 </div>
-                <div className="flex justify-between leading-tight border-t border-current/10 pt-1 font-bold">
+                <div className="flex justify-between leading-tight border-t border-border/50 pt-1 font-bold text-foreground">
                   <span>Доступно:</span>
-                  <span className="font-mono">{(leftCents / 100).toFixed(0)} ₽</span>
+                  <span className="font-mono text-success-text">{(leftCents / 100).toFixed(0)} ₽</span>
                 </div>
               </div>
             </div>
           );
         })()}
 
-        {/* High-Contrast Signature Dark Brand Profile Button */}
+        {/* Brand Profile Button */}
         <Link
           href={`/admin/clients/${user.id}`}
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Открыть профиль клиента"
-          className="mt-3 w-full min-h-[42px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white border border-slate-950/20 dark:border-white/20 shadow-md hover:shadow-lg active:scale-98 transition-all duration-200 cursor-pointer select-none tracking-wide"
+          className="mt-3 w-full min-h-[42px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground border border-primary/20 shadow-xs hover:shadow active:scale-98 transition-all duration-200 cursor-pointer select-none tracking-wide"
         >
-          <User className="w-4 h-4 text-sky-400 dark:text-sky-600 shrink-0" /> 
+          <User className="w-4 h-4 shrink-0" /> 
           <span>В профиль клиента →</span>
         </Link>
       </div>

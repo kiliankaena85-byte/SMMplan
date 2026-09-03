@@ -328,6 +328,22 @@ export async function ensurePendingCheckCron() {
   );
 }
 
+/**
+ * Automatically syncs active proxy subscription limits & metadata every 2 hours.
+ */
+export async function ensureProxySubscriptionSyncCron() {
+  await cleanupQueue.add(
+    'sync-proxy-subscriptions',
+    { timestamp: Date.now() },
+    {
+      repeat: {
+        pattern: '0 */2 * * *' // Every 2 hours
+      },
+      jobId: 'sync-proxy-subscriptions-singleton'
+    }
+  );
+}
+
 export async function ensurePaymentSyncCron() {
   await paymentSyncQueue.add(
     'payment-sync-tick',

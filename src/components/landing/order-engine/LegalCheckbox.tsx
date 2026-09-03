@@ -12,6 +12,7 @@ interface LegalCheckboxProps {
   variant?: "all" | "terms" | "privacy";
   className?: string;
   labelClassName?: string;
+  hasError?: boolean;
   onOpenDocument?: (slug: string) => void;
 }
 
@@ -22,36 +23,41 @@ export function LegalCheckbox({
   variant = "all",
   className = "",
   labelClassName = "",
+  hasError = false,
   onOpenDocument,
 }: LegalCheckboxProps) {
   return (
-    <label
-      className={`flex items-start gap-2.5 cursor-pointer py-1.5 min-h-[44px] select-none group ${className}`}
-    >
-      {/* Native hidden input overlayed on custom styled animated checkbox */}
-      <div className="relative flex items-center justify-center w-5 h-5 shrink-0 mt-0.5">
-        <input
-          id={id}
-          type="checkbox"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 focus:outline-none"
-        />
-        <motion.div
-          animate={{
-            scale: checked ? 1.05 : 1,
-            borderColor: checked ? "var(--color-primary)" : "var(--color-border)",
-            backgroundColor: checked ? "var(--color-primary)" : "rgba(3, 105, 161, 0)",
-          }}
-          transition={{ type: "spring", stiffness: 500, damping: 20 }}
-          className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shadow-sm group-hover:border-primary/70`}
-          style={{
-            borderColor: checked ? "var(--color-primary)" : "var(--color-border)",
-          }}
-        >
-          <AnimatePresence initial={false}>
-            {checked && (
-              <motion.svg
+    <div className="space-y-1 w-full">
+      <label
+        className={`flex items-start gap-2.5 cursor-pointer py-1.5 min-h-[44px] select-none group ${hasError && !checked ? 'p-1 rounded-xl bg-danger/5 border border-danger/20 transition-all' : ''} ${className}`}
+      >
+        {/* Native hidden input overlayed on custom styled animated checkbox */}
+        <div className="relative flex items-center justify-center w-5 h-5 shrink-0 mt-0.5">
+          <input
+            id={id}
+            type="checkbox"
+            checked={checked}
+            onChange={(e) => onChange(e.target.checked)}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 focus:outline-none"
+          />
+          <motion.div
+            animate={{
+              scale: checked ? 1.05 : 1,
+              borderColor: hasError && !checked ? "var(--color-danger)" : checked ? "var(--color-primary)" : "var(--color-border)",
+              backgroundColor: checked ? "var(--color-primary)" : "transparent",
+            }}
+            transition={{ type: "spring", stiffness: 500, damping: 20 }}
+            className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shadow-sm ${
+              hasError && !checked 
+                ? "!border-danger ring-2 ring-danger/40 animate-shake" 
+                : checked
+                  ? "border-primary bg-primary"
+                  : "border-border group-hover:border-primary/70"
+            }`}
+          >
+            <AnimatePresence initial={false}>
+              {checked && (
+                <motion.svg
                 width="12"
                 height="10"
                 viewBox="0 0 12 10"
@@ -152,5 +158,11 @@ export function LegalCheckbox({
         )}
       </span>
     </label>
+    {hasError && !checked && (
+      <p className="text-[11px] font-bold text-danger pl-8 animate-in fade-in duration-200">
+        Обязательно для оформления заказа (требование 152-ФЗ)
+      </p>
+    )}
+  </div>
   );
 }

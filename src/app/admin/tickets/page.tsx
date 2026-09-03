@@ -93,8 +93,8 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
   const templates = Array.isArray(templatesResult) ? templatesResult : [];
 
   return (
-    <div className="absolute inset-0 flex flex-col overflow-hidden bg-background">
-      <div className="flex-1 overflow-hidden relative">
+    <div className="w-full h-full flex flex-col overflow-hidden bg-background min-h-0 relative">
+      <div className="flex-1 overflow-hidden relative h-full min-h-0">
         <UnifiedTicketsWorkspace 
           tickets={ticketsResult.items}
           totalPages={ticketsResult.totalPages}

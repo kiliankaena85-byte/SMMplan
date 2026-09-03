@@ -41898,6 +41898,7 @@ __export2(queue_manager_exports, {
   ensureAiEconomicOptimizerCron: () => ensureAiEconomicOptimizerCron,
   ensureAiObserverCron: () => ensureAiObserverCron,
   ensureArticlePublishCron: () => ensureArticlePublishCron,
+  ensureCBRSyncCron: () => ensureCBRSyncCron,
   ensureCatalogSyncCron: () => ensureCatalogSyncCron,
   ensureCleanupCron: () => ensureCleanupCron,
   ensureDripfeedCron: () => ensureDripfeedCron,
@@ -41972,6 +41973,19 @@ async function ensureCatalogSyncCron() {
         // 4:00 AM daily
       },
       jobId: "catalog-sync-singleton"
+    }
+  );
+}
+async function ensureCBRSyncCron() {
+  await catalogQueue.add(
+    "cbr-rate-sync",
+    { type: "SYNC_CBR_RATE", timestamp: Date.now() },
+    {
+      repeat: {
+        pattern: "0 */6 * * *"
+        // Every 6 hours: 00:00, 06:00, 12:00, 18:00
+      },
+      jobId: "cbr-rate-sync-singleton"
     }
   );
 }
@@ -107488,6 +107502,10 @@ var init_jobs_schema = __esm({
         }),
         markupPercent: external_exports.number(),
         admin: external_exports.any()
+      }),
+      external_exports.object({
+        type: external_exports.literal("SYNC_CBR_RATE"),
+        timestamp: external_exports.number()
       })
     ]);
     RefillJobSchema = external_exports.object({
@@ -141879,6 +141897,9 @@ async function runETARecalculation() {
   }
 }
 
+// src/workers/processors/catalog.processor.ts
+init_queue_manager();
+
 // src/services/admin/catalog.service.ts
 var import_crypto5 = __toESM(require("crypto"));
 init_db();
@@ -143957,6 +143978,26 @@ async function catalogProcessor(job) {
         );
         log18.info(`[CatalogProcessor] Bulk markup completed. Updated ${result.updatedCount} services.`);
         await triggerCacheRevalidation(["catalog", "services"]);
+        break;
+      }
+      case "SYNC_CBR_RATE": {
+        log18.info("[CatalogProcessor] Starting scheduled CBR exchange rate sync...");
+        try {
+          const { CBRRateService: CBRRateService2 } = await Promise.resolve().then(() => (init_cbr_rate_service(), cbr_rate_service_exports));
+          const result = await CBRRateService2.syncCBRExchangeRate();
+          if (result.updated) {
+            log18.info(`[CatalogProcessor] CBR rate updated: nominal=${result.nominalRate}, system=${result.systemRate}. Triggering price sync...`);
+            await catalogQueue.add("sync-prices-bg", {
+              type: "SYNC_PRICES",
+              usdToRub: result.systemRate
+            });
+          } else {
+            log18.info(`[CatalogProcessor] CBR rate unchanged (API issue or already current).`);
+          }
+        } catch (cbrErr) {
+          const errMsg = cbrErr instanceof Error ? cbrErr.message : String(cbrErr);
+          log18.error(`[CatalogProcessor] CBR sync failed: ${errMsg}`);
+        }
         break;
       }
       default:
@@ -146660,6 +146701,7 @@ ensurePendingCheckCron().catch((e) => log29.error("Failed to setup PendingCheck 
 ensureAiObserverCron().catch((e) => log29.error("Failed to setup AI Observer Cron", { error: e.message }));
 ensureAiEconomicOptimizerCron().catch((e) => log29.error("Failed to setup AI Economic Optimizer Cron", { error: e.message }));
 ensureGeoAvailabilityCron().catch((e) => log29.error("Failed to setup Geo Availability Cron", { error: e.message }));
+ensureCBRSyncCron().catch((e) => log29.error("Failed to setup CBR Rate Sync Cron", { error: e.message }));
 log29.info("All workers started", { queues: ["ordersQueue", "refillQueue", "syncQueue", "catalogQueue", "cleanup", "paymentSyncQueue", "articlePublishQueue", "aiObserverQueue", "aiEconomicOptimizerQueue", "geoAvailabilityQueue"] });
 var shutdown = async () => {
   log29.info("Gracefully shutting down workers...");

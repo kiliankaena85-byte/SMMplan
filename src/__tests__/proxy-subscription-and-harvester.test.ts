@@ -73,14 +73,15 @@ describe('🛡️ Proxy Subscription Auto-Sync & Harvester Test Suite', () => {
 
   describe('Vector 1: Subscription-Userinfo Header Parsing', () => {
     it('accurately parses standard Subscription-Userinfo header (Quattro VPN / Marzban / X-UI)', () => {
-      const header = 'upload=1073741824; download=53687091200; total=107374182400; expire=1787836800';
+      const futureExpire = Math.floor(Date.now() / 1000) + 86400 * 30; // 30 days in future
+      const header = `upload=1073741824; download=53687091200; total=107374182400; expire=${futureExpire}`;
       const parsed = SubscriptionSyncService.parseUserinfo(header);
 
       expect(parsed.uploadBytes).toBe(BigInt(1073741824));
       expect(parsed.downloadBytes).toBe(BigInt(53687091200));
       expect(parsed.totalBytes).toBe(BigInt(107374182400));
       expect(parsed.expiresAt).toBeInstanceOf(Date);
-      expect(parsed.expiresAt?.getTime()).toBe(1787836800 * 1000);
+      expect(parsed.expiresAt?.getTime()).toBe(futureExpire * 1000);
       expect(parsed.daysLeft).toBeGreaterThan(0);
     });
 

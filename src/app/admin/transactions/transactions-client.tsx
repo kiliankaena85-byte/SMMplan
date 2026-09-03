@@ -30,6 +30,10 @@ import { resolveLedgerTypeForDisplay, LEDGER_TYPE_CONFIG } from '@/lib/financial
 interface TransactionsClientProps {
   initial: LedgerPageResult;
   initialPeriod?: string;
+  initialMinAmount?: string;
+  initialMaxAmount?: string;
+  initialDateFrom?: string;
+  initialDateTo?: string;
   tenantId?: string;
   canExport?: boolean;
 }
@@ -93,6 +97,10 @@ function CopyBtn({ text }: { text: string }) {
 export function TransactionsClient({
   initial,
   initialPeriod = 'month',
+  initialMinAmount = '',
+  initialMaxAmount = '',
+  initialDateFrom = '',
+  initialDateTo = '',
   tenantId = 'smmplan',
   canExport = false,
 }: TransactionsClientProps) {
@@ -102,6 +110,13 @@ export function TransactionsClient({
   const [status, setStatus] = useState<string>('ALL');
   const [type, setType] = useState<string>('ALL');
   const [search, setSearch] = useState<string>('');
+  const [minAmount, setMinAmount] = useState<string>(initialMinAmount);
+  const [maxAmount, setMaxAmount] = useState<string>(initialMaxAmount);
+  const [dateFrom, setDateFrom] = useState<string>(initialDateFrom);
+  const [dateTo, setDateTo] = useState<string>(initialDateTo);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(
+    Boolean(initialMinAmount || initialMaxAmount || initialDateFrom || initialDateTo)
+  );
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -113,15 +128,26 @@ export function TransactionsClient({
     newStatus = status,
     newType = type,
     newSearch = search,
+    newMinAmount = minAmount,
+    newMaxAmount = maxAmount,
+    newDateFrom = dateFrom,
+    newDateTo = dateTo,
     page = data.currentPage || 1,
     pageSize = data.pageSize || 50,
   ) => {
     startTransition(async () => {
+      const parsedMin = newMinAmount !== '' ? parseFloat(newMinAmount.replace(',', '.')) : undefined;
+      const parsedMax = newMaxAmount !== '' ? parseFloat(newMaxAmount.replace(',', '.')) : undefined;
+
       const res = await getLedgerAction({
         period: newPeriod as any,
         status: newStatus as any,
         type: newType as any,
         search: newSearch.trim() || undefined,
+        minAmount: !isNaN(parsedMin as number) ? parsedMin : undefined,
+        maxAmount: !isNaN(parsedMax as number) ? parsedMax : undefined,
+        dateFrom: newDateFrom || undefined,
+        dateTo: newDateTo || undefined,
         page,
         pageSize,
         tenantId,
@@ -133,27 +159,82 @@ export function TransactionsClient({
       }
       setData(res);
     });
-  }, [period, status, type, search, data.currentPage, data.pageSize, tenantId]);
+  }, [period, status, type, search, minAmount, maxAmount, dateFrom, dateTo, data.currentPage, data.pageSize, tenantId]);
 
   const handlePeriodChange = (newPeriod: string) => {
     setPeriod(newPeriod);
-    loadData(newPeriod, status, type, search, 1);
+    setDateFrom('');
+    setDateTo('');
+    loadData(newPeriod, status, type, search, minAmount, maxAmount, '', '', 1);
   };
 
   const handleStatusChange = (newStatus: string) => {
     setStatus(newStatus);
-    loadData(period, newStatus, type, search, 1);
+    loadData(period, newStatus, type, search, minAmount, maxAmount, dateFrom, dateTo, 1);
   };
 
   const handleTypeChange = (newType: string) => {
     setType(newType);
-    loadData(period, status, newType, search, 1);
+    loadData(period, status, newType, search, minAmount, maxAmount, dateFrom, dateTo, 1);
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    loadData(period, status, type, search, 1);
+    loadData(period, status, type, search, minAmount, maxAmount, dateFrom, dateTo, 1);
   };
+
+  const handleApplyAdvancedFilters = () => {
+    loadData(period, status, type, search, minAmount, maxAmount, dateFrom, dateTo, 1);
+    toast.success('Фильтры применены');
+  };
+
+  const handleResetFilters = () => {
+    setSearch('');
+    setStatus('ALL');
+    setType('ALL');
+    setPeriod('month');
+    setMinAmount('');
+    setMaxAmount('');
+    setDateFrom('');
+    setDateTo('');
+    loadData('month', 'ALL', 'ALL', '', '', '', '', '', 1);
+    toast.info('Фильтры сброшены');
+  };
+
+  const handleQuickAmountRange = (min: number, max?: number) => {
+    const minStr = min.toString();
+    const maxStr = max !== undefined ? max.toString() : '';
+    setMinAmount(minStr);
+    setMaxAmount(maxStr);
+    loadData(period, status, type, search, minStr, maxStr, dateFrom, dateTo, 1);
+  };
+
+  const handleLostPaymentTolerance = (targetAmount: number) => {
+    const min = Math.max(0, Math.round(targetAmount * 0.9));
+    const max = Math.round(targetAmount * 1.1);
+    setMinAmount(min.toString());
+    setMaxAmount(max.toString());
+    
+    // Set date to last 3 days
+    const d = new Date();
+    d.setDate(d.getDate() - 3);
+    const dateFromStr = d.toISOString().slice(0, 10);
+    setDateFrom(dateFromStr);
+    setDateTo('');
+    
+    loadData('all', status, 'TOPUP', search, min.toString(), max.toString(), dateFromStr, '', 1);
+    toast.info(`Поиск пополнений: ${min}–${max} ₽ за последние 3 дня`);
+  };
+
+  const activeFiltersCount = [
+    status !== 'ALL',
+    type !== 'ALL',
+    Boolean(search.trim()),
+    Boolean(minAmount),
+    Boolean(maxAmount),
+    Boolean(dateFrom),
+    Boolean(dateTo),
+  ].filter(Boolean).length;
 
   const handleExportCsv = () => {
     if (data.items.length === 0) {
@@ -288,11 +369,31 @@ export function TransactionsClient({
             ))}
           </select>
 
+          {/* Toggle Advanced Filters (Price / Dates / Lost Payment) */}
+          <button
+            type="button"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className={`h-8 px-2.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-2xs shrink-0 ${
+              showAdvancedFilters || activeFiltersCount > 0
+                ? 'bg-primary/10 border-primary/40 text-primary'
+                : 'bg-background border-border/60 hover:bg-muted text-foreground'
+            }`}
+            title="Фильтры по сумме и датам"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Фильтры</span>
+            {activeFiltersCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
+
           {/* Refresh / Export */}
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
-              onClick={() => loadData(period, status, type, search)}
+              onClick={() => loadData(period, status, type, search, minAmount, maxAmount, dateFrom, dateTo)}
               disabled={isPending}
               className="h-8 px-2.5 rounded-xl border border-border/60 bg-background hover:bg-muted text-foreground flex items-center gap-1 text-xs font-bold transition-all cursor-pointer shadow-2xs disabled:opacity-50"
               title="Обновить данные"
@@ -315,7 +416,133 @@ export function TransactionsClient({
           </div>
         </div>
 
-        {/* Row 2: Type Filter Pills */}
+        {/* Row 2: Advanced Search (Price Range & Exact Date Range for Lost Payments) */}
+        {showAdvancedFilters && (
+          <div className="p-3 bg-muted/20 border border-border/60 rounded-xl space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+              {/* Price Range: Min / Max */}
+              <div className="lg:col-span-4 space-y-1.5">
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+                  <span>Диапазон сумм (₽)</span>
+                  <span className="text-[10px] text-primary font-medium">Поиск потерянных оплат</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      value={minAmount}
+                      onChange={(e) => setMinAmount(e.target.value)}
+                      placeholder="От 0 ₽"
+                      className="w-full h-8 px-2.5 text-xs bg-background border border-border/60 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
+                    />
+                  </div>
+                  <span className="text-muted-foreground text-xs font-bold">—</span>
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      value={maxAmount}
+                      onChange={(e) => setMaxAmount(e.target.value)}
+                      placeholder="До..."
+                      className="w-full h-8 px-2.5 text-xs bg-background border border-border/60 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Date Range: From / To */}
+              <div className="lg:col-span-5 space-y-1.5">
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Точный интервал дат
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="flex-1 h-8 px-2 text-xs bg-background border border-border/60 rounded-lg text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
+                  />
+                  <span className="text-muted-foreground text-xs font-bold">—</span>
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="flex-1 h-8 px-2 text-xs bg-background border border-border/60 rounded-lg text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="lg:col-span-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleApplyAdvancedFilters}
+                  disabled={isPending}
+                  className="flex-1 h-8 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold transition-all cursor-pointer shadow-2xs flex items-center justify-center gap-1"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span>Найти</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  disabled={isPending}
+                  className="h-8 px-3 rounded-lg border border-border/60 bg-background hover:bg-muted text-muted-foreground hover:text-foreground text-xs font-bold transition-all cursor-pointer"
+                  title="Сбросить все фильтры"
+                >
+                  Сброс
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Helper Chips for Support */}
+            <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-border/30 text-[11px]">
+              <span className="text-muted-foreground font-semibold">Быстрый подбор:</span>
+              <button
+                type="button"
+                onClick={() => handleQuickAmountRange(100, 500)}
+                className="px-2 py-0.5 rounded-md bg-muted/60 hover:bg-muted text-foreground border border-border/40 font-mono transition-colors cursor-pointer"
+              >
+                100–500 ₽
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickAmountRange(500, 1000)}
+                className="px-2 py-0.5 rounded-md bg-muted/60 hover:bg-muted text-foreground border border-border/40 font-mono transition-colors cursor-pointer"
+              >
+                500–1000 ₽
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickAmountRange(1000, 5000)}
+                className="px-2 py-0.5 rounded-md bg-muted/60 hover:bg-muted text-foreground border border-border/40 font-mono transition-colors cursor-pointer"
+              >
+                1000–5000 ₽
+              </button>
+              <button
+                type="button"
+                onClick={() => handleLostPaymentTolerance(500)}
+                className="px-2 py-0.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 font-semibold transition-colors cursor-pointer flex items-center gap-1"
+                title="Искать пополнения ~500 ₽ (450–550 ₽) за последние 3 дня"
+              >
+                <span>🔍 Около 500 ₽ (±10%)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleLostPaymentTolerance(1000)}
+                className="px-2 py-0.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 font-semibold transition-colors cursor-pointer flex items-center gap-1"
+                title="Искать пополнения ~1000 ₽ (900–1100 ₽) за последние 3 дня"
+              >
+                <span>🔍 Около 1000 ₽ (±10%)</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Row 3: Type Filter Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pt-1 border-t border-border/40">
           {TYPE_OPTIONS.map(to => {
             const isActive = type === to.id;

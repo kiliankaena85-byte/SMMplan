@@ -27,8 +27,12 @@ class SupportBotService {
   private readonly UPLOAD_DIR_BASE = path.join(process.cwd(), 'private', 'uploads', 'tickets');
 
   constructor() {
-    if (!fs.existsSync(this.UPLOAD_DIR_BASE)) {
-      fs.mkdirSync(this.UPLOAD_DIR_BASE, { recursive: true });
+    try {
+      if (!fs.existsSync(this.UPLOAD_DIR_BASE)) {
+        fs.mkdirSync(this.UPLOAD_DIR_BASE, { recursive: true });
+      }
+    } catch (err) {
+      console.warn('[SupportBotService] Warning: Could not create upload directory on init:', err);
     }
   }
 

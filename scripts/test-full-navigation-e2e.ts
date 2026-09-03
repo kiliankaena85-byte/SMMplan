@@ -17,8 +17,9 @@ async function main() {
   // 2. Fill URL
   const urlInput = await page.$("#standard-url-input") || await page.$('input[placeholder*="t.me"]');
   if (urlInput) {
-    await urlInput.fill("https://t.me/durov");
-    await page.waitForTimeout(1500);
+    await urlInput.fill("https://t.me/durov_channel_test");
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: 'scripts/debug_step1_link.png' });
   }
 
   // 3. Select service
@@ -26,11 +27,45 @@ async function main() {
   if (serviceCard) {
     await serviceCard.click();
     await page.waitForTimeout(1500);
+    await page.screenshot({ path: 'scripts/debug_step4_full.png', fullPage: true });
   }
 
   console.log("Checking Step 4 state...");
   let step4Btn = await page.$('button:has-text("Заказать")');
   console.log("  Step 4 'Заказать' button visible:", !!step4Btn);
+
+  // DIAGNOSE CLICK ON 'Заказать'
+  page.on('console', msg => console.log(`  [BROWSER CONSOLE ${msg.type()}]:`, msg.text()));
+  page.on('pageerror', err => console.log(`  [BROWSER ERROR]:`, err.message));
+
+  console.log("Filling email and checking terms...");
+  const emailInput = await page.$('#email-input') || await page.$('input[type="email"]');
+  if (emailInput) {
+    await emailInput.fill("test@example.com");
+    await page.waitForTimeout(500);
+  }
+
+  const checkbox = await page.$('#standard-legal-checkbox') || await page.$('#wizard-legal-checkbox');
+  if (checkbox) {
+    await checkbox.check();
+    await page.waitForTimeout(500);
+  }
+
+  console.log("Clicking 'Заказать' button with valid form...");
+  if (step4Btn) {
+    await step4Btn.click();
+    await page.waitForTimeout(2000);
+    
+    // Check for toasts
+    const sonnerToasts = await page.$$eval('[data-sonner-toast]', els => els.map(e => e.textContent));
+    console.log("  Sonner Toasts appeared:", sonnerToasts);
+
+    // Check for payment modal
+    const modalVisible = await page.$('text=Выберите способ оплаты');
+    console.log("  Payment Modal appeared:", !!modalVisible);
+
+    await page.screenshot({ path: 'scripts/step4_after_valid_click.png' });
+  }
 
   // 4. Test "Назад к тарифам"
   console.log("Testing 'Назад к тарифам'...");

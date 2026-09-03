@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Zap, Sliders, ChevronDown, Link2, Pencil, Minus, Plus, RotateCcw } from "lucide-react";
+import { Loader2, Zap, Sliders, ChevronDown, Link2, Pencil, Minus, Plus, RotateCcw, AlertCircle } from "lucide-react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { DynamicPayloadWarnings } from "../DynamicPayloadWarnings";
 import { DripFeedConfigurator } from "../DripFeedConfigurator";
@@ -15,9 +15,10 @@ interface MobileStep4CheckoutProps {
   step4Ref: React.RefObject<HTMLDivElement | null>;
   emailInputRef?: React.RefObject<HTMLInputElement | null>;
   emailHasError?: boolean;
-  handleCheckout: () => void;
+  handleCheckout: (gateway?: string, email?: string) => void;
   isSubmitting: boolean;
   onOpenDocument?: (slug: string) => void;
+  checkoutError?: string | null;
 }
 
 const QUICK_QUANTITY_PRESETS = [100, 500, 1000, 5000];
@@ -32,10 +33,13 @@ export function MobileStep4Checkout({
   emailHasError,
   handleCheckout,
   isSubmitting,
-  onOpenDocument
+  onOpenDocument,
+  checkoutError
 }: MobileStep4CheckoutProps) {
   const [showAdvancedParams, setShowAdvancedParams] = useState(false);
   const [showPromo, setShowPromo] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [shakeKey, setShakeKey] = useState(0);
 
   const {
     url, setUrl,
@@ -54,6 +58,46 @@ export function MobileStep4Checkout({
       setShowPromo(true);
     }
   }, [promoCode]);
+
+  React.useEffect(() => {
+    if (agreedToTerms && email && email.includes('@')) {
+      setLocalError(null);
+    }
+  }, [agreedToTerms, email]);
+
+  const onOrderClick = () => {
+    // 1. Check legal checkbox
+    if (!agreedToTerms) {
+      setLocalError("Пожалуйста, примите условия Оферты и Политики конфиденциальности");
+      setShakeKey(Date.now());
+      if (engine.setTermsHasError) engine.setTermsHasError(true);
+      setTimeout(() => {
+        const checkbox = document.getElementById("standard-legal-checkbox");
+        if (checkbox) {
+          checkbox.scrollIntoView({ behavior: "smooth", block: "center" });
+          checkbox.focus();
+        }
+      }, 100);
+      return;
+    }
+
+    // 2. Check email
+    if (!email || !email.includes('@')) {
+      setLocalError("Пожалуйста, укажите email для получения чека");
+      setShakeKey(Date.now());
+      setTimeout(() => {
+        const emailEl = document.getElementById("email-input");
+        if (emailEl) {
+          emailEl.scrollIntoView({ behavior: "smooth", block: "center" });
+          emailEl.focus();
+        }
+      }, 100);
+      return;
+    }
+
+    setLocalError(null);
+    handleCheckout();
+  };
 
   if (currentStep !== 4 || !shouldShowParameters || !selectedService) {
     return null;
@@ -112,15 +156,18 @@ export function MobileStep4Checkout({
         </div>
 
         {isLinkReady ? (
-          <div className="p-3 rounded-2xl bg-content2/80 border border-border/60 flex items-center justify-between gap-2">
-            <span className="text-xs font-bold text-foreground truncate font-mono">{url}</span>
-            <button
-              type="button"
-              onClick={() => setActiveStep(1)}
-              className="text-xs font-bold text-primary px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 shrink-0 cursor-pointer"
-            >
-              Сменить
-            </button>
+          <div
+            onClick={() => setActiveStep(1)}
+            className="p-3 rounded-2xl bg-content2/80 border border-border/60 hover:border-primary/50 transition-all flex items-center justify-between gap-2.5 cursor-pointer group"
+            title="Нажмите, чтобы изменить ссылку"
+          >
+            <span className="text-xs font-bold text-foreground font-mono break-all flex-1 min-w-0 leading-relaxed select-all">
+              {url}
+            </span>
+            <span className="text-[11px] font-bold text-primary px-2.5 py-1 rounded-lg bg-primary/10 group-hover:bg-primary/20 shrink-0 flex items-center gap-1 transition-colors">
+              <Pencil className="w-3 h-3" />
+              <span>Сменить</span>
+            </span>
           </div>
         ) : (
           <div>
@@ -242,14 +289,22 @@ export function MobileStep4Checkout({
           type="email"
           ref={emailInputRef}
           value={email}
-          onChange={e => setEmail(e.target.value)}
+          onChange={e => {
+            setEmail(e.target.value);
+            if (localError) setLocalError(null);
+          }}
           placeholder="you@example.com"
           className={`w-full h-11 px-4 rounded-2xl border bg-background text-base text-foreground outline-none transition-all ${
-            emailHasError
-              ? 'border-danger focus:border-danger ring-2 ring-danger/30'
+            emailHasError || (localError && (!email || !email.includes('@')))
+              ? 'border-danger focus:border-danger ring-2 ring-danger/30 animate-shake'
               : 'border-border focus:border-primary focus:ring-2 ring-primary/30'
           }`}
         />
+        {(emailHasError || (localError && (!email || !email.includes('@')))) && (
+          <p className="text-[11px] font-bold text-danger pl-1 animate-in fade-in duration-200">
+            Укажите email — на него придёт чек и доступ к заказу
+          </p>
+        )}
       </div>
 
       {/* Промокод */}
@@ -350,10 +405,27 @@ export function MobileStep4Checkout({
       </div>
 
       <div className="pt-2 border-t border-border/30 space-y-2">
+        <AnimatePresence>
+          {(localError || checkoutError) && (
+            <motion.div
+              key={shakeKey}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              className="p-3 rounded-2xl bg-danger/10 border border-danger/30 text-danger text-xs font-bold flex items-center gap-2 animate-shake"
+            >
+              <AlertCircle className="w-4 h-4 shrink-0 text-danger" />
+              <span>{localError || checkoutError}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <Button
-          onClick={handleCheckout}
+          onClick={onOrderClick}
           disabled={isSubmitting}
-          className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-black text-sm shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] min-h-[48px]"
+          className={`w-full h-12 rounded-2xl bg-primary text-primary-foreground font-black text-sm shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] min-h-[48px] ${
+            (localError || checkoutError) ? 'ring-2 ring-danger/40 animate-shake' : ''
+          }`}
         >
           {isSubmitting ? (
             <Loader2 className="w-4 h-4 animate-spin" />

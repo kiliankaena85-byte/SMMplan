@@ -23,6 +23,10 @@ const ledgerParamsSchema = z.object({
   ]).default('ALL'),
   period:   z.enum(['today', 'week', 'month', 'all']).default('month'),
   search:   z.string().max(255).optional(),
+  minAmount: z.coerce.number().min(0).optional(),
+  maxAmount: z.coerce.number().min(0).optional(),
+  dateFrom: z.string().optional(),
+  dateTo:   z.string().optional(),
   cursor:   z.string().optional(),
   page:     z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(200).default(50),
@@ -91,8 +95,51 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
       if (p.status !== 'ALL') {
         andConditions.push({ status: p.status });
       }
-      if (periodStart) {
+
+      // Date range filtering
+      if (p.dateFrom) {
+        const dFrom = new Date(p.dateFrom);
+        if (!isNaN(dFrom.getTime())) {
+          dFrom.setHours(0, 0, 0, 0);
+          andConditions.push({ createdAt: { gte: dFrom } });
+        }
+      } else if (periodStart) {
         andConditions.push({ createdAt: { gte: periodStart } });
+      }
+
+      if (p.dateTo) {
+        const dTo = new Date(p.dateTo);
+        if (!isNaN(dTo.getTime())) {
+          dTo.setHours(23, 59, 59, 999);
+          andConditions.push({ createdAt: { lte: dTo } });
+        }
+      }
+
+      // Amount range filtering (supporting both credits + and debits -)
+      const minCents = p.minAmount !== undefined && !isNaN(p.minAmount) ? Math.round(p.minAmount * 100) : undefined;
+      const maxCents = p.maxAmount !== undefined && !isNaN(p.maxAmount) ? Math.round(p.maxAmount * 100) : undefined;
+
+      if (minCents !== undefined && maxCents !== undefined) {
+        andConditions.push({
+          OR: [
+            { amount: { gte: minCents, lte: maxCents } },
+            { amount: { gte: -maxCents, lte: -minCents } },
+          ],
+        });
+      } else if (minCents !== undefined) {
+        andConditions.push({
+          OR: [
+            { amount: { gte: minCents } },
+            { amount: { lte: -minCents } },
+          ],
+        });
+      } else if (maxCents !== undefined) {
+        andConditions.push({
+          OR: [
+            { amount: { lte: maxCents, gte: 0 } },
+            { amount: { gte: -maxCents, lte: 0 } },
+          ],
+        });
       }
       if (activeTenantId && activeTenantId !== 'all') {
         andConditions.push({

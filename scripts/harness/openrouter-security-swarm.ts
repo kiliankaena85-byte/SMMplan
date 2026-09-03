@@ -16,47 +16,50 @@ interface ExpertResult {
 
 const EXPERTS = [
   {
-    role: 'Fintech & Distributed Concurrency Architect (ExactMath & Ledger Invariants)',
-    model: 'nvidia/nemotron-3.5-lightning:free',
-    fallbackModels: ['nvidia/nemotron-3-super-120b-a12b:free', 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free'],
-    systemPrompt: `You are the Principal Fintech Security & Distributed Systems Architect for OmniSMM 1.0 (Next.js 16, Prisma 5, PostgreSQL, Redis BullMQ).
-Your task is to conduct an aggressive adversarial Pre-Mortem and formulate a mission-critical test list for recently implemented features:
-1. Manual Payment Approval (Support limit <= 3 000 RUB, Owner/Admin unlimited, PENDING -> SUCCEEDED).
-2. Shift Schedule, Vacation Collision Prevention & Reciprocal 2-Way Swaps.
-3. Zero-Scroll Transactions Table & CSV Exfiltration Block for Support.
-Focus strictly on: Double Credits, Double Debits, Race Conditions between manual approval and delayed webhooks, Idempotency key collisions, Isolation level deadlocks, Ledger entry inconsistencies, Phantom balance mutations.`,
-    userPrompt: `Provide an exhaustive list of failure scenarios and specific automated unit/integration test specifications to guarantee 0 double-spend and 0 balance leakage. Format with clear Markdown headings, risk matrices, and test cases.`
+    role: 'Head of Customer Support & CX Operations (OmniSMM)',
+    model: 'google/gemma-4-31b-it:free',
+    fallbackModels: ['nvidia/nemotron-3.5-lightning:free', 'meta-llama/llama-3.3-70b-instruct:free', 'qwen/qwen-2.5-72b-instruct:free'],
+    systemPrompt: `You are the Head of Customer Support Operations for OmniSMM 1.0 (SMMplan / SMMflux).
+Your task is to analyze the daily workflows of frontline support agents (handling client tickets, searching lost top-ups, checking why a refund was rejected, order cancellation debits).
+Answer in Russian with structured points:
+1. What ledger and transaction data MUST frontline support see to resolve customer tickets within 60 seconds without bothering developers or finance?
+2. How should this data be presented? (e.g. inside user ticket / user profile vs global company ledger).
+3. What happens if support lacks this context?`,
+    userPrompt: `Formulate the exact minimum-sufficient financial dataset that support needs. Provide clear UI/UX guidelines in Russian.`
   },
   {
-    role: 'OWASP Top 10 (2025/2026) & Red Team Pentest Security Lead',
+    role: 'CISO & Insider Threat / Data Loss Prevention (DLP) Architect',
+    model: 'nvidia/nemotron-3.5-lightning:free',
+    fallbackModels: ['google/gemma-4-31b-it:free', 'meta-llama/llama-3.3-70b-instruct:free'],
+    systemPrompt: `You are the Chief Information Security Officer (CISO) and Zero-Trust Architect specializing in Insider Threat prevention and Principle of Least Privilege (PoLP).
+Your task is to establish strict security perimeters on what financial data MUST BE HIDDEN from Support operators.
+Answer in Russian:
+1. What platform-wide financial records and metrics are strictly forbidden for Support? (Global P&L, Total Revenue, Provider Wholesale Costs, Margin/Markup, Gateway Escrow Balances, Unrelated Users' Ledgers).
+2. Threat modeling: How could a rogue or compromised support agent exploit access to global ledger records? (Exfiltration to competitors, blackmail, corporate espionage).
+3. Technical safeguards: CSV export bans, Read-Audit logging, PAN masking.`,
+    userPrompt: `Define the forbidden financial zones and mandatory DLP controls for Support in Russian.`
+  },
+  {
+    role: 'Fintech & Double-Entry Ledger System Architect',
     model: 'z-ai/glm-5.2:free',
     fallbackModels: ['google/gemma-4-31b-it:free', 'nvidia/nemotron-3.5-lightning:free'],
-    systemPrompt: `You are the Lead Red Team Penetration Tester & Application Security Auditor specializing in OWASP Top 10:2026, OWASP ASVS v4.0.3 Level 2, and PCI DSS v4.0.1.
-Your task is to audit recently added admin features:
-1. Manual Payment Approval (Support limit bypass attempts, Parameter tampering, IDOR on paymentId, CSRF, Replay attacks).
-2. Data Exfiltration via CSV / Reports (Support role hiding bypass, Direct Server Action invocation bypass, Column leakages).
-3. Secret Exposure & Timing Attacks (Client bundle leakage, HMAC validation timing leaks, Audit log tampering).`,
-    userPrompt: `Provide an adversarial penetration test plan and attack simulation test cases to prove that no operator or malicious insider can bypass RBAC, tamper with payments, or exfiltrate data.`
+    systemPrompt: `You are the Principal Fintech Architect specializing in double-entry bookkeeping and immutable ledgers.
+Your task is to classify all ledger entry types into:
+1. Customer-Context Ledger (PAYMENT_CREDIT, ORDER_DEBIT, ORDER_REFUND, MANUAL_COMPENSATION, PROMO_BONUS) - Viewable by support strictly scoped to that 1 user.
+2. Platform-Only Ledger (PROVIDER_PAYOUT, GATEWAY_COMMISSION, OPEX_EXPENSE, ESCROW_HOLD, OWNER_DIVIDEND, INTER_TENANT_SETTLEMENT) - Completely hidden from support.
+Provide a clear Role-Permission Access Matrix.`,
+    userPrompt: `Provide the Ledger Entry Classification Matrix and access boundaries for Support vs Owner in Russian.`
   },
   {
-    role: 'WFM & Shift Collision Operations Auditor',
-    model: 'google/gemma-4-31b-it:free',
-    fallbackModels: ['minimax/minimax-m3:free', 'nvidia/nemotron-3.5-lightning:free'],
-    systemPrompt: `You are the Workforce Management (WFM) & Operational Risk Specialist.
-Your task is to evaluate staff scheduling, 2-way reciprocal swaps, retroactive timecard changes, and vacation overlaps.
-Focus on: Ghost shifts, Double bookings in the same slot, Cascading swaps, Vacation shift orphanages, Privilege escalation where an operator assigns shifts to others.`,
-    userPrompt: `Formulate a matrix of edge cases, collision states, and test scenarios required to guarantee 100% collision-free scheduling.`
-  },
-  {
-    role: 'Russian Fiscal (54-FZ / 176-FZ / 425-FZ) & Data Privacy (152-FZ / GDPR) Compliance Watchdog',
+    role: 'Russian Fiscal (54-FZ) & Data Privacy (152-FZ) Legal Watchdog',
     model: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
     fallbackModels: ['nvidia/nemotron-3.5-lightning:free', 'dots-studio/dots-3-note-preview:free'],
-    systemPrompt: `You are the Chief Regulatory Compliance & Legal Watchdog for Russian Fintech platforms (54-FZ Online Cash Registers, 176-FZ/425-FZ VAT 22%, 152-FZ Personal Data Protection).
-Your task is to review manual payment approvals and receipt logging:
-1. Ensuring manual approvals do not bypass 54-FZ receipt fiscalization rules or create duplicate receipts when webhook arrives later.
-2. Immutable audit trails with operator IP, timestamp, and justification.
-3. Retention and masking of personal customer data in admin logs.`,
-    userPrompt: `List the compliance verification tests and audit trail invariants required to maintain 100% compliance with Russian tax and privacy legislation.`
+    systemPrompt: `You are the Chief Legal & Regulatory Compliance Officer (152-FZ Personal Data Protection, 54-FZ Fiscal Cash Register receipts, Banking Secrecy).
+Your task is to review regulatory constraints for staff access to financial logs:
+1. 152-FZ access logging (Read-Audit trail: who viewed whose balance/transactions and when).
+2. Prohibition of bulk customer data exfiltration (No CSV exports for non-owners).
+3. Access to fiscal receipt links (FNS / OFD) for resolving customer tax receipt inquiries.`,
+    userPrompt: `Formulate the regulatory compliance rules and audit requirements for Support accessing financial records in Russian.`
   }
 ];
 

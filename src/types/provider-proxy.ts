@@ -112,3 +112,59 @@ export const PROXY_PROTOCOL_LABELS: Record<ProxyProtocol, string> = {
   https: 'HTTPS',
   socks5: 'SOCKS5',
 };
+
+// ==============================================================
+// Clash Verge-Style Universal Network Routing Types
+// ==============================================================
+
+export type RoutingRuleType = 'DOMAIN' | 'DOMAIN-SUFFIX' | 'DOMAIN-KEYWORD' | 'SERVICE' | 'FINAL';
+
+export type RoutingTargetType =
+  | 'DIRECT'            // Прямое соединение без прокси
+  | 'REJECT'            // Блокировка исходящего запроса
+  | 'SYSTEM_PROXY'      // Локальный системный VPN/туннель
+  | 'PROXY_POOL'        // Автовыбор здорового прокси из пула
+  | 'RU_SOVEREIGN_POOL' // Автовыбор из пула проверенных нод РФ (суверенный резерв для зарубежных серверов)
+  | 'SPECIFIC_PROXY';   // Конкретный прокси по ID
+
+export type SubsystemServiceType =
+  | 'AI_GEMINI'
+  | 'PROVIDERS'
+  | 'CATALOG_SYNC'
+  | 'PAYMENTS_RU'
+  | 'PAYMENTS_CRYPTO'
+  | 'TELEGRAM'
+  | 'CBR_RATES'
+  | 'OTHER';
+
+export interface RoutingRule {
+  id: string;
+  type: RoutingRuleType;
+  payload: string; // 'googleapis.com', 'yookassa.ru', 'AI_GEMINI', etc.
+  target: RoutingTargetType;
+  targetProxyId?: string | null; // ID из таблицы ProviderProxy при SPECIFIC_PROXY
+  comment?: string;
+  isEnabled: boolean;
+  priority: number; // 0 = наивысший (First Match Win)
+}
+
+export interface ServiceTogglesConfig {
+  aiGemini: RoutingTargetType;
+  aiGeminiProxyId?: string | null;
+  providers: RoutingTargetType;
+  providersProxyId?: string | null;
+  catalogSync: RoutingTargetType;
+  catalogSyncProxyId?: string | null;
+  paymentsRu: 'DIRECT' | 'RU_SOVEREIGN_POOL'; // Напрямую или через суверенный резерв РФ
+  paymentsRuProxyId?: string | null;
+  paymentsCrypto: RoutingTargetType;
+  paymentsCryptoProxyId?: string | null;
+  telegram: RoutingTargetType;
+  telegramProxyId?: string | null;
+}
+
+export interface NetworkRoutingConfig {
+  serviceToggles: ServiceTogglesConfig;
+  rules: RoutingRule[];
+  systemProxyUrl?: string | null; // e.g. http://127.0.0.1:7897
+}

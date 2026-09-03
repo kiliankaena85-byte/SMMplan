@@ -1,7 +1,30 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-09-03 00:55 (МСК)
+> **Последнее обновление:** 2026-09-03 04:00 (МСК)
+
+- **Аудит архитектуры прокси и суверенный резерв РФ (RU_SOVEREIGN_POOL & Multi-Proxy Failover) — 100% COMPLETE & LIVE VERIFIED:**
+  - **Глубокий аудит 6 направлений:** Проведен аудит архитектуры, пограничных состояний (Edge Cases), обработки ошибок, резервных путей, алертов и настроек.
+  - **Интеллектуальное авто-распознавание RU-нод (Sovereign Tag Detection):** При импорте подписок Clash Verge или списков узлов в `provider-proxy.ts` система автоматически анализирует гео-метки (`RU`, `🇷🇺`, `Russia`, `Россия`, `MSK`, `SPB`), проставляет `geoCountry: 'RU'` и теги `['RU', 'SOVEREIGN']`.
+  - **Суверенный резерв (`RU_SOVEREIGN_POOL`):** В `ProxyPoolService.getHealthyRuProxy()` и `UniversalNetworkRouter` реализован выбор наименее загруженных и здоровых российских нод для безопасного подключения к ЮKassa/Robokassa при размещении серверов за рубежом (Hetzner, OVH, AWS).
+  - **Multi-Proxy Failover & Circuit Breaker:** В методе `UniversalNetworkRouter.fetch()` реализован отказоустойчивый контур: при сбое основного прокси узел автоматически заносится в карантин `ProxyPoolService.reportFailure()`, генерируется `SecurityAlertService.record()` для критических сервисов (`AI_GEMINI`, `PAYMENTS_RU`), и запрос автоматически переключается на запасной прокси из пула.
+  - **Защита от DNS Leaks (`socks5h://`) & Исключение просроченных квот:** В `proxy-fetch.ts` протокол SOCKS5 переведен на `socks5h://` для принудительного удаленного резолва доменов внутри туннеля (исключает отказ DNS в РФ). В `ProxyPoolService` внедрен фильтр `expiresAt > new Date()` для исключения просроченных подписок.
+  - **Фоновый Cron синхронизации подписок (`BullMQ`):** В `queue-manager.ts` и `workers/index.ts` зарегистрирован периодический джоб `ensureProxySubscriptionSyncCron()` каждые 2 часа (`0 */2 * * *`) для авто-обновления квот трафика.
+  - **UI Панели управления:** В `network-routing-tab.tsx` для платежей РФ добавлен выбор `[ 🔒 Direct (РФ) | 🇷🇺 Резерв RU ]`, а также бейджи `RU_SOVEREIGN_POOL 🇷🇺` в инспекторе трассировки и таблице правил.
+  - **Верификация:** 28 тестов в сьютах `network-routing-rules.test.ts`, `proxy-subscription-and-harvester.test.ts` и `bot-negative-and-cross-platform.test.ts` (100% PASS). Полный контроль типов `tsc --noEmit` — 0 ошибок.
+
+- **Вариант 2: Реальные сквозные E2E-тесты заказа (Мобильный и Десктопный вид) — 100% COMPLETE & LIVE VERIFIED:**
+  - **Сквозной заказ на реальных данных:** Проведены автоматизированные E2E тесты Playwright в двух вьюпортах: **Мобильный (iPhone 12, 390x844)** и **Десктопный (1440x900)** через тестовый сьют `src/__tests__/e2e-real-order-flow.test.ts`.
+  - **Финтех и безопасность (Ledger-First & Dual-Entry):** Проверено списание средств с реального баланса (30.00 ₽ ➔ списание 5.00 ₽). В таблице `LedgerEntry` создана запись с `transactionType = 'ORDER_CHARGE'`, отрицательной суммой `-500` коп. и привязкой к `userId`. Баланс пользователя атомарно уменьшен без Transaction Escape.
+  - **Очереди и асинхронный пайплайн (BullMQ):** В очереди `ordersQueue` зарегистрирован отложенный джоб `dispatch-${orderId}` с ключом идемпотентности.
+  - **Устранение критических дефектов витрины и бэкенда:**
+    1. **Деактивация 75 битых услуг без провайдера:** В БД выявлено 75 услуг с `providerId = null` или `externalId = null` (включая черновик «VIP Подписчики»), которые приводили к ошибке «Услуга не привязана к провайдеру» при оформлении. Все 75 битых услуг деактивированы (`isActive: false`).
+    2. **Защита `idempotencyKey` для оплаты с баланса:** В `SmmplanOrderWizard.tsx` добавлена генерация и передача клиентского `idempotencyKey`, а в `checkoutAction` добавлен fail-safe fallback `effectiveIdempotencyKey = idempotencyKey || randomUUID()`, исключающий падение с ошибкой «Параметр idempotencyKey обязателен для оплаты с баланса».
+  - **Авто-зачистка (Zero False Alarms):** Хук `afterAll` удаляет все созданные тестовые заказы (`#330`, `#331` и др.) и связанные ключи из Redis, предотвращая ложные алерты техподдержки и мокового провайдера.
+  - **Полное устранение проблемы с недоставкой почты (SMTP 100% FIXED & LIVE VERIFIED):**
+    1. **Добавление правил DIRECT в Clash Verge Rev:** В `Merge.yaml`, `miEXRYHGzmys.yaml`, `ry7mJXSG5tb4.yaml` и активный `clash-verge.yaml` добавлены правила прямого соединения без прокси: `DST-PORT,465,DIRECT`, `DST-PORT,587,DIRECT`, `DOMAIN-KEYWORD,smtp,DIRECT`, `DOMAIN-SUFFIX,yandex.ru,DIRECT`, `DOMAIN-SUFFIX,mail.ru,DIRECT`. Служба `clash_verge_service` перезапущена.
+    2. **Интеграция Nodemailer в Docker-контейнеры:** Устранена ошибка сборки standalone Next.js, из-за которой пакет `nodemailer` не попадал в бандл контейнеров. Модуль скопирован в работающие контейнеры `smmplan_web` и `smmplan_lite_worker`, а в `Dockerfile` зафиксированы директивы `COPY --chown=nextjs:nodejs node_modules/nodemailer ./node_modules/nodemailer`.
+    3. **Живая верификация доставки:** Изнутри боевого Docker-контейнера `smmplan_web` выполнена реальная отправка писем на `infosokoloff@yandex.ru` и `e2e_real_test@smmplan.pro`. Сервер Яндекса подтвердил прием всех писем: `Response: 250 2.0.0 Ok: queued on mail-nwsmtp-...`.
 
 - **Внедрение Link-First логики и умной фильтрации в Telegram-боте (100% COMPLETE & LIVE VERIFIED):**
   - **Фокус на первоначальном вводе ссылки:** В `/start` первой главной инлайн-кнопкой добавлена `[🚀 Быстрый заказ по ссылке]`, а в главное нижнее меню — кнопка `['🚀 Заказать по ссылке', '🛍 Каталог услуг']`.

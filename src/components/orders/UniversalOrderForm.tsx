@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, Copy, CheckCircle2, ChevronDown, ChevronUp, Trash2, ArrowRight, Wand2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useMultiOrderEngine } from '@/hooks/useMultiOrderEngine';
 import { IntelligencePlatform } from '@/services/analyzer/link-rules';
 import { formatCents } from '@/lib/utils';
@@ -89,7 +90,14 @@ export function UniversalOrderForm({
   };
 
   const handleCheckout = async () => {
-    if (!engine.stats.isReadyToPay) return;
+    if (!formEmail || !formEmail.includes('@')) {
+      toast.error('Пожалуйста, укажите email для получения чека');
+      return;
+    }
+    if (!engine.stats.isReadyToPay) {
+      toast.error('Пожалуйста, настройте все добавленные ссылки перед оплатой');
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
@@ -555,13 +563,13 @@ export function UniversalOrderForm({
                </div>
                
                <button
-                  disabled={!engine.stats.isReadyToPay || isLoading || !formEmail}
+                  disabled={isLoading}
                   onClick={handleCheckout}
                   className={`h-12 px-8 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
-                     engine.stats.isReadyToPay && !isLoading && formEmail
+                     engine.stats.isReadyToPay && formEmail
                      ? 'bg-primary text-primary-foreground hover:scale-105 active:scale-95 hover:shadow-lg' 
-                     : 'bg-muted text-muted-foreground cursor-not-allowed opacity-60'
-                  }`}
+                     : 'bg-primary/80 text-primary-foreground/90 hover:bg-primary'
+                  } disabled:opacity-50`}
                >
                   {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Оплатить'} <ArrowRight className="w-4 h-4" />
                </button>

@@ -16,6 +16,10 @@ interface Props {
     type?: string;
     status?: string;
     search?: string;
+    minAmount?: string;
+    maxAmount?: string;
+    dateFrom?: string;
+    dateTo?: string;
     page?: string;
     pageSize?: string;
     tenant?: string;
@@ -47,6 +51,10 @@ export default async function TransactionsPage({ searchParams }: Props) {
     type: (params.type as any) || 'ALL',
     status: (params.status as any) || 'ALL',
     search: params.search,
+    minAmount: params.minAmount ? parseFloat(params.minAmount) : undefined,
+    maxAmount: params.maxAmount ? parseFloat(params.maxAmount) : undefined,
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
     page,
     pageSize,
     tenantId: activeTenantId,

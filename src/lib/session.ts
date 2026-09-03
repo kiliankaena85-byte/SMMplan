@@ -4,7 +4,7 @@ import { db } from './db';
 import { getEncodedKey, decryptSessionToken } from './session-edge';
 export { getEncodedKey, decryptSessionToken };
 
-import { getClientIp } from '@/utils/ip';
+import { getClientIp, isInternalOrPrivateIp } from '@/utils/ip';
 import { normalizeTenantId, resolveContourFromHost, type ContourId } from '@/lib/tenant-resolver-edge';
 
 export async function createSession(userId: string, canResetPassword: boolean = false) {
@@ -216,8 +216,13 @@ export async function verifySession(requiredTenantId?: string): Promise<{ userId
       });
     }
 
-    // IP-Pinning validation for Staff roles
-    if (isStaff && session.ipAddress && session.ipAddress !== '127.0.0.1' && currentIp !== '127.0.0.1' && currentIp !== '0.0.0.0') {
+    // IP-Pinning validation for Staff roles (ignoring private/internal/tunnel IP transitions)
+    if (
+      isStaff &&
+      session.ipAddress &&
+      !isInternalOrPrivateIp(session.ipAddress) &&
+      !isInternalOrPrivateIp(currentIp)
+    ) {
       const sessionIpPrefix = session.ipAddress.split('.').slice(0, 3).join('.');
       const currentIpPrefix = currentIp.split('.').slice(0, 3).join('.');
       const isSubnetMismatch = sessionIpPrefix !== currentIpPrefix && !session.ipAddress.includes(':') && !currentIp.includes(':');

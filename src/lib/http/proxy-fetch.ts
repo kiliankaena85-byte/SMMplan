@@ -18,7 +18,8 @@ export async function createProxyDispatcher(proxy: ProxyConfig) {
 
   if (proxy.protocol === 'socks5') {
     const { SocksProxyAgent } = await import('socks-proxy-agent');
-    const socksUrl = `socks5://${auth}${proxy.host}:${proxy.port}`;
+    // Use socks5h:// to enforce remote DNS resolution inside the tunnel (prevents local DNS leaks)
+    const socksUrl = `socks5h://${auth}${proxy.host}:${proxy.port}`;
     const socksAgent = new SocksProxyAgent(socksUrl);
 
     // Custom connector for undici to route via SOCKS5
@@ -40,12 +41,18 @@ export async function createProxyDispatcher(proxy: ProxyConfig) {
 
     return new Agent({
       connect: connectFn as unknown as NonNullable<ConstructorParameters<typeof Agent>[0]>['connect'],
+      connectTimeout: 8000,
+      headersTimeout: 15000,
     });
   }
 
   // http and https proxies use undici's native ProxyAgent
   const proxyUrl = `${proxy.protocol}://${auth}${proxy.host}:${proxy.port}`;
-  return new ProxyAgent(proxyUrl);
+  return new ProxyAgent({
+    uri: proxyUrl,
+    connectTimeout: 8000,
+    headersTimeout: 15000,
+  });
 }
 
 /**
@@ -63,27 +70,11 @@ export async function proxiedFetch(
   const cleanInit = { ...init };
   delete (cleanInit as Record<string, unknown>).proxy;
 
-  // OWASP A10: Always validate target URL
-  const ssrfCheck = await assertSafeOutboundUrl(url);
-  if (!ssrfCheck.ok) {
-    throw new Error(`SSRF blocked: ${ssrfCheck.reason} for URL ${url}`);
-  }
-
-  if (!proxy) {
-    // No proxy — direct connection
-    return fetch(url, cleanInit);
-  }
-
-  const dispatcher = await createProxyDispatcher(proxy);
-  const { fetch: undiciFetch } = await import('undici');
-
-  return undiciFetch(url, {
-    method: cleanInit.method,
-    headers: cleanInit.headers as unknown as Record<string, string>,
-    body: cleanInit.body as unknown as string | Buffer,
-    signal: cleanInit.signal as unknown as AbortSignal,
-    dispatcher: dispatcher as unknown as NonNullable<Parameters<typeof undiciFetch>[1]>['dispatcher'],
-  }) as unknown as Promise<Response>;
+  const { UniversalNetworkRouter } = await import('@/lib/network/network-router');
+  return UniversalNetworkRouter.fetch(url, cleanInit, {
+    service: 'PROVIDERS',
+    customProxy: proxy,
+  });
 }
 
 /**

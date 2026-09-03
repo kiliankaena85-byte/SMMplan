@@ -199,8 +199,20 @@ export default async function AdminDashboardPage({
       {/* ── HEADER WITH SITE (TENANT) SELECTOR & PERIOD SELECTOR ── */}
       <AdminTabbedHeader
         icon={Home}
-        title={`Панель управления · ${user?.role === 'OWNER' ? 'Владелец' : 'Администратор'}`}
-        description="Оперативный пульс платформы, динамика потоков заказов и финансовый мониторинг."
+        title={`Панель управления · ${
+          user?.role === 'OWNER'
+            ? 'Владелец'
+            : user?.role === 'SUPPORT' || user?.role === 'OPERATOR'
+            ? 'Командный центр поддержки'
+            : user?.role === 'MANAGER'
+            ? 'Менеджер'
+            : 'Администратор'
+        }`}
+        description={
+          user?.role === 'SUPPORT' || user?.role === 'OPERATOR'
+            ? 'Оперативный мониторинг потока заказов, контроль очереди тикетов и радар сбоев.'
+            : 'Оперативный пульс платформы, динамика потоков заказов и финансовый мониторинг.'
+        }
         tabs={OPERATIONS_TABS}
         onboardingKey="dashboard"
         onboarding={ONBOARDING_CONFIGS.dashboard}

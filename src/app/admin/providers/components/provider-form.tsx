@@ -491,44 +491,13 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
         </>
       )}
 
-      {/* Mode Toggle */}
-      <div className="flex bg-muted/50 p-1 rounded-lg w-full max-w-lg mb-6 border border-border/50">
-        <button
-          type="button"
-          onClick={() => handleModeChange('standard')}
-          className={`flex-1 text-xs font-semibold py-2 rounded-md transition-all duration-200 ${
-            integrationMode === 'standard' 
-              ? 'bg-background shadow-sm text-foreground' 
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Perfect Panel API (Стандарт)
-        </button>
-        <button
-          type="button"
-          onClick={() => handleModeChange('visual')}
-          className={`flex-1 text-xs font-semibold py-2 rounded-md transition-all duration-200 ${
-            integrationMode === 'visual' 
-              ? 'bg-background shadow-sm text-foreground' 
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Визуальный Билдер
-        </button>
-        <button
-          type="button"
-          onClick={() => handleModeChange('json')}
-          className={`flex-1 text-xs font-semibold py-2 rounded-md transition-all duration-200 ${
-            integrationMode === 'json' 
-              ? 'bg-background shadow-sm text-foreground' 
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          JSON (Oldschool)
-        </button>
-      </div>
-
       <div className="space-y-6">
+        {/* Section 1: Basic connection parameters */}
+        <div>
+          <h3 className="text-base font-bold text-foreground mb-1">1. Основные параметры подключения</h3>
+          <p className="text-xs text-muted-foreground mb-4">Адрес API-шлюза, валюта и ключ доступа к панели поставщика.</p>
+        </div>
+
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-6">
 
           {/* Name */}
@@ -661,15 +630,83 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
               <p className="text-xs font-bold text-destructive mt-1">{fieldErrors.ticketUrl[0]}</p>
             )}
           </div>
+        </div>
 
-          {/* Technical Settings Section - Conditionally rendered */}
-          {integrationMode === 'visual' && (
-            <div className="sm:col-span-6 space-y-6 pt-4 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="border-t border-border pt-4 flex flex-col md:flex-row gap-4 items-start justify-between">
+        {/* Section 2: Integration Protocol & Field Mapping */}
+        <div className="border-t border-border pt-6 mt-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 className="text-base font-bold text-foreground">
+                2. Формат интеграции и маппинг полей
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Выберите протокол обмена данными с API поставщика
+              </p>
+            </div>
+
+            {/* Mode Toggle Switcher */}
+            <div className="flex bg-muted/60 p-1 rounded-xl w-full sm:w-auto border border-border/60 shadow-xs">
+              <button
+                type="button"
+                onClick={() => handleModeChange('standard')}
+                className={`px-3.5 py-2 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                  integrationMode === 'standard'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                Perfect Panel (Стандарт)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleModeChange('visual')}
+                className={`px-3.5 py-2 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                  integrationMode === 'visual'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                Визуальный Билдер
+              </button>
+              <button
+                type="button"
+                onClick={() => handleModeChange('json')}
+                className={`px-3.5 py-2 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                  integrationMode === 'json'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                JSON (Oldschool)
+              </button>
+            </div>
+          </div>
+
+          {/* Standard Mode Banner */}
+          {integrationMode === 'standard' && (
+            <div className="p-4 rounded-xl bg-success/10 border border-success/20 animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-success/20 text-success flex items-center justify-center font-bold text-sm shrink-0">
+                  ⚡
+                </div>
                 <div>
-                  <h3 className="text-base font-semibold text-foreground">Визуальный API Билдер</h3>
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    Инструмент для подключения "нестандартных" провайдеров. Откройте API документацию нужного провайдера (раздел "Add order") и перенесите названия полей оттуда в эти ячейки.
+                  <h4 className="text-sm font-bold text-foreground">Стандартный протокол Perfect Panel API активен</h4>
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                    Все запросы (создание заказов <code className="font-mono text-primary">action=add</code>, проверка статусов <code className="font-mono text-primary">action=status</code>, запрос баланса <code className="font-mono text-primary">action=balance</code>) формируются автоматически в стандартном формате <code className="font-mono text-foreground">x-www-form-urlencoded</code>.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Technical Settings Section - Visual Builder */}
+          {integrationMode === 'visual' && (
+            <div className="space-y-6 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex flex-col md:flex-row gap-4 items-start justify-between">
+                <div>
+                  <h4 className="text-sm font-bold text-foreground">Визуальный API Билдер</h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Инструмент для подключения нестандартных провайдеров. Откройте API документацию нужного провайдера (раздел "Add order") и перенесите названия полей оттуда в эти ячейки.
                   </p>
                 </div>
               </div>

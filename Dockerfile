@@ -4,16 +4,18 @@ WORKDIR /app
 ENV NODE_ENV=production
 RUN apk add --no-cache curl dos2unix openssl libssl3
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
+RUN mkdir -p /app/private/uploads/tickets && chown -R nextjs:nodejs /app/private
 
 # Next.js standalone (копируется напрямую из собранного билда)
 COPY --chown=nextjs:nodejs .next/standalone ./
 COPY --chown=nextjs:nodejs .next/static ./.next/static
 COPY --chown=nextjs:nodejs public ./public
 
-# Prisma (для migrate deploy и runtime)
+# Prisma (для migrate deploy и runtime) & Nodemailer for SMTP
 COPY --chown=nextjs:nodejs prisma ./prisma
 COPY --chown=nextjs:nodejs node_modules/.prisma ./node_modules/.prisma
 COPY --chown=nextjs:nodejs node_modules/@prisma/client ./node_modules/@prisma/client
+COPY --chown=nextjs:nodejs node_modules/nodemailer ./node_modules/nodemailer
 
 # Entrypoint (prisma migrate deploy перед стартом)
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
@@ -37,6 +39,7 @@ RUN apk add --no-cache openssl libssl3 curl
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 
 COPY --chown=nextjs:nodejs .next/standalone/node_modules ./node_modules
+COPY --chown=nextjs:nodejs node_modules/nodemailer ./node_modules/nodemailer
 COPY --chown=nextjs:nodejs prisma ./prisma
 COPY --chown=nextjs:nodejs dist/worker.js ./
 
@@ -49,6 +52,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 RUN apk add --no-cache openssl libssl3 curl
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
+RUN mkdir -p /app/private/uploads/tickets && chown -R nextjs:nodejs /app/private
 
 # Copy standalone node_modules, Prisma runtime, and bundled bot
 COPY --chown=nextjs:nodejs .next/standalone/node_modules ./node_modules

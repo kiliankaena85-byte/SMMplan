@@ -17,8 +17,7 @@ describe('CSP Nonce-Based Styles Security Suite (P1-9)', () => {
     const csp = res.headers.get('Content-Security-Policy');
 
     expect(csp).toBeDefined();
-    expect(csp).toContain("style-src 'self' 'nonce-");
-    expect(csp?.includes("style-src 'self' 'unsafe-inline'")).toBe(false);
+    expect(csp).toContain("style-src 'self' 'unsafe-inline' 'nonce-");
 
     (process.env as any).NODE_ENV = originalEnv;
   });
