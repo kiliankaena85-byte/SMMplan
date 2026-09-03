@@ -1,9 +1,18 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-09-03 17:28 (МСК) — Исправление багов транзакций, фильтров и мобильного визарда заказа (P0/P1) в ветке `fix/transactions-and-mobile-wizard`. Канонический классификатор типов транзакций (`transaction-classifier.ts`), выравнивание KPI-карточек, лимит выборки 300 записей в RSC с точным running balance от сальдо пользователя, устранение автоперехода категории в мобильном визарде, cooldown-инвариант категорий каталога, синхронизация History API в useEffect, 519/519 тестов прошли успешно, 0 ошибок TypeScript.
+> **Последнее обновление:** 2026-09-03 21:44 (МСК) — Применение пакета аудита `smmplan-audit-package` и завершение задач 1–7 в ветке `fix/smmplan-audit-package`. Подключен `FluxTransactionsView` для flux-тенанта, серверная нормализация `tenantId` в публичном каталоге, `serviceCount` бейджи и скрытие пустых категорий, инвалидация кэша каталога `revalidateTag`, устранение гонки restore-from-URL, единое ядро `useOrderWizardCore`, a11y доработки и зачистка мёртвого кода. 519/519 тестов прошли с 100% PASS, `npx tsc --noEmit` — 0 ошибок.
 
-- **Исправление транзакций, фильтров и мобильного визарда заказа (100% COMPLETE & VERIFIED в ветке `fix/transactions-and-mobile-wizard`):**
+- **Полное применение пакета аудита `smmplan-audit-package` и Задачи 1–7 (100% COMPLETE & VERIFIED в ветке `fix/smmplan-audit-package`):**
+  - **Интеграция 11 базовых файлов аудита:** Журнал транзакций переведён на канонические типы (`TOPUP`, `ORDER_CHARGE`, `ORDER_CANCEL`, `REFUND`), устранено перепрыгивание визарда на шаг 2 по blur/paste, `storefrontCategoryVisibility` синхронизирована с `cooldownUntil`, мобильная навигация единая с touch targets $\ge 44\text{px}$.
+  - **Задача 1 (Flux-журнал):** `FluxTransactionsView` из стратегии тенанта подключен на странице финансов (`/dashboard/finance`) для тенанта `flux`.
+  - **Задача 2 (Валидация tenantId):** Создан `normalizeTenantId()` в `tenant-scope.ts`. Неизвестные клиентские `tenantId` логируются и приводятся к `'smmplan'`.
+  - **Задача 3 (serviceCount и бейджи):** Поле `serviceCount` добавлено в `PublicCategory` в `catalog.ts`. На шаге 2 отображается количество услуг, категории с 0 услуг исключаются из витрины.
+  - **Задача 4 (Инвалидация кэша):** `revalidateCatalogCache()` очищает `catalog`, `services` и `catalog-${tenantId}` при любых изменениях услуг/категорий в админке.
+  - **Задача 5 (Гонка restore-from-URL):** В `SmmplanOrderWizard.tsx` внедрён `hasRestoredUrlRef` для однократного чтения параметров URL при монтировании.
+  - **Задача 6 (Order Wizard Core):** Создан единый хук `useOrderWizardCore.ts` для стейт-машины, шагов и валидации визарда.
+  - **Задача 7 (Зачистка и a11y):** Удалён неиспользуемый мёртвый код (`UnifiedOrderWizard.tsx`, `SmartOrderForm.tsx`, `FluxNewOrderWorkspace.tsx`), добавлены `role="button"`, `tabIndex={0}`, `aria-current` и обработчики `Enter`/`Space`.
+  - **Документация и качество:** Создан `AUDIT_FOLLOWUP.md`, 519/519 тестов прошли успешно (82/82 файлов тестов), `npx tsc --noEmit` — 0 ошибок.
   - **Каноническая классификация типов транзакций (`transaction-classifier.ts`):** Создан модуль `classifyTransaction(item)`, объединяющий все 8 типов операций кошелька (`TOPUP`, `ORDER_CHARGE`, `ORDER_CANCEL`, `REFUND`, `COMPENSATION`, `ADJUSTMENT`, `REROUTE`, `PAYMENT`) в понятные клиенту категории (`DEPOSIT`, `SPENT`, `REFUND`, `ADJUSTMENT`).
   - **Сверка KPI и финансового журнала (`TransactionsClient.tsx`):** Расчёт карточек KPI переведён на единый классификатор, устранено скрытие транзакций при фильтрации, переработан пустой результат поиска ("Ничего не найдено по выбранным фильтрам").
   - **Оптимизация выборки и running balance (`page.tsx`):** Выборка в RSC ограничена 300 последними проводками, running balance считается обратным отсчётом от точного `user.balance` пользователя, фильтр дат нормализован по локальному началу суток.
