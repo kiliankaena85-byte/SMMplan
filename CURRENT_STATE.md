@@ -1,7 +1,7 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-09-03 21:44 (МСК) — Применение пакета аудита `smmplan-audit-package` и завершение задач 1–7 в ветке `fix/smmplan-audit-package`. Подключен `FluxTransactionsView` для flux-тенанта, серверная нормализация `tenantId` в публичном каталоге, `serviceCount` бейджи и скрытие пустых категорий, инвалидация кэша каталога `revalidateTag`, устранение гонки restore-from-URL, единое ядро `useOrderWizardCore`, a11y доработки и зачистка мёртвого кода. 519/519 тестов прошли с 100% PASS, `npx tsc --noEmit` — 0 ошибок.
+> **Последнее обновление:** 2026-09-03 22:06 (МСК) — Слита ветка `fix/smmplan-audit-package` в `main` и отправлена в `origin/main`. Выполнена 100% продакшен-сборка `npm run build` (Next.js 16 + TypeScript 0 ошибок + esbuild bot/worker + 0 утечек секретов в CI-GATE). Локальные контейнеры Docker (`smmplan_web`, `smmplan_bot`, `smmplan_lite_worker`) полностью пересобраны из свежих образов и успешно перезапущены (Status: `Up (healthy)`).
 
 - **Полное применение пакета аудита `smmplan-audit-package` и Задачи 1–7 (100% COMPLETE & VERIFIED в ветке `fix/smmplan-audit-package`):**
   - **Интеграция 11 базовых файлов аудита:** Журнал транзакций переведён на канонические типы (`TOPUP`, `ORDER_CHARGE`, `ORDER_CANCEL`, `REFUND`), устранено перепрыгивание визарда на шаг 2 по blur/paste, `storefrontCategoryVisibility` синхронизирована с `cooldownUntil`, мобильная навигация единая с touch targets $\ge 44\text{px}$.
