@@ -28,6 +28,7 @@ export function MobileStep2Category({
 }: MobileStep2CategoryProps) {
   const [showAllCategories, setShowAllCategories] = React.useState(false);
   const { categoryId, setCategoryId, availableCategories, detectedType, platform, url, services, isLoading } = engine;
+  const suggestedCategories: string[] = [];
 
   const allNetworkCategories = engine.activeNetwork?.categories || [];
   const isLinkActive = url && url.trim().length >= 5;
