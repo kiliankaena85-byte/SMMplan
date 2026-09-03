@@ -10,13 +10,13 @@ import { revalidateTag } from 'next/cache';
  */
 export function revalidateCatalogCache(tenantId?: string) {
   try {
-    revalidateTag('catalog');
-    revalidateTag('services');
+    revalidateTag('catalog', 'default');
+    revalidateTag('services', 'default');
     if (tenantId) {
-      revalidateTag(`catalog-${tenantId}`);
+      revalidateTag(`catalog-${tenantId}`, 'default');
     } else {
-      revalidateTag('catalog-smmplan');
-      revalidateTag('catalog-flux');
+      revalidateTag('catalog-smmplan', 'default');
+      revalidateTag('catalog-flux', 'default');
     }
   } catch {
     // revalidateTag might throw if called outside Next.js request context during unit tests
