@@ -1,9 +1,12 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-09-03 04:00 (МСК)
+> **Последнее обновление:** 2026-09-03 04:26 (МСК) — Все контейнеры ветки main пересобраны и запущены (Up healthy).
 
-- **Аудит архитектуры прокси и суверенный резерв РФ (RU_SOVEREIGN_POOL & Multi-Proxy Failover) — 100% COMPLETE & LIVE VERIFIED:**
+- **Релиз и переразвертывание ветки main (Web, Worker, Bot) — 100% DEPLOYED & HEALTHY:**
+  - `smmplan_web` пересобран с nodemailer и последними обновлениями роутера; healthcheck: `healthy`.
+  - `smmplan_lite_worker` запущен с воркером очередей BullMQ и cron-синхронизацией подписок.
+  - `smmplan_bot` перезапущен и подключен к Telegram `@SMMplansapport_bot`.
   - **Глубокий аудит 6 направлений:** Проведен аудит архитектуры, пограничных состояний (Edge Cases), обработки ошибок, резервных путей, алертов и настроек.
   - **Интеллектуальное авто-распознавание RU-нод (Sovereign Tag Detection):** При импорте подписок Clash Verge или списков узлов в `provider-proxy.ts` система автоматически анализирует гео-метки (`RU`, `🇷🇺`, `Russia`, `Россия`, `MSK`, `SPB`), проставляет `geoCountry: 'RU'` и теги `['RU', 'SOVEREIGN']`.
   - **Суверенный резерв (`RU_SOVEREIGN_POOL`):** В `ProxyPoolService.getHealthyRuProxy()` и `UniversalNetworkRouter` реализован выбор наименее загруженных и здоровых российских нод для безопасного подключения к ЮKassa/Robokassa при размещении серверов за рубежом (Hetzner, OVH, AWS).
