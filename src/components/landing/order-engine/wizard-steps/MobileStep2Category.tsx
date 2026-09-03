@@ -50,6 +50,15 @@ export function MobileStep2Category({
     return clean;
   };
 
+  // SRS Rule 1.3: Smart Auto-Select when N=1
+  React.useEffect(() => {
+    if (currentStep === 2 && categoriesToDisplay.length === 1 && !categoryId) {
+      const singleCat = categoriesToDisplay[0];
+      setCategoryId(singleCat.id);
+      setActiveStep(3);
+    }
+  }, [currentStep, categoriesToDisplay, categoryId, setCategoryId, setActiveStep]);
+
   if (!(currentStep === 2 || (currentStep !== 2 && !!categoryId)) || !shouldShowCategories || (availableCategories.length === 0 && allNetworkCategories.length === 0)) {
     return null;
   }

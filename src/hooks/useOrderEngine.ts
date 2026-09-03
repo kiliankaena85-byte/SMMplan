@@ -199,7 +199,10 @@ export function useOrderEngine(
   const [urlMutatedTrigger, setUrlMutatedTrigger] = useState(false);
 
 
-  const handleSetUrl = useCallback((newUrl: string) => {
+  const isImmediateRef = useRef(false);
+
+  const handleSetUrl = useCallback((newUrl: string, immediate = false) => {
+    if (immediate) isImmediateRef.current = true;
     setUrl(newUrl);
     setIsLinkOverridden(false);
     setIsWarningConfirmed(false);
@@ -290,6 +293,8 @@ export function useOrderEngine(
     // isLoading would stay `true` forever (the finally block never runs).
     // Instead, set it inside the timer callback.
     let stale = false;
+    const delay = isImmediateRef.current ? 0 : 350;
+    isImmediateRef.current = false;
 
     const handler = setTimeout(async () => {
       if (stale) return;
@@ -320,9 +325,14 @@ export function useOrderEngine(
                       if (f.length > 0) filteredCats = f;
                   }
                   if (filteredCats.length > 0) {
-                     // Smart Adaptive Flow: If link is entered and no service selected, keep categoryId empty for user choice
+                     // Smart Adaptive Flow: If link is entered and no service selected
                      if (url.trim().length >= 5 && !selectedServiceRef.current) {
-                        setCategoryId("");
+                        // SRS Rule 1.3: Smart Auto-Select when N=1
+                        if (filteredCats.length === 1) {
+                           setCategoryId(filteredCats[0].id);
+                        } else {
+                           setCategoryId("");
+                        }
                      } else {
                         const isCurrentCompatible = filteredCats.some(c => c.id === categoryIdRef.current);
                         if (!isCurrentCompatible) {

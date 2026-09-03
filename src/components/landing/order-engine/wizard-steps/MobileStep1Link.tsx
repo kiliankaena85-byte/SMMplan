@@ -31,14 +31,17 @@ export function MobileStep1Link({
   onOpenCatalog
 }: MobileStep1LinkProps) {
   const { url, setUrl, validationErrors, selectedService } = engine;
+  const [isPasted, setIsPasted] = React.useState(false);
 
   const handlePasteFromClipboard = async () => {
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
         const text = await navigator.clipboard.readText();
         if (text && text.trim().length > 0) {
-          setUrl(text.trim());
+          setUrl(text.trim(), true);
           if (localUrlError) setLocalUrlError(null);
+          setIsPasted(true);
+          setTimeout(() => setIsPasted(false), 1500);
         }
       }
     } catch {
@@ -125,6 +128,13 @@ export function MobileStep1Link({
               setUrl(e.target.value);
               if (localUrlError) setLocalUrlError(null);
             }}
+            onPaste={e => {
+              const text = e.clipboardData?.getData('text');
+              if (text && text.trim().length > 0) {
+                setUrl(text.trim(), true);
+                if (localUrlError) setLocalUrlError(null);
+              }
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
@@ -141,10 +151,19 @@ export function MobileStep1Link({
             <button
               type="button"
               onClick={handlePasteFromClipboard}
-              className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-[11px] font-extrabold flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 px-3 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 transition-all"
             >
-              <ClipboardPaste className="w-3 h-3" />
-              <span>Вставить</span>
+              {isPasted ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Вставлено!</span>
+                </>
+              ) : (
+                <>
+                  <ClipboardPaste className="w-3.5 h-3.5" />
+                  <span>Вставить</span>
+                </>
+              )}
             </button>
           ) : (
             <button
@@ -153,7 +172,8 @@ export function MobileStep1Link({
                 setUrl('');
                 if (localUrlError) setLocalUrlError(null);
               }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-muted-foreground hover:text-foreground text-xs font-bold cursor-pointer"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-content2 hover:bg-content3 flex items-center justify-center text-muted-foreground hover:text-foreground text-xs font-bold cursor-pointer transition-all"
+              title="Очистить ссылку"
             >
               ✕
             </button>

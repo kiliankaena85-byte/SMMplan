@@ -216,7 +216,7 @@ export function SmartLinkLanding({
 
       <Header initialEmail={initialEmail} siteName={companyName} tenantId={tenantId} activePath={ROUTES.HOME} />
 
-      <main className="flex-1 w-full max-w-screen-2xl mx-auto px-2 sm:px-4 md:px-6 pt-12 md:pt-28 pb-16 md:pb-40 flex flex-col items-center relative z-10">
+      <main className="flex-1 w-full max-w-screen-2xl mx-auto px-2 sm:px-4 md:px-6 pt-3 md:pt-28 pb-16 md:pb-40 flex flex-col items-center relative z-10">
 
         <div className="absolute top-0 inset-x-0 h-[800px] z-[-1] pointer-events-none overflow-hidden premium-dot-grid" />
         <div className="absolute top-0 inset-x-0 h-[800px] z-[-1] pointer-events-none overflow-hidden bg-gradient-to-b from-transparent via-background/50 to-background" />
@@ -227,8 +227,19 @@ export function SmartLinkLanding({
           <div className="absolute top-[30%] left-[30%] w-64 h-64 rounded-full bg-emerald-500/10 dark:emerald-500/5 blur-3xl pointer-events-none animate-blob-3" />
         </div>
 
+        {/* Мобильный компактный заголовок: First Screen Viewport Fit */}
+        <div className="block md:hidden text-center mb-2.5 w-full px-2 animate-in fade-in duration-300">
+          <h1 className="text-xl font-black tracking-tight text-foreground leading-tight">
+            Быстрый запуск в соцсетях
+          </h1>
+          <p className="text-[12px] text-muted-foreground font-medium mt-0.5">
+            Без паролей и регистрации • Запуск за 30 секунд
+          </p>
+        </div>
+
+        {/* Десктопный Hero блок */}
         <div 
-          className="text-center space-y-4 mb-8 max-w-4xl relative z-20 w-full mt-2 px-2 animate-in fade-in slide-in-from-bottom-4 duration-500"
+          className="hidden md:block text-center space-y-4 mb-8 max-w-4xl relative z-20 w-full mt-2 px-2 animate-in fade-in slide-in-from-bottom-4 duration-500"
         >
           <div className="mb-2">
             <ThemeSwitcher />
@@ -260,8 +271,8 @@ export function SmartLinkLanding({
             </div>
           </div>
 
-          {/* ГЛАВНЫЙ ИНПУТ ДЛЯ ВСТАВКИ ССЫЛКИ В HERO СЕКЦИИ (ТОЛЬКО ДЕСКТОП, НА МОБИЛЬНЫХ РАБОТАЕТ ПОШАГОВЫЙ WIZARD) */}
-          <div className="pt-3 w-full hidden md:block">
+          {/* ГЛАВНЫЙ ИНПУТ ДЛЯ ВСТАВКИ ССЫЛКИ В HERO СЕКЦИИ (ТОЛЬКО ДЕСКТОП) */}
+          <div className="pt-3 w-full">
             <HeroInput 
               engine={engine} 
               handleCheckout={handleCheckout} 
@@ -272,7 +283,7 @@ export function SmartLinkLanding({
           </div>
         </div>
  
-        <div className="w-full max-w-[98%] xl:max-w-[1600px] mx-auto bg-content1 shadow-2xl ring-1 ring-border/20 rounded-2xl md:rounded-[2.5rem] p-4 sm:p-6 lg:p-8 pt-6 relative">
+        <div className="w-full max-w-[98%] xl:max-w-[1600px] mx-auto bg-content1 shadow-2xl ring-1 ring-border/20 rounded-2xl md:rounded-[2.5rem] p-2.5 sm:p-6 lg:p-8 pt-3 sm:pt-6 relative">
           
           <div className="min-h-[500px] transition-all duration-300">
             {unfilteredCatalog.length === 0 ? (
