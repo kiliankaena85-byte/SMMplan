@@ -21,6 +21,7 @@ export interface FluxCategory {
   name: string;
   slug: string;
   icon?: string | null;
+  serviceCount?: number;
   services?: FluxService[];
 }
 
