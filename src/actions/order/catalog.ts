@@ -151,7 +151,7 @@ export async function getCachedServicesByCategory(categoryId: string, tenantId: 
       }
       return services.slice(0, CATEGORY_SERVICES_HARD_LIMIT);
     },
-    [`public-services-by-category-v3-${categoryId}-${tenantId}`],
+    [`public-services-by-category-v4-${categoryId}-${tenantId}`],
     { revalidate: 60, tags: ['catalog', 'services', `catalog-${tenantId}`, `category-${categoryId}-${tenantId}`] }
   )();
 }
