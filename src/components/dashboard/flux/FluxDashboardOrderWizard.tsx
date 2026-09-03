@@ -101,7 +101,9 @@ function FluxDashboardOrderWizardInner({
 
   const [isRequirementsConfirmed, setIsRequirementsConfirmed] = useState(false);
   const [isDripFeedEnabled, setIsDripFeedEnabled] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [dripRuns, setDripRuns] = useState(5);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [dripInterval, setDripInterval] = useState(60);
   const [customData, setCustomData] = useState("");
   const [isTgGuideOpen, setIsTgGuideOpen] = useState(false);

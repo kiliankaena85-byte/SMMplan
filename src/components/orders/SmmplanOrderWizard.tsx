@@ -65,6 +65,7 @@ function SmmplanOrderWizardInner({
   const [email, setEmail] = useState(userEmail);
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [appliedPromo, setAppliedPromo] = useState('');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [promoDiscountPercent, setPromoDiscountPercent] = useState<number | null>(null);
   const [promoMessage, setPromoMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);

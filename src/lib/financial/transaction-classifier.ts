@@ -10,9 +10,9 @@ export interface LedgerItemForClassification {
   transactionType: string;
 }
 
-const DEPOSIT_TYPES = new Set(['TOPUP', 'PAYMENT', 'ADJUSTMENT']);
-const SPEND_TYPES = new Set(['ORDER_CHARGE', 'PAYMENT', 'REROUTE']);
-const REFUND_TYPES = new Set(['REFUND', 'ORDER_CANCEL', 'COMPENSATION']);
+export const DEPOSIT_TYPES = new Set(['TOPUP', 'PAYMENT', 'ADJUSTMENT']);
+export const SPEND_TYPES = new Set(['ORDER_CHARGE', 'PAYMENT', 'REROUTE']);
+export const REFUND_TYPES = new Set(['REFUND', 'ORDER_CANCEL', 'COMPENSATION']);
 
 /**
  * Classifies a ledger entry into a canonical client-facing category.

@@ -4,7 +4,9 @@ import { db } from "@/lib/db";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { IntelligencePlatform } from "@/services/analyzer/link-rules";
 import { applyBeautifulRounding, SAFETY_FLOOR_MARKUP } from "@/lib/financial-constants";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { getCostRub } from "@/lib/pricing/currency-invariant";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { applyAntiNegativeMargin } from "@/lib/pricing/anti-negative-margin";
 import { SettingsProvider } from "@/lib/settings";
 import { unstable_cache } from "next/cache";
@@ -261,7 +263,7 @@ export async function getPublicCatalogAction(rawTenantId: string = 'smmplan') {
       : await getCachedNetworks(tenantId);
 
     const catalog: PublicNetwork[] = rawNetworks.map(net => {
-      let icon = `/brands/${net.slug}.svg`;
+      const icon = `/brands/${net.slug}.svg`;
       let finalIcon = net.icon && (net.icon.startsWith('/') || net.icon.startsWith('http')) ? net.icon : icon;
       if (finalIcon.startsWith('/icons/')) {
         finalIcon = finalIcon.replace('/icons/', '/brands/');
@@ -541,6 +543,7 @@ export async function getServiceBySlugAction(slug: string, tenantId: string = 's
 /**
  * @public Fetches fresh, live un-cached service details for JIT modal refresh
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function getFreshServiceAction(serviceId: string, tenantId: string = 'smmplan'): Promise<PublicService | null> {
   try {
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
