@@ -224,8 +224,6 @@ export function MobileStep1Link({
                   onClick={() => {
                     if (catalogNet) {
                       engine.setNetworkId(catalogNet.id);
-                      const firstCat = catalogNet.categories[0];
-                      if (firstCat) engine.setCategoryId(firstCat.id);
                       setActiveStep(2);
                     }
                   }}

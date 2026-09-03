@@ -85,6 +85,18 @@ describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
     expect(result.current.isLinkFilled).toBe(true);
   });
 
+  it('2b (Phase 2 B1). proceedFromStep1 always advances to Step 2 and never auto-jumps to Step 3', () => {
+    let engine = createMockEngine({ url: 'https://t.me/my_awesome_channel', categoryId: 'tg-subs' });
+    const { result } = renderHook(() => useMobileWizard(engine));
+
+    act(() => {
+      result.current.proceedFromStep1();
+    });
+
+    // proceedFromStep1 must advance to Step 2 (selecting category), NOT jump past to Step 3
+    expect(result.current.currentStep).toBe(2);
+  });
+
   it('3. Advances directly to Step 4 when a service is chosen from Catalog without prior URL', () => {
     const selectedService = mockCatalog[0].categories[0].services[0];
     const engine = createMockEngine({

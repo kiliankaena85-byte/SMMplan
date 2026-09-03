@@ -98,7 +98,6 @@ export function useMobileWizard(engine: OrderEngine) {
   const proceedFromStep1 = () => {
     userManuallyBrowsingRef.current = true;
     if (selectedService) setActiveStep(4);
-    else if (categoryId) setActiveStep(3);
     else setActiveStep(2);
   };
 
@@ -120,11 +119,10 @@ export function useMobileWizard(engine: OrderEngine) {
   const prevSelectedServiceIdRef = useRef<string | null>(selectedService?.id || null);
   const prevCategoryIdRef = useRef<string | null>(categoryId || null);
 
-  // Reactive selection auto-advance: ONLY advance when the user actually picks a NEW service or category,
-  // NOT on every step change (which would trap the user on Step 4 when clicking "Назад" or "Сменить ссылку")
+  // Reactive selection auto-advance: ONLY advance to Step 4 when the user actually picks a service.
+  // Never auto-advance to Step 3 on category change (Step 3 advance is triggered explicitly by user clicking a category chip).
   useEffect(() => {
     if (!userManuallyBrowsingRef.current && activeStepRaw === 1 && !selectedService) {
-      // Do NOT auto-skip Step 1 on initial load just because categoryId is pre-set!
       return;
     }
 
@@ -135,9 +133,8 @@ export function useMobileWizard(engine: OrderEngine) {
       prevSelectedServiceIdRef.current = null;
     }
 
-    if (categoryId && categoryId !== prevCategoryIdRef.current && activeStepRaw === 2) {
+    if (categoryId && categoryId !== prevCategoryIdRef.current) {
       prevCategoryIdRef.current = categoryId;
-      setActiveStep(3);
     } else if (!categoryId) {
       prevCategoryIdRef.current = null;
     }
