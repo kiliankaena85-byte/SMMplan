@@ -76,12 +76,16 @@ export default async function FinancePage() {
   const serializedEntries = enrichedEntries.reverse();
   const currentBalanceRub = Number(user.balance ?? 0) / 100;
 
+  const reqHeaders = await headers();
+  const tenantId = resolveTenantFromRequest(reqHeaders);
+
   return (
     <Suspense fallback={<div className="max-w-4xl animate-pulse text-muted-foreground">Загрузка финансов...</div>}>
       <FinanceClientPage
         userEmail={user.email}
         currentBalanceRub={currentBalanceRub}
         initialEntries={serializedEntries}
+        tenantId={tenantId}
       />
     </Suspense>
   );

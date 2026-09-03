@@ -120,14 +120,18 @@ function SmmplanOrderWizardInner({
     }
   };
 
-  // Restore state from URL searchParams if present
+  const hasRestoredUrlRef = useRef(false);
+
+  // Restore state from URL searchParams once on mount (Task 5 fix)
   useEffect(() => {
+    if (hasRestoredUrlRef.current) return;
     if (!isLoadingCatalog && networks.length > 0 && !initialReorderData) {
-      const paramStep = searchParams.get('step');
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const paramServiceId = searchParams.get('serviceId');
-      const paramCategoryId = searchParams.get('categoryId');
-      const paramNetworkId = searchParams.get('networkId');
+      hasRestoredUrlRef.current = true;
+      const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : searchParams;
+      const paramStep = params.get('step');
+      const paramServiceId = params.get('serviceId');
+      const paramCategoryId = params.get('categoryId');
+      const paramNetworkId = params.get('networkId');
 
       if (paramStep) {
         const parsedStep = parseInt(paramStep, 10);
@@ -147,7 +151,7 @@ function SmmplanOrderWizardInner({
             }
           }
           if (paramServiceId && paramCategoryId) {
-            getServicesByCategoryAction(paramCategoryId).then(servs => {
+            getServicesByCategoryAction(paramCategoryId, tenantId).then(servs => {
               const s = servs.find(srv => srv.id === paramServiceId);
               if (s) {
                 setSelectedService(s);
@@ -159,7 +163,7 @@ function SmmplanOrderWizardInner({
         }
       }
     }
-  }, [isLoadingCatalog, networks, searchParams, initialReorderData]);
+  }, [isLoadingCatalog, networks, searchParams, initialReorderData, tenantId]);
 
   // Load Public Catalog on Mount
   useEffect(() => {
@@ -744,7 +748,12 @@ function SmmplanOrderWizardInner({
                         <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0">
                           <Layers className="w-4 h-4 shrink-0" />
                         </div>
-                        <span className="text-sm font-semibold text-foreground truncate">{cat.name}</span>
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-foreground truncate">{cat.name}</div>
+                          {typeof cat.serviceCount === 'number' && cat.serviceCount > 0 && (
+                            <div className="text-[10px] font-medium text-muted-foreground">{cat.serviceCount} услуг</div>
+                          )}
+                        </div>
                       </div>
                       <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
                     </button>

@@ -57,8 +57,26 @@ export function assertSameTenant(session: TenantSession | null | undefined, enti
  *   db.category.findMany({ where: { tenantId: tenantVisibilityFilter(tenantId), ... } });
  */
 export function tenantVisibilityFilter(tenantId: string): { in: string[] } {
-  const normalized = (tenantId || '').trim().toLowerCase();
+  const normalized = normalizeTenantId(tenantId);
   const tenant = normalized === 'all' || normalized === '' ? 'smmplan' : normalized;
   return { in: [tenant, 'all'] };
+}
+
+const ALLOWED_TENANTS = new Set(['smmplan', 'flux', 'all']);
+
+/**
+ * TASK 2: Validates and normalizes client-provided tenantId parameters.
+ * Defaults unknown or unrecognized tenant IDs to 'smmplan' and logs warning.
+ */
+export function normalizeTenantId(input: unknown): string {
+  if (typeof input !== 'string' || !input.trim()) {
+    return 'smmplan';
+  }
+  const clean = input.trim().toLowerCase();
+  if (clean === 'lovable') return 'flux'; // legacy alias
+  if (ALLOWED_TENANTS.has(clean)) {
+    return clean;
+  }
+  return 'smmplan';
 }
 

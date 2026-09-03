@@ -8,7 +8,7 @@ import { getCostRub } from "@/lib/pricing/currency-invariant";
 import { applyAntiNegativeMargin } from "@/lib/pricing/anti-negative-margin";
 import { SettingsProvider } from "@/lib/settings";
 import { unstable_cache } from "next/cache";
-import { tenantVisibilityFilter } from "@/lib/tenant-scope";
+import { tenantVisibilityFilter, normalizeTenantId } from "@/lib/tenant-scope";
 
 import { sanitizeServiceDescription } from "@/lib/sanitize";
 import { logger } from "@/lib/logger";
@@ -43,7 +43,8 @@ function storefrontCategoryVisibility(tenantId: string) {
   };
 }
 
-export async function getCachedNetworks(tenantId: string) {
+export async function getCachedNetworks(rawTenantId: string) {
+  const tenantId = normalizeTenantId(rawTenantId);
   return unstable_cache(
     async () => {
       return await db.network.findMany({
@@ -55,7 +56,21 @@ export async function getCachedNetworks(tenantId: string) {
         include: {
           categories: {
             where: storefrontCategoryVisibility(tenantId),
-            orderBy: { sort: 'asc' }
+            orderBy: { sort: 'asc' },
+            include: {
+              _count: {
+                select: {
+                  services: {
+                    where: {
+                      isActive: true,
+                      isQuarantined: false,
+                      tenantId: tenantVisibilityFilter(tenantId),
+                      OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }],
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         orderBy: { sort: 'asc' }
@@ -197,6 +212,7 @@ export type PublicCategory = {
   networkId: string | null;
   requireWarning?: boolean;
   warningMessage?: string | null;
+  serviceCount?: number;
   analyzerTags?: string | null;
 };
 
@@ -209,7 +225,8 @@ export type PublicNetwork = {
 };
 
 /** @public Public catalog fetching action for storefront */
-export async function getPublicCatalogAction(tenantId: string = 'smmplan') {
+export async function getPublicCatalogAction(rawTenantId: string = 'smmplan') {
+  const tenantId = normalizeTenantId(rawTenantId);
   try {
 
     const rawNetworks = SettingsProvider.isTestEnvironment()
@@ -222,7 +239,21 @@ export async function getPublicCatalogAction(tenantId: string = 'smmplan') {
           include: {
             categories: {
               where: storefrontCategoryVisibility(tenantId),
-              orderBy: { name: 'asc' }
+              orderBy: { name: 'asc' },
+              include: {
+                _count: {
+                  select: {
+                    services: {
+                      where: {
+                        isActive: true,
+                        isQuarantined: false,
+                        tenantId: tenantVisibilityFilter(tenantId),
+                        OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }],
+                      }
+                    }
+                  }
+                }
+              }
             }
           },
           orderBy: { sort: 'asc' }
@@ -241,17 +272,21 @@ export async function getPublicCatalogAction(tenantId: string = 'smmplan') {
         name: net.name,
         slug: net.slug,
         icon: finalIcon, // prefer valid absolute/relative SVG custom icons or fallback
-        categories: net.categories.map(cat => ({
-          id: cat.id,
-          name: cat.name,
-          slug: cat.slug,
-          networkId: cat.networkId,
-          requireWarning: cat.requireWarning,
-          warningMessage: cat.warningMessage,
-          analyzerTags: 'analyzerTags' in cat ? (cat as { analyzerTags?: string | null }).analyzerTags : null
-        }))
+        categories: net.categories.map(cat => {
+          const serviceCount = '_count' in cat && cat._count ? (cat._count as { services: number }).services : 1;
+          return {
+            id: cat.id,
+            name: cat.name,
+            slug: cat.slug,
+            networkId: cat.networkId,
+            requireWarning: cat.requireWarning,
+            warningMessage: cat.warningMessage,
+            serviceCount,
+            analyzerTags: 'analyzerTags' in cat ? (cat as { analyzerTags?: string | null }).analyzerTags : null
+          };
+        }).filter(cat => cat.serviceCount > 0)
       };
-    });
+    }).filter(net => net.categories.length > 0);
 
     return { success: true, data: catalog };
   } catch (error: unknown) {
@@ -272,7 +307,8 @@ export async function getPublicCatalogAction(tenantId: string = 'smmplan') {
 /**
  * @public Public catalog endpoint for category services
  */
-export async function getServicesByCategoryAction(categoryId: string, tenantId: string = 'smmplan'): Promise<PublicService[]> {
+export async function getServicesByCategoryAction(categoryId: string, rawTenantId: string = 'smmplan'): Promise<PublicService[]> {
+  const tenantId = normalizeTenantId(rawTenantId);
   try {
 
     const [services, usdToRub] = await Promise.all([

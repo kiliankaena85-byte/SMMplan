@@ -94,8 +94,11 @@ export function MobileOrderList({ orders, user }: { orders: MobileOrderItem[], u
           <div key={order.id} className="py-2">
             {/* 4.1 Карточки вместо таблиц + 4.3 Touch Targets */}
             <div 
+              role="button"
+              tabIndex={0}
               onClick={() => handleOrderClick(order)}
-              className={`bg-card border border-border border-l-4 ${STATUS_ACCENT_BORDER[order.status] || 'border-l-muted-foreground/30'} rounded-2xl p-4 shadow-xs active:scale-[0.98] transition-all cursor-pointer`}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOrderClick(order); } }}
+              className={`bg-card border border-border border-l-4 ${STATUS_ACCENT_BORDER[order.status] || 'border-l-muted-foreground/30'} rounded-2xl p-4 shadow-xs active:scale-[0.98] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary`}
               style={{ minHeight: '120px' }} // Ensures large enough touch target
             >
               <div className="flex items-start justify-between gap-2">

@@ -728,7 +728,16 @@ function FluxDashboardOrderWizardInner({
                           <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                             <Layers className="w-4 h-4" />
                           </div>
-                          <h4 className="font-bold text-foreground text-sm sm:text-base">{cat.name}</h4>
+                          <div className="min-w-0">
+                            <span className="font-bold text-foreground text-sm block truncate group-hover:text-primary transition-colors">
+                              {cat.name}
+                            </span>
+                            {typeof cat.serviceCount === 'number' && cat.serviceCount > 0 && (
+                              <span className="text-[10px] font-medium text-muted-foreground block">
+                                {cat.serviceCount} услуг
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/5 group-hover:bg-primary flex items-center justify-center transition-colors">
                           <ArrowRightIcon className="w-3.5 h-3.5 text-primary group-hover:text-primary-foreground" />

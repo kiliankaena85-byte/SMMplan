@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Wallet, Receipt, CreditCard, ShieldCheck } from 'lucide-react';
 import AddFundsForm from '../add-funds/client-page';
 import { TransactionsClient } from '@/components/dashboard/transactions/TransactionsClient';
+import { FluxTransactionsView } from '@/components/dashboard/flux/FluxTransactionsView';
 
 interface TransactionItem {
   id: string;
@@ -24,12 +25,14 @@ interface FinanceClientProps {
   userEmail: string;
   currentBalanceRub: number;
   initialEntries: TransactionItem[];
+  tenantId?: string;
 }
 
 export default function FinanceClientPage({
   userEmail,
   currentBalanceRub,
   initialEntries,
+  tenantId,
 }: FinanceClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -108,10 +111,18 @@ export default function FinanceClientPage({
 
       {activeTab === 'history' && (
         <div className="pt-2 animate-in fade-in duration-300">
-          <TransactionsClient
-            initialEntries={initialEntries}
-            userEmail={userEmail}
-          />
+          {tenantId === 'flux' ? (
+            <FluxTransactionsView
+              initialEntries={initialEntries}
+              userEmail={userEmail}
+              currentBalanceRub={currentBalanceRub}
+            />
+          ) : (
+            <TransactionsClient
+              initialEntries={initialEntries}
+              userEmail={userEmail}
+            />
+          )}
         </div>
       )}
     </div>
