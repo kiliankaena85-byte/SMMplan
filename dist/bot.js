@@ -127665,6 +127665,7 @@ __export2(telegram_agent_exports, {
   getTelegramDispatcher: () => getTelegramDispatcher,
   getTelegramProxyAgent: () => getTelegramProxyAgent,
   getTelegramProxyUrl: () => getTelegramProxyUrl,
+  reportTelegramProxyFailure: () => reportTelegramProxyFailure,
   resolveActiveTelegramProxyUrl: () => resolveActiveTelegramProxyUrl
 });
 function getTelegramProxyUrl() {
@@ -127710,12 +127711,14 @@ async function resolveActiveTelegramProxyUrl(tenantId = "smmplan") {
     const providerProxy = await db2.providerProxy.findFirst({
       where: {
         isActive: true,
+        consecutiveFailures: { lt: 3 },
         OR: [
           { expiresAt: null },
           { expiresAt: { gt: /* @__PURE__ */ new Date() } }
         ]
       },
       orderBy: [
+        { consecutiveFailures: "asc" },
         { lastTestLatencyMs: "asc" },
         { errorCount: "asc" }
       ]
@@ -127746,6 +127749,32 @@ async function resolveActiveTelegramProxyUrl(tenantId = "smmplan") {
   } catch (err) {
     console.warn("[TelegramAgent] Could not resolve proxy from database:", err);
     return void 0;
+  }
+}
+async function reportTelegramProxyFailure(failedProxyUrl) {
+  cachedDbProxyUrl = null;
+  lastDbProxyCheck = 0;
+  if (!failedProxyUrl) return;
+  try {
+    const cleanUrl = failedProxyUrl.replace(/^socks5h:/i, "http:").replace(/^socks5:/i, "http:");
+    const parsed = new URL(cleanUrl);
+    const host = parsed.hostname;
+    const port = parseInt(parsed.port, 10);
+    if (host && port) {
+      const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      await db2.providerProxy.updateMany({
+        where: { host, port },
+        data: {
+          lastTestSuccess: false,
+          lastErrorAt: /* @__PURE__ */ new Date(),
+          errorCount: { increment: 1 },
+          consecutiveFailures: { increment: 1 }
+        }
+      });
+      console.warn(`[TelegramAgent] \u26A0\uFE0F Quarantined failing Telegram proxy: ${host}:${port}`);
+    }
+  } catch (err) {
+    console.warn("[TelegramAgent] Failed to parse failedProxyUrl:", err);
   }
 }
 function getTelegramProxyAgent(proxyUrlOverride) {
@@ -138866,49 +138895,58 @@ async function launchBot() {
     return;
   }
   isBotLaunched = true;
-  try {
-    if (!agent) {
-      try {
-        const resolvedProxy = await resolveActiveTelegramProxyUrl(botTenantId4);
-        if (resolvedProxy) {
-          const dynamicAgent = getTelegramProxyAgent(resolvedProxy);
+  const MAX_LAUNCH_ATTEMPTS = 5;
+  for (let attempt = 1; attempt <= MAX_LAUNCH_ATTEMPTS; attempt++) {
+    let currentProxyUrl = void 0;
+    try {
+      if (!agent) {
+        currentProxyUrl = await resolveActiveTelegramProxyUrl(botTenantId4);
+        if (currentProxyUrl) {
+          const dynamicAgent = getTelegramProxyAgent(currentProxyUrl);
           if (dynamicAgent) {
             bot.telegram.options = bot.telegram.options || {};
             bot.telegram.options.agent = dynamicAgent;
-            console.info(`[Bot] \u{1F6E1}\uFE0F Dynamic proxy assigned to Telegram bot: ${resolvedProxy.replace(/:[^:@]+@/, ":***@")}`);
+            console.info(`[Bot] \u{1F6E1}\uFE0F [Attempt ${attempt}/${MAX_LAUNCH_ATTEMPTS}] Dynamic proxy assigned: ${currentProxyUrl.replace(/:[^:@]+@/, ":***@")}`);
           }
         }
-      } catch (proxyErr) {
-        console.warn("[Bot] Failed to apply dynamic proxy:", proxyErr);
       }
-    }
-    console.info("[Bot] Deleting any lingering webhook...");
-    await bot.telegram.deleteWebhook({ drop_pending_updates: true });
-    const me = await bot.telegram.getMe();
-    console.info(`[Bot] \u2705 Telegram bot @${me.username} (ID: ${me.id}) initialized.`);
-    try {
-      const { redis: redis2 } = await Promise.resolve().then(() => (init_redis(), redis_exports));
-      await redis2.set("bot:heartbeat", Date.now(), "EX", 60).catch(() => {
-      });
-      setInterval(() => {
-        redis2.set("bot:heartbeat", Date.now(), "EX", 60).catch(() => {
+      console.info("[Bot] Deleting any lingering webhook...");
+      await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+      const me = await bot.telegram.getMe();
+      console.info(`[Bot] \u2705 Telegram bot @${me.username} (ID: ${me.id}) initialized.`);
+      try {
+        const { redis: redis2 } = await Promise.resolve().then(() => (init_redis(), redis_exports));
+        await redis2.set("bot:heartbeat", Date.now(), "EX", 60).catch(() => {
         });
-      }, 3e4);
-    } catch (redisErr) {
-      console.warn("[Bot] Redis heartbeat setup skipped:", redisErr);
-    }
-    try {
-      const sig = new AbortController().signal;
-      const sigProto = Object.getPrototypeOf(sig);
-      if (sigProto && sigProto.constructor && sigProto.constructor.name !== "AbortSignal") {
-        Object.defineProperty(sigProto.constructor, "name", { value: "AbortSignal", configurable: true });
+        setInterval(() => {
+          redis2.set("bot:heartbeat", Date.now(), "EX", 60).catch(() => {
+          });
+        }, 3e4);
+      } catch (redisErr) {
+        console.warn("[Bot] Redis heartbeat setup skipped:", redisErr);
       }
-    } catch {
+      try {
+        const sig = new AbortController().signal;
+        const sigProto = Object.getPrototypeOf(sig);
+        if (sigProto && sigProto.constructor && sigProto.constructor.name !== "AbortSignal") {
+          Object.defineProperty(sigProto.constructor, "name", { value: "AbortSignal", configurable: true });
+        }
+      } catch {
+      }
+      await bot.launch({ dropPendingUpdates: true });
+      console.info(`[Bot] \u{1F680} Telegram bot @${me.username} is now actively polling for updates!`);
+      break;
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      console.error(`[Bot] \u274C Launch attempt ${attempt}/${MAX_LAUNCH_ATTEMPTS} failed: ${errMsg}`);
+      if (attempt < MAX_LAUNCH_ATTEMPTS && !agent && currentProxyUrl) {
+        await reportTelegramProxyFailure(currentProxyUrl);
+        console.warn(`[Bot] \u{1F504} Rotating to next proxy from pool in 1.5s...`);
+        await new Promise((r) => setTimeout(r, 1500));
+        continue;
+      }
+      break;
     }
-    await bot.launch({ dropPendingUpdates: true });
-    console.info(`[Bot] \u{1F680} Telegram bot @${me.username} is now actively polling for updates!`);
-  } catch (e) {
-    console.error("[Bot] \u274C Failed to launch:", e instanceof Error ? e.message : String(e));
   }
 }
 async function handleShutdown(signal) {

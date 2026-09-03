@@ -52,7 +52,7 @@ if (!TOKEN || TOKEN === 'dummy_token') {
   console.warn('[Bot] TELEGRAM_BOT_TOKEN not set. Telegram bot will NOT start.');
 }
 
-import { getTelegramProxyAgent, resolveActiveTelegramProxyUrl } from '@/lib/telegram-agent';
+import { getTelegramProxyAgent, resolveActiveTelegramProxyUrl, reportTelegramProxyFailure } from '@/lib/telegram-agent';
 const agent = getTelegramProxyAgent();
 
 export const bot = new Telegraf<BotContext>(TOKEN || 'dummy_token', {
@@ -1210,55 +1210,65 @@ export async function launchBot() {
 
   isBotLaunched = true;
 
-  try {
-    // Ensure agent is dynamically assigned from DB pool if not configured in ENV
-    if (!agent) {
-      try {
-        const resolvedProxy = await resolveActiveTelegramProxyUrl(botTenantId);
-        if (resolvedProxy) {
-          const dynamicAgent = getTelegramProxyAgent(resolvedProxy);
+  const MAX_LAUNCH_ATTEMPTS = 5;
+  for (let attempt = 1; attempt <= MAX_LAUNCH_ATTEMPTS; attempt++) {
+    let currentProxyUrl: string | undefined = undefined;
+    try {
+      // Ensure agent is dynamically assigned from DB pool if not configured in ENV
+      if (!agent) {
+        currentProxyUrl = await resolveActiveTelegramProxyUrl(botTenantId);
+        if (currentProxyUrl) {
+          const dynamicAgent = getTelegramProxyAgent(currentProxyUrl);
           if (dynamicAgent) {
             (bot.telegram as any).options = (bot.telegram as any).options || {};
             (bot.telegram as any).options.agent = dynamicAgent;
-            console.info(`[Bot] 🛡️ Dynamic proxy assigned to Telegram bot: ${resolvedProxy.replace(/:[^:@]+@/, ':***@')}`);
+            console.info(`[Bot] 🛡️ [Attempt ${attempt}/${MAX_LAUNCH_ATTEMPTS}] Dynamic proxy assigned: ${currentProxyUrl.replace(/:[^:@]+@/, ':***@')}`);
           }
         }
-      } catch (proxyErr) {
-        console.warn('[Bot] Failed to apply dynamic proxy:', proxyErr);
       }
-    }
 
-    console.info('[Bot] Deleting any lingering webhook...');
-    await bot.telegram.deleteWebhook({ drop_pending_updates: true });
-    
-    const me = await bot.telegram.getMe();
-    console.info(`[Bot] ✅ Telegram bot @${me.username} (ID: ${me.id}) initialized.`);
+      console.info('[Bot] Deleting any lingering webhook...');
+      await bot.telegram.deleteWebhook({ drop_pending_updates: true });
+      
+      const me = await bot.telegram.getMe();
+      console.info(`[Bot] ✅ Telegram bot @${me.username} (ID: ${me.id}) initialized.`);
 
-    // Heartbeat for Docker healthcheck and Admin UI status monitor
-    try {
-      const { redis } = await import('@/lib/redis');
-      await redis.set('bot:heartbeat', Date.now(), 'EX', 60).catch(() => {});
-      setInterval(() => {
-        redis.set('bot:heartbeat', Date.now(), 'EX', 60).catch(() => {});
-      }, 30_000);
-    } catch (redisErr) {
-      console.warn('[Bot] Redis heartbeat setup skipped:', redisErr);
-    }
-
-    // Fix node-fetch AbortSignal prototype check in Node 20
-    try {
-      const sig = new AbortController().signal;
-      const sigProto = Object.getPrototypeOf(sig);
-      if (sigProto && sigProto.constructor && sigProto.constructor.name !== 'AbortSignal') {
-        Object.defineProperty(sigProto.constructor, 'name', { value: 'AbortSignal', configurable: true });
+      // Heartbeat for Docker healthcheck and Admin UI status monitor
+      try {
+        const { redis } = await import('@/lib/redis');
+        await redis.set('bot:heartbeat', Date.now(), 'EX', 60).catch(() => {});
+        setInterval(() => {
+          redis.set('bot:heartbeat', Date.now(), 'EX', 60).catch(() => {});
+        }, 30_000);
+      } catch (redisErr) {
+        console.warn('[Bot] Redis heartbeat setup skipped:', redisErr);
       }
-    } catch { /* ignore */ }
 
-    await bot.launch({ dropPendingUpdates: true });
+      // Fix node-fetch AbortSignal prototype check in Node 20
+      try {
+        const sig = new AbortController().signal;
+        const sigProto = Object.getPrototypeOf(sig);
+        if (sigProto && sigProto.constructor && sigProto.constructor.name !== 'AbortSignal') {
+          Object.defineProperty(sigProto.constructor, 'name', { value: 'AbortSignal', configurable: true });
+        }
+      } catch { /* ignore */ }
 
-    console.info(`[Bot] 🚀 Telegram bot @${me.username} is now actively polling for updates!`);
-  } catch (e: unknown) {
-    console.error('[Bot] ❌ Failed to launch:', e instanceof Error ? e.message : String(e));
+      await bot.launch({ dropPendingUpdates: true });
+
+      console.info(`[Bot] 🚀 Telegram bot @${me.username} is now actively polling for updates!`);
+      break; // Successfully launched
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      console.error(`[Bot] ❌ Launch attempt ${attempt}/${MAX_LAUNCH_ATTEMPTS} failed: ${errMsg}`);
+
+      if (attempt < MAX_LAUNCH_ATTEMPTS && !agent && currentProxyUrl) {
+        await reportTelegramProxyFailure(currentProxyUrl);
+        console.warn(`[Bot] 🔄 Rotating to next proxy from pool in 1.5s...`);
+        await new Promise(r => setTimeout(r, 1500));
+        continue;
+      }
+      break;
+    }
   }
 }
 

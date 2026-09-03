@@ -70,12 +70,14 @@ export async function resolveActiveTelegramProxyUrl(tenantId = 'smmplan'): Promi
     const providerProxy = await db.providerProxy.findFirst({
       where: {
         isActive: true,
+        consecutiveFailures: { lt: 3 },
         OR: [
           { expiresAt: null },
           { expiresAt: { gt: new Date() } },
         ],
       },
       orderBy: [
+        { consecutiveFailures: 'asc' },
         { lastTestLatencyMs: 'asc' },
         { errorCount: 'asc' },
       ],
@@ -108,6 +110,39 @@ export async function resolveActiveTelegramProxyUrl(tenantId = 'smmplan'): Promi
   } catch (err) {
     console.warn('[TelegramAgent] Could not resolve proxy from database:', err);
     return undefined;
+  }
+}
+
+/**
+ * Reports failure for a proxy URL, penalizes it in DB and invalidates cache.
+ */
+export async function reportTelegramProxyFailure(failedProxyUrl?: string): Promise<void> {
+  cachedDbProxyUrl = null;
+  lastDbProxyCheck = 0;
+
+  if (!failedProxyUrl) return;
+
+  try {
+    const cleanUrl = failedProxyUrl.replace(/^socks5h:/i, 'http:').replace(/^socks5:/i, 'http:');
+    const parsed = new URL(cleanUrl);
+    const host = parsed.hostname;
+    const port = parseInt(parsed.port, 10);
+
+    if (host && port) {
+      const { db } = await import('@/lib/db');
+      await db.providerProxy.updateMany({
+        where: { host, port },
+        data: {
+          lastTestSuccess: false,
+          lastErrorAt: new Date(),
+          errorCount: { increment: 1 },
+          consecutiveFailures: { increment: 1 },
+        },
+      });
+      console.warn(`[TelegramAgent] ⚠️ Quarantined failing Telegram proxy: ${host}:${port}`);
+    }
+  } catch (err) {
+    console.warn('[TelegramAgent] Failed to parse failedProxyUrl:', err);
   }
 }
 
