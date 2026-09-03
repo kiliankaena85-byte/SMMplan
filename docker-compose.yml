@@ -87,7 +87,11 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/smmplan_lite?schema=public&connection_limit=5&pool_timeout=30
       - REDIS_URL=redis://redis:6379
       - BOT_TENANT_ID=smmplan
-      - TELEGRAM_PROXY_URL=http://clash:7890
+      # TELEGRAM_PROXY_URL is NOT hardcoded — telegram-agent.ts auto-detects:
+      # 1. Direct probe to api.telegram.org (2.5s timeout)
+      #    → OK  → OS-level VPN (Clash Verge TUN) is active, no proxy needed
+      #    → Fail → use internal Mihomo container below
+      - CLASH_INTERNAL_PROXY_URL=http://clash:7890
     volumes:
       - lite_uploads_data:/app/private/uploads
     depends_on:

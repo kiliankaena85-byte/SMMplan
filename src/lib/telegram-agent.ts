@@ -4,7 +4,8 @@ import { ProxyAgent } from 'undici';
 
 let cachedDbProxyUrl: string | null = null;
 let lastDbProxyCheck = 0;
-const DB_PROXY_CACHE_TTL = 30_000; // 30 seconds
+let lastDirectConnectivityState: boolean | null = null; // tracks previous probe result
+const DB_PROXY_CACHE_TTL = 10_000; // 10s — fast re-probe when Clash Verge toggled
 
 /**
  * Resolves the configured Telegram Proxy URL from environment variables.
@@ -25,8 +26,44 @@ export function getTelegramProxyUrl(): string | undefined {
  * Resolves active proxy from Database (SystemSettings + TelegramProxy) if not set in ENV.
  */
 export async function resolveActiveTelegramProxyUrl(tenantId = 'smmplan'): Promise<string | undefined> {
+  // ── Auto-detect: if direct connection to Telegram works, skip internal proxy.
+  // This handles the case where Clash Verge TUN on Windows is active —
+  // using http://clash:7890 AND Clash Verge simultaneously causes double-routing and failures.
+  try {
+    const directOk = await Promise.race<boolean>([
+      fetch('https://api.telegram.org', { method: 'HEAD', signal: AbortSignal.timeout(2500) })
+        .then(r => r.status < 500)
+        .catch(() => false),
+      new Promise<boolean>(res => setTimeout(() => res(false), 2600)),
+    ]);
+
+    // If connectivity state changed (Clash Verge toggled), flush cache immediately
+    if (lastDirectConnectivityState !== null && lastDirectConnectivityState !== directOk) {
+      cachedDbProxyUrl = null;
+      lastDbProxyCheck = 0;
+      console.info(`[TelegramAgent] 🔄 Network mode changed (direct=${directOk}) — proxy cache cleared.`);
+    }
+    lastDirectConnectivityState = directOk;
+
+    if (directOk) {
+      console.info('[TelegramAgent] ✅ Direct Telegram connection OK (OS-level VPN/TUN active) — skipping internal proxy.');
+      return undefined;
+    }
+  } catch {
+    // probe failed → need proxy
+  }
+
+  // Direct probe failed — network is blocked (Russian ISP ТСПУ), need proxy.
+  // First check explicit override envs, then fall back to internal Mihomo container.
   const envUrl = process.env.TELEGRAM_PROXY_URL || process.env.HTTPS_PROXY || process.env.HTTP_PROXY || process.env.ALL_PROXY;
   if (envUrl) return envUrl;
+
+  // Use the internal Docker Mihomo container if configured
+  const clashInternalUrl = process.env.CLASH_INTERNAL_PROXY_URL;
+  if (clashInternalUrl) {
+    console.info(`[TelegramAgent] 🛡️ Direct probe failed — routing via internal Mihomo proxy: ${clashInternalUrl}`);
+    return clashInternalUrl;
+  }
 
   const now = Date.now();
   if (cachedDbProxyUrl !== null && now - lastDbProxyCheck < DB_PROXY_CACHE_TTL) {
