@@ -45,6 +45,7 @@ import { depositWizard, DEPOSIT_WIZARD } from './scenes/deposit.wizard';
 import { referralWizard, REFERRAL_WIZARD } from './scenes/referral.wizard';
 import { ownerHubWizard, isOwnerOrAdmin } from './scenes/owner-hub.wizard';
 import { BotCatalogService } from './services/bot-catalog.service';
+import { BotSettingsService } from './services/bot-settings.service';
 
 // ── BOT INSTANCE ──
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -75,6 +76,32 @@ const stage = new Scenes.Stage<BotContext>([
 // ── MIDDLEWARE ──
 bot.use(session());
 bot.use(stage.middleware());
+
+// Security & Maintenance policy middleware
+bot.use(async (ctx, next) => {
+  if (!ctx.from) return next();
+  const isOwner = await isOwnerOrAdmin(ctx.from.id);
+
+  // 1. Maintenance mode check
+  if (!isOwner) {
+    const isMaint = await BotSettingsService.isMaintenanceActive(botTenantId);
+    if (isMaint) {
+      return ctx.reply('🛠 <b>Бот находится на техническом обслуживании.</b>\n\nМы проводим плановое обновление инфраструктуры. Пожалуйста, попробуйте позже.', { parse_mode: 'HTML' }).catch(() => {});
+    }
+  }
+
+  // 2. Message length limit
+  const msg = ctx.message as Record<string, unknown> | undefined;
+  const text = (msg && 'text' in msg && typeof msg.text === 'string') ? msg.text : '';
+  if (text && !isOwner) {
+    const sec = await BotSettingsService.getSecurityConfig(botTenantId);
+    if (text.length > sec.maxMessageLength) {
+      return ctx.reply(`⚠️ Ваше сообщение слишком длинное (максимум ${sec.maxMessageLength} символов). Пожалуйста, сократите его.`).catch(() => {});
+    }
+  }
+
+  return next();
+});
 
 // ── OWASP A03 / XSS DEFENSE HELPER ──
 function escapeHtml(text: string): string {
@@ -348,9 +375,10 @@ bot.start(async (ctx: BotContext) => {
           }
         }
 
+        if (!payment) return;
         const freshUser = await db.user.findUnique({ where: { id: user.id } });
         const currentBal = freshUser ? (Number(freshUser.balance) / 100).toFixed(2) : '0.00';
-        const formattedAmount = (payment.amount / 100).toLocaleString('ru-RU');
+        const formattedAmount = (Number(payment.amount) / 100).toLocaleString('ru-RU');
 
         if (payment.status === 'SUCCEEDED') {
           await ctx.reply(
@@ -394,8 +422,7 @@ export async function sendMainMenu(ctx: BotContext, isEdit = false) {
     `<i>Либо выберите нужный раздел в меню ниже:</i>`;
 
   try {
-    const settings = await db.systemSettings.findFirst({ select: { telegramTemplates: true } });
-    const templates = settings?.telegramTemplates as { welcome?: string } | null;
+    const templates = await BotSettingsService.getTemplates(botTenantId);
     if (templates?.welcome && templates.welcome.trim().length > 0) {
       welcomeTpl = sanitizeTelegramTemplate(templates.welcome);
     }
@@ -445,16 +472,6 @@ export async function sendMainMenu(ctx: BotContext, isEdit = false) {
   });
 }
 
-interface DynamicMenuBtn {
-  id: string;
-  label: string;
-  action: string;
-  row: number;
-  col: number;
-  value?: string;
-  isActive: boolean;
-}
-
 async function getDynamicKeyboard(tgId?: string | number) {
   const isOwner = tgId ? await isOwnerOrAdmin(tgId) : false;
 
@@ -465,12 +482,11 @@ async function getDynamicKeyboard(tgId?: string | number) {
   ];
 
   try {
-    const settings = await db.systemSettings.findFirst({ select: { telegramMenuConfig: true } });
-    const buttons = settings?.telegramMenuConfig as unknown as DynamicMenuBtn[] | null;
+    const buttons = await BotSettingsService.getMenuButtons(botTenantId);
     if (Array.isArray(buttons) && buttons.length > 0) {
       const active = buttons.filter(b => b.isActive !== false);
       if (active.length > 0) {
-        const rowMap = new Map<number, DynamicMenuBtn[]>();
+        const rowMap = new Map<number, typeof buttons>();
         for (const btn of active) {
           const r = btn.row ?? 0;
           if (!rowMap.has(r)) rowMap.set(r, []);
@@ -497,6 +513,85 @@ async function getDynamicKeyboard(tgId?: string | number) {
   }
 
   return Markup.keyboard(baseGrid).resize();
+}
+
+/**
+ * Universal dynamic dispatcher for menu buttons configured via Admin Panel.
+ * Handles CATALOG, ORDERS, REFILL, PROFILE, SUPPORT, REFERRALS, URL, TEXT_REPLY, COMMAND, WEB_APP.
+ */
+export async function dispatchDynamicMenuAction(ctx: BotContext, text: string): Promise<boolean> {
+  const btn = await BotSettingsService.findButtonByText(text, botTenantId);
+  if (!btn) return false;
+
+  if (ctx.scene) {
+    await ctx.scene.leave().catch(() => {});
+  }
+
+  switch (btn.action) {
+    case 'CATALOG':
+      await sendNetworkCatalogMenu(ctx, false);
+      return true;
+    case 'ORDERS':
+      await sendUserOrders(ctx);
+      return true;
+    case 'REFILL': {
+      const { DEPOSIT_WIZARD } = await import('./scenes/deposit.wizard');
+      await ctx.scene.enter(DEPOSIT_WIZARD);
+      return true;
+    }
+    case 'PROFILE':
+      await sendUserProfile(ctx);
+      return true;
+    case 'SUPPORT':
+      await sendSupportPrompt(ctx);
+      return true;
+    case 'REFERRALS': {
+      const { REFERRAL_WIZARD } = await import('./scenes/referral.wizard');
+      await ctx.scene.enter(REFERRAL_WIZARD);
+      return true;
+    }
+    case 'URL': {
+      const targetUrl = btn.value || `https://${botTenantId === 'flux' ? 'smmflux.ru' : 'test.smmplan.pro'}`;
+      await ctx.reply(
+        `🌐 <b>${escapeHtml(btn.label)}</b>\n\nПерейдите по ссылке ниже:`,
+        {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([[Markup.button.url('Перейти на сайт', targetUrl)]])
+        }
+      );
+      return true;
+    }
+    case 'TEXT_REPLY': {
+      const replyText = btn.value || 'Спасибо за обращение!';
+      await ctx.reply(replyText, { parse_mode: 'HTML' });
+      return true;
+    }
+    case 'COMMAND': {
+      const cmd = (btn.value || '').replace(/^\//, '');
+      if (cmd === 'start' || cmd === 'menu') {
+        await sendMainMenu(ctx, false);
+        return true;
+      }
+      if (cmd === 'help') {
+        await ctx.reply('ℹ️ <b>Справка</b>\nИспользуйте кнопки меню для навигации или отправьте ссылку на соцсеть для быстрого заказа.', { parse_mode: 'HTML' });
+        return true;
+      }
+      return false;
+    }
+    case 'WEB_APP': {
+      const webAppUrl = btn.value || `https://${botTenantId === 'flux' ? 'smmflux.ru' : 'test.smmplan.pro'}`;
+      await ctx.reply(
+        `📱 <b>${escapeHtml(btn.label)}</b>\n\nНажмите кнопку для запуска:`,
+        {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([[Markup.button.webApp('Открыть приложение', webAppUrl)]])
+        }
+      );
+      return true;
+    }
+    default:
+      return false;
+  }
 }
 
 export async function sendNetworkCatalogMenu(ctx: BotContext, isEdit = false) {
@@ -1044,11 +1139,10 @@ bot.action(/^rate:([^:]+):(\d+)$/, async (ctx: BotContext) => {
     // Determine reason options
     let reasonList: string[] = [];
     try {
-      const settings = await db.systemSettings.findFirst({ select: { telegramRatingReasons: true } });
-      const cfg = settings?.telegramRatingReasons as { negative?: string[]; neutral?: string[]; positive?: string[] } | null;
-      if (score <= 2) reasonList = cfg?.negative || ['Долгий ответ', 'Проблема не решена', 'Грубость оператора', 'Технический сбой'];
-      else if (score === 3) reasonList = cfg?.neutral || ['Долго решали', 'Неполный ответ', 'Сложный процесс', 'Мало информации'];
-      else reasonList = cfg?.positive || ['Быстрый ответ', 'Вежливый оператор', 'Проблема решена на 100%', 'Понятная инструкция', 'Отличный сервис'];
+      const cfg = await BotSettingsService.getRatingReasons(botTenantId);
+      if (score <= 2) reasonList = cfg.negative;
+      else if (score === 3) reasonList = cfg.neutral;
+      else reasonList = cfg.positive;
     } catch {
       reasonList = score <= 2 ? ['Долгий ответ', 'Проблема не решена'] : ['Быстро и вежливо', 'Вопрос решен'];
     }
@@ -1083,17 +1177,16 @@ bot.action(/^fb_rsn:([^:]+):(\d+)$/, async (ctx: BotContext) => {
     let thanksText = '⭐ <b>Спасибо за ваш отзыв!</b>\n\nВаш отзыв помогает нам становиться лучше. Если у вас возникнут новые вопросы, просто напишите в этот чат.';
 
     try {
-      const settings = await db.systemSettings.findFirst({ select: { telegramRatingReasons: true, telegramTemplates: true } });
+      const cfg = await BotSettingsService.getRatingReasons(botTenantId);
+      const tpl = await BotSettingsService.getTemplates(botTenantId);
       const fb = await db.ticketFeedback.findUnique({ where: { ticketId } });
-      const cfg = settings?.telegramRatingReasons as { negative?: string[]; neutral?: string[]; positive?: string[] } | null;
-      const tpl = settings?.telegramTemplates as { ratingThanks?: string } | null;
       if (tpl?.ratingThanks) thanksText = tpl.ratingThanks;
 
       const score = fb?.score || 5;
       let reasonList: string[] = [];
-      if (score <= 2) reasonList = cfg?.negative || [];
-      else if (score === 3) reasonList = cfg?.neutral || [];
-      else reasonList = cfg?.positive || [];
+      if (score <= 2) reasonList = cfg.negative;
+      else if (score === 3) reasonList = cfg.neutral;
+      else reasonList = cfg.positive;
 
       if (reasonList[reasonIdx]) {
         selectedReason = reasonList[reasonIdx];
@@ -1130,8 +1223,7 @@ bot.action(/^fb_done:([^:]+)$/, async (ctx: BotContext) => {
     await ctx.answerCbQuery().catch(() => {});
     let thanksText = '⭐ <b>Спасибо за вашу оценку!</b>\n\nЕсли у вас возникнут новые вопросы, просто напишите в этот чат.';
     try {
-      const settings = await db.systemSettings.findFirst({ select: { telegramTemplates: true } });
-      const tpl = settings?.telegramTemplates as { ratingThanks?: string } | null;
+      const tpl = await BotSettingsService.getTemplates(botTenantId);
       if (tpl?.ratingThanks) thanksText = tpl.ratingThanks.replace(/{stars}/g, '⭐⭐⭐⭐⭐');
     } catch { /* use default */ }
 
@@ -1275,6 +1367,14 @@ bot.on(['text', 'photo', 'voice', 'document', 'video', 'sticker', 'video_note', 
 
   const text = (msg && 'text' in msg && typeof msg.text === 'string') ? msg.text.trim() : '';
 
+  // 1.5. DYNAMIC MENU BUTTON DISPATCHER: Check if text matches any custom button configured in Admin Panel
+  if (text) {
+    const isHandled = await dispatchDynamicMenuAction(ctx, text);
+    if (isHandled) {
+      return;
+    }
+  }
+
   // 2. SMART LINK-FIRST FLOW: If message is or contains a link / handle, run analyzer
   if (text && isPotentialLinkOrHandle(text)) {
     return await handleLinkInput(ctx, text);
@@ -1319,7 +1419,7 @@ export async function launchBot() {
   if (!activeToken || activeToken === 'dummy_token') {
     try {
       const { VaultService } = await import('@/lib/vault');
-      const settings = await db.systemSettings.findFirst();
+      const settings = await db.systemSettings.findUnique({ where: { id: botTenantId } });
       if (settings?.telegramBotToken) {
         const decrypted = VaultService.decrypt(settings.telegramBotToken);
         if (decrypted && decrypted.trim().length > 10) {

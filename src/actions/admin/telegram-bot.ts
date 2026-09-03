@@ -38,6 +38,7 @@ import {
   extractTemplateVariables,
 } from '@/schemas/telegram';
 import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
+import { BotSettingsService } from '@/bot/services/bot-settings.service';
 export type { TelegramBotDiagnostics };
 import {
   DEFAULT_TELEGRAM_MENU_BUTTONS,
@@ -1048,6 +1049,7 @@ export async function updateTelegramSecurityAction(
       }),
     });
 
+    BotSettingsService.invalidate(tenantId);
     revalidatePath('/admin/settings?tab=telegram');
     return { success: true, message: 'Настройки безопасности обновлены' };
   });
@@ -1252,6 +1254,7 @@ export async function saveTelegramMenuConfigAction(buttons: TelegramMenuButton[]
         newValue: { buttonCount: parsed.data.length }
       });
 
+      BotSettingsService.invalidate(tenantId);
       revalidatePath('/admin/settings');
       return { success: true, message: `Конфигурация кнопок меню успешно сохранена для бренда ${tenantId === 'flux' ? 'SMMflux' : 'SMMplan'}` };
     } catch (err) {
@@ -1293,6 +1296,7 @@ export async function saveTelegramRatingReasonsAction(reasons: TelegramRatingRea
         ipAddress
       });
 
+      BotSettingsService.invalidate(tenantId);
       revalidatePath('/admin/settings');
       return { success: true, message: `Теги причин оценок успешно сохранены для бренда ${tenantId === 'flux' ? 'SMMflux' : 'SMMplan'}` };
     } catch (err) {
@@ -1330,6 +1334,7 @@ export async function saveTelegramTemplatesAction(templates: TelegramMessageTemp
         ipAddress
       });
 
+      BotSettingsService.invalidate(tenantId);
       revalidatePath('/admin/settings');
       return { success: true, message: `Шаблоны сообщений успешно сохранены для бренда ${tenantId === 'flux' ? 'SMMflux' : 'SMMplan'}` };
     } catch (err) {

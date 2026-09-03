@@ -294,8 +294,8 @@ class SupportBotService {
     try {
       let ratingText = '✅ <b>Ваш вопрос решён и тикет #{ticketId} закрыт.</b>\n\nПожалуйста, оцените качество работы службы поддержки:';
       try {
-        const settings = await db.systemSettings.findFirst({ select: { telegramTemplates: true } });
-        const templates = settings?.telegramTemplates as Record<string, string> | null;
+        const { BotSettingsService } = await import('@/bot/services/bot-settings.service');
+        const templates = await BotSettingsService.getTemplates('smmplan');
         if (templates?.ticketClosedRating) {
           ratingText = templates.ticketClosedRating;
         }

@@ -9,6 +9,7 @@ vi.mock('@/lib/db', () => ({
     },
     systemSettings: {
       findFirst: vi.fn().mockResolvedValue({ telegramTemplates: {} }),
+      findUnique: vi.fn().mockResolvedValue({ telegramTemplates: {}, telegramMenuConfig: null }),
     },
   },
 }));

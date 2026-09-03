@@ -9,7 +9,18 @@ export async function handleWizardMenuNavigation(ctx: BotContext, text: string):
   const trimmed = (text || '').trim();
   if (!trimmed) return false;
 
-  // 0. Главное меню / Старт
+  // 0. Dynamic menu buttons check configured in Admin Panel
+  try {
+    const { BotSettingsService } = await import('../services/bot-settings.service');
+    const botTenantId = process.env.BOT_TENANT_ID || 'smmplan';
+    const customBtn = await BotSettingsService.findButtonByText(trimmed, botTenantId);
+    if (customBtn) {
+      const { dispatchDynamicMenuAction } = await import('../index');
+      return await dispatchDynamicMenuAction(ctx, trimmed);
+    }
+  } catch { /* proceed to standard patterns */ }
+
+  // 0.1. Главное меню / Старт
   if (/^(🏠\s*Главное меню|Главная|Старт|\/start|\/menu)/i.test(trimmed)) {
     await ctx.scene.leave();
     const { sendMainMenu } = await import('../index');

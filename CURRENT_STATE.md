@@ -1,14 +1,26 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-09-03 08:31 (МСК) — Глубокий аудит Telegram-бота роем агентов OpenRouter + 100% исправление навигации, SSRF и алертинга.
+> **Последнее обновление:** 2026-09-03 10:10 (МСК) — Динамическое управление Telegram-ботом из Админ-панели, экосистемный сервис BotSettingsService, Universal Dynamic Action Dispatcher, синхронизация шаблонов/кнопок/CSAT и 100% актуализация всех Docker-контейнеров.
 
-- **Глубокий аудит Telegram-бота роем агентов OpenRouter + Исправление навигации и безопасности — 100% COMPLETE & LIVE VERIFIED:**
-  - **Рой из 5 ИИ-агентов (OpenRouter):** Проведен всесторонний аудит бота: UX/State Machine, Fintech Billing/SSRF, SRE/Alerting Watchdog, Adversarial Red Team Pentest, Multi-Tenant Architecture. Отчет сохранен в `scripts/harness/telegram-bot-swarm-report.md` и `.json`.
-  - **Устранение бага кнопки «Пополнить» и ловушек визардов:** Разделена отправка Reply-клавиатуры и Inline-кнопок в `/start`. Внедрен универсальный роутер навигации `handleWizardMenuNavigation`, исключающий застревание пользователя внутри `depositWizard`, `orderWizard` и `referralWizard` при кликах по кнопкам главного меню.
-  - **Устранение SSRF-блокировки ЮKassa:** В `src/lib/security/ssrf-guard.ts` и `clash/config.yaml` (`fake-ip-filter`) добавлены доверенные платежные домены (`api.yookassa.ru`, `api.cryptomus.com`), ликвидируя ложные блокировки из-за Fake-IP Mihomo/Clash.
-  - **Мгновенные Telegram-алерты админу об ошибках:** В `UnifiedPaymentService`, сценах пополнения и заказов, а также глобальном `bot.catch` внедрена отправка подробных алертов в `ADMIN_ALERT_CHAT_ID` при любых ошибках пользователей.
-  - **Верификация:** 15 сквозных тестов пути клиента в `bot-client-journey-smoke.test.ts` (100% PASS). Бандл `dist/bot.js` пересобран с esbuild, Docker-контейнер `smmplan_bot` перезапущен и протестирован.
+- **Динамическое управление Telegram-ботом из Админ-панели (100% COMPLETE & LIVE VERIFIED):**
+  - **BotSettingsService (`src/bot/services/bot-settings.service.ts`):** Создан централизованный сервис конфигурации бота с изоляцией по тенантам (`where: { id: tenantId }`), кэшированием в памяти (30s TTL) и мгновенной инвалидацией (`BotSettingsService.invalidate(tenantId)`). Устранена проблема недетерминированного чтения настроек через `findFirst()`.
+  - **Universal Dynamic Action Dispatcher (`dispatchDynamicMenuAction`):** Входящие нажатия пользовательских кнопок меню сопоставляются с динамической конфигурацией `telegramMenuConfig` из админки ДО передачи в чат поддержки. Поддерживаются все типы действий: `CATALOG`, `ORDERS`, `REFILL`, `PROFILE`, `SUPPORT`, `REFERRALS`, `URL`, `TEXT_REPLY` (FAQ), `COMMAND`, `WEB_APP`.
+  - **Умное распознавание кнопок (`findButtonByText`):** Реализовано точное и нечеткое сопоставление названий кнопок с очисткой от эмодзи и нормализацией регистра. Любая кнопка, добавленная или переименованная оператором в админ-панели, мгновенно подхватывается рантаймом бота без необходимости переписывать код.
+  - **Прерывание визардов кастомными кнопками (`handleWizardMenuNavigation`):** Пользователь может в любой момент нажать на добавленную в админке кнопку нижнего меню, находясь внутри пошагового визарда заказа, пополнения или реферальной программы — бот корректно выйдет из сцены и выполнит запрошенное действие.
+  - **Maintenance Mode & Message Limits:** В глобальное middleware бота интегрированы проверки режима техобслуживания (`telegramMaintenanceMode`) и лимита длины сообщений (`telegramMaxMessageLength`). Для владельцев (`OWNER`) доступ сохраняется даже при активном техническом обслуживании.
+  - **Динамические шаблоны и CSAT:** В `sendMainMenu`, колбэках CSAT (`rate:*`, `fb_rsn:*`, `fb_done:*`) и `sendTicketClosedRating` системные тексты и причины оценок динамически подтягиваются из базы данных с безопасной санитизацией HTML (`sanitizeTelegramTemplate`).
+  - **Автотесты и сборка:** 10 тестов в `src/bot/__tests__/bot-admin-settings-ecosystem.test.ts` (100% PASS), 11 тестов в `bot-interactive-buttons-and-error-ux.test.ts` (100% PASS), полный контроль типов `npx tsc --noEmit` (0 ошибок), бандл `dist/bot.js` пересобран и контейнер `smmplan_bot` перезапущен.
+
+- **Инлайн-навигация, Actionable Error UX и Deep-Link возврат ЮKassa — 100% COMPLETE & LIVE VERIFIED:**
+  - **Динамический return_url из ЮKassa в Telegram:** В `UnifiedPaymentService.createPayment` для источника `BOT` параметр `successUrl` формируется как `https://t.me/<bot_username>?start=pay_ok_${payment.id}`. При нажатии «Вернуться в магазин» в ЮKassa у клиента мгновенно открывается диалог с ботом.
+  - **Мгновенный Push-апдейт и Sync-Check:** При вебхуке `payment.succeeded` бот отправляет прямое уведомление в чат пользователю (`bot.telegram.sendMessage`). Если вебхук задерживается, `/start` выполняет быстрый синхронный опрос ЮKassa `checkStatusSync(gatewayId)` и сразу зачисляет средства.
+  - **Инлайн-кнопка «🏠 В главное меню» (`nav_start`):** Вынесена отдельная экспортируемая функция `sendMainMenu`, зарегистрирован action `nav_start`. Нажатие на инлайн-кнопку «🏠 В главное меню» чисто завершает любую сцену и переводит пользователя на главный экран.
+  - **Actionable Error UX с кнопкой поддержки:** При возникновении любых ошибок (некорректная сумма, невалидная ссылка, отказ шлюза, недостаток средств, сбой создания заказа) пользователю выводятся кнопки быстрого действия: `[ 🆘 Написать в поддержку ]`, `[ 🔄 Попробовать снова ]`, `[ 🏠 В главное меню ]`.
+  - **Устранение ошибки типов `telegramId` в Prisma:** В `sendMainMenu` и обработчиках бота `ctx.from.id` (число) строго приведен к `String(ctx.from.id)`, устраняя сбой `Expected StringNullableFilter, provided Int` при обработке сообщений.
+  - **Автотесты и E2E:** 15 тестов в `bot-client-journey-smoke.test.ts` (100% PASS) + 11 тестов в `bot-interactive-buttons-and-error-ux.test.ts` (100% PASS).
+  - **Live Browser Verification:** Скриптом `scripts/test-yookassa-payment.ts` сгенерирован реальный платеж ЮKassa, проверен в браузере через Puppeteer MCP и снят скриншот реальной страницы оплаты ЮMoney/ЮKassa.
+  - **Контейнеры:** Все контейнеры (`smmplan_bot`, `smmplan_web`, `smmplan_lite_worker`, `smmplan_clash`, `smmplan_lite_db`, `smmplan_lite_redis`, `smmplan_tunnel`) работают на самом свежем коде и здоровы.
 
 - **Автономный Docker-контейнер Mihomo (`smmplan_clash`) — 100% COMPLETE & LIVE VERIFIED:**
   - **Zero Desktop Dependency:** В `docker-compose.yml` встроен легковесный контейнер `metacubex/mihomo:latest` (`smmplan_clash`), монтирующий профиль подписки Quattro VPN (`clash/config.yaml`) с поддержкой протоколов `vless` (Reality) и `hysteria2`.

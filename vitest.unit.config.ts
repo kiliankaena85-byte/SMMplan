@@ -92,6 +92,8 @@ export default defineConfig({
       'src/__tests__/security/swarm-100-percent-hardening.test.ts',
       'src/__tests__/security/auditor-findings-remediation.test.ts',
       'src/__tests__/telegram-bot-referral-wizard.test.ts',
+      'src/bot/__tests__/bot-admin-settings-ecosystem.test.ts',
+      'src/bot/__tests__/bot-interactive-buttons-and-error-ux.test.ts',
     ],
   }
 });

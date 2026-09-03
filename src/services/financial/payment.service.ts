@@ -35,6 +35,8 @@ export class PaymentService {
     receiptId?: string
   ): Promise<boolean> {
     const activatedOrders: { id: string; isDripFeed: boolean; userId: string; amount: number; userEmail?: string | null; serviceName?: string | null; numericId?: number }[] = [];
+    let paidAmountBigInt = BigInt(amount);
+    let isOrderFlow = false;
 
     try {
       // 1. Double-check against real gateway API in production
@@ -282,6 +284,9 @@ export class PaymentService {
             { idempotencyKey: `deposit-${processedPaymentId}` }
           );
         }
+
+        paidAmountBigInt = creditAmount;
+        isOrderFlow = isOrderPayment || basketOrders.length > 0;
       });
 
       // Invalidate user dashboard cache so they see the new order & spending immediately
@@ -311,9 +316,9 @@ export class PaymentService {
         });
         if (userWithTg?.telegramId) {
           const { bot } = await import('@/bot');
-          const amountRub = (Number(creditAmount) / 100).toLocaleString('ru-RU');
+          const amountRub = (Number(paidAmountBigInt) / 100).toLocaleString('ru-RU');
           const newBal = (Number(userWithTg.balance) / 100).toFixed(2);
-          if (isOrderPayment || basketOrders.length > 0) {
+          if (isOrderFlow || activatedOrders.length > 0) {
             await bot.telegram.sendMessage(
               userWithTg.telegramId,
               `🎉 <b>ОПЛАТА ЗАКАЗА ПОДТВЕРЖДЕНА!</b>\n────────────────────\n` +
