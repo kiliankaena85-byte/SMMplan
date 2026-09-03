@@ -1840,7 +1840,7 @@ model TelegramProxy {
   id                String    @id @default(cuid())
   tenantId          String    @default("smmplan")
   label             String
-  protocol          String    @default("socks5") // socks5 | http | https
+  protocol          String    @default("socks5") // socks5 | socks5h | http | https
   host              String
   port              Int
   username          String?

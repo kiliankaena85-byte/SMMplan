@@ -59,7 +59,12 @@ export async function resolveActiveTelegramProxyUrl(tenantId = 'smmplan'): Promi
           }
           auth = `${encodeURIComponent(proxy.username)}:${encodeURIComponent(password)}@`;
         }
-        const protocol = (proxy.protocol || 'socks5').toLowerCase();
+        // Normalize protocol: support socks5, socks5h, http, https
+        let protocol = (proxy.protocol || 'socks5').toLowerCase();
+        // socks5h is a variant of socks5 that performs hostname resolution through the proxy
+        if (protocol === 'socks5h') {
+          protocol = 'socks5'; // SocksProxyAgent handles hostname resolution automatically
+        }
         cachedDbProxyUrl = `${protocol}://${auth}${proxy.host}:${proxy.port}`;
         lastDbProxyCheck = now;
         return cachedDbProxyUrl;
