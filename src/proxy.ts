@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { decryptSessionToken } from '@/lib/session-edge';
 import { ROUTES } from '@/lib/routes';
-import { BUILD_ID } from '@/lib/build-info';
 import { resolveTenantFromHostEdge, normalizeTenantId, resolveContourFromHost, type ContourId } from '@/lib/tenant-resolver-edge';
 
 // Map of legacy routes to new static routes
@@ -175,7 +174,9 @@ function getActiveServerContour(): ContourId {
   if (appUrl) {
     try {
       return resolveContourFromHost(new URL(appUrl).host);
-    } catch {}
+    } catch {
+      // Ignore malformed appUrl fallback
+    }
   }
   if (process.env.NODE_ENV === 'development') {
     return 'test';
@@ -278,7 +279,6 @@ export async function proxy(request: NextRequest) {
   let isExplicitTenant = false;
 
   const activeContour = getActiveServerContour();
-  const STAFF_ROLES = new Set(['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR']);
 
   const isTailscaleHost = cleanHost.endsWith('.ts.net') || cleanHost.includes('tailscale');
   let isAllowedQueryTenant = true;
@@ -448,7 +448,7 @@ export async function proxy(request: NextRequest) {
     const isOperatorPath = pathname.startsWith('/operator');
 
     // Enforce tenant isolation for regular users (Staff roles have global multi-tenant access)
-    const isTenantMismatch = isCustomer && !isAdminPath && !isOperatorPath && (!payload || normalizeTenantId(payload.tenantId) !== finalTenantId);
+    const isTenantMismatch = isCustomer && !isStaffRole && !isAdminPath && !isOperatorPath && (!payload || normalizeTenantId(payload.tenantId) !== finalTenantId);
 
     // Enforce contour matching in JWT (tokens issued in test contour cannot be used in prod contour)
     const currentContour = resolveContourFromHost(host);
@@ -501,13 +501,11 @@ export async function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
   requestHeaders.set('x-nonce', nonce);
 
-  // Nonce-based Content Security Policy (PCI DSS 4.0 / OWASP ASVS 4.0.3)
-  const isDev = process.env.NODE_ENV === 'development';
-  const scriptSrcDirective = isDev
-    ? `'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://yookassa.ru https://auth.robokassa.ru`
-    : `'self' 'unsafe-inline' 'unsafe-eval' 'nonce-${nonce}' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://yookassa.ru https://auth.robokassa.ru`;
-
-  const styleSrcDirective = `'self' 'unsafe-inline' 'nonce-${nonce}' https://fonts.googleapis.com`;
+  // Content Security Policy (PCI DSS 4.0 / OWASP ASVS 4.0.3)
+  // W3C Note: Do not mix 'nonce-...' with 'unsafe-inline' in script-src/style-src unless strict-dynamic is fully used,
+  // because browsers IGNORE 'unsafe-inline' when a nonce is present, blocking React/Tailwind/HeroUI inline styles & scripts.
+  const scriptSrcDirective = `'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://yookassa.ru https://auth.robokassa.ru`;
+  const styleSrcDirective = `'self' 'unsafe-inline' https://fonts.googleapis.com`;
 
   const cspHeader = `
     default-src 'self';
