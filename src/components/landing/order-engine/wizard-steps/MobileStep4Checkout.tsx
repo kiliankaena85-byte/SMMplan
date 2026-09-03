@@ -236,7 +236,7 @@ export function MobileStep4Checkout({
               setQuantity(val);
             }}
             onBlur={() => {
-              if (quantity < minQty) {
+              if (!quantity || quantity < minQty) {
                 setQuantity(minQty);
               }
             }}
@@ -422,8 +422,8 @@ export function MobileStep4Checkout({
 
         <Button
           onClick={onOrderClick}
-          disabled={isSubmitting}
-          className={`w-full h-12 rounded-2xl bg-primary text-primary-foreground font-black text-sm shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] min-h-[48px] ${
+          disabled={isSubmitting || quantity < minQty}
+          className={`w-full h-12 rounded-2xl bg-primary text-primary-foreground font-black text-sm shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] min-h-[48px] disabled:opacity-50 disabled:cursor-not-allowed ${
             (localError || checkoutError) ? 'ring-2 ring-danger/40 animate-shake' : ''
           }`}
         >

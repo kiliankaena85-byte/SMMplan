@@ -17,25 +17,11 @@ export function useMobileWizard(engine: OrderEngine) {
   const step3Ref = useRef<HTMLDivElement>(null);
   const step4Ref = useRef<HTMLDivElement>(null);
 
+  const prevStepRef = useRef<1 | 2 | 3 | 4>(activeStepRaw);
+
   const setActiveStep = useCallback((step: 1 | 2 | 3 | 4) => {
     userManuallyBrowsingRef.current = true;
-    setActiveStepRaw((prevStep) => {
-      if (prevStep === step) return prevStep;
-      
-      if (typeof window !== 'undefined') {
-        if (step > prevStep) {
-          window.history.pushState({ wizardStep: step }, '', '#step-' + step);
-        } else if (step === 1) {
-          if (window.location.hash.startsWith('#step-')) {
-            window.history.replaceState({ wizardStep: 1 }, '', window.location.pathname + window.location.search);
-          }
-        } else {
-          window.history.replaceState({ wizardStep: step }, '', '#step-' + step);
-        }
-      }
-
-      return step;
-    });
+    setActiveStepRaw(step);
 
     // Smooth scroll to the new step without jumping
     setTimeout(() => {
@@ -46,6 +32,24 @@ export function useMobileWizard(engine: OrderEngine) {
       }
     }, 100);
   }, []);
+
+  // Single effect to synchronize browser history outside of React render/setState updaters (B3)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !mounted) return;
+    const prevStep = prevStepRef.current;
+    if (prevStep === activeStepRaw) return;
+    prevStepRef.current = activeStepRaw;
+
+    if (activeStepRaw > prevStep) {
+      window.history.pushState({ wizardStep: activeStepRaw }, '', '#step-' + activeStepRaw);
+    } else if (activeStepRaw === 1) {
+      if (window.location.hash.startsWith('#step-')) {
+        window.history.replaceState({ wizardStep: 1 }, '', window.location.pathname + window.location.search);
+      }
+    } else {
+      window.history.replaceState({ wizardStep: activeStepRaw }, '', '#step-' + activeStepRaw);
+    }
+  }, [activeStepRaw, mounted]);
 
   // Listen to browser Back button / gesture (popstate)
   useEffect(() => {
