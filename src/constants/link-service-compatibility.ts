@@ -99,6 +99,10 @@ export function normalizeServiceTargetType(rawType: string | null | undefined): 
 
   switch (clean) {
     case 'CHANNEL':
+    case 'GROUP':
+    case 'PUBLIC':
+    case 'COMMUNITY':
+    case 'COMMUNITIES':
     case 'SUBSCRIBERS':
     case 'MEMBERS':
     case 'BOOST':
