@@ -83,7 +83,7 @@ export function MobileStep4Checkout({
 
     // 2. Check email
     if (!email || !email.includes('@')) {
-      setLocalError("Пожалуйста, укажите email для получения чека");
+      setLocalError("Пожалуйста, укажите email для отслеживания заказа");
       setShakeKey(Date.now());
       setTimeout(() => {
         const emailEl = document.getElementById("email-input");
@@ -282,7 +282,7 @@ export function MobileStep4Checkout({
       {/* Email */}
       <div className="space-y-1.5">
         <label htmlFor="email-input" className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">
-          Email для чека
+          Email для отслеживания
         </label>
         <input
           id="email-input"
@@ -302,7 +302,7 @@ export function MobileStep4Checkout({
         />
         {(emailHasError || (localError && (!email || !email.includes('@')))) && (
           <p className="text-[11px] font-bold text-danger pl-1 animate-in fade-in duration-200">
-            Укажите email — на него придёт чек и доступ к заказу
+            Укажите email — на него придёт доступ к заказу
           </p>
         )}
       </div>

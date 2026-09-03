@@ -30,6 +30,15 @@ function getBadgeStyle(badge: string) {
   }
 }
 
+function cleanServiceName(name: string): string {
+  if (!name) return "";
+  return name
+    .replace(/\s*\[Сервер:\s*\d+\]/gi, '')
+    .replace(/\s*\((?:vexboost|vexboost live|api\s*\d+)\)/gi, '')
+    .replace(/\s*♻️/g, '')
+    .trim();
+}
+
 export function TariffCard({ service, isSelected, onSelect, compact, brandStyle }: TariffCardProps) {
   const isQuarantined = service.cooldownUntil && new Date(service.cooldownUntil) > new Date();
 
@@ -86,7 +95,7 @@ export function TariffCard({ service, isSelected, onSelect, compact, brandStyle 
 
           {/* Name */}
           <h4 className={`font-bold text-sm leading-tight mb-1.5 ${textColorClass}`}>
-            {service.name}
+            {cleanServiceName(service.name)}
           </h4>
 
           {/* Meta line with structured execution badges (Zero Empty Blocks) */}

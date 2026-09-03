@@ -158,9 +158,9 @@ export function DrawerFormInputs({
 
         <p className="text-xs text-muted-foreground font-medium ml-1">
           {emailHasError ? (
-            <span className="text-destructive font-bold">Введите корректный email адрес для чека</span>
+            <span className="text-destructive font-bold">Введите корректный email для отслеживания заказа</span>
           ) : (
-            "Для отправки электронного чека 54-ФЗ и отслеживания заказа"
+            "Для отслеживания статуса заказа"
           )}
         </p>
       </div>

@@ -59,10 +59,10 @@ export function EmailPromptModal({
                 </div>
                 <div>
                   <h3 className="text-base font-black text-foreground">
-                    Email для получения чека
+                    Email для отслеживания заказа
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Требование 54-ФЗ: отправка фискального чека
+                    Для доступа и отслеживания статуса заказа
                   </p>
                 </div>
               </div>
@@ -103,7 +103,7 @@ export function EmailPromptModal({
                   </p>
                 )}
                 <p className="text-[11px] text-muted-foreground leading-relaxed pt-1">
-                  На этот адрес сразу после оплаты поступит электронный чек и статус выполнения заказа.
+                  На этот адрес сразу после оплаты поступит доступ и статус выполнения заказа.
                 </p>
               </div>
 

@@ -356,8 +356,8 @@ export function useCheckoutOrchestrator({
 
     if (!email || !email.includes('@')) {
       setEmailHasError(true);
-      setCheckoutError("Пожалуйста, укажите email для получения чека");
-      toast.error("Пожалуйста, укажите корректную электронную почту (email) для получения чека.", { position: 'top-center' });
+      setCheckoutError("Пожалуйста, укажите email для отслеживания заказа");
+      toast.error("Пожалуйста, укажите корректный email для отслеживания заказа.", { position: 'top-center' });
       if (typeof window !== 'undefined') {
         const emailInput = document.getElementById("email-input") || (window.innerWidth >= 768 ? desktopEmailInputRef?.current : mobileEmailInputRef?.current);
         if (emailInput) {

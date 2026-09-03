@@ -59,6 +59,7 @@ export const cleanCategoryName = (rawName: string): string => {
   if (!rawName) return "";
   const stripped = rawName
     .replace(/^[\p{Extended_Pictographic}\p{Emoji_Presentation}\u200d\uFE0E\uFE0F\u2700-\u27BF\uE000-\uF8FF\s]+/gu, '')
+    .replace(/\s*\((?:vexboost|vexboost live|api\s*\d+)\)/gi, '')
     .trim();
   
   // If the string consisted solely of emojis (e.g. "👍"), fallback to trimmed original

@@ -75,7 +75,7 @@ export function StepWizardCheckout({
   const steps = [
     { num: 1, title: "Количество", desc: "Объем заказа" },
     { num: 2, title: "Данные", desc: "Ссылка и Email" },
-    { num: 3, title: "Оплата", desc: "Шлюз и чек" },
+    { num: 3, title: "Оплата", desc: "Шлюз и оплата" },
   ];
 
   return (
@@ -255,7 +255,7 @@ export function StepWizardCheckout({
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
                         <Mail className="w-3.5 h-3.5 text-primary" />
-                        <span>Email для чека (54-ФЗ)</span>
+                        <span>Email для отслеживания</span>
                         <span className="text-destructive">*</span>
                       </label>
                       {email && email.includes('@') && !isEditingEmail ? (
@@ -303,7 +303,7 @@ export function StepWizardCheckout({
                       </div>
                     )}
                     <p className="text-[10px] text-muted-foreground leading-relaxed">
-                      По закону 54-ФЗ фискальный чек об оплате и статус заказа будут отправлены на эту почту.
+                      Статус заказа и детали выполнения будут отправлены на эту почту.
                     </p>
                   </div>
 
