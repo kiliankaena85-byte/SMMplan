@@ -489,7 +489,7 @@ export function useOrderEngine(
 
     loadServices();
     return () => { stale = true; };
-  }, [categoryId, initialServiceId]);
+  }, [categoryId, initialServiceId, detectedType, url]);
 
   // 4. Update quantity limits when Service changes or initializes
   useEffect(() => {
@@ -741,9 +741,7 @@ export function useOrderEngine(
 
   if (isMatchingAutodetected && (suggestedCategories.length > 0 || detectedType) && url.trim().length >= 5) {
     const filteredCats = availableCategories.filter(c => matchesSuggestedCategory(c.name, suggestedCategories, c.analyzerTags, detectedType));
-    if (filteredCats.length > 0) {
-      availableCategories = filteredCats;
-    }
+    availableCategories = filteredCats;
   }
   
   const displayCatalog = catalog;

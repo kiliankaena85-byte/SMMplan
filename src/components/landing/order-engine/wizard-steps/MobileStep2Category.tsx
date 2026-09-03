@@ -34,7 +34,7 @@ export function MobileStep2Category({
 
   const allNetworkCategories = (engine.activeNetwork?.categories || []).filter(c => (c.serviceCount ?? 0) > 0);
   const isLinkActive = url && url.trim().length >= 5;
-  const rawCategories = (isLinkActive && !showAllCategories && availableCategories.length > 0) 
+  const rawCategories = (isLinkActive && !showAllCategories) 
     ? availableCategories 
     : allNetworkCategories;
   const categoriesToDisplay = rawCategories.filter(c => (c.serviceCount ?? 0) > 0);
@@ -81,8 +81,22 @@ export function MobileStep2Category({
             </span>
           </div>
 
-          <div className="flex flex-col gap-2">
-            {categoriesToDisplay.map((cat) => {
+          {categoriesToDisplay.length === 0 ? (
+            <div className="text-center py-5 px-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">
+                В соцсети {engine.activeNetwork?.name || ''} нет категорий для {formatDetectedType(detectedType)}.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowAllCategories(true)}
+                className="text-xs font-bold text-primary underline cursor-pointer"
+              >
+                Показать все {allNetworkCategories.length} категорий
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {categoriesToDisplay.map((cat) => {
               const isActive = categoryId === cat.id;
               const isSuggested = suggestedCategories && suggestedCategories.length > 0
                 ? matchesSuggestedCategory(cat.name, suggestedCategories, (cat as { analyzerTags?: string | null }).analyzerTags, detectedType)
@@ -137,6 +151,7 @@ export function MobileStep2Category({
               );
             })}
           </div>
+          )}
 
           {isLinkActive && allNetworkCategories.length > availableCategories.length && (
             <div className="pt-1 text-center">
