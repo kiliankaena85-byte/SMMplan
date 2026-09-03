@@ -49,6 +49,16 @@ services:
     image: metacubex/mihomo:latest
     container_name: smmplan_clash
     restart: always
+    # TUN mode requires NET_ADMIN + /dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.rp_filter=0
+      - net.ipv4.conf.default.rp_filter=0
     volumes:
       - ./clash:/root/.config/mihomo
     dns:
@@ -56,6 +66,7 @@ services:
       - 1.1.1.1
     ports:
       - "127.0.0.1:7890:7890"
+      - "127.0.0.1:9090:9090"
     logging:
       driver: "json-file"
       options:

@@ -2,9 +2,22 @@ mixed-port: 7890
 socks-port: 7891
 redir-port: 7892
 allow-lan: true
-mode: global
+mode: rule
 log-level: info
 external-controller: 0.0.0.0:9090
+
+# TUN mode — перехват трафика на уровне ядра (system stack)
+tun:
+  enable: true
+  stack: system          # system | gvisor | mixed
+  auto-detect-interface: true
+  auto-route: true
+  auto-redirect: false   # false для Docker (не нужен redirect-to-tun)
+  strict-route: false    # false чтобы не разрывать Docker-сеть
+  dns-hijack:
+    - any:53
+  mtu: 9000
+
 dns:
   enable: true
   use-hosts: true
