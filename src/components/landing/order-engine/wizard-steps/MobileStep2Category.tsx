@@ -5,6 +5,7 @@ import { OrderEngine } from "@/hooks/useOrderEngine";
 import { CategoryIcon, cleanCategoryName } from "@/components/ui/CategoryIcon";
 import { Button } from "@/components/ui/button";
 import { BrandStyle } from "@/utils/brand-styles";
+import { matchesSuggestedCategory } from "@/services/analyzer/category-matcher";
 
 interface MobileStep2CategoryProps {
   engine: OrderEngine;
@@ -26,11 +27,11 @@ export function MobileStep2Category({
   step2Ref
 }: MobileStep2CategoryProps) {
   const [showAllCategories, setShowAllCategories] = React.useState(false);
-  const { categoryId, setCategoryId, availableCategories, detectedType, platform, url } = engine;
+  const { categoryId, setCategoryId, availableCategories, suggestedCategories, detectedType, platform, url, services, isLoading } = engine;
 
   const allNetworkCategories = engine.activeNetwork?.categories || [];
   const isLinkActive = url && url.trim().length >= 5;
-  const categoriesToDisplay = (isLinkActive && !showAllCategories) 
+  const categoriesToDisplay = (isLinkActive && !showAllCategories && availableCategories.length > 0) 
     ? availableCategories 
     : allNetworkCategories;
 
@@ -45,7 +46,7 @@ export function MobileStep2Category({
     return clean;
   };
 
-  if (!(currentStep === 2 || (currentStep !== 2 && !!categoryId)) || !shouldShowCategories || availableCategories.length === 0) {
+  if (!(currentStep === 2 || (currentStep !== 2 && !!categoryId)) || !shouldShowCategories || (availableCategories.length === 0 && allNetworkCategories.length === 0)) {
     return null;
   }
 
@@ -79,6 +80,10 @@ export function MobileStep2Category({
           <div className="grid grid-cols-2 gap-2">
             {categoriesToDisplay.map((cat) => {
               const isActive = categoryId === cat.id;
+              const isSuggested = suggestedCategories && suggestedCategories.length > 0
+                ? matchesSuggestedCategory(cat.name, suggestedCategories, (cat as { analyzerTags?: string | null }).analyzerTags, detectedType)
+                : false;
+
               return (
                 <button
                   key={cat.id}
@@ -108,7 +113,7 @@ export function MobileStep2Category({
                   </div>
                   <div className="flex flex-col min-w-0 flex-1">
                     <span className="truncate text-[11px] leading-tight font-bold">{cleanCategoryName(cat.name)}</span>
-                    {isLinkActive && (
+                    {isLinkActive && isSuggested && (
                       <span className="text-[9px] font-semibold text-success/90 flex items-center gap-0.5 mt-0.5">
                         <span>Подходит</span>
                       </span>
@@ -147,9 +152,10 @@ export function MobileStep2Category({
               <Button
                 type="button"
                 onClick={() => setActiveStep(3)}
-                className="w-full text-xs font-bold h-11 min-h-[44px] rounded-xl bg-primary text-primary-foreground cursor-pointer"
+                disabled={services.length === 0 && !isLoading}
+                className="w-full text-xs font-bold h-11 min-h-[44px] rounded-xl bg-primary text-primary-foreground cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                К тарифам →
+                {services.length === 0 && !isLoading ? 'Нет доступных тарифов' : 'К тарифам →'}
               </Button>
             )}
           </div>

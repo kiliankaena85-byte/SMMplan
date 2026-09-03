@@ -25,7 +25,17 @@ function storefrontCategoryVisibility(tenantId: string) {
   const tenant = tenantVisibilityFilter(tenantId);
   return {
     tenantId: tenant,
-    services: { some: { isActive: true, isQuarantined: false, tenantId: tenant } },
+    services: {
+      some: {
+        isActive: true,
+        isQuarantined: false,
+        tenantId: tenant,
+        OR: [
+          { cooldownUntil: null },
+          { cooldownUntil: { lt: new Date() } }
+        ]
+      }
+    },
   };
 }
 
