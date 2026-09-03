@@ -13,15 +13,19 @@ import { matchesSuggestedCategory } from "@/services/analyzer/category-matcher";
 import {
   inferTargetTypeFromCategory,
   inferTargetTypeFromName,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   normalizeTargetType,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   TargetTypeEnum
 } from "@/utils/target-type";
 import {
   isLinkServiceCompatible,
   getCompatibilityError,
   normalizeServiceTargetType,
-  LinkType,
-  ServiceTargetType
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  type LinkType,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  type ServiceTargetType
 } from "@/constants/link-service-compatibility";
 import { toast } from "sonner";
 
@@ -316,11 +320,15 @@ export function useOrderEngine(
                       if (f.length > 0) filteredCats = f;
                   }
                   if (filteredCats.length > 0) {
-                     // Smart Adaptive Flow: If current category is incompatible with the detected URL, switch to the 1st compatible category
-                     const isCurrentCompatible = filteredCats.some(c => c.id === categoryIdRef.current);
-                     if (!isCurrentCompatible) {
-                        setCategoryId(filteredCats[0].id);
-                        setSelectedService(null);
+                     // Smart Adaptive Flow: If link is entered and no service selected, keep categoryId empty for user choice
+                     if (url.trim().length >= 5 && !selectedServiceRef.current) {
+                        setCategoryId("");
+                     } else {
+                        const isCurrentCompatible = filteredCats.some(c => c.id === categoryIdRef.current);
+                        if (!isCurrentCompatible) {
+                           setCategoryId(filteredCats[0].id);
+                           setSelectedService(null);
+                        }
                      }
                   }
                }
@@ -384,18 +392,22 @@ export function useOrderEngine(
         setMediaGroupUrl("");
         const net = catalog.find(n => n.id === networkId);
         if (net) {
-           const catsForNet = net.categories;
+           const catsForNet = net.categories.filter(c => c.serviceCount === undefined || c.serviceCount > 0);
            const matchedCats = suggestedCategories.length > 0 || detectedType
               ? catsForNet.filter(c => matchesSuggestedCategory(c.name, suggestedCategories, c.analyzerTags, detectedType))
               : [];
            const availableCats = matchedCats.length > 0 ? matchedCats : catsForNet;
            if (availableCats.length > 0 && !availableCats.some(c => c.id === categoryId)) {
-              setCategoryId(availableCats[0].id);
-              setSelectedService(null);
+              if (url.trim().length >= 5 && !selectedServiceRef.current) {
+                 setCategoryId("");
+              } else {
+                 setCategoryId(availableCats[0].id);
+                 setSelectedService(null);
+              }
            }
         }
      }
-  }, [networkId, catalog, categoryId, suggestedCategories, detectedType]);
+  }, [networkId, catalog, categoryId, suggestedCategories, detectedType, url]);
 
   // 3. Load Services when Category changes
   useEffect(() => {
@@ -718,7 +730,9 @@ export function useOrderEngine(
     : formatCents(0); // REQUIRED BY PROTOCOL: Draw 0.00 RUB if empty
 
   const activeNetwork = catalog.find(n => n.id === networkId) || catalog[0] || null;
-  let availableCategories = activeNetwork ? activeNetwork.categories : [];
+  let availableCategories = activeNetwork 
+    ? activeNetwork.categories.filter(c => c.serviceCount === undefined || c.serviceCount > 0)
+    : [];
   
   // Restore aggressive filtering to prevent users from ordering Post services (like Reactions) for a Profile link.
   // Apply suggestedCategories filter ONLY when the selected networkId matches the auto-detected platform to prevent empty panels when switching.

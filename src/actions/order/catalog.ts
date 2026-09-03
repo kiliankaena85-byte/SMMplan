@@ -275,7 +275,11 @@ export async function getPublicCatalogAction(rawTenantId: string = 'smmplan') {
         slug: net.slug,
         icon: finalIcon, // prefer valid absolute/relative SVG custom icons or fallback
         categories: net.categories.map(cat => {
-          const serviceCount = '_count' in cat && cat._count ? (cat._count as { services: number }).services : 1;
+          const countObj = '_count' in cat && cat._count ? (cat._count as { services?: number }) : null;
+          const rawServiceCount = 'serviceCount' in cat ? (cat as unknown as { serviceCount?: number }).serviceCount : undefined;
+          const serviceCount = typeof countObj?.services === 'number'
+            ? countObj.services
+            : (typeof rawServiceCount === 'number' ? rawServiceCount : 0);
           return {
             id: cat.id,
             name: cat.name,

@@ -30,11 +30,12 @@ export function MobileStep2Category({
   const { categoryId, setCategoryId, availableCategories, detectedType, platform, url, services, isLoading } = engine;
   const suggestedCategories: string[] = [];
 
-  const allNetworkCategories = engine.activeNetwork?.categories || [];
+  const allNetworkCategories = (engine.activeNetwork?.categories || []).filter(c => c.serviceCount === undefined || c.serviceCount > 0);
   const isLinkActive = url && url.trim().length >= 5;
-  const categoriesToDisplay = (isLinkActive && !showAllCategories && availableCategories.length > 0) 
+  const rawCategories = (isLinkActive && !showAllCategories && availableCategories.length > 0) 
     ? availableCategories 
     : allNetworkCategories;
+  const categoriesToDisplay = rawCategories.filter(c => c.serviceCount === undefined || c.serviceCount > 0);
 
   const formatDetectedType = (t: string | null | undefined) => {
     if (!t) return "";
@@ -78,7 +79,7 @@ export function MobileStep2Category({
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col gap-2">
             {categoriesToDisplay.map((cat) => {
               const isActive = categoryId === cat.id;
               const isSuggested = suggestedCategories && suggestedCategories.length > 0
@@ -98,30 +99,37 @@ export function MobileStep2Category({
                     }
                   }}
                   className={`
-                    flex items-center gap-2 p-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer active:scale-[0.98] text-left border min-h-[48px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none relative overflow-hidden
+                    flex items-center gap-3 p-3 rounded-2xl text-xs font-bold transition-all cursor-pointer active:scale-[0.99] text-left border min-h-[48px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none relative overflow-hidden w-full
                     ${isActive
                       ? `${brandStyle?.activeBg || "bg-primary"} ${brandStyle?.activeText || "text-primary-foreground"} border-transparent shadow-md shadow-primary/20`
                       : "bg-content2 border-border/40 text-foreground/85 hover:text-foreground hover:border-border/80 hover:bg-content3"
                     }
                   `}
                 >
-                  <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
                     isActive 
                       ? "bg-current/20 text-current" 
                       : "bg-primary/5 text-primary"
                   }`}>
-                    <CategoryIcon name={cat.name} icon={(cat as { icon?: string | null }).icon} size={14} />
+                    <CategoryIcon name={cat.name} icon={(cat as { icon?: string | null }).icon} size={16} />
                   </div>
                   <div className="flex flex-col min-w-0 flex-1">
-                    <span className="truncate text-[11px] leading-tight font-bold">{cleanCategoryName(cat.name)}</span>
+                    <span className="text-xs font-bold leading-snug break-words">{cleanCategoryName(cat.name)}</span>
                     {isLinkActive && isSuggested && (
-                      <span className="text-[9px] font-semibold text-success/90 flex items-center gap-0.5 mt-0.5">
+                      <span className="text-[10px] font-semibold text-success/90 flex items-center gap-0.5 mt-0.5">
                         <span>Подходит</span>
                       </span>
                     )}
                   </div>
+                  {typeof cat.serviceCount === 'number' && cat.serviceCount > 0 && (
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                      isActive ? "bg-current/20 text-current" : "bg-content3 text-muted-foreground"
+                    }`}>
+                      {cat.serviceCount}
+                    </span>
+                  )}
                   {isActive && (
-                    <Check className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                    <Check className="w-4 h-4 shrink-0 opacity-90" />
                   )}
                 </button>
               );
