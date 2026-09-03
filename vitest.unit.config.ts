@@ -95,6 +95,7 @@ export default defineConfig({
       'src/bot/__tests__/bot-admin-settings-ecosystem.test.ts',
       'src/bot/__tests__/bot-interactive-buttons-and-error-ux.test.ts',
       'src/bot/__tests__/multi-bot-constructor.test.ts',
+      'src/lib/financial/__tests__/transaction-classifier.test.ts',
     ],
   }
 });

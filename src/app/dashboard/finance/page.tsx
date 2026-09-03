@@ -31,7 +31,8 @@ export default async function FinancePage() {
     }),
     db.ledgerEntry.findMany({
       where: { userId: session.userId },
-      orderBy: { createdAt: 'asc' },
+      take: 300,
+      orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         amount: true,
@@ -46,11 +47,12 @@ export default async function FinancePage() {
 
   if (!user) redirect('/login');
 
-  // Compute exact running balances chronologically
-  let runningBalance = BigInt(0);
-  const enrichedEntries = entries.map(entry => {
-    runningBalance += entry.amount;
-    
+  // Compute exact running balances starting from user.balance (A3, A7)
+  let currentRunningBalance = BigInt(user.balance ?? 0);
+  const serializedEntries = entries.map(entry => {
+    const entryRunningBalance = currentRunningBalance;
+    currentRunningBalance -= entry.amount;
+
     // Match numeric order ID if mentioned in reason e.g. #10429
     const orderMatch = /#(\d{3,9})/.exec(entry.reason);
     const orderNumericId = orderMatch ? Number(orderMatch[1]) : null;
@@ -59,8 +61,8 @@ export default async function FinancePage() {
       id: entry.id,
       amountCents: typeof entry.amount === 'bigint' ? Number(entry.amount) : entry.amount,
       amountRub: Number(entry.amount) / 100,
-      runningBalanceCents: Number(runningBalance),
-      runningBalanceRub: Number(runningBalance) / 100,
+      runningBalanceCents: Number(entryRunningBalance),
+      runningBalanceRub: Number(entryRunningBalance) / 100,
       reason: entry.reason,
       status: entry.status,
       idempotencyKey: entry.idempotencyKey || null,
@@ -70,8 +72,6 @@ export default async function FinancePage() {
     };
   });
 
-  // Reverse so newest transactions are at the top
-  const serializedEntries = enrichedEntries.reverse();
   const currentBalanceRub = Number(user.balance ?? 0) / 100;
 
   return (

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { matchesTransactionTypeFilter, classifyTransaction } from '@/lib/financial/transaction-classifier';
 
 interface Transaction {
   id: string;
@@ -246,30 +247,24 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
         item.id.toLowerCase().includes(search.toLowerCase()) ||
         (item.idempotencyKey && item.idempotencyKey.toLowerCase().includes(search.toLowerCase()));
 
-      // Operation Type filter
-      let matchesType = true;
-      if (typeFilter === 'DEPOSIT') {
-        matchesType = item.amountRub > 0 && (item.transactionType === 'PAYMENT' || item.transactionType === 'COMPENSATION');
-      } else if (typeFilter === 'SPENT') {
-        matchesType = item.amountRub < 0 && item.transactionType === 'PAYMENT';
-      } else if (typeFilter === 'REFUND') {
-        matchesType = item.transactionType === 'REFUND' || (item.amountRub > 0 && item.transactionType === 'REFUND');
-      }
+      // Operation Type filter using canonical classification (A1)
+      const matchesType = matchesTransactionTypeFilter(item, typeFilter);
 
-      // Date filter
+      // Date filter (A4)
       let matchesDate = true;
       if (dateFilter !== 'ALL') {
         const itemDate = new Date(item.createdAt);
         const now = new Date();
-        const diffTime = Math.abs(now.getTime() - itemDate.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         if (dateFilter === 'TODAY') {
-          matchesDate = itemDate.toDateString() === now.toDateString();
+          const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          matchesDate = itemDate >= startOfDay;
         } else if (dateFilter === 'WEEK') {
-          matchesDate = diffDays <= 7;
+          const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          matchesDate = itemDate >= sevenDaysAgo;
         } else if (dateFilter === 'MONTH') {
-          matchesDate = diffDays <= 30;
+          const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          matchesDate = itemDate >= thirtyDaysAgo;
         }
       }
 
@@ -277,20 +272,21 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
     });
   }, [entries, search, typeFilter, dateFilter]);
 
-  // 2. Calculations for Financial KPI Dashboard
+  // 2. Calculations for Financial KPI Dashboard (A2)
   const stats = useMemo(() => {
     let totalDeposited = 0; // Total added
     let totalSpent = 0;     // Total debited
     let totalRefunds = 0;   // Total refunded
 
     entries.forEach(item => {
-      if (item.status !== 'APPROVED') return; // only calculate approved entries
+      if (item.status !== 'APPROVED') return; // calculate approved entries
 
-      if (item.transactionType === 'REFUND') {
+      const category = classifyTransaction(item);
+      if (category === 'REFUND') {
         totalRefunds += Math.abs(item.amountRub);
-      } else if (item.amountRub > 0) {
-        totalDeposited += item.amountRub;
-      } else if (item.amountRub < 0) {
+      } else if (category === 'DEPOSIT') {
+        totalDeposited += Math.abs(item.amountRub);
+      } else if (category === 'SPENT') {
         totalSpent += Math.abs(item.amountRub);
       }
     });
@@ -722,13 +718,17 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
           </>
         )}
 
-        {/* Empty state container */}
+        {/* Empty state container (A6) */}
         {filteredEntries.length === 0 && (
           <div className="py-16 text-center select-none print:hidden">
-            <div className="text-4xl mb-3">💸</div>
-            <h4 className="text-sm font-extrabold text-foreground">История операций пуста</h4>
+            <div className="text-4xl mb-3">{entries.length === 0 ? '💸' : '🔍'}</div>
+            <h4 className="text-sm font-extrabold text-foreground">
+              {entries.length === 0 ? 'История операций пуста' : 'Ничего не найдено по выбранным фильтрам'}
+            </h4>
             <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed mt-1">
-              Здесь будут отображаться пополнения счета, оплаты тарифов продвижения и отмены заказов.
+              {entries.length === 0
+                ? 'Здесь будут отображаться пополнения счета, оплаты тарифов продвижения и отмены заказов.'
+                : 'Попробуйте изменить параметры поиска, сбросить тип операции или выбранный период.'}
             </p>
           </div>
         )}
