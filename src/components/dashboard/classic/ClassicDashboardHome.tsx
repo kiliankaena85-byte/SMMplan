@@ -16,6 +16,7 @@ import {
   RotateCcw,
   ArrowUpRight
 } from 'lucide-react';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { formatBalance } from '@/lib/utils';
 import { PaymentAutoSync } from '@/components/orders/PaymentAutoSync';
 import { SocialIcon } from '@/components/ui/SocialIcon';
@@ -73,6 +74,7 @@ export interface ClassicDashboardOrder {
   serviceId?: string;
   service?: {
     name: string;
+    categoryId?: string | null;
     category?: {
       network?: {
         slug: string;
@@ -400,7 +402,10 @@ export function ClassicDashboardHome({
                     </div>
 
                     <Link
-                      href={`/dashboard/new-order?serviceId=${order.serviceId}&link=${encodeURIComponent(order.link || '')}&quantity=${order.quantity}`}
+                      // FIX(REPEAT): контракт reorder* — единственный, который читает
+                      // /dashboard/new-order. Раньше serviceId=&link=&quantity= игнорировались
+                      // визардом, кнопка открывала пустую форму.
+                      href={`/dashboard/new-order?reorderServiceId=${order.serviceId || ''}&reorderCategoryId=${order.service?.categoryId || ''}&reorderLink=${encodeURIComponent(order.link || '')}&reorderQty=${order.quantity}`}
                       title="Повторить этот заказ"
                       className="p-2.5 rounded-xl bg-secondary hover:bg-primary/10 hover:text-primary text-muted-foreground border border-border/60 transition-all duration-200"
                     >

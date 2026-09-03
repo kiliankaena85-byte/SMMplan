@@ -821,6 +821,7 @@ export function useOrderEngine(
     
     platform,
     detectedType,
+    suggestedCategories,
     manualPlatform,
     setManualPlatform: handleSetManualPlatform,
     activeNetwork,

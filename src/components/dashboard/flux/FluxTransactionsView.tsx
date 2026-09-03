@@ -8,7 +8,9 @@ import {
   RotateCcw, 
   Search, 
   Wallet, 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   TrendingDown, 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   TrendingUp, 
   Receipt, 
   Copy, 
@@ -16,8 +18,10 @@ import {
   ShieldCheck,
   Info,
   Printer,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Sparkles,
   ExternalLink,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Gift
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -26,8 +30,8 @@ export interface FluxTransaction {
   id: string;
   amountCents: number;
   amountRub: number;
-  runningBalanceCents?: number;
-  runningBalanceRub?: number;
+  runningBalanceCents?: number | null;
+  runningBalanceRub?: number | null;
   reason: string;
   status: string;
   idempotencyKey: string | null;
@@ -38,6 +42,7 @@ export interface FluxTransaction {
 
 export function FluxTransactionsView({
   initialEntries = [],
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   userEmail,
   currentBalanceRub = 0,
 }: {
@@ -294,6 +299,7 @@ export function FluxTransactionsView({
           {filteredEntries.map((tx) => {
             const isRefund = tx.transactionType === 'REFUND' || tx.reason.toLowerCase().includes('возврат');
             const isCredit = tx.amountRub > 0;
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const isOrder = tx.amountRub < 0;
 
             const Icon = isRefund ? RotateCcw : isCredit ? ArrowDownLeft : ArrowUpRight;
@@ -357,8 +363,8 @@ export function FluxTransactionsView({
                       {tx.reason || 'Операция по счету'}
                     </div>
 
-                    {/* Running balance audit trail */}
-                    {tx.runningBalanceRub !== undefined && (
+                    {/* Running balance audit trail (null для не-APPROVED — баланс не менялся) */}
+                    {tx.runningBalanceRub != null && (
                       <div className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
                         <span>Остаток после операции:</span>
                         <span className="font-bold text-foreground tabular-nums">

@@ -43,8 +43,10 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ te
         status: true,
         charge: true,
         quantity: true,
+        link: true,
+        serviceId: true,
         createdAt: true,
-        service: { select: { name: true } },
+        service: { select: { name: true, categoryId: true } },
       },
     }),
     db.user.count({ where: { referredById: session.userId } }),
@@ -87,6 +89,9 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ te
     quantity: order.quantity,
     createdAt: order.createdAt,
     service: order.service,
+    // FIX(REPEAT): данные для кнопки «Повторить» (контракт reorder*)
+    serviceId: order.serviceId,
+    link: order.link,
   }));
 
   return (

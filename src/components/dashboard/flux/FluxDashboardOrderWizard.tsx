@@ -217,7 +217,11 @@ function FluxDashboardOrderWizardInner({
       let foundNet: FluxNetwork | null = null;
 
       if (activePlatformStr) {
-        foundNet = catalog.find(n => n.slug.toLowerCase().includes(activePlatformStr) || activePlatformStr.includes(n.slug.toLowerCase())) || null;
+        // FIX(B5-strict): только точное совпадение slug. Раньше здесь было
+        // slug.includes(activePlatformStr) || activePlatformStr.includes(slug) —
+        // из-за этого 'ok' (OK.ru) матчился в 'tiktok'.includes('ok') → TikTok.
+        // Нечётное совпадение приводит к заказу не в той соцсети.
+        foundNet = catalog.find(n => n.slug.toLowerCase() === activePlatformStr) || null;
       }
       if (!foundNet) {
         const detectedNet = detectNetworkByUrl(targetLink.trim(), catalog);

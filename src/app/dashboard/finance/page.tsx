@@ -47,10 +47,20 @@ export default async function FinancePage() {
 
   if (!user) redirect('/login');
 
-  // Compute exact running balances chronologically
-  let runningBalance = BigInt(0);
+  // FIX(A3/A7-restore): running balance якорится к ФАКТИЧЕСКОМУ балансу пользователя,
+  // а не к нулю. Цепочку ведём назад от user.balance только по APPROVED-проводкам:
+  // PENDING/QUARANTINE/REJECTED не изменяли баланс и не должны его искажать.
+  // Для не-APPROVED записей runningBalance не показываем (null) — UI скрывает «Баланс стал».
+  const approvedSum = entries.reduce(
+    (acc, e) => (e.status === 'APPROVED' ? acc + e.amount : acc),
+    BigInt(0)
+  );
+  let runningBalance = BigInt(user.balance ?? 0) - approvedSum;
   const enrichedEntries = entries.map(entry => {
-    runningBalance += entry.amount;
+    const isApproved = entry.status === 'APPROVED';
+    if (isApproved) {
+      runningBalance += entry.amount;
+    }
     
     // Match numeric order ID if mentioned in reason e.g. #10429
     const orderMatch = /#(\d{3,9})/.exec(entry.reason);
@@ -60,8 +70,8 @@ export default async function FinancePage() {
       id: entry.id,
       amountCents: typeof entry.amount === 'bigint' ? Number(entry.amount) : entry.amount,
       amountRub: Number(entry.amount) / 100,
-      runningBalanceCents: Number(runningBalance),
-      runningBalanceRub: Number(runningBalance) / 100,
+      runningBalanceCents: isApproved ? Number(runningBalance) : null,
+      runningBalanceRub: isApproved ? Number(runningBalance) / 100 : null,
       reason: entry.reason,
       status: entry.status,
       idempotencyKey: entry.idempotencyKey || null,

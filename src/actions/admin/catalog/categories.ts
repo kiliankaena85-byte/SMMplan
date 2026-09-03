@@ -6,6 +6,7 @@ import { requireStaffPermission } from "@/lib/server/rbac";
 import { auditAdmin, auditAdminAwaitable } from "@/lib/admin-audit";
 import { z } from "zod";
 import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidateCatalogCache } from "./revalidate";
 import { normalizeIconDescriptor } from "@/lib/icons/safe-svg";
 import { cyrillicToSlug } from "@/utils/slugify";
 
@@ -87,6 +88,7 @@ export async function createCategory(rawData: { name: string; slug?: string | nu
     revalidateTag("catalog-flux", 'default');
     revalidateTag("services-smmplan", 'default');
     revalidateTag("services-flux", 'default');
+    revalidateCatalogCache();
     return { success: true, error: undefined, categoryId: cat.id, category: cat };
   });
 }
@@ -148,6 +150,7 @@ export async function updateCategory(rawId: string, rawData: { name: string; slu
     revalidateTag("catalog-flux", 'default');
     revalidateTag("services-smmplan", 'default');
     revalidateTag("services-flux", 'default');
+    revalidateCatalogCache();
     return { success: true, error: undefined };
   });
 }
@@ -194,6 +197,7 @@ export async function deleteCategory(rawId: string) {
     revalidateTag("catalog-flux", 'default');
     revalidateTag("services-smmplan", 'default');
     revalidateTag("services-flux", 'default');
+    revalidateCatalogCache();
     return { success: true, error: undefined };
   });
 }
@@ -237,6 +241,7 @@ export async function hideCategoryAndServicesAction(categoryId: string) {
     revalidateTag("services-smmplan", 'default');
     revalidateTag("services-flux", 'default');
 
+    revalidateCatalogCache();
     return { 
       success: true as const, 
       count: category._count.services,
@@ -322,6 +327,7 @@ export async function mergeCategoriesAction(sourceCategoryId: string, targetCate
     revalidateTag("catalog", 'default');
     revalidateTag("services", 'default');
 
+    revalidateCatalogCache();
     return { success: true as const };
   });
 }
@@ -383,6 +389,7 @@ export async function createNetworkAction(rawData: { name: string; slug: string;
     revalidatePath("/admin/catalog");
     revalidateTag("catalog", 'default');
 
+    revalidateCatalogCache();
     return { success: true as const, networkId: network.id };
   });
 }
@@ -450,6 +457,7 @@ export async function updateNetworkAction(id: string, rawData: { name: string; s
     revalidatePath("/admin/catalog");
     revalidateTag("catalog", 'default');
 
+    revalidateCatalogCache();
     return { success: true as const };
   });
 }
@@ -492,6 +500,7 @@ export async function deleteNetworkAction(id: string) {
     revalidatePath("/admin/catalog");
     revalidateTag("catalog", 'default');
 
+    revalidateCatalogCache();
     return { success: true as const };
   });
 }
@@ -515,6 +524,7 @@ export async function cleanupEmptyCategoriesAction(networkId?: string | null) {
     });
 
     if (emptyCats.length === 0) {
+      revalidateCatalogCache();
       return {
         success: true as const,
         deletedCount: 0,
@@ -550,6 +560,7 @@ export async function cleanupEmptyCategoriesAction(networkId?: string | null) {
     revalidateTag("services-smmplan", 'default');
     revalidateTag("services-flux", 'default');
 
+    revalidateCatalogCache();
     return {
       success: true as const,
       deletedCount: deleteResult.count,

@@ -6,6 +6,7 @@ import { requireStaffPermission } from "@/lib/server/rbac";
 import { auditAdmin, auditAdminAwaitable } from "@/lib/admin-audit";
 import { z } from "zod";
 import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidateCatalogCache } from "./revalidate";
 import { SettingsProvider } from "@/lib/settings";
 import { applyBeautifulRounding } from "@/lib/financial-constants";
 import { inferTargetTypeFromCategory } from "@/utils/target-type";
@@ -214,6 +215,7 @@ export async function createServiceAction(rawData: unknown) {
     revalidateTag(`catalog-${data.tenantId}`, 'default');
     revalidateTag(`services-${data.tenantId}`, 'default');
 
+    revalidateCatalogCache();
     return { success: true as const, serviceId: service.id };
   });
 }
@@ -379,6 +381,7 @@ export async function updateServiceAction(id: string, rawData: unknown) {
       revalidateTag(`category-${updatedService.categoryId}-flux`, 'default');
     }
 
+    revalidateCatalogCache();
     return { success: true as const, serviceId: updatedService.id };
   });
 }
@@ -429,6 +432,7 @@ export async function deleteOrArchiveServiceAction(id: string) {
           revalidateTag(`services-${service.tenantId}`, 'default');
         }
 
+        revalidateCatalogCache();
         return { 
           success: true as const, 
           action: 'DELETED' as const, 
@@ -464,6 +468,7 @@ export async function deleteOrArchiveServiceAction(id: string) {
         revalidateTag("catalog", 'default');
         revalidateTag("services", 'default');
 
+        revalidateCatalogCache();
         return { 
           success: true as const, 
           action: 'ARCHIVED' as const, 
@@ -499,6 +504,7 @@ export async function deleteOrArchiveServiceAction(id: string) {
       revalidateTag("catalog", 'default');
       revalidateTag("services", 'default');
 
+      revalidateCatalogCache();
       return { 
         success: true as const, 
         action: 'ARCHIVED' as const, 
@@ -546,6 +552,7 @@ export async function toggleServiceStatusAction(id: string, isActive: boolean) {
     revalidateTag("catalog", 'default');
     revalidateTag("services", 'default');
 
+    revalidateCatalogCache();
     return { success: true as const, isActive };
   });
 }
@@ -603,6 +610,7 @@ export async function bulkDeleteOrArchiveServicesAction(serviceIds: string[]) {
     revalidateTag("catalog", 'default');
     revalidateTag("services", 'default');
 
+    revalidateCatalogCache();
     return { 
       success: true as const, 
       deletedCount, 
@@ -638,6 +646,7 @@ export async function resetCustomFlagsAction(id: string) {
     });
 
     revalidatePath("/admin/catalog");
+    revalidateCatalogCache();
     return { success: true as const, serviceId: service.id };
   });
 }

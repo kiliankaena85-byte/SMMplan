@@ -28,8 +28,8 @@ interface Transaction {
   id: string;
   amountCents: number;
   amountRub: number;
-  runningBalanceCents?: number;
-  runningBalanceRub?: number;
+  runningBalanceCents?: number | null;
+  runningBalanceRub?: number | null;
   reason: string;
   status: string;
   idempotencyKey: string | null;
@@ -332,7 +332,11 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
     entries.forEach(item => {
       if (item.status !== 'APPROVED') return; // only calculate approved entries
 
-      if (item.transactionType === 'REFUND') {
+      // FIX(KPI-align): семантика KPI = семантика вкладок.
+      // REFUND-семейство (авто-возвраты + ручные отмены) → «Возвращено»,
+      // иначе положительные суммы → «Зачислено», отрицательные → «Потрачено».
+      // Раньше ORDER_CANCEL(+RUB) ошибочно попадал в «Всего зачислено».
+      if (item.transactionType === 'REFUND' || item.transactionType === 'ORDER_CANCEL') {
         totalRefunds += Math.abs(item.amountRub);
       } else if (item.amountRub > 0) {
         totalDeposited += item.amountRub;

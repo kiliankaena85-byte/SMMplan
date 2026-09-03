@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Link2, ArrowRight, Sparkles, Check, Target, CreditCard, X } from 'lucide-react';
 import { stripQueryParams, normalizeUsername } from '@/utils/link-normalizer';
 import { detectPlatformLite } from '@/utils/link-extractor';
@@ -25,6 +26,7 @@ export function DashboardHeroLinkInput({
   networks,
   selectedNetwork,
   setSelectedNetwork,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   selectedCategory,
   selectedService,
   step,
@@ -62,9 +64,10 @@ export function DashboardHeroLinkInput({
     // на текущем шаге и осознанно нажимает «Продолжить».
     // Автоподстановка — только если платформа реально распознана по домену ссылки.
     if (platformSlug && platformSlug !== 'other' && isDomainish) {
-      const matched = networks.find(
-        (n) => n.slug.toLowerCase() === platformSlug || n.name.toLowerCase().includes(platformSlug)
-      );
+      // FIX(B4-strict): точное совпадение slug. Раньше name.includes(platformSlug)
+      // ловило ложные срабатывания ('ok' ⊂ 'TikTok'). Нечётный матчинг запрещён:
+      // авто-подстановка сети допустима только при однозначном распознавании.
+      const matched = networks.find((n) => n.slug.toLowerCase() === platformSlug);
       if (matched && (!selectedNetwork || selectedNetwork.id !== matched.id)) {
         setSelectedNetwork(matched);
         toast.success(`Платформа ${matched.name} определена автоматически`, {

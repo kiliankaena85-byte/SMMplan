@@ -27,8 +27,10 @@ export function MobileStep2Category({
   step2Ref
 }: MobileStep2CategoryProps) {
   const [showAllCategories, setShowAllCategories] = React.useState(false);
-  const { categoryId, setCategoryId, availableCategories, detectedType, platform, url, services, isLoading } = engine;
-  const suggestedCategories: string[] = [];
+  const { categoryId, setCategoryId, availableCategories, suggestedCategories, detectedType, platform, url, services, isLoading } = engine;
+  // FIX(B2-badges): suggestedCategories берётся из engine (useOrderEngine отдаёт стейт,
+  // наполненный анализатором ссылки). Локальная заглушка `const suggestedCategories: string[] = []`
+  // делала бейджи «Подходит» всегда пустыми.
 
   const allNetworkCategories = (engine.activeNetwork?.categories || []).filter(c => c.serviceCount === undefined || c.serviceCount > 0);
   const isLinkActive = url && url.trim().length >= 5;

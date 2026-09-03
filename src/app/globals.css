@@ -13,6 +13,8 @@
   
   /* ── HeroUI Content Tokens (Fallbacks for Tailwind 4) ── */
   --color-content1: var(--color-card);
+  --color-content2: #f1f5f9; /* slate-100 — intermediate surface */
+  --color-content3: #e2e8f0; /* slate-200 — hover/deep surface */
 
   /* ── Popover ── */
   --color-popover: #ffffff;
@@ -151,6 +153,10 @@
   --color-secondary: #e0f2fe;
   --color-secondary-foreground: #0369a1;
   --color-ring: #bae6fd;
+
+  --color-content1: #ffffff;
+  --color-content2: #f1f5f9;
+  --color-content3: #e2e8f0;
 }
 
 /* --- DARK THEMES VARIABLES OVERRIDE --- */
@@ -172,6 +178,10 @@
 
   --color-accent: #243042;
   --color-accent-foreground: #f8fafc;
+
+  --color-content1: #1e293b;
+  --color-content2: #243042;
+  --color-content3: #2d3a4e;
 
   --color-border: rgba(255, 255, 255, 0.08); /* Luminance Border (blueprint aesthetic) */
   --color-input: #1b2330;

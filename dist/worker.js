@@ -140905,13 +140905,26 @@ ${globalSummary}
 
 // src/lib/tenant-scope.ts
 function tenantVisibilityFilter(tenantId) {
-  const normalized = (tenantId || "").trim().toLowerCase();
+  const normalized = normalizeTenantId3(tenantId);
   const tenant = normalized === "all" || normalized === "" ? "smmplan" : normalized;
   return { in: [tenant, "all"] };
 }
+function normalizeTenantId3(input) {
+  if (typeof input !== "string" || !input.trim()) {
+    return "smmplan";
+  }
+  const clean = input.trim().toLowerCase();
+  if (clean === "lovable") return "flux";
+  if (ALLOWED_TENANTS.has(clean)) {
+    return clean;
+  }
+  return "smmplan";
+}
+var ALLOWED_TENANTS;
 var init_tenant_scope = __esm({
   "src/lib/tenant-scope.ts"() {
     "use strict";
+    ALLOWED_TENANTS = /* @__PURE__ */ new Set(["smmplan", "flux", "all"]);
   }
 });
 

@@ -11,8 +11,8 @@ interface TransactionItem {
   id: string;
   amountCents: number;
   amountRub: number;
-  runningBalanceCents: number;
-  runningBalanceRub: number;
+  runningBalanceCents?: number | null;
+  runningBalanceRub?: number | null;
   reason: string;
   status: string;
   idempotencyKey: string | null;
