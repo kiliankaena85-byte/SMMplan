@@ -231,6 +231,7 @@ export function useOrderEngine(
   const selectedServiceRef = useRef<PublicService | null>(null);
   const networkIdRef = useRef(networkId);
   const categoryIdRef = useRef(categoryId);
+  const serviceRequestIdRef = useRef(0);
   
   useEffect(() => {
     selectedServiceRef.current = selectedService;
@@ -437,22 +438,20 @@ export function useOrderEngine(
     setSelectedService(null);
 
     if (!categoryId) {
+      setIsLoading(false);
       setDripFeedEnabled(false);
       setRuns(2);
       setDripInterval(5);
       return;
     }
 
-    // BUG-FIX: Use stale flag to prevent race condition when category changes rapidly.
-    // Without this, if user clicks Cat-A then immediately Cat-B, the Cat-A response
-    // could arrive after Cat-B and overwrite services + set isLoading=false prematurely.
-    let stale = false;
+    const currentRequestId = ++serviceRequestIdRef.current;
 
     const loadServices = async () => {
       setIsLoading(true);
       try {
         const svcs = await getServicesByCategoryAction(categoryId);
-        if (stale) return; // Category changed while we were fetching — discard result
+        if (currentRequestId !== serviceRequestIdRef.current) return;
         
         // WAVE 4.1: Marketing UX Sorting & TargetType Compatibility Prioritization
         const sortedSvcs = [...svcs].sort((a, b) => {
@@ -469,8 +468,6 @@ export function useOrderEngine(
           const compatibleSvcs = sortedSvcs.filter(s =>
             isLinkServiceCompatible(detectedType, s.targetType || inferTargetTypeFromName(s.name))
           );
-          // Never fallback to incompatible services. If none match, finalSvcs is empty,
-          // allowing the UI to show a helpful 1-click bridge to compatible categories.
           finalSvcs = compatibleSvcs;
         }
 
@@ -487,18 +484,19 @@ export function useOrderEngine(
            setSelectedService(null);
         }
       } catch (err) {
-        if (stale) return;
+        if (currentRequestId !== serviceRequestIdRef.current) return;
         console.error("Failed to load services:", err);
         setServices([]);
         setSelectedService(null);
         toast.error("Не удалось загрузить услуги. Проверьте подключение к сети.");
       } finally {
-        if (!stale) setIsLoading(false);
+        if (currentRequestId === serviceRequestIdRef.current) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadServices();
-    return () => { stale = true; };
   }, [categoryId, initialServiceId, detectedType, url]);
 
   // 4. Update quantity limits when Service changes or initializes
