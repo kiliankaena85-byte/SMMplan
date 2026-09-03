@@ -415,7 +415,7 @@ describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
     );
 
     expect(getByText3('Telegram Подписчики Быстрые')).toBeDefined();
-    expect(getByText3('Telegram Подписчики Реальные (Хит)')).toBeDefined();
+    expect(getByText3('Telegram Подписчики VIP')).toBeDefined();
     expect(getByText3('Telegram Подписчики Премиум Гарантия')).toBeDefined();
     expect(getByText3(/Показать все 4 тарифов/i)).toBeDefined();
   });
