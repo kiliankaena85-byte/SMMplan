@@ -1,12 +1,13 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-09-03 04:26 (МСК) — Все контейнеры ветки main пересобраны и запущены (Up healthy).
+> **Последнее обновление:** 2026-09-03 07:25 (МСК) — SOCKS5H прокси-контур Telegram бота и схема интегрированы в main.
 
-- **Релиз и переразвертывание ветки main (Web, Worker, Bot) — 100% DEPLOYED & HEALTHY:**
-  - `smmplan_web` пересобран с nodemailer и последними обновлениями роутера; healthcheck: `healthy`.
-  - `smmplan_lite_worker` запущен с воркером очередей BullMQ и cron-синхронизацией подписок.
-  - `smmplan_bot` перезапущен и подключен к Telegram `@SMMplansapport_bot`.
+- **SOCKS5H Прокси-контур Telegram бота (Application-Level Proxy & Pool Fallback) — 100% COMPLETE & LIVE:**
+  - **Удаленный DNS (`socks5h://`):** В `telegram-agent.ts` и `telegram.ts` внедрен протокол `socks5h`, принудительно направляющий разрешение DNS-имен в туннель, предотвращая отравление и блокировку DNS в РФ.
+  - **Динамический Fallback на общий пул:** При отсутствии индивидуального прокси в `SystemSettings.telegramProxyId` бот автоматически берет наименее нагруженный активный узел из пула `ProviderProxy` с расшифровкой учетных данных через `VaultService`.
+  - **Горячее подключение в Telegraf:** В `launchBot()` Telegraf получает динамический агент до вызова `deleteWebhook()` и polling, обеспечивая непрерывную связь даже при выключенном системном VPN на хосте.
+  - **Схема и валидация:** `createProxySchema` и `TelegramProxy` расширены поддержкой `socks5h`.
   - **Глубокий аудит 6 направлений:** Проведен аудит архитектуры, пограничных состояний (Edge Cases), обработки ошибок, резервных путей, алертов и настроек.
   - **Интеллектуальное авто-распознавание RU-нод (Sovereign Tag Detection):** При импорте подписок Clash Verge или списков узлов в `provider-proxy.ts` система автоматически анализирует гео-метки (`RU`, `🇷🇺`, `Russia`, `Россия`, `MSK`, `SPB`), проставляет `geoCountry: 'RU'` и теги `['RU', 'SOVEREIGN']`.
   - **Суверенный резерв (`RU_SOVEREIGN_POOL`):** В `ProxyPoolService.getHealthyRuProxy()` и `UniversalNetworkRouter` реализован выбор наименее загруженных и здоровых российских нод для безопасного подключения к ЮKassa/Robokassa при размещении серверов за рубежом (Hetzner, OVH, AWS).

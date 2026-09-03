@@ -1,4 +1,4 @@
-﻿// ==============================================================
+// ==============================================================
 // Telegram Enterprise Zod Validation Schemas
 // OWASP Top 10 2025: Strict input validation (A03 Injection Prevention)
 // ==============================================================
@@ -70,7 +70,7 @@ const proxyHostSchema = z.string().trim()
 
 export const createProxySchema = z.object({
   label: safeString(1, 64, 'Название'),
-  protocol: z.enum(['socks5', 'http', 'https']).default('socks5'),
+  protocol: z.enum(['socks5', 'socks5h', 'http', 'https']).default('socks5'),
   host: proxyHostSchema,
   port: z.number().int().min(1).max(65535, 'Порт: 1-65535'),
   username: z.string().trim().max(128, 'Имя пользователя: максимум 128 символов').nullable().optional(),

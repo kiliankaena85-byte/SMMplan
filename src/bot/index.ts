@@ -52,7 +52,7 @@ if (!TOKEN || TOKEN === 'dummy_token') {
   console.warn('[Bot] TELEGRAM_BOT_TOKEN not set. Telegram bot will NOT start.');
 }
 
-import { getTelegramProxyAgent } from '@/lib/telegram-agent';
+import { getTelegramProxyAgent, resolveActiveTelegramProxyUrl } from '@/lib/telegram-agent';
 const agent = getTelegramProxyAgent();
 
 export const bot = new Telegraf<BotContext>(TOKEN || 'dummy_token', {
@@ -1211,6 +1211,23 @@ export async function launchBot() {
   isBotLaunched = true;
 
   try {
+    // Ensure agent is dynamically assigned from DB pool if not configured in ENV
+    if (!agent) {
+      try {
+        const resolvedProxy = await resolveActiveTelegramProxyUrl(botTenantId);
+        if (resolvedProxy) {
+          const dynamicAgent = getTelegramProxyAgent(resolvedProxy);
+          if (dynamicAgent) {
+            (bot.telegram as any).options = (bot.telegram as any).options || {};
+            (bot.telegram as any).options.agent = dynamicAgent;
+            console.info(`[Bot] 🛡️ Dynamic proxy assigned to Telegram bot: ${resolvedProxy.replace(/:[^:@]+@/, ':***@')}`);
+          }
+        }
+      } catch (proxyErr) {
+        console.warn('[Bot] Failed to apply dynamic proxy:', proxyErr);
+      }
+    }
+
     console.info('[Bot] Deleting any lingering webhook...');
     await bot.telegram.deleteWebhook({ drop_pending_updates: true });
     

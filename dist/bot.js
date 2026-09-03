@@ -127701,11 +127701,44 @@ async function resolveActiveTelegramProxyUrl(tenantId = "smmplan") {
           }
           auth = `${encodeURIComponent(proxy.username)}:${encodeURIComponent(password)}@`;
         }
-        const protocol = (proxy.protocol || "socks5").toLowerCase();
+        const protocol = (proxy.protocol || "socks5").toLowerCase() === "socks5" ? "socks5h" : (proxy.protocol || "http").toLowerCase();
         cachedDbProxyUrl = `${protocol}://${auth}${proxy.host}:${proxy.port}`;
         lastDbProxyCheck = now;
         return cachedDbProxyUrl;
       }
+    }
+    const providerProxy = await db2.providerProxy.findFirst({
+      where: {
+        isActive: true,
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: /* @__PURE__ */ new Date() } }
+        ]
+      },
+      orderBy: [
+        { lastTestLatencyMs: "asc" },
+        { errorCount: "asc" }
+      ]
+    });
+    if (providerProxy && providerProxy.host && providerProxy.port) {
+      const protocol = (providerProxy.protocol || "socks5").toLowerCase() === "socks5" ? "socks5h" : (providerProxy.protocol || "http").toLowerCase();
+      let auth = "";
+      if (providerProxy.username) {
+        let password = "";
+        if (providerProxy.passwordEncrypted) {
+          try {
+            const { VaultService: VaultService2 } = await Promise.resolve().then(() => (init_vault(), vault_exports));
+            password = VaultService2.decrypt(providerProxy.passwordEncrypted);
+          } catch {
+            password = providerProxy.passwordEncrypted;
+          }
+        }
+        auth = `${encodeURIComponent(providerProxy.username)}:${encodeURIComponent(password)}@`;
+      }
+      cachedDbProxyUrl = `${protocol}://${auth}${providerProxy.host}:${providerProxy.port}`;
+      lastDbProxyCheck = now;
+      console.info(`[TelegramAgent] \u{1F6E1}\uFE0F Auto-routed Telegram bot through healthy pool proxy: ${providerProxy.label || providerProxy.host}`);
+      return cachedDbProxyUrl;
     }
     cachedDbProxyUrl = "";
     lastDbProxyCheck = now;
@@ -127716,8 +127749,9 @@ async function resolveActiveTelegramProxyUrl(tenantId = "smmplan") {
   }
 }
 function getTelegramProxyAgent(proxyUrlOverride) {
-  const proxyUrl = proxyUrlOverride || getTelegramProxyUrl();
-  if (!proxyUrl) return void 0;
+  const rawUrl = proxyUrlOverride || getTelegramProxyUrl();
+  if (!rawUrl) return void 0;
+  const proxyUrl = rawUrl.startsWith("socks5://") ? rawUrl.replace("socks5://", "socks5h://") : rawUrl;
   try {
     if (proxyUrl.startsWith("socks")) {
       return new SocksProxyAgent(proxyUrl);
@@ -138833,6 +138867,21 @@ async function launchBot() {
   }
   isBotLaunched = true;
   try {
+    if (!agent) {
+      try {
+        const resolvedProxy = await resolveActiveTelegramProxyUrl(botTenantId4);
+        if (resolvedProxy) {
+          const dynamicAgent = getTelegramProxyAgent(resolvedProxy);
+          if (dynamicAgent) {
+            bot.telegram.options = bot.telegram.options || {};
+            bot.telegram.options.agent = dynamicAgent;
+            console.info(`[Bot] \u{1F6E1}\uFE0F Dynamic proxy assigned to Telegram bot: ${resolvedProxy.replace(/:[^:@]+@/, ":***@")}`);
+          }
+        }
+      } catch (proxyErr) {
+        console.warn("[Bot] Failed to apply dynamic proxy:", proxyErr);
+      }
+    }
     console.info("[Bot] Deleting any lingering webhook...");
     await bot.telegram.deleteWebhook({ drop_pending_updates: true });
     const me = await bot.telegram.getMe();
