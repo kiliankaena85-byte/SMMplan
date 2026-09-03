@@ -1261,15 +1261,44 @@ export async function launchBot() {
       const errMsg = e instanceof Error ? e.message : String(e);
       console.error(`[Bot] ❌ Launch attempt ${attempt}/${MAX_LAUNCH_ATTEMPTS} failed: ${errMsg}`);
 
-      if (attempt < MAX_LAUNCH_ATTEMPTS && !agent && currentProxyUrl) {
-        await reportTelegramProxyFailure(currentProxyUrl);
-        console.warn(`[Bot] 🔄 Rotating to next proxy from pool in 1.5s...`);
+      if (attempt < MAX_LAUNCH_ATTEMPTS) {
+        // Re-probe direct connectivity: maybe Clash Verge was enabled/disabled since last check
+        try {
+          const directNow = await Promise.race<boolean>([
+            fetch('https://api.telegram.org', { method: 'HEAD', signal: AbortSignal.timeout(2000) })
+              .then(r => r.status < 500).catch(() => false),
+            new Promise<boolean>(res => setTimeout(() => res(false), 2100)),
+          ]);
+          if (directNow) {
+            // Direct connection recovered — clear proxy and retry without it
+            console.info('[Bot] 🔄 Direct connectivity restored — clearing proxy, retrying without proxy...');
+            (bot.telegram as any).options = (bot.telegram as any).options || {};
+            (bot.telegram as any).options.agent = undefined;
+            currentProxyUrl = undefined;
+            await new Promise(r => setTimeout(r, 1000));
+            continue;
+          }
+        } catch { /* ignore */ }
+
+        // Proxy failed and direct is still blocked — rotate to next proxy
+        if (!agent && currentProxyUrl) {
+          await reportTelegramProxyFailure(currentProxyUrl);
+          console.warn(`[Bot] 🔄 Rotating to next proxy from pool in 1.5s...`);
+        }
         await new Promise(r => setTimeout(r, 1500));
         continue;
       }
       break;
     }
   }
+
+  // ── Watchdog: if polling crashes after successful launch, restart automatically ──
+  isBotLaunched = false; // allow re-launch
+  const WATCHDOG_DELAY = 15_000;
+  console.warn(`[Bot] ⚠️ Bot polling ended unexpectedly. Watchdog restarting in ${WATCHDOG_DELAY / 1000}s...`);
+  setTimeout(() => {
+    launchBot().catch(err => console.error('[Bot] Watchdog restart failed:', err));
+  }, WATCHDOG_DELAY);
 }
 
 if (process.env.NODE_ENV !== 'test' && !process.env.NEXT_PHASE && process.env.SKIP_BOT !== 'true') {

@@ -4584,7 +4584,10 @@ proxies:
     client-fingerprint: edge
 proxy-groups:
   - name: Quattro VPN
-    type: select
+    type: fallback        # auto-failover: switches to next live node automatically
+    url: https://www.gstatic.com/generate_204
+    interval: 30          # health-check every 30s
+    tolerance: 50         # switch if latency diff > 50ms
     proxies:
       - 🇪🇺 Авто | Самый быстрый
       - 🇳🇱 ⚡️ ⭐️ LTE Авто - Нидерланды
