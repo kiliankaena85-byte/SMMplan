@@ -392,7 +392,7 @@ export function useOrderEngine(
         setMediaGroupUrl("");
         const net = catalog.find(n => n.id === networkId);
         if (net) {
-           const catsForNet = net.categories.filter(c => c.serviceCount === undefined || c.serviceCount > 0);
+           const catsForNet = net.categories.filter(c => (c.serviceCount ?? 0) > 0);
            const matchedCats = suggestedCategories.length > 0 || detectedType
               ? catsForNet.filter(c => matchesSuggestedCategory(c.name, suggestedCategories, c.analyzerTags, detectedType))
               : [];
@@ -731,7 +731,7 @@ export function useOrderEngine(
 
   const activeNetwork = catalog.find(n => n.id === networkId) || catalog[0] || null;
   let availableCategories = activeNetwork 
-    ? activeNetwork.categories.filter(c => c.serviceCount === undefined || c.serviceCount > 0)
+    ? activeNetwork.categories.filter(c => (c.serviceCount ?? 0) > 0)
     : [];
   
   // Restore aggressive filtering to prevent users from ordering Post services (like Reactions) for a Profile link.

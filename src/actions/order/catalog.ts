@@ -78,7 +78,7 @@ export async function getCachedNetworks(rawTenantId: string) {
         orderBy: { sort: 'asc' }
       });
     },
-    [`public-catalog-networks-v3-${tenantId}`],
+    [`public-catalog-networks-v4-${tenantId}`],
     { revalidate: 60, tags: ['catalog', `catalog-${tenantId}`, `networks-${tenantId}`] }
   )();
 }

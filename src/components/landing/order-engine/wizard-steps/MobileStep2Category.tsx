@@ -32,12 +32,12 @@ export function MobileStep2Category({
   // наполненный анализатором ссылки). Локальная заглушка `const suggestedCategories: string[] = []`
   // делала бейджи «Подходит» всегда пустыми.
 
-  const allNetworkCategories = (engine.activeNetwork?.categories || []).filter(c => c.serviceCount === undefined || c.serviceCount > 0);
+  const allNetworkCategories = (engine.activeNetwork?.categories || []).filter(c => (c.serviceCount ?? 0) > 0);
   const isLinkActive = url && url.trim().length >= 5;
   const rawCategories = (isLinkActive && !showAllCategories && availableCategories.length > 0) 
     ? availableCategories 
     : allNetworkCategories;
-  const categoriesToDisplay = rawCategories.filter(c => c.serviceCount === undefined || c.serviceCount > 0);
+  const categoriesToDisplay = rawCategories.filter(c => (c.serviceCount ?? 0) > 0);
 
   const formatDetectedType = (t: string | null | undefined) => {
     if (!t) return "";
