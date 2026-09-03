@@ -365,9 +365,9 @@ ownerHubWizard.action('owner_magic_link', async (ctx) => {
 
     const text = 
       `🔑 <b>ОДНОРАЗОВАЯ ССЫЛКА ДЛЯ ВХОДА В АДМИНКУ</b>\n\n` +
-      `Ссылка действительна <b>15 минут</b> и позволяет войти в панель управления <b>SMMpanel 1.0</b> без пароля:\n\n` +
-      `🔗 <a href="${magicUrl}"><b>НАЖМИТЕ ЗДЕСЬ ДЛЯ ВХОДА В АДМИН-ПАНЕЛЬ</b></a>\n\n` +
-      `<i>Никому не передавайте эту ссылку. После первого перехода она автоматически аннулируется.</i>`;
+      `Ссылка действительна <b>1 час</b> и позволяет войти в панель управления <b>OmniSMM 1.0</b> без пароля.\n\n` +
+      `👇 Нажми кнопку ниже — ссылка аннулируется после первого перехода.\n\n` +
+      `<i>Никому не передавайте эту ссылку.</i>`;
 
     const keyboard = Markup.inlineKeyboard([
       [Markup.button.url('🚀 Открыть Админку', magicUrl)],
@@ -375,9 +375,19 @@ ownerHubWizard.action('owner_magic_link', async (ctx) => {
     ]);
 
     try {
-      await ctx.editMessageText(text, { parse_mode: 'HTML', ...keyboard });
+      await ctx.editMessageText(text, {
+        parse_mode: 'HTML',
+        // @ts-expect-error — Telegraf types lag behind Bot API
+        link_preview_options: { is_disabled: true },
+        ...keyboard
+      });
     } catch {
-      await ctx.reply(text, { parse_mode: 'HTML', ...keyboard });
+      await ctx.reply(text, {
+        parse_mode: 'HTML',
+        // @ts-expect-error — Telegraf types lag behind Bot API
+        link_preview_options: { is_disabled: true },
+        ...keyboard
+      });
     }
   } catch (err: any) {
     await ctx.reply(`⚠️ Ошибка генерации ссылки: ${err.message}`);

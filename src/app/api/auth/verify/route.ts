@@ -27,6 +27,14 @@ export async function GET(request: Request) {
   const ipUsed = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "127.0.0.1";
   const userAgentUsed = request.headers.get("user-agent") || "Unknown";
 
+  // ⛔ Guard: Telegram link preview fetches the URL automatically before the user clicks.
+  // If the request is from TelegramBot crawler, return 200 without consuming the token.
+  const isTelegramCrawler = /TelegramBot|Telegram\/|facebookexternalhit|Twitterbot|WhatsApp|LinkedInBot|Slackbot|Discordbot/i
+    .test(userAgentUsed);
+  if (isTelegramCrawler) {
+    return new Response('OK', { status: 200 });
+  }
+
   // Rate limiting: 10 req/min per IP (P2-13)
   const rateLimitKey = `rate:auth_verify:${ipUsed}`;
   try {
