@@ -303,6 +303,40 @@ export class PaymentService {
         }
       }
 
+      // Notify user directly in Telegram if user has linked Telegram ID
+      try {
+        const userWithTg = await db.user.findUnique({
+          where: { id: userId },
+          select: { telegramId: true, balance: true }
+        });
+        if (userWithTg?.telegramId) {
+          const { bot } = await import('@/bot');
+          const amountRub = (Number(creditAmount) / 100).toLocaleString('ru-RU');
+          const newBal = (Number(userWithTg.balance) / 100).toFixed(2);
+          if (isOrderPayment || basketOrders.length > 0) {
+            await bot.telegram.sendMessage(
+              userWithTg.telegramId,
+              `🎉 <b>ОПЛАТА ЗАКАЗА ПОДТВЕРЖДЕНА!</b>\n────────────────────\n` +
+              `Сумма: <b>${amountRub} ₽</b>\n` +
+              `Заказ передан в обработку и скоро будет запущен!\n\n` +
+              `<i>Отслеживать статус можно в разделе «📦 Мои заказы».</i>`,
+              { parse_mode: 'HTML' }
+            );
+          } else {
+            await bot.telegram.sendMessage(
+              userWithTg.telegramId,
+              `🎉 <b>БАЛАНС УСПЕШНО ПОПОЛНЕН!</b>\n────────────────────\n` +
+              `Сумма: <b>+${amountRub} ₽</b>\n` +
+              `Текущий баланс: <b>${newBal} ₽</b> ✅\n\n` +
+              `<i>Вы можете приступить к оформлению заказов прямо сейчас.</i>`,
+              { parse_mode: 'HTML' }
+            );
+          }
+        }
+      } catch (tgNotifyErr) {
+        console.warn('[PaymentService] Telegram user notification skipped:', tgNotifyErr);
+      }
+
       // Check and issue promotional loyalty rewards based on new total spent
       PromoAutomationService.checkAndIssueLoyalty(userId).catch(console.error);
 

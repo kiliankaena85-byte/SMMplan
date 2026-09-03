@@ -319,6 +319,71 @@ bot.start(async (ctx: BotContext) => {
     }
   }
 
+  // Level 3: Return from payment gateway (YooKassa/CryptoBot) via ?start=pay_ok_PAYMENT_ID
+  if (payload && (payload.startsWith('pay_ok_') || payload.startsWith('pay_'))) {
+    const paymentId = payload.replace(/^pay_ok_/, '').replace(/^pay_/, '');
+    try {
+      let payment = await db.payment.findUnique({ where: { id: paymentId } });
+      if (payment) {
+        if (payment.status !== 'SUCCEEDED' && payment.gateway === 'yookassa' && payment.gatewayId) {
+          // Fast sync-check with YooKassa if webhook has slight latency
+          try {
+            const { PaymentGatewayFactory } = await import('@/services/financial/payment-gateway.service');
+            const gatewaySvc = PaymentGatewayFactory.getGateway('yookassa');
+            const isPaid = await gatewaySvc.checkStatusSync?.(payment.gatewayId);
+            if (isPaid) {
+              const { paymentService } = await import('@/services/financial/payment.service');
+              await paymentService.confirmPayment(
+                payment.gatewayId,
+                BigInt(payment.amount),
+                payment.userId,
+                false,
+                'yookassa',
+                payment.id
+              );
+              payment = await db.payment.findUnique({ where: { id: paymentId } });
+            }
+          } catch (syncErr) {
+            console.warn('[Bot /start] YooKassa sync check warning:', syncErr);
+          }
+        }
+
+        const freshUser = await db.user.findUnique({ where: { id: user.id } });
+        const currentBal = freshUser ? (Number(freshUser.balance) / 100).toFixed(2) : '0.00';
+        const formattedAmount = (payment.amount / 100).toLocaleString('ru-RU');
+
+        if (payment.status === 'SUCCEEDED') {
+          await ctx.reply(
+            `🎉 <b>ОПЛАТА УСПЕШНО ПОДТВЕРЖДЕНА!</b>\n────────────────────\n` +
+            `Сумма: <b>${formattedAmount} ₽</b>\n` +
+            `Текущий баланс: <b>${currentBal} ₽</b> ✅\n\n` +
+            `<i>Средства зачислены на ваш счёт. Приятного использования!</i>`,
+            { parse_mode: 'HTML' }
+          ).catch(() => {});
+        } else {
+          await ctx.reply(
+            `⏳ <b>ПЛАТЕЖ В ОБРАБОТКЕ</b>\n────────────────────\n` +
+            `Сумма: <b>${formattedAmount} ₽</b>\n\n` +
+            `<i>Банк обрабатывает транзакцию. Средства поступят на баланс в течение 1-2 минут, бот сразу пришлет вам уведомление.</i>`,
+            { parse_mode: 'HTML' }
+          ).catch(() => {});
+        }
+      }
+    } catch (payCheckErr) {
+      console.warn('[Bot /start] Error verifying returning payment:', payCheckErr);
+    }
+  }
+
+  return sendMainMenu(ctx, false);
+});
+
+export async function sendMainMenu(ctx: BotContext, isEdit = false) {
+  if (!ctx.from) return;
+  const tgId = ctx.from.id;
+  const tgName = ctx.from.first_name || (ctx.from.username ? `@${ctx.from.username}` : 'Пользователь');
+  const user = await db.user.findFirst({ where: { telegramId: String(tgId), tenantId: botTenantId } });
+  const balanceStr = user ? (Number(user.balance) / 100).toFixed(2) : '0.00';
+
   let welcomeTpl =
     `👋 <b>{userName}, добро пожаловать в {siteName}!</b>\n\n` +
     `Платформа автоматического продвижения в социальных сетях.\n\n` +
@@ -339,7 +404,7 @@ bot.start(async (ctx: BotContext) => {
   const formattedWelcome = welcomeTpl
     .replace(/{siteName}/g, escapeHtml(botSiteName))
     .replace(/{userName}/g, escapeHtml(tgName))
-    .replace(/{balance}/g, (Number(user.balance) / 100).toFixed(2));
+    .replace(/{balance}/g, balanceStr);
 
   const keyboard = await getDynamicKeyboard(tgId);
   const isOwner = await isOwnerOrAdmin(tgId);
@@ -356,6 +421,18 @@ bot.start(async (ctx: BotContext) => {
 
   const startInline = Markup.inlineKeyboard(inlineRows);
 
+  if (isEdit) {
+    try {
+      await ctx.editMessageText(formattedWelcome, {
+        parse_mode: 'HTML',
+        ...startInline
+      });
+      return;
+    } catch {
+      // Fall back to reply if message cannot be edited
+    }
+  }
+
   // Send reply keyboard to guarantee bottom persistent keyboard in Telegram client
   await ctx.reply('🤖 <i>Главное меню SMMplan</i>', {
     parse_mode: 'HTML',
@@ -366,7 +443,7 @@ bot.start(async (ctx: BotContext) => {
     parse_mode: 'HTML',
     ...startInline
   });
-});
+}
 
 interface DynamicMenuBtn {
   id: string;
@@ -480,6 +557,14 @@ export async function sendFastOrderPrompt(ctx: BotContext) {
     }
   );
 }
+
+bot.action(['nav_start', 'start', 'main_menu', 'home'], async (ctx: BotContext) => {
+  await ctx.answerCbQuery().catch(() => {});
+  if (ctx.scene) {
+    await ctx.scene.leave().catch(() => {});
+  }
+  return sendMainMenu(ctx, true);
+});
 
 bot.action('start_fast_order', async (ctx: BotContext) => {
   await ctx.answerCbQuery().catch(() => {});

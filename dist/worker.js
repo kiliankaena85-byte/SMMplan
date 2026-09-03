@@ -89037,14 +89037,37 @@ __export2(telegram_agent_exports, {
   getTelegramDispatcher: () => getTelegramDispatcher,
   getTelegramProxyAgent: () => getTelegramProxyAgent,
   getTelegramProxyUrl: () => getTelegramProxyUrl,
+  reportTelegramProxyFailure: () => reportTelegramProxyFailure,
   resolveActiveTelegramProxyUrl: () => resolveActiveTelegramProxyUrl
 });
 function getTelegramProxyUrl() {
   return process.env.TELEGRAM_PROXY_URL || process.env.HTTPS_PROXY || process.env.HTTP_PROXY || process.env.ALL_PROXY || cachedDbProxyUrl || void 0;
 }
 async function resolveActiveTelegramProxyUrl(tenantId = "smmplan") {
+  try {
+    const directOk = await Promise.race([
+      fetch("https://api.telegram.org", { method: "HEAD", signal: AbortSignal.timeout(2500) }).then((r) => r.status < 500).catch(() => false),
+      new Promise((res) => setTimeout(() => res(false), 2600))
+    ]);
+    if (lastDirectConnectivityState !== null && lastDirectConnectivityState !== directOk) {
+      cachedDbProxyUrl = null;
+      lastDbProxyCheck = 0;
+      console.info(`[TelegramAgent] \u{1F504} Network mode changed (direct=${directOk}) \u2014 proxy cache cleared.`);
+    }
+    lastDirectConnectivityState = directOk;
+    if (directOk) {
+      console.info("[TelegramAgent] \u2705 Direct Telegram connection OK (OS-level VPN/TUN active) \u2014 skipping internal proxy.");
+      return void 0;
+    }
+  } catch {
+  }
   const envUrl = process.env.TELEGRAM_PROXY_URL || process.env.HTTPS_PROXY || process.env.HTTP_PROXY || process.env.ALL_PROXY;
   if (envUrl) return envUrl;
+  const clashInternalUrl = process.env.CLASH_INTERNAL_PROXY_URL;
+  if (clashInternalUrl) {
+    console.info(`[TelegramAgent] \u{1F6E1}\uFE0F Direct probe failed \u2014 routing via internal Mihomo proxy: ${clashInternalUrl}`);
+    return clashInternalUrl;
+  }
   const now = Date.now();
   if (cachedDbProxyUrl !== null && now - lastDbProxyCheck < DB_PROXY_CACHE_TTL) {
     return cachedDbProxyUrl || void 0;
@@ -89073,11 +89096,46 @@ async function resolveActiveTelegramProxyUrl(tenantId = "smmplan") {
           }
           auth = `${encodeURIComponent(proxy.username)}:${encodeURIComponent(password)}@`;
         }
-        const protocol = (proxy.protocol || "socks5").toLowerCase();
+        const protocol = (proxy.protocol || "socks5").toLowerCase() === "socks5" ? "socks5h" : (proxy.protocol || "http").toLowerCase();
         cachedDbProxyUrl = `${protocol}://${auth}${proxy.host}:${proxy.port}`;
         lastDbProxyCheck = now;
         return cachedDbProxyUrl;
       }
+    }
+    const providerProxy = await db2.providerProxy.findFirst({
+      where: {
+        isActive: true,
+        consecutiveFailures: { lt: 3 },
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: /* @__PURE__ */ new Date() } }
+        ]
+      },
+      orderBy: [
+        { consecutiveFailures: "asc" },
+        { lastTestLatencyMs: "asc" },
+        { errorCount: "asc" }
+      ]
+    });
+    if (providerProxy && providerProxy.host && providerProxy.port) {
+      const protocol = (providerProxy.protocol || "socks5").toLowerCase() === "socks5" ? "socks5h" : (providerProxy.protocol || "http").toLowerCase();
+      let auth = "";
+      if (providerProxy.username) {
+        let password = "";
+        if (providerProxy.passwordEncrypted) {
+          try {
+            const { VaultService: VaultService2 } = await Promise.resolve().then(() => (init_vault(), vault_exports));
+            password = VaultService2.decrypt(providerProxy.passwordEncrypted);
+          } catch {
+            password = providerProxy.passwordEncrypted;
+          }
+        }
+        auth = `${encodeURIComponent(providerProxy.username)}:${encodeURIComponent(password)}@`;
+      }
+      cachedDbProxyUrl = `${protocol}://${auth}${providerProxy.host}:${providerProxy.port}`;
+      lastDbProxyCheck = now;
+      console.info(`[TelegramAgent] \u{1F6E1}\uFE0F Auto-routed Telegram bot through healthy pool proxy: ${providerProxy.label || providerProxy.host}`);
+      return cachedDbProxyUrl;
     }
     cachedDbProxyUrl = "";
     lastDbProxyCheck = now;
@@ -89087,9 +89145,36 @@ async function resolveActiveTelegramProxyUrl(tenantId = "smmplan") {
     return void 0;
   }
 }
+async function reportTelegramProxyFailure(failedProxyUrl) {
+  cachedDbProxyUrl = null;
+  lastDbProxyCheck = 0;
+  if (!failedProxyUrl) return;
+  try {
+    const cleanUrl = failedProxyUrl.replace(/^socks5h:/i, "http:").replace(/^socks5:/i, "http:");
+    const parsed = new URL(cleanUrl);
+    const host = parsed.hostname;
+    const port = parseInt(parsed.port, 10);
+    if (host && port) {
+      const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      await db2.providerProxy.updateMany({
+        where: { host, port },
+        data: {
+          lastTestSuccess: false,
+          lastErrorAt: /* @__PURE__ */ new Date(),
+          errorCount: { increment: 1 },
+          consecutiveFailures: { increment: 1 }
+        }
+      });
+      console.warn(`[TelegramAgent] \u26A0\uFE0F Quarantined failing Telegram proxy: ${host}:${port}`);
+    }
+  } catch (err) {
+    console.warn("[TelegramAgent] Failed to parse failedProxyUrl:", err);
+  }
+}
 function getTelegramProxyAgent(proxyUrlOverride) {
-  const proxyUrl = proxyUrlOverride || getTelegramProxyUrl();
-  if (!proxyUrl) return void 0;
+  const rawUrl = proxyUrlOverride || getTelegramProxyUrl();
+  if (!rawUrl) return void 0;
+  const proxyUrl = rawUrl.startsWith("socks5://") ? rawUrl.replace("socks5://", "socks5h://") : rawUrl;
   try {
     if (proxyUrl.startsWith("socks")) {
       return new SocksProxyAgent(proxyUrl);
@@ -89110,7 +89195,7 @@ function getTelegramDispatcher(proxyUrlOverride) {
     return void 0;
   }
 }
-var import_undici, cachedDbProxyUrl, lastDbProxyCheck, DB_PROXY_CACHE_TTL;
+var import_undici, cachedDbProxyUrl, lastDbProxyCheck, lastDirectConnectivityState, DB_PROXY_CACHE_TTL;
 var init_telegram_agent = __esm({
   "src/lib/telegram-agent.ts"() {
     "use strict";
@@ -89119,7 +89204,8 @@ var init_telegram_agent = __esm({
     import_undici = __toESM(require_undici());
     cachedDbProxyUrl = null;
     lastDbProxyCheck = 0;
-    DB_PROXY_CACHE_TTL = 3e4;
+    lastDirectConnectivityState = null;
+    DB_PROXY_CACHE_TTL = 1e4;
   }
 });
 
@@ -102594,12 +102680,31 @@ async function assertSafeOutboundUrl(rawUrl) {
   if (BLOCKED_HOSTS.has(hostname) || hostname === AWS_METADATA_HOST) {
     return { ok: false, reason: `host-${hostname}-blocked` };
   }
+  const TRUSTED_SYSTEM_DOMAINS = [
+    "api.yookassa.ru",
+    "yookassa.ru",
+    "api.cryptomus.com",
+    "pay.cryptomus.com",
+    "api.telegram.org",
+    "t.me",
+    "auth.robokassa.ru",
+    "merchant.roboxchange.com",
+    "generativelanguage.googleapis.com"
+  ];
+  if (TRUSTED_SYSTEM_DOMAINS.some((d) => hostname === d || hostname.endsWith(`.${d}`))) {
+    return { ok: true, ip: "trusted-gateway", hostname };
+  }
   if (import_node_net.default.isIP(hostname)) {
     if (!isPublicIp(hostname)) {
       return { ok: false, reason: `ip-${hostname}-private` };
     }
     return { ok: true, ip: hostname, hostname };
   }
+  const isFakeIp = (ip) => {
+    if (ip.startsWith("198.18.") || ip.startsWith("198.19.")) return true;
+    if (ip.toLowerCase().startsWith("fdfe:dcba:9876:")) return true;
+    return false;
+  };
   let addrs = [];
   try {
     const records = await import_node_dns.promises.lookup(hostname, { all: true });
@@ -102611,7 +102716,7 @@ async function assertSafeOutboundUrl(rawUrl) {
     return { ok: false, reason: "dns-no-records" };
   }
   for (const ip of addrs) {
-    if (!isPublicIp(ip)) {
+    if (!isPublicIp(ip) && !isFakeIp(ip)) {
       return { ok: false, reason: `ip-${ip}-private` };
     }
   }
@@ -102619,7 +102724,7 @@ async function assertSafeOutboundUrl(rawUrl) {
     const secondCheckRecords = await import_node_dns.promises.lookup(hostname, { all: true });
     const secondAddrs = secondCheckRecords.map((r) => r.address);
     for (const ip of secondAddrs) {
-      if (!isPublicIp(ip)) {
+      if (!isPublicIp(ip) && !isFakeIp(ip)) {
         return { ok: false, reason: `ip-${ip}-private-rebinding` };
       }
     }
@@ -103561,10 +103666,15 @@ async function createProxyDispatcher(proxy) {
     const socksAgent = new SocksProxyAgent2(socksUrl);
     const connectFn = (opts, callback) => {
       try {
+        const anyOpts = opts || {};
+        const rawPort = anyOpts.port;
+        const port = typeof rawPort === "number" && !isNaN(rawPort) && rawPort > 0 ? rawPort : typeof rawPort === "string" && !isNaN(parseInt(rawPort, 10)) && parseInt(rawPort, 10) > 0 ? parseInt(rawPort, 10) : anyOpts.protocol === "http:" ? 80 : 443;
+        const host = anyOpts.hostname || anyOpts.host || "localhost";
+        const safeOpts = { ...anyOpts, port, host };
         const rawConnect = socksAgent.connect.bind(socksAgent);
         rawConnect(
           {},
-          opts,
+          safeOpts,
           (err, socket) => {
             if (err) return callback(err, null);
             callback(null, socket || null);

@@ -38,7 +38,13 @@ export class UnifiedPaymentService {
       });
       const { SettingsProvider } = await import('@/lib/settings');
       const supportDomain = await SettingsProvider.getSupportEmailDomain();
-      const successUrl = `${await getBaseUrlAsync(supportDomain)}/dashboard`;
+      let successUrl = `${await getBaseUrlAsync(supportDomain)}/dashboard`;
+
+      // If initiated from Telegram Bot, return directly back into the bot!
+      if (metadata?.source === 'BOT') {
+        const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'SMMplansapport_bot';
+        successUrl = `https://t.me/${botUsername.replace('@', '')}?start=pay_ok_${payment.id}`;
+      }
 
       // 2. Generate Payment Link synchronously
       const { PaymentGatewayFactory } = await import('@/services/financial/payment-gateway.service');

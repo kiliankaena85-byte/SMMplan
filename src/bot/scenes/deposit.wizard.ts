@@ -55,7 +55,17 @@ export const depositWizard = new Scenes.WizardScene<BotContext>(
     
     const amount = parseInt(msgText.replace(/\D/g, ""), 10);
     if (isNaN(amount) || amount < 100 || amount > 500000) {
-      return ctx.reply('❌ Сумма должна быть от 100 до 500 000 руб. Введите корректную сумму:');
+      return ctx.reply(
+        '⚠️ <b>Некорректная сумма</b>\n\n' +
+        'Сумма пополнения должна быть от <b>100</b> до <b>500 000 ₽</b>.\n' +
+        'Пожалуйста, введите сумму числом (например: <code>500</code>):',
+        {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('❌ Отмена', 'cancel_deposit'), Markup.button.callback('🆘 Поддержка', 'support')]
+          ])
+        }
+      );
     }
 
     const depositData = ((ctx.wizard.state as Record<string, unknown>).depositData || {}) as { amount?: number };
@@ -102,7 +112,12 @@ depositWizard.use(async (ctx, next) => {
 
 depositWizard.action('cancel_deposit', async (ctx: BotContext) => {
   await ctx.answerCbQuery();
-  await ctx.editMessageText('❌ Пополнение отменено.');
+  await ctx.editMessageText('❌ <b>Пополнение отменено.</b>', {
+    parse_mode: 'HTML',
+    ...Markup.inlineKeyboard([
+      [Markup.button.callback('🔄 Пополнить снова', 'deposit'), Markup.button.callback('🏠 В главное меню', 'nav_start')]
+    ])
+  }).catch(() => {});
   return ctx.scene.leave();
 });
 
@@ -156,7 +171,17 @@ depositWizard.action(/pay_(yookassa|cryptobot)/, async (ctx: BotContext) => {
       );
     } else {
       const errorText = res.error || 'Попробуйте позже.';
-      await ctx.editMessageText(`❌ <b>Ошибка при создании платежа.</b>\n${errorText}`, { parse_mode: 'HTML' });
+      await ctx.editMessageText(
+        `❌ <b>Ошибка при создании платежа</b>\n────────────────────\n${errorText}\n\n` +
+        `<i>Если проблема повторяется, напишите в нашу поддержку — мы поможем вам прямо сейчас:</i>`,
+        {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('🆘 Написать в поддержку', 'support')],
+            [Markup.button.callback('🔄 Попробовать снова', 'deposit'), Markup.button.callback('🏠 В главное меню', 'nav_start')]
+          ])
+        }
+      );
 
       try {
         const { sendAdminAlert } = await import('@/lib/notifications');
@@ -175,7 +200,17 @@ depositWizard.action(/pay_(yookassa|cryptobot)/, async (ctx: BotContext) => {
   } catch (e: unknown) {
     console.error('[DepositWizard] Error:', e);
     const errText = e instanceof Error ? e.message : String(e);
-    await ctx.reply('❌ Произошла техническая ошибка. Попробуйте позже.');
+    await ctx.reply(
+      '❌ <b>Произошла техническая ошибка</b>\n────────────────────\n' +
+      'Пожалуйста, свяжитесь с поддержкой, если средства списались или возникла задержка:',
+      {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('🆘 Написать в поддержку', 'support')],
+          [Markup.button.callback('🏠 В главное меню', 'nav_start')]
+        ])
+      }
+    );
 
     try {
       const { sendAdminAlert } = await import('@/lib/notifications');

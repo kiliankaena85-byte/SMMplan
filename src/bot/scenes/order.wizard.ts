@@ -313,7 +313,15 @@ export const orderWizard = new Scenes.WizardScene<BotContext>(
 
     if (isNaN(qty) || qty < service.minQty || qty > service.maxQty) {
       return ctx.reply(
-        `❌ Количество должно быть от ${service.minQty.toLocaleString()} до ${service.maxQty.toLocaleString()}. Введите число:`
+        `⚠️ <b>Некорректное количество</b>\n\n` +
+        `Допустимый диапазон для этой услуги: от <b>${service.minQty.toLocaleString()}</b> до <b>${service.maxQty.toLocaleString()}</b>.\n\n` +
+        `Пожалуйста, отправьте число:`,
+        {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('❌ Отмена', 'cancel_wizard'), Markup.button.callback('🆘 Поддержка', 'support')]
+          ])
+        }
       );
     }
 
@@ -494,13 +502,23 @@ orderWizard.action('confirm_order', async (ctx: BotContext) => {
           parse_mode: 'HTML',
           ...Markup.inlineKeyboard([
             [Markup.button.callback('📋 Мои заказы', 'my_orders')],
-            [Markup.button.callback('🛒 Заказать ещё', 'shop')]
+            [Markup.button.callback('🛒 Заказать ещё', 'shop'), Markup.button.callback('🏠 В главное меню', 'nav_start')]
           ])
         }
       );
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      await ctx.reply(`❌ Ошибка оформления: ${errMsg}`);
+      await ctx.reply(
+        `❌ <b>Ошибка оформления заказа</b>\n────────────────────\n${errMsg}\n\n` +
+        `<i>Если у вас возникли вопросы или списались средства, напишите нам:</i>`,
+        {
+          parse_mode: 'HTML',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('🆘 Написать в поддержку', 'support')],
+            [Markup.button.callback('🛒 Выбрать другую услугу', 'shop'), Markup.button.callback('🏠 В главное меню', 'nav_start')]
+          ])
+        }
+      );
 
       try {
         const { sendAdminAlert } = await import('@/lib/notifications');
@@ -562,7 +580,17 @@ orderWizard.action('confirm_order', async (ctx: BotContext) => {
     );
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : String(err);
-    await ctx.reply(`❌ Ошибка создания платежа: ${errMsg}`);
+    await ctx.reply(
+      `❌ <b>Ошибка создания платежа</b>\n────────────────────\n${errMsg}\n\n` +
+      `<i>Служба заботы на связи и поможет решить вопрос прямо сейчас:</i>`,
+      {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('🆘 Написать в поддержку', 'support')],
+          [Markup.button.callback('🏠 В главное меню', 'nav_start')]
+        ])
+      }
+    );
 
     try {
       const { sendAdminAlert } = await import('@/lib/notifications');
@@ -581,13 +609,23 @@ orderWizard.action('confirm_order', async (ctx: BotContext) => {
 });
 
 orderWizard.action('cancel_wizard', async (ctx: BotContext) => {
-  await ctx.answerCbQuery('Заказ отменен');
-  await ctx.reply('❌ Оформление заказа отменено.');
+  await ctx.answerCbQuery('Заказ отменен').catch(() => {});
+  await ctx.reply('❌ <b>Оформление заказа отменено.</b>', {
+    parse_mode: 'HTML',
+    ...Markup.inlineKeyboard([
+      [Markup.button.callback('🛍 Выбрать другую услугу', 'shop'), Markup.button.callback('🏠 В главное меню', 'nav_start')]
+    ])
+  });
   return ctx.scene.leave();
 });
 
 orderWizard.command('cancel', async (ctx: BotContext) => {
-  await ctx.reply('❌ Оформление заказа отменено.');
+  await ctx.reply('❌ <b>Оформление заказа отменено.</b>', {
+    parse_mode: 'HTML',
+    ...Markup.inlineKeyboard([
+      [Markup.button.callback('🛍 Каталог услуг', 'shop'), Markup.button.callback('🏠 В главное меню', 'nav_start')]
+    ])
+  });
   return ctx.scene.leave();
 });
 

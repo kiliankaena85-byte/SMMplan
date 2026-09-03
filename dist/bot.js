@@ -48,7 +48,7 @@ var require_main = __commonJS({
     var fs3 = require("fs");
     var path3 = require("path");
     var os3 = require("os");
-    var crypto5 = require("crypto");
+    var crypto6 = require("crypto");
     var TIPS = [
       "\u25C8 encrypted .env [www.dotenvx.com]",
       "\u25C8 secrets for agents [www.dotenvx.com]",
@@ -292,7 +292,7 @@ var require_main = __commonJS({
       const authTag = ciphertext.subarray(-16);
       ciphertext = ciphertext.subarray(12, -16);
       try {
-        const aesgcm = crypto5.createDecipheriv("aes-256-gcm", key, nonce);
+        const aesgcm = crypto6.createDecipheriv("aes-256-gcm", key, nonce);
         aesgcm.setAuthTag(authTag);
         return `${aesgcm.update(ciphertext)}${aesgcm.final()}`;
       } catch (error) {
@@ -7392,7 +7392,7 @@ var require_client = __commonJS({
       return mod && mod.__esModule ? mod : { "default": mod };
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
-    var crypto5 = __importStar(require("crypto"));
+    var crypto6 = __importStar(require("crypto"));
     var fs3 = __importStar(require("fs"));
     var promises_1 = require("fs/promises");
     var https = __importStar(require("https"));
@@ -7468,7 +7468,7 @@ var require_client = __commonJS({
           payload[field] = JSON.stringify(payload[field]);
         }
       }
-      const boundary = crypto5.randomBytes(32).toString("hex");
+      const boundary = crypto6.randomBytes(32).toString("hex");
       const formData = new multipart_stream_1.default(boundary);
       await Promise.all(Object.keys(payload).map((key) => (
         // @ts-expect-error payload[key] can obviously index payload, but TS doesn't trust us
@@ -7496,7 +7496,7 @@ var require_client = __commonJS({
         return;
       }
       if (id === "thumb" || id === "thumbnail") {
-        const attachmentId = crypto5.randomBytes(16).toString("hex");
+        const attachmentId = crypto6.randomBytes(16).toString("hex");
         await attachFormMedia(form, value, attachmentId, agent2);
         return form.addPart({
           headers: { "content-disposition": `form-data; name="${id}"` },
@@ -7509,11 +7509,11 @@ var require_client = __commonJS({
           if (typeof item.media !== "object") {
             return await Promise.resolve(item);
           }
-          const attachmentId = crypto5.randomBytes(16).toString("hex");
+          const attachmentId = crypto6.randomBytes(16).toString("hex");
           await attachFormMedia(form, item.media, attachmentId, agent2);
           const thumb = (_a = item.thumb) !== null && _a !== void 0 ? _a : item.thumbnail;
           if (typeof thumb === "object") {
-            const thumbAttachmentId = crypto5.randomBytes(16).toString("hex");
+            const thumbAttachmentId = crypto6.randomBytes(16).toString("hex");
             await attachFormMedia(form, thumb, thumbAttachmentId, agent2);
             return {
               ...item,
@@ -7529,7 +7529,7 @@ var require_client = __commonJS({
         });
       }
       if (value && typeof value === "object" && (0, check_1.hasProp)(value, "media") && (0, check_1.hasProp)(value, "type") && typeof value.media !== "undefined" && typeof value.type !== "undefined") {
-        const attachmentId = crypto5.randomBytes(16).toString("hex");
+        const attachmentId = crypto6.randomBytes(16).toString("hex");
         await attachFormMedia(form, value.media, attachmentId, agent2);
         return form.addPart({
           headers: { "content-disposition": `form-data; name="${id}"` },
@@ -9170,7 +9170,7 @@ var require_buffer_alloc = __commonJS({
 var require_safe_compare = __commonJS({
   "node_modules/safe-compare/index.js"(exports2, module2) {
     "use strict";
-    var crypto5 = require("crypto");
+    var crypto6 = require("crypto");
     var bufferAlloc = require_buffer_alloc();
     var safeCompare = function safeCompare2(a, b) {
       var strA = String(a);
@@ -9195,9 +9195,9 @@ var require_safe_compare = __commonJS({
       bufA.write(strA);
       var bufB = bufferAlloc(aLen, 0, "utf8");
       bufB.write(strB);
-      return crypto5.timingSafeEqual(bufA, bufB) && aLen === bLen;
+      return crypto6.timingSafeEqual(bufA, bufB) && aLen === bLen;
     };
-    module2.exports = typeof crypto5.timingSafeEqual !== "undefined" ? nativeTimingSafeEqual : safeCompare;
+    module2.exports = typeof crypto6.timingSafeEqual !== "undefined" ? nativeTimingSafeEqual : safeCompare;
   }
 });
 
@@ -9237,7 +9237,7 @@ var require_telegraf = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Telegraf = void 0;
-    var crypto5 = __importStar(require("crypto"));
+    var crypto6 = __importStar(require("crypto"));
     var http3 = __importStar(require("http"));
     var https = __importStar(require("https"));
     var composer_1 = require_composer();
@@ -9361,7 +9361,7 @@ var require_telegraf = __commonJS({
         return this;
       }
       secretPathComponent() {
-        return crypto5.createHash("sha3-256").update(this.token).update(process.version).digest("hex");
+        return crypto6.createHash("sha3-256").update(this.token).update(process.version).digest("hex");
       }
       /**
        * @see https://github.com/telegraf/telegraf/discussions/1344#discussioncomment-335700
@@ -21989,7 +21989,7 @@ var require_revalidate = __commonJS({
         return refresh;
       },
       revalidatePath: function() {
-        return revalidatePath;
+        return revalidatePath2;
       },
       revalidateTag: function() {
         return revalidateTag2;
@@ -22043,7 +22043,7 @@ var require_revalidate = __commonJS({
         workStore.pathWasRevalidated = _actionrevalidationkind.ActionDidRevalidateDynamicOnly;
       }
     }
-    function revalidatePath(originalPath, type) {
+    function revalidatePath2(originalPath, type) {
       if (originalPath.length > _constants.NEXT_CACHE_SOFT_TAG_MAX_LENGTH) {
         console.warn(`Warning: revalidatePath received "${originalPath}" which exceeded max length of ${_constants.NEXT_CACHE_SOFT_TAG_MAX_LENGTH}. See more info here https://nextjs.org/docs/app/api-reference/functions/revalidatePath`);
         return;
@@ -76685,7 +76685,7 @@ var require_le_unix = __commonJS({
 var require_mime_node = __commonJS({
   "node_modules/nodemailer/lib/mime-node/index.js"(exports2, module2) {
     "use strict";
-    var crypto5 = require("crypto");
+    var crypto6 = require("crypto");
     var fs3 = require("fs");
     var punycode = require_punycode();
     var { PassThrough } = require("stream");
@@ -76704,7 +76704,7 @@ var require_mime_node = __commonJS({
       constructor(contentType, options) {
         this.nodeCounter = 0;
         options = options || {};
-        this.baseBoundary = options.baseBoundary || crypto5.randomBytes(8).toString("hex");
+        this.baseBoundary = options.baseBoundary || crypto6.randomBytes(8).toString("hex");
         this.boundaryPrefix = options.boundaryPrefix || "--_NmP";
         this.disableFileAccess = !!options.disableFileAccess;
         this.disableUrlAccess = !!options.disableUrlAccess;
@@ -77663,8 +77663,8 @@ var require_mime_node = __commonJS({
       _generateMessageId() {
         return "<" + [2, 2, 2, 6].reduce(
           // crux to generate UUID-like random strings
-          (prev, len) => prev + "-" + crypto5.randomBytes(len).toString("hex"),
-          crypto5.randomBytes(4).toString("hex")
+          (prev, len) => prev + "-" + crypto6.randomBytes(len).toString("hex"),
+          crypto6.randomBytes(4).toString("hex")
         ) + "@" + // try to use the domain of the FROM address or fallback to server hostname
         (this.getEnvelope().from || this.hostname || "localhost").split("@").pop() + ">";
       }
@@ -78294,14 +78294,14 @@ var require_relaxed_body = __commonJS({
   "node_modules/nodemailer/lib/dkim/relaxed-body.js"(exports2, module2) {
     "use strict";
     var { Transform } = require("stream");
-    var crypto5 = require("crypto");
+    var crypto6 = require("crypto");
     var RelaxedBody = class extends Transform {
       constructor(options) {
         super();
         options = options || {};
         this.chunkBuffer = [];
         this.chunkBufferLen = 0;
-        this.bodyHash = crypto5.createHash(options.hashAlgo || "sha1");
+        this.bodyHash = crypto6.createHash(options.hashAlgo || "sha1");
         this.remainder = "";
         this.byteLength = 0;
         this.debug = options.debug;
@@ -78404,7 +78404,7 @@ var require_sign = __commonJS({
     "use strict";
     var punycode = require_punycode();
     var mimeFuncs = require_mime_funcs();
-    var crypto5 = require("crypto");
+    var crypto6 = require("crypto");
     module2.exports = (headers2, hashAlgo, bodyHash, options) => {
       options = options || {};
       const defaultFieldNames = "From:Sender:Reply-To:Subject:Date:Message-ID:To:Cc:MIME-Version:Content-Type:Content-Transfer-Encoding:Content-ID:Content-Description:Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:In-Reply-To:References:List-Id:List-Help:List-Unsubscribe:List-Subscribe:List-Post:List-Owner:List-Archive";
@@ -78412,7 +78412,7 @@ var require_sign = __commonJS({
       const canonicalizedHeaderData = relaxedHeaders(headers2, fieldNames, options.skipFields);
       const dkimHeader = generateDKIMHeader(options.domainName, options.keySelector, canonicalizedHeaderData.fieldNames, hashAlgo, bodyHash);
       canonicalizedHeaderData.headers += "dkim-signature:" + relaxedHeaderLine(dkimHeader);
-      const signer = crypto5.createSign(("rsa-" + hashAlgo).toUpperCase());
+      const signer = crypto6.createSign(("rsa-" + hashAlgo).toUpperCase());
       signer.update(canonicalizedHeaderData.headers);
       let signature;
       try {
@@ -78481,7 +78481,7 @@ var require_dkim = __commonJS({
     var { PassThrough } = require("stream");
     var fs3 = require("fs");
     var path3 = require("path");
-    var crypto5 = require("crypto");
+    var crypto6 = require("crypto");
     var DKIM_ALGO = "sha256";
     var MAX_MESSAGE_SIZE = 2 * 1024 * 1024;
     var DKIMSigner = class {
@@ -78494,7 +78494,7 @@ var require_dkim = __commonJS({
         this.chunks = [];
         this.chunklen = 0;
         this.readPos = 0;
-        this.cachePath = this.cacheDir ? path3.join(this.cacheDir, "message." + Date.now() + "-" + crypto5.randomBytes(14).toString("hex")) : false;
+        this.cachePath = this.cacheDir ? path3.join(this.cacheDir, "message." + Date.now() + "-" + crypto6.randomBytes(14).toString("hex")) : false;
         this.cache = false;
         this.headers = false;
         this.bodyHash = false;
@@ -79050,7 +79050,7 @@ var require_mailer = __commonJS({
     var MailMessage = require_mail_message();
     var net6 = require("net");
     var dns5 = require("dns");
-    var crypto5 = require("crypto");
+    var crypto6 = require("crypto");
     var Mail = class extends EventEmitter {
       constructor(transporter, options, defaults) {
         super();
@@ -79393,7 +79393,7 @@ var require_mailer = __commonJS({
             html = (html || "").toString().replace(
               /(<img\b[^<>]{0,1024} src\s{0,20}=[\s"']{0,20})(data:([^;]+);[^"'>\s]+)/gi,
               (match, prefix, dataUri, mimeType) => {
-                const cid = crypto5.randomBytes(10).toString("hex") + "@localhost";
+                const cid = crypto6.randomBytes(10).toString("hex") + "@localhost";
                 if (!mail.data.attachments) {
                   mail.data.attachments = [];
                 }
@@ -79520,7 +79520,7 @@ var require_smtp_connection = __commonJS({
     var net6 = require("net");
     var tls3 = require("tls");
     var os3 = require("os");
-    var crypto5 = require("crypto");
+    var crypto6 = require("crypto");
     var DataStream = require_data_stream();
     var { PassThrough } = require("stream");
     var shared = require_shared();
@@ -79540,7 +79540,7 @@ var require_smtp_connection = __commonJS({
     var SMTPConnection = class extends EventEmitter {
       constructor(options) {
         super(options);
-        this.id = crypto5.randomBytes(8).toString("base64").replace(/\W/g, "");
+        this.id = crypto6.randomBytes(8).toString("base64").replace(/\W/g, "");
         this.stage = "init";
         this.options = options || {};
         this.secureConnection = !!this.options.secure;
@@ -80700,7 +80700,7 @@ var require_smtp_connection = __commonJS({
           );
         }
         const base64decoded = Buffer.from(challengeMatch[1], "base64").toString("ascii");
-        const hmacMD5 = crypto5.createHmac("md5", this._auth.credentials.pass);
+        const hmacMD5 = crypto6.createHmac("md5", this._auth.credentials.pass);
         hmacMD5.update(base64decoded);
         const prepended = this._auth.credentials.user + " " + hmacMD5.digest("hex");
         this._responseActions.push((str2) => {
@@ -80993,7 +80993,7 @@ var require_xoauth2 = __commonJS({
     "use strict";
     var { Stream } = require("stream");
     var nmfetch = require_fetch();
-    var crypto5 = require("crypto");
+    var crypto6 = require("crypto");
     var shared = require_shared();
     var errors = require_errors3();
     var XOAuth2 = class extends Stream {
@@ -81339,7 +81339,7 @@ var require_xoauth2 = __commonJS({
        */
       jwtSignRS256(payload) {
         payload = ['{"alg":"RS256","typ":"JWT"}', JSON.stringify(payload)].map((val) => this.toBase64URL(val)).join(".");
-        const signature = crypto5.createSign("RSA-SHA256").update(payload).sign(this.options.privateKey);
+        const signature = crypto6.createSign("RSA-SHA256").update(payload).sign(this.options.privateKey);
         return payload + "." + this.toBase64URL(signature);
       }
     };
@@ -116237,8 +116237,8 @@ var require_snapshot_utils = __commonJS({
         match: new Set(matchHeaders.map((header) => caseSensitive ? header : header.toLowerCase()))
       };
     }
-    var crypto5 = runtimeFeatures.has("crypto") ? require("node:crypto") : null;
-    var hashId = crypto5?.hash ? (value) => crypto5.hash("sha256", value, "base64url") : (value) => Buffer.from(value).toString("base64url");
+    var crypto6 = runtimeFeatures.has("crypto") ? require("node:crypto") : null;
+    var hashId = crypto6?.hash ? (value) => crypto6.hash("sha256", value, "base64url") : (value) => Buffer.from(value).toString("base64url");
     function isUndiciHeaders(headers2) {
       return Array.isArray(headers2) && (headers2.length & 1) === 0;
     }
@@ -122306,10 +122306,10 @@ var require_subresource_integrity = __commonJS({
     var assert2 = require("node:assert");
     var { runtimeFeatures } = require_runtime_features();
     var validSRIHashAlgorithmTokenSet = /* @__PURE__ */ new Map([["sha256", 0], ["sha384", 1], ["sha512", 2]]);
-    var crypto5;
+    var crypto6;
     if (runtimeFeatures.has("crypto")) {
-      crypto5 = require("node:crypto");
-      const cryptoHashes = crypto5.getHashes();
+      crypto6 = require("node:crypto");
+      const cryptoHashes = crypto6.getHashes();
       if (cryptoHashes.length === 0) {
         validSRIHashAlgorithmTokenSet.clear();
       }
@@ -122399,7 +122399,7 @@ var require_subresource_integrity = __commonJS({
       return result;
     }
     var applyAlgorithmToBytes = (algorithm, bytes) => {
-      return crypto5.hash(algorithm, bytes, "base64");
+      return crypto6.hash(algorithm, bytes, "base64");
     };
     function caseSensitiveMatch(actualValue, expectedValue) {
       let actualValueLength = actualValue.length;
@@ -125344,7 +125344,7 @@ var require_connection2 = __commonJS({
     var { WebsocketFrameSend } = require_frame();
     var assert2 = require("node:assert");
     var { runtimeFeatures } = require_runtime_features();
-    var crypto5 = runtimeFeatures.has("crypto") ? require("node:crypto") : null;
+    var crypto6 = runtimeFeatures.has("crypto") ? require("node:crypto") : null;
     var warningEmitted = false;
     function establishWebSocketConnection(url, protocols, client, handler, options) {
       const requestURL = url;
@@ -125364,7 +125364,7 @@ var require_connection2 = __commonJS({
         const headersList = getHeadersList(new Headers2(options.headers));
         request.headersList = headersList;
       }
-      const keyValue = crypto5.randomBytes(16).toString("base64");
+      const keyValue = crypto6.randomBytes(16).toString("base64");
       request.headersList.append("sec-websocket-key", keyValue, true);
       request.headersList.append("sec-websocket-version", "13", true);
       for (const protocol of protocols) {
@@ -125404,7 +125404,7 @@ var require_connection2 = __commonJS({
             return;
           }
           const secWSAccept = response.headersList.get("Sec-WebSocket-Accept");
-          const digest = crypto5.hash("sha1", keyValue + uid, "base64");
+          const digest = crypto6.hash("sha1", keyValue + uid, "base64");
           if (secWSAccept !== digest) {
             failWebsocketConnection(handler, 1002, "Incorrect hash received in Sec-WebSocket-Accept header.");
             return;
@@ -130379,15 +130379,15 @@ var init_payment_gateway_service = __esm({
               ids.push(params.orderId);
             }
           }
-          const basketOrders = await tx.order.findMany({
+          const basketOrders2 = await tx.order.findMany({
             where: { paymentId: params.paymentId, status: "AWAITING_PAYMENT" }
           });
-          if (basketOrders.length > 0) {
+          if (basketOrders2.length > 0) {
             await tx.order.updateMany({
               where: { paymentId: params.paymentId, status: "AWAITING_PAYMENT" },
               data: { status: "PENDING" }
             });
-            for (const order of basketOrders) {
+            for (const order of basketOrders2) {
               if (order.promoCodeId) {
                 const promo = await tx.promoCode.findUnique({
                   where: { id: order.promoCodeId },
@@ -130412,7 +130412,7 @@ var init_payment_gateway_service = __esm({
                 }
               }
             }
-            ids.push(...basketOrders.map((o) => o.id));
+            ids.push(...basketOrders2.map((o) => o.id));
           }
           return ids;
         }, { isolationLevel: "Serializable", timeout: 15e3 });
@@ -130556,7 +130556,11 @@ var init_unified_payment_service = __esm({
           });
           const { SettingsProvider: SettingsProvider2 } = await Promise.resolve().then(() => (init_settings(), settings_exports));
           const supportDomain = await SettingsProvider2.getSupportEmailDomain();
-          const successUrl = `${await getBaseUrlAsync(supportDomain)}/dashboard`;
+          let successUrl = `${await getBaseUrlAsync(supportDomain)}/dashboard`;
+          if (metadata?.source === "BOT") {
+            const botUsername = process.env.TELEGRAM_BOT_USERNAME || "SMMplansapport_bot";
+            successUrl = `https://t.me/${botUsername.replace("@", "")}?start=pay_ok_${payment.id}`;
+          }
           const { PaymentGatewayFactory: PaymentGatewayFactory2 } = await Promise.resolve().then(() => (init_payment_gateway_service(), payment_gateway_service_exports));
           const gatewaySvc = PaymentGatewayFactory2.getGateway(gateway);
           const gatewayResult = await gatewaySvc.createPayment({
@@ -130734,7 +130738,15 @@ var init_deposit_wizard = __esm({
         }
         const amount = parseInt(msgText.replace(/\D/g, ""), 10);
         if (isNaN(amount) || amount < 100 || amount > 5e5) {
-          return ctx.reply("\u274C \u0421\u0443\u043C\u043C\u0430 \u0434\u043E\u043B\u0436\u043D\u0430 \u0431\u044B\u0442\u044C \u043E\u0442 100 \u0434\u043E 500 000 \u0440\u0443\u0431. \u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u0443\u044E \u0441\u0443\u043C\u043C\u0443:");
+          return ctx.reply(
+            "\u26A0\uFE0F <b>\u041D\u0435\u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u0430\u044F \u0441\u0443\u043C\u043C\u0430</b>\n\n\u0421\u0443\u043C\u043C\u0430 \u043F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F \u0434\u043E\u043B\u0436\u043D\u0430 \u0431\u044B\u0442\u044C \u043E\u0442 <b>100</b> \u0434\u043E <b>500 000 \u20BD</b>.\n\u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0432\u0432\u0435\u0434\u0438\u0442\u0435 \u0441\u0443\u043C\u043C\u0443 \u0447\u0438\u0441\u043B\u043E\u043C (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440: <code>500</code>):",
+            {
+              parse_mode: "HTML",
+              ...import_telegraf.Markup.inlineKeyboard([
+                [import_telegraf.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_deposit"), import_telegraf.Markup.button.callback("\u{1F198} \u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", "support")]
+              ])
+            }
+          );
         }
         const depositData = ctx.wizard.state.depositData || {};
         depositData.amount = amount;
@@ -130775,7 +130787,13 @@ var init_deposit_wizard = __esm({
     });
     depositWizard.action("cancel_deposit", async (ctx) => {
       await ctx.answerCbQuery();
-      await ctx.editMessageText("\u274C \u041F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u043E.");
+      await ctx.editMessageText("\u274C <b>\u041F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u043E.</b>", {
+        parse_mode: "HTML",
+        ...import_telegraf.Markup.inlineKeyboard([
+          [import_telegraf.Markup.button.callback("\u{1F504} \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u0441\u043D\u043E\u0432\u0430", "deposit"), import_telegraf.Markup.button.callback("\u{1F3E0} \u0412 \u0433\u043B\u0430\u0432\u043D\u043E\u0435 \u043C\u0435\u043D\u044E", "nav_start")]
+        ])
+      }).catch(() => {
+      });
       return ctx.scene.leave();
     });
     depositWizard.action(/pay_(yookassa|cryptobot)/, async (ctx) => {
@@ -130825,8 +130843,20 @@ var init_deposit_wizard = __esm({
           );
         } else {
           const errorText = res.error || "\u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u043F\u043E\u0437\u0436\u0435.";
-          await ctx.editMessageText(`\u274C <b>\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u0438 \u043F\u043B\u0430\u0442\u0435\u0436\u0430.</b>
-${errorText}`, { parse_mode: "HTML" });
+          await ctx.editMessageText(
+            `\u274C <b>\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u0438 \u043F\u043B\u0430\u0442\u0435\u0436\u0430</b>
+\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+${errorText}
+
+<i>\u0415\u0441\u043B\u0438 \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0430 \u043F\u043E\u0432\u0442\u043E\u0440\u044F\u0435\u0442\u0441\u044F, \u043D\u0430\u043F\u0438\u0448\u0438\u0442\u0435 \u0432 \u043D\u0430\u0448\u0443 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0443 \u2014 \u043C\u044B \u043F\u043E\u043C\u043E\u0436\u0435\u043C \u0432\u0430\u043C \u043F\u0440\u044F\u043C\u043E \u0441\u0435\u0439\u0447\u0430\u0441:</i>`,
+            {
+              parse_mode: "HTML",
+              ...import_telegraf.Markup.inlineKeyboard([
+                [import_telegraf.Markup.button.callback("\u{1F198} \u041D\u0430\u043F\u0438\u0441\u0430\u0442\u044C \u0432 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0443", "support")],
+                [import_telegraf.Markup.button.callback("\u{1F504} \u041F\u043E\u043F\u0440\u043E\u0431\u043E\u0432\u0430\u0442\u044C \u0441\u043D\u043E\u0432\u0430", "deposit"), import_telegraf.Markup.button.callback("\u{1F3E0} \u0412 \u0433\u043B\u0430\u0432\u043D\u043E\u0435 \u043C\u0435\u043D\u044E", "nav_start")]
+              ])
+            }
+          );
           try {
             const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
             sendAdminAlert2(
@@ -130846,7 +130876,16 @@ ${errorText}`, { parse_mode: "HTML" });
       } catch (e) {
         console.error("[DepositWizard] Error:", e);
         const errText = e instanceof Error ? e.message : String(e);
-        await ctx.reply("\u274C \u041F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u0430 \u0442\u0435\u0445\u043D\u0438\u0447\u0435\u0441\u043A\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430. \u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u043F\u043E\u0437\u0436\u0435.");
+        await ctx.reply(
+          "\u274C <b>\u041F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u0430 \u0442\u0435\u0445\u043D\u0438\u0447\u0435\u0441\u043A\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430</b>\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0441\u0432\u044F\u0436\u0438\u0442\u0435\u0441\u044C \u0441 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u043E\u0439, \u0435\u0441\u043B\u0438 \u0441\u0440\u0435\u0434\u0441\u0442\u0432\u0430 \u0441\u043F\u0438\u0441\u0430\u043B\u0438\u0441\u044C \u0438\u043B\u0438 \u0432\u043E\u0437\u043D\u0438\u043A\u043B\u0430 \u0437\u0430\u0434\u0435\u0440\u0436\u043A\u0430:",
+          {
+            parse_mode: "HTML",
+            ...import_telegraf.Markup.inlineKeyboard([
+              [import_telegraf.Markup.button.callback("\u{1F198} \u041D\u0430\u043F\u0438\u0441\u0430\u0442\u044C \u0432 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0443", "support")],
+              [import_telegraf.Markup.button.callback("\u{1F3E0} \u0412 \u0433\u043B\u0430\u0432\u043D\u043E\u0435 \u043C\u0435\u043D\u044E", "nav_start")]
+            ])
+          }
+        );
         try {
           const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
           sendAdminAlert2(
@@ -131010,6 +131049,12 @@ __export2(menu_navigation_exports, {
 async function handleWizardMenuNavigation(ctx, text) {
   const trimmed = (text || "").trim();
   if (!trimmed) return false;
+  if (/^(🏠\s*Главное меню|Главная|Старт|\/start|\/menu)/i.test(trimmed)) {
+    await ctx.scene.leave();
+    const { sendMainMenu: sendMainMenu2 } = await Promise.resolve().then(() => (init_index(), index_exports));
+    await sendMainMenu2(ctx, false);
+    return true;
+  }
   if (/^(💰\s*Пополнить|Пополнить|Баланс|\/deposit|\/pay)/i.test(trimmed)) {
     await ctx.scene.leave();
     const { DEPOSIT_WIZARD: DEPOSIT_WIZARD2 } = await Promise.resolve().then(() => (init_deposit_wizard(), deposit_wizard_exports));
@@ -135884,7 +135929,17 @@ ${escapeHtml2(validationErrorMsg)}
         if (!service) return ctx.scene.leave();
         if (isNaN(qty) || qty < service.minQty || qty > service.maxQty) {
           return ctx.reply(
-            `\u274C \u041A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E \u0434\u043E\u043B\u0436\u043D\u043E \u0431\u044B\u0442\u044C \u043E\u0442 ${service.minQty.toLocaleString()} \u0434\u043E ${service.maxQty.toLocaleString()}. \u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0447\u0438\u0441\u043B\u043E:`
+            `\u26A0\uFE0F <b>\u041D\u0435\u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u043E\u0435 \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E</b>
+
+\u0414\u043E\u043F\u0443\u0441\u0442\u0438\u043C\u044B\u0439 \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D \u0434\u043B\u044F \u044D\u0442\u043E\u0439 \u0443\u0441\u043B\u0443\u0433\u0438: \u043E\u0442 <b>${service.minQty.toLocaleString()}</b> \u0434\u043E <b>${service.maxQty.toLocaleString()}</b>.
+
+\u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0447\u0438\u0441\u043B\u043E:`,
+            {
+              parse_mode: "HTML",
+              ...import_telegraf3.Markup.inlineKeyboard([
+                [import_telegraf3.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard"), import_telegraf3.Markup.button.callback("\u{1F198} \u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", "support")]
+              ])
+            }
           );
         }
         orderData.qty = qty;
@@ -136035,13 +136090,26 @@ ${escapeHtml2(validationErrorMsg)}
               parse_mode: "HTML",
               ...import_telegraf3.Markup.inlineKeyboard([
                 [import_telegraf3.Markup.button.callback("\u{1F4CB} \u041C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B", "my_orders")],
-                [import_telegraf3.Markup.button.callback("\u{1F6D2} \u0417\u0430\u043A\u0430\u0437\u0430\u0442\u044C \u0435\u0449\u0451", "shop")]
+                [import_telegraf3.Markup.button.callback("\u{1F6D2} \u0417\u0430\u043A\u0430\u0437\u0430\u0442\u044C \u0435\u0449\u0451", "shop"), import_telegraf3.Markup.button.callback("\u{1F3E0} \u0412 \u0433\u043B\u0430\u0432\u043D\u043E\u0435 \u043C\u0435\u043D\u044E", "nav_start")]
               ])
             }
           );
         } catch (err) {
           const errMsg = err instanceof Error ? err.message : String(err);
-          await ctx.reply(`\u274C \u041E\u0448\u0438\u0431\u043A\u0430 \u043E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u0438\u044F: ${errMsg}`);
+          await ctx.reply(
+            `\u274C <b>\u041E\u0448\u0438\u0431\u043A\u0430 \u043E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u0438\u044F \u0437\u0430\u043A\u0430\u0437\u0430</b>
+\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+${errMsg}
+
+<i>\u0415\u0441\u043B\u0438 \u0443 \u0432\u0430\u0441 \u0432\u043E\u0437\u043D\u0438\u043A\u043B\u0438 \u0432\u043E\u043F\u0440\u043E\u0441\u044B \u0438\u043B\u0438 \u0441\u043F\u0438\u0441\u0430\u043B\u0438\u0441\u044C \u0441\u0440\u0435\u0434\u0441\u0442\u0432\u0430, \u043D\u0430\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u043C:</i>`,
+            {
+              parse_mode: "HTML",
+              ...import_telegraf3.Markup.inlineKeyboard([
+                [import_telegraf3.Markup.button.callback("\u{1F198} \u041D\u0430\u043F\u0438\u0441\u0430\u0442\u044C \u0432 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0443", "support")],
+                [import_telegraf3.Markup.button.callback("\u{1F6D2} \u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0434\u0440\u0443\u0433\u0443\u044E \u0443\u0441\u043B\u0443\u0433\u0443", "shop"), import_telegraf3.Markup.button.callback("\u{1F3E0} \u0412 \u0433\u043B\u0430\u0432\u043D\u043E\u0435 \u043C\u0435\u043D\u044E", "nav_start")]
+              ])
+            }
+          );
           try {
             const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
             sendAdminAlert2(
@@ -136103,7 +136171,20 @@ ${escapeHtml2(validationErrorMsg)}
         );
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
-        await ctx.reply(`\u274C \u041E\u0448\u0438\u0431\u043A\u0430 \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u044F \u043F\u043B\u0430\u0442\u0435\u0436\u0430: ${errMsg}`);
+        await ctx.reply(
+          `\u274C <b>\u041E\u0448\u0438\u0431\u043A\u0430 \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u044F \u043F\u043B\u0430\u0442\u0435\u0436\u0430</b>
+\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+${errMsg}
+
+<i>\u0421\u043B\u0443\u0436\u0431\u0430 \u0437\u0430\u0431\u043E\u0442\u044B \u043D\u0430 \u0441\u0432\u044F\u0437\u0438 \u0438 \u043F\u043E\u043C\u043E\u0436\u0435\u0442 \u0440\u0435\u0448\u0438\u0442\u044C \u0432\u043E\u043F\u0440\u043E\u0441 \u043F\u0440\u044F\u043C\u043E \u0441\u0435\u0439\u0447\u0430\u0441:</i>`,
+          {
+            parse_mode: "HTML",
+            ...import_telegraf3.Markup.inlineKeyboard([
+              [import_telegraf3.Markup.button.callback("\u{1F198} \u041D\u0430\u043F\u0438\u0441\u0430\u0442\u044C \u0432 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0443", "support")],
+              [import_telegraf3.Markup.button.callback("\u{1F3E0} \u0412 \u0433\u043B\u0430\u0432\u043D\u043E\u0435 \u043C\u0435\u043D\u044E", "nav_start")]
+            ])
+          }
+        );
         try {
           const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
           sendAdminAlert2(
@@ -136122,12 +136203,23 @@ ${escapeHtml2(validationErrorMsg)}
       return ctx.scene.leave();
     });
     orderWizard.action("cancel_wizard", async (ctx) => {
-      await ctx.answerCbQuery("\u0417\u0430\u043A\u0430\u0437 \u043E\u0442\u043C\u0435\u043D\u0435\u043D");
-      await ctx.reply("\u274C \u041E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u0438\u0435 \u0437\u0430\u043A\u0430\u0437\u0430 \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u043E.");
+      await ctx.answerCbQuery("\u0417\u0430\u043A\u0430\u0437 \u043E\u0442\u043C\u0435\u043D\u0435\u043D").catch(() => {
+      });
+      await ctx.reply("\u274C <b>\u041E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u0438\u0435 \u0437\u0430\u043A\u0430\u0437\u0430 \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u043E.</b>", {
+        parse_mode: "HTML",
+        ...import_telegraf3.Markup.inlineKeyboard([
+          [import_telegraf3.Markup.button.callback("\u{1F6CD} \u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0434\u0440\u0443\u0433\u0443\u044E \u0443\u0441\u043B\u0443\u0433\u0443", "shop"), import_telegraf3.Markup.button.callback("\u{1F3E0} \u0412 \u0433\u043B\u0430\u0432\u043D\u043E\u0435 \u043C\u0435\u043D\u044E", "nav_start")]
+        ])
+      });
       return ctx.scene.leave();
     });
     orderWizard.command("cancel", async (ctx) => {
-      await ctx.reply("\u274C \u041E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u0438\u0435 \u0437\u0430\u043A\u0430\u0437\u0430 \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u043E.");
+      await ctx.reply("\u274C <b>\u041E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u0438\u0435 \u0437\u0430\u043A\u0430\u0437\u0430 \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u043E.</b>", {
+        parse_mode: "HTML",
+        ...import_telegraf3.Markup.inlineKeyboard([
+          [import_telegraf3.Markup.button.callback("\u{1F6CD} \u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433", "shop"), import_telegraf3.Markup.button.callback("\u{1F3E0} \u0412 \u0433\u043B\u0430\u0432\u043D\u043E\u0435 \u043C\u0435\u043D\u044E", "nav_start")]
+        ])
+      });
       return ctx.scene.leave();
     });
     orderWizard.hears(/(.+)/, async (ctx, next) => {
@@ -138029,6 +138121,542 @@ var init_bot_catalog_service = __esm({
   }
 });
 
+// src/services/marketing-utils.ts
+async function logPromoCodeUsageIfNeeded(tx, orderId, userId) {
+  const order = await tx.order.findUnique({
+    where: { id: orderId },
+    select: {
+      promoCodeId: true,
+      discountCents: true,
+      charge: true,
+      providerCost: true
+    }
+  });
+  if (!order || !order.promoCodeId) {
+    return;
+  }
+  const existingUsage = await tx.promoCodeUsage.findUnique({
+    where: { orderId }
+  });
+  if (existingUsage) {
+    return;
+  }
+  const promo = await tx.promoCode.findUnique({
+    where: { id: order.promoCodeId },
+    select: {
+      isSuspicious: true
+    }
+  });
+  const isSuspicious = promo?.isSuspicious ?? false;
+  await tx.promoCodeUsage.create({
+    data: {
+      promoCodeId: order.promoCodeId,
+      userId,
+      orderId,
+      discountCents: order.discountCents,
+      revenueCents: order.charge,
+      profitCents: order.charge - order.providerCost,
+      isSuspicious
+    }
+  });
+}
+var init_marketing_utils = __esm({
+  "src/services/marketing-utils.ts"() {
+    "use strict";
+  }
+});
+
+// src/services/users/promo-automation.service.ts
+var import_crypto5, PromoAutomationService;
+var init_promo_automation_service = __esm({
+  "src/services/users/promo-automation.service.ts"() {
+    "use strict";
+    init_db();
+    import_crypto5 = __toESM(require("crypto"));
+    PromoAutomationService = class {
+      /**
+       * Evaluates the user's total spend and instantly issues a unique promo code
+       * if they cross certain financial thresholds. 
+       * This is tied directly to the post-checkout lifecycle.
+       */
+      static async checkAndIssueLoyalty(userId) {
+        try {
+          const user = await db.user.findUnique({ where: { id: userId } });
+          if (!user) return;
+          const totalSpentCents = user.totalSpent;
+          const rules = [
+            { spendThreshold: 25e4, percent: 5, description: "\u0411\u043E\u043D\u0443\u0441 \u0437\u0430 \u0442\u0440\u0430\u0442\u044B > 2500 RUB" },
+            { spendThreshold: 1e6, percent: 10, description: "VIP \u0411\u043E\u043D\u0443\u0441 \u0437\u0430 \u0442\u0440\u0430\u0442\u044B > 10,000 RUB" },
+            { spendThreshold: 5e6, percent: 15, description: "\u041A\u0438\u0422 \u0411\u043E\u043D\u0443\u0441 \u0437\u0430 \u0442\u0440\u0430\u0442\u044B > 50,000 RUB" }
+          ];
+          for (const rule of rules) {
+            if (totalSpentCents >= rule.spendThreshold) {
+              const secret = process.env.JWT_SECRET || "default-promo-secret-123";
+              const uniqueHash = import_crypto5.default.createHmac("sha256", secret).update(userId + rule.percent).digest("hex").substring(0, 8).toUpperCase();
+              const deterministicCode = `VIP${rule.percent}-${uniqueHash}`;
+              await db.promoCode.upsert({
+                where: { code: deterministicCode },
+                update: {},
+                // Do nothing if it exists
+                create: {
+                  code: deterministicCode,
+                  discountPercent: rule.percent,
+                  maxUses: 1,
+                  // One-time use reward
+                  isActive: true
+                }
+              });
+              const existingLog = await db.auditLog.findFirst({
+                where: { userId, action: "PROMO_ISSUED", details: { contains: deterministicCode } }
+              });
+              if (!existingLog) {
+                await db.auditLog.create({
+                  data: {
+                    userId,
+                    action: "PROMO_ISSUED",
+                    details: `\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0432\u044B\u0434\u0430\u043D \u043F\u0440\u043E\u043C\u043E\u043A\u043E\u0434 ${deterministicCode} (${rule.percent}%) \u043F\u043E \u043F\u0440\u0430\u0432\u0438\u043B\u0443: ${rule.description}`
+                  }
+                });
+              }
+            }
+          }
+        } catch (e) {
+          console.error(`PromoAutomationService Error for User ${userId}:`, e instanceof Error ? e.message : String(e));
+        }
+      }
+    };
+  }
+});
+
+// src/services/financial/payment.service.ts
+var payment_service_exports = {};
+__export2(payment_service_exports, {
+  PaymentService: () => PaymentService,
+  paymentService: () => paymentService
+});
+function safeRevalidatePath(path3, type) {
+  try {
+    (0, import_cache2.revalidatePath)(path3, type);
+  } catch (err) {
+    const msg = err instanceof Error ? err instanceof Error ? err.message : String(err) : String(err);
+    console.warn(`[Cache] revalidatePath failed for ${path3}:`, msg);
+  }
+}
+var import_cache2, PaymentService, paymentService;
+var init_payment_service = __esm({
+  "src/services/financial/payment.service.ts"() {
+    "use strict";
+    init_db();
+    init_transactions();
+    init_wallet_ops();
+    import_cache2 = __toESM(require_cache());
+    init_smtp();
+    init_marketing_utils();
+    init_promo_automation_service();
+    init_security_alert_service();
+    PaymentService = class {
+      /**
+       * Confirms a payment and activates the linked order.
+       * Called by webhook handlers (YooKassa, CryptoBot).
+       * 
+       * Flow: Payment PENDING → SUCCEEDED → Order AWAITING_PAYMENT → PENDING
+       */
+      async confirmPayment(gatewayId, amount, userId, isDevSandbox = false, gatewayType = "yookassa", internalPaymentId, metadataType, receiptId) {
+        const activatedOrders = [];
+        try {
+          const isMockPayment = gatewayId.startsWith("test_") || gatewayId.startsWith("mock_");
+          if (process.env.NODE_ENV === "production" && gatewayType === "yookassa" && !isDevSandbox && !isMockPayment) {
+            const { SettingsManager: SettingsManager2 } = await Promise.resolve().then(() => (init_settings(), settings_exports));
+            const isTestMode = await SettingsManager2.isTestMode();
+            if (!isTestMode) {
+              const secrets = await SettingsManager2.getPaymentSecrets();
+              if (secrets.yookassaShopId && secrets.yookassaSecretKey) {
+                const authHeader = "Basic " + Buffer.from(`${secrets.yookassaShopId}:${secrets.yookassaSecretKey}`).toString("base64");
+                try {
+                  const response = await fetch(`https://api.yookassa.ru/v3/payments/${gatewayId}`, {
+                    headers: { "Authorization": authHeader },
+                    signal: AbortSignal.timeout(15e3)
+                  });
+                  if (response.ok) {
+                    const data = await response.json();
+                    if (data.status !== "succeeded") {
+                      throw new Error(`PAYMENT_NOT_SUCCEEDED: Real gateway status is ${data.status}`);
+                    }
+                    const realAmount = Math.round(parseFloat(data.amount.value) * 100);
+                    if (realAmount < amount) {
+                      throw new Error(`PAYMENT_AMOUNT_MISMATCH: Webhook amount ${amount} exceeds Real amount ${realAmount}`);
+                    }
+                    console.info(`[Payment] Safely verified YooKassa payment ${gatewayId}`);
+                  } else {
+                    throw new Error(`GATEWAY_ERROR: Failed to contact YooKassa API or Payment Not Found (${response.status})`);
+                  }
+                } catch (e) {
+                  console.error(`[Payment] Verification Exploit Blocked: ${e instanceof Error ? e.message : String(e)}`);
+                  return false;
+                }
+              } else {
+                console.error(`[Payment] YooKassa verification failed for ${gatewayId} due to missing secrets in admin panel! Rejecting for safety.`);
+                return false;
+              }
+            }
+          }
+          await runSerializableTransaction(async (tx) => {
+            let payment = null;
+            if (internalPaymentId) {
+              payment = await tx.payment.findUnique({ where: { id: internalPaymentId } });
+            }
+            if (!payment) {
+              payment = await tx.payment.findUnique({ where: { gatewayId } });
+            }
+            const receivedAmountBigInt = BigInt(amount);
+            const currentPayment = payment ? await tx.payment.findUnique({ where: { id: payment.id } }) : await tx.payment.findUnique({ where: { gatewayId } });
+            if (currentPayment && currentPayment.status === "SUCCEEDED") {
+              console.info(`[Payment] ${gatewayId} already processed (atomic idempotency hit)`);
+              return;
+            }
+            if (currentPayment && currentPayment.gatewayId && currentPayment.gatewayId !== gatewayId) {
+              console.error(`[Payment] Gateway ID mismatch for payment ${currentPayment.id}: expected ${currentPayment.gatewayId}, got ${gatewayId}`);
+              throw new Error("PAYMENT_GATEWAY_ID_MISMATCH: Gateway ID mismatch detected.");
+            }
+            if (currentPayment && currentPayment.currency && currentPayment.currency !== "RUB") {
+              console.error(`[Payment] Currency mismatch for payment ${currentPayment.id}: expected RUB, got ${currentPayment.currency}`);
+              throw new Error("PAYMENT_CURRENCY_MISMATCH: Unsupported payment currency.");
+            }
+            if (currentPayment && currentPayment.amount !== receivedAmountBigInt) {
+              console.error(`[Payment] Amount mismatch exploit attempt for ${gatewayId}: expected ${currentPayment.amount}, got ${receivedAmountBigInt}`);
+              void SecurityAlertService.record({
+                event: "PAYMENT_AMOUNT_MISMATCH_EXPLOIT",
+                severity: "CRITICAL",
+                details: {
+                  paymentId: currentPayment.id,
+                  expectedAmount: currentPayment.amount.toString(),
+                  receivedAmount: receivedAmountBigInt.toString(),
+                  gatewayId,
+                  gatewayType
+                }
+              });
+              throw new Error("PAYMENT_AMOUNT_MISMATCH: Amount received from gateway does not match expected payment amount.");
+            }
+            let processedPaymentId;
+            let isOrderPayment2;
+            let linkedOrderId;
+            let targetUserId;
+            if (currentPayment) {
+              targetUserId = currentPayment.userId;
+              if (userId && currentPayment.userId !== userId) {
+                console.warn(`[Payment] User mismatch: caller passed ${userId}, payment bound to ${currentPayment.userId}. Using payment.userId.`);
+              }
+              const updated = await tx.payment.updateMany({
+                where: { id: currentPayment.id, status: "PENDING" },
+                data: { status: "SUCCEEDED", gatewayId, receiptId: receiptId || void 0 }
+              });
+              if (updated.count === 0) {
+                const fresh = await tx.payment.findUnique({
+                  where: { id: currentPayment.id },
+                  select: { status: true }
+                });
+                console.warn(
+                  `[Payment] No transition for ${currentPayment.id}. Current status: ${fresh?.status}`
+                );
+                return true;
+              }
+              processedPaymentId = currentPayment.id;
+              isOrderPayment2 = !!currentPayment.orderId;
+              linkedOrderId = currentPayment.orderId || "";
+            } else {
+              console.error(`[SECURITY] Orphan webhook rejected for gatewayId: ${gatewayId}. No PENDING payment found.`);
+              throw new Error("ORPHAN_WEBHOOK: Stray webhooks are no longer allowed to credit accounts. All payments must be initiated by the system.");
+            }
+            const creditAmount2 = currentPayment ? currentPayment.amount : receivedAmountBigInt;
+            if (isOrderPayment2 && linkedOrderId) {
+              const order = await tx.order.findUnique({
+                where: { id: linkedOrderId },
+                include: { user: { select: { email: true } }, service: { select: { name: true } } }
+              });
+              if (order && order.status === "AWAITING_PAYMENT") {
+                if (creditAmount2 < order.charge) {
+                  console.error(`[SECURITY] Underpaid order activation blocked: order #${order.numericId} requires ${order.charge} kopecks, but payment credited only ${creditAmount2} kopecks.`);
+                  void SecurityAlertService.record({
+                    event: "UNDERPAID_ORDER_EXPLOIT_ATTEMPT",
+                    severity: "CRITICAL",
+                    details: {
+                      orderId: linkedOrderId,
+                      orderNumericId: order.numericId,
+                      requiredCharge: order.charge.toString(),
+                      creditedAmount: creditAmount2.toString(),
+                      paymentId: processedPaymentId
+                    }
+                  });
+                  throw new Error(`UNDERPAID_ORDER: Credited amount (${creditAmount2}) is less than required order charge (${order.charge})`);
+                }
+                await tx.order.update({
+                  where: { id: linkedOrderId },
+                  data: { status: "PENDING" }
+                });
+                await logPromoCodeUsageIfNeeded(tx, linkedOrderId, targetUserId);
+                activatedOrders.push({
+                  id: order.id,
+                  isDripFeed: order.isDripFeed,
+                  userId: targetUserId,
+                  amount: Number(creditAmount2),
+                  userEmail: order.user?.email ?? null,
+                  serviceName: order.service?.name ?? null,
+                  numericId: order.numericId
+                });
+                await WalletOps.credit(
+                  tx,
+                  targetUserId,
+                  creditAmount2,
+                  `\u041E\u043F\u043B\u0430\u0442\u0430 \u0437\u0430\u043A\u0430\u0437\u0430 #${order.numericId} \u0447\u0435\u0440\u0435\u0437 \u0448\u043B\u044E\u0437`,
+                  { idempotencyKey: `gateway-credit-${processedPaymentId}` }
+                );
+                await WalletOps.charge(
+                  tx,
+                  targetUserId,
+                  order.charge,
+                  `\u0421\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0437\u0430 \u0437\u0430\u043A\u0430\u0437 #${order.numericId}`,
+                  { idempotencyKey: `gateway-charge-${order.id}` }
+                );
+              }
+            }
+            const basketOrders2 = await tx.order.findMany({
+              where: { paymentId: processedPaymentId, status: "AWAITING_PAYMENT" },
+              include: { user: { select: { email: true } }, service: { select: { name: true } } }
+            });
+            if (basketOrders2.length > 0) {
+              await tx.order.updateMany({
+                where: { paymentId: processedPaymentId, status: "AWAITING_PAYMENT" },
+                data: { status: "PENDING" }
+              });
+              for (const order of basketOrders2) {
+                activatedOrders.push({
+                  id: order.id,
+                  isDripFeed: order.isDripFeed,
+                  userId: targetUserId,
+                  amount: Number(order.charge),
+                  userEmail: order.user?.email ?? null,
+                  serviceName: order.service?.name ?? null,
+                  numericId: order.numericId
+                });
+                await logPromoCodeUsageIfNeeded(tx, order.id, targetUserId);
+              }
+              await WalletOps.credit(
+                tx,
+                targetUserId,
+                creditAmount2,
+                `\u041E\u043F\u043B\u0430\u0442\u0430 \u043A\u043E\u0440\u0437\u0438\u043D\u044B \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u0447\u0435\u0440\u0435\u0437 \u0448\u043B\u044E\u0437`,
+                { idempotencyKey: `gateway-credit-${processedPaymentId}` }
+              );
+              const totalChargeCents = basketOrders2.reduce((sum, order) => sum + order.charge, BigInt(0));
+              if (creditAmount2 < totalChargeCents) {
+                console.error(`[SECURITY] Underpaid basket activation blocked: basket requires ${totalChargeCents} kopecks, but payment credited only ${creditAmount2} kopecks.`);
+                throw new Error(`UNDERPAID_BASKET: Credited amount (${creditAmount2}) is less than required basket charge (${totalChargeCents})`);
+              }
+              await WalletOps.charge(
+                tx,
+                targetUserId,
+                totalChargeCents,
+                `\u0421\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0437\u0430 \u043E\u043F\u043B\u0430\u0442\u0443 \u043A\u043E\u0440\u0437\u0438\u043D\u044B \u0437\u0430\u043A\u0430\u0437\u043E\u0432 (${basketOrders2.length} \u0448\u0442.)`,
+                { idempotencyKey: `gateway-basket-charge-${processedPaymentId}` }
+              );
+            }
+            if (!isOrderPayment2 && basketOrders2.length === 0) {
+              await WalletOps.credit(
+                tx,
+                targetUserId,
+                creditAmount2,
+                `\u041F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 \u0447\u0435\u0440\u0435\u0437 ${gatewayType}`,
+                { idempotencyKey: `deposit-${processedPaymentId}` }
+              );
+            }
+          });
+          safeRevalidatePath("/dashboard", "layout");
+          if (activatedOrders.length > 0) {
+            const { ordersQueue: ordersQueue2 } = await Promise.resolve().then(() => (init_queue_manager(), queue_manager_exports));
+            for (const activated of activatedOrders) {
+              await ordersQueue2.add("order-dispatch", { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: 3 * 60 * 1e3 });
+              if (activated.userEmail && activated.serviceName) {
+                void sendOrderPaidMail(
+                  activated.userEmail,
+                  activated.numericId?.toString() ?? activated.id,
+                  activated.serviceName
+                ).catch((err) => console.error("[H1] sendOrderPaidMail failed", err));
+              }
+            }
+          }
+          try {
+            const userWithTg = await db.user.findUnique({
+              where: { id: userId },
+              select: { telegramId: true, balance: true }
+            });
+            if (userWithTg?.telegramId) {
+              const { bot: bot2 } = await Promise.resolve().then(() => (init_index(), index_exports));
+              const amountRub = (Number(creditAmount) / 100).toLocaleString("ru-RU");
+              const newBal = (Number(userWithTg.balance) / 100).toFixed(2);
+              if (isOrderPayment || basketOrders.length > 0) {
+                await bot2.telegram.sendMessage(
+                  userWithTg.telegramId,
+                  `\u{1F389} <b>\u041E\u041F\u041B\u0410\u0422\u0410 \u0417\u0410\u041A\u0410\u0417\u0410 \u041F\u041E\u0414\u0422\u0412\u0415\u0420\u0416\u0414\u0415\u041D\u0410!</b>
+\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+\u0421\u0443\u043C\u043C\u0430: <b>${amountRub} \u20BD</b>
+\u0417\u0430\u043A\u0430\u0437 \u043F\u0435\u0440\u0435\u0434\u0430\u043D \u0432 \u043E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0443 \u0438 \u0441\u043A\u043E\u0440\u043E \u0431\u0443\u0434\u0435\u0442 \u0437\u0430\u043F\u0443\u0449\u0435\u043D!
+
+<i>\u041E\u0442\u0441\u043B\u0435\u0436\u0438\u0432\u0430\u0442\u044C \u0441\u0442\u0430\u0442\u0443\u0441 \u043C\u043E\u0436\u043D\u043E \u0432 \u0440\u0430\u0437\u0434\u0435\u043B\u0435 \xAB\u{1F4E6} \u041C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B\xBB.</i>`,
+                  { parse_mode: "HTML" }
+                );
+              } else {
+                await bot2.telegram.sendMessage(
+                  userWithTg.telegramId,
+                  `\u{1F389} <b>\u0411\u0410\u041B\u0410\u041D\u0421 \u0423\u0421\u041F\u0415\u0428\u041D\u041E \u041F\u041E\u041F\u041E\u041B\u041D\u0415\u041D!</b>
+\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+\u0421\u0443\u043C\u043C\u0430: <b>+${amountRub} \u20BD</b>
+\u0422\u0435\u043A\u0443\u0449\u0438\u0439 \u0431\u0430\u043B\u0430\u043D\u0441: <b>${newBal} \u20BD</b> \u2705
+
+<i>\u0412\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u043F\u0440\u0438\u0441\u0442\u0443\u043F\u0438\u0442\u044C \u043A \u043E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u0438\u044E \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u043F\u0440\u044F\u043C\u043E \u0441\u0435\u0439\u0447\u0430\u0441.</i>`,
+                  { parse_mode: "HTML" }
+                );
+              }
+            }
+          } catch (tgNotifyErr) {
+            console.warn("[PaymentService] Telegram user notification skipped:", tgNotifyErr);
+          }
+          PromoAutomationService.checkAndIssueLoyalty(userId).catch(console.error);
+          return true;
+        } catch (e) {
+          console.error("[PaymentService] Error confirming payment:", e instanceof Error ? e.message : String(e));
+          return false;
+        }
+      }
+      /**
+       * Confirms a payment directly by paymentId (for mock/test flows).
+       */
+      async confirmPaymentById(paymentId) {
+        try {
+          let capturedUserId = null;
+          const activatedOrders = [];
+          await db.$transaction(async (tx) => {
+            const payment = await tx.payment.findUniqueOrThrow({
+              where: { id: paymentId }
+            });
+            const updatedPayment = await tx.payment.updateMany({
+              where: {
+                id: paymentId,
+                status: "PENDING"
+              },
+              data: {
+                status: "SUCCEEDED",
+                gatewayId: `test_${Date.now()}`
+              }
+            });
+            if (updatedPayment.count === 0) return;
+            capturedUserId = payment.userId;
+            if (payment.orderId) {
+              const order = await tx.order.findUnique({
+                where: { id: payment.orderId },
+                include: { user: { select: { email: true } }, service: { select: { name: true } } }
+              });
+              if (order && order.status === "AWAITING_PAYMENT") {
+                await tx.order.update({
+                  where: { id: payment.orderId },
+                  data: { status: "PENDING" }
+                });
+                await logPromoCodeUsageIfNeeded(tx, payment.orderId, payment.userId);
+                activatedOrders.push({
+                  id: order.id,
+                  isDripFeed: order.isDripFeed,
+                  userEmail: order.user?.email ?? null,
+                  serviceName: order.service?.name ?? null,
+                  numericId: order.numericId
+                });
+                await WalletOps.credit(
+                  tx,
+                  payment.userId,
+                  Number(payment.amount),
+                  `\u041E\u043F\u043B\u0430\u0442\u0430 \u0437\u0430\u043A\u0430\u0437\u0430 #${order.numericId} \u0447\u0435\u0440\u0435\u0437 \u0448\u043B\u044E\u0437`,
+                  { idempotencyKey: `gateway-credit-${paymentId}` }
+                );
+                await WalletOps.charge(
+                  tx,
+                  payment.userId,
+                  Number(order.charge),
+                  `\u0421\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0437\u0430 \u0437\u0430\u043A\u0430\u0437 #${order.numericId}`,
+                  { idempotencyKey: `gateway-charge-${order.id}` }
+                );
+              }
+            }
+            const basketOrders2 = await tx.order.findMany({
+              where: { paymentId, status: "AWAITING_PAYMENT" },
+              include: { user: { select: { email: true } }, service: { select: { name: true } } }
+            });
+            if (basketOrders2.length > 0) {
+              await tx.order.updateMany({
+                where: { paymentId, status: "AWAITING_PAYMENT" },
+                data: { status: "PENDING" }
+              });
+              for (const order of basketOrders2) {
+                activatedOrders.push({
+                  id: order.id,
+                  isDripFeed: order.isDripFeed,
+                  userEmail: order.user?.email ?? null,
+                  serviceName: order.service?.name ?? null,
+                  numericId: order.numericId
+                });
+                await logPromoCodeUsageIfNeeded(tx, order.id, payment.userId);
+              }
+              await WalletOps.credit(
+                tx,
+                payment.userId,
+                Number(payment.amount),
+                `\u041E\u043F\u043B\u0430\u0442\u0430 \u043A\u043E\u0440\u0437\u0438\u043D\u044B \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u0447\u0435\u0440\u0435\u0437 \u0448\u043B\u044E\u0437`,
+                { idempotencyKey: `gateway-credit-${paymentId}` }
+              );
+              const totalChargeCents = basketOrders2.reduce((sum, order) => sum + order.charge, BigInt(0));
+              await WalletOps.charge(
+                tx,
+                payment.userId,
+                totalChargeCents,
+                `\u0421\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0437\u0430 \u043E\u043F\u043B\u0430\u0442\u0443 \u043A\u043E\u0440\u0437\u0438\u043D\u044B \u0437\u0430\u043A\u0430\u0437\u043E\u0432 (${basketOrders2.length} \u0448\u0442.)`,
+                { idempotencyKey: `gateway-basket-charge-${paymentId}` }
+              );
+            }
+            if (!payment.orderId && basketOrders2.length === 0) {
+              await WalletOps.credit(
+                tx,
+                payment.userId,
+                Number(payment.amount),
+                `\u041F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 \u0447\u0435\u0440\u0435\u0437 yookassa`,
+                { idempotencyKey: `deposit-${paymentId}` }
+              );
+            }
+          }, { isolationLevel: "Serializable", timeout: 15e3 });
+          safeRevalidatePath("/dashboard", "layout");
+          if (activatedOrders.length > 0) {
+            const { ordersQueue: ordersQueue2 } = await Promise.resolve().then(() => (init_queue_manager(), queue_manager_exports));
+            for (const activated of activatedOrders) {
+              await ordersQueue2.add("order-dispatch", { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: 3 * 60 * 1e3 });
+              if (activated.userEmail && activated.serviceName) {
+                void sendOrderPaidMail(
+                  activated.userEmail,
+                  activated.numericId?.toString() ?? activated.id,
+                  activated.serviceName
+                ).catch((err) => console.error("[H1] sendOrderPaidMail failed", err));
+              }
+            }
+          }
+          if (capturedUserId) {
+            PromoAutomationService.checkAndIssueLoyalty(capturedUserId).catch(console.error);
+          }
+          return true;
+        } catch (e) {
+          console.error("[PaymentService] Error:", e instanceof Error ? e.message : String(e));
+          return false;
+        }
+      }
+    };
+    paymentService = new PaymentService();
+  }
+});
+
 // src/lib/sse-broadcaster.ts
 var SSEBroadcaster, globalForSSE, sseBroadcaster;
 var init_sse_broadcaster = __esm({
@@ -138798,6 +139426,7 @@ __export2(index_exports, {
   bot: () => bot,
   launchBot: () => launchBot,
   sendFastOrderPrompt: () => sendFastOrderPrompt,
+  sendMainMenu: () => sendMainMenu,
   sendNetworkCatalogMenu: () => sendNetworkCatalogMenu,
   sendSupportPrompt: () => sendSupportPrompt,
   sendUserOrders: () => sendUserOrders,
@@ -138811,6 +139440,64 @@ function sanitizeTelegramTemplate(template) {
 function escapeHtml3(text) {
   if (!text) return "";
   return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+async function sendMainMenu(ctx, isEdit = false) {
+  if (!ctx.from) return;
+  const tgId = ctx.from.id;
+  const tgName = ctx.from.first_name || (ctx.from.username ? `@${ctx.from.username}` : "\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C");
+  const user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId4 } });
+  const balanceStr = user ? (Number(user.balance) / 100).toFixed(2) : "0.00";
+  let welcomeTpl = `\u{1F44B} <b>{userName}, \u0434\u043E\u0431\u0440\u043E \u043F\u043E\u0436\u0430\u043B\u043E\u0432\u0430\u0442\u044C \u0432 {siteName}!</b>
+
+\u041F\u043B\u0430\u0442\u0444\u043E\u0440\u043C\u0430 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u043E\u0433\u043E \u043F\u0440\u043E\u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F \u0432 \u0441\u043E\u0446\u0438\u0430\u043B\u044C\u043D\u044B\u0445 \u0441\u0435\u0442\u044F\u0445.
+
+\u{1F4B0} \u0412\u0430\u0448 \u0431\u0430\u043B\u0430\u043D\u0441: <b>{balance} \u20BD</b>
+
+\u26A1 <b>\u041A\u0430\u043A \u0441\u0434\u0435\u043B\u0430\u0442\u044C \u0437\u0430\u043A\u0430\u0437 \u0437\u0430 2 \u043F\u0440\u043E\u0441\u0442\u044B\u0445 \u0448\u0430\u0433\u0430:</b>
+1\uFE0F\u20E3 \u041D\u0430\u0436\u043C\u0438\u0442\u0435 <b>\xAB\u{1F680} \u0411\u044B\u0441\u0442\u0440\u044B\u0439 \u0437\u0430\u043A\u0430\u0437 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435\xBB</b> \u0438\u043B\u0438 \u043F\u0440\u043E\u0441\u0442\u043E <b>\u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u0432 \u044D\u0442\u043E\u0442 \u0447\u0430\u0442</b>.
+2\uFE0F\u20E3 \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0438\u0439 \u0442\u0430\u0440\u0438\u0444 \u0438 \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E.
+
+<i>\u041B\u0438\u0431\u043E \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043D\u0443\u0436\u043D\u044B\u0439 \u0440\u0430\u0437\u0434\u0435\u043B \u0432 \u043C\u0435\u043D\u044E \u043D\u0438\u0436\u0435:</i>`;
+  try {
+    const settings = await db.systemSettings.findFirst({ select: { telegramTemplates: true } });
+    const templates = settings?.telegramTemplates;
+    if (templates?.welcome && templates.welcome.trim().length > 0) {
+      welcomeTpl = sanitizeTelegramTemplate(templates.welcome);
+    }
+  } catch {
+  }
+  const formattedWelcome = welcomeTpl.replace(/{siteName}/g, escapeHtml3(botSiteName)).replace(/{userName}/g, escapeHtml3(tgName)).replace(/{balance}/g, balanceStr);
+  const keyboard = await getDynamicKeyboard(tgId);
+  const isOwner = await isOwnerOrAdmin(tgId);
+  const inlineRows = [
+    [import_telegraf5.Markup.button.callback("\u{1F680} \u0411\u044B\u0441\u0442\u0440\u044B\u0439 \u0437\u0430\u043A\u0430\u0437 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435", "start_fast_order")],
+    [import_telegraf5.Markup.button.callback("\u{1F6CD} \u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433", "shop"), import_telegraf5.Markup.button.callback("\u{1F4B0} \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u0431\u0430\u043B\u0430\u043D\u0441", "deposit")],
+    [import_telegraf5.Markup.button.callback("\u{1F464} \u041B\u0438\u0447\u043D\u044B\u0439 \u043A\u0430\u0431\u0438\u043D\u0435\u0442", "profile"), import_telegraf5.Markup.button.callback("\u{1F4E6} \u041C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B", "my_orders")],
+    [import_telegraf5.Markup.button.callback("\u{1F517} \u041F\u0440\u0438\u0432\u044F\u0437\u0430\u0442\u044C \u0430\u043A\u043A\u0430\u0443\u043D\u0442", "bind_account"), import_telegraf5.Markup.button.callback("\u{1F198} \u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", "support")]
+  ];
+  if (isOwner) {
+    inlineRows.unshift([import_telegraf5.Markup.button.callback("\u{1F451} \u041F\u0443\u043B\u044C\u0442 \u041E\u0432\u043D\u0435\u0440\u0430 / DevOps Hub", "nav_owner_hub")]);
+  }
+  const startInline = import_telegraf5.Markup.inlineKeyboard(inlineRows);
+  if (isEdit) {
+    try {
+      await ctx.editMessageText(formattedWelcome, {
+        parse_mode: "HTML",
+        ...startInline
+      });
+      return;
+    } catch {
+    }
+  }
+  await ctx.reply("\u{1F916} <i>\u0413\u043B\u0430\u0432\u043D\u043E\u0435 \u043C\u0435\u043D\u044E SMMplan</i>", {
+    parse_mode: "HTML",
+    ...keyboard
+  }).catch(() => {
+  });
+  return ctx.reply(formattedWelcome, {
+    parse_mode: "HTML",
+    ...startInline
+  });
 }
 async function getDynamicKeyboard(tgId) {
   const isOwner = tgId ? await isOwnerOrAdmin(tgId) : false;
@@ -139482,47 +140169,72 @@ var init_index = __esm({
           }
         }
       }
-      let welcomeTpl = `\u{1F44B} <b>{userName}, \u0434\u043E\u0431\u0440\u043E \u043F\u043E\u0436\u0430\u043B\u043E\u0432\u0430\u0442\u044C \u0432 {siteName}!</b>
+      if (payload && (payload.startsWith("pay_ok_") || payload.startsWith("pay_"))) {
+        const paymentId = payload.replace(/^pay_ok_/, "").replace(/^pay_/, "");
+        try {
+          let payment = await db.payment.findUnique({ where: { id: paymentId } });
+          if (payment) {
+            if (payment.status !== "SUCCEEDED" && payment.gateway === "yookassa" && payment.gatewayId) {
+              try {
+                const { PaymentGatewayFactory: PaymentGatewayFactory2 } = await Promise.resolve().then(() => (init_payment_gateway_service(), payment_gateway_service_exports));
+                const gatewaySvc = PaymentGatewayFactory2.getGateway("yookassa");
+                const isPaid = await gatewaySvc.checkStatusSync?.(payment.gatewayId);
+                if (isPaid) {
+                  const { paymentService: paymentService2 } = await Promise.resolve().then(() => (init_payment_service(), payment_service_exports));
+                  await paymentService2.confirmPayment(
+                    payment.gatewayId,
+                    BigInt(payment.amount),
+                    payment.userId,
+                    false,
+                    "yookassa",
+                    payment.id
+                  );
+                  payment = await db.payment.findUnique({ where: { id: paymentId } });
+                }
+              } catch (syncErr) {
+                console.warn("[Bot /start] YooKassa sync check warning:", syncErr);
+              }
+            }
+            const freshUser = await db.user.findUnique({ where: { id: user.id } });
+            const currentBal = freshUser ? (Number(freshUser.balance) / 100).toFixed(2) : "0.00";
+            const formattedAmount = (payment.amount / 100).toLocaleString("ru-RU");
+            if (payment.status === "SUCCEEDED") {
+              await ctx.reply(
+                `\u{1F389} <b>\u041E\u041F\u041B\u0410\u0422\u0410 \u0423\u0421\u041F\u0415\u0428\u041D\u041E \u041F\u041E\u0414\u0422\u0412\u0415\u0420\u0416\u0414\u0415\u041D\u0410!</b>
+\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+\u0421\u0443\u043C\u043C\u0430: <b>${formattedAmount} \u20BD</b>
+\u0422\u0435\u043A\u0443\u0449\u0438\u0439 \u0431\u0430\u043B\u0430\u043D\u0441: <b>${currentBal} \u20BD</b> \u2705
 
-\u041F\u043B\u0430\u0442\u0444\u043E\u0440\u043C\u0430 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u043E\u0433\u043E \u043F\u0440\u043E\u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F \u0432 \u0441\u043E\u0446\u0438\u0430\u043B\u044C\u043D\u044B\u0445 \u0441\u0435\u0442\u044F\u0445.
+<i>\u0421\u0440\u0435\u0434\u0441\u0442\u0432\u0430 \u0437\u0430\u0447\u0438\u0441\u043B\u0435\u043D\u044B \u043D\u0430 \u0432\u0430\u0448 \u0441\u0447\u0451\u0442. \u041F\u0440\u0438\u044F\u0442\u043D\u043E\u0433\u043E \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u044F!</i>`,
+                { parse_mode: "HTML" }
+              ).catch(() => {
+              });
+            } else {
+              await ctx.reply(
+                `\u23F3 <b>\u041F\u041B\u0410\u0422\u0415\u0416 \u0412 \u041E\u0411\u0420\u0410\u0411\u041E\u0422\u041A\u0415</b>
+\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+\u0421\u0443\u043C\u043C\u0430: <b>${formattedAmount} \u20BD</b>
 
-\u{1F4B0} \u0412\u0430\u0448 \u0431\u0430\u043B\u0430\u043D\u0441: <b>{balance} \u20BD</b>
-
-\u26A1 <b>\u041A\u0430\u043A \u0441\u0434\u0435\u043B\u0430\u0442\u044C \u0437\u0430\u043A\u0430\u0437 \u0437\u0430 2 \u043F\u0440\u043E\u0441\u0442\u044B\u0445 \u0448\u0430\u0433\u0430:</b>
-1\uFE0F\u20E3 \u041D\u0430\u0436\u043C\u0438\u0442\u0435 <b>\xAB\u{1F680} \u0411\u044B\u0441\u0442\u0440\u044B\u0439 \u0437\u0430\u043A\u0430\u0437 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435\xBB</b> \u0438\u043B\u0438 \u043F\u0440\u043E\u0441\u0442\u043E <b>\u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u0432 \u044D\u0442\u043E\u0442 \u0447\u0430\u0442</b>.
-2\uFE0F\u20E3 \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0438\u0439 \u0442\u0430\u0440\u0438\u0444 \u0438 \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E.
-
-<i>\u041B\u0438\u0431\u043E \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043D\u0443\u0436\u043D\u044B\u0439 \u0440\u0430\u0437\u0434\u0435\u043B \u0432 \u043C\u0435\u043D\u044E \u043D\u0438\u0436\u0435:</i>`;
-      try {
-        const settings = await db.systemSettings.findFirst({ select: { telegramTemplates: true } });
-        const templates = settings?.telegramTemplates;
-        if (templates?.welcome && templates.welcome.trim().length > 0) {
-          welcomeTpl = sanitizeTelegramTemplate(templates.welcome);
+<i>\u0411\u0430\u043D\u043A \u043E\u0431\u0440\u0430\u0431\u0430\u0442\u044B\u0432\u0430\u0435\u0442 \u0442\u0440\u0430\u043D\u0437\u0430\u043A\u0446\u0438\u044E. \u0421\u0440\u0435\u0434\u0441\u0442\u0432\u0430 \u043F\u043E\u0441\u0442\u0443\u043F\u044F\u0442 \u043D\u0430 \u0431\u0430\u043B\u0430\u043D\u0441 \u0432 \u0442\u0435\u0447\u0435\u043D\u0438\u0435 1-2 \u043C\u0438\u043D\u0443\u0442, \u0431\u043E\u0442 \u0441\u0440\u0430\u0437\u0443 \u043F\u0440\u0438\u0448\u043B\u0435\u0442 \u0432\u0430\u043C \u0443\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u0435.</i>`,
+                { parse_mode: "HTML" }
+              ).catch(() => {
+              });
+            }
+          }
+        } catch (payCheckErr) {
+          console.warn("[Bot /start] Error verifying returning payment:", payCheckErr);
         }
-      } catch {
       }
-      const formattedWelcome = welcomeTpl.replace(/{siteName}/g, escapeHtml3(botSiteName)).replace(/{userName}/g, escapeHtml3(tgName)).replace(/{balance}/g, (Number(user.balance) / 100).toFixed(2));
-      const keyboard = await getDynamicKeyboard(tgId);
-      const isOwner = await isOwnerOrAdmin(tgId);
-      const inlineRows = [
-        [import_telegraf5.Markup.button.callback("\u{1F680} \u0411\u044B\u0441\u0442\u0440\u044B\u0439 \u0437\u0430\u043A\u0430\u0437 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435", "start_fast_order")],
-        [import_telegraf5.Markup.button.callback("\u{1F6CD} \u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433", "shop"), import_telegraf5.Markup.button.callback("\u{1F4B0} \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u0431\u0430\u043B\u0430\u043D\u0441", "deposit")],
-        [import_telegraf5.Markup.button.callback("\u{1F464} \u041B\u0438\u0447\u043D\u044B\u0439 \u043A\u0430\u0431\u0438\u043D\u0435\u0442", "profile"), import_telegraf5.Markup.button.callback("\u{1F4E6} \u041C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B", "my_orders")],
-        [import_telegraf5.Markup.button.callback("\u{1F517} \u041F\u0440\u0438\u0432\u044F\u0437\u0430\u0442\u044C \u0430\u043A\u043A\u0430\u0443\u043D\u0442", "bind_account"), import_telegraf5.Markup.button.callback("\u{1F198} \u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", "support")]
-      ];
-      if (isOwner) {
-        inlineRows.unshift([import_telegraf5.Markup.button.callback("\u{1F451} \u041F\u0443\u043B\u044C\u0442 \u041E\u0432\u043D\u0435\u0440\u0430 / DevOps Hub", "nav_owner_hub")]);
+      return sendMainMenu(ctx, false);
+    });
+    bot.action(["nav_start", "start", "main_menu", "home"], async (ctx) => {
+      await ctx.answerCbQuery().catch(() => {
+      });
+      if (ctx.scene) {
+        await ctx.scene.leave().catch(() => {
+        });
       }
-      const startInline = import_telegraf5.Markup.inlineKeyboard(inlineRows);
-      await ctx.reply("\u{1F916} <i>\u0413\u043B\u0430\u0432\u043D\u043E\u0435 \u043C\u0435\u043D\u044E SMMplan</i>", {
-        parse_mode: "HTML",
-        ...keyboard
-      }).catch(() => {
-      });
-      return ctx.reply(formattedWelcome, {
-        parse_mode: "HTML",
-        ...startInline
-      });
+      return sendMainMenu(ctx, true);
     });
     bot.action("start_fast_order", async (ctx) => {
       await ctx.answerCbQuery().catch(() => {
@@ -139976,6 +140688,7 @@ init_index();
   bot,
   launchBot,
   sendFastOrderPrompt,
+  sendMainMenu,
   sendNetworkCatalogMenu,
   sendSupportPrompt,
   sendUserOrders,

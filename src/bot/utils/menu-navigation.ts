@@ -1,4 +1,4 @@
-﻿/**
+/**
  * (c) 2024-2026 SMMplan. All rights reserved.
  * Centralized navigation router for Telegram Bot menus and scenes.
  * Handles seamless tab/screen switching even when user is deep inside a wizard.
@@ -8,6 +8,14 @@ import type { BotContext } from '../types/bot-context';
 export async function handleWizardMenuNavigation(ctx: BotContext, text: string): Promise<boolean> {
   const trimmed = (text || '').trim();
   if (!trimmed) return false;
+
+  // 0. Главное меню / Старт
+  if (/^(🏠\s*Главное меню|Главная|Старт|\/start|\/menu)/i.test(trimmed)) {
+    await ctx.scene.leave();
+    const { sendMainMenu } = await import('../index');
+    await sendMainMenu(ctx, false);
+    return true;
+  }
 
   // 1. Пополнение баланса
   if (/^(💰\s*Пополнить|Пополнить|Баланс|\/deposit|\/pay)/i.test(trimmed)) {
