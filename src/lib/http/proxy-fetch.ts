@@ -25,10 +25,20 @@ export async function createProxyDispatcher(proxy: ProxyConfig) {
     // Custom connector for undici to route via SOCKS5
     const connectFn = (opts: unknown, callback: (err: Error | null, socket: unknown) => void) => {
       try {
+        const anyOpts = (opts || {}) as Record<string, unknown>;
+        const rawPort = anyOpts.port;
+        const port = typeof rawPort === 'number' && !isNaN(rawPort) && rawPort > 0
+          ? rawPort
+          : (typeof rawPort === 'string' && !isNaN(parseInt(rawPort, 10)) && parseInt(rawPort, 10) > 0
+              ? parseInt(rawPort, 10)
+              : (anyOpts.protocol === 'http:' ? 80 : 443));
+        const host = (anyOpts.hostname || anyOpts.host || 'localhost') as string;
+        const safeOpts = { ...anyOpts, port, host };
+
         const rawConnect = socksAgent.connect.bind(socksAgent);
         (rawConnect as unknown as (req: unknown, opts: unknown, cb: (err: Error | null, socket: unknown) => void) => void)(
           {},
-          opts,
+          safeOpts,
           (err: Error | null, socket: unknown) => {
             if (err) return callback(err, null);
             callback(null, socket || null);

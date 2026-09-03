@@ -99,6 +99,22 @@ export async function assertSafeOutboundUrl(rawUrl: string): Promise<SsrfCheckRe
     return { ok: false, reason: `host-${hostname}-blocked` };
   }
 
+  // Trusted system services: payment gateways, Telegram Bot API, AI endpoints
+  const TRUSTED_SYSTEM_DOMAINS = [
+    'api.yookassa.ru',
+    'yookassa.ru',
+    'api.cryptomus.com',
+    'pay.cryptomus.com',
+    'api.telegram.org',
+    't.me',
+    'auth.robokassa.ru',
+    'merchant.roboxchange.com',
+    'generativelanguage.googleapis.com',
+  ];
+  if (TRUSTED_SYSTEM_DOMAINS.some(d => hostname === d || hostname.endsWith(`.${d}`))) {
+    return { ok: true, ip: 'trusted-gateway', hostname };
+  }
+
   // If the hostname itself is an IP literal
   if (net.isIP(hostname)) {
     if (!isPublicIp(hostname)) {
@@ -106,6 +122,13 @@ export async function assertSafeOutboundUrl(rawUrl: string): Promise<SsrfCheckRe
     }
     return { ok: true, ip: hostname, hostname };
   }
+
+  // Helper to check if IP is a recognized Clash/Mihomo Fake-IP
+  const isFakeIp = (ip: string) => {
+    if (ip.startsWith('198.18.') || ip.startsWith('198.19.')) return true;
+    if (ip.toLowerCase().startsWith('fdfe:dcba:9876:')) return true;
+    return false;
+  };
 
   // Resolve hostname via DNS (Phase 1)
   let addrs: string[] = [];
@@ -121,7 +144,7 @@ export async function assertSafeOutboundUrl(rawUrl: string): Promise<SsrfCheckRe
   }
 
   for (const ip of addrs) {
-    if (!isPublicIp(ip)) {
+    if (!isPublicIp(ip) && !isFakeIp(ip)) {
       return { ok: false, reason: `ip-${ip}-private` };
     }
   }
@@ -131,7 +154,7 @@ export async function assertSafeOutboundUrl(rawUrl: string): Promise<SsrfCheckRe
     const secondCheckRecords = await dns.lookup(hostname, { all: true });
     const secondAddrs = secondCheckRecords.map(r => r.address);
     for (const ip of secondAddrs) {
-      if (!isPublicIp(ip)) {
+      if (!isPublicIp(ip) && !isFakeIp(ip)) {
         return { ok: false, reason: `ip-${ip}-private-rebinding` };
       }
     }

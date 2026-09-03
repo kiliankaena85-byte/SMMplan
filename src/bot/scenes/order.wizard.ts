@@ -15,6 +15,7 @@ import { UnifiedPaymentService } from '@/services/financial/unified-payment.serv
 import { escapeHtml } from '../utils/formatter';
 import { formatCents } from '@/lib/utils';
 import type { BotContext } from '../types/bot-context';
+import { handleWizardMenuNavigation } from '../utils/menu-navigation';
 
 export const ORDER_WIZARD = 'order-wizard';
 
@@ -224,6 +225,9 @@ export const orderWizard = new Scenes.WizardScene<BotContext>(
   // ШАГ 2 (Index 1): Получение ссылки и автоматическая валидация
   async (ctx: BotContext) => {
     const msgText = (ctx.message && 'text' in ctx.message && typeof ctx.message.text === 'string') ? ctx.message.text.trim() : '';
+    if (await handleWizardMenuNavigation(ctx, msgText)) {
+      return;
+    }
     if (!msgText) return ctx.reply('Пожалуйста, отправьте текстовую ссылку.');
     const link = msgText;
 
@@ -297,6 +301,9 @@ export const orderWizard = new Scenes.WizardScene<BotContext>(
   // ШАГ 4 (Index 3): Ввод количества и развилка Drip-feed
   async (ctx: BotContext) => {
     const msgText = (ctx.message && 'text' in ctx.message && typeof ctx.message.text === 'string') ? ctx.message.text.trim() : '';
+    if (await handleWizardMenuNavigation(ctx, msgText)) {
+      return;
+    }
     if (!msgText) return ctx.reply('Пожалуйста, отправьте количество числом.');
 
     const qty = parseInt(msgText.replace(/\D/g, ''), 10);
@@ -492,7 +499,22 @@ orderWizard.action('confirm_order', async (ctx: BotContext) => {
         }
       );
     } catch (err: unknown) {
-      await ctx.reply(`❌ Ошибка оформления: ${err instanceof Error ? err.message : String(err)}`);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      await ctx.reply(`❌ Ошибка оформления: ${errMsg}`);
+
+      try {
+        const { sendAdminAlert } = await import('@/lib/notifications');
+        sendAdminAlert(
+          `📦 <b>[BOT ALERT: Ошибка оформления заказа]</b>\n\n` +
+          `👤 <b>Пользователь:</b> TG ID <code>${tgId}</code> (@${ctx.from.username || '—'})\n` +
+          `🛍 <b>Услуга:</b> #${service.numericId} (${escapeHtml(service.name)})\n` +
+          `🔢 <b>Количество:</b> ${totalQuantity}\n` +
+          `💰 <b>Сумма:</b> ${formatCents(totalCents)} ₽\n` +
+          `⚠️ <b>Ошибка:</b> <code>${errMsg}</code>`,
+          'CRITICAL',
+          botTenantId
+        );
+      } catch { /* alert must not throw */ }
     }
     return ctx.scene.leave();
   }
@@ -539,7 +561,21 @@ orderWizard.action('confirm_order', async (ctx: BotContext) => {
       }
     );
   } catch (err: unknown) {
-    await ctx.reply(`❌ Ошибка создания платежа: ${err instanceof Error ? err.message : String(err)}`);
+    const errMsg = err instanceof Error ? err.message : String(err);
+    await ctx.reply(`❌ Ошибка создания платежа: ${errMsg}`);
+
+    try {
+      const { sendAdminAlert } = await import('@/lib/notifications');
+      sendAdminAlert(
+        `💳 <b>[BOT ALERT: Ошибка формирования доплаты за заказ]</b>\n\n` +
+        `👤 <b>Пользователь:</b> TG ID <code>${tgId}</code> (@${ctx.from.username || '—'})\n` +
+        `🛍 <b>Услуга:</b> #${service.numericId} (${escapeHtml(service.name)})\n` +
+        `💰 <b>К доплате:</b> ${deficitRub} ₽\n` +
+        `⚠️ <b>Ошибка:</b> <code>${errMsg}</code>`,
+        'WARNING',
+        botTenantId
+      );
+    } catch { /* alert must not throw */ }
   }
   return ctx.scene.leave();
 });
@@ -555,7 +591,10 @@ orderWizard.command('cancel', async (ctx: BotContext) => {
   return ctx.scene.leave();
 });
 
-orderWizard.hears(['🛍 Каталог услуг', '👤 Профиль', '🆘 Поддержка', '💰 Пополнить', '👥 Рефералы', '📦 Мои заказы', '/start', '/shop', '/bind'], async (ctx: BotContext, next) => {
-  await ctx.scene.leave();
+orderWizard.hears(/(.+)/, async (ctx: BotContext, next) => {
+  const text = (ctx.message && 'text' in ctx.message && typeof ctx.message.text === 'string') ? ctx.message.text : '';
+  if (await handleWizardMenuNavigation(ctx, text)) {
+    return;
+  }
   return next();
 });

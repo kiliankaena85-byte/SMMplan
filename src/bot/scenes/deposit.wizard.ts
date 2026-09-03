@@ -23,6 +23,8 @@ async function resolveUser(tgId: number) {
   });
 }
 
+import { handleWizardMenuNavigation } from '../utils/menu-navigation';
+
 // ──────────────────────────────────────────────────────────────
 // WIZARD DEFINITION
 // ──────────────────────────────────────────────────────────────
@@ -44,6 +46,9 @@ export const depositWizard = new Scenes.WizardScene<BotContext>(
   
   async (ctx: BotContext) => {
     const msgText = (ctx.message && "text" in ctx.message && typeof ctx.message.text === "string") ? ctx.message.text : "";
+    if (await handleWizardMenuNavigation(ctx, msgText)) {
+      return;
+    }
     if (!msgText) {
       return ctx.reply('❌ Пожалуйста, введите число.');
     }
@@ -150,11 +155,38 @@ depositWizard.action(/pay_(yookassa|cryptobot)/, async (ctx: BotContext) => {
         }
       );
     } else {
-      await ctx.editMessageText(`❌ <b>Ошибка при создании платежа.</b>\n${res.error || 'Попробуйте позже.'}`, { parse_mode: 'HTML' });
+      const errorText = res.error || 'Попробуйте позже.';
+      await ctx.editMessageText(`❌ <b>Ошибка при создании платежа.</b>\n${errorText}`, { parse_mode: 'HTML' });
+
+      try {
+        const { sendAdminAlert } = await import('@/lib/notifications');
+        sendAdminAlert(
+          `💳 <b>[BOT ALERT: Не удалось пополнить баланс]</b>\n\n` +
+          `👤 <b>TG ID:</b> <code>${tgId}</code> (@${ctx.from.username || '—'})\n` +
+          `🆔 <b>User ID:</b> <code>${user.id}</code>\n` +
+          `💰 <b>Сумма:</b> <b>${amount.toLocaleString('ru-RU')} ₽</b>\n` +
+          `🏛️ <b>Шлюз:</b> <b>${gateway}</b>\n` +
+          `⚠️ <b>Ошибка:</b> <code>${errorText}</code>`,
+          'WARNING',
+          botTenantId
+        );
+      } catch { /* alert must not throw */ }
     }
   } catch (e: unknown) {
     console.error('[DepositWizard] Error:', e);
+    const errText = e instanceof Error ? e.message : String(e);
     await ctx.reply('❌ Произошла техническая ошибка. Попробуйте позже.');
+
+    try {
+      const { sendAdminAlert } = await import('@/lib/notifications');
+      sendAdminAlert(
+        `💥 <b>[BOT CRITICAL: Исключение в DepositWizard]</b>\n\n` +
+        `👤 <b>TG ID:</b> <code>${ctx.from?.id || '—'}</code> (@${ctx.from?.username || '—'})\n` +
+        `⚠️ <b>Ошибка:</b> <code>${errText}</code>`,
+        'CRITICAL',
+        botTenantId
+      );
+    } catch { /* alert must not throw */ }
   }
   return ctx.scene.leave();
 });
@@ -170,7 +202,10 @@ depositWizard.command('cancel', async (ctx: BotContext) => {
   return ctx.scene.leave();
 });
 
-depositWizard.hears(['🛍 Каталог услуг', '👤 Профиль', '🆘 Поддержка', '💰 Пополнить', '👥 Рефералы', '📦 Мои заказы', '/start', '/shop', '/bind'], async (ctx: BotContext, next) => {
-  await ctx.scene.leave();
+depositWizard.hears(/(.+)/, async (ctx: BotContext, next) => {
+  const text = (ctx.message && 'text' in ctx.message && typeof ctx.message.text === 'string') ? ctx.message.text : '';
+  if (await handleWizardMenuNavigation(ctx, text)) {
+    return;
+  }
   return next();
 });

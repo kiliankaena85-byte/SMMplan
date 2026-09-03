@@ -127672,8 +127672,30 @@ function getTelegramProxyUrl() {
   return process.env.TELEGRAM_PROXY_URL || process.env.HTTPS_PROXY || process.env.HTTP_PROXY || process.env.ALL_PROXY || cachedDbProxyUrl || void 0;
 }
 async function resolveActiveTelegramProxyUrl(tenantId = "smmplan") {
+  try {
+    const directOk = await Promise.race([
+      fetch("https://api.telegram.org", { method: "HEAD", signal: AbortSignal.timeout(2500) }).then((r) => r.status < 500).catch(() => false),
+      new Promise((res) => setTimeout(() => res(false), 2600))
+    ]);
+    if (lastDirectConnectivityState !== null && lastDirectConnectivityState !== directOk) {
+      cachedDbProxyUrl = null;
+      lastDbProxyCheck = 0;
+      console.info(`[TelegramAgent] \u{1F504} Network mode changed (direct=${directOk}) \u2014 proxy cache cleared.`);
+    }
+    lastDirectConnectivityState = directOk;
+    if (directOk) {
+      console.info("[TelegramAgent] \u2705 Direct Telegram connection OK (OS-level VPN/TUN active) \u2014 skipping internal proxy.");
+      return void 0;
+    }
+  } catch {
+  }
   const envUrl = process.env.TELEGRAM_PROXY_URL || process.env.HTTPS_PROXY || process.env.HTTP_PROXY || process.env.ALL_PROXY;
   if (envUrl) return envUrl;
+  const clashInternalUrl = process.env.CLASH_INTERNAL_PROXY_URL;
+  if (clashInternalUrl) {
+    console.info(`[TelegramAgent] \u{1F6E1}\uFE0F Direct probe failed \u2014 routing via internal Mihomo proxy: ${clashInternalUrl}`);
+    return clashInternalUrl;
+  }
   const now = Date.now();
   if (cachedDbProxyUrl !== null && now - lastDbProxyCheck < DB_PROXY_CACHE_TTL) {
     return cachedDbProxyUrl || void 0;
@@ -127801,7 +127823,7 @@ function getTelegramDispatcher(proxyUrlOverride) {
     return void 0;
   }
 }
-var import_undici, cachedDbProxyUrl, lastDbProxyCheck, DB_PROXY_CACHE_TTL;
+var import_undici, cachedDbProxyUrl, lastDbProxyCheck, lastDirectConnectivityState, DB_PROXY_CACHE_TTL;
 var init_telegram_agent = __esm({
   "src/lib/telegram-agent.ts"() {
     "use strict";
@@ -127810,7 +127832,8 @@ var init_telegram_agent = __esm({
     import_undici = __toESM(require_undici());
     cachedDbProxyUrl = null;
     lastDbProxyCheck = 0;
-    DB_PROXY_CACHE_TTL = 3e4;
+    lastDirectConnectivityState = null;
+    DB_PROXY_CACHE_TTL = 1e4;
   }
 });
 
@@ -128982,12 +129005,31 @@ async function assertSafeOutboundUrl(rawUrl) {
   if (BLOCKED_HOSTS.has(hostname) || hostname === AWS_METADATA_HOST) {
     return { ok: false, reason: `host-${hostname}-blocked` };
   }
+  const TRUSTED_SYSTEM_DOMAINS = [
+    "api.yookassa.ru",
+    "yookassa.ru",
+    "api.cryptomus.com",
+    "pay.cryptomus.com",
+    "api.telegram.org",
+    "t.me",
+    "auth.robokassa.ru",
+    "merchant.roboxchange.com",
+    "generativelanguage.googleapis.com"
+  ];
+  if (TRUSTED_SYSTEM_DOMAINS.some((d) => hostname === d || hostname.endsWith(`.${d}`))) {
+    return { ok: true, ip: "trusted-gateway", hostname };
+  }
   if (import_node_net.default.isIP(hostname)) {
     if (!isPublicIp2(hostname)) {
       return { ok: false, reason: `ip-${hostname}-private` };
     }
     return { ok: true, ip: hostname, hostname };
   }
+  const isFakeIp = (ip) => {
+    if (ip.startsWith("198.18.") || ip.startsWith("198.19.")) return true;
+    if (ip.toLowerCase().startsWith("fdfe:dcba:9876:")) return true;
+    return false;
+  };
   let addrs = [];
   try {
     const records = await import_node_dns.promises.lookup(hostname, { all: true });
@@ -128999,7 +129041,7 @@ async function assertSafeOutboundUrl(rawUrl) {
     return { ok: false, reason: "dns-no-records" };
   }
   for (const ip of addrs) {
-    if (!isPublicIp2(ip)) {
+    if (!isPublicIp2(ip) && !isFakeIp(ip)) {
       return { ok: false, reason: `ip-${ip}-private` };
     }
   }
@@ -129007,7 +129049,7 @@ async function assertSafeOutboundUrl(rawUrl) {
     const secondCheckRecords = await import_node_dns.promises.lookup(hostname, { all: true });
     const secondAddrs = secondCheckRecords.map((r) => r.address);
     for (const ip of secondAddrs) {
-      if (!isPublicIp2(ip)) {
+      if (!isPublicIp2(ip) && !isFakeIp(ip)) {
         return { ok: false, reason: `ip-${ip}-private-rebinding` };
       }
     }
@@ -129047,10 +129089,15 @@ async function createProxyDispatcher(proxy) {
     const socksAgent = new SocksProxyAgent2(socksUrl);
     const connectFn = (opts, callback) => {
       try {
+        const anyOpts = opts || {};
+        const rawPort = anyOpts.port;
+        const port = typeof rawPort === "number" && !isNaN(rawPort) && rawPort > 0 ? rawPort : typeof rawPort === "string" && !isNaN(parseInt(rawPort, 10)) && parseInt(rawPort, 10) > 0 ? parseInt(rawPort, 10) : anyOpts.protocol === "http:" ? 80 : 443;
+        const host = anyOpts.hostname || anyOpts.host || "localhost";
+        const safeOpts = { ...anyOpts, port, host };
         const rawConnect = socksAgent.connect.bind(socksAgent);
         rawConnect(
           {},
-          opts,
+          safeOpts,
           (err, socket) => {
             if (err) return callback(err, null);
             callback(null, socket || null);
@@ -130539,6 +130586,19 @@ var init_unified_payment_service = __esm({
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           console.error("[UnifiedPayment] System error:", msg);
+          try {
+            const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+            sendAdminAlert2(
+              `\u{1F4B3} <b>[FINANCE ALERT: \u041E\u0448\u0438\u0431\u043A\u0430 \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u044F \u043F\u043B\u0430\u0442\u0435\u0436\u0430]</b>
+
+\u{1F464} <b>\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C:</b> <code>${userId}</code>
+\u{1F4B0} <b>\u0421\u0443\u043C\u043C\u0430:</b> <b>${amountRub} \u20BD</b>
+\u{1F3DB}\uFE0F <b>\u0428\u043B\u044E\u0437:</b> <b>${gateway}</b>
+\u26A0\uFE0F <b>\u041E\u0448\u0438\u0431\u043A\u0430:</b> <code>${msg || "\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u043B\u0430\u0442\u0435\u0436\u043D\u043E\u0433\u043E \u0448\u043B\u044E\u0437\u0430"}</code>`,
+              "WARNING"
+            );
+          } catch {
+          }
           return { success: false, error: msg || "\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u043B\u0430\u0442\u0435\u0436\u043D\u043E\u0433\u043E \u0448\u043B\u044E\u0437\u0430" };
         }
       }
@@ -130628,6 +130688,380 @@ var init_utils = __esm({
   "src/lib/utils.ts"() {
     "use strict";
     init_clsx();
+  }
+});
+
+// src/bot/scenes/deposit.wizard.ts
+var deposit_wizard_exports = {};
+__export2(deposit_wizard_exports, {
+  DEPOSIT_WIZARD: () => DEPOSIT_WIZARD,
+  depositWizard: () => depositWizard
+});
+async function resolveUser(tgId) {
+  return db.user.findFirst({
+    where: { telegramId: String(tgId), tenantId: botTenantId }
+  });
+}
+var import_telegraf, DEPOSIT_WIZARD, botTenantId, depositWizard;
+var init_deposit_wizard = __esm({
+  "src/bot/scenes/deposit.wizard.ts"() {
+    "use strict";
+    import_telegraf = __toESM(require_lib3());
+    init_db();
+    init_unified_payment_service();
+    init_menu_navigation();
+    DEPOSIT_WIZARD = "deposit-wizard";
+    botTenantId = process.env.BOT_TENANT_ID || "smmplan";
+    depositWizard = new import_telegraf.Scenes.WizardScene(
+      DEPOSIT_WIZARD,
+      // ШАГ 1: Запрос суммы
+      async (ctx) => {
+        ctx.wizard.state.depositData = {};
+        await ctx.reply("\u{1F4B0} <b>\u041F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u0431\u0430\u043B\u0430\u043D\u0441\u0430</b>\n\n\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0441\u0443\u043C\u043C\u0443 \u043F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F \u0432 \u0440\u0443\u0431\u043B\u044F\u0445 (\u043E\u0442 100 \u0434\u043E 500 000):", {
+          parse_mode: "HTML",
+          ...import_telegraf.Markup.inlineKeyboard([[import_telegraf.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_deposit")]])
+        });
+        return ctx.wizard.next();
+      },
+      // ШАГ 2: Обработка суммы и выбор метода
+      async (ctx) => {
+        const msgText = ctx.message && "text" in ctx.message && typeof ctx.message.text === "string" ? ctx.message.text : "";
+        if (await handleWizardMenuNavigation(ctx, msgText)) {
+          return;
+        }
+        if (!msgText) {
+          return ctx.reply("\u274C \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0432\u0432\u0435\u0434\u0438\u0442\u0435 \u0447\u0438\u0441\u043B\u043E.");
+        }
+        const amount = parseInt(msgText.replace(/\D/g, ""), 10);
+        if (isNaN(amount) || amount < 100 || amount > 5e5) {
+          return ctx.reply("\u274C \u0421\u0443\u043C\u043C\u0430 \u0434\u043E\u043B\u0436\u043D\u0430 \u0431\u044B\u0442\u044C \u043E\u0442 100 \u0434\u043E 500 000 \u0440\u0443\u0431. \u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u0443\u044E \u0441\u0443\u043C\u043C\u0443:");
+        }
+        const depositData = ctx.wizard.state.depositData || {};
+        depositData.amount = amount;
+        ctx.wizard.state.depositData = depositData;
+        await ctx.reply(
+          `\u0412\u044B \u0443\u043A\u0430\u0437\u0430\u043B\u0438 \u0441\u0443\u043C\u043C\u0443: <b>${amount.toLocaleString("ru-RU")} \u20BD</b>
+
+\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0441\u043F\u043E\u0441\u043E\u0431 \u043E\u043F\u043B\u0430\u0442\u044B:`,
+          {
+            parse_mode: "HTML",
+            ...import_telegraf.Markup.inlineKeyboard([
+              [import_telegraf.Markup.button.callback("\u{1F4B3} \u0411\u0430\u043D\u043A\u043E\u0432\u0441\u043A\u0430\u044F \u043A\u0430\u0440\u0442\u0430 / \u0421\u0411\u041F", "pay_yookassa")],
+              [import_telegraf.Markup.button.callback("\u{1FA99} \u041A\u0440\u0438\u043F\u0442\u043E\u0432\u0430\u043B\u044E\u0442\u0430 (USDT, TON...)", "pay_cryptobot")],
+              [import_telegraf.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_deposit")]
+            ])
+          }
+        );
+        return ctx.wizard.next();
+      },
+      // ШАГ 3: Заглушка, обрабатываемая через .action()
+      async () => {
+        return;
+      }
+    );
+    depositWizard.use(async (ctx, next) => {
+      if (ctx.callbackQuery && "data" in ctx.callbackQuery && typeof ctx.callbackQuery.data === "string") {
+        const data = ctx.callbackQuery.data;
+        if (["pay_yookassa", "pay_cryptobot", "cancel_deposit"].includes(data)) {
+          return next();
+        }
+      }
+      const msgText = ctx.message && "text" in ctx.message && typeof ctx.message.text === "string" ? ctx.message.text : "";
+      if (msgText.startsWith("/") && msgText !== "/cancel") {
+        await ctx.scene.leave();
+        return next();
+      }
+      return next();
+    });
+    depositWizard.action("cancel_deposit", async (ctx) => {
+      await ctx.answerCbQuery();
+      await ctx.editMessageText("\u274C \u041F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u043E.");
+      return ctx.scene.leave();
+    });
+    depositWizard.action(/pay_(yookassa|cryptobot)/, async (ctx) => {
+      if (!ctx.match || !ctx.from) return ctx.scene.leave();
+      await ctx.answerCbQuery().catch(() => {
+      });
+      const gateway = ctx.match[1];
+      const depositData = ctx.wizard.state.depositData;
+      const amount = depositData?.amount;
+      if (!ctx.from) return ctx.scene.leave();
+      const tgId = ctx.from.id;
+      if (!amount) {
+        await ctx.reply("\u274C \u041E\u0448\u0438\u0431\u043A\u0430 \u0441\u0435\u0441\u0441\u0438\u0438. \u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u0441\u043D\u043E\u0432\u0430.");
+        return ctx.scene.leave();
+      }
+      try {
+        const user = await resolveUser(tgId);
+        if (!user) {
+          await ctx.reply("\u274C \u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D. \u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 /start \u0434\u043B\u044F \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438.");
+          return ctx.scene.leave();
+        }
+        await ctx.editMessageText("\u{1F504} \u0421\u043E\u0437\u0434\u0430\u044E \u043F\u043B\u0430\u0442\u0435\u0436, \u043F\u043E\u0434\u043E\u0436\u0434\u0438\u0442\u0435...");
+        const siteName = botTenantId === "flux" || botTenantId === "lovable" ? "SMMflux" : "SMMplan";
+        const res = await UnifiedPaymentService.createPayment(
+          void 0,
+          user.id,
+          amount,
+          `\u041F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 ${siteName} (TG)`,
+          { source: "BOT", type: "deposit" },
+          gateway
+        );
+        if (res.success && res.confirmationUrl) {
+          await ctx.editMessageText(
+            `\u{1F4B3} <b>\u0421\u0421\u042B\u041B\u041A\u0410 \u0414\u041B\u042F \u041E\u041F\u041B\u0410\u0422\u042B</b>
+\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+\u0421\u0443\u043C\u043C\u0430: <b>${amount.toLocaleString("ru-RU")} \u20BD</b>
+\u0428\u043B\u044E\u0437: <b>${gateway === "yookassa" ? "YooKassa" : "CryptoBot"}</b>
+
+<i>\u041D\u0430\u0436\u043C\u0438\u0442\u0435 \u043A\u043D\u043E\u043F\u043A\u0443 \u043D\u0438\u0436\u0435 \u0434\u043B\u044F \u043F\u0435\u0440\u0435\u0445\u043E\u0434\u0430 \u043A \u043E\u043F\u043B\u0430\u0442\u0435. \u0411\u0430\u043B\u0430\u043D\u0441 \u0431\u0443\u0434\u0435\u0442 \u043F\u043E\u043F\u043E\u043B\u043D\u0435\u043D \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438.</i>`,
+            {
+              parse_mode: "HTML",
+              ...import_telegraf.Markup.inlineKeyboard([
+                [import_telegraf.Markup.button.url("\u2197\uFE0F \u041E\u041F\u041B\u0410\u0422\u0418\u0422\u042C", res.confirmationUrl)],
+                [import_telegraf.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_deposit")]
+              ])
+            }
+          );
+        } else {
+          const errorText = res.error || "\u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u043F\u043E\u0437\u0436\u0435.";
+          await ctx.editMessageText(`\u274C <b>\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u0438 \u043F\u043B\u0430\u0442\u0435\u0436\u0430.</b>
+${errorText}`, { parse_mode: "HTML" });
+          try {
+            const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+            sendAdminAlert2(
+              `\u{1F4B3} <b>[BOT ALERT: \u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u0431\u0430\u043B\u0430\u043D\u0441]</b>
+
+\u{1F464} <b>TG ID:</b> <code>${tgId}</code> (@${ctx.from.username || "\u2014"})
+\u{1F194} <b>User ID:</b> <code>${user.id}</code>
+\u{1F4B0} <b>\u0421\u0443\u043C\u043C\u0430:</b> <b>${amount.toLocaleString("ru-RU")} \u20BD</b>
+\u{1F3DB}\uFE0F <b>\u0428\u043B\u044E\u0437:</b> <b>${gateway}</b>
+\u26A0\uFE0F <b>\u041E\u0448\u0438\u0431\u043A\u0430:</b> <code>${errorText}</code>`,
+              "WARNING",
+              botTenantId
+            );
+          } catch {
+          }
+        }
+      } catch (e) {
+        console.error("[DepositWizard] Error:", e);
+        const errText = e instanceof Error ? e.message : String(e);
+        await ctx.reply("\u274C \u041F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u0430 \u0442\u0435\u0445\u043D\u0438\u0447\u0435\u0441\u043A\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430. \u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u043F\u043E\u0437\u0436\u0435.");
+        try {
+          const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+          sendAdminAlert2(
+            `\u{1F4A5} <b>[BOT CRITICAL: \u0418\u0441\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435 \u0432 DepositWizard]</b>
+
+\u{1F464} <b>TG ID:</b> <code>${ctx.from?.id || "\u2014"}</code> (@${ctx.from?.username || "\u2014"})
+\u26A0\uFE0F <b>\u041E\u0448\u0438\u0431\u043A\u0430:</b> <code>${errText}</code>`,
+            "CRITICAL",
+            botTenantId
+          );
+        } catch {
+        }
+      }
+      return ctx.scene.leave();
+    });
+    depositWizard.action("cancel_deposit", async (ctx) => {
+      await ctx.answerCbQuery("\u041F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u043E");
+      await ctx.reply("\u274C \u041F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u043E.");
+      return ctx.scene.leave();
+    });
+    depositWizard.command("cancel", async (ctx) => {
+      await ctx.reply("\u274C \u041F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u043E.");
+      return ctx.scene.leave();
+    });
+    depositWizard.hears(/(.+)/, async (ctx, next) => {
+      const text = ctx.message && "text" in ctx.message && typeof ctx.message.text === "string" ? ctx.message.text : "";
+      if (await handleWizardMenuNavigation(ctx, text)) {
+        return;
+      }
+      return next();
+    });
+  }
+});
+
+// src/bot/scenes/referral.wizard.ts
+var referral_wizard_exports = {};
+__export2(referral_wizard_exports, {
+  REFERRAL_WIZARD: () => REFERRAL_WIZARD,
+  referralWizard: () => referralWizard
+});
+async function resolveUser2(tgId) {
+  let user = await db.user.findFirst({
+    where: { telegramId: String(tgId), tenantId: botTenantId2 },
+    select: { id: true, referralCode: true, referralBalance: true, _count: { select: { referrals: true } } }
+  });
+  if (!user) {
+    const emailStub = `tg_${tgId}@${botTenantId2}.bot`;
+    const created = await db.user.upsert({
+      where: { email_tenantId: { email: emailStub, tenantId: botTenantId2 } },
+      update: { telegramId: String(tgId) },
+      create: {
+        email: emailStub,
+        telegramId: String(tgId),
+        tenantId: botTenantId2,
+        isBotOnly: true
+      },
+      select: { id: true, referralCode: true, referralBalance: true }
+    });
+    user = {
+      ...created,
+      _count: { referrals: 0 }
+    };
+  }
+  return user;
+}
+var import_telegraf2, REFERRAL_WIZARD, botTenantId2, referralWizard;
+var init_referral_wizard = __esm({
+  "src/bot/scenes/referral.wizard.ts"() {
+    "use strict";
+    import_telegraf2 = __toESM(require_lib3());
+    init_get_base_url();
+    init_db();
+    REFERRAL_WIZARD = "referral-wizard";
+    botTenantId2 = process.env.BOT_TENANT_ID || "smmplan";
+    referralWizard = new import_telegraf2.Scenes.WizardScene(
+      REFERRAL_WIZARD,
+      // ШАГ 1: Показать статистику и ссылку
+      async (ctx) => {
+        try {
+          if (!ctx.from) return ctx.scene.leave();
+          const tgId = ctx.from.id;
+          const user = await resolveUser2(tgId);
+          if (!user) {
+            await ctx.reply("\u274C \u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D. \u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 /start \u0434\u043B\u044F \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438.");
+            return ctx.scene.leave();
+          }
+          if (!user.referralCode) {
+            let newCode = "";
+            for (let attempt = 0; attempt < 5; attempt++) {
+              newCode = Array.from(Array(8), () => Math.floor(Math.random() * 36).toString(36)).join("").toUpperCase();
+              const existing = await db.user.findUnique({ where: { referralCode: newCode } });
+              if (!existing) break;
+            }
+            await db.user.update({
+              where: { id: user.id },
+              data: { referralCode: newCode }
+            });
+            user.referralCode = newCode;
+          }
+          const host = botTenantId2 === "flux" || botTenantId2 === "lovable" ? process.env.FLUX_APP_URL || "https://smmflux.ru" : getBaseUrlSync();
+          const link = `${host}/?ref=${user.referralCode}`;
+          const earned = (user.referralBalance ?? 0) / 100;
+          const refsCount = user._count?.referrals ?? 0;
+          await ctx.reply(
+            `\u{1F465} <b>\u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044C\u043D\u0430\u044F \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u0430</b>
+
+\u041F\u0440\u0438\u0433\u043B\u0430\u0448\u0430\u0439\u0442\u0435 \u0434\u0440\u0443\u0437\u0435\u0439 \u0438 \u043F\u043E\u043B\u0443\u0447\u0430\u0439\u0442\u0435 <b>15%</b> \u0441 \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u0438\u0445 \u0437\u0430\u043A\u0430\u0437\u0430 \u043F\u043E\u0436\u0438\u0437\u043D\u0435\u043D\u043D\u043E!
+
+\u{1F517} <b>\u0412\u0430\u0448\u0430 \u0441\u0441\u044B\u043B\u043A\u0430:</b>
+<code>${link}</code>
+
+\u{1F4CA} <b>\u0412\u0430\u0448\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043A\u0430:</b>
+\u2022 \u041F\u0440\u0438\u0433\u043B\u0430\u0448\u0435\u043D\u043E: <b>${refsCount} \u0447\u0435\u043B.</b>
+\u2022 \u0417\u0430\u0440\u0430\u0431\u043E\u0442\u0430\u043D\u043E: <b>${earned.toFixed(2)} \u20BD</b>
+
+<i>\u0414\u043B\u044F \u0432\u044B\u0432\u043E\u0434\u0430 \u0441\u0440\u0435\u0434\u0441\u0442\u0432 \u043D\u0430 \u043E\u0441\u043D\u043E\u0432\u043D\u043E\u0439 \u0431\u0430\u043B\u0430\u043D\u0441 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 \u0432\u0435\u0431-\u0438\u043D\u0442\u0435\u0440\u0444\u0435\u0439\u0441.</i>`,
+            {
+              parse_mode: "HTML",
+              ...import_telegraf2.Markup.inlineKeyboard([
+                [import_telegraf2.Markup.button.url("\u041F\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043B\u0438\u0447\u043D\u044B\u0439 \u043A\u0430\u0431\u0438\u043D\u0435\u0442", `${host}/dashboard/referrals`)],
+                [import_telegraf2.Markup.button.callback("\u274C \u0417\u0430\u043A\u0440\u044B\u0442\u044C", "close_ref")]
+              ])
+            }
+          );
+          return ctx.wizard.next();
+        } catch (err) {
+          console.error("[ReferralWizard] Error:", err);
+          await ctx.reply("\u274C \u041F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u0430 \u043E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0435 \u0440\u0435\u0444\u0435\u0440\u0430\u043B\u044C\u043D\u043E\u0439 \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u0438. \u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u043F\u043E\u0437\u0436\u0435.");
+          return ctx.scene.leave();
+        }
+      },
+      async (ctx) => {
+        return;
+      }
+    );
+    referralWizard.action("close_ref", async (ctx) => {
+      await ctx.answerCbQuery();
+      await ctx.deleteMessage().catch(() => {
+      });
+      return ctx.scene.leave();
+    });
+    referralWizard.command("cancel", async (ctx) => {
+      return ctx.scene.leave();
+    });
+    referralWizard.hears(/(.+)/, async (ctx, next) => {
+      const text = ctx.message && "text" in ctx.message && typeof ctx.message.text === "string" ? ctx.message.text : "";
+      const { handleWizardMenuNavigation: handleWizardMenuNavigation2 } = await Promise.resolve().then(() => (init_menu_navigation(), menu_navigation_exports));
+      if (await handleWizardMenuNavigation2(ctx, text)) {
+        return;
+      }
+      return next();
+    });
+  }
+});
+
+// src/bot/utils/menu-navigation.ts
+var menu_navigation_exports = {};
+__export2(menu_navigation_exports, {
+  handleWizardMenuNavigation: () => handleWizardMenuNavigation
+});
+async function handleWizardMenuNavigation(ctx, text) {
+  const trimmed = (text || "").trim();
+  if (!trimmed) return false;
+  if (/^(💰\s*Пополнить|Пополнить|Баланс|\/deposit|\/pay)/i.test(trimmed)) {
+    await ctx.scene.leave();
+    const { DEPOSIT_WIZARD: DEPOSIT_WIZARD2 } = await Promise.resolve().then(() => (init_deposit_wizard(), deposit_wizard_exports));
+    await ctx.scene.enter(DEPOSIT_WIZARD2);
+    return true;
+  }
+  if (/^(🛍\s*Каталог|Каталог|\/shop|\/catalog)/i.test(trimmed)) {
+    await ctx.scene.leave();
+    const { sendNetworkCatalogMenu: sendNetworkCatalogMenu2 } = await Promise.resolve().then(() => (init_index(), index_exports));
+    await sendNetworkCatalogMenu2(ctx, false);
+    return true;
+  }
+  if (/^(👤\s*Профиль|Профиль|Личный кабинет|\/profile|\/me)/i.test(trimmed)) {
+    await ctx.scene.leave();
+    const { sendUserProfile: sendUserProfile2 } = await Promise.resolve().then(() => (init_index(), index_exports));
+    await sendUserProfile2(ctx);
+    return true;
+  }
+  if (/^(👥\s*Рефералы|Рефералы|\/ref|\/referral)/i.test(trimmed)) {
+    await ctx.scene.leave();
+    const { REFERRAL_WIZARD: REFERRAL_WIZARD2 } = await Promise.resolve().then(() => (init_referral_wizard(), referral_wizard_exports));
+    await ctx.scene.enter(REFERRAL_WIZARD2);
+    return true;
+  }
+  if (/^(📦\s*Мои заказы|Мои заказы|Заказы|\/orders)/i.test(trimmed)) {
+    await ctx.scene.leave();
+    const { sendUserOrders: sendUserOrders2 } = await Promise.resolve().then(() => (init_index(), index_exports));
+    await sendUserOrders2(ctx);
+    return true;
+  }
+  if (/^(🆘\s*Поддержка|Поддержка|Помощь|\/support|\/help)/i.test(trimmed)) {
+    await ctx.scene.leave();
+    const { sendSupportPrompt: sendSupportPrompt2 } = await Promise.resolve().then(() => (init_index(), index_exports));
+    await sendSupportPrompt2(ctx);
+    return true;
+  }
+  if (/^(🚀\s*Заказать по ссылке|Быстрый заказ|Заказать по ссылке)/i.test(trimmed)) {
+    await ctx.scene.leave();
+    const { sendFastOrderPrompt: sendFastOrderPrompt2 } = await Promise.resolve().then(() => (init_index(), index_exports));
+    await sendFastOrderPrompt2(ctx);
+    return true;
+  }
+  if (/^(👑\s*Пульт|Пульт Овнера|⚙️\s*Админка|\/owner)/i.test(trimmed)) {
+    await ctx.scene.leave();
+    await ctx.scene.enter("owner-hub");
+    return true;
+  }
+  return false;
+}
+var init_menu_navigation = __esm({
+  "src/bot/utils/menu-navigation.ts"() {
+    "use strict";
   }
 });
 
@@ -135222,9 +135656,9 @@ function getOrderData(ctx) {
   }
   return state.orderData;
 }
-async function resolveUser(tgId) {
+async function resolveUser3(tgId) {
   return db.user.findFirst({
-    where: { telegramId: String(tgId), tenantId: botTenantId }
+    where: { telegramId: String(tgId), tenantId: botTenantId3 }
   });
 }
 async function showFinalConfirmation(ctx) {
@@ -135233,7 +135667,7 @@ async function showFinalConfirmation(ctx) {
   if (!service || !qty || !link) return;
   if (!ctx.from) return;
   const tgId = ctx.from.id;
-  const user = await resolveUser(tgId);
+  const user = await resolveUser3(tgId);
   if (!user) {
     await ctx.reply("\u274C \u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D. \u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 /start \u0434\u043B\u044F \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438.");
     return ctx.scene.leave();
@@ -135254,9 +135688,9 @@ ${reqText}
 <i>\u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u0435, \u0447\u0442\u043E \u0432\u0430\u0448\u0430 \u0441\u0441\u044B\u043B\u043A\u0430 \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u0442\u0440\u0435\u0431\u043E\u0432\u0430\u043D\u0438\u044F\u043C.</i>`,
       {
         parse_mode: "HTML",
-        ...import_telegraf.Markup.inlineKeyboard([
-          [import_telegraf.Markup.button.callback("\u2705 \u042F \u0432\u0441\u0451 \u043F\u0440\u043E\u0432\u0435\u0440\u0438\u043B, \u043F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u044C", "confirm_reqs")],
-          [import_telegraf.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]
+        ...import_telegraf3.Markup.inlineKeyboard([
+          [import_telegraf3.Markup.button.callback("\u2705 \u042F \u0432\u0441\u0451 \u043F\u0440\u043E\u0432\u0435\u0440\u0438\u043B, \u043F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u044C", "confirm_reqs")],
+          [import_telegraf3.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]
         ])
       }
     );
@@ -135305,27 +135739,28 @@ ${reqText}
   const confirmLabel = hasFunds ? "\u{1F680} \u041E\u043F\u043B\u0430\u0442\u0438\u0442\u044C \u0438 \u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u044C" : `\u{1F4B3} \u0414\u041E\u041F\u041B\u0410\u0422\u0418\u0422\u042C \u0418 \u0417\u0410\u041F\u0423\u0421\u0422\u0418\u0422\u042C (${formatCents(pricing.totalCents - Number(user.balance))}\u20BD)`;
   await ctx.reply(summaryText, {
     parse_mode: "HTML",
-    ...import_telegraf.Markup.inlineKeyboard([
-      [import_telegraf.Markup.button.callback(confirmLabel, "confirm_order")],
-      [import_telegraf.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]
+    ...import_telegraf3.Markup.inlineKeyboard([
+      [import_telegraf3.Markup.button.callback(confirmLabel, "confirm_order")],
+      [import_telegraf3.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]
     ])
   });
   return ctx.wizard.selectStep(7);
 }
-var import_telegraf, ORDER_WIZARD, botTenantId, orderWizard;
+var import_telegraf3, ORDER_WIZARD, botTenantId3, orderWizard;
 var init_order_wizard = __esm({
   "src/bot/scenes/order.wizard.ts"() {
     "use strict";
-    import_telegraf = __toESM(require_lib3());
+    import_telegraf3 = __toESM(require_lib3());
     init_db();
     init_order_service();
     init_marketing_service();
     init_unified_payment_service();
     init_formatter();
     init_utils();
+    init_menu_navigation();
     ORDER_WIZARD = "order-wizard";
-    botTenantId = process.env.BOT_TENANT_ID || "smmplan";
-    orderWizard = new import_telegraf.Scenes.WizardScene(
+    botTenantId3 = process.env.BOT_TENANT_ID || "smmplan";
+    orderWizard = new import_telegraf3.Scenes.WizardScene(
       ORDER_WIZARD,
       // ШАГ 1 (Index 0): Начало — показать выбранную услугу или запросить ссылку
       async (ctx) => {
@@ -135349,7 +135784,7 @@ var init_order_wizard = __esm({
 <i>\u041E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0447\u0438\u0441\u043B\u043E \u0432 \u043E\u0442\u0432\u0435\u0442\u043D\u043E\u043C \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0438:</i>`,
               {
                 parse_mode: "HTML",
-                ...import_telegraf.Markup.inlineKeyboard([[import_telegraf.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]])
+                ...import_telegraf3.Markup.inlineKeyboard([[import_telegraf3.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]])
               }
             );
             return ctx.wizard.selectStep(3);
@@ -135358,7 +135793,7 @@ var init_order_wizard = __esm({
 
 \u{1F680} <b>\u041F\u0440\u0438\u0448\u043B\u0438\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443:</b>`, {
             parse_mode: "HTML",
-            ...import_telegraf.Markup.inlineKeyboard([[import_telegraf.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]])
+            ...import_telegraf3.Markup.inlineKeyboard([[import_telegraf3.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]])
           });
           return ctx.wizard.next();
         }
@@ -135370,6 +135805,9 @@ var init_order_wizard = __esm({
       // ШАГ 2 (Index 1): Получение ссылки и автоматическая валидация
       async (ctx) => {
         const msgText = ctx.message && "text" in ctx.message && typeof ctx.message.text === "string" ? ctx.message.text.trim() : "";
+        if (await handleWizardMenuNavigation(ctx, msgText)) {
+          return;
+        }
         if (!msgText) return ctx.reply("\u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0442\u0435\u043A\u0441\u0442\u043E\u0432\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443.");
         const link = msgText;
         const orderData = getOrderData(ctx);
@@ -135403,10 +135841,10 @@ ${escapeHtml2(validationErrorMsg)}
 \u0412\u044B \u0445\u043E\u0442\u0438\u0442\u0435 \u043F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u044C \u0432 \u043E\u0431\u0445\u043E\u0434 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u043E\u0439 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438 \u0438\u043B\u0438 \u043E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C \u0434\u0440\u0443\u0433\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443?`,
             {
               parse_mode: "HTML",
-              ...import_telegraf.Markup.inlineKeyboard([
-                [import_telegraf.Markup.button.callback("\u26A1 \u041F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u044C \u0432\u0441\u0451 \u0440\u0430\u0432\u043D\u043E", "force_link")],
-                [import_telegraf.Markup.button.callback("\u{1F504} \u0412\u0432\u0435\u0441\u0442\u0438 \u0434\u0440\u0443\u0433\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443", "retry_link")],
-                [import_telegraf.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]
+              ...import_telegraf3.Markup.inlineKeyboard([
+                [import_telegraf3.Markup.button.callback("\u26A1 \u041F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u044C \u0432\u0441\u0451 \u0440\u0430\u0432\u043D\u043E", "force_link")],
+                [import_telegraf3.Markup.button.callback("\u{1F504} \u0412\u0432\u0435\u0441\u0442\u0438 \u0434\u0440\u0443\u0433\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443", "retry_link")],
+                [import_telegraf3.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]
               ])
             }
           );
@@ -135420,7 +135858,7 @@ ${escapeHtml2(validationErrorMsg)}
 <i>\u041E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0447\u0438\u0441\u043B\u043E \u0432 \u043E\u0442\u0432\u0435\u0442\u043D\u043E\u043C \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0438:</i>`,
           {
             parse_mode: "HTML",
-            ...import_telegraf.Markup.inlineKeyboard([[import_telegraf.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]])
+            ...import_telegraf3.Markup.inlineKeyboard([[import_telegraf3.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]])
           }
         );
         return ctx.wizard.selectStep(3);
@@ -135436,6 +135874,9 @@ ${escapeHtml2(validationErrorMsg)}
       // ШАГ 4 (Index 3): Ввод количества и развилка Drip-feed
       async (ctx) => {
         const msgText = ctx.message && "text" in ctx.message && typeof ctx.message.text === "string" ? ctx.message.text.trim() : "";
+        if (await handleWizardMenuNavigation(ctx, msgText)) {
+          return;
+        }
         if (!msgText) return ctx.reply("\u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E \u0447\u0438\u0441\u043B\u043E\u043C.");
         const qty = parseInt(msgText.replace(/\D/g, ""), 10);
         const orderData = getOrderData(ctx);
@@ -135452,10 +135893,10 @@ ${escapeHtml2(validationErrorMsg)}
             "\u{1F4A7} <b>\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430 Drip-Feed (\u043F\u043E\u0441\u0442\u0435\u043F\u0435\u043D\u043D\u0430\u044F \u043D\u0430\u043A\u0440\u0443\u0442\u043A\u0430)</b>\n\n\u0425\u043E\u0442\u0438\u0442\u0435 \u0440\u0430\u0441\u043F\u0440\u0435\u0434\u0435\u043B\u0438\u0442\u044C \u0437\u0430\u043A\u0430\u0437 \u043D\u0430 \u043D\u0435\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0437\u0430\u043F\u0443\u0441\u043A\u043E\u0432 \u0441 \u0438\u043D\u0442\u0435\u0440\u0432\u0430\u043B\u0430\u043C\u0438?",
             {
               parse_mode: "HTML",
-              ...import_telegraf.Markup.inlineKeyboard([
-                [import_telegraf.Markup.button.callback("\u26A1 \u041E\u0431\u044B\u0447\u043D\u044B\u0439 (\u0437\u0430 \u043E\u0434\u0438\u043D \u0440\u0430\u0437)", "drip_off")],
-                [import_telegraf.Markup.button.callback("\u{1F4A7} \u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C Drip-Feed", "drip_on")],
-                [import_telegraf.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]
+              ...import_telegraf3.Markup.inlineKeyboard([
+                [import_telegraf3.Markup.button.callback("\u26A1 \u041E\u0431\u044B\u0447\u043D\u044B\u0439 (\u0437\u0430 \u043E\u0434\u0438\u043D \u0440\u0430\u0437)", "drip_off")],
+                [import_telegraf3.Markup.button.callback("\u{1F4A7} \u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C Drip-Feed", "drip_on")],
+                [import_telegraf3.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]
               ])
             }
           );
@@ -135484,7 +135925,7 @@ ${escapeHtml2(validationErrorMsg)}
             "\u{1F522} <b>\u041A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E \u0437\u0430\u043F\u0443\u0441\u043A\u043E\u0432 (Runs)</b>\n\n\u041D\u0430 \u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0447\u0430\u0441\u0442\u0435\u0439 \u0440\u0430\u0437\u0434\u0435\u043B\u0438\u0442\u044C \u043D\u0430\u043A\u0440\u0443\u0442\u043A\u0443? (\u043E\u0442 2 \u0434\u043E 100 \u0437\u0430\u043F\u0443\u0441\u043A\u043E\u0432):",
             {
               parse_mode: "HTML",
-              ...import_telegraf.Markup.inlineKeyboard([[import_telegraf.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]])
+              ...import_telegraf3.Markup.inlineKeyboard([[import_telegraf3.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]])
             }
           );
           return ctx.wizard.selectStep(5);
@@ -135505,7 +135946,7 @@ ${escapeHtml2(validationErrorMsg)}
           "\u23F1 <b>\u0418\u043D\u0442\u0435\u0440\u0432\u0430\u043B \u043C\u0435\u0436\u0434\u0443 \u0437\u0430\u043F\u0443\u0441\u043A\u0430\u043C\u0438 (\u043C\u0438\u043D\u0443\u0442\u044B)</b>\n\n\u0421 \u043A\u0430\u043A\u043E\u0439 \u043F\u0430\u0443\u0437\u043E\u0439 \u0437\u0430\u043F\u0443\u0441\u043A\u0430\u0442\u044C \u043A\u0430\u0436\u0434\u0443\u044E \u043F\u0430\u0447\u043A\u0443? (\u043E\u0442 5 \u0434\u043E 1440 \u043C\u0438\u043D\u0443\u0442):",
           {
             parse_mode: "HTML",
-            ...import_telegraf.Markup.inlineKeyboard([[import_telegraf.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]])
+            ...import_telegraf3.Markup.inlineKeyboard([[import_telegraf3.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]])
           }
         );
         return ctx.wizard.selectStep(6);
@@ -135540,7 +135981,7 @@ ${escapeHtml2(validationErrorMsg)}
 <i>\u041E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0447\u0438\u0441\u043B\u043E \u0432 \u043E\u0442\u0432\u0435\u0442\u043D\u043E\u043C \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0438:</i>`,
         {
           parse_mode: "HTML",
-          ...import_telegraf.Markup.inlineKeyboard([[import_telegraf.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]])
+          ...import_telegraf3.Markup.inlineKeyboard([[import_telegraf3.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]])
         }
       );
       return ctx.wizard.selectStep(3);
@@ -135549,7 +135990,7 @@ ${escapeHtml2(validationErrorMsg)}
       await ctx.answerCbQuery();
       await ctx.reply("\u{1F680} <b>\u041F\u0440\u0438\u0448\u043B\u0438\u0442\u0435 \u043D\u043E\u0432\u0443\u044E \u0441\u0441\u044B\u043B\u043A\u0443:</b>", {
         parse_mode: "HTML",
-        ...import_telegraf.Markup.inlineKeyboard([[import_telegraf.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]])
+        ...import_telegraf3.Markup.inlineKeyboard([[import_telegraf3.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]])
       });
       return ctx.wizard.selectStep(1);
     });
@@ -135566,7 +136007,7 @@ ${escapeHtml2(validationErrorMsg)}
       if (!service || !totalQuantity || !link) return ctx.scene.leave();
       if (!ctx.from) return ctx.scene.leave();
       const tgId = ctx.from.id;
-      const user = await resolveUser(tgId);
+      const user = await resolveUser3(tgId);
       if (!user) return ctx.scene.leave();
       if (Number(user.balance) >= totalCents) {
         try {
@@ -135592,14 +136033,30 @@ ${escapeHtml2(validationErrorMsg)}
 \u0421\u043B\u0435\u0434\u0438\u0442\u044C \u0437\u0430 \u0441\u0442\u0430\u0442\u0443\u0441\u043E\u043C \u043C\u043E\u0436\u043D\u043E \u0432 \u0440\u0430\u0437\u0434\u0435\u043B\u0435 /orders`,
             {
               parse_mode: "HTML",
-              ...import_telegraf.Markup.inlineKeyboard([
-                [import_telegraf.Markup.button.callback("\u{1F4CB} \u041C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B", "my_orders")],
-                [import_telegraf.Markup.button.callback("\u{1F6D2} \u0417\u0430\u043A\u0430\u0437\u0430\u0442\u044C \u0435\u0449\u0451", "shop")]
+              ...import_telegraf3.Markup.inlineKeyboard([
+                [import_telegraf3.Markup.button.callback("\u{1F4CB} \u041C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B", "my_orders")],
+                [import_telegraf3.Markup.button.callback("\u{1F6D2} \u0417\u0430\u043A\u0430\u0437\u0430\u0442\u044C \u0435\u0449\u0451", "shop")]
               ])
             }
           );
         } catch (err) {
-          await ctx.reply(`\u274C \u041E\u0448\u0438\u0431\u043A\u0430 \u043E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u0438\u044F: ${err instanceof Error ? err.message : String(err)}`);
+          const errMsg = err instanceof Error ? err.message : String(err);
+          await ctx.reply(`\u274C \u041E\u0448\u0438\u0431\u043A\u0430 \u043E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u0438\u044F: ${errMsg}`);
+          try {
+            const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+            sendAdminAlert2(
+              `\u{1F4E6} <b>[BOT ALERT: \u041E\u0448\u0438\u0431\u043A\u0430 \u043E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u0438\u044F \u0437\u0430\u043A\u0430\u0437\u0430]</b>
+
+\u{1F464} <b>\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C:</b> TG ID <code>${tgId}</code> (@${ctx.from.username || "\u2014"})
+\u{1F6CD} <b>\u0423\u0441\u043B\u0443\u0433\u0430:</b> #${service.numericId} (${escapeHtml2(service.name)})
+\u{1F522} <b>\u041A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E:</b> ${totalQuantity}
+\u{1F4B0} <b>\u0421\u0443\u043C\u043C\u0430:</b> ${formatCents(totalCents)} \u20BD
+\u26A0\uFE0F <b>\u041E\u0448\u0438\u0431\u043A\u0430:</b> <code>${errMsg}</code>`,
+              "CRITICAL",
+              botTenantId3
+            );
+          } catch {
+          }
         }
         return ctx.scene.leave();
       }
@@ -135638,14 +136095,29 @@ ${escapeHtml2(validationErrorMsg)}
 <i>\u041F\u043E\u0441\u043B\u0435 \u043E\u043F\u043B\u0430\u0442\u044B \u0437\u0430\u043A\u0430\u0437 \u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u0441\u044F \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438.</i>`,
           {
             parse_mode: "HTML",
-            ...import_telegraf.Markup.inlineKeyboard([
-              [import_telegraf.Markup.button.url("\u{1F4B3} \u041E\u043F\u043B\u0430\u0442\u0438\u0442\u044C \u043A\u0430\u0440\u0442\u043E\u0439 / \u0421\u0411\u041F", payment.confirmationUrl)],
-              [import_telegraf.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]
+            ...import_telegraf3.Markup.inlineKeyboard([
+              [import_telegraf3.Markup.button.url("\u{1F4B3} \u041E\u043F\u043B\u0430\u0442\u0438\u0442\u044C \u043A\u0430\u0440\u0442\u043E\u0439 / \u0421\u0411\u041F", payment.confirmationUrl)],
+              [import_telegraf3.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_wizard")]
             ])
           }
         );
       } catch (err) {
-        await ctx.reply(`\u274C \u041E\u0448\u0438\u0431\u043A\u0430 \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u044F \u043F\u043B\u0430\u0442\u0435\u0436\u0430: ${err instanceof Error ? err.message : String(err)}`);
+        const errMsg = err instanceof Error ? err.message : String(err);
+        await ctx.reply(`\u274C \u041E\u0448\u0438\u0431\u043A\u0430 \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u044F \u043F\u043B\u0430\u0442\u0435\u0436\u0430: ${errMsg}`);
+        try {
+          const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+          sendAdminAlert2(
+            `\u{1F4B3} <b>[BOT ALERT: \u041E\u0448\u0438\u0431\u043A\u0430 \u0444\u043E\u0440\u043C\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F \u0434\u043E\u043F\u043B\u0430\u0442\u044B \u0437\u0430 \u0437\u0430\u043A\u0430\u0437]</b>
+
+\u{1F464} <b>\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C:</b> TG ID <code>${tgId}</code> (@${ctx.from.username || "\u2014"})
+\u{1F6CD} <b>\u0423\u0441\u043B\u0443\u0433\u0430:</b> #${service.numericId} (${escapeHtml2(service.name)})
+\u{1F4B0} <b>\u041A \u0434\u043E\u043F\u043B\u0430\u0442\u0435:</b> ${deficitRub} \u20BD
+\u26A0\uFE0F <b>\u041E\u0448\u0438\u0431\u043A\u0430:</b> <code>${errMsg}</code>`,
+            "WARNING",
+            botTenantId3
+          );
+        } catch {
+        }
       }
       return ctx.scene.leave();
     });
@@ -135658,269 +136130,11 @@ ${escapeHtml2(validationErrorMsg)}
       await ctx.reply("\u274C \u041E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u0438\u0435 \u0437\u0430\u043A\u0430\u0437\u0430 \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u043E.");
       return ctx.scene.leave();
     });
-    orderWizard.hears(["\u{1F6CD} \u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433", "\u{1F464} \u041F\u0440\u043E\u0444\u0438\u043B\u044C", "\u{1F198} \u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", "\u{1F4B0} \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C", "\u{1F465} \u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044B", "\u{1F4E6} \u041C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B", "/start", "/shop", "/bind"], async (ctx, next) => {
-      await ctx.scene.leave();
-      return next();
-    });
-  }
-});
-
-// src/bot/scenes/deposit.wizard.ts
-async function resolveUser2(tgId) {
-  return db.user.findFirst({
-    where: { telegramId: String(tgId), tenantId: botTenantId2 }
-  });
-}
-var import_telegraf2, DEPOSIT_WIZARD, botTenantId2, depositWizard;
-var init_deposit_wizard = __esm({
-  "src/bot/scenes/deposit.wizard.ts"() {
-    "use strict";
-    import_telegraf2 = __toESM(require_lib3());
-    init_db();
-    init_unified_payment_service();
-    DEPOSIT_WIZARD = "deposit-wizard";
-    botTenantId2 = process.env.BOT_TENANT_ID || "smmplan";
-    depositWizard = new import_telegraf2.Scenes.WizardScene(
-      DEPOSIT_WIZARD,
-      // ШАГ 1: Запрос суммы
-      async (ctx) => {
-        ctx.wizard.state.depositData = {};
-        await ctx.reply("\u{1F4B0} <b>\u041F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u0431\u0430\u043B\u0430\u043D\u0441\u0430</b>\n\n\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0441\u0443\u043C\u043C\u0443 \u043F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F \u0432 \u0440\u0443\u0431\u043B\u044F\u0445 (\u043E\u0442 100 \u0434\u043E 500 000):", {
-          parse_mode: "HTML",
-          ...import_telegraf2.Markup.inlineKeyboard([[import_telegraf2.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_deposit")]])
-        });
-        return ctx.wizard.next();
-      },
-      // ШАГ 2: Обработка суммы и выбор метода
-      async (ctx) => {
-        const msgText = ctx.message && "text" in ctx.message && typeof ctx.message.text === "string" ? ctx.message.text : "";
-        if (!msgText) {
-          return ctx.reply("\u274C \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0432\u0432\u0435\u0434\u0438\u0442\u0435 \u0447\u0438\u0441\u043B\u043E.");
-        }
-        const amount = parseInt(msgText.replace(/\D/g, ""), 10);
-        if (isNaN(amount) || amount < 100 || amount > 5e5) {
-          return ctx.reply("\u274C \u0421\u0443\u043C\u043C\u0430 \u0434\u043E\u043B\u0436\u043D\u0430 \u0431\u044B\u0442\u044C \u043E\u0442 100 \u0434\u043E 500 000 \u0440\u0443\u0431. \u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u0443\u044E \u0441\u0443\u043C\u043C\u0443:");
-        }
-        const depositData = ctx.wizard.state.depositData || {};
-        depositData.amount = amount;
-        ctx.wizard.state.depositData = depositData;
-        await ctx.reply(
-          `\u0412\u044B \u0443\u043A\u0430\u0437\u0430\u043B\u0438 \u0441\u0443\u043C\u043C\u0443: <b>${amount.toLocaleString("ru-RU")} \u20BD</b>
-
-\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0441\u043F\u043E\u0441\u043E\u0431 \u043E\u043F\u043B\u0430\u0442\u044B:`,
-          {
-            parse_mode: "HTML",
-            ...import_telegraf2.Markup.inlineKeyboard([
-              [import_telegraf2.Markup.button.callback("\u{1F4B3} \u0411\u0430\u043D\u043A\u043E\u0432\u0441\u043A\u0430\u044F \u043A\u0430\u0440\u0442\u0430 / \u0421\u0411\u041F", "pay_yookassa")],
-              [import_telegraf2.Markup.button.callback("\u{1FA99} \u041A\u0440\u0438\u043F\u0442\u043E\u0432\u0430\u043B\u044E\u0442\u0430 (USDT, TON...)", "pay_cryptobot")],
-              [import_telegraf2.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_deposit")]
-            ])
-          }
-        );
-        return ctx.wizard.next();
-      },
-      // ШАГ 3: Заглушка, обрабатываемая через .action()
-      async () => {
+    orderWizard.hears(/(.+)/, async (ctx, next) => {
+      const text = ctx.message && "text" in ctx.message && typeof ctx.message.text === "string" ? ctx.message.text : "";
+      if (await handleWizardMenuNavigation(ctx, text)) {
         return;
       }
-    );
-    depositWizard.use(async (ctx, next) => {
-      if (ctx.callbackQuery && "data" in ctx.callbackQuery && typeof ctx.callbackQuery.data === "string") {
-        const data = ctx.callbackQuery.data;
-        if (["pay_yookassa", "pay_cryptobot", "cancel_deposit"].includes(data)) {
-          return next();
-        }
-      }
-      const msgText = ctx.message && "text" in ctx.message && typeof ctx.message.text === "string" ? ctx.message.text : "";
-      if (msgText.startsWith("/") && msgText !== "/cancel") {
-        await ctx.scene.leave();
-        return next();
-      }
-      return next();
-    });
-    depositWizard.action("cancel_deposit", async (ctx) => {
-      await ctx.answerCbQuery();
-      await ctx.editMessageText("\u274C \u041F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u043E.");
-      return ctx.scene.leave();
-    });
-    depositWizard.action(/pay_(yookassa|cryptobot)/, async (ctx) => {
-      if (!ctx.match || !ctx.from) return ctx.scene.leave();
-      await ctx.answerCbQuery().catch(() => {
-      });
-      const gateway = ctx.match[1];
-      const depositData = ctx.wizard.state.depositData;
-      const amount = depositData?.amount;
-      if (!ctx.from) return ctx.scene.leave();
-      const tgId = ctx.from.id;
-      if (!amount) {
-        await ctx.reply("\u274C \u041E\u0448\u0438\u0431\u043A\u0430 \u0441\u0435\u0441\u0441\u0438\u0438. \u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u0441\u043D\u043E\u0432\u0430.");
-        return ctx.scene.leave();
-      }
-      try {
-        const user = await resolveUser2(tgId);
-        if (!user) {
-          await ctx.reply("\u274C \u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D. \u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 /start \u0434\u043B\u044F \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438.");
-          return ctx.scene.leave();
-        }
-        await ctx.editMessageText("\u{1F504} \u0421\u043E\u0437\u0434\u0430\u044E \u043F\u043B\u0430\u0442\u0435\u0436, \u043F\u043E\u0434\u043E\u0436\u0434\u0438\u0442\u0435...");
-        const siteName = botTenantId2 === "flux" || botTenantId2 === "lovable" ? "SMMflux" : "SMMplan";
-        const res = await UnifiedPaymentService.createPayment(
-          void 0,
-          user.id,
-          amount,
-          `\u041F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 ${siteName} (TG)`,
-          { source: "BOT", type: "deposit" },
-          gateway
-        );
-        if (res.success && res.confirmationUrl) {
-          await ctx.editMessageText(
-            `\u{1F4B3} <b>\u0421\u0421\u042B\u041B\u041A\u0410 \u0414\u041B\u042F \u041E\u041F\u041B\u0410\u0422\u042B</b>
-\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-\u0421\u0443\u043C\u043C\u0430: <b>${amount.toLocaleString("ru-RU")} \u20BD</b>
-\u0428\u043B\u044E\u0437: <b>${gateway === "yookassa" ? "YooKassa" : "CryptoBot"}</b>
-
-<i>\u041D\u0430\u0436\u043C\u0438\u0442\u0435 \u043A\u043D\u043E\u043F\u043A\u0443 \u043D\u0438\u0436\u0435 \u0434\u043B\u044F \u043F\u0435\u0440\u0435\u0445\u043E\u0434\u0430 \u043A \u043E\u043F\u043B\u0430\u0442\u0435. \u0411\u0430\u043B\u0430\u043D\u0441 \u0431\u0443\u0434\u0435\u0442 \u043F\u043E\u043F\u043E\u043B\u043D\u0435\u043D \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438.</i>`,
-            {
-              parse_mode: "HTML",
-              ...import_telegraf2.Markup.inlineKeyboard([
-                [import_telegraf2.Markup.button.url("\u2197\uFE0F \u041E\u041F\u041B\u0410\u0422\u0418\u0422\u042C", res.confirmationUrl)],
-                [import_telegraf2.Markup.button.callback("\u274C \u041E\u0442\u043C\u0435\u043D\u0430", "cancel_deposit")]
-              ])
-            }
-          );
-        } else {
-          await ctx.editMessageText(`\u274C <b>\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u0438 \u043F\u043B\u0430\u0442\u0435\u0436\u0430.</b>
-${res.error || "\u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u043F\u043E\u0437\u0436\u0435."}`, { parse_mode: "HTML" });
-        }
-      } catch (e) {
-        console.error("[DepositWizard] Error:", e);
-        await ctx.reply("\u274C \u041F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u0430 \u0442\u0435\u0445\u043D\u0438\u0447\u0435\u0441\u043A\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430. \u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u043F\u043E\u0437\u0436\u0435.");
-      }
-      return ctx.scene.leave();
-    });
-    depositWizard.action("cancel_deposit", async (ctx) => {
-      await ctx.answerCbQuery("\u041F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u043E");
-      await ctx.reply("\u274C \u041F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u043E.");
-      return ctx.scene.leave();
-    });
-    depositWizard.command("cancel", async (ctx) => {
-      await ctx.reply("\u274C \u041F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u043E.");
-      return ctx.scene.leave();
-    });
-    depositWizard.hears(["\u{1F6CD} \u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433", "\u{1F464} \u041F\u0440\u043E\u0444\u0438\u043B\u044C", "\u{1F198} \u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", "\u{1F4B0} \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C", "\u{1F465} \u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044B", "\u{1F4E6} \u041C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B", "/start", "/shop", "/bind"], async (ctx, next) => {
-      await ctx.scene.leave();
-      return next();
-    });
-  }
-});
-
-// src/bot/scenes/referral.wizard.ts
-async function resolveUser3(tgId) {
-  let user = await db.user.findFirst({
-    where: { telegramId: String(tgId), tenantId: botTenantId3 },
-    select: { id: true, referralCode: true, referralBalance: true, _count: { select: { referrals: true } } }
-  });
-  if (!user) {
-    const emailStub = `tg_${tgId}@${botTenantId3}.bot`;
-    const created = await db.user.upsert({
-      where: { email_tenantId: { email: emailStub, tenantId: botTenantId3 } },
-      update: { telegramId: String(tgId) },
-      create: {
-        email: emailStub,
-        telegramId: String(tgId),
-        tenantId: botTenantId3,
-        isBotOnly: true
-      },
-      select: { id: true, referralCode: true, referralBalance: true }
-    });
-    user = {
-      ...created,
-      _count: { referrals: 0 }
-    };
-  }
-  return user;
-}
-var import_telegraf3, REFERRAL_WIZARD, botTenantId3, referralWizard;
-var init_referral_wizard = __esm({
-  "src/bot/scenes/referral.wizard.ts"() {
-    "use strict";
-    import_telegraf3 = __toESM(require_lib3());
-    init_get_base_url();
-    init_db();
-    REFERRAL_WIZARD = "referral-wizard";
-    botTenantId3 = process.env.BOT_TENANT_ID || "smmplan";
-    referralWizard = new import_telegraf3.Scenes.WizardScene(
-      REFERRAL_WIZARD,
-      // ШАГ 1: Показать статистику и ссылку
-      async (ctx) => {
-        try {
-          if (!ctx.from) return ctx.scene.leave();
-          const tgId = ctx.from.id;
-          const user = await resolveUser3(tgId);
-          if (!user) {
-            await ctx.reply("\u274C \u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D. \u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 /start \u0434\u043B\u044F \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438.");
-            return ctx.scene.leave();
-          }
-          if (!user.referralCode) {
-            let newCode = "";
-            for (let attempt = 0; attempt < 5; attempt++) {
-              newCode = Array.from(Array(8), () => Math.floor(Math.random() * 36).toString(36)).join("").toUpperCase();
-              const existing = await db.user.findUnique({ where: { referralCode: newCode } });
-              if (!existing) break;
-            }
-            await db.user.update({
-              where: { id: user.id },
-              data: { referralCode: newCode }
-            });
-            user.referralCode = newCode;
-          }
-          const host = botTenantId3 === "flux" || botTenantId3 === "lovable" ? process.env.FLUX_APP_URL || "https://smmflux.ru" : getBaseUrlSync();
-          const link = `${host}/?ref=${user.referralCode}`;
-          const earned = (user.referralBalance ?? 0) / 100;
-          const refsCount = user._count?.referrals ?? 0;
-          await ctx.reply(
-            `\u{1F465} <b>\u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044C\u043D\u0430\u044F \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u0430</b>
-
-\u041F\u0440\u0438\u0433\u043B\u0430\u0448\u0430\u0439\u0442\u0435 \u0434\u0440\u0443\u0437\u0435\u0439 \u0438 \u043F\u043E\u043B\u0443\u0447\u0430\u0439\u0442\u0435 <b>15%</b> \u0441 \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u0438\u0445 \u0437\u0430\u043A\u0430\u0437\u0430 \u043F\u043E\u0436\u0438\u0437\u043D\u0435\u043D\u043D\u043E!
-
-\u{1F517} <b>\u0412\u0430\u0448\u0430 \u0441\u0441\u044B\u043B\u043A\u0430:</b>
-<code>${link}</code>
-
-\u{1F4CA} <b>\u0412\u0430\u0448\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043A\u0430:</b>
-\u2022 \u041F\u0440\u0438\u0433\u043B\u0430\u0448\u0435\u043D\u043E: <b>${refsCount} \u0447\u0435\u043B.</b>
-\u2022 \u0417\u0430\u0440\u0430\u0431\u043E\u0442\u0430\u043D\u043E: <b>${earned.toFixed(2)} \u20BD</b>
-
-<i>\u0414\u043B\u044F \u0432\u044B\u0432\u043E\u0434\u0430 \u0441\u0440\u0435\u0434\u0441\u0442\u0432 \u043D\u0430 \u043E\u0441\u043D\u043E\u0432\u043D\u043E\u0439 \u0431\u0430\u043B\u0430\u043D\u0441 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 \u0432\u0435\u0431-\u0438\u043D\u0442\u0435\u0440\u0444\u0435\u0439\u0441.</i>`,
-            {
-              parse_mode: "HTML",
-              ...import_telegraf3.Markup.inlineKeyboard([
-                [import_telegraf3.Markup.button.url("\u041F\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043B\u0438\u0447\u043D\u044B\u0439 \u043A\u0430\u0431\u0438\u043D\u0435\u0442", `${host}/dashboard/referrals`)],
-                [import_telegraf3.Markup.button.callback("\u274C \u0417\u0430\u043A\u0440\u044B\u0442\u044C", "close_ref")]
-              ])
-            }
-          );
-          return ctx.wizard.next();
-        } catch (err) {
-          console.error("[ReferralWizard] Error:", err);
-          await ctx.reply("\u274C \u041F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u0430 \u043E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0435 \u0440\u0435\u0444\u0435\u0440\u0430\u043B\u044C\u043D\u043E\u0439 \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u0438. \u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u043F\u043E\u0437\u0436\u0435.");
-          return ctx.scene.leave();
-        }
-      },
-      async (ctx) => {
-        return;
-      }
-    );
-    referralWizard.action("close_ref", async (ctx) => {
-      await ctx.answerCbQuery();
-      await ctx.deleteMessage().catch(() => {
-      });
-      return ctx.scene.leave();
-    });
-    referralWizard.command("cancel", async (ctx) => {
-      return ctx.scene.leave();
-    });
-    referralWizard.hears(["\u{1F6CD} \u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433", "\u{1F464} \u041F\u0440\u043E\u0444\u0438\u043B\u044C", "\u{1F198} \u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", "\u{1F4B0} \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C", "\u{1F465} \u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044B", "\u{1F4E6} \u041C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B", "/start", "/shop", "/bind"], async (ctx, next) => {
-      await ctx.scene.leave();
       return next();
     });
   }
@@ -137530,19 +137744,27 @@ ${errorLogSummary}`;
         const magicUrl = `${host}/api/auth/verify?token=${rawToken}&redirectTo=/admin/dashboard`;
         const text = `\u{1F511} <b>\u041E\u0414\u041D\u041E\u0420\u0410\u0417\u041E\u0412\u0410\u042F \u0421\u0421\u042B\u041B\u041A\u0410 \u0414\u041B\u042F \u0412\u0425\u041E\u0414\u0410 \u0412 \u0410\u0414\u041C\u0418\u041D\u041A\u0423</b>
 
-\u0421\u0441\u044B\u043B\u043A\u0430 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u044C\u043D\u0430 <b>15 \u043C\u0438\u043D\u0443\u0442</b> \u0438 \u043F\u043E\u0437\u0432\u043E\u043B\u044F\u0435\u0442 \u0432\u043E\u0439\u0442\u0438 \u0432 \u043F\u0430\u043D\u0435\u043B\u044C \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F <b>SMMpanel 1.0</b> \u0431\u0435\u0437 \u043F\u0430\u0440\u043E\u043B\u044F:
+\u0421\u0441\u044B\u043B\u043A\u0430 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u044C\u043D\u0430 <b>1 \u0447\u0430\u0441</b> \u0438 \u043F\u043E\u0437\u0432\u043E\u043B\u044F\u0435\u0442 \u0432\u043E\u0439\u0442\u0438 \u0432 \u043F\u0430\u043D\u0435\u043B\u044C \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F <b>OmniSMM 1.0</b> \u0431\u0435\u0437 \u043F\u0430\u0440\u043E\u043B\u044F.
 
-\u{1F517} <a href="${magicUrl}"><b>\u041D\u0410\u0416\u041C\u0418\u0422\u0415 \u0417\u0414\u0415\u0421\u042C \u0414\u041B\u042F \u0412\u0425\u041E\u0414\u0410 \u0412 \u0410\u0414\u041C\u0418\u041D-\u041F\u0410\u041D\u0415\u041B\u042C</b></a>
+\u{1F447} \u041D\u0430\u0436\u043C\u0438 \u043A\u043D\u043E\u043F\u043A\u0443 \u043D\u0438\u0436\u0435 \u2014 \u0441\u0441\u044B\u043B\u043A\u0430 \u0430\u043D\u043D\u0443\u043B\u0438\u0440\u0443\u0435\u0442\u0441\u044F \u043F\u043E\u0441\u043B\u0435 \u043F\u0435\u0440\u0432\u043E\u0433\u043E \u043F\u0435\u0440\u0435\u0445\u043E\u0434\u0430.
 
-<i>\u041D\u0438\u043A\u043E\u043C\u0443 \u043D\u0435 \u043F\u0435\u0440\u0435\u0434\u0430\u0432\u0430\u0439\u0442\u0435 \u044D\u0442\u0443 \u0441\u0441\u044B\u043B\u043A\u0443. \u041F\u043E\u0441\u043B\u0435 \u043F\u0435\u0440\u0432\u043E\u0433\u043E \u043F\u0435\u0440\u0435\u0445\u043E\u0434\u0430 \u043E\u043D\u0430 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0430\u043D\u043D\u0443\u043B\u0438\u0440\u0443\u0435\u0442\u0441\u044F.</i>`;
+<i>\u041D\u0438\u043A\u043E\u043C\u0443 \u043D\u0435 \u043F\u0435\u0440\u0435\u0434\u0430\u0432\u0430\u0439\u0442\u0435 \u044D\u0442\u0443 \u0441\u0441\u044B\u043B\u043A\u0443.</i>`;
         const keyboard = import_telegraf4.Markup.inlineKeyboard([
           [import_telegraf4.Markup.button.url("\u{1F680} \u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0410\u0434\u043C\u0438\u043D\u043A\u0443", magicUrl)],
           [import_telegraf4.Markup.button.callback("\u25C0\uFE0F \u041D\u0430\u0437\u0430\u0434 \u0432 \u041F\u0443\u043B\u044C\u0442", "owner_back")]
         ]);
         try {
-          await ctx.editMessageText(text, { parse_mode: "HTML", ...keyboard });
+          await ctx.editMessageText(text, {
+            parse_mode: "HTML",
+            link_preview_options: { is_disabled: true },
+            ...keyboard
+          });
         } catch {
-          await ctx.reply(text, { parse_mode: "HTML", ...keyboard });
+          await ctx.reply(text, {
+            parse_mode: "HTML",
+            link_preview_options: { is_disabled: true },
+            ...keyboard
+          });
         }
       } catch (err) {
         await ctx.reply(`\u26A0\uFE0F \u041E\u0448\u0438\u0431\u043A\u0430 \u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u0438 \u0441\u0441\u044B\u043B\u043A\u0438: ${err.message}`);
@@ -138575,6 +138797,10 @@ var index_exports = {};
 __export2(index_exports, {
   bot: () => bot,
   launchBot: () => launchBot,
+  sendFastOrderPrompt: () => sendFastOrderPrompt,
+  sendNetworkCatalogMenu: () => sendNetworkCatalogMenu,
+  sendSupportPrompt: () => sendSupportPrompt,
+  sendUserOrders: () => sendUserOrders,
   sendUserProfile: () => sendUserProfile
 });
 module.exports = __toCommonJS(index_exports);
@@ -138754,6 +138980,46 @@ async function sendBindInstructions(ctx) {
       ])
     }
   );
+}
+async function sendSupportPrompt(ctx) {
+  await ctx.reply(
+    "\u{1F3A7} <b>\u042F \u0432\u0441\u0435\u0433\u0434\u0430 \u043D\u0430 \u0441\u0432\u044F\u0437\u0438!</b>\n\n\u041F\u0440\u043E\u0441\u0442\u043E \u043D\u0430\u043F\u0438\u0448\u0438\u0442\u0435 \u0432\u0430\u0448 \u0432\u043E\u043F\u0440\u043E\u0441, \u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0444\u043E\u0442\u043E \u0438\u043B\u0438 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u043E\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u043F\u0440\u044F\u043C\u043E \u0432 \u044D\u0442\u043E\u0442 \u0447\u0430\u0442, \u0438 \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440 \u043E\u0442\u0432\u0435\u0442\u0438\u0442 \u0432\u0430\u043C \u0437\u0434\u0435\u0441\u044C \u0436\u0435.",
+    { parse_mode: "HTML" }
+  );
+}
+async function sendUserOrders(ctx) {
+  if (!ctx.from) return;
+  const tgId = String(ctx.from.id);
+  const user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId4 } });
+  if (!user) return ctx.reply("\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 /start \u0434\u043B\u044F \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438.");
+  const orders = await db.order.findMany({
+    where: { userId: user.id },
+    take: 10,
+    orderBy: { createdAt: "desc" },
+    include: { service: { select: { name: true } } }
+  });
+  if (orders.length === 0) {
+    return ctx.reply("\u{1F4E6} \u0423 \u0432\u0430\u0441 \u043F\u043E\u043A\u0430 \u043D\u0435\u0442 \u0437\u0430\u043A\u0430\u0437\u043E\u0432.");
+  }
+  const statusEmoji = {
+    "PENDING": "\u{1F550}",
+    "IN_PROGRESS": "\u{1F504}",
+    "COMPLETED": "\u2705",
+    "PARTIAL": "\u26A0\uFE0F",
+    "CANCELED": "\u274C",
+    "ERROR": "\u{1F534}",
+    "AWAITING_PAYMENT": "\u{1F4B3}",
+    "PROVISIONING": "\u23F3"
+  };
+  let text = "\u{1F4E6} <b>\u0412\u0430\u0448\u0438 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0435 \u0437\u0430\u043A\u0430\u0437\u044B:</b>\n\n";
+  for (const o of orders) {
+    const emoji = statusEmoji[o.status] || "\u2753";
+    text += `${emoji} #${o.numericId} \u2014 ${o.service?.name || "\u0423\u0441\u043B\u0443\u0433\u0430"}
+   ${o.quantity} \u0448\u0442. | ${(Number(o.charge) / 100).toFixed(2)}\u20BD | ${o.status}
+
+`;
+  }
+  await ctx.reply(text, { parse_mode: "HTML" });
 }
 function isPotentialLinkOrHandle(text) {
   const trimmed = text.trim();
@@ -138939,15 +139205,38 @@ async function launchBot() {
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e);
       console.error(`[Bot] \u274C Launch attempt ${attempt}/${MAX_LAUNCH_ATTEMPTS} failed: ${errMsg}`);
-      if (attempt < MAX_LAUNCH_ATTEMPTS && !agent && currentProxyUrl) {
-        await reportTelegramProxyFailure(currentProxyUrl);
-        console.warn(`[Bot] \u{1F504} Rotating to next proxy from pool in 1.5s...`);
+      if (attempt < MAX_LAUNCH_ATTEMPTS) {
+        try {
+          const directNow = await Promise.race([
+            fetch("https://api.telegram.org", { method: "HEAD", signal: AbortSignal.timeout(2e3) }).then((r) => r.status < 500).catch(() => false),
+            new Promise((res) => setTimeout(() => res(false), 2100))
+          ]);
+          if (directNow) {
+            console.info("[Bot] \u{1F504} Direct connectivity restored \u2014 clearing proxy, retrying without proxy...");
+            bot.telegram.options = bot.telegram.options || {};
+            bot.telegram.options.agent = void 0;
+            currentProxyUrl = void 0;
+            await new Promise((r) => setTimeout(r, 1e3));
+            continue;
+          }
+        } catch {
+        }
+        if (!agent && currentProxyUrl) {
+          await reportTelegramProxyFailure(currentProxyUrl);
+          console.warn(`[Bot] \u{1F504} Rotating to next proxy from pool in 1.5s...`);
+        }
         await new Promise((r) => setTimeout(r, 1500));
         continue;
       }
       break;
     }
   }
+  isBotLaunched = false;
+  const WATCHDOG_DELAY = 15e3;
+  console.warn(`[Bot] \u26A0\uFE0F Bot polling ended unexpectedly. Watchdog restarting in ${WATCHDOG_DELAY / 1e3}s...`);
+  setTimeout(() => {
+    launchBot().catch((err) => console.error("[Bot] Watchdog restart failed:", err));
+  }, WATCHDOG_DELAY);
 }
 async function handleShutdown(signal) {
   console.info(`[Bot] --- Signal ${signal} received. Graceful shutdown ---`);
@@ -139027,6 +139316,20 @@ var init_index = __esm({
               chatId: contextObj?.chat?.id ? String(contextObj.chat.id) : void 0
             }
           });
+        } catch {
+        }
+        try {
+          const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+          sendAdminAlert2(
+            `\u{1F916} <b>[BOT ERROR: \u041D\u0435\u043E\u0431\u0440\u0430\u0431\u043E\u0442\u0430\u043D\u043D\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430 \u0431\u043E\u0442\u0430]</b>
+
+\u{1F464} <b>TG ID:</b> <code>${contextObj?.from?.id || "\u2014"}</code>
+\u{1F4CD} <b>\u0422\u0438\u043F \u0441\u043E\u0431\u044B\u0442\u0438\u044F:</b> <code>${contextObj?.updateType || "unknown"}</code>
+\u26A0\uFE0F <b>\u041E\u0448\u0438\u0431\u043A\u0430:</b> <code>${escapeHtml3(description || "Unknown error")}</code>
+` + (errorObj?.stack ? `<pre>${escapeHtml3(errorObj.stack.slice(0, 300))}</pre>` : ""),
+            "CRITICAL",
+            botTenantId4
+          );
         } catch {
         }
         if (contextObj && typeof contextObj.reply === "function") {
@@ -139203,16 +139506,21 @@ var init_index = __esm({
       const isOwner = await isOwnerOrAdmin(tgId);
       const inlineRows = [
         [import_telegraf5.Markup.button.callback("\u{1F680} \u0411\u044B\u0441\u0442\u0440\u044B\u0439 \u0437\u0430\u043A\u0430\u0437 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435", "start_fast_order")],
-        [import_telegraf5.Markup.button.callback("\u{1F6CD} \u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433", "shop"), import_telegraf5.Markup.button.callback("\u{1F464} \u041B\u0438\u0447\u043D\u044B\u0439 \u043A\u0430\u0431\u0438\u043D\u0435\u0442", "profile")],
+        [import_telegraf5.Markup.button.callback("\u{1F6CD} \u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433", "shop"), import_telegraf5.Markup.button.callback("\u{1F4B0} \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u0431\u0430\u043B\u0430\u043D\u0441", "deposit")],
+        [import_telegraf5.Markup.button.callback("\u{1F464} \u041B\u0438\u0447\u043D\u044B\u0439 \u043A\u0430\u0431\u0438\u043D\u0435\u0442", "profile"), import_telegraf5.Markup.button.callback("\u{1F4E6} \u041C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B", "my_orders")],
         [import_telegraf5.Markup.button.callback("\u{1F517} \u041F\u0440\u0438\u0432\u044F\u0437\u0430\u0442\u044C \u0430\u043A\u043A\u0430\u0443\u043D\u0442", "bind_account"), import_telegraf5.Markup.button.callback("\u{1F198} \u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", "support")]
       ];
       if (isOwner) {
         inlineRows.unshift([import_telegraf5.Markup.button.callback("\u{1F451} \u041F\u0443\u043B\u044C\u0442 \u041E\u0432\u043D\u0435\u0440\u0430 / DevOps Hub", "nav_owner_hub")]);
       }
       const startInline = import_telegraf5.Markup.inlineKeyboard(inlineRows);
+      await ctx.reply("\u{1F916} <i>\u0413\u043B\u0430\u0432\u043D\u043E\u0435 \u043C\u0435\u043D\u044E SMMplan</i>", {
+        parse_mode: "HTML",
+        ...keyboard
+      }).catch(() => {
+      });
       return ctx.reply(formattedWelcome, {
         parse_mode: "HTML",
-        ...keyboard,
         ...startInline
       });
     });
@@ -139230,14 +139538,15 @@ var init_index = __esm({
       await ctx.editMessageText("\u274C \u041E\u0436\u0438\u0434\u0430\u043D\u0438\u0435 \u0441\u0441\u044B\u043B\u043A\u0438 \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u043E. \u0412\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u0432\u043E\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C\u0441\u044F \u043C\u0435\u043D\u044E \u043D\u0438\u0436\u0435:").catch(() => {
       });
     });
-    bot.command("shop", async (ctx) => {
+    bot.command(["shop", "catalog"], async (ctx) => {
       await sendNetworkCatalogMenu(ctx, false);
     });
-    bot.hears("\u{1F6CD} \u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433", async (ctx) => {
+    bot.hears(["\u{1F6CD} \u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433", "\u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433", "\u{1F6CD} \u041A\u0430\u0442\u0430\u043B\u043E\u0433", "\u041A\u0430\u0442\u0430\u043B\u043E\u0433", /^(🛍\s*Каталог|Каталог)/i], async (ctx) => {
       await sendNetworkCatalogMenu(ctx, false);
     });
-    bot.hears("\u{1F464} \u041F\u0440\u043E\u0444\u0438\u043B\u044C", sendUserProfile);
-    bot.hears(["\u{1F451} \u041F\u0443\u043B\u044C\u0442 \u041E\u0432\u043D\u0435\u0440\u0430", "\u041F\u0443\u043B\u044C\u0442 \u041E\u0432\u043D\u0435\u0440\u0430", "\u2699\uFE0F \u0410\u0434\u043C\u0438\u043D\u043A\u0430", "\u{1F451} \u041F\u0443\u043B\u044C\u0442 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F", "\u0410\u0434\u043C\u0438\u043D\u043A\u0430"], async (ctx) => {
+    bot.hears(["\u{1F464} \u041F\u0440\u043E\u0444\u0438\u043B\u044C", "\u041F\u0440\u043E\u0444\u0438\u043B\u044C", "\u{1F464} \u041B\u0438\u0447\u043D\u044B\u0439 \u043A\u0430\u0431\u0438\u043D\u0435\u0442", "\u041B\u0438\u0447\u043D\u044B\u0439 \u043A\u0430\u0431\u0438\u043D\u0435\u0442", "\u041A\u0430\u0431\u0438\u043D\u0435\u0442", /^(👤\s*Профиль|Профиль|Личный кабинет)/i], sendUserProfile);
+    bot.command(["profile", "me", "account"], sendUserProfile);
+    bot.hears(["\u{1F451} \u041F\u0443\u043B\u044C\u0442 \u041E\u0432\u043D\u0435\u0440\u0430", "\u041F\u0443\u043B\u044C\u0442 \u041E\u0432\u043D\u0435\u0440\u0430", "\u2699\uFE0F \u0410\u0434\u043C\u0438\u043D\u043A\u0430", "\u{1F451} \u041F\u0443\u043B\u044C\u0442 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F", "\u0410\u0434\u043C\u0438\u043D\u043A\u0430", /^(👑\s*Пульт|Пульт Овнера)/i], async (ctx) => {
       if (!ctx.from || !await isOwnerOrAdmin(ctx.from.id)) {
         return ctx.reply("\u26D4 \u0414\u043E\u0441\u0442\u0443\u043F \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D. \u042D\u0442\u043E\u0442 \u0440\u0430\u0437\u0434\u0435\u043B \u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D \u0442\u043E\u043B\u044C\u043A\u043E \u0432\u043B\u0430\u0434\u0435\u043B\u044C\u0446\u0443 \u043F\u043B\u0430\u0442\u0444\u043E\u0440\u043C\u044B.");
       }
@@ -139471,51 +139780,29 @@ var init_index = __esm({
         preFilledLink: preFilledLink || void 0
       });
     });
-    bot.hears("\u{1F4B0} \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C", async (ctx) => {
+    bot.hears(["\u{1F4B0} \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C", "\u{1F4B0} \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u0431\u0430\u043B\u0430\u043D\u0441", "\u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u0431\u0430\u043B\u0430\u043D\u0441", "\u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C", "\u0411\u0430\u043B\u0430\u043D\u0441", /^(💰\s*Пополнить|Пополнить|Баланс)/i], async (ctx) => {
       return ctx.scene.enter(DEPOSIT_WIZARD);
     });
-    bot.hears("\u{1F198} \u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", async (ctx) => {
-      await ctx.reply(
-        "\u{1F3A7} <b>\u042F \u0432\u0441\u0435\u0433\u0434\u0430 \u043D\u0430 \u0441\u0432\u044F\u0437\u0438!</b>\n\n\u041F\u0440\u043E\u0441\u0442\u043E \u043D\u0430\u043F\u0438\u0448\u0438\u0442\u0435 \u0432\u0430\u0448 \u0432\u043E\u043F\u0440\u043E\u0441, \u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0444\u043E\u0442\u043E \u0438\u043B\u0438 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u043E\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u043F\u0440\u044F\u043C\u043E \u0432 \u044D\u0442\u043E\u0442 \u0447\u0430\u0442, \u0438 \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440 \u043E\u0442\u0432\u0435\u0442\u0438\u0442 \u0432\u0430\u043C \u0437\u0434\u0435\u0441\u044C \u0436\u0435.",
-        { parse_mode: "HTML" }
-      );
+    bot.command(["deposit", "pay", "balance"], async (ctx) => {
+      return ctx.scene.enter(DEPOSIT_WIZARD);
     });
-    bot.hears("\u{1F465} \u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044B", async (ctx) => {
+    bot.hears(["\u{1F198} \u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", "\u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", "\u{1F198} \u041F\u043E\u043C\u043E\u0449\u044C", "\u041F\u043E\u043C\u043E\u0449\u044C", "\u041E\u043F\u0435\u0440\u0430\u0442\u043E\u0440", /^(🆘\s*Поддержка|Поддержка|Помощь)/i], async (ctx) => {
+      return sendSupportPrompt(ctx);
+    });
+    bot.command(["support", "help"], async (ctx) => {
+      return sendSupportPrompt(ctx);
+    });
+    bot.hears(["\u{1F465} \u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044B", "\u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044B", "\u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044C\u043D\u0430\u044F \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u0430", "\u041F\u0430\u0440\u0442\u043D\u0435\u0440\u0430\u043C", /^(👥\s*Рефералы|Рефералы)/i], async (ctx) => {
       return ctx.scene.enter(REFERRAL_WIZARD);
     });
-    bot.hears("\u{1F4E6} \u041C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B", async (ctx) => {
-      if (!ctx.from) return;
-      const tgId = String(ctx.from.id);
-      const user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId4 } });
-      if (!user) return ctx.reply("\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 /start \u0434\u043B\u044F \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438.");
-      const orders = await db.order.findMany({
-        where: { userId: user.id },
-        take: 10,
-        orderBy: { createdAt: "desc" },
-        include: { service: { select: { name: true } } }
-      });
-      if (orders.length === 0) {
-        return ctx.reply("\u{1F4E6} \u0423 \u0432\u0430\u0441 \u043F\u043E\u043A\u0430 \u043D\u0435\u0442 \u0437\u0430\u043A\u0430\u0437\u043E\u0432.");
-      }
-      const statusEmoji = {
-        "PENDING": "\u{1F550}",
-        "IN_PROGRESS": "\u{1F504}",
-        "COMPLETED": "\u2705",
-        "PARTIAL": "\u26A0\uFE0F",
-        "CANCELED": "\u274C",
-        "ERROR": "\u{1F534}",
-        "AWAITING_PAYMENT": "\u{1F4B3}",
-        "PROVISIONING": "\u23F3"
-      };
-      let text = "\u{1F4E6} <b>\u0412\u0430\u0448\u0438 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0435 \u0437\u0430\u043A\u0430\u0437\u044B:</b>\n\n";
-      for (const o of orders) {
-        const emoji = statusEmoji[o.status] || "\u2753";
-        text += `${emoji} #${o.numericId} \u2014 ${o.service?.name || "\u0423\u0441\u043B\u0443\u0433\u0430"}
-   ${o.quantity} \u0448\u0442. | ${(Number(o.charge) / 100).toFixed(2)}\u20BD | ${o.status}
-
-`;
-      }
-      await ctx.reply(text, { parse_mode: "HTML" });
+    bot.command(["ref", "referral"], async (ctx) => {
+      return ctx.scene.enter(REFERRAL_WIZARD);
+    });
+    bot.hears(["\u{1F4E6} \u041C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B", "\u041C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B", "\u0417\u0430\u043A\u0430\u0437\u044B", "\u0418\u0441\u0442\u043E\u0440\u0438\u044F \u0437\u0430\u043A\u0430\u0437\u043E\u0432", /^(📦\s*Мои заказы|Мои заказы|Заказы)/i], async (ctx) => {
+      return sendUserOrders(ctx);
+    });
+    bot.command(["orders", "myorders"], async (ctx) => {
+      return sendUserOrders(ctx);
     });
     bot.action(/^rate:([^:]+):(\d+)$/, async (ctx) => {
       if (!ctx.match) return;
@@ -139688,6 +139975,10 @@ init_index();
 0 && (module.exports = {
   bot,
   launchBot,
+  sendFastOrderPrompt,
+  sendNetworkCatalogMenu,
+  sendSupportPrompt,
+  sendUserOrders,
   sendUserProfile
 });
 /*! Bundled license information:

@@ -121,7 +121,11 @@ referralWizard.command('cancel', async (ctx: BotContext) => {
   return ctx.scene.leave();
 });
 
-referralWizard.hears(['🛍 Каталог услуг', '👤 Профиль', '🆘 Поддержка', '💰 Пополнить', '👥 Рефералы', '📦 Мои заказы', '/start', '/shop', '/bind'], async (ctx: BotContext, next) => {
-  await ctx.scene.leave();
+referralWizard.hears(/(.+)/, async (ctx: BotContext, next) => {
+  const text = (ctx.message && 'text' in ctx.message && typeof ctx.message.text === 'string') ? ctx.message.text : '';
+  const { handleWizardMenuNavigation } = await import('../utils/menu-navigation');
+  if (await handleWizardMenuNavigation(ctx, text)) {
+    return;
+  }
   return next();
 });

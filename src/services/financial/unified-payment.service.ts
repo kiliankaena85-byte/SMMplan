@@ -74,6 +74,19 @@ export class UnifiedPaymentService {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error('[UnifiedPayment] System error:', msg);
+
+      try {
+        const { sendAdminAlert } = await import('@/lib/notifications');
+        sendAdminAlert(
+          `💳 <b>[FINANCE ALERT: Ошибка создания платежа]</b>\n\n` +
+          `👤 <b>Пользователь:</b> <code>${userId}</code>\n` +
+          `💰 <b>Сумма:</b> <b>${amountRub} ₽</b>\n` +
+          `🏛️ <b>Шлюз:</b> <b>${gateway}</b>\n` +
+          `⚠️ <b>Ошибка:</b> <code>${msg || 'Ошибка платежного шлюза'}</code>`,
+          'WARNING'
+        );
+      } catch { /* alert must not throw */ }
+
       return { success: false, error: msg || 'Ошибка платежного шлюза' };
     }
   }

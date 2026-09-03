@@ -127,6 +127,20 @@ bot.catch(async (err: unknown, ctx: unknown) => {
       });
     } catch { /* error logging must never crash the bot */ }
 
+    // Instant alert to Admin Channel for any user-facing crash
+    try {
+      const { sendAdminAlert } = await import('@/lib/notifications');
+      sendAdminAlert(
+        `🤖 <b>[BOT ERROR: Необработанная ошибка бота]</b>\n\n` +
+        `👤 <b>TG ID:</b> <code>${contextObj?.from?.id || '—'}</code>\n` +
+        `📍 <b>Тип события:</b> <code>${contextObj?.updateType || 'unknown'}</code>\n` +
+        `⚠️ <b>Ошибка:</b> <code>${escapeHtml(description || 'Unknown error')}</code>\n` +
+        (errorObj?.stack ? `<pre>${escapeHtml(errorObj.stack.slice(0, 300))}</pre>` : ''),
+        'CRITICAL',
+        botTenantId
+      );
+    } catch { /* alert failure must never crash */ }
+
     if (contextObj && typeof contextObj.reply === 'function') {
       await contextObj.reply('⚠️ Произошла техническая ошибка. Мы уже исправляем её.').catch(() => {});
     }
@@ -331,7 +345,8 @@ bot.start(async (ctx: BotContext) => {
   const isOwner = await isOwnerOrAdmin(tgId);
   const inlineRows = [
     [Markup.button.callback('🚀 Быстрый заказ по ссылке', 'start_fast_order')],
-    [Markup.button.callback('🛍 Каталог услуг', 'shop'), Markup.button.callback('👤 Личный кабинет', 'profile')],
+    [Markup.button.callback('🛍 Каталог услуг', 'shop'), Markup.button.callback('💰 Пополнить баланс', 'deposit')],
+    [Markup.button.callback('👤 Личный кабинет', 'profile'), Markup.button.callback('📦 Мои заказы', 'my_orders')],
     [Markup.button.callback('🔗 Привязать аккаунт', 'bind_account'), Markup.button.callback('🆘 Поддержка', 'support')]
   ];
 
@@ -341,9 +356,14 @@ bot.start(async (ctx: BotContext) => {
 
   const startInline = Markup.inlineKeyboard(inlineRows);
 
+  // Send reply keyboard to guarantee bottom persistent keyboard in Telegram client
+  await ctx.reply('🤖 <i>Главное меню SMMplan</i>', {
+    parse_mode: 'HTML',
+    ...keyboard
+  }).catch(() => {});
+
   return ctx.reply(formattedWelcome, {
     parse_mode: 'HTML',
-    ...keyboard,
     ...startInline
   });
 });
@@ -402,7 +422,7 @@ async function getDynamicKeyboard(tgId?: string | number) {
   return Markup.keyboard(baseGrid).resize();
 }
 
-async function sendNetworkCatalogMenu(ctx: BotContext, isEdit = false) {
+export async function sendNetworkCatalogMenu(ctx: BotContext, isEdit = false) {
   try {
     const networks = await BotCatalogService.getVisibleNetworks(botTenantId);
     if (networks.length === 0) {
@@ -442,7 +462,7 @@ async function sendNetworkCatalogMenu(ctx: BotContext, isEdit = false) {
   }
 }
 
-async function sendFastOrderPrompt(ctx: BotContext) {
+export async function sendFastOrderPrompt(ctx: BotContext) {
   await ctx.reply(
     '🚀 <b>Быстрый заказ по ссылке</b>\n\n' +
     'Отправьте в ответ ссылку на ваш объект продвижения прямо в этот чат:\n' +
@@ -475,11 +495,11 @@ bot.action('cancel_fast_order', async (ctx: BotContext) => {
   await ctx.editMessageText('❌ Ожидание ссылки отменено. Вы можете воспользоваться меню ниже:').catch(() => {});
 });
 
-bot.command('shop', async (ctx: BotContext) => {
+bot.command(['shop', 'catalog'], async (ctx: BotContext) => {
   await sendNetworkCatalogMenu(ctx, false);
 });
 
-bot.hears('🛍 Каталог услуг', async (ctx: BotContext) => {
+bot.hears(['🛍 Каталог услуг', 'Каталог услуг', '🛍 Каталог', 'Каталог', /^(🛍\s*Каталог|Каталог)/i], async (ctx: BotContext) => {
   await sendNetworkCatalogMenu(ctx, false);
 });
 
@@ -516,9 +536,10 @@ export async function sendUserProfile(ctx: BotContext) {
   });
 }
 
-bot.hears('👤 Профиль', sendUserProfile);
+bot.hears(['👤 Профиль', 'Профиль', '👤 Личный кабинет', 'Личный кабинет', 'Кабинет', /^(👤\s*Профиль|Профиль|Личный кабинет)/i], sendUserProfile);
+bot.command(['profile', 'me', 'account'], sendUserProfile);
 
-bot.hears(['👑 Пульт Овнера', 'Пульт Овнера', '⚙️ Админка', '👑 Пульт управления', 'Админка'], async (ctx: BotContext) => {
+bot.hears(['👑 Пульт Овнера', 'Пульт Овнера', '⚙️ Админка', '👑 Пульт управления', 'Админка', /^(👑\s*Пульт|Пульт Овнера)/i], async (ctx: BotContext) => {
   if (!ctx.from || !(await isOwnerOrAdmin(ctx.from.id))) {
     return ctx.reply('⛔ Доступ ограничен. Этот раздел доступен только владельцу платформы.');
   }
@@ -828,20 +849,15 @@ bot.action(/^order_svc_(.+)$/, async (ctx: BotContext) => {
   });
 });
 
-bot.hears('💰 Пополнить', async (ctx: BotContext) => {
-  return ctx.scene.enter(DEPOSIT_WIZARD);
-});
-bot.hears('🆘 Поддержка', async (ctx: BotContext) => {
+export async function sendSupportPrompt(ctx: BotContext) {
   await ctx.reply(
     '🎧 <b>Я всегда на связи!</b>\n\n' +
     'Просто напишите ваш вопрос, отправьте фото или голосовое сообщение прямо в этот чат, и оператор ответит вам здесь же.',
     { parse_mode: 'HTML' }
   );
-});
-bot.hears('👥 Рефералы', async (ctx: BotContext) => {
-  return ctx.scene.enter(REFERRAL_WIZARD);
-});
-bot.hears('📦 Мои заказы', async (ctx: BotContext) => {
+}
+
+export async function sendUserOrders(ctx: BotContext) {
   if (!ctx.from) return;
   const tgId = String(ctx.from.id);
   const user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
@@ -872,6 +888,36 @@ bot.hears('📦 Мои заказы', async (ctx: BotContext) => {
   }
 
   await ctx.reply(text, { parse_mode: 'HTML' });
+}
+
+// ── ROBUST MULTI-ALIAS MENU HANDLERS ──
+
+bot.hears(['💰 Пополнить', '💰 Пополнить баланс', 'Пополнить баланс', 'Пополнить', 'Баланс', /^(💰\s*Пополнить|Пополнить|Баланс)/i], async (ctx: BotContext) => {
+  return ctx.scene.enter(DEPOSIT_WIZARD);
+});
+bot.command(['deposit', 'pay', 'balance'], async (ctx: BotContext) => {
+  return ctx.scene.enter(DEPOSIT_WIZARD);
+});
+
+bot.hears(['🆘 Поддержка', 'Поддержка', '🆘 Помощь', 'Помощь', 'Оператор', /^(🆘\s*Поддержка|Поддержка|Помощь)/i], async (ctx: BotContext) => {
+  return sendSupportPrompt(ctx);
+});
+bot.command(['support', 'help'], async (ctx: BotContext) => {
+  return sendSupportPrompt(ctx);
+});
+
+bot.hears(['👥 Рефералы', 'Рефералы', 'Реферальная программа', 'Партнерам', /^(👥\s*Рефералы|Рефералы)/i], async (ctx: BotContext) => {
+  return ctx.scene.enter(REFERRAL_WIZARD);
+});
+bot.command(['ref', 'referral'], async (ctx: BotContext) => {
+  return ctx.scene.enter(REFERRAL_WIZARD);
+});
+
+bot.hears(['📦 Мои заказы', 'Мои заказы', 'Заказы', 'История заказов', /^(📦\s*Мои заказы|Мои заказы|Заказы)/i], async (ctx: BotContext) => {
+  return sendUserOrders(ctx);
+});
+bot.command(['orders', 'myorders'], async (ctx: BotContext) => {
+  return sendUserOrders(ctx);
 });
 
 // ── CSAT RATING CALLBACK ──

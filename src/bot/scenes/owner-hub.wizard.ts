@@ -377,17 +377,15 @@ ownerHubWizard.action('owner_magic_link', async (ctx) => {
     try {
       await ctx.editMessageText(text, {
         parse_mode: 'HTML',
-        // @ts-expect-error — Telegraf types lag behind Bot API
         link_preview_options: { is_disabled: true },
         ...keyboard
-      });
+      } as any);
     } catch {
       await ctx.reply(text, {
         parse_mode: 'HTML',
-        // @ts-expect-error — Telegraf types lag behind Bot API
         link_preview_options: { is_disabled: true },
         ...keyboard
-      });
+      } as any);
     }
   } catch (err: any) {
     await ctx.reply(`⚠️ Ошибка генерации ссылки: ${err.message}`);

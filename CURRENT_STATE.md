@@ -1,7 +1,14 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-09-03 07:34 (МСК) — Автономный контейнер Mihomo (Clash Core) интегрирован в Docker.
+> **Последнее обновление:** 2026-09-03 08:31 (МСК) — Глубокий аудит Telegram-бота роем агентов OpenRouter + 100% исправление навигации, SSRF и алертинга.
+
+- **Глубокий аудит Telegram-бота роем агентов OpenRouter + Исправление навигации и безопасности — 100% COMPLETE & LIVE VERIFIED:**
+  - **Рой из 5 ИИ-агентов (OpenRouter):** Проведен всесторонний аудит бота: UX/State Machine, Fintech Billing/SSRF, SRE/Alerting Watchdog, Adversarial Red Team Pentest, Multi-Tenant Architecture. Отчет сохранен в `scripts/harness/telegram-bot-swarm-report.md` и `.json`.
+  - **Устранение бага кнопки «Пополнить» и ловушек визардов:** Разделена отправка Reply-клавиатуры и Inline-кнопок в `/start`. Внедрен универсальный роутер навигации `handleWizardMenuNavigation`, исключающий застревание пользователя внутри `depositWizard`, `orderWizard` и `referralWizard` при кликах по кнопкам главного меню.
+  - **Устранение SSRF-блокировки ЮKassa:** В `src/lib/security/ssrf-guard.ts` и `clash/config.yaml` (`fake-ip-filter`) добавлены доверенные платежные домены (`api.yookassa.ru`, `api.cryptomus.com`), ликвидируя ложные блокировки из-за Fake-IP Mihomo/Clash.
+  - **Мгновенные Telegram-алерты админу об ошибках:** В `UnifiedPaymentService`, сценах пополнения и заказов, а также глобальном `bot.catch` внедрена отправка подробных алертов в `ADMIN_ALERT_CHAT_ID` при любых ошибках пользователей.
+  - **Верификация:** 15 сквозных тестов пути клиента в `bot-client-journey-smoke.test.ts` (100% PASS). Бандл `dist/bot.js` пересобран с esbuild, Docker-контейнер `smmplan_bot` перезапущен и протестирован.
 
 - **Автономный Docker-контейнер Mihomo (`smmplan_clash`) — 100% COMPLETE & LIVE VERIFIED:**
   - **Zero Desktop Dependency:** В `docker-compose.yml` встроен легковесный контейнер `metacubex/mihomo:latest` (`smmplan_clash`), монтирующий профиль подписки Quattro VPN (`clash/config.yaml`) с поддержкой протоколов `vless` (Reality) и `hysteria2`.

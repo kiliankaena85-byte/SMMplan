@@ -30,6 +30,11 @@ dns:
     - 8.8.8.8
     - 1.1.1.1
   fake-ip-filter:
+    - "+.yookassa.ru"
+    - "+.yoomoney.ru"
+    - "+.robokassa.ru"
+    - "+.roboxchange.com"
+    - "+.cryptomus.com"
     - "*.lan"
     - stun.*.*.*
     - stun.*.*
