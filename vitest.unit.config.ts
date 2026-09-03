@@ -94,6 +94,7 @@ export default defineConfig({
       'src/__tests__/telegram-bot-referral-wizard.test.ts',
       'src/bot/__tests__/bot-admin-settings-ecosystem.test.ts',
       'src/bot/__tests__/bot-interactive-buttons-and-error-ux.test.ts',
+      'src/bot/__tests__/multi-bot-constructor.test.ts',
     ],
   }
 });

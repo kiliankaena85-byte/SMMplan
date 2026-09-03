@@ -1791,7 +1791,38 @@ model ReconciliationReport {
   @@map("reconciliation_report")
 }
 
-// ── Telegram Enterprise Models ──
+// ── Telegram Enterprise Models & Bot Constructor ──
+
+enum TelegramBotRole {
+  STORE_FULL        // Магазин SMM (Каталог, заказы, пополнение, профиль)
+  SUPPORT_ONLY      // Только поддержка (Тикеты, диалог с саппортом, CSAT, FAQ)
+  NEWS_BROADCAST    // Новости и рассылки (Канал, акции, промокоды)
+  STAFF_ADMIN       // Пульт для сотрудников (DevOps, статус контейнеров, алерты)
+  CUSTOM_BUILDER    // Свободный конструктор (Кастомные сценарии и флоу)
+}
+
+model TelegramBotInstance {
+  id              String          @id @default(cuid())
+  tenantId        String          @default("smmplan")
+  name            String          // Понятное название ("Бот поддержки SMMplan")
+  username        String?         // Юзернейм бота без @ ("smmplan_support_bot")
+  tokenEncrypted  String          // AES-256-GCM шифрованный токен (VaultService)
+  role            TelegramBotRole @default(CUSTOM_BUILDER)
+  description     String?         // Описание назначения бота
+  isActive        Boolean         @default(true)
+  maintenanceMode Boolean         @default(false)
+  welcomeMessage  String?         // Текст приветствия /start
+  menuConfig      Json?           // Сетка кнопок нижнего меню (TelegramMenuButton[])
+  templates       Json?           // Кастомные шаблоны сообщений
+  flowConfig      Json?           // Сценарии и цепочки шагов конструктора (BotFlowStep[])
+  allowedUserIds  String?         // JSON array Telegram ID для роли STAFF_ADMIN
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([tenantId])
+  @@index([role])
+  @@index([isActive])
+}
 
 model TelegramButton {
   id           String   @id @default(cuid())

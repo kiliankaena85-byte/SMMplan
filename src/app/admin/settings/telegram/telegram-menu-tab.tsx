@@ -41,6 +41,7 @@ interface TelegramMenuTabProps {
 }
 
 const ACTION_LABELS: Record<TelegramMenuButtonAction, { label: string; icon: React.ComponentType<{ className?: string }>; desc: string }> = {
+  FAST_ORDER: { label: 'Быстрый заказ по ссылке', icon: Zap, desc: 'Запрашивает ссылку на соцсеть и запускает быстрый заказ' },
   CATALOG: { label: 'Каталог услуг', icon: ShoppingBag, desc: 'Открывает интерактивное меню выбора соцсетей и услуг' },
   ORDERS: { label: 'Мои заказы', icon: Package, desc: 'Показывает последние 5 активных заказов пользователя' },
   REFILL: { label: 'Пополнить баланс', icon: Wallet, desc: 'Запускает пошаговый мастер пополнения (ЮKassa/Crypto)' },

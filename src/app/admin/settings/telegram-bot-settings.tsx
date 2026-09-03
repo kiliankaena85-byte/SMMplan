@@ -61,6 +61,7 @@ import { StatisticsPanel } from './telegram/statistics-panel';
 import { ErrorTracker } from './telegram/error-tracker';
 import { SecurityPanel } from './telegram/security-panel';
 import { TelegramLivePreview } from './telegram/telegram-live-preview';
+import { BotConstructorTab } from './telegram/bot-constructor-tab';
 
 interface TelegramBotSettingsProps {
   settings: SystemSettings;
@@ -68,6 +69,7 @@ interface TelegramBotSettingsProps {
 }
 
 export type TelegramSubTab = 
+  | 'bots'
   | 'general' 
   | 'menu' 
   | 'templates' 
@@ -79,7 +81,7 @@ export type TelegramSubTab =
   | 'security';
 
 export function TelegramBotSettings({ settings, tenantId = 'smmplan' }: TelegramBotSettingsProps) {
-  const [activeTab, setActiveTab] = useState<TelegramSubTab>('general');
+  const [activeTab, setActiveTab] = useState<TelegramSubTab>('bots');
   const [diagnostics, setDiagnostics] = useState<TelegramBotDiagnostics | null>(null);
   const [loadingDiag, setLoadingDiag] = useState(false);
   const [isPendingReset, startTransitionReset] = useTransition();
@@ -319,8 +321,22 @@ export function TelegramBotSettings({ settings, tenantId = 'smmplan' }: Telegram
         </div>
       </Card>
 
-      {/* ── 2. INNER NAVIGATION TABS (9 ENTERPRISE SUBTABS) ── */}
+      {/* ── 2. INNER NAVIGATION TABS (ENTERPRISE SUBTABS) ── */}
       <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-muted/30 border border-border/60 overflow-x-auto w-full min-w-0 no-scrollbar snap-x snap-mandatory">
+        <button
+          type="button"
+          onClick={() => setActiveTab('bots')}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 snap-start whitespace-nowrap ${
+            activeTab === 'bots'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <Bot className="w-3.5 h-3.5" />
+          <span>Конструктор ботов</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-emerald-500 text-white font-mono font-extrabold">NEW</span>
+        </button>
+
         <button
           type="button"
           onClick={() => setActiveTab('general')}
@@ -439,12 +455,15 @@ export function TelegramBotSettings({ settings, tenantId = 'smmplan' }: Telegram
         </button>
       </div>
 
-      {/* ── 3. TWO-COLUMN WORKSPACE: TAB CONTENT (7 cols) + LIVE SIMULATOR (5 cols) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column (7 cols) */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* TAB 1: CONNECTION & DIAGNOSTICS */}
-          {activeTab === 'general' && (
+      {/* ── 3. BOT CONSTRUCTOR (FULL WIDTH) OR TWO-COLUMN WORKSPACE ── */}
+      {activeTab === 'bots' ? (
+        <BotConstructorTab tenantId={tenantId} />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column (7 cols) */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* TAB 1: CONNECTION & DIAGNOSTICS */}
+            {activeTab === 'general' && (
             <ConnectionPanel 
               settings={settings} 
               tenantId={tenantId}
@@ -521,6 +540,7 @@ export function TelegramBotSettings({ settings, tenantId = 'smmplan' }: Telegram
           />
         </div>
       </div>
+      )}
     </div>
   );
 }

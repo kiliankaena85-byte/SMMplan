@@ -242,6 +242,7 @@ export interface TelegramActionResponse {
 // ── Enterprise Menu & CSAT Types & Constants ──
 
 export type TelegramMenuButtonAction = 
+  | 'FAST_ORDER'    // 🚀 Быстрый заказ по ссылке
   | 'CATALOG'       // 🛍 Каталог услуг
   | 'ORDERS'        // 📦 Мои заказы
   | 'REFILL'        // 💰 Пополнить

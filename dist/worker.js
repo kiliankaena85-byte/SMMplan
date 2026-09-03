@@ -137863,15 +137863,15 @@ var init_payment_gateway_service = __esm({
               ids.push(params.orderId);
             }
           }
-          const basketOrders2 = await tx.order.findMany({
+          const basketOrders = await tx.order.findMany({
             where: { paymentId: params.paymentId, status: "AWAITING_PAYMENT" }
           });
-          if (basketOrders2.length > 0) {
+          if (basketOrders.length > 0) {
             await tx.order.updateMany({
               where: { paymentId: params.paymentId, status: "AWAITING_PAYMENT" },
               data: { status: "PENDING" }
             });
-            for (const order of basketOrders2) {
+            for (const order of basketOrders) {
               if (order.promoCodeId) {
                 const promo = await tx.promoCode.findUnique({
                   where: { id: order.promoCodeId },
@@ -137896,7 +137896,7 @@ var init_payment_gateway_service = __esm({
                 }
               }
             }
-            ids.push(...basketOrders2.map((o) => o.id));
+            ids.push(...basketOrders.map((o) => o.id));
           }
           return ids;
         }, { isolationLevel: "Serializable", timeout: 15e3 });
@@ -138176,6 +138176,172 @@ var init_utils = __esm({
   "src/lib/utils.ts"() {
     "use strict";
     init_clsx();
+  }
+});
+
+// src/types/telegram.ts
+var DEFAULT_TELEGRAM_MENU_BUTTONS, DEFAULT_TELEGRAM_RATING_REASONS, DEFAULT_TELEGRAM_MESSAGE_TEMPLATES;
+var init_telegram = __esm({
+  "src/types/telegram.ts"() {
+    "use strict";
+    DEFAULT_TELEGRAM_MENU_BUTTONS = [
+      { id: "btn_1", label: "\u{1F6CD} \u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433", action: "CATALOG", row: 0, col: 0, isActive: true },
+      { id: "btn_2", label: "\u{1F4E6} \u041C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B", action: "ORDERS", row: 0, col: 1, isActive: true },
+      { id: "btn_3", label: "\u{1F4B0} \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C", action: "REFILL", row: 1, col: 0, isActive: true },
+      { id: "btn_4", label: "\u{1F464} \u041F\u0440\u043E\u0444\u0438\u043B\u044C", action: "PROFILE", row: 1, col: 1, isActive: true },
+      { id: "btn_5", label: "\u{1F198} \u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", action: "SUPPORT", row: 2, col: 0, isActive: true },
+      { id: "btn_6", label: "\u{1F465} \u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044B", action: "REFERRALS", row: 2, col: 1, isActive: true }
+    ];
+    DEFAULT_TELEGRAM_RATING_REASONS = {
+      negative: ["\u0414\u043E\u043B\u0433\u0438\u0439 \u043E\u0442\u0432\u0435\u0442", "\u041F\u0440\u043E\u0431\u043B\u0435\u043C\u0430 \u043D\u0435 \u0440\u0435\u0448\u0435\u043D\u0430", "\u0413\u0440\u0443\u0431\u043E\u0441\u0442\u044C \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u0430", "\u0422\u0435\u0445\u043D\u0438\u0447\u0435\u0441\u043A\u0438\u0439 \u0441\u0431\u043E\u0439"],
+      neutral: ["\u0414\u043E\u043B\u0433\u043E \u0440\u0435\u0448\u0430\u043B\u0438", "\u041D\u0435\u043F\u043E\u043B\u043D\u044B\u0439 \u043E\u0442\u0432\u0435\u0442", "\u0421\u043B\u043E\u0436\u043D\u044B\u0439 \u043F\u0440\u043E\u0446\u0435\u0441\u0441", "\u041C\u0430\u043B\u043E \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u0438"],
+      positive: ["\u0411\u044B\u0441\u0442\u0440\u044B\u0439 \u043E\u0442\u0432\u0435\u0442", "\u0412\u0435\u0436\u043B\u0438\u0432\u044B\u0439 \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440", "\u041F\u0440\u043E\u0431\u043B\u0435\u043C\u0430 \u0440\u0435\u0448\u0435\u043D\u0430 \u043D\u0430 100%", "\u041F\u043E\u043D\u044F\u0442\u043D\u0430\u044F \u0438\u043D\u0441\u0442\u0440\u0443\u043A\u0446\u0438\u044F", "\u041E\u0442\u043B\u0438\u0447\u043D\u044B\u0439 \u0441\u0435\u0440\u0432\u0438\u0441"]
+    };
+    DEFAULT_TELEGRAM_MESSAGE_TEMPLATES = {
+      welcome: "\u{1F44B} <b>\u0414\u043E\u0431\u0440\u043E \u043F\u043E\u0436\u0430\u043B\u043E\u0432\u0430\u0442\u044C \u0432 {siteName}!</b>\n\n\u041F\u043B\u0430\u0442\u0444\u043E\u0440\u043C\u0430 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u043E\u0433\u043E \u043F\u0440\u043E\u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F \u0432 \u0441\u043E\u0446\u0438\u0430\u043B\u044C\u043D\u044B\u0445 \u0441\u0435\u0442\u044F\u0445.\n\n\u{1F4B0} \u0412\u0430\u0448 \u0431\u0430\u043B\u0430\u043D\u0441: <b>{balance} \u20BD</b>\n\n\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u0432 \u043C\u0435\u043D\u044E \u043D\u0438\u0436\u0435:",
+      ticketClosedRating: "\u2705 <b>\u0412\u0430\u0448 \u0432\u043E\u043F\u0440\u043E\u0441 \u0440\u0435\u0448\u0451\u043D \u0438 \u0442\u0438\u043A\u0435\u0442 #{ticketId} \u0437\u0430\u043A\u0440\u044B\u0442.</b>\n\n\u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u043E\u0446\u0435\u043D\u0438\u0442\u0435 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u043E \u0440\u0430\u0431\u043E\u0442\u044B \u0441\u043B\u0443\u0436\u0431\u044B \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0438:",
+      ratingThanks: "\u2B50 <b>\u0421\u043F\u0430\u0441\u0438\u0431\u043E \u0437\u0430 \u0432\u0430\u0448\u0443 \u043E\u0446\u0435\u043D\u043A\u0443 {stars}!</b>\n\n\u0412\u0430\u0448 \u043E\u0442\u0437\u044B\u0432 \u043F\u043E\u043C\u043E\u0433\u0430\u0435\u0442 \u043D\u0430\u043C \u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C\u0441\u044F \u043B\u0443\u0447\u0448\u0435. \u0415\u0441\u043B\u0438 \u0443 \u0432\u0430\u0441 \u0432\u043E\u0437\u043D\u0438\u043A\u043D\u0443\u0442 \u043D\u043E\u0432\u044B\u0435 \u0432\u043E\u043F\u0440\u043E\u0441\u044B, \u043F\u0440\u043E\u0441\u0442\u043E \u043D\u0430\u043F\u0438\u0448\u0438\u0442\u0435 \u0432 \u044D\u0442\u043E\u0442 \u0447\u0430\u0442.",
+      delayWarning: "\u23F3 <b>\u0412\u043D\u0438\u043C\u0430\u043D\u0438\u0435: \u0432\u044B\u0441\u043E\u043A\u0430\u044F \u043D\u0430\u0433\u0440\u0443\u0437\u043A\u0430</b>\n\n\u0412 \u0441\u0432\u044F\u0437\u0438 \u0441 \u043F\u0438\u043A\u043E\u0432\u043E\u0439 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u043E\u0439 \u0432\u0440\u0435\u043C\u044F \u043E\u0442\u0432\u0435\u0442\u0430 \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u0430 \u043C\u043E\u0436\u0435\u0442 \u0441\u043E\u0441\u0442\u0430\u0432\u043B\u044F\u0442\u044C \u0434\u043E 15 \u043C\u0438\u043D\u0443\u0442. \u041C\u044B \u0443\u0436\u0435 \u0437\u0430\u043D\u0438\u043C\u0430\u0435\u043C\u0441\u044F \u0432\u0430\u0448\u0438\u043C \u0432\u043E\u043F\u0440\u043E\u0441\u043E\u043C!",
+      paymentIssue: "\u{1F4B3} <b>\u0412\u043E\u043F\u0440\u043E\u0441 \u043F\u043E \u043E\u043F\u043B\u0430\u0442\u0435 \u0437\u0430\u043A\u0430\u0437\u0430 #{orderId}</b>\n\n\u041C\u044B \u043F\u0440\u043E\u0432\u0435\u0440\u044F\u0435\u043C \u0441\u0442\u0430\u0442\u0443\u0441 \u043F\u043B\u0430\u0442\u0435\u0436\u0430 \u0447\u0435\u0440\u0435\u0437 \u0431\u0430\u043D\u043A\u043E\u0432\u0441\u043A\u0438\u0439 \u0448\u043B\u044E\u0437. \u0421\u0440\u0435\u0434\u0441\u0442\u0432\u0430 \u0431\u0443\u0434\u0443\u0442 \u0437\u0430\u0447\u0438\u0441\u043B\u0435\u043D\u044B \u0432 \u0442\u0435\u0447\u0435\u043D\u0438\u0435 \u043D\u0435\u0441\u043A\u043E\u043B\u044C\u043A\u0438\u0445 \u043C\u0438\u043D\u0443\u0442.",
+      serviceRefill: "\u{1F504} <b>\u0413\u0430\u0440\u0430\u043D\u0442\u0438\u0439\u043D\u0430\u044F \u0434\u043E\u043A\u0440\u0443\u0442\u043A\u0430 \u0437\u0430\u043F\u0443\u0449\u0435\u043D\u0430</b>\n\n\u041F\u043E \u0432\u0430\u0448\u0435\u043C\u0443 \u0437\u0430\u043A\u0430\u0437\u0443 #{orderId} \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u0435\u043D \u0437\u0430\u043F\u0440\u043E\u0441 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0443 \u043D\u0430 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0441\u043F\u0438\u0441\u0430\u043D\u043D\u044B\u0445 \u043F\u043E\u043A\u0430\u0437\u0430\u0442\u0435\u043B\u0435\u0439.",
+      refundNotice: "\u{1F4B8} <b>\u0412\u043E\u0437\u0432\u0440\u0430\u0442 \u0441\u0440\u0435\u0434\u0441\u0442\u0432 \u043E\u0444\u043E\u0440\u043C\u043B\u0435\u043D</b>\n\n\u041F\u043E \u0442\u0438\u043A\u0435\u0442\u0443 #{ticketId} \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D \u0432\u043E\u0437\u0432\u0440\u0430\u0442 \u043D\u0430 \u0431\u0430\u043B\u0430\u043D\u0441 \u0432 \u0440\u0430\u0437\u043C\u0435\u0440\u0435 <b>{amount} \u20BD</b>."
+    };
+  }
+});
+
+// src/bot/services/bot-settings.service.ts
+var bot_settings_service_exports = {};
+__export2(bot_settings_service_exports, {
+  BotSettingsService: () => BotSettingsService
+});
+var CACHE_TTL_MS2, BotSettingsService;
+var init_bot_settings_service = __esm({
+  "src/bot/services/bot-settings.service.ts"() {
+    "use strict";
+    init_db();
+    init_telegram();
+    CACHE_TTL_MS2 = 3e4;
+    BotSettingsService = class {
+      static {
+        this.cache = /* @__PURE__ */ new Map();
+      }
+      /**
+       * Invalidate settings cache (called by admin actions on update)
+       */
+      static invalidate(tenantId) {
+        if (tenantId) {
+          this.cache.delete(tenantId);
+        } else {
+          this.cache.clear();
+        }
+      }
+      /**
+       * Fetch raw SystemSettings for a specific tenant with memory cache
+       */
+      static async getSettings(tenantId = "smmplan") {
+        const normTenant = tenantId || "smmplan";
+        const now = Date.now();
+        const hit = this.cache.get(normTenant);
+        if (hit && now - hit.cachedAt < CACHE_TTL_MS2) {
+          return hit.settings;
+        }
+        try {
+          const settings = await db.systemSettings.findUnique({
+            where: { id: normTenant }
+          });
+          this.cache.set(normTenant, { settings, cachedAt: now });
+          return settings;
+        } catch (err) {
+          console.error(`[BotSettingsService] Failed to load settings for ${normTenant}:`, err);
+          return hit?.settings || null;
+        }
+      }
+      /**
+       * Get active menu buttons configured in the Admin Panel
+       */
+      static async getMenuButtons(tenantId = "smmplan") {
+        const settings = await this.getSettings(tenantId);
+        const rawButtons = settings?.telegramMenuConfig;
+        if (Array.isArray(rawButtons) && rawButtons.length > 0) {
+          return rawButtons.filter((b) => b.isActive !== false);
+        }
+        return DEFAULT_TELEGRAM_MENU_BUTTONS;
+      }
+      /**
+       * Get message templates configured in the Admin Panel
+       */
+      static async getTemplates(tenantId = "smmplan") {
+        const settings = await this.getSettings(tenantId);
+        const rawTemplates = settings?.telegramTemplates;
+        const base = { ...DEFAULT_TELEGRAM_MESSAGE_TEMPLATES };
+        if (rawTemplates && typeof rawTemplates === "object") {
+          if (rawTemplates.welcome?.trim()) base.welcome = rawTemplates.welcome.trim();
+          if (rawTemplates.ticketClosedRating?.trim()) base.ticketClosedRating = rawTemplates.ticketClosedRating.trim();
+          if (rawTemplates.ratingThanks?.trim()) base.ratingThanks = rawTemplates.ratingThanks.trim();
+          if (rawTemplates.delayWarning?.trim()) base.delayWarning = rawTemplates.delayWarning.trim();
+          if (rawTemplates.paymentIssue?.trim()) base.paymentIssue = rawTemplates.paymentIssue.trim();
+          if (rawTemplates.serviceRefill?.trim()) base.serviceRefill = rawTemplates.serviceRefill.trim();
+          if (rawTemplates.refundNotice?.trim()) base.refundNotice = rawTemplates.refundNotice.trim();
+        } else if (settings?.welcomeMessage?.trim()) {
+          base.welcome = settings.welcomeMessage.trim();
+        }
+        return base;
+      }
+      /**
+       * Get CSAT rating reasons configured in the Admin Panel
+       */
+      static async getRatingReasons(tenantId = "smmplan") {
+        const settings = await this.getSettings(tenantId);
+        const rawReasons = settings?.telegramRatingReasons;
+        if (rawReasons && typeof rawReasons === "object") {
+          return {
+            negative: rawReasons.negative?.length ? rawReasons.negative : DEFAULT_TELEGRAM_RATING_REASONS.negative,
+            neutral: rawReasons.neutral?.length ? rawReasons.neutral : DEFAULT_TELEGRAM_RATING_REASONS.neutral,
+            positive: rawReasons.positive?.length ? rawReasons.positive : DEFAULT_TELEGRAM_RATING_REASONS.positive
+          };
+        }
+        return DEFAULT_TELEGRAM_RATING_REASONS;
+      }
+      /**
+       * Get Security & Maintenance configuration from the Admin Panel
+       */
+      static async getSecurityConfig(tenantId = "smmplan") {
+        const settings = await this.getSettings(tenantId);
+        return {
+          maintenanceMode: settings?.telegramMaintenanceMode ?? false,
+          rateLimitPerMin: settings?.telegramRateLimitPerMin ?? 30,
+          maxMessageLength: settings?.telegramMaxMessageLength ?? 4096,
+          logErrors: settings?.telegramLogErrors ?? true
+        };
+      }
+      /**
+       * Check if maintenance mode is active
+       */
+      static async isMaintenanceActive(tenantId = "smmplan") {
+        const sec = await this.getSecurityConfig(tenantId);
+        return sec.maintenanceMode;
+      }
+      /**
+       * Find a matching configured button by incoming user text.
+       * Matches exact label or normalized emoji-stripped label.
+       */
+      static async findButtonByText(text, tenantId = "smmplan") {
+        const trimmed = (text || "").trim();
+        if (!trimmed) return null;
+        const buttons = await this.getMenuButtons(tenantId);
+        const exact = buttons.find((b) => b.label.trim().toLowerCase() === trimmed.toLowerCase());
+        if (exact) return exact;
+        const cleanInput = trimmed.replace(/^[\p{Emoji}\p{Symbol}\s]+/u, "").toLowerCase().trim();
+        if (cleanInput.length > 2) {
+          const fuzzy = buttons.find((b) => {
+            const cleanLabel = b.label.replace(/^[\p{Emoji}\p{Symbol}\s]+/u, "").toLowerCase().trim();
+            return cleanLabel === cleanInput || cleanLabel.startsWith(cleanInput) || cleanInput.startsWith(cleanLabel);
+          });
+          if (fuzzy) return fuzzy;
+        }
+        return null;
+      }
+    };
   }
 });
 
@@ -138533,6 +138699,16 @@ __export2(menu_navigation_exports, {
 async function handleWizardMenuNavigation(ctx, text) {
   const trimmed = (text || "").trim();
   if (!trimmed) return false;
+  try {
+    const { BotSettingsService: BotSettingsService2 } = await Promise.resolve().then(() => (init_bot_settings_service(), bot_settings_service_exports));
+    const botTenantId5 = process.env.BOT_TENANT_ID || "smmplan";
+    const customBtn = await BotSettingsService2.findButtonByText(trimmed, botTenantId5);
+    if (customBtn) {
+      const { dispatchDynamicMenuAction: dispatchDynamicMenuAction2 } = await Promise.resolve().then(() => (init_bot(), bot_exports));
+      return await dispatchDynamicMenuAction2(ctx, trimmed);
+    }
+  } catch {
+  }
   if (/^(🏠\s*Главное меню|Главная|Старт|\/start|\/menu)/i.test(trimmed)) {
     await ctx.scene.leave();
     const { sendMainMenu: sendMainMenu2 } = await Promise.resolve().then(() => (init_bot(), bot_exports));
@@ -141572,8 +141748,8 @@ var init_support_bot_service = __esm({
         try {
           let ratingText = "\u2705 <b>\u0412\u0430\u0448 \u0432\u043E\u043F\u0440\u043E\u0441 \u0440\u0435\u0448\u0451\u043D \u0438 \u0442\u0438\u043A\u0435\u0442 #{ticketId} \u0437\u0430\u043A\u0440\u044B\u0442.</b>\n\n\u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u043E\u0446\u0435\u043D\u0438\u0442\u0435 \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u043E \u0440\u0430\u0431\u043E\u0442\u044B \u0441\u043B\u0443\u0436\u0431\u044B \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0438:";
           try {
-            const settings = await db.systemSettings.findFirst({ select: { telegramTemplates: true } });
-            const templates = settings?.telegramTemplates;
+            const { BotSettingsService: BotSettingsService2 } = await Promise.resolve().then(() => (init_bot_settings_service(), bot_settings_service_exports));
+            const templates = await BotSettingsService2.getTemplates("smmplan");
             if (templates?.ticketClosedRating) {
               ratingText = templates.ticketClosedRating;
             }
@@ -141652,6 +141828,7 @@ var init_support_bot_service = __esm({
 var bot_exports = {};
 __export2(bot_exports, {
   bot: () => bot,
+  dispatchDynamicMenuAction: () => dispatchDynamicMenuAction,
   launchBot: () => launchBot,
   sendFastOrderPrompt: () => sendFastOrderPrompt,
   sendMainMenu: () => sendMainMenu,
@@ -141670,9 +141847,9 @@ function escapeHtml3(text) {
 }
 async function sendMainMenu(ctx, isEdit = false) {
   if (!ctx.from) return;
-  const tgId = ctx.from.id;
+  const tgId = String(ctx.from.id);
   const tgName = ctx.from.first_name || (ctx.from.username ? `@${ctx.from.username}` : "\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C");
-  const user = await db.user.findFirst({ where: { telegramId: String(tgId), tenantId: botTenantId4 } });
+  const user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId4 } });
   const balanceStr = user ? (Number(user.balance) / 100).toFixed(2) : "0.00";
   let welcomeTpl = `\u{1F44B} <b>{userName}, \u0434\u043E\u0431\u0440\u043E \u043F\u043E\u0436\u0430\u043B\u043E\u0432\u0430\u0442\u044C \u0432 {siteName}!</b>
 
@@ -141686,8 +141863,7 @@ async function sendMainMenu(ctx, isEdit = false) {
 
 <i>\u041B\u0438\u0431\u043E \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043D\u0443\u0436\u043D\u044B\u0439 \u0440\u0430\u0437\u0434\u0435\u043B \u0432 \u043C\u0435\u043D\u044E \u043D\u0438\u0436\u0435:</i>`;
   try {
-    const settings = await db.systemSettings.findFirst({ select: { telegramTemplates: true } });
-    const templates = settings?.telegramTemplates;
+    const templates = await BotSettingsService.getTemplates(botTenantId4);
     if (templates?.welcome && templates.welcome.trim().length > 0) {
       welcomeTpl = sanitizeTelegramTemplate(templates.welcome);
     }
@@ -141734,8 +141910,7 @@ async function getDynamicKeyboard(tgId) {
     ["\u{1F198} \u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", "\u{1F465} \u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044B"]
   ];
   try {
-    const settings = await db.systemSettings.findFirst({ select: { telegramMenuConfig: true } });
-    const buttons = settings?.telegramMenuConfig;
+    const buttons = await BotSettingsService.getMenuButtons(botTenantId4);
     if (Array.isArray(buttons) && buttons.length > 0) {
       const active = buttons.filter((b) => b.isActive !== false);
       if (active.length > 0) {
@@ -141765,6 +141940,86 @@ async function getDynamicKeyboard(tgId) {
     ]).resize();
   }
   return import_telegraf5.Markup.keyboard(baseGrid).resize();
+}
+async function dispatchDynamicMenuAction(ctx, text) {
+  const btn = await BotSettingsService.findButtonByText(text, botTenantId4);
+  if (!btn) return false;
+  if (ctx.scene) {
+    await ctx.scene.leave().catch(() => {
+    });
+  }
+  switch (btn.action) {
+    case "FAST_ORDER":
+      await sendFastOrderPrompt(ctx);
+      return true;
+    case "CATALOG":
+      await sendNetworkCatalogMenu(ctx, false);
+      return true;
+    case "ORDERS":
+      await sendUserOrders(ctx);
+      return true;
+    case "REFILL": {
+      const { DEPOSIT_WIZARD: DEPOSIT_WIZARD2 } = await Promise.resolve().then(() => (init_deposit_wizard(), deposit_wizard_exports));
+      await ctx.scene.enter(DEPOSIT_WIZARD2);
+      return true;
+    }
+    case "PROFILE":
+      await sendUserProfile(ctx);
+      return true;
+    case "SUPPORT":
+      await sendSupportPrompt(ctx);
+      return true;
+    case "REFERRALS": {
+      const { REFERRAL_WIZARD: REFERRAL_WIZARD2 } = await Promise.resolve().then(() => (init_referral_wizard(), referral_wizard_exports));
+      await ctx.scene.enter(REFERRAL_WIZARD2);
+      return true;
+    }
+    case "URL": {
+      const targetUrl = btn.value || `https://${botTenantId4 === "flux" ? "smmflux.ru" : "test.smmplan.pro"}`;
+      await ctx.reply(
+        `\u{1F310} <b>${escapeHtml3(btn.label)}</b>
+
+\u041F\u0435\u0440\u0435\u0439\u0434\u0438\u0442\u0435 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435 \u043D\u0438\u0436\u0435:`,
+        {
+          parse_mode: "HTML",
+          ...import_telegraf5.Markup.inlineKeyboard([[import_telegraf5.Markup.button.url("\u041F\u0435\u0440\u0435\u0439\u0442\u0438 \u043D\u0430 \u0441\u0430\u0439\u0442", targetUrl)]])
+        }
+      );
+      return true;
+    }
+    case "TEXT_REPLY": {
+      const replyText = btn.value || "\u0421\u043F\u0430\u0441\u0438\u0431\u043E \u0437\u0430 \u043E\u0431\u0440\u0430\u0449\u0435\u043D\u0438\u0435!";
+      await ctx.reply(replyText, { parse_mode: "HTML" });
+      return true;
+    }
+    case "COMMAND": {
+      const cmd = (btn.value || "").replace(/^\//, "");
+      if (cmd === "start" || cmd === "menu") {
+        await sendMainMenu(ctx, false);
+        return true;
+      }
+      if (cmd === "help") {
+        await ctx.reply("\u2139\uFE0F <b>\u0421\u043F\u0440\u0430\u0432\u043A\u0430</b>\n\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 \u043A\u043D\u043E\u043F\u043A\u0438 \u043C\u0435\u043D\u044E \u0434\u043B\u044F \u043D\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u0438 \u0438\u043B\u0438 \u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u043D\u0430 \u0441\u043E\u0446\u0441\u0435\u0442\u044C \u0434\u043B\u044F \u0431\u044B\u0441\u0442\u0440\u043E\u0433\u043E \u0437\u0430\u043A\u0430\u0437\u0430.", { parse_mode: "HTML" });
+        return true;
+      }
+      return false;
+    }
+    case "WEB_APP": {
+      const webAppUrl = btn.value || `https://${botTenantId4 === "flux" ? "smmflux.ru" : "test.smmplan.pro"}`;
+      await ctx.reply(
+        `\u{1F4F1} <b>${escapeHtml3(btn.label)}</b>
+
+\u041D\u0430\u0436\u043C\u0438\u0442\u0435 \u043A\u043D\u043E\u043F\u043A\u0443 \u0434\u043B\u044F \u0437\u0430\u043F\u0443\u0441\u043A\u0430:`,
+        {
+          parse_mode: "HTML",
+          ...import_telegraf5.Markup.inlineKeyboard([[import_telegraf5.Markup.button.webApp("\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435", webAppUrl)]])
+        }
+      );
+      return true;
+    }
+    default:
+      return false;
+  }
 }
 async function sendNetworkCatalogMenu(ctx, isEdit = false) {
   try {
@@ -142056,7 +142311,7 @@ async function launchBot() {
   if (!activeToken || activeToken === "dummy_token") {
     try {
       const { VaultService: VaultService2 } = await Promise.resolve().then(() => (init_vault(), vault_exports));
-      const settings = await db.systemSettings.findFirst();
+      const settings = await db.systemSettings.findUnique({ where: { id: botTenantId4 } });
       if (settings?.telegramBotToken) {
         const decrypted = VaultService2.decrypt(settings.telegramBotToken);
         if (decrypted && decrypted.trim().length > 10) {
@@ -142176,6 +142431,7 @@ var init_bot = __esm({
     init_referral_wizard();
     init_owner_hub_wizard();
     init_bot_catalog_service();
+    init_bot_settings_service();
     init_telegram_agent();
     dotenv.config({ path: import_path2.default.resolve(process.cwd(), ".env") });
     origGetProto = Object.getPrototypeOf;
@@ -142209,6 +142465,27 @@ var init_bot = __esm({
     ]);
     bot.use((0, import_telegraf5.session)());
     bot.use(stage.middleware());
+    bot.use(async (ctx, next) => {
+      if (!ctx.from) return next();
+      const isOwner = await isOwnerOrAdmin(ctx.from.id);
+      if (!isOwner) {
+        const isMaint = await BotSettingsService.isMaintenanceActive(botTenantId4);
+        if (isMaint) {
+          return ctx.reply("\u{1F6E0} <b>\u0411\u043E\u0442 \u043D\u0430\u0445\u043E\u0434\u0438\u0442\u0441\u044F \u043D\u0430 \u0442\u0435\u0445\u043D\u0438\u0447\u0435\u0441\u043A\u043E\u043C \u043E\u0431\u0441\u043B\u0443\u0436\u0438\u0432\u0430\u043D\u0438\u0438.</b>\n\n\u041C\u044B \u043F\u0440\u043E\u0432\u043E\u0434\u0438\u043C \u043F\u043B\u0430\u043D\u043E\u0432\u043E\u0435 \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0438\u043D\u0444\u0440\u0430\u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u044B. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u043F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u043F\u043E\u0437\u0436\u0435.", { parse_mode: "HTML" }).catch(() => {
+          });
+        }
+      }
+      const msg = ctx.message;
+      const text = msg && "text" in msg && typeof msg.text === "string" ? msg.text : "";
+      if (text && !isOwner) {
+        const sec = await BotSettingsService.getSecurityConfig(botTenantId4);
+        if (text.length > sec.maxMessageLength) {
+          return ctx.reply(`\u26A0\uFE0F \u0412\u0430\u0448\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u0441\u043B\u0438\u0448\u043A\u043E\u043C \u0434\u043B\u0438\u043D\u043D\u043E\u0435 (\u043C\u0430\u043A\u0441\u0438\u043C\u0443\u043C ${sec.maxMessageLength} \u0441\u0438\u043C\u0432\u043E\u043B\u043E\u0432). \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0441\u043E\u043A\u0440\u0430\u0442\u0438\u0442\u0435 \u0435\u0433\u043E.`).catch(() => {
+          });
+        }
+      }
+      return next();
+    });
     bot.catch(async (err, ctx) => {
       try {
         const errorObj = err;
@@ -142423,9 +142700,10 @@ var init_bot = __esm({
                 console.warn("[Bot /start] YooKassa sync check warning:", syncErr);
               }
             }
+            if (!payment) return;
             const freshUser = await db.user.findUnique({ where: { id: user.id } });
             const currentBal = freshUser ? (Number(freshUser.balance) / 100).toFixed(2) : "0.00";
-            const formattedAmount = (payment.amount / 100).toLocaleString("ru-RU");
+            const formattedAmount = (Number(payment.amount) / 100).toLocaleString("ru-RU");
             if (payment.status === "SUCCEEDED") {
               await ctx.reply(
                 `\u{1F389} <b>\u041E\u041F\u041B\u0410\u0422\u0410 \u0423\u0421\u041F\u0415\u0428\u041D\u041E \u041F\u041E\u0414\u0422\u0412\u0415\u0420\u0416\u0414\u0415\u041D\u0410!</b>
@@ -142779,11 +143057,10 @@ var init_bot = __esm({
         }
         let reasonList = [];
         try {
-          const settings = await db.systemSettings.findFirst({ select: { telegramRatingReasons: true } });
-          const cfg = settings?.telegramRatingReasons;
-          if (score <= 2) reasonList = cfg?.negative || ["\u0414\u043E\u043B\u0433\u0438\u0439 \u043E\u0442\u0432\u0435\u0442", "\u041F\u0440\u043E\u0431\u043B\u0435\u043C\u0430 \u043D\u0435 \u0440\u0435\u0448\u0435\u043D\u0430", "\u0413\u0440\u0443\u0431\u043E\u0441\u0442\u044C \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u0430", "\u0422\u0435\u0445\u043D\u0438\u0447\u0435\u0441\u043A\u0438\u0439 \u0441\u0431\u043E\u0439"];
-          else if (score === 3) reasonList = cfg?.neutral || ["\u0414\u043E\u043B\u0433\u043E \u0440\u0435\u0448\u0430\u043B\u0438", "\u041D\u0435\u043F\u043E\u043B\u043D\u044B\u0439 \u043E\u0442\u0432\u0435\u0442", "\u0421\u043B\u043E\u0436\u043D\u044B\u0439 \u043F\u0440\u043E\u0446\u0435\u0441\u0441", "\u041C\u0430\u043B\u043E \u0438\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u0438"];
-          else reasonList = cfg?.positive || ["\u0411\u044B\u0441\u0442\u0440\u044B\u0439 \u043E\u0442\u0432\u0435\u0442", "\u0412\u0435\u0436\u043B\u0438\u0432\u044B\u0439 \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440", "\u041F\u0440\u043E\u0431\u043B\u0435\u043C\u0430 \u0440\u0435\u0448\u0435\u043D\u0430 \u043D\u0430 100%", "\u041F\u043E\u043D\u044F\u0442\u043D\u0430\u044F \u0438\u043D\u0441\u0442\u0440\u0443\u043A\u0446\u0438\u044F", "\u041E\u0442\u043B\u0438\u0447\u043D\u044B\u0439 \u0441\u0435\u0440\u0432\u0438\u0441"];
+          const cfg = await BotSettingsService.getRatingReasons(botTenantId4);
+          if (score <= 2) reasonList = cfg.negative;
+          else if (score === 3) reasonList = cfg.neutral;
+          else reasonList = cfg.positive;
         } catch {
           reasonList = score <= 2 ? ["\u0414\u043E\u043B\u0433\u0438\u0439 \u043E\u0442\u0432\u0435\u0442", "\u041F\u0440\u043E\u0431\u043B\u0435\u043C\u0430 \u043D\u0435 \u0440\u0435\u0448\u0435\u043D\u0430"] : ["\u0411\u044B\u0441\u0442\u0440\u043E \u0438 \u0432\u0435\u0436\u043B\u0438\u0432\u043E", "\u0412\u043E\u043F\u0440\u043E\u0441 \u0440\u0435\u0448\u0435\u043D"];
         }
@@ -142816,16 +143093,15 @@ var init_bot = __esm({
         let selectedReason = "\u041A\u0430\u0447\u0435\u0441\u0442\u0432\u0435\u043D\u043D\u044B\u0439 \u0441\u0435\u0440\u0432\u0438\u0441";
         let thanksText = "\u2B50 <b>\u0421\u043F\u0430\u0441\u0438\u0431\u043E \u0437\u0430 \u0432\u0430\u0448 \u043E\u0442\u0437\u044B\u0432!</b>\n\n\u0412\u0430\u0448 \u043E\u0442\u0437\u044B\u0432 \u043F\u043E\u043C\u043E\u0433\u0430\u0435\u0442 \u043D\u0430\u043C \u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C\u0441\u044F \u043B\u0443\u0447\u0448\u0435. \u0415\u0441\u043B\u0438 \u0443 \u0432\u0430\u0441 \u0432\u043E\u0437\u043D\u0438\u043A\u043D\u0443\u0442 \u043D\u043E\u0432\u044B\u0435 \u0432\u043E\u043F\u0440\u043E\u0441\u044B, \u043F\u0440\u043E\u0441\u0442\u043E \u043D\u0430\u043F\u0438\u0448\u0438\u0442\u0435 \u0432 \u044D\u0442\u043E\u0442 \u0447\u0430\u0442.";
         try {
-          const settings = await db.systemSettings.findFirst({ select: { telegramRatingReasons: true, telegramTemplates: true } });
+          const cfg = await BotSettingsService.getRatingReasons(botTenantId4);
+          const tpl = await BotSettingsService.getTemplates(botTenantId4);
           const fb = await db.ticketFeedback.findUnique({ where: { ticketId } });
-          const cfg = settings?.telegramRatingReasons;
-          const tpl = settings?.telegramTemplates;
           if (tpl?.ratingThanks) thanksText = tpl.ratingThanks;
           const score = fb?.score || 5;
           let reasonList = [];
-          if (score <= 2) reasonList = cfg?.negative || [];
-          else if (score === 3) reasonList = cfg?.neutral || [];
-          else reasonList = cfg?.positive || [];
+          if (score <= 2) reasonList = cfg.negative;
+          else if (score === 3) reasonList = cfg.neutral;
+          else reasonList = cfg.positive;
           if (reasonList[reasonIdx]) {
             selectedReason = reasonList[reasonIdx];
           }
@@ -142858,8 +143134,7 @@ ${thanksText}`,
         });
         let thanksText = "\u2B50 <b>\u0421\u043F\u0430\u0441\u0438\u0431\u043E \u0437\u0430 \u0432\u0430\u0448\u0443 \u043E\u0446\u0435\u043D\u043A\u0443!</b>\n\n\u0415\u0441\u043B\u0438 \u0443 \u0432\u0430\u0441 \u0432\u043E\u0437\u043D\u0438\u043A\u043D\u0443\u0442 \u043D\u043E\u0432\u044B\u0435 \u0432\u043E\u043F\u0440\u043E\u0441\u044B, \u043F\u0440\u043E\u0441\u0442\u043E \u043D\u0430\u043F\u0438\u0448\u0438\u0442\u0435 \u0432 \u044D\u0442\u043E\u0442 \u0447\u0430\u0442.";
         try {
-          const settings = await db.systemSettings.findFirst({ select: { telegramTemplates: true } });
-          const tpl = settings?.telegramTemplates;
+          const tpl = await BotSettingsService.getTemplates(botTenantId4);
           if (tpl?.ratingThanks) thanksText = tpl.ratingThanks.replace(/{stars}/g, "\u2B50\u2B50\u2B50\u2B50\u2B50");
         } catch {
         }
@@ -142875,6 +143150,12 @@ ${thanksText}`,
         return ctx.reply("\u26A0\uFE0F \u041A \u0441\u043E\u0436\u0430\u043B\u0435\u043D\u0438\u044E, \u043C\u044B \u043D\u0435 \u043C\u043E\u0436\u0435\u043C \u043F\u0440\u043E\u0441\u043C\u0430\u0442\u0440\u0438\u0432\u0430\u0442\u044C \u0441\u0442\u0438\u043A\u0435\u0440\u044B, \u043A\u0440\u0443\u0436\u043E\u0447\u043A\u0438 \u0438\u043B\u0438 \u0433\u0435\u043E\u043B\u043E\u043A\u0430\u0446\u0438\u0438. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0442\u0435\u043A\u0441\u0442, \u0441\u043A\u0440\u0438\u043D\u0448\u043E\u0442 (\u0444\u043E\u0442\u043E) \u0438\u043B\u0438 \u0433\u043E\u043B\u043E\u0441\u043E\u0432\u043E\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435.");
       }
       const text = msg && "text" in msg && typeof msg.text === "string" ? msg.text.trim() : "";
+      if (text) {
+        const isHandled = await dispatchDynamicMenuAction(ctx, text);
+        if (isHandled) {
+          return;
+        }
+      }
       if (text && isPotentialLinkOrHandle(text)) {
         return await handleLinkInput(ctx, text);
       }
@@ -142946,6 +143227,8 @@ var init_payment_service = __esm({
        */
       async confirmPayment(gatewayId, amount, userId, isDevSandbox = false, gatewayType = "yookassa", internalPaymentId, metadataType, receiptId) {
         const activatedOrders = [];
+        let paidAmountBigInt = BigInt(amount);
+        let isOrderFlow = false;
         try {
           const isMockPayment = gatewayId.startsWith("test_") || gatewayId.startsWith("mock_");
           if (process.env.NODE_ENV === "production" && gatewayType === "yookassa" && !isDevSandbox && !isMockPayment) {
@@ -143021,7 +143304,7 @@ var init_payment_service = __esm({
               throw new Error("PAYMENT_AMOUNT_MISMATCH: Amount received from gateway does not match expected payment amount.");
             }
             let processedPaymentId;
-            let isOrderPayment2;
+            let isOrderPayment;
             let linkedOrderId;
             let targetUserId;
             if (currentPayment) {
@@ -143044,21 +143327,21 @@ var init_payment_service = __esm({
                 return true;
               }
               processedPaymentId = currentPayment.id;
-              isOrderPayment2 = !!currentPayment.orderId;
+              isOrderPayment = !!currentPayment.orderId;
               linkedOrderId = currentPayment.orderId || "";
             } else {
               console.error(`[SECURITY] Orphan webhook rejected for gatewayId: ${gatewayId}. No PENDING payment found.`);
               throw new Error("ORPHAN_WEBHOOK: Stray webhooks are no longer allowed to credit accounts. All payments must be initiated by the system.");
             }
-            const creditAmount2 = currentPayment ? currentPayment.amount : receivedAmountBigInt;
-            if (isOrderPayment2 && linkedOrderId) {
+            const creditAmount = currentPayment ? currentPayment.amount : receivedAmountBigInt;
+            if (isOrderPayment && linkedOrderId) {
               const order = await tx.order.findUnique({
                 where: { id: linkedOrderId },
                 include: { user: { select: { email: true } }, service: { select: { name: true } } }
               });
               if (order && order.status === "AWAITING_PAYMENT") {
-                if (creditAmount2 < order.charge) {
-                  console.error(`[SECURITY] Underpaid order activation blocked: order #${order.numericId} requires ${order.charge} kopecks, but payment credited only ${creditAmount2} kopecks.`);
+                if (creditAmount < order.charge) {
+                  console.error(`[SECURITY] Underpaid order activation blocked: order #${order.numericId} requires ${order.charge} kopecks, but payment credited only ${creditAmount} kopecks.`);
                   void SecurityAlertService.record({
                     event: "UNDERPAID_ORDER_EXPLOIT_ATTEMPT",
                     severity: "CRITICAL",
@@ -143066,11 +143349,11 @@ var init_payment_service = __esm({
                       orderId: linkedOrderId,
                       orderNumericId: order.numericId,
                       requiredCharge: order.charge.toString(),
-                      creditedAmount: creditAmount2.toString(),
+                      creditedAmount: creditAmount.toString(),
                       paymentId: processedPaymentId
                     }
                   });
-                  throw new Error(`UNDERPAID_ORDER: Credited amount (${creditAmount2}) is less than required order charge (${order.charge})`);
+                  throw new Error(`UNDERPAID_ORDER: Credited amount (${creditAmount}) is less than required order charge (${order.charge})`);
                 }
                 await tx.order.update({
                   where: { id: linkedOrderId },
@@ -143081,7 +143364,7 @@ var init_payment_service = __esm({
                   id: order.id,
                   isDripFeed: order.isDripFeed,
                   userId: targetUserId,
-                  amount: Number(creditAmount2),
+                  amount: Number(creditAmount),
                   userEmail: order.user?.email ?? null,
                   serviceName: order.service?.name ?? null,
                   numericId: order.numericId
@@ -143089,7 +143372,7 @@ var init_payment_service = __esm({
                 await WalletOps.credit(
                   tx,
                   targetUserId,
-                  creditAmount2,
+                  creditAmount,
                   `\u041E\u043F\u043B\u0430\u0442\u0430 \u0437\u0430\u043A\u0430\u0437\u0430 #${order.numericId} \u0447\u0435\u0440\u0435\u0437 \u0448\u043B\u044E\u0437`,
                   { idempotencyKey: `gateway-credit-${processedPaymentId}` }
                 );
@@ -143102,16 +143385,16 @@ var init_payment_service = __esm({
                 );
               }
             }
-            const basketOrders2 = await tx.order.findMany({
+            const basketOrders = await tx.order.findMany({
               where: { paymentId: processedPaymentId, status: "AWAITING_PAYMENT" },
               include: { user: { select: { email: true } }, service: { select: { name: true } } }
             });
-            if (basketOrders2.length > 0) {
+            if (basketOrders.length > 0) {
               await tx.order.updateMany({
                 where: { paymentId: processedPaymentId, status: "AWAITING_PAYMENT" },
                 data: { status: "PENDING" }
               });
-              for (const order of basketOrders2) {
+              for (const order of basketOrders) {
                 activatedOrders.push({
                   id: order.id,
                   isDripFeed: order.isDripFeed,
@@ -143126,32 +143409,34 @@ var init_payment_service = __esm({
               await WalletOps.credit(
                 tx,
                 targetUserId,
-                creditAmount2,
+                creditAmount,
                 `\u041E\u043F\u043B\u0430\u0442\u0430 \u043A\u043E\u0440\u0437\u0438\u043D\u044B \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u0447\u0435\u0440\u0435\u0437 \u0448\u043B\u044E\u0437`,
                 { idempotencyKey: `gateway-credit-${processedPaymentId}` }
               );
-              const totalChargeCents = basketOrders2.reduce((sum, order) => sum + order.charge, BigInt(0));
-              if (creditAmount2 < totalChargeCents) {
-                console.error(`[SECURITY] Underpaid basket activation blocked: basket requires ${totalChargeCents} kopecks, but payment credited only ${creditAmount2} kopecks.`);
-                throw new Error(`UNDERPAID_BASKET: Credited amount (${creditAmount2}) is less than required basket charge (${totalChargeCents})`);
+              const totalChargeCents = basketOrders.reduce((sum, order) => sum + order.charge, BigInt(0));
+              if (creditAmount < totalChargeCents) {
+                console.error(`[SECURITY] Underpaid basket activation blocked: basket requires ${totalChargeCents} kopecks, but payment credited only ${creditAmount} kopecks.`);
+                throw new Error(`UNDERPAID_BASKET: Credited amount (${creditAmount}) is less than required basket charge (${totalChargeCents})`);
               }
               await WalletOps.charge(
                 tx,
                 targetUserId,
                 totalChargeCents,
-                `\u0421\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0437\u0430 \u043E\u043F\u043B\u0430\u0442\u0443 \u043A\u043E\u0440\u0437\u0438\u043D\u044B \u0437\u0430\u043A\u0430\u0437\u043E\u0432 (${basketOrders2.length} \u0448\u0442.)`,
+                `\u0421\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0437\u0430 \u043E\u043F\u043B\u0430\u0442\u0443 \u043A\u043E\u0440\u0437\u0438\u043D\u044B \u0437\u0430\u043A\u0430\u0437\u043E\u0432 (${basketOrders.length} \u0448\u0442.)`,
                 { idempotencyKey: `gateway-basket-charge-${processedPaymentId}` }
               );
             }
-            if (!isOrderPayment2 && basketOrders2.length === 0) {
+            if (!isOrderPayment && basketOrders.length === 0) {
               await WalletOps.credit(
                 tx,
                 targetUserId,
-                creditAmount2,
+                creditAmount,
                 `\u041F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 \u0447\u0435\u0440\u0435\u0437 ${gatewayType}`,
                 { idempotencyKey: `deposit-${processedPaymentId}` }
               );
             }
+            paidAmountBigInt = creditAmount;
+            isOrderFlow = isOrderPayment || basketOrders.length > 0;
           });
           safeRevalidatePath("/dashboard", "layout");
           if (activatedOrders.length > 0) {
@@ -143174,9 +143459,9 @@ var init_payment_service = __esm({
             });
             if (userWithTg?.telegramId) {
               const { bot: bot2 } = await Promise.resolve().then(() => (init_bot(), bot_exports));
-              const amountRub = (Number(creditAmount) / 100).toLocaleString("ru-RU");
+              const amountRub = (Number(paidAmountBigInt) / 100).toLocaleString("ru-RU");
               const newBal = (Number(userWithTg.balance) / 100).toFixed(2);
-              if (isOrderPayment || basketOrders.length > 0) {
+              if (isOrderFlow || activatedOrders.length > 0) {
                 await bot2.telegram.sendMessage(
                   userWithTg.telegramId,
                   `\u{1F389} <b>\u041E\u041F\u041B\u0410\u0422\u0410 \u0417\u0410\u041A\u0410\u0417\u0410 \u041F\u041E\u0414\u0422\u0412\u0415\u0420\u0416\u0414\u0415\u041D\u0410!</b>
@@ -143267,16 +143552,16 @@ var init_payment_service = __esm({
                 );
               }
             }
-            const basketOrders2 = await tx.order.findMany({
+            const basketOrders = await tx.order.findMany({
               where: { paymentId, status: "AWAITING_PAYMENT" },
               include: { user: { select: { email: true } }, service: { select: { name: true } } }
             });
-            if (basketOrders2.length > 0) {
+            if (basketOrders.length > 0) {
               await tx.order.updateMany({
                 where: { paymentId, status: "AWAITING_PAYMENT" },
                 data: { status: "PENDING" }
               });
-              for (const order of basketOrders2) {
+              for (const order of basketOrders) {
                 activatedOrders.push({
                   id: order.id,
                   isDripFeed: order.isDripFeed,
@@ -143293,16 +143578,16 @@ var init_payment_service = __esm({
                 `\u041E\u043F\u043B\u0430\u0442\u0430 \u043A\u043E\u0440\u0437\u0438\u043D\u044B \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u0447\u0435\u0440\u0435\u0437 \u0448\u043B\u044E\u0437`,
                 { idempotencyKey: `gateway-credit-${paymentId}` }
               );
-              const totalChargeCents = basketOrders2.reduce((sum, order) => sum + order.charge, BigInt(0));
+              const totalChargeCents = basketOrders.reduce((sum, order) => sum + order.charge, BigInt(0));
               await WalletOps.charge(
                 tx,
                 payment.userId,
                 totalChargeCents,
-                `\u0421\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0437\u0430 \u043E\u043F\u043B\u0430\u0442\u0443 \u043A\u043E\u0440\u0437\u0438\u043D\u044B \u0437\u0430\u043A\u0430\u0437\u043E\u0432 (${basketOrders2.length} \u0448\u0442.)`,
+                `\u0421\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0437\u0430 \u043E\u043F\u043B\u0430\u0442\u0443 \u043A\u043E\u0440\u0437\u0438\u043D\u044B \u0437\u0430\u043A\u0430\u0437\u043E\u0432 (${basketOrders.length} \u0448\u0442.)`,
                 { idempotencyKey: `gateway-basket-charge-${paymentId}` }
               );
             }
-            if (!payment.orderId && basketOrders2.length === 0) {
+            if (!payment.orderId && basketOrders.length === 0) {
               await WalletOps.credit(
                 tx,
                 payment.userId,

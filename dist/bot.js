@@ -139726,6 +139726,9 @@ async function dispatchDynamicMenuAction(ctx, text) {
     });
   }
   switch (btn.action) {
+    case "FAST_ORDER":
+      await sendFastOrderPrompt(ctx);
+      return true;
     case "CATALOG":
       await sendNetworkCatalogMenu(ctx, false);
       return true;

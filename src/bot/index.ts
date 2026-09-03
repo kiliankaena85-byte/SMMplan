@@ -528,6 +528,9 @@ export async function dispatchDynamicMenuAction(ctx: BotContext, text: string): 
   }
 
   switch (btn.action) {
+    case 'FAST_ORDER':
+      await sendFastOrderPrompt(ctx);
+      return true;
     case 'CATALOG':
       await sendNetworkCatalogMenu(ctx, false);
       return true;
