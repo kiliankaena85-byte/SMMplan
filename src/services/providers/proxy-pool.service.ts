@@ -128,7 +128,8 @@ export class ProxyPoolService {
             {
               OR: [
                 { geoCountry: 'RU' },
-                { tags: { hasSome: ['RU', 'Russia', 'Россия', 'SOVEREIGN'] } },
+                { tags: { contains: 'RU' } },
+                { tags: { contains: 'SOVEREIGN' } },
                 { label: { contains: 'Россия', mode: 'insensitive' } },
                 { label: { contains: 'RU', mode: 'insensitive' } },
               ],

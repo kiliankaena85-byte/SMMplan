@@ -5673,8 +5673,8 @@ var require_URL = __commonJS({
     var utils = require_utils();
     var Impl = require_URL_impl();
     var impl = utils.implSymbol;
-    function URL6(url) {
-      if (!this || this[impl] || !(this instanceof URL6)) {
+    function URL7(url) {
+      if (!this || this[impl] || !(this instanceof URL7)) {
         throw new TypeError("Failed to construct 'URL': Please use the 'new' operator, this DOM object constructor cannot be called as a function.");
       }
       if (arguments.length < 1) {
@@ -5690,7 +5690,7 @@ var require_URL = __commonJS({
       }
       module2.exports.setup(this, args);
     }
-    URL6.prototype.toJSON = function toJSON() {
+    URL7.prototype.toJSON = function toJSON() {
       if (!this || !module2.exports.is(this)) {
         throw new TypeError("Illegal invocation");
       }
@@ -5700,7 +5700,7 @@ var require_URL = __commonJS({
       }
       return this[impl].toJSON.apply(this[impl], args);
     };
-    Object.defineProperty(URL6.prototype, "href", {
+    Object.defineProperty(URL7.prototype, "href", {
       get() {
         return this[impl].href;
       },
@@ -5711,20 +5711,20 @@ var require_URL = __commonJS({
       enumerable: true,
       configurable: true
     });
-    URL6.prototype.toString = function() {
+    URL7.prototype.toString = function() {
       if (!this || !module2.exports.is(this)) {
         throw new TypeError("Illegal invocation");
       }
       return this.href;
     };
-    Object.defineProperty(URL6.prototype, "origin", {
+    Object.defineProperty(URL7.prototype, "origin", {
       get() {
         return this[impl].origin;
       },
       enumerable: true,
       configurable: true
     });
-    Object.defineProperty(URL6.prototype, "protocol", {
+    Object.defineProperty(URL7.prototype, "protocol", {
       get() {
         return this[impl].protocol;
       },
@@ -5735,7 +5735,7 @@ var require_URL = __commonJS({
       enumerable: true,
       configurable: true
     });
-    Object.defineProperty(URL6.prototype, "username", {
+    Object.defineProperty(URL7.prototype, "username", {
       get() {
         return this[impl].username;
       },
@@ -5746,7 +5746,7 @@ var require_URL = __commonJS({
       enumerable: true,
       configurable: true
     });
-    Object.defineProperty(URL6.prototype, "password", {
+    Object.defineProperty(URL7.prototype, "password", {
       get() {
         return this[impl].password;
       },
@@ -5757,7 +5757,7 @@ var require_URL = __commonJS({
       enumerable: true,
       configurable: true
     });
-    Object.defineProperty(URL6.prototype, "host", {
+    Object.defineProperty(URL7.prototype, "host", {
       get() {
         return this[impl].host;
       },
@@ -5768,7 +5768,7 @@ var require_URL = __commonJS({
       enumerable: true,
       configurable: true
     });
-    Object.defineProperty(URL6.prototype, "hostname", {
+    Object.defineProperty(URL7.prototype, "hostname", {
       get() {
         return this[impl].hostname;
       },
@@ -5779,7 +5779,7 @@ var require_URL = __commonJS({
       enumerable: true,
       configurable: true
     });
-    Object.defineProperty(URL6.prototype, "port", {
+    Object.defineProperty(URL7.prototype, "port", {
       get() {
         return this[impl].port;
       },
@@ -5790,7 +5790,7 @@ var require_URL = __commonJS({
       enumerable: true,
       configurable: true
     });
-    Object.defineProperty(URL6.prototype, "pathname", {
+    Object.defineProperty(URL7.prototype, "pathname", {
       get() {
         return this[impl].pathname;
       },
@@ -5801,7 +5801,7 @@ var require_URL = __commonJS({
       enumerable: true,
       configurable: true
     });
-    Object.defineProperty(URL6.prototype, "search", {
+    Object.defineProperty(URL7.prototype, "search", {
       get() {
         return this[impl].search;
       },
@@ -5812,7 +5812,7 @@ var require_URL = __commonJS({
       enumerable: true,
       configurable: true
     });
-    Object.defineProperty(URL6.prototype, "hash", {
+    Object.defineProperty(URL7.prototype, "hash", {
       get() {
         return this[impl].hash;
       },
@@ -5828,7 +5828,7 @@ var require_URL = __commonJS({
         return !!obj && obj[impl] instanceof Impl.implementation;
       },
       create(constructorArgs, privateData) {
-        let obj = Object.create(URL6.prototype);
+        let obj = Object.create(URL7.prototype);
         this.setup(obj, constructorArgs, privateData);
         return obj;
       },
@@ -5838,10 +5838,10 @@ var require_URL = __commonJS({
         obj[impl] = new Impl.implementation(constructorArgs, privateData);
         obj[impl][utils.wrapperSymbol] = obj;
       },
-      interface: URL6,
+      interface: URL7,
       expose: {
-        Window: { URL: URL6 },
-        Worker: { URL: URL6 }
+        Window: { URL: URL7 },
+        Worker: { URL: URL7 }
       }
     };
   }
@@ -6688,12 +6688,12 @@ var require_lib2 = __commonJS({
       configurable: true
     });
     var INTERNALS$2 = /* @__PURE__ */ Symbol("Request internals");
-    var URL6 = Url.URL || whatwgUrl.URL;
+    var URL7 = Url.URL || whatwgUrl.URL;
     var parse_url = Url.parse;
     var format_url = Url.format;
     function parseURL(urlStr) {
       if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.exec(urlStr)) {
-        urlStr = new URL6(urlStr).toString();
+        urlStr = new URL7(urlStr).toString();
       }
       return parse_url(urlStr);
     }
@@ -69979,6 +69979,7 @@ __export2(queue_manager_exports, {
   ensureOrphanSweepCron: () => ensureOrphanSweepCron,
   ensurePaymentSyncCron: () => ensurePaymentSyncCron,
   ensurePendingCheckCron: () => ensurePendingCheckCron,
+  ensureProxySubscriptionSyncCron: () => ensureProxySubscriptionSyncCron,
   ensureSyncCron: () => ensureSyncCron,
   etaQueue: () => etaQueue,
   geoAvailabilityQueue: () => geoAvailabilityQueue,
@@ -70084,6 +70085,19 @@ async function ensurePendingCheckCron() {
         // Hourly
       },
       jobId: "resolve-pending-check-singleton"
+    }
+  );
+}
+async function ensureProxySubscriptionSyncCron() {
+  await cleanupQueue.add(
+    "sync-proxy-subscriptions",
+    { timestamp: Date.now() },
+    {
+      repeat: {
+        pattern: "0 */2 * * *"
+        // Every 2 hours
+      },
+      jobId: "sync-proxy-subscriptions-singleton"
     }
   );
 }
@@ -112901,7 +112915,7 @@ var require_socks5_client = __commonJS({
 var require_socks5_proxy_agent = __commonJS({
   "node_modules/undici/lib/dispatcher/socks5-proxy-agent.js"(exports2, module2) {
     "use strict";
-    var { URL: URL6 } = require("node:url");
+    var { URL: URL7 } = require("node:url");
     var tls3;
     var DispatcherBase = require_dispatcher_base();
     var { InvalidArgumentError } = require_errors4();
@@ -112932,7 +112946,7 @@ var require_socks5_proxy_agent = __commonJS({
         if (!proxyUrl) {
           throw new InvalidArgumentError("Proxy URL is mandatory");
         }
-        const url = typeof proxyUrl === "string" ? new URL6(proxyUrl) : proxyUrl;
+        const url = typeof proxyUrl === "string" ? new URL7(proxyUrl) : proxyUrl;
         if (url.protocol !== "socks5:" && url.protocol !== "socks:") {
           throw new InvalidArgumentError("Proxy URL must use socks5:// or socks:// protocol");
         }
@@ -113035,7 +113049,7 @@ var require_socks5_proxy_agent = __commonJS({
               connections: opts.connections,
               connect: async (connectOpts, callback) => {
                 try {
-                  const url = new URL6(origin);
+                  const url = new URL7(origin);
                   const targetHost = url.hostname;
                   const targetPort = parseInt(url.port) || (url.protocol === "https:" ? 443 : 80);
                   debug4("establishing SOCKS5 connection to", targetHost, targetPort);
@@ -128856,6 +128870,1028 @@ var init_marketing_service = __esm({
   }
 });
 
+// src/lib/security/ssrf-guard.ts
+function isPublicIp2(ip) {
+  if (!ip) return false;
+  if (ip.startsWith("::ffff:")) {
+    ip = ip.substring(7);
+  }
+  if (ip === AWS_METADATA_HOST) return false;
+  if (import_node_net.default.isIPv4(ip)) {
+    const parts = ip.split(".").map(Number);
+    if (parts.length === 4) {
+      if (parts[0] === 0) return false;
+      if (parts[0] === 10) return false;
+      if (parts[0] === 127) return false;
+      if (parts[0] === 169 && parts[1] === 254) return false;
+      if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return false;
+      if (parts[0] === 192 && parts[1] === 168) return false;
+      if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return false;
+      if (parts[0] >= 224) return false;
+    }
+    return true;
+  }
+  if (import_node_net.default.isIPv6(ip)) {
+    const lower = ip.toLowerCase();
+    if (lower === "::1" || lower === "::") return false;
+    if (lower.startsWith("fc") || lower.startsWith("fd")) return false;
+    if (lower.startsWith("fe8") || lower.startsWith("fe9") || lower.startsWith("fea") || lower.startsWith("feb")) {
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+async function assertSafeOutboundUrl(rawUrl) {
+  let parsed;
+  try {
+    parsed = new import_node_url.URL(rawUrl);
+  } catch {
+    return { ok: false, reason: "invalid-url" };
+  }
+  if (!ALLOWED_SCHEMES.has(parsed.protocol)) {
+    return { ok: false, reason: `scheme-${parsed.protocol}-blocked` };
+  }
+  const hostname = parsed.hostname.toLowerCase();
+  if (parsed.pathname.includes("/api/dev/mock-provider") && (process.env.ENABLE_DEV_ROUTES === "true" || process.env.NODE_ENV === "test" || process.env.NODE_ENV === "development")) {
+    return { ok: true, ip: "127.0.0.1", hostname };
+  }
+  if (BLOCKED_HOSTS.has(hostname) || hostname === AWS_METADATA_HOST) {
+    return { ok: false, reason: `host-${hostname}-blocked` };
+  }
+  if (import_node_net.default.isIP(hostname)) {
+    if (!isPublicIp2(hostname)) {
+      return { ok: false, reason: `ip-${hostname}-private` };
+    }
+    return { ok: true, ip: hostname, hostname };
+  }
+  let addrs = [];
+  try {
+    const records = await import_node_dns.promises.lookup(hostname, { all: true });
+    addrs = records.map((r) => r.address);
+  } catch {
+    return { ok: false, reason: "dns-failed" };
+  }
+  if (addrs.length === 0) {
+    return { ok: false, reason: "dns-no-records" };
+  }
+  for (const ip of addrs) {
+    if (!isPublicIp2(ip)) {
+      return { ok: false, reason: `ip-${ip}-private` };
+    }
+  }
+  try {
+    const secondCheckRecords = await import_node_dns.promises.lookup(hostname, { all: true });
+    const secondAddrs = secondCheckRecords.map((r) => r.address);
+    for (const ip of secondAddrs) {
+      if (!isPublicIp2(ip)) {
+        return { ok: false, reason: `ip-${ip}-private-rebinding` };
+      }
+    }
+  } catch {
+    return { ok: false, reason: "dns-rebinding-lookup-failed" };
+  }
+  return { ok: true, ip: addrs[0], hostname };
+}
+var import_node_url, import_node_dns, import_node_net, ALLOWED_SCHEMES, BLOCKED_HOSTS, AWS_METADATA_HOST;
+var init_ssrf_guard2 = __esm({
+  "src/lib/security/ssrf-guard.ts"() {
+    "use strict";
+    import_node_url = require("node:url");
+    import_node_dns = require("node:dns");
+    import_node_net = __toESM(require("node:net"));
+    ALLOWED_SCHEMES = /* @__PURE__ */ new Set(["https:", "http:"]);
+    BLOCKED_HOSTS = /* @__PURE__ */ new Set([
+      "localhost",
+      "localhost.localdomain",
+      "ip6-localhost",
+      "ip6-loopback",
+      "metadata.google.internal",
+      "metadata.internal",
+      "instance-data"
+    ]);
+    AWS_METADATA_HOST = "169.254.169.254";
+  }
+});
+
+// src/lib/http/proxy-fetch.ts
+async function createProxyDispatcher(proxy) {
+  const { ProxyAgent: ProxyAgent2, Agent: Agent5 } = await Promise.resolve().then(() => __toESM(require_undici()));
+  const auth = proxy.username ? `${encodeURIComponent(proxy.username)}:${encodeURIComponent(proxy.password || "")}@` : "";
+  if (proxy.protocol === "socks5") {
+    const { SocksProxyAgent: SocksProxyAgent2 } = await Promise.resolve().then(() => (init_dist6(), dist_exports));
+    const socksUrl = `socks5h://${auth}${proxy.host}:${proxy.port}`;
+    const socksAgent = new SocksProxyAgent2(socksUrl);
+    const connectFn = (opts, callback) => {
+      try {
+        const rawConnect = socksAgent.connect.bind(socksAgent);
+        rawConnect(
+          {},
+          opts,
+          (err, socket) => {
+            if (err) return callback(err, null);
+            callback(null, socket || null);
+          }
+        );
+      } catch (err) {
+        callback(err instanceof Error ? err : new Error(String(err)), null);
+      }
+    };
+    return new Agent5({
+      connect: connectFn,
+      connectTimeout: 8e3,
+      headersTimeout: 15e3
+    });
+  }
+  const proxyUrl = `${proxy.protocol}://${auth}${proxy.host}:${proxy.port}`;
+  return new ProxyAgent2({
+    uri: proxyUrl,
+    connectTimeout: 8e3,
+    headersTimeout: 15e3
+  });
+}
+async function proxiedFetch(url, init) {
+  const proxy = init?.proxy;
+  const cleanInit = { ...init };
+  delete cleanInit.proxy;
+  const { UniversalNetworkRouter: UniversalNetworkRouter2 } = await Promise.resolve().then(() => (init_network_router(), network_router_exports));
+  return UniversalNetworkRouter2.fetch(url, cleanInit, {
+    service: "PROVIDERS",
+    customProxy: proxy
+  });
+}
+var init_proxy_fetch = __esm({
+  "src/lib/http/proxy-fetch.ts"() {
+    "use strict";
+    init_ssrf_guard2();
+  }
+});
+
+// src/services/providers/proxy-pool.service.ts
+var proxy_pool_service_exports = {};
+__export2(proxy_pool_service_exports, {
+  ProxyPoolService: () => ProxyPoolService
+});
+var ProxyPoolService;
+var init_proxy_pool_service = __esm({
+  "src/services/providers/proxy-pool.service.ts"() {
+    "use strict";
+    init_db();
+    init_redis();
+    init_vault();
+    ProxyPoolService = class {
+      static {
+        this.QUARANTINE_DURATION_MS = 15 * 60 * 1e3;
+      }
+      static {
+        // 15 minutes
+        this.MAX_FAILURES_BEFORE_QUARANTINE = 3;
+      }
+      static {
+        this.REDIS_HEALTH_PREFIX = "proxy:health:";
+      }
+      /**
+       * Fetch active, healthy proxies from database & cache.
+       */
+      static async getHealthyProxy(providerId, category = "PAID_PREMIUM") {
+        try {
+          if (!db || !db.providerProxy) return null;
+          const notExpired = {
+            OR: [
+              { expiresAt: null },
+              { expiresAt: { gt: /* @__PURE__ */ new Date() } }
+            ]
+          };
+          if (providerId) {
+            const dedicated = await db.providerProxy.findFirst({
+              where: {
+                providers: {
+                  some: { id: providerId }
+                },
+                isActive: true,
+                ...notExpired
+              }
+            });
+            if (dedicated) {
+              const isQuarantined = await this.isProxyQuarantined(dedicated.id);
+              if (!isQuarantined) {
+                return this.hydrateProxyConfig(dedicated);
+              }
+            }
+          }
+          let pool = await db.providerProxy.findMany({
+            where: {
+              isActive: true,
+              category,
+              ...notExpired
+            },
+            orderBy: {
+              lastTestLatencyMs: "asc"
+            },
+            take: 20
+          });
+          if (!pool || pool.length === 0) {
+            pool = await db.providerProxy.findMany({
+              where: {
+                isActive: true,
+                ...notExpired
+              },
+              orderBy: {
+                updatedAt: "desc"
+              },
+              take: 20
+            });
+          }
+          if (!pool || pool.length === 0) {
+            return null;
+          }
+          const healthyList = [];
+          for (const p of pool) {
+            const isQuarantined = await this.isProxyQuarantined(p.id);
+            if (!isQuarantined) {
+              const config2 = this.hydrateProxyConfig(p);
+              if (config2) healthyList.push(config2);
+            }
+          }
+          if (healthyList.length === 0) {
+            return this.hydrateProxyConfig(pool[0]);
+          }
+          const randomIndex = Math.floor(Math.random() * healthyList.length);
+          return healthyList[randomIndex];
+        } catch (err) {
+          console.error("[ProxyPoolService] Error selecting healthy proxy:", err);
+          return null;
+        }
+      }
+      /**
+       * Fetch active, healthy Russian proxy (RU_SOVEREIGN_POOL)
+       * used as a secure domestic bridge when platform is hosted overseas.
+       */
+      static async getHealthyRuProxy() {
+        try {
+          if (!db || !db.providerProxy) return null;
+          const ruPool = await db.providerProxy.findMany({
+            where: {
+              isActive: true,
+              OR: [
+                { expiresAt: null },
+                { expiresAt: { gt: /* @__PURE__ */ new Date() } }
+              ],
+              AND: [
+                {
+                  OR: [
+                    { geoCountry: "RU" },
+                    { tags: { contains: "RU" } },
+                    { tags: { contains: "SOVEREIGN" } },
+                    { label: { contains: "\u0420\u043E\u0441\u0441\u0438\u044F", mode: "insensitive" } },
+                    { label: { contains: "RU", mode: "insensitive" } }
+                  ]
+                }
+              ]
+            },
+            orderBy: {
+              lastTestLatencyMs: "asc"
+            },
+            take: 10
+          });
+          if (!ruPool || ruPool.length === 0) return null;
+          for (const p of ruPool) {
+            const isQuarantined = await this.isProxyQuarantined(p.id);
+            if (!isQuarantined) {
+              const cfg = this.hydrateProxyConfig(p);
+              if (cfg) return cfg;
+            }
+          }
+          return this.hydrateProxyConfig(ruPool[0]);
+        } catch (err) {
+          console.error("[ProxyPoolService] Error selecting healthy RU proxy:", err);
+          return null;
+        }
+      }
+      /**
+       * Report proxy failure (HTTP 429, 403, 500, timeout).
+       */
+      static async reportFailure(proxyId, errorReason, httpStatus) {
+        if (!proxyId) return;
+        try {
+          if (redis) {
+            const key = `${this.REDIS_HEALTH_PREFIX}${proxyId}:fails`;
+            const count = await redis.incr(key);
+            await redis.expire(key, 1800);
+            if (count >= this.MAX_FAILURES_BEFORE_QUARANTINE || httpStatus === 429 || httpStatus === 403) {
+              const quarantineKey = `${this.REDIS_HEALTH_PREFIX}${proxyId}:quarantine`;
+              await redis.set(quarantineKey, errorReason, "PX", this.QUARANTINE_DURATION_MS);
+              console.warn(`[ProxyPoolService] Proxy ${proxyId} quarantined for 15m. Reason: ${errorReason} (Status: ${httpStatus})`);
+            }
+          }
+        } catch (err) {
+          console.error(`[ProxyPoolService] Failed to record proxy failure for ${proxyId}:`, err);
+        }
+      }
+      /**
+       * Report proxy success to reset failure counts.
+       */
+      static async reportSuccess(proxyId, latencyMs) {
+        if (!proxyId) return;
+        try {
+          if (redis) {
+            const key = `${this.REDIS_HEALTH_PREFIX}${proxyId}:fails`;
+            await redis.del(key);
+            if (latencyMs) {
+              await redis.set(`${this.REDIS_HEALTH_PREFIX}${proxyId}:latency`, latencyMs, "EX", 3600);
+            }
+          }
+        } catch (err) {
+          console.error(`[ProxyPoolService] Failed to record proxy success for ${proxyId}:`, err);
+        }
+      }
+      /**
+       * Check if proxy is currently quarantined.
+       */
+      static async isProxyQuarantined(proxyId) {
+        try {
+          if (!redis) return false;
+          const quarantine = await redis.get(`${this.REDIS_HEALTH_PREFIX}${proxyId}:quarantine`);
+          return !!quarantine;
+        } catch {
+          return false;
+        }
+      }
+      /**
+       * Decrypt and build ProxyConfig safely.
+       */
+      static hydrateProxyConfig(record) {
+        if (!record.host || !record.port) return null;
+        let decryptedPass = record.password;
+        if (record.password && (record.password.includes(":") || record.password.length > 32)) {
+          try {
+            decryptedPass = VaultService.decrypt(record.password);
+          } catch {
+            decryptedPass = record.password;
+          }
+        }
+        return {
+          id: record.id,
+          protocol: record.protocol,
+          host: record.host,
+          port: record.port,
+          username: record.username || void 0,
+          password: decryptedPass || void 0,
+          lastTestLatencyMs: record.lastTestLatencyMs ?? null,
+          category: record.category || "PAID_PREMIUM",
+          isActive: record.isActive ?? true
+        };
+      }
+    };
+  }
+});
+
+// src/services/security/security-alert.service.ts
+var security_alert_service_exports = {};
+__export2(security_alert_service_exports, {
+  SecurityAlertService: () => SecurityAlertService
+});
+var SecurityAlertService;
+var init_security_alert_service = __esm({
+  "src/services/security/security-alert.service.ts"() {
+    "use strict";
+    init_db();
+    init_notifications();
+    init_redis();
+    SecurityAlertService = class {
+      static {
+        this.THROTTLE_PREFIX = "security:alert:throttle:";
+      }
+      static {
+        this.THROTTLE_TTL_SEC = 60;
+      }
+      static {
+        // 1 alert per minute per event+ip pair
+        this.STREAM_CHANNEL = "security:events:stream";
+      }
+      /**
+       * Records a security event to DB, broadcasts via Redis Pub/Sub,
+       * and sends an immediate Telegram alert to admins if CRITICAL/HIGH (with anti-flooding).
+       */
+      static async record(input) {
+        const { event, severity, ip, tenantId = "smmplan", details = {} } = input;
+        let created = null;
+        try {
+          if (db.securityEvent) {
+            created = await db.securityEvent.create({
+              data: {
+                event,
+                severity,
+                ip: ip || null,
+                tenantId: tenantId || "smmplan",
+                details: details ? details : void 0
+              }
+            });
+          }
+        } catch (err) {
+          console.error("[SecurityAlertService] Failed to insert securityEvent into DB:", err);
+        }
+        try {
+          const payload = JSON.stringify({
+            id: created?.id || `temp-${Date.now()}`,
+            event,
+            severity,
+            ip: ip || null,
+            tenantId: tenantId || "smmplan",
+            details,
+            createdAt: created?.createdAt || (/* @__PURE__ */ new Date()).toISOString()
+          });
+          await redis.publish(this.STREAM_CHANNEL, payload).catch(() => {
+          });
+        } catch {
+        }
+        if (severity === "CRITICAL" || severity === "HIGH") {
+          await this.dispatchRealtimeAlert(event, severity, ip, tenantId, details).catch((err) => {
+            console.error("[SecurityAlertService] Failed to dispatch admin alert:", err);
+          });
+        }
+        return created;
+      }
+      static escapeHtml(str) {
+        if (!str) return "";
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+      }
+      /**
+       * Dispatches formatted Telegram alert with anti-flooding guard.
+       */
+      static async dispatchRealtimeAlert(event, severity, ip, tenantId, details) {
+        const cleanIp = ip || "unknown";
+        const throttleKey = `${this.THROTTLE_PREFIX}${event}:${cleanIp}`;
+        try {
+          const isThrottled = await redis.get(throttleKey);
+          if (isThrottled) {
+            await redis.incr(`${throttleKey}:suppressed`).catch(() => {
+            });
+            return;
+          }
+          await redis.set(throttleKey, "1", "EX", this.THROTTLE_TTL_SEC);
+        } catch {
+        }
+        const gateway = String(details?.gateway || details?.provider || "api");
+        const moscowTime = (/* @__PURE__ */ new Date()).toLocaleString("ru-RU", { timeZone: "Europe/Moscow" });
+        const emoji = severity === "CRITICAL" ? "\u{1F6A8}" : "\u26A0\uFE0F";
+        const safeDetailsStr = JSON.stringify(details, null, 2);
+        const truncatedDetails = safeDetailsStr.length > 500 ? `${safeDetailsStr.slice(0, 500)}...` : safeDetailsStr;
+        const cleanEvent = this.escapeHtml(event);
+        const cleanGateway = this.escapeHtml(gateway);
+        const cleanEscapedIp = this.escapeHtml(cleanIp);
+        const cleanTenant = this.escapeHtml(tenantId || "smmplan");
+        const cleanDetails = this.escapeHtml(truncatedDetails);
+        const isConfigWarning = event === "MISCONFIGURED_WEBHOOK_SECRET";
+        const alertTitle = isConfigWarning ? `[${severity}] \u0422\u0420\u0415\u0411\u0423\u0415\u0422\u0421\u042F \u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0410: \u0421\u0435\u043A\u0440\u0435\u0442\u043D\u044B\u0439 \u043A\u043B\u044E\u0447 ${cleanGateway.toUpperCase()}` : `[${severity}] \u041F\u0420\u0415\u0414\u0423\u041F\u0420\u0415\u0416\u0414\u0415\u041D\u0418\u0415 \u0411\u0415\u0417\u041E\u041F\u0410\u0421\u041D\u041E\u0421\u0422\u0418: ${cleanEvent}`;
+        const message = [
+          `${emoji} <b>${alertTitle}</b>`,
+          "",
+          `<b>\u0421\u043E\u0431\u044B\u0442\u0438\u0435:</b> <code>${cleanEvent}</code>`,
+          `<b>\u0428\u043B\u044E\u0437/\u041C\u043E\u0434\u0443\u043B\u044C:</b> <code>${cleanGateway}</code>`,
+          `<b>IP \u0438\u0441\u0442\u043E\u0447\u043D\u0438\u043A\u0430:</b> <code>${cleanEscapedIp}</code>`,
+          `<b>\u0421\u0430\u0439\u0442/\u0422\u0435\u043D\u0430\u043D\u0442:</b> <code>${cleanTenant}</code>`,
+          `<b>\u0414\u0435\u0442\u0430\u043B\u0438:</b> <pre>${cleanDetails}</pre>`,
+          "",
+          isConfigWarning ? "\u{1F4A1} <i>\u0414\u043B\u044F \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u043E\u0433\u043E \u0437\u0430\u0447\u0438\u0441\u043B\u0435\u043D\u0438\u044F \u043F\u043B\u0430\u0442\u0435\u0436\u0435\u0439 \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0435\u043A\u0440\u0435\u0442\u043D\u044B\u0439 \u043A\u043B\u044E\u0447 \u0432\u0435\u0431\u0445\u0443\u043A\u0430 \u0432 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430\u0445.</i>" : "\u{1F6E1}\uFE0F <i>\u0417\u0430\u043F\u0440\u043E\u0441 \u043E\u0442\u043A\u043B\u043E\u043D\u0435\u043D \u0441\u0438\u0441\u0442\u0435\u043C\u043E\u0439 \u0437\u0430\u0449\u0438\u0442\u044B.</i>",
+          "",
+          `<i>\u0424\u0438\u043A\u0441\u0430\u0446\u0438\u044F: ${moscowTime}</i>`
+        ].join("\n");
+        sendAdminAlert(message, severity === "CRITICAL" ? "CRITICAL" : "WARNING");
+      }
+      /**
+       * Fetches paginated security events for the admin panel.
+       */
+      static async getRecentEvents(options) {
+        const { limit = 50, offset = 0, severity, event, ip, tenantId } = options || {};
+        const where = {};
+        if (severity && severity !== "ALL") where.severity = severity;
+        if (event && event !== "ALL") where.event = event;
+        if (ip) where.ip = { contains: ip };
+        if (tenantId && tenantId !== "ALL") where.tenantId = tenantId;
+        try {
+          const [events, total] = await Promise.all([
+            db.securityEvent.findMany({
+              where,
+              orderBy: { createdAt: "desc" },
+              take: Math.min(limit, 100),
+              skip: offset
+            }),
+            db.securityEvent.count({ where })
+          ]);
+          return { events, total };
+        } catch (err) {
+          console.error("[SecurityAlertService] Failed to query security events:", err);
+          return { events: [], total: 0 };
+        }
+      }
+      /**
+       * Returns aggregated statistics for security events in the past 24 hours.
+       */
+      static async getSecurityDashboardStats(tenantId) {
+        const since = new Date(Date.now() - 24 * 60 * 60 * 1e3);
+        const isSingleTenant = tenantId && tenantId !== "all";
+        const whereClause = { createdAt: { gte: since } };
+        if (isSingleTenant) {
+          whereClause.tenantId = tenantId;
+        }
+        try {
+          const [total24h, critical24h, high24h, warning24h, recentEvents] = await Promise.all([
+            db.securityEvent.count({ where: whereClause }),
+            db.securityEvent.count({ where: { ...whereClause, severity: "CRITICAL" } }),
+            db.securityEvent.count({ where: { ...whereClause, severity: "HIGH" } }),
+            db.securityEvent.count({ where: { ...whereClause, severity: "WARNING" } }),
+            db.securityEvent.findMany({
+              where: whereClause,
+              select: { event: true, ip: true },
+              take: 1e3
+            })
+          ]);
+          const eventMap = /* @__PURE__ */ new Map();
+          const ipMap = /* @__PURE__ */ new Map();
+          for (const item of recentEvents) {
+            eventMap.set(item.event, (eventMap.get(item.event) || 0) + 1);
+            if (item.ip) {
+              ipMap.set(item.ip, (ipMap.get(item.ip) || 0) + 1);
+            }
+          }
+          const topEvents = Array.from(eventMap.entries()).map(([event, count]) => ({ event, count })).sort((a, b) => b.count - a.count).slice(0, 5);
+          const topIps = Array.from(ipMap.entries()).map(([ip, count]) => ({ ip, count })).sort((a, b) => b.count - a.count).slice(0, 5);
+          return {
+            total24h,
+            critical24h,
+            high24h,
+            warning24h,
+            uniqueIpsCount: ipMap.size,
+            topEvents,
+            topIps
+          };
+        } catch (err) {
+          console.error("[SecurityAlertService] Failed to calculate dashboard stats:", err);
+          return {
+            total24h: 0,
+            critical24h: 0,
+            high24h: 0,
+            warning24h: 0,
+            uniqueIpsCount: 0,
+            topEvents: [],
+            topIps: []
+          };
+        }
+      }
+    };
+  }
+});
+
+// src/lib/network/network-router.ts
+var network_router_exports = {};
+__export2(network_router_exports, {
+  DEFAULT_ROUTING_CONFIG: () => DEFAULT_ROUTING_CONFIG,
+  IMMUTABLE_DIRECT_PATTERNS: () => IMMUTABLE_DIRECT_PATTERNS,
+  UniversalNetworkRouter: () => UniversalNetworkRouter
+});
+var import_node_url2, IMMUTABLE_DIRECT_PATTERNS, DEFAULT_ROUTING_CONFIG, UniversalNetworkRouter;
+var init_network_router = __esm({
+  "src/lib/network/network-router.ts"() {
+    "use strict";
+    import_node_url2 = require("node:url");
+    init_ssrf_guard2();
+    init_proxy_fetch();
+    IMMUTABLE_DIRECT_PATTERNS = [
+      "api.yookassa.ru",
+      "yookassa.ru",
+      "auth.robokassa.ru",
+      "robokassa.ru",
+      "cbr.ru",
+      "smtp.yandex.ru",
+      "smtp.mail.ru",
+      "localhost",
+      "127.0.0.1"
+    ];
+    DEFAULT_ROUTING_CONFIG = {
+      serviceToggles: {
+        aiGemini: "PROXY_POOL",
+        providers: "PROXY_POOL",
+        catalogSync: "DIRECT",
+        paymentsRu: "DIRECT",
+        paymentsCrypto: "DIRECT",
+        telegram: "DIRECT"
+      },
+      systemProxyUrl: process.env.SYSTEM_PROXY_URL || process.env.HTTP_PROXY || process.env.ALL_PROXY || null,
+      rules: [
+        // 1. Immutable domestic services & payments
+        {
+          id: "rule-yookassa",
+          type: "DOMAIN-SUFFIX",
+          payload: "yookassa.ru",
+          target: "DIRECT",
+          comment: "\u042EKassa (\u0441\u0442\u0440\u043E\u0433\u043E \u043F\u0440\u044F\u043C\u043E\u0439 \u0434\u043E\u0441\u0442\u0443\u043F \u0420\u0424)",
+          isEnabled: true,
+          priority: 10
+        },
+        {
+          id: "rule-robokassa",
+          type: "DOMAIN-SUFFIX",
+          payload: "robokassa.ru",
+          target: "DIRECT",
+          comment: "\u0420\u043E\u0431\u043E\u043A\u0430\u0441\u0441\u0430 (\u0441\u0442\u0440\u043E\u0433\u043E \u043F\u0440\u044F\u043C\u043E\u0439 \u0434\u043E\u0441\u0442\u0443\u043F \u0420\u0424)",
+          isEnabled: true,
+          priority: 20
+        },
+        {
+          id: "rule-cbr",
+          type: "DOMAIN-SUFFIX",
+          payload: "cbr.ru",
+          target: "DIRECT",
+          comment: "\u041A\u0443\u0440\u0441 \u0432\u0430\u043B\u044E\u0442 \u0426\u0411 \u0420\u0424",
+          isEnabled: true,
+          priority: 30
+        },
+        {
+          id: "rule-smtp-yandex",
+          type: "DOMAIN-SUFFIX",
+          payload: "smtp.yandex.ru",
+          target: "DIRECT",
+          comment: "\u041F\u043E\u0447\u0442\u043E\u0432\u044B\u0439 \u0448\u043B\u044E\u0437 \u042F\u043D\u0434\u0435\u043A\u0441 465",
+          isEnabled: true,
+          priority: 40
+        },
+        // 2. AI Services (Google Gemini) - requires proxy in restricted regions
+        {
+          id: "rule-gemini-googleapis",
+          type: "DOMAIN-SUFFIX",
+          payload: "googleapis.com",
+          target: "PROXY_POOL",
+          comment: "Google API / Gemini Generative Language",
+          isEnabled: true,
+          priority: 100
+        },
+        {
+          id: "rule-gemini-service",
+          type: "SERVICE",
+          payload: "AI_GEMINI",
+          target: "PROXY_POOL",
+          comment: "\u041B\u044E\u0431\u044B\u0435 \u0437\u0430\u043F\u0440\u043E\u0441\u044B \u0441\u0435\u0440\u0432\u0438\u0441\u0430 AI Gemini",
+          isEnabled: true,
+          priority: 110
+        },
+        // 3. Telegram API
+        {
+          id: "rule-telegram-api",
+          type: "DOMAIN-SUFFIX",
+          payload: "api.telegram.org",
+          target: "DIRECT",
+          comment: "Telegram Bot API",
+          isEnabled: true,
+          priority: 200
+        },
+        // 4. Crypto payment gateways
+        {
+          id: "rule-cryptobot",
+          type: "DOMAIN-SUFFIX",
+          payload: "pay.crypt.bot",
+          target: "DIRECT",
+          comment: "CryptoBot Payment Gateway",
+          isEnabled: true,
+          priority: 300
+        },
+        // 5. Providers fallback
+        {
+          id: "rule-providers-service",
+          type: "SERVICE",
+          payload: "PROVIDERS",
+          target: "PROXY_POOL",
+          comment: "SMM \u043F\u0430\u043D\u0435\u043B\u0438 \u0438 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u044B \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
+          isEnabled: true,
+          priority: 400
+        },
+        // 6. Final Catch-All
+        {
+          id: "rule-final",
+          type: "FINAL",
+          payload: "",
+          target: "DIRECT",
+          comment: "\u0412\u0441\u0435 \u043E\u0441\u0442\u0430\u043B\u044C\u043D\u044B\u0435 \u0437\u0430\u043F\u0440\u043E\u0441\u044B \u043D\u0430\u043F\u0440\u044F\u043C\u0443\u044E",
+          isEnabled: true,
+          priority: 9999
+        }
+      ]
+    };
+    UniversalNetworkRouter = class {
+      static {
+        this.cachedConfig = null;
+      }
+      static {
+        this.lastConfigFetch = 0;
+      }
+      static {
+        this.CONFIG_CACHE_TTL_MS = 3e4;
+      }
+      /**
+       * Loads the current routing configuration from SystemSettings or returns default
+       */
+      static async getConfig(tenantId = "smmplan") {
+        const now = Date.now();
+        if (this.cachedConfig && now - this.lastConfigFetch < this.CONFIG_CACHE_TTL_MS) {
+          return this.cachedConfig;
+        }
+        try {
+          const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const settings = await db2.systemSettings.findFirst({
+            where: { id: tenantId },
+            select: { id: true, geminiProxy: true }
+          });
+          let parsedRules = { ...DEFAULT_ROUTING_CONFIG };
+          if (settings?.geminiProxy && settings.geminiProxy.trim()) {
+            parsedRules.systemProxyUrl = settings.geminiProxy.trim();
+          }
+          this.cachedConfig = parsedRules;
+          this.lastConfigFetch = now;
+          return parsedRules;
+        } catch (err) {
+          console.warn("[NetworkRouter] Error fetching config from DB, using defaults:", err);
+          return DEFAULT_ROUTING_CONFIG;
+        }
+      }
+      /**
+       * Invalidates internal configuration cache (called after admin saves rules)
+       */
+      static invalidateCache() {
+        this.cachedConfig = null;
+        this.lastConfigFetch = 0;
+      }
+      /**
+       * Resolves routing target and proxy configuration for a given URL and context
+       */
+      static async resolveRoute(targetUrl, context) {
+        let parsedUrl;
+        try {
+          parsedUrl = new import_node_url2.URL(targetUrl);
+        } catch {
+          return {
+            target: "DIRECT",
+            reason: "Invalid URL, falling back to DIRECT",
+            isImmutableDirect: false
+          };
+        }
+        const hostname = parsedUrl.hostname.toLowerCase();
+        for (const pattern of IMMUTABLE_DIRECT_PATTERNS) {
+          if (hostname === pattern || hostname.endsWith("." + pattern)) {
+            return {
+              target: "DIRECT",
+              reason: `Strict security invariant: ${pattern} is locked to DIRECT`,
+              isImmutableDirect: true
+            };
+          }
+        }
+        if (context?.customProxy) {
+          return {
+            target: "SPECIFIC_PROXY",
+            proxyConfig: context.customProxy,
+            reason: "Explicit custom proxy provided by caller",
+            isImmutableDirect: false
+          };
+        }
+        const config2 = await this.getConfig();
+        for (const pattern of IMMUTABLE_DIRECT_PATTERNS) {
+          if (hostname === pattern || hostname.endsWith("." + pattern)) {
+            if (config2.serviceToggles.paymentsRu === "RU_SOVEREIGN_POOL" && (pattern.includes("yookassa") || pattern.includes("robokassa"))) {
+              const ruProxy = await this.resolveProxyForTarget("RU_SOVEREIGN_POOL", config2);
+              if (ruProxy) {
+                return {
+                  target: "RU_SOVEREIGN_POOL",
+                  proxyConfig: ruProxy,
+                  reason: `Sovereign Disaster Recovery: Routing ${pattern} via certified Russian exit node`,
+                  isImmutableDirect: false
+                };
+              }
+            }
+            return {
+              target: "DIRECT",
+              reason: `Strict security invariant: ${pattern} is locked to DIRECT`,
+              isImmutableDirect: true
+            };
+          }
+        }
+        if (context?.service) {
+          const toggleTarget = this.resolveServiceToggle(context.service, config2);
+          if (toggleTarget && toggleTarget !== "DIRECT") {
+            const proxyConfig = await this.resolveProxyForTarget(toggleTarget, config2, context.providerId);
+            return {
+              target: toggleTarget,
+              proxyConfig,
+              reason: `Service quick toggle: ${context.service} -> ${toggleTarget}`,
+              isImmutableDirect: false
+            };
+          }
+        }
+        const sortedRules = [...config2.rules].filter((r) => r.isEnabled).sort((a, b) => a.priority - b.priority);
+        for (const rule of sortedRules) {
+          let matched = false;
+          switch (rule.type) {
+            case "DOMAIN":
+              matched = hostname === rule.payload.toLowerCase();
+              break;
+            case "DOMAIN-SUFFIX": {
+              const suffix = rule.payload.toLowerCase();
+              matched = hostname === suffix || hostname.endsWith("." + suffix);
+              break;
+            }
+            case "DOMAIN-KEYWORD":
+              matched = hostname.includes(rule.payload.toLowerCase());
+              break;
+            case "SERVICE":
+              matched = Boolean(context?.service && context.service === rule.payload);
+              break;
+            case "FINAL":
+              matched = true;
+              break;
+          }
+          if (matched) {
+            const proxyConfig = await this.resolveProxyForTarget(rule.target, config2, context?.providerId, rule.targetProxyId);
+            return {
+              target: rule.target,
+              matchedRule: rule,
+              proxyConfig,
+              reason: `Matched rule [${rule.type}] ${rule.payload} -> ${rule.target}`,
+              isImmutableDirect: false
+            };
+          }
+        }
+        return {
+          target: "DIRECT",
+          reason: "No rules matched, fallback to DIRECT",
+          isImmutableDirect: false
+        };
+      }
+      static resolveServiceToggle(service, config2) {
+        switch (service) {
+          case "AI_GEMINI":
+            return config2.serviceToggles.aiGemini;
+          case "PROVIDERS":
+            return config2.serviceToggles.providers;
+          case "CATALOG_SYNC":
+            return config2.serviceToggles.catalogSync;
+          case "PAYMENTS_RU":
+            return config2.serviceToggles.paymentsRu;
+          case "PAYMENTS_CRYPTO":
+            return config2.serviceToggles.paymentsCrypto;
+          case "TELEGRAM":
+            return config2.serviceToggles.telegram;
+          default:
+            return null;
+        }
+      }
+      static async resolveProxyForTarget(target, config2, providerId, specificProxyId) {
+        if (target === "DIRECT" || target === "REJECT") return null;
+        if (target === "RU_SOVEREIGN_POOL") {
+          try {
+            const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
+            const ruProxy = await ProxyPoolService2.getHealthyRuProxy();
+            if (ruProxy) return ruProxy;
+          } catch (err) {
+            console.warn("[NetworkRouter] Error resolving RU_SOVEREIGN_POOL:", err);
+          }
+          return this.resolveProxyForTarget("PROXY_POOL", config2, providerId, specificProxyId);
+        }
+        if (target === "SYSTEM_PROXY" && config2.systemProxyUrl) {
+          try {
+            const u = new import_node_url2.URL(config2.systemProxyUrl);
+            return {
+              protocol: u.protocol.replace(":", "") || "http",
+              host: u.hostname,
+              port: parseInt(u.port || "80", 10),
+              username: u.username ? decodeURIComponent(u.username) : void 0,
+              password: u.password ? decodeURIComponent(u.password) : void 0
+            };
+          } catch {
+            return null;
+          }
+        }
+        if (target === "SPECIFIC_PROXY" && specificProxyId) {
+          try {
+            const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
+            const proxy = await db2.providerProxy.findUnique({ where: { id: specificProxyId } });
+            if (proxy && proxy.isActive) {
+              let password = "";
+              if (proxy.passwordEncrypted) {
+                const { VaultService: VaultService2 } = await Promise.resolve().then(() => (init_vault(), vault_exports));
+                password = VaultService2.decrypt(proxy.passwordEncrypted);
+              }
+              return {
+                id: proxy.id,
+                protocol: proxy.protocol,
+                host: proxy.host,
+                port: proxy.port,
+                username: proxy.username || void 0,
+                password: password || void 0,
+                lastTestLatencyMs: proxy.lastTestLatencyMs,
+                category: proxy.category
+              };
+            }
+          } catch (err) {
+            console.warn(`[NetworkRouter] Error loading specific proxy ${specificProxyId}:`, err);
+          }
+        }
+        if (target === "PROXY_POOL") {
+          try {
+            const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
+            const healthyProxy = await ProxyPoolService2.getHealthyProxy(providerId);
+            if (healthyProxy) return healthyProxy;
+          } catch (err) {
+            console.warn("[NetworkRouter] ProxyPoolService error, checking systemProxyUrl:", err);
+          }
+          if (config2.systemProxyUrl) {
+            return this.resolveProxyForTarget("SYSTEM_PROXY", config2);
+          }
+        }
+        return null;
+      }
+      /**
+       * Universal fetch drop-in replacement with Clash-style routing dispatch & Multi-Proxy Failover
+       */
+      static async fetch(url, init, context) {
+        const ssrfCheck = await assertSafeOutboundUrl(url);
+        if (!ssrfCheck.ok) {
+          throw new Error(`SSRF blocked: ${ssrfCheck.reason} for URL ${url}`);
+        }
+        const route = await this.resolveRoute(url, context);
+        if (route.target === "REJECT") {
+          throw new Error(`[NetworkRouter] Connection blocked by policy (REJECT): ${url}`);
+        }
+        if (route.target === "DIRECT" || !route.proxyConfig) {
+          return fetch(url, init);
+        }
+        try {
+          const dispatcher = await createProxyDispatcher(route.proxyConfig);
+          const { fetch: undiciFetch } = await Promise.resolve().then(() => __toESM(require_undici()));
+          return await undiciFetch(url, {
+            method: init?.method,
+            headers: init?.headers,
+            body: init?.body,
+            signal: init?.signal,
+            dispatcher
+          });
+        } catch (primaryErr) {
+          console.warn(`[NetworkRouter] Primary proxy failed (${route.proxyConfig.host}:${route.proxyConfig.port}):`, primaryErr?.message);
+          if (route.proxyConfig.id) {
+            const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
+            void ProxyPoolService2.reportFailure(route.proxyConfig.id, primaryErr?.message || "Connection error");
+          }
+          if (context?.service === "AI_GEMINI" || context?.service === "PAYMENTS_RU") {
+            const { SecurityAlertService: SecurityAlertService2 } = await Promise.resolve().then(() => (init_security_alert_service(), security_alert_service_exports));
+            void SecurityAlertService2.record({
+              event: "PROXY_NODE_FAILURE",
+              severity: "WARNING",
+              details: {
+                service: context.service,
+                url,
+                proxyHost: route.proxyConfig.host,
+                error: primaryErr?.message
+              }
+            });
+          }
+          try {
+            const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
+            const backupProxy = route.target === "RU_SOVEREIGN_POOL" ? await ProxyPoolService2.getHealthyRuProxy() : await ProxyPoolService2.getHealthyProxy(context?.providerId);
+            if (backupProxy && backupProxy.id !== route.proxyConfig.id) {
+              console.log(`[NetworkRouter] Multi-Proxy Failover to: ${backupProxy.host}:${backupProxy.port}`);
+              const backupDisp = await createProxyDispatcher(backupProxy);
+              const { fetch: undiciFetch } = await Promise.resolve().then(() => __toESM(require_undici()));
+              return await undiciFetch(url, {
+                method: init?.method,
+                headers: init?.headers,
+                body: init?.body,
+                signal: init?.signal,
+                dispatcher: backupDisp
+              });
+            }
+          } catch (failoverErr) {
+            console.warn("[NetworkRouter] Failover attempt also failed:", failoverErr);
+          }
+          if (context?.service !== "AI_GEMINI") {
+            console.warn("[NetworkRouter] Proxies exhausted, falling back to direct connection");
+            return fetch(url, init);
+          }
+          throw primaryErr;
+        }
+      }
+      /**
+       * Inspects a route without making a network request (for admin UI Route Inspector)
+       */
+      static async inspectRoute(url, service) {
+        const parsed = new import_node_url2.URL(url);
+        const resolution = await this.resolveRoute(url, { service });
+        return {
+          ...resolution,
+          checkedUrl: url,
+          hostname: parsed.hostname
+        };
+      }
+    };
+  }
+});
+
 // src/services/financial/payment-gateway.service.ts
 var payment_gateway_service_exports = {};
 __export2(payment_gateway_service_exports, {
@@ -128889,6 +129925,7 @@ var init_payment_gateway_service = __esm({
     init_settings();
     init_wallet_ops();
     import_crypto3 = __toESM(require("crypto"));
+    init_network_router();
     vatThresholdCache = null;
     BasePaymentGateway = class {
     };
@@ -128933,7 +129970,7 @@ var init_payment_gateway_service = __esm({
         const idempKey = import_crypto3.default.createHash("sha256").update(idempString).digest("hex").substring(0, 36);
         let resp;
         try {
-          resp = await fetch("https://api.yookassa.ru/v3/payments", {
+          resp = await UniversalNetworkRouter.fetch("https://api.yookassa.ru/v3/payments", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -128942,7 +129979,7 @@ var init_payment_gateway_service = __esm({
             },
             body: JSON.stringify(payload),
             signal: AbortSignal.timeout(1e4)
-          });
+          }, { service: "PAYMENTS_RU" });
         } catch (netErr) {
           console.error("[YooKassaGateway] Connection failed:", netErr);
           throw new Error("\u041E\u0448\u0438\u0431\u043A\u0430 \u0441\u043E\u0435\u0434\u0438\u043D\u0435\u043D\u0438\u044F \u0441\u043E \u0448\u043B\u044E\u0437\u043E\u043C \u042EKassa. \u0421\u0435\u0440\u0432\u0435\u0440 \u043E\u043F\u043B\u0430\u0442\u044B \u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D \u2014 \u043F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u0421\u0411\u041F \u0438\u043B\u0438 CryptoBot.");
@@ -129042,7 +130079,7 @@ var init_payment_gateway_service = __esm({
         };
         let resp;
         try {
-          resp = await fetch("https://api.yookassa.ru/v3/refunds", {
+          resp = await UniversalNetworkRouter.fetch("https://api.yookassa.ru/v3/refunds", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -129051,7 +130088,7 @@ var init_payment_gateway_service = __esm({
             },
             body: JSON.stringify(payload),
             signal: AbortSignal.timeout(15e3)
-          });
+          }, { service: "PAYMENTS_RU" });
         } catch (netErr) {
           console.error("[YooKassaGateway] Refund connection failed:", netErr);
           throw new Error("\u041E\u0448\u0438\u0431\u043A\u0430 \u0441\u043E\u0435\u0434\u0438\u043D\u0435\u043D\u0438\u044F \u0441 \u0441\u0435\u0440\u0432\u0435\u0440\u043E\u043C \u042EKassa \u043F\u0440\u0438 \u0432\u043E\u0437\u0432\u0440\u0430\u0442\u0435 \u0441\u0440\u0435\u0434\u0441\u0442\u0432.");
@@ -129105,7 +130142,7 @@ var init_payment_gateway_service = __esm({
         const hiddenMessage = `${brandName} ${cleanDesc}`;
         let resp;
         try {
-          resp = await fetch("https://pay.crypt.bot/api/createInvoice", {
+          resp = await UniversalNetworkRouter.fetch("https://pay.crypt.bot/api/createInvoice", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -129121,7 +130158,7 @@ var init_payment_gateway_service = __esm({
               payload: params.paymentId
             }),
             signal: AbortSignal.timeout(15e3)
-          });
+          }, { service: "PAYMENTS_CRYPTO" });
         } catch (netErr) {
           console.error("[CryptoBotGateway] Network Error:", netErr);
           if (isTestMode) {
@@ -129167,13 +130204,13 @@ var init_payment_gateway_service = __esm({
           const secrets = await SettingsProvider.getPaymentSecrets();
           const cryptoToken = secrets.cryptoBotToken;
           if (!cryptoToken) return false;
-          const resp = await fetch(`https://pay.crypt.bot/api/getInvoices?invoice_ids=${gatewayId}`, {
+          const resp = await UniversalNetworkRouter.fetch(`https://pay.crypt.bot/api/getInvoices?invoice_ids=${gatewayId}`, {
             method: "GET",
             headers: {
               "Crypto-Pay-API-Token": cryptoToken
             },
             signal: AbortSignal.timeout(15e3)
-          });
+          }, { service: "PAYMENTS_CRYPTO" });
           if (!resp.ok) return false;
           const data = await resp.json();
           if (!data.ok || !data.result || !data.result.items) return false;
@@ -135258,110 +136295,6 @@ var init_circuit_breaker = __esm({
   }
 });
 
-// src/lib/security/ssrf-guard.ts
-function isPublicIp2(ip) {
-  if (!ip) return false;
-  if (ip.startsWith("::ffff:")) {
-    ip = ip.substring(7);
-  }
-  if (ip === AWS_METADATA_HOST) return false;
-  if (import_node_net.default.isIPv4(ip)) {
-    const parts = ip.split(".").map(Number);
-    if (parts.length === 4) {
-      if (parts[0] === 0) return false;
-      if (parts[0] === 10) return false;
-      if (parts[0] === 127) return false;
-      if (parts[0] === 169 && parts[1] === 254) return false;
-      if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return false;
-      if (parts[0] === 192 && parts[1] === 168) return false;
-      if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return false;
-      if (parts[0] >= 224) return false;
-    }
-    return true;
-  }
-  if (import_node_net.default.isIPv6(ip)) {
-    const lower = ip.toLowerCase();
-    if (lower === "::1" || lower === "::") return false;
-    if (lower.startsWith("fc") || lower.startsWith("fd")) return false;
-    if (lower.startsWith("fe8") || lower.startsWith("fe9") || lower.startsWith("fea") || lower.startsWith("feb")) {
-      return false;
-    }
-    return true;
-  }
-  return false;
-}
-async function assertSafeOutboundUrl(rawUrl) {
-  let parsed;
-  try {
-    parsed = new import_node_url.URL(rawUrl);
-  } catch {
-    return { ok: false, reason: "invalid-url" };
-  }
-  if (!ALLOWED_SCHEMES.has(parsed.protocol)) {
-    return { ok: false, reason: `scheme-${parsed.protocol}-blocked` };
-  }
-  const hostname = parsed.hostname.toLowerCase();
-  if (parsed.pathname.includes("/api/dev/mock-provider") && (process.env.ENABLE_DEV_ROUTES === "true" || process.env.NODE_ENV === "test" || process.env.NODE_ENV === "development")) {
-    return { ok: true, ip: "127.0.0.1", hostname };
-  }
-  if (BLOCKED_HOSTS.has(hostname) || hostname === AWS_METADATA_HOST) {
-    return { ok: false, reason: `host-${hostname}-blocked` };
-  }
-  if (import_node_net.default.isIP(hostname)) {
-    if (!isPublicIp2(hostname)) {
-      return { ok: false, reason: `ip-${hostname}-private` };
-    }
-    return { ok: true, ip: hostname, hostname };
-  }
-  let addrs = [];
-  try {
-    const records = await import_node_dns.promises.lookup(hostname, { all: true });
-    addrs = records.map((r) => r.address);
-  } catch {
-    return { ok: false, reason: "dns-failed" };
-  }
-  if (addrs.length === 0) {
-    return { ok: false, reason: "dns-no-records" };
-  }
-  for (const ip of addrs) {
-    if (!isPublicIp2(ip)) {
-      return { ok: false, reason: `ip-${ip}-private` };
-    }
-  }
-  try {
-    const secondCheckRecords = await import_node_dns.promises.lookup(hostname, { all: true });
-    const secondAddrs = secondCheckRecords.map((r) => r.address);
-    for (const ip of secondAddrs) {
-      if (!isPublicIp2(ip)) {
-        return { ok: false, reason: `ip-${ip}-private-rebinding` };
-      }
-    }
-  } catch {
-    return { ok: false, reason: "dns-rebinding-lookup-failed" };
-  }
-  return { ok: true, ip: addrs[0], hostname };
-}
-var import_node_url, import_node_dns, import_node_net, ALLOWED_SCHEMES, BLOCKED_HOSTS, AWS_METADATA_HOST;
-var init_ssrf_guard2 = __esm({
-  "src/lib/security/ssrf-guard.ts"() {
-    "use strict";
-    import_node_url = require("node:url");
-    import_node_dns = require("node:dns");
-    import_node_net = __toESM(require("node:net"));
-    ALLOWED_SCHEMES = /* @__PURE__ */ new Set(["https:", "http:"]);
-    BLOCKED_HOSTS = /* @__PURE__ */ new Set([
-      "localhost",
-      "localhost.localdomain",
-      "ip6-localhost",
-      "ip6-loopback",
-      "metadata.google.internal",
-      "metadata.internal",
-      "instance-data"
-    ]);
-    AWS_METADATA_HOST = "169.254.169.254";
-  }
-});
-
 // src/utils/ssrf-guard.ts
 async function assertSafeUrl(url) {
   const res = await assertSafeOutboundUrl(url);
@@ -135380,64 +136313,6 @@ async function assertSafeUrl(url) {
 }
 var init_ssrf_guard3 = __esm({
   "src/utils/ssrf-guard.ts"() {
-    "use strict";
-    init_ssrf_guard2();
-  }
-});
-
-// src/lib/http/proxy-fetch.ts
-async function createProxyDispatcher(proxy) {
-  const { ProxyAgent: ProxyAgent2, Agent: Agent5 } = await Promise.resolve().then(() => __toESM(require_undici()));
-  const auth = proxy.username ? `${encodeURIComponent(proxy.username)}:${encodeURIComponent(proxy.password || "")}@` : "";
-  if (proxy.protocol === "socks5") {
-    const { SocksProxyAgent: SocksProxyAgent2 } = await Promise.resolve().then(() => (init_dist6(), dist_exports));
-    const socksUrl = `socks5://${auth}${proxy.host}:${proxy.port}`;
-    const socksAgent = new SocksProxyAgent2(socksUrl);
-    const connectFn = (opts, callback) => {
-      try {
-        const rawConnect = socksAgent.connect.bind(socksAgent);
-        rawConnect(
-          {},
-          opts,
-          (err, socket) => {
-            if (err) return callback(err, null);
-            callback(null, socket || null);
-          }
-        );
-      } catch (err) {
-        callback(err instanceof Error ? err : new Error(String(err)), null);
-      }
-    };
-    return new Agent5({
-      connect: connectFn
-    });
-  }
-  const proxyUrl = `${proxy.protocol}://${auth}${proxy.host}:${proxy.port}`;
-  return new ProxyAgent2(proxyUrl);
-}
-async function proxiedFetch(url, init) {
-  const proxy = init?.proxy;
-  const cleanInit = { ...init };
-  delete cleanInit.proxy;
-  const ssrfCheck = await assertSafeOutboundUrl(url);
-  if (!ssrfCheck.ok) {
-    throw new Error(`SSRF blocked: ${ssrfCheck.reason} for URL ${url}`);
-  }
-  if (!proxy) {
-    return fetch(url, cleanInit);
-  }
-  const dispatcher = await createProxyDispatcher(proxy);
-  const { fetch: undiciFetch } = await Promise.resolve().then(() => __toESM(require_undici()));
-  return undiciFetch(url, {
-    method: cleanInit.method,
-    headers: cleanInit.headers,
-    body: cleanInit.body,
-    signal: cleanInit.signal,
-    dispatcher
-  });
-}
-var init_proxy_fetch = __esm({
-  "src/lib/http/proxy-fetch.ts"() {
     "use strict";
     init_ssrf_guard2();
   }
@@ -135743,171 +136618,6 @@ var init_universal_provider = __esm({
         const res = await this.request({ action: "refill_status", refill: refillId });
         if (res.error) return { error: res.error };
         return res;
-      }
-    };
-  }
-});
-
-// src/services/providers/proxy-pool.service.ts
-var proxy_pool_service_exports = {};
-__export2(proxy_pool_service_exports, {
-  ProxyPoolService: () => ProxyPoolService
-});
-var ProxyPoolService;
-var init_proxy_pool_service = __esm({
-  "src/services/providers/proxy-pool.service.ts"() {
-    "use strict";
-    init_db();
-    init_redis();
-    init_vault();
-    ProxyPoolService = class {
-      static {
-        this.QUARANTINE_DURATION_MS = 15 * 60 * 1e3;
-      }
-      static {
-        // 15 minutes
-        this.MAX_FAILURES_BEFORE_QUARANTINE = 3;
-      }
-      static {
-        this.REDIS_HEALTH_PREFIX = "proxy:health:";
-      }
-      /**
-       * Fetch active, healthy proxies from database & cache.
-       */
-      static async getHealthyProxy(providerId, category = "PAID_PREMIUM") {
-        try {
-          if (!db || !db.providerProxy) return null;
-          if (providerId) {
-            const dedicated = await db.providerProxy.findFirst({
-              where: {
-                providers: {
-                  some: { id: providerId }
-                },
-                isActive: true
-              }
-            });
-            if (dedicated) {
-              const isQuarantined = await this.isProxyQuarantined(dedicated.id);
-              if (!isQuarantined) {
-                return this.hydrateProxyConfig(dedicated);
-              }
-            }
-          }
-          let pool = await db.providerProxy.findMany({
-            where: {
-              isActive: true,
-              category
-            },
-            orderBy: {
-              lastTestLatencyMs: "asc"
-            },
-            take: 20
-          });
-          if (!pool || pool.length === 0) {
-            pool = await db.providerProxy.findMany({
-              where: {
-                isActive: true
-              },
-              orderBy: {
-                updatedAt: "desc"
-              },
-              take: 20
-            });
-          }
-          if (!pool || pool.length === 0) {
-            return null;
-          }
-          const healthyList = [];
-          for (const p of pool) {
-            const isQuarantined = await this.isProxyQuarantined(p.id);
-            if (!isQuarantined) {
-              const config2 = this.hydrateProxyConfig(p);
-              if (config2) healthyList.push(config2);
-            }
-          }
-          if (healthyList.length === 0) {
-            return this.hydrateProxyConfig(pool[0]);
-          }
-          const randomIndex = Math.floor(Math.random() * healthyList.length);
-          return healthyList[randomIndex];
-        } catch (err) {
-          console.error("[ProxyPoolService] Error selecting healthy proxy:", err);
-          return null;
-        }
-      }
-      /**
-       * Report proxy failure (HTTP 429, 403, 500, timeout).
-       */
-      static async reportFailure(proxyId, errorReason, httpStatus) {
-        if (!proxyId) return;
-        try {
-          if (redis) {
-            const key = `${this.REDIS_HEALTH_PREFIX}${proxyId}:fails`;
-            const count = await redis.incr(key);
-            await redis.expire(key, 1800);
-            if (count >= this.MAX_FAILURES_BEFORE_QUARANTINE || httpStatus === 429 || httpStatus === 403) {
-              const quarantineKey = `${this.REDIS_HEALTH_PREFIX}${proxyId}:quarantine`;
-              await redis.set(quarantineKey, errorReason, "PX", this.QUARANTINE_DURATION_MS);
-              console.warn(`[ProxyPoolService] Proxy ${proxyId} quarantined for 15m. Reason: ${errorReason} (Status: ${httpStatus})`);
-            }
-          }
-        } catch (err) {
-          console.error(`[ProxyPoolService] Failed to record proxy failure for ${proxyId}:`, err);
-        }
-      }
-      /**
-       * Report proxy success to reset failure counts.
-       */
-      static async reportSuccess(proxyId, latencyMs) {
-        if (!proxyId) return;
-        try {
-          if (redis) {
-            const key = `${this.REDIS_HEALTH_PREFIX}${proxyId}:fails`;
-            await redis.del(key);
-            if (latencyMs) {
-              await redis.set(`${this.REDIS_HEALTH_PREFIX}${proxyId}:latency`, latencyMs, "EX", 3600);
-            }
-          }
-        } catch (err) {
-          console.error(`[ProxyPoolService] Failed to record proxy success for ${proxyId}:`, err);
-        }
-      }
-      /**
-       * Check if proxy is currently quarantined.
-       */
-      static async isProxyQuarantined(proxyId) {
-        try {
-          if (!redis) return false;
-          const quarantine = await redis.get(`${this.REDIS_HEALTH_PREFIX}${proxyId}:quarantine`);
-          return !!quarantine;
-        } catch {
-          return false;
-        }
-      }
-      /**
-       * Decrypt and build ProxyConfig safely.
-       */
-      static hydrateProxyConfig(record) {
-        if (!record.host || !record.port) return null;
-        let decryptedPass = record.password;
-        if (record.password && (record.password.includes(":") || record.password.length > 32)) {
-          try {
-            decryptedPass = VaultService.decrypt(record.password);
-          } catch {
-            decryptedPass = record.password;
-          }
-        }
-        return {
-          id: record.id,
-          protocol: record.protocol,
-          host: record.host,
-          port: record.port,
-          username: record.username || void 0,
-          password: decryptedPass || void 0,
-          lastTestLatencyMs: record.lastTestLatencyMs ?? null,
-          category: record.category || "PAID_PREMIUM",
-          isActive: record.isActive ?? true
-        };
       }
     };
   }
