@@ -379,9 +379,9 @@ bot.start(async (ctx: BotContext) => {
 
 export async function sendMainMenu(ctx: BotContext, isEdit = false) {
   if (!ctx.from) return;
-  const tgId = ctx.from.id;
+  const tgId = String(ctx.from.id);
   const tgName = ctx.from.first_name || (ctx.from.username ? `@${ctx.from.username}` : 'Пользователь');
-  const user = await db.user.findFirst({ where: { telegramId: String(tgId), tenantId: botTenantId } });
+  const user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
   const balanceStr = user ? (Number(user.balance) / 100).toFixed(2) : '0.00';
 
   let welcomeTpl =

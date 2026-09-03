@@ -139443,7 +139443,7 @@ function escapeHtml3(text) {
 }
 async function sendMainMenu(ctx, isEdit = false) {
   if (!ctx.from) return;
-  const tgId = ctx.from.id;
+  const tgId = String(ctx.from.id);
   const tgName = ctx.from.first_name || (ctx.from.username ? `@${ctx.from.username}` : "\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C");
   const user = await db.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId4 } });
   const balanceStr = user ? (Number(user.balance) / 100).toFixed(2) : "0.00";
