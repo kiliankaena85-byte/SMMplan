@@ -1,12 +1,12 @@
 # CURRENT_STATE.md — Состояние платформы OmniSMM 1.0 (SMMplan / SMMflux)
 
 > **Файл-якорь для синхронизации контекста сессий.**  
-> **Последнее обновление:** 2026-09-03 07:25 (МСК) — SOCKS5H прокси-контур Telegram бота и схема интегрированы в main.
+> **Последнее обновление:** 2026-09-03 07:34 (МСК) — Автономный контейнер Mihomo (Clash Core) интегрирован в Docker.
 
-- **SOCKS5H Прокси-контур Telegram бота (Application-Level Proxy & Pool Fallback) — 100% COMPLETE & LIVE:**
-  - **Удаленный DNS (`socks5h://`):** В `telegram-agent.ts` и `telegram.ts` внедрен протокол `socks5h`, принудительно направляющий разрешение DNS-имен в туннель, предотвращая отравление и блокировку DNS в РФ.
-  - **Динамический Fallback на общий пул:** При отсутствии индивидуального прокси в `SystemSettings.telegramProxyId` бот автоматически берет наименее нагруженный активный узел из пула `ProviderProxy` с расшифровкой учетных данных через `VaultService`.
-  - **Горячее подключение в Telegraf:** В `launchBot()` Telegraf получает динамический агент до вызова `deleteWebhook()` и polling, обеспечивая непрерывную связь даже при выключенном системном VPN на хосте.
+- **Автономный Docker-контейнер Mihomo (`smmplan_clash`) — 100% COMPLETE & LIVE VERIFIED:**
+  - **Zero Desktop Dependency:** В `docker-compose.yml` встроен легковесный контейнер `metacubex/mihomo:latest` (`smmplan_clash`), монтирующий профиль подписки Quattro VPN (`clash/config.yaml`) с поддержкой протоколов `vless` (Reality) и `hysteria2`.
+  - **Автономная маршрутизация:** Все сервисы платформы (`smmplan_bot`, `smmplan_web`, `smmplan_lite_worker`) подключены к `http://clash:7890` внутри изолированной Docker-сети.
+  - **Полная независимость от хоста:** Платформа, Telegram-бот и AI-интеграции продолжают работать 24/7, даже если приложение Clash Verge на рабочем столе Windows полностью закрыто или VPN выключен.
   - **Схема и валидация:** `createProxySchema` и `TelegramProxy` расширены поддержкой `socks5h`.
   - **Глубокий аудит 6 направлений:** Проведен аудит архитектуры, пограничных состояний (Edge Cases), обработки ошибок, резервных путей, алертов и настроек.
   - **Интеллектуальное авто-распознавание RU-нод (Sovereign Tag Detection):** При импорте подписок Clash Verge или списков узлов в `provider-proxy.ts` система автоматически анализирует гео-метки (`RU`, `🇷🇺`, `Russia`, `Россия`, `MSK`, `SPB`), проставляет `geoCountry: 'RU'` и теги `['RU', 'SOVEREIGN']`.

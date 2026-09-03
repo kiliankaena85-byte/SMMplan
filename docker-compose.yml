@@ -45,6 +45,23 @@ services:
         max-size: "50m"
         max-file: "5"
 
+  clash:
+    image: metacubex/mihomo:latest
+    container_name: smmplan_clash
+    restart: always
+    volumes:
+      - ./clash:/root/.config/mihomo
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    ports:
+      - "127.0.0.1:7890:7890"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
   bot:
     build:
       context: .
@@ -59,6 +76,7 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/smmplan_lite?schema=public&connection_limit=5&pool_timeout=30
       - REDIS_URL=redis://redis:6379
       - BOT_TENANT_ID=smmplan
+      - TELEGRAM_PROXY_URL=http://clash:7890
     volumes:
       - lite_uploads_data:/app/private/uploads
     depends_on:
@@ -66,6 +84,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      clash:
+        condition: service_started
     logging:
       driver: "json-file"
       options:
@@ -85,11 +105,14 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/smmplan_lite?schema=public&connection_limit=5&pool_timeout=30
       - REDIS_URL=redis://redis:6379
+      - CLASH_PROXY_URL=http://clash:7890
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+      clash:
+        condition: service_started
     logging:
       driver: "json-file"
       options:
@@ -112,6 +135,7 @@ services:
       # Override to use Docker internal service DNS (not localhost)
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/smmplan_lite?schema=public&connection_limit=5&pool_timeout=30
       - REDIS_URL=redis://redis:6379
+      - CLASH_PROXY_URL=http://clash:7890
       - RUN_MIGRATIONS=false
       - SKIP_BOT=true
       - HOSTNAME=0.0.0.0
@@ -141,6 +165,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      clash:
+        condition: service_started
     logging:
       driver: "json-file"
       options:
