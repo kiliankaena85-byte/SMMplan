@@ -3,42 +3,23 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard,
-  ShoppingCart,
-  ListOrdered,
-  Wallet,
-  Users,
-  MessageSquare,
-  Settings,
-  UserCircle,
   LogOut,
   ChevronRight,
-  Receipt,
-  Cpu,
 } from 'lucide-react';
 
 import { BalanceDisplay } from '@/components/dashboard/balance/BalanceDisplay';
 import { UserCommandMenu } from '@/components/dashboard/UserCommandMenu';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
+import { MAIN_NAV_ITEMS, MOBILE_BOTTOM_NAV_ITEMS } from '@/lib/navigation';
 
-export const NAV = [
-  { href: '/dashboard',              icon: LayoutDashboard, label: 'Главная'     },
-  { href: '/dashboard/new-order',    icon: ShoppingCart,    label: 'Создать заказ' },
-  { href: '/dashboard/orders',       icon: ListOrdered,     label: 'Мои заказы'  },
-  { href: '/dashboard/finance',      icon: Wallet,          label: 'Финансы'     },
-  { href: '/dashboard/tickets',      icon: MessageSquare,   label: 'Поддержка'   },
-  { href: '/dashboard/referrals',    icon: Users,           label: 'Партнёрам'   },
-  { href: '/dashboard/settings',     icon: Settings,        label: 'Настройки'   },
-];
+// FIX(BUG-C1): локальный дубликат конфига мобильной навигации удалён —
+// единый источник правды MAIN_NAV_ITEMS / MOBILE_BOTTOM_NAV_ITEMS в @/lib/navigation.
+// Раньше иконки и состав пунктов расходились между ClassicDashboardShell
+// (ShoppingCart) и FluxDashboardShell (PlusCircle).
+export const NAV = MAIN_NAV_ITEMS.map(({ href, icon, label }) => ({ href, icon, label }));
 
 // First 5 for mobile bottom nav — home / new-order / orders / finance / tickets
-export const MOBILE_NAV = [
-  { href: '/dashboard',              icon: LayoutDashboard, label: 'Главная'  },
-  { href: '/dashboard/new-order',    icon: ShoppingCart,    label: 'Заказ'    },
-  { href: '/dashboard/orders',       icon: ListOrdered,     label: 'Заказы'   },
-  { href: '/dashboard/finance',      icon: Wallet,          label: 'Финансы'  },
-  { href: '/dashboard/tickets',      icon: MessageSquare,   label: 'Помощь'   },
-];
+export const MOBILE_NAV = MOBILE_BOTTOM_NAV_ITEMS.map(({ href, icon, label }) => ({ href, icon, label }));
 
 import { useUnreadSupport } from '@/hooks/useUnreadSupport';
 
@@ -176,7 +157,8 @@ export function MobileBottomNav({
             href={href}
             aria-current={active ? 'page' : undefined}
             aria-label={label}
-            className={`relative flex-1 flex flex-col items-center justify-center py-2.5 gap-1 transition-all duration-200 ${
+            // FIX(BUG-C2): гарантированные touch-targets 44x44 (WCAG 2.5.5 / Apple HIG)
+            className={`relative flex-1 flex flex-col items-center justify-center min-h-[44px] min-w-[44px] py-2 gap-1 transition-all duration-200 ${
               active ? 'text-primary scale-105' : 'text-muted-foreground hover:text-foreground'
             }`}
           >

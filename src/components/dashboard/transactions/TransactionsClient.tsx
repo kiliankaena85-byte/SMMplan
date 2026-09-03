@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { matchesTransactionTypeFilter, classifyTransaction } from '@/lib/financial/transaction-classifier';
+import { resolveLedgerTypeForDisplay } from '@/lib/financial/ledger-types';
 
 interface Transaction {
   id: string;
@@ -34,8 +34,54 @@ interface Transaction {
   status: string;
   idempotencyKey: string | null;
   transactionType: string;
+  adminId?: string | null;
   orderNumericId?: number | null;
   createdAt: string;
+}
+
+// FIX(BUG-A2): статус QUARANTINE существует в схеме (LedgerEntry.status),
+// раньше отображался как «Отклонено» — вводим полный словарь статусов.
+const STATUS_LABELS: Record<string, string> = {
+  APPROVED: 'Успешно',
+  PENDING: 'В обработке',
+  QUARANTINE: 'На проверке',
+  REJECTED: 'Отклонено',
+};
+const getStatusLabel = (status: string): string => STATUS_LABELS[status] ?? status;
+
+/**
+ * FIX(BUG-A1): группировка транзакции по фильтру на основе КАНОНИЧЕСКИХ типов
+ * из @/lib/financial/ledger-types (TOPUP, ORDER_CHARGE, ORDER_CANCEL, REFUND,
+ * ADJUSTMENT, COMPENSATION, REROUTE, legacy PAYMENT).
+ *
+ * Раньше фильтр сравнивал с legacy-типами ('PAYMENT'), которые WalletOps больше
+ * не пишет (credit → TOPUP, charge → ORDER_CHARGE, refund → REFUND/ORDER_CANCEL,
+ * adminAdjust → ADJUSTMENT), из-за чего «Пополнения» и «Списания» были пустыми.
+ */
+function matchesTransactionTypeFilter(
+  item: Transaction,
+  typeFilter: 'ALL' | 'DEPOSIT' | 'SPENT' | 'REFUND'
+): boolean {
+  if (typeFilter === 'ALL') return true;
+
+  const normalizedType = resolveLedgerTypeForDisplay(
+    item.transactionType,
+    item.amountRub,
+    item.adminId ?? null
+  );
+
+  if (typeFilter === 'DEPOSIT') {
+    // Любые зачисления: пополнения кассы, бонусы/компенсации, ручные корректировки «+»
+    return item.amountRub > 0 &&
+      ['TOPUP', 'COMPENSATION', 'ADJUSTMENT', 'PAYMENT'].includes(normalizedType);
+  }
+  if (typeFilter === 'SPENT') {
+    // Любые списания: оплата заказов, перезапуски, ручные корректировки «−»
+    return item.amountRub < 0 &&
+      ['ORDER_CHARGE', 'REROUTE', 'ADJUSTMENT', 'PAYMENT'].includes(normalizedType);
+  }
+  // REFUND: авто-возвраты И ручные отмены заказов администратором
+  return ['REFUND', 'ORDER_CANCEL'].includes(normalizedType);
 }
 
 interface MobileTransactionListProps {
@@ -84,7 +130,7 @@ function MobileTransactionList({
                   : item.status === 'PENDING' ? 'bg-warning/10 text-warning-text border border-warning/20' 
                   : 'bg-destructive/10 text-destructive border border-destructive/20'
                 }`}>
-                  {item.status === 'APPROVED' ? 'Успешно' : item.status === 'PENDING' ? 'В обработке' : 'Отклонено'}
+                  {getStatusLabel(item.status)}
                 </span>
               </div>
 
@@ -240,31 +286,36 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
 
   // 1. Apply Dynamic Client-Side Filtering
   const filteredEntries = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    // FIX(BUG-A3b): поиск дополнительно матчит номер заказа (#10429 или 10429)
+    const digitsOnly = query.replace(/^#/, '');
+
     return entries.filter(item => {
       // Search text filter
-      const matchesSearch = 
-        item.reason.toLowerCase().includes(search.toLowerCase()) ||
-        item.id.toLowerCase().includes(search.toLowerCase()) ||
-        (item.idempotencyKey && item.idempotencyKey.toLowerCase().includes(search.toLowerCase()));
+      const matchesSearch =
+        !query ||
+        item.reason.toLowerCase().includes(query) ||
+        item.id.toLowerCase().includes(query) ||
+        (item.idempotencyKey && item.idempotencyKey.toLowerCase().includes(query)) ||
+        (/^#?\d+$/.test(digitsOnly) && item.orderNumericId === Number(digitsOnly));
 
-      // Operation Type filter using canonical classification (A1)
+      // Operation Type filter (канонические типы — см. matchesTransactionTypeFilter)
       const matchesType = matchesTransactionTypeFilter(item, typeFilter);
 
-      // Date filter (A4)
+      // Date filter — FIX(BUG-A3c): календарные окна вместо Math.ceil( abs diff ),
+      // исключаем «будущие» даты, которые раньше попадали в любые окна.
       let matchesDate = true;
       if (dateFilter !== 'ALL') {
         const itemDate = new Date(item.createdAt);
         const now = new Date();
 
         if (dateFilter === 'TODAY') {
-          const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          matchesDate = itemDate >= startOfDay;
-        } else if (dateFilter === 'WEEK') {
-          const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          matchesDate = itemDate >= sevenDaysAgo;
-        } else if (dateFilter === 'MONTH') {
-          const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          matchesDate = itemDate >= thirtyDaysAgo;
+          matchesDate = itemDate.toDateString() === now.toDateString();
+        } else {
+          const windowDays = dateFilter === 'WEEK' ? 7 : 30;
+          const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          start.setDate(start.getDate() - (windowDays - 1));
+          matchesDate = itemDate >= start && itemDate <= now;
         }
       }
 
@@ -272,21 +323,20 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
     });
   }, [entries, search, typeFilter, dateFilter]);
 
-  // 2. Calculations for Financial KPI Dashboard (A2)
+  // 2. Calculations for Financial KPI Dashboard
   const stats = useMemo(() => {
     let totalDeposited = 0; // Total added
     let totalSpent = 0;     // Total debited
     let totalRefunds = 0;   // Total refunded
 
     entries.forEach(item => {
-      if (item.status !== 'APPROVED') return; // calculate approved entries
+      if (item.status !== 'APPROVED') return; // only calculate approved entries
 
-      const category = classifyTransaction(item);
-      if (category === 'REFUND') {
+      if (item.transactionType === 'REFUND') {
         totalRefunds += Math.abs(item.amountRub);
-      } else if (category === 'DEPOSIT') {
-        totalDeposited += Math.abs(item.amountRub);
-      } else if (category === 'SPENT') {
+      } else if (item.amountRub > 0) {
+        totalDeposited += item.amountRub;
+      } else if (item.amountRub < 0) {
         totalSpent += Math.abs(item.amountRub);
       }
     });
@@ -587,7 +637,7 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
                             : item.status === 'PENDING' ? 'bg-warning/10 text-warning-text border border-warning/20' 
                             : 'bg-destructive/10 text-destructive border border-destructive/20'
                           }`}>
-                            {item.status === 'APPROVED' ? 'Успешно' : item.status === 'PENDING' ? 'В обработке' : 'Отклонено'}
+                            {getStatusLabel(item.status)}
                           </span>
                         </td>
                       </tr>
@@ -718,17 +768,13 @@ export function TransactionsClient({ initialEntries, userEmail }: TransactionsCl
           </>
         )}
 
-        {/* Empty state container (A6) */}
+        {/* Empty state container */}
         {filteredEntries.length === 0 && (
           <div className="py-16 text-center select-none print:hidden">
-            <div className="text-4xl mb-3">{entries.length === 0 ? '💸' : '🔍'}</div>
-            <h4 className="text-sm font-extrabold text-foreground">
-              {entries.length === 0 ? 'История операций пуста' : 'Ничего не найдено по выбранным фильтрам'}
-            </h4>
+            <div className="text-4xl mb-3">💸</div>
+            <h4 className="text-sm font-extrabold text-foreground">История операций пуста</h4>
             <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed mt-1">
-              {entries.length === 0
-                ? 'Здесь будут отображаться пополнения счета, оплаты тарифов продвижения и отмены заказов.'
-                : 'Попробуйте изменить параметры поиска, сбросить тип операции или выбранный период.'}
+              Здесь будут отображаться пополнения счета, оплаты тарифов продвижения и отмены заказов.
             </p>
           </div>
         )}

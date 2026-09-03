@@ -49,6 +49,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
       userEmail={userEmail}
       userBalanceCents={userBalanceCents}
       initialReorderData={initialReorderData}
+      tenantId={tenantId}
     />
   );
 }

@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getPublicCatalogAction, getServicesByCategoryAction } from "@/actions/order/catalog";
-import { checkoutAction } from "@/actions/order/checkout";
+import { checkoutAction, calculatePriceAction } from "@/actions/order/checkout";
 import { formatEtaSpeedBadge } from "@/utils/format-eta";
 import { validateDripFeedDuration, DRIP_FEED_MAX_ERROR_MESSAGE, detectNetworkByUrl } from "@/hooks/useOrderWizard";
 import { analyzeUrl } from "@/actions/order/analyze-url";
@@ -26,6 +26,7 @@ import { isLinkServiceCompatible } from "@/constants/link-service-compatibility"
 import { inferTargetTypeFromName } from "@/utils/target-type";
 import { FluxNetwork, FluxCategory, FluxService } from "@/types/flux";
 import { FluxCyberLinkDrawer } from "@/components/orders/flux/FluxCyberLinkDrawer";
+import { toast } from "sonner";
 
 type Step = 'network' | 'category' | 'service' | 'checkout';
 
@@ -60,6 +61,7 @@ interface FluxDashboardOrderWizardProps {
   userEmail?: string;
   userBalanceCents?: number;
   initialReorderData?: { serviceId: string; categoryId: string; link: string; quantity: number } | null;
+  tenantId?: string;
 }
 
 export function FluxDashboardOrderWizard(props: FluxDashboardOrderWizardProps) {
@@ -73,7 +75,8 @@ export function FluxDashboardOrderWizard(props: FluxDashboardOrderWizardProps) {
 function FluxDashboardOrderWizardInner({ 
   userEmail = "", 
   userBalanceCents = 0,
-  initialReorderData = null 
+  initialReorderData = null,
+  tenantId = "smmplan",
 }: FluxDashboardOrderWizardProps) {
   const [step, setStep] = useState<Step>('network');
   const [direction, setDirection] = useState(1);
@@ -120,7 +123,9 @@ function FluxDashboardOrderWizardInner({
   // Load catalog on mount
   useEffect(() => {
     setIsLoadingCatalog(true);
-    getPublicCatalogAction().then(res => {
+    // FIX(BUG-B3): передаём tenantId — раньше каталог всегда грузился тенанта 'smmplan',
+    // из-за чего пользователи других тенантов видели чужие категории и цены.
+    getPublicCatalogAction(tenantId).then(res => {
       if (res.success && res.data) {
         // Map public networks to FluxNetwork format
                 const mappedCatalog: FluxNetwork[] = res.data.map((net: { id: string; name: string; slug: string; icon?: string | null; categories?: { id: string; name: string; slug?: string; icon?: string | null }[] }) => ({
@@ -156,7 +161,7 @@ function FluxDashboardOrderWizardInner({
         if (targetCat) {
           setActiveCategory(targetCat);
           setIsLoadingServices(true);
-          getServicesByCategoryAction(categoryId).then(res => {
+          getServicesByCategoryAction(categoryId, tenantId).then(res => {
                         const srvList: FluxService[] = (res || []).map((s) => {
               const unitPrice = s.pricePerUnitRub || 0.1;
               return {
@@ -230,10 +235,11 @@ function FluxDashboardOrderWizardInner({
         return;
       }
 
-      if (catalog.length > 0) {
-        setActiveNetwork(catalog[0]);
-      }
-      navigateTo('category');
+      // FIX(BUG-B5): раньше при неудаче определения платформа молча подставлялась
+      // первая из каталога (catalog[0]) и визард уводился на шаг «Категория» —
+      // пользователь мог оформить заказ не в той соцсети. Теперь остаёмся на
+      // шаге 1 и просим выбрать сеть вручную.
+      toast.info('Не удалось определить платформу по ссылке — выберите соцсеть вручную');
     } catch {
       const detectedNet = detectNetworkByUrl(targetLink.trim(), catalog);
       if (detectedNet) {
@@ -246,10 +252,7 @@ function FluxDashboardOrderWizardInner({
           return;
         }
       }
-      if (catalog.length > 0) {
-        setActiveNetwork(catalog[0]);
-      }
-      navigateTo('category');
+      toast.info('Не удалось определить платформу по ссылке — выберите соцсеть вручную');
     } finally {
       setIsAnalyzing(false);
     }
@@ -272,7 +275,7 @@ function FluxDashboardOrderWizardInner({
     navigateTo('service');
 
     try {
-      const data = await getServicesByCategoryAction(cat.id);
+      const data = await getServicesByCategoryAction(cat.id, tenantId);
       let srvList: FluxService[] = (data || []).map((s) => {
         const unitPrice = s.pricePerUnitRub || 0.1;
         return {
@@ -323,8 +326,31 @@ function FluxDashboardOrderWizardInner({
   const qtyNum = typeof quantity === 'number' ? quantity : parseInt(quantity) || 0;
   const rawPrice = selectedService ? (selectedService.pricePerUnitRub * qtyNum) : 0;
   const dripMultipliedPrice = isDripFeedEnabled ? rawPrice * dripRuns : rawPrice;
-  const totalPriceRub = dripMultipliedPrice.toFixed(2);
-  const canPayFromBalance = userBalanceCents >= (dripMultipliedPrice * 100);
+
+  // FIX(BUG-B6): итоговая цена больше не считается только на клиенте —
+  // сверяемся с серверным calculatePriceAction (промо, округления, серверная математика),
+  // чтобы «Итого к оплате» не расходилось с фактическим списанием при чекауте.
+  const [serverPriceRub, setServerPriceRub] = useState<number | null>(null);
+  useEffect(() => {
+    if (!selectedService || !qtyNum) {
+      setServerPriceRub(null);
+      return;
+    }
+    let cancelled = false;
+    calculatePriceAction(selectedService.id, isDripFeedEnabled ? qtyNum * dripRuns : qtyNum)
+      .then(res => {
+        if (!cancelled && res.success && res.data) {
+          setServerPriceRub(res.data.totalCents / 100);
+        } else if (!cancelled) {
+          setServerPriceRub(null);
+        }
+      })
+      .catch(() => { if (!cancelled) setServerPriceRub(null); });
+    return () => { cancelled = true; };
+  }, [selectedService?.id, qtyNum, isDripFeedEnabled, dripRuns]);
+
+  const totalPriceRub = (serverPriceRub ?? dripMultipliedPrice).toFixed(2);
+  const canPayFromBalance = userBalanceCents >= ((serverPriceRub ?? dripMultipliedPrice) * 100);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

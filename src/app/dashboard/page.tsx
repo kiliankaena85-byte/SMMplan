@@ -65,7 +65,7 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ te
 
   const { HomeView } = await getTenantDashboardViews(tenantId);
 
-  const catalogResult = await getPublicCatalogAction();
+  const catalogResult = await getPublicCatalogAction(tenantId);
   const catalog = catalogResult.success && catalogResult.data ? catalogResult.data : [];
 
   const userForClient = {

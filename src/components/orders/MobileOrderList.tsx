@@ -44,8 +44,7 @@ export interface MobileOrderUser {
 
 // audit-disable STR-002
 
-import React, { useRef, useState } from 'react';
-import { useWindowVirtualizer } from '@tanstack/react-virtual';
+import React, { useState } from 'react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerBody } from '@heroui/react';
 import { CancelOrderButton } from '@/components/orders/CancelOrderButton';
 import { RetryPaymentModal } from '@/components/orders/RetryPaymentModal';
@@ -74,49 +73,32 @@ const STATUS_ACCENT_BORDER: Record<string, string> = {
 export function MobileOrderList({ orders, user }: { orders: MobileOrderItem[], user?: MobileOrderUser | null }) {
   const [isOpen, setIsOpen] = useState(false);
   const onOpen = () => setIsOpen(true);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const onOpenChange = (open: boolean) => setIsOpen(open);
-    const [selectedOrder, setSelectedOrder] = useState<MobileOrderItem | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<MobileOrderItem | null>(null);
 
-  const listRef = useRef<HTMLDivElement>(null);
+  // FIX(BUG-B11): убран useWindowVirtualizer — он использовался без scrollMargin
+  // (offsetTop контейнера), из-за чего на мобильных карточки сдвигались/пропадали
+  // при скролле (список начинается под фиксированным хедером pt-[72px]).
+  // Страница заказов и так отдаёт 15 карточек (take: 15) — виртуализация не нужна,
+  // рендерим список напрямую.
 
-  const virtualizer = useWindowVirtualizer({
-    count: orders.length,
-    estimateSize: () => 140, // Estimated height of each order card
-    overscan: 5,
-  });
-
-    const handleOrderClick = (order: MobileOrderItem) => {
+  const handleOrderClick = (order: MobileOrderItem) => {
     setSelectedOrder(order);
     onOpen();
   };
 
   return (
     <>
-      {/* 4.5.1 Virtualized List with 4.5.2 Pull-to-Refresh overscroll contain */}
-      <div 
-        ref={listRef} 
-        className="sm:hidden -mx-4 px-4 overflow-y-auto overscroll-y-contain"
-        style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}
-      >
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualizer.getVirtualItems()[0]?.start ?? 0}px)` }}>
-          {virtualizer.getVirtualItems().map((virtualRow) => {
-            const order = orders[virtualRow.index];
-            
-            return (
-              <div 
-                key={virtualRow.key} 
-                data-index={virtualRow.index}
-                ref={virtualizer.measureElement}
-                className="py-2"
-              >
-                {/* 4.1 Карточки вместо таблиц + 4.3 Touch Targets */}
-                <div 
-                  onClick={() => handleOrderClick(order)}
-                  className={`bg-card border border-border border-l-4 ${STATUS_ACCENT_BORDER[order.status] || 'border-l-muted-foreground/30'} rounded-2xl p-4 shadow-xs active:scale-[0.98] transition-all cursor-pointer`}
-                  style={{ minHeight: '120px' }} // Ensures large enough touch target
-                >
-                  <div className="flex items-start justify-between gap-2">
+      {/* Mobile cards list (plain render — 15 items/page, no virtualization needed) */}
+      <div className="sm:hidden -mx-4 px-4">
+        {orders.map((order) => (
+          <div key={order.id} className="py-2">
+            {/* 4.1 Карточки вместо таблиц + 4.3 Touch Targets */}
+            <div 
+              onClick={() => handleOrderClick(order)}
+              className={`bg-card border border-border border-l-4 ${STATUS_ACCENT_BORDER[order.status] || 'border-l-muted-foreground/30'} rounded-2xl p-4 shadow-xs active:scale-[0.98] transition-all cursor-pointer`}
+              style={{ minHeight: '120px' }} // Ensures large enough touch target
+            >
+              <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-mono text-muted-foreground">#{order.numericId}</div>
                       
@@ -226,10 +208,8 @@ export function MobileOrderList({ orders, user }: { orders: MobileOrderItem[], u
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+          </div>
+        ))}
       </div>
 
       {/* 4.2 Drawer для деталей (Mobile only) */}

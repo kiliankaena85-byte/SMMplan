@@ -20,6 +20,13 @@ import { SmartAnalyzerLogic } from "@/services/providers/smart-analyzer.logic";
  * active services belong to the current tenant (or are shared as 'all').
  * Without the tenant check on both levels the tree shows "ghost" categories
  * that open into an empty services list.
+ *
+ * FIX(BUG-B2): добавлена проверка cooldownUntil — ровно та же, что и в
+ * getCachedServicesByCategory. Раньше категория, у которой все услуги были
+ * в cooldown, проходила проверку видимости (services.some без cooldown),
+ * отображалась в шаге 2 визарда, а шаг 3 показывал «В выбранной категории
+ * нет доступных активных услуг». Условия видимости дерева и списка услуг
+ * теперь идентичны.
  */
 function storefrontCategoryVisibility(tenantId: string) {
   const tenant = tenantVisibilityFilter(tenantId);
@@ -30,11 +37,8 @@ function storefrontCategoryVisibility(tenantId: string) {
         isActive: true,
         isQuarantined: false,
         tenantId: tenant,
-        OR: [
-          { cooldownUntil: null },
-          { cooldownUntil: { lt: new Date() } }
-        ]
-      }
+        OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }],
+      },
     },
   };
 }

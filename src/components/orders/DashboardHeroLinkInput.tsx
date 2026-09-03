@@ -43,23 +43,31 @@ export function DashboardHeroLinkInput({
     const detectedPlatform = detectPlatformLite(clean);
     const platformSlug = String(detectedPlatform).toLowerCase();
 
-    // Normalize username if applicable
-    if (clean.startsWith('@') || (!clean.includes('/') && !clean.includes('.') && clean.trim().length > 0)) {
-      clean = normalizeUsername(clean, platformSlug || 'telegram');
-    } else if (!/^https?:\/\//i.test(clean) && clean.includes('.') && !clean.includes(' ')) {
+    // FIX(BUG-B4): нормализуем ТОЛЬКО явный username (@channel) или доменную ссылку.
+    // Раньше произвольное слово без '/' и '.' молча превращалось в https://t.me/<слово> —
+    // фабриковались ссылки, которых пользователь не вводил.
+    const isUsername = clean.startsWith('@');
+    const isDomainish = clean.includes('.') || clean.includes('/');
+
+    if (isUsername) {
+      clean = normalizeUsername(clean, platformSlug !== 'other' ? platformSlug : 'telegram');
+    } else if (!/^https?:\/\//i.test(clean) && isDomainish && !clean.includes(' ')) {
       clean = `https://${clean}`;
     }
 
     setLink(clean);
 
-    // Auto-match network if found in catalog
-    if (platformSlug && platformSlug !== 'other') {
+    // FIX(BUG-B1): авто-определение сети больше НЕ выполняет навигацию по шагам
+    // и НЕ перебивает ручной выбор. Сеть подставляется тихо, пользователь остаётся
+    // на текущем шаге и осознанно нажимает «Продолжить».
+    // Автоподстановка — только если платформа реально распознана по домену ссылки.
+    if (platformSlug && platformSlug !== 'other' && isDomainish) {
       const matched = networks.find(
         (n) => n.slug.toLowerCase() === platformSlug || n.name.toLowerCase().includes(platformSlug)
       );
       if (matched && (!selectedNetwork || selectedNetwork.id !== matched.id)) {
         setSelectedNetwork(matched);
-        toast.success(`Платформа ${matched.name} определена автоматически!`, {
+        toast.success(`Платформа ${matched.name} определена автоматически`, {
           icon: '✨',
         });
       }
@@ -71,7 +79,7 @@ export function DashboardHeroLinkInput({
     if (pastedText) {
       e.preventDefault();
       handleProcessLink(pastedText);
-      toast.success('Ссылка успешно вставлена и очищена!');
+      // FIX(BUG-B4): убран второй toast — раньше дублировался с тостом авто-определения
     }
   };
 

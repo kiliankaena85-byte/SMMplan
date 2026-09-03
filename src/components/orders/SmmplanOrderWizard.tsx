@@ -38,10 +38,12 @@ function SmmplanOrderWizardInner({
   userEmail = '',
   userBalanceCents = 0,
   initialReorderData,
+  tenantId = 'smmplan',
 }: {
   userEmail?: string;
   userBalanceCents?: number;
   initialReorderData?: { serviceId: string; categoryId: string; link: string; quantity: number } | null;
+  tenantId?: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -165,7 +167,7 @@ function SmmplanOrderWizardInner({
     async function loadCatalog() {
       setIsLoadingCatalog(true);
       try {
-        const res = await getPublicCatalogAction();
+        const res = await getPublicCatalogAction(tenantId);
         if (res.success && res.data) {
           setNetworks(res.data);
           if (initialReorderData) {
@@ -198,7 +200,7 @@ function SmmplanOrderWizardInner({
     async function loadServices() {
       setIsLoadingServices(true);
       try {
-        const servs = await getServicesByCategoryAction(selectedCategory!.id);
+        const servs = await getServicesByCategoryAction(selectedCategory!.id, tenantId);
         setServices(servs);
         const paramServiceId = searchParams.get('serviceId');
         const targetSrvId = initialReorderData?.serviceId || paramServiceId;
@@ -562,11 +564,12 @@ function SmmplanOrderWizardInner({
             setLink={setLink}
             networks={networks}
             selectedNetwork={selectedNetwork}
+            // FIX(BUG-B1): раньше здесь вызывался changeStep(2) — визард насильно
+            // прыгал на шаг «Категория» сразу после ввода ссылки (на мобиле — по blur
+            // при закрытии клавиатуры). Теперь сеть подставляется тихо,
+            // навигация — только явными действиями пользователя.
             setSelectedNetwork={(net) => {
               setSelectedNetwork(net);
-              if (net) {
-                changeStep(2, undefined, undefined, net.id);
-              }
             }}
             selectedCategory={selectedCategory}
             selectedService={selectedService}
@@ -1385,6 +1388,7 @@ export function SmmplanOrderWizard(props: {
   userEmail?: string;
   userBalanceCents?: number;
   initialReorderData?: { serviceId: string; categoryId: string; link: string; quantity: number } | null;
+  tenantId?: string;
 }) {
   return (
     <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Загрузка визарда заказа...</div>}>
