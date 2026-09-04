@@ -163,6 +163,7 @@ vi.mock('next/cache', () => ({
 
 vi.mock('@/lib/smtp', () => ({
   sendOrderPaidMail: vi.fn().mockResolvedValue(true),
+  sendOrderBalanceDebitMail: vi.fn().mockResolvedValue(true),
 }));
 
 describe('Requirement R1: Advanced Order Parameters Integration (Empirical Challenge Suite)', () => {

@@ -226,11 +226,20 @@ class OrderService {
 
       // 4. Return success instantly to User Interface. No delays!
       // Email Notification (Fire and Forget)
-      import('../../lib/smtp').then(({ sendOrderPaidMail }) => {
-        db.user.findUnique({ where: { id: userId }, select: { email: true } }).then(u => {
+      import('../../lib/smtp').then(({ sendOrderBalanceDebitMail }) => {
+        db.user.findUnique({ where: { id: userId }, select: { email: true, balance: true, tenantId: true } }).then(u => {
           if (u?.email) {
             db.service.findUnique({ where: { id: input.serviceId }, select: { name: true } }).then(s => {
-              if (s?.name) sendOrderPaidMail(u.email, newOrder.numericId.toString(), s.name).catch(console.error);
+              if (s?.name) {
+                sendOrderBalanceDebitMail({
+                  email: u.email,
+                  orderId: newOrder.numericId.toString(),
+                  serviceName: s.name,
+                  chargedCents: input.charge,
+                  remainingBalanceCents: u.balance,
+                  tenantId: u.tenantId
+                }).catch(console.error);
+              }
             });
           }
         });

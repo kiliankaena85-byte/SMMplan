@@ -150,6 +150,7 @@ vi.mock('next/cache', () => ({
 
 vi.mock('@/lib/smtp', () => ({
   sendOrderPaidMail: vi.fn().mockResolvedValue(true),
+  sendOrderBalanceDebitMail: vi.fn().mockResolvedValue(true),
 }));
 
 describe('checkoutAction', () => {

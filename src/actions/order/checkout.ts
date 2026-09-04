@@ -13,7 +13,7 @@ import { getClientIp } from '@/utils/ip';
 import { generateGuestOrderToken } from '@/lib/order-token';
 import { WalletOps, WalletInsufficientFundsError, WalletUserNotFoundError, WalletInvalidAmountError } from '@/services/financial/wallet-ops';
 import { handleServerError } from '@/utils/error-handler';
-import { sendOrderPaidMail } from "@/lib/smtp";
+import { sendOrderBalanceDebitMail } from "@/lib/smtp";
 import { getBaseUrlSync } from "@/utils/get-base-url";
 import { featureFlagService } from "@/services/system/feature-flag.service";
 import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
@@ -500,9 +500,10 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
             }
           }
 
+          let balanceChargeResult = null;
           // 2. If gateway is balance, atomically deduct balance
           if (gateway === 'balance' && user) {
-            await WalletOps.charge(tx, user.id, finalTotalCents, `Оплата заказа с баланса`, {
+            balanceChargeResult = await WalletOps.charge(tx, user.id, finalTotalCents, `Оплата заказа с баланса`, {
               idempotencyKey: `balance-charge-${effectiveIdempotencyKey}`,
               tenantId
             });
@@ -631,7 +632,13 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         }
 
         transactionCompleted = true;
-        return { orderId: newOrder.id, paymentId: payment.id, numericId: newOrder.numericId, secondOrderId };
+        return { 
+          orderId: newOrder.id, 
+          paymentId: payment.id, 
+          numericId: newOrder.numericId, 
+          secondOrderId,
+          remainingBalanceCents: balanceChargeResult ? Number(balanceChargeResult.balance) : null
+        };
       });
     };
 
@@ -740,11 +747,14 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         await ordersQueue.add('order-dispatch', { orderId: result.secondOrderId }, { jobId: `dispatch-${result.secondOrderId}`, delay: 3 * 60 * 1000 });
       }
 
-      void sendOrderPaidMail(
-        user?.email || email,
-        result.numericId.toString(),
-        service.name
-      ).catch((err: unknown) => console.error('[H1] sendOrderPaidMail balance failed', err));
+      void sendOrderBalanceDebitMail({
+        email: user?.email || email,
+        orderId: result.numericId.toString(),
+        serviceName: service.name,
+        chargedCents: finalTotalCents,
+        remainingBalanceCents: result.remainingBalanceCents,
+        tenantId
+      }).catch((err: unknown) => console.error('[H1] sendOrderBalanceDebitMail balance failed', err));
 
       revalidatePath('/dashboard', 'layout');
 
@@ -756,7 +766,11 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       return { 
         orderId: result.orderId, 
         paymentId: result.paymentId,
-        paymentUrl: successUrl
+        paymentUrl: null,
+        redirectUrl: `/dashboard/orders?success=1&orderId=${result.orderId}&payment=balance`,
+        remainingBalanceRub: result.remainingBalanceCents !== null && result.remainingBalanceCents !== undefined
+          ? result.remainingBalanceCents / 100
+          : undefined
       };
     }
 
@@ -833,13 +847,6 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       await createSession(user.id);
     }
 
-    if (gateway === 'balance' && user) {
-      void sendOrderPaidMail(
-        user.email,
-        result.numericId.toString(),
-        service.name
-      ).catch((err: unknown) => console.error('[H1] sendOrderPaidMail balance failed', err));
-    }
 
     if (isLinkOverridden) {
       try {
@@ -982,10 +989,11 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     const isTestMode = await SettingsManager.isTestMode();
 
     // Update existing payment or create new
-    const result = await runSerializableTransaction<{ paymentId: string }>(async (tx) => {
+    const result = await runSerializableTransaction<{ paymentId: string; remainingBalanceCents?: number | null }>(async (tx) => {
+      let balanceChargeResult = null;
       // If gateway is balance, atomically deduct balance first
       if (gateway === 'balance') {
-        await WalletOps.charge(tx, order.userId, Number(order.charge), `Оплата заказа с баланса`, {
+        balanceChargeResult = await WalletOps.charge(tx, order.userId, Number(order.charge), `Оплата заказа с баланса`, {
           idempotencyKey: `balance-charge-retry-${order.id}`
         });
       }
@@ -1069,7 +1077,10 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
         });
       }
 
-      return { paymentId: processedPaymentId };
+      return { 
+        paymentId: processedPaymentId,
+        remainingBalanceCents: balanceChargeResult ? Number(balanceChargeResult.balance) : null
+      };
     });
 
     let paymentUrl: string | undefined;
@@ -1104,18 +1115,25 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
       const { ordersQueue } = await import('@/lib/queue-manager');
       await ordersQueue.add('order-dispatch', { orderId: order.id }, { jobId: `dispatch-${order.id}`, delay: 3 * 60 * 1000 });
 
-      void sendOrderPaidMail(
-        order.user.email,
-        order.numericId.toString(),
-        order.service.name
-      ).catch((err: unknown) => console.error('[H1] sendOrderPaidMail balance retry failed', err));
+      void sendOrderBalanceDebitMail({
+        email: order.user.email,
+        orderId: order.numericId.toString(),
+        serviceName: order.service.name,
+        chargedCents: Number(order.charge),
+        remainingBalanceCents: result.remainingBalanceCents,
+        tenantId: order.tenantId
+      }).catch((err: unknown) => console.error('[H1] sendOrderBalanceDebitMail balance retry failed', err));
 
       revalidatePath('/dashboard', 'layout');
 
       return { 
         orderId: order.id, 
         paymentId: result.paymentId,
-        paymentUrl: successUrl
+        paymentUrl: null,
+        redirectUrl: `/dashboard/orders?success=1&orderId=${order.id}&payment=balance`,
+        remainingBalanceRub: result.remainingBalanceCents !== null && result.remainingBalanceCents !== undefined
+          ? result.remainingBalanceCents / 100
+          : undefined
       };
     }
 

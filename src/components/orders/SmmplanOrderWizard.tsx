@@ -521,10 +521,14 @@ function SmmplanOrderWizardInner({
       });
 
       if (res.success && res.data) {
-        if (res.data.paymentUrl) {
-          window.location.href = res.data.paymentUrl;
+        if (gateway === 'balance' || !res.data.paymentUrl) {
+          toast.success(`Заказ #${res.data.orderId || ''} успешно запущен!`, {
+            description: 'Оплата произведена с вашего баланса.'
+          });
+          const targetUrl = (res.data as any).redirectUrl || `/dashboard/orders?success=1&orderId=${res.data.orderId || ''}&payment=balance`;
+          router.push(targetUrl);
         } else {
-          window.location.href = `/dashboard/orders?success=1&orderId=${res.data.orderId || ''}`;
+          window.location.href = res.data.paymentUrl;
         }
       } else {
         const errorMsg = !res.success ? res.error : 'Ошибка при оформлении заказа. Попробуйте еще раз.';

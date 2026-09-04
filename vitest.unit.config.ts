@@ -101,6 +101,7 @@ export default defineConfig({
       'src/__tests__/direct-emergency-alert.test.ts',
       'src/__tests__/watchdog-daemon.test.ts',
       'src/__tests__/order-wizard-category-filtering.test.ts',
+      'src/__tests__/financial/balance-payment-notifications-and-ux.test.ts',
     ],
   }
 });

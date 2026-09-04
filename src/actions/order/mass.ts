@@ -405,6 +405,38 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
       successUrl += `&token=${token}`;
     }
 
+    if (isBalancePayment) {
+      const { ordersQueue } = await import('@/lib/queue-manager');
+      const createdOrders = await db.order.findMany({
+        where: { paymentId: result.paymentId },
+        select: { id: true, numericId: true }
+      });
+      for (const ord of createdOrders) {
+        await ordersQueue.add('order-dispatch', { orderId: ord.id }, { jobId: `dispatch-${ord.id}`, delay: 3 * 60 * 1000 });
+      }
+
+      if (user.email) {
+        const { sendOrderBalanceDebitMail } = await import('@/lib/smtp');
+        void sendOrderBalanceDebitMail({
+          email: user.email,
+          orderId: `MASS-${result.paymentId.slice(-6).toUpperCase()}`,
+          serviceName: `Массовый заказ (${orders.length} шт.)`,
+          chargedCents: totalCents,
+          tenantId: user.tenantId
+        }).catch((err: unknown) => console.error('[MassCheckout] sendOrderBalanceDebitMail failed', err));
+      }
+
+      if (!session && isNewUser) {
+        await createSession(user.id);
+      }
+
+      return { 
+        paymentId: result.paymentId,
+        paymentUrl: null,
+        redirectUrl: `/dashboard/orders?success=1&mass=1&payment=balance`
+      };
+    }
+
     try {
       const { paymentGatewayQueue } = await import('@/lib/queue-manager');
       await paymentGatewayQueue.add('generate-gateway-payment', {
@@ -686,6 +718,38 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
 
     if (token) {
       successUrl += `&token=${token}`;
+    }
+
+    if (isBalancePayment) {
+      const { ordersQueue } = await import('@/lib/queue-manager');
+      const createdOrders = await db.order.findMany({
+        where: { paymentId: result.paymentId },
+        select: { id: true, numericId: true }
+      });
+      for (const ord of createdOrders) {
+        await ordersQueue.add('order-dispatch', { orderId: ord.id }, { jobId: `dispatch-${ord.id}`, delay: 3 * 60 * 1000 });
+      }
+
+      if (user.email) {
+        const { sendOrderBalanceDebitMail } = await import('@/lib/smtp');
+        void sendOrderBalanceDebitMail({
+          email: user.email,
+          orderId: `MASS-${result.paymentId.slice(-6).toUpperCase()}`,
+          serviceName: `Структурированный заказ (${rawOrders.length} шт.)`,
+          chargedCents: totalCents,
+          tenantId: user.tenantId
+        }).catch((err: unknown) => console.error('[MassCheckout] sendOrderBalanceDebitMail failed', err));
+      }
+
+      if (!session && isNewUser) {
+        await createSession(user.id);
+      }
+
+      return { 
+        paymentId: result.paymentId,
+        paymentUrl: null,
+        redirectUrl: `/dashboard/orders?success=1&mass=1&payment=balance`
+      };
     }
 
     try {

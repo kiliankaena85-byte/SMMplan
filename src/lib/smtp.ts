@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger';
 import { getBaseUrlAsync, getBaseUrlSync } from '@/utils/get-base-url';
 
 import { normalizeTenantId, getTenantHost, getTenantSiteName } from '@/lib/seo-helpers';
+import { formatRubles } from '@/utils/format-price';
 
 // Force IPv4 DNS resolution first to avoid ENETUNREACH on dual-stack environments without IPv6 routing
 if (dns.setDefaultResultOrder) {
@@ -232,7 +233,7 @@ export async function sendOrderPaidMail(email: string, orderId: string, serviceN
       </p>
       
       <div style="background: #f4f4f5; padding: 16px; border-radius: 12px; margin: 20px 0; font-size: 13px; line-height: 1.5; color: #3f3f46;">
-        <div>📄 <strong>Электронный чек 54-ФЗ:</strong> сформирован и отправлен в ОФД.</div>
+        <div>📄 <strong>Электронный чек 54-ФЗ:</strong> направлен на вашу почту платежным оператором.</div>
         <div style="margin-top: 6px;">⚡ <strong>Старт выполнения:</strong> в течение 1–5 минут.</div>
       </div>
 
@@ -243,11 +244,64 @@ export async function sendOrderPaidMail(email: string, orderId: string, serviceN
       </div>
 
       <div style="border-top: 1px solid #e4e4e7; padding-top: 16px; font-size: 12px; color: #a1a1aa; line-height: 1.5;">
-        💡 <em>Если вы допустили опечатку в email или не можете войти в аккаунт, обратитесь в нашу службу поддержки с номером заказа #${orderId} и чеком оплаты.</em>
+        💡 <em>Если вы допустили опечатку в email или не можете войти в аккаунт, обратитесь в нашу службу поддержки с номером заказа #${orderId}.</em>
       </div>
     </div>
   `;
-  return sendMail(email, `Чек и запуск заказа #${orderId} — ${companyName}`, htmlContent, undefined, tenantId);
+  return sendMail(email, `Оплата получена и запуск заказа #${orderId} — ${companyName}`, htmlContent, undefined, tenantId);
+}
+
+export interface BalanceDebitMailParams {
+  email: string;
+  orderId: string;
+  serviceName: string;
+  chargedCents: number | bigint;
+  remainingBalanceCents?: number | bigint | null;
+  tenantId?: string;
+}
+
+export async function sendOrderBalanceDebitMail({
+  email,
+  orderId,
+  serviceName,
+  chargedCents,
+  remainingBalanceCents,
+  tenantId
+}: BalanceDebitMailParams) {
+  const { companyName, supportDomain } = await getEmailContext(tenantId);
+  const chargedRub = Number(chargedCents) / 100;
+  const remainingRub = remainingBalanceCents !== undefined && remainingBalanceCents !== null 
+    ? Number(remainingBalanceCents) / 100 
+    : null;
+
+  const htmlContent = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; padding: 28px; border-radius: 16px; border: 1px solid #e4e4e7; color: #18181b;">
+      <h2 style="color: #10b981; margin-top: 0; font-size: 22px;">Заказ #<span>${orderId}</span> успешно запущен! 🚀</h2>
+      <p style="color: #52525b; line-height: 1.6; font-size: 15px;">
+        Ваш заказ на услугу <strong>${serviceName}</strong> в сервисе ${companyName} принят и запущен в обработку.
+      </p>
+      
+      <div style="background: #f4f4f5; padding: 18px; border-radius: 12px; margin: 20px 0; font-size: 14px; line-height: 1.6; color: #27272a;">
+        <div>💰 <strong>Списано с баланса:</strong> ${formatRubles(chargedRub)}</div>
+        ${remainingRub !== null ? `<div style="margin-top: 6px;">💼 <strong>Остаток на балансе:</strong> ${formatRubles(remainingRub)}</div>` : ''}
+        <div style="margin-top: 6px;">⚡ <strong>Старт выполнения:</strong> в течение 1–5 минут.</div>
+        <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #d4d4d8; font-size: 12px; color: #71717a; line-height: 1.5;">
+          💡 <em>Оплата произведена с вашего внутреннего лицевого счёта (ранее внесенный аванс). Повторное списание с вашей банковской карты не производилось. Кассовый чек по 54-ФЗ был предоставлен вам ранее в момент пополнения баланса.</em>
+        </div>
+      </div>
+
+      <div style="margin: 28px 0; text-align: center;">
+        <a href="https://${supportDomain}/dashboard/orders" style="background-color: #0284c7; color: #ffffff; padding: 13px 28px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 15px; display: inline-block;">
+          Перейти в мои заказы →
+        </a>
+      </div>
+
+      <div style="border-top: 1px solid #e4e4e7; padding-top: 16px; font-size: 12px; color: #a1a1aa; line-height: 1.5;">
+        💡 <em>Если у вас возникли вопросы по заказу, обратитесь в нашу службу поддержки с номером заказа #${orderId}.</em>
+      </div>
+    </div>
+  `;
+  return sendMail(email, `Заказ #${orderId} запущен — списание с баланса ${companyName}`, htmlContent, undefined, tenantId);
 }
 
 export async function sendOrderCanceledMail(email: string, orderId: string, serviceName: string, tenantId?: string) {

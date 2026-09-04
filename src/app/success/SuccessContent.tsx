@@ -26,6 +26,7 @@ export function SuccessContent() {
   const paymentId = searchParams.get('paymentId');
   const token = searchParams.get('token');
   const tenantParam = searchParams.get('tenant');
+  const paymentParam = searchParams.get('payment');
 
   const [isFlux, setIsFlux] = useState(false);
 
@@ -43,6 +44,7 @@ export function SuccessContent() {
   const [pollCount, setPollCount] = useState(0);
   const [autoRedirect, setAutoRedirect] = useState(10);
   const [isManualFetching, setIsManualFetching] = useState(false);
+  const isBalancePayment = paymentParam === 'balance' || (order as any)?.gateway === 'balance';
 
   // Clear the order draft session storage upon landing on success page
   useEffect(() => {
@@ -161,10 +163,15 @@ export function SuccessContent() {
           </div>
 
           <div className="space-y-3">
-            <h1 className="text-3xl font-black text-foreground">Проверяем оплату...</h1>
+            <h1 className="text-3xl font-black text-foreground">
+              {isBalancePayment ? "Запуск заказа..." : "Проверяем оплату..."}
+            </h1>
             <p className="text-muted-foreground text-base leading-relaxed">
-              Ожидаем подтверждение от платёжной системы.
-              {' '}Обычно это занимает <strong className="text-foreground">несколько секунд</strong>.
+              {isBalancePayment ? (
+                <>Заказ оплачен с вашего баланса и передаётся в обработку. Обычно это занимает <strong className="text-foreground">несколько секунд</strong>.</>
+              ) : (
+                <>Ожидаем подтверждение от платёжной системы. Обычно это занимает <strong className="text-foreground">несколько секунд</strong>.</>
+              )}
             </p>
           </div>
 
@@ -198,8 +205,8 @@ export function SuccessContent() {
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-status-warning shrink-0 mt-0.5" />
                     <div className="text-sm text-status-warning">
-                      <p className="font-semibold mb-1">Подтверждение задерживается</p>
-                      <p>Если вы уже оплатили — не волнуйтесь, мы автоматически зачислим платёж, когда банк пришлёт подтверждение. Вы также можете проверить статус позже в разделе «Мои заказы».</p>
+                      <p className="font-semibold mb-1">{isBalancePayment ? "Заказ обрабатывается" : "Подтверждение задерживается"}</p>
+                      <p>{isBalancePayment ? "Заказ оплачен с баланса и передаётся поставщику. Вы можете проверить статус позже в разделе «Мои заказы»." : "Если вы уже оплатили — не волнуйтесь, мы автоматически зачислим платёж, когда банк пришлёт подтверждение. Вы также можете проверить статус позже в разделе «Мои заказы»."}</p>
                     </div>
                   </div>
                 </div>
@@ -212,8 +219,8 @@ export function SuccessContent() {
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-status-warning shrink-0 mt-0.5" />
                   <div className="text-sm text-status-warning">
-                    <p className="font-semibold mb-1">Подтверждение задерживается</p>
-                    <p>Банк ещё не прислал ответ. Нажмите «Обновить статус», чтобы запросить статус вручную, или проверьте позже.</p>
+                    <p className="font-semibold mb-1">{isBalancePayment ? "Заказ обрабатывается" : "Подтверждение задерживается"}</p>
+                    <p>{isBalancePayment ? "Заказ находится в очереди на запуск. Нажмите «Обновить статус», чтобы запросить статус вручную, или перейдите в мои заказы." : "Банк ещё не прислал ответ. Нажмите «Обновить статус», чтобы запросить статус вручную, или проверьте позже."}</p>
                   </div>
                 </div>
               </div>
@@ -275,16 +282,27 @@ export function SuccessContent() {
           {/* Text */}
           <div className="space-y-3">
             <h1 className={`text-3xl font-black ${isFlux ? "text-white" : "text-foreground"}`}>
-              Оплата подтверждена!
+              {isBalancePayment ? "Заказ успешно запущен!" : "Оплата подтверждена!"}
             </h1>
-            <p className={`text-sm sm:text-base leading-relaxed ${isFlux ? "text-neutral-300" : "text-muted-foreground"}`}>
-              {order ? (
-                <>Заказ <strong className={isFlux ? "text-white" : "text-foreground"}>#{order.numericId}</strong> принят и запущен в обработку.
-                Обычно старт происходит в течение <strong className={isFlux ? "text-white" : "text-foreground"}>1–5 минут</strong>.</>
-              ) : (
-                <>Заказ принят и запущен в обработку. Обычно старт происходит в течение <strong className={isFlux ? "text-white" : "text-foreground"}>1–5 минут</strong>.</>
+            <div className={`text-sm sm:text-base leading-relaxed ${isFlux ? "text-neutral-300" : "text-muted-foreground"}`}>
+              {isBalancePayment && (
+                <div className="mb-2">
+                  <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    💰 Оплачено с внутреннего баланса
+                  </span>
+                </div>
               )}
-            </p>
+              {order ? (
+                <p>
+                  Заказ <strong className={isFlux ? "text-white" : "text-foreground"}>#{order.numericId}</strong> принят и запущен в обработку.
+                  Обычно старт происходит в течение <strong className={isFlux ? "text-white" : "text-foreground"}>1–5 минут</strong>.
+                </p>
+              ) : (
+                <p>
+                  Заказ принят и запущен в обработку. Обычно старт происходит в течение <strong className={isFlux ? "text-white" : "text-foreground"}>1–5 минут</strong>.
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Steps */}
