@@ -87,6 +87,20 @@ function SmmplanOrderWizardInner({
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
   const [showPromo, setShowPromo] = useState(false);
   const [gateway, setGateway] = useState<'balance' | 'yookassa' | 'cryptobot'>('balance');
+  const [availableGateways, setAvailableGateways] = useState<{ yookassa: boolean; robokassa: boolean; cryptobot: boolean } | null>(null);
+
+  useEffect(() => {
+    import("@/actions/order/checkout").then(({ getAvailableGatewaysAction }) => {
+      getAvailableGatewaysAction().then((res) => {
+        if (res.success && res.data) {
+          setAvailableGateways(res.data);
+          if (gateway !== 'balance' && !res.data[gateway as keyof typeof res.data]) {
+            setGateway('balance');
+          }
+        }
+      });
+    });
+  }, [gateway]);
 
   // Drip-Feed & Custom Data & Requirement States
   const [isDripFeedEnabled, setIsDripFeedEnabled] = useState(false);
@@ -1579,22 +1593,24 @@ function SmmplanOrderWizardInner({
                     </div>
                   </button>
 
-                  {/* CryptoBot Option */}
-                  <button
-                    type="button"
-                    onClick={() => setGateway('cryptobot')}
-                    className={`p-3.5 rounded-2xl border text-left transition-all flex items-center gap-3 ${
-                      gateway === 'cryptobot'
-                        ? 'border-primary bg-primary/10 ring-2 ring-primary/30 shadow-sm'
-                        : 'border-border/60 bg-background/60 hover:bg-card'
-                    }`}
-                  >
-                    <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0" />
-                    <div>
-                      <span className="text-xs font-bold block text-foreground">CryptoBot</span>
-                      <span className="text-[11px] text-muted-foreground block">USDT / Кратко</span>
-                    </div>
-                  </button>
+                  {/* CryptoBot Option (Only when configured) */}
+                  {availableGateways?.cryptobot && (
+                    <button
+                      type="button"
+                      onClick={() => setGateway('cryptobot')}
+                      className={`p-3.5 rounded-2xl border text-left transition-all flex items-center gap-3 ${
+                        gateway === 'cryptobot'
+                          ? 'border-primary bg-primary/10 ring-2 ring-primary/30 shadow-sm'
+                          : 'border-border/60 bg-background/60 hover:bg-card'
+                      }`}
+                    >
+                      <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0" />
+                      <div>
+                        <span className="text-xs font-bold block text-foreground">CryptoBot</span>
+                        <span className="text-[11px] text-muted-foreground block">USDT / Кратко</span>
+                      </div>
+                    </button>
+                  )}
                 </div>
               </div>
 

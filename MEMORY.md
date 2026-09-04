@@ -42,6 +42,14 @@ if (input.userId === admin.id) return { success: false, error: 'Запрещен
 
 ## 1. 🏗️ Архитектурные решения (ADR)
 
+- **ADR-2026-17: Order Flow Sanitation, Email Guard & Connected Gateways Invariant:**
+  - *Решение:*
+    1. **Возврат классического каталога по умолчанию:** `initialFlow = 'classic'` восстановлен как дефолтный флоу для главной страницы SMMplan. Пошаговый слайд-визард сохранен в кодовой базе и доступен по параметру `?flow=slide`.
+    2. **Устранение ложного предвыбора Telegram (Email & Non-URL Guard):** В `PlanSlideOrderClient.tsx`, `FluxOrderClient.tsx` и `HeroInput.tsx` устранен опасный безусловный fallback `matchedNetwork = initialCatalog[0]`. При вводе email адрес сохраняется в состояние `email` чекаута с информационным уведомлением, а поле ссылки очищается для ввода корректного URL. При нераспознанном URL пользователю предлагается ручной выбор сети на шаге `network`.
+    3. **Прямое поле ссылки в чекауте при заказе из каталога:** В `DrawerOrderSummary`, `StepWizardCheckout` (шаг 1 и 2) и `PlanSlideOrderClient` (шаг 5) внедрен обязательный инпут `* Укажите ссылку для заказа`. Кнопка перехода к оплате на шаге 2 строго валидирует наличие ссылки с понятным toast-сообщением.
+    4. **Строгая фильтрация способов оплаты (Active Gateways Invariant):** Устранена статическая отрисовка неподключенных платежек. Все интерфейсы чекаута (`DrawerPaymentSelector`, `PlanSlideOrderClient`, `MobileStep4Checkout`, `SmmplanOrderWizard`, `FluxDashboardOrderWizard`) теперь строго фильтруют шлюзы по `availableGateways[gateway] === true`. Неподключенные Robokassa и CryptoBot скрыты, отображаются только активные (ЮKassa / баланс).
+  - *Причина:* Устранение 4 критических дефектов клиентского пути, предотвращение тупиковых заказов без ссылок и исключение попыток оплаты через ненастроенные платежные шлюзы.
+
 - **ADR-2026-15: Clients Sorting, Filtering, and Lifecycle Analysis Architecture (/admin/clients):**
   - *Решение:*
     1. **Устранение дефектов As-Is:** Устранены 7 фундаментальных дефектов раздела клиентов (отсутствие `sortBy`/`sortOrder` в URL, хардкод `orderBy: { createdAt: 'desc' }`, отсутствие колонки регистрации `createdAt`, конфликт клиентского `searchKey` с серверным поиском, игнорирование параметров в CSV-экспорте).

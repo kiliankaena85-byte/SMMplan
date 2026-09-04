@@ -42,6 +42,21 @@ export function MobileStep4Checkout({
   const [localError, setLocalError] = useState<string | null>(null);
   const [shakeKey, setShakeKey] = useState(0);
   const [selectedGateway, setSelectedGateway] = useState<string>("yookassa");
+  const [availableGateways, setAvailableGateways] = useState<{ yookassa: boolean; robokassa: boolean; cryptobot: boolean } | null>(null);
+
+  React.useEffect(() => {
+    import("@/actions/order/checkout").then(({ getAvailableGatewaysAction }) => {
+      getAvailableGatewaysAction().then((res) => {
+        if (res.success && res.data) {
+          setAvailableGateways(res.data);
+          if (selectedGateway !== 'balance' && !res.data[selectedGateway as keyof typeof res.data]) {
+            const first = (["yookassa", "robokassa", "cryptobot"] as const).find((g) => res.data?.[g]);
+            if (first) setSelectedGateway(first);
+          }
+        }
+      });
+    });
+  }, [selectedGateway]);
 
   const {
     url, setUrl,
@@ -444,13 +459,32 @@ export function MobileStep4Checkout({
               icon: "💰",
               disabled: !isBalanceSufficient
             }] : []),
-            { id: "yookassa", name: "СБП / Карты", subtitle: "0% комиссия", badge: "ХИТ", icon: "⚡", disabled: false },
-            { id: "cryptobot", name: "Крипта", subtitle: "USDT / TON", icon: "💎", disabled: false },
-            { id: "robokassa", name: "Зарубежные", subtitle: "Карты / СНГ", icon: "🌐", disabled: false },
+            ...((availableGateways?.yookassa ?? true) ? [{
+              id: "yookassa",
+              name: "СБП / Карты",
+              subtitle: "0% комиссия",
+              badge: "ХИТ",
+              icon: "⚡",
+              disabled: false
+            }] : []),
+            ...(availableGateways?.cryptobot ? [{
+              id: "cryptobot",
+              name: "Крипта",
+              subtitle: "USDT / TON",
+              icon: "💎",
+              disabled: false
+            }] : []),
+            ...(availableGateways?.robokassa ? [{
+              id: "robokassa",
+              name: "Зарубежные",
+              subtitle: "Карты / СНГ",
+              icon: "🌐",
+              disabled: false
+            }] : []),
           ];
 
           return (
-            <div className={`grid gap-1.5 ${hasBalance ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}>
+            <div className={`grid gap-1.5 ${gateways.length === 1 ? "grid-cols-1" : gateways.length === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-" + gateways.length}`}>
               {gateways.map((gateway) => {
                 const isSelected = selectedGateway === gateway.id;
                 return (

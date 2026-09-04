@@ -67,7 +67,7 @@ export function DrawerPaymentSelector({
 
   const paymentMethods = allMethods.filter((m) => {
     if (m.id === "balance") return true;
-    if (!available) return true; // optimistic while loading
+    if (!available) return m.id === "yookassa"; // optimistic default: only primary YooKassa until verified
     return available[m.id as keyof typeof available] === true;
   });
 

@@ -198,4 +198,58 @@ describe('PlanSlideOrderClient & LayoutVariantToggle Tests', () => {
     fireEvent.click(slideBtn);
     expect(onFlowChange).toHaveBeenCalledWith('slide');
   });
+
+  it('does NOT jump to Telegram when an email is entered in the link field', async () => {
+    render(
+      <PlanSlideOrderClient 
+        initialCatalog={mockCatalog}
+        tenantId="smmplan"
+      />
+    );
+
+    const input = screen.getByPlaceholderText(/Например: https:\/\/t.me\/channel/i);
+    fireEvent.change(input, { target: { value: 'user@example.com' } });
+    
+    // Press Enter or click Next
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+
+    // Should stay on Step 1, input should be cleared, and NOT jump to Telegram categories
+    await waitFor(() => {
+      expect(screen.queryByText(/Telegram: выберите категорию/i)).toBeNull();
+      expect(screen.getByText(/Что хотите/i)).toBeDefined();
+    });
+  });
+
+  it('renders field-link on Step 5 checkout screen', async () => {
+    render(
+      <PlanSlideOrderClient 
+        initialCatalog={mockCatalog}
+        tenantId="smmplan"
+      />
+    );
+
+    // 1. Click Telegram
+    const tgButtons = screen.getAllByRole('button', { name: /Telegram/i });
+    fireEvent.click(tgButtons[0]);
+
+    // 2. Click category
+    await waitFor(() => {
+      expect(screen.getByText(/Подписчики канала/i)).toBeDefined();
+    });
+    fireEvent.click(screen.getByText(/Подписчики канала/i));
+
+    // 3. Click service
+    await waitFor(() => {
+      expect(screen.getByText(/Telegram Подписчики Живые B2B/i)).toBeDefined();
+    });
+    fireEvent.click(screen.getByText(/Telegram Подписчики Живые B2B/i));
+
+    // 4. Now on checkout step: field-link MUST exist and be rendered
+    await waitFor(() => {
+      expect(screen.getByText(/Ссылка для заказа/i)).toBeDefined();
+      expect(document.getElementById('field-link')).not.toBeNull();
+      expect(document.getElementById('field-quantity')).not.toBeNull();
+      expect(document.getElementById('field-email')).not.toBeNull();
+    });
+  });
 });

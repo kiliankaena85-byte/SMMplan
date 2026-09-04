@@ -84,7 +84,7 @@ export function SmartLinkLanding({
   customHeroSubtitle,
   seoHubContent,
   initialServices = [],
-  initialFlow = 'slide'
+  initialFlow = 'classic'
 }: {
   initialCatalog: PublicNetwork[];
   initialEmail?: string;

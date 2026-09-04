@@ -75,27 +75,59 @@ export function DrawerOrderSummary({
         </div>
       </div>
 
-      {/* Target Link Info */}
-      <div className="bg-background border border-border/80 rounded-xl p-2.5 sm:p-3 flex items-center justify-between gap-3 shadow-2xs">
-        <div className="flex items-center gap-2 min-w-0">
-          <Link2 className="w-4 h-4 text-primary shrink-0" />
-          <p 
-            className="text-xs sm:text-sm font-bold text-foreground truncate"
-            title={url || "Ссылка не указана"}
-          >
-            {url || <span className="text-muted-foreground font-medium">Ссылка не указана</span>}
-          </p>
+      {/* Target Link Info / Input */}
+      {!url ? (
+        <div className="bg-background border-2 border-primary/50 focus-within:border-primary rounded-xl p-3 shadow-xs space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Link2 className="w-3.5 h-3.5 text-primary" />
+              <span>Укажите ссылку для заказа</span>
+              <span className="text-destructive font-bold">*</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowLinkModal(true)}
+              className="text-[11px] text-primary hover:underline font-bold cursor-pointer"
+            >
+              Где взять?
+            </button>
+          </div>
+          <input
+            type="text"
+            value={engine?.url || ""}
+            onChange={(e) => engine?.setUrl(e.target.value)}
+            placeholder={
+              networkSlug === "telegram"
+                ? "https://t.me/channel или @channel"
+                : networkSlug === "vk"
+                ? "https://vk.com/..."
+                : "Вставьте ссылку на канал, группу или публикацию"
+            }
+            className="w-full h-10 px-3 rounded-lg bg-card border border-border/80 focus:border-primary outline-none text-xs font-mono text-foreground font-bold"
+          />
         </div>
-        <button
-          type="button"
-          onClick={() => setShowLinkModal(true)}
-          className="p-1.5 hover:bg-content2 text-primary hover:text-primary/80 rounded-lg transition-all shrink-0 cursor-pointer active:scale-95 flex items-center gap-1 text-xs font-bold"
-          title="Изменить ссылку"
-        >
-          <Edit3 className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Изменить</span>
-        </button>
-      </div>
+      ) : (
+        <div className="bg-background border border-border/80 rounded-xl p-2.5 sm:p-3 flex items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <Link2 className="w-4 h-4 text-primary shrink-0" />
+            <p 
+              className="text-xs sm:text-sm font-bold text-foreground truncate font-mono"
+              title={url}
+            >
+              {url}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowLinkModal(true)}
+            className="p-1.5 hover:bg-content2 text-primary hover:text-primary/80 rounded-lg transition-all shrink-0 cursor-pointer active:scale-95 flex items-center gap-1 text-xs font-bold"
+            title="Изменить ссылку"
+          >
+            <Edit3 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Изменить</span>
+          </button>
+        </div>
+      )}
 
       {/* Warranty indicator (if no guarantee) */}
       {selectedService.name.toLowerCase().includes("без гарант") && (

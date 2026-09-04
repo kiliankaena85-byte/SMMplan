@@ -11,6 +11,7 @@ import { DrawerPaymentSelector } from "../drawer/DrawerPaymentSelector";
 import { DripFeedConfigurator } from "../DripFeedConfigurator";
 import { LegalCheckbox } from "../LegalCheckbox";
 import { EmailPromptModal } from "../modals/EmailPromptModal";
+import { toast } from "sonner";
 
 export function StepWizardCheckout({
   selectedService,
@@ -373,7 +374,13 @@ export function StepWizardCheckout({
                 {step < 3 ? (
                   <button
                     type="button"
-                    onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}
+                    onClick={() => {
+                      if (step === 2 && (!url || url.trim().length < 3)) {
+                        toast.error("Пожалуйста, укажите ссылку для продолжения", { position: "top-center" });
+                        return;
+                      }
+                      setStep((s) => (s + 1) as 1 | 2 | 3);
+                    }}
                     className="min-h-[44px] h-11 px-4 sm:px-6 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs sm:text-sm transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
                   >
                     <span>Далее: {steps[step].title}</span>

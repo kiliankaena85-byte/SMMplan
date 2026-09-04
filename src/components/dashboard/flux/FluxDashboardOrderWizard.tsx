@@ -98,6 +98,20 @@ function FluxDashboardOrderWizardInner({
   const [gateway, setGateway] = useState<'balance' | 'yookassa' | 'cryptobot'>(
     userBalanceCents > 0 ? 'balance' : 'yookassa'
   );
+  const [availableGateways, setAvailableGateways] = useState<{ yookassa: boolean; robokassa: boolean; cryptobot: boolean } | null>(null);
+
+  useEffect(() => {
+    import("@/actions/order/checkout").then(({ getAvailableGatewaysAction }) => {
+      getAvailableGatewaysAction().then((res) => {
+        if (res.success && res.data) {
+          setAvailableGateways(res.data);
+          if (gateway !== 'balance' && !res.data[gateway as keyof typeof res.data]) {
+            setGateway(userBalanceCents > 0 ? 'balance' : 'yookassa');
+          }
+        }
+      });
+    });
+  }, [gateway, userBalanceCents]);
 
   const [isRequirementsConfirmed, setIsRequirementsConfirmed] = useState(false);
   const [isDripFeedEnabled, setIsDripFeedEnabled] = useState(false);
@@ -1045,21 +1059,23 @@ function FluxDashboardOrderWizardInner({
                         {gateway === 'yookassa' && <CheckCircle2 className="w-4 h-4 text-primary" />}
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setGateway('cryptobot')}
-                        className={`p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
-                          gateway === 'cryptobot'
-                            ? 'bg-primary/10 border-primary text-primary shadow-xs'
-                            : 'bg-background border-border/40 hover:border-primary/40 text-foreground'
-                        }`}
-                      >
-                        <div>
-                          <span className="font-bold text-xs block">CryptoBot</span>
-                          <span className="text-[10px] text-muted-foreground">USDT, TON, BTC</span>
-                        </div>
-                        {gateway === 'cryptobot' && <CheckCircle2 className="w-4 h-4 text-primary" />}
-                      </button>
+                      {availableGateways?.cryptobot && (
+                        <button
+                          type="button"
+                          onClick={() => setGateway('cryptobot')}
+                          className={`p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                            gateway === 'cryptobot'
+                              ? 'bg-primary/10 border-primary text-primary shadow-xs'
+                              : 'bg-background border-border/40 hover:border-primary/40 text-foreground'
+                          }`}
+                        >
+                          <div>
+                            <span className="font-bold text-xs block">CryptoBot</span>
+                            <span className="text-[10px] text-muted-foreground">USDT, TON, BTC</span>
+                          </div>
+                          {gateway === 'cryptobot' && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                        </button>
+                      )}
                     </div>
                   </div>
 

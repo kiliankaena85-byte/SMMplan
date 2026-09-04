@@ -35,6 +35,15 @@ export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasErro
       return;
     }
 
+    if (isEmailDetected) {
+      setEmail(trimmedUrl);
+      setUrl("");
+      toast.success("Email сохранен для чекаута! Теперь укажите ссылку на объект продвижения.", { position: "top-center" });
+      const inputEl = document.getElementById("landing-url");
+      inputEl?.focus();
+      return;
+    }
+
     if (linkHasError) {
       toast.error("Пожалуйста, укажите корректную ссылку.", { position: "top-center" });
       return;
@@ -288,7 +297,7 @@ export function HeroInput({ engine, handleCheckout, linkHasError, setLinkHasErro
                     // 2. Normalize handle
                     if (platformSlug && (val.startsWith("@") || (!val.includes("/") && !val.includes(".") && val.trim().length > 0))) {
                       val = normalizeUsername(val, platformSlug);
-                    } else if (!/^https?:\/\//i.test(val) && val.includes(".") && !val.includes(" ")) {
+                    } else if (!/^https?:\/\//i.test(val) && val.includes(".") && !val.includes(" ") && !val.includes("@")) {
                       val = `https://${val}`;
                     }
                     

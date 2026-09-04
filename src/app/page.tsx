@@ -67,7 +67,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
     ? (flowParam as 'slide' | 'classic')
     : (cookieFlow === 'slide' || cookieFlow === 'classic')
       ? (cookieFlow as 'slide' | 'classic')
-      : 'slide';
+      : 'classic';
 
   const isProdHost = cleanHost === "smmplan.pro" || cleanHost === "www.smmplan.pro";
   const isHoldingParam = params.mode === "holding";

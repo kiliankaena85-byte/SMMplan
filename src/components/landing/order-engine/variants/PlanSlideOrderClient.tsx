@@ -331,12 +331,25 @@ function PlanSlideOrderClientInner({
   };
 
   const handleAnalyzeLink = async (urlToAnalyze: string) => {
-    if (!urlToAnalyze.trim()) return;
+    const trimmedInput = urlToAnalyze.trim();
+    if (!trimmedInput) return;
+
+    // 1. Detect email entered instead of promotion link
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedInput);
+    if (isEmail) {
+      setEmail(trimmedInput);
+      setLink("");
+      toast.success("Email сохранен для чекаута!", {
+        description: "Теперь вставьте ссылку на ваш канал, группу или пост."
+      });
+      return;
+    }
+
     setIsAnalyzing(true);
     setEnteredViaCatalog(false);
 
     try {
-      const res = await analyzeUrl(urlToAnalyze);
+      const res = await analyzeUrl(trimmedInput);
       const analysis = res && res.success ? res.data : null;
       const activePlatformStr = analysis && analysis.platform !== "OTHER" ? analysis.platform.toLowerCase() : null;
       let matchedNetwork: PublicNetwork | null = null;
@@ -347,10 +360,7 @@ function PlanSlideOrderClientInner({
         ) || null;
       }
       if (!matchedNetwork) {
-        matchedNetwork = detectNetworkByUrl(urlToAnalyze, initialCatalog as any) as any;
-      }
-      if (!matchedNetwork && initialCatalog && initialCatalog.length > 0) {
-        matchedNetwork = initialCatalog[0];
+        matchedNetwork = detectNetworkByUrl(trimmedInput, initialCatalog as any) as any;
       }
 
       setDetectedType(analysis?.type || null);
@@ -362,16 +372,25 @@ function PlanSlideOrderClientInner({
         setServices([]);
         setSelectedService(null);
         navigateTo('category');
+      } else {
+        toast.info("Не удалось определить платформу по ссылке", {
+          description: "Пожалуйста, выберите соцсеть из списка:"
+        });
+        navigateTo('network');
       }
     } catch {
-      let matchedNetwork = detectNetworkByUrl(urlToAnalyze, initialCatalog as any) as any;
-      if (!matchedNetwork && initialCatalog && initialCatalog.length > 0) matchedNetwork = initialCatalog[0];
+      let matchedNetwork = detectNetworkByUrl(trimmedInput, initialCatalog as any) as any;
       if (matchedNetwork) {
         setActiveNetwork(matchedNetwork);
         setActiveCategory(null);
         setServices([]);
         setSelectedService(null);
         navigateTo('category');
+      } else {
+        toast.info("Не удалось определить платформу по ссылке", {
+          description: "Пожалуйста, выберите соцсеть из списка:"
+        });
+        navigateTo('network');
       }
     } finally {
       setIsAnalyzing(false);
@@ -938,6 +957,47 @@ function PlanSlideOrderClientInner({
               {/* Form starts */}
               <form action={formAction} noValidate>
                 
+                {/* 0. Ссылка для заказа */}
+                <div id="field-link" className="mb-4">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <LinkIcon className="w-3.5 h-3.5 text-primary" />
+                      <span>Ссылка для заказа</span>
+                      <span className="text-destructive font-bold">*</span>
+                    </label>
+                    {activeNetwork && (
+                      <span className="text-[11px] font-bold text-primary">
+                        {activeNetwork.name}
+                      </span>
+                    )}
+                  </div>
+
+                  <input
+                    ref={linkRef}
+                    name="link"
+                    type="text"
+                    value={link}
+                    onChange={(e) => {
+                      setLink(e.target.value);
+                    }}
+                    className={`w-full h-11 px-3.5 rounded-xl bg-background border ${
+                      formState.field === "link" && formState.error
+                        ? "border-destructive ring-1 ring-destructive"
+                        : "border-border/80 focus:border-primary focus:ring-1 focus:ring-primary"
+                    } outline-none font-bold text-sm text-foreground font-mono`}
+                    placeholder={
+                      activeNetwork?.slug === "telegram"
+                        ? "https://t.me/channel или @channel"
+                        : activeNetwork?.slug === "vk"
+                        ? "https://vk.com/..."
+                        : "Вставьте ссылку на канал, группу или публикацию"
+                    }
+                  />
+                  {formState.field === "link" && formState.error && (
+                    <p className="text-[11px] font-bold text-destructive mt-1">{formState.error}</p>
+                  )}
+                </div>
+
                 {/* 1. Количество */}
                 <div id="field-quantity" className="mb-4">
                   <div className="flex items-center justify-between mb-1.5">
@@ -1074,40 +1134,25 @@ function PlanSlideOrderClientInner({
                     Способ оплаты
                   </label>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                     {/* YooKassa (Карты/СБП) */}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway("yookassa")}
-                      className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
-                        selectedGateway === "yookassa" 
-                          ? "border-primary bg-primary/10 shadow-sm" 
-                          : "border-border/70 hover:border-border bg-background"
-                      }`}
-                    >
-                      <CreditCard className="w-5 h-5 text-primary mb-1.5" />
-                      <div>
-                        <p className="font-bold text-xs text-foreground">Банковская карта</p>
-                        <p className="text-[10px] text-muted-foreground">РФ, СБП, Mir</p>
-                      </div>
-                    </button>
-
-                    {/* Robokassa */}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway("robokassa")}
-                      className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
-                        selectedGateway === "robokassa" 
-                          ? "border-primary bg-primary/10 shadow-sm" 
-                          : "border-border/70 hover:border-border bg-background"
-                      }`}
-                    >
-                      <CreditCard className="w-5 h-5 text-indigo-500 mb-1.5" />
-                      <div>
-                        <p className="font-bold text-xs text-foreground">Robokassa</p>
-                        <p className="text-[10px] text-muted-foreground">СБП, Карты</p>
-                      </div>
-                    </button>
+                    {(availableGateways?.yookassa ?? true) && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedGateway("yookassa")}
+                        className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
+                          selectedGateway === "yookassa" 
+                            ? "border-primary bg-primary/10 shadow-sm" 
+                            : "border-border/70 hover:border-border bg-background"
+                        }`}
+                      >
+                        <CreditCard className="w-5 h-5 text-primary mb-1.5" />
+                        <div>
+                          <p className="font-bold text-xs text-foreground">Банковская карта</p>
+                          <p className="text-[10px] text-muted-foreground">РФ, СБП, Mir</p>
+                        </div>
+                      </button>
+                    )}
 
                     {/* Мой баланс */}
                     {userBalanceCents > 0 && (
@@ -1128,22 +1173,43 @@ function PlanSlideOrderClientInner({
                       </button>
                     )}
 
-                    {/* Crypto */}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGateway("cryptobot")}
-                      className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
-                        selectedGateway === "cryptobot" 
-                          ? "border-primary bg-primary/10 shadow-sm" 
-                          : "border-border/70 hover:border-border bg-background"
-                      }`}
-                    >
-                      <Coins className="w-5 h-5 text-amber-500 mb-1.5" />
-                      <div>
-                        <p className="font-bold text-xs text-foreground">Криптовалюта</p>
-                        <p className="text-[10px] text-muted-foreground">USDT, TON, BTC</p>
-                      </div>
-                    </button>
+                    {/* Robokassa (Only when configured) */}
+                    {availableGateways?.robokassa && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedGateway("robokassa")}
+                        className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
+                          selectedGateway === "robokassa" 
+                            ? "border-primary bg-primary/10 shadow-sm" 
+                            : "border-border/70 hover:border-border bg-background"
+                        }`}
+                      >
+                        <CreditCard className="w-5 h-5 text-indigo-500 mb-1.5" />
+                        <div>
+                          <p className="font-bold text-xs text-foreground">Robokassa</p>
+                          <p className="text-[10px] text-muted-foreground">СБП, Карты</p>
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Crypto (Only when configured) */}
+                    {availableGateways?.cryptobot && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedGateway("cryptobot")}
+                        className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
+                          selectedGateway === "cryptobot" 
+                            ? "border-primary bg-primary/10 shadow-sm" 
+                            : "border-border/70 hover:border-border bg-background"
+                        }`}
+                      >
+                        <Coins className="w-5 h-5 text-amber-500 mb-1.5" />
+                        <div>
+                          <p className="font-bold text-xs text-foreground">Криптовалюта</p>
+                          <p className="text-[10px] text-muted-foreground">USDT, TON, BTC</p>
+                        </div>
+                      </button>
+                    )}
                   </div>
                 </div>
 

@@ -303,11 +303,24 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux',
   };
 
   const handleAnalyzeLink = async (url: string) => {
-    if (!url) return;
+    const trimmedInput = (url || "").trim();
+    if (!trimmedInput) return;
+
+    // 1. Detect email entered instead of promotion link
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedInput);
+    if (isEmail) {
+      setEmail(trimmedInput);
+      setLink("");
+      toast.success("Email сохранен для чекаута!", {
+        description: "Теперь вставьте ссылку на ваш канал, группу или пост."
+      });
+      return;
+    }
+
     setIsAnalyzing(true);
     
     try {
-      const res = await analyzeUrl(url);
+      const res = await analyzeUrl(trimmedInput);
       const analysis = res && res.success ? res.data : null;
       const activePlatformStr = analysis && analysis.platform !== 'OTHER' ? analysis.platform.toLowerCase() : null;
       let matchedNetwork = null;
@@ -315,10 +328,7 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux',
         matchedNetwork = initialCatalog.find(n => n.slug.toLowerCase().includes(activePlatformStr) || activePlatformStr.includes(n.slug.toLowerCase()));
       }
       if (!matchedNetwork) {
-        matchedNetwork = detectNetworkByUrl(url, initialCatalog || []);
-      }
-      if (!matchedNetwork && initialCatalog && initialCatalog.length > 0) {
-        matchedNetwork = initialCatalog[0];
+        matchedNetwork = detectNetworkByUrl(trimmedInput, initialCatalog || []);
       }
       
       setDetectedType(analysis?.type || null);
@@ -330,16 +340,25 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux',
         setServices([]);
         setSelectedService(null);
         navigateTo('category');
+      } else {
+        toast.info("Не удалось определить платформу по ссылке", {
+          description: "Пожалуйста, выберите соцсеть из списка:"
+        });
+        navigateTo('network');
       }
     } catch {
-      let matchedNetwork = detectNetworkByUrl(url, initialCatalog || []);
-      if (!matchedNetwork && initialCatalog && initialCatalog.length > 0) matchedNetwork = initialCatalog[0];
+      let matchedNetwork = detectNetworkByUrl(trimmedInput, initialCatalog || []);
       if (matchedNetwork) {
         setActiveNetwork(matchedNetwork);
         setActiveCategory(null);
         setServices([]);
         setSelectedService(null);
         navigateTo('category');
+      } else {
+        toast.info("Не удалось определить платформу по ссылке", {
+          description: "Пожалуйста, выберите соцсеть из списка:"
+        });
+        navigateTo('network');
       }
     } finally {
       setIsAnalyzing(false);
