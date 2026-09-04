@@ -193,6 +193,7 @@ export function useOrderEngine(
 
   // Status states
   const [isLoading, setIsLoading] = useState(false);
+  const [isServicesLoading, setIsServicesLoading] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -232,6 +233,7 @@ export function useOrderEngine(
   const networkIdRef = useRef(networkId);
   const categoryIdRef = useRef(categoryId);
   const serviceRequestIdRef = useRef(0);
+  const categoryServicesCache = useRef<Record<string, PublicService[]>>({});
   
   useEffect(() => {
     selectedServiceRef.current = selectedService;
@@ -433,22 +435,47 @@ export function useOrderEngine(
     }
     isInitialServicesMount.current = false;
 
-    // Clear instantly to prevent loading latency & mismatched state
-    setServices([]);
-    setSelectedService(null);
-
     if (!categoryId) {
+      setServices([]);
+      setSelectedService(null);
       setIsLoading(false);
+      setIsServicesLoading(false);
       setDripFeedEnabled(false);
       setRuns(2);
       setDripInterval(5);
       return;
     }
 
+    const isLinkFilled = Boolean(url && url.trim().length >= 5);
+
+    // Instant cache hit: zero latency, zero flicker when switching categories
+    const cachedSvcs = categoryServicesCache.current[categoryId];
+    if (cachedSvcs && cachedSvcs.length > 0) {
+      let finalSvcs = cachedSvcs;
+      if (detectedType && isLinkFilled) {
+        finalSvcs = cachedSvcs.filter(s =>
+          isLinkServiceCompatible(detectedType, s.targetType || inferTargetTypeFromName(s.name))
+        );
+      }
+      setServices(finalSvcs);
+      setIsServicesLoading(false);
+      setIsLoading(false);
+      if (initialServiceId && !selectedServiceRef.current) {
+        const found = finalSvcs.find(s => s.id === initialServiceId);
+        if (found) setSelectedService(found);
+      }
+      return;
+    }
+
+    // Clear and set loading state for fresh category fetch
+    setServices([]);
+    setSelectedService(null);
+
     const currentRequestId = ++serviceRequestIdRef.current;
 
     const loadServices = async () => {
       setIsLoading(true);
+      setIsServicesLoading(true);
       try {
         const svcs = await getServicesByCategoryAction(categoryId);
         if (currentRequestId !== serviceRequestIdRef.current) return;
@@ -462,9 +489,11 @@ export function useOrderEngine(
             return 0;
         });
 
+        categoryServicesCache.current[categoryId] = sortedSvcs;
+
         // ZERO-DEAD-END INVARIANT: If detectedType is active, strictly filter compatible services
         let finalSvcs = sortedSvcs;
-        if (detectedType && url.trim().length >= 5) {
+        if (detectedType && isLinkFilled) {
           const compatibleSvcs = sortedSvcs.filter(s =>
             isLinkServiceCompatible(detectedType, s.targetType || inferTargetTypeFromName(s.name))
           );
@@ -492,12 +521,13 @@ export function useOrderEngine(
       } finally {
         if (currentRequestId === serviceRequestIdRef.current) {
           setIsLoading(false);
+          setIsServicesLoading(false);
         }
       }
     };
 
     loadServices();
-  }, [categoryId, initialServiceId, detectedType, url]);
+  }, [categoryId, initialServiceId, detectedType, url.trim().length >= 5]);
 
   // 4. Update quantity limits when Service changes or initializes
   useEffect(() => {
@@ -841,7 +871,9 @@ export function useOrderEngine(
     mediaGroupMultiplier,
     
     // Status
-    isLoading,
+    isLoading: isLoading || isServicesLoading,
+    isServicesLoading,
+    isAnalyzingUrl: isLoading,
     isCalculating,
     error,
     validationErrors,

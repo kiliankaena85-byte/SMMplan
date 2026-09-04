@@ -26,7 +26,8 @@ export function MobileStep3Service({
   step3Ref
 }: MobileStep3ServiceProps) {
   const [showAllTariffs, setShowAllTariffs] = React.useState(false);
-  const { selectedService, setSelectedService, isLoading, services } = engine;
+  const { selectedService, setSelectedService, isServicesLoading, isLoading, services } = engine;
+  const isTariffLoading = typeof isServicesLoading === 'boolean' ? isServicesLoading : isLoading;
 
   // RULE OF 3 (CRO Optimization): Group services into Economy, Hit (Recommended), and Premium
   const displayedServices = React.useMemo(() => {
@@ -65,11 +66,11 @@ export function MobileStep3Service({
               3. Выберите тариф • {selectedCategoryName}
             </span>
             <span className="text-[11px] font-bold text-primary">
-              {isLoading ? 'Загрузка...' : `${services.length} ${services.length === 1 ? 'тариф' : 'тарифов'}`}
+              {isTariffLoading ? 'Загрузка...' : `${services.length} ${services.length === 1 ? 'тариф' : 'тарифов'}`}
             </span>
           </div>
 
-          {isLoading ? (
+          {isTariffLoading ? (
             <div className="grid grid-cols-1 gap-2.5">
               {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="h-24 rounded-2xl bg-content2/70 animate-pulse border border-border/40" />

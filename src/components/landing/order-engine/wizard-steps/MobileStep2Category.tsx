@@ -118,10 +118,6 @@ export function MobileStep2Category({
                   onClick={() => {
                     setCategoryId(cat.id);
                     setActiveStep(3);
-                    if (typeof window !== 'undefined' && cat.slug) {
-                      const netSlug = engine.activeNetwork?.slug || 'services';
-                      window.history.replaceState(null, '', `/services/${netSlug}/${cat.slug}`);
-                    }
                   }}
                   className={`
                     flex items-center gap-3 p-3 rounded-2xl text-xs font-bold transition-all cursor-pointer active:scale-[0.99] text-left border min-h-[48px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 outline-none relative overflow-hidden w-full
