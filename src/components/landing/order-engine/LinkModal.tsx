@@ -19,6 +19,9 @@ export function LinkModal({
   networkSlug,
   categorySlug,
   serviceName,
+  serviceTargetType,
+  servicePlaceholder,
+  serviceHint,
   onSwitchToDetectedNetwork,
 }: {
   showLinkModal: boolean;
@@ -29,11 +32,14 @@ export function LinkModal({
   networkSlug?: string | null;
   categorySlug?: string | null;
   serviceName?: string | null;
+  serviceTargetType?: string | null;
+  servicePlaceholder?: string | null;
+  serviceHint?: string | null;
   onSwitchToDetectedNetwork?: (networkKey: string) => void;
 }) {
   const linkConfig = useMemo(
-    () => getSocialLinkConfig(networkSlug, categorySlug, serviceName),
-    [networkSlug, categorySlug, serviceName]
+    () => getSocialLinkConfig(networkSlug, categorySlug, serviceName, serviceTargetType, servicePlaceholder, serviceHint),
+    [networkSlug, categorySlug, serviceName, serviceTargetType, servicePlaceholder, serviceHint]
   );
 
   const mismatch = useMemo(

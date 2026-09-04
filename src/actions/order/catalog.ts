@@ -130,6 +130,8 @@ export async function getCachedServicesByCategory(categoryId: string, tenantId: 
           pricePer1000Cents: true,
           markup: true,
           rate: true,
+          linkPlaceholder: true,
+          linkHint: true,
           smartConfig: {
             select: {
               isEnabled: true,
@@ -205,6 +207,8 @@ export type PublicService = {
   } | null;
   requireWarning?: boolean;
   warningMessage?: string | null;
+  linkPlaceholder?: string | null;
+  linkHint?: string | null;
 };
 
 export type PublicCategory = {
@@ -357,6 +361,8 @@ export async function getServicesByCategoryAction(categoryId: string, rawTenantI
               pricePer1000Cents: true,
               markup: true,
               rate: true,
+              linkPlaceholder: true,
+              linkHint: true,
               smartConfig: {
                 select: {
                   isEnabled: true,
@@ -472,6 +478,8 @@ export async function getServicesByCategoryAction(categoryId: string, rawTenantI
           customDataLabel: s.customDataLabel,
           features: s.features,
           cooldownUntil: s.cooldownUntil && !isNaN(new Date(s.cooldownUntil).getTime()) ? new Date(s.cooldownUntil).toISOString() : null,
+          linkPlaceholder: s.linkPlaceholder,
+          linkHint: s.linkHint,
           smartConfig: s.smartConfig ? {
             isEnabled: s.smartConfig.isEnabled,
             isTestMode: s.smartConfig.isTestMode,

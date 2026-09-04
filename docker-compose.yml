@@ -29,7 +29,7 @@ services:
     image: redis:7-alpine
     container_name: smmplan_lite_redis
     restart: always
-    command: redis-server --save 60 1 --loglevel warning --maxmemory 1024mb --maxmemory-policy volatile-lru
+    command: redis-server --requirepass ${REDIS_PASSWORD:-SmmP1anR3dis2026Secure!} --save 60 1 --loglevel warning --maxmemory 1024mb --maxmemory-policy volatile-lru
     volumes:
       - lite_redis_data:/data
     ports:
@@ -85,7 +85,7 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/smmplan_lite?schema=public&connection_limit=5&pool_timeout=30
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-SmmP1anR3dis2026Secure!}@redis:6379
       - BOT_TENANT_ID=smmplan
       # TELEGRAM_PROXY_URL is NOT hardcoded — telegram-agent.ts auto-detects:
       # 1. Direct probe to api.telegram.org (2.5s timeout)
@@ -119,7 +119,7 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/smmplan_lite?schema=public&connection_limit=5&pool_timeout=30
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-SmmP1anR3dis2026Secure!}@redis:6379
       - CLASH_PROXY_URL=http://clash:7890
     depends_on:
       db:
@@ -149,7 +149,7 @@ services:
       - NODE_ENV=production
       # Override to use Docker internal service DNS (not localhost)
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/smmplan_lite?schema=public&connection_limit=5&pool_timeout=30
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-SmmP1anR3dis2026Secure!}@redis:6379
       - CLASH_PROXY_URL=http://clash:7890
       - RUN_MIGRATIONS=false
       - SKIP_BOT=true

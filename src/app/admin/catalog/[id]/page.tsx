@@ -84,6 +84,8 @@ export default async function AdminEditServicePage({ params, searchParams }: Pro
     isDripFeedEnabled: service.isDripFeedEnabled,
     isRefillEnabled: service.isRefillEnabled,
     isCancelEnabled: service.isCancelEnabled,
+    linkPlaceholder: service.linkPlaceholder,
+    linkHint: service.linkHint,
   };
 
   return (

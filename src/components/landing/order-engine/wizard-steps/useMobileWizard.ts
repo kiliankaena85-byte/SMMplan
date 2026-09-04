@@ -13,25 +13,54 @@ export function useMobileWizard(engine: OrderEngine) {
   const userManuallyBrowsingRef = useRef(false);
 
   // Refs for scroll-into-view on step transitions
+  const step1Ref = useRef<HTMLDivElement>(null);
   const step2Ref = useRef<HTMLDivElement>(null);
   const step3Ref = useRef<HTMLDivElement>(null);
   const step4Ref = useRef<HTMLDivElement>(null);
 
   const prevStepRef = useRef<1 | 2 | 3 | 4>(activeStepRaw);
 
+  const scrollToStep = useCallback((step: 1 | 2 | 3 | 4) => {
+    if (typeof window === 'undefined') return;
+    const refMap: Record<number, React.RefObject<HTMLDivElement | null>> = {
+      1: step1Ref,
+      2: step2Ref,
+      3: step3Ref,
+      4: step4Ref,
+    };
+    const ref = refMap[step];
+    if (ref?.current) {
+      // Offset for sticky header (64px) + comfortable breathing room (16px) = 80px
+      const headerOffset = 80;
+      const elementTop = ref.current.getBoundingClientRect().top;
+      const targetScrollY = window.pageYOffset + elementTop - headerOffset;
+      window.scrollTo({
+        top: Math.max(0, targetScrollY),
+        behavior: 'smooth',
+      });
+    }
+  }, []);
+
   const setActiveStep = useCallback((step: 1 | 2 | 3 | 4) => {
     userManuallyBrowsingRef.current = true;
     setActiveStepRaw(step);
 
-    // Smooth scroll to the new step without jumping
-    setTimeout(() => {
-      const refMap: Record<number, React.RefObject<HTMLDivElement | null>> = { 2: step2Ref, 3: step3Ref, 4: step4Ref };
-      const ref = refMap[step];
-      if (ref?.current) {
-        ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
-  }, []);
+    // Smooth scroll to the new step with dual timing (immediate + post Framer-motion unfold)
+    setTimeout(() => scrollToStep(step), 100);
+    setTimeout(() => scrollToStep(step), 280);
+  }, [scrollToStep]);
+
+  // Dual-phase scroll when activeStepRaw changes from any trigger
+  useEffect(() => {
+    if (!mounted) return;
+    const t1 = setTimeout(() => scrollToStep(activeStepRaw), 120);
+    const t2 = setTimeout(() => scrollToStep(activeStepRaw), 300);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [activeStepRaw, mounted, scrollToStep]);
+
 
   // Single effect to synchronize browser history outside of React render/setState updaters (B3)
   useEffect(() => {
@@ -79,9 +108,18 @@ export function useMobileWizard(engine: OrderEngine) {
     categoryId,
     selectedService,
     catalog,
+    services,
     isLoading,
     validationErrors,
   } = engine;
+
+  // Once services finish loading for step 3, ensure tariffs remain comfortably in view
+  useEffect(() => {
+    if (mounted && activeStepRaw === 3 && services?.length > 0 && !isLoading) {
+      const timer = setTimeout(() => scrollToStep(3), 150);
+      return () => clearTimeout(timer);
+    }
+  }, [mounted, activeStepRaw, services?.length, isLoading, scrollToStep]);
 
   // CRITICAL INVARIANT:
   // 1. If selectedService is already set (e.g. from Catalog Modal / deep link) -> Step 4
@@ -171,7 +209,7 @@ export function useMobileWizard(engine: OrderEngine) {
     localUrlError, setLocalUrlError,
     mounted,
     currentStep, setActiveStep,
-    step2Ref, step3Ref, step4Ref,
+    step1Ref, step2Ref, step3Ref, step4Ref,
     catalogHint, setCatalogHint,
     proceedFromStep1,
     selectedCategoryName,

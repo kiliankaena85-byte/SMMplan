@@ -70,7 +70,7 @@ export function MobileStep2Category({
       exit={{ height: 0, opacity: 0 }}
       transition={{ type: "spring", stiffness: 260, damping: 26 }}
       ref={step2Ref}
-      className="space-y-3 overflow-visible border-t border-border/30 pt-3"
+      className="space-y-3 overflow-visible border-t border-border/30 pt-3 scroll-mt-20"
     >
       {currentStep === 2 ? (
         <>

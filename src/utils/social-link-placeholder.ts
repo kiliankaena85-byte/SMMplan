@@ -764,7 +764,9 @@ export function getSocialLinkConfig(
   networkInput?: string | null,
   categoryInput?: string | null,
   serviceName?: string | null,
-  targetType?: string | null
+  targetType?: string | null,
+  overridePlaceholder?: string | null,
+  overrideHint?: string | null
 ): SocialLinkConfig {
   const normNet = normalizeKey(networkInput);
   const normCat = normalizeKey(categoryInput);
@@ -859,6 +861,8 @@ export function getSocialLinkConfig(
     hostAliases: netConfig.hostAliases,
     ...categoryData,
     label: dynamicLabel,
+    placeholder: overridePlaceholder || categoryData.placeholder,
+    hint: overrideHint || categoryData.hint,
   };
 }
 

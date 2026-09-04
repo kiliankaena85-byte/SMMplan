@@ -67,6 +67,7 @@ export function MobileWizard({
         catalogHint={wizard.catalogHint}
         onOpenGuide={onOpenGuide}
         onOpenCatalog={onOpenCatalog}
+        step1Ref={wizard.step1Ref}
       />
 
       <MobileStep2Category 

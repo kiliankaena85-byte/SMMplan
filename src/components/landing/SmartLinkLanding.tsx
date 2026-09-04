@@ -426,6 +426,9 @@ export function SmartLinkLanding({
         networkSlug={unfilteredCatalog.find(n => n.id === engine.networkId)?.slug || engine.networkId}
         categorySlug={unfilteredCatalog.find(n => n.id === engine.networkId)?.categories.find(c => c.id === engine.categoryId)?.slug || engine.categoryId}
         serviceName={selectedService?.name}
+        serviceTargetType={selectedService?.targetType}
+        servicePlaceholder={selectedService?.linkPlaceholder}
+        serviceHint={selectedService?.linkHint}
         onSwitchToDetectedNetwork={(networkKey) => {
           const matchedNet = unfilteredCatalog.find(
             n => n.slug.toLowerCase().includes(networkKey.toLowerCase()) || networkKey.toLowerCase().includes(n.slug.toLowerCase())

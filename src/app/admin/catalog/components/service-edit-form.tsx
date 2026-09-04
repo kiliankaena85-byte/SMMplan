@@ -50,6 +50,8 @@ export interface InitialServiceData {
   isDripFeedEnabled?: boolean;
   isRefillEnabled?: boolean;
   isCancelEnabled?: boolean;
+  linkPlaceholder?: string | null;
+  linkHint?: string | null;
 }
 
 interface ServiceEditFormProps {
@@ -107,6 +109,8 @@ export function ServiceEditForm({
   const [targetType, setTargetType] = useState<string>(
     initialData.targetType || inferTargetTypeFromName(initialData.name)
   );
+  const [linkPlaceholder, setLinkPlaceholder] = useState(initialData.linkPlaceholder || '');
+  const [linkHint, setLinkHint] = useState(initialData.linkHint || '');
   const [providerId, setProviderId] = useState(initialData.providerId || '');
   const [externalId, setExternalId] = useState(initialData.externalId || '');
   const [rate, setRate] = useState(initialData.rate || 0.01);
@@ -184,6 +188,8 @@ export function ServiceEditForm({
           isCancelEnabled,
           isDripFeedEnabled: true,
           qualityTier: 'STANDARD',
+          linkPlaceholder: linkPlaceholder || null,
+          linkHint: linkHint || null,
         });
 
         if (res.success) {
@@ -329,6 +335,29 @@ export function ServiceEditForm({
                 </div>
               </div>
             )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-foreground mb-1 block">Пример ссылки (Override Placeholder)</label>
+                <input
+                  type="text"
+                  value={linkPlaceholder}
+                  onChange={e => setLinkPlaceholder(e.target.value)}
+                  placeholder="Например: https://t.me/channel_name"
+                  className="w-full px-3 py-2 rounded-xl border border-border bg-background text-foreground text-xs focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-foreground mb-1 block">Текст подсказки (Override Hint)</label>
+                <input
+                  type="text"
+                  value={linkHint}
+                  onChange={e => setLinkHint(e.target.value)}
+                  placeholder="Например: Укажите ссылку на открытый канал"
+                  className="w-full px-3 py-2 rounded-xl border border-border bg-background text-foreground text-xs focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                />
+              </div>
+            </div>
 
             <div>
               <label className="text-xs font-semibold text-foreground mb-1 block">Описание для покупателя</label>

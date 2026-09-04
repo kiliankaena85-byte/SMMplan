@@ -17,8 +17,9 @@ export function CookieConsent() {
     }
 
     // Check if user has already accepted cookies
-    const consent = document.cookie.includes('cookie_consent=true');
-    if (!consent) {
+    const cookieConsent = document.cookie.includes('cookie_consent=true');
+    const localConsent = typeof window !== 'undefined' && localStorage.getItem('cookie_consent') === 'true';
+    if (!cookieConsent && !localConsent) {
       // Small delay for smooth entry
       const timer = setTimeout(() => setIsVisible(true), 1000);
       return () => clearTimeout(timer);
@@ -31,6 +32,11 @@ export function CookieConsent() {
   const handleAccept = () => {
     // Save cookie consent for 1 year (compliant with 152-FZ)
     document.cookie = 'cookie_consent=true; path=/; max-age=31536000; SameSite=Lax; Secure';
+    try {
+      localStorage.setItem('cookie_consent', 'true');
+    } catch {
+      // Ignore localStorage security/private mode errors
+    }
     setIsVisible(false);
   };
 
@@ -38,21 +44,27 @@ export function CookieConsent() {
 
   return (
     <aside
-      aria-label="Использование cookies"
-      className="fixed bottom-3 inset-x-3 sm:left-auto sm:right-4 sm:max-w-md z-[9999] px-3 py-2 rounded-xl bg-zinc-900/95 text-zinc-100 border border-zinc-800 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-3 duration-300 flex items-center justify-between gap-3 text-xs"
+      role="region"
+      aria-label="Использование файлов cookie"
+      className="fixed bottom-3 inset-x-3 sm:left-auto sm:right-4 sm:max-w-md z-[9999] p-3 rounded-2xl bg-zinc-950/95 text-zinc-100 border border-zinc-800/80 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-3 duration-300 flex items-center justify-between gap-3 text-xs"
     >
-      <div className="flex items-center gap-2 min-w-0">
-        <Cookie className="w-4 h-4 text-blue-400 shrink-0" />
-        <span className="text-[11px] sm:text-xs text-zinc-300">
-          Мы используем cookie для работы сервиса.
-        </span>
+      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+        <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0">
+          <Cookie className="w-4 h-4" />
+        </div>
+        <p className="text-[11px] sm:text-xs text-zinc-300 leading-snug">
+          Мы используем cookie для работы сервиса и аналитики.
+        </p>
       </div>
-      <button
-        onClick={handleAccept}
-        className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold text-[11px] transition-all cursor-pointer shrink-0"
-      >
-        Понятно
-      </button>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <button
+          type="button"
+          onClick={handleAccept}
+          className="min-h-[44px] px-3.5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center shadow-sm"
+        >
+          Понятно
+        </button>
+      </div>
     </aside>
   );
 }

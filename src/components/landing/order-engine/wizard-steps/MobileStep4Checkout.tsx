@@ -60,9 +60,11 @@ export function MobileStep4Checkout({
       engine.activeNetwork?.slug || engine.platform,
       activeCat?.name,
       selectedService?.name,
-      selectedService?.targetType
+      selectedService?.targetType,
+      selectedService?.linkPlaceholder,
+      selectedService?.linkHint
     );
-  }, [engine.activeNetwork?.slug, engine.platform, engine.availableCategories, engine.categoryId, selectedService?.name, selectedService?.targetType]);
+  }, [engine.activeNetwork?.slug, engine.platform, engine.availableCategories, engine.categoryId, selectedService?.name, selectedService?.targetType, selectedService?.linkPlaceholder, selectedService?.linkHint]);
 
   React.useEffect(() => {
     if (promoCode && promoCode.length > 0) {
@@ -135,7 +137,7 @@ export function MobileStep4Checkout({
       exit={{ height: 0, opacity: 0 }}
       transition={{ type: "spring", stiffness: 260, damping: 26 }}
       ref={step4Ref}
-      className="space-y-4 overflow-visible border-t border-border/30 pt-3"
+      className="space-y-4 overflow-visible border-t border-border/30 pt-3 scroll-mt-20"
     >
       <div className="flex items-center justify-between pl-1">
         <span className="block text-[11px] font-extrabold text-muted-foreground uppercase tracking-wider">
