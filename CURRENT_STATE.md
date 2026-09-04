@@ -1,5 +1,11 @@
 # CURRENT_STATE.md
 
+- [x] Order #370 Dispatch & Provider Queue Resolution (100% FIXED & LIVE VERIFIED):
+  - Выявлена первопричина зависания в очереди: контейнер `smmplan_lite_worker` был запущен со старым `REDIS_URL` без пароля (`NOAUTH Authentication required`). Контейнер пересоздан с паролем.
+  - Устранена блокировка прокси: домен `vexboost.ru` добавлен в `IMMUTABLE_DIRECT_PATTERNS`, исключая сбойные таймауты через публичные SOCKS5 прокси.
+  - Исправлены 24 записи `ServiceRoute`: в поле `providerServiceId` вместо внутреннего `numericId` записан реальный `externalId` провайдера Vexboost.
+  - Заказ #370 успешно передан в Vexboost (ID заказа у провайдера: `292754153`, статус `IN_PROGRESS`).
+- [x] Mobile Wizard UX: Удалены чипы пресетов количества (100, 500, 1000, 5000) в `MobileStep4Checkout.tsx` для освобождения полезного вертикального пространства экрана смартфона. Изменения зафиксированы в ветке и теге `mobile-refactoring`.
 - [x] UX Fix: Двухфазный автоскролл мобильного визарда (Step 2 -> Step 3 тарифов и Step 3 -> Step 4 чекаута с учетом оффсета шапки scroll-mt-20)
 - [x] A11y Fix: Редизайн CookieConsent (WCAG 2.2 AA Touch Target >= 44px, localStorage persistence, безопасное перекрытие)
 - [x] Benchmark Reverse Audit: Проведён бенчмарк-аудит мобильного визарда заказа SMMplan (создан скилл `benchmark-reverse-audit`, синтезирована матрица 12 критериев лидеров рынка, проведён стресс-тест с фокус-группой из 5 полярных персон, составлен дефектный отчёт mobile_wizard_benchmark_audit.md)
