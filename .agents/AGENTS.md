@@ -119,10 +119,10 @@
   - Компактные поля ввода (`w-14` / `w-18`) и компактные кнопки действий (`h-7 w-7`).
   - Адаптивность: таблица растягивается на 100% ширины (`w-full`) без раздутых фиксированных `min-w`.
 
-## 10. Cloudflare Tunnel & Network Binding Invariants
-- ❌ **ЗАПРЕЩЕНО** использовать сторонние туннели (SSH reverse tunnels, ngrok, localtunnel).
-- ✅ **ВСЕГДА** использовать официальный Cloudflare Tunnel (`scripts/start-tunnel.ps1`) для домена `test.smmplan.pro`.
-- ✅ Сервер Next.js обязан запускаться с `HOSTNAME="0.0.0.0"` и `PORT="3000"`, гарантируя доступ для Docker-коннектора с `host.docker.internal:3000` без ошибки 502 Bad Gateway.
+## 10. Official Tunnel & Network Binding Invariants (Tailscale Funnel)
+- ❌ **Cloudflare API и Cloudflare Tunnel заблокированы на территории РФ** и вызывают сбои TLS handshake и таймауты. ЗАПРЕЩЕНО использовать Cloudflare API и контейнеры cloudflared.
+- ✅ **Официальный туннель платформы — Tailscale Funnel:** Все внешние запросы маршрутизируются через ноду `https://desktop-25m6el7.tailbb9d28.ts.net`, стабильно проксирующую на `http://127.0.0.1:3000`.
+- ✅ Сервер Next.js обязан запускаться с `HOSTNAME="0.0.0.0"` и `PORT="3000"`, гарантируя стабильный доступ для Tailscale Funnel и браузерных E2E-тестов.
 
 ## 11. Modal Hoisting, Viewport Density & Realtime Daemons (CRITICAL)
 - ❌ **ЗАПРЕЩЕНО** рендерить модальные окна (`Modal`, `Dialog`) внутри `DropdownMenuContent`, `Popover` или `Tooltip`. Состояние модалов объявляется на уровне экрана (`unified-workspace.tsx`), кнопки дропдаунов передают колбэки (`onOpenModal`).

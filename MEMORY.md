@@ -42,6 +42,13 @@ if (input.userId === admin.id) return { success: false, error: 'Запрещен
 
 ## 1. 🏗️ Архитектурные решения (ADR)
 
+- **ADR-2026-19: Elimination of Cloudflare API & Adoption of Tailscale Funnel as Official Tunnel:**
+  - *Решение:*
+    1. **Полное удаление Cloudflare Tunnel из Docker:** Сервис `tunnel` удален из `docker-compose.yml`, контейнер `smmplan_tunnel` остановлен и ликвидирован. Исключены зависания и TLS handshake сбои, вызванные блокировкой Cloudflare API и его edge-IP в РФ.
+    2. **Фиксация Tailscale Funnel:** Официальной точкой входа платформы закреплен узел `https://desktop-25m6el7.tailbb9d28.ts.net`, стабильно проксирующий трафик на `http://127.0.0.1:3000` без необходимости в сторонних прокси.
+    3. **Обновление контрактов агентов:** В `AGENTS.md` и `.agents/AGENTS.md` зафиксирован абсолютный запрет на использование Cloudflare API/туннелей и закреплен Tailscale Funnel.
+  - *Причина:* Прямое требование пользователя в связи с блокировками Cloudflare API на территории РФ.
+
 - **ADR-2026-18: Fullscreen Single-Screen Checkout, Presets Cleanup & CI Node 24 Modernization:**
   - *Решение:*
     1. **Полноэкранный чекаут (PlanFullscreenCheckout.tsx):** Окно заказа переведено из тесного модального попапа в просторный полноэкранный экран (Single-Screen) в стиле SMM-Flux с баром `[← Назад к тарифам]` и сохранением контекста.

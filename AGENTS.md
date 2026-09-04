@@ -107,10 +107,10 @@
 - ✅ **Canonical URLs** обязаны быть абсолютными через `absoluteCanonical(tenantId, path)`.
 - ✅ Кэш-ключи в `unstable_cache` обязаны включать `tenantId` (например, `catalog-${tenantId}`).
 
-### Cloudflare Tunnel & Network Binding Invariants
-- ❌ **ЗАПРЕЩЕНО** использовать сторонние туннели (SSH reverse tunnels, ngrok, localtunnel).
-- ✅ **ВСЕГДА** использовать официальный Cloudflare Tunnel (`cloudflared.exe tunnel`) через скрипт `scripts/start-tunnel.ps1` для домена `test.smmplan.pro`.
-- ✅ **Сетевой биндинг:** Сервер Next.js обязан запускаться с `HOSTNAME="0.0.0.0"` и `PORT="3000"`, обеспечивая доступ для Docker-коннектора с `host.docker.internal:3000` без ошибки 502 Bad Gateway.
+### Official Tunnel & Network Binding Invariants (Tailscale Funnel)
+- ❌ **Cloudflare API и Cloudflare Tunnel заблокированы на территории РФ** и вызывают сбои TLS handshake и таймауты. ЗАПРЕЩЕНО использовать Cloudflare API и контейнеры cloudflared.
+- ✅ **Официальный туннель платформы — Tailscale Funnel:** Все внешние запросы маршрутизируются через ноду `https://desktop-25m6el7.tailbb9d28.ts.net`, стабильно проксирующую на `http://127.0.0.1:3000`.
+- ✅ **Сетевой биндинг:** Сервер Next.js обязан запускаться с `HOSTNAME="0.0.0.0"` и `PORT="3000"`, обеспечивая стабильный доступ для Tailscale Funnel и браузерных E2E-тестов.
 
 ### Финансовая безопасность (Trust Boundary) & Ledger Invariants
 - ❌ **ЗАПРЕЩЕНО** менять `User.balance` напрямую или доверять ценам из клиентского UI.
