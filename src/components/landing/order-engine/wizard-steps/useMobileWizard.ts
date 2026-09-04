@@ -201,8 +201,8 @@ export function useMobileWizard(engine: OrderEngine) {
   }, [catalog, networkId]);
 
   const isLinkFilled = Boolean(url && url.trim().length >= 5);
-  const hasCategory = Boolean(categoryId);
-  const hasService = Boolean(selectedService);
+  const hasCategory = Boolean(categoryId && activeStepRaw >= 2);
+  const hasService = Boolean(selectedService && activeStepRaw >= 3);
   const shouldShowCategories = true;
   const shouldShowTariffs = true;
   const shouldShowParameters = true;

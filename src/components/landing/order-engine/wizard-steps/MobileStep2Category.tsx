@@ -59,7 +59,7 @@ export function MobileStep2Category({
     }
   }, [currentStep, categoriesToDisplay, categoryId, setCategoryId, setActiveStep]);
 
-  if (!(currentStep === 2 || (currentStep !== 2 && !!categoryId)) || !shouldShowCategories || (availableCategories.length === 0 && allNetworkCategories.length === 0)) {
+  if (currentStep === 1 || !(currentStep === 2 || (currentStep > 2 && !!categoryId)) || !shouldShowCategories || (availableCategories.length === 0 && allNetworkCategories.length === 0)) {
     return null;
   }
 

@@ -245,40 +245,6 @@ export function MobileStep1Link({
         </div>
       )}
 
-      {/* Quick Platform Shortcuts when link is empty */}
-      {url.trim().length === 0 && (
-        <div className="space-y-1.5 pt-1">
-          <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider pl-1">
-            Или выберите соцсеть для заказа:
-          </span>
-          <div className="grid grid-cols-4 gap-1.5">
-            {[
-              { name: "Telegram", slug: "telegram", icon: "✈️" },
-              { name: "ВКонтакте", slug: "vk", icon: "👥" },
-              { name: "Instagram", slug: "instagram", icon: "📸" },
-              { name: "YouTube", slug: "youtube", icon: "▶️" },
-            ].map(net => {
-              const catalogNet = engine.catalog.find(n => n.slug.toLowerCase().includes(net.slug));
-              return (
-                <button
-                  key={net.slug}
-                  type="button"
-                  onClick={() => {
-                    if (catalogNet) {
-                      engine.setNetworkId(catalogNet.id);
-                      setActiveStep(2);
-                    }
-                  }}
-                  className="p-2 rounded-xl bg-content2 hover:bg-content3 border border-border/40 flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 transition-all text-center"
-                >
-                  <span className="text-base">{net.icon}</span>
-                  <span className="text-[10px] font-bold text-foreground">{net.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {validationErrors?.link && (
         <p id="mobile-step1-url-error" role="alert" aria-live="assertive" className="text-[11px] font-bold text-danger pl-1 animate-pulse">

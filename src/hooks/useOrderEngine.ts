@@ -94,13 +94,12 @@ export function useOrderEngine(
     }));
   }, [initialCatalog]);
 
-  // Smart defaults: preselect Telegram + Подписчики so user can browse immediately.
-  // User chooses their own path: link-first OR browse-first — we don't restrict.
-  const defaultNet = sortedInitialCatalog.length > 0 
-    ? (initialNetworkId ? sortedInitialCatalog.find(n => n.id === initialNetworkId) : null) || (sortedInitialCatalog.find((n: PublicNetwork) => n.slug === 'telegram') || sortedInitialCatalog[0]) 
+  // Clean initialization: only preselect if explicitly provided via props/deep-link
+  const defaultNet = initialNetworkId 
+    ? (sortedInitialCatalog.find(n => n.id === initialNetworkId) || null)
     : null;
-  const defaultCat = defaultNet && defaultNet.categories.length > 0 
-    ? (initialCategoryId ? defaultNet.categories.find(c => c.id === initialCategoryId) : null) || (defaultNet.categories.find((c: PublicCategory) => c.name.toLowerCase().includes('подписчики')) || defaultNet.categories[0]) 
+  const defaultCat = defaultNet && initialCategoryId 
+    ? (defaultNet.categories.find(c => c.id === initialCategoryId) || null)
     : null;
 
   const [url, setUrl] = useState("");

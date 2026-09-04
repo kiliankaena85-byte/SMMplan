@@ -502,9 +502,7 @@ export async function proxy(request: NextRequest) {
   requestHeaders.set('x-nonce', nonce);
 
   // Content Security Policy (PCI DSS 4.0 / OWASP ASVS 4.0.3)
-  // W3C Note: Do not mix 'nonce-...' with 'unsafe-inline' in script-src/style-src unless strict-dynamic is fully used,
-  // because browsers IGNORE 'unsafe-inline' when a nonce is present, blocking React/Tailwind/HeroUI inline styles & scripts.
-  const scriptSrcDirective = `'self' 'nonce-${nonce}' 'strict-dynamic' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://yookassa.ru https://auth.robokassa.ru`;
+  const scriptSrcDirective = `'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://yookassa.ru https://auth.robokassa.ru`;
   const styleSrcDirective = `'self' 'unsafe-inline' https://fonts.googleapis.com`;
 
   const cspHeader = `

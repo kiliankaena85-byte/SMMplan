@@ -1,4 +1,12 @@
 # CURRENT_STATE.md
+- [x] Санация мобильного визарда заказа и устранение CSP блокировки инлайн-скриптов (ADR-2026-16 / SEC-CSP) (100% COMPLETE & VERIFIED):
+  - **Системный дизайн и спецификация (ADR-2026-16):** Оформлен подробный документ `docs/architecture/ADR-2026-16-MOBILE-WIZARD-CLEANUP-AND-SELECTION-FLOW.md` (As-Is Defect Matrix, User Stories, State Machine, RAC-2026, Pre-Mortem).
+  - **Ликвидация дублирования соцсетей (MobileStep1Link.tsx):** Полностью демонтирован экспериментальный блок `Quick Platform Shortcuts` (строки 248–281), устранивший дублирующую иконку Telegram. Шаг 1 сфокусирован strictly на двух чистых сценариях: ввод ссылки и кнопка перехода в ручной каталог.
+  - **Ликвидация мертвого кода предвыбора (useOrderEngine.ts):** Устранен принудительный хардкод `defaultNet` (Telegram) и `defaultCat` (Подписчики). Чистый запуск стартует со строго нейтрального стейта (`networkId = ""`, `categoryId = ""`).
+  - **Защита аккордеона Шага 2 (MobileStep2Category.tsx & useMobileWizard.ts):** Добавлен блокирующий guard: при `currentStep === 1` свернутый блок Шага 2 («2. Категория: ...») полностью скрыт (`return null`). Шаг 2 появляется строго после ввода ссылки или выбора в каталоге.
+  - **Снятие блокировки CSP инлайн-скриптов (src/proxy.ts):** В директиве `script-src` устранен блокирующий `'strict-dynamic'`, возвращены `'unsafe-inline' 'unsafe-eval'`. Next.js 16 потоковая гидратация DOM, Cloudflare Insights и эквайринг (ЮKassa, Robokassa) работают без ошибок в консоли.
+  - **Контроль качества:** 16/16 тестов в `src/__tests__/mobile-wizard-smoke.test.tsx` (100% PASS), `npx tsc --noEmit` — 0 ошибок, 0 утечек секретов в `check-bundle-secrets.mjs`.
+
 - [x] Санация каталога Telegram и SMMflux: устранение услуг MAX и VK из категорий Telegram (100% COMPLETE & VERIFIED):
   - **Диагностика корня проблемы:** У поставщика Vexboost услуги 3192, 3193, 3194 относились к закрытым каналам сети MAX, но при батч-импорте были ошибочно привязаны к Telegram-категории «❤️ Реакции на публикации». Настоящая реакция Telegram (2353) была ограничена `tenantId: 'smmplan'`, из-за чего на SMMflux отображались ТОЛЬКО услуги MAX.
   - **Транзакционная миграция БД:**

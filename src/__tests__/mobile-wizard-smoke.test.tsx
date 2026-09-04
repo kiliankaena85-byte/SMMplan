@@ -7,6 +7,7 @@ import { renderHook, act, render, screen, fireEvent } from '@testing-library/rea
 import { useMobileWizard } from '@/components/landing/order-engine/wizard-steps/useMobileWizard';
 import { MobileWizardStepper } from '@/components/landing/order-engine/wizard-steps/MobileWizardStepper';
 import { MobileStep1Link } from '@/components/landing/order-engine/wizard-steps/MobileStep1Link';
+import { MobileStep2Category } from '@/components/landing/order-engine/wizard-steps/MobileStep2Category';
 import { MobileStep3Service } from '@/components/landing/order-engine/wizard-steps/MobileStep3Service';
 import { OrderEngine } from '@/hooks/useOrderEngine';
 
@@ -298,10 +299,10 @@ describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
     expect(result.current.currentStep).toBe(1);
   });
 
-  it('12. Smart Adaptive Flow: MobileStep1Link displays smart detection badge when url is entered and platform shortcuts when empty', () => {
+  it('12. Clean Smart Adaptive Flow: MobileStep1Link displays smart detection badge when url is entered and manual catalog button when empty without duplicate platform shortcuts', () => {
     // Check empty state
     const engineEmpty = createMockEngine({ url: '' });
-    const { getByText, unmount } = render(
+    const { getByText, queryByText, unmount } = render(
       <MobileStep1Link
         engine={engineEmpty}
         currentStep={1}
@@ -314,9 +315,8 @@ describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
         catalogHint={false}
       />
     );
-    expect(getByText('Или выберите соцсеть для заказа:')).toBeDefined();
-    expect(getByText('Telegram')).toBeDefined();
-    expect(getByText('ВКонтакте')).toBeDefined();
+    expect(queryByText('Или выберите соцсеть для заказа:')).toBeNull();
+    expect(getByText('Или выбрать услугу вручную из каталога →')).toBeDefined();
     unmount();
 
     // Check with detected link
@@ -418,6 +418,34 @@ describe('MobileWizard Stepper & State Machine (Smoke & E2E Tests)', () => {
     expect(getByText3('Telegram Подписчики VIP')).toBeDefined();
     expect(getByText3('Telegram Подписчики Премиум Гарантия')).toBeDefined();
     expect(getByText3(/Показать все 4 тарифов/i)).toBeDefined();
+  });
+
+  it('15. Zero-False-Selection Invariant: MobileStep2Category never renders when currentStep is 1', () => {
+    const engineWithCategory = createMockEngine({
+      url: '',
+      categoryId: 'tg-subs',
+      activeNetwork: {
+        id: 'tg-net',
+        name: 'Telegram',
+        slug: 'telegram',
+        categories: [{ id: 'tg-subs', name: 'Подписчики', serviceCount: 5 }]
+      } as any,
+      availableCategories: [{ id: 'tg-subs', name: 'Подписчики', serviceCount: 5 }] as any,
+    });
+
+    const { container } = render(
+      <MobileStep2Category
+        engine={engineWithCategory}
+        currentStep={1}
+        setActiveStep={vi.fn()}
+        shouldShowCategories={true}
+        selectedCategoryName="Подписчики на канал и в группу"
+        step2Ref={{ current: null }}
+      />
+    );
+
+    // Step 2 must be completely hidden (null) on Step 1
+    expect(container.firstChild).toBeNull();
   });
 });
 
