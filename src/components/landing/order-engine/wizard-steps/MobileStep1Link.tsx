@@ -2,6 +2,7 @@ import React from "react";
 import { Link2, AlertCircle, ChevronDown, ClipboardPaste, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { DynamicPayloadWarnings } from "../DynamicPayloadWarnings";
+import { getSocialLinkConfig } from "@/utils/social-link-placeholder";
 
 interface MobileStep1LinkProps {
   engine: OrderEngine;
@@ -30,7 +31,7 @@ export function MobileStep1Link({
   onOpenGuide,
   onOpenCatalog
 }: MobileStep1LinkProps) {
-  const { url, setUrl, validationErrors, selectedService } = engine;
+  const { url, setUrl, validationErrors, selectedService, activeNetwork, platform } = engine;
   const [isPasted, setIsPasted] = React.useState(false);
 
   const handlePasteFromClipboard = async () => {
@@ -48,6 +49,15 @@ export function MobileStep1Link({
       // Non-blocking clipboard permission fallback
     }
   };
+
+  const step1LinkConfig = React.useMemo(() => {
+    return getSocialLinkConfig(
+      activeNetwork?.slug || platform,
+      null,
+      null,
+      null
+    );
+  }, [activeNetwork?.slug, platform]);
 
   if (currentStep !== 1) {
     if (url.trim().length >= 5) {
@@ -142,8 +152,8 @@ export function MobileStep1Link({
                 (e.target as HTMLInputElement).blur();
               }
             }}
-            placeholder="https://t.me/channel_or_post"
-            aria-label="Введите ссылку на канал, профиль или пост"
+            placeholder={step1LinkConfig.placeholder || "https://t.me/channel или vk.com/..."}
+            aria-label={step1LinkConfig.label || "Введите ссылку для продвижения"}
             aria-describedby={validationErrors?.link || localUrlError ? "mobile-step1-url-error" : undefined}
             className={`w-full h-11 pl-10 ${url.trim().length > 0 ? 'pr-9' : 'pr-24'} rounded-2xl bg-transparent text-base font-semibold text-foreground placeholder:text-muted-foreground/50 outline-none border-none transition-all`}
           />

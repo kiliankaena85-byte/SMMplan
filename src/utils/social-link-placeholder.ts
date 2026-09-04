@@ -12,6 +12,7 @@ export interface SocialLinkConfig {
   networkSlug: string;
   networkName: string;
   categoryName: string;
+  label?: string;
   placeholder: string;
   hint: string;
   badge: string;
@@ -25,8 +26,9 @@ const DEFAULT_LINK_CONFIG: SocialLinkConfig = {
   networkSlug: 'generic',
   networkName: 'Социальная сеть',
   categoryName: 'Услуга',
-  placeholder: 'Вставьте ссылку на страницу, пост или канал...',
-  hint: 'Ссылка на продвигаемый объект (канал, профиль, видео или пост)',
+  label: 'Ссылка для продвижения',
+  placeholder: 'https://t.me/channel или vk.com/...',
+  hint: 'Ссылка на канал, группу, профиль или публикацию',
   badge: 'Ссылка',
   examples: ['https://t.me/channel', 'https://vk.com/public123', 'https://youtube.com/watch?v=...'],
   hostAliases: [],
@@ -761,7 +763,8 @@ const CATEGORY_ALIASES: Record<string, string> = {
 export function getSocialLinkConfig(
   networkInput?: string | null,
   categoryInput?: string | null,
-  serviceName?: string | null
+  serviceName?: string | null,
+  targetType?: string | null
 ): SocialLinkConfig {
   const normNet = normalizeKey(networkInput);
   const normCat = normalizeKey(categoryInput);
@@ -801,16 +804,61 @@ export function getSocialLinkConfig(
     else if (normName.includes('отзыв') || normName.includes('карты') || normName.includes('review')) resolvedCatKey = 'reviews';
   }
 
+  // Refinement by targetType (e.g. from service definition)
+  const cleanTargetType = targetType ? targetType.trim().toUpperCase() : '';
+  if (cleanTargetType) {
+    if (cleanTargetType === 'CHANNEL' || cleanTargetType === 'CHANNEL_POSTS') {
+      resolvedCatKey = 'subscribers';
+    } else if (cleanTargetType === 'CHAT' || cleanTargetType === 'GROUP') {
+      resolvedCatKey = 'members';
+    } else if (cleanTargetType === 'POST') {
+      if (!resolvedCatKey || resolvedCatKey === 'subscribers' || resolvedCatKey === 'members') {
+        resolvedCatKey = 'views';
+      }
+    } else if (cleanTargetType === 'STORY') {
+      resolvedCatKey = 'stories';
+    } else if (cleanTargetType === 'BOT') {
+      resolvedCatKey = 'bots';
+    } else if (cleanTargetType === 'PROFILE' || cleanTargetType === 'USER') {
+      resolvedCatKey = 'friends';
+    }
+  }
+
   // 3. Extract exact category or fallback to network default
   const categoryData = resolvedCatKey && netConfig.categories[resolvedCatKey]
     ? netConfig.categories[resolvedCatKey]
     : netConfig.defaultCategory;
+
+  // 4. Compute human-readable contextual field label
+  let dynamicLabel = `Ссылка для заказа`;
+  if (resolvedCatKey === 'subscribers') {
+    dynamicLabel = resolvedNetKey === 'telegram' ? 'Ссылка на канал или группу' : `Ссылка на сообщество ${netConfig.name}`;
+  } else if (resolvedCatKey === 'members') {
+    dynamicLabel = resolvedNetKey === 'telegram' ? 'Ссылка на группу или чат' : `Ссылка на группу ${netConfig.name}`;
+  } else if (resolvedCatKey === 'friends') {
+    dynamicLabel = `Ссылка на страницу / профиль ${netConfig.name}`;
+  } else if (resolvedCatKey === 'views' || resolvedCatKey === 'likes' || resolvedCatKey === 'reactions' || resolvedCatKey === 'reposts' || resolvedCatKey === 'comments') {
+    dynamicLabel = 'Ссылка на публикацию (пост)';
+  } else if (resolvedCatKey === 'clips' || resolvedCatKey === 'reels' || resolvedCatKey === 'shorts') {
+    dynamicLabel = 'Ссылка на видео / клип';
+  } else if (resolvedCatKey === 'stories') {
+    dynamicLabel = 'Ссылка на историю (Stories)';
+  } else if (resolvedCatKey === 'bots') {
+    dynamicLabel = 'Ссылка на Telegram-бота';
+  } else if (resolvedCatKey === 'polls') {
+    dynamicLabel = 'Ссылка на опрос / голосование';
+  } else if (resolvedCatKey === 'streams') {
+    dynamicLabel = 'Ссылка на прямой эфир (стрим)';
+  } else {
+    dynamicLabel = `Ссылка на ${netConfig.name}`;
+  }
 
   return {
     networkSlug: resolvedNetKey,
     networkName: netConfig.name,
     hostAliases: netConfig.hostAliases,
     ...categoryData,
+    label: dynamicLabel,
   };
 }
 

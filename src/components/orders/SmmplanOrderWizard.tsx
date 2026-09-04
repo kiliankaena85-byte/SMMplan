@@ -318,23 +318,26 @@ function SmmplanOrderWizardInner({
     };
   }, [selectedService, quantity, totalQuantity, appliedPromo]);
 
-  // Target Type Placeholder Generator
+  // Target Type Placeholder & Label Generator
   const getTargetTypeHint = (catName?: string, srvTargetType?: string | null) => {
     const type = srvTargetType || (catName ? inferTargetTypeFromCategory(catName) : 'POST');
     switch (type) {
       case 'CHANNEL':
         return {
+          label: 'Ссылка на канал или группу Telegram',
           placeholder: 'https://t.me/your_channel или @your_channel',
-          hint: 'Укажите ссылку на публичный канал или профиль',
+          hint: 'Укажите ссылку на публичный канал или ссылку-приглашение',
         };
       case 'STORY':
         return {
-          placeholder: 'https://instagram.com/your_profile',
-          hint: 'Укажите ссылку на профиль для накрутки историй',
+          label: 'Ссылка на историю (Stories)',
+          placeholder: 'https://instagram.com/your_profile или t.me/channel/s/123',
+          hint: 'Укажите ссылку на активную историю',
         };
       case 'POST':
       default:
         return {
+          label: 'Ссылка на публикацию (пост)',
           placeholder: 'https://t.me/channel/123 или https://vk.com/wall-123_456',
           hint: 'Укажите прямую ссылку на конкретную публикацию/пост',
         };
@@ -920,7 +923,7 @@ function SmmplanOrderWizardInner({
                   <div className="flex items-center gap-2">
                     <label className="text-sm font-bold text-foreground flex items-center gap-1.5">
                       <LinkIcon className="w-4 h-4 text-primary shrink-0" />
-                      <span>Ссылка на объект продвижения</span>
+                      <span>{getTargetTypeHint(selectedCategory?.name, selectedService.targetType).label || 'Ссылка для выполнения заказа'}</span>
                       <span className="text-destructive">*</span>
                     </label>
                   </div>
