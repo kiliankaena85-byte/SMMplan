@@ -109,6 +109,7 @@ export default defineConfig({
       'src/__tests__/clients/admin-user-sorting.test.ts',
       'src/__tests__/security/llm-prompt-sanitizer.test.ts',
       'src/__tests__/plan-slide-order-client.test.tsx',
+      'src/__tests__/plan-fullscreen-checkout.test.tsx',
     ],
   }
 });

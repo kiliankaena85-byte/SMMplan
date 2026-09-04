@@ -45,8 +45,8 @@ const MassConfirmEmailModal = dynamic(
   { ssr: false }
 );
 
-const StepWizardCheckout = dynamic(
-  () => import("./order-engine/variants/StepWizardCheckout").then((mod) => mod.StepWizardCheckout),
+const PlanFullscreenCheckout = dynamic(
+  () => import("./order-engine/variants/PlanFullscreenCheckout").then((mod) => mod.PlanFullscreenCheckout),
   { ssr: false }
 );
 const MobileWizard = dynamic(
@@ -175,6 +175,12 @@ export function SmartLinkLanding({
     mobileEmailInputRef
   });
 
+  React.useEffect(() => {
+    if (selectedService && typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [selectedService]);
+
   const checkoutVariantProps = React.useMemo(() => ({
     selectedService,
     url,
@@ -255,6 +261,22 @@ export function SmartLinkLanding({
                 userBalanceCents={userBalanceCents}
               />
             </div>
+          </div>
+        ) : selectedService ? (
+          <div className="w-full flex flex-col items-center animate-in fade-in duration-300">
+            <div className="flex flex-wrap items-center justify-center gap-3 mb-2 sm:mb-4">
+              <ThemeSwitcher />
+            </div>
+            <PlanFullscreenCheckout
+              engine={engine}
+              selectedService={selectedService}
+              onClose={() => setSelectedService(null)}
+              onOpenDocument={setActiveLegalSlug}
+              userBalanceCents={userBalanceCents}
+              handleCheckout={handleCheckout}
+              isSubmitting={isSubmitting}
+              checkoutError={checkoutError}
+            />
           </div>
         ) : (
           <>
@@ -449,9 +471,7 @@ export function SmartLinkLanding({
       <MegaFooter contactSettings={contactSettings} tenantId={tenantId} />
 
       {/* ══════════ ACTIVE CHECKOUT VARIANT OVERLAYS ══════════ */}
-      {!engine.isMassMode && !showSmartCart && (
-        <StepWizardCheckout {...checkoutVariantProps} />
-      )}
+      {/* StepWizardCheckout removed — replaced by SMM-Flux style PlanFullscreenCheckout */}
 
       {/* ══════════ LINK MODAL (Progressive Disclosure) ══════════ */}
       <LinkModal
