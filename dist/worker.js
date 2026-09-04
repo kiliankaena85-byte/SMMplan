@@ -124899,7 +124899,7 @@ async function dispatch(result, options) {
     });
   }
 }
-async function sendMagicLink(email, token, tenantId) {
+async function sendMagicLink(email, token, tenantId, redirectTo) {
   const { companyName } = await getEmailContext(tenantId);
   let baseUrl2 = await getBaseUrlAsync().catch(() => "");
   if (!baseUrl2) {
@@ -124908,7 +124908,8 @@ async function sendMagicLink(email, token, tenantId) {
   }
   const normTenant = normalizeTenantId2(tenantId);
   const tenantParam = normTenant && normTenant !== "smmplan" ? `&tenant=${normTenant}` : "";
-  const link = `${baseUrl2}/api/auth/verify?token=${token}${tenantParam}`;
+  const redirectParam = redirectTo ? `&redirectTo=${encodeURIComponent(redirectTo)}` : "";
+  const link = `${baseUrl2}/api/auth/verify?token=${token}${tenantParam}${redirectParam}`;
   console.info(`
 ========================================
 [MAGIC LINK FOR ${email} (${companyName})]:

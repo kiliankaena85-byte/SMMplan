@@ -1,4 +1,4 @@
-﻿import { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 import { auditAdmin } from '@/lib/admin-audit';
@@ -63,6 +63,12 @@ type UserCard = AdminUserRow & {
   }[];
 };
 
+// ── Sorting Constants & Types ──
+
+export const USER_SORT_FIELDS = ['createdAt', 'balance', 'totalSpent', 'orders', 'email', 'role'] as const;
+export type UserSortField = typeof USER_SORT_FIELDS[number];
+export type SortOrder = 'asc' | 'desc';
+
 // ── Volume Tier Labels ──
 
 function getVolumeTier(totalSpentCents: number): { name: string; color: string } {
@@ -80,7 +86,7 @@ export { getVolumeTier };
 class AdminUserService {
 
   /**
-   * Paginated user list with multi-field search, filter presets and offset pagination.
+   * Paginated user list with multi-field search, filter presets, dynamic sorting and offset pagination.
    */
   async listUsers(params: {
     cursor?: string;
@@ -89,6 +95,8 @@ class AdminUserService {
     filter?: 'all' | 'b2b' | 'balance' | 'banned' | 'vip';
     pageSize?: number;
     tenantId?: string;
+    sortBy?: UserSortField;
+    sortOrder?: SortOrder;
   }): Promise<PaginatedResult<AdminUserRow>> {
     const where: Record<string, unknown> = {};
 
@@ -121,12 +129,28 @@ class AdminUserService {
       where.totalSpent = { gte: BigInt(25_000_00) }; // Gold or Platinum
     }
 
+    // Dynamic sorting with whitelist validation and 100% deterministic tie-breaker
+    const rawSortBy = params.sortBy;
+    const sortBy: UserSortField = USER_SORT_FIELDS.includes(rawSortBy as UserSortField)
+      ? (rawSortBy as UserSortField)
+      : 'createdAt';
+    const sortOrder: SortOrder = params.sortOrder === 'asc' ? 'asc' : 'desc';
+
+    let primaryOrderBy: Record<string, unknown>;
+    if (sortBy === 'orders') {
+      primaryOrderBy = { orders: { _count: sortOrder } };
+    } else {
+      primaryOrderBy = { [sortBy]: sortOrder };
+    }
+
+    const orderBy = [primaryOrderBy, { id: 'desc' }];
+
     return paginatedQuery<AdminUserRow>(db.user, {
       cursor: params.cursor,
       page: params.page,
       pageSize: params.pageSize || 50,
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy,
       include: {
         b2bConfig: {
           select: {

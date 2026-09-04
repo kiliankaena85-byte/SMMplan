@@ -4,6 +4,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Building2, MessageCircle } from 'lucide-react';
+import { SortableHeader } from './sortable-header';
 
 export type ClientColumn = {
   id: string;
@@ -15,6 +16,7 @@ export type ClientColumn = {
   telegramId: string | null;
   companyName: string | null;
   inn: string | null;
+  createdAt: Date | string;
   b2bConfig?: {
     isB2b: boolean;
     prioritySupport: boolean;
@@ -37,34 +39,35 @@ const ROLE_LABELS: Record<string, { label: string; color: string }> = {
 export const columns: ColumnDef<ClientColumn>[] = [
   {
     accessorKey: 'email',
-    header: 'Email / Клиент',
+    header: () => <SortableHeader title="Email / Клиент" field="email" defaultOrder="asc" />,
     cell: ({ row }) => {
       const u = row.original;
       const isB2b = u.b2bConfig?.isB2b || Boolean(u.inn);
       return (
-        <div className="flex flex-col gap-1 py-0.5">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-0.5 py-0.5 max-w-[170px]">
+          <div className="flex items-center gap-1.5 truncate">
             <Link
               href={`/admin/clients/${u.id}`}
-              className="text-primary hover:text-primary/80 font-mono font-bold text-[13px] transition-colors hover:underline underline-offset-4"
+              className="text-primary hover:text-primary/80 font-mono font-bold text-[13px] transition-colors hover:underline underline-offset-4 truncate"
+              title={u.email}
             >
               {u.email}
             </Link>
             {isB2b && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.2 bg-warning/15 text-warning-text border border-warning/30 rounded text-[9px] font-black uppercase tracking-wider">
+              <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.2 bg-warning/15 text-warning-text border border-warning/30 rounded text-[9px] font-black uppercase tracking-wider">
                 <Building2 className="w-2.5 h-2.5" /> B2B
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-            <span className="font-mono text-[10px] text-muted-foreground/70">ID: {u.id.slice(-8)}</span>
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className="font-mono text-[10px] text-muted-foreground/70 shrink-0">ID: {u.id.slice(-6)}</span>
             {u.telegramId && (
-              <span className="inline-flex items-center gap-0.5 text-[10px] text-primary/80">
-                <MessageCircle className="w-2.5 h-2.5" /> {u.telegramId}
+              <span className="inline-flex items-center gap-0.5 text-[10px] text-primary/80 shrink-0 truncate max-w-[90px]" title={u.telegramId}>
+                <MessageCircle className="w-2.5 h-2.5 shrink-0" /> {u.telegramId}
               </span>
             )}
             {u.companyName && (
-              <span className="text-[10px] text-foreground font-medium truncate max-w-[120px]" title={u.companyName}>
+              <span className="text-[10px] text-foreground font-medium truncate max-w-[100px]" title={u.companyName}>
                 · {u.companyName}
               </span>
             )}
@@ -91,7 +94,7 @@ export const columns: ColumnDef<ClientColumn>[] = [
   },
   {
     accessorKey: 'role',
-    header: 'Роль',
+    header: () => <SortableHeader title="Роль" field="role" defaultOrder="asc" />,
     cell: ({ row }) => {
       const u = row.original;
       const roleInfo = ROLE_LABELS[u.role] || { label: u.role, color: 'bg-muted/50 text-foreground border-border/50' };
@@ -104,15 +107,15 @@ export const columns: ColumnDef<ClientColumn>[] = [
   },
   {
     accessorKey: 'balance',
-    header: () => <div className="text-right">Баланс</div>,
+    header: () => <SortableHeader title="Баланс" field="balance" align="right" defaultOrder="desc" />,
     cell: ({ row }) => {
       const u = row.original;
       return (
         <div className="font-bold text-[13px] font-mono tabular-nums tracking-tight text-right text-foreground">
-          {(Number(u.balance) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+          {Math.round(Number(u.balance) / 100).toLocaleString('ru-RU')} ₽
           {Number(u.quarantineBalance) > 0 && (
             <span className="block text-[10px] text-warning font-medium whitespace-nowrap mt-0.5">
-              🔒 {(Number(u.quarantineBalance) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
+              🔒 {Math.round(Number(u.quarantineBalance) / 100).toLocaleString('ru-RU')} ₽
             </span>
           )}
         </div>
@@ -121,22 +124,46 @@ export const columns: ColumnDef<ClientColumn>[] = [
   },
   {
     accessorKey: 'totalSpent',
-    header: () => <div className="text-right">LTV (Объем)</div>,
+    header: () => <SortableHeader title="LTV (Объем)" field="totalSpent" align="right" defaultOrder="desc" />,
     cell: ({ row }) => {
       return (
         <div className="text-[13px] font-bold font-mono tabular-nums tracking-tight text-right text-foreground">
-          {(Number(row.original.totalSpent) / 100).toLocaleString('ru-RU')} ₽
+          {Math.round(Number(row.original.totalSpent) / 100).toLocaleString('ru-RU')} ₽
         </div>
       );
     },
   },
   {
     accessorKey: '_count.orders',
-    header: () => <div className="text-right">Заказы</div>,
+    header: () => <SortableHeader title="Заказы" field="orders" align="right" defaultOrder="desc" />,
     cell: ({ row }) => {
       return (
         <div className="text-[13px] font-bold font-mono tabular-nums tracking-tight text-right text-foreground">
           {row.original._count.orders.toLocaleString('ru-RU')}
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: 'createdAt',
+    header: () => <SortableHeader title="Регистрация" field="createdAt" defaultOrder="desc" />,
+    cell: ({ row }) => {
+      const date = new Date(row.original.createdAt);
+      const formattedDate = date.toLocaleDateString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+      const formattedTime = date.toLocaleTimeString('ru-RU', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      return (
+        <div 
+          className="text-xs font-mono font-medium text-muted-foreground whitespace-nowrap"
+          title={`Зарегистрирован: ${formattedDate} в ${formattedTime}`}
+        >
+          {formattedDate}
         </div>
       );
     },

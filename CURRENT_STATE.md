@@ -1,4 +1,13 @@
 # CURRENT_STATE.md
+- [x] Динамическая сортировка, целые рубли и компактная компоновка клиентов (/admin/clients) (ADR-2026-15) (100% COMPLETE & VERIFIED):
+  - **Системный аудит и BRD/SAD документ:** Оформлен подробный документ `docs/architecture/ADR-2026-15-CLIENTS-SORTING-AND-FILTERING.md`.
+  - **Бэкенд и сервисный слой (`user.service.ts`):** Добавлен безопасный whitelist `USER_SORT_FIELDS` ('createdAt', 'balance', 'totalSpent', 'orders', 'email', 'role'), реляционная сортировка `orders: { _count: sortOrder }`, детерминированный tie-breaker `[{ [sortBy]: sortOrder }, { id: 'desc' }]` для исключения перескока пагинации.
+  - **WYSIAWYX CSV экспорт (`/api/admin/export`):** Экспорт пользователей синхронизирован с параметрами сортировки (`sortBy`, `sortOrder`) и поиска (`q`, `filter`).
+  - **UI/UX компоненты (`SortableHeader`, `ClientQuickSort`):** Интерактивные заголовки колонок с иконками `ArrowUpDown`/`ArrowUp`/`ArrowDown`, быстрая сортировка по пресетам ("Сначала новые", "Баланс (по убыванию)", "Топ по заказам" и др.), бейдж активной сортировки с 1-click сбросом.
+  - **Целые рубли без копеек:** Все денежные значения на фронтенде (баланс, замороженный остаток, LTV, сумма обязательств) отображаются строго в целых рублях `Math.round(val / 100).toLocaleString('ru-RU') + ' ₽'` без `.00` и копеек.
+  - **Rule 9 (Zero Horizontal Scroll):** Таблица строго адаптирована под 100% Viewport Fit (`max-w-[170px]` для email, ультра-компактный ID, `table-auto w-full`, `overflow-x-hidden`). Горизонтальный скролл полностью отсутствует.
+  - **Контроль качества:** 10/10 тестов в `src/__tests__/clients/admin-user-sorting.test.ts` (100% PASS), 13/13 в сьюте клиентов, `npx tsc --noEmit` — 0 ошибок, 0 утечек секретов в `check-bundle-secrets.mjs`, `npm run build` успешно завершен.
+
 - [x] Бесшовный инлайн-вход в чекауте и сохранение заказа при входе по ссылке (SPEC-2026-14 / ADR-2026-14) (100% COMPLETE & VERIFIED):
   - **Системный дизайн и спецификация:** Оформлен подробный документ `docs/architecture/ADR-2026-14-SEAMLESS-CHECKOUT-AUTH.md` (As-Is аудит точек отказа в `checkout.ts:381`, `mass.ts:226`, `useCheckoutOrchestrator.ts:591`, Customer Journey Map, State Machine, RAC-2026 критерии приемки, Pre-Mortem матрица).
   - **Бэкенд контракт ошибок (`AccountExistsError` & SafeAction):** В `src/utils/error-handler.ts` добавлен класс `AccountExistsError` (`code: 'ACCOUNT_EXISTS'`, `email: string`). В `src/lib/safe-action.ts` `ServerActionResponse` расширен полями `code` и `email`. `checkoutAction` и `massOrderCheckoutAction` выбрасывают `AccountExistsError`, возвращая клиенту структурированный отклик без неструктурированных исключений.

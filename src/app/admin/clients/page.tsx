@@ -1,8 +1,9 @@
-import { adminUserService, getVolumeTier } from '@/services/admin/user.service';
+import { adminUserService, getVolumeTier, USER_SORT_FIELDS, type UserSortField, type SortOrder } from '@/services/admin/user.service';
 import Link from 'next/link';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { FINANCE_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { ClientTable } from './components/client-table';
+import { ClientQuickSort } from './components/client-quick-sort';
 import { NumberedPagination } from '@/components/admin/ui/numbered-pagination';
 import { Users, Download, Search, Building2, Wallet, ShieldAlert, Sparkles } from 'lucide-react';
 import { verifySession } from '@/lib/session';
@@ -20,6 +21,8 @@ type Props = {
     page?: string;
     pageSize?: string;
     tenant?: string;
+    sortBy?: string;
+    sortOrder?: string;
   }>;
 };
 
@@ -43,6 +46,13 @@ export default async function AdminClientsPage({ searchParams }: Props) {
   const pageSize = Math.max(10, Math.min(200, parseInt(params.pageSize || '50', 10) || 50));
   const selectedTenant = params.tenant;
 
+  // Dynamic sorting with whitelist validation
+  const rawSortBy = params.sortBy;
+  const sortBy: UserSortField = (rawSortBy && USER_SORT_FIELDS.includes(rawSortBy as UserSortField))
+    ? (rawSortBy as UserSortField)
+    : 'createdAt';
+  const sortOrder: SortOrder = params.sortOrder === 'asc' ? 'asc' : 'desc';
+
   const activeTenantId = resolveAdminTenantContext(user, selectedTenant);
 
   const { items: users, totalCount, totalPages, currentPage } = await adminUserService.listUsers({
@@ -52,16 +62,11 @@ export default async function AdminClientsPage({ searchParams }: Props) {
     page,
     pageSize,
     tenantId: activeTenantId,
+    sortBy,
+    sortOrder,
   });
 
   const stats = await adminUserService.getUserStats(undefined, undefined, activeTenantId);
-
-  const tenants = await db.tenant.findMany({
-    where: { isActive: true },
-    select: { id: true, name: true, slug: true }
-  });
-
-  const showTenantSelector = isOwner || user?.role === 'ADMIN' || user?.tenantId === 'all';
 
   const filterTabs = [
     { id: 'all', label: 'Все клиенты', icon: Users, count: stats.total },
@@ -70,6 +75,15 @@ export default async function AdminClientsPage({ searchParams }: Props) {
     { id: 'vip', label: 'VIP (Gold/Plat)', icon: Sparkles },
     { id: 'banned', label: 'Забаненные', icon: ShieldAlert, count: stats.banned },
   ];
+
+  // Build export link with active filters and sorting
+  const exportParams = new URLSearchParams();
+  exportParams.set('type', 'users');
+  if (search) exportParams.set('q', search);
+  if (filter !== 'all') exportParams.set('filter', filter);
+  if (sortBy !== 'createdAt') exportParams.set('sortBy', sortBy);
+  if (sortOrder !== 'desc') exportParams.set('sortOrder', sortOrder);
+  if (selectedTenant && selectedTenant !== 'all') exportParams.set('tenant', selectedTenant);
 
   return (
     <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
@@ -82,14 +96,14 @@ export default async function AdminClientsPage({ searchParams }: Props) {
             <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-success rounded-full"></div>Активные: {stats.active}</span>
             <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-destructive rounded-full"></div>Забанены: {stats.banned}</span>
             {canSeeFinances && (
-               <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-warning rounded-full"></div>Обязательства (Liability): <span className="tabular-nums font-bold">{(Number(stats.totalLiability) / 100).toLocaleString('ru-RU')} ₽</span></span>
+               <span className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-warning rounded-full"></div>Обязательства (Liability): <span className="tabular-nums font-bold">{Math.round(Number(stats.totalLiability) / 100).toLocaleString('ru-RU')} ₽</span></span>
             )}
           </div>
         }
         action={(isOwner || user?.role === 'ADMIN') ? (
           <div className="flex items-center gap-3">
             <a
-              href={`/api/admin/export?type=users&q=${encodeURIComponent(search)}`}
+              href={`/api/admin/export?${exportParams.toString()}`}
               className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-foreground bg-card/80 backdrop-blur-md border border-border shadow-xs rounded-xl hover:bg-muted transition-all active:scale-95"
             >
               <Download className="w-4 h-4" /> Экспорт CSV
@@ -101,7 +115,7 @@ export default async function AdminClientsPage({ searchParams }: Props) {
         onboarding={ONBOARDING_CONFIGS.clients}
       />
 
-      {/* Filter Tabs & Search Bar */}
+      {/* Filter Tabs & Search / Sort Bar */}
       <div className="bg-card/60 backdrop-blur-md border border-border/50 shadow-sm rounded-2xl p-4 sm:p-5 ring-1 ring-border/5 space-y-4">
         {/* Fast Filter Pills */}
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
@@ -111,6 +125,8 @@ export default async function AdminClientsPage({ searchParams }: Props) {
             const queryParams = new URLSearchParams();
             if (f.id !== 'all') queryParams.set('filter', f.id);
             if (search) queryParams.set('q', search);
+            if (sortBy !== 'createdAt') queryParams.set('sortBy', sortBy);
+            if (sortOrder !== 'desc') queryParams.set('sortOrder', sortOrder);
             if (selectedTenant && selectedTenant !== 'all') queryParams.set('tenant', selectedTenant);
 
             return (
@@ -137,36 +153,45 @@ export default async function AdminClientsPage({ searchParams }: Props) {
           })}
         </div>
 
-        {/* Search Bar */}
-        <form method="GET" action="/admin/clients" className="flex flex-col sm:flex-row gap-3">
-          {filter !== 'all' && <input type="hidden" name="filter" value={filter} />}
-          {selectedTenant && selectedTenant !== 'all' && <input type="hidden" name="tenant" value={selectedTenant} />}
-          
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              name="q"
-              defaultValue={search}
-              placeholder="Поиск по Email, ID, Telegram, Названию компании или ИНН..."
-              className="w-full pl-10 pr-4 py-2.5 text-xs bg-background/60 border border-border/60 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all shadow-xs text-foreground placeholder:text-muted-foreground/60 font-medium"
-            />
-          </div>
-          <button
-            type="submit"
-            className="sm:w-auto w-full px-5 py-2.5 text-xs font-bold bg-primary text-primary-foreground rounded-xl active:scale-95 transition-all shadow-xs hover:opacity-90 cursor-pointer"
-          >
-            Найти
-          </button>
-          {search && (
-            <Link
-              href={`/admin/clients${filter !== 'all' ? `?filter=${filter}` : ''}`}
-              className="sm:w-auto w-full px-4 py-2.5 text-xs font-bold text-muted-foreground bg-muted hover:bg-muted/80 rounded-xl transition-all flex items-center justify-center"
+        {/* Search Bar & Quick Sort Controls */}
+        <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
+          <form method="GET" action="/admin/clients" className="flex flex-1 flex-col sm:flex-row gap-3">
+            {filter !== 'all' && <input type="hidden" name="filter" value={filter} />}
+            {selectedTenant && selectedTenant !== 'all' && <input type="hidden" name="tenant" value={selectedTenant} />}
+            {sortBy !== 'createdAt' && <input type="hidden" name="sortBy" value={sortBy} />}
+            {sortOrder !== 'desc' && <input type="hidden" name="sortOrder" value={sortOrder} />}
+            
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                name="q"
+                defaultValue={search}
+                placeholder="Поиск по Email, ID, Telegram, Названию компании или ИНН..."
+                className="w-full pl-10 pr-4 py-2.5 text-xs bg-background/60 border border-border/60 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all shadow-xs text-foreground placeholder:text-muted-foreground/60 font-medium"
+              />
+            </div>
+            <button
+              type="submit"
+              className="sm:w-auto w-full px-5 py-2.5 text-xs font-bold bg-primary text-primary-foreground rounded-xl active:scale-95 transition-all shadow-xs hover:opacity-90 cursor-pointer"
             >
-              Сброс
-            </Link>
-          )}
-        </form>
+              Найти
+            </button>
+            {search && (
+              <Link
+                href={`/admin/clients${filter !== 'all' ? `?filter=${filter}` : ''}`}
+                className="sm:w-auto w-full px-4 py-2.5 text-xs font-bold text-muted-foreground bg-muted hover:bg-muted/80 rounded-xl transition-all flex items-center justify-center"
+              >
+                Сброс
+              </Link>
+            )}
+          </form>
+
+          {/* Quick Sort Dropdown & Active Filter Indicator */}
+          <div className="flex items-center justify-end shrink-0">
+            <ClientQuickSort />
+          </div>
+        </div>
       </div>
 
       {/* Main Clients Table */}
@@ -183,6 +208,7 @@ export default async function AdminClientsPage({ searchParams }: Props) {
               telegramId: u.telegramId,
               companyName: u.companyName,
               inn: u.inn,
+              createdAt: u.createdAt,
               b2bConfig: u.b2bConfig,
             }))}
           />

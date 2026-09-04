@@ -42,6 +42,17 @@ if (input.userId === admin.id) return { success: false, error: 'Запрещен
 
 ## 1. 🏗️ Архитектурные решения (ADR)
 
+- **ADR-2026-15: Clients Sorting, Filtering, and Lifecycle Analysis Architecture (/admin/clients):**
+  - *Решение:*
+    1. **Устранение дефектов As-Is:** Устранены 7 фундаментальных дефектов раздела клиентов (отсутствие `sortBy`/`sortOrder` в URL, хардкод `orderBy: { createdAt: 'desc' }`, отсутствие колонки регистрации `createdAt`, конфликт клиентского `searchKey` с серверным поиском, игнорирование параметров в CSV-экспорте).
+    2. **Архитектура `ListUsersParams` и Whitelist Guard:** Типизированный набор полей (`createdAt`, `balance`, `totalSpent`, `orders`, `email`, `role`) с защитой от parameter injection и дефолтным сбросом.
+    3. **Детерминированный Tie-Breaker:** Обязательное вторичное поле `{ id: 'desc' }` в Prisma `orderBy` для исключения перескока строк (row drifting) при пагинации по одинаковым значениям баланса/заказов.
+    4. **Интерактивные заголовки `SortableHeader`:** 2/3-фазное переключение, визуальные иконки (`ArrowUpDown`, `ArrowUp`, `ArrowDown`), семантические дефолтные направления (деньги/числа -> `desc`, email -> `asc`), a11y атрибуты (`aria-sort`).
+    5. **Панель быстрой сортировки (Quick Sort Presets):** Пресеты «Новые», «Баланс», «LTV VIP», «Заказы спящие/активные», бейдж активной сортировки со сбросом в 1 клик.
+    6. **Zero-Scroll Integrity (Rule 9):** Компактная 9-колоночная компоновка ($\le 965\text{px}$) с новой колонкой «Регистрация» (`createdAt`) без горизонтального скролла на экранах $\ge 1280\text{px}$.
+    7. **WYSIAWYX CSV Export:** Синхронизация роута `/api/admin/export` с `q`, `filter`, `sortBy`, `sortOrder`.
+  - *Причина:* Предоставление операторам и руководству мгновенного инструмента финансового контроля (Whale audit, Liability), работы с VIP-клиентами (LTV) и реактивации неактивных пользователей без деградации производительности БД.
+
 - **ADR-2026-14: Seamless Checkout Authentication & Order State Preservation:**
   - *Решение:*
     1. **Предотвращение Drop-off при гостевом чекауте:** Замена блокирующих редиректов на `/support/payment-error` и необработанных исключений на структурированный ответ `{ success: false, code: 'ACCOUNT_EXISTS', email }`.
@@ -87,6 +98,15 @@ if (input.userId === admin.id) return { success: false, error: 'Запрещен
   - **`flux.smmplan.pro`:** СТРОГО витрина SMMflux (`FluxOrderClient` / Radiant Aurora) во время периода тестирования.
   - *Выученный урок (Maintenance Intercept Bug):* `src/app/layout.tsx` и `src/app/api/maintenance-status/route.ts` проверяют `isTestDomain` перед показом `MaintenanceScreen`. Для корректной работы туннеля хосты `.ts.net` и `tailscale` ОБЯЗАНЫ быть включены в `isTestDomain`, иначе `layout.tsx` глобально перехватывает все страницы и рендерит заглушку, игнорируя логику `page.tsx`.
   - *ПРИМЕЧАНИЕ:* Перенос боевого функционала на `smmplan.pro` будет производиться ТОЛЬКО после явной отдельной команды пользователя при выходе из тестирования.
+
+- **Advanced Clients Sorting, Lifecycle & Zero-Scroll Architecture (ADR-2026-15):**
+  - *Решение:*
+    1. **Dynamic Server-Side Sorting & Whitelist:** В `adminUserService.listUsers` внедрен прием параметров `sortBy` (`createdAt`, `balance`, `totalSpent`, `orders`, `email`) и `sortOrder` (`asc`, `desc`) с валидацией через `USER_SORT_FIELDS`.
+    2. **100% Deterministic Pagination (Tie-Breaker Guard):** Любое выражение Prisma `orderBy` формируется массивом с обязательным уникальным полем `[{ [sortBy]: sortOrder }, { id: 'desc' }]`, исключая перескакивание строк (row drifting) при пагинации по одинаковым балансам (0.00 ₽).
+    3. **Interactive Table Headers & A11y:** Заголовки таблицы снабжены интерактивным компонентом `SortableHeader` с поддержкой `aria-sort`, иконками `ArrowUpDown`/`ArrowUp`/`ArrowDown` и семантическими дефолтами (для баланса, LTV, заказов и даты — первый клик сразу `desc`; для email — `asc`).
+    4. **Zero-Scroll Integrity (Rule 9 AGENTS.md):** Добавлена отсутствовавшая ключевая колонка «Регистрация» (`createdAt`), удален дублирующий клиентский поиск в `DataTable`, ширина колонок оптимизирована под 100% Viewport Fit ($\approx 975\text{px}$) без горизонтального скролла на экранах $\ge 1280\text{px}$.
+    5. **Quick Sort Presets & WYSIAWYX Export:** Внедрен дропдаун быстрых пресетов («Новые клиенты», «Баланс (Whales)», «LTV (VIP)», «Заказы», «Спящие (0 заказов)», «Email А-Я») и 1-click сброс сортировки, а роут `/api/admin/export` синхронизирован с параметрами сортировки и фильтра.
+  - *Причина:* Обеспечение оперативного финансового мониторинга обязательств платформы (Liability), выявление VIP-клиентов и реактивация неактивных аккаунтов.
 
 - **PostgreSQL Serializable Isolation vs MutexManager:**
   - *Решение:* Отказ от распределенных Redis-блокировок (`MutexManager`) в финансовых операциях (`WalletOps`) в пользу нативной транзакционной изоляции PostgreSQL Serializable с автоматическим retry при serialization failure.

@@ -157,9 +157,53 @@ export async function GET(request: Request) {
       }
 
       case 'users': {
+        const search = searchParams.get('q')?.trim() || searchParams.get('search')?.trim();
+        const filter = searchParams.get('filter');
+        const rawSortBy = searchParams.get('sortBy');
+        const rawSortOrder = searchParams.get('sortOrder');
+
+        const where: Record<string, unknown> = {
+          ...tenantFilter,
+        };
+
+        if (search) {
+          where.OR = [
+            { email: { contains: search, mode: 'insensitive' } },
+            { id: { equals: search } },
+            { telegramId: { contains: search, mode: 'insensitive' } },
+            { companyName: { contains: search, mode: 'insensitive' } },
+            { inn: { contains: search } },
+          ];
+        }
+
+        if (filter === 'b2b') {
+          where.OR = [
+            { b2bConfig: { isB2b: true } },
+            { inn: { not: null } },
+            { companyName: { not: null } }
+          ];
+        } else if (filter === 'balance') {
+          where.balance = { gt: BigInt(0) };
+        } else if (filter === 'banned') {
+          where.role = 'BANNED';
+        } else if (filter === 'vip') {
+          where.totalSpent = { gte: BigInt(25_000_00) };
+        }
+
+        const validSortFields = ['createdAt', 'balance', 'totalSpent', 'orders', 'email', 'role'];
+        const sortBy = validSortFields.includes(rawSortBy || '') ? rawSortBy : 'createdAt';
+        const sortOrder = rawSortOrder === 'asc' ? 'asc' : 'desc';
+
+        let primaryOrderBy: Record<string, unknown>;
+        if (sortBy === 'orders') {
+          primaryOrderBy = { orders: { _count: sortOrder } };
+        } else {
+          primaryOrderBy = { [sortBy as string]: sortOrder };
+        }
+
         const users = await db.user.findMany({
-          where: tenantFilter,
-          orderBy: { createdAt: 'desc' },
+          where,
+          orderBy: [primaryOrderBy, { id: 'desc' }],
           take: 10000,
           include: { _count: { select: { orders: true } } },
         });
