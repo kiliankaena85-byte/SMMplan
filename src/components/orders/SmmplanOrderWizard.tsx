@@ -23,7 +23,7 @@ import { SocialIcon } from '@/components/ui/SocialIcon';
 import { toast } from 'sonner';
 import { getPublicCatalogAction, getServicesByCategoryAction, PublicNetwork, PublicCategory, PublicService } from '@/actions/order/catalog';
 import { calculatePriceAction, checkoutAction } from '@/actions/order/checkout';
-import { inferTargetTypeFromCategory } from '@/utils/target-type';
+import { inferTargetTypeFromCategory, inferTargetTypeFromName } from '@/utils/target-type';
 import { formatCents } from '@/lib/utils';
 import { formatEtaSpeedBadge } from '@/utils/format-eta';
 import { UniversalOrderForm } from '@/components/orders/UniversalOrderForm';
@@ -33,6 +33,22 @@ import { TelegramLinkGuideModal } from '@/components/orders/TelegramLinkGuideMod
 import { LinkGuideService } from '@/services/catalog/link-guide.service';
 import { HelpCircle } from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
+import { analyzeUrl } from '@/actions/order/analyze-url';
+import { matchesSuggestedCategory } from '@/services/analyzer/category-matcher';
+import { isLinkServiceCompatible } from '@/constants/link-service-compatibility';
+
+function formatDetectedTargetName(t: string | null | undefined): string {
+  if (!t) return '';
+  const clean = t.toLowerCase();
+  if (clean === 'post' || clean === 'private_post' || clean === 'photo') return 'Публикация (пост)';
+  if (clean === 'channel' || clean === 'chat' || clean === 'group') return 'Канал / Группа';
+  if (clean === 'profile' || clean === 'user' || clean === 'account') return 'Профиль / Пользователь';
+  if (clean === 'video' || clean === 'reel' || clean === 'reels' || clean === 'clip') return 'Видео / Reels / Shorts';
+  if (clean === 'story' || clean === 'stories') return 'История (Stories)';
+  if (clean === 'bot') return 'Telegram-бот';
+  if (clean === 'poll') return 'Опрос / Голосование';
+  return clean;
+}
 
 function SmmplanOrderWizardInner({
   userEmail = '',
@@ -92,6 +108,65 @@ function SmmplanOrderWizardInner({
   // Search Filters
   const [searchNetwork, setSearchNetwork] = useState('');
   const [searchCategory, setSearchCategory] = useState('');
+
+  // Intelligent Link Analysis State
+  const [detectedType, setDetectedType] = useState<string | null>(null);
+  const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [isAnalyzingLink, setIsAnalyzingLink] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const analyzeRequestIdRef = useRef(0);
+
+  // Analyze URL whenever link changes (Debounced 300ms)
+  useEffect(() => {
+    const trimmed = link.trim();
+    if (trimmed.length < 5) {
+      setDetectedType(null);
+      setSuggestedCategories([]);
+      setIsAnalyzingLink(false);
+      setShowAllCategories(false);
+      return;
+    }
+
+    const currentRequestId = ++analyzeRequestIdRef.current;
+    setIsAnalyzingLink(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await analyzeUrl(trimmed);
+        if (currentRequestId !== analyzeRequestIdRef.current) return;
+
+        if (res.success && res.data) {
+          setDetectedType(res.data.type || null);
+          setSuggestedCategories(res.data.suggestedCategories || []);
+
+          // Auto-select network if not selected or mismatched
+          const platformStr = res.data.platform !== 'OTHER' ? res.data.platform.toLowerCase() : null;
+          if (platformStr && networks.length > 0) {
+            const matchedNet = networks.find(n => n.slug.toLowerCase() === platformStr);
+            if (matchedNet && (!selectedNetwork || selectedNetwork.id !== matchedNet.id)) {
+              setSelectedNetwork(matchedNet);
+            }
+          }
+        } else {
+          setDetectedType(null);
+          setSuggestedCategories([]);
+        }
+      } catch {
+        if (currentRequestId !== analyzeRequestIdRef.current) return;
+        setDetectedType(null);
+        setSuggestedCategories([]);
+      } finally {
+        if (currentRequestId === analyzeRequestIdRef.current) {
+          setIsAnalyzingLink(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [link, networks]);
 
   const formRef = useRef<HTMLFormElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
@@ -206,11 +281,20 @@ function SmmplanOrderWizardInner({
       setIsLoadingServices(true);
       try {
         const servs = await getServicesByCategoryAction(selectedCategory!.id, tenantId);
-        setServices(servs);
+        let finalServs = servs;
+        if (detectedType && link.trim().length >= 5) {
+          const compatibleServs = servs.filter(s =>
+            isLinkServiceCompatible(detectedType, s.targetType || inferTargetTypeFromName(s.name))
+          );
+          if (compatibleServs.length > 0) {
+            finalServs = compatibleServs;
+          }
+        }
+        setServices(finalServs);
         const paramServiceId = searchParams.get('serviceId');
         const targetSrvId = initialReorderData?.serviceId || paramServiceId;
         if (targetSrvId) {
-          const s = servs.find(srv => srv.id === targetSrvId);
+          const s = finalServs.find(srv => srv.id === targetSrvId);
           if (s) {
             setSelectedService(s);
             if (initialReorderData) {
@@ -231,7 +315,7 @@ function SmmplanOrderWizardInner({
       }
     }
     loadServices();
-  }, [selectedCategory, initialReorderData, searchParams]);
+  }, [selectedCategory, initialReorderData, searchParams, detectedType, link, tenantId]);
 
   // Auto-fill minQty when service is selected (AGENTS.md Rule)
   const handleSelectService = (srv: PublicService) => {
@@ -460,9 +544,23 @@ function SmmplanOrderWizardInner({
     n.name.toLowerCase().includes(searchNetwork.toLowerCase())
   );
 
-  const filteredCategories = selectedNetwork
-    ? selectedNetwork.categories.filter(c => c.name.toLowerCase().includes(searchCategory.toLowerCase()))
+  const isLinkActive = link.trim().length >= 5;
+  const hasSmartFilter = isLinkActive && Boolean(detectedType || (suggestedCategories && suggestedCategories.length > 0));
+
+  const matchedCategories = selectedNetwork
+    ? selectedNetwork.categories.filter(c => {
+        if (!hasSmartFilter) return true;
+        return matchesSuggestedCategory(c.name, suggestedCategories, (c as any).analyzerTags, detectedType);
+      })
     : [];
+
+  const effectiveCategories = (!hasSmartFilter || showAllCategories || matchedCategories.length === 0)
+    ? (selectedNetwork?.categories || [])
+    : matchedCategories;
+
+  const filteredCategories = effectiveCategories.filter(c => 
+    c.name.toLowerCase().includes(searchCategory.toLowerCase())
+  );
 
   // Auto-prepend https:// protocol on blur for client link input
   const normalizeUrl = (raw: string): string => {
@@ -730,40 +828,90 @@ function SmmplanOrderWizardInner({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {filteredCategories.map(cat => {
-                  const isSelected = selectedCategory?.id === cat.id;
-                  return (
+              {/* ── Smart Filter Notice Banner ── */}
+              {hasSmartFilter && selectedNetwork && selectedNetwork.categories.length > 0 && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-4 py-3 bg-primary/5 rounded-2xl border border-primary/20 text-xs text-foreground">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse shrink-0" />
+                    <span>
+                      Отобраны подходящие категории для ссылки:{' '}
+                      <strong className="font-bold text-primary">
+                        {formatDetectedTargetName(detectedType) || 'Определенный тип объекта'}
+                      </strong>{' '}
+                      ({matchedCategories.length} из {selectedNetwork.categories.length})
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAllCategories(!showAllCategories)}
+                    className="text-primary hover:underline font-bold text-xs shrink-0 self-start sm:self-auto cursor-pointer"
+                  >
+                    {showAllCategories
+                      ? '← Показать только подходящие'
+                      : `Показать все категории (${selectedNetwork.categories.length}) →`}
+                  </button>
+                </div>
+              )}
+
+              {filteredCategories.length === 0 ? (
+                <div className="py-12 flex flex-col items-center justify-center gap-3 text-center bg-background/40 rounded-2xl border border-dashed border-border/60">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Нет категорий, подходящих под критерии поиска или фильтра ссылки.
+                  </p>
+                  {hasSmartFilter && (
                     <button
-                      key={cat.id}
                       type="button"
-                      onClick={() => {
-                        setSelectedCategory(cat);
-                        setSelectedService(null);
-                        changeStep(3, undefined, cat.id, selectedNetwork?.id);
-                      }}
-                      className={`p-4 rounded-2xl border text-left transition-all flex items-center justify-between gap-3 ${
-                        isSelected
-                          ? 'border-primary bg-primary/5 ring-2 ring-primary/30 font-bold shadow-sm'
-                          : 'border-border/60 bg-background/60 hover:bg-card hover:border-primary/40'
-                      }`}
+                      onClick={() => setShowAllCategories(true)}
+                      className="text-xs font-bold text-primary hover:underline"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0">
-                          <Layers className="w-4 h-4 shrink-0" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold text-foreground truncate">{cat.name}</div>
-                          {typeof cat.serviceCount === 'number' && cat.serviceCount > 0 && (
-                            <div className="text-[10px] font-medium text-muted-foreground">{cat.serviceCount} услуг</div>
-                          )}
-                        </div>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                      Показать все категории этой социальной сети →
                     </button>
-                  );
-                })}
-              </div>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {filteredCategories.map(cat => {
+                    const isSelected = selectedCategory?.id === cat.id;
+                    const isMatchedByFilter = hasSmartFilter && matchedCategories.some(m => m.id === cat.id);
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCategory(cat);
+                          setSelectedService(null);
+                          changeStep(3, undefined, cat.id, selectedNetwork?.id);
+                        }}
+                        className={`p-4 rounded-2xl border text-left transition-all flex items-center justify-between gap-3 ${
+                          isSelected
+                            ? 'border-primary bg-primary/5 ring-2 ring-primary/30 font-bold shadow-sm'
+                            : 'border-border/60 bg-background/60 hover:bg-card hover:border-primary/40'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0">
+                            <Layers className="w-4 h-4 shrink-0" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <div className="text-sm font-semibold text-foreground truncate">{cat.name}</div>
+                              {showAllCategories && isMatchedByFilter && (
+                                <span className="px-1.5 py-0.5 text-[9px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-md shrink-0 border border-emerald-500/20">
+                                  Подходит
+                                </span>
+                              )}
+                            </div>
+                            {typeof cat.serviceCount === 'number' && cat.serviceCount > 0 && (
+                              <div className="text-[10px] font-medium text-muted-foreground">{cat.serviceCount} услуг</div>
+                            )}
+                          </div>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

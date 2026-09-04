@@ -97,7 +97,8 @@ export function normalizeTargetType(rawType: string | null | undefined): TargetT
  */
 export function inferTargetTypeFromName(name: string | null | undefined): TargetTypeEnum {
   if (!name) return TargetTypeEnum.POST;
-  const n = name.toLowerCase();
+  // Sanitize vendor/brand names that contain keywords like "boost" (e.g. vexboost, smmboost)
+  const n = name.toLowerCase().replace(/vexboost/gi, '').replace(/smmboost/gi, '');
 
   // Auto / Future / Subscription services / Last-N-posts packages
   if (

@@ -38,6 +38,7 @@ export default defineConfig({
       'src/__tests__/checkout-payments/checkout-resilience-and-bypass.test.ts',
       'src/__tests__/mobile-wizard-smoke.test.tsx',
       'src/__tests__/mobile-refactoring-enhancements.test.ts',
+      'src/__tests__/service-route-validator.test.ts',
       'src/__tests__/admin-nav-active.test.ts',
       'src/lib/__tests__/order-token-and-typo-guard.test.ts',
       'src/__tests__/financial/yookassa-signed-webhook-verification.test.ts',
@@ -97,6 +98,9 @@ export default defineConfig({
       'src/bot/__tests__/bot-interactive-buttons-and-error-ux.test.ts',
       'src/bot/__tests__/multi-bot-constructor.test.ts',
       'src/lib/financial/__tests__/transaction-classifier.test.ts',
+      'src/__tests__/direct-emergency-alert.test.ts',
+      'src/__tests__/watchdog-daemon.test.ts',
+      'src/__tests__/order-wizard-category-filtering.test.ts',
     ],
   }
 });
