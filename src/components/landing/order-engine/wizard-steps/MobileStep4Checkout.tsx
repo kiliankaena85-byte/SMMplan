@@ -22,8 +22,6 @@ interface MobileStep4CheckoutProps {
   checkoutError?: string | null;
 }
 
-const QUICK_QUANTITY_PRESETS = [100, 500, 1000, 5000];
-
 export function MobileStep4Checkout({
   engine,
   currentStep,
@@ -285,27 +283,6 @@ export function MobileStep4Checkout({
           >
             <Plus className="w-4 h-4" />
           </button>
-        </div>
-
-        {/* Быстрые пресеты */}
-        <div className="grid grid-cols-4 gap-1.5 pt-1">
-          {QUICK_QUANTITY_PRESETS.map((preset) => {
-            const isActive = quantity === preset;
-            return (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => setQuantity(preset)}
-                className={`py-2 px-1 rounded-xl border text-[11px] font-black transition-all active:scale-95 text-center cursor-pointer min-h-[40px] flex items-center justify-center ${
-                  isActive
-                    ? 'bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/20'
-                    : 'bg-content2 hover:bg-content3 hover:border-primary/40 border-border/40 text-foreground/85'
-                }`}
-              >
-                {preset >= 1000 ? `${preset / 1000} 000` : preset} шт
-              </button>
-            );
-          })}
         </div>
 
         {quantity > 0 && quantity < minQty && (
