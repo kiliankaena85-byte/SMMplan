@@ -68,6 +68,8 @@ import { IntelligencePlatform } from "@/services/analyzer/link-rules";
 import { SocialIcon } from "@/components/ui/SocialIcon";
 import { Header } from "./Header";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { PlanSlideOrderClient } from "./order-engine/variants/PlanSlideOrderClient";
+import { type OrderFlowVariant } from "./order-engine/LayoutVariantToggle";
 
 export function SmartLinkLanding({
   initialCatalog,
@@ -81,7 +83,8 @@ export function SmartLinkLanding({
   customHeroTitle,
   customHeroSubtitle,
   seoHubContent,
-  initialServices = []
+  initialServices = [],
+  initialFlow = 'slide'
 }: {
   initialCatalog: PublicNetwork[];
   initialEmail?: string;
@@ -103,8 +106,10 @@ export function SmartLinkLanding({
   customHeroSubtitle?: string;
   seoHubContent?: React.ReactNode;
   initialServices?: PublicService[];
+  initialFlow?: OrderFlowVariant;
 }) {
   const companyName = contactSettings?.SITE_NAME || contactSettings?.COMPANY_NAME || "SMMplan";
+  const [flow, setFlow] = React.useState<OrderFlowVariant>(initialFlow);
   const engine = useOrderEngine(initialCatalog, initialEmail, initialServiceId, initialCategoryId, initialNetworkId, initialServices);
   const {
     url, setUrl,
@@ -236,24 +241,44 @@ export function SmartLinkLanding({
           <div className="absolute top-[30%] left-[30%] w-64 h-64 rounded-full bg-emerald-500/10 dark:emerald-500/5 blur-3xl pointer-events-none animate-blob-3" />
         </div>
 
-        {/* Мобильный компактный заголовок: First Screen Viewport Fit */}
-        <div className="block md:hidden text-center mb-2.5 w-full px-2 animate-in fade-in duration-300">
-          <h1 className="text-xl font-black tracking-tight text-foreground leading-tight">
-            Быстрый запуск в соцсетях
-          </h1>
-          <p className="text-[12px] text-muted-foreground font-medium mt-0.5">
-            Без паролей и регистрации • Запуск за 30 секунд
-          </p>
-        </div>
+        {flow === 'slide' ? (
+          <div className="w-full flex flex-col items-center animate-in fade-in duration-300">
+            <div className="flex flex-wrap items-center justify-center gap-3 mb-4 md:mb-6">
+              <ThemeSwitcher />
+            </div>
 
-        {/* Десктопный Hero блок */}
-        <div 
-          className="hidden md:block text-center space-y-4 mb-8 max-w-4xl relative z-20 w-full mt-2 px-2 animate-in fade-in slide-in-from-bottom-4 duration-500"
-        >
-          <div className="mb-2">
-            <ThemeSwitcher />
+            <div className="w-full">
+              <PlanSlideOrderClient 
+                initialCatalog={initialCatalog} 
+                initialEmail={initialEmail} 
+                tenantId={tenantId}
+                userBalanceCents={userBalanceCents}
+              />
+            </div>
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.08] drop-shadow-md text-balance">
+        ) : (
+          <>
+            {/* Мобильный компактный заголовок: First Screen Viewport Fit */}
+            <div className="block md:hidden text-center mb-2.5 w-full px-2 animate-in fade-in duration-300">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <ThemeSwitcher />
+              </div>
+              <h1 className="text-xl font-black tracking-tight text-foreground leading-tight">
+                Быстрый запуск в соцсетях
+              </h1>
+              <p className="text-[12px] text-muted-foreground font-medium mt-0.5">
+                Без паролей и регистрации • Запуск за 30 секунд
+              </p>
+            </div>
+
+            {/* Десктопный Hero блок */}
+            <div 
+              className="hidden md:block text-center space-y-4 mb-8 max-w-4xl relative z-20 w-full mt-2 px-2 animate-in fade-in slide-in-from-bottom-4 duration-500"
+            >
+              <div className="mb-2 flex items-center justify-center gap-3">
+                <ThemeSwitcher />
+              </div>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.08] drop-shadow-md text-balance">
             {customHeroTitle || (
               <>
                 Продвижение в <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-indigo-500 to-pink-500 dark:from-sky-400 dark:via-indigo-400 dark:to-pink-400">Telegram, VK и соцсетях</span> от 0.01 ₽
@@ -405,7 +430,9 @@ export function SmartLinkLanding({
             )}
           </div>
         </div>
-      </main>
+      </>
+    )}
+  </main>
 
       <div className="relative z-10 -mt-10 bg-background">
         {seoHubContent && (

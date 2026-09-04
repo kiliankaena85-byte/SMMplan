@@ -17,7 +17,7 @@ import { SettingsProvider } from "@/lib/settings";
 import { TENANTS } from "@/config/tenants";
 import { verifySession } from "@/lib/session";
 import { db } from "@/lib/db";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
 
 export const dynamic = "force-dynamic";
@@ -56,9 +56,18 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
   }
 
   const reqHeaders = await headers();
+  const reqCookies = await cookies();
   const host = reqHeaders.get("x-host") || reqHeaders.get("x-forwarded-host") || reqHeaders.get("host") || "";
   const cleanHost = host.split(":")[0].toLowerCase().trim();
   const tenantId = normalizeTenantId(reqHeaders.get("x-tenant-id")) || (params.tenant === "flux" ? "flux" : "smmplan");
+
+  const cookieFlow = reqCookies.get("smmplan_order_flow")?.value;
+  const flowParam = typeof params.flow === 'string' ? params.flow : undefined;
+  const initialFlow = (flowParam === 'slide' || flowParam === 'classic')
+    ? (flowParam as 'slide' | 'classic')
+    : (cookieFlow === 'slide' || cookieFlow === 'classic')
+      ? (cookieFlow as 'slide' | 'classic')
+      : 'slide';
 
   const isProdHost = cleanHost === "smmplan.pro" || cleanHost === "www.smmplan.pro";
   const isHoldingParam = params.mode === "holding";
@@ -198,6 +207,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
             userBalanceCents={userBalanceCents}
             tenantId={tenantId}
             initialServices={initialServices}
+            initialFlow={initialFlow}
           />
         )}
       </main>
