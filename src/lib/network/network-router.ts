@@ -26,6 +26,7 @@ export const IMMUTABLE_DIRECT_PATTERNS = [
   'cbr.ru',
   'smtp.yandex.ru',
   'smtp.mail.ru',
+  'vexboost.ru',
   'localhost',
   '127.0.0.1'
 ];
@@ -50,6 +51,15 @@ export const DEFAULT_ROUTING_CONFIG: NetworkRoutingConfig = {
       comment: 'ЮKassa (строго прямой доступ РФ)',
       isEnabled: true,
       priority: 10
+    },
+    {
+      id: 'rule-vexboost',
+      type: 'DOMAIN-SUFFIX',
+      payload: 'vexboost.ru',
+      target: 'DIRECT',
+      comment: 'Основной поставщик Vexboost (строго прямой доступ РФ)',
+      isEnabled: true,
+      priority: 15
     },
     {
       id: 'rule-robokassa',

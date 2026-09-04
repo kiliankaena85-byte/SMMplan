@@ -31,6 +31,14 @@ describe('UniversalNetworkRouter (Clash Verge Pattern)', () => {
       expect(res.target).toBe('DIRECT');
       expect(res.isImmutableDirect).toBe(true);
     });
+
+    it('always routes Vexboost provider to DIRECT', async () => {
+      const res = await UniversalNetworkRouter.resolveRoute('https://vexboost.ru/api/v2', {
+        service: 'PROVIDERS'
+      });
+      expect(res.target).toBe('DIRECT');
+      expect(res.isImmutableDirect).toBe(true);
+    });
   });
 
   describe('Domain and Service Rules Resolution', () => {

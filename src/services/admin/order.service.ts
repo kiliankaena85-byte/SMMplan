@@ -498,7 +498,9 @@ class AdminOrderService {
 
     // Enqueue into BullMQ dispatcher queue
     try {
-      const { ordersQueue } = await import('@/lib/queue-manager');
+      const { ordersQueue, getRedisConnection } = await import('@/lib/queue-manager');
+      const connection = getRedisConnection();
+      await connection.del(`order:dispatched:${orderId}`);
       const jobId = `dispatch-${orderId}-${Date.now()}`;
       await ordersQueue.add('order-dispatch', { orderId }, { jobId });
     } catch (queueErr) {

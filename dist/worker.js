@@ -103222,6 +103222,7 @@ var init_network_router = __esm({
       "cbr.ru",
       "smtp.yandex.ru",
       "smtp.mail.ru",
+      "vexboost.ru",
       "localhost",
       "127.0.0.1"
     ];
@@ -103245,6 +103246,15 @@ var init_network_router = __esm({
           comment: "\u042EKassa (\u0441\u0442\u0440\u043E\u0433\u043E \u043F\u0440\u044F\u043C\u043E\u0439 \u0434\u043E\u0441\u0442\u0443\u043F \u0420\u0424)",
           isEnabled: true,
           priority: 10
+        },
+        {
+          id: "rule-vexboost",
+          type: "DOMAIN-SUFFIX",
+          payload: "vexboost.ru",
+          target: "DIRECT",
+          comment: "\u041E\u0441\u043D\u043E\u0432\u043D\u043E\u0439 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A Vexboost (\u0441\u0442\u0440\u043E\u0433\u043E \u043F\u0440\u044F\u043C\u043E\u0439 \u0434\u043E\u0441\u0442\u0443\u043F \u0420\u0424)",
+          isEnabled: true,
+          priority: 15
         },
         {
           id: "rule-robokassa",
