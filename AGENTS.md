@@ -83,6 +83,7 @@
 - **Language**: TypeScript 5.7+ (strict mode)
 - **AI Models**: `gemini-3-flash` или `gemini-3-flash-preview`
 - **Linting & Testing**: ESLint 10 (Flat Config — `eslint.config.mjs`) | Vitest 4
+- **CI / GitHub Actions**: Node.js 24 runner standard (`actions/checkout@v7`, `actions/setup-node@v7`)
 
 ---
 
@@ -164,6 +165,8 @@
 
 ### Пошаговый мастер заказа (Order Wizard) & Drip-Feed Invariant (CRITICAL)
 - Заказ проходит строгие шаги: **1. Соцсеть** → **2. Категория** → **3. Услуга** → **4. Checkout** (Количество, Ссылка, Email).
+- ✅ **Полноэкранный чекаут (Single-Screen View):** Оформление заказа после выбора тарифа открывается как чистый полноэкранный экран (в стиле SMM-Flux / `PlanFullscreenCheckout.tsx`) с верхним баром навигации `[← Назад к тарифам]` и автоскроллом `top: 0` без затемняющих модальных попапов.
+- ❌ **ЗАПРЕЩЕНО** добавлять навязчивые чипсы пресетов количества (`[100, 500, 1000]`), загромождающие экран. Поле объема использует строгий прямой инпут и степпер `–` / `+`.
 - Поле «Количество» автоматически инициализируется минимальным значением (`service.minQty`).
 - ❌ **КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО** допускать оформление Drip-Feed заказов с объемом на один запуск меньше `service.minQty` ($\lfloor \text{quantity} / \text{runs} \rfloor < \text{service.minQty}$).
 - ✅ **Drip-Feed Floor Invariant:** При активации Drip-Feed ($N$ запусков) или Smart Drip ($D$ дней) нижняя граница допустимого количества (`min`) и текущее значение в UI **ОБЯЗАНЫ автоматически масштабироваться** минимум до $\text{service.minQty} \times N$. Степперы и валидаторы форм обязаны запрещать декремент ниже этого значения.

@@ -166,8 +166,8 @@ describe('PlanFullscreenCheckout Component Tests', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('renders quick preset chips and updates quantity on click', () => {
-    const engine = createMockEngine();
+  it('updates quantity with stepper buttons', () => {
+    const engine = createMockEngine({ quantity: 500 });
     render(
       <PlanFullscreenCheckout
         engine={engine}
@@ -177,10 +177,15 @@ describe('PlanFullscreenCheckout Component Tests', () => {
       />
     );
 
-    const chip1000 = screen.getByRole('button', { name: '1 000 шт' });
-    expect(chip1000).toBeDefined();
-    fireEvent.click(chip1000);
-    expect(engine.setQuantity).toHaveBeenCalledWith(1000);
+    const plusBtn = screen.getByRole('button', { name: '+' });
+    expect(plusBtn).toBeDefined();
+    fireEvent.click(plusBtn);
+    expect(engine.setQuantity).toHaveBeenCalledWith(600);
+
+    const minusBtn = screen.getByRole('button', { name: '–' });
+    expect(minusBtn).toBeDefined();
+    fireEvent.click(minusBtn);
+    expect(engine.setQuantity).toHaveBeenCalledWith(400);
   });
 
   it('prevents submission and displays error when link is empty', () => {

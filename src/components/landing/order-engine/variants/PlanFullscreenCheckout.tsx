@@ -25,8 +25,6 @@ export interface PlanFullscreenCheckoutProps {
   checkoutError?: string | null;
 }
 
-const QUICK_QUANTITY_PRESETS = [100, 500, 1000, 2500, 5000];
-
 export function PlanFullscreenCheckout({
   engine,
   selectedService,
@@ -127,12 +125,6 @@ export function PlanFullscreenCheckout({
 
   // Drip-Feed floor invariant
   const effectiveMinQty = dripFeedEnabled && runs > 0 ? minQty * runs : minQty;
-
-  const handleQuantityPreset = (val: number) => {
-    const adjusted = Math.max(val, effectiveMinQty);
-    setQuantity(adjusted);
-    setLocalError(null);
-  };
 
   const handleStepQuantity = (delta: number) => {
     const current = Number(quantity) || minQty;
@@ -479,31 +471,6 @@ export function PlanFullscreenCheckout({
               >
                 +
               </button>
-            </div>
-
-            {/* Quick Preset Chips */}
-            <div className="flex flex-wrap items-center gap-1.5 pt-1">
-              {QUICK_QUANTITY_PRESETS.map((preset) => {
-                const isActive = Number(quantity) === preset;
-                const isDisabled = preset < effectiveMinQty || preset > maxQty;
-                return (
-                  <button
-                    key={preset}
-                    type="button"
-                    disabled={isDisabled}
-                    onClick={() => handleQuantityPreset(preset)}
-                    className={`py-2 px-3 rounded-xl border text-xs font-black transition-all active:scale-95 cursor-pointer min-h-[38px] ${
-                      isDisabled
-                        ? 'opacity-40 cursor-not-allowed border-border/40 bg-muted/20 text-muted-foreground'
-                        : isActive
-                        ? 'bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/20'
-                        : 'bg-muted/40 hover:bg-muted border-border/60 text-foreground'
-                    }`}
-                  >
-                    {preset >= 1000 ? `${preset / 1000} 000` : preset} шт
-                  </button>
-                );
-              })}
             </div>
 
             {/* Drip-Feed Options */}

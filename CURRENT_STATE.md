@@ -1,4 +1,11 @@
 # CURRENT_STATE.md
+- [x] Удаление пресетов количества в чекауте, обновление CI до Node.js 24 и стабилизация туннеля (100% COMPLETE & LIVE VERIFIED):
+  - **Удаление пресетов количества (`PlanFullscreenCheckout.tsx`):** По прямому требованию пользователя полностью удалены быстрые чипсы пресетов (`[100, 500, 1 000, 2 500, 5 000]` шт.) и метод `handleQuantityPreset`. В блоке количества оставлены строго инпут прямого ввода и степпер `–` / `+` с соблюдением Drip-Feed Floor Invariant.
+  - **Устранение ворнинга раннеров GitHub Actions (Node.js 20 Deprecation):** В воркфлоу `.github/workflows/ci.yml`, `.github/workflows/dr-test.yml`, `.github/workflows/supply-chain.yml` экшены обновлены до `actions/checkout@v7` и `actions/setup-node@v7` (нативный рантайм Node 24). В `.github/dependabot.yml` добавлена экосистема `github-actions` для автообновлений.
+  - **Диагностика и восстановление Cloudflare Tunnel:** Контейнер `smmplan_tunnel` успешно перезапущен и восстановил 2 активных HTTP/2 соединения с Cloudflare Edge (локации `cdg15` и `dub02`), внешняя доступность доменов восстановлена.
+  - **Контроль качества и сборка:** Юнит-тесты `plan-fullscreen-checkout.test.tsx` (5/5 PASS), `npx tsc --noEmit` — 0 ошибок, 0 утечек секретов в `check-bundle-secrets.mjs`, полная сборка `npm run build` (Code 0), контейнер `smmplan_web` пересобран и активен в Docker (status: healthy).
+  - **Live Browser верификация (Playwright):** Сняты и верифицированы актуальные скриншоты: `live_fullscreen_checkout_smmflux.png` (чистый чекаут без пресетов со степпером `–`/`+`), `live_cookie_consent_152fz.png`, `live_catalog_restored.png`.
+
 - [x] Откат баннера Cookie (152-ФЗ) и внедрение полноэкранного чекаута в стиле SMM-Flux (100% COMPLETE & LIVE VERIFIED):
   - **Откат CookieConsent (152-ФЗ):** Восстановлен канонический баннер со ссылками на Политику использования cookie (`/legal/cookies`) и Политику конфиденциальности (`/legal/privacy`) и кнопкой «Принять и продолжить».
   - **Полноэкранный чекаут (PlanFullscreenCheckout.tsx):** Окно оформления заказа после выбора услуги из каталога SMMplan переведено в Single-Screen Checkout в стиле SMM-Flux без модального затемнения:
