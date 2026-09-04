@@ -162,16 +162,15 @@ export async function compensateServiceMarginAction(serviceId: string) {
       }
     });
 
-    await db.adminAuditLog.create({
-      data: {
-        adminId: admin.id,
-        adminEmail: admin.email,
-        action: 'COMPENSATE_MARGIN_DRIFT',
-        target: serviceId,
-        targetType: 'SERVICE',
-        oldValue: JSON.stringify({ priceCents: service.pricePer1000Cents }),
-        newValue: JSON.stringify({ priceCents: newPriceCents })
-      }
+    const { auditAdminAwaitable } = await import('@/lib/admin-audit');
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'COMPENSATE_MARGIN_DRIFT',
+      target: serviceId,
+      targetType: 'SERVICE',
+      oldValue: { priceCents: service.pricePer1000Cents },
+      newValue: { priceCents: newPriceCents }
     });
 
     return { success: true, message: 'Наценка успешно компенсирована' };

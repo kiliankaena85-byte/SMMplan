@@ -555,9 +555,10 @@ export async function testSmtpConnectionAction(host?: string, port?: number, use
         port: targetPort,
         secure: targetPort === 465,
         auth: targetUser && targetPass ? { user: targetUser, pass: targetPass } : undefined,
+        family: 4,
         connectionTimeout: 5000,
         greetingTimeout: 5000,
-      });
+      } as any);
 
       await transporter.verify();
       return { success: true, message: `SMTP соединение с ${targetHost}:${targetPort} успешно подтверждено` };
