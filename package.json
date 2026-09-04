@@ -64,6 +64,7 @@
     "@blocknote/server-util": "^0.51.0",
     "@heroui/react": "^3.0.3",
     "@heroui/system": "^2.4.28",
+    "@heroui/theme": "^2.4.26",
     "@mantine/core": "^9.2.1",
     "@mantine/hooks": "^9.2.1",
     "@prisma/client": "^5.20.0",

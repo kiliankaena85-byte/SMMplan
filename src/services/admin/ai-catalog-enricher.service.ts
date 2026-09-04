@@ -90,16 +90,26 @@ class AiCatalogEnricherService {
         timeoutMs: 15000,
       });
 
-      const parsed = JSON.parse(rawJson);
-      return {
-        cleanTitle: parsed.cleanTitle || raw.name,
-        badge: parsed.badge || (raw.isRefillEnabled ? '🛡️ Refill' : '⚡️ Быстро'),
-        shortDescription: parsed.shortDescription || '',
-        fullDescriptionMarkdown: parsed.fullDescriptionMarkdown || '',
-        targetType: parsed.targetType || 'POST',
-        clientRequirement: parsed.clientRequirement || 'Укажите прямую ссылку на открытый объект.',
-        isRefillConfirmed: Boolean(parsed.isRefillConfirmed),
-      };
+      const { z } = await import('zod');
+      const EnrichedServiceSchema = z.object({
+        cleanTitle: z.string().min(1).max(200).default(raw.name),
+        badge: z.string().max(32).default(raw.isRefillEnabled ? '🛡️ Refill' : '⚡️ Быстро'),
+        shortDescription: z.string().max(500).default(''),
+        fullDescriptionMarkdown: z.string().max(3000).default(''),
+        targetType: z.enum(['CHANNEL', 'POST', 'PROFILE', 'STORY', 'CUSTOM']).default('POST'),
+        clientRequirement: z.string().max(300).default('Укажите прямую ссылку на открытый объект.'),
+        isRefillConfirmed: z.boolean().default(Boolean(raw.isRefillEnabled)),
+      });
+
+      const rawParsed = JSON.parse(rawJson);
+      const validated = EnrichedServiceSchema.safeParse(rawParsed);
+
+      if (!validated.success) {
+        console.warn('[AiCatalogEnricher] Zod validation failed for Gemini output, using fallback:', validated.error.format());
+        return this.fallbackRuleBasedEnrich(raw);
+      }
+
+      return validated.data;
     } catch (e) {
       console.warn('[AiCatalogEnricher] Generation failed, falling back to rule-based parser:', e);
       return this.fallbackRuleBasedEnrich(raw);
