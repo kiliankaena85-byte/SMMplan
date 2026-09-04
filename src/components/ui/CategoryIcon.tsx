@@ -57,9 +57,14 @@ export const CategoryIcon = ({ name = "", icon, className, size = 20 }: Category
  */
 export const cleanCategoryName = (rawName: string): string => {
   if (!rawName) return "";
-  const stripped = rawName
+  let stripped = rawName
     .replace(/^[\p{Extended_Pictographic}\p{Emoji_Presentation}\u200d\uFE0E\uFE0F\u2700-\u27BF\uE000-\uF8FF\s]+/gu, '')
-    .replace(/\s*\((?:vexboost|vexboost live|api\s*\d+)\)/gi, '')
+    .replace(/\s*\[(?:Сервер|Server|Srv|API|Провайдер)[\s:]*\d+\]/gi, '')
+    .replace(/\s*\((?:vexboost live|vexboost|api\s*\d+|srv\s*\d+|сервер\s*\d+)\)/gi, '')
+    .replace(/\bvexboost live\b/gi, 'Онлайн-просмотры')
+    .replace(/\bvexboost\b/gi, '')
+    .replace(/\s*♻️/g, '')
+    .replace(/\s{2,}/g, ' ')
     .trim();
   
   // If the string consisted solely of emojis (e.g. "👍"), fallback to trimmed original

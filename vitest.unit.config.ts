@@ -37,6 +37,7 @@ export default defineConfig({
       'src/__tests__/admin-stress/admin-panel-stress-and-resilience.test.ts',
       'src/__tests__/checkout-payments/checkout-resilience-and-bypass.test.ts',
       'src/__tests__/mobile-wizard-smoke.test.tsx',
+      'src/__tests__/mobile-refactoring-enhancements.test.ts',
       'src/__tests__/admin-nav-active.test.ts',
       'src/lib/__tests__/order-token-and-typo-guard.test.ts',
       'src/__tests__/financial/yookassa-signed-webhook-verification.test.ts',

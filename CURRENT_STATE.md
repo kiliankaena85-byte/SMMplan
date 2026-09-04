@@ -1,7 +1,8 @@
-﻿# CURRENT_STATE.md
+# CURRENT_STATE.md
 
 - [x] UX Fix: Двухфазный автоскролл мобильного визарда (Step 2 -> Step 3 тарифов и Step 3 -> Step 4 чекаута с учетом оффсета шапки scroll-mt-20)
 - [x] A11y Fix: Редизайн CookieConsent (WCAG 2.2 AA Touch Target >= 44px, localStorage persistence, безопасное перекрытие)
+- [x] Benchmark Reverse Audit: Проведён бенчмарк-аудит мобильного визарда заказа SMMplan (создан скилл `benchmark-reverse-audit`, синтезирована матрица 12 критериев лидеров рынка, проведён стресс-тест с фокус-группой из 5 полярных персон, составлен дефектный отчёт mobile_wizard_benchmark_audit.md)
 
 - [x] Admin Social Link Override (Админ может корректировать авто-сгенерированные примеры ссылок)
 - [x] Фикс Endless Loading Bug в Mobile Wizard (Шаг 2 и 3) вЂ” РЎРѕСЃС‚РѕСЏРЅРёРµ РїР»Р°С‚С„РѕСЂРјС‹ OmniSMM 1.0 (SMMplan / SMMflux)

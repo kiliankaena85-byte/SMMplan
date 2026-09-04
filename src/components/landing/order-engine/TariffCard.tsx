@@ -33,9 +33,12 @@ function getBadgeStyle(badge: string) {
 function cleanServiceName(name: string): string {
   if (!name) return "";
   return name
-    .replace(/\s*\[Сервер:\s*\d+\]/gi, '')
-    .replace(/\s*\((?:vexboost|vexboost live|api\s*\d+)\)/gi, '')
+    .replace(/\s*\[(?:Сервер|Server|Srv|API|Провайдер)[\s:]*\d+\]/gi, '')
+    .replace(/\s*\((?:vexboost|vexboost live|api\s*\d+|srv\s*\d+|сервер\s*\d+)\)/gi, '')
+    .replace(/\s*(?:\[|\()(?:ID:\s*\d+|S\d+)(?:\]|\))/gi, '')
+    .replace(/\bvexboost\b/gi, '')
     .replace(/\s*♻️/g, '')
+    .replace(/\s{2,}/g, ' ')
     .trim();
 }
 

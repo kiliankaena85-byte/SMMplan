@@ -161,22 +161,22 @@ export function MobileStep1Link({
             placeholder={step1LinkConfig.placeholder || "https://t.me/channel или vk.com/..."}
             aria-label={step1LinkConfig.label || "Введите ссылку для продвижения"}
             aria-describedby={validationErrors?.link || localUrlError ? "mobile-step1-url-error" : undefined}
-            className={`w-full h-11 pl-10 ${url.trim().length > 0 ? 'pr-9' : 'pr-24'} rounded-2xl bg-transparent text-base font-semibold text-foreground placeholder:text-muted-foreground/50 outline-none border-none transition-all`}
+            className={`w-full h-12 pl-10.5 ${url.trim().length > 0 ? 'pr-12' : 'pr-28'} rounded-2xl bg-transparent text-base font-semibold text-foreground placeholder:text-muted-foreground/50 outline-none border-none transition-all`}
           />
           {url.trim().length === 0 ? (
             <button
               type="button"
               onClick={handlePasteFromClipboard}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 h-8 px-3 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 transition-all"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-10 px-3.5 min-h-[44px] min-w-[44px] rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 transition-all focus-visible:ring-2 focus-visible:ring-primary"
             >
               {isPasted ? (
                 <>
-                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <CheckCircle2 className="w-4 h-4" />
                   <span>Вставлено!</span>
                 </>
               ) : (
                 <>
-                  <ClipboardPaste className="w-3.5 h-3.5" />
+                  <ClipboardPaste className="w-4 h-4" />
                   <span>Вставить</span>
                 </>
               )}
@@ -188,8 +188,9 @@ export function MobileStep1Link({
                 setUrl('');
                 if (localUrlError) setLocalUrlError(null);
               }}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-content2 hover:bg-content3 flex items-center justify-center text-muted-foreground hover:text-foreground text-xs font-bold cursor-pointer transition-all"
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 min-w-[44px] min-h-[44px] rounded-xl bg-content2 hover:bg-content3 flex items-center justify-center text-muted-foreground hover:text-foreground text-sm font-bold cursor-pointer transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-primary"
               title="Очистить ссылку"
+              aria-label="Очистить ссылку"
             >
               ✕
             </button>
@@ -313,7 +314,7 @@ export function MobileStep1Link({
             type="button"
             onClick={onOpenGuide}
             aria-label="Где взять ссылку для заказа? Гайд по ссылкам"
-            className="text-xs font-bold text-muted-foreground hover:text-primary flex items-center gap-1 cursor-pointer active:scale-95 transition-all h-10 px-1 -ml-1"
+            className="text-xs font-bold text-muted-foreground hover:text-primary flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all min-h-[44px] px-2 -ml-2"
           >
             <span>❓</span>
             <span className="underline">Где взять ссылку?</span>

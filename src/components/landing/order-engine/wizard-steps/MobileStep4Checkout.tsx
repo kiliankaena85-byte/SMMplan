@@ -41,6 +41,7 @@ export function MobileStep4Checkout({
   const [showPromo, setShowPromo] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [shakeKey, setShakeKey] = useState(0);
+  const [selectedGateway, setSelectedGateway] = useState<string>("yookassa");
 
   const {
     url, setUrl,
@@ -109,7 +110,7 @@ export function MobileStep4Checkout({
     }
 
     setLocalError(null);
-    handleCheckout();
+    handleCheckout(selectedGateway);
   };
 
   if (currentStep !== 4 || !shouldShowParameters || !selectedService) {
@@ -288,16 +289,23 @@ export function MobileStep4Checkout({
 
         {/* Быстрые пресеты */}
         <div className="grid grid-cols-4 gap-1.5 pt-1">
-          {QUICK_QUANTITY_PRESETS.map((preset) => (
-            <button
-              key={preset}
-              type="button"
-              onClick={() => handleAddQuantity(preset)}
-              className="py-1.5 px-1 rounded-lg bg-content2 hover:bg-primary/10 hover:text-primary border border-border/40 text-[11px] font-extrabold text-muted-foreground transition-all active:scale-95 text-center cursor-pointer"
-            >
-              +{preset >= 1000 ? `${preset / 1000}k` : preset}
-            </button>
-          ))}
+          {QUICK_QUANTITY_PRESETS.map((preset) => {
+            const isActive = quantity === preset;
+            return (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => setQuantity(preset)}
+                className={`py-2 px-1 rounded-xl border text-[11px] font-black transition-all active:scale-95 text-center cursor-pointer min-h-[40px] flex items-center justify-center ${
+                  isActive
+                    ? 'bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/20'
+                    : 'bg-content2 hover:bg-content3 hover:border-primary/40 border-border/40 text-foreground/85'
+                }`}
+              >
+                {preset >= 1000 ? `${preset / 1000} 000` : preset} шт
+              </button>
+            );
+          })}
         </div>
 
         {quantity > 0 && quantity < minQty && (
@@ -432,6 +440,54 @@ export function MobileStep4Checkout({
         </Button>
       </div>
 
+      {/* Интерактивный выбор метода оплаты */}
+      <div className="space-y-1.5 pt-1">
+        <div className="flex items-center justify-between px-1">
+          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+            Способ оплаты
+          </label>
+          <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400">
+            0% комиссия через СБП
+          </span>
+        </div>
+        <div className="grid grid-cols-3 gap-1.5">
+          {[
+            { id: "yookassa", name: "СБП / Карты", subtitle: "0% комиссия", badge: "ХИТ", icon: "⚡" },
+            { id: "cryptobot", name: "Крипта", subtitle: "USDT / TON", icon: "💎" },
+            { id: "robokassa", name: "Зарубежные", subtitle: "Карты / СНГ", icon: "🌐" },
+          ].map((gateway) => {
+            const isSelected = selectedGateway === gateway.id;
+            return (
+              <button
+                key={gateway.id}
+                type="button"
+                onClick={() => setSelectedGateway(gateway.id)}
+                className={`p-2 rounded-xl border text-left flex flex-col justify-between gap-0.5 transition-all cursor-pointer active:scale-95 min-h-[52px] relative overflow-hidden ${
+                  isSelected
+                    ? "border-primary bg-primary/10 ring-2 ring-primary/30 shadow-sm"
+                    : "border-border/50 bg-content2 hover:bg-content3 hover:border-border text-muted-foreground"
+                }`}
+              >
+                {gateway.badge && (
+                  <span className="absolute top-1 right-1 text-[8px] font-black uppercase tracking-wider px-1 py-0.2 rounded bg-primary text-primary-foreground">
+                    {gateway.badge}
+                  </span>
+                )}
+                <div className="flex items-center gap-1">
+                  <span className="text-sm">{gateway.icon}</span>
+                  <span className={`text-[11px] font-bold ${isSelected ? "text-foreground" : "text-foreground/80"}`}>
+                    {gateway.name}
+                  </span>
+                </div>
+                <span className="text-[9px] font-medium text-muted-foreground">
+                  {gateway.subtitle}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="pt-2 border-t border-border/30 space-y-2">
         <AnimatePresence>
           {(localError || checkoutError) && (
@@ -465,15 +521,27 @@ export function MobileStep4Checkout({
           ) : (
             <>
               <Zap className="w-4 h-4 fill-current" />
-              <span>Заказать {quantity.toLocaleString()} шт — {totalPriceFormatted} ₽</span>
+              <span>
+                {selectedGateway === 'yookassa'
+                  ? `Оплатить через СБП / Картой — ${totalPriceFormatted} ₽`
+                  : selectedGateway === 'cryptobot'
+                  ? `Оплатить в CryptoBot — ${totalPriceFormatted} ₽`
+                  : `Оплатить картой — ${totalPriceFormatted} ₽`}
+              </span>
             </>
           )}
         </Button>
       </div>
 
-      <p className="text-[10px] text-muted-foreground text-center font-bold uppercase tracking-wider">
-        СБП • МИР • Visa • Cryptobot
-      </p>
+      <div className="flex flex-col items-center gap-1 text-center pt-0.5 pb-1">
+        <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
+          <span className="text-emerald-500 font-black">✓</span>
+          <span>Официальный платёж • Электронный чек по 54-ФЗ</span>
+        </div>
+        <p className="text-[10px] text-muted-foreground/75 font-medium">
+          Безопасное соединение TLS 1.3 • Без подписок и скрытых списаний
+        </p>
+      </div>
     </motion.div>
   );
 }
