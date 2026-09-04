@@ -12,7 +12,7 @@ import { headers } from 'next/headers';
 import { getClientIp } from '@/utils/ip';
 import { generateGuestOrderToken } from '@/lib/order-token';
 import { WalletOps, WalletInsufficientFundsError, WalletUserNotFoundError, WalletInvalidAmountError } from '@/services/financial/wallet-ops';
-import { handleServerError } from '@/utils/error-handler';
+import { handleServerError, AccountExistsError } from '@/utils/error-handler';
 import { sendOrderBalanceDebitMail } from "@/lib/smtp";
 import { getBaseUrlSync } from "@/utils/get-base-url";
 import { featureFlagService } from "@/services/system/feature-flag.service";
@@ -378,7 +378,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       // IDOR / Account Hijacking Prevention:
       // Prevent order injection / guest orders binding to existing password-protected accounts without session
       if (user.passwordHash && (!currentSession || currentSession.userId !== user.id)) {
-        throw new Error("Этот email уже зарегистрирован в системе. Пожалуйста, войдите в свой аккаунт для оформления заказа.");
+        throw new AccountExistsError(user.email);
       }
     }
 
@@ -756,7 +756,11 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         tenantId
       }).catch((err: unknown) => console.error('[H1] sendOrderBalanceDebitMail balance failed', err));
 
-      revalidatePath('/dashboard', 'layout');
+      try {
+        revalidatePath('/dashboard', 'layout');
+      } catch {
+        // Ignore when running outside HTTP request scope (e.g. tests / CLI)
+      }
 
       // Auto-Login using cookies (Frictionless checkout)
       if (user && (isNewUser || (currentSession && currentSession.userId === user.id))) {
@@ -874,11 +878,15 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
     }
 
     const guestOrderToken = generateGuestOrderToken(result.orderId, result.numericId);
+    const redirectUrl = gateway === 'balance'
+      ? `/dashboard/orders?success=1&orderId=${result.orderId}&payment=balance`
+      : undefined;
 
     return { 
       orderId: result.orderId, 
       paymentId: result.paymentId,
       paymentUrl,
+      redirectUrl,
       guestOrderToken,
       numericId: result.numericId
     };

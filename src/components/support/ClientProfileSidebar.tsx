@@ -97,9 +97,9 @@ export default function ClientProfileSidebar({
   }
 
   return (
-    <div className="w-full h-full bg-card border-l border-border flex flex-col relative animate-in slide-in-from-right-8 duration-300 shadow-sm overflow-hidden min-w-0">
+    <div className="w-full h-full bg-card border-l border-border flex flex-col relative animate-in slide-in-from-right-8 duration-300 shadow-sm overflow-hidden min-w-0 min-h-0">
       {/* Profile header */}
-      <div className="p-4 border-b border-border/60 bg-muted/10 relative flex flex-col items-center text-center">
+      <div className="p-4 border-b border-border/60 bg-muted/10 relative flex flex-col items-center text-center shrink-0">
         {/* Absolute close button neatly aligned */}
         <button
           onClick={() => {
@@ -285,7 +285,7 @@ export default function ClientProfileSidebar({
         </Link>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 space-y-6">
         
         {/* Последние заказы */}
         <div>

@@ -45,6 +45,8 @@ export function useCheckoutOrchestrator({
   const [emailHasError, setEmailHasError] = useState(false);
   const [termsHasError, setTermsHasError] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalEmail, setAuthModalEmail] = useState('');
   const [pendingCheckoutParams, setPendingCheckoutParams] = useState<OrchestratorCheckoutParams | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
@@ -413,6 +415,12 @@ export function useCheckoutOrchestrator({
               toast.error('Не удалось открыть платежный шлюз');
             }
             return;
+          } else if (resolvedGateway === 'balance' || (res.data as any)?.redirectUrl) {
+            toast.success(`Заказ #${res.data?.numericId || res.data?.orderId || ''} успешно запущен!`, {
+              description: 'Оплата произведена с вашего баланса.'
+            });
+            window.location.href = (res.data as any)?.redirectUrl || `/dashboard/orders?success=1&orderId=${res.data?.orderId}&payment=balance`;
+            return;
           } else if (res.data?.orderId) {
             const tokenQuery = res.data.guestOrderToken ? `&token=${res.data.guestOrderToken}` : '';
             window.location.href = `/success?orderId=${res.data.orderId}${tokenQuery}`;
@@ -422,6 +430,13 @@ export function useCheckoutOrchestrator({
           return;
         } else {
           setIsSubmitting(false);
+          const errorCode = (res as { code?: string })?.code;
+          if (errorCode === 'ACCOUNT_EXISTS' || res.error?.includes('уже зарегистрирован')) {
+            setAuthModalEmail(email || (res as { email?: string })?.email || '');
+            setShowAuthModal(true);
+            return;
+          }
+
           if (res.error?.startsWith('VOUCHER_USE_BALANCE:')) {
             toast.error(
               'Это ваучер на пополнение баланса. Перейдите в раздел «Мой баланс» для активации.',
@@ -455,6 +470,12 @@ export function useCheckoutOrchestrator({
         }
       } catch (e: unknown) {
         setIsSubmitting(false);
+        const errMessage = e instanceof Error ? e.message : String(e);
+        if (errMessage.includes('уже зарегистрирован') || (e as { code?: string })?.code === 'ACCOUNT_EXISTS') {
+          setAuthModalEmail(email || '');
+          setShowAuthModal(true);
+          return;
+        }
         const actionable = parseActionableError(e, { serviceId: checkoutParams.serviceId });
         toast.error(actionable.message, {
           position: 'top-center',
@@ -499,6 +520,11 @@ export function useCheckoutOrchestrator({
               const errorMessage = 'Ошибка: не удалось получить ссылку на оплату.';
               window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&gateway=${gateway}&email=${encodeURIComponent(pendingCheckoutParams.email || '')}&url=${encodeURIComponent(pendingCheckoutParams.text || '')}&paymentId=&orderId=`;
             }
+          } else if (gateway === 'balance' || (res.data as any)?.redirectUrl) {
+            toast.success('Массовый заказ успешно запущен!', {
+              description: 'Оплата произведена с вашего баланса.'
+            });
+            window.location.href = (res.data as any)?.redirectUrl || '/dashboard/orders?success=1&payment=balance';
           } else {
             const errorMessage = 'Ошибка: не удалось получить ссылку на оплату.';
             window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&gateway=${gateway}&email=${encodeURIComponent(pendingCheckoutParams.email || '')}&url=${encodeURIComponent(pendingCheckoutParams.text || '')}&paymentId=&orderId=`;
@@ -543,8 +569,24 @@ export function useCheckoutOrchestrator({
             const errorMessage = 'Ошибка: не удалось открыть платёжный шлюз.';
             window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&serviceId=${pendingCheckoutParams.serviceId}&gateway=${gateway}&email=${encodeURIComponent(pendingCheckoutParams.email || '')}&quantity=${pendingCheckoutParams.quantity}&url=${encodeURIComponent(pendingCheckoutParams.link || '')}&paymentId=&orderId=`;
           }
+        } else if (gateway === 'balance' || (res.data as any)?.redirectUrl) {
+          toast.success(`Заказ #${res.data?.numericId || res.data?.orderId || ''} успешно запущен!`, {
+            description: 'Оплата произведена с вашего баланса.'
+          });
+          window.location.href = (res.data as any)?.redirectUrl || `/dashboard/orders?success=1&orderId=${res.data?.orderId}&payment=balance`;
+        } else if (res.data?.orderId) {
+          const tokenQuery = res.data.guestOrderToken ? `&token=${res.data.guestOrderToken}` : '';
+          window.location.href = `/success?orderId=${res.data.orderId}${tokenQuery}`;
         }
       } else if (!res.success) {
+        const errorCode = (res as { code?: string })?.code;
+        if (errorCode === 'ACCOUNT_EXISTS' || res.error?.includes('уже зарегистрирован')) {
+          setShowPaymentModal(false);
+          setAuthModalEmail(pendingCheckoutParams.email || (res as { email?: string })?.email || '');
+          setShowAuthModal(true);
+          return;
+        }
+
         if (res.error?.includes("Telegram-аккаунт") || res.error?.includes("привяжите ваш Telegram-аккаунт")) {
           toast.error(res.error, {
             position: 'top-center',
@@ -579,10 +621,16 @@ export function useCheckoutOrchestrator({
           window.location.href = `/support/payment-error?error=${encodeURIComponent(errorMessage)}&serviceId=${serviceId}&gateway=${gateway}&email=${encodeURIComponent(email)}&quantity=${quantity}&url=${encodeURIComponent(url)}&paymentId=${paymentId}&orderId=${orderId}`;
         }
       }
-        } catch (e: unknown) {
+    } catch (e: unknown) {
       setIsSubmitting(false);
       const err = e as Error;
       const errorMessage = err.message || "Ошибка платежного шлюза.";
+      if (errorMessage.includes('уже зарегистрирован') || (e as { code?: string })?.code === 'ACCOUNT_EXISTS') {
+        setShowPaymentModal(false);
+        setAuthModalEmail(pendingCheckoutParams?.email || '');
+        setShowAuthModal(true);
+        return;
+      }
       if (errorMessage.includes("Telegram-аккаунт") || errorMessage.includes("привяжите ваш Telegram-аккаунт")) {
         toast.error(errorMessage, {
           position: 'top-center',
@@ -602,6 +650,22 @@ export function useCheckoutOrchestrator({
     }
   };
 
+  const handleAuthSuccess = async () => {
+    setShowAuthModal(false);
+    toast.success("Вы успешно вошли в аккаунт!", {
+      description: "Продолжаем оформление заказа..."
+    });
+    try {
+      const { refreshBalanceAction } = await import('@/actions/auth/refresh-balance');
+      await refreshBalanceAction();
+    } catch {}
+    if (pendingCheckoutParams) {
+      setShowPaymentModal(true);
+    } else {
+      handleCheckout();
+    }
+  };
+
   return {
     isSubmitting,
     showLinkModal,
@@ -617,6 +681,23 @@ export function useCheckoutOrchestrator({
     termsHasError,
     showPaymentModal,
     setShowPaymentModal,
+    showAuthModal,
+    setShowAuthModal,
+    authModalEmail,
+    handleAuthSuccess,
+    orderSnapshot: {
+      serviceId: engine.selectedService?.id,
+      link: engine.url,
+      quantity: engine.quantity,
+      promoCode: engine.promoCode,
+      runs: engine.dripFeedEnabled ? engine.runs : undefined,
+      interval: engine.dripFeedEnabled ? engine.dripInterval : undefined,
+      isSmartDrip: engine.isSmartDrip,
+      smartDripDays: engine.smartDripDays,
+      networkId: engine.networkId,
+      categoryId: engine.categoryId,
+      customData: engine.customData,
+    },
     confirmAndPay,
     checkoutError,
     setCheckoutError

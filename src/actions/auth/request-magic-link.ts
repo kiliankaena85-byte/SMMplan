@@ -15,6 +15,7 @@ const log = logger.child({ component: 'MagicLink' });
 
 const schema = z.object({
   email: z.string().email("Введите корректный email"),
+  redirectTo: z.string().optional(),
 });
 
 /** @public Public magic link request action */
@@ -28,6 +29,7 @@ export async function requestMagicLink(prevState: unknown, formData: FormData) {
   }
 
   const cleanEmail = parsed.data.email.toLowerCase();
+  const redirectTo = parsed.data.redirectTo;
 
   try {
     const clientIp = await getClientIp().catch(() => '127.0.0.1');
@@ -128,7 +130,7 @@ export async function requestMagicLink(prevState: unknown, formData: FormData) {
     const { user, isNewUser, rawToken, tenantId } = txResult;
 
     try {
-      await sendMagicLink(cleanEmail, rawToken, tenantId);
+      await sendMagicLink(cleanEmail, rawToken, tenantId, redirectTo);
       if (isNewUser) {
         sendWelcomeLetter(cleanEmail, tenantId).catch(console.error);
       }

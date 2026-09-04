@@ -540,6 +540,19 @@ export async function ensurePrimaryRouteAction(serviceId: string) {
     const existing = await db.serviceRoute.findFirst({ where: { serviceId } });
     if (existing) return { success: true as const, created: false, routeId: existing.id };
 
+    // Invariant guard: verify providerServiceId is not corrupted
+    const { assertValidServiceRoute } = await import('@/lib/validators/service-route-validator');
+    try {
+      await assertValidServiceRoute({
+        serviceId,
+        providerId: service.providerId,
+        providerServiceId: service.externalId,
+        isPrimary: true
+      });
+    } catch (valErr: any) {
+      return { success: false as const, error: valErr.message || 'Ошибка валидации маршрута' };
+    }
+
     // Идемпотентно: параллельное открытие двумя вкладками → уникальный constraint,
     // ловим P2002 и возвращаем существующий маршрут
     try {

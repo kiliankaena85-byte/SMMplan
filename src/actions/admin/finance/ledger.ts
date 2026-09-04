@@ -45,6 +45,7 @@ export type LedgerEntryDTO = {
   status: string;
   transactionType: string;
   idempotencyKey?: string | null;
+  gatewayId?: string | null;
   createdAt: string;
   tenantId?: string;
 };
@@ -195,13 +196,51 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
       }
 
       if (searchTrim) {
+        // Resolve any payments matching gatewayId (e.g. YooKassa UUID) or internal payment ID
+        const matchingPayments = await db.payment.findMany({
+          where: {
+            OR: [
+              { gatewayId: { contains: searchTrim, mode: 'insensitive' as const } },
+              { id: { contains: searchTrim, mode: 'insensitive' as const } }
+            ]
+          },
+          select: { id: true },
+          take: 50
+        });
+
+        const extraIdempotencyKeys: string[] = [];
+        if (matchingPayments.length > 0) {
+          const pIds = matchingPayments.map(p => p.id);
+          for (const pid of pIds) {
+            extraIdempotencyKeys.push(`deposit-${pid}`);
+            extraIdempotencyKeys.push(`gateway-credit-${pid}`);
+            extraIdempotencyKeys.push(`gateway-basket-charge-${pid}`);
+          }
+          const linkedOrders = await db.order.findMany({
+            where: { paymentId: { in: pIds } },
+            select: { id: true },
+            take: 50
+          });
+          for (const ord of linkedOrders) {
+            extraIdempotencyKeys.push(`gateway-charge-${ord.id}`);
+          }
+        }
+
+        const searchOrConditions: Prisma.LedgerEntryWhereInput[] = [
+          { user: { is: { email: { contains: searchTrim, mode: 'insensitive' as const } } } },
+          { id: { contains: searchTrim, mode: 'insensitive' as const } },
+          { idempotencyKey: { contains: searchTrim, mode: 'insensitive' as const } },
+          { reason: { contains: searchTrim, mode: 'insensitive' as const } }
+        ];
+
+        if (extraIdempotencyKeys.length > 0) {
+          searchOrConditions.push({
+            idempotencyKey: { in: extraIdempotencyKeys }
+          });
+        }
+
         andConditions.push({
-          OR: [
-            { user: { is: { email: { contains: searchTrim, mode: 'insensitive' as const } } } },
-            { id: { contains: searchTrim, mode: 'insensitive' as const } },
-            { idempotencyKey: { contains: searchTrim, mode: 'insensitive' as const } },
-            { reason: { contains: searchTrim, mode: 'insensitive' as const } }
-          ]
+          OR: searchOrConditions
         });
       }
 
@@ -243,20 +282,51 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
       const totalPages = Math.ceil(totalCount / p.pageSize) || 1;
       const hasMore = p.page < totalPages;
 
+      // Batch fetch gatewayIds for entries linked to payments
+      const candidatePaymentIds: string[] = [];
+      for (const e of entries) {
+        if (e.idempotencyKey) {
+          const match = e.idempotencyKey.match(/^(?:deposit|gateway-credit|gateway-basket-charge)-(cm[a-z0-9]+)$/i);
+          if (match?.[1]) {
+            candidatePaymentIds.push(match[1]);
+          }
+        }
+      }
+
+      const paymentGatewayMap = new Map<string, string>();
+      if (candidatePaymentIds.length > 0) {
+        const foundPayments = await db.payment.findMany({
+          where: { id: { in: Array.from(new Set(candidatePaymentIds)) } },
+          select: { id: true, gatewayId: true }
+        });
+        for (const fp of foundPayments) {
+          if (fp.gatewayId) {
+            paymentGatewayMap.set(fp.id, fp.gatewayId);
+          }
+        }
+      }
+
       return {
-        items: entries.map(e => ({
-          id: e.id,
-          userId: e.userId,
-          userEmail: e.user?.email ?? e.userId,
-          adminId: e.adminId,
-          amount: Number(e.amount), // BigInt → number at DTO boundary
-          reason: e.reason,
-          status: e.status,
-          transactionType: e.transactionType || (Number(e.amount) >= 0 ? 'PAYMENT' : 'DEBIT'),
-          idempotencyKey: e.idempotencyKey ?? null,
-          createdAt: e.createdAt.toISOString(),
-          tenantId: e.tenantId ?? e.user?.tenantId ?? 'smmplan',
-        })),
+        items: entries.map(e => {
+          const paymentIdMatch = e.idempotencyKey?.match(/^(?:deposit|gateway-credit|gateway-basket-charge)-(cm[a-z0-9]+)$/i);
+          const paymentId = paymentIdMatch?.[1];
+          const gatewayId = paymentId ? (paymentGatewayMap.get(paymentId) ?? null) : null;
+
+          return {
+            id: e.id,
+            userId: e.userId,
+            userEmail: e.user?.email ?? e.userId,
+            adminId: e.adminId,
+            amount: Number(e.amount), // BigInt → number at DTO boundary
+            reason: e.reason,
+            status: e.status,
+            transactionType: e.transactionType || (Number(e.amount) >= 0 ? 'PAYMENT' : 'DEBIT'),
+            idempotencyKey: e.idempotencyKey ?? null,
+            gatewayId,
+            createdAt: e.createdAt.toISOString(),
+            tenantId: e.tenantId ?? e.user?.tenantId ?? 'smmplan',
+          };
+        }),
         totalCount,
         totalPages,
         currentPage: p.page,

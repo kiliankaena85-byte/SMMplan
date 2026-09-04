@@ -3,12 +3,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, CreditCard, Wallet, ChevronRight, Loader2, Coins, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+import { toast } from "sonner";
+
 interface PaymentGatewaySelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   totalPriceFormatted: string;
   isSubmitting: boolean;
   onSelectGateway: (gateway: string) => void;
+  userBalanceCents?: number;
 }
 
 export function PaymentGatewaySelectionModal({
@@ -17,9 +20,14 @@ export function PaymentGatewaySelectionModal({
   totalPriceFormatted,
   isSubmitting,
   onSelectGateway,
+  userBalanceCents
 }: PaymentGatewaySelectionModalProps) {
   const [selectedMethod, setSelectedMethod] = useState<string>("yookassa");
   const [available, setAvailable] = useState<{ yookassa: boolean; robokassa: boolean; cryptobot: boolean } | null>(null);
+
+  const totalCents = Math.round(parseFloat(totalPriceFormatted || "0") * 100);
+  const hasBalance = userBalanceCents !== undefined && userBalanceCents > 0;
+  const isBalanceSufficient = hasBalance && userBalanceCents >= totalCents;
 
   useEffect(() => {
     if (isOpen) {
@@ -28,7 +36,7 @@ export function PaymentGatewaySelectionModal({
           if (res.success && res.data) {
             setAvailable(res.data);
             const active = res.data;
-            if (!active[selectedMethod as keyof typeof active]) {
+            if (selectedMethod !== "balance" && !active[selectedMethod as keyof typeof active]) {
               const firstAvailable = ["yookassa", "robokassa", "cryptobot"].find(
                 (id) => active[id as keyof typeof active]
               );
@@ -49,6 +57,17 @@ export function PaymentGatewaySelectionModal({
   };
 
   const methods = [
+    ...(hasBalance ? [{
+      id: "balance",
+      label: "Личный баланс",
+      note: isBalanceSufficient
+        ? `Доступно: ${(userBalanceCents / 100).toFixed(2)} ₽`
+        : `Недостаточно: ${(userBalanceCents / 100).toFixed(2)} ₽ (нужно ${totalPriceFormatted} ₽)`,
+      icon: Wallet,
+      color: isBalanceSufficient ? "text-success bg-success/10 border-success/20" : "text-muted-foreground bg-content2 border-border/80 opacity-60",
+      badge: isBalanceSufficient ? "Без комиссии" : "Недостаточно",
+      disabled: !isBalanceSufficient,
+    }] : []),
     {
       id: "yookassa",
       label: "Карты РФ и СБП",
@@ -56,6 +75,7 @@ export function PaymentGatewaySelectionModal({
       icon: CreditCard,
       color: "text-primary bg-primary/10 border-primary/20",
       badge: "Комиссия 0%",
+      disabled: false,
     },
     {
       id: "robokassa",
@@ -63,6 +83,7 @@ export function PaymentGatewaySelectionModal({
       note: "Оплата картами СНГ и другими способами",
       icon: Coins,
       color: "text-info bg-info/10 border-info/20",
+      disabled: false,
     },
     {
       id: "cryptobot",
@@ -70,10 +91,12 @@ export function PaymentGatewaySelectionModal({
       note: "USDT, TON, BTC, ETH. Анонимно и без лимитов",
       icon: Wallet,
       color: "text-warning-text bg-warning/10 border-warning/20",
+      disabled: false,
     },
   ];
 
   const filteredMethods = methods.filter((m) => {
+    if (m.id === "balance") return true;
     if (!available) return false;
     return available[m.id as keyof typeof available] === true;
   });
@@ -141,20 +164,26 @@ export function PaymentGatewaySelectionModal({
                 Пожалуйста, напишите в поддержку, и мы быстро решим вопрос.
               </div>
             ) : (
-              filteredMethods.map(({ id, label, note, icon: Icon, color, badge }) => {
+              filteredMethods.map(({ id, label, note, icon: Icon, color, badge, disabled }) => {
                 const isSelected = selectedMethod === id;
                 return (
                   <button
                     key={id}
                     type="button"
                     onClick={() => {
+                      if (disabled) {
+                        toast.error('Недостаточно средств на балансе для оплаты заказа');
+                        return;
+                      }
                       if (navigator.vibrate) navigator.vibrate(20);
                       setSelectedMethod(id);
                     }}
                     className={`w-full flex items-center gap-3 sm:gap-4 px-3 sm:px-4 py-2.5 sm:py-3 rounded-2xl border text-left transition-all duration-200 active:scale-[0.99] group ${
-                      isSelected
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-border/50 bg-background hover:border-primary/40 hover:bg-default-50"
+                      disabled
+                        ? "opacity-60 cursor-not-allowed border-border/40 bg-default-50/50"
+                        : isSelected
+                        ? "border-primary bg-primary/5 shadow-sm cursor-pointer"
+                        : "border-border/50 bg-background hover:border-primary/40 hover:bg-default-50 cursor-pointer"
                     }`}
                   >
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${color} transition-transform duration-200 group-hover:scale-105`}>

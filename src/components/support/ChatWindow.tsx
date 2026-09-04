@@ -89,7 +89,7 @@ export default function ChatWindow({
 
   return (
     <div
-      className="flex flex-col h-full relative"
+      className="flex flex-col h-full min-h-0 overflow-hidden relative"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}

@@ -16,6 +16,8 @@ import { FluxNetwork, FluxCategory, FluxService } from "@/types/flux";
 import { FluxCyberLinkDrawer } from "@/components/orders/flux/FluxCyberLinkDrawer";
 import { LinkGuideService } from "@/services/catalog/link-guide.service";
 import { CategoryIcon, cleanCategoryName } from "@/components/ui/CategoryIcon";
+import { toast } from "sonner";
+import { CheckoutAuthModal } from "@/components/landing/order-engine/modals/CheckoutAuthModal";
 
 type Step = 'link' | 'network' | 'category' | 'service' | 'checkout';
 
@@ -68,9 +70,10 @@ const itemVariants: Variants = {
 };
 
 interface FluxOrderClientProps {
-    initialCatalog?: FluxNetwork[];
+  initialCatalog?: FluxNetwork[];
   initialEmail?: string;
   tenantId?: string;
+  userBalanceCents?: number;
 }
 
 export function FluxOrderClient(props: FluxOrderClientProps) {
@@ -81,7 +84,7 @@ export function FluxOrderClient(props: FluxOrderClientProps) {
   );
 }
 
-function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' }: FluxOrderClientProps) {
+function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux', userBalanceCents = 0 }: FluxOrderClientProps) {
   const [step, setStep] = useState<Step>('link');
   const [direction, setDirection] = useState(1);
   
@@ -114,6 +117,60 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
 
   const [selectedGateway, setSelectedGateway] = useState<string>("yookassa");
   const [availableGateways, setAvailableGateways] = useState<{ yookassa: boolean; robokassa: boolean; cryptobot: boolean } | null>(null);
+
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalEmail, setAuthModalEmail] = useState('');
+
+  // SPEC-2026-14: Restore pending order snapshot if returning via Magic Link (?auth_resume=1)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const isAuthResume = window.location.search.includes('auth_resume=1');
+      const rawSnapshot =
+        sessionStorage.getItem('smmplan_pending_order') ||
+        localStorage.getItem('smmplan_pending_order') ||
+        sessionStorage.getItem('omni_pending_order_v1') ||
+        localStorage.getItem('omni_pending_order_v1');
+
+      if (!rawSnapshot) return;
+      const snapshot = JSON.parse(rawSnapshot);
+      if (!snapshot || typeof snapshot !== 'object') return;
+
+      const savedTime = snapshot.savedAt || snapshot.timestamp || 0;
+      const isExpired = Date.now() - savedTime > 30 * 60 * 1000;
+      if (isExpired) return;
+
+      if (isAuthResume) {
+        if (snapshot.link || snapshot.url) setLink(snapshot.link || snapshot.url);
+        if (snapshot.quantity) setQuantity(snapshot.quantity);
+        if (snapshot.email) setEmail(snapshot.email);
+        if (snapshot.customData) setCustomData(snapshot.customData);
+        if (snapshot.runs) {
+          setDripRuns(snapshot.runs);
+          setIsDripFeedEnabled(true);
+        }
+        if (snapshot.interval) setDripInterval(snapshot.interval);
+        
+        // Navigate to checkout step
+        setStep('checkout');
+
+        toast.success('Вы успешно вошли в аккаунт!', {
+          description: 'Параметры вашего заказа восстановлены и готовы к оплате.'
+        });
+
+        sessionStorage.removeItem('smmplan_pending_order');
+        localStorage.removeItem('smmplan_pending_order');
+        sessionStorage.removeItem('omni_pending_order_v1');
+        localStorage.removeItem('omni_pending_order_v1');
+
+        try {
+          const urlObj = new URL(window.location.href);
+          urlObj.searchParams.delete('auth_resume');
+          window.history.replaceState({}, '', urlObj.pathname + (urlObj.search ? urlObj.search : ''));
+        } catch {}
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => {
     getAvailableGatewaysAction().then((res) => {
@@ -193,16 +250,37 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
         tenantId: tenantId || 'flux'
       });
 
-      if (res && res.success && res.data?.paymentUrl) {
-         // external gateway redirect (server-validated)
-         window.location.href = res.data.paymentUrl;
-         return { error: "", field: "", timestamp: ts };
+      if (res && res.success) {
+        if (res.data?.paymentUrl) {
+          // external gateway redirect (server-validated)
+          window.location.href = res.data.paymentUrl;
+          return { error: "", field: "", timestamp: ts };
+        } else if (selectedGateway === 'balance' || (res.data as any)?.redirectUrl) {
+          window.location.href = (res.data as any)?.redirectUrl || `/dashboard/orders?success=1&orderId=${res.data?.orderId}&payment=balance`;
+          return { error: "", field: "", timestamp: ts };
+        } else if (res.data?.orderId) {
+          const tokenQuery = res.data.guestOrderToken ? `&token=${res.data.guestOrderToken}` : '';
+          window.location.href = `/success?orderId=${res.data.orderId}${tokenQuery}`;
+          return { error: "", field: "", timestamp: ts };
+        }
       } else if (res && !res.success) {
-         return { error: res.error || "Ошибка валидации данных", field: "general", timestamp: ts };
+        const errCode = (res as { code?: string })?.code;
+        if (errCode === 'ACCOUNT_EXISTS' || res.error?.includes('уже зарегистрирован')) {
+          setAuthModalEmail(emailValue);
+          setShowAuthModal(true);
+          return { error: "", field: "", timestamp: ts };
+        }
+        return { error: res.error || "Ошибка валидации данных", field: "general", timestamp: ts };
       }
       return { error: "Неизвестная ошибка", field: "general", timestamp: ts };
     } catch (err: unknown) {
+      const errCode = (err as { code?: string })?.code;
       const errorMsg = err instanceof Error ? err.message : "Ошибка при создании заказа";
+      if (errCode === 'ACCOUNT_EXISTS' || errorMsg.includes('уже зарегистрирован')) {
+        setAuthModalEmail(emailValue);
+        setShowAuthModal(true);
+        return { error: "", field: "", timestamp: ts };
+      }
       return { error: errorMsg, field: "general", timestamp: ts };
     }
   }, { error: "", field: "", timestamp: 0 });
@@ -919,7 +997,23 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
 
                 {/* 4. Способ оплаты (Dynamic Radiant Aurora Gateway Selector) */}
                 {(() => {
+                  const totalCents = Math.round(parseFloat(price || "0") * 100);
+                  const hasBalance = userBalanceCents !== undefined && userBalanceCents > 0;
+                  const isBalanceSufficient = hasBalance && userBalanceCents >= totalCents;
+
                   const methods = [
+                    ...(hasBalance ? [{
+                      id: "balance",
+                      name: "Личный баланс",
+                      desc: isBalanceSufficient
+                        ? `Доступно: ${(userBalanceCents / 100).toFixed(2)} ₽`
+                        : `Недостаточно: ${(userBalanceCents / 100).toFixed(2)} ₽ (нужно ${price} ₽)`,
+                      icon: Wallet,
+                      gradient: "from-emerald-500/15 via-teal-500/10 to-transparent",
+                      borderActive: "border-emerald-500 ring-2 ring-emerald-500/30",
+                      iconColor: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+                      disabled: !isBalanceSufficient
+                    }] : []),
                     {
                       id: "yookassa",
                       name: "Карты РФ и СБП",
@@ -927,7 +1021,8 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
                       icon: CreditCard,
                       gradient: "from-purple-500/15 via-fuchsia-500/10 to-transparent",
                       borderActive: "border-purple-500 ring-2 ring-purple-500/30",
-                      iconColor: "text-purple-400 bg-purple-500/10 border-purple-500/20"
+                      iconColor: "text-purple-400 bg-purple-500/10 border-purple-500/20",
+                      disabled: false
                     },
                     {
                       id: "robokassa",
@@ -936,7 +1031,8 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
                       icon: Coins,
                       gradient: "from-blue-500/15 via-cyan-500/10 to-transparent",
                       borderActive: "border-blue-500 ring-2 ring-blue-500/30",
-                      iconColor: "text-blue-400 bg-blue-500/10 border-blue-500/20"
+                      iconColor: "text-blue-400 bg-blue-500/10 border-blue-500/20",
+                      disabled: false
                     },
                     {
                       id: "cryptobot",
@@ -945,11 +1041,13 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
                       icon: Wallet,
                       gradient: "from-amber-500/15 via-orange-500/10 to-transparent",
                       borderActive: "border-amber-500 ring-2 ring-amber-500/30",
-                      iconColor: "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                      iconColor: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+                      disabled: false
                     }
                   ];
 
                   const activeMethods = methods.filter((m) => {
+                    if (m.id === "balance") return true;
                     if (!availableGateways) return m.id === "yookassa";
                     return availableGateways[m.id as keyof typeof availableGateways] === true;
                   });
@@ -977,11 +1075,16 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
                             <button
                               key={m.id}
                               type="button"
-                              onClick={() => setSelectedGateway(m.id)}
-                              className={`w-full min-h-[52px] p-3 rounded-2xl border text-left flex items-center gap-3 transition-all duration-200 cursor-pointer active:scale-[0.99] ${
-                                isSelected
-                                  ? `${m.borderActive} bg-gradient-to-r ${m.gradient} bg-background/80 shadow-md`
-                                  : "border-border/60 bg-background/40 hover:border-border hover:bg-background/60"
+                              onClick={() => {
+                                if (m.disabled) return;
+                                setSelectedGateway(m.id);
+                              }}
+                              className={`w-full min-h-[52px] p-3 rounded-2xl border text-left flex items-center gap-3 transition-all duration-200 ${
+                                m.disabled
+                                  ? "opacity-50 cursor-not-allowed border-border/40 bg-background/20"
+                                  : isSelected
+                                  ? `${m.borderActive} bg-gradient-to-r ${m.gradient} bg-background/80 shadow-md cursor-pointer active:scale-[0.99]`
+                                  : "border-border/60 bg-background/40 hover:border-border hover:bg-background/60 cursor-pointer active:scale-[0.99]"
                               }`}
                             >
                               <div className={`p-2 rounded-xl shrink-0 border ${m.iconColor}`}>
@@ -1070,6 +1173,30 @@ function FluxOrderClientInner({ initialCatalog, initialEmail, tenantId = 'flux' 
         )}
 
       </AnimatePresence>
+
+      <CheckoutAuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        email={authModalEmail || email}
+        onAuthSuccess={async () => {
+          setShowAuthModal(false);
+          try {
+            const { refreshBalanceAction } = await import('@/actions/auth/refresh-balance');
+            await refreshBalanceAction();
+          } catch {}
+          toast.success("Вы успешно вошли в аккаунт!", {
+            description: "Теперь вы можете завершить оформление заказа."
+          });
+        }}
+        orderSnapshot={{
+          serviceId: selectedService?.id,
+          link: link,
+          quantity: typeof quantity === 'number' ? quantity : parseInt(quantity) || 100,
+          runs: isDripFeedEnabled ? dripRuns : undefined,
+          interval: isDripFeedEnabled ? dripInterval : undefined,
+          customData: customData || undefined,
+        }}
+      />
     </div>
   );
 }

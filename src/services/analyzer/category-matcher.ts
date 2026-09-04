@@ -7,7 +7,7 @@
  * Этот модуль нормализует оба формата в каноническую форму и делает fuzzy match.
  */
 
-import { normalizeTargetType, isTargetTypeCompatible, inferTargetTypeFromCategory } from '@/utils/target-type';
+import { normalizeTargetType, isTargetTypeCompatible, inferTargetTypeFromCategory, isHybridViewCategory } from '@/utils/target-type';
 
 // Каноническая таблица: короткое имя → все возможные DB-варианты (substring match)
 const CANONICAL_MAP: Record<string, string[]> = {
@@ -138,6 +138,19 @@ export function matchesSuggestedCategory(
 
   if (!suggestedCategories || suggestedCategories.length === 0) return true; // no filter = show all
   
+  // Special Handling for Hybrid View Categories (e.g. "👁️ Просмотры и охваты постов"):
+  // In modern catalogs, views/reach categories host both single post views and channel auto-views / package reach.
+  // If the suggested list contains ANY views/reach or auto-views keyword, match this category!
+  if (isHybridViewCategory(dbCategoryName)) {
+    const hasViewOrAutoView = suggestedCategories.some(s => {
+      const sn = s.toLowerCase();
+      return sn.includes('просмотр') || sn.includes('view') || sn.includes('охват');
+    });
+    if (hasViewOrAutoView) {
+      return true;
+    }
+  }
+
   const dbIsAuto = isAutoService(dbCategoryName);
   
   const dbNameNormalized = dbCategoryName.toLowerCase()

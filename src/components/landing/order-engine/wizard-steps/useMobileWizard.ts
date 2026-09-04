@@ -122,12 +122,16 @@ export function useMobileWizard(engine: OrderEngine) {
   }, [mounted, activeStepRaw, services?.length, isLoading, scrollToStep]);
 
   // CRITICAL INVARIANT:
-  // 1. If selectedService is already set (e.g. from Catalog Modal / deep link) -> Step 4
+  // 1. If auth_resume=1 or hash is #step-4 or selectedService is already set -> Step 4
   // 2. If valid url is already set -> Step 2
   // 3. DEFAULT: Always Step 1 (Вставьте ссылку) — never skip to Step 3 just because categoryId has default value!
   useEffect(() => {
     setMounted(true);
-    if (selectedService) {
+    const isResume = typeof window !== 'undefined' && (
+      window.location.search.includes('auth_resume=1') ||
+      window.location.hash === '#step-4'
+    );
+    if (isResume || selectedService) {
       setActiveStepRaw(4);
     } else if (url && url.trim().length >= 5) {
       setLastResolvedUrl(url);

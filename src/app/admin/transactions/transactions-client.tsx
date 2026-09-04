@@ -640,20 +640,34 @@ export function TransactionsClient({
 
                       {/* 2. ID / UUID проводки & Gateway Key */}
                       <td className="px-2 py-2 font-mono text-[11px] whitespace-nowrap">
-                        <div className="flex items-center gap-1">
-                          <span
-                            className="px-1.5 py-0.5 rounded bg-muted/60 text-foreground border border-border/50 text-[10px] font-bold truncate max-w-[110px] inline-block select-all"
-                            title={displayUuid}
-                          >
-                            {displayUuid.startsWith('gateway-credit-')
-                              ? `yoo:${displayUuid.replace('gateway-credit-', '').slice(0, 7)}...`
-                              : displayUuid.startsWith('gateway-charge-')
-                              ? `order:${displayUuid.replace('gateway-charge-', '').slice(0, 6)}...`
-                              : displayUuid.startsWith('deposit-')
-                              ? `topup:${displayUuid.replace('deposit-', '').slice(0, 6)}...`
-                              : `${displayUuid.slice(0, 9)}...`}
-                          </span>
-                          <CopyBtn text={displayUuid} />
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1">
+                            <span
+                              className="px-1.5 py-0.5 rounded bg-muted/60 text-foreground border border-border/50 text-[10px] font-bold truncate max-w-[110px] inline-block select-all"
+                              title={displayUuid}
+                            >
+                              {displayUuid.startsWith('gateway-credit-')
+                                ? `yoo:${displayUuid.replace('gateway-credit-', '').slice(0, 7)}...`
+                                : displayUuid.startsWith('gateway-charge-')
+                                ? `order:${displayUuid.replace('gateway-charge-', '').slice(0, 6)}...`
+                                : displayUuid.startsWith('deposit-')
+                                ? `topup:${displayUuid.replace('deposit-', '').slice(0, 6)}...`
+                                : `${displayUuid.slice(0, 9)}...`}
+                            </span>
+                            <CopyBtn text={displayUuid} />
+                          </div>
+                          {entry.gatewayId && (
+                            <div className="flex items-center gap-1">
+                              <span
+                                className="px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold truncate max-w-[110px] inline-block select-all"
+                                title={`ID платежа в шлюзе: ${entry.gatewayId}`}
+                              >
+                                {entry.gatewayId.startsWith('test_') ? 'test:' : 'yoo:'}
+                                {entry.gatewayId.replace(/^(test_|live_)/, '').slice(0, 8)}...
+                              </span>
+                              <CopyBtn text={entry.gatewayId} />
+                            </div>
+                          )}
                         </div>
                       </td>
 

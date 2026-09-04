@@ -2,6 +2,17 @@ export interface LocalizedError {
   code: string;
   message: string;
   originalMessage?: string;
+  email?: string;
+}
+
+export class AccountExistsError extends Error {
+  code = 'ACCOUNT_EXISTS';
+  email: string;
+  constructor(email: string, message = "Этот email уже зарегистрирован в системе. Пожалуйста, войдите в свой аккаунт для оформления заказа.") {
+    super(message);
+    this.name = 'AccountExistsError';
+    this.email = email;
+  }
 }
 
 /**
@@ -16,9 +27,18 @@ export function handleServerError(error: unknown): LocalizedError {
     };
   }
 
-  const errObj = (typeof error === 'object' && error !== null ? error : {}) as { message?: string; code?: string; name?: string };
+  const errObj = (typeof error === 'object' && error !== null ? error : {}) as { message?: string; code?: string; name?: string; email?: string };
   const message = typeof error === 'string' ? error : errObj.message || '';
   const code = errObj.code || '';
+
+  // 0. Account Exists (Seamless Checkout In-Modal Auth)
+  if (errObj.name === 'AccountExistsError' || code === 'ACCOUNT_EXISTS' || message.includes('Этот email уже зарегистрирован в системе')) {
+    return {
+      code: 'ACCOUNT_EXISTS',
+      message: 'Этот email уже зарегистрирован в системе. Пожалуйста, войдите в свой аккаунт для оформления заказа.',
+      email: errObj.email || (error as { email?: string })?.email
+    };
+  }
 
   // 1. Connection / Timeout Errors (Anti-Stall & Network Resilience)
   if (

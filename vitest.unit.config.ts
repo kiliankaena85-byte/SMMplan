@@ -102,6 +102,10 @@ export default defineConfig({
       'src/__tests__/watchdog-daemon.test.ts',
       'src/__tests__/order-wizard-category-filtering.test.ts',
       'src/__tests__/financial/balance-payment-notifications-and-ux.test.ts',
+      'src/__tests__/unified-views-category-filtering.test.ts',
+      'src/__tests__/financial/landing-balance-payment-security.test.ts',
+      'src/__tests__/tickets-layout-viewport-overflow.test.ts',
+      'src/__tests__/auth/checkout-guest-auth-modal.test.ts',
     ],
   }
 });

@@ -64,7 +64,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
   const isHoldingParam = params.mode === "holding";
   const isHoldingMode = isHoldingParam || (isProdHost && params.contour !== "test");
 
-  const userBalanceCents = 0;
+  let userBalanceCents = 0;
   const [catalogResult, settings, session, baseUrl] = await Promise.all([
     getPublicCatalogAction(tenantId),
     SettingsProvider.getContactAndLegalSettings(),
@@ -86,15 +86,16 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
   const tenantConfig = TENANTS.find(t => t.id === tenantId);
   const siteName = tenantConfig?.name || settings.SITE_NAME || "SMMplan";
 
-  // Resolve user session and email
+  // Resolve user session, email and balance
   let userEmail: string | undefined = undefined;
   if (session?.userId) {
     const user = await db.user.findUnique({
       where: { id: session.userId },
-      select: { email: true }
+      select: { email: true, balance: true }
     });
     if (user) {
       userEmail = user.email;
+      userBalanceCents = Number(user.balance);
     }
   }
 
@@ -163,7 +164,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
             </div>
 
             <div className="flex-1 w-full max-w-screen-2xl mx-auto px-4 pt-2 md:pt-6 pb-2 md:pb-4 flex flex-col items-center relative z-10">
-              <FluxOrderClient initialCatalog={catalog} initialEmail={userEmail} tenantId={tenantId} />
+              <FluxOrderClient initialCatalog={catalog} initialEmail={userEmail} userBalanceCents={userBalanceCents} tenantId={tenantId} />
             </div>
 
             <div className="relative z-10 w-full my-2 md:my-4">

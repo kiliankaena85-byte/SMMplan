@@ -71713,7 +71713,7 @@ function normalizeTargetType(rawType) {
 }
 function inferTargetTypeFromName(name) {
   if (!name) return "POST" /* POST */;
-  const n = name.toLowerCase();
+  const n = name.toLowerCase().replace(/vexboost/gi, "").replace(/smmboost/gi, "");
   if (n.includes("\u0430\u0432\u0442\u043E\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || n.includes("\u0430\u0432\u0442\u043E\u043B\u0430\u0439\u043A") || n.includes("\u0430\u0432\u0442\u043E\u0440\u0435\u0430\u043A\u0446\u0438") || n.includes("\u0430\u0432\u0442\u043E\u0440\u0435\u043F\u043E\u0441\u0442") || n.includes("\u0431\u0443\u0434\u0443\u0449\u0438\u0435 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B") || n.includes("\u043C\u0430\u0441\u0441\u043E\u0432\u044B\u0435 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B") || n.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u043A\u0430 \u043D\u0430") || n.includes("auto view") || n.includes("future view") || n.includes("channel posts") || // "Просмотры на последних N постов" / "Последних 50 постов" — applies to channel, NOT post
   n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445 \u043F\u043E\u0441\u0442") || n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445 \u043F\u0443\u0431\u043B\u0438\u043A") || n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445 \u0437\u0430\u043F\u0438\u0441") || n.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D") && (n.includes("\u043F\u043E\u0441\u0442") || n.includes("\u0437\u0430\u043F\u0438\u0441") || n.includes("\u043F\u0443\u0431\u043B\u0438\u043A")) || n.includes("last post") || n.includes("last 5 post") || n.includes("last 10 post") || n.includes("last 20 post") || n.includes("last 50 post") || // "Пакет охвата" — views package on last N posts of a channel
   n.includes("\u043F\u0430\u043A\u0435\u0442") && n.includes("\u043E\u0445\u0432\u0430\u0442") || n.includes("\u043F\u0430\u043A\u0435\u0442") && n.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440")) {
@@ -71796,13 +71796,25 @@ __export2(target_type_exports, {
   inferTargetTypeFromCategory: () => inferTargetTypeFromCategory,
   inferTargetTypeFromName: () => inferTargetTypeFromName,
   isCompatible: () => isCompatible,
+  isHybridViewCategory: () => isHybridViewCategory,
   isTargetTypeCompatible: () => isTargetTypeCompatible,
   normalizeTargetType: () => normalizeTargetType
 });
 function isCompatible(serviceType, linkType) {
   return isTargetTypeCompatible(linkType, serviceType);
 }
+function isHybridViewCategory(categoryName) {
+  if (!categoryName) return false;
+  const n = categoryName.toLowerCase();
+  if (n.includes("\u0441\u0442\u043E\u0440\u0438") || n.includes("story") || n.includes("\u043A\u043B\u0438\u043F") || n.includes("clip") || n.includes("shorts") || n.includes("reel")) {
+    return false;
+  }
+  return n.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || n.includes("\u043E\u0445\u0432\u0430\u0442") || n.includes("view") || n.includes("watch");
+}
 function inferTargetTypeFromCategory(categoryName) {
+  if (isHybridViewCategory(categoryName)) {
+    return "CUSTOM" /* CUSTOM */;
+  }
   return inferTargetTypeFromName(categoryName);
 }
 var init_target_type = __esm({
@@ -97065,12 +97077,53 @@ var init_seo_helpers = __esm({
   }
 });
 
+// src/utils/format-price.ts
+function formatPricePerUnit(price) {
+  if (price === 0 || !Number.isFinite(price)) return "0";
+  let str;
+  if (price < 1e-3) {
+    str = price.toFixed(5);
+  } else if (price < 0.01) {
+    str = price.toFixed(4);
+  } else if (price < 0.1) {
+    str = price.toFixed(3);
+  } else {
+    str = price.toFixed(2);
+  }
+  if (str.includes(".")) {
+    str = str.replace(/\.?0+$/, "");
+  }
+  return str || "0";
+}
+function formatRubles(rubles) {
+  if (!Number.isFinite(rubles) || rubles === 0) return "0 \u20BD";
+  const isNegative = rubles < 0;
+  const abs = Math.abs(rubles);
+  const isInt = Number.isInteger(abs);
+  let formattedNum;
+  if (isInt) {
+    formattedNum = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  } else {
+    const parts = abs.toFixed(2).split(".");
+    const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    const decPart = parts[1].replace(/0+$/, "");
+    formattedNum = decPart.length > 0 ? `${intPart},${decPart}` : intPart;
+  }
+  return `${isNegative ? "-" : ""}${formattedNum} \u20BD`;
+}
+var init_format_price = __esm({
+  "src/utils/format-price.ts"() {
+    "use strict";
+  }
+});
+
 // src/lib/smtp.ts
 var smtp_exports = {};
 __export2(smtp_exports, {
   sendAuthMail: () => sendAuthMail,
   sendMagicLink: () => sendMagicLink,
   sendMail: () => sendMail,
+  sendOrderBalanceDebitMail: () => sendOrderBalanceDebitMail,
   sendOrderCanceledMail: () => sendOrderCanceledMail,
   sendOrderCompletedMail: () => sendOrderCompletedMail,
   sendOrderPaidMail: () => sendOrderPaidMail,
@@ -97256,7 +97309,7 @@ async function sendOrderPaidMail(email, orderId, serviceName, tenantId) {
       </p>
       
       <div style="background: #f4f4f5; padding: 16px; border-radius: 12px; margin: 20px 0; font-size: 13px; line-height: 1.5; color: #3f3f46;">
-        <div>\u{1F4C4} <strong>\u042D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u044B\u0439 \u0447\u0435\u043A 54-\u0424\u0417:</strong> \u0441\u0444\u043E\u0440\u043C\u0438\u0440\u043E\u0432\u0430\u043D \u0438 \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u0435\u043D \u0432 \u041E\u0424\u0414.</div>
+        <div>\u{1F4C4} <strong>\u042D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u044B\u0439 \u0447\u0435\u043A 54-\u0424\u0417:</strong> \u043D\u0430\u043F\u0440\u0430\u0432\u043B\u0435\u043D \u043D\u0430 \u0432\u0430\u0448\u0443 \u043F\u043E\u0447\u0442\u0443 \u043F\u043B\u0430\u0442\u0435\u0436\u043D\u044B\u043C \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u043E\u043C.</div>
         <div style="margin-top: 6px;">\u26A1 <strong>\u0421\u0442\u0430\u0440\u0442 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F:</strong> \u0432 \u0442\u0435\u0447\u0435\u043D\u0438\u0435 1\u20135 \u043C\u0438\u043D\u0443\u0442.</div>
       </div>
 
@@ -97267,11 +97320,51 @@ async function sendOrderPaidMail(email, orderId, serviceName, tenantId) {
       </div>
 
       <div style="border-top: 1px solid #e4e4e7; padding-top: 16px; font-size: 12px; color: #a1a1aa; line-height: 1.5;">
-        \u{1F4A1} <em>\u0415\u0441\u043B\u0438 \u0432\u044B \u0434\u043E\u043F\u0443\u0441\u0442\u0438\u043B\u0438 \u043E\u043F\u0435\u0447\u0430\u0442\u043A\u0443 \u0432 email \u0438\u043B\u0438 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442\u0435 \u0432\u043E\u0439\u0442\u0438 \u0432 \u0430\u043A\u043A\u0430\u0443\u043D\u0442, \u043E\u0431\u0440\u0430\u0442\u0438\u0442\u0435\u0441\u044C \u0432 \u043D\u0430\u0448\u0443 \u0441\u043B\u0443\u0436\u0431\u0443 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0438 \u0441 \u043D\u043E\u043C\u0435\u0440\u043E\u043C \u0437\u0430\u043A\u0430\u0437\u0430 #${orderId} \u0438 \u0447\u0435\u043A\u043E\u043C \u043E\u043F\u043B\u0430\u0442\u044B.</em>
+        \u{1F4A1} <em>\u0415\u0441\u043B\u0438 \u0432\u044B \u0434\u043E\u043F\u0443\u0441\u0442\u0438\u043B\u0438 \u043E\u043F\u0435\u0447\u0430\u0442\u043A\u0443 \u0432 email \u0438\u043B\u0438 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442\u0435 \u0432\u043E\u0439\u0442\u0438 \u0432 \u0430\u043A\u043A\u0430\u0443\u043D\u0442, \u043E\u0431\u0440\u0430\u0442\u0438\u0442\u0435\u0441\u044C \u0432 \u043D\u0430\u0448\u0443 \u0441\u043B\u0443\u0436\u0431\u0443 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0438 \u0441 \u043D\u043E\u043C\u0435\u0440\u043E\u043C \u0437\u0430\u043A\u0430\u0437\u0430 #${orderId}.</em>
       </div>
     </div>
   `;
-  return sendMail(email, `\u0427\u0435\u043A \u0438 \u0437\u0430\u043F\u0443\u0441\u043A \u0437\u0430\u043A\u0430\u0437\u0430 #${orderId} \u2014 ${companyName}`, htmlContent, void 0, tenantId);
+  return sendMail(email, `\u041E\u043F\u043B\u0430\u0442\u0430 \u043F\u043E\u043B\u0443\u0447\u0435\u043D\u0430 \u0438 \u0437\u0430\u043F\u0443\u0441\u043A \u0437\u0430\u043A\u0430\u0437\u0430 #${orderId} \u2014 ${companyName}`, htmlContent, void 0, tenantId);
+}
+async function sendOrderBalanceDebitMail({
+  email,
+  orderId,
+  serviceName,
+  chargedCents,
+  remainingBalanceCents,
+  tenantId
+}) {
+  const { companyName, supportDomain } = await getEmailContext(tenantId);
+  const chargedRub = Number(chargedCents) / 100;
+  const remainingRub = remainingBalanceCents !== void 0 && remainingBalanceCents !== null ? Number(remainingBalanceCents) / 100 : null;
+  const htmlContent = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; padding: 28px; border-radius: 16px; border: 1px solid #e4e4e7; color: #18181b;">
+      <h2 style="color: #10b981; margin-top: 0; font-size: 22px;">\u0417\u0430\u043A\u0430\u0437 #<span>${orderId}</span> \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u0437\u0430\u043F\u0443\u0449\u0435\u043D! \u{1F680}</h2>
+      <p style="color: #52525b; line-height: 1.6; font-size: 15px;">
+        \u0412\u0430\u0448 \u0437\u0430\u043A\u0430\u0437 \u043D\u0430 \u0443\u0441\u043B\u0443\u0433\u0443 <strong>${serviceName}</strong> \u0432 \u0441\u0435\u0440\u0432\u0438\u0441\u0435 ${companyName} \u043F\u0440\u0438\u043D\u044F\u0442 \u0438 \u0437\u0430\u043F\u0443\u0449\u0435\u043D \u0432 \u043E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0443.
+      </p>
+      
+      <div style="background: #f4f4f5; padding: 18px; border-radius: 12px; margin: 20px 0; font-size: 14px; line-height: 1.6; color: #27272a;">
+        <div>\u{1F4B0} <strong>\u0421\u043F\u0438\u0441\u0430\u043D\u043E \u0441 \u0431\u0430\u043B\u0430\u043D\u0441\u0430:</strong> ${formatRubles(chargedRub)}</div>
+        ${remainingRub !== null ? `<div style="margin-top: 6px;">\u{1F4BC} <strong>\u041E\u0441\u0442\u0430\u0442\u043E\u043A \u043D\u0430 \u0431\u0430\u043B\u0430\u043D\u0441\u0435:</strong> ${formatRubles(remainingRub)}</div>` : ""}
+        <div style="margin-top: 6px;">\u26A1 <strong>\u0421\u0442\u0430\u0440\u0442 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F:</strong> \u0432 \u0442\u0435\u0447\u0435\u043D\u0438\u0435 1\u20135 \u043C\u0438\u043D\u0443\u0442.</div>
+        <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #d4d4d8; font-size: 12px; color: #71717a; line-height: 1.5;">
+          \u{1F4A1} <em>\u041E\u043F\u043B\u0430\u0442\u0430 \u043F\u0440\u043E\u0438\u0437\u0432\u0435\u0434\u0435\u043D\u0430 \u0441 \u0432\u0430\u0448\u0435\u0433\u043E \u0432\u043D\u0443\u0442\u0440\u0435\u043D\u043D\u0435\u0433\u043E \u043B\u0438\u0446\u0435\u0432\u043E\u0433\u043E \u0441\u0447\u0451\u0442\u0430 (\u0440\u0430\u043D\u0435\u0435 \u0432\u043D\u0435\u0441\u0435\u043D\u043D\u044B\u0439 \u0430\u0432\u0430\u043D\u0441). \u041F\u043E\u0432\u0442\u043E\u0440\u043D\u043E\u0435 \u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0441 \u0432\u0430\u0448\u0435\u0439 \u0431\u0430\u043D\u043A\u043E\u0432\u0441\u043A\u043E\u0439 \u043A\u0430\u0440\u0442\u044B \u043D\u0435 \u043F\u0440\u043E\u0438\u0437\u0432\u043E\u0434\u0438\u043B\u043E\u0441\u044C. \u041A\u0430\u0441\u0441\u043E\u0432\u044B\u0439 \u0447\u0435\u043A \u043F\u043E 54-\u0424\u0417 \u0431\u044B\u043B \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D \u0432\u0430\u043C \u0440\u0430\u043D\u0435\u0435 \u0432 \u043C\u043E\u043C\u0435\u043D\u0442 \u043F\u043E\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F \u0431\u0430\u043B\u0430\u043D\u0441\u0430.</em>
+        </div>
+      </div>
+
+      <div style="margin: 28px 0; text-align: center;">
+        <a href="https://${supportDomain}/dashboard/orders" style="background-color: #0284c7; color: #ffffff; padding: 13px 28px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 15px; display: inline-block;">
+          \u041F\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 \u043C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B \u2192
+        </a>
+      </div>
+
+      <div style="border-top: 1px solid #e4e4e7; padding-top: 16px; font-size: 12px; color: #a1a1aa; line-height: 1.5;">
+        \u{1F4A1} <em>\u0415\u0441\u043B\u0438 \u0443 \u0432\u0430\u0441 \u0432\u043E\u0437\u043D\u0438\u043A\u043B\u0438 \u0432\u043E\u043F\u0440\u043E\u0441\u044B \u043F\u043E \u0437\u0430\u043A\u0430\u0437\u0443, \u043E\u0431\u0440\u0430\u0442\u0438\u0442\u0435\u0441\u044C \u0432 \u043D\u0430\u0448\u0443 \u0441\u043B\u0443\u0436\u0431\u0443 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0438 \u0441 \u043D\u043E\u043C\u0435\u0440\u043E\u043C \u0437\u0430\u043A\u0430\u0437\u0430 #${orderId}.</em>
+      </div>
+    </div>
+  `;
+  return sendMail(email, `\u0417\u0430\u043A\u0430\u0437 #${orderId} \u0437\u0430\u043F\u0443\u0449\u0435\u043D \u2014 \u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0441 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 ${companyName}`, htmlContent, void 0, tenantId);
 }
 async function sendOrderCanceledMail(email, orderId, serviceName, tenantId) {
   const { companyName, supportDomain } = await getEmailContext(tenantId);
@@ -97334,6 +97427,7 @@ var init_smtp = __esm({
     init_logger();
     init_get_base_url();
     init_seo_helpers();
+    init_format_price();
     if (import_dns.default.setDefaultResultOrder) {
       import_dns.default.setDefaultResultOrder("ipv4first");
     }
@@ -128123,11 +128217,20 @@ var init_order_service = __esm({
           } catch (queueError) {
             console.error("[OrderService] Non-fatal queue dispatch error:", queueError instanceof Error ? queueError.message : String(queueError));
           }
-          Promise.resolve().then(() => (init_smtp(), smtp_exports)).then(({ sendOrderPaidMail: sendOrderPaidMail2 }) => {
-            db.user.findUnique({ where: { id: userId }, select: { email: true } }).then((u) => {
+          Promise.resolve().then(() => (init_smtp(), smtp_exports)).then(({ sendOrderBalanceDebitMail: sendOrderBalanceDebitMail2 }) => {
+            db.user.findUnique({ where: { id: userId }, select: { email: true, balance: true, tenantId: true } }).then((u) => {
               if (u?.email) {
                 db.service.findUnique({ where: { id: input.serviceId }, select: { name: true } }).then((s) => {
-                  if (s?.name) sendOrderPaidMail2(u.email, newOrder.numericId.toString(), s.name).catch(console.error);
+                  if (s?.name) {
+                    sendOrderBalanceDebitMail2({
+                      email: u.email,
+                      orderId: newOrder.numericId.toString(),
+                      serviceName: s.name,
+                      chargedCents: input.charge,
+                      remainingBalanceCents: u.balance,
+                      tenantId: u.tenantId
+                    }).catch(console.error);
+                  }
                 });
               }
             });
@@ -129575,6 +129678,7 @@ var init_network_router = __esm({
       "cbr.ru",
       "smtp.yandex.ru",
       "smtp.mail.ru",
+      "vexboost.ru",
       "localhost",
       "127.0.0.1"
     ];
@@ -129598,6 +129702,15 @@ var init_network_router = __esm({
           comment: "\u042EKassa (\u0441\u0442\u0440\u043E\u0433\u043E \u043F\u0440\u044F\u043C\u043E\u0439 \u0434\u043E\u0441\u0442\u0443\u043F \u0420\u0424)",
           isEnabled: true,
           priority: 10
+        },
+        {
+          id: "rule-vexboost",
+          type: "DOMAIN-SUFFIX",
+          payload: "vexboost.ru",
+          target: "DIRECT",
+          comment: "\u041E\u0441\u043D\u043E\u0432\u043D\u043E\u0439 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A Vexboost (\u0441\u0442\u0440\u043E\u0433\u043E \u043F\u0440\u044F\u043C\u043E\u0439 \u0434\u043E\u0441\u0442\u0443\u043F \u0420\u0424)",
+          isEnabled: true,
+          priority: 15
         },
         {
           id: "rule-robokassa",
@@ -130607,46 +130720,6 @@ var init_unified_payment_service = __esm({
         }
       }
     };
-  }
-});
-
-// src/utils/format-price.ts
-function formatPricePerUnit(price) {
-  if (price === 0 || !Number.isFinite(price)) return "0";
-  let str;
-  if (price < 1e-3) {
-    str = price.toFixed(5);
-  } else if (price < 0.01) {
-    str = price.toFixed(4);
-  } else if (price < 0.1) {
-    str = price.toFixed(3);
-  } else {
-    str = price.toFixed(2);
-  }
-  if (str.includes(".")) {
-    str = str.replace(/\.?0+$/, "");
-  }
-  return str || "0";
-}
-function formatRubles(rubles) {
-  if (!Number.isFinite(rubles) || rubles === 0) return "0 \u20BD";
-  const isNegative = rubles < 0;
-  const abs = Math.abs(rubles);
-  const isInt = Number.isInteger(abs);
-  let formattedNum;
-  if (isInt) {
-    formattedNum = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-  } else {
-    const parts = abs.toFixed(2).split(".");
-    const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-    const decPart = parts[1].replace(/0+$/, "");
-    formattedNum = decPart.length > 0 ? `${intPart},${decPart}` : intPart;
-  }
-  return `${isNegative ? "-" : ""}${formattedNum} \u20BD`;
-}
-var init_format_price = __esm({
-  "src/utils/format-price.ts"() {
-    "use strict";
   }
 });
 

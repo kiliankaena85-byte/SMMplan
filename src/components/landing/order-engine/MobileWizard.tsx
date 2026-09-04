@@ -21,6 +21,7 @@ interface MobileWizardProps {
   onOpenDocument?: (slug: string) => void;
   onOpenCatalog?: () => void;
   checkoutError?: string | null;
+  userBalanceCents?: number;
 }
 
 export function MobileWizard({ 
@@ -32,23 +33,24 @@ export function MobileWizard({
   onOpenGuide,
   onOpenDocument,
   onOpenCatalog,
-  checkoutError
+  checkoutError,
+  userBalanceCents
 }: MobileWizardProps) {
 
   const wizard = useMobileWizard(engine);
 
   if (!wizard.mounted) {
     return (
-      <div className="md:hidden flex items-center justify-center p-8 bg-card border-b border-border/50">
-        <Loader2 className="w-6 h-6 text-primary animate-spin" />
+      <div className="w-full flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div data-testid="mobile-wizard" className="md:hidden flex flex-col gap-4 p-3.5 bg-card rounded-3xl shadow-sm relative z-30 animate-in fade-in duration-300">
-      <MobileWizardStepper
-        currentStep={wizard.currentStep}
+    <div className="w-full flex flex-col gap-2 p-2 sm:p-4 bg-content1 md:hidden">
+      <MobileWizardStepper 
+        currentStep={wizard.currentStep} 
         setActiveStep={wizard.setActiveStep}
         isLinkFilled={wizard.isLinkFilled}
         hasCategory={wizard.hasCategory}
@@ -102,6 +104,7 @@ export function MobileWizard({
         isSubmitting={isSubmitting}
         onOpenDocument={onOpenDocument}
         checkoutError={checkoutError}
+        userBalanceCents={userBalanceCents}
       />
 
       {/* FZ-152 compliance marker: согласие на обработку персональных данных /legal/privacy */}

@@ -138,7 +138,102 @@ export function useOrderEngine(
         }
       }
     } catch { /* sessionStorage unavailable (SSR/incognito) */ }
-   
+  }, []);
+
+  // SPEC-2026-14: Restore pending order snapshot if returning via Magic Link (?auth_resume=1)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const isAuthResume = window.location.search.includes('auth_resume=1');
+      const rawSnapshot = 
+        sessionStorage.getItem('smmplan_pending_order') ||
+        localStorage.getItem('smmplan_pending_order') ||
+        sessionStorage.getItem('omni_pending_order_v1') ||
+        localStorage.getItem('omni_pending_order_v1');
+
+      if (!rawSnapshot) return;
+      const snapshot = JSON.parse(rawSnapshot);
+      if (!snapshot || typeof snapshot !== 'object') return;
+
+      const savedTime = snapshot.savedAt || snapshot.timestamp || 0;
+      const isExpired = Date.now() - savedTime > 30 * 60 * 1000; // 30 min TTL
+
+      if (isExpired) {
+        sessionStorage.removeItem('smmplan_pending_order');
+        localStorage.removeItem('smmplan_pending_order');
+        sessionStorage.removeItem('omni_pending_order_v1');
+        localStorage.removeItem('omni_pending_order_v1');
+        return;
+      }
+
+      if (isAuthResume) {
+        // Restore order fields
+        const targetUrl = snapshot.link || snapshot.url;
+        if (targetUrl && typeof targetUrl === 'string') {
+          setUrl(targetUrl);
+        }
+        if (snapshot.networkId) {
+          setNetworkId(snapshot.networkId);
+        }
+        if (snapshot.categoryId) {
+          setCategoryId(snapshot.categoryId);
+        }
+        if (snapshot.quantity && typeof snapshot.quantity === 'number' && snapshot.quantity > 0) {
+          setQuantity(snapshot.quantity);
+        }
+        if (snapshot.email && typeof snapshot.email === 'string') {
+          setEmail(snapshot.email);
+        }
+        if (snapshot.promoCode && typeof snapshot.promoCode === 'string') {
+          setPromoCode(snapshot.promoCode);
+        }
+        if (snapshot.customData && typeof snapshot.customData === 'string') {
+          setCustomData(snapshot.customData);
+        }
+        if (snapshot.runs || snapshot.dripRuns) {
+          setRuns(snapshot.runs || snapshot.dripRuns);
+          setDripFeedEnabled(true);
+        }
+        if (snapshot.interval || snapshot.dripInterval) {
+          setDripInterval(snapshot.interval || snapshot.dripInterval);
+        }
+        if (snapshot.isSmartDrip) {
+          setIsSmartDrip(true);
+          setSmartDripDays(snapshot.smartDripDays || 7);
+        }
+
+        // Restore service
+        if (snapshot.serviceId) {
+          getFreshServiceAction(snapshot.serviceId)
+            .then((fresh) => {
+              if (fresh) {
+                setSelectedService(fresh);
+              }
+            })
+            .catch(() => {});
+        }
+
+        // User feedback
+        toast.success('Вы успешно вошли в аккаунт!', {
+          description: 'Параметры вашего заказа восстановлены и готовы к оплате.'
+        });
+
+        // Clean up storage
+        sessionStorage.removeItem('smmplan_pending_order');
+        localStorage.removeItem('smmplan_pending_order');
+        sessionStorage.removeItem('omni_pending_order_v1');
+        localStorage.removeItem('omni_pending_order_v1');
+
+        // Clean URL query param and ensure hash points to step 4
+        try {
+          const urlObj = new URL(window.location.href);
+          urlObj.searchParams.delete('auth_resume');
+          window.history.replaceState({}, '', urlObj.pathname + (urlObj.search ? urlObj.search : '') + '#step-4');
+        } catch {}
+      }
+    } catch (e) {
+      console.warn('[useOrderEngine] Failed to restore pending order snapshot:', e);
+    }
   }, []);
 
   // BUG-10: Save draft progress to sessionStorage

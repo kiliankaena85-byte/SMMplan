@@ -16,6 +16,7 @@ import { runSerializableTransaction } from '@/lib/transactions';
 import crypto from 'crypto';
 import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
 import { inferTargetTypeFromCategory } from '@/utils/target-type';
+import { AccountExistsError } from '@/utils/error-handler';
 
 const massOrderSchema = z.object({
   text: z.string().min(1, 'Введите данные для заказа').max(20480, 'Текст заказа слишком длинный'),
@@ -223,7 +224,7 @@ export const massOrderCheckoutAction = async (input: z.infer<typeof massOrderSch
        }
        // CHK-02: prevent guest orders binding to existing password-protected accounts (same guard as checkout.ts)
        if (user?.passwordHash) {
-         throw new Error("Этот email уже зарегистрирован в системе. Пожалуйста, войдите в свой аккаунт для оформления заказа.");
+         throw new AccountExistsError(lowerEmail);
        }
        if (!user) {
          user = await db.user.create({
@@ -514,7 +515,7 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
        }
        // CHK-02: prevent guest orders binding to existing password-protected accounts (same guard as checkout.ts)
        if (user?.passwordHash) {
-         throw new Error("Этот email уже зарегистрирован в системе. Пожалуйста, войдите в свой аккаунт для оформления заказа.");
+         throw new AccountExistsError(lowerEmail);
        }
        if (!user) {
          user = await db.user.create({

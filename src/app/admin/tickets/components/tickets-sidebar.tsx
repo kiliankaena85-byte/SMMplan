@@ -100,10 +100,10 @@ export function TicketsSidebar({
 
   return (
     <div 
-      className="w-full lg:w-[300px] xl:w-[340px] shrink-0 border-r border-border flex flex-col h-full select-none bg-background min-w-0"
+      className="w-full lg:w-[300px] xl:w-[340px] shrink-0 border-r border-border flex flex-col h-full overflow-hidden min-h-0 select-none bg-background min-w-0"
     >
       {/* List Header */}
-      <div className="p-3.5 border-b border-border space-y-2.5 bg-card text-card-foreground">
+      <div className="p-3.5 border-b border-border space-y-2.5 bg-card text-card-foreground shrink-0">
         <div className="flex items-center justify-between">
           <h1 className="font-black text-base flex items-center gap-2">
             <Headphones className="w-5 h-5 text-primary" />
@@ -213,7 +213,7 @@ export function TicketsSidebar({
       </div>
 
       {/* Cards List container */}
-      <div className="flex-grow overflow-y-auto flex flex-col gap-1.5 p-2 custom-scrollbar bg-background">
+      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 p-2 custom-scrollbar bg-background">
         {tickets.map((ticket) => {
           const isActive = activeTicket?.id === ticket.id;
           const lastMsg = (ticket.messages && ticket.messages.length > 0) ? ticket.messages[0].text : "Нет сообщений";

@@ -20,6 +20,7 @@ interface MobileStep4CheckoutProps {
   isSubmitting: boolean;
   onOpenDocument?: (slug: string) => void;
   checkoutError?: string | null;
+  userBalanceCents?: number;
 }
 
 export function MobileStep4Checkout({
@@ -33,7 +34,8 @@ export function MobileStep4Checkout({
   handleCheckout,
   isSubmitting,
   onOpenDocument,
-  checkoutError
+  checkoutError,
+  userBalanceCents
 }: MobileStep4CheckoutProps) {
   const [showAdvancedParams, setShowAdvancedParams] = useState(false);
   const [showPromo, setShowPromo] = useState(false);
@@ -427,42 +429,77 @@ export function MobileStep4Checkout({
             0% комиссия через СБП
           </span>
         </div>
-        <div className="grid grid-cols-3 gap-1.5">
-          {[
-            { id: "yookassa", name: "СБП / Карты", subtitle: "0% комиссия", badge: "ХИТ", icon: "⚡" },
-            { id: "cryptobot", name: "Крипта", subtitle: "USDT / TON", icon: "💎" },
-            { id: "robokassa", name: "Зарубежные", subtitle: "Карты / СНГ", icon: "🌐" },
-          ].map((gateway) => {
-            const isSelected = selectedGateway === gateway.id;
-            return (
-              <button
-                key={gateway.id}
-                type="button"
-                onClick={() => setSelectedGateway(gateway.id)}
-                className={`p-2 rounded-xl border text-left flex flex-col justify-between gap-0.5 transition-all cursor-pointer active:scale-95 min-h-[52px] relative overflow-hidden ${
-                  isSelected
-                    ? "border-primary bg-primary/10 ring-2 ring-primary/30 shadow-sm"
-                    : "border-border/50 bg-content2 hover:bg-content3 hover:border-border text-muted-foreground"
-                }`}
-              >
-                {gateway.badge && (
-                  <span className="absolute top-1 right-1 text-[8px] font-black uppercase tracking-wider px-1 py-0.2 rounded bg-primary text-primary-foreground">
-                    {gateway.badge}
-                  </span>
-                )}
-                <div className="flex items-center gap-1">
-                  <span className="text-sm">{gateway.icon}</span>
-                  <span className={`text-[11px] font-bold ${isSelected ? "text-foreground" : "text-foreground/80"}`}>
-                    {gateway.name}
-                  </span>
-                </div>
-                <span className="text-[9px] font-medium text-muted-foreground">
-                  {gateway.subtitle}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        {(() => {
+          const totalCents = engine.pricing?.totalCents || Math.round(parseFloat(totalPriceFormatted || "0") * 100);
+          const safeBalanceCents = userBalanceCents ?? 0;
+          const hasBalance = userBalanceCents !== undefined && userBalanceCents > 0;
+          const isBalanceSufficient = hasBalance && safeBalanceCents >= totalCents;
+
+          const gateways = [
+            ...(hasBalance ? [{
+              id: "balance",
+              name: "Мой баланс",
+              subtitle: `${(safeBalanceCents / 100).toFixed(0)} ₽`,
+              badge: isBalanceSufficient ? "БАЛАНС" : "МАЛО",
+              icon: "💰",
+              disabled: !isBalanceSufficient
+            }] : []),
+            { id: "yookassa", name: "СБП / Карты", subtitle: "0% комиссия", badge: "ХИТ", icon: "⚡", disabled: false },
+            { id: "cryptobot", name: "Крипта", subtitle: "USDT / TON", icon: "💎", disabled: false },
+            { id: "robokassa", name: "Зарубежные", subtitle: "Карты / СНГ", icon: "🌐", disabled: false },
+          ];
+
+          return (
+            <div className={`grid gap-1.5 ${hasBalance ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}>
+              {gateways.map((gateway) => {
+                const isSelected = selectedGateway === gateway.id;
+                return (
+                  <button
+                    key={gateway.id}
+                    type="button"
+                    onClick={() => {
+                      if (gateway.disabled) {
+                        setLocalError(`Недостаточно средств на балансе (${(safeBalanceCents / 100).toFixed(2)} ₽). Пополните баланс в ЛК или выберите оплату картой.`);
+                        setShakeKey(prev => prev + 1);
+                        return;
+                      }
+                      setLocalError(null);
+                      setSelectedGateway(gateway.id);
+                    }}
+                    className={`p-2 rounded-xl border text-left flex flex-col justify-between gap-0.5 transition-all cursor-pointer active:scale-95 min-h-[52px] relative overflow-hidden ${
+                      gateway.disabled
+                        ? "opacity-60 cursor-not-allowed border-border/30 bg-content2/50 text-muted-foreground"
+                        : isSelected
+                        ? "border-primary bg-primary/10 ring-2 ring-primary/30 shadow-sm"
+                        : "border-border/50 bg-content2 hover:bg-content3 hover:border-border text-muted-foreground"
+                    }`}
+                  >
+                    {gateway.badge && (
+                      <span className={`absolute top-1 right-1 text-[8px] font-black uppercase tracking-wider px-1 py-0.2 rounded ${
+                        gateway.id === 'balance' && isBalanceSufficient
+                          ? "bg-emerald-500 text-white"
+                          : gateway.disabled
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-primary text-primary-foreground"
+                      }`}>
+                        {gateway.badge}
+                      </span>
+                    )}
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm">{gateway.icon}</span>
+                      <span className={`text-[11px] font-bold ${isSelected ? "text-foreground" : "text-foreground/80"}`}>
+                        {gateway.name}
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-medium text-muted-foreground">
+                      {gateway.subtitle}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       <div className="pt-2 border-t border-border/30 space-y-2">
@@ -499,7 +536,9 @@ export function MobileStep4Checkout({
             <>
               <Zap className="w-4 h-4 fill-current" />
               <span>
-                {selectedGateway === 'yookassa'
+                {selectedGateway === 'balance'
+                  ? `Оплатить с баланса — ${totalPriceFormatted} ₽`
+                  : selectedGateway === 'yookassa'
                   ? `Оплатить через СБП / Картой — ${totalPriceFormatted} ₽`
                   : selectedGateway === 'cryptobot'
                   ? `Оплатить в CryptoBot — ${totalPriceFormatted} ₽`
@@ -513,7 +552,11 @@ export function MobileStep4Checkout({
       <div className="flex flex-col items-center gap-1 text-center pt-0.5 pb-1">
         <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
           <span className="text-emerald-500 font-black">✓</span>
-          <span>Официальный платёж • Электронный чек по 54-ФЗ</span>
+          <span>
+            {selectedGateway === 'balance'
+              ? 'Внутреннее списание • Без комиссий банка'
+              : 'Официальный платёж • Электронный чек по 54-ФЗ'}
+          </span>
         </div>
         <p className="text-[10px] text-muted-foreground/75 font-medium">
           Безопасное соединение TLS 1.3 • Без подписок и скрытых списаний

@@ -29,6 +29,7 @@ import { ALL_PLATFORMS, CatalogPlatform, CatalogCategory, CatalogServiceItem } f
 
 export function StepByStepWizard({
   onCompleteOrder,
+  userBalanceCents = 0
 }: {
   onCompleteOrder?: (orderData: {
     platform: string;
@@ -38,6 +39,7 @@ export function StepByStepWizard({
     quantity: number;
     paymentMethod: string;
   }) => void;
+  userBalanceCents?: number;
 }) {
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
   const [selectedPlatform, setSelectedPlatform] = useState<CatalogPlatform>(ALL_PLATFORMS[0]);
@@ -49,7 +51,7 @@ export function StepByStepWizard({
   // Step 4 Form State
   const [targetUrl, setTargetUrl] = useState('');
   const [quantity, setQuantity] = useState(500);
-  const [paymentMethod, setPaymentMethod] = useState<'sbp' | 'card' | 'crypto'>('sbp');
+  const [paymentMethod, setPaymentMethod] = useState<'sbp' | 'card' | 'crypto' | 'balance'>('sbp');
   const [availableGateways, setAvailableGateways] = useState<{
     yookassa: boolean;
     sbp?: boolean;
@@ -453,13 +455,33 @@ export function StepByStepWizard({
                     Способ оплаты:
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                    {userBalanceCents > 0 && (
+                      <button
+                        type="button"
+                        className={`p-3 min-h-[44px] rounded-2xl border text-left transition-all cursor-pointer ${
+                          paymentMethod === 'balance'
+                            ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20'
+                            : 'border-border bg-card hover:border-border/80'
+                        }`}
+                        onClick={() => setPaymentMethod('balance')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Wallet className="w-4 h-4 text-emerald-500" />
+                          <span className="font-bold text-xs">Мой баланс</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground block mt-0.5">
+                          {(userBalanceCents / 100).toFixed(2)} ₽
+                        </span>
+                      </button>
+                    )}
+
                     {(!availableGateways || availableGateways.yookassa) && (
                       <button
                         type="button"
-                        className={`p-3 min-h-[44px] rounded-2xl border text-left transition-all ${
+                        className={`p-3 min-h-[44px] rounded-2xl border text-left transition-all cursor-pointer ${
                           paymentMethod === 'sbp'
                             ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                            : 'border-border bg-card'
+                            : 'border-border bg-card hover:border-border/80'
                         }`}
                         onClick={() => setPaymentMethod('sbp')}
                       >
@@ -474,10 +496,10 @@ export function StepByStepWizard({
                     {(!availableGateways || availableGateways.yookassa) && (
                       <button
                         type="button"
-                        className={`p-3 min-h-[44px] rounded-2xl border text-left transition-all ${
+                        className={`p-3 min-h-[44px] rounded-2xl border text-left transition-all cursor-pointer ${
                           paymentMethod === 'card'
                             ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                            : 'border-border bg-card'
+                            : 'border-border bg-card hover:border-border/80'
                         }`}
                         onClick={() => setPaymentMethod('card')}
                       >
@@ -492,10 +514,10 @@ export function StepByStepWizard({
                     {(!availableGateways || availableGateways.cryptobot) && (
                       <button
                         type="button"
-                        className={`p-3 min-h-[44px] rounded-2xl border text-left transition-all ${
+                        className={`p-3 min-h-[44px] rounded-2xl border text-left transition-all cursor-pointer ${
                           paymentMethod === 'crypto'
                             ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                            : 'border-border bg-card'
+                            : 'border-border bg-card hover:border-border/80'
                         }`}
                         onClick={() => setPaymentMethod('crypto')}
                       >

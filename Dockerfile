@@ -41,9 +41,14 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 COPY --chown=nextjs:nodejs .next/standalone/node_modules ./node_modules
 COPY --chown=nextjs:nodejs node_modules/nodemailer ./node_modules/nodemailer
 COPY --chown=nextjs:nodejs prisma ./prisma
+COPY --chown=nextjs:nodejs docker/healthcheck-worker.js ./
 COPY --chown=nextjs:nodejs dist/worker.js ./
 
 USER nextjs
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD node /app/healthcheck-worker.js || exit 1
+
 CMD ["node", "worker.js"]
 
 # --- bot-runner ---

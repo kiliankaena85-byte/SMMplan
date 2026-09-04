@@ -38,6 +38,16 @@ export async function register() {
           console.warn('[Instrumentation] Failed to load bot module:', botImportErr);
         }
       }
+
+      // Auto-launch Queue & Worker Watchdog Daemon in Node runtime
+      if (process.env.SKIP_WATCHDOG !== 'true') {
+        try {
+          const { startWatchdogDaemon } = await import('@/lib/daemons/watchdog-daemon');
+          startWatchdogDaemon();
+        } catch (watchdogImportErr) {
+          console.warn('[Instrumentation] Failed to load watchdog daemon:', watchdogImportErr);
+        }
+      }
     }
   }
 }

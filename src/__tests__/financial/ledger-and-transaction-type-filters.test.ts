@@ -229,4 +229,83 @@ describe('Financial Ledger & Transaction Status / Type Filters Suite', () => {
       expect(resReroute.items[0].transactionType).toBe('REROUTE');
     }
   });
+
+  it('8. Seamlessly searches and finds ledger entry by gatewayId (YooKassa UUID) in getLedgerAction and populates gatewayId on DTO', async () => {
+    const paymentGatewayId = `322c4a98-000f-5000-b000-${Math.random().toString(36).slice(2, 12)}`;
+    const payment = await db.payment.create({
+      data: {
+        userId: testUserId,
+        amount: BigInt(50000),
+        status: 'SUCCEEDED',
+        gatewayId: paymentGatewayId,
+        gateway: 'yookassa',
+        tenantId: 'smmplan',
+      }
+    });
+
+    const ledgerEntry = await db.ledgerEntry.create({
+      data: {
+        userId: testUserId,
+        amount: BigInt(50000),
+        reason: 'Пополнение баланса через yookassa',
+        transactionType: 'TOPUP',
+        status: 'APPROVED',
+        tenantId: 'smmplan',
+        idempotencyKey: `deposit-${payment.id}`,
+      }
+    });
+
+    const res = await getLedgerAction({
+      search: paymentGatewayId,
+      period: 'all',
+    });
+
+    expect('items' in res).toBe(true);
+    if ('items' in res) {
+      expect(res.items.length).toBeGreaterThanOrEqual(1);
+      const matched = res.items.find(i => i.id === ledgerEntry.id);
+      expect(matched).toBeDefined();
+      expect(matched?.gatewayId).toBe(paymentGatewayId);
+      expect(matched?.idempotencyKey).toBe(`deposit-${payment.id}`);
+    }
+  });
+
+  it('9. Seamlessly searches and finds transaction by gatewayId in operator getTransactionsListAction', async () => {
+    const paymentGatewayId = `322b424e-000f-5001-9000-${Math.random().toString(36).slice(2, 12)}`;
+    const payment = await db.payment.create({
+      data: {
+        userId: testUserId,
+        amount: BigInt(35000),
+        status: 'SUCCEEDED',
+        gatewayId: paymentGatewayId,
+        gateway: 'yookassa',
+        tenantId: 'smmplan',
+      }
+    });
+
+    const ledgerEntry = await db.ledgerEntry.create({
+      data: {
+        userId: testUserId,
+        amount: BigInt(35000),
+        reason: 'Оплата заказа через шлюз',
+        transactionType: 'TOPUP',
+        status: 'APPROVED',
+        tenantId: 'smmplan',
+        idempotencyKey: `gateway-credit-${payment.id}`,
+      }
+    });
+
+    const res = await getTransactionsListAction({
+      search: paymentGatewayId,
+      period: 'all',
+    });
+
+    expect('items' in res).toBe(true);
+    if ('items' in res) {
+      expect(res.items.length).toBeGreaterThanOrEqual(1);
+      const matched = res.items.find(i => i.id === ledgerEntry.id);
+      expect(matched).toBeDefined();
+      expect(matched?.gatewayId).toBe(paymentGatewayId);
+    }
+  });
 });

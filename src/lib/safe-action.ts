@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import { handleServerError } from '@/utils/error-handler';
 
-type ServerActionResponse<T> =
+export type ServerActionResponse<T> =
   | { success: true; data: T }
-  | { success: false; error: string; issues?: string[] };
+  | { success: false; error: string; issues?: string[]; code?: string; email?: string };
 
 /**
  * A highly secured wrapper for Server Actions.
@@ -43,6 +43,11 @@ export async function createSafeAction<TInput, TOutput>(
 
     // 2. Standardize and localize the error for the client (Task 1.2)
     const localized = handleServerError(error);
-    return { success: false, error: localized.message };
+    return {
+      success: false,
+      error: localized.message,
+      code: localized.code,
+      email: localized.email || (error as { email?: string })?.email
+    };
   }
 }

@@ -298,7 +298,7 @@ export function UnifiedTicketsWorkspace({
 
   return (
     <>
-    <div className="tickets-workspace flex flex-1 overflow-hidden h-full max-h-full bg-background text-foreground min-w-0">
+    <div className="tickets-workspace flex flex-1 overflow-hidden h-full max-h-full bg-background text-foreground min-w-0 min-h-0">
       {/* ── LEFT PANEL: Tickets List (Hide on mobile if ticket is active) ── */}
       <TicketsSidebar
         isMobile={isMobile}
@@ -322,11 +322,11 @@ export function UnifiedTicketsWorkspace({
 
       {/* ── RIGHT PANEL: Active Ticket Details (Hide on mobile if no ticket is active) ── */}
       {(!isMobile || activeTicket) && (
-        <div className="flex-1 flex flex-col h-full bg-background overflow-hidden min-w-0">
+        <div className="flex-1 flex flex-col h-full bg-background overflow-hidden min-w-0 min-h-0">
           {activeTicket ? (
-            <div className="flex flex-1 overflow-hidden h-full min-w-0">
+            <div className="flex flex-1 overflow-hidden h-full min-w-0 min-h-0">
               {/* Main Chat Panel Container */}
-              <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
+              <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 min-h-0">
                 {/* Header block */}
                 <div className="p-3 border-b border-border/50 flex justify-between items-center gap-2.5 shrink-0 bg-card/60 backdrop-blur-md text-card-foreground min-w-0">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -538,7 +538,7 @@ export function UnifiedTicketsWorkspace({
                 )}
 
                 {/* Chat window body */}
-                <div ref={messagesContainerRef} className="flex-grow bg-muted/15 relative overflow-hidden flex flex-col min-w-0">
+                <div ref={messagesContainerRef} className="flex-1 min-h-0 bg-muted/15 relative overflow-hidden flex flex-col min-w-0">
                   <ChatWindow
                     ticketId={activeTicket.id}
                     initialMessages={activeTicket.messages}
@@ -560,7 +560,7 @@ export function UnifiedTicketsWorkspace({
 
               {/* ── RIGHT PANEL: Collapsible Client Profile (Desktop side display) ── */}
               {!isMobile && showProfile && (
-                <div className="w-[280px] xl:w-[320px] shrink-0 border-l border-border/50 h-full bg-card/60 backdrop-blur-md overflow-y-auto animate-in slide-in-from-right duration-300 min-w-0">
+                <div className="w-[280px] xl:w-[320px] shrink-0 border-l border-border/50 h-full min-h-0 bg-card/60 backdrop-blur-md overflow-hidden animate-in slide-in-from-right duration-300 min-w-0">
                   <ClientProfileSidebar 
                     ticketId={activeTicket.id}
                     supportLimitCents={supportLimitCents}

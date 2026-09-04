@@ -99,7 +99,7 @@ async function dispatch(result: TransporterResult, options: DispatchOptions) {
   }
 }
 
-export async function sendMagicLink(email: string, token: string, tenantId?: string) {
+export async function sendMagicLink(email: string, token: string, tenantId?: string, redirectTo?: string) {
   const { companyName } = await getEmailContext(tenantId);
   let baseUrl = await getBaseUrlAsync().catch(() => '');
   if (!baseUrl) {
@@ -108,7 +108,8 @@ export async function sendMagicLink(email: string, token: string, tenantId?: str
   }
   const normTenant = normalizeTenantId(tenantId);
   const tenantParam = normTenant && normTenant !== 'smmplan' ? `&tenant=${normTenant}` : '';
-  const link = `${baseUrl}/api/auth/verify?token=${token}${tenantParam}`;
+  const redirectParam = redirectTo ? `&redirectTo=${encodeURIComponent(redirectTo)}` : '';
+  const link = `${baseUrl}/api/auth/verify?token=${token}${tenantParam}${redirectParam}`;
 
   console.info(`\n========================================\n[MAGIC LINK FOR ${email} (${companyName})]:\n${link}\n========================================\n`);
 

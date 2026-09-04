@@ -115,6 +115,7 @@ function SmmplanOrderWizardInner({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isAnalyzingLink, setIsAnalyzingLink] = useState(false);
   const [showAllCategories, setShowAllCategories] = useState(false);
+  const [tariffSubtypeFilter, setTariffSubtypeFilter] = useState<'all' | 'channel' | 'post' | 'auto'>('auto');
   const analyzeRequestIdRef = useRef(0);
 
   // Analyze URL whenever link changes (Debounced 300ms)
@@ -566,6 +567,36 @@ function SmmplanOrderWizardInner({
     c.name.toLowerCase().includes(searchCategory.toLowerCase())
   );
 
+  // Intelligent Subtype Partitioning (Channel packages vs Single post services)
+  const isChannelSrv = (s: PublicService) => {
+    const t = s.targetType || inferTargetTypeFromName(s.name);
+    return t === 'CHANNEL' || t === 'CHANNEL_POSTS';
+  };
+  const isPostSrv = (s: PublicService) => {
+    const t = s.targetType || inferTargetTypeFromName(s.name);
+    return t === 'POST' || t === 'VIDEO' || t === 'COMMENTS';
+  };
+
+  const channelServicesCount = services.filter(isChannelSrv).length;
+  const postServicesCount = services.filter(isPostSrv).length;
+  const hasMultipleSubtypes = channelServicesCount > 0 && postServicesCount > 0;
+
+  const effectiveSubtype: 'all' | 'channel' | 'post' =
+    tariffSubtypeFilter !== 'auto'
+      ? tariffSubtypeFilter
+      : (detectedType === 'channel' || detectedType === 'group' || detectedType === 'chat')
+      ? 'channel'
+      : (detectedType === 'post' || detectedType === 'private_post' || detectedType === 'photo')
+      ? 'post'
+      : 'all';
+
+  const displayedServices = services.filter(srv => {
+    if (!hasMultipleSubtypes || effectiveSubtype === 'all') return true;
+    if (effectiveSubtype === 'channel') return isChannelSrv(srv);
+    if (effectiveSubtype === 'post') return isPostSrv(srv);
+    return true;
+  });
+
   // Auto-prepend https:// protocol on blur for client link input
   const normalizeUrl = (raw: string): string => {
     let trimmed = raw.trim();
@@ -590,7 +621,7 @@ function SmmplanOrderWizardInner({
     // Validate link based on service targetType
     if (selectedService && normalized) {
       const targetType = selectedService.targetType || 'POST';
-      if (targetType === 'CHANNEL') {
+      if (targetType === 'CHANNEL' || targetType === 'CHANNEL_POSTS') {
         if (/\/[0-9]+(\/|$)/.test(normalized)) {
           setErrors(prev => ({ ...prev, link: 'Укажите публичную ссылку на канал или группу (не отдельный пост)' }));
           return;
@@ -884,6 +915,7 @@ function SmmplanOrderWizardInner({
                         onClick={() => {
                           setSelectedCategory(cat);
                           setSelectedService(null);
+                          setTariffSubtypeFilter('auto');
                           changeStep(3, undefined, cat.id, selectedNetwork?.id);
                         }}
                         className={`p-4 rounded-2xl border text-left transition-all flex items-center justify-between gap-3 ${
@@ -939,18 +971,103 @@ function SmmplanOrderWizardInner({
                 </div>
               </div>
 
+              {/* ── Subtype Segmented Control (Channel vs Post vs All) ── */}
+              {hasMultipleSubtypes && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-muted/40 rounded-2xl border border-border/50">
+                  <div className="flex items-center gap-1.5 p-1 bg-background/80 rounded-xl border border-border/40 overflow-x-auto scrollbar-none flex-nowrap shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setTariffSubtypeFilter('channel')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                        effectiveSubtype === 'channel'
+                          ? 'bg-primary text-primary-foreground shadow-xs'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <span>⚡ На канал (пакеты и авто)</span>
+                      <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-black ${
+                        effectiveSubtype === 'channel' ? 'bg-black/20 text-white' : 'bg-muted text-muted-foreground'
+                      }`}>
+                        {channelServicesCount}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setTariffSubtypeFilter('post')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                        effectiveSubtype === 'post'
+                          ? 'bg-primary text-primary-foreground shadow-xs'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <span>📌 На отдельный пост</span>
+                      <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-black ${
+                        effectiveSubtype === 'post' ? 'bg-black/20 text-white' : 'bg-muted text-muted-foreground'
+                      }`}>
+                        {postServicesCount}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setTariffSubtypeFilter('all')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                        effectiveSubtype === 'all'
+                          ? 'bg-primary text-primary-foreground shadow-xs'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <span>Все тарифы</span>
+                      <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-black ${
+                        effectiveSubtype === 'all' ? 'bg-black/20 text-white' : 'bg-muted text-muted-foreground'
+                      }`}>
+                        {services.length}
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* Contextual link reminder notice */}
+                  {detectedType === 'channel' && effectiveSubtype === 'post' && (
+                    <span className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1.5 font-medium px-2.5 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                      <Info className="w-3.5 h-3.5 shrink-0" />
+                      Для этих тарифов потребуется ссылка на отдельный пост
+                    </span>
+                  )}
+                  {detectedType === 'post' && effectiveSubtype === 'channel' && (
+                    <span className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1.5 font-medium px-2.5 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                      <Info className="w-3.5 h-3.5 shrink-0" />
+                      Для пакетов охвата потребуется ссылка на весь канал
+                    </span>
+                  )}
+                </div>
+              )}
+
               {isLoadingServices ? (
                 <div className="py-16 flex flex-col items-center justify-center gap-3 text-muted-foreground">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
                   <span className="text-sm font-medium">Загружаем список услуг...</span>
                 </div>
-              ) : services.length === 0 ? (
+              ) : displayedServices.length === 0 ? (
                 <div className="py-12 text-center text-muted-foreground text-sm">
-                  В выбранной категории пока нет доступных активных услуг.
+                  {hasMultipleSubtypes && effectiveSubtype !== 'all' ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <p>В этом подразделе пока нет тарифов.</p>
+                      <button
+                        type="button"
+                        onClick={() => setTariffSubtypeFilter('all')}
+                        className="text-xs font-bold text-primary hover:underline"
+                      >
+                        Показать все тарифы категории ({services.length}) →
+                      </button>
+                    </div>
+                  ) : (
+                    'В выбранной категории пока нет доступных активных услуг.'
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {services.map((srv: PublicService, idx: number) => {
+                  {displayedServices.map((srv: PublicService, idx: number) => {
                     const isSelected = selectedService?.id === srv.id;
                     const { hasRefill, badgeLabel } = checkServiceRefill(srv);
                     const isFast = srv.name.toLowerCase().includes('быстр') || srv.name.toLowerCase().includes('мгновен');

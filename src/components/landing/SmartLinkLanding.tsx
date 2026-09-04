@@ -25,6 +25,11 @@ const PaymentGatewaySelectionModal = dynamic(
   { ssr: false }
 );
 
+const CheckoutAuthModal = dynamic(
+  () => import("./order-engine/modals/CheckoutAuthModal").then((mod) => mod.CheckoutAuthModal),
+  { ssr: false }
+);
+
 const LegalDocumentModal = dynamic(
   () => import("./order-engine/LegalDocumentModal").then((mod) => mod.LegalDocumentModal),
   { ssr: false }
@@ -153,6 +158,10 @@ export function SmartLinkLanding({
     emailHasError,
     termsHasError,
     showPaymentModal, setShowPaymentModal,
+    showAuthModal, setShowAuthModal,
+    authModalEmail,
+    handleAuthSuccess,
+    orderSnapshot,
     confirmAndPay,
     checkoutError
   } = useCheckoutOrchestrator({ 
@@ -332,6 +341,7 @@ export function SmartLinkLanding({
                       onOpenDocument={setActiveLegalSlug}
                       onOpenCatalog={() => setShowCatalogModal(true)}
                       checkoutError={checkoutError}
+                      userBalanceCents={userBalanceCents}
                     />
 
                     <NetworkSelector engine={engine} />
@@ -473,6 +483,14 @@ export function SmartLinkLanding({
         }
         isSubmitting={isSubmitting}
         onSelectGateway={confirmAndPay}
+        userBalanceCents={userBalanceCents}
+      />
+      <CheckoutAuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        email={authModalEmail || email}
+        onAuthSuccess={handleAuthSuccess}
+        orderSnapshot={orderSnapshot}
       />
       <LegalDocumentModal
         slug={activeLegalSlug}
