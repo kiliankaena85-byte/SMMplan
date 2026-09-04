@@ -6,15 +6,20 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET(req: Request) {
+  // SEC-FIX-02: Fail-Closed — CRON_SECRET must be configured; reject all if missing
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    console.error('[SyncOrdersCron] FATAL: CRON_SECRET is not configured. Rejecting all requests.');
+    return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+  }
+
   const authHeader = req.headers.get('authorization') || '';
-  const cronSecret = process.env.CRON_SECRET || '';
   const expectedAuth = `Bearer ${cronSecret}`;
 
-  let isAuthorized = false;
-  if (cronSecret && authHeader.length === expectedAuth.length) {
-    const crypto = await import('crypto');
-    isAuthorized = crypto.timingSafeEqual(Buffer.from(authHeader), Buffer.from(expectedAuth));
-  }
+  const crypto = await import('crypto');
+  const isAuthorized =
+    authHeader.length === expectedAuth.length &&
+    crypto.timingSafeEqual(Buffer.from(authHeader), Buffer.from(expectedAuth));
 
   if (!isAuthorized) {
     console.warn('[SyncOrdersCron] Unauthorized access attempt blocked');

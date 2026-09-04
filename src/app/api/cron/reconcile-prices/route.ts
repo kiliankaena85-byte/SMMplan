@@ -8,15 +8,20 @@ import crypto from 'crypto';
  * Triggered by external cron or internal worker scheduler.
  */
 export async function GET(req: NextRequest) {
+  // SEC-FIX-02: Fail-Closed — CRON_SECRET must be configured; reject all if missing
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    console.error('[ReconcilePricesCron] FATAL: CRON_SECRET is not configured. Rejecting all requests.');
+    return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+  }
+
   // Timing-safe Bearer authorization
   const authHeader = req.headers.get('authorization') || '';
-  const cronSecret = process.env.CRON_SECRET || '';
   const expectedAuth = `Bearer ${cronSecret}`;
 
-  let isAuthorized = false;
-  if (cronSecret && authHeader.length === expectedAuth.length) {
-    isAuthorized = crypto.timingSafeEqual(Buffer.from(authHeader), Buffer.from(expectedAuth));
-  }
+  const isAuthorized =
+    authHeader.length === expectedAuth.length &&
+    crypto.timingSafeEqual(Buffer.from(authHeader), Buffer.from(expectedAuth));
 
   if (!isAuthorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

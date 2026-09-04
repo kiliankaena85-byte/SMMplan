@@ -10,16 +10,21 @@ import { db } from '@/lib/db';
  * Triggered by external cron job (e.g., Vercel Cron, GitHub Actions, or local crontab).
  */
 export async function GET(req: NextRequest) {
-  // Basic security: require CRON_SECRET token
+  // SEC-FIX-02: Fail-Closed — CRON_SECRET must be configured; reject all if missing
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    console.error('[SyncCBRCron] FATAL: CRON_SECRET is not configured. Rejecting all requests.');
+    return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+  }
+
+  // Basic security: require CRON_SECRET token (timing-safe)
   const authHeader = req.headers.get('authorization') || '';
-  const cronSecret = process.env.CRON_SECRET || '';
   const expectedAuth = `Bearer ${cronSecret}`;
 
-  let isAuthorized = false;
-  if (cronSecret && authHeader.length === expectedAuth.length) {
-    const crypto = await import('crypto');
-    isAuthorized = crypto.timingSafeEqual(Buffer.from(authHeader), Buffer.from(expectedAuth));
-  }
+  const crypto = await import('crypto');
+  const isAuthorized =
+    authHeader.length === expectedAuth.length &&
+    crypto.timingSafeEqual(Buffer.from(authHeader), Buffer.from(expectedAuth));
 
   if (!isAuthorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

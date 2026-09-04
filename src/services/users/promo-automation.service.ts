@@ -24,8 +24,12 @@ export class PromoAutomationService {
       for (const rule of rules) {
         if (totalSpentCents >= rule.spendThreshold) {
           // Idempotency: Ensure we don't issue the same bonus twice to the same user
-          // W7-3 SECURITY FIX: Use HMAC with a secret to prevent guessable deterministic promo codes
-          const secret = process.env.JWT_SECRET || 'default-promo-secret-123';
+          // SEC-FIX-03: Fail-Closed — JWT_SECRET must be configured to prevent predictable HMAC output
+          const secret = process.env.JWT_SECRET;
+          if (!secret) {
+            console.error('[PromoAutomation] FATAL: JWT_SECRET is not configured. Cannot issue promo codes securely. Skipping.');
+            return;
+          }
           const uniqueHash = crypto.createHmac('sha256', secret).update(userId + rule.percent).digest('hex').substring(0, 8).toUpperCase();
           const deterministicCode = `VIP${rule.percent}-${uniqueHash}`;
 
