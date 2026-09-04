@@ -158203,6 +158203,7 @@ var SecuritySanitizer = class {
   static sanitizePromptInjection(input) {
     if (!input) return "";
     const injectionPatterns = [
+      // English injection primitives
       /ignore (all )?(previous )?instructions/i,
       /disregard (all )?(previous )?instructions/i,
       /forget (all )?(previous )?instructions/i,
@@ -158212,11 +158213,28 @@ var SecuritySanitizer = class {
       /set markup to/i,
       /bypass rules/i,
       /drop table/i,
-      // Basic SQLi guard for good measure
+      // Basic SQLi guard
+      /admin role/i,
+      // Russian injection primitives
+      /проигнорируй (все )?(предыдущие )?инструкции/i,
+      /забудь (все )?(предыдущие )?инструкции/i,
+      /системный промпт/i,
+      /ты теперь/i,
+      /установи цену/i,
+      /установи наценку/i,
+      /обойти правила/i,
+      /роль администратора/i,
+      // LLM boundary tokens & instruction delimiters
       /<\|im_start\|>/i,
       /<\|im_end\|>/i,
-      /```/i
-      // Prevent markdown injection escapes
+      /\[INST\]/i,
+      /\[\/INST\]/i,
+      /<<SYS>>/i,
+      /<<\/SYS>>/i,
+      /```/i,
+      // Prevent markdown fence escapes
+      /<script[\s>]/i
+      // Prevent embedded script tags
     ];
     let safeString = input;
     for (const pattern of injectionPatterns) {
