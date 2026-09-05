@@ -158195,6 +158195,235 @@ var PriceDriftCircuitBreaker = class {
   }
 };
 
+// src/services/providers/service-mutation-detector.ts
+var CRITICAL_PLATFORMS = [
+  "telegram",
+  "tg",
+  "vk",
+  "vkontakte",
+  "instagram",
+  "insta",
+  "ig",
+  "youtube",
+  "yt",
+  "tiktok",
+  "tt",
+  "twitter",
+  "x",
+  "facebook",
+  "fb",
+  "rutube",
+  "discord",
+  "twitch",
+  "threads",
+  "ok"
+];
+var ACTIVITY_KEYWORDS = {
+  followers: ["\u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438", "subscribers", "followers", "members", "\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438", "\u0444\u043E\u043B\u043B\u043E\u0432\u0435\u0440\u044B"],
+  likes: ["\u043B\u0430\u0439\u043A\u0438", "likes", "hearts", "\u0440\u0435\u0430\u043A\u0446\u0438\u0438", "reactions"],
+  views: ["\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B", "views", "\u043E\u0445\u0432\u0430\u0442", "reach", "impressions"],
+  comments: ["\u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438", "comments", "\u043E\u0442\u0437\u044B\u0432\u044B", "reviews"],
+  reposts: ["\u0440\u0435\u043F\u043E\u0441\u0442\u044B", "reposts", "shares", "\u043F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F"],
+  votes: ["\u0433\u043E\u043B\u043E\u0441\u0430", "votes", "\u043E\u043F\u0440\u043E\u0441\u044B", "poll"],
+  boosts: ["\u0431\u0443\u0441\u0442\u044B", "boosts", "boost"]
+};
+function normalizeTokens(text) {
+  return new Set(
+    text.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter((t) => t.length > 1)
+  );
+}
+function detectActivity(tokens) {
+  for (const [activity, words] of Object.entries(ACTIVITY_KEYWORDS)) {
+    if (words.some((w) => tokens.has(w))) {
+      return activity;
+    }
+  }
+  return null;
+}
+function calculateNameSimilarity(nameA, nameB) {
+  const tokensA = normalizeTokens(nameA);
+  const tokensB = normalizeTokens(nameB);
+  if (tokensA.size === 0 && tokensB.size === 0) return 1;
+  if (tokensA.size === 0 || tokensB.size === 0) return 0;
+  const platformA = CRITICAL_PLATFORMS.filter((p) => tokensA.has(p));
+  const platformB = CRITICAL_PLATFORMS.filter((p) => tokensB.has(p));
+  if (platformA.length > 0 && platformB.length > 0) {
+    const hasCommonPlatform = platformA.some((p) => platformB.includes(p));
+    if (!hasCommonPlatform) {
+      return 0.05;
+    }
+  }
+  const activityA = detectActivity(tokensA);
+  const activityB = detectActivity(tokensB);
+  if (activityA && activityB && activityA !== activityB) {
+    return 0.1;
+  }
+  let intersectionCount = 0;
+  for (const token of tokensA) {
+    if (tokensB.has(token)) {
+      intersectionCount++;
+    }
+  }
+  const unionCount = (/* @__PURE__ */ new Set([...tokensA, ...tokensB])).size;
+  const baseJaccard = unionCount === 0 ? 1 : intersectionCount / unionCount;
+  if (activityA && activityB && activityA === activityB) {
+    return Math.max(baseJaccard, 0.5);
+  }
+  return baseJaccard;
+}
+var ServiceMutationDetector = class {
+  /**
+   * Analyzes an existing service against its fresh provider API DTO or ShadowService
+   */
+  static detect(service, providerDto, exchangeRate = 1, priceSpikeThreshold = 0.3) {
+    const externalId = providerDto?.service ? String(providerDto.service) : providerDto?.externalId ? String(providerDto.externalId) : "";
+    if (!providerDto) {
+      return {
+        serviceId: service.id,
+        externalId,
+        verdict: "NOT_FOUND_AT_PROVIDER",
+        shouldDeactivate: true,
+        isPriceSpike: false,
+        isParamMutated: true,
+        nameSimilarity: 0,
+        reasons: ["\u0423\u0441\u043B\u0443\u0433\u0430 \u043E\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u0432 \u043E\u0442\u0432\u0435\u0442\u0435 API \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 (\u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E \u0443\u0434\u0430\u043B\u0435\u043D\u0430 \u0438\u043B\u0438 \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0430)"],
+        summary: "\u0423\u0441\u043B\u0443\u0433\u0430 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u0430 \u0443 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430",
+        diff: {
+          name: { oldValue: service.name, newValue: "\u0423\u0414\u0410\u041B\u0415\u041D\u0410 \u0423 \u041F\u0420\u041E\u0412\u0410\u0419\u0414\u0415\u0420\u0410", changed: true, worsened: true },
+          rate: { oldValue: service.rate, newValue: 0, changed: true, oldCostRub: 0, newCostRub: 0, deltaPercent: 0, currency: service.providerCurrency || "RUB" },
+          minQty: { oldValue: service.minQty, newValue: 0, changed: true },
+          maxQty: { oldValue: service.maxQty, newValue: 0, changed: true },
+          refill: { oldValue: !!service.isRefillEnabled, newValue: false, changed: true, worsened: !!service.isRefillEnabled },
+          cancel: { oldValue: !!service.isCancelEnabled, newValue: false, changed: true },
+          type: { oldValue: service.providerServiceType || "Default", newValue: "NONE", changed: true }
+        }
+      };
+    }
+    const providerCurrency = service.providerCurrency || "USD";
+    const oldCostRub = providerCurrency === "RUB" ? service.rate : service.rate * exchangeRate;
+    const newRate = typeof providerDto.rate === "number" ? providerDto.rate : parseFloat(String(providerDto.rate)) || 0;
+    const newCostRub = providerCurrency === "RUB" ? newRate : newRate * exchangeRate;
+    const deltaPercent = oldCostRub > 0 ? (newCostRub - oldCostRub) / oldCostRub : 0;
+    const isPriceSpike = deltaPercent > priceSpikeThreshold;
+    const rawMin = providerDto.min ?? providerDto.minQty;
+    const rawMax = providerDto.max ?? providerDto.maxQty;
+    const newMin = rawMin !== void 0 ? parseInt(String(rawMin), 10) || service.minQty : service.minQty;
+    const newMax = rawMax !== void 0 ? parseInt(String(rawMax), 10) || service.maxQty : service.maxQty;
+    const newRefill = Boolean(providerDto.refill ?? providerDto.isRefillEnabled);
+    const newCancel = Boolean(providerDto.cancel ?? providerDto.isCancelEnabled);
+    const newType = providerDto.type || "Default";
+    const similarity = calculateNameSimilarity(service.name, providerDto.name);
+    const isNameReplaced = similarity < 0.4;
+    const isMinChanged = newMin !== service.minQty;
+    const isMaxChanged = newMax !== service.maxQty;
+    const isLimitsChanged = isMinChanged || isMaxChanged;
+    const oldRefill = Boolean(service.isRefillEnabled);
+    const isRefillStripped = oldRefill && !newRefill;
+    const oldCancel = Boolean(service.isCancelEnabled);
+    const isCancelChanged = oldCancel !== newCancel;
+    const oldType = service.providerServiceType || "Default";
+    const isTypeChanged = !!service.providerServiceType && oldType.toLowerCase() !== newType.toLowerCase();
+    const reasons = [];
+    if (isNameReplaced) {
+      reasons.push(`\u041F\u043E\u0434\u043C\u0435\u043D\u0430 \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u044F: \u0441\u0445\u043E\u0434\u0441\u0442\u0432\u043E ${(similarity * 100).toFixed(0)}% (\xAB${providerDto.name}\xBB)`);
+    }
+    if (isRefillStripped) {
+      reasons.push("\u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 \u0441\u043D\u044F\u043B \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u044E \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F (refill: false)");
+    }
+    if (isLimitsChanged) {
+      const minText = isMinChanged ? `min: ${service.minQty} \u2192 ${newMin}` : "";
+      const maxText = isMaxChanged ? `max: ${service.maxQty} \u2192 ${newMax}` : "";
+      const parts = [minText, maxText].filter(Boolean).join(", ");
+      reasons.push(`\u0418\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u0435 \u043B\u0438\u043C\u0438\u0442\u043E\u0432 \u043E\u0431\u044A\u0435\u043C\u0430 (${parts})`);
+    }
+    if (isTypeChanged) {
+      reasons.push(`\u0421\u043C\u0435\u043D\u0430 \u0442\u0438\u043F\u0430 \u0443\u0441\u043B\u0443\u0433\u0438: ${oldType} \u2192 ${newType}`);
+    }
+    if (isPriceSpike) {
+      reasons.push(`\u0420\u043E\u0441\u0442 \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u0438 +${(deltaPercent * 100).toFixed(0)}% (${oldCostRub.toFixed(2)} \u20BD \u2192 ${newCostRub.toFixed(2)} \u20BD/1k)`);
+    }
+    const isParamMutated = isNameReplaced || isLimitsChanged || isRefillStripped || isTypeChanged;
+    let verdict = "SAFE";
+    let shouldDeactivate = false;
+    if (isNameReplaced) {
+      verdict = "SERVICE_REPLACED";
+      shouldDeactivate = true;
+    } else if (isParamMutated) {
+      verdict = "MUTATED_PARAMS";
+      shouldDeactivate = true;
+    } else if (isPriceSpike) {
+      verdict = "SAFE_PRICE_ONLY";
+      shouldDeactivate = false;
+    }
+    let summary = "\u041F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B \u0443\u0441\u043B\u0443\u0433\u0438 \u0432 \u043D\u043E\u0440\u043C\u0435";
+    if (verdict === "SERVICE_REPLACED") {
+      summary = "\u041A\u0440\u0438\u0442\u0438\u0447\u043D\u043E: \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E \u043F\u043E\u0434\u043C\u0435\u043D\u0435\u043D\u0430 \u0443\u0441\u043B\u0443\u0433\u0430 \u0443 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430!";
+    } else if (verdict === "MUTATED_PARAMS") {
+      summary = "\u0412\u043D\u0438\u043C\u0430\u043D\u0438\u0435: \u0438\u0437\u043C\u0435\u043D\u0438\u043B\u0438\u0441\u044C \u0443\u0441\u043B\u043E\u0432\u0438\u044F/\u043B\u0438\u043C\u0438\u0442\u044B \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 (\u0443\u0441\u043B\u0443\u0433\u0430 \u0430\u0432\u0442\u043E\u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0430)";
+    } else if (verdict === "SAFE_PRICE_ONLY") {
+      summary = "\u0422\u043E\u043B\u044C\u043A\u043E \u0446\u0435\u043D\u0430: \u043F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B \u0438\u0434\u0435\u043D\u0442\u0438\u0447\u043D\u044B, \u0438\u0437\u043C\u0435\u043D\u0438\u043B\u0441\u044F \u0442\u0430\u0440\u0438\u0444";
+    }
+    return {
+      serviceId: service.id,
+      externalId,
+      verdict,
+      shouldDeactivate,
+      isPriceSpike,
+      isParamMutated,
+      nameSimilarity: similarity,
+      reasons,
+      summary,
+      diff: {
+        name: {
+          oldValue: service.name,
+          newValue: providerDto.name,
+          changed: service.name !== providerDto.name,
+          worsened: isNameReplaced
+        },
+        rate: {
+          oldValue: service.rate,
+          newValue: newRate,
+          changed: service.rate !== newRate,
+          oldCostRub,
+          newCostRub,
+          deltaPercent,
+          currency: providerCurrency,
+          worsened: isPriceSpike
+        },
+        minQty: {
+          oldValue: service.minQty,
+          newValue: newMin,
+          changed: isMinChanged,
+          worsened: newMin > service.minQty
+        },
+        maxQty: {
+          oldValue: service.maxQty,
+          newValue: newMax,
+          changed: isMaxChanged,
+          worsened: newMax < service.maxQty
+        },
+        refill: {
+          oldValue: oldRefill,
+          newValue: newRefill,
+          changed: oldRefill !== newRefill,
+          worsened: isRefillStripped
+        },
+        cancel: {
+          oldValue: oldCancel,
+          newValue: newCancel,
+          changed: oldCancel !== newCancel,
+          worsened: oldCancel && !newCancel
+        },
+        type: {
+          oldValue: oldType,
+          newValue: newType,
+          changed: isTypeChanged
+        }
+      }
+    };
+  }
+};
+
 // src/utils/security-sanitizer.ts
 var SecuritySanitizer = class {
   /**
@@ -158898,7 +159127,43 @@ var AdminCatalogService = class {
           const pricePerUnitRub = currentRetailCents / 100 / 1e3;
           const purchaseCostPerUnitRub = newCostRub / 1e3;
           const costDeltaRub = oldCostRub > 0 ? (newCostRub - oldCostRub) / oldCostRub : 0;
-          if (newCostRub > UPPER_SANITY_LIMIT_RUB) {
+          const mutation = ServiceMutationDetector.detect(
+            {
+              id: s.id,
+              name: s.name,
+              rate: s.rate,
+              providerCurrency: s.providerCurrency,
+              minQty: s.minQty,
+              maxQty: s.maxQty,
+              isRefillEnabled: s.isRefillEnabled,
+              isCancelEnabled: s.isCancelEnabled,
+              description: s.description,
+              providerServiceType: s.providerServiceType
+            },
+            stagingExt,
+            newCostExchangeRate,
+            Math.min(0.3, QUARANTINE_THRESHOLD)
+          );
+          if (mutation.shouldDeactivate) {
+            await db.service.update({
+              where: { id: s.id },
+              data: {
+                isActive: false,
+                // Auto-deactivated!
+                isQuarantined: true,
+                pendingRate: newRate,
+                quarantineReason: mutation.reasons.join(" | "),
+                quarantinedAt: /* @__PURE__ */ new Date()
+              }
+            });
+            const alertMsg = `\u{1F6A8} [\u0423\u0441\u043B\u0443\u0433\u0430 \u0430\u0432\u0442\u043E\u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0430] "${s.name}" (id=${s.id}) \u0443 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 \u0438\u0437\u043C\u0435\u043D\u0438\u043B\u0430\u0441\u044C \u043D\u0435 \u0442\u043E\u043B\u044C\u043A\u043E \u0446\u0435\u043D\u0430!
+\u0412\u0435\u0440\u0434\u0438\u043A\u0442: ${mutation.summary}
+\u041F\u0440\u0438\u0447\u0438\u043D\u044B: ${mutation.reasons.join("; ")}
+\u0414\u0435\u0439\u0441\u0442\u0432\u0438\u0435: \u0423\u0441\u043B\u0443\u0433\u0430 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0441\u043D\u044F\u0442\u0430 \u0441 \u043F\u0440\u043E\u0434\u0430\u0436\u0438 (isActive: false) \u0438 \u043F\u043E\u043C\u0435\u0449\u0435\u043D\u0430 \u0432 \u043A\u0430\u0440\u0430\u043D\u0442\u0438\u043D.`;
+            logger.warn(alertMsg, { serviceId: s.id, mutation });
+            await sendAdminAlert(alertMsg, mutation.verdict === "SERVICE_REPLACED" ? "CRITICAL" : "WARNING");
+            priceAnomalies++;
+          } else if (newCostRub > UPPER_SANITY_LIMIT_RUB) {
             await db.service.update({
               where: { id: s.id },
               data: {
@@ -158914,7 +159179,7 @@ var AdminCatalogService = class {
             logger.warn(alertMsg, { serviceId: s.id, oldCostRub, newCostRub, rawRate, providerCurrency: serviceCurrency });
             await sendAdminAlert(alertMsg, "CRITICAL");
             priceAnomalies++;
-          } else if (oldCostRub > 0 && (costDeltaRub > 0.3 || costDeltaRub > QUARANTINE_THRESHOLD || costDeltaRub > ANOMALY_PRICE_SPIKE_THRESHOLD)) {
+          } else if (oldCostRub > 0 && (mutation.isPriceSpike || costDeltaRub > 0.3 || costDeltaRub > QUARANTINE_THRESHOLD || costDeltaRub > ANOMALY_PRICE_SPIKE_THRESHOLD)) {
             await db.service.update({
               where: { id: s.id },
               data: {
@@ -158922,7 +159187,7 @@ var AdminCatalogService = class {
                 // Immediately take off storefront
                 isQuarantined: true,
                 pendingRate: newRate,
-                quarantineReason: `Price Spike (+${(costDeltaRub * 100).toFixed(0)}%): \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u0432\u044B\u0440\u043E\u0441\u043B\u0430 \u0441 ${oldCostRub.toFixed(2)} \u20BD \u0434\u043E ${newCostRub.toFixed(2)} \u20BD/1k (${s.rate} ${serviceCurrency} \u2192 ${newRate} ${serviceCurrency})`,
+                quarantineReason: `Price Spike (+${(costDeltaRub * 100).toFixed(0)}%): \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u0432\u044B\u0440\u043E\u0441\u043B\u0430 \u0441 ${oldCostRub.toFixed(2)} \u20BD \u0434\u043E ${newCostRub.toFixed(2)} \u20BD/1k (${s.rate} ${serviceCurrency} \u2192 ${newRate} ${serviceCurrency}). \u041F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B \u0443\u0441\u043B\u0443\u0433\u0438 \u0432 \u043D\u043E\u0440\u043C\u0435.`,
                 quarantinedAt: /* @__PURE__ */ new Date()
               }
             });

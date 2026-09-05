@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { Table } from '@/components/admin/hero-ui';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatPricePerUnit } from '@/utils/format-price';
+import { QuarantineDiffModal, type QuarantineDiffTarget } from './quarantine-diff-modal';
 
 interface QuarantineItem {
   id: string;
@@ -63,6 +64,7 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
   const [apiErrors, setApiErrors] = useState(initialApiErrors);
   const [autoFixes] = useState(initialAutoFixes);
   const [activeTab, setActiveTab] = useState<'price' | 'zombies' | 'api' | 'autofix'>('price');
+  const [diffItem, setDiffItem] = useState<QuarantineDiffTarget | null>(null);
   
   const [isPending, startTransition] = useTransition();
 
@@ -297,9 +299,18 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                               </div>
                             </Table.Cell>
                             <Table.Cell className="text-right">
-                              <div className="flex items-center gap-2 justify-end">
-                                <button onClick={() => handleApprove(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-success/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50">✅ Принять</button>
-                                <button onClick={() => handleReject(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-muted-foreground/10 transition-all duration-200 disabled:opacity-50">✕ Отклонить</button>
+                              <div className="flex items-center gap-1.5 justify-end flex-wrap">
+                                <button
+                                  type="button"
+                                  onClick={() => setDiffItem(item)}
+                                  disabled={isPending}
+                                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-all duration-200 disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                                  title="Сверить услугу с API поставщика (Side-by-Side Diff)"
+                                >
+                                  <span>🔍 Сверить API</span>
+                                </button>
+                                <button onClick={() => handleApprove(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-success/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50 cursor-pointer">✅ Принять</button>
+                                <button onClick={() => handleReject(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-muted-foreground/10 transition-all duration-200 disabled:opacity-50 cursor-pointer">✕ Отклонить</button>
                               </div>
                             </Table.Cell>
                           </Table.Row>
@@ -337,7 +348,18 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                             </Table.Cell>
                             <Table.Cell><span className="text-xs px-2 py-1 rounded-md bg-destructive/10 text-destructive border border-destructive/20">{item.quarantineReason}</span></Table.Cell>
                             <Table.Cell className="text-right">
-                              <button onClick={() => handleArchiveZombie(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-muted-foreground/10 transition-all duration-200 disabled:opacity-50">📦 Скрыть навсегда</button>
+                              <div className="flex items-center gap-1.5 justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => setDiffItem(item)}
+                                  disabled={isPending}
+                                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-all duration-200 disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                                  title="Сверить услугу с API поставщика"
+                                >
+                                  <span>🔍 Сверить API</span>
+                                </button>
+                                <button onClick={() => handleArchiveZombie(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-muted-foreground/10 transition-all duration-200 disabled:opacity-50 cursor-pointer">📦 Скрыть навсегда</button>
+                              </div>
                             </Table.Cell>
                           </Table.Row>
                         );
@@ -377,7 +399,18 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                             <Table.Cell><span className="text-xs px-2 py-1 rounded-md bg-warning/10 text-warning border border-warning/20">{item.quarantineReason}</span></Table.Cell>
                             <Table.Cell><span className="text-sm font-mono text-muted-foreground">{untilDate}</span></Table.Cell>
                             <Table.Cell className="text-right">
-                              <button onClick={() => handleLiftApiBlock(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-success/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50">🔓 Снять блок</button>
+                              <div className="flex items-center gap-1.5 justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => setDiffItem(item)}
+                                  disabled={isPending}
+                                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-all duration-200 disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                                  title="Сверить услугу с API поставщика"
+                                >
+                                  <span>🔍 Сверить API</span>
+                                </button>
+                                <button onClick={() => handleLiftApiBlock(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-success/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50 cursor-pointer">🔓 Снять блок</button>
+                              </div>
                             </Table.Cell>
                           </Table.Row>
                         );
@@ -500,6 +533,17 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
           )}
         </div>
       )}
+
+      {/* Side-by-Side Diff Modal */}
+      <QuarantineDiffModal
+        item={diffItem}
+        onClose={() => setDiffItem(null)}
+        onResolved={(serviceId) => {
+          removePriceSpike(serviceId);
+          setZombies(prev => prev.filter(i => i.id !== serviceId));
+          setApiErrors(prev => prev.filter(i => i.id !== serviceId));
+        }}
+      />
     </div>
   );
 }

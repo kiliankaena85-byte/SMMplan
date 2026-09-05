@@ -16,6 +16,8 @@ import { requireStaffPermission } from "@/lib/server/rbac";
 import { auditAdmin } from "@/lib/admin-audit";
 import { MutexManager } from "@/lib/redis-lock";
 import { adminCatalogService } from "@/services/admin/catalog.service";
+import { providerService } from "@/services/providers/provider.service";
+import { ServiceMutationDetector, type ServiceMutationResult } from "@/services/providers/service-mutation-detector";
 
 function revalidateQuarantineAndAnomalies() {
   try {
@@ -274,6 +276,261 @@ export async function liftApiBlock(serviceId: string) {
       action: "SERVICE_LIFT_API_BLOCK",
       target: serviceId,
       targetType: "SERVICE",
+    });
+
+    revalidateQuarantineAndAnomalies();
+    return { success: true };
+  });
+}
+
+/**
+ * Live API Diff: fetches the provider's current raw catalog item and compares it against DB service
+ */
+export async function getQuarantineServiceApiDiffAction(serviceId: string): Promise<{
+  success: boolean;
+  diff?: ServiceMutationResult;
+  error?: string;
+}> {
+  return requireStaffPermission('catalog', 'view', async () => {
+    try {
+      const service = await db.service.findUnique({
+        where: { id: serviceId },
+        include: { provider: true }
+      });
+
+      if (!service) {
+        return { success: false, error: 'Услуга не найдена в базе данных' };
+      }
+
+      if (!service.providerId || !service.provider) {
+        return { success: false, error: 'Услуга не привязана к провайдеру' };
+      }
+
+      if (!service.externalId) {
+        return { success: false, error: 'У услуги отсутствует внешний ID поставщика (externalId)' };
+      }
+
+      const provider = service.provider;
+      const providerInstance = await providerService.getWorkerProviderInstance(provider);
+      
+      // Attempt 1: read from Redis cache
+      let catalog = await providerService.getServicesWithCache(provider, providerInstance, false);
+      let providerDto = catalog.find(item => String(item.service) === String(service.externalId));
+
+      // Attempt 2: If not found in cache, attempt live fetch with 6s timeout
+      if (!providerDto) {
+        try {
+          const timeoutPromise = new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('Таймаут запроса к API провайдера (6 сек)')), 6000)
+          );
+          catalog = await Promise.race([
+            providerService.getServicesWithCache(provider, providerInstance, true),
+            timeoutPromise
+          ]);
+          providerDto = catalog.find(item => String(item.service) === String(service.externalId));
+        } catch (fetchErr) {
+          console.warn(`[QuarantineDiff] Live fetch timed out or failed for provider ${provider.name}, checking shadow catalog:`, fetchErr);
+        }
+      }
+
+      // Attempt 3: Fallback to ShadowService in DB
+      if (!providerDto) {
+        const shadow = await db.shadowService.findFirst({
+          where: { 
+            providerId: provider.id, 
+            externalId: String(service.externalId) 
+          }
+        });
+        if (shadow) {
+          providerDto = {
+            service: shadow.externalId,
+            name: shadow.name,
+            type: shadow.type || 'Default',
+            rate: String(shadow.rate),
+            min: String(shadow.min),
+            max: String(shadow.max),
+            refill: shadow.refill,
+            cancel: shadow.cancel,
+            category: shadow.category || '',
+          };
+        }
+      }
+
+      const usdToRub = await SettingsManager.getExchangeRateUSD();
+      const exchangeRate = service.providerCurrency === 'RUB' ? 1.0 : usdToRub;
+
+      const diff = ServiceMutationDetector.detect(
+        {
+          id: service.id,
+          name: service.name,
+          rate: service.rate,
+          providerCurrency: service.providerCurrency,
+          minQty: service.minQty,
+          maxQty: service.maxQty,
+          isRefillEnabled: service.isRefillEnabled,
+          isCancelEnabled: service.isCancelEnabled,
+          description: service.description,
+          providerServiceType: (service as unknown as { providerServiceType?: string }).providerServiceType,
+        },
+        providerDto,
+        exchangeRate
+      );
+
+      return { success: true, diff };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[QuarantineDiff] Error fetching live diff for ${serviceId}:`, err);
+      return { success: false, error: `Ошибка запроса к API провайдера: ${msg}` };
+    }
+  });
+}
+
+/**
+ * Resolves quarantined service with one of 3 modes:
+ * - 'PRICE_ONLY': updates only price and re-activates
+ * - 'SYNC_ALL': syncs all provider parameters (price, min/max, refill, cancel) and re-activates
+ * - 'DEACTIVATE': permanently disables service and clears quarantine flag
+ */
+export async function applyQuarantineResolutionAction(params: {
+  serviceId: string;
+  mode: 'PRICE_ONLY' | 'SYNC_ALL' | 'DEACTIVATE';
+}): Promise<{ success: boolean; error?: string }> {
+  return requireStaffPermission('catalog', 'edit', async (admin) => {
+    const { serviceId, mode } = params;
+
+    const service = await db.service.findUnique({
+      where: { id: serviceId },
+      include: { provider: true }
+    });
+
+    if (!service) {
+      return { success: false, error: 'Услуга не найдена' };
+    }
+
+    if (mode === 'DEACTIVATE') {
+      await db.service.update({
+        where: { id: serviceId },
+        data: {
+          isActive: false,
+          isQuarantined: false,
+          pendingRate: null,
+          quarantineReason: 'DEACTIVATED_BY_ADMIN',
+          quarantinedAt: null,
+        }
+      });
+
+      auditAdmin({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: "QUARANTINE_RESOLVE_DEACTIVATE",
+        target: serviceId,
+        targetType: "SERVICE",
+        oldValue: { isActive: service.isActive, isQuarantined: service.isQuarantined },
+        newValue: { isActive: false, isQuarantined: false }
+      });
+
+      revalidateQuarantineAndAnomalies();
+      return { success: true };
+    }
+
+    // Modes PRICE_ONLY and SYNC_ALL
+    const usdToRub = await SettingsManager.getExchangeRateUSD();
+    const exchangeRate = service.providerCurrency === 'RUB' ? 1.0 : usdToRub;
+    const settings = await SettingsManager.get();
+    const effectiveMarkup = service.markup > 0 ? service.markup : (settings.globalMarkup || 3.0);
+
+    if (mode === 'PRICE_ONLY') {
+      const targetRate = service.pendingRate !== null ? service.pendingRate : service.rate;
+      const newPricePer1000Cents = Math.round(
+        applyBeautifulRounding(targetRate * effectiveMarkup * exchangeRate) * 100
+      );
+
+      await db.$transaction(async (tx) => {
+        await tx.service.update({
+          where: { id: serviceId },
+          data: {
+            rate: targetRate,
+            pricePer1000Cents: newPricePer1000Cents,
+            isQuarantined: false,
+            pendingRate: null,
+            quarantineReason: null,
+            quarantinedAt: null,
+            isActive: true,
+          }
+        });
+
+        await tx.servicePriceHistory.create({
+          data: { serviceId, rate: targetRate }
+        });
+      });
+
+      auditAdmin({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: "QUARANTINE_RESOLVE_PRICE_ONLY",
+        target: serviceId,
+        targetType: "SERVICE",
+        oldValue: { rate: service.rate },
+        newValue: { rate: targetRate, pricePer1000Cents: newPricePer1000Cents, isActive: true }
+      });
+
+      revalidateQuarantineAndAnomalies();
+      return { success: true };
+    }
+
+    // SYNC_ALL mode: Fetch fresh DTO from provider and sync all parameters
+    if (!service.provider) {
+      return { success: false, error: 'Услуга не привязана к провайдеру' };
+    }
+
+    const providerInstance = await providerService.getWorkerProviderInstance(service.provider);
+    const catalog = await providerService.getServicesWithCache(service.provider, providerInstance, false);
+    const providerDto = catalog.find(item => String(item.service) === String(service.externalId));
+
+    if (!providerDto) {
+      return { success: false, error: 'Не удалось получить свежие данные услуги из API провайдера' };
+    }
+
+    const newRate = parseFloat(providerDto.rate) || (service.pendingRate || service.rate);
+    const newMin = parseInt(String(providerDto.min), 10) || service.minQty;
+    const newMax = parseInt(String(providerDto.max), 10) || service.maxQty;
+    const newRefill = Boolean(providerDto.refill);
+    const newCancel = Boolean(providerDto.cancel);
+    const newPricePer1000Cents = Math.round(
+      applyBeautifulRounding(newRate * effectiveMarkup * exchangeRate) * 100
+    );
+
+    await db.$transaction(async (tx) => {
+      await tx.service.update({
+        where: { id: serviceId },
+        data: {
+          rate: newRate,
+          pricePer1000Cents: newPricePer1000Cents,
+          minQty: newMin,
+          maxQty: newMax,
+          isRefillEnabled: newRefill,
+          isCancelEnabled: newCancel,
+          isQuarantined: false,
+          pendingRate: null,
+          quarantineReason: null,
+          quarantinedAt: null,
+          isActive: true,
+        }
+      });
+
+      await tx.servicePriceHistory.create({
+        data: { serviceId, rate: newRate }
+      });
+    });
+
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: "QUARANTINE_RESOLVE_SYNC_ALL",
+      target: serviceId,
+      targetType: "SERVICE",
+      oldValue: { rate: service.rate, min: service.minQty, max: service.maxQty, refill: service.isRefillEnabled },
+      newValue: { rate: newRate, min: newMin, max: newMax, refill: newRefill, isActive: true }
     });
 
     revalidateQuarantineAndAnomalies();

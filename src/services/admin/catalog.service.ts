@@ -24,6 +24,7 @@ import { z } from 'zod';
 import { buildCurrencySnapshot, getCostRub, reconcileCurrencyBeforeSync } from '@/lib/pricing/currency-invariant';
 import { applyAntiNegativeMargin } from '@/lib/pricing/anti-negative-margin';
 import { PriceDriftCircuitBreaker, DEFAULT_DRIFT_CONFIG } from '@/lib/pricing/drift-circuit-breaker';
+import { ServiceMutationDetector } from '@/services/providers/service-mutation-detector';
 
 /**
  * Ensures a category (and its network) is visible to every tenant targeted by
@@ -908,8 +909,48 @@ class AdminCatalogService {
           // Normalized price delta in RUB (immune to currency flip)
           const costDeltaRub = oldCostRub > 0 ? (newCostRub - oldCostRub) / oldCostRub : 0;
 
+          // Run indirect mutation detection (name, limits, refill, type)
+          const mutation = ServiceMutationDetector.detect(
+            {
+              id: s.id,
+              name: s.name,
+              rate: s.rate,
+              providerCurrency: s.providerCurrency,
+              minQty: s.minQty,
+              maxQty: s.maxQty,
+              isRefillEnabled: s.isRefillEnabled,
+              isCancelEnabled: s.isCancelEnabled,
+              description: s.description,
+              providerServiceType: (s as unknown as { providerServiceType?: string }).providerServiceType,
+            },
+            stagingExt,
+            newCostExchangeRate,
+            Math.min(0.30, QUARANTINE_THRESHOLD)
+          );
+
+          if (mutation.shouldDeactivate) {
+            // CRITICAL / MUTATION: Non-price parameters changed! Auto-deactivate immediately!
+            await db.service.update({
+              where: { id: s.id },
+              data: {
+                isActive: false, // Auto-deactivated!
+                isQuarantined: true,
+                pendingRate: newRate,
+                quarantineReason: mutation.reasons.join(' | '),
+                quarantinedAt: new Date()
+              }
+            });
+
+            const alertMsg = `🚨 [Услуга автоотключена] "${s.name}" (id=${s.id}) у поставщика изменилась не только цена!\n` +
+              `Вердикт: ${mutation.summary}\n` +
+              `Причины: ${mutation.reasons.join('; ')}\n` +
+              `Действие: Услуга автоматически снята с продажи (isActive: false) и помещена в карантин.`;
+            logger.warn(alertMsg, { serviceId: s.id, mutation });
+            await sendAdminAlert(alertMsg, mutation.verdict === 'SERVICE_REPLACED' ? 'CRITICAL' : 'WARNING');
+            priceAnomalies++;
+          }
           // 1. Sanity limit breach (> UPPER_SANITY_LIMIT_RUB)
-          if (newCostRub > UPPER_SANITY_LIMIT_RUB) {
+          else if (newCostRub > UPPER_SANITY_LIMIT_RUB) {
             await db.service.update({
               where: { id: s.id },
               data: {
@@ -927,14 +968,14 @@ class AdminCatalogService {
             priceAnomalies++;
           }
           // 2. Price Spike Detection (> 30% or > QUARANTINE_THRESHOLD or > ANOMALY_PRICE_SPIKE_THRESHOLD)
-          else if (oldCostRub > 0 && (costDeltaRub > 0.30 || costDeltaRub > QUARANTINE_THRESHOLD || costDeltaRub > ANOMALY_PRICE_SPIKE_THRESHOLD)) {
+          else if (oldCostRub > 0 && (mutation.isPriceSpike || costDeltaRub > 0.30 || costDeltaRub > QUARANTINE_THRESHOLD || costDeltaRub > ANOMALY_PRICE_SPIKE_THRESHOLD)) {
             await db.service.update({
               where: { id: s.id },
               data: {
                 isActive: false, // Immediately take off storefront
                 isQuarantined: true,
                 pendingRate: newRate,
-                quarantineReason: `Price Spike (+${(costDeltaRub * 100).toFixed(0)}%): себестоимость выросла с ${oldCostRub.toFixed(2)} ₽ до ${newCostRub.toFixed(2)} ₽/1k (${s.rate} ${serviceCurrency} → ${newRate} ${serviceCurrency})`,
+                quarantineReason: `Price Spike (+${(costDeltaRub * 100).toFixed(0)}%): себестоимость выросла с ${oldCostRub.toFixed(2)} ₽ до ${newCostRub.toFixed(2)} ₽/1k (${s.rate} ${serviceCurrency} → ${newRate} ${serviceCurrency}). Параметры услуги в норме.`,
                 quarantinedAt: new Date()
               }
             });
