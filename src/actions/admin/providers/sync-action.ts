@@ -8,6 +8,7 @@
  * - Admin must approve/reject in /admin/catalog/quarantine
  */
 
+import { revalidateTag, revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { applyBeautifulRounding, SAFETY_FLOOR_MARKUP } from "@/lib/financial-constants";
 import { SettingsManager } from "@/lib/settings";
@@ -15,6 +16,17 @@ import { requireStaffPermission } from "@/lib/server/rbac";
 import { auditAdmin } from "@/lib/admin-audit";
 import { MutexManager } from "@/lib/redis-lock";
 import { adminCatalogService } from "@/services/admin/catalog.service";
+
+function revalidateQuarantineAndAnomalies() {
+  try {
+    revalidateTag('anomaly-count', 'default');
+    revalidateTag('catalog', 'default');
+    revalidatePath('/admin/catalog/quarantine');
+    revalidatePath('/admin', 'layout');
+  } catch (err) {
+    console.warn('[Quarantine] Revalidation warning:', err);
+  }
+}
 
 export async function adminSyncProviderCatalog() {
   return requireStaffPermission('catalog', 'edit', async (admin) => {
@@ -39,6 +51,7 @@ export async function adminSyncProviderCatalog() {
           }
         }
 
+        revalidateQuarantineAndAnomalies();
         return {
           success: true,
           message: `Синхронизация Бутика завершена (${activeProviders.length} провайд.): 🔄${updatedCount} цен обновлено, 🧟${disabledCount} мертвых душ отключено.`,
@@ -117,6 +130,7 @@ export async function approveQuarantinedService(serviceId: string) {
       newValue: { rate: targetRate, pricePer1000Cents: newPricePer1000Cents },
     });
 
+    revalidateQuarantineAndAnomalies();
     return { success: true };
   });
 }
@@ -137,6 +151,7 @@ export async function rejectQuarantinedService(serviceId: string) {
       targetType: "SERVICE",
     });
 
+    revalidateQuarantineAndAnomalies();
     return { success: true };
   });
 }
@@ -194,6 +209,7 @@ export async function approveAllQuarantined() {
       newValue: { count: quarantined.length },
     });
 
+    revalidateQuarantineAndAnomalies();
     return { success: true, count: quarantined.length };
   });
 }
@@ -229,6 +245,7 @@ export async function archiveZombieService(serviceId: string) {
       newValue: { name: newName, isActive: false, cooldownReason: 'ZOMBIE_ARCHIVED' },
     });
 
+    revalidateQuarantineAndAnomalies();
     return { success: true };
   });
 }
@@ -259,6 +276,7 @@ export async function liftApiBlock(serviceId: string) {
       targetType: "SERVICE",
     });
 
+    revalidateQuarantineAndAnomalies();
     return { success: true };
   });
 }

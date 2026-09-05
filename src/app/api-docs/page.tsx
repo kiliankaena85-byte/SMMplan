@@ -156,7 +156,7 @@ export default function ApiDocsPage() {
         {/* Title Hero */}
         <div className="mb-12 space-y-4">
           <div className="flex items-center gap-2">
-            <PlanBadge variant="primary">B2B Developer Hub</PlanBadge>
+            <PlanBadge variant="primary">Developer Hub</PlanBadge>
             <PlanBadge variant="success">Стандарт REST / SMM v2</PlanBadge>
           </div>
           <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-foreground">
@@ -297,7 +297,7 @@ export default function ApiDocsPage() {
 
       {/* Footer */}
       <footer className="bg-card border-t border-border/80 py-8 text-center text-xs text-muted-foreground mt-20">
-        <p>© {new Date().getFullYear()} SMMplan B2B Infrastructure. Все права защищены.</p>
+        <p>© {new Date().getFullYear()} SMMplan Infrastructure. Все права защищены.</p>
       </footer>
     </div>
   );

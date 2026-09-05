@@ -65,7 +65,7 @@ describe("Bot Real Order Execution Flow", () => {
     }
 
     const service = await db.service.findFirst({
-      where: { name: "Telegram Подписчики", isActive: true }
+      where: { isActive: true, tenantId: tgUser!.tenantId, category: { network: { slug: 'telegram' } } }
     });
     expect(service).toBeDefined();
 

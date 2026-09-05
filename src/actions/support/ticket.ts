@@ -7,7 +7,7 @@ import { ticketService } from '@/services/support/ticket.service';
 import { db } from '@/lib/db';
 import { aiSupportService } from '@/services/admin/ai-support.service';
 import { requireStaffPermission } from '@/lib/server/rbac';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { getClientIp } from '@/utils/ip';
@@ -302,18 +302,21 @@ export async function changeTicketStatus(formData: FormData) {
       ipAddress
     });
 
-    // CSAT: When ticket is closed, send interactive rating buttons to user in Telegram
+    // CSAT: When ticket is closed, send interactive rating buttons to user in Telegram in background (non-blocking)
     if (status === 'CLOSED' && oldTicket?.user?.telegramId) {
-      try {
-        const { supportBotService } = await import('@/services/support/support-bot.service');
-        await supportBotService.sendTicketClosedRating(oldTicket.user.telegramId, ticketId);
-      } catch (e) {
-        console.error('[changeTicketStatus] Error sending Telegram CSAT rating:', e);
-      }
+      const tgUserId = oldTicket.user.telegramId;
+      import('@/services/support/support-bot.service')
+        .then(({ supportBotService }) => supportBotService.sendTicketClosedRating(tgUserId, ticketId))
+        .catch((e) => console.error('[changeTicketStatus] Error sending Telegram CSAT rating:', e));
     }
 
-    revalidatePath(`/admin/tickets/${ticketId}`);
-    revalidatePath(`/admin/tickets`);
+    try {
+      revalidateTag('tickets', 'default');
+      revalidateTag('open-count', 'default');
+      revalidatePath(`/admin/tickets/${ticketId}`);
+      revalidatePath(`/admin/tickets`);
+      revalidatePath(`/admin`, 'layout');
+    } catch { /* ignore non-request contexts */ }
     return { success: true as const };
   });
 }

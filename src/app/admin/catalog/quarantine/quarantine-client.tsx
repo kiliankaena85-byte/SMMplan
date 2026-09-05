@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { 
   approveQuarantinedService, 
   rejectQuarantinedService, 
@@ -15,9 +16,11 @@ import { formatPricePerUnit } from '@/utils/format-price';
 
 interface QuarantineItem {
   id: string;
+  numericId?: number | null;
   name: string;
   categoryName: string;
   networkSlug: string;
+  providerId?: string | null;
   providerName: string;
   currentRate: number;
   pendingRate: number | null;
@@ -30,10 +33,13 @@ interface QuarantineItem {
 interface AutoFixItem {
   id: string;
   serviceId: string;
+  serviceNumericId?: number | null;
   serviceName: string;
   categoryName: string;
   networkSlug: string;
+  providerId?: string | null;
   providerName: string;
+  externalId?: string | null;
   oldValue: Record<string, string | number | null> | null;
   newValue: Record<string, string | number | null> | null;
   createdAt: string;
@@ -123,6 +129,81 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
   }
 
   // Render Helpers
+  function ServiceInfoCell({
+    item,
+    isZombie = false
+  }: {
+    item: QuarantineItem | {
+      id: string;
+      name: string;
+      numericId?: number | null;
+      categoryName: string;
+      providerName: string;
+      externalId?: string | null;
+      networkSlug: string;
+    };
+    isZombie?: boolean;
+  }) {
+    const emoji = NETWORK_EMOJI[item.networkSlug] ?? '🌐';
+    return (
+      <div className="flex items-start gap-2.5 max-w-[340px]">
+        <span className="text-base shrink-0 mt-0.5">{emoji}</span>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Link
+              href={`/admin/catalog/${item.id}`}
+              className={`text-xs font-bold transition-colors inline-flex items-center gap-1.5 hover:text-primary ${
+                isZombie ? 'text-foreground/60 line-through' : 'text-foreground'
+              }`}
+              title="Открыть карточку услуги"
+            >
+              <span className="hover:underline underline-offset-2">{item.name}</span>
+              {item.numericId ? (
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-muted text-muted-foreground font-bold border border-border/50">
+                  #{item.numericId}
+                </span>
+              ) : null}
+            </Link>
+          </div>
+
+          <div className="flex items-center gap-1.5 flex-wrap text-[11px] text-muted-foreground mt-1">
+            <span>{item.categoryName}</span>
+            <span>·</span>
+            <span className="font-semibold text-foreground/80">{item.providerName}</span>
+            {item.externalId ? (
+              <>
+                <span>·</span>
+                <span
+                  className="inline-flex items-center gap-1 font-mono font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20 text-[10px]"
+                  title="ID услуги в API провайдера"
+                >
+                  <span>ID провайдера: {item.externalId}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(item.externalId || '');
+                      toast.success(`ID ${item.externalId} скопирован в буфер`);
+                    }}
+                    className="hover:text-primary/70 transition-colors cursor-pointer p-0.5"
+                    title="Скопировать ID в буфер обмена"
+                  >
+                    📋
+                  </button>
+                </span>
+              </>
+            ) : (
+              <>
+                <span>·</span>
+                <span className="text-[10px] text-muted-foreground/60 italic">нет ID провайдера</span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   function renderEmptyState(title: string, desc: string) {
     return (
       <div className="bg-card border border-border rounded-xl p-16 text-center">
@@ -200,25 +281,18 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                     </Table.Header>
                     <Table.Body>
                       {priceSpikes.map(item => {
-                        const emoji = NETWORK_EMOJI[item.networkSlug] ?? '🌐';
                         const priceDiff = item.pendingRate !== null ? ((item.pendingRate - item.currentRate) / item.currentRate * 100).toFixed(1) : '—';
                         const isRise = item.pendingRate !== null && item.pendingRate > item.currentRate;
                         return (
                           <Table.Row key={item.id}>
                             <Table.Cell>
-                              <div className="flex items-start gap-2">
-                                <span className="text-base">{emoji}</span>
-                                <div>
-                                  <div className="text-sm font-medium text-foreground">{item.name}</div>
-                                  <div className="text-xs text-muted-foreground">{item.categoryName} · {item.providerName}</div>
-                                </div>
-                              </div>
+                              <ServiceInfoCell item={item} />
                             </Table.Cell>
                             <Table.Cell><span className="text-xs px-2 py-1 rounded-md bg-warning/10 text-warning border border-warning/20">{item.quarantineReason}</span></Table.Cell>
-                            <Table.Cell className="text-right"><span className="text-sm font-mono text-muted-foreground">${formatPricePerUnit(item.currentRate)}</span></Table.Cell>
+                            <Table.Cell className="text-right"><span className="text-sm font-mono text-muted-foreground">{formatPricePerUnit(item.currentRate)} ₽</span></Table.Cell>
                             <Table.Cell className="text-right">
                               <div className="flex flex-col items-end gap-0.5">
-                                <span className={`text-sm font-mono font-semibold ${isRise ? 'text-destructive' : 'text-success'}`}>${item.pendingRate !== null ? formatPricePerUnit(item.pendingRate) : '—'}</span>
+                                <span className={`text-sm font-mono font-semibold ${isRise ? 'text-destructive' : 'text-success'}`}>{item.pendingRate !== null ? formatPricePerUnit(item.pendingRate) : '—'} ₽</span>
                                 <span className={`text-xs ${isRise ? 'text-destructive' : 'text-success'}`}>{isRise ? '▲' : '▼'} {priceDiff}%</span>
                               </div>
                             </Table.Cell>
@@ -256,17 +330,10 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                     </Table.Header>
                     <Table.Body>
                       {zombies.map(item => {
-                        const emoji = NETWORK_EMOJI[item.networkSlug] ?? '🌐';
                         return (
                           <Table.Row key={item.id}>
                             <Table.Cell>
-                              <div className="flex items-start gap-2">
-                                <span className="text-base">{emoji}</span>
-                                <div>
-                                  <div className="text-sm font-medium text-foreground opacity-50">{item.name}</div>
-                                  <div className="text-xs text-muted-foreground">{item.categoryName} · {item.providerName}</div>
-                                </div>
-                              </div>
+                              <ServiceInfoCell item={item} isZombie />
                             </Table.Cell>
                             <Table.Cell><span className="text-xs px-2 py-1 rounded-md bg-destructive/10 text-destructive border border-destructive/20">{item.quarantineReason}</span></Table.Cell>
                             <Table.Cell className="text-right">
@@ -301,18 +368,11 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                     </Table.Header>
                     <Table.Body>
                       {apiErrors.map(item => {
-                        const emoji = NETWORK_EMOJI[item.networkSlug] ?? '🌐';
                         const untilDate = item.cooldownUntil ? new Date(item.cooldownUntil).toLocaleString('ru-RU') : '—';
                         return (
                           <Table.Row key={item.id}>
                             <Table.Cell>
-                              <div className="flex items-start gap-2">
-                                <span className="text-base">{emoji}</span>
-                                <div>
-                                  <div className="text-sm font-medium text-foreground">{item.name}</div>
-                                  <div className="text-xs text-muted-foreground">{item.categoryName} · {item.providerName}</div>
-                                </div>
-                              </div>
+                              <ServiceInfoCell item={item} />
                             </Table.Cell>
                             <Table.Cell><span className="text-xs px-2 py-1 rounded-md bg-warning/10 text-warning border border-warning/20">{item.quarantineReason}</span></Table.Cell>
                             <Table.Cell><span className="text-sm font-mono text-muted-foreground">{untilDate}</span></Table.Cell>
@@ -409,13 +469,17 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                         return (
                           <Table.Row key={item.id}>
                             <Table.Cell>
-                              <div className="flex items-start gap-2">
-                                <span className="text-base">{emoji}</span>
-                                <div>
-                                  <div className="text-sm font-medium text-foreground">{item.serviceName}</div>
-                                  <div className="text-xs text-muted-foreground">{item.categoryName} · {item.providerName}</div>
-                                </div>
-                              </div>
+                              <ServiceInfoCell 
+                                item={{
+                                  id: item.serviceId,
+                                  numericId: item.serviceNumericId,
+                                  name: item.serviceName,
+                                  categoryName: item.categoryName,
+                                  providerName: item.providerName,
+                                  externalId: item.externalId,
+                                  networkSlug: item.networkSlug,
+                                }} 
+                              />
                             </Table.Cell>
                             <Table.Cell>
                               <span className="text-sm font-mono text-muted-foreground whitespace-nowrap">{dateFormatted}</span>

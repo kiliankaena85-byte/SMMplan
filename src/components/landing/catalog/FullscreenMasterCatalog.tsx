@@ -77,7 +77,7 @@ export const ALL_PLATFORMS: CatalogPlatform[] = [
           },
           {
             id: 'tg-sub-3',
-            title: 'Оптовые подписчики (Мир)',
+            title: 'Подписчики (Мир)',
             speed: 'Высокая скорость: до 50k / день',
             guarantee: 'Авто-рефилл 365 дней',
             minMax: 'Лимиты: 500 — 500 000 шт',

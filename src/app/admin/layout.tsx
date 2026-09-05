@@ -98,7 +98,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const navigation = ADMIN_NAVIGATION.map(group => ({
     ...group,
     items: group.items.map(item => {
-      if (item.section === 'catalog' && anomalyCount > 0) {
+      if (item.href === '/admin/catalog' && anomalyCount > 0) {
         return { ...item, badge: anomalyCount };
       }
       if (item.section === 'tickets' && openTicketCount > 0) {

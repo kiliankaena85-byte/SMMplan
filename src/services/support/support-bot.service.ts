@@ -175,6 +175,7 @@ class SupportBotService {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(3500),
     });
     const json = await res.json() as { ok: boolean; result?: { message_id: number }; description?: string };
     if (!json.ok) {

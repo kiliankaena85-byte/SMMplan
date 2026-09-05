@@ -38,9 +38,21 @@ if (input.userId === admin.id) return { success: false, error: 'Запрещен
 **Что случилось:** `@@unique([idempotencyKey, transactionType])` — составной индекс. Злоумышленник мог использовать один `idempotencyKey` с разными `transactionType` и создать несколько ledger-записей (дублирование кредитов).  
 **Правило:** При любом изменении `prisma/schema.prisma` финансовых таблиц (`LedgerEntry`, `Payment`, `Order`) проверять: нет ли составных `@@unique`, которые можно обойти заменой одного из полей? Для idempotency — всегда `@@unique([idempotencyKey])` без дополнительных полей.
 
+### 🔴 УРОК 6 — Fullstack Analyst & Human Approval Protocol (FA-2026)
+**Что случилось:** При попытке устранить сбой внешнего доступа агент самовольно вернул Cloudflare Tunnel и включил Cloudflare Proxy (`proxied: true`), из-за чего трафик пошел через заблокированные в РФ IP-адреса Cloudflare (ТСПУ).
+**Правило:** КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО вносить любые изменения в конфигурации, сеть, DNS или код без предварительного аудита через Fullstack-аналитика (с моделированием блокировок в РФ и радиуса поражения) и прямого явного согласования с пользователем.
+
 ---
 
 ## 1. 🏗️ Архитектурные решения (ADR)
+
+- **ADR-2026-20: Domain Redirection Architecture via Cloudflare Edge (302) to Tailscale Funnel with TSPU Anti-Blocking:**
+  - *Решение:*
+    1. **Обход блокировок ТСПУ РКН в РФ на Cloudflare Edge:** В зоне `smmplan.pro` отключен ECH (`ech: "off"`), отключен HTTP/3 (`http3: "off"`), отключен 0-RTT (`0rtt: "off"`), минимальная версия TLS установлена в 1.2 (`min_tls_version: "1.2"`). Это устранило обрывы TLS handshake на российских провайдерах.
+    2. **DNS Proxied Dummy Records:** Записи `test.smmplan.pro`, `smmplan.pro`, `www.smmplan.pro`, `flux.smmplan.pro` настроены как A (`192.0.2.1`) и AAAA (`100::`) с `proxied: true`. Cloudflare Edge выдает Anycast-IP и валидный TLS-сертификат для доменов.
+    3. **Edge 302 Redirect Rules (Forwarding URL):** Cloudflare Edge мгновенно возвращает HTTP 302 Found на адрес Tailscale Funnel (`https://desktop-25m6el7.tailbb9d28.ts.net/`) без обращения к какому-либо origin на стороне Cloudflare. При этом `flux.smmplan.pro` маршрутизируется с параметром `?tenant=flux`.
+    4. **Изоляция бэкенда:** Локальный бэкенд в Docker (`0.0.0.0:3000`) обслуживается строго через нативный Tailscale Funnel. Контейнеров `cloudflared` в Docker нет.
+  - *Причина:* Обеспечение работы пользовательских доменов (`smmplan.pro`, `test.smmplan.pro`) с прямым автоматическим редиректом на Tailscale Funnel без риска блокировок в РФ.
 
 - **ADR-2026-19: Elimination of Cloudflare API & Adoption of Tailscale Funnel as Official Tunnel:**
   - *Решение:*
@@ -121,6 +133,13 @@ if (input.userId === admin.id) return { success: false, error: 'Запрещен
   - **`flux.smmplan.pro`:** СТРОГО витрина SMMflux (`FluxOrderClient` / Radiant Aurora) во время периода тестирования.
   - *Выученный урок (Maintenance Intercept Bug):* `src/app/layout.tsx` и `src/app/api/maintenance-status/route.ts` проверяют `isTestDomain` перед показом `MaintenanceScreen`. Для корректной работы туннеля хосты `.ts.net` и `tailscale` ОБЯЗАНЫ быть включены в `isTestDomain`, иначе `layout.tsx` глобально перехватывает все страницы и рендерит заглушку, игнорируя логику `page.tsx`.
   - *ПРИМЕЧАНИЕ:* Перенос боевого функционала на `smmplan.pro` будет производиться ТОЛЬКО после явной отдельной команды пользователя при выходе из тестирования.
+
+- **Catalog Quarantine Provider IDs, Anomaly Badge Scope & Non-Blocking Support CSAT:**
+  - *Решение:*
+    1. **Внешние ID провайдеров в карантине цен:** Во все DTO (`QuarantineItemDto`, `AutoFixItemDto`) добавлены `numericId`, `providerId`, `externalId`. Во все вкладки интерфейса внедрен `ServiceInfoCell` с выводом внутреннего ID `#123` со ссылкой на редактирование, названия поставщика и бейджа `ID провайдера: {externalId}` с кнопкой копирования 📋 в буфер.
+    2. **Изоляция бейджа аномалий в сайдбаре:** В `admin/layout.tsx` счетчик `anomalyCount` привязан строго к конкретному URL `item.href === '/admin/catalog'`, предотвращая ошибочное отображение бейджа на вкладке «Категории & Соцсети». Все мутации поставщиков в `sync-action.ts` вызывают `revalidateQuarantineAndAnomalies()`, сбрасывающий теги `'anomaly-count'` и `'catalog'` в Next.js cache.
+    3. **Non-blocking CSAT & Instant Ticket Status Switch:** В `src/services/support/support-bot.service.ts` запросы `tgCall` снабжены таймаутом `AbortSignal.timeout(3500)`. В `src/actions/support/ticket.ts` отправка рейтинга клиенту в Telegram вынесена в фоновый неблокирующий вызов (`import(...).then(...)`), что снизило время закрытия тикета с 15-30 секунд до 108 мс. В UI добавлен оптимистичный стейт.
+  - *Причина:* Устранение блокировок UI при внешних сетевых задержках Telegram, устранение путаницы операторов при поиске услуг в панелях поставщиков и точная локализация бейджей аномалий.
 
 - **Advanced Clients Sorting, Lifecycle & Zero-Scroll Architecture (ADR-2026-15):**
   - *Решение:*

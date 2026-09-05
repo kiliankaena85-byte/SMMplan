@@ -1,4 +1,4 @@
-import { useTransition } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { CheckCircle, Clock, RefreshCw, ChevronDown } from 'lucide-react';
@@ -7,22 +7,30 @@ import { changeTicketStatus } from '@/actions/support/ticket';
 
 export default function TicketActionsDropdown({ 
   ticketId, 
-  currentStatus,
+  currentStatus: initialStatus,
 }: { 
   ticketId: string; 
   currentStatus: string;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [currentStatus, setCurrentStatus] = useState(initialStatus);
+
+  useEffect(() => {
+    setCurrentStatus(initialStatus);
+  }, [initialStatus]);
 
   const handleStatusChange = (status: 'OPEN' | 'PENDING' | 'CLOSED') => {
     if (status === currentStatus) return;
+    const prevStatus = currentStatus;
+    setCurrentStatus(status);
     startTransition(async () => {
       const fd = new FormData();
       fd.set('ticketId', ticketId);
       fd.set('status', status);
       const res = await changeTicketStatus(fd);
       if (res && typeof res === 'object' && 'success' in res && !res.success) {
+        setCurrentStatus(prevStatus);
         toast.error((res as { error?: string }).error || 'Ошибка смены статуса');
       } else {
         toast.success(

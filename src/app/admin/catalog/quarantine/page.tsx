@@ -6,6 +6,7 @@ import { CATALOG_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-
 
 interface ServiceWithRelations {
   id: string;
+  numericId?: number;
   name: string;
   rate: number;
   pendingRate: number | null;
@@ -33,9 +34,11 @@ interface AutoFixLog {
 
 interface QuarantineItemDto {
   id: string;
+  numericId: number | null;
   name: string;
   categoryName: string;
   networkSlug: string;
+  providerId: string | null;
   providerName: string;
   currentRate: number;
   pendingRate: number | null;
@@ -48,10 +51,13 @@ interface QuarantineItemDto {
 interface AutoFixItemDto {
   id: string;
   serviceId: string;
+  serviceNumericId?: number | null;
   serviceName: string;
   categoryName: string;
   networkSlug: string;
+  providerId: string | null;
   providerName: string;
+  externalId: string | null;
   oldValue: Record<string, string | number | null> | null;
   newValue: Record<string, string | number | null> | null;
   createdAt: string;
@@ -88,9 +94,11 @@ export default async function QuarantinePage() {
 
   const mapToDto = (s: ServiceWithRelations): QuarantineItemDto => ({
     id: s.id,
+    numericId: s.numericId ?? null,
     name: s.name,
     categoryName: s.category.name,
     networkSlug: s.category.network?.slug ?? 'unknown',
+    providerId: s.provider?.id ?? null,
     providerName: s.provider?.name ?? '—',
     currentRate: s.rate,
     pendingRate: s.pendingRate,
@@ -109,9 +117,11 @@ export default async function QuarantinePage() {
     where: { id: { in: serviceIds } },
     select: {
       id: true,
+      numericId: true,
       name: true,
+      externalId: true,
       category: { select: { name: true, network: { select: { slug: true } } } },
-      provider: { select: { name: true } },
+      provider: { select: { id: true, name: true } },
     },
   });
 
@@ -131,10 +141,13 @@ export default async function QuarantinePage() {
     return {
       id: log.id,
       serviceId: log.target,
+      serviceNumericId: sInfo?.numericId ?? null,
       serviceName: sInfo?.name ?? `Услуга #${log.target.slice(0, 8)}`,
       categoryName: sInfo?.category?.name ?? '—',
       networkSlug: sInfo?.category?.network?.slug ?? 'unknown',
+      providerId: sInfo?.provider?.id ?? null,
       providerName: sInfo?.provider?.name ?? '—',
+      externalId: sInfo?.externalId ?? null,
       oldValue: oldValueParsed,
       newValue: newValueParsed,
       createdAt: log.createdAt.toISOString(),

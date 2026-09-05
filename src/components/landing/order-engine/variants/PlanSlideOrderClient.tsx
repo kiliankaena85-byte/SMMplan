@@ -517,11 +517,7 @@ function PlanSlideOrderClientInner({
             exit="exit"
             className="w-full max-w-2xl flex flex-col items-center"
           >
-            {/* Header Badge */}
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold mb-4 tracking-wide uppercase">
-              <Sparkles className="w-3.5 h-3.5" />
-              Прямой оптовый доступ
-            </div>
+            {/* Header Badge Removed */}
 
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground mb-3 text-center leading-tight px-2 text-balance">
               Что хотите <span className="text-primary underline decoration-primary/30 decoration-wavy underline-offset-4">продвигать</span> сегодня?

@@ -140037,7 +140037,8 @@ var init_support_bot_service = __esm({
         const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body)
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(3500)
         });
         const json = await res.json();
         if (!json.ok) {

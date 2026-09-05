@@ -236,7 +236,7 @@ export function SmartLinkLanding({
 
       <Header initialEmail={initialEmail} siteName={companyName} tenantId={tenantId} activePath={ROUTES.HOME} />
 
-      <main className="flex-1 w-full max-w-screen-2xl mx-auto px-2 sm:px-4 md:px-6 pt-3 md:pt-28 pb-16 md:pb-40 flex flex-col items-center relative z-10">
+      <main className="flex-1 w-full max-w-screen-2xl mx-auto px-2 sm:px-4 md:px-6 pt-1 md:pt-2 pb-10 md:pb-16 flex flex-col items-center relative z-10">
 
         <div className="absolute top-0 inset-x-0 h-[800px] z-[-1] pointer-events-none overflow-hidden premium-dot-grid" />
         <div className="absolute top-0 inset-x-0 h-[800px] z-[-1] pointer-events-none overflow-hidden bg-gradient-to-b from-transparent via-background/50 to-background" />
@@ -308,7 +308,7 @@ export function SmartLinkLanding({
             )}
           </h1>
           <p className="text-base sm:text-lg text-muted-foreground leading-relaxed font-medium max-w-2xl mx-auto drop-shadow-sm text-pretty">
-            {customHeroSubtitle || "Прямой доступ к оптовым шлюзам продвижения без наценок агентств. Без паролей и регистрации — мгновенный запуск за 30 секунд."}
+            {customHeroSubtitle || "Удобный сервис для продвижения социальных сетей. Без паролей и регистрации — мгновенный запуск за 30 секунд."}
           </p>
           <div className="flex items-center justify-center gap-4 sm:gap-6 md:gap-10 pt-1">
             <div className="text-center">

@@ -45,7 +45,7 @@ export function MegaFooter({
 
   return (
     <footer className="bg-card/90 dark:bg-card/40 text-foreground pt-12 md:pt-20 pb-8 md:pb-12 border-t border-border/80 relative overflow-hidden mt-auto shadow-[0_-10px_40px_rgba(0,0,0,0.03)]">
-      {/* SMMplan B2B Blueprint Glow & Subtle Grid */}
+      {/* SMMplan Blueprint Glow & Subtle Grid */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-primary/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-40" style={{ maskImage: 'linear-gradient(to bottom, white, transparent)', WebkitMaskImage: 'linear-gradient(to bottom, white, transparent)' }} />
       
