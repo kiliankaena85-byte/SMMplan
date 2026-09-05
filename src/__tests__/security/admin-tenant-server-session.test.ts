@@ -5,6 +5,20 @@ vi.mock('@/lib/session', () => ({
   verifySession: vi.fn(),
 }));
 
+vi.mock('@/lib/db', () => ({
+  db: {
+    user: {
+      findUnique: vi.fn().mockResolvedValue({
+        id: 'staff-456',
+        email: 'staff@smmplan.pro',
+        role: 'ADMIN',
+        allowedTenants: ['smmplan', 'flux'],
+        tenantId: 'smmplan',
+      }),
+    },
+  },
+}));
+
 vi.mock('@/lib/redis', () => ({
   redis: {
     set: vi.fn().mockResolvedValue('OK'),

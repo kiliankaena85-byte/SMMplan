@@ -7,29 +7,106 @@ import { MutexManager } from '@/lib/redis-lock';
 import crypto from 'crypto';
 import { UniversalNetworkRouter } from '@/lib/network/network-router';
 
-let vatThresholdCache: { result: boolean; expiresAt: number } | null = null;
+export const VAT_THRESHOLD_KOPECKS = BigInt(20_000_000) * BigInt(100); // 20,000,000 RUB in kopecks (2,000,000,000 cents)
+
+export interface TenantPaymentContext {
+  readonly tenantId: string;
+  readonly currency?: 'RUB';
+  readonly legalCompanyName?: string;
+  readonly legalCompanyInn?: string;
+  readonly legalCompanyOgrnip?: string;
+  readonly legalCompanyAddress?: string;
+  readonly supportEmail?: string;
+  readonly privacyEmail?: string;
+  readonly yookassaShopId?: string;
+  readonly yookassaSecretKey?: string;
+  readonly fiscalTaxSystemCode?: number;
+  readonly fiscalVatCode?: number;
+  readonly autoVatThreshold?: boolean;
+}
+
+const vatThresholdCache: Map<string, { result: boolean; expiresAt: number }> = new Map();
 
 /**
- * 54-ФЗ Fiscalization: Checks whether annual revenue exceeded 20M RUB across all tenants (tax exempt threshold).
- * Cached for 1 hour to reduce database aggregate load.
+ * Invalidate cached VAT threshold status (e.g. after a refund or new legal settings)
  */
-export async function checkVatThreshold(): Promise<boolean> {
+export function invalidateVatThresholdCache(tenantId?: string): void {
+  if (tenantId) {
+    vatThresholdCache.delete(tenantId);
+  } else {
+    vatThresholdCache.clear();
+  }
+}
+
+/**
+ * ExactMath String Formatter: Formats BigInt kopecks into human-readable RUB string without Number conversion.
+ * Avoids IEEE-754 precision loss on large values.
+ */
+export function formatKopecksAsRubString(kopecks: bigint): string {
+  if (kopecks < BigInt(0)) {
+    throw new Error('Денежная сумма в копейках не может быть отрицательной');
+  }
+  const rubles = kopecks / BigInt(100);
+  const remainingCents = kopecks % BigInt(100);
+  const centsFormatted = remainingCents < BigInt(10) ? `0${remainingCents}` : `${remainingCents}`;
+  
+  const rublesStr = rubles.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return `${rublesStr}.${centsFormatted} ₽`;
+}
+
+/**
+ * PCI DSS Secret Masking Helper: Returns a copy of the payment context with sensitive keys redacted for logging.
+ */
+export function toSafePaymentContextLog(ctx: TenantPaymentContext): Record<string, unknown> {
+  return {
+    ...ctx,
+    yookassaSecretKey: ctx.yookassaSecretKey ? '[REDACTED_SECRET]' : undefined,
+  };
+}
+
+/**
+ * 54-ФЗ / 176-ФЗ / 425-ФЗ Fiscalization: Checks whether annual revenue exceeded 20M RUB 
+ * for a specific tenant / legal entity (tax exempt threshold under ст. 145 НК РФ).
+ * Net Revenue Accounting: Gross SUCCEEDED payments minus REFUND transactions in BigInt kopecks.
+ * Cached for 1 hour per tenant to reduce database aggregate load.
+ */
+export async function checkVatThreshold(tenantId: string = 'smmplan'): Promise<boolean> {
+  const cleanTenant = tenantId || 'smmplan';
   const now = Date.now();
-  if (vatThresholdCache && vatThresholdCache.expiresAt > now) {
-    return vatThresholdCache.result;
+  const cached = vatThresholdCache.get(cleanTenant);
+  if (cached && cached.expiresAt > now) {
+    return cached.result;
   }
 
   const currentYear = new Date().getFullYear();
-  const annualRevenue = await db.payment.aggregate({
+  const startOfYear = new Date(currentYear, 0, 1);
+
+  // 1. Gross revenue
+  const grossResult = await db.payment.aggregate({
     _sum: { amount: true },
     where: {
+      tenantId: cleanTenant,
       status: 'SUCCEEDED',
-      createdAt: { gte: new Date(currentYear, 0, 1) }
+      createdAt: { gte: startOfYear }
     }
-  }).then(res => Number(res._sum.amount || 0));
+  });
+  const grossKopecks = BigInt(grossResult._sum?.amount || 0);
 
-  const isExceeded = annualRevenue >= 2000000000; // 20M RUB (2,000,000,000 cents)
-  vatThresholdCache = { result: isExceeded, expiresAt: now + 3600 * 1000 };
+  // 2. Deduct refunds from net taxable turnover
+  const refundResult = await db.ledgerEntry.aggregate({
+    _sum: { amount: true },
+    where: {
+      tenantId: cleanTenant,
+      transactionType: 'REFUND',
+      createdAt: { gte: startOfYear }
+    }
+  }).catch(() => ({ _sum: { amount: BigInt(0) } }));
+  const refundKopecks = BigInt(refundResult._sum?.amount || 0);
+
+  const netAnnualRevenueKopecks = grossKopecks > refundKopecks ? (grossKopecks - refundKopecks) : BigInt(0);
+
+  const isExceeded = netAnnualRevenueKopecks >= VAT_THRESHOLD_KOPECKS;
+  vatThresholdCache.set(cleanTenant, { result: isExceeded, expiresAt: now + 3600 * 1000 });
   return isExceeded;
 }
 
@@ -41,6 +118,7 @@ export interface PaymentGatewayResult {
 
 export interface RefundGatewayParams {
   paymentGatewayId: string;
+  tenantId?: string;
   amountRub: number;
   email: string | null;
   reason?: string;
@@ -58,6 +136,7 @@ export interface PaymentGatewayParams {
   paymentId: string;
   orderId?: string;
   userId: string;
+  tenantId?: string;
   amountRub: number;
   email: string | null;
   successUrl: string;
@@ -70,7 +149,7 @@ export abstract class BasePaymentGateway {
   abstract createPayment(params: PaymentGatewayParams): Promise<PaymentGatewayResult>;
   
   // Optional method for synchronous status checking
-  async checkStatusSync?(gatewayId: string): Promise<boolean>;
+  async checkStatusSync?(gatewayId: string, tenantId?: string): Promise<boolean>;
 
   // Optional method for automated refunds
   async executeRefund?(params: RefundGatewayParams): Promise<RefundGatewayResult>;
@@ -82,10 +161,11 @@ class YooKassaGateway extends BasePaymentGateway {
       throw new Error('Сумма платежа должна быть больше 0');
     }
 
-    const secrets = await SettingsProvider.getPaymentSecrets();
+    const tenantId = params.tenantId || (params.metadata?.tenantId as string) || 'smmplan';
+    const secrets = await SettingsProvider.getPaymentSecrets(tenantId);
     const shopId = secrets.yookassaShopId;
     const secretKey = secrets.yookassaSecretKey;
-    const isTestMode = (await SettingsProvider.isTestMode()) || Boolean(params.isTestMode) || SettingsProvider.isTestEnvironment();
+    const isTestMode = (await SettingsProvider.isTestMode(tenantId)) || Boolean(params.isTestMode) || SettingsProvider.isTestEnvironment();
 
     const isDummyKeys = !shopId || !secretKey || shopId.trim().length === 0 || secretKey.trim().length === 0;
 
@@ -99,7 +179,7 @@ class YooKassaGateway extends BasePaymentGateway {
 
     const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
     
-    const supportDomain = await SettingsProvider.getSupportEmailDomain();
+    const supportDomain = await SettingsProvider.getSupportEmailDomain(tenantId);
 
     const payload: {
       amount: { value: string; currency: string };
@@ -123,22 +203,43 @@ class YooKassaGateway extends BasePaymentGateway {
       capture: true,
       confirmation: { type: 'redirect', return_url: params.successUrl },
       description: (params.description || "Оплата заказа").slice(0, 128),
-      metadata: { paymentId: params.paymentId, userId: params.userId, orderId: params.orderId, ...params.metadata }
+      metadata: { 
+        paymentId: params.paymentId, 
+        userId: params.userId, 
+        orderId: params.orderId, 
+        tenantId,
+        ...params.metadata 
+      }
     };
 
     // 54-ФЗ Fiscalization Receipt (Included in both live & test mode for universal YooKassa compatibility)
-    const isVatThresholdExceeded = await checkVatThreshold();
-    const vatCode = isVatThresholdExceeded ? 10 : 1; // 10 = НДС 22% (п. 3 ст. 164 НК РФ), 1 = Без НДС
+    const isVatThresholdExceeded = await checkVatThreshold(tenantId);
+    
+    // ФФД 1.2 (54-ФЗ): дифференциация аванса (пополнение баланса) и прямой оплаты услуги
+    const isDeposit = params.metadata?.type === 'deposit';
+
+    // Для аванса при превышении 20 млн ₽ по ФФД 1.2 применяется расчетная ставка 22/122 (vat_code: 4 в ЮKassa)
+    // Для прямой оплаты услуги при превышении порога — ставка 22% (vat_code: 10 в ЮKassa)
+    // До 20 млн ₽ — Без НДС (vat_code: 1 в ЮKassa)
+    const vatCode = isVatThresholdExceeded 
+      ? (isDeposit ? 4 : 10) 
+      : 1;
+
+    const paymentMode = isDeposit ? "advance" : "full_payment";
+    const paymentSubject = isDeposit ? "payment" : "service";
+    const itemDescription = isDeposit
+      ? (params.description || "Пополнение баланса (Аванс за информационные услуги)").slice(0, 128)
+      : (params.description || "Информационные услуги").slice(0, 128);
 
     payload.receipt = {
       customer: { email: (params.email?.trim() || `no-reply@${supportDomain}`).slice(0, 64) },
       items: [{
-        description: (params.description || "Информационные услуги").slice(0, 128),
+        description: itemDescription,
         quantity: "1.00",
         amount: { value: params.amountRub.toFixed(2), currency: 'RUB' },
         vat_code: vatCode,
-        payment_mode: "full_prepayment",
-        payment_subject: "service"
+        payment_mode: paymentMode,
+        payment_subject: paymentSubject
       }]
     };
 
@@ -186,12 +287,31 @@ class YooKassaGateway extends BasePaymentGateway {
     };
   }
 
-  async checkStatusSync(gatewayId: string): Promise<boolean> {
+  async checkStatusSync(gatewayId: string, tenantId?: string): Promise<boolean> {
     if (gatewayId.startsWith('yoo_test_mock_') || gatewayId.startsWith('mock_')) {
       return true;
     }
     try {
-      const secrets = await SettingsProvider.getPaymentSecrets();
+      let resolvedTenantId = tenantId;
+      if (tenantId) {
+        // Strict IDOR prevention (PCI DSS Req 6.4.2): verify payment belongs to tenant
+        const p = await db.payment.findFirst({
+          where: { gatewayId, tenantId },
+          select: { tenantId: true }
+        });
+        if (!p) {
+          console.error(`[YooKassaGateway] IDOR blocked: payment ${gatewayId} does not belong to tenant ${tenantId}`);
+          return false;
+        }
+        resolvedTenantId = tenantId;
+      } else {
+        const p = await db.payment.findFirst({
+          where: { gatewayId },
+          select: { tenantId: true }
+        });
+        resolvedTenantId = p?.tenantId || 'smmplan';
+      }
+      const secrets = await SettingsProvider.getPaymentSecrets(resolvedTenantId);
       const shopId = secrets.yookassaShopId;
       const secretKey = secrets.yookassaSecretKey;
       if (!shopId || !secretKey) return false;
@@ -217,14 +337,24 @@ class YooKassaGateway extends BasePaymentGateway {
       throw new Error('Сумма возврата должна быть больше 0');
     }
 
-    const secrets = await SettingsProvider.getPaymentSecrets();
+    let resolvedTenantId = params.tenantId;
+    if (!resolvedTenantId) {
+      const p = await db.payment.findFirst({
+        where: { gatewayId: params.paymentGatewayId },
+        select: { tenantId: true }
+      });
+      resolvedTenantId = p?.tenantId || 'smmplan';
+    }
+
+    const secrets = await SettingsProvider.getPaymentSecrets(resolvedTenantId);
     const shopId = secrets.yookassaShopId;
     const secretKey = secrets.yookassaSecretKey;
-    const isTestMode = (await SettingsProvider.isTestMode()) || SettingsProvider.isTestEnvironment();
+    const isTestMode = (await SettingsProvider.isTestMode(resolvedTenantId)) || SettingsProvider.isTestEnvironment();
 
     const isDummyKeys = !shopId || !secretKey || shopId.trim().length === 0 || secretKey.trim().length === 0;
 
     if (params.paymentGatewayId.startsWith('yoo_test_mock_') || params.paymentGatewayId.startsWith('mock_') || (isDummyKeys && isTestMode)) {
+      invalidateVatThresholdCache(resolvedTenantId);
       return {
         refundId: `mock_refund_${Date.now()}`,
         status: 'succeeded',
@@ -237,8 +367,8 @@ class YooKassaGateway extends BasePaymentGateway {
     }
 
     const authHeader = 'Basic ' + Buffer.from(`${shopId}:${secretKey}`).toString('base64');
-    const supportDomain = await SettingsProvider.getSupportEmailDomain();
-    const isVatThresholdExceeded = await checkVatThreshold();
+    const supportDomain = await SettingsProvider.getSupportEmailDomain(resolvedTenantId);
+    const isVatThresholdExceeded = await checkVatThreshold(resolvedTenantId);
     const vatCode = isVatThresholdExceeded ? 10 : 1; // 10 = НДС 22% (п. 3 ст. 164 НК РФ), 1 = Без НДС
 
     const payload = {
@@ -302,6 +432,7 @@ class YooKassaGateway extends BasePaymentGateway {
     }
 
     const data = await resp.json();
+    invalidateVatThresholdCache(resolvedTenantId);
     return {
       refundId: data.id,
       status: data.status,
@@ -316,9 +447,10 @@ class CryptoBotGateway extends BasePaymentGateway {
       throw new Error('Сумма платежа должна быть больше 0');
     }
 
-    const secrets = await SettingsProvider.getPaymentSecrets();
+    const tenantId = params.tenantId || (params.metadata?.tenantId as string) || 'smmplan';
+    const secrets = await SettingsProvider.getPaymentSecrets(tenantId);
     const cryptoToken = secrets.cryptoBotToken;
-    const isTestMode = (await SettingsProvider.isTestMode()) || Boolean(params.isTestMode) || SettingsProvider.isTestEnvironment();
+    const isTestMode = (await SettingsProvider.isTestMode(tenantId)) || Boolean(params.isTestMode) || SettingsProvider.isTestEnvironment();
 
     const isDummyKeys = !cryptoToken || cryptoToken === 'test_token' || cryptoToken === 'test_bot_token' || cryptoToken === 'test_shop_id' || cryptoToken === 'test_login' || cryptoToken.startsWith('test_') || cryptoToken.trim().length === 0;
 
@@ -333,8 +465,8 @@ class CryptoBotGateway extends BasePaymentGateway {
       throw new Error('Платёжный шлюз CryptoBot не настроен. Пожалуйста, укажите действующий API токен в панели управления.');
     }
 
-    const legalSettings = await SettingsProvider.getContactAndLegalSettings();
-    const brandName = legalSettings.COMPANY_NAME || 'SMMplan';
+    const legalSettings = await SettingsProvider.getContactAndLegalSettings(tenantId);
+    const brandName = legalSettings.COMPANY_NAME || (tenantId === 'flux' ? 'SMMflux' : 'SMMplan');
     const cleanDesc = params.description.startsWith('Test ') 
       ? params.description.substring(5) 
       : params.description;
@@ -399,12 +531,20 @@ class CryptoBotGateway extends BasePaymentGateway {
     };
   }
 
-  async checkStatusSync(gatewayId: string): Promise<boolean> {
+  async checkStatusSync(gatewayId: string, tenantId?: string): Promise<boolean> {
     if (gatewayId.startsWith('crypto_test_mock_') || gatewayId.startsWith('mock_')) {
       return true;
     }
     try {
-      const secrets = await SettingsProvider.getPaymentSecrets();
+      let resolvedTenantId = tenantId;
+      if (!resolvedTenantId) {
+        const p = await db.payment.findFirst({
+          where: { gatewayId },
+          select: { tenantId: true }
+        });
+        resolvedTenantId = p?.tenantId || 'smmplan';
+      }
+      const secrets = await SettingsProvider.getPaymentSecrets(resolvedTenantId);
       const cryptoToken = secrets.cryptoBotToken;
       if (!cryptoToken) return false;
 
@@ -544,10 +684,11 @@ class RobokassaGateway extends BasePaymentGateway {
       throw new Error('Сумма платежа должна быть больше 0');
     }
 
-    const secrets = await SettingsProvider.getPaymentSecrets();
+    const tenantId = params.tenantId || (params.metadata?.tenantId as string) || 'smmplan';
+    const secrets = await SettingsProvider.getPaymentSecrets(tenantId);
     const login = secrets.robokassaLogin;
     const password = secrets.robokassaPassword;
-    const isTestMode = (await SettingsProvider.isTestMode()) || Boolean(params.isTestMode) || SettingsProvider.isTestEnvironment();
+    const isTestMode = (await SettingsProvider.isTestMode(tenantId)) || Boolean(params.isTestMode) || SettingsProvider.isTestEnvironment();
 
     const isDummyKeys = !login || !password || login === 'test_login' || login.trim().length === 0 || password.trim().length === 0;
 
@@ -570,7 +711,7 @@ class RobokassaGateway extends BasePaymentGateway {
     const signature = crypto.createHash('sha256').update(sigStr).digest('hex');
 
     // Подсчитываем оборот за год для переключения НДС 22% (ФЗ № 425-ФЗ, ФЗ № 176-ФЗ, ст. 145, 164 НК РФ)
-    const isVatThresholdExceeded = await checkVatThreshold();
+    const isVatThresholdExceeded = await checkVatThreshold(tenantId);
     const taxRate = isVatThresholdExceeded ? "vat22" : "none"; // vat22 = 22% (п. 3 ст. 164 НК РФ), none = без НДС
 
     const receipt = {
@@ -602,7 +743,7 @@ class RobokassaGateway extends BasePaymentGateway {
     };
   }
 
-  async checkStatusSync(gatewayId: string): Promise<boolean> {
+  async checkStatusSync(gatewayId: string, _tenantId?: string): Promise<boolean> {
     if (gatewayId.startsWith('robo_test_mock_') || gatewayId.startsWith('mock_')) {
       return true;
     }

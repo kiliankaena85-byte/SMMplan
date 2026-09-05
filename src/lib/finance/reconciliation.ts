@@ -15,6 +15,11 @@ export interface DailyReconciliationResult {
   status: 'OK' | 'MISMATCH';
 }
 
+export interface DailyReconciliationOptions {
+  isNetBankSettlement?: boolean;
+  acquiringFeeBps?: number; // e.g. 350 for 3.5%
+}
+
 /**
  * Executes a 3-way reconciliation across:
  * 1. Bank deposits (external gateway settlements)
@@ -23,7 +28,8 @@ export interface DailyReconciliationResult {
  */
 export async function dailyReconciliation(
   date: Date,
-  externalBankTotalKopecks?: bigint
+  externalBankTotalKopecks?: bigint,
+  options?: DailyReconciliationOptions
 ): Promise<DailyReconciliationResult> {
   const startOfDay = new Date(date);
   startOfDay.setUTCHours(0, 0, 0, 0);
@@ -57,11 +63,25 @@ export async function dailyReconciliation(
   // 3. Bank total (defaults to DB total if external settlement feed is not passed)
   const bankTotal = externalBankTotalKopecks !== undefined ? externalBankTotalKopecks : dbTotal;
 
-  const deltaBankVsDb = bankTotal - dbTotal;
+  // Factor in acquiring fee if settlement is reported Net of gateway fees (e.g. 3.5% for YooKassa)
+  let deltaBankVsDb: bigint;
+  if (options?.isNetBankSettlement && externalBankTotalKopecks !== undefined) {
+    const feeBps = BigInt(options.acquiringFeeBps ?? 350);
+    const expectedBankNet = (dbTotal * (BigInt(10000) - feeBps)) / BigInt(10000);
+    deltaBankVsDb = bankTotal - expectedBankNet;
+  } else {
+    deltaBankVsDb = bankTotal - dbTotal;
+  }
+
   const deltaDbVsLedger = dbTotal - ledgerTotal;
 
   const isMatched = deltaBankVsDb === BigInt(0) && deltaDbVsLedger === BigInt(0);
   const status: 'OK' | 'MISMATCH' = isMatched ? 'OK' : 'MISMATCH';
+
+  // Trigger non-blocking liquidity health monitoring
+  import('@/services/financial/liquidity-monitor.service')
+    .then(({ LiquidityMonitorService }) => LiquidityMonitorService.checkAndAlertLiquidity())
+    .catch(err => log.warn('Liquidity check failed during daily reconciliation', { err }));
 
   const report = await db.reconciliationReport.create({
     data: {

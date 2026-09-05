@@ -19,7 +19,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getPublicCatalogAction, getServicesByCategoryAction } from "@/actions/order/catalog";
 import { checkoutAction, calculatePriceAction } from "@/actions/order/checkout";
 import { formatEtaSpeedBadge } from "@/utils/format-eta";
-import { validateDripFeedDuration, DRIP_FEED_MAX_ERROR_MESSAGE, detectNetworkByUrl } from "@/hooks/useOrderWizard";
+import { formatPricePerUnit, formatRubles } from "@/utils/format-price";
+import { validateDripFeedDuration, validateDripFeedLimits, getDripFeedFloor, DRIP_FEED_MAX_ERROR_MESSAGE, detectNetworkByUrl } from "@/hooks/useOrderWizard";
 import { analyzeUrl } from "@/actions/order/analyze-url";
 import { matchesSuggestedCategory } from "@/services/analyzer/category-matcher";
 import { isLinkServiceCompatible } from "@/constants/link-service-compatibility";
@@ -312,7 +313,8 @@ function FluxDashboardOrderWizardInner({
           clientRequirement: s.clientRequirement || '',
           clientConfirmation: s.clientConfirmation || '',
           requireWarning: s.requireWarning || false,
-          targetType: s.targetType || 'POST'
+          targetType: s.targetType || 'POST',
+          isDripFeedEnabled: Boolean(s.isDripFeedEnabled)
         };
       });
 
@@ -369,7 +371,7 @@ function FluxDashboardOrderWizardInner({
     return () => { cancelled = true; };
   }, [selectedService?.id, qtyNum, isDripFeedEnabled, dripRuns]);
 
-  const totalPriceRub = (serverPriceRub ?? dripMultipliedPrice).toFixed(2);
+  const totalPriceRub = formatRubles(serverPriceRub ?? dripMultipliedPrice);
   const canPayFromBalance = userBalanceCents >= ((serverPriceRub ?? dripMultipliedPrice) * 100);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -440,11 +442,22 @@ function FluxDashboardOrderWizardInner({
       return;
     }
 
-    if (isDripFeedEnabled && !validateDripFeedDuration(dripRuns, dripInterval)) {
-      setErrorMessage(DRIP_FEED_MAX_ERROR_MESSAGE);
-      setErrorField("drip");
-      setShakeKey(Date.now());
-      return;
+    if (isDripFeedEnabled) {
+      const dripCheck = validateDripFeedLimits(qtyNum, dripRuns, minQty, maxQty);
+      if (!dripCheck.isValid) {
+        setErrorMessage(dripCheck.error || "Ошибка параметров Drip-Feed");
+        setErrorField("quantity");
+        setShakeKey(Date.now());
+        quantityRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        quantityRef.current?.focus();
+        return;
+      }
+      if (!validateDripFeedDuration(dripRuns, dripInterval)) {
+        setErrorMessage(DRIP_FEED_MAX_ERROR_MESSAGE);
+        setErrorField("drip");
+        setShakeKey(Date.now());
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -842,7 +855,7 @@ function FluxDashboardOrderWizardInner({
                       </div>
                       
                       <div className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5 bg-foreground text-background px-3 py-1.5 rounded-full font-bold text-xs sm:text-sm shadow-sm pointer-events-none tabular-nums font-mono">
-                        {service.pricePerUnitRub.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} ₽ <span className="font-normal opacity-80 font-sans">/ шт</span>
+                        {formatPricePerUnit(service.pricePerUnitRub)} ₽ <span className="font-normal opacity-80 font-sans">/ шт</span>
                       </div>
                     </motion.div>
                   ))}
@@ -877,7 +890,7 @@ function FluxDashboardOrderWizardInner({
                   </div>
                   <div className="text-right shrink-0">
                     <span className="text-primary font-black text-xl tabular-nums font-mono">
-                      {selectedService.pricePerUnitRub.toFixed(2)} ₽
+                      {formatPricePerUnit(selectedService.pricePerUnitRub)} ₽
                     </span>
                     <span className="text-muted-foreground font-medium text-xs block">за 1 шт.</span>
                   </div>
@@ -961,6 +974,67 @@ function FluxDashboardOrderWizardInner({
                       />
                     </div>
                   </div>
+
+                  {/* Drip-Feed Controls */}
+                  {selectedService.isDripFeedEnabled && (
+                    <div className="p-4 bg-muted/40 rounded-2xl border border-border/40 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-2">
+                          <SparklesIcon className="w-4 h-4 text-primary" />
+                          Запускать частями (Drip-Feed)
+                        </span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isDripFeedEnabled}
+                            onChange={(e) => {
+                              const enabled = e.target.checked;
+                              setIsDripFeedEnabled(enabled);
+                              if (enabled && qtyNum < selectedService.minQty) {
+                                setQuantity(selectedService.minQty);
+                              }
+                            }}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                      </div>
+
+                      {isDripFeedEnabled && (
+                        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/30">
+                          <div>
+                            <label className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                              Запусков
+                            </label>
+                            <input
+                              type="number"
+                              min={2}
+                              max={100}
+                              value={dripRuns}
+                              onChange={(e) => setDripRuns(Math.max(2, parseInt(e.target.value) || 2))}
+                              className="w-full h-10 px-3 bg-background border border-border/60 rounded-xl text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                              Интервал (мин)
+                            </label>
+                            <input
+                              type="number"
+                              min={5}
+                              max={1440}
+                              value={dripInterval}
+                              onChange={(e) => setDripInterval(Math.max(1, parseInt(e.target.value) || 5))}
+                              className="w-full h-10 px-3 bg-background border border-border/60 rounded-xl text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                          </div>
+                          <p className="col-span-2 text-xs text-muted-foreground font-medium">
+                            Заказ выполнится за {dripRuns} запусков по {qtyNum} шт. Всего: <strong className="text-foreground">{qtyNum * dripRuns} шт.</strong>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Custom Data Field (Comments / usernames) */}
                   {selectedService.customDataType && selectedService.customDataType !== 'NONE' && (
@@ -1081,10 +1155,16 @@ function FluxDashboardOrderWizardInner({
 
                   {/* Summary & Price */}
                   <div className="p-4 rounded-2xl bg-muted/50 border border-border/40 flex items-center justify-between">
-                    <span className="text-sm font-bold text-foreground">Итого к оплате:</span>
+                    <div>
+                      <span className="text-sm font-bold text-foreground block">Итого к оплате:</span>
+                      <span className="text-xs text-muted-foreground font-semibold">
+                        {isDripFeedEnabled
+                          ? `(${qtyNum} шт × ${dripRuns} запусков × ${formatPricePerUnit(selectedService.pricePerUnitRub)} ₽/шт)`
+                          : `(${qtyNum} шт × ${formatPricePerUnit(selectedService.pricePerUnitRub)} ₽/шт)`}
+                      </span>
+                    </div>
                     <div className="flex items-baseline gap-1.5 tabular-nums font-mono">
                       <span className="text-2xl font-black text-foreground">{totalPriceRub}</span>
-                      <span className="text-sm font-bold text-muted-foreground font-sans">₽</span>
                     </div>
                   </div>
 

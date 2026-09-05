@@ -3,6 +3,7 @@ import { getTemplates } from '@/actions/support/template';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { UnifiedTicketsWorkspace } from './components/unified-workspace';
+import { resolveAdminTenantContext } from '@/utils/admin-tenant';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,7 @@ type Props = {
     isB2b?: string;
     page?: string;
     ticketId?: string;
+    tenant?: string;
   }>;
 };
 
@@ -30,8 +32,20 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
   const currentPage = Math.max(1, parseInt(params.page || '1', 10));
   const activeTicketId = params.ticketId || null;
 
-  // 1. Fetch tickets matching current filter and page sizes
-  const [ticketsResult, stats, templatesResult, session] = await Promise.all([
+  const session = await verifySession();
+  const user = session ? await db.user.findUnique({
+    where: { id: session.userId },
+    include: { staffRole: { include: { permissions: true } } }
+  }) : null;
+
+  const isOwner = user?.role === 'OWNER';
+  const effectiveTenant = resolveAdminTenantContext(user, params.tenant);
+  const userAllowedTenants = isOwner
+    ? undefined
+    : (user?.allowedTenants && user.allowedTenants.length > 0 ? user.allowedTenants : [user?.tenantId || 'smmplan']);
+
+  // 1. Fetch tickets matching current filter, tenant and page sizes
+  const [ticketsResult, stats, templatesResult] = await Promise.all([
     adminTicketService.listTickets({
       search: search || undefined,
       status: statusFilter,
@@ -39,10 +53,11 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
       isB2b: isB2bFilter,
       pageSize: 20, // compact size for two-panel scrollbars
       page: currentPage,
+      tenantId: effectiveTenant !== 'all' ? effectiveTenant : undefined,
+      allowedTenants: userAllowedTenants,
     }),
-    adminTicketService.getTicketStats(),
+    adminTicketService.getTicketStats(undefined, undefined, effectiveTenant !== 'all' ? effectiveTenant : undefined),
     getTemplates(),
-    verifySession()
   ]);
 
   // 2. Fetch full active ticket chat details if ticketId query parameter exists
@@ -51,15 +66,12 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
   let supportSpentTodayCents = 0;
 
   if (activeTicketId) {
-    activeTicket = await adminTicketService.getTicketDetails(activeTicketId);
+    activeTicket = await adminTicketService.getTicketDetails(
+      activeTicketId,
+      isOwner ? undefined : userAllowedTenants
+    );
   }
 
-  const user = session ? await db.user.findUnique({
-    where: { id: session.userId },
-    include: { staffRole: { include: { permissions: true } } }
-  }) : null;
-
-  const isOwner = user?.role === 'OWNER';
   const canSeeRates = isOwner || (user?.role !== 'SUPPORT');
 
   if (session?.userId) {

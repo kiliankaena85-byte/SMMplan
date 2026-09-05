@@ -22,6 +22,7 @@ export interface StaffMemberSummary {
   supportLimitCents: number;
   supportSpentTodayCents: number;
   isActive: boolean;
+  allowedTenants: string[];
   createdAt: string;
   
   // Work shift & activity metrics for the day
@@ -244,6 +245,7 @@ export async function getStaffMembersWithMetrics(dateParam?: string) {
         supportLimitCents: u.supportLimitCents,
         supportSpentTodayCents: u.supportSpentTodayCents,
         isActive: u.isActive,
+        allowedTenants: u.allowedTenants || [u.tenantId || 'smmplan'],
         createdAt: u.createdAt.toISOString(),
         firstActionAt: firstAction,
         lastActionAt: lastAction,
@@ -312,6 +314,7 @@ const updateStaffSchema = z.object({
   role: z.enum(['SUPPORT', 'MANAGER', 'ADMIN', 'OWNER', 'USER', 'BANNED']),
   staffRoleId: z.string().nullable().optional(),
   supportLimitRubles: z.number().min(0).max(100000),
+  allowedTenants: z.array(z.string()).optional(),
 });
 
 export async function updateStaffMemberAction(input: z.infer<typeof updateStaffSchema>) {
@@ -351,6 +354,22 @@ export async function updateStaffMemberAction(input: z.infer<typeof updateStaffS
       return { success: false as const, error: 'Только Владелец может назначать Администраторов' };
     }
 
+    // Multi-tenant boundary grant ceiling: staff cannot grant tenants outside their own allowedTenants
+    if (input.allowedTenants && input.allowedTenants.length > 0) {
+      if (admin.role !== 'OWNER') {
+        const adminAllowed = (admin.allowedTenants && admin.allowedTenants.length > 0)
+          ? admin.allowedTenants
+          : [admin.tenantId || 'smmplan'];
+        const hasUnauthorized = input.allowedTenants.some((t) => !adminAllowed.includes(t));
+        if (hasUnauthorized) {
+          return {
+            success: false as const,
+            error: 'Запрещено выдавать доступ к брендам, не входящим в ваши полномочия (Grant Ceiling)',
+          };
+        }
+      }
+    }
+
     const newLimitCents = Math.round(input.supportLimitRubles * 100);
 
     await db.user.update({
@@ -359,6 +378,7 @@ export async function updateStaffMemberAction(input: z.infer<typeof updateStaffS
         role: input.role,
         staffRoleId: input.staffRoleId || null,
         supportLimitCents: newLimitCents,
+        ...(input.allowedTenants ? { allowedTenants: input.allowedTenants } : {}),
       },
     });
 

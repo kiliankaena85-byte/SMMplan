@@ -86,12 +86,18 @@ export async function createTopUpPaymentAction(
       where: { slug: 'terms' },
       select: { updatedAt: true }
     });
-    const consentVersion = termsDoc ? `terms:${termsDoc.updatedAt.toISOString()}` : `fallback:${new Date().toISOString().split('T')[0]}`;
+    const { SettingsProvider } = await import('@/lib/settings');
+    const targetTenantId = dbUser.tenantId || 'smmplan';
+    const legalSettings = await SettingsProvider.getContactAndLegalSettings(targetTenantId);
+    const legalInn = legalSettings.COMPANY_INN || 'default_inn';
+    const consentVersion = termsDoc 
+      ? `terms:${targetTenantId}:${legalInn}:${termsDoc.updatedAt.toISOString()}` 
+      : `fallback:${targetTenantId}:${legalInn}:${new Date().toISOString().split('T')[0]}`;
 
     const payment = await db.payment.create({
       data: {
         userId: session.userId,
-        tenantId: dbUser.tenantId || 'smmplan',
+        tenantId: targetTenantId,
         amount: amountCents,
         currency: "RUB",
         status: "PENDING",
@@ -109,19 +115,19 @@ export async function createTopUpPaymentAction(
       ? `Оплата услуг IT-агентства (Digital Consulting, Счёт: ${payment.id})`
       : `Пополнение баланса (Счёт: ${payment.id})`;
 
-    const { SettingsProvider } = await import('@/lib/settings');
-    const isTestMode = await SettingsProvider.isTestMode();
+    const isTestMode = await SettingsProvider.isTestMode(targetTenantId);
 
     try {
       const gatewayResult = await gatewaySvc.createPayment({
         paymentId: payment.id,
         userId: session.userId,
+        tenantId: targetTenantId,
         amountRub,
         email: dbUser.email,
         successUrl,
         description,
         isTestMode: isTestMode,
-        metadata: { type: 'deposit' }
+        metadata: { type: 'deposit', tenantId: targetTenantId }
       });
 
       if (gatewayResult.remoteGatewayId || gatewayResult.paymentUrl) {

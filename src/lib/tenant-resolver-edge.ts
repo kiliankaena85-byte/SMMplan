@@ -20,6 +20,15 @@ export const FLUX_DOMAINS = new Set([
 
 export const VALID_TENANTS = new Set(['smmplan', 'flux']);
 
+/**
+ * Dynamically registers a new tenant slug into the runtime validation set.
+ */
+export function registerValidTenant(slug: string): void {
+  if (slug && typeof slug === 'string') {
+    VALID_TENANTS.add(slug.trim().toLowerCase());
+  }
+}
+
 export type ContourId = 'test' | 'prod' | 'flux';
 
 /**

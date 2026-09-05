@@ -26,6 +26,8 @@ type TicketSearchParams = {
   search?: string;
   pageSize?: number;
   isB2b?: boolean;
+  tenantId?: string;
+  allowedTenants?: string[];
 };
 
 // ── Service ──
@@ -37,6 +39,12 @@ class AdminTicketService {
    */
   async listTickets(params: TicketSearchParams): Promise<{ items: AdminTicketRow[], totalPages: number, page: number, totalCount: number }> {
     const where: Record<string, unknown> = {};
+
+    if (params.tenantId && params.tenantId !== 'all') {
+      where.tenantId = params.tenantId;
+    } else if (params.allowedTenants && params.allowedTenants.length > 0) {
+      where.tenantId = { in: params.allowedTenants };
+    }
 
     if (params.status && params.status !== 'ALL') {
       where.status = params.status;
@@ -221,12 +229,16 @@ class AdminTicketService {
   }
 
   /**
-   * Get full ticket detail with messages and user profile (DTO-safe).
+   * Get full ticket detail with messages and user profile (DTO-safe & Tenant-Isolated).
    */
-  async getTicketDetails(ticketId: string, tenantId?: string) {
-    const whereClause: { id: string; tenantId?: string } = { id: ticketId };
-    if (tenantId) {
-      whereClause.tenantId = tenantId;
+  async getTicketDetails(ticketId: string, tenantOrAllowed?: string | string[]) {
+    const whereClause: Prisma.TicketWhereInput = { id: ticketId };
+    if (typeof tenantOrAllowed === 'string') {
+      if (tenantOrAllowed !== 'all') {
+        whereClause.tenantId = tenantOrAllowed;
+      }
+    } else if (Array.isArray(tenantOrAllowed) && tenantOrAllowed.length > 0) {
+      whereClause.tenantId = { in: tenantOrAllowed };
     }
     const ticket = await db.ticket.findFirst({
       where: whereClause,

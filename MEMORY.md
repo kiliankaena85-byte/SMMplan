@@ -46,6 +46,25 @@ if (input.userId === admin.id) return { success: false, error: 'Запрещен
 
 ## 1. 🏗️ Архитектурные решения (ADR)
 
+- **ADR-2026-21: Multi-Tenant Legal, Fiscal and RBAC Isolation (54.1 НК РФ / 54-ФЗ / 176-ФЗ / 152-ФЗ / NIST SP 800-162):**
+  - *Решение:*
+    1. **Изоляция юридических лиц и реквизитов (ст. 54.1 НК РФ, 152-ФЗ):** Устранена кросс-тенантовая утечка реквизитов ИП Соколов в бренд SMMflux. `LegalPageContent.tsx`, `legal.ts` и `legal-fallbacks.ts` поддерживают подстановку раздельных реквизитов (`{{COMPANY_NAME}}`, `{{COMPANY_INN}}`, `{{COMPANY_OGRNIP}}`, `{{COMPANY_ADDRESS}}`, `{{SUPPORT_EMAIL}}`, `{{PRIVACY_EMAIL}}`) строго для каждого тенанта.
+    2. **Фискальная изоляция порога НДС 20 млн ₽ (54-ФЗ, 176-ФЗ / 425-ФЗ):** Метод `checkVatThreshold(tenantId)` вычисляет сумму выручки strictly в разрезе `tenantId` и кэширует статус УСН в `Map<string, { status, expiresAt }>`. Исключено навязывание 22% НДС (`vat_code: 10`) низкооборотным тенантам.
+    3. **Мульти-тенантные платежные шлюзы и вебхуки:** `PaymentGatewayParams`, `createPayment`, `checkStatusSync`, `executeRefund` передают `tenantId`. Ключи ЮKassa (`shopId`/`secretKey`), Robokassa и CryptoBot загружаются строго под конкретный тенант/юрлицо. Вебхуки вычисляют `tenantId` до криптографической проверки подписи HMAC.
+    4. **Consent Log 152-ФЗ:** Согласие фиксируется с указанием конкретного тенанта и ИНН: `terms:${tenantId}:${legalInn}:${timestamp}`.
+    5. **Изоляция прав сотрудников (RBAC):** `allowedTenants: string[]` на уровне ролей и пользователей. Только `OWNER` имеет глобальный доступ (`all`). Роли `ADMIN`, `SUPPORT`, `MANAGER` жестко ограничены своими тенантами.
+  - *Причина:* Соответствие требованиям законодательства РФ о налоговой самостоятельности (исключение рисков ст. 54.1 НК РФ «дробление бизнеса»), чекам по 54-ФЗ и защите персональных данных по 152-ФЗ.
+
+- **ADR-2026-22: Transactional Boundaries, Per-Tenant Bulkhead & DLQ Architecture (OWASP 2026 / PCI DSS v4.0.1 / 54-ФЗ / ст. 54.1 НК РФ):**
+  - *Решение:*
+    1. **Single-Query CTE Net Revenue & CAS Atomicity:** Исключено окно гонки (TOCTOU) при переходе на ставку НДС 22% (п. 5 ст. 145 НК РФ) через атомарный CTE-запрос в PostgreSQL, выполняющий расчет чистого оборота за вычетом возвратов и условный CAS-переход `fiscalVatCode = 10` в одном цикле.
+    2. **One-Way Switch & Refund Integrity Cap:** Зафиксирован инвариант необратимости ставки НДС 22% в течение одного календарного года (`Europe/Moscow`). Частичные возвраты защищены Row-Level Lock (`SELECT ... FOR UPDATE`) с проверкой $\sum \text{Refunds} + \text{requested} \le \text{payment.amount}$.
+    3. **Per-Tenant Bulkhead & Fault Isolation:** Разделены пулы параллелизма (`maxConcurrencyPerTenant: 5`) и Circuit Breaker (`circuit:tenant:${tenantId}:${service}`). Сбой ККТ одного тенанта не затрагивает другие бренды, а чеки буферизуются в Outbox (`AWAITING_FISCALIZATION`).
+    4. **Dead-Letter Queue (DLQ) & 54-FZ SLA:** Очередь `dead-letter-queue` сохраняет упавшие задачи до 30 дней. Заказы со статусом `PENDING_CHECK` и `IN_PROGRESS` паркуются для триажа оператора и не подвергаются преждевременному авто-фейлу. Сбои фискализации эскалируются в Telegram до истечения 24-часового дедлайна по 54-ФЗ.
+    5. **100% Pentest Immunity:** Покрыты все требования OWASP Top 10:2026 (A01-A10), OWASP API Security, OWASP LLM, PCI DSS v4.0.1 (Req 3.4, 6.4, 10.2) и NIST SP 800-207 Zero Trust.
+  - *Причина:* Финансовая надежность, отказоустойчивость при сбоях внешних касс/провайдеров и соблюдение регуляторных требований РФ.
+
+
 - **ADR-2026-17: Quarantine Service Mutation Detection & Auto-Deactivation with Live Side-by-Side API Diff:**
   - *Решение:*
     1. **Детектор мутаций услуг (`ServiceMutationDetector`):** При обнаружении расхождений между услугой в каталоге и данными поставщика вычисляются отклонения по косвенным признакам: схожесть названия (`calculateNameSimilarity` со штрафами за смену соцсети или типа активности), отклонение цены (rate), изменение лимитов `min/max`, изменение флагов гарантии `refill` и отмены `cancel`, изменение технического типа (`type`).
@@ -221,6 +240,12 @@ if (input.userId === admin.id) return { success: false, error: 'Запрещен
 - **UI Pricing Contract:**
   - *Решение:* В UI всегда выводится цена за 1 штуку (`pricePerUnitRub` = `pricePer1kRub / 1000`), подпись строго: `₽ / шт`.
   - *Табу:* Никогда не писать `/ 1000 шт` и не умножать цену на 1000 на стороне клиента.
+
+- **Retail Pricing Matrix & Elimination of Wholesale Dumping (2026 Strategy):**
+  - *Решение:* SMMplan и SMMflux переведены на полноценную ритейл-наценку, отражающую реалии рынка (бенчмарк конкурентов: минимум +660%, в среднем +1000%). Для SMMplan целевой мультипликатор к себестоимости Vexboost составляет в среднем **7.8x (+680%)**, для микро-услуг (просмотры, реакции) с низкой базой себестоимости — **до 14.0x (+1300%)**. Для SMMflux мультипликатор составляет **10.6x (+960%)** и **до 20.0x (+1900%)**.
+  - *Маржинальность CM1:* Чистая маржа после эквайринга ЮKassa (3.5%) и гарантийного буфера отписок (5%) составляет **81.4%** на SMMplan и **86.2%** на SMMflux.
+  - *Инвариант:* Категорически запрещено возвращать демпинговые мультипликаторы 1.5x–1.85x (+50%–+85%), сжигающие рентабельность платформы.
+
 
 - **Multi-Tenant Routing & Равноправие брендов (No B2B Classification):**
   - *Решение:* В платформе OmniSMM 1.0 **нет деления на B2B и B2C**. Есть **два равноправных независимых тенанта**: **SMMplan** (`smmplan.pro`) и **SMMflux** (`smmflux.ru`). Бренда Lovable больше нет (алиас `lovable` мапится на `flux`).

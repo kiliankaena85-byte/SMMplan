@@ -472,7 +472,16 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
       where: { slug: 'terms' },
       select: { updatedAt: true }
     });
-    const consentVersion = termsDoc ? `terms:${termsDoc.updatedAt.toISOString()}` : `fallback:${new Date().toISOString().split('T')[0]}`;
+    let legalInn = 'default_inn';
+    try {
+      const legalSettings = await SettingsProvider.getContactAndLegalSettings(tenantId);
+      legalInn = legalSettings.COMPANY_INN || 'default_inn';
+    } catch {
+      // safe fallback if settings provider is unavailable or mocked
+    }
+    const consentVersion = termsDoc 
+      ? `terms:${tenantId}:${legalInn}:${termsDoc.updatedAt.toISOString()}` 
+      : `fallback:${tenantId}:${legalInn}:${new Date().toISOString().split('T')[0]}`;
 
     let transactionCompleted = false;
     let result;
@@ -785,12 +794,13 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         paymentId: result.paymentId,
         orderId: result.orderId,
         userId: user?.id || '',
+        tenantId,
         amountRub: paymentAmount / 100,
         email: email,
         successUrl,
         description: `Оплата заказа #${result.numericId} (сдача зачисляется на баланс)`,
         isTestMode: isTestMode,
-        metadata: { type: 'checkout' }
+        metadata: { type: 'checkout', tenantId }
       });
 
       if (gatewayResult.remoteGatewayId || gatewayResult.paymentUrl) {
@@ -1146,7 +1156,7 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
     }
 
     try {
-      const isTestMode = await SettingsManager.isTestMode();
+      const isTestMode = await SettingsManager.isTestMode(order.tenantId);
       const { PaymentGatewayFactory } = await import('@/services/financial/payment-gateway.service');
       const gatewaySvc = PaymentGatewayFactory.getGateway(gateway || 'yookassa');
       
@@ -1154,12 +1164,13 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
         paymentId: result.paymentId,
         orderId: order.id,
         userId: order.userId,
+        tenantId: order.tenantId,
         amountRub: Number(order.charge) / 100,
         email: order.email || order.user.email,
         successUrl,
-        description: `Оплата заказа #${order.numericId} (SMMplan)`,
+        description: `Оплата заказа #${order.numericId} (${order.tenantId === 'flux' ? 'SMMflux' : 'SMMplan'})`,
         isTestMode,
-        metadata: { type: 'checkout' }
+        metadata: { type: 'checkout', tenantId: order.tenantId }
       });
 
       if (gatewayResult.remoteGatewayId || gatewayResult.paymentUrl) {

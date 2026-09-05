@@ -80,12 +80,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unsupported currency' }, { status: 400 });
     }
 
-    // 2. Fetch system secrets
-    const secrets = await SettingsProvider.getPaymentSecrets();
+    // 2. Resolve tenantId and fetch system secrets
+    let resolvedTenantId = 'smmplan';
+    if (shp_paymentId) {
+      const p = await db.payment.findUnique({
+        where: { id: shp_paymentId },
+        select: { tenantId: true }
+      });
+      if (p?.tenantId) resolvedTenantId = p.tenantId;
+    }
+
+    const secrets = await SettingsProvider.getPaymentSecrets(resolvedTenantId);
     const password = secrets.robokassaWebhookPassword;
 
     if (!password) {
-      console.error('[CRITICAL] RobokassaWebhookPassword (Password#2) is not configured in settings.');
+      console.error(`[CRITICAL] RobokassaWebhookPassword (Password#2) is not configured in settings for tenant [${resolvedTenantId}].`);
       return NextResponse.json({ error: 'Gateway unconfigured' }, { status: 500 });
     }
 

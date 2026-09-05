@@ -121,6 +121,15 @@ ${legalNoticeComment}
   По вопросам возвратов: <strong>{{SUPPORT_EMAIL}}</strong> | Telegram: <strong>{{TELEGRAM_BOT}}</strong>
 </p>
 
+<div class="bg-card p-5 rounded-xl border border-border/80 mt-6 text-xs font-mono grid grid-cols-1 sm:grid-cols-2 gap-2">
+  <p><strong>Исполнитель:</strong> {{COMPANY_NAME}}</p>
+  <p><strong>ИНН:</strong> {{COMPANY_INN}}</p>
+  <p><strong>ОГРНИП / ОГРН:</strong> {{COMPANY_OGRNIP}}</p>
+  <p><strong>Адрес:</strong> {{COMPANY_ADDRESS}}</p>
+  <p><strong>Email:</strong> {{SUPPORT_EMAIL}}</p>
+  <p><strong>Telegram:</strong> {{TELEGRAM_BOT}}</p>
+</div>
+
 ${aiDraftStampHtml}
 `;
 
@@ -135,6 +144,15 @@ ${legalNoticeComment}
   <p><strong>2. Состав обрабатываемых данных:</strong> Email (для чеков и уведомлений), Telegram ID (при авторизации), IP-адрес и технические куки (для безопасности и антифрода). Оператор <strong>не собирает</strong> биометрию и специальные категории данных, а также <strong>не хранит</strong> данные банковских карт (обработка идет на стороне сертифицированных банковских шлюзов ЮKassa/Robokassa по стандарту PCI DSS Level 1).</p>
   <p><strong>3. Локализация в РФ (ч. 5 ст. 18 152-ФЗ):</strong> Базы данных расположены исключительно на серверах на территории Российской Федерации с шифрованием каналов связи (TLS 1.3).</p>
   <p><strong>4. Права субъекта данных:</strong> Запрос на уточнение или отзыв согласия направляется на <strong>{{PRIVACY_EMAIL}}</strong> и исполняется в срок до 10 рабочих дней.</p>
+</div>
+
+<div class="bg-card p-5 rounded-xl border border-border/80 mt-6 text-xs font-mono grid grid-cols-1 sm:grid-cols-2 gap-2">
+  <p><strong>Оператор ПДн:</strong> {{COMPANY_NAME}}</p>
+  <p><strong>ИНН:</strong> {{COMPANY_INN}}</p>
+  <p><strong>ОГРНИП / ОГРН:</strong> {{COMPANY_OGRNIP}}</p>
+  <p><strong>Адрес:</strong> {{COMPANY_ADDRESS}}</p>
+  <p><strong>Email по ПДн:</strong> {{PRIVACY_EMAIL}}</p>
+  <p><strong>Поддержка:</strong> {{SUPPORT_EMAIL}}</p>
 </div>
 
 ${aiDraftStampHtml}

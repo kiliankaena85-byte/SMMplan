@@ -130,7 +130,15 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     serverSessionTenant = await redis.get(`staff:${user.id}:active_tenant`);
   } catch {}
 
-  const activeTenantId = normalizeTenantId(serverSessionTenant || cookieTenant) || user.tenantId || 'smmplan';
+  const isOwner = user.role === 'OWNER';
+  const userAllowedTenants = isOwner
+    ? undefined
+    : (user.allowedTenants && user.allowedTenants.length > 0 ? user.allowedTenants : [user.tenantId || 'smmplan']);
+
+  let activeTenantId = normalizeTenantId(serverSessionTenant || cookieTenant) || user.tenantId || 'smmplan';
+  if (!isOwner && userAllowedTenants && !userAllowedTenants.includes(activeTenantId)) {
+    activeTenantId = userAllowedTenants[0] || user.tenantId || 'smmplan';
+  }
 
   const canEditSettings = user.role === 'OWNER' || user.role === 'ADMIN' || Boolean(
     user.staffRole?.permissions?.some((p: { section: string; canEdit: boolean }) => p.section.toUpperCase() === 'SETTINGS' && p.canEdit)
@@ -160,7 +168,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                   roleInfo={roleInfo}
                   navigation={navigation}
                 />
-                <GlobalSiteSwitcher currentTenant={activeTenantId} />
+                <GlobalSiteSwitcher 
+                  currentTenant={activeTenantId} 
+                  allowedTenants={userAllowedTenants}
+                  isOwner={isOwner}
+                />
                 <EnvironmentModeSwitcher readOnly={!canEditSettings} />
               </div>
               <div className="flex items-center gap-2">

@@ -1,4 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+vi.mock('next/headers', () => ({
+  headers: vi.fn(),
+}));
+
 import { getClientIp } from '@/utils/ip';
 import { headers } from 'next/headers';
 
@@ -15,14 +20,14 @@ describe('Client IP Resolution Suite (src/utils/ip.ts)', () => {
   });
 
   it('returns fallback when no headers or request are provided and headers() fails', async () => {
-    vi.mocked(headers).mockRejectedValueOnce(new Error('headers() called outside request scope'));
+    vi.mocked(headers).mockImplementationOnce(() => { throw new Error('headers() called outside request scope'); });
     const ip = await getClientIp(null, '192.168.1.1');
     // Outside of next request context headers() throws, returning fallback
     expect(ip).toBe('192.168.1.1');
   });
 
   it('returns fallback string when reqOrHeadersOrFallback is a string', async () => {
-    vi.mocked(headers).mockRejectedValueOnce(new Error('headers() called outside request scope'));
+    vi.mocked(headers).mockImplementationOnce(() => { throw new Error('headers() called outside request scope'); });
     const ip = await getClientIp('10.0.0.1');
     expect(ip).toBe('10.0.0.1');
   });

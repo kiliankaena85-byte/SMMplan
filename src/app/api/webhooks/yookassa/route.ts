@@ -96,12 +96,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized IP' }, { status: 403 });
     }
 
-    const { SettingsManager } = await import('@/lib/settings');
-    const secrets = await SettingsManager.getPaymentSecrets();
-    const expectedSecret = process.env.YOOKASSA_WEBHOOK_SECRET || secrets.yookassaWebhookSecret;
-
-    const providedSignature = req.headers.get('x-sha256-signature') || req.headers.get('x-content-signature') || req.headers.get('digest');
-
     const rawText = await req.text();
     if (rawText.length > MAX_BODY_SIZE) {
       console.warn('[Webhook] Oversized payload rejected');
@@ -113,6 +107,62 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
     }
+
+    let rawBody: YooKassaWebhookPayload = {};
+    try {
+      rawBody = JSON.parse(rawText);
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+    }
+
+    const internalPaymentId = rawBody.object?.metadata?.paymentId;
+    const gatewayId = rawBody.object?.id;
+    const metadataTenantId = rawBody.object?.metadata?.tenantId as string | undefined;
+
+    // --- ANTI-REPLAY GUARD (NIST SP 800-63B / PCI DSS v4.0.1) ---
+    const webhookEventId = (rawBody as Record<string, unknown>).id as string | undefined || 
+      (gatewayId ? `yoo:${rawBody.event || 'evt'}:${gatewayId}:${rawBody.object?.status || 'status'}` : undefined);
+    
+    if (webhookEventId) {
+      try {
+        const { redis } = await import('@/lib/redis');
+        const replayKey = `webhook:yoo:event:${webhookEventId}`;
+        const isNew = await redis.set(replayKey, '1', 'EX', 86400, 'NX');
+        if (!isNew) {
+          console.log(`[YooKassa Webhook] Idempotent duplicate event bypassed: ${webhookEventId}`);
+          return NextResponse.json({ success: true, duplicate: true });
+        }
+      } catch (redisErr) {
+        if (process.env.NODE_ENV === 'production') {
+          console.error('[YooKassa Webhook] Fail-Closed: Redis Anti-Replay Guard unreachable:', redisErr);
+          return NextResponse.json({ error: 'Anti-Replay Guard service unavailable' }, { status: 503 });
+        }
+        // Dev/test fallback
+        console.warn('[YooKassa Webhook] Dev/test mode: Redis unreachable, proceeding with DB lock.');
+      }
+    }
+
+    // Zero-Trust Database Resolution: determine tenant strictly from DB payment record first
+    let webhookTenantId: string | undefined;
+    if (internalPaymentId || gatewayId) {
+      const p = await db.payment.findFirst({
+        where: {
+          OR: [
+            ...(internalPaymentId ? [{ id: internalPaymentId }] : []),
+            ...(gatewayId ? [{ gatewayId }] : [])
+          ]
+        },
+        select: { tenantId: true }
+      });
+      if (p?.tenantId) webhookTenantId = p.tenantId;
+    }
+    webhookTenantId = webhookTenantId || metadataTenantId || 'smmplan';
+
+    const { SettingsManager } = await import('@/lib/settings');
+    const secrets = await SettingsManager.getPaymentSecrets(webhookTenantId);
+    const expectedSecret = secrets.yookassaWebhookSecret || process.env.YOOKASSA_WEBHOOK_SECRET;
+
+    const providedSignature = req.headers.get('x-sha256-signature') || req.headers.get('x-content-signature') || req.headers.get('digest');
 
     // --- SECURITY PROTOCOL (YooKassa Official Specification): ---
     // YooKassa delivers webhooks from official IP ranges (verified above) and does not require HMAC headers by default.
@@ -154,8 +204,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
       }
     }
-
-    const rawBody: YooKassaWebhookPayload = JSON.parse(rawText);
     
     const webhookCreatedAt = rawBody.object?.created_at || rawBody.created_at;
     if (webhookCreatedAt) {

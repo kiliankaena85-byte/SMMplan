@@ -49,16 +49,27 @@ export async function LegalPageContent({ slug }: LegalPageContentProps) {
   }
 
   // 4. Замена {{тегов}} на реальные значения
-  const settings = await SettingsProvider.getContactAndLegalSettings();
+  const settings = await SettingsProvider.getContactAndLegalSettings(tenantId);
+  const defaultCompanyName = isFlux 
+    ? 'Индивидуальный предприниматель (SMMflux)' 
+    : 'Индивидуальный предприниматель Соколов Артём Андреевич';
+  const defaultCompanyInn = isFlux ? '780000000000' : '695006320024';
+  const defaultCompanyOgrnip = isFlux ? '320000000000000' : '320695200000000';
+  const defaultCompanyAddress = isFlux 
+    ? 'Российская Федерация, г. Санкт-Петербург' 
+    : 'Российская Федерация, Тверская область, г. Тверь';
+
   const replacements: Record<string, string> = {
-    '{{COMPANY_NAME}}': settings.COMPANY_NAME || 'Индивидуальный предприниматель Соколов Артём Андреевич',
-    '{{COMPANY_INN}}': settings.COMPANY_INN || '695006320024',
-    '{{COMPANY_OGRNIP}}': settings.COMPANY_OGRNIP || '320695200000000',
-    '{{COMPANY_ADDRESS}}': settings.COMPANY_ADDRESS || 'Российская Федерация, Тверская область, г. Тверь',
-    '{{SUPPORT_EMAIL}}': isFlux ? 'support@smmflux.ru' : (settings.SUPPORT_EMAIL || 'support@smmplan.pro'),
-    '{{PRIVACY_EMAIL}}': isFlux ? 'privacy@smmflux.ru' : (settings.PRIVACY_EMAIL || 'privacy@smmplan.pro'),
+    '{{COMPANY_NAME}}': settings.COMPANY_NAME || defaultCompanyName,
+    '{{COMPANY_INN}}': settings.COMPANY_INN || defaultCompanyInn,
+    '{{COMPANY_OGRNIP}}': settings.COMPANY_OGRNIP || defaultCompanyOgrnip,
+    '{{COMPANY_ADDRESS}}': settings.COMPANY_ADDRESS || defaultCompanyAddress,
+    '{{SUPPORT_EMAIL}}': isFlux ? (settings.SUPPORT_EMAIL || 'support@smmflux.ru') : (settings.SUPPORT_EMAIL || 'support@smmplan.pro'),
+    '{{PRIVACY_EMAIL}}': isFlux ? (settings.PRIVACY_EMAIL || 'privacy@smmflux.ru') : (settings.PRIVACY_EMAIL || 'privacy@smmplan.pro'),
     '{{SITE_NAME}}': isFlux ? 'SMMflux' : (settings.SITE_NAME || 'SMMplan'),
-    '{{TELEGRAM_BOT}}': settings.TELEGRAM_SUPPORT_BOT ? (settings.TELEGRAM_SUPPORT_BOT.startsWith('@') ? settings.TELEGRAM_SUPPORT_BOT : `@${settings.TELEGRAM_SUPPORT_BOT}`) : '@SMMplansapport_bot',
+    '{{TELEGRAM_BOT}}': settings.TELEGRAM_SUPPORT_BOT 
+      ? (settings.TELEGRAM_SUPPORT_BOT.startsWith('@') ? settings.TELEGRAM_SUPPORT_BOT : `@${settings.TELEGRAM_SUPPORT_BOT}`) 
+      : (isFlux ? '@smmflux_support_bot' : '@SMMplansapport_bot'),
   };
 
   let rendered = contentHtml;

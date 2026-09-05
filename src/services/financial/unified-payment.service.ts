@@ -21,15 +21,18 @@ export class UnifiedPaymentService {
     amountRub: number, 
     description: string, 
     metadata: PaymentMetadata,
-    gateway: 'yookassa' | 'cryptobot' | 'robokassa' = 'yookassa'
+    gateway: 'yookassa' | 'cryptobot' | 'robokassa' = 'yookassa',
+    tenantId?: string
   ): Promise<{ success: boolean; confirmationUrl?: string; paymentId?: string; error?: string }> {
     try {
       const amountCents = Math.round(amountRub * 100);
+      const resolvedTenantId = tenantId || (metadata?.tenantId as string) || 'smmplan';
 
       // 1. Create a PENDING payment record
       const payment = await db.payment.create({
         data: {
           userId,
+          tenantId: resolvedTenantId,
           amount: amountCents,
           currency: 'RUB',
           status: 'PENDING',
@@ -37,12 +40,12 @@ export class UnifiedPaymentService {
         }
       });
       const { SettingsProvider } = await import('@/lib/settings');
-      const supportDomain = await SettingsProvider.getSupportEmailDomain();
+      const supportDomain = await SettingsProvider.getSupportEmailDomain(resolvedTenantId);
       let successUrl = `${await getBaseUrlAsync(supportDomain)}/dashboard`;
 
       // If initiated from Telegram Bot, return directly back into the bot!
       if (metadata?.source === 'BOT') {
-        const botUsername = process.env.TELEGRAM_BOT_USERNAME || 'SMMplansapport_bot';
+        const botUsername = process.env.TELEGRAM_BOT_USERNAME || (resolvedTenantId === 'flux' ? 'smmflux_support_bot' : 'SMMplansapport_bot');
         successUrl = `https://t.me/${botUsername.replace('@', '')}?start=pay_ok_${payment.id}`;
       }
 
@@ -53,12 +56,13 @@ export class UnifiedPaymentService {
       const gatewayResult = await gatewaySvc.createPayment({
         paymentId: payment.id,
         userId,
+        tenantId: resolvedTenantId,
         amountRub,
         email: null,
         successUrl,
         description,
-        metadata,
-        isTestMode: await SettingsManager.isTestMode()
+        metadata: { ...metadata, tenantId: resolvedTenantId },
+        isTestMode: await SettingsManager.isTestMode(resolvedTenantId)
       });
 
       if (gatewayResult.remoteGatewayId || gatewayResult.paymentUrl) {

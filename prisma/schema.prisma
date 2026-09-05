@@ -115,7 +115,8 @@ model User {
   customerGroupId            String?
   customerGroup              CustomerGroup?                  @relation("CustomerGroupUsers", fields: [customerGroupId], references: [id], onDelete: SetNull)
 
-  tenantId String @default("smmplan")
+  tenantId       String   @default("smmplan")
+  allowedTenants String[] @default(["smmplan"])
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -1076,9 +1077,10 @@ model FeatureFlag {
 // ── Flexible RBAC ──
 // Custom roles with granular permissions per sidebar section
 model StaffRole {
-  id          String            @id @default(cuid())
-  tenantId    String            @default("smmplan")
-  name        String            @unique // "Senior Support"
+  id             String            @id @default(cuid())
+  tenantId       String            @default("smmplan")
+  allowedTenants String[]          @default(["smmplan"])
+  name           String            @unique // "Senior Support"
   description String            @default("")
   isSystem    Boolean           @default(false) // true = cannot delete (Owner, Admin)
   permissions StaffPermission[]

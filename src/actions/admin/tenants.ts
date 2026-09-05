@@ -7,7 +7,7 @@ import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
-import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
+import { normalizeTenantId, registerValidTenant } from '@/lib/tenant-resolver-edge';
 import { sendAdminAlert } from '@/lib/notifications';
 
 const CreateTenantSchema = z.object({
@@ -104,6 +104,8 @@ export async function createTenantAction(formData: z.infer<typeof CreateTenantSc
           }
         }
       });
+
+      registerValidTenant(cleanSlug);
 
       await auditAdminAwaitable({
         adminId: staffUser.id,
@@ -292,7 +294,32 @@ export async function switchAdminTenantAction(tenantId: string) {
     return { success: false, error: 'Доступ запрещён: требуется роль сотрудника' };
   }
 
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+    select: { id: true, email: true, role: true, allowedTenants: true, tenantId: true },
+  });
+
+  if (!user) {
+    return { success: false, error: 'Пользователь не найден' };
+  }
+
   const normalized = normalizeTenantId(tenantId) || 'smmplan';
+
+  // Strict tenant boundary constraint (ISO 29148 / NIST SP 800-162):
+  // Only OWNER can switch to any tenant or view all.
+  // ADMIN, SUPPORT, MANAGER, OPERATOR are strictly restricted to their assigned allowedTenants.
+  if (user.role !== 'OWNER') {
+    const allowed = (user.allowedTenants && user.allowedTenants.length > 0)
+      ? user.allowedTenants
+      : [user.tenantId || 'smmplan'];
+
+    if (!allowed.includes(normalized)) {
+      return {
+        success: false,
+        error: `Доступ к бренду [${normalized}] ограничен настройками вашей роли`,
+      };
+    }
+  }
 
   // Server-side session storage in Redis for Staff
   await redis.set(`staff:${session.userId}:active_tenant`, normalized, 'EX', 86400 * 30).catch(() => {});
@@ -300,7 +327,7 @@ export async function switchAdminTenantAction(tenantId: string) {
   // Security audit log for tenant switching
   await auditAdminAwaitable({
     adminId: session.userId,
-    adminEmail: 'staff@smmplan.pro',
+    adminEmail: user.email,
     action: 'TENANT_SWITCH',
     target: normalized,
     targetType: 'SYSTEM',

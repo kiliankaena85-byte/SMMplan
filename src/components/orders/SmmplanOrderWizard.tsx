@@ -36,6 +36,8 @@ import { trackEvent } from '@/lib/analytics';
 import { analyzeUrl } from '@/actions/order/analyze-url';
 import { matchesSuggestedCategory } from '@/services/analyzer/category-matcher';
 import { isLinkServiceCompatible } from '@/constants/link-service-compatibility';
+import { formatPricePerUnit, formatRubles } from '@/utils/format-price';
+import { validateDripFeedLimits, getDripFeedFloor } from '@/hooks/useOrderWizard';
 
 function formatDetectedTargetName(t: string | null | undefined): string {
   if (!t) return '';
@@ -481,8 +483,14 @@ function SmmplanOrderWizardInner({
         newErrors.quantity = `Минимальное количество для этой услуги: ${selectedService.minQty} шт.`;
       } else if (quantity > selectedService.maxQty) {
         newErrors.quantity = `Максимальное количество для этой услуги: ${selectedService.maxQty} шт.`;
+      } else if (isDripFeedEnabled) {
+        const dripCheck = validateDripFeedLimits(quantity, dripRuns, selectedService.minQty, selectedService.maxQty);
+        if (!dripCheck.isValid) {
+          newErrors.quantity = dripCheck.error;
+        }
       }
     }
+
 
     if (selectedService?.customDataType && selectedService.customDataType !== 'NONE') {
       if (!customData.trim()) {
@@ -1135,7 +1143,7 @@ function SmmplanOrderWizardInner({
 
                           <div className="text-right">
                             <span className="text-lg font-black text-primary">
-                              {srv.pricePerUnitRub.toFixed(2)} ₽
+                              {formatPricePerUnit(srv.pricePerUnitRub)} ₽
                             </span>
                             <span className="text-[10px] text-muted-foreground block">/ шт</span>
                           </div>
@@ -1327,9 +1335,18 @@ function SmmplanOrderWizardInner({
                       <input
                         type="checkbox"
                         checked={isDripFeedEnabled}
-                        onChange={(e) => setIsDripFeedEnabled(e.target.checked)}
+                        onChange={(e) => {
+                          const enabled = e.target.checked;
+                          setIsDripFeedEnabled(enabled);
+                          if (enabled && selectedService) {
+                            if (!quantity || quantity < selectedService.minQty) {
+                              setQuantity(selectedService.minQty);
+                            }
+                          }
+                        }}
                         className="sr-only peer"
                       />
+
                       <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
                     </label>
                   </div>
@@ -1434,18 +1451,34 @@ function SmmplanOrderWizardInner({
                     }`}
                   />
 
-                  {/* Quick Quantity Buttons */}
+                  {/* Stepper Buttons (- / +) per AGENTS.md Rule 4 */}
                   <div className="flex items-center gap-1 shrink-0">
-                    {[100, 500, 1000, 5000].map(add => (
-                      <button
-                        key={add}
-                        type="button"
-                        onClick={() => addQuantity(add)}
-                        className="px-2.5 py-2.5 text-xs font-bold bg-muted/60 hover:bg-muted text-foreground border border-border/40 rounded-xl transition-all"
-                      >
-                        +{add}
-                      </button>
-                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const step = Math.max(10, Math.floor((selectedService.minQty || 100) / 10));
+                        const nextVal = Math.max(selectedService.minQty, (quantity || selectedService.minQty) - step);
+                        setQuantity(nextVal);
+                        if (errors.quantity) setErrors(prev => ({ ...prev, quantity: undefined }));
+                      }}
+                      className="w-10 h-10 flex items-center justify-center text-base font-bold bg-muted/60 hover:bg-muted text-foreground border border-border/40 rounded-xl transition-all active:scale-95 cursor-pointer"
+                      title="Уменьшить количество"
+                    >
+                      –
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const step = Math.max(10, Math.floor((selectedService.minQty || 100) / 10));
+                        const nextVal = Math.min(selectedService.maxQty, (quantity || selectedService.minQty) + step);
+                        setQuantity(nextVal);
+                        if (errors.quantity) setErrors(prev => ({ ...prev, quantity: undefined }));
+                      }}
+                      className="w-10 h-10 flex items-center justify-center text-base font-bold bg-muted/60 hover:bg-muted text-foreground border border-border/40 rounded-xl transition-all active:scale-95 cursor-pointer"
+                      title="Увеличить количество"
+                    >
+                      +
+                    </button>
                   </div>
                 </div>
 
@@ -1644,13 +1677,13 @@ function SmmplanOrderWizardInner({
                       {isCalculatingPrice ? (
                         <Loader2 className="w-6 h-6 animate-spin inline text-primary" />
                       ) : (
-                        `${(calculatedPriceRub || 0).toFixed(2)} ₽`
+                        formatRubles(calculatedPriceRub || 0)
                       )}
                     </span>
                     <span className="text-xs text-muted-foreground font-semibold">
                       {isDripFeedEnabled
-                        ? `(${quantity || 0} шт × ${dripRuns} запусков × ${selectedService.pricePerUnitRub.toFixed(2)} ₽)`
-                        : `(${quantity || 0} шт × ${selectedService.pricePerUnitRub.toFixed(2)} ₽)`}
+                        ? `(${quantity || 0} шт × ${dripRuns} запусков × ${formatPricePerUnit(selectedService.pricePerUnitRub)} ₽/шт)`
+                        : `(${quantity || 0} шт × ${formatPricePerUnit(selectedService.pricePerUnitRub)} ₽/шт)`}
                     </span>
                   </div>
                 </div>

@@ -18,6 +18,7 @@ const createRoleSchema = z.object({
   name: z.string().min(1, 'Название роли обязательно').max(64, 'Максимальная длина 64 символа').trim(),
   description: z.string().max(255, 'Максимальная длина 255 символов').optional().nullable(),
   permissions: z.array(permissionItemSchema).default([]),
+  allowedTenants: z.array(z.string()).optional().default(['smmplan']),
 });
 
 const updateRoleSchema = z.object({
@@ -25,6 +26,7 @@ const updateRoleSchema = z.object({
   name: z.string().min(1, 'Название роли обязательно').max(64, 'Максимальная длина 64 символа').trim(),
   description: z.string().max(255, 'Максимальная длина 255 символов').optional().nullable(),
   permissions: z.array(permissionItemSchema).default([]),
+  allowedTenants: z.array(z.string()).optional(),
 });
 
 const cloneRoleSchema = z.object({
@@ -58,7 +60,7 @@ export async function listRolesWithPermissionsAction() {
 /**
  * Create a new custom StaffRole
  */
-export async function createRoleAction(input: z.infer<typeof createRoleSchema>) {
+export async function createRoleAction(input: z.input<typeof createRoleSchema>) {
   return requireStaffPermission('settings', 'edit', async (staffUser) => {
     const parsed = createRoleSchema.safeParse(input);
     if (!parsed.success) {
@@ -106,6 +108,7 @@ export async function createRoleAction(input: z.infer<typeof createRoleSchema>) 
           name,
           description: description || '',
           isSystem: false,
+          allowedTenants: parsed.data.allowedTenants || ['smmplan'],
           permissions: {
             create: normalizedPermissions.map(p => ({
               section: p.section,
@@ -143,7 +146,7 @@ export async function createRoleAction(input: z.infer<typeof createRoleSchema>) 
 /**
  * Update an existing StaffRole and its permissions matrix
  */
-export async function updateRoleAction(input: z.infer<typeof updateRoleSchema>) {
+export async function updateRoleAction(input: z.input<typeof updateRoleSchema>) {
   return requireStaffPermission('settings', 'edit', async (staffUser) => {
     const parsed = updateRoleSchema.safeParse(input);
     if (!parsed.success) {
@@ -202,6 +205,7 @@ export async function updateRoleAction(input: z.infer<typeof updateRoleSchema>) 
         data: {
           name: existingRole.isSystem ? existingRole.name : name,
           description: description || '',
+          ...(parsed.data.allowedTenants ? { allowedTenants: parsed.data.allowedTenants } : {}),
         }
       });
 

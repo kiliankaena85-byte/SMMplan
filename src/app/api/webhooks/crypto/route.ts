@@ -36,11 +36,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
     }
 
-    const isTestMode = await SettingsManager.isTestMode();
-    const secrets = await SettingsManager.getPaymentSecrets();
+    let data: any = {};
+    try {
+      data = JSON.parse(payload);
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
+
+    const internalPaymentId = data.payload?.payload || data.payload?.invoice_id?.toString();
+    let resolvedTenantId = 'smmplan';
+    if (internalPaymentId) {
+      const p = await db.payment.findFirst({
+        where: {
+          OR: [
+            { id: internalPaymentId },
+            { gatewayId: String(internalPaymentId) }
+          ]
+        },
+        select: { tenantId: true }
+      });
+      if (p?.tenantId) resolvedTenantId = p.tenantId;
+    }
+
+    const isTestMode = await SettingsManager.isTestMode(resolvedTenantId);
+    const secrets = await SettingsManager.getPaymentSecrets(resolvedTenantId);
     const CRYPTO_BOT_TOKEN = secrets.cryptoBotToken;
     if (!CRYPTO_BOT_TOKEN) {
-      console.error('[Webhook] FATAL: CryptoBot token is not configured in SystemSettings. Rejecting.');
+      console.error(`[Webhook] FATAL: CryptoBot token is not configured in SystemSettings for [${resolvedTenantId}]. Rejecting.`);
       return NextResponse.json({ error: 'CryptoBot webhook not configured' }, { status: 503 });
     }
 
@@ -71,8 +93,6 @@ export async function POST(request: NextRequest) {
        });
        return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
     }
-
-    const data = JSON.parse(payload);
     
     // Replay protection (30 minutes window)
     const webhookCreatedAt = data.payload?.paid_at || data.payload?.created_at;

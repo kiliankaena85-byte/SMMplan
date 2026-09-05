@@ -42,10 +42,19 @@ export class PaymentService {
       // 1. Double-check against real gateway API in production
       const isMockPayment = gatewayId.startsWith('test_') || gatewayId.startsWith('mock_');
       if (process.env.NODE_ENV === 'production' && gatewayType === 'yookassa' && !isDevSandbox && !isMockPayment) {
+        let paymentTenantId = 'smmplan';
+        if (internalPaymentId) {
+          const p = await db.payment.findUnique({ where: { id: internalPaymentId }, select: { tenantId: true } });
+          if (p?.tenantId) paymentTenantId = p.tenantId;
+        } else if (gatewayId) {
+          const p = await db.payment.findUnique({ where: { gatewayId }, select: { tenantId: true } });
+          if (p?.tenantId) paymentTenantId = p.tenantId;
+        }
+
         const { SettingsManager } = await import('@/lib/settings');
-        const isTestMode = await SettingsManager.isTestMode();
+        const isTestMode = await SettingsManager.isTestMode(paymentTenantId);
         if (!isTestMode) {
-          const secrets = await SettingsManager.getPaymentSecrets();
+          const secrets = await SettingsManager.getPaymentSecrets(paymentTenantId);
           
           // We attempt to verify with YooKassa if secrets are configured
           if (secrets.yookassaShopId && secrets.yookassaSecretKey) {

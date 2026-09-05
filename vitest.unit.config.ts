@@ -112,6 +112,12 @@ export default defineConfig({
       'src/__tests__/plan-fullscreen-checkout.test.tsx',
       'src/__tests__/services/service-mutation-detector.test.ts',
       'src/__tests__/actions/quarantine-api-diff.test.ts',
+      'src/__tests__/multitenant-legal-fiscal-isolation.test.ts',
+      'src/__tests__/multitenant-staff-isolation.test.ts',
+      'src/__tests__/security/transactional-bulkhead-dlq-2026.test.ts',
+      'src/__tests__/orders/order-wizard-cro-and-dripfeed.test.ts',
+      'src/__tests__/financial/wave3-fintech-fiscal-and-liquidity.test.ts',
+      'src/lib/finance/__tests__/immutable-ledger-reconciliation.test.ts',
     ],
   }
 });

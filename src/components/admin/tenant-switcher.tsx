@@ -11,9 +11,17 @@ interface TenantSwitcherProps {
   currentTenant?: string;
   className?: string;
   variant?: 'dropdown' | 'segmented';
+  allowedTenants?: string[];
+  isOwner?: boolean;
 }
 
-export function TenantSwitcher({ currentTenant = 'smmplan', className = '', variant = 'dropdown' }: TenantSwitcherProps) {
+export function TenantSwitcher({
+  currentTenant = 'smmplan',
+  className = '',
+  variant = 'dropdown',
+  allowedTenants,
+  isOwner = true,
+}: TenantSwitcherProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -21,17 +29,29 @@ export function TenantSwitcher({ currentTenant = 'smmplan', className = '', vari
   const [isPending, startTransition] = useTransition();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Filter tenants list according to staff RBAC boundary
+  const visibleTenants = React.useMemo(() => {
+    if (isOwner) return TENANTS;
+    if (allowedTenants && allowedTenants.length > 0) {
+      return TENANTS.filter((t) => allowedTenants.includes(t.id));
+    }
+    return TENANTS.filter((t) => t.id === currentTenant);
+  }, [isOwner, allowedTenants, currentTenant]);
+
+  const canSwitch = isOwner || visibleTenants.length > 1;
+
   // Initialize tenant from searchParams or currentTenant
   const [selectedTenantId, setSelectedTenantId] = useState<TenantId>(() => {
     const urlTenant = searchParams.get('tenant') as TenantId | null;
-    if (urlTenant && TENANTS.some((t) => t.id === urlTenant)) return urlTenant;
-    return (currentTenant as TenantId) || 'smmplan';
+    if (urlTenant && visibleTenants.some((t) => t.id === urlTenant)) return urlTenant;
+    const matched = visibleTenants.find((t) => t.id === currentTenant);
+    return (matched ? matched.id : visibleTenants[0]?.id) || 'smmplan';
   });
 
   // Keep state synchronized with URL searchParams and cookie
   useEffect(() => {
     const urlTenant = searchParams.get('tenant') as TenantId | null;
-    if (urlTenant && TENANTS.some((t) => t.id === urlTenant)) {
+    if (urlTenant && visibleTenants.some((t) => t.id === urlTenant)) {
       setSelectedTenantId(urlTenant);
       return;
     }
@@ -40,12 +60,12 @@ export function TenantSwitcher({ currentTenant = 'smmplan', className = '', vari
       const match = document.cookie.match(/(?:^|;\s*)x_admin_tenant=([^;]+)/);
       if (match && match[1]) {
         const cTenant = match[1] as TenantId;
-        if (TENANTS.some((t) => t.id === cTenant)) {
+        if (visibleTenants.some((t) => t.id === cTenant)) {
           setSelectedTenantId(cTenant);
         }
       }
     } catch {}
-  }, [searchParams, currentTenant]);
+  }, [searchParams, currentTenant, visibleTenants]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -61,7 +81,7 @@ export function TenantSwitcher({ currentTenant = 'smmplan', className = '', vari
     };
   }, [isOpen]);
 
-  const activeTenant = TENANTS.find((t) => t.id === selectedTenantId) || TENANTS[0];
+  const activeTenant = visibleTenants.find((t) => t.id === selectedTenantId) || visibleTenants[0] || TENANTS[0];
 
   const handleSelect = (tenantId: TenantId) => {
     setIsOpen(false);
@@ -98,18 +118,19 @@ export function TenantSwitcher({ currentTenant = 'smmplan', className = '', vari
           <span className="hidden sm:inline">Сайт:</span>
         </div>
         <div className="flex items-center gap-1">
-          {TENANTS.map((t) => {
+          {visibleTenants.map((t) => {
             const isActive = activeTenant.id === t.id;
             return (
               <button
                 key={t.id}
                 type="button"
+                disabled={!canSwitch}
                 onClick={() => handleSelect(t.id)}
                 className={`px-3 py-2 min-h-[44px] flex items-center justify-center text-xs font-extrabold rounded-lg transition-all duration-200 active:scale-95 cursor-pointer ${
                   isActive
                     ? 'bg-background text-primary shadow-sm ring-1 ring-border/50'
                     : 'text-muted-foreground hover:text-foreground hover:bg-background/40'
-                }`}
+                } ${!canSwitch ? 'opacity-80 cursor-default' : ''}`}
               >
                 {t.name}
               </button>
@@ -125,10 +146,13 @@ export function TenantSwitcher({ currentTenant = 'smmplan', className = '', vari
     <div className={`relative inline-block text-left ${className}`} ref={dropdownRef}>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        disabled={!canSwitch}
+        onClick={() => canSwitch && setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-haspopup="true"
-        className="flex items-center gap-2 px-3.5 py-2 min-h-[44px] bg-card/90 hover:bg-card border border-border/80 hover:border-primary/50 text-foreground font-semibold rounded-xl transition-all duration-200 shadow-sm active:scale-95 cursor-pointer text-xs sm:text-sm select-none"
+        className={`flex items-center gap-2 px-3.5 py-2 min-h-[44px] bg-card/90 hover:bg-card border border-border/80 text-foreground font-semibold rounded-xl transition-all duration-200 shadow-sm text-xs sm:text-sm select-none ${
+          canSwitch ? 'hover:border-primary/50 active:scale-95 cursor-pointer' : 'cursor-default opacity-90'
+        }`}
       >
         <div className="w-5 h-5 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
           {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
@@ -142,22 +166,24 @@ export function TenantSwitcher({ currentTenant = 'smmplan', className = '', vari
           ({activeTenant.name})
         </span>
 
-        <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180 text-primary' : ''}`} />
+        {canSwitch && (
+          <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180 text-primary' : ''}`} />
+        )}
       </button>
 
-      {isOpen && (
+      {isOpen && canSwitch && (
         <div className="absolute left-0 mt-2 w-72 rounded-2xl bg-card/95 border border-border/80 shadow-2xl z-[100] py-2 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl">
           <div className="px-3.5 py-2 border-b border-border/50 flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
               Список сайтов
             </span>
             <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-              {TENANTS.length} сайта
+              {visibleTenants.length} {visibleTenants.length === 1 ? 'сайт' : 'сайта'}
             </span>
           </div>
 
           <div className="p-1.5 space-y-1">
-            {TENANTS.map((t) => {
+            {visibleTenants.map((t) => {
               const isSelected = t.id === activeTenant.id;
               const host = getTenantHost(t.id);
 

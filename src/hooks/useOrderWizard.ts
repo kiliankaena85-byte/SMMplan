@@ -9,6 +9,37 @@ export function validateDripFeedDuration(runs: number, interval: number): boolea
   return runs * interval <= MAX_DRIP_FEED_DURATION_MINUTES;
 }
 
+/**
+ * CRITICAL Drip-Feed Floor Invariant (AGENTS.md Rule 4):
+ * Portion per run must be >= minQty.
+ * Total order volume must be >= minQty * runs.
+ */
+export function getDripFeedFloor(minQty: number, runs: number): number {
+  const safeMin = Math.max(1, minQty || 1);
+  const safeRuns = Math.max(1, runs || 1);
+  return safeMin * safeRuns;
+}
+
+export function validateDripFeedLimits(
+  portionQty: number,
+  runs: number,
+  minQty: number,
+  maxQty: number
+): { isValid: boolean; error?: string } {
+  if (runs < 2) {
+    return { isValid: false, error: 'Количество запусков для Drip-feed должно быть не менее 2' };
+  }
+  if (portionQty < minQty) {
+    return { isValid: false, error: `Количество на один запуск (${portionQty} шт.) не может быть меньше минимального (${minQty} шт.)` };
+  }
+  const total = portionQty * runs;
+  if (total > maxQty) {
+    return { isValid: false, error: `Общий объем заказа с учетом ${runs} запусков (${total} шт.) превышает максимум услуги (${maxQty} шт.)` };
+  }
+  return { isValid: true };
+}
+
+
 export interface CatalogNetworkItem {
   id: string;
   name: string;
