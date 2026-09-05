@@ -12,6 +12,16 @@ let watchdogInterval: NodeJS.Timeout | null = null;
 const HEARTBEAT_STALE_THRESHOLD_MS = 120_000; // 120 seconds
 const STUCK_ORDER_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
 
+let lastReportedStuckCount = 0;
+let lastStuckAlertTimestamp = 0;
+let wasInStuckIncident = false;
+
+export function resetWatchdogState(): void {
+  lastReportedStuckCount = 0;
+  lastStuckAlertTimestamp = 0;
+  wasInStuckIncident = false;
+}
+
 /**
  * Runs a single health check sweep of the queue pipeline
  */
@@ -63,12 +73,21 @@ export async function runWatchdogCheck(): Promise<{
   }
 
   // 3. Check for Stuck Orders in PENDING state (> 10 minutes)
+  // Zero-Spam Policy: Exclude test orders (isTest=true or test user emails)
   try {
     const thresholdDate = new Date(Date.now() - STUCK_ORDER_THRESHOLD_MS);
     const stuckOrders = await db.order.findMany({
       where: {
         status: 'PENDING',
-        createdAt: { lt: thresholdDate }
+        createdAt: { lt: thresholdDate },
+        isTest: false,
+        user: {
+          email: {
+            not: {
+              contains: 'test'
+            }
+          }
+        }
       },
       select: {
         id: true,
@@ -80,11 +99,50 @@ export async function runWatchdogCheck(): Promise<{
     });
 
     stuckOrdersCount = stuckOrders.length;
-    if (stuckOrdersCount > 0) {
-      const oldestMinutes = Math.round((Date.now() - stuckOrders[0].createdAt.getTime()) / 60000);
+    const now = Date.now();
+
+    if (stuckOrdersCount === 0) {
+      if (wasInStuckIncident) {
+        log.info(`[Watchdog] Stuck orders incident cleared (was ${lastReportedStuckCount}). Dispatching resolved notification.`);
+        await DirectEmergencyAlertService.sendStuckOrdersResolvedAlert(lastReportedStuckCount);
+        wasInStuckIncident = false;
+        lastReportedStuckCount = 0;
+        lastStuckAlertTimestamp = 0;
+      }
+    } else {
+      const oldestMinutes = Math.round((now - stuckOrders[0].createdAt.getTime()) / 60000);
       const sampleIds = stuckOrders.map(o => o.numericId);
-      log.warn(`[Watchdog] Found ${stuckOrdersCount} stuck orders waiting > 10m! Oldest: ${oldestMinutes}m`);
-      await DirectEmergencyAlertService.sendStuckOrdersAlert(stuckOrdersCount, oldestMinutes, sampleIds);
+      const delta = stuckOrdersCount - lastReportedStuckCount;
+      const timeSinceLastAlertMs = now - lastStuckAlertTimestamp;
+
+      // Smart Alert Policy:
+      // 1. First alert on new incident (wasInStuckIncident === false)
+      // 2. Escalation alert if stuck count increases significantly (delta >= 2)
+      // 3. Periodic reminder only after 2 hours (120 min) if count is static
+      const isNewIncident = !wasInStuckIncident;
+      const isEscalating = wasInStuckIncident && delta >= 2;
+      const isReminderDue = wasInStuckIncident && timeSinceLastAlertMs >= 2 * 60 * 60 * 1000;
+
+      if (isNewIncident || isEscalating || isReminderDue) {
+        log.warn(`[Watchdog] Found ${stuckOrdersCount} stuck orders waiting > 10m! Oldest: ${oldestMinutes}m (delta=${delta}, new=${isNewIncident}, reminder=${isReminderDue})`);
+        
+        if (isEscalating || isReminderDue) {
+          await DirectEmergencyAlertService.sendStuckOrdersAlert(stuckOrdersCount, oldestMinutes, sampleIds, {
+            delta: isEscalating ? delta : undefined,
+            isReminder: isReminderDue && !isEscalating,
+            isEscalation: isEscalating
+          });
+        } else {
+          // Standard initial alert (3 arguments for full backward compatibility)
+          await DirectEmergencyAlertService.sendStuckOrdersAlert(stuckOrdersCount, oldestMinutes, sampleIds);
+        }
+
+        wasInStuckIncident = true;
+        lastReportedStuckCount = stuckOrdersCount;
+        lastStuckAlertTimestamp = now;
+      } else {
+        log.info(`[Watchdog] Stuck orders alert suppressed: count unchanged (${stuckOrdersCount}) and within 2h backoff window (${Math.round(timeSinceLastAlertMs / 60000)}m / 120m)`);
+      }
     }
   } catch (dbErr) {
     log.error('[Watchdog] Failed to inspect stuck orders in DB:', { error: (dbErr as Error).message });

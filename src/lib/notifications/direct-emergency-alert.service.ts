@@ -93,17 +93,49 @@ export class DirectEmergencyAlertService {
   /**
    * Specialized alert: Orders stuck in PENDING queue
    */
-  static async sendStuckOrdersAlert(stuckOrdersCount: number, oldestOrderMinutes: number, sampleOrderIds: (string | number)[]): Promise<void> {
+  static async sendStuckOrdersAlert(
+    stuckOrdersCount: number,
+    oldestOrderMinutes: number,
+    sampleOrderIds: (string | number)[],
+    options?: { delta?: number; isReminder?: boolean; isEscalation?: boolean }
+  ): Promise<void> {
+    const deltaStr = options?.delta && options.delta > 0 ? `\n• Динамика: ⚠️ Рост +${options.delta} новых заказов!` : '';
+    const typeStr = options?.isReminder ? ' [НАПОМИНАНИЕ]' : (options?.isEscalation ? ' [ЭСКАЛАЦИЯ]' : '');
+
+    if (options?.isEscalation) {
+      // If escalation due to spike in stuck orders, bypass cooldown immediately
+      this.alertCooldowns.delete('stuck_orders_alert');
+    }
+
     await this.sendAlert({
       cooldownKey: 'stuck_orders_alert',
+      cooldownMs: 2 * 60 * 60 * 1000, // 2 hour cooldown instead of 5m
       severity: 'CRITICAL',
-      title: 'ОБНАРУЖЕНЫ ЗАВИСШИЕ ЗАКАЗЫ В ОЧЕРЕДИ',
+      title: `ОБНАРУЖЕНЫ ЗАВИСШИЕ ЗАКАЗЫ В ОЧЕРЕДИ${typeStr}`,
       details: `Обнаружены заказы со статусом PENDING, ожидающие более ${oldestOrderMinutes} минут!\n` +
-        `• Количество зависших заказов: ${stuckOrdersCount}\n` +
+        `• Количество зависших заказов: ${stuckOrdersCount}${deltaStr}\n` +
         `• Примеры заказов: #${sampleOrderIds.join(', #')}\n` +
         `• Причина: Очередь BullMQ не вычитывается или сбоит провайдер.\n` +
         `• Рекомендуемое действие: Откройте панель заказов и проверьте состояние воркера.`,
-      metadata: { stuckOrdersCount, oldestOrderMinutes, sampleOrderIds }
+      metadata: { stuckOrdersCount, oldestOrderMinutes, sampleOrderIds, ...options }
+    });
+  }
+
+  /**
+   * Specialized alert: Stuck orders resolved / queue clear
+   */
+  static async sendStuckOrdersResolvedAlert(clearedCount: number): Promise<void> {
+    this.alertCooldowns.delete('stuck_orders_alert'); // Reset stuck orders cooldown
+
+    await this.sendAlert({
+      cooldownKey: 'stuck_orders_resolved',
+      cooldownMs: 30 * 60 * 1000, // 30m cooldown
+      severity: 'WARNING',
+      title: 'ЗАВИСШИЕ ЗАКАЗЫ УСПЕШНО ОБРАБОТАНЫ',
+      details: `Все ранее зависшие заказы (${clearedCount} шт.) успешно обработаны или отправлены поставщику.\n` +
+        `• Состояние очереди: В норме (0 зависших)\n` +
+        `• Инцидент исчерпан.`,
+      metadata: { clearedCount }
     });
   }
 
