@@ -110,7 +110,9 @@ export function PlanFullscreenCheckout({
 
   const minQty = selectedService.minQty || 100;
   const maxQty = selectedService.maxQty || 1000000;
-  const effectiveMinQty = dripFeedEnabled && runs > 0 ? minQty * runs : minQty;
+  const effectiveMinQty = engine.isSmartDrip && engine.smartDripDays > 0 
+    ? minQty * engine.smartDripDays 
+    : (dripFeedEnabled && runs > 0 ? minQty * runs : minQty);
 
   useEffect(() => {
     if (!quantity || Number(quantity) < minQty) {
@@ -133,6 +135,8 @@ export function PlanFullscreenCheckout({
       agreedToTerms, selectedGateway, linkInputRef, emailInputRef,
       quantityInputRef, setLocalError, setShakeKey, handleCheckout,
       compatibilityWarning, isLinkOverridden,
+      isSmartDrip: engine.isSmartDrip,
+      smartDripDays: engine.smartDripDays,
     });
   };
 

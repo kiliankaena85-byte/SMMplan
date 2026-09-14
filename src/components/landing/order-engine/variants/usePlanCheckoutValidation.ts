@@ -24,6 +24,8 @@ export interface PlanCheckoutValidationOptions {
   handleCheckout: (gateway: string) => void;
   compatibilityWarning?: string | null;
   isLinkOverridden?: boolean;
+  isSmartDrip?: boolean;
+  smartDripDays?: number;
 }
 
 export function validateAndSubmitPlanCheckout({
@@ -48,6 +50,8 @@ export function validateAndSubmitPlanCheckout({
   handleCheckout,
   compatibilityWarning,
   isLinkOverridden,
+  isSmartDrip,
+  smartDripDays,
 }: PlanCheckoutValidationOptions): boolean {
   if (!url || url.trim().length < 3) {
     setLocalError('Пожалуйста, укажите ссылку на объект продвижения');
@@ -79,11 +83,14 @@ export function validateAndSubmitPlanCheckout({
 
   const numQty = Number(quantity);
   if (isNaN(numQty) || numQty < effectiveMinQty) {
-    setLocalError(
-      dripFeedEnabled
-        ? `Для ${runs} запусков минимальный заказ: ${effectiveMinQty} шт. (по ${minQty} шт./запуск)`
-        : `Минимальное количество для заказа: ${minQty} шт.`
-    );
+    let errMsg = `Минимальное количество для заказа: ${minQty} шт.`;
+    if (isSmartDrip && smartDripDays) {
+      errMsg = `Для Умного Drip-feed (${smartDripDays} дней) минимальный заказ: ${effectiveMinQty} шт. (по ${minQty} шт./день)`;
+    } else if (dripFeedEnabled) {
+      errMsg = `Для ${runs} запусков минимальный заказ: ${effectiveMinQty} шт. (по ${minQty} шт./запуск)`;
+    }
+    
+    setLocalError(errMsg);
     setShakeKey(Date.now());
     safeFocus(quantityInputRef.current, true);
     return false;

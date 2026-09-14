@@ -29,6 +29,7 @@ import {
   type ServiceTargetType
 } from "@/constants/link-service-compatibility";
 import { toast } from "sonner";
+import { ExactMath } from "@/lib/financial/exact-math";
 
 export type OrderEngine = ReturnType<typeof useOrderEngine>;
 
@@ -250,7 +251,7 @@ export function useOrderEngine(
   const prevUrlRef = useRef("");
   useEffect(() => {
     const prevUrl = prevUrlRef.current;
-    if (url.trim().length >= 5 && prevUrl.trim().length < 5 && !selectedServiceRef.current) {
+    if (url.trim().length >= 5 && prevUrl.trim().length < 5 && !selectedServiceRef.current && !categoryIdRef.current) {
       setCategoryId("");
     }
     prevUrlRef.current = url;
@@ -285,7 +286,7 @@ export function useOrderEngine(
         validOrders: Array<{ priceRub?: number; serviceId: string; numericId?: number; link: string; quantity: number; providerId?: string | null; providerServiceId?: string | null; costRub?: number }>;
   } | null>(null);
   const [isMassCalculating, setIsMassCalculating] = useState(false);
-  const isMassMode = url.includes("\n") || url.split(/\s+/).filter(Boolean).length > 1;
+  const isMassMode = !selectedService && (url.includes("\n") || url.split(/\s+/).filter(Boolean).length > 1);
 
   // Status states
   const [isLoading, setIsLoading] = useState(false);
@@ -298,9 +299,16 @@ export function useOrderEngine(
 
   const isImmediateRef = useRef(false);
   const currentRequestIdRef = useRef(0);
+  const skipNextAnalysisRef = useRef(false);
+  const analyzedUrlRef = useRef("");
+  const pendingAnalysisRef = useRef(false);
+  const skipNextAnalysisRef = useRef(false);
+  const analyzedUrlRef = useRef("");
+  const pendingAnalysisRef = useRef(false);
 
   const handleSetUrl = useCallback((newUrl: string, immediate = false) => {
     if (immediate) isImmediateRef.current = true;
+    pendingAnalysisRef.current = true;
     setUrl(newUrl);
     setIsLinkOverridden(false);
     setIsWarningConfirmed(false);
@@ -382,6 +390,11 @@ export function useOrderEngine(
 
   // 2. Analyze URL (Debounced)
   useEffect(() => {
+    if (skipNextAnalysisRef.current) {
+      skipNextAnalysisRef.current = false;
+      return;
+    }
+
     if (!url || url.length < 5) {
       currentRequestIdRef.current++;
       setPlatform(null);
@@ -414,6 +427,7 @@ export function useOrderEngine(
           setUrlHint(null);
         }
         if (res.success && res.data) {
+          analyzedUrlRef.current = url.trim();
           const analysisData = res.data;
           setPlatform(analysisData.platform !== IntelligencePlatform.OTHER ? analysisData.platform : null);
           setManualPlatform(null); // Reset manual platform on new analysis
@@ -464,6 +478,7 @@ export function useOrderEngine(
       } catch (err) {
         console.error("URL analysis failed:", err);
       } finally {
+        pendingAnalysisRef.current = false;
         if (!stale && requestId === currentRequestIdRef.current) setIsLoading(false);
       }
     }, delay);
@@ -551,11 +566,11 @@ export function useOrderEngine(
     isInitialServicesMount.current = false;
 
     if (!categoryId) {
+      serviceRequestIdRef.current++;
       setServices([]);
       if (!selectedServiceRef.current) {
         setSelectedService(null);
       }
-      setIsLoading(false);
       setIsServicesLoading(false);
       setDripFeedEnabled(false);
       setRuns(2);
@@ -578,7 +593,6 @@ export function useOrderEngine(
       }
       setServices(finalSvcs);
       setIsServicesLoading(false);
-      setIsLoading(false);
       if (initialServiceId && !selectedServiceRef.current) {
         const found = finalSvcs.find(s => s.id === initialServiceId);
         if (found) setSelectedService(found);
@@ -595,7 +609,6 @@ export function useOrderEngine(
     const currentRequestId = ++serviceRequestIdRef.current;
 
     const loadServices = async () => {
-      setIsLoading(true);
       setIsServicesLoading(true);
       try {
         const svcs = await getServicesByCategoryAction(categoryId);
@@ -641,7 +654,6 @@ export function useOrderEngine(
         toast.error("Не удалось загрузить услуги. Проверьте подключение к сети.");
       } finally {
         if (currentRequestId === serviceRequestIdRef.current) {
-          setIsLoading(false);
           setIsServicesLoading(false);
         }
       }
@@ -674,11 +686,15 @@ export function useOrderEngine(
     }
 
     const totalQty = quantity;
-    const originalTotalCents = Math.max(1, Math.ceil(selectedService.pricePerUnitRub * 100 * totalQty));
+    
+    // Fix: ExactMath Invariant (Zero Float Drift)
+    const ratePer1kKopecks = ExactMath.rublesToKopecks(selectedService.pricePer1kRub);
+    const originalTotalCents = Number(ExactMath.calculateOrderCostKopecks(totalQty, ratePer1kKopecks));
 
     let totalCents = originalTotalCents;
     if (isSmartDrip && selectedService.smartConfig?.isEnabled) {
-      totalCents = Math.round(totalCents * (1 + selectedService.smartConfig.markup));
+      const markupBps = BigInt(Math.round(selectedService.smartConfig.markup * 10000));
+      totalCents = Number(ExactMath.calculateOrderCostKopecks(totalQty, ratePer1kKopecks, markupBps));
     }
 
     return {
@@ -795,6 +811,7 @@ export function useOrderEngine(
        const cleanUrl = mutateLink(currentUrl, activePlatform, targetType);
        if (cleanUrl !== currentUrl) {
            currentUrl = cleanUrl;
+           skipNextAnalysisRef.current = true;
            setUrl(cleanUrl);
            toast.success('Ссылка автоматически скорректирована под выбранный тип услуги!');
            setUrlMutatedTrigger(true);
@@ -825,7 +842,7 @@ export function useOrderEngine(
     }
 
     // Strict Domain TargetType Compatibility Guard (Frontend Defense)
-    if (selectedService && detectedType && !isLinkOverridden) {
+    if (selectedService && detectedType && !isLinkOverridden && currentUrl.trim() === analyzedUrlRef.current) {
       const activeCat2 = catalog.flatMap(n => n.categories).find(c => c.id === selectedService.categoryId);
       const serviceTargetType = normalizeServiceTargetType(
         // FIX: use resolveServiceTargetType to avoid false errors when targetType = "POST" (default)
@@ -861,6 +878,10 @@ export function useOrderEngine(
           errors['dripfeed'] = `Для Умного Drip на ${smartDripDays} дней общее количество должно быть минимум ${selectedService.minQty * smartDripDays} шт. (мин. ${selectedService.minQty} шт./день)`;
         }
       }
+    }
+
+    if (pendingAnalysisRef.current) {
+      errors['link'] = 'Идёт проверка ссылки, пожалуйста, подождите...';
     }
 
     if (Object.keys(errors).length > 0) {

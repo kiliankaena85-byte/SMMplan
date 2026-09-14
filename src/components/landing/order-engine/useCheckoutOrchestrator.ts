@@ -391,7 +391,8 @@ export function useCheckoutOrchestrator({
       smartDripDays: engine.isSmartDrip ? engine.smartDripDays : undefined,
       runs: engine.dripFeedEnabled ? engine.runs : undefined,
       interval: engine.dripFeedEnabled ? engine.dripInterval : undefined,
-      abVariant: abVariant || undefined
+      abVariant: abVariant || undefined,
+      idempotencyKey: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36)
     };
 
     if (resolvedGateway) {
