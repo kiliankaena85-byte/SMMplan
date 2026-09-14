@@ -191,69 +191,75 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
         action={
           <div className="flex flex-wrap items-center gap-2">
             {catalogHealth.quarantine > 0 && (
-              <Link href={`/admin/catalog/quarantine?tenant=${selectedTenant}`}>
-                <Button
-                  intent="outline"
-                  size="sm"
-                  className="font-bold h-9 border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"
-                >
-                  ⚠️ Карантин ({catalogHealth.quarantine})
-                </Button>
-              </Link>
-            )}
-            {catalogHealth.zombies > 0 && (
-              <Link href={`/admin/catalog?providerStatus=zombie&tenant=${selectedTenant}`}>
-                <Button
-                  intent="outline"
-                  size="sm"
-                  className="font-bold h-9 border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:bg-violet-500/20"
-                  title="Услуги, отключённые авто-зомби-логикой (ZOMBIE_AUTO_DISABLED / ZOMBIE_ARCHIVED)"
-                >
-                  🧟 Зомби ({catalogHealth.zombies})
-                </Button>
-              </Link>
-            )}
-            {catalogHealth.cooldown > 0 && (
-              <Link href={`/admin/catalog?providerStatus=cooldown&tenant=${selectedTenant}`}>
-                <Button
-                  intent="outline"
-                  size="sm"
-                  className="font-bold h-9 border-sky-500/30 bg-sky-500/10 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20"
-                  title="Активные услуги во временном отстое (cooldown) — скрыты с витрины до окончания срока"
-                >
-                  ⏸ На отстое ({catalogHealth.cooldown})
-                </Button>
-              </Link>
-            )}
-            <Link href={`/admin/catalog/categories?tenant=${selectedTenant}`}>
               <Button
+                asChild
                 intent="outline"
                 size="sm"
-                className="font-bold h-9 bg-background text-muted-foreground hover:text-foreground"
+                className="font-bold h-9 border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"
               >
-                Категории & Соцсети
+                <Link href={`/admin/catalog/quarantine?tenant=${selectedTenant}`}>
+                  ⚠️ Карантин ({catalogHealth.quarantine})
+                </Link>
               </Button>
-            </Link>
+            )}
+            {catalogHealth.zombies > 0 && (
+              <Button
+                asChild
+                intent="outline"
+                size="sm"
+                className="font-bold h-9 border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:bg-violet-500/20"
+                title="Услуги, отключённые авто-зомби-логикой (ZOMBIE_AUTO_DISABLED / ZOMBIE_ARCHIVED)"
+              >
+                <Link href={`/admin/catalog?providerStatus=zombie&tenant=${selectedTenant}`}>
+                  🧟 Зомби ({catalogHealth.zombies})
+                </Link>
+              </Button>
+            )}
+            {catalogHealth.cooldown > 0 && (
+              <Button
+                asChild
+                intent="outline"
+                size="sm"
+                className="font-bold h-9 border-sky-500/30 bg-sky-500/10 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20"
+                title="Активные услуги во временном отстое (cooldown) — скрыты с витрины до окончания срока"
+              >
+                <Link href={`/admin/catalog?providerStatus=cooldown&tenant=${selectedTenant}`}>
+                  ⏸ На отстое ({catalogHealth.cooldown})
+                </Link>
+              </Button>
+            )}
+            <Button
+              asChild
+              intent="outline"
+              size="sm"
+              className="font-bold h-9 bg-background text-muted-foreground hover:text-foreground"
+            >
+              <Link href={`/admin/catalog/categories?tenant=${selectedTenant}`}>
+                Категории & Соцсети
+              </Link>
+            </Button>
             {canEdit && (
               <div className="flex items-center gap-2">
-                <Link href="/admin/providers/import">
-                  <Button
-                    intent="outline"
-                    size="sm"
-                    className="font-bold h-9 bg-background text-muted-foreground hover:text-foreground"
-                  >
+                <Button
+                  asChild
+                  intent="outline"
+                  size="sm"
+                  className="font-bold h-9 bg-background text-muted-foreground hover:text-foreground"
+                >
+                  <Link href={`/admin/providers/import?tenant=${selectedTenant}`}>
                     Импорт услуг
-                  </Button>
-                </Link>
-                <Link href="/admin/catalog/new">
-                  <Button
-                    intent="primary"
-                    size="sm"
-                    className="font-bold h-9"
-                  >
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  intent="primary"
+                  size="sm"
+                  className="font-bold h-9"
+                >
+                  <Link href={`/admin/catalog/new?tenant=${selectedTenant}`}>
                     + Создать услугу
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               </div>
             )}
           </div>

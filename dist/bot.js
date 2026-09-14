@@ -97170,24 +97170,14 @@ function isAllowedHost(host) {
   if (!host) return false;
   const cleanHost = host.split(":")[0].toLowerCase();
   if (cleanHost === "0.0.0.0" || cleanHost === "host.docker.internal") return false;
-  return ALLOWED_HOST_DOMAINS.includes(cleanHost) || cleanHost.endsWith(".smmplan.pro") || cleanHost.endsWith(".smmflux.ru") || cleanHost.endsWith(".ts.net") || cleanHost.endsWith(".trycloudflare.com") || cleanHost === "desktop-25m6el7.tailbb9d28.ts.net";
+  return ALLOWED_HOST_DOMAINS.includes(cleanHost) || cleanHost.endsWith(".smmplan.pro") || cleanHost.endsWith(".smmflux.ru") || ALLOWED_TUNNEL_SUFFIXES.some((suffix) => cleanHost.endsWith(suffix));
 }
 async function getBaseUrlAsync(reqHost, reqProto) {
   const envUrl = process.env.WEBAPP_URL || process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
   try {
     const headersList = await (0, import_headers.headers)();
-    const originHeader = headersList.get("origin") || headersList.get("referer");
-    if (originHeader) {
-      try {
-        const u = new URL(originHeader);
-        if (isAllowedHost(u.host)) {
-          return `${u.protocol}//${u.host}`;
-        }
-      } catch {
-      }
-    }
     let host = headersList.get("x-forwarded-host") || headersList.get("host");
-    const proto = headersList.get("x-forwarded-proto") || (host?.includes("localhost") || host?.includes("127.0.0.1") ? "http" : process.env.NODE_ENV === "production" ? "https" : "http");
+    const proto = headersList.get("x-forwarded-proto") || (process.env.NODE_ENV === "production" ? "https" : "http");
     if (host) {
       if (host.includes("0.0.0.0") || host.includes("host.docker.internal")) {
         host = process.env.NODE_ENV === "production" ? process.env.APP_URL ? new URL(process.env.APP_URL).host : "test.smmplan.pro" : "localhost:3000";
@@ -97201,30 +97191,19 @@ async function getBaseUrlAsync(reqHost, reqProto) {
     }
   } catch {
   }
+  if (envUrl) {
+    return envUrl.endsWith("/") ? envUrl.slice(0, -1) : envUrl;
+  }
   if (reqHost) {
-    try {
-      if (reqHost.startsWith("http://") || reqHost.startsWith("https://")) {
-        const u = new URL(reqHost);
-        if (isAllowedHost(u.host)) {
-          return `${u.protocol}//${u.host}`;
-        }
-      }
-    } catch {
-    }
     let host = reqHost;
     if (host.includes("0.0.0.0") || host.includes("host.docker.internal")) {
       host = process.env.NODE_ENV === "production" ? process.env.APP_URL ? new URL(process.env.APP_URL).host : "test.smmplan.pro" : "localhost:3000";
     }
     if (isAllowedHost(host)) {
-      const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
-      const proto = reqProto || (isLocal ? "http" : process.env.NODE_ENV === "production" ? "https" : "http");
+      const cleanHost = host.split(":")[0].toLowerCase();
+      const isTunnelOrProd = cleanHost.endsWith(".ts.net") || cleanHost.endsWith(".trycloudflare.com") || cleanHost.endsWith(".smmplan.pro") || cleanHost.endsWith(".smmflux.ru");
+      const proto = isTunnelOrProd ? "https" : reqProto || (process.env.NODE_ENV === "production" ? "https" : "http");
       return `${proto}://${host}`;
-    }
-  }
-  if (envUrl) {
-    const isLocalEnvUrl = envUrl.includes("localhost") || envUrl.includes("127.0.0.1");
-    if (!isLocalEnvUrl || process.env.NODE_ENV !== "production") {
-      return envUrl.endsWith("/") ? envUrl.slice(0, -1) : envUrl;
     }
   }
   return process.env.NODE_ENV === "production" ? "https://test.smmplan.pro" : "http://localhost:3000";
@@ -97232,35 +97211,23 @@ async function getBaseUrlAsync(reqHost, reqProto) {
 function getBaseUrlSync(reqHost, reqProto) {
   const envUrl = process.env.WEBAPP_URL || process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
   if (reqHost) {
-    try {
-      if (reqHost.startsWith("http://") || reqHost.startsWith("https://")) {
-        const u = new URL(reqHost);
-        if (isAllowedHost(u.host)) {
-          return `${u.protocol}//${u.host}`;
-        }
-      }
-    } catch {
-    }
     let host = reqHost;
     if (host.includes("0.0.0.0") || host.includes("host.docker.internal")) {
       host = process.env.NODE_ENV === "production" ? process.env.APP_URL ? new URL(process.env.APP_URL).host : "test.smmplan.pro" : "localhost:3000";
     }
     if (isAllowedHost(host)) {
-      const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
-      const isTunnel = host.includes(".ts.net") || host.includes(".trycloudflare.com");
-      const proto = isTunnel ? "https" : reqProto || (isLocal ? "http" : process.env.NODE_ENV === "production" ? "https" : "http");
+      const cleanHost = host.split(":")[0].toLowerCase();
+      const isTunnelOrProd = cleanHost.endsWith(".ts.net") || cleanHost.endsWith(".trycloudflare.com") || cleanHost.endsWith(".smmplan.pro") || cleanHost.endsWith(".smmflux.ru");
+      const proto = isTunnelOrProd ? "https" : reqProto || (process.env.NODE_ENV === "production" ? "https" : "http");
       return `${proto}://${host}`;
     }
   }
   if (envUrl) {
-    const isLocalEnvUrl = envUrl.includes("localhost") || envUrl.includes("127.0.0.1");
-    if (!isLocalEnvUrl || process.env.NODE_ENV !== "production") {
-      return envUrl.endsWith("/") ? envUrl.slice(0, -1) : envUrl;
-    }
+    return envUrl.endsWith("/") ? envUrl.slice(0, -1) : envUrl;
   }
   return process.env.NODE_ENV === "production" ? "https://test.smmplan.pro" : "http://localhost:3000";
 }
-var import_headers, ALLOWED_HOST_DOMAINS;
+var import_headers, ALLOWED_HOST_DOMAINS, ALLOWED_TUNNEL_SUFFIXES;
 var init_get_base_url = __esm({
   "src/utils/get-base-url.ts"() {
     "use strict";
@@ -97274,6 +97241,20 @@ var init_get_base_url = __esm({
       "test.smmflux.ru",
       "localhost",
       "127.0.0.1"
+    ];
+    ALLOWED_TUNNEL_SUFFIXES = [
+      ".ts.net",
+      ".trycloudflare.com",
+      ".loca.lt",
+      ".ngrok-free.app",
+      ".ngrok.app",
+      ".ngrok.io",
+      ".lhr.life",
+      ".serveo.net",
+      ".pinggy-free.link",
+      ".pinggy.link",
+      ".free.pinggy.net",
+      ".pinggy.net"
     ];
   }
 });
@@ -97301,12 +97282,12 @@ function resolveCanonicalHost(tenantId, incomingHost) {
   if (normTenant === "flux") {
     if (hostWithoutPort === "flux.smmplan.pro" || rawHost === "flux.smmplan.pro") return "flux.smmplan.pro";
     if (hostWithoutPort === "smmflux.ru" || rawHost === "smmflux.ru") return "smmflux.ru";
-    if (rawHost.includes("localhost") || rawHost.includes("127.0.0.1") || rawHost.endsWith(".ts.net")) return rawHost;
+    if (rawHost.includes("localhost") || rawHost.includes("127.0.0.1")) return rawHost;
     return process.env.NODE_ENV === "production" && !process.env.APP_URL?.includes("test.") ? "smmflux.ru" : "flux.smmplan.pro";
   } else {
     if (hostWithoutPort === "test.smmplan.pro" || rawHost === "test.smmplan.pro") return "test.smmplan.pro";
     if (hostWithoutPort === "smmplan.pro" || rawHost === "smmplan.pro") return "smmplan.pro";
-    if (rawHost.includes("localhost") || rawHost.includes("127.0.0.1") || rawHost.endsWith(".ts.net")) return rawHost;
+    if (rawHost.includes("localhost") || rawHost.includes("127.0.0.1")) return rawHost;
     return process.env.NODE_ENV === "production" && !process.env.APP_URL?.includes("test.") ? "smmplan.pro" : "test.smmplan.pro";
   }
 }
@@ -130267,15 +130248,7 @@ async function assertSafeOutboundUrl(rawUrl) {
     "t.me",
     "auth.robokassa.ru",
     "merchant.roboxchange.com",
-    "generativelanguage.googleapis.com",
-    // Verified official provider gateways
-    "vexboost.ru",
-    "api.vexboost.ru",
-    "soc-rocket.ru",
-    "stream-promotion.ru",
-    "likedrom.com",
-    "smmprime.com",
-    "smmpanelus.com"
+    "generativelanguage.googleapis.com"
   ];
   if (TRUSTED_SYSTEM_DOMAINS.some((d) => hostname === d || hostname.endsWith(`.${d}`))) {
     return { ok: true, ip: "trusted-gateway", hostname };

@@ -148,4 +148,11 @@ description: Комплексный протокол непрерывного с
 - **Files Affected:** `src/hooks/useOrderEngine.ts`, `src/__tests__/checkout-link-retention.test.ts`
 - **Verified Date:** 2026-09-14
 
-
+### [LESSON-2026-09-14-SIL-F] next-link-button-nesting-click-hijack (HIGH)
+- **Trigger Condition:** В админке каталога не нажимались кнопки перехода ('Зомби', 'Карантин' и др.).
+- **Root Cause:** Использование компонента Button внутри Link (выглядящее как `<Link><Button>...</Button></Link>`) создает невалидный HTML (`<a><button>...</button></a>`). В Next.js 15+ и некоторых браузерах это приводит к перехвату клика элементом `<button>`, из-за чего навигация не срабатывает.
+- **Enforced Solution Pattern:** Любая кнопка, выступающая в роли ссылки, обязана использовать паттерн `asChild` из Radix UI, инвертируя вложенность: `<Button asChild><Link href="...">...</Link></Button>`. Это рендерит валидный `<a>` тег с классами кнопки.
+- **Anti-Pattern:** `<Link><Button>Перейти</Button></Link>`
+- **Correct Pattern:** `<Button asChild><Link>Перейти</Link></Button>`
+- **Files Affected:** `src/app/admin/catalog/page.tsx`
+- **Verified Date:** 2026-09-14
