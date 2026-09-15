@@ -104,7 +104,7 @@ export class BalanceAutoFlushService {
 
     // 2. Distributed Mutex Lock (Provider-Level)
     const lockKey = `lock:provider:flush:${providerId}`;
-    let lockAcquired = false;
+    let lockAcquired: boolean;
     try {
       const acquired = await redis.set(lockKey, '1', 'EX', this.PROVIDER_LOCK_TTL_SECONDS, 'NX');
       lockAcquired = acquired === 'OK';

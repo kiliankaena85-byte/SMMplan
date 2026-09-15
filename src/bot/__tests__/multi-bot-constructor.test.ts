@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BOT_PRESETS, type TelegramBotRole } from '@/types/telegram-builder';
 import { multiBotManager } from '../manager/multi-bot-manager';

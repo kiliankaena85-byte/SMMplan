@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { db } from '@/lib/db';
 import {

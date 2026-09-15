@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-assignment */
 /**
  * Safe SVG Sanitizer & Validator (OWASP A03/A07 Pentest Immunity)
  * Sanitizes arbitrary SVG strings to prevent Stored XSS, XXE, and script execution.

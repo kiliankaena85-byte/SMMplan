@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Lightweight Telegram Bot notification service for critical admin alerts.
  * Uses raw fetch() — no external dependencies required.

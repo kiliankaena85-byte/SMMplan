@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React from "react";
 import { LandingSeoTariffComparison } from "@/components/seo/sub/LandingSeoTariffComparison";
 import { LandingSeoFactBox } from "@/components/seo/sub/LandingSeoFactBox";

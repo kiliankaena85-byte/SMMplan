@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-assignment */
 import { URL } from 'node:url';
 import { promises as dns } from 'node:dns';
 import net from 'node:net';

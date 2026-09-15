@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { db } from '@/lib/db';
 import { NextRequest } from 'next/server';
 // Мокаем ordersQueue для симуляции падения Redis во время добавления заказа
-vi.mock('@/workers/queues', async (importOriginal) => {
+vi.mock('@/lib/queue-manager', async (importOriginal) => {
   const actual: any = await importOriginal();
   return {
     ...actual,
@@ -12,7 +12,7 @@ vi.mock('@/workers/queues', async (importOriginal) => {
     }
   };
 });
-import { ordersQueue } from '@/workers/queues';
+import { ordersQueue } from '@/lib/queue-manager';
 
 /**
  * PREMORTEM TESTING (AI Framework: Priority 1)

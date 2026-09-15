@@ -145,10 +145,10 @@ export function decrypt(encryptedData: string): string {
   if (!encryptedData || typeof encryptedData !== 'string') return encryptedData;
 
   const parts = encryptedData.split(':');
-  let version = DEFAULT_KEY_VERSION;
-  let ivHex = '';
-  let authTagHex = '';
-  let encrypted = '';
+  let version: string;
+  let ivHex: string;
+  let authTagHex: string;
+  let encrypted: string;
 
   if (parts.length === 4 && parts[0].startsWith('v')) {
     // Versioned payload: v2:iv:authTag:cipher

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, no-empty */
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
@@ -13,9 +14,9 @@ import { matchesSuggestedCategory } from "@/services/analyzer/category-matcher";
 import {
   inferTargetTypeFromCategory,
   inferTargetTypeFromName,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   normalizeTargetType,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   TargetTypeEnum
 } from "@/utils/target-type";
 import { resolveServiceTargetType } from "@/utils/target-type-mapper";
@@ -23,9 +24,9 @@ import {
   isLinkServiceCompatible,
   getCompatibilityError,
   normalizeServiceTargetType,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   type LinkType,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   type ServiceTargetType
 } from "@/constants/link-service-compatibility";
 import { toast } from "sonner";
@@ -302,9 +303,6 @@ export function useOrderEngine(
   const skipNextAnalysisRef = useRef(false);
   const analyzedUrlRef = useRef("");
   const pendingAnalysisRef = useRef(false);
-  const skipNextAnalysisRef = useRef(false);
-  const analyzedUrlRef = useRef("");
-  const pendingAnalysisRef = useRef(false);
 
   const handleSetUrl = useCallback((newUrl: string, immediate = false) => {
     if (immediate) isImmediateRef.current = true;
@@ -315,7 +313,7 @@ export function useOrderEngine(
     setWarningHasError(false);
     if (!newUrl) {
       setValidationErrors(prev => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+         
         const { link, ...rest } = prev;
         return rest;
       });

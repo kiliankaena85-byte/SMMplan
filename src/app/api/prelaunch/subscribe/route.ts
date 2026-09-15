@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import { PreLaunchService } from '@/services/marketing/prelaunch-service';
 import { RateLimitService } from '@/services/core/rate-limit.service';

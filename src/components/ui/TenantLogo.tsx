@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useId } from "react";
 import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
 

@@ -76,8 +76,8 @@ ${contentTypeHint ? `Желаемый тип контента: ${contentTypeHint
       }
 
       return parsed;
-    } catch (e: unknown) {
-      const err = e instanceof Error ? e.message : String(e);
+    } catch {
+
       // Fallback heuristics if Gemini fails or quota is unavailable
       const firstUrl = sampleUrls[0];
       const cleaned = firstUrl.replace(/^https?:\/\//i, '').replace(/^www\./i, '');

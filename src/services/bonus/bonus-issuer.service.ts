@@ -3,7 +3,7 @@
  * Idempotent Bonus Issuer with Atomic Event De-duplication and Vesting Support.
  */
 
-import { db } from '@/lib/db';
+
 import { runSerializableTransaction } from '@/lib/transactions';
 import { WalletOps } from '@/services/financial/wallet-ops';
 

@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@/lib/logger';
 import { SmartTaskStatus, SmartCampaignStatus } from '@prisma/client';
 
@@ -18,7 +19,7 @@ export class DripFeedWatchdog {
    * Main watchdog sweep executed periodically to recover orphaned smart tasks.
    */
   async sweepAndRecover(): Promise<{ recoveredCount: number; errors: string[] }> {
-    let acquired: string | null = null;
+    let acquired: string | null;
     try {
       acquired = await redis.set(WATCHDOG_LOCK_KEY, 'locked', 'EX', WATCHDOG_LOCK_TTL_SEC, 'NX');
     } catch (err: any) {

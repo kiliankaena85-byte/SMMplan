@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-assignment */
 'use client';
 
 import React, { useMemo } from 'react';

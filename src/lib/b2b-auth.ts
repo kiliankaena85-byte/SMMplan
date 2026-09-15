@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { db } from './db';
 import { User } from '@prisma/client';
 import crypto from 'crypto';

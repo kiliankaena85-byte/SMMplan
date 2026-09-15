@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import os from 'os';
 import fs from 'fs';
 import { db } from '@/lib/db';
@@ -5,6 +6,7 @@ import { logger } from '@/lib/logger';
 import { P0AlertDebouncer } from '@/lib/alerts/p0-alert-debouncer';
 import { sendP0EmergencyAlert } from '@/lib/notifications';
 import { SettingsProvider } from '@/lib/settings';
+
 import { providerService } from '@/services/providers/provider.service';
 
 const log = logger.child({ component: 'P0ThreatSensorService' });

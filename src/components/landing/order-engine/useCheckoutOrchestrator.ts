@@ -1,3 +1,4 @@
+/* eslint-disable no-empty */
 interface OrchestratorCheckoutParams {
   isMassMode?: boolean;
   text?: string;

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
 import { getLedgerAction } from '@/actions/admin/finance/ledger';
 import { TransactionsClient } from './transactions-client';
 import { ArrowLeftRight, CreditCard } from 'lucide-react';

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextResponse, NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/session';

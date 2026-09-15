@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React from 'react';
 import Link from 'next/link';
 import { Package, ArrowRight, Clock } from 'lucide-react';

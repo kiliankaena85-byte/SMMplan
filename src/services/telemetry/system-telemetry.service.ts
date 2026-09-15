@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
 import { sendAdminAlert } from '@/lib/notifications';
 import { logger } from '@/lib/logger';
-import { ordersQueue, syncQueue, paymentSyncQueue } from '@/lib/queue-manager';
+import { ordersQueue, syncQueue } from '@/lib/queue-manager';
 
 const log = logger.child({ component: 'SystemTelemetryService' });
 
@@ -72,7 +72,7 @@ export class SystemTelemetryService {
     const alerts: SystemHealthSnapshot['activeAlerts'] = [];
 
     // 1. Disk Telemetry
-    let disk: DiskTelemetry = { totalGb: 0, freeGb: 0, usedPct: 0, status: 'HEALTHY' };
+    let disk: DiskTelemetry;
     try {
       const stat = fs.statfsSync('.');
       const totalGb = Math.round((stat.blocks * stat.bsize) / (1024 ** 3) * 10) / 10;
@@ -141,7 +141,7 @@ export class SystemTelemetryService {
 
     // 3. Database Ping Telemetry
     let dbStatus: DatabaseTelemetry['status'] = 'HEALTHY';
-    let pingLatencyMs = 0;
+    let pingLatencyMs: number;
     const tDb = Date.now();
     try {
       await db.$queryRawUnsafe('SELECT 1');

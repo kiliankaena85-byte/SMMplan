@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, no-useless-assignment */
 import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';

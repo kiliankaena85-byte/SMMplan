@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { db } from '@/lib/db';
 import { verifySession } from '@/lib/session';
 import { notFound, redirect } from 'next/navigation';

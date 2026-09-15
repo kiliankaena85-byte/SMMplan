@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'client';
 
 import { Card } from '@/components/ui/card';

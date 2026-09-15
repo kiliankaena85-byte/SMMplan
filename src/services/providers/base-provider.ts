@@ -10,6 +10,7 @@ export interface ProviderServiceDto {
   dripfeed?: number | boolean;
   refill?: boolean | number;
   cancel?: boolean | number;
+  [key: string]: unknown;
 }
 
 export interface ProviderBalanceDto {

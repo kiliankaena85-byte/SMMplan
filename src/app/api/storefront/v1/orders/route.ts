@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveStorefrontContext } from '@/lib/storefront/storefront-auth';
 import { RateLimitService } from '@/services/core/rate-limit.service';

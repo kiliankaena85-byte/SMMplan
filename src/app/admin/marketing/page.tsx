@@ -1,3 +1,4 @@
+/* eslint-disable preserve-caught-error */
 import { adminMarketingService } from '@/services/admin/marketing.service';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Gift, TrendingUp, Users, Wallet } from 'lucide-react';

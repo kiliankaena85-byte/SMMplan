@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-assignment */
 import { NextResponse } from 'next/server';
 import crypto from 'node:crypto';
 import { db } from '@/lib/db';

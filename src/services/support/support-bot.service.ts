@@ -9,14 +9,6 @@ interface TelegramIncomingMessage {
   reply_to_message?: { message_id?: number };
 }
 
-interface TelegramIncomingContext {
-  message?: TelegramIncomingMessage;
-  reply: (text: string, extra?: Record<string, unknown>) => Promise<unknown>;
-  react?: (reaction: unknown) => Promise<unknown>;
-  telegram: {
-    getFileLink: (fileId: string) => Promise<URL | string>;
-  };
-}
 
 import { db } from '@/lib/db';
 import { ticketService } from '@/services/support/ticket.service';
@@ -122,6 +114,7 @@ class SupportBotService {
     });
 
     if (userMessageCount <= 1) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
       await (ctx.reply as Function)('✅ Ваше сообщение передано в поддержку. Ожидайте ответа.', msg.message_id ? { reply_to_message_id: msg.message_id } : undefined).catch(() => {});
     } else {
       // For subsequent messages, just react to avoid spam

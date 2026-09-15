@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { BotContext } from '../types/bot-context';
 /**
  * (c) 2024-2026 SMMplan. All rights reserved.

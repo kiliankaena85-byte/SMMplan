@@ -1,3 +1,4 @@
+
 import { getPublicCatalogAction } from "@/actions/order/catalog";
 import { getArticles } from "@/actions/knowledge";
 import Link from "next/link";
@@ -191,7 +192,7 @@ export default async function ServicesCatalogPage() {
                   {networks.map((net) => {
                     const slug = net.slug.toLowerCase();
                     const brandIcon = (
-                      // eslint-disable-next-line @next/next/no-img-element
+
                       <img 
                         src={`/brands/${slug}.svg`} 
                         alt={net.name} 

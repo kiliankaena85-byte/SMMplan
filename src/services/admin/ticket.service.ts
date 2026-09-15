@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
-import type { MessageAttachment } from '@prisma/client';
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 import { extractOrderIds } from '@/utils/ticket-parser';

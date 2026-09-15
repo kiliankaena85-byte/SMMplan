@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, no-empty, @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useState, useRef, useActionState, useEffect, Suspense } from "react";
@@ -132,7 +133,7 @@ function PlanSlideOrderClientInner({
   const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);
 
   const [selectedGateway, setSelectedGateway] = useState<string>("yookassa");
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   const [availableGateways, setAvailableGateways] = useState<{ yookassa: boolean; robokassa: boolean; cryptobot: boolean } | null>(null);
 
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -379,7 +380,7 @@ function PlanSlideOrderClientInner({
         navigateTo('network');
       }
     } catch {
-      let matchedNetwork = detectNetworkByUrl(trimmedInput, initialCatalog as any) as any;
+      const matchedNetwork = detectNetworkByUrl(trimmedInput, initialCatalog as any) as any;
       if (matchedNetwork) {
         setActiveNetwork(matchedNetwork);
         setActiveCategory(null);

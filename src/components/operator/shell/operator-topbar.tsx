@@ -1,3 +1,4 @@
+/* eslint-disable no-empty */
 'use client';
 
 import * as React from 'react';

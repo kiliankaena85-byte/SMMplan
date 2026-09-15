@@ -90,7 +90,7 @@ export class SafeRegexValidator {
 
     // 3. Execution with high-resolution performance timer
     const startTime = performance.now();
-    let match: RegExpMatchArray | null = null;
+    let match: RegExpMatchArray | null;
     try {
       match = sampleUrl ? sampleUrl.match(regex) : null;
     } catch (e: unknown) {

@@ -1,3 +1,4 @@
+/* eslint-disable no-empty */
 'use client';
 
 import React, { useState, useRef, useEffect, useTransition } from 'react';

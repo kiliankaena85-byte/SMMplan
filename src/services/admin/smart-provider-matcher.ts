@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
-import { requireStaffPermission } from '@/lib/server/rbac';
+
 import { getUnifiedLinkSpecification } from '@/services/link-engine/link-rules-registry';
 
 export interface ShadowServiceSearchResult {

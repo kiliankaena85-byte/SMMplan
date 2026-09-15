@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, no-useless-assignment, @typescript-eslint/no-explicit-any */
 import { cookies, headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';

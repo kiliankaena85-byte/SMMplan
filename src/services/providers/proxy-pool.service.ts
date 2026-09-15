@@ -2,7 +2,7 @@ import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
 import { VaultService } from '@/lib/vault';
 import type { ProxyConfig, ProxyProtocol } from '@/types/provider-proxy';
-import { assertSafeOutboundUrl } from '@/lib/security/ssrf-guard';
+
 
 export interface ManagedProxy extends ProxyConfig {
   id: string;
@@ -217,6 +217,7 @@ export class ProxyPoolService {
   /**
    * Decrypt and build ProxyConfig safely.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public static hydrateProxyConfig(record: any): ProxyConfig | null {
     if (!record.host || !record.port) return null;
 

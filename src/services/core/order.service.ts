@@ -101,7 +101,7 @@ class OrderService {
         // 2a.1 Link-Service Domain Compatibility Check
         if (!input.isLinkOverridden) {
           const { isLinkServiceCompatible, getCompatibilityError, normalizeServiceTargetType } = await import('@/constants/link-service-compatibility');
-          let detectedLinkType = 'generic_link';
+          let detectedLinkType: string;
           try {
             const { IntelligenceLinkAnalyzer } = await import('@/services/analyzer/link-analyzer');
             const analyzer = new IntelligenceLinkAnalyzer();

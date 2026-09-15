@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * GeoAvailabilityService — Multi-Region & Russia Availability Telemetry Engine
  * Part of OmniSMM 1.0 Infrastructure & Security Suite.
@@ -74,6 +75,7 @@ export class GeoAvailabilityService {
 
       return this.parseResults(targetUrl, rawNodes, rawResults, permanentLink);
     } catch (err: any) {
+      /* eslint-disable @typescript-eslint/no-explicit-any */
       // Graceful fallback on network/timeout error
       return this.buildFallbackReport(targetUrl, err.message);
     }

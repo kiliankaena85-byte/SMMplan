@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, no-empty */
 'use server';
 import { Prisma } from '@prisma/client';
 
@@ -538,7 +539,7 @@ export const structuredMassOrderCheckoutAction = async (input: z.infer<typeof st
     let reqHeaders: { get: (key: string) => string | null };
     try {
       reqHeaders = await headers();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     } catch (e) {
       reqHeaders = {
         get: (key: string) => {

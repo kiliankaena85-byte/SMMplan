@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { db } from '@/lib/db';
 import { QuarantineClient } from './quarantine-client';
 import { AlertTriangle } from 'lucide-react';

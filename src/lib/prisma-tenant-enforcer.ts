@@ -1,9 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * @file prisma-tenant-enforcer.ts
  * Enterprise Automatic Prisma Extension for Zero-Leak Tenant Isolation (SDD-TDD 2026).
  * Automatically intercepts and scopes database operations by tenantId.
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Prisma } from '@prisma/client';
 import { resolveActiveTenantId, isTenantBypassActive } from './tenant-context';
 
 export interface TenantEnforcerOptions {

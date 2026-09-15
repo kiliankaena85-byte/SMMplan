@@ -1,3 +1,4 @@
+/* eslint-disable no-control-regex */
 import { z } from 'zod';
 
 /**

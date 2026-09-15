@@ -76,7 +76,9 @@ export async function getBaseUrlAsync(reqHost?: string | null, reqProto?: string
           return `${u.protocol}//${u.host}`;
         }
       }
-    } catch {}
+    } catch {
+      // ignore
+    }
 
     let host = reqHost;
     if (host.includes("0.0.0.0") || host.includes("host.docker.internal")) {
@@ -118,7 +120,9 @@ export function getBaseUrlSync(reqHost?: string | null, reqProto?: string | null
           return `${u.protocol}//${u.host}`;
         }
       }
-    } catch {}
+    } catch {
+      // ignore
+    }
 
     let host = reqHost;
     if (host.includes("0.0.0.0") || host.includes("host.docker.internal")) {

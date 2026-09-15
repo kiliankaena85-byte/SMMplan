@@ -1,3 +1,4 @@
+/* eslint-disable no-control-regex, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';

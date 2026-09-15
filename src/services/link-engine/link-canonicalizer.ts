@@ -40,8 +40,6 @@ export function stripTrackingParams(urlObj: URL, platform?: IntelligencePlatform
   // Telegram: keep ?start= for bots, ?comment= for comments, ?single for media groups
   if (host === 't.me' || host === 'telegram.me' || host === 'telegram.dog') {
     const start = urlObj.searchParams.get('start');
-    const comment = urlObj.searchParams.get('comment');
-    const hasSingle = urlObj.searchParams.has('single');
     const isPrivate = urlObj.pathname.includes('/+') || urlObj.pathname.includes('/joinchat/');
 
     if (normTarget === 'CHANNEL' || normTarget === 'PROFILE' || normTarget === 'CHANNEL_POSTS') {
@@ -124,6 +122,7 @@ export function stripTrackingParams(urlObj: URL, platform?: IntelligencePlatform
  */
 export function canonicalizeUrl(rawUrl: string, platform?: IntelligencePlatform | string | null, targetType?: string | null): string {
   if (!rawUrl || typeof rawUrl !== 'string') return '';
+  // eslint-disable-next-line no-control-regex
   let url = rawUrl.trim().replace(/[\x00-\x1F\x7F]/g, '');
   if (!url) return '';
 

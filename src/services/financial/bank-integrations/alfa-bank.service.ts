@@ -110,9 +110,19 @@ export class AlfaBankService {
           throw new Error(`Alfa-Bank API HTTP ${response.status}: ${response.statusText}`);
         }
 
-        const data = (await response.json()) as any;
+        interface AlfaAccount {
+          accountNumber: string;
+          currency?: string;
+          status?: 'ACTIVE' | 'BLOCKED' | 'RESTRICTED';
+          balance?: {
+            authorizedBalance?: number;
+            availableBalance?: number;
+          };
+        }
+        
+        const data = (await response.json()) as { accounts?: AlfaAccount[] } & AlfaAccount;
         const matchingAccount = Array.isArray(data.accounts)
-          ? data.accounts.find((acc: any) => acc.accountNumber === accountNumber) || data.accounts[0]
+          ? data.accounts.find((acc: AlfaAccount) => acc.accountNumber === accountNumber) || data.accounts[0]
           : data;
 
         if (!matchingAccount) {

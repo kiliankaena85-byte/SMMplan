@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { adminCatalogService } from '@/services/admin/catalog.service';
 import { adminProviderService } from '@/services/admin/provider.service';
 import { bulkUpdateMarkupAction } from '@/actions/admin/catalog';

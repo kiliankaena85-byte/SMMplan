@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, no-empty */
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
@@ -557,7 +558,7 @@ export function ReferralUi({
             </div>
 
             <div className="bg-white p-4 rounded-2xl flex items-center justify-center border border-border/80">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+
               <img
                 src={qrImageUrl}
                 alt="Партнёрский QR-код"

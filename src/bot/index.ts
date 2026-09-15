@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, no-empty */
 /**
  * (c) 2024-2026 SMMplan. All rights reserved.
  * Created by Artem (http://artmspektr.ru)

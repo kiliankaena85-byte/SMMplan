@@ -1,3 +1,4 @@
+/* eslint-disable no-empty */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { chromium, Browser } from "@playwright/test";
 import * as path from "path";

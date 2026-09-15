@@ -198,8 +198,8 @@ export class AiFunnelAnalystService {
       drop3To4: number;
     }
   ): AiFunnelAnalysisResult {
-    let healthScore = 70;
-    let healthStatus: AiFunnelAnalysisResult['healthStatus'] = 'GOOD';
+    let healthScore: number;
+    let healthStatus: AiFunnelAnalysisResult['healthStatus'];
     let bottleneckStep = 'Шаг 2: Выбор услуги';
     let bottleneckDrop = rates.drop1To2;
     let bottleneckDesc = 'Пользователи открывают лендинг, но не переходят к конкретной услуге.';

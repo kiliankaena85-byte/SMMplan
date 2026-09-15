@@ -1,4 +1,5 @@
-'use server';
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+"use server";
 
 // ==============================================================
 // Telegram Enterprise Server Actions
@@ -50,7 +51,7 @@ import {
   type TelegramTemplate,
   type TelegramProxy,
   type TelegramErrorLog,
-  type TelegramDailyStat,
+
   type TelegramActionResponse,
   type ProxyTestResult,
   type TelegramMenuButton,
@@ -101,7 +102,7 @@ async function getBotToken(targetTenantId?: string): Promise<string | null> {
   } catch {
     // audit-ignore: token retrieval from vault is best-effort fallback
   }
-  let token = process.env.TELEGRAM_BOT_TOKEN;
+  const token = process.env.TELEGRAM_BOT_TOKEN;
   if (token && token !== 'dummy_token' && tenantId === 'smmplan') return token;
   return null;
 }
@@ -729,7 +730,7 @@ export async function deleteTelegramProxyAction(
 export async function testTelegramProxyAction(
   proxyId: string
 ): Promise<TelegramActionResponse & { data?: ProxyTestResult }> {
-  return requireStaffPermission('settings', 'edit', async (admin) => {
+  return requireStaffPermission('settings', 'edit', async (_admin) => {
     if (!proxyId) return { success: false, error: 'ID прокси обязателен' };
     const tenantId = await getTenantId();
 
@@ -846,7 +847,7 @@ export async function getTelegramStatsAction(
       db.telegramDailyStat.findUnique({ where: { date_tenantId: { date: today, tenantId } } }),
       db.telegramDailyStat.findUnique({ where: { date_tenantId: { date: yesterday, tenantId } } }),
       db.telegramDailyStat.findMany({
-        where: { tenantId, date: { gte: new Date(today.getTime() - 7 * 86400000) } },
+        where: { tenantId, date: { gte: periodStart } },
         orderBy: { date: 'asc' },
       }),
       db.user.count({ where: { telegramId: { not: null }, tenantId } }),

@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 import { describe, it, expect } from 'vitest';
 import { ExactMath } from '@/lib/financial/exact-math';
 import { SafeRegexValidator } from '@/services/analyzer/safe-regex.validator';

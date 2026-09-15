@@ -1,6 +1,6 @@
 import { redis } from '@/lib/redis';
 import { db } from '@/lib/db';
-import { ChainedProxyService, type ProxyHop, type ChainedRoute } from '@/services/providers/chained-proxy.service';
+import { ChainedProxyService, type ChainedRoute } from '@/services/providers/chained-proxy.service';
 import { ProxyPoolService } from '@/services/providers/proxy-pool.service';
 import type { ProxyConfig } from '@/types/provider-proxy';
 

@@ -1,4 +1,4 @@
-import { IntelligencePlatform, LINK_RULES } from '../analyzer/link-rules';
+import { IntelligencePlatform } from '../analyzer/link-rules';
 import { IntelligenceLinkAnalyzer, IntelligenceAnalysisResult, LinkAnalysisErrorCode } from '../analyzer/link-analyzer';
 import { resolvePlatformByHostname } from './link-domain-router';
 import { canonicalizeUrl } from './link-canonicalizer';
@@ -7,7 +7,7 @@ import { resolveServiceTargetType, TargetTypeEnum, normalizeTargetType } from '@
 import { isLinkServiceCompatible, getCompatibilityError, normalizeServiceTargetType } from '@/constants/link-service-compatibility';
 import { isUrlSafeForFetch } from '@/lib/ssrf-guard';
 import { validateProhibitedContent } from '@/validators/prohibited-content';
-import { z } from 'zod';
+
 
 export interface UnifiedValidationResult {
   isValid: boolean;

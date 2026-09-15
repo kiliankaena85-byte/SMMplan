@@ -12,6 +12,7 @@ const safeString = (min: number, max: number, name: string) =>
     .min(min, min > 0 ? `${name}: обязательно для заполнения` : undefined)
     .max(max, `${name}: максимум ${max} символов`)
     .refine(
+      // eslint-disable-next-line no-control-regex
       (v) => !/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/.test(v),
       `${name}: содержит недопустимые управляющие символы`
     );
@@ -127,8 +128,7 @@ export const statsQuerySchema = z.object({
 // Telegram supports only a strict subset of HTML tags:
 // <b>, <strong>, <i>, <em>, <u>, <ins>, <s>, <strike>, <del>, <tg-spoiler>,
 // <a>, <tg-emoji>, <code>, <pre>, <blockquote>
-const ALLOWED_HTML_TAGS = /<\/?(b|strong|i|em|u|ins|s|strike|del|tg-spoiler|code|pre|blockquote)(\s[^>]*)?>/gi;
-const ALLOWED_A_TAG = /<a\s+href="https?:\/\/[^"]+"(\s+[^>]*)?>|<\/a>/gi;
+
 
 export function sanitizeTelegramHtml(input: string): string {
   if (!input) return '';

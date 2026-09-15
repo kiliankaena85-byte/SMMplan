@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { runBundleSecretCheck } from '../../../scripts/check-bundle-secrets.mjs';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const { runBundleSecretCheck } = require('../../../scripts/check-bundle-secrets.mjs') as any;
 
 describe('CI Bundle Secret Check Gate (V-03)', () => {
   let tempDir: string;

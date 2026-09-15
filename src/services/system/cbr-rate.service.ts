@@ -121,15 +121,12 @@ export class CBRRateService {
       let eurRate: number | null = null;
       let uahRate: number | null = null;
       let kztRate: number | null = null;
-      let source = 'CBR_OFFICIAL_XML';
-
       try {
         const fetched = await this.fetchRawRates();
         usdRate = fetched.usdRate;
         eurRate = fetched.eurRate;
         uahRate = fetched.uahRate;
         kztRate = fetched.kztRate;
-        source = fetched.source;
       } catch (err: unknown) {
         console.warn("[CBRRateService] Rate fetch error:", (err instanceof Error ? err.message : String(err)));
       }

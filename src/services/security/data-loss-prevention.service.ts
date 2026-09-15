@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { redis } from '@/lib/redis';
 import { SecurityAlertService } from '@/services/security/security-alert.service';
 

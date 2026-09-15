@@ -44,7 +44,7 @@ export class ChainedProxyService {
       );
 
       const finalSocket = route.useTls
-        ? this.upgradeToTls(socket, route.targetHost, route.targetPort)
+        ? this.upgradeToTls(socket, route.targetHost)
         : socket;
 
       const latencyMs = Date.now() - startTime;
@@ -72,7 +72,7 @@ export class ChainedProxyService {
     );
 
     const finalSocket = route.useTls
-      ? this.upgradeToTls(finalRawSocket, route.targetHost, route.targetPort)
+      ? this.upgradeToTls(finalRawSocket, route.targetHost)
       : finalRawSocket;
 
     const latencyMs = Date.now() - startTime;
@@ -144,7 +144,7 @@ export class ChainedProxyService {
   /**
    * Upgrades a raw TCP socket to TLS with strict certificate verification.
    */
-  private static upgradeToTls(socket: net.Socket, servername: string, port: number): tls.TLSSocket {
+  private static upgradeToTls(socket: net.Socket, servername: string): tls.TLSSocket {
     return tls.connect({
       socket,
       servername,

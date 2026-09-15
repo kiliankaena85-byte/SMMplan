@@ -3,7 +3,7 @@ import { WalletOps } from '../financial/wallet-ops';
 
 export const adminMarketingService = {
   // ── PromoCodes ──
-  async listPromoCodes(_tenantId?: string) {
+  async listPromoCodes() {
     const promoCodes = await db.promoCode.findMany({
       include: { usages: true },
       orderBy: { createdAt: 'desc' },

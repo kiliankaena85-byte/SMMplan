@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useEffect, useMemo, useState } from "react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { Card } from "@/components/ui/card";

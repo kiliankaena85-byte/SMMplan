@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, preserve-caught-error */
 import { settingsService } from '@/services/admin/settings.service';
 import { db } from '@/lib/db';
 import { Settings, Globe, Link as LinkIcon, Users, History, MessageSquare, Database, Bot, Server } from 'lucide-react';

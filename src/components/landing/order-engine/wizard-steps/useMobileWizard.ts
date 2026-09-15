@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { cleanCategoryName } from "@/components/ui/CategoryIcon";

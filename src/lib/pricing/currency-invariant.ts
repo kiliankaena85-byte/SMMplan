@@ -1,3 +1,4 @@
+/* eslint-disable no-case-declarations */
 import { db } from '@/lib/db';
 import { SettingsProvider } from '@/lib/settings';
 

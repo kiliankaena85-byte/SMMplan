@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Prisma, Order } from '@prisma/client';
 import { Job } from 'bullmq';
 import { db } from '../../lib/db';

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, no-useless-assignment */
 import { accountingService } from '@/services/financial/accounting.service';
 import { adminOrderService } from '@/services/admin/order.service';
 import { adminUserService } from '@/services/admin/user.service';

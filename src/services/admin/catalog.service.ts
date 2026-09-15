@@ -1242,7 +1242,8 @@ class AdminCatalogService {
         }
       } else {
         throw new Error(
-          `Провайдер недоступен (${errMsg}), а теневой каталог ${shadowCatalogAgeHours === null ? 'пуст' : `устарел (${shadowCatalogAgeHours.toFixed(1)} ч назад)`}. Нажмите «Обновить каталог» и повторите импорт.`
+          `Провайдер недоступен (${errMsg}), а теневой каталог ${shadowCatalogAgeHours === null ? 'пуст' : `устарел (${shadowCatalogAgeHours.toFixed(1)} ч назад)`}. Нажмите «Обновить каталог» и повторите импорт.`,
+          { cause: liveErr }
         );
       }
     }
@@ -1295,8 +1296,6 @@ class AdminCatalogService {
 
     const servicesToCreate = [];
     const markupAdjustments: ImportMarkupAdjustment[] = [];
-    const globalUsdToRub = await SettingsProvider.getExchangeRateUSD();
-
     // CATEGORY-FIX (Level 3): Look up the fallback category's network so we can
     // auto-create properly-named sub-categories if services have diverse normalizedCategory.
     const fallbackCategoryRecord = categoryId
@@ -1307,8 +1306,6 @@ class AdminCatalogService {
       : null;
     // Cache for auto-created category IDs: normalizedCategory → categoryId
     const autoCreatedCategoryCache = new Map<string, string>();
-
-
 
     for (const shadowExt of shadowServices) {
       const extId = shadowExt.externalId;
@@ -1333,7 +1330,7 @@ class AdminCatalogService {
       let snapshot;
       try {
         snapshot = await buildCurrencySnapshot(rawRate, providerCurrency);
-      } catch (snapErr) {
+      } catch {
         skipped.push({ externalId: extId, name: shadowExt.cleanName || shadowExt.name, reason: 'CURRENCY_CONVERSION_FAILED' });
         continue;
       }

@@ -19,8 +19,7 @@ import { featureFlagService } from "@/services/system/feature-flag.service";
 import { mutateLink, getLinkValidator } from '@/validators/link-mutators';
 import { unifiedLinkEngine } from '@/services/link-engine/unified-link-engine';
 import { validateProhibitedContent } from '@/validators/prohibited-content';
-import { inferTargetTypeFromCategory, normalizeTargetType, resolveServiceTargetType, TargetTypeEnum } from '@/utils/target-type';
-import { isLinkServiceCompatible, getCompatibilityError, normalizeServiceTargetType } from '@/constants/link-service-compatibility';
+import { resolveServiceTargetType } from '@/utils/target-type';
 import { safeUrlForLog } from '@/lib/log-safe';
 import { isUrlSafeForFetch } from '@/lib/ssrf-guard';
 import { SmartDripService } from '@/services/dripfeed/smart-drip.service';
@@ -678,7 +677,7 @@ export const checkoutAction = async (input: z.input<typeof checkoutSchema>) => {
         if (isAllowedHost(u.host)) {
           clientOrigin = `${u.protocol}//${u.host}`;
         }
-      } catch {}
+      } catch { /* ignore */ }
     }
     const fwdHost = reqHeaders?.get("x-forwarded-host");
     const host = fwdHost || reqHeaders?.get("host");
@@ -1071,7 +1070,7 @@ export const retryCheckoutAction = async (input: z.infer<typeof retryCheckoutSch
         if (isAllowedHost(u.host)) {
           clientOrigin = `${u.protocol}//${u.host}`;
         }
-      } catch {}
+      } catch { /* ignore */ }
     }
     const fwdHost = reqHeaders.get("x-forwarded-host");
     const host = fwdHost || reqHeaders.get("host");

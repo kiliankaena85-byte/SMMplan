@@ -53,15 +53,15 @@ export class LiveOrderVerifierService {
 
       // 3. Extract Views (e.g. for post /29: <span class="tgme_widget_message_views">137</span> or similar)
       let views: number | undefined;
-      const viewsMatch = html.match(/class=["'][^"']*tgme_widget_message_views[^"']*["'][^>]*>([\d\.\sKMkm]+)</i)
-        || html.match(/class=["'][^"']*tgme_page_views[^"']*["'][^>]*>([\d\.\sKMkm]+)</i);
+      const viewsMatch = html.match(/class=["'][^"']*tgme_widget_message_views[^"']*["'][^>]*>([\d.\sKMkm]+)</i)
+        || html.match(/class=["'][^"']*tgme_page_views[^"']*["'][^>]*>([\d.\sKMkm]+)</i);
       if (viewsMatch && viewsMatch[1]) {
         views = this.parseTelegramMetric(viewsMatch[1]);
       }
 
       // 4. Extract Subscribers / Members (e.g. tgme_page_extra: "1 250 subscribers")
       let subscribers: number | undefined;
-      const subsMatch = html.match(/(\d[\d\s\.,KMkm]*)\s+(subscribers|members|подписчик|участник)/i);
+      const subsMatch = html.match(/(\d[\d\s.,KMkm]*)\s+(subscribers|members|подписчик|участник)/i);
       if (subsMatch && subsMatch[1]) {
         subscribers = this.parseTelegramMetric(subsMatch[1]);
       }

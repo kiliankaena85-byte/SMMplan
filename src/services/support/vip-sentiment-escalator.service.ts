@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
-import { logger } from '@/lib/logger';
 
-const log = logger.child({ component: 'VipSentimentEscalatorService' });
+
+
 
 export interface EscalationVerdict {
   shouldEscalate: boolean;

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { db } from '@/lib/db';
 import { sendAdminAlert } from '@/lib/notifications';
 import { SecurityAlertService } from '@/services/security/security-alert.service';

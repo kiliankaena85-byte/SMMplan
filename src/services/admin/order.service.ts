@@ -70,7 +70,7 @@ const ACTIVITY_TYPE_KEYWORDS: Record<string, string[]> = {
 export function resolveOrderOrderBy(
   sortField?: string,
   sortOrder?: 'asc' | 'desc'
-): Record<string, any> {
+): Record<string, unknown> {
   const defaultOrderBy: Record<string, 'asc' | 'desc'> = { createdAt: 'desc' };
   if (!sortField) return defaultOrderBy;
 

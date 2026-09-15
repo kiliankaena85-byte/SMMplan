@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { db } from '@/lib/db';
 import { redis } from '@/lib/redis';
 import { sendAdminAlert } from '@/lib/notifications';

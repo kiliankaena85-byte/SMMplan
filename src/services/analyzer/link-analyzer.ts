@@ -40,7 +40,7 @@ export class IntelligenceLinkAnalyzer {
              return this.getFallbackResult(rawUrl, 'EMPTY_INPUT');
         }
         const boundedRaw = rawUrl.length > 2048 ? rawUrl.slice(0, 2048) : rawUrl;
-        let cleanUrl = boundedRaw.trim();
+        const cleanUrl = boundedRaw.trim();
 
         // Option B (INV-1): Detect bare handles (@username) or single words without a domain/dot
         const isBareHandle = cleanUrl.startsWith('@');

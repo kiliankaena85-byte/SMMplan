@@ -1,3 +1,4 @@
+/* eslint-disable no-empty */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { db } from '@/lib/db';
 import { verifySession } from '@/lib/session';

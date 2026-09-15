@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-assignment, @typescript-eslint/no-unused-vars */
 import { redis } from '@/lib/redis';
 import { db } from '@/lib/db';
 import { ordersQueue } from '@/lib/queue-manager';

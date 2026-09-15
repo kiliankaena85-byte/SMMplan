@@ -30,12 +30,12 @@ export class ProviderSyncMutex {
         `;
         try {
           await redis.eval(releaseLua, 1, lockKey, token);
-        } catch (err: any) {
-          logger.error(`[ProviderSyncMutex] Error releasing lock for ${providerId}: ${err.message}`);
+        } catch (err: unknown) {
+          logger.error(`[ProviderSyncMutex] Error releasing lock for ${providerId}: ${err instanceof Error ? err.message : String(err)}`);
         }
       };
-    } catch (err: any) {
-      logger.error(`[ProviderSyncMutex] Redis error acquiring lock: ${err.message}`);
+    } catch (err: unknown) {
+      logger.error(`[ProviderSyncMutex] Redis error acquiring lock: ${err instanceof Error ? err.message : String(err)}`);
       // Fail safe - allow sync if Redis is temporarily unreachable
       return async () => {};
     }

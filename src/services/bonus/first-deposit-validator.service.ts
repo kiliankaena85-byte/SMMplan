@@ -25,8 +25,7 @@ export class FirstDepositValidatorService {
    */
   static async validateFirstDepositBonus(
     userId: string,
-    paymentFingerprint: string,
-    tenantId?: string
+    paymentFingerprint: string
   ): Promise<{ eligible: boolean; reason?: string }> {
     if (!paymentFingerprint) {
       return { eligible: true };

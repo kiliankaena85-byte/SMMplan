@@ -8,7 +8,7 @@ describe("GeminiClient", () => {
 
   it("should return model from env if explicitly set", async () => {
     process.env.GEMINI_MODEL = "gemini-3.7-flash";
-    const model = await GeminiClient.resolveLatestModel("mock-api-key");
+    const model = await GeminiClient.resolveLatestModel();
     expect(model).toBe("gemini-3.7-flash");
     delete process.env.GEMINI_MODEL;
   });

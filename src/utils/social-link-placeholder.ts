@@ -832,7 +832,7 @@ export function getSocialLinkConfig(
     : netConfig.defaultCategory;
 
   // 4. Compute human-readable contextual field label
-  let dynamicLabel = `Ссылка для заказа`;
+  let dynamicLabel: string;
   if (resolvedCatKey === 'subscribers') {
     dynamicLabel = resolvedNetKey === 'telegram' ? 'Ссылка на канал или группу' : `Ссылка на сообщество ${netConfig.name}`;
   } else if (resolvedCatKey === 'members') {

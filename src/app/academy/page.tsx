@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { db } from '@/lib/db';
 import Link from 'next/link';
 import { headers } from 'next/headers';

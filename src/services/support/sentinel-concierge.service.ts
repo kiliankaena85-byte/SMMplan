@@ -1,8 +1,8 @@
 import { db } from '@/lib/db';
-import { logger } from '@/lib/logger';
+
 import { SlaTelemetryEngine } from '../telemetry/sla-telemetry-engine.service';
 
-const log = logger.child({ component: 'SentinelConciergeService' });
+
 
 export interface ProactiveDelayAlert {
   orderId: string;

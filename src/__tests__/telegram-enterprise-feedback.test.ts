@@ -127,7 +127,7 @@ describe('Enterprise Telegram Bot & Feedback Ecosystem Test Suite', () => {
   describe('4. Database Models & Ticket Feedback Persistence', () => {
     let testUser: { id: string; email: string };
     let testTicket: { id: string };
-    let createdUserIds: string[] = [];
+    const createdUserIds: string[] = [];
 
     beforeEach(async () => {
       testUser = await db.user.create({

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * (c) 2024-2026 SMMplan / OmniSMM 1.0. All rights reserved.
  * Role-specific Telegram Bot handlers generator.

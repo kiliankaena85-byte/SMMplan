@@ -1,4 +1,4 @@
-﻿import crypto from 'crypto';
+import crypto from 'crypto';
 
 /**
  * Computes a deterministic SHA-256 fingerprint hash of client HTTP request headers.
@@ -76,7 +76,7 @@ export function checkClientHintsAnomaly(headers: Headers): ClientHintsAnomalyRes
   }
 
   if (secChUaMobile) {
-    const isMobileHint = secChUaMobile.includes('?1');
+
     const isMobileUa = ua.includes('mobile') || ua.includes('android') || ua.includes('iphone');
     
     // Contradiction: UA claims to be mobile, but hint explicitly specifies desktop ?0

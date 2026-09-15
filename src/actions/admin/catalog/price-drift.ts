@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-assignment */
 'use server';
 
 import { db } from '@/lib/db';

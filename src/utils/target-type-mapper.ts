@@ -17,10 +17,15 @@ export enum TargetTypeEnum {
   CUSTOM = 'CUSTOM',
 
   // === Псевдонимы обратной совместимости с Движком №1 (Legacy ServiceTargetType) ===
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
   POST_INTERACTION = 'POST',
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
   VIDEO_INTERACTION = 'VIDEO',
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
   STORY_INTERACTION = 'STORY',
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
   POLL_VOTES = 'POLL',
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
   BOT_STARTS = 'BOT',
 }
 

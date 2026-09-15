@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import React, { useState } from 'react';
@@ -56,7 +57,7 @@ export function SmmPlanFullApp({ initialTab = 'dashboard' }: { initialTab?: Plan
   const [kpp, setKpp] = useState('77010101');
   const [legalAddress, setLegalAddress] = useState('г. Москва, ул. Тверская, д. 12, стр. 1');
   const [webhookUrl, setWebhookUrl] = useState('https://my-agency.ru/api/smmplan-webhook');
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   const [webhookSecret, setWebhookSecret] = useState('whsec_8f91a2b3c4d5e6f7');
   const [isRequisitesSaved, setIsRequisitesSaved] = useState(false);
 

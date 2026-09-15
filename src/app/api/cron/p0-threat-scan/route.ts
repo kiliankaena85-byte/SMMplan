@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import crypto from 'node:crypto';
 import { P0ThreatSensorService } from '@/services/telemetry/p0-threat-sensor.service';

@@ -59,7 +59,7 @@ export class StorefrontKeyService {
     db.storefrontKey.update({
       where: { id: keyRecord.id },
       data: { lastUsedAt: new Date() },
-    }).catch((err: any) => log.error('Failed to update lastUsedAt for StorefrontKey', { err: err?.message }));
+    }).catch((err: unknown) => log.error('Failed to update lastUsedAt for StorefrontKey', { err: err instanceof Error ? err.message : String(err) }));
 
     return {
       tenantId: keyRecord.tenantId,

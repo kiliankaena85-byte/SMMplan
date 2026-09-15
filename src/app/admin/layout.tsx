@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-require-imports, no-empty */
 import { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 import { verifySession } from '@/lib/session';

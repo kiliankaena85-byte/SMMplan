@@ -1,7 +1,6 @@
 import { db } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 import {
-  calculateSafetyFloorCents,
   MAX_TOTAL_DISCOUNT,
   TOTAL_MANDATORY_DEDUCTIONS,
   SAFETY_FLOOR_MARKUP,

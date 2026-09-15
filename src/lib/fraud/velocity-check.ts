@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-assignment */
 import crypto from 'crypto';
 import { rateLimit } from '@/lib/security/rate-limit';
 import { SecurityAlertService } from '@/services/security/security-alert.service';

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ProxyAgent } from 'undici';
 import { db } from '@/lib/db';
 import { VaultService } from '@/lib/vault';

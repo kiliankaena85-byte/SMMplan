@@ -3,7 +3,7 @@
  * B2B Client Profile Service with AES-256 VaultService Encryption (P3-21).
  */
 
-import { db } from '@/lib/db';
+
 import { VaultService } from '@/lib/vault';
 
 export interface B2BRequisitesInput {
@@ -33,7 +33,15 @@ export class B2BClientProfileService {
   /**
    * Decrypts sensitive B2B fields when reading from database.
    */
-  static decryptB2BFields(user: Record<string, any>) {
+  static decryptB2BFields(user: {
+    companyName?: string | null;
+    inn?: string | null;
+    kpp?: string | null;
+    ogrn?: string | null;
+    directorName?: string | null;
+    legalAddress?: string | null;
+    [key: string]: unknown;
+  }) {
     if (!user) return null;
     return {
       ...user,

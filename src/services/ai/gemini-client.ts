@@ -12,19 +12,15 @@ const FALLBACK_MODEL_CASCADES = [
   'gemini-flash-lite-latest',
 ];
 
-interface CachedModelRegistry {
-  resolvedModel: string;
-  cachedAt: number;
-}
 
-let modelCache: CachedModelRegistry | null = null;
-const MODEL_CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 часов
+
 
 // Кэш временных блокировок ключей (при 429 Too Many Requests или 403)
 const keyCooldownMap = new Map<string, number>();
 const KEY_COOLDOWN_MS = 5 * 60 * 1000; // 5 минут отлежки при исчерпании квоты
 
 let keyRotationIndex = 0;
+let modelCache: { resolvedModel: string; cachedAt: number } | null = null;
 
 export interface GeminiCallOptions {
   staffUserId?: string;
@@ -189,7 +185,7 @@ export class GeminiClient {
   /**
    * Возвращает целевую модель Gemini (по умолчанию gemini-3-flash-preview).
    */
-  static async resolveLatestModel(_apiKey?: string): Promise<string> {
+  static async resolveLatestModel(): Promise<string> {
     if (process.env.GEMINI_MODEL) {
       return process.env.GEMINI_MODEL.trim();
     }
@@ -218,7 +214,7 @@ export class GeminiClient {
     const dispatchers = await this.getDispatchers();
 
     for (const apiKey of keysToTry) {
-      const primaryModel = await this.resolveLatestModel(apiKey);
+      const primaryModel = await this.resolveLatestModel();
       const candidateModels = Array.from(
         new Set([primaryModel, ...FALLBACK_MODEL_CASCADES])
       );

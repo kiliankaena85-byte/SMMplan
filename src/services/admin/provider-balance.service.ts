@@ -80,7 +80,7 @@ export class ProviderBalanceService {
     }
 
     const startTime = Date.now();
-    let latencyMs = 0;
+    let latencyMs: number;
 
     try {
       const instance = await providerService.getProviderInstance(provider);

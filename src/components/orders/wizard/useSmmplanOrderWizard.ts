@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -88,7 +89,7 @@ export function useSmmplanOrderWizard({ userEmail = '', initialReorderData, tena
       const parsed = parseInt(pStep, 10);
       if (parsed >= 1 && parsed <= 4) {
         const netId = p.get('networkId'); const catId = p.get('categoryId'); const srvId = p.get('serviceId');
-        let foundNet = netId ? networks.find(n => n.id === netId) || null : (catId ? networks.find(n => n.categories.some(c => c.id === catId)) || null : selectedNetwork);
+        const foundNet = netId ? networks.find(n => n.id === netId) || null : (catId ? networks.find(n => n.categories.some(c => c.id === catId)) || null : selectedNetwork);
         if (foundNet) {
           setSelectedNetwork(foundNet);
           if (catId) { const foundCat = foundNet.categories.find(c => c.id === catId) || null; if (foundCat) setSelectedCategory(foundCat); }

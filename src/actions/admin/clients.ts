@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use server';
 
 /**
@@ -576,7 +577,7 @@ export async function getClientLedgerAction(userId: string, filterType = 'ALL') 
 }
 
 /** Fetch full client profile for the detail page */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 async function getClientProfileAction(userId: string) {
   return requireStaffPermission('clients', 'view', async () => {
     const user = await db.user.findUnique({

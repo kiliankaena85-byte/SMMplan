@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-assignment */
 import { describe, it, expect } from 'vitest';
 import { db } from '@/lib/db';
 import { VaultService } from '@/lib/vault';

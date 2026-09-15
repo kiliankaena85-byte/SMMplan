@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-assignment, @typescript-eslint/no-unused-vars */
 /**
  * (c) 2024-2026 SMMplan. All rights reserved.
  * Created by Artem (http://artmspektr.ru)

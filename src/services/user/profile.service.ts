@@ -4,7 +4,7 @@
  */
 
 import { db } from '@/lib/db';
-import { encrypt, decrypt, hashForSearch } from '@/lib/crypto/encryption';
+import { encrypt, decrypt } from '@/lib/crypto/encryption';
 
 export interface UpdateProfileInput {
   companyName?: string | null;

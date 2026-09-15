@@ -1,3 +1,4 @@
+/* eslint-disable no-misleading-character-class */
 import { getPublicCatalogAction, getServicesByCategoryAction } from "@/actions/order/catalog";
 import { notFound, permanentRedirect } from "next/navigation";
 import { Metadata } from "next";

@@ -1,5 +1,5 @@
 import { getRedisConnection } from '@/lib/queue-manager';
-import { db } from '@/lib/db';
+
 import { logger } from '@/lib/logger';
 
 const log = logger.child({ component: 'SlaTelemetryEngine' });

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, no-useless-assignment, @typescript-eslint/no-unused-vars */
 import { Scenes, Markup } from 'telegraf';
 import os from 'os';
 import crypto from 'crypto';

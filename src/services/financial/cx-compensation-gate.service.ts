@@ -1,7 +1,5 @@
 import { db } from '@/lib/db';
-import { logger } from '@/lib/logger';
 
-const log = logger.child({ component: 'CxCompensationGate' });
 
 export interface FraudGateCheckResult {
   allowed: boolean;

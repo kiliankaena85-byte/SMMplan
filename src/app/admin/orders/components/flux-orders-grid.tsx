@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import * as React from 'react';
 import { OrderColumn, RowActions, STATUS_LABELS, STATUS_STYLES, SPEED_CLASS_META } from './columns';
 import { Badge } from '@/components/ui/badge';

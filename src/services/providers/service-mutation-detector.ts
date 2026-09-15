@@ -1,4 +1,4 @@
-import { ProviderServiceDto } from './base-provider';
+
 
 export interface ServiceComparisonInput {
   id: string;
@@ -152,7 +152,7 @@ export interface ProviderComparisonInput {
   isCancelEnabled?: boolean;
   type?: string | null;
   desc?: string | null;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export class ServiceMutationDetector {
@@ -247,11 +247,15 @@ export class ServiceMutationDetector {
       reasons.push(`Смена типа услуги: ${oldType} → ${newType}`);
     }
 
+    if (isCancelChanged) {
+      reasons.push(`Изменение поддержки отмены: ${oldCancel} → ${newCancel}`);
+    }
+
     if (isPriceSpike) {
       reasons.push(`Рост себестоимости +${(deltaPercent * 100).toFixed(0)}% (${oldCostRub.toFixed(2)} ₽ → ${newCostRub.toFixed(2)} ₽/1k)`);
     }
 
-    const isParamMutated = isNameReplaced || isLimitsChanged || isRefillStripped || isTypeChanged;
+    const isParamMutated = isNameReplaced || isLimitsChanged || isRefillStripped || isTypeChanged || isCancelChanged;
 
     let verdict: MutationVerdict = 'SAFE';
     let shouldDeactivate = false;

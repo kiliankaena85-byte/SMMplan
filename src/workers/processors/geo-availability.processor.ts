@@ -4,6 +4,7 @@
  * and dispatches instant Telegram alerts to the Owner upon detection of TSPU / ISP blocks.
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Job } from 'bullmq';
 import { GeoAvailabilityService } from '@/services/telemetry/geo-availability.service';
 import { sendAdminAlert } from '@/lib/notifications';

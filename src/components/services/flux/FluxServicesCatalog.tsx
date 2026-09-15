@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from "react";
@@ -77,7 +78,7 @@ export function FluxServicesCatalog({ networks, featuredArticles }: FluxServices
                 >
                   <div className="flex items-center justify-between mb-4">
                     <div className="w-12 h-12 rounded-2xl bg-muted/60 border border-border flex items-center justify-center p-2.5 shadow-sm group-hover:scale-110 transition-transform">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
+
                       <img
                         src={`/brands/${slug}.svg`}
                         alt={net.name}
