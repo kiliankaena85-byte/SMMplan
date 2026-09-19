@@ -193,7 +193,7 @@ export class GeminiClient {
     if (process.env.GEMINI_MODEL) {
       return process.env.GEMINI_MODEL.trim();
     }
-    return 'gemini-3-flash-preview';
+    return 'gemini-3.8-flash';
   }
 
   /**

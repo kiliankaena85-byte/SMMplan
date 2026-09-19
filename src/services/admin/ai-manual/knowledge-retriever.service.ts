@@ -3,10 +3,9 @@
  * Implements Circuit Breaker, Vector Search, and Offline Fallback
  */
 
-import fs from 'fs';
-import path from 'path';
 import type { DockerMemoryStatus } from '@/types/admin-ai-manual';
 import { AdminAiSanitizerService } from './admin-ai-sanitizer.service';
+import { getRouteContextChunk, loadOfflineDecisions } from './knowledge-fallback';
 
 export interface RetrievedChunk {
   title: string;
@@ -19,7 +18,19 @@ export interface RetrievedChunk {
 
 export class KnowledgeRetrieverService {
   private static getApiBaseUrl(): string {
-    return process.env.GRAPHRAG_API_URL || 'http://localhost:8100';
+    return process.env.VECTOR_MEMORY_URL || process.env.GRAPHRAG_API_URL || 'http://localhost:8100';
+  }
+
+  private static getAuthHeaders(): Record<string, string> {
+    const token = process.env.KNOWLEDGE_API_TOKEN || process.env.VECTOR_MEMORY_AUTH_TOKEN;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['x-api-key'] = token;
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
   }
 
   /**
@@ -30,14 +41,16 @@ export class KnowledgeRetrieverService {
     try {
       const res = await fetch(`${baseUrl}/health`, {
         method: 'GET',
-        signal: AbortSignal.timeout(1200),
+        headers: this.getAuthHeaders(),
+        signal: AbortSignal.timeout(1500),
       });
 
       if (res.ok) {
         let pointsCount = 0;
         try {
           const statsRes = await fetch(`${baseUrl}/api/stats`, {
-            signal: AbortSignal.timeout(1200),
+            headers: this.getAuthHeaders(),
+            signal: AbortSignal.timeout(1500),
           });
           if (statsRes.ok) {
             const stats = await statsRes.json();
@@ -87,7 +100,7 @@ export class KnowledgeRetrieverService {
     try {
       const res = await fetch(`${baseUrl}/api/search`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.getAuthHeaders(),
         signal: AbortSignal.timeout(1800), // Circuit breaker 1.8s
         body: JSON.stringify({
           query: sanitizedQuery,
@@ -126,7 +139,7 @@ export class KnowledgeRetrieverService {
     currentRoute: string,
     topK: number
   ): RetrievedChunk[] {
-    const decisions = this.loadOfflineDecisions();
+    const decisions = loadOfflineDecisions();
     const terms = query.toLowerCase().split(/\s+/).filter((t) => t.length > 2);
     const results: RetrievedChunk[] = [];
 
@@ -150,63 +163,10 @@ export class KnowledgeRetrieverService {
     }
 
     // Route-specific fallback chunk
-    results.push(this.getRouteContextChunk(currentRoute));
+    results.push(getRouteContextChunk(currentRoute));
 
     results.sort((a, b) => b.score - a.score);
     return results.slice(0, topK);
   }
-
-  private static getRouteContextChunk(route: string): RetrievedChunk {
-    const routeRules: Record<string, { title: string; content: string }> = {
-      '/admin/providers': {
-        title: 'Регламент: Провайдеры и Каталог',
-        content: 'Вкладка провайдеров управляет интеграциями API. Поддерживает Cherry-Pick импорт, автоматический анализ соцсетей (smart-analyzer.logic.ts), наценку в basis points и теневой каталог для защиты от сбоев цен.',
-      },
-      '/admin/finance': {
-        title: 'Регламент: Финансы и Касса 54-ФЗ',
-        content: 'Все платежи и балансы пользователей рассчитываются строго в копейках BigInt через ExactMath. Фискализация 54-ФЗ поддерживает ставку НДС 22% (vat_code: 10) и УСН без НДС (vat_code: 1).',
-      },
-      '/admin/orders': {
-        title: 'Регламент: Управление Заказами и Failover',
-        content: 'Заказы обрабатываются очередью BullMQ. При сбое провайдера заказ автоматически переводится в Failover/Retry пайплайн или отменяется с возвратом средств в копейках BigInt.',
-      },
-      '/admin/settings': {
-        title: 'Регламент: Настройки и Режимы Окружения',
-        content: 'Платформа поддерживает 4 режима: SANDBOX, HYBRID, ACQUIRING_TEST, PRODUCTION. Ключи Gemini ротируются через 3-уровневый пул с кулдауном 5 минут при 429 ошибках.',
-      },
-    };
-
-    for (const [prefix, data] of Object.entries(routeRules)) {
-      if (route.startsWith(prefix)) {
-        return {
-          title: data.title,
-          content: data.content,
-          category: 'admin_manuals',
-          score: 0.95,
-          filePath: `src/app${prefix}`,
-        };
-      }
-    }
-
-    return {
-      title: 'Базовый регламент OmniSMM 1.0',
-      content: 'OmniSMM 1.0 — двухбрендовая платформа (SMMplan & SMMflux). Архитектура Clean Architecture (4 уровня), баланс в BigInt, туннель Tailscale Funnel.',
-      category: 'architecture_decisions',
-      score: 0.6,
-    };
-  }
-
-  private static loadOfflineDecisions(): any[] {
-    try {
-      const cachePath = path.resolve(process.cwd(), '.planning/memory_cache.json');
-      if (fs.existsSync(cachePath)) {
-        const raw = fs.readFileSync(cachePath, 'utf-8');
-        const parsed = JSON.parse(raw);
-        return parsed.decisions || [];
-      }
-    } catch {
-      // ignore
-    }
-    return [];
-  }
 }
+

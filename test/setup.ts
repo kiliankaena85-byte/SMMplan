@@ -483,6 +483,8 @@ beforeEach(async () => {
         'smart-analyzer',
         'badge-and-warranty',
         'checkout-promo',
+        'admin-ai-manual',
+        'gemini-key-pool',
         'r1-advanced',
         'promo-case',
         'multi-channel-alert-cascade',

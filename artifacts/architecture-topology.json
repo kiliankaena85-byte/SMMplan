@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OmniSMM Architecture Topology (Uncle Bob Pattern)",
-  "generatedAt": "2026-09-19T13:52:10.881Z",
+  "generatedAt": "2026-09-19T13:57:41.042Z",
   "layers": [
     {
       "level": 0,
@@ -29,6 +29,51 @@
     }
   ],
   "nodes": [
+    {
+      "id": "src/actions/admin/ai-manual/guides.action.ts",
+      "label": "guides.action.ts",
+      "level": 2,
+      "layer": "Application",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 186,
+      "isClientComponent": false,
+      "exportsCount": 2,
+      "functionsCount": 3,
+      "maxCyclomaticComplexity": 5,
+      "maxCrapScore": 30,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "requireStaffUser",
+          "startLine": 14,
+          "endLine": 25,
+          "cyclomaticComplexity": 5,
+          "coverageRatio": null,
+          "crapScore": 30,
+          "isCrappy": false
+        },
+        {
+          "name": "getDockerMemoryStatusAction",
+          "startLine": 27,
+          "endLine": 35,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        },
+        {
+          "name": "getAdminRunbooksAction",
+          "startLine": 37,
+          "endLine": 44,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        }
+      ]
+    },
     {
       "id": "src/actions/admin/analytics.action.ts",
       "label": "analytics.action.ts",
@@ -10112,7 +10157,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 205,
+      "linesCount": 207,
       "isClientComponent": false,
       "exportsCount": 1,
       "functionsCount": 10,
@@ -10124,8 +10169,8 @@
       "topRiskFunctions": [
         {
           "name": "AdminLayout",
-          "startLine": 80,
-          "endLine": 204,
+          "startLine": 81,
+          "endLine": 206,
           "cyclomaticComplexity": 41,
           "coverageRatio": null,
           "crapScore": 1722,
@@ -10133,8 +10178,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 120,
-          "endLine": 142,
+          "startLine": 121,
+          "endLine": 143,
           "cyclomaticComplexity": 17,
           "coverageRatio": null,
           "crapScore": 306,
@@ -10142,8 +10187,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 130,
-          "endLine": 141,
+          "startLine": 131,
+          "endLine": 142,
           "cyclomaticComplexity": 13,
           "coverageRatio": null,
           "crapScore": 182,
@@ -16922,6 +16967,51 @@
       ]
     },
     {
+      "id": "src/app/api/admin/assistant/stream/route.ts",
+      "label": "route.ts",
+      "level": 2,
+      "layer": "Application",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 104,
+      "isClientComponent": false,
+      "exportsCount": 1,
+      "functionsCount": 5,
+      "maxCyclomaticComplexity": 10,
+      "maxCrapScore": 110,
+      "crapLoad": 80,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "POST",
+          "startLine": 18,
+          "endLine": 103,
+          "cyclomaticComplexity": 10,
+          "coverageRatio": null,
+          "crapScore": 110,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 61,
+          "endLine": 86,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        },
+        {
+          "name": "writeSSE",
+          "startLine": 56,
+          "endLine": 58,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
       "id": "src/app/api/admin/export/route.ts",
       "label": "route.ts",
       "level": 2,
@@ -23335,6 +23425,419 @@
           "isCrappy": false
         }
       ]
+    },
+    {
+      "id": "src/components/admin/ai-manual/AdminAiManualWidget.tsx",
+      "label": "AdminAiManualWidget.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 109,
+      "isClientComponent": true,
+      "exportsCount": 0,
+      "functionsCount": 12,
+      "maxCyclomaticComplexity": 15,
+      "maxCrapScore": 240,
+      "crapLoad": 262,
+      "crappyMethodsCount": 3,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "AdminAiManualWidget",
+          "startLine": 18,
+          "endLine": 108,
+          "cyclomaticComplexity": 15,
+          "coverageRatio": null,
+          "crapScore": 240,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 46,
+          "endLine": 59,
+          "cyclomaticComplexity": 7,
+          "coverageRatio": null,
+          "crapScore": 56,
+          "isCrappy": true
+        },
+        {
+          "name": "handleKeyDown",
+          "startLine": 47,
+          "endLine": 55,
+          "cyclomaticComplexity": 7,
+          "coverageRatio": null,
+          "crapScore": 56,
+          "isCrappy": true
+        }
+      ]
+    },
+    {
+      "id": "src/components/admin/ai-manual/sub/ManualChatMessages.tsx",
+      "label": "ManualChatMessages.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 135,
+      "isClientComponent": true,
+      "exportsCount": 0,
+      "functionsCount": 8,
+      "maxCyclomaticComplexity": 15,
+      "maxCrapScore": 240,
+      "crapLoad": 362,
+      "crappyMethodsCount": 2,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "ManualChatMessages",
+          "startLine": 17,
+          "endLine": 134,
+          "cyclomaticComplexity": 15,
+          "coverageRatio": null,
+          "crapScore": 240,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 65,
+          "endLine": 131,
+          "cyclomaticComplexity": 13,
+          "coverageRatio": null,
+          "crapScore": 182,
+          "isCrappy": true
+        },
+        {
+          "name": "renderFormattedText",
+          "startLine": 27,
+          "endLine": 61,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/components/admin/ai-manual/sub/ManualChatTab.tsx",
+      "label": "ManualChatTab.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 211,
+      "isClientComponent": true,
+      "exportsCount": 0,
+      "functionsCount": 21,
+      "maxCyclomaticComplexity": 29,
+      "maxCrapScore": 870,
+      "crapLoad": 1362,
+      "crappyMethodsCount": 2,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "ManualChatTab",
+          "startLine": 19,
+          "endLine": 210,
+          "cyclomaticComplexity": 29,
+          "coverageRatio": null,
+          "crapScore": 870,
+          "isCrappy": true
+        },
+        {
+          "name": "handleSend",
+          "startLine": 45,
+          "endLine": 145,
+          "cyclomaticComplexity": 23,
+          "coverageRatio": null,
+          "crapScore": 552,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 184,
+          "endLine": 189,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/components/admin/ai-manual/sub/ManualConnectionStatus.tsx",
+      "label": "ManualConnectionStatus.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 57,
+      "isClientComponent": true,
+      "exportsCount": 0,
+      "functionsCount": 1,
+      "maxCyclomaticComplexity": 11,
+      "maxCrapScore": 132,
+      "crapLoad": 102,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "ManualConnectionStatus",
+          "startLine": 16,
+          "endLine": 56,
+          "cyclomaticComplexity": 11,
+          "coverageRatio": null,
+          "crapScore": 132,
+          "isCrappy": true
+        }
+      ]
+    },
+    {
+      "id": "src/components/admin/ai-manual/sub/ManualFloatingTrigger.tsx",
+      "label": "ManualFloatingTrigger.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 52,
+      "isClientComponent": true,
+      "exportsCount": 0,
+      "functionsCount": 1,
+      "maxCyclomaticComplexity": 3,
+      "maxCrapScore": 12,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "ManualFloatingTrigger",
+          "startLine": 16,
+          "endLine": 51,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/components/admin/ai-manual/sub/ManualGuidesTab.tsx",
+      "label": "ManualGuidesTab.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 130,
+      "isClientComponent": true,
+      "exportsCount": 0,
+      "functionsCount": 11,
+      "maxCyclomaticComplexity": 16,
+      "maxCrapScore": 272,
+      "crapLoad": 242,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "ManualGuidesTab",
+          "startLine": 14,
+          "endLine": 129,
+          "cyclomaticComplexity": 16,
+          "coverageRatio": null,
+          "crapScore": 272,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 21,
+          "endLine": 32,
+          "cyclomaticComplexity": 5,
+          "coverageRatio": null,
+          "crapScore": 30,
+          "isCrappy": false
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 23,
+          "endLine": 28,
+          "cyclomaticComplexity": 5,
+          "coverageRatio": null,
+          "crapScore": 30,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/components/admin/ai-manual/sub/ManualHeader.tsx",
+      "label": "ManualHeader.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 94,
+      "isClientComponent": true,
+      "exportsCount": 0,
+      "functionsCount": 4,
+      "maxCyclomaticComplexity": 4,
+      "maxCrapScore": 20,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "ManualHeader",
+          "startLine": 21,
+          "endLine": 93,
+          "cyclomaticComplexity": 4,
+          "coverageRatio": null,
+          "crapScore": 20,
+          "isCrappy": false
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 54,
+          "endLine": 54,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 67,
+          "endLine": 67,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/components/admin/ai-manual/sub/ManualInspectorTab.tsx",
+      "label": "ManualInspectorTab.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 148,
+      "isClientComponent": true,
+      "exportsCount": 0,
+      "functionsCount": 5,
+      "maxCyclomaticComplexity": 7,
+      "maxCrapScore": 56,
+      "crapLoad": 26,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "ManualInspectorTab",
+          "startLine": 88,
+          "endLine": 147,
+          "cyclomaticComplexity": 7,
+          "coverageRatio": null,
+          "crapScore": 56,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 118,
+          "endLine": 143,
+          "cyclomaticComplexity": 4,
+          "coverageRatio": null,
+          "crapScore": 20,
+          "isCrappy": false
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 100,
+          "endLine": 113,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/components/admin/ai-manual/sub/ManualRunbookDetail.tsx",
+      "label": "ManualRunbookDetail.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 142,
+      "isClientComponent": true,
+      "exportsCount": 0,
+      "functionsCount": 7,
+      "maxCyclomaticComplexity": 11,
+      "maxCrapScore": 132,
+      "crapLoad": 128,
+      "crappyMethodsCount": 2,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "ManualRunbookDetail",
+          "startLine": 17,
+          "endLine": 141,
+          "cyclomaticComplexity": 11,
+          "coverageRatio": null,
+          "crapScore": 132,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 82,
+          "endLine": 137,
+          "cyclomaticComplexity": 7,
+          "coverageRatio": null,
+          "crapScore": 56,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 20,
+          "endLine": 27,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/components/admin/ai-manual/sub/route-chips.ts",
+      "label": "route-chips.ts",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 39,
+      "isClientComponent": false,
+      "exportsCount": 1,
+      "functionsCount": 1,
+      "maxCyclomaticComplexity": 5,
+      "maxCrapScore": 30,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "getRoutePromptChips",
+          "startLine": 4,
+          "endLine": 38,
+          "cyclomaticComplexity": 5,
+          "coverageRatio": null,
+          "crapScore": 30,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/components/admin/ai-manual/types.ts",
+      "label": "types.ts",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 22,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 0,
+      "maxCyclomaticComplexity": 1,
+      "maxCrapScore": 1,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": []
     },
     {
       "id": "src/components/admin/balance/BalanceAdjustmentDrawer.tsx",
@@ -44720,6 +45223,177 @@
       ]
     },
     {
+      "id": "src/services/admin/ai-manual/admin-ai-assistant.service.ts",
+      "label": "admin-ai-assistant.service.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 117,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 4,
+      "maxCyclomaticComplexity": 5,
+      "maxCrapScore": 30,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "streamConsultation",
+          "startLine": 16,
+          "endLine": 87,
+          "cyclomaticComplexity": 5,
+          "coverageRatio": null,
+          "crapScore": 30,
+          "isCrappy": false
+        },
+        {
+          "name": "buildSystemPrompt",
+          "startLine": 92,
+          "endLine": 115,
+          "cyclomaticComplexity": 2,
+          "coverageRatio": null,
+          "crapScore": 6,
+          "isCrappy": false
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 99,
+          "endLine": 99,
+          "cyclomaticComplexity": 2,
+          "coverageRatio": null,
+          "crapScore": 6,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/services/admin/ai-manual/admin-ai-sanitizer.service.ts",
+      "label": "admin-ai-sanitizer.service.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 75,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 5,
+      "maxCyclomaticComplexity": 6,
+      "maxCrapScore": 42,
+      "crapLoad": 12,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "sanitizeInput",
+          "startLine": 26,
+          "endLine": 57,
+          "cyclomaticComplexity": 6,
+          "coverageRatio": null,
+          "crapScore": 42,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 32,
+          "endLine": 38,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 44,
+          "endLine": 47,
+          "cyclomaticComplexity": 2,
+          "coverageRatio": null,
+          "crapScore": 6,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/services/admin/ai-manual/knowledge-fallback.ts",
+      "label": "knowledge-fallback.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 69,
+      "isClientComponent": false,
+      "exportsCount": 2,
+      "functionsCount": 2,
+      "maxCyclomaticComplexity": 4,
+      "maxCrapScore": 20,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "loadOfflineDecisions",
+          "startLine": 56,
+          "endLine": 68,
+          "cyclomaticComplexity": 4,
+          "coverageRatio": null,
+          "crapScore": 20,
+          "isCrappy": false
+        },
+        {
+          "name": "getRouteContextChunk",
+          "startLine": 8,
+          "endLine": 51,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/services/admin/ai-manual/knowledge-retriever.service.ts",
+      "label": "knowledge-retriever.service.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 173,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 8,
+      "maxCyclomaticComplexity": 12,
+      "maxCrapScore": 156,
+      "crapLoad": 220,
+      "crappyMethodsCount": 4,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "retrieveContext",
+          "startLine": 91,
+          "endLine": 132,
+          "cyclomaticComplexity": 12,
+          "coverageRatio": null,
+          "crapScore": 156,
+          "isCrappy": true
+        },
+        {
+          "name": "searchOfflineKnowledge",
+          "startLine": 137,
+          "endLine": 170,
+          "cyclomaticComplexity": 8,
+          "coverageRatio": null,
+          "crapScore": 72,
+          "isCrappy": true
+        },
+        {
+          "name": "getMemoryStatus",
+          "startLine": 39,
+          "endLine": 86,
+          "cyclomaticComplexity": 7,
+          "coverageRatio": null,
+          "crapScore": 56,
+          "isCrappy": true
+        }
+      ]
+    },
+    {
       "id": "src/services/admin/ai-pricing-telegram-dispatcher.ts",
       "label": "ai-pricing-telegram-dispatcher.ts",
       "level": 1,
@@ -46173,20 +46847,29 @@
       "level": 1,
       "layer": "Services",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 299,
+      "linesCount": 432,
       "isClientComponent": false,
       "exportsCount": 0,
-      "functionsCount": 17,
-      "maxCyclomaticComplexity": 28,
-      "maxCrapScore": 812,
-      "crapLoad": 1238,
-      "crappyMethodsCount": 3,
+      "functionsCount": 18,
+      "maxCyclomaticComplexity": 36,
+      "maxCrapScore": 1332,
+      "crapLoad": 2540,
+      "crappyMethodsCount": 4,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
-          "name": "generateContent",
+          "name": "streamGenerateContent",
           "startLine": 203,
-          "endLine": 297,
+          "endLine": 330,
+          "cyclomaticComplexity": 36,
+          "coverageRatio": null,
+          "crapScore": 1332,
+          "isCrappy": true
+        },
+        {
+          "name": "generateContent",
+          "startLine": 336,
+          "endLine": 430,
           "cyclomaticComplexity": 28,
           "coverageRatio": null,
           "crapScore": 812,
@@ -46199,15 +46882,6 @@
           "cyclomaticComplexity": 17,
           "coverageRatio": null,
           "crapScore": 306,
-          "isCrappy": true
-        },
-        {
-          "name": "getDispatchers",
-          "startLine": 45,
-          "endLine": 86,
-          "cyclomaticComplexity": 14,
-          "coverageRatio": null,
-          "crapScore": 210,
           "isCrappy": true
         }
       ]
@@ -51229,6 +51903,23 @@
       "topRiskFunctions": []
     },
     {
+      "id": "src/types/admin-ai-manual.ts",
+      "label": "admin-ai-manual.ts",
+      "level": 0,
+      "layer": "Domain",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 77,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 0,
+      "maxCyclomaticComplexity": 1,
+      "maxCrapScore": 1,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": []
+    },
+    {
       "id": "src/types/catalog.dto.ts",
       "label": "catalog.dto.ts",
       "level": 0,
@@ -53842,6 +54533,34 @@
     }
   ],
   "edges": [
+    {
+      "source": "src/actions/admin/ai-manual/guides.action.ts",
+      "target": "src/lib/session.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/actions/admin/ai-manual/guides.action.ts",
+      "target": "src/lib/db.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/actions/admin/ai-manual/guides.action.ts",
+      "target": "src/services/admin/ai-manual/knowledge-retriever.service.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/actions/admin/ai-manual/guides.action.ts",
+      "target": "src/types/admin-ai-manual.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
     {
       "source": "src/actions/admin/analytics.action.ts",
       "target": "src/lib/db.ts",
@@ -61019,6 +61738,13 @@
     },
     {
       "source": "src/app/admin/layout.tsx",
+      "target": "src/components/admin/ai-manual/AdminAiManualWidget.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/layout.tsx",
       "target": "src/lib/tenant-resolver-edge.ts",
       "kind": "dependency",
       "isTypeOnly": false,
@@ -65379,6 +66105,41 @@
       "isViolating": false
     },
     {
+      "source": "src/app/api/admin/assistant/stream/route.ts",
+      "target": "src/lib/session.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/api/admin/assistant/stream/route.ts",
+      "target": "src/lib/db.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/api/admin/assistant/stream/route.ts",
+      "target": "src/types/admin-ai-manual.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/api/admin/assistant/stream/route.ts",
+      "target": "src/services/admin/ai-manual/admin-ai-assistant.service.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/api/admin/assistant/stream/route.ts",
+      "target": "src/services/admin/ai-manual/knowledge-retriever.service.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
       "source": "src/app/api/admin/export/route.ts",
       "target": "src/lib/session.ts",
       "kind": "dependency",
@@ -69380,6 +70141,153 @@
       "target": "src/utils/sound.ts",
       "kind": "dependency",
       "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/AdminAiManualWidget.tsx",
+      "target": "src/components/admin/ai-manual/types.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/AdminAiManualWidget.tsx",
+      "target": "src/types/admin-ai-manual.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/AdminAiManualWidget.tsx",
+      "target": "src/actions/admin/ai-manual/guides.action.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/AdminAiManualWidget.tsx",
+      "target": "src/components/admin/ai-manual/sub/ManualFloatingTrigger.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/AdminAiManualWidget.tsx",
+      "target": "src/components/admin/ai-manual/sub/ManualHeader.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/AdminAiManualWidget.tsx",
+      "target": "src/components/admin/ai-manual/sub/ManualChatTab.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/AdminAiManualWidget.tsx",
+      "target": "src/components/admin/ai-manual/sub/ManualGuidesTab.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/AdminAiManualWidget.tsx",
+      "target": "src/components/admin/ai-manual/sub/ManualInspectorTab.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/sub/ManualChatMessages.tsx",
+      "target": "src/components/admin/ai-manual/types.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/sub/ManualChatTab.tsx",
+      "target": "src/components/admin/ai-manual/types.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/sub/ManualChatTab.tsx",
+      "target": "src/components/admin/ai-manual/sub/ManualChatMessages.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/sub/ManualChatTab.tsx",
+      "target": "src/components/admin/ai-manual/sub/route-chips.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/sub/ManualConnectionStatus.tsx",
+      "target": "src/types/admin-ai-manual.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/sub/ManualGuidesTab.tsx",
+      "target": "src/types/admin-ai-manual.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/sub/ManualGuidesTab.tsx",
+      "target": "src/actions/admin/ai-manual/guides.action.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/sub/ManualGuidesTab.tsx",
+      "target": "src/components/admin/ai-manual/sub/ManualRunbookDetail.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/sub/ManualHeader.tsx",
+      "target": "src/components/admin/ai-manual/types.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/sub/ManualHeader.tsx",
+      "target": "src/types/admin-ai-manual.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/sub/ManualHeader.tsx",
+      "target": "src/components/admin/ai-manual/sub/ManualConnectionStatus.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/sub/ManualRunbookDetail.tsx",
+      "target": "src/types/admin-ai-manual.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/types.ts",
+      "target": "src/types/admin-ai-manual.ts",
+      "kind": "association",
+      "isTypeOnly": true,
       "isViolating": false
     },
     {
@@ -77027,6 +77935,69 @@
       "isViolating": false
     },
     {
+      "source": "src/services/admin/ai-manual/admin-ai-assistant.service.ts",
+      "target": "src/services/ai/gemini-client.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/admin-ai-assistant.service.ts",
+      "target": "src/lib/admin-audit.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/admin-ai-assistant.service.ts",
+      "target": "src/services/admin/ai-manual/admin-ai-sanitizer.service.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/admin-ai-assistant.service.ts",
+      "target": "src/services/admin/ai-manual/knowledge-retriever.service.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/admin-ai-assistant.service.ts",
+      "target": "src/types/admin-ai-manual.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/knowledge-fallback.ts",
+      "target": "src/services/admin/ai-manual/knowledge-retriever.service.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/knowledge-retriever.service.ts",
+      "target": "src/types/admin-ai-manual.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/knowledge-retriever.service.ts",
+      "target": "src/services/admin/ai-manual/admin-ai-sanitizer.service.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/knowledge-retriever.service.ts",
+      "target": "src/services/admin/ai-manual/knowledge-fallback.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
       "source": "src/services/admin/ai-pricing-telegram-dispatcher.ts",
       "target": "src/lib/notifications.ts",
       "kind": "dependency",
@@ -81244,18 +82215,18 @@
   "violations": [],
   "cycles": [],
   "metrics": {
-    "totalFiles": 1392,
-    "totalEdges": 3914,
+    "totalFiles": 1410,
+    "totalEdges": 3954,
     "violationsCount": 0,
     "cyclesCount": 0,
     "blockersCount": 0,
-    "totalFunctions": 9588,
+    "totalFunctions": 9687,
     "highestCrapModule": {
       "id": "src/proxy.ts",
       "maxCrap": 38220,
       "maxCC": 195
     },
-    "totalCrappyFunctions": 2261,
-    "totalCrapLoad": 1339258
+    "totalCrappyFunctions": 2280,
+    "totalCrapLoad": 1343356
   }
 }

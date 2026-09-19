@@ -4,7 +4,7 @@
  */
 
 import { GeminiClient } from '@/services/ai/gemini-client';
-import { auditAdminAwaitable } from '@/lib/audit';
+import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { AdminAiSanitizerService } from './admin-ai-sanitizer.service';
 import { KnowledgeRetrieverService, RetrievedChunk } from './knowledge-retriever.service';
 import type { AdminAssistantQuery } from '@/types/admin-ai-manual';
@@ -68,9 +68,12 @@ export class AdminAiAssistantService {
     // 5. Audit Logging (Asynchronous & Non-blocking)
     const durationMs = Date.now() - startTime;
     auditAdminAwaitable({
+      adminId: staffUserId,
+      adminEmail: 'staff@system',
       action: 'ADMIN_AI_ASSISTANT_QUERY',
-      details: {
-        staffUserId,
+      target: payload.currentRoute || 'dashboard',
+      targetType: 'AI_MANUAL_CONSULTATION',
+      newValue: {
         userRole,
         route: payload.currentRoute,
         tenantId: payload.activeTenantId,

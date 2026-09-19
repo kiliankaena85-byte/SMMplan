@@ -14,6 +14,7 @@ import { AdminProfileDropdown } from '@/components/admin/admin-profile-dropdown'
 import { GlobalSiteSwitcher } from '@/components/admin/tenant-switcher';
 import { EnvironmentModeSwitcher } from '@/components/admin/EnvironmentModeSwitcher';
 import { SystemEmergencyBanner } from '@/components/admin/system-emergency-banner';
+import { AdminAiManualWidget } from '@/components/admin/ai-manual/AdminAiManualWidget';
 import { unstable_cache } from 'next/cache';
 import { cookies } from 'next/headers';
 import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
@@ -196,6 +197,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           </div>
 
           <CommandPalette />
+          <AdminAiManualWidget userRole={user.role} activeTenantId={activeTenantId} />
           <Toaster position="top-right" richColors closeButton className="mt-4 mr-4" />
         </div>
       </ShortcutsProvider>
