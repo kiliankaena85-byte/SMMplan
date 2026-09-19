@@ -75,8 +75,11 @@ export class AdminAiAssistantService {
         maxOutputTokens: 2048,
         timeoutMs: 40000,
       },
+      onToken
+    );
+
     // 5. Store in LRU Cache for subsequent instant 0-token queries
-    AssistantResponseCache.set(route, sanitizedQuery, {
+    AssistantResponseCache.set(payload.currentRoute || 'dashboard', sanitizedQuery, {
       fullText,
       chunksUsed: chunks,
     });
