@@ -15,7 +15,7 @@ export class AdminAiSanitizerService {
 
   // API keys, tokens, secret values in text
   private static readonly SECRET_PATTERNS = [
-    /(?:api[_-]?key|secret[_-]?key|token|password|auth[_-]?key)\s*[:=]\s*["']?([a-zA-Z0-9_\-.~!@#$%^&*+=]{12,})["']?/gi,
+    /(?:[\w-]*(?:api[_-]?key|secret[_-]?key|token|password|auth[_-]?key|secret)|\bkey)\s*[:=]\s*["']?([a-zA-Z0-9_\-.~!@#$%^&*+=]{12,})["']?/gi,
     /(?:live_|test_|sk_|pk_)[a-zA-Z0-9]{20,}/g,
     /ey[a-zA-Z0-9_-]{20,}\.ey[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_-]{20,}/g, // JWT tokens
   ];
@@ -49,7 +49,10 @@ export class AdminAiSanitizerService {
     // Mask Tokens & Secrets
     for (const pattern of this.SECRET_PATTERNS) {
       cleaned = cleaned.replace(pattern, (match) => {
-        return match.replace(/[:=]\s*["']?.+["']?/, '="[REDACTED_SECRET]"');
+        if (/[:=]/.test(match)) {
+          return match.replace(/[:=]\s*["']?.+["']?/, '="[REDACTED_SECRET]"');
+        }
+        return '[REDACTED_SECRET]';
       });
     }
 

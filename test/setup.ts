@@ -1,6 +1,29 @@
 import { beforeAll, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { db } from '@/lib/db';
 
+// Node.js 22 / jsdom localStorage polyfill
+if (typeof globalThis !== 'undefined') {
+  const memoryStorage = new Map<string, string>();
+  const storageMock: Storage = {
+    getItem: (key: string) => memoryStorage.get(key) ?? null,
+    setItem: (key: string, value: string) => { memoryStorage.set(key, String(value)); },
+    removeItem: (key: string) => { memoryStorage.delete(key); },
+    clear: () => { memoryStorage.clear(); },
+    key: (index: number) => Array.from(memoryStorage.keys())[index] ?? null,
+    get length() { return memoryStorage.size; },
+  };
+  if (typeof Storage !== 'undefined') {
+    Object.setPrototypeOf(storageMock, Storage.prototype);
+  }
+  if (!globalThis.localStorage || typeof globalThis.localStorage.clear !== 'function') {
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: storageMock,
+      writable: true,
+      configurable: true,
+    });
+  }
+}
+
 // Mock nodemailer and resend globally to prevent actual email dispatch during tests
 vi.mock('nodemailer', () => {
   return {

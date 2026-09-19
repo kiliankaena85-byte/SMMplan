@@ -108,7 +108,7 @@ describe('OrderViewModeSwitcher & CustomerOrdersWorkspace', () => {
   });
 
   it('CustomerOrdersWorkspace displays total count and persists view mode in localStorage', async () => {
-    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+    const setItemSpy = vi.spyOn(window.localStorage, 'setItem');
 
     render(
       <CustomerOrdersWorkspace
