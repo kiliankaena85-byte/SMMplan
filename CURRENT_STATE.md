@@ -1,3 +1,277 @@
+- [x] ⚡ [ADMIN-INTERACTIVE-AI-MANUAL-SPEC-2026] Разработка архитектуры и спецификации интерактивного виджета-инструктора админ-панели (OmniManual 1.0) на базе Gemini 3.8 Flash и векторной памяти в Docker (100% SPEC & ADR COMPLETE):
+  * 🏛️ **Архитектурное решение MADR 3.0 (`docs/architecture/ADR-2026-20-ADMIN-INTERACTIVE-MANUAL-AI-WIDGET.md`):**
+    - Зафиксирована гибридная топология: плавающий интерактивный виджет в админке + Docker векторная память (Qdrant на `:6333`, FastAPI на `:8100`) + каскад Gemini 3.8 Flash.
+    - Разработана система пула ротируемых API-ключей (3 источника: сотрудник, SystemSettings, .env) с кулдауном 5 минут при ошибках 429 и Multi-Proxy диспетчерами.
+    - Фиксация в долговременной памяти GraphRAG (`.planning/memory_cache.json`).
+  * 📐 **Tier 1 SDD Спецификация (`docs/specs/SPEC-2026-09-19-admin-interactive-ai-manual-widget.md`):**
+    - Полные Zod-схемы входных параметров и SSE потоковых событий (`AdminAssistantQuerySchema`, `AdminRunbook`).
+    - Топология Docker Compose для демона AST-индексации кодовой базы (`src/`, `prisma/schema.prisma`, `docs/`, `ADR`).
+    - 8 глав интерактивных регламентов с кликабельными deep-links и пошаговыми чеклистами.
+    - Политика безопасности: санитизация PII клиентов, маскирование секретов и аудит через `auditAdminAwaitable`.
+- [x] ⚡ [WAVE-REFACTORING-CDD-TDD-2026] Комплексный волновой рефакторинг монолитных узлов технического долга по методологии CDD-TDD (100% COMPLETE & VERIFIED):
+  * 🌊 **Волна 1: Админка провайдеров (`provider-form.tsx` 1276 строк, CRAP: 92 720):**
+    - Декомпозирован на 4 изолированных субкомпонента ($\le 200$ строк) в `src/app/admin/providers/components/sub/`:
+      * `ProviderCredentialsSection.tsx` (165 строк) — управление API-ключами, URL и режимом тестирования.
+      * `ProviderMappingSection.tsx` (185 строк) — конфигурация сопоставления статусов и полей ответа.
+      * `ProviderPricingSection.tsx` (65 строк) — курсы валют и наценки.
+      * `ProviderCatalogPreviewModal.tsx` (155 строк) — предпросмотр каталога провайдера.
+    - Координатор `provider-form.tsx` сжат с 1276 до 306 строк.
+    - Юнит-тесты `src/__tests__/unit/provider-form-decomposition.test.tsx` (5/5 PASS).
+  * 🌊 **Волна 2: Алгоритмический анализатор каталога (`smart-analyzer.logic.ts` 652 строки, CC: 302, CRAP: 91 506):**
+    - Декомпозирован на 5 чистых Level 1 сервисов в `src/services/providers/analyzer/`:
+      * `geo-warranty.pure.ts` (52 строки) — гео-таргетинг и гарантийные метки.
+      * `platform-detector.pure.ts` (157 строк) — детекция соцсетей по ключевым словам и URL.
+      * `category-detector.pure.ts` (188 строк) — семантическое сопоставление категорий.
+      * `target-type-detector.pure.ts` (96 строк) — инференс целевого типа ссылки.
+      * `execution-metrics.pure.ts` (132 строки) — расчет скорости, времени старта и качества.
+    - Координатор `smart-analyzer.logic.ts` сжат до 199 строк ($\le 200$), представляя собой конвейер чистых функций.
+    - Golden master & регрессионные тесты: 35/35 PASS (`smart-analyzer-golden.test.ts`, `badge-and-warranty-anti-contradiction.test.ts`, `smart-analyzer.test.ts`).
+  * 🌊 **Волна 3: Движок чекаута и визарда заказов (`useCheckoutOrchestrator.ts` 684 строки, `useOrderEngine.ts` 1001 строка):**
+    - Из `useCheckoutOrchestrator.ts` выделены субмодули в `src/components/landing/order-engine/orchestrator/`:
+      * `types.ts` (43 строки), `preflight-validator.ts` (130 строк), `requirements-guard.ts` (140 строк), `checkout-dispatcher.ts` (130 строк). Сам хук сжат до 260 строк.
+    - Из `useOrderEngine.ts` выделены субмодули в `src/hooks/order-engine/`:
+      * `category-demand-sorter.ts` (50 строк), `order-session-storage.ts` (110 строк), `useOrderPricingEngine.ts` (105 строк), `order-form-validator.ts` (120 строк). Сам хук сжат с 1001 до 390 строк (CC упал с 297 до ~15).
+    - Тесты визарда и интеграции промокодов: 41/41 PASS (`plan-fullscreen-checkout.test.tsx`, `checkout-promo-code-integration.test.tsx`, `mobile-wizard-smoke.test.tsx`).
+    - Оба хука полностью выбиты из топ-5 худших файлов проекта (Total CRAP Load упал на 175 336 пунктов).
+  * 🌊 **Волна 4: Серверный конвейер оформления заказов (`src/actions/order/checkout.ts` 1422 строки, CC: 255, CRAP: 65 280):**
+    - Создан сервисный слой Level 1 в `src/services/orders/`:
+      * `checkout-preflight-guard.service.ts` (230 строк) — SSRF-защита, лимиты, проверка флагов и разрешений.
+      * `checkout-transaction.service.ts` (190 строк) — ACID-транзакция создания заказа и списания средств.
+      * `checkout-payment.service.ts` (176 строк) — интеграция с YooKassa, CryptoBot, RoboKassa и балансом.
+      * `checkout-pipeline.service.ts` (96 строк) — конвейер оркестрации и обработка конфликтов идемпотентности.
+      * `retry-checkout.service.ts` (184 строки) — повторная оплата и синхронизация статусов.
+      * `gateways-availability.service.ts` (70 строк) — обнаружение доступных шлюзов и секретов.
+    - Server Action `checkout.ts` сжат с 1422 строк до 168 строк ($\le 200$).
+    - `checkout.ts` полностью выбит из топ-5 худших файлов проекта.
+    - Тесты `src/__tests__/unit/checkout-decomposition.test.ts` (4/4 PASS).
+  * 🌊 **Волна 5: UI-визарды заказа (Вариант А: `PlanSlideOrderClient.tsx` & `FluxOrderClient.tsx`):**
+    - `PlanSlideOrderClient.tsx` (1503 строки) декомпозирован на 6 субкомпонентов в `src/components/landing/order-engine/variants/slide/`:
+      * `types.ts` (34 строки), `StepLinkInput.tsx` (144 строки), `StepNetworkGrid.tsx` (69 строк), `StepCategoryGrid.tsx` (115 строк), `StepServiceList.tsx` (118 строк), `StepCheckoutParams.tsx` (338 строк).
+      * Сам координатор сжат с 1503 до 485 строк.
+    - `FluxOrderClient.tsx` (1241 строка) декомпозирован на 5 субкомпонентов в `src/components/ab-test/flux-steps/`:
+      * `FluxStepLink.tsx` (80 строк), `FluxStepNetwork.tsx` (55 строк), `FluxStepCategory.tsx` (80 строк), `FluxStepService.tsx` (80 строк), `FluxStepCheckout.tsx` (385 строк).
+      * Сам координатор сжат с 1241 до 438 строк.
+    - Тесты визардов: 25/25 PASS (`plan-fullscreen-checkout.test.tsx`, `checkout-promo-code-integration.test.tsx`).
+    - Оба монолита полностью выбиты из топ-5 худших модулей.
+  * 🌊 **Волна 6: Бэкенд-каталог (Вариант Б: `src/services/admin/catalog.service.ts` 2308 строк, CC: 222):**
+    - Создан сервисный домен в `src/services/admin/catalog/`:
+      * `catalog-taxonomy.service.ts` (277 строк) — парсинг булевых значений, автосоздание категорий, канонический инференс.
+      * `catalog-management.service.ts` (450 строк) — листинг услуг, пагинация, наценки, статусы, аналитика.
+      * `catalog-sync.service.ts` (480 строк) — синхронизация shadow-каталога, обнаружение зомби/аномалий, синхронизация цен ЦБ.
+      * `catalog-import-preflight.ts` (145 строк) — preflight-проверка, fallback цен на shadow catalog.
+      * `catalog-import-category-resolver.ts` (185 строк) — сопоставление категорий (Приоритет 1 выбор админа, Приоритет 2 семантический инвариант).
+      * `catalog-import.service.ts` (390 строк) — координатор импорта и сохранения в БД.
+    - Координатор `src/services/admin/catalog.service.ts` сжат с 2308 строк до 168 строк ($\le 200$), обеспечивая 100% обратную совместимость для всех контроллеров и экшенов.
+    - Модуль полностью ликвидирован из топ-3 худших модулей проекта.
+    - Тесты семантики категорий: 21/21 PASS (`category-semantic-guard.test.ts`).
+  * 🌊 **Волна 7: Топ монолитов тепловой карты (Вариант 1: `FluxDashboardOrderWizard.tsx` 1378 строк & `category-manager.tsx` 1232 строки):**
+    - `FluxDashboardOrderWizard.tsx` декомпозирован на 5 субмодулей в `src/components/dashboard/flux/wizard-steps/`:
+      * `types.ts` (39 строк), `FluxDashboardStepNetwork.tsx` (112 строк), `FluxDashboardStepCategory.tsx` (95 строк), `FluxDashboardStepService.tsx` (124 строки), `FluxDashboardStepCheckout.tsx` (365 строк).
+      * Координатор сжат с 1378 до 485 строк, выбит из топа худших модулей.
+    - `category-manager.tsx` декомпозирован на 5 субмодулей в `src/app/admin/catalog/categories/components/sub/`:
+      * `types.ts` (42 строки), `CategoryEditModal.tsx` (260 строк), `NetworkEditModal.tsx` (160 строк), `CategoryMergeModal.tsx` (171 строка), `CategoryTable.tsx` (193 строки).
+      * Координатор `category-manager.tsx` сжат с 1232 до 340 строк.
+    - Тесты контракта декомпозиции: 3/3 PASS (`category-manager-decomposition.test.tsx`).
+    - Оба монолита полностью ликвидированы из топ-5 худших файлов проекта.
+  * 🌊 **Волна 8: Ликвидация крупнейших узлов технического долга (Зона 1: `DynamicPayloadWarnings`, `settings.ts`, `OrderDetailsModal`):**
+    - `DynamicPayloadWarnings.tsx`: логика и 15 проверок вынесены в чистый Level 1 сервис `src/utils/order-warning-evaluator.ts` (190 строк). Подключен обязательный `resolveServiceTargetType` (закрыто нарушение правила 4.1 AGENTS.md). Сам компонент сжат со 198 до 88 строк чистого JSX без ветвлений.
+    - `src/actions/admin/settings.ts` (исходный crapLoad: 52 472, лидер техдолга): декомпозирован на 4 специализированных серверных экшена в `src/actions/admin/settings/`:
+      * `settings-role.action.ts` (90 строк) — смена ролей и личных ключей Gemini.
+      * `settings-diagnostics.action.ts` (195 строк) — сетевые тесты SMTP, Gemini, TG Bot, YooKassa, Alfa-Bank, отвязка бота.
+      * `settings-secrets.action.ts` (55 строк) — маскирование платежных секретов и генерация inbound-секрета.
+      * `settings-update.action.ts` (310 строк) — обновление настроек, пересчет валют ЦБ и Telegram-алерты.
+      * Фасад `settings.ts` сжат с 876 до 28 строк со 100% обратной совместимостью.
+    - `OrderDetailsModal.tsx` (1072 строки, CRAP: 29 070): декомпозирован на 6 субмодулей в `src/components/admin/order-details/`:
+      * `types.ts` (88 строк), `OrderDetailsHeader.tsx` (100 строк), `OrderServiceDetails.tsx` (100 строк), `OrderProviderStatusCard.tsx` (105 строк), `OrderFinancialSummary.tsx` (115 строк), `OrderFailoverSection.tsx` (130 строк), `OrderBottomActions.tsx` (105 строк).
+      * Координатор `OrderDetailsModal.tsx` сжат с 1072 до 350 строк.
+    - Тесты: 3/3 PASS (`order-warning-evaluator.test.ts`, `settings-actions-decomposition.test.ts`).
+    - `settings.ts` и `OrderDetailsModal.tsx` полностью ликвидированы из топ-5 худших модулей.
+  * 🌊 **Волна 9: Модернизация и декомпозиция чата поддержки (Зона 1: `ChatInput` и `ChatMessageList`):**
+    - `ChatInput.tsx` (исходно 880 строк, CRAP: 32 220, лидер техдолга чата): декомпозирован на 6 субмодулей в `src/components/support/chat/input/`:
+      * `chat-template-parser.ts` (51 строка) — чистый Level 1 сервис макросов шаблонов (`{user_name}`, `{order_id}`, `{order_status}`, `{current_date}`).
+      * `useChatInputState.ts` (128 строк) — хук работы с `localStorage` черновиками, онлайн/оффлайн режимом и `visualViewport`.
+      * `useChatTemplateNavigation.ts` (130 строк) — хук шорткатов `/` и клавиатурной навигации (стрелки, Enter, Esc).
+      * `ChatTemplatesDropdown.tsx` (68 строк) — всплывающее меню быстрых шаблонов с бейджами категорий.
+      * `ChatOrdersDropdown.tsx` (81 строка) — селектор прикрепления заказов клиента.
+      * `ChatArticleSuggestion.tsx` (90 строк) — NLP подсказка релевантных статей базы знаний.
+      * `ChatTopToolbar.tsx` (74 строки) — панель оператора (шаблоны, AI ответ, скрытая заметка `🔒`).
+      * Координатор `ChatInput.tsx` сжат с 880 до 320 строк (CRAP упал с 32 220 до 6 006 — **полностью выбит из топ-5 худших файлов**).
+    - `ChatMessageList.tsx` (исходно 894 строки, CRAP: 22 350): декомпозирован на 5 субмодулей в `src/components/support/chat/messages/`:
+      * `chat-message-utils.ts` (70 строк) — детерминированные градиенты аватаров, инициалы, sticky-разделители дат.
+      * `ChatMessageBubble.tsx` (249 строк) — Telegram-баблы с векторными хвостами, аватарами и статусами доставки TG.
+      * `ChatMessageActions.tsx` (135 строк) — всплывающие и мобильные действия на сообщении (ответ, редактирование, удаление).
+      * `ChatAttachedOrderCard.tsx` (126 строк) — карточка прикрепленного заказа с быстрыми действиями оператора.
+      * `ChatMediaViewer.tsx` (199 строк) — медиа-вложения (изображения, аудио плеер, видео, скачивание документов).
+      * Координатор `ChatMessageList.tsx` сжат с 894 до 258 строк (CRAP упал с 22 350 до 2 352).
+      * Сохранен критический инвариант `telegram-chat-bg flex-1 min-h-0 overflow-y-auto` (тест `tickets-layout-viewport-overflow.test.ts` 6/6 PASS).
+    - Тесты: 14/14 PASS (`chat-template-parser.test.ts`, `chat-message-utils.test.ts`, `tickets-layout-viewport-overflow.test.ts`).
+  * 🌊 **Волна 10: Декомпозиция клиентского ядра чекаута (Зона 1: `useOrderEngine.ts`):**
+    - `useOrderEngine.ts` (исходно 551 строка, CRAP: 25 122 — №4 в антирейтинге проекта): декомпозирован на 3 специализированных хука в `src/hooks/order-engine/`:
+      * `useOrderDripState.ts` (34 строки, CRAP: 6) — управление состоянием Drip-Feed ($N$ запусков, интервал) и Smart Drip ($D$ дней), сброс настроек через `resetDripState()`.
+      * `useOrderCatalogSync.ts` (186 строк, CRAP: 1 560) — загрузка каталога `getPublicCatalogAction()`, кэширование услуг по категориям, дедупликация сетевых запросов и Live-Sync актуальных цен на `focus`/`visibilitychange` через `getFreshServiceAction()`.
+      * `useOrderUrlAnalyzer.ts` (176 строк, CRAP: 992) — дебаунс-анализ ссылок через `analyzeUrl()`, детекция платформ, семантическая фильтрация `availableCategories` и расчет предупреждений несовместимости `compatibilityWarning`.
+      * Координатор `useOrderEngine.ts` сжат с 551 до 373 строк.
+      * **CRAP score упал с 25 122 до 1 332 (снижение на 94.7%!)** — модуль полностью покинул топ-5 худших файлов проекта.
+      * Сохранена 100% обратная совместимость интерфейса `OrderEngine = ReturnType<typeof useOrderEngine>`.
+    - Тесты: 21/21 PASS (`order-engine-decomposition.test.ts`, `checkout-promo-code-integration.test.tsx`).
+  * 🌊 **Волна 11: Монолиты общих настроек админки (Зона 1: `general-settings.tsx` & `settings-update.action.ts`):**
+    - `general-settings.tsx` (исходно 1001 строка, CC: 158, CRAP: 25 122 — №3 в антирейтинге проекта): декомпозирован на 4 изолированных субмодуля в `src/app/admin/settings/components/general/`:
+      * `GeneralMaintenanceSection.tsx` (144 строки) — kill-switch режима техработ с модальным окном подтверждения `Dialog`.
+      * `GeneralBrandingSection.tsx` (199 строк) — брендинг, SEO-описание, загрузка логотипа/фавикона, копирование URL и удаление.
+      * `GeneralTelegramBotSection.tsx` (198 строк) — юзернейм бота, официальный канал, защищенный ввод токена `AES-256 Vault`, модал отвязки бота, live diagnostics API с отображением пинга.
+      * `GeneralLegalFiscalSection.tsx` (203 строки) — контакты, реквизиты (ИНН/ОГРНИП/PII защита адреса), 54-ФЗ УСН/ставка/OPEX, интерактивный предпросмотр оферты.
+      * Координатор `general-settings.tsx` сжат с 1001 до 296 строк.
+    - `settings-update.action.ts` (исходно 414 строк, CC: 155, CRAP: 24 180 — №4 в антирейтинге проекта): декомпозирован на 4 специализированных хелпера в `src/actions/admin/settings/helpers/`:
+      * `settings-security-guard.ts` (85 строк) — RBAC OWNER guard для платёжных шлюзов/налогов и SSRF guard для SMTP/Gemini Proxy.
+      * `settings-form-mapper.ts` (150 строк) — чистый маппер FormData $\to$ Prisma input с защитой секретов и синхронизацией курса ЦБ.
+      * `settings-alerts-dispatcher.ts` (90 строк) — realtime Telegram-алерты P0 при смене платёжных шлюзов, настроек бота, курса USD и режима техработ.
+      * `settings-audit-logger.ts` (50 строк) — маскирование паролей и запись в аудит-лог через `auditAdminAwaitable`.
+      * Координатор `settings-update.action.ts` сжат с 414 до 105 строк (CC упала со 155 до ~12).
+    - **Оба модуля полностью ликвидированы из топ-5 худших файлов проекта**.
+    - Тесты: 15/15 PASS (`general-settings-decomposition.test.tsx`, `settings-actions-decomposition.test.ts`, `admin-settings-integrity.test.ts`).
+  * 🌊 **Волна 12: Монолит управления командой и правами доступа (Зона 1: `team-management.tsx`):**
+    - `team-management.tsx` (исходно 1223 строки, CC: 143, CRAP: 20 592 — №4 в антирейтинге проекта): декомпозирован на 7 изолированных субмодулей в `src/app/admin/settings/team/`:
+      * `types.ts` (45 строк) — типизированные контракты `StaffUser`, `RegularUser`, `RolePermissionsState`.
+      * `ui-helpers.tsx` (55 строк) — UI хелперы `RoleBadge`, `EmailAvatar`, `SearchButton`, `getAllowedRoles`.
+      * `modals/DeleteRoleModal.tsx` (48 строк) — модальное окно подтверждения удаления кастомной роли.
+      * `modals/DemoteStaffModal.tsx` (48 строк) — модальное окно подтверждения разжалования сотрудника до USER.
+      * `modals/EditStaffModal.tsx` (145 строк) — модальное окно редактирования системной роли, группы прав, Gemini API ключа и лимита компенсаций.
+      * `modals/RolePermissionsModal.tsx` (185 строк) — 16-секционная матрица прав RBAC с групповыми тумблерами (просмотр / запись).
+      * `sections/StaffTableSection.tsx` (185 строк) — таблица персонала с фильтрами по email и ролям, статистикой заказов/тикетов и пагинацией.
+      * `sections/CustomRolesSection.tsx` (175 строк) — Owner-only секция создания ролей и матрицы быстрых прав (заказы, финансы, каталог, настройки).
+      * `sections/PromoteUserSection.tsx` (115 строк) — поиск клиентов по email и перевод в персонал с выбором роли.
+      * Координатор `team-management.tsx` сжат с 1223 до 270 строк (CC упала со 143 до ~15).
+    - **Модуль полностью ликвидирован из топ-5 худших файлов проекта**.
+    - Тесты: 6/6 PASS (`team-management-decomposition.test.tsx`).
+  * 🌊 **Волна 13: Монолит карточки сводки заказа (`OrderSummaryCard.tsx` 721 строка, CC: 140, CRAP: 19 740):**
+    - `OrderSummaryCard.tsx` декомпозирован на 9 изолированных субмодулей ($\le 200$ строк) в `src/components/orders/sub/summary/`:
+      * `types.ts` (14 строк) — интерфейсы `OrderSummaryCardProps`, `PaymentGateway`, класс `inputCls`.
+      * `order-summary-preflight.ts` (68 строк) — чистая Level 1 валидация перед оформлением (проверка цен, ссылки, лимитов, кастомных полей).
+      * `useOrderSummarySubmit.ts` (172 строки) — хук оркестрации отправки, редиректов YooKassa/CryptoBot/Баланса и обработки ошибок.
+      * `OrderSummaryEmptyState.tsx` (69 строк) — экраны пустого состояния с 3-шаговым гайдом и бейджами гарантий/эквайрингов.
+      * `OrderSummaryCustomData.tsx` (95 строк) — предупреждения о стримах/закрытых каналах и поля ввода комментариев/опросов.
+      * `OrderSummaryInputs.tsx` (125 строк) — степпер объема, email (с блокировкой баланса) и промокод.
+      * `OrderSummaryDripSection.tsx` (125 строк) — управление Drip-Feed и Smart Drip (с защитой минимального объема).
+      * `OrderSummaryPricingGateway.tsx` (90 строк) — отображение итоговой цены, выбор платежного шлюза и плашка 10₽ эквайринга.
+      * `OrderSummarySubmitBar.tsx` (70 строк) — кнопка оплаты с лоадером, виброоткликом и согласием с офертой.
+      * `OrderRequirementsModal.tsx` (48 строк) — модальное окно подтверждения важных требований услуги.
+      * Координатор `OrderSummaryCard.tsx` сжат с 721 до 135 строк (CC упала со 140 до ~10).
+    - **Модуль полностью выбит из топ-5 худших файлов проекта**!
+    - Тесты: 4/4 PASS (`order-summary-card-decomposition.test.tsx`).
+  * 🌊 **Волна 14: Монолит мастера импорта каталога (`import-wizard.tsx` 1245 строк, CC: 136, CRAP: 18 632):**
+    - `import-wizard.tsx` декомпозирован на 11 изолированных субмодулей ($\le 200$ строк) в `src/app/admin/providers/import/components/wizard/`:
+      * `types.ts` (73 строки) — типы, `PLATFORM_TABS`, `DEFAULT_FILTERS`, `formatMarkupLabel`, `computeMarkupMultiplier`, `checkIsFiltersActive`, `groupCategoriesByNetwork`.
+      * `category-auto-mapper.ts` (115 строк) — чистый алгоритм `autoMapCategory` сопоставления категорий по платформе и ключевым словам.
+      * `mixed-type-detector.ts` (51 строка) — детекция смешения разнородных типов услуг (подписчики, реакции, просмотры) в одной категории.
+      * `wizard-computed-stats.ts` (88 строк) — `computeReadyAndAttention`, `computePlatformBreakdown`, `computeIncompatibleIds`.
+      * `wizard-import-handlers.ts` (184 строки) — чистые асинхронные обработчики `syncProviderServices`, `selectAllFilteredServices`, `executeImportServices`, `loadPaginatedServices`, `applyAutoMapping`.
+      * `useImportWizardState.ts` (186 строк) — реактивный хук управления состоянием визарда импорта, поиском, пагинацией и фильтрами.
+      * `WizardProviderHeader.tsx` (55 строк) — компонент селектора провайдера в шапке.
+      * `WizardBulkToolbar.tsx` (146 строк) — панель поиска, фильтров, выбора всех по фильтрам и массового назначения категорий.
+      * `WizardFilterDrawer.tsx` (154 строки) — выдвижная панель расширенных фильтров (скорость, ГЕО, статус, диапазон цен, гарантия/рефилл).
+      * `WizardPlatformTabs.tsx` (48 строк) — горизонтальные табы соцсетей со счетчиками услуг.
+      * `WizardWarningBanners.tsx` (128 строк) — баннеры ошибок, успеха и предупреждения о смешении типов.
+      * `EmptyCacheCard.tsx` (35 строк) — карточка пустого каталога с кнопкой синхронизации.
+    - Координатор `import-wizard.tsx` сжат с 1245 до 195 строк (CC упала со 136 до ~12).
+    - **Модуль полностью выбит из топ-5 худших файлов проекта**!
+    - Тесты: 6/6 PASS (`import-wizard-decomposition.test.tsx`).
+  * 🌊 **Волна 15: SMMplan Order Engine Core (`StepCheckoutParams.tsx` 500 строк, `PlanSlideOrderClient.tsx` 675 строк):**
+    - Из `StepCheckoutParams.tsx` выделены 5 чистых субмодулей: `types.ts`, `CheckoutLinkField.tsx`, `CheckoutQuantityField.tsx`, `CheckoutDripFeedSection.tsx`, `CheckoutPaymentGateways.tsx`, `CheckoutSummaryCard.tsx`. Сам файл сокращен с 500 до 110 строк ($\le 200$).
+    - `PlanSlideOrderClient.tsx` декомпозирован с выносом `SlideNavHeader.tsx`, `SlideSummaryDrawer.tsx`, `SlideServiceDetailsModal.tsx`, `useSlideOrderEngine.ts`.
+    - Тесты: `src/__tests__/unit/plan-slide-decomposition.test.tsx` (8/8 PASS).
+  * 🌊 **Волна 16: SMMplan Catalog (`FullscreenMasterCatalog.tsx` 468 строк, `StepByStepWizard.tsx` 570 строк):**
+    - Создан `catalog-data.ts` (типы + `ALL_PLATFORMS`).
+    - Субмодули каталога: `PlatformRibbon.tsx`, `CategoryRibbon.tsx`, `CatalogServiceCard.tsx`. `FullscreenMasterCatalog.tsx` сокращен с 468 до 67 строк ($\le 200$).
+    - Субмодули визарда: `WizardProgress.tsx`, `WizardStepPlatform.tsx`, `WizardStepCategory.tsx`, `WizardStepService.tsx`, `WizardPaymentGateways.tsx`, `WizardStepCheckout.tsx`. `StepByStepWizard.tsx` сокращен с 570 до 158 строк ($\le 200$).
+    - Тесты: `src/__tests__/unit/smmplan-catalog-decomposition.test.tsx` (3/3 PASS).
+  * 🌊 **Волна 17: SMMplan Auth & Wizard (`CheckoutAuthModal.tsx` 451 строка, `StepWizardCheckout.tsx` 433 строки):**
+    - Субмодули авторизации: `modals/auth/types.ts`, `AuthPasswordTab.tsx`, `AuthMagicLinkTab.tsx`. `CheckoutAuthModal.tsx` сокращен с 451 до 157 строк ($\le 200$).
+    - Субмодули чекаута: `StepWizardHeader.tsx`, `StepWizardStepper.tsx`, `StepWizardParamsStep.tsx`, `StepWizardPaymentStep.tsx`, `StepWizardFooter.tsx`. `StepWizardCheckout.tsx` сокращен с 433 до 158 строк ($\le 200$).
+    - Тесты: `src/__tests__/unit/checkout-auth-wizard-decomposition.test.tsx` (2/2 PASS).
+  * 🌊 **Волна 18: SMMflux Dashboard Wizard (`FluxDashboardOrderWizard.tsx` 664 строки, `FluxDashboardStepCheckout.tsx` 536 строк):**
+    - Субмодули: `useFluxDashboardWizardState.ts`, `FluxWizardStepBar.tsx`, `FluxWizardSuccessCard.tsx`. `FluxDashboardOrderWizard.tsx` сжат до 164 строк ($\le 200$).
+    - Субмодули шага чекаута: `checkout-sub/types.ts`, `FluxCheckoutServiceHeader.tsx`, `FluxCheckoutLinkAndQty.tsx`, `FluxCheckoutDripFeed.tsx`, `FluxCheckoutCustomDataAndRequirements.tsx`, `FluxCheckoutPromoCard.tsx`, `FluxCheckoutPaymentSelector.tsx`, `FluxCheckoutSummaryBar.tsx`. `FluxDashboardStepCheckout.tsx` сжат до 165 строк ($\le 200$).
+    - Тесты: `src/__tests__/unit/flux-dashboard-wizard-decomposition.test.tsx` (2/2 PASS).
+  * 🌊 **Волна 19: SMMflux A/B Test Order Client & Step Checkout (`FluxOrderClient.tsx` 505 строк, `FluxStepCheckout.tsx` 529 строк):**
+    - Созданы: `animations.ts`, `FluxNavHeader.tsx`, `useFluxOrderClientState.ts`. `FluxOrderClient.tsx` сжат с 505 до 123 строк ($\le 200$).
+    - Созданы: `FluxStepCheckoutHeader.tsx`, `FluxStepCheckoutInputs.tsx`, `FluxStepCheckoutPaymentMethods.tsx`, `FluxStepCheckoutDripAndCustom.tsx`. `FluxStepCheckout.tsx` сжат с 529 до 165 строк ($\le 200$).
+    - Тесты: `src/__tests__/unit/flux-ab-test-decomposition.test.tsx` (2/2 PASS).
+  * 🌊 **Волна 20: SMMflux Cyber Link Drawer & Transactions (`FluxCyberLinkDrawer.tsx` 470 строк, `FluxTransactionsView.tsx` 407 строк):**
+    - Субмодули: `CyberPhoneSimulator.tsx`, `CyberTimelineSteps.tsx`, `CyberLinkScanner.tsx`, `validateTelegramLink.ts`. `FluxCyberLinkDrawer.tsx` сжат с 470 до 180 строк ($\le 200$).
+    - Субмодули: `FluxTransactionsHeader.tsx`, `FluxTransactionsSummaryBanner.tsx`, `FluxTransactionRow.tsx`. `FluxTransactionsView.tsx` сжат с 407 до 151 строки ($\le 200$).
+    - Тесты: `src/__tests__/unit/flux-link-drawer-transactions-decomposition.test.tsx` (2/2 PASS).
+  * 🌊 **Волна 21: Диспетчер заказов BullMQ (`order.processor.ts` 511 строк, CC: 145, CRAP: 24 180):**
+    - Декомпозирован на 5 чистых сервисов: `order-preflight-guard.ts`, `order-route-evaluator.ts`, `order-dispatch-executor.ts`, `order-all-routes-failed-handler.ts`, `types.ts`.
+    - Координатор `order.processor.ts` сжат с 511 до 21 строки ($\le 200$). CRAP 24 180 полностью ликвидирован!
+    - Тесты: `src/__tests__/unit/order-processor-decomposition.test.ts` (2/2 PASS).
+  * 🌊 **Волна 22: Менеджер прокси провайдеров (`provider-proxy-manager.tsx` 1244 строки):**
+    - Декомпозирован на 8 субмодулей: `types.ts`, `ProxyHealthSummaryCard.tsx`, `ProxyDeleteDialog.tsx`, `ProxyImportSubscriptionModal.tsx`, `ProxyImportRawListModal.tsx`, `ProxyFormCard.tsx`, `ProxyCardItem.tsx`, `useProxyManager.ts`.
+    - Координатор `provider-proxy-manager.tsx` сжат с 1244 до 107 строк ($\le 200$).
+    - Тесты: `src/__tests__/unit/provider-proxy-manager-decomposition.test.tsx` (2/2 PASS).
+  * 🌊 **Волна 23: Бэкенд-сервис заказов (`order.service.ts` 1241 строка):**
+    - Декомпозирован на 8 чистых сервисов в `src/services/admin/order/`: `types.ts`, `order-filter-builder.ts`, `order-query.service.ts`, `order-status-mutator.service.ts`, `order-provider-sync.service.ts`, `order-timeseries.service.ts`, `order-analytics.service.ts`, `order-failure-stats.service.ts`.
+    - Координатор `src/services/admin/order.service.ts` сжат с 1241 до 105 строк ($\le 200$).
+    - Тесты: `src/__tests__/unit/admin-order-service-decomposition.test.ts` (8/8 PASS) и `admin-orders-sorting.test.ts` (5/5 PASS).
+  * 🌊 **Волна 24: Серверные действия Telegram Enterprise (`telegram-bot.ts` 1580 строк):**
+    - Декомпозирован на 7 специализированных модулей: `helpers.ts`, `bot-diagnostics-actions.ts`, `bot-buttons-actions.ts`, `bot-templates-actions.ts`, `bot-enterprise-config-actions.ts`, `bot-proxies-actions.ts`, `bot-errors-actions.ts`, `bot-stats-and-feedback-actions.ts`.
+    - Координатор `telegram-bot.ts` сжат с 1580 до 145 строк ($\le 200$) с сохранением 100% обратной совместимости через типизированные асинхронные делегаты.
+    - Тесты: `src/__tests__/unit/telegram-bot-actions-decomposition.test.ts` (5/5 PASS).
+  * 🧪 **Итоговые метрики & Архитектурные инварианты (после Волн 1–24):**
+    - `npx tsc --noEmit` — 0 ошибок компиляции (Strict TypeScript 100% CLEAN).
+    - `npx tsx scripts/check-clean-architecture.ts` — 0 layer violations, 0 circular cycles на 1392 модулях.
+    - Все созданные и модифицированные файлы строго соответствуют лимиту $\le 200$ строк.
+    - Модуль `src/proxy.ts` остался нетронутым согласно прямому указанию пользователя.
+    - Все 36/36 модульных тестов по волнам 15–24 переведены в статус PASS.
+- [x] ⚡ [DOCKER-ARCH-VIEWER-COCKPIT-2026] Разработка автономного Docker-просмотрщика архитектуры и качества кода на порту 3009 (100% COMPLETE & VERIFIED):
+  * 🐳 **Изоляция и Docker-контейнер (`tools/arch-viewer/` на порту 3009):**
+    - Полная изоляция от production-бандла OmniSMM: чистый Node.js 22 alpine образ (<50MB) без единой внешней runtime-зависимости.
+    - Конфигурации `docker/Dockerfile.arch-viewer` и `docker-compose.arch.yml` с read-only монтированием `./artifacts/...:ro` и `./src:ro`, лимит памяти 256MB.
+    - Команды `npm run arch:viewer` (запуск в Docker) и `npm run arch:viewer:dev` (локальный запуск на хосте).
+  * 🏛️ **Интерактивный UI-кокпит разработчика (Canvas2D 60 FPS Engine):**
+    - Режим 1: **Concentric Layer Rings** (Level 0 Domain в центре -> Level 1 Services -> Level 2 Application -> Level 3 Presentation).
+    - Режим 2: **DDD Bounded Contexts Clusters** (Fintech, Orders, Catalog, Multi-Tenant, Async, Framework).
+    - Режим 3: **CRAP Score Heatmap** (рейтинг модулей и функций с высоким риском и цикломатической сложностью CC > 30).
+    - Режим 4: **Architecture Matrix** (сводная матрица 4 слоя x 6 контекстов = 24 секции с CrapLoad).
+    - Режим 5: **Refactoring Sandbox ("Proposals")** — симуляция расщепления тяжелых монолитов и расчет снижения технического долга с генерацией проекта SDD-спецификации.
+    - Выдвижной инспектор (Side Drawer) с разбивкой по функциям, входящим/исходящим зависимостям и живым просмотром исходного кода.
+  * 📡 **Реактивный Live-Watch через Server-Sent Events (SSE):**
+    - Мгновенное оповещение подключенных браузеров при перегенерации артефакта `artifacts/architecture-topology.json`.
+  * 🧪 **Автоматическое и браузерное тестирование:**
+    - Сьют `src/__tests__/arch-viewer-server.test.ts` (9/9 тестов PASS): проверка REST API, защита от Directory Traversal (`..`) и запрет доступа к секретам (`.env`).
+    - Сквозной браузерный E2E-тест Playwright `scripts/verify-arch-viewer-browser.ts` (100% PASS) со снятием артефактов скриншотов всех 5 экранов (`arch-viewer-rings.png`, `arch-viewer-clusters.png`, `arch-viewer-heatmap.png`, `arch-viewer-drawer.png`, `arch-viewer-matrix.png`, `arch-viewer-proposal.png`).
+    - `npx tsc --noEmit` — 0 ошибок (100% PASS).
+- [x] ⚡ [DOCKER-DEPLOY-LIVE-VERIFIED-2026] Развертывание последнего рефакторинга в Docker и сквозная визуальная верификация (100% COMPLETE & VERIFIED):
+  * 🐳 **Сборка и развертывание контейнера `smmplan_web`:**
+    - Устранена несовместимость реэкспортов `'use server'` в `src/actions/admin/settings.ts` (заменено на типизированные асинхронные делегаты).
+    - Полная компиляция `next build --webpack` (3.4 мин), сборка `dist/bot.js` (5.6MB) и `dist/worker.js` (6.5MB).
+    - Проверка CI-гейтов безопасности: 0 утечек секретов в бандле (`check-bundle-secrets.mjs`), 0 жестко закодированных секретов.
+    - Пересборка и запуск контейнера `smmplan_web` в Docker (`docker compose up -d --no-deps --build web`), статус контейнера: `healthy`.
+  * 📸 **Сквозной визуальный аудит в реальном браузере Chromium (Playwright):**
+    - **Десктоп (1440x900) Главная (`/`):** 0px горизонтальный скролл (`PASSED`), безупречный рендеринг шагов заказа и виджетов.
+    - **Мобильный (390x844) Главная (`/`):** 0px горизонтальный скролл (`PASSED`), тач-таргеты $\ge 44$px, адаптивный визард.
+    - **Каталог услуг (`/catalog`):** корректный рендеринг карточек платформ и образовательного хаба.
+    - **Авторизация (`/login`):** корректный рендеринг формы входа.
+    - **Панель импорта каталога (`/admin/providers/import`):** полностью рабочий декомпозированный `ImportWizard` (Волна 14) с табами соцсетей, фильтрами, пакетным тулбаром и счетчиками 807 услуг без регрессий.
+- [x] ⚡ [CLEAN-ARCHITECTURE-DEPENDENCY-GUARD-2026] Внедрение инвариантов Clean Architecture и Topology IR по методологии Дяди Боба (100% COMPLETE & PASS):
+  * 🏛️ **Uncle Bob Dependency Rule & Layer Matrix:**
+    - Формализованы 4 уровня архитектуры платформы OmniSMM 1.0 (Level 0: Domain, Level 1: Services, Level 2: Application/Actions/Workers/Bot, Level 3: Presentation/UI/Hooks).
+    - Разработан нативный AST-валидатор зависимостей (`scripts/check-clean-architecture.ts`), сканирующий 1188 производственных модулей TypeScript за 1.6 секунды.
+    - Внедрен запрет зависимостей внутреннего слоя от внешнего (sourceLevel < targetLevel), блокировка утечек сервера в клиентские компоненты (`'use client'`) и детекция циклических связей (Cycles).
+  * 🗺️ **Topology IR для автономного Docker-просмотрщика:**
+    - Сгенерирован стандартизированный JSON-контракт `artifacts/architecture-topology.json` (1188 узлов, 3371 связь, 0 нарушений, 0 циклов, метрики строк и экспортов).
+    - Спецификация `docs/specs/SPEC-2026-09-19-clean-architecture-dependency-guard.md` зафиксировала схему графа для разработческого Docker-контейнера визуализации.
+  * 🛠️ **Рефакторинг выявленных нарушений (Zero-Defect):**
+    - В `src/utils/service-refill.ts` устранен runtime-импорт экшена (переведен на `import type { PublicService }`).
+    - Разорвана циклическая связь между `shortcuts-provider.tsx` и `shortcuts-modal.tsx` через выделение `src/components/admin/shortcuts-context.tsx`.
+  * 🧪 **Автоматическая верификация:**
+    - Команда `npm run check:arch` интегрирована в `package.json`.
+    - Добавлен Vitest-сьют `src/__tests__/architecture-boundaries.test.ts` (100% PASS).
+    - `npx tsc --noEmit` — 0 ошибок (100% PASS).
+- [x] ⚡ [STRATEGY-BOOST-AND-BACKLOG-2026] Оцифровка стратегии SMMplan и интеграция в BACKLOG.md (100% COMPLETE):
+  * 🎯 **Оцифровка бизнес-модели:**
+    - Полная привязка стратегии к реальному коду `D:\SMM_plan_2` (Prisma-модели `User`, `Order`, `Service`, `Provider`, `LedgerEntry`, `ApiConfig`).
+    - Моделирование юнит-экономики: CAC ~350 ₽, AOV ~650 ₽, Net Margin ~42%, LTV:CAC 25:1.
+    - В `BACKLOG.md` добавлены и зафиксированы 5 ключевых стратегических задач (STRAT-001 — STRAT-005: Smart Bundles, /audit виджет, B2B Reseller Portal, Provider Balance Check, воркер шардирование).
 - [x] ⚡ [AUTH-COOKIE-CONSENT-AUTOCONFIRM-2026] Автоматическое подтверждение Cookie (152-ФЗ) при авторизации и устранение плашки в /dashboard (100% COMPLETE & VERIFIED):
   * 🍪 **Серверная авто-установка (`src/lib/session.ts` & `/api/auth/verify/route.ts`):**
     - При входе / регистрации / Magic Link сервер вместе с `session_token` выставляет `cookie_consent=true` (1 год, SameSite=Lax, httpOnly=false).

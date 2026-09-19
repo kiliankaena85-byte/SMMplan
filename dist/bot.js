@@ -71019,21 +71019,6 @@ var init_description_sanitizer = __esm({
   }
 });
 
-// src/constants/geo-registry.ts
-var init_geo_registry = __esm({
-  "src/constants/geo-registry.ts"() {
-    "use strict";
-  }
-});
-
-// src/services/providers/name-tokenizer.service.ts
-var init_name_tokenizer_service = __esm({
-  "src/services/providers/name-tokenizer.service.ts"() {
-    "use strict";
-    init_geo_registry();
-  }
-});
-
 // src/utils/translation-dictionary.ts
 var QualityTiers, TranslationPatterns;
 var init_translation_dictionary = __esm({
@@ -71089,15 +71074,41 @@ var init_translation_dictionary = __esm({
   }
 });
 
-// src/services/providers/smart-analyzer.logic.ts
-var CATEGORY_LABELS;
-var init_smart_analyzer_logic = __esm({
-  "src/services/providers/smart-analyzer.logic.ts"() {
+// src/constants/geo-registry.ts
+var init_geo_registry = __esm({
+  "src/constants/geo-registry.ts"() {
     "use strict";
-    init_description_sanitizer();
+  }
+});
+
+// src/services/providers/name-tokenizer.service.ts
+var init_name_tokenizer_service = __esm({
+  "src/services/providers/name-tokenizer.service.ts"() {
+    "use strict";
     init_geo_registry();
-    init_name_tokenizer_service();
-    init_translation_dictionary();
+  }
+});
+
+// src/services/providers/analyzer/geo-warranty.pure.ts
+var init_geo_warranty_pure = __esm({
+  "src/services/providers/analyzer/geo-warranty.pure.ts"() {
+    "use strict";
+    init_geo_registry();
+  }
+});
+
+// src/services/providers/analyzer/platform-detector.pure.ts
+var init_platform_detector_pure = __esm({
+  "src/services/providers/analyzer/platform-detector.pure.ts"() {
+    "use strict";
+  }
+});
+
+// src/services/providers/analyzer/category-detector.pure.ts
+var CATEGORY_LABELS;
+var init_category_detector_pure = __esm({
+  "src/services/providers/analyzer/category-detector.pure.ts"() {
+    "use strict";
     CATEGORY_LABELS = {
       SUBSCRIBERS: "\u041F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438 / \u0423\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438",
       GROUPS: "\u0412\u0441\u0442\u0443\u043F\u043B\u0435\u043D\u0438\u0435 \u0432 \u0433\u0440\u0443\u043F\u043F\u044B / \u0447\u0430\u0442\u044B",
@@ -71128,6 +71139,35 @@ var init_smart_analyzer_logic = __esm({
       RECOVER: "\u0412\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 / \u0414\u043E\u043A\u0440\u0443\u0442\u043A\u0430",
       OTHER: "\u0414\u0440\u0443\u0433\u043E\u0435 / \u0420\u0430\u0437\u043D\u043E\u0435"
     };
+  }
+});
+
+// src/services/providers/analyzer/target-type-detector.pure.ts
+var init_target_type_detector_pure = __esm({
+  "src/services/providers/analyzer/target-type-detector.pure.ts"() {
+    "use strict";
+  }
+});
+
+// src/services/providers/analyzer/execution-metrics.pure.ts
+var init_execution_metrics_pure = __esm({
+  "src/services/providers/analyzer/execution-metrics.pure.ts"() {
+    "use strict";
+  }
+});
+
+// src/services/providers/smart-analyzer.logic.ts
+var init_smart_analyzer_logic = __esm({
+  "src/services/providers/smart-analyzer.logic.ts"() {
+    "use strict";
+    init_description_sanitizer();
+    init_translation_dictionary();
+    init_name_tokenizer_service();
+    init_geo_warranty_pure();
+    init_platform_detector_pure();
+    init_category_detector_pure();
+    init_target_type_detector_pure();
+    init_execution_metrics_pure();
   }
 });
 

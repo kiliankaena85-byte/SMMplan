@@ -1,42 +1,16 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShortcutsModal } from './shortcuts-modal';
+import {
+  DEFAULT_HOTKEYS,
+  type HotkeyConfig,
+  ShortcutsContext,
+  useShortcuts,
+} from './shortcuts-context';
 
-export interface HotkeyConfig {
-  id: string;
-  keys: string[];
-  label: string;
-  path?: string;
-  actionId?: string;
-  category: 'Навигация' | 'Заказы' | 'Каталог' | 'Система';
-}
-
-export const DEFAULT_HOTKEYS: HotkeyConfig[] = [
-  { id: 'go_orders', keys: ['g', 'o'], label: 'Перейти в Заказы', path: '/admin/orders', category: 'Навигация' },
-  { id: 'go_providers', keys: ['g', 'p'], label: 'Перейти к Провайдерам', path: '/admin/providers', category: 'Навигация' },
-  { id: 'go_tickets', keys: ['g', 't'], label: 'Перейти в Тикеты', path: '/admin/tickets', category: 'Навигация' },
-  { id: 'go_staff', keys: ['g', 's'], label: 'Перейти к Сотрудникам', path: '/admin/staff', category: 'Навигация' },
-  { id: 'go_clients', keys: ['g', 'c'], label: 'Перейти к Клиентам', path: '/admin/clients', category: 'Навигация' },
-  { id: 'go_catalog', keys: ['g', 'k'], label: 'Перейти в Каталог', path: '/admin/catalog', category: 'Навигация' },
-  { id: 'go_finance', keys: ['g', 'f'], label: 'Перейти в Биллинг', path: '/admin/finance', category: 'Навигация' },
-  { id: 'go_settings', keys: ['g', 'e'], label: 'Перейти в Настройки', path: '/admin/settings', category: 'Навигация' },
-  { id: 'open_search', keys: ['/'], label: 'Фокус в строку поиска таблицы', actionId: 'focus_search', category: 'Навигация' },
-  { id: 'help_modal', keys: ['?'], label: 'Справка по горячим клавишам', actionId: 'toggle_help', category: 'Система' },
-];
-
-interface ShortcutsContextType {
-  hotkeysEnabled: boolean;
-  setHotkeysEnabled: (val: boolean) => void;
-  hotkeys: HotkeyConfig[];
-  updateHotkey: (id: string, newKeys: string[]) => void;
-  resetHotkeys: () => void;
-  isHelpOpen: boolean;
-  setIsHelpOpen: (val: boolean) => void;
-}
-
-const ShortcutsContext = createContext<ShortcutsContextType | undefined>(undefined);
+export { DEFAULT_HOTKEYS, type HotkeyConfig, useShortcuts };
 
 export function ShortcutsProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -169,10 +143,3 @@ export function ShortcutsProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useShortcuts() {
-  const ctx = useContext(ShortcutsContext);
-  if (!ctx) {
-    throw new Error('useShortcuts must be used within ShortcutsProvider');
-  }
-  return ctx;
-}

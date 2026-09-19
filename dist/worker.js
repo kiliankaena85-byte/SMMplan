@@ -110780,122 +110780,6 @@ var init_description_sanitizer = __esm({
   }
 });
 
-// src/constants/geo-registry.ts
-var GEO_MAP;
-var init_geo_registry = __esm({
-  "src/constants/geo-registry.ts"() {
-    "use strict";
-    GEO_MAP = {
-      "RU": ["\u0440\u043E\u0441\u0441\u0438\u044F", "\u0440\u0444", "ru", "\u{1F1F7}\u{1F1FA}", "\u0440\u0443\u0441\u0441\u043A\u0438\u0435"],
-      "USA": ["\u0441\u0448\u0430", "usa", "\u{1F1FA}\u{1F1F8}", "english", "worldwide"],
-      "KZ": ["\u043A\u0430\u0437\u0430\u0445\u0441\u0442\u0430\u043D", "\u043A\u0437", "kz", "\u{1F1F0}\u{1F1FF}"],
-      "UZ": ["\u0443\u0437\u0431\u0435\u043A\u0438\u0441\u0442\u0430\u043D", "uz", "\u{1F1FA}\u{1F1FF}"],
-      "UA": ["\u0443\u043A\u0440\u0430\u0438\u043D\u0430", "ua", "\u{1F1FA}\u{1F1E6}"],
-      "TR": ["\u0442\u0443\u0440\u0446\u0438\u044F", "tr", "\u{1F1F9}\u{1F1F7}", "turkey"],
-      "IN": ["\u0438\u043D\u0434\u0438\u044F", "in", "\u{1F1EE}\u{1F1F3}", "india"],
-      "BR": ["\u0431\u0440\u0430\u0437\u0438\u043B\u0438\u044F", "br", "\u{1F1E7}\u{1F1F7}"],
-      "IL": ["\u0438\u0437\u0440\u0430\u0438\u043B\u044C", "il", "\u{1F1EE}\u{1F1F1}"],
-      "AR": ["\u0430\u0440\u0430\u0431", "arabic", "\u{1F1E6}\u{1F1EA}"],
-      "CN": ["\u043A\u0438\u0442\u0430\u0439", "china", "\u{1F1E8}\u{1F1F3}"]
-    };
-  }
-});
-
-// src/services/providers/name-tokenizer.service.ts
-var NameTokenizerService;
-var init_name_tokenizer_service = __esm({
-  "src/services/providers/name-tokenizer.service.ts"() {
-    "use strict";
-    init_geo_registry();
-    NameTokenizerService = class {
-      /**
-       * Extracts metrics from a chaotic provider service name and returns a cleaned version.
-       */
-      static tokenize(rawName, category = "") {
-        let cleanName = rawName;
-        let quality;
-        let velocity = null;
-        let dropRate = null;
-        let hasRefill = false;
-        let geo = "WORLDWIDE";
-        let anomalyScore = 0;
-        const lowerName = rawName.toLowerCase();
-        const lowerCat = category.toLowerCase();
-        if (lowerName.includes("premium") || lowerName.includes("\u043F\u0440\u0435\u043C\u0438\u0443\u043C")) {
-          quality = "PREMIUM";
-        } else if (lowerName.includes("hq") || lowerName.includes("high quality") || lowerName.includes("real") || lowerName.includes("\u0436\u0438\u0432\u044B\u0435")) {
-          quality = "HIGH";
-        } else if (lowerName.includes("lq") || lowerName.includes("low quality") || lowerName.includes("cheap") || lowerName.includes("\u0434\u0435\u0448\u0435\u0432\u043E")) {
-          quality = "LOW";
-        } else if (lowerName.includes("bot") || lowerName.includes("\u0431\u043E\u0442") || lowerName.includes("fake")) {
-          quality = "BOTS";
-        } else {
-          quality = "MEDIUM";
-        }
-        const speedRegex = /\[?(\d+)(k|m)?\s*\/\s*(d|day|день)\]?/i;
-        const speedMatch = rawName.match(speedRegex);
-        if (speedMatch) {
-          let base = parseInt(speedMatch[1], 10);
-          const multiplier = speedMatch[2]?.toLowerCase();
-          if (multiplier === "k") base *= 1e3;
-          if (multiplier === "m") base *= 1e6;
-          velocity = base;
-        }
-        if (lowerName.includes("no drop") || lowerName.includes("\u0431\u0435\u0437 \u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0439") || lowerName.includes("0% drop")) {
-          dropRate = 0;
-        } else if (lowerName.includes("high drop") || lowerName.includes("\u0431\u043E\u043B\u044C\u0448\u0438\u0435 \u0441\u043F\u0438\u0441\u0430\u043D\u0438\u044F")) {
-          dropRate = 50;
-        } else {
-          const dropRegex = /(?:drop|списания)\s*(\d+)%/i;
-          const dropMatch = rawName.match(dropRegex);
-          if (dropMatch) {
-            dropRate = parseInt(dropMatch[1], 10);
-          }
-        }
-        const hasExplicitNoRefill = lowerName.includes("\u0431\u0435\u0437 \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0438") || lowerName.includes("\u0431\u0435\u0437 \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0439") || lowerName.includes("\u0431\u0435\u0437 \u0430\u0432\u0442\u043E\u0434\u043E\u043A\u0440\u0443\u0442\u043A\u0438") || lowerName.includes("no refill") || lowerName.includes("no-refill") || lowerName.includes("norefill") || /\b0\s*(?:d|day|days)\s*refill/i.test(lowerName) || /\bnon[\s-]refill/i.test(lowerName) || lowerName.includes("no warranty") || lowerName.includes("without warranty") || lowerName.includes("no drop guarantee") || lowerName.includes("no drop protection") || lowerName.includes("\u0431\u0435\u0437 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F");
-        if (hasExplicitNoRefill) {
-          hasRefill = false;
-        } else if (lowerName.includes("\u0441 \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0435\u0439") || lowerName.includes("\u0433\u0430\u0440\u0430\u043D\u0442\u0438\u044F") || lowerName.includes("\u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0435\u0439") || lowerName.includes("\u0430\u0432\u0442\u043E\u0434\u043E\u043A\u0440\u0443\u0442\u043A\u0430") || lowerName.includes("\u0434\u043E\u043A\u0440\u0443\u0442\u043A") || lowerName.includes("refill") || lowerName.includes("re-fill") || lowerName.includes("auto-refill") || lowerName.includes("warranty") || lowerName.includes("\u267B\uFE0F") || lowerName.match(/(\d+)\s*(?:дней|дня|день|day|d|days)\s*(?:refill|гарант|warranty)?/i)) {
-          hasRefill = true;
-        }
-        for (const [code, keywords] of Object.entries(GEO_MAP)) {
-          if (keywords.some((k) => lowerName.includes(k) || lowerCat.includes(k))) {
-            geo = code;
-            break;
-          }
-        }
-        cleanName = cleanName.replace(/^(id:?\s*\d+\s*[-|]?\s*)/i, "");
-        cleanName = cleanName.replace(/^(\d+\s*[-|]\s*)/i, "");
-        cleanName = cleanName.replace(/\[.*?\]/g, "");
-        cleanName = cleanName.replace(/\(.*?\)/g, "");
-        cleanName = cleanName.replace(/[\u{1F300}-\u{1F9FF}]/gu, "");
-        cleanName = cleanName.replace(/[\u{2600}-\u{26FF}]/gu, "");
-        cleanName = cleanName.replace(/[\u{2700}-\u{27BF}]/gu, "");
-        cleanName = cleanName.replace(/♻️/g, "");
-        const spamTags = ["|", "\u2B50", "\u26A1", "\u{1F525}", "\u{1F680}", "\u2705", "\u2714\uFE0F", "VIP", "SUPER", "FAST", "INSTANT", "CHEAP"];
-        for (const tag of spamTags) {
-          cleanName = cleanName.split(tag).join(" ");
-        }
-        cleanName = cleanName.replace(/\s{2,}/g, " ").trim();
-        if (dropRate === 0 && (quality === "LOW" || quality === "BOTS")) {
-          anomalyScore += 40;
-        }
-        return {
-          cleanName,
-          metrics: {
-            quality,
-            velocity,
-            geo,
-            dropRate,
-            hasRefill,
-            anomalyScore
-          }
-        };
-      }
-    };
-  }
-});
-
 // src/utils/translation-dictionary.ts
 function normalizeGeo(rawGeo) {
   if (!rawGeo) return GeoDictionary["WORLDWIDE"];
@@ -111014,103 +110898,207 @@ var init_translation_dictionary = __esm({
   }
 });
 
-// src/services/providers/smart-analyzer.logic.ts
-var DEFAULT_CATEGORY_METRICS, PLATFORM_LABELS, CATEGORY_LABELS, PLATFORM_KEYWORDS, CATEGORY_MAP, SmartAnalyzerLogic;
-var init_smart_analyzer_logic = __esm({
-  "src/services/providers/smart-analyzer.logic.ts"() {
+// src/constants/geo-registry.ts
+var GEO_MAP;
+var init_geo_registry = __esm({
+  "src/constants/geo-registry.ts"() {
     "use strict";
-    init_description_sanitizer();
+    GEO_MAP = {
+      "RU": ["\u0440\u043E\u0441\u0441\u0438\u044F", "\u0440\u0444", "ru", "\u{1F1F7}\u{1F1FA}", "\u0440\u0443\u0441\u0441\u043A\u0438\u0435"],
+      "USA": ["\u0441\u0448\u0430", "usa", "\u{1F1FA}\u{1F1F8}", "english", "worldwide"],
+      "KZ": ["\u043A\u0430\u0437\u0430\u0445\u0441\u0442\u0430\u043D", "\u043A\u0437", "kz", "\u{1F1F0}\u{1F1FF}"],
+      "UZ": ["\u0443\u0437\u0431\u0435\u043A\u0438\u0441\u0442\u0430\u043D", "uz", "\u{1F1FA}\u{1F1FF}"],
+      "UA": ["\u0443\u043A\u0440\u0430\u0438\u043D\u0430", "ua", "\u{1F1FA}\u{1F1E6}"],
+      "TR": ["\u0442\u0443\u0440\u0446\u0438\u044F", "tr", "\u{1F1F9}\u{1F1F7}", "turkey"],
+      "IN": ["\u0438\u043D\u0434\u0438\u044F", "in", "\u{1F1EE}\u{1F1F3}", "india"],
+      "BR": ["\u0431\u0440\u0430\u0437\u0438\u043B\u0438\u044F", "br", "\u{1F1E7}\u{1F1F7}"],
+      "IL": ["\u0438\u0437\u0440\u0430\u0438\u043B\u044C", "il", "\u{1F1EE}\u{1F1F1}"],
+      "AR": ["\u0430\u0440\u0430\u0431", "arabic", "\u{1F1E6}\u{1F1EA}"],
+      "CN": ["\u043A\u0438\u0442\u0430\u0439", "china", "\u{1F1E8}\u{1F1F3}"]
+    };
+  }
+});
+
+// src/services/providers/name-tokenizer.service.ts
+var NameTokenizerService;
+var init_name_tokenizer_service = __esm({
+  "src/services/providers/name-tokenizer.service.ts"() {
+    "use strict";
     init_geo_registry();
-    init_name_tokenizer_service();
-    init_translation_dictionary();
-    DEFAULT_CATEGORY_METRICS = {
-      VIEWS: { startTime: "5\u201315 \u043C\u0438\u043D", speedText: "\u0434\u043E 50k / \u0434\u0435\u043D\u044C", warranty: 0, qualityLabel: "\u0412\u044B\u0441\u043E\u043A\u043E\u0435" },
-      AUTO_VIEWS: { startTime: "\u041C\u0433\u043D\u043E\u0432\u0435\u043D\u043D\u043E", speedText: "\u0412\u044B\u0441\u043E\u043A\u0430\u044F", warranty: 0, qualityLabel: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442" },
-      LIKES: { startTime: "10\u201330 \u043C\u0438\u043D", speedText: "\u0434\u043E 10k / \u0434\u0435\u043D\u044C", warranty: 0, qualityLabel: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442" },
-      SUBSCRIBERS: { startTime: "0\u20132 \u0447\u0430\u0441\u0430", speedText: "1\u20135k / \u0434\u0435\u043D\u044C", warranty: 30, qualityLabel: "\u0420\u0435\u0430\u043B\u044C\u043D\u044B\u0435" },
-      GROUPS: { startTime: "0\u20132 \u0447\u0430\u0441\u0430", speedText: "1\u20135k / \u0434\u0435\u043D\u044C", warranty: 30, qualityLabel: "\u0420\u0435\u0430\u043B\u044C\u043D\u044B\u0435" },
-      COMMENTS: { startTime: "15\u201360 \u043C\u0438\u043D", speedText: "\u041F\u043B\u0430\u0432\u043D\u0430\u044F", warranty: 0, qualityLabel: "\u0416\u0438\u0432\u044B\u0435" },
-      REACTIONS: { startTime: "5\u201315 \u043C\u0438\u043D", speedText: "\u0411\u044B\u0441\u0442\u0440\u0430\u044F", warranty: 0, qualityLabel: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442" },
-      REPOSTS: { startTime: "10\u201330 \u043C\u0438\u043D", speedText: "\u0434\u043E 10k / \u0434\u0435\u043D\u044C", warranty: 0, qualityLabel: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442" },
-      STORIES: { startTime: "\u041C\u0433\u043D\u043E\u0432\u0435\u043D\u043D\u043E", speedText: "\u0434\u043E 20k / \u0434\u0435\u043D\u044C", warranty: 0, qualityLabel: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442" },
-      BOOSTS: { startTime: "0\u20131 \u0447\u0430\u0441", speedText: "\u0434\u043E 1k / \u0434\u0435\u043D\u044C", warranty: 30, qualityLabel: "\u041F\u0440\u0435\u043C\u0438\u0443\u043C" },
-      OTHER: { startTime: "15\u201360 \u043C\u0438\u043D", speedText: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u043D\u0430\u044F", warranty: 0, qualityLabel: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442" }
+    NameTokenizerService = class {
+      /**
+       * Extracts metrics from a chaotic provider service name and returns a cleaned version.
+       */
+      static tokenize(rawName, category = "") {
+        let cleanName = rawName;
+        let quality;
+        let velocity = null;
+        let dropRate = null;
+        let hasRefill = false;
+        let geo = "WORLDWIDE";
+        let anomalyScore = 0;
+        const lowerName = rawName.toLowerCase();
+        const lowerCat = category.toLowerCase();
+        if (lowerName.includes("premium") || lowerName.includes("\u043F\u0440\u0435\u043C\u0438\u0443\u043C")) {
+          quality = "PREMIUM";
+        } else if (lowerName.includes("hq") || lowerName.includes("high quality") || lowerName.includes("real") || lowerName.includes("\u0436\u0438\u0432\u044B\u0435")) {
+          quality = "HIGH";
+        } else if (lowerName.includes("lq") || lowerName.includes("low quality") || lowerName.includes("cheap") || lowerName.includes("\u0434\u0435\u0448\u0435\u0432\u043E")) {
+          quality = "LOW";
+        } else if (lowerName.includes("bot") || lowerName.includes("\u0431\u043E\u0442") || lowerName.includes("fake")) {
+          quality = "BOTS";
+        } else {
+          quality = "MEDIUM";
+        }
+        const speedRegex = /\[?(\d+)(k|m)?\s*\/\s*(d|day|день)\]?/i;
+        const speedMatch = rawName.match(speedRegex);
+        if (speedMatch) {
+          let base = parseInt(speedMatch[1], 10);
+          const multiplier = speedMatch[2]?.toLowerCase();
+          if (multiplier === "k") base *= 1e3;
+          if (multiplier === "m") base *= 1e6;
+          velocity = base;
+        }
+        if (lowerName.includes("no drop") || lowerName.includes("\u0431\u0435\u0437 \u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0439") || lowerName.includes("0% drop")) {
+          dropRate = 0;
+        } else if (lowerName.includes("high drop") || lowerName.includes("\u0431\u043E\u043B\u044C\u0448\u0438\u0435 \u0441\u043F\u0438\u0441\u0430\u043D\u0438\u044F")) {
+          dropRate = 50;
+        } else {
+          const dropRegex = /(?:drop|списания)\s*(\d+)%/i;
+          const dropMatch = rawName.match(dropRegex);
+          if (dropMatch) {
+            dropRate = parseInt(dropMatch[1], 10);
+          }
+        }
+        const hasExplicitNoRefill = lowerName.includes("\u0431\u0435\u0437 \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0438") || lowerName.includes("\u0431\u0435\u0437 \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0439") || lowerName.includes("\u0431\u0435\u0437 \u0430\u0432\u0442\u043E\u0434\u043E\u043A\u0440\u0443\u0442\u043A\u0438") || lowerName.includes("no refill") || lowerName.includes("no-refill") || lowerName.includes("norefill") || /\b0\s*(?:d|day|days)\s*refill/i.test(lowerName) || /\bnon[\s-]refill/i.test(lowerName) || lowerName.includes("no warranty") || lowerName.includes("without warranty") || lowerName.includes("no drop guarantee") || lowerName.includes("no drop protection") || lowerName.includes("\u0431\u0435\u0437 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F");
+        if (hasExplicitNoRefill) {
+          hasRefill = false;
+        } else if (lowerName.includes("\u0441 \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0435\u0439") || lowerName.includes("\u0433\u0430\u0440\u0430\u043D\u0442\u0438\u044F") || lowerName.includes("\u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0435\u0439") || lowerName.includes("\u0430\u0432\u0442\u043E\u0434\u043E\u043A\u0440\u0443\u0442\u043A\u0430") || lowerName.includes("\u0434\u043E\u043A\u0440\u0443\u0442\u043A") || lowerName.includes("refill") || lowerName.includes("re-fill") || lowerName.includes("auto-refill") || lowerName.includes("warranty") || lowerName.includes("\u267B\uFE0F") || lowerName.match(/(\d+)\s*(?:дней|дня|день|day|d|days)\s*(?:refill|гарант|warranty)?/i)) {
+          hasRefill = true;
+        }
+        for (const [code, keywords] of Object.entries(GEO_MAP)) {
+          if (keywords.some((k) => lowerName.includes(k) || lowerCat.includes(k))) {
+            geo = code;
+            break;
+          }
+        }
+        cleanName = cleanName.replace(/^(id:?\s*\d+\s*[-|]?\s*)/i, "");
+        cleanName = cleanName.replace(/^(\d+\s*[-|]\s*)/i, "");
+        cleanName = cleanName.replace(/\[.*?\]/g, "");
+        cleanName = cleanName.replace(/\(.*?\)/g, "");
+        cleanName = cleanName.replace(/[\u{1F300}-\u{1F9FF}]/gu, "");
+        cleanName = cleanName.replace(/[\u{2600}-\u{26FF}]/gu, "");
+        cleanName = cleanName.replace(/[\u{2700}-\u{27BF}]/gu, "");
+        cleanName = cleanName.replace(/♻️/g, "");
+        const spamTags = ["|", "\u2B50", "\u26A1", "\u{1F525}", "\u{1F680}", "\u2705", "\u2714\uFE0F", "VIP", "SUPER", "FAST", "INSTANT", "CHEAP"];
+        for (const tag of spamTags) {
+          cleanName = cleanName.split(tag).join(" ");
+        }
+        cleanName = cleanName.replace(/\s{2,}/g, " ").trim();
+        if (dropRate === 0 && (quality === "LOW" || quality === "BOTS")) {
+          anomalyScore += 40;
+        }
+        return {
+          cleanName,
+          metrics: {
+            quality,
+            velocity,
+            geo,
+            dropRate,
+            hasRefill,
+            anomalyScore
+          }
+        };
+      }
     };
-    PLATFORM_LABELS = {
-      TELEGRAM: "Telegram",
-      INSTAGRAM: "Instagram",
-      TIKTOK: "TikTok",
-      YOUTUBE: "YouTube",
-      VK: "\u0412\u041A\u043E\u043D\u0442\u0430\u043A\u0442\u0435",
-      TWITCH: "Twitch",
-      DISCORD: "Discord",
-      TWITTER: "Twitter (X)",
-      FACEBOOK: "Facebook",
-      THREADS: "Threads",
-      REDDIT: "Reddit",
-      RUTUBE: "Rutube",
-      DZEN: "\u0414\u0437\u0435\u043D",
-      MUSIC: "\u041C\u0443\u0437\u044B\u043A\u0430 (Spotify/Apple)",
-      OK: "\u041E\u0434\u043D\u043E\u043A\u043B\u0430\u0441\u0441\u043D\u0438\u043A\u0438",
-      KICK: "Kick",
-      LIKEE: "Likee",
-      WHATSAPP: "WhatsApp",
-      SPOTIFY: "Spotify",
-      SOUNDCLOUD: "SoundCloud",
-      LINKEDIN: "LinkedIn",
-      PINTEREST: "Pinterest",
-      SNAPCHAT: "Snapchat",
-      TROVO: "Trovo",
-      KWAI: "Kwai",
-      MAX: "Max Messenger",
-      GOOGLE: "Google",
-      APPLE: "Apple Music/Podcast",
-      YANDEX: "\u042F\u043D\u0434\u0435\u043A\u0441 (\u0414\u0437\u0435\u043D/Maps/Music)",
-      STEAM: "Steam",
-      WIBES: "Wibes",
-      RUMBLE: "Rumble",
-      TUMBLR: "Tumblr",
-      VIMEO: "Vimeo",
-      SHAZAM: "Shazam",
-      QUORA: "Quora",
-      MEDIUM: "Medium",
-      WEBSITE: "Website Traffic",
-      PERISCOPE: "Periscope",
-      CLOUDHUB: "CloudHub",
-      AUDIOMACK: "Audiomack",
-      DATPIFF: "DatPiff",
-      OTHER: "\u0414\u0440\u0443\u0433\u043E\u0435"
-    };
-    CATEGORY_LABELS = {
-      SUBSCRIBERS: "\u041F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438 / \u0423\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438",
-      GROUPS: "\u0412\u0441\u0442\u0443\u043F\u043B\u0435\u043D\u0438\u0435 \u0432 \u0433\u0440\u0443\u043F\u043F\u044B / \u0447\u0430\u0442\u044B",
-      LIKES: "\u041B\u0430\u0439\u043A\u0438 / \u041D\u0440\u0430\u0432\u0438\u0442\u0441\u044F",
-      VIEWS: "\u041F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B / \u041E\u0445\u0432\u0430\u0442",
-      COMMENTS: "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438 / \u041E\u0442\u0437\u044B\u0432\u044B",
-      REACTIONS: "\u0420\u0435\u0430\u043A\u0446\u0438\u0438 / \u042D\u043C\u043E\u0434\u0437\u0438",
-      REPOSTS: "\u0420\u0435\u043F\u043E\u0441\u0442\u044B / \u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F",
-      AUTO_VIEWS: "\u0410\u0432\u0442\u043E\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B",
-      AUTO_LIKES: "\u0410\u0432\u0442\u043E\u043B\u0430\u0439\u043A\u0438",
-      AUTO_REACTIONS: "\u0410\u0432\u0442\u043E\u0440\u0435\u0430\u043A\u0446\u0438\u0438",
-      AUTO_REPOSTS: "\u0410\u0432\u0442\u043E\u0440\u0435\u043F\u043E\u0441\u0442\u044B",
-      AUTO_COMMENTS: "\u0410\u0432\u0442\u043E\u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438",
-      BOOSTS: "\u0411\u0443\u0441\u0442\u044B (Telegram Levels)",
-      POLLS: "\u0413\u043E\u043B\u043E\u0441\u0430 / \u041E\u043F\u0440\u043E\u0441\u044B",
-      STORIES: "\u0421\u0442\u043E\u0440\u0438\u0437 / \u0418\u0441\u0442\u043E\u0440\u0438\u0438",
-      BOTS: "\u0420\u043E\u0431\u043E\u0442\u044B / \u0411\u043E\u0442\u044B",
-      REFERRALS: "\u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044B (Apps/Bots)",
-      FRIENDS: "\u0417\u0430\u044F\u0432\u043A\u0438 \u0432 \u0434\u0440\u0443\u0437\u044C\u044F",
-      PLAYS: "\u041F\u0440\u043E\u0441\u043B\u0443\u0448\u0438\u0432\u0430\u043D\u0438\u044F (Music)",
-      TRAFFIC: "\u0422\u0440\u0430\u0444\u0438\u043A / \u041F\u043E\u0441\u0435\u0449\u0435\u043D\u0438\u044F",
-      DISLIKES: "\u0414\u0438\u0437\u043B\u0430\u0439\u043A\u0438",
-      STARS: "\u0417\u0432\u0435\u0437\u0434\u044B (Telegram Stars)",
-      SAVES: "\u0421\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F / Saves",
-      COMPLAINTS: "\u0416\u0430\u043B\u043E\u0431\u044B / Reports",
-      STREAMS: "\u0421\u0442\u0440\u0438\u043C\u044B",
-      PREMIUM: "Premium \u041F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438",
-      RECOVER: "\u0412\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 / \u0414\u043E\u043A\u0440\u0443\u0442\u043A\u0430",
-      OTHER: "\u0414\u0440\u0443\u0433\u043E\u0435 / \u0420\u0430\u0437\u043D\u043E\u0435"
-    };
+  }
+});
+
+// src/services/providers/analyzer/geo-warranty.pure.ts
+function detectGeoCode(fullContent) {
+  let geo = "WORLDWIDE";
+  for (const [code, keywords] of Object.entries(GEO_MAP)) {
+    if (keywords.some((k) => fullContent.includes(k))) {
+      geo = code;
+      break;
+    }
+  }
+  return geo;
+}
+function checkExplicitNoWarranty(fullContent) {
+  return fullContent.includes("\u0431\u0435\u0437 \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0438") || fullContent.includes("\u0431\u0435\u0437 \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0439") || fullContent.includes("\u0431\u0435\u0437 \u0430\u0432\u0442\u043E\u0434\u043E\u043A\u0440\u0443\u0442\u043A\u0438") || fullContent.includes("no refill") || fullContent.includes("no-refill") || fullContent.includes("norefill") || /\b0\s*(?:d|day|days)\s*refill/i.test(fullContent) || /\bnon[\s-]refill/i.test(fullContent) || fullContent.includes("no warranty") || fullContent.includes("without warranty") || fullContent.includes("no drop guarantee") || fullContent.includes("no drop protection") || fullContent.includes("\u0431\u0435\u0437 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F");
+}
+function detectWarrantyDays(name, fullContent, isExplicitNoWarranty) {
+  if (isExplicitNoWarranty) {
+    return 0;
+  }
+  const warrantyMatch = name.match(/(\d+)\s*(?:дней|дня|день|day|d|days)/i);
+  if (warrantyMatch) {
+    return parseInt(warrantyMatch[1], 10);
+  }
+  if (fullContent.includes("\u267B\uFE0F") || fullContent.includes("\u0441 \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0435\u0439") || fullContent.includes("\u0433\u0430\u0440\u0430\u043D\u0442\u0438\u044F") || fullContent.includes("\u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0435\u0439")) {
+    return 30;
+  }
+  return 0;
+}
+var init_geo_warranty_pure = __esm({
+  "src/services/providers/analyzer/geo-warranty.pure.ts"() {
+    "use strict";
+    init_geo_registry();
+  }
+});
+
+// src/services/providers/analyzer/platform-detector.pure.ts
+function detectPlatform(nameLower, sanitizedDescriptionLower, catInputLower, fullContent, dynamicPlatforms) {
+  let platformEnum = "OTHER";
+  let platformSlug = "other";
+  const platformScores = {};
+  for (const [p, keywords] of Object.entries(PLATFORM_KEYWORDS)) {
+    platformScores[p] = 0;
+    for (const k of keywords) {
+      const isShort = k.length <= 2;
+      const match = (text, key) => {
+        if (isShort) {
+          const rex = new RegExp(`\\b${key}\\b`, "i");
+          return rex.test(text);
+        }
+        return text.includes(key);
+      };
+      if (match(catInputLower, k)) platformScores[p] += 10;
+      if (match(nameLower, k)) platformScores[p] += 5;
+      if (match(sanitizedDescriptionLower, k)) platformScores[p] += 1;
+    }
+  }
+  let bestPlatformCode = "OTHER";
+  let maxPlatformScore = 0;
+  for (const [p, score] of Object.entries(platformScores)) {
+    if (score > maxPlatformScore) {
+      maxPlatformScore = score;
+      bestPlatformCode = p;
+    }
+  }
+  if (bestPlatformCode !== "OTHER") {
+    platformEnum = bestPlatformCode;
+    platformSlug = bestPlatformCode.toLowerCase();
+  }
+  if (dynamicPlatforms && dynamicPlatforms.length > 0) {
+    for (const p of dynamicPlatforms) {
+      if (p.keywords.some((k) => fullContent.includes(k.toLowerCase()))) {
+        platformSlug = p.slug.toLowerCase();
+        const upperSlug = p.slug.toUpperCase();
+        if (Object.keys(PLATFORM_KEYWORDS).includes(upperSlug)) {
+          platformEnum = upperSlug;
+        }
+        break;
+      }
+    }
+  }
+  return { platformEnum, platformSlug };
+}
+var PLATFORM_KEYWORDS;
+var init_platform_detector_pure = __esm({
+  "src/services/providers/analyzer/platform-detector.pure.ts"() {
+    "use strict";
     PLATFORM_KEYWORDS = {
       TELEGRAM: ["telegram", "tg", "\u0442\u0435\u043B\u0435\u0433\u0440\u0430\u043C", "\u0442\u0433", "\u0437\u0430\u043F\u0443\u0441\u043A \u0431\u043E\u0442\u0430", "\u0440\u0435\u0444\u0435\u0440\u0430\u043B\u044B"],
       INSTAGRAM: ["instagram", "inst", "\u0438\u043D\u0441\u0442\u0430\u0433\u0440\u0430\u043C", "\u0438\u043D\u0441\u0442\u0430"],
@@ -111156,6 +111144,143 @@ var init_smart_analyzer_logic = __esm({
       DATPIFF: ["datpiff"],
       OTHER: []
     };
+  }
+});
+
+// src/services/providers/analyzer/category-detector.pure.ts
+function detectCategory(nameNode, fullContent, platform) {
+  let category = "OTHER";
+  const isAutoMention = fullContent.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u043A") || fullContent.includes("auto") || fullContent.includes("subscription") || fullContent.includes("\u0431\u0443\u0434\u0443\u0449") || fullContent.includes("\u0430\u0432\u0442\u043E");
+  const isViewMention = fullContent.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || fullContent.includes("view") || fullContent.includes("eye");
+  const isLikeMention = fullContent.includes("\u043B\u0430\u0439\u043A") || fullContent.includes("like") || fullContent.includes("heart");
+  const isReactionMention = fullContent.includes("\u0440\u0435\u0430\u043A\u0446\u0438") || fullContent.includes("reaction");
+  const isRepostMention = fullContent.includes("\u0440\u0435\u043F\u043E\u0441\u0442") || fullContent.includes("share");
+  const isCommentMention = fullContent.includes("\u043A\u043E\u043C\u043C\u0435\u043D\u0442") || fullContent.includes("comment");
+  const isPostModifier = fullContent.includes("\u043F\u043E\u0441\u0442") || fullContent.includes("\u0437\u0430\u043F\u0438\u0441") || fullContent.includes("\u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446") || fullContent.includes("future") || nameNode.includes("\u0430\u0432\u0442\u043E");
+  if (isAutoMention && (isViewMention || isLikeMention || isReactionMention || isRepostMention || isCommentMention) && isPostModifier) {
+    if (isViewMention) category = "AUTO_VIEWS";
+    else if (isLikeMention) category = "AUTO_LIKES";
+    else if (isReactionMention) category = "AUTO_REACTIONS";
+    else if (isRepostMention) category = "AUTO_REPOSTS";
+    else if (isCommentMention) category = "AUTO_COMMENTS";
+  } else if ((nameNode.includes("\u0431\u043E\u0442") || nameNode.includes(" bot")) && !nameNode.includes("\u043F\u043E\u0434\u043F\u0438\u0441") && !nameNode.includes("\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A")) {
+    category = "BOTS";
+  } else {
+    let bestCatMatch = null;
+    for (const [c, keywords] of Object.entries(CATEGORY_MAP)) {
+      for (const k of keywords) {
+        const idx = fullContent.indexOf(k);
+        if (idx !== -1) {
+          if (!bestCatMatch || idx < bestCatMatch.index) {
+            bestCatMatch = { category: c, index: idx };
+          }
+        }
+      }
+    }
+    if (bestCatMatch) category = bestCatMatch.category;
+  }
+  return refineCategoryByPlatform(category, nameNode, fullContent, platform);
+}
+function refineCategoryByPlatform(cat, nameNode, fullContent, platform) {
+  if (platform === "VK") {
+    if (fullContent.includes("\u0432 \u0434\u0440\u0443\u0437\u044C\u044F") || fullContent.includes("\u043D\u0430 \u043F\u0440\u043E\u0444\u0438\u043B\u044C")) return "FRIENDS";
+    if (fullContent.includes("\u0433\u0440\u0443\u043F\u043F") || fullContent.includes("\u0441\u043E\u043E\u0431\u0449\u0435\u0441\u0442")) return "GROUPS";
+    if (fullContent.includes("\u043F\u0440\u043E\u0441\u043B\u0443\u0448") || fullContent.includes("\u043F\u043B\u0435\u0439\u043B\u0438\u0441\u0442")) return "PLAYS";
+    if (fullContent.includes("\u0433\u043B\u0430\u0437\u0438\u043A") || fullContent.includes("\u043D\u0430 \u0437\u0430\u043F\u0438\u0441\u044C")) return "VIEWS";
+    if (fullContent.includes("\u043E\u043F\u0440\u043E\u0441") || fullContent.includes("\u0433\u043E\u043B\u043E\u0441")) return "POLLS";
+  } else if (platform === "FACEBOOK") {
+    if (fullContent.includes("group") || fullContent.includes("\u0433\u0440\u0443\u043F\u043F")) return "SUBSCRIBERS";
+    if (fullContent.includes("reel") || fullContent.includes("video")) return "VIEWS";
+  } else if (platform === "TELEGRAM") {
+    return refineTelegramCategory(nameNode, fullContent);
+  } else if (platform === "YOUTUBE") {
+    if (fullContent.includes("\u0447\u0430\u0441") && !fullContent.includes("\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A") || fullContent.includes("hour")) return "VIEWS";
+    if (fullContent.includes("short")) return "VIEWS";
+    if (nameNode.includes("\u043B\u0430\u0439\u043A") || nameNode.includes("like")) return "LIKES";
+  } else if (platform === "DZEN") {
+    if (fullContent.includes("\u0441\u0442\u0430\u0442\u044C") || fullContent.includes("article")) return "VIEWS";
+  } else if (platform === "INSTAGRAM") {
+    if (nameNode.includes("story") || nameNode.includes("\u0441\u0442\u043E\u0440\u0438\u0441")) return "STORIES";
+    if (/подписч|follow/i.test(nameNode)) return "SUBSCRIBERS";
+    if (nameNode.includes("\u043B\u0430\u0439\u043A") || nameNode.includes("like")) return "LIKES";
+    if (nameNode.includes(" reels") || nameNode.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || nameNode.includes("view")) return "VIEWS";
+  }
+  return cat;
+}
+function refineTelegramCategory(nameNode, fullContent) {
+  const vIdx = nameNode.indexOf("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440");
+  const vIdx2 = nameNode.indexOf("view");
+  const rIdx = nameNode.indexOf("\u0440\u0435\u0430\u043A\u0446\u0438");
+  const rIdx2 = nameNode.indexOf("reaction");
+  const minV = Math.min(vIdx === -1 ? Infinity : vIdx, vIdx2 === -1 ? Infinity : vIdx2);
+  const minR = Math.min(rIdx === -1 ? Infinity : rIdx, rIdx2 === -1 ? Infinity : rIdx2);
+  const isReactionsPrimary = minR < minV;
+  const isStory = nameNode.includes("\u0438\u0441\u0442\u043E\u0440\u0438") || nameNode.includes("story");
+  const isAutoViews = !isReactionsPrimary && (nameNode.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u043A") || nameNode.includes("auto") || nameNode.includes("\u0430\u0432\u0442\u043E")) && (nameNode.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || nameNode.includes("view") || nameNode.includes("\u0433\u043B\u0430\u0437"));
+  const isSubscribers = (/подписч|member|follower|читател|фолловер/i.test(nameNode) || nameNode.includes("\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A") && !nameNode.includes("\u043E\u043F\u0440\u043E\u0441") && !nameNode.includes("\u0433\u043E\u043B\u043E\u0441")) && !isAutoViews;
+  const isBoost = (nameNode.includes("boost") || nameNode.includes("\u0431\u0443\u0441\u0442") || fullContent.includes("\u0433\u043E\u043B\u043E\u0441 \u0434\u043B\u044F \u0431\u0443\u0441\u0442") || fullContent.includes("\u0433\u043E\u043B\u043E\u0441\u0430 \u0434\u043B\u044F \u0431\u0443\u0441\u0442")) && !isSubscribers;
+  const isStars = (fullContent.includes("stars") || nameNode.includes("\u0437\u0432\u0435\u0437\u0434") || nameNode.includes("star")) && !isSubscribers;
+  if (isStars) return "STARS";
+  if (fullContent.includes("\u0436\u0430\u043B\u043E\u0431\u0430") || fullContent.includes("report")) return "COMPLAINTS";
+  if (isBoost) return "BOOSTS";
+  if (isStory) return "STORIES";
+  if (isAutoViews) return "AUTO_VIEWS";
+  if (isSubscribers) return "SUBSCRIBERS";
+  if (nameNode.includes("\u0440\u0435\u0430\u043A\u0446\u0438") || nameNode.includes("reaction")) {
+    return minV < minR ? "VIEWS" : "REACTIONS";
+  }
+  if (nameNode.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || nameNode.includes("view") || nameNode.includes("\u0433\u043B\u0430\u0437") || nameNode.includes("\u0433\u043B\u044F\u0434\u0435\u043B\u043E\u043A")) {
+    return "VIEWS";
+  }
+  return "OTHER";
+}
+var CATEGORY_LABELS, DEFAULT_CATEGORY_METRICS, CATEGORY_MAP;
+var init_category_detector_pure = __esm({
+  "src/services/providers/analyzer/category-detector.pure.ts"() {
+    "use strict";
+    CATEGORY_LABELS = {
+      SUBSCRIBERS: "\u041F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438 / \u0423\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438",
+      GROUPS: "\u0412\u0441\u0442\u0443\u043F\u043B\u0435\u043D\u0438\u0435 \u0432 \u0433\u0440\u0443\u043F\u043F\u044B / \u0447\u0430\u0442\u044B",
+      LIKES: "\u041B\u0430\u0439\u043A\u0438 / \u041D\u0440\u0430\u0432\u0438\u0442\u0441\u044F",
+      VIEWS: "\u041F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B / \u041E\u0445\u0432\u0430\u0442",
+      COMMENTS: "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438 / \u041E\u0442\u0437\u044B\u0432\u044B",
+      REACTIONS: "\u0420\u0435\u0430\u043A\u0446\u0438\u0438 / \u042D\u043C\u043E\u0434\u0437\u0438",
+      REPOSTS: "\u0420\u0435\u043F\u043E\u0441\u0442\u044B / \u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F",
+      AUTO_VIEWS: "\u0410\u0432\u0442\u043E\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B",
+      AUTO_LIKES: "\u0410\u0432\u0442\u043E\u043B\u0430\u0439\u043A\u0438",
+      AUTO_REACTIONS: "\u0410\u0432\u0442\u043E\u0440\u0435\u0430\u043A\u0446\u0438\u0438",
+      AUTO_REPOSTS: "\u0410\u0432\u0442\u043E\u0440\u0435\u043F\u043E\u0441\u0442\u044B",
+      AUTO_COMMENTS: "\u0410\u0432\u0442\u043E\u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438",
+      BOOSTS: "\u0411\u0443\u0441\u0442\u044B (Telegram Levels)",
+      POLLS: "\u0413\u043E\u043B\u043E\u0441\u0430 / \u041E\u043F\u0440\u043E\u0441\u044B",
+      STORIES: "\u0421\u0442\u043E\u0440\u0438\u0437 / \u0418\u0441\u0442\u043E\u0440\u0438\u0438",
+      BOTS: "\u0420\u043E\u0431\u043E\u0442\u044B / \u0411\u043E\u0442\u044B",
+      REFERRALS: "\u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044B (Apps/Bots)",
+      FRIENDS: "\u0417\u0430\u044F\u0432\u043A\u0438 \u0432 \u0434\u0440\u0443\u0437\u044C\u044F",
+      PLAYS: "\u041F\u0440\u043E\u0441\u043B\u0443\u0448\u0438\u0432\u0430\u043D\u0438\u044F (Music)",
+      TRAFFIC: "\u0422\u0440\u0430\u0444\u0438\u043A / \u041F\u043E\u0441\u0435\u0449\u0435\u043D\u0438\u044F",
+      DISLIKES: "\u0414\u0438\u0437\u043B\u0430\u0439\u043A\u0438",
+      STARS: "\u0417\u0432\u0435\u0437\u0434\u044B (Telegram Stars)",
+      SAVES: "\u0421\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F / Saves",
+      COMPLAINTS: "\u0416\u0430\u043B\u043E\u0431\u044B / Reports",
+      STREAMS: "\u0421\u0442\u0440\u0438\u043C\u044B",
+      PREMIUM: "Premium \u041F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438",
+      RECOVER: "\u0412\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 / \u0414\u043E\u043A\u0440\u0443\u0442\u043A\u0430",
+      OTHER: "\u0414\u0440\u0443\u0433\u043E\u0435 / \u0420\u0430\u0437\u043D\u043E\u0435"
+    };
+    DEFAULT_CATEGORY_METRICS = {
+      VIEWS: { startTime: "5\u201315 \u043C\u0438\u043D", speedText: "\u0434\u043E 50k / \u0434\u0435\u043D\u044C", warranty: 0, qualityLabel: "\u0412\u044B\u0441\u043E\u043A\u043E\u0435" },
+      AUTO_VIEWS: { startTime: "\u041C\u0433\u043D\u043E\u0432\u0435\u043D\u043D\u043E", speedText: "\u0412\u044B\u0441\u043E\u043A\u0430\u044F", warranty: 0, qualityLabel: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442" },
+      LIKES: { startTime: "10\u201330 \u043C\u0438\u043D", speedText: "\u0434\u043E 10k / \u0434\u0435\u043D\u044C", warranty: 0, qualityLabel: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442" },
+      SUBSCRIBERS: { startTime: "0\u20132 \u0447\u0430\u0441\u0430", speedText: "1\u20135k / \u0434\u0435\u043D\u044C", warranty: 30, qualityLabel: "\u0420\u0435\u0430\u043B\u044C\u043D\u044B\u0435" },
+      GROUPS: { startTime: "0\u20132 \u0447\u0430\u0441\u0430", speedText: "1\u20135k / \u0434\u0435\u043D\u044C", warranty: 30, qualityLabel: "\u0420\u0435\u0430\u043B\u044C\u043D\u044B\u0435" },
+      COMMENTS: { startTime: "15\u201360 \u043C\u0438\u043D", speedText: "\u041F\u043B\u0430\u0432\u043D\u0430\u044F", warranty: 0, qualityLabel: "\u0416\u0438\u0432\u044B\u0435" },
+      REACTIONS: { startTime: "5\u201315 \u043C\u0438\u043D", speedText: "\u0411\u044B\u0441\u0442\u0440\u0430\u044F", warranty: 0, qualityLabel: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442" },
+      REPOSTS: { startTime: "10\u201330 \u043C\u0438\u043D", speedText: "\u0434\u043E 10k / \u0434\u0435\u043D\u044C", warranty: 0, qualityLabel: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442" },
+      STORIES: { startTime: "\u041C\u0433\u043D\u043E\u0432\u0435\u043D\u043D\u043E", speedText: "\u0434\u043E 20k / \u0434\u0435\u043D\u044C", warranty: 0, qualityLabel: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442" },
+      BOOSTS: { startTime: "0\u20131 \u0447\u0430\u0441", speedText: "\u0434\u043E 1k / \u0434\u0435\u043D\u044C", warranty: 30, qualityLabel: "\u041F\u0440\u0435\u043C\u0438\u0443\u043C" },
+      OTHER: { startTime: "15\u201360 \u043C\u0438\u043D", speedText: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u043D\u0430\u044F", warranty: 0, qualityLabel: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442" }
+    };
     CATEGORY_MAP = {
       SUBSCRIBERS: ["subscriber", "member", "follow", "participant", "reader", "\u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438", "\u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A", "\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438", "\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A", "\u0444\u043E\u043B\u043B\u043E\u0432\u0435\u0440"],
       VIEWS: ["view", "eye", "watch", "\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440", "\u0433\u043B\u044F\u0434\u0435\u043B\u043E\u043A", "\u0433\u043B\u0430\u0437", "\u043F\u043E\u0441\u0435\u0449\u0435\u043D", "\u043E\u0445\u0432\u0430\u0442", "\u0441\u0442\u0430\u0442", "visit", "reach", "stat", "impressions", "hour", "watch time", "\u0432\u0440\u0435\u043C\u044F \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440", "\u0447\u0430\u0441\u044B \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440"],
@@ -111181,297 +111306,226 @@ var init_smart_analyzer_logic = __esm({
       COMPLAINTS: ["\u0436\u0430\u043B\u043E\u0431\u0430", "report", "complaint", "claim", "\u043D\u0430\u0441\u0438\u043B\u0438\u0435", "\u0441\u043F\u0430\u043C", "\u043F\u043E\u0440\u043D\u043E\u0433\u0440\u0430\u0444\u0438\u044F", "\u0430\u0432\u0442\u043E\u0440\u0441\u043A\u043E\u0435 \u043F\u0440\u0430\u0432\u043E", "\u0444\u0435\u0439\u043A"],
       OTHER: []
     };
+  }
+});
+
+// src/services/providers/analyzer/target-type-detector.pure.ts
+function detectTargetType(effectivePlatform, category, fullContent, isAutoMention) {
+  const isPrivate = fullContent.includes("private") || fullContent.includes("\u0437\u0430\u043A\u0440\u044B\u0442") || fullContent.includes("\u043F\u0440\u0438\u0432\u0430\u0442");
+  const isAuto = isAutoMention || fullContent.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445") || fullContent.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0435") || fullContent.includes("\u0431\u0443\u0434\u0443\u0449\u0438\u0435") || fullContent.includes("\u0431\u0443\u0434\u0443\u0449\u0438\u0445");
+  let targetType = "POST";
+  if (effectivePlatform === "TELEGRAM") {
+    if (category === "STARS") targetType = "CUSTOM";
+    else if (category === "BOTS" || category === "REFERRALS") targetType = "CHANNEL";
+    else if (category === "STORIES") targetType = "STORY";
+    else if (isAuto) targetType = "CHANNEL_POSTS";
+    else if (["SUBSCRIBERS", "GROUPS", "BOOSTS", "PREMIUM", "FRIENDS"].includes(category)) targetType = "CHANNEL";
+    else targetType = "POST";
+  } else if (effectivePlatform === "YOUTUBE") {
+    if (isAuto) targetType = "CHANNEL_POSTS";
+    else if (["SUBSCRIBERS", "FRIENDS", "GROUPS"].includes(category)) targetType = "CHANNEL";
+    else targetType = "POST";
+  } else if (effectivePlatform === "INSTAGRAM") {
+    if (isAuto) targetType = "CHANNEL_POSTS";
+    else if (["SUBSCRIBERS", "FRIENDS", "GROUPS"].includes(category)) targetType = "CHANNEL";
+    else if (category === "STORIES") targetType = "STORY";
+    else if (fullContent.includes("reel") || fullContent.includes("video")) targetType = "POST";
+    else targetType = "POST";
+  } else if (effectivePlatform === "VK") {
+    if (isAuto) targetType = "CHANNEL_POSTS";
+    else if (fullContent.includes("stream") || fullContent.includes("\u0437\u0440\u0438\u0442\u0435\u043B")) targetType = "POST";
+    else if (category === "POLLS") targetType = "POLL";
+    else if (["FRIENDS", "GROUPS", "SUBSCRIBERS"].includes(category)) targetType = "CHANNEL";
+    else if (fullContent.includes("clip") || fullContent.includes("\u043A\u043B\u0438\u043F")) targetType = "POST";
+    else if (fullContent.includes("video") || fullContent.includes("\u0432\u0438\u0434\u0435\u043E")) targetType = "POST";
+    else targetType = "POST";
+  } else if (effectivePlatform === "DZEN") {
+    if (isAuto) targetType = "CHANNEL_POSTS";
+    else if (fullContent.includes("\u0441\u0442\u0430\u0442\u044C") || fullContent.includes("article")) targetType = "POST";
+    else if (category === "SUBSCRIBERS") targetType = "CHANNEL";
+    else targetType = "POST";
+  } else {
+    if (isAuto) targetType = "CHANNEL_POSTS";
+    else if (["SUBSCRIBERS", "GROUPS", "FRIENDS", "PREMIUM"].includes(category)) {
+      targetType = "CHANNEL";
+    } else if (fullContent.includes("video") || fullContent.includes("reel") || fullContent.includes("shorts")) {
+      targetType = "POST";
+    } else {
+      targetType = "POST";
+    }
+  }
+  return { targetType, isPrivate };
+}
+var init_target_type_detector_pure = __esm({
+  "src/services/providers/analyzer/target-type-detector.pure.ts"() {
+    "use strict";
+  }
+});
+
+// src/services/providers/analyzer/execution-metrics.pure.ts
+function detectCustomDataType(category, fullContent) {
+  if (category === "POLLS" || fullContent.includes("\u043D\u043E\u043C\u0435\u0440 \u043E\u0442\u0432\u0435\u0442") || fullContent.includes("\u0437\u0430 \u0432\u0430\u0440\u0438\u0430\u043D\u0442")) {
+    return "NUMBER";
+  }
+  if (fullContent.includes("\u0441\u0432\u043E\u0439 \u0442\u0435\u043A\u0441\u0442") || fullContent.includes("\u0441\u0432\u043E\u0438 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438") || fullContent.includes("\u043A\u0430\u0441\u0442\u043E\u043C\u043D\u044B\u0435 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438") || fullContent.includes("\u043A\u0430\u0441\u0442\u043E\u043C\u043D") && fullContent.includes("\u043A\u043E\u043C\u043C\u0435\u043D\u0442") || fullContent.includes("\u043F\u043E \u0441\u043F\u0438\u0441\u043A\u0443") && (fullContent.includes("\u043A\u043E\u043C\u043C\u0435\u043D\u0442") || fullContent.includes("\u0442\u0435\u043A\u0441\u0442")) || fullContent.includes("custom") && (fullContent.includes("comment") || fullContent.includes("text") || fullContent.includes("msg") || fullContent.includes("reply"))) {
+    return "TEXTAREA";
+  }
+  return "NONE";
+}
+function detectMediaGroupAware(fullContent) {
+  return fullContent.includes("\u043C\u0435\u0434\u0438\u0430\u0433\u0440\u0443\u043F\u043F") || fullContent.includes("media group") || fullContent.includes("\u0430\u043B\u044C\u0431\u043E\u043C");
+}
+function extractRequirements(sanitizedDescription) {
+  let requirements = "";
+  const reqKeywords = ["link:", "url:", "\u0444\u043E\u0440\u043C\u0430\u0442:", "link format:", "\u0442\u0440\u0435\u0431\u043E\u0432\u0430\u043D\u0438\u0435:", "\u043F\u0440\u0438\u043C\u0435\u0440:", "\u0441\u0441\u044B\u043B\u043A\u0430:", "example:", "requirement:"];
+  const lines = (sanitizedDescription || "").split("\n");
+  for (const line of lines) {
+    const lowLine = line.toLowerCase();
+    if (reqKeywords.some((k) => lowLine.includes(k))) {
+      requirements += line.trim() + " ";
+    }
+  }
+  return requirements.trim();
+}
+function detectStartTime(name, fullContent, fallbackStartTime) {
+  const startTimeMatch = name.match(/\[?(?:start(?:\s*time)?|старт)\s*:\s*([^\]\s]+(?:\s+[^\]]+)?)\]?/i);
+  if (startTimeMatch) {
+    const raw = startTimeMatch[1].trim().toLowerCase();
+    if (raw.includes("instant") || raw.includes("\u043C\u0433\u043D\u043E\u0432\u0435\u043D\u043D") || raw.includes("\u043C\u043E\u043C\u0435\u043D\u0442\u0430\u043B\u044C\u043D") || raw.includes("\u0430\u0432\u0442\u043E\u0441\u0442\u0430\u0440\u0442")) return "\u041C\u0433\u043D\u043E\u0432\u0435\u043D\u043D\u043E";
+    if (raw.includes("0-1") || raw.includes("0 - 1") || raw.includes("1 hour") || raw.includes("1 hr")) return "0\u20131 \u0447\u0430\u0441";
+    if (raw.includes("0-2") || raw.includes("0 - 2") || raw.includes("2 hour") || raw.includes("2 hr")) return "0\u20132 \u0447\u0430\u0441\u0430";
+    if (raw.includes("0-3") || raw.includes("0 - 3") || raw.includes("3 hour") || raw.includes("3 hr")) return "0\u20133 \u0447\u0430\u0441\u0430";
+    if (raw.includes("0-8") || raw.includes("0 - 8") || raw.includes("8 hour") || raw.includes("8 hr")) return "0\u20138 \u0447\u0430\u0441\u043E\u0432";
+    if (raw.includes("0-24") || raw.includes("0 - 24") || raw.includes("24 hour") || raw.includes("24 hr")) return "0\u201324 \u0447\u0430\u0441\u0430";
+    if (raw.includes("48 hour") || raw.includes("48 hr")) return "\u0434\u043E 48 \u0447\u0430\u0441\u043E\u0432";
+    if (raw.includes("5-15") || raw.includes("5 - 15") || raw.includes("15 min") || raw.includes("15 \u043C\u0438\u043D")) return "5\u201315 \u043C\u0438\u043D";
+    if (raw.includes("30 min") || raw.includes("30 \u043C\u0438\u043D")) return "\u0434\u043E 30 \u043C\u0438\u043D";
+    return startTimeMatch[1].trim();
+  }
+  if (fullContent.includes("instant") || fullContent.includes("\u043C\u0433\u043D\u043E\u0432\u0435\u043D\u043D") || fullContent.includes("\u043C\u043E\u043C\u0435\u043D\u0442\u0430\u043B\u044C\u043D") || fullContent.includes("\u0430\u0432\u0442\u043E\u0441\u0442\u0430\u0440\u0442")) {
+    return "\u041C\u0433\u043D\u043E\u0432\u0435\u043D\u043D\u043E";
+  }
+  if (fullContent.includes("0-1") || fullContent.includes("0 - 1")) {
+    return "0\u20131 \u0447\u0430\u0441";
+  }
+  if (fullContent.includes("0-24") || fullContent.includes("0 - 24")) {
+    return "0\u201324 \u0447\u0430\u0441\u0430";
+  }
+  return fallbackStartTime;
+}
+function detectSpeedText(name, fullContent, velocity, fallbackSpeedText) {
+  const speedMatch = name.match(/\[?(?:speed|скорость)\s*:\s*([^\]]+)\]?/i);
+  if (speedMatch) {
+    let s = speedMatch[1].trim();
+    s = s.replace(/up\s*to\s*/i, "\u0434\u043E ");
+    s = s.replace(/(\d+(?:\.\d+)?)\s*([kmкм])?\s*\/\s*(?:d|day|days|сут|сутки|день)/i, (_, num, mult) => {
+      const m = (mult || "").toLowerCase();
+      const mStr = m === "k" || m === "\u043A" ? "k" : m === "m" || m === "\u043C" ? " \u043C\u043B\u043D" : "";
+      return `\u0434\u043E ${num}${mStr} / \u0434\u0435\u043D\u044C`;
+    });
+    if (s.toLowerCase() === "fast" || s.toLowerCase().includes("\u0431\u044B\u0441\u0442\u0440")) return "\u0411\u044B\u0441\u0442\u0440\u0430\u044F";
+    if (s.toLowerCase() === "gradual" || s.toLowerCase().includes("\u043F\u043B\u0430\u0432\u043D")) return "\u041F\u043B\u0430\u0432\u043D\u0430\u044F";
+    if (s.toLowerCase() === "slow" || s.toLowerCase().includes("\u043C\u0435\u0434\u043B\u0435\u043D\u043D")) return "\u041F\u043B\u0430\u0432\u043D\u0430\u044F";
+    return s;
+  }
+  if (velocity) {
+    return velocity >= 1e3 ? `\u0434\u043E ${velocity / 1e3}k / \u0434\u0435\u043D\u044C` : `\u0434\u043E ${velocity} / \u0434\u0435\u043D\u044C`;
+  }
+  if (fullContent.includes("fast") || fullContent.includes("\u0431\u044B\u0441\u0442\u0440") || fullContent.includes("\u26A1")) {
+    return "\u0411\u044B\u0441\u0442\u0440\u0430\u044F";
+  }
+  if (fullContent.includes("gradual") || fullContent.includes("\u043F\u043B\u0430\u0432\u043D") || fullContent.includes("drip")) {
+    return "\u041F\u043B\u0430\u0432\u043D\u0430\u044F";
+  }
+  return fallbackSpeedText;
+}
+function resolveQualityLabel(tokenTier, compilerTier, fallbackQuality) {
+  const qualityMap = {
+    PREMIUM: "\u041F\u0440\u0435\u043C\u0438\u0443\u043C",
+    HIGH: "\u0416\u0438\u0432\u044B\u0435",
+    MEDIUM: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442",
+    LOW: "\u042D\u043A\u043E\u043D\u043E\u043C",
+    BOTS: "\u0411\u043E\u0442\u044B",
+    UNKNOWN: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442"
+  };
+  const tokenQuality = tokenTier ? qualityMap[tokenTier] : void 0;
+  if (compilerTier && compilerTier !== "\u042D\u043A\u043E\u043D\u043E\u043C") {
+    return compilerTier;
+  }
+  return tokenQuality || fallbackQuality;
+}
+var init_execution_metrics_pure = __esm({
+  "src/services/providers/analyzer/execution-metrics.pure.ts"() {
+    "use strict";
+  }
+});
+
+// src/services/providers/smart-analyzer.logic.ts
+var SmartAnalyzerLogic;
+var init_smart_analyzer_logic = __esm({
+  "src/services/providers/smart-analyzer.logic.ts"() {
+    "use strict";
+    init_description_sanitizer();
+    init_translation_dictionary();
+    init_name_tokenizer_service();
+    init_geo_warranty_pure();
+    init_platform_detector_pure();
+    init_category_detector_pure();
+    init_target_type_detector_pure();
+    init_execution_metrics_pure();
     SmartAnalyzerLogic = class {
       static detectSync(name, description = "", categoryInput = "", dynamicPlatforms, basePriceUsd = 0) {
         const sanitizedDescription = DescriptionSanitizer.sanitize(description);
         const nameNode = name.toLowerCase();
-        const tokenized = NameTokenizerService.tokenize(name, categoryInput);
         const safeCategoryInput = String(categoryInput || "");
         const catInputLower = safeCategoryInput.toLowerCase();
-        const fullContent = (name + " " + sanitizedDescription + " " + safeCategoryInput).toLowerCase();
-        let geo = "WORLDWIDE";
-        for (const [code, keywords] of Object.entries(GEO_MAP)) {
-          if (keywords.some((k) => fullContent.includes(k))) {
-            geo = code;
-            break;
-          }
-        }
-        const isExplicitNoWarranty = fullContent.includes("\u0431\u0435\u0437 \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0438") || fullContent.includes("\u0431\u0435\u0437 \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0439") || fullContent.includes("\u0431\u0435\u0437 \u0430\u0432\u0442\u043E\u0434\u043E\u043A\u0440\u0443\u0442\u043A\u0438") || fullContent.includes("no refill") || fullContent.includes("no-refill") || fullContent.includes("norefill") || /\b0\s*(?:d|day|days)\s*refill/i.test(fullContent) || /\bnon[\s-]refill/i.test(fullContent) || fullContent.includes("no warranty") || fullContent.includes("without warranty") || fullContent.includes("no drop guarantee") || fullContent.includes("no drop protection") || fullContent.includes("\u0431\u0435\u0437 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F");
-        let warranty = 0;
-        if (!isExplicitNoWarranty) {
-          const warrantyMatch = name.match(/(\d+)\s*(?:дней|дня|день|day|d|days)/i);
-          if (warrantyMatch) {
-            warranty = parseInt(warrantyMatch[1], 10);
-          } else if (fullContent.includes("\u267B\uFE0F") || fullContent.includes("\u0441 \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0435\u0439") || fullContent.includes("\u0433\u0430\u0440\u0430\u043D\u0442\u0438\u044F") || fullContent.includes("\u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0435\u0439")) {
-            warranty = 30;
-          }
-        }
-        let platformEnum = "OTHER";
-        let platformSlug = "other";
-        const platformScores = {};
-        for (const [p, keywords] of Object.entries(PLATFORM_KEYWORDS)) {
-          platformScores[p] = 0;
-          for (const k of keywords) {
-            const isShort = k.length <= 2;
-            const match = (text, key) => {
-              if (isShort) {
-                const rex = new RegExp(`\\b${key}\\b`, "i");
-                return rex.test(text);
-              }
-              return text.includes(key);
-            };
-            if (match(catInputLower, k)) platformScores[p] += 10;
-            if (match(nameNode, k)) platformScores[p] += 5;
-            if (match(sanitizedDescription.toLowerCase(), k)) platformScores[p] += 1;
-          }
-        }
-        let bestPlatformCode = "OTHER";
-        let maxPlatformScore = 0;
-        for (const [p, score] of Object.entries(platformScores)) {
-          if (score > maxPlatformScore) {
-            maxPlatformScore = score;
-            bestPlatformCode = p;
-          }
-        }
-        if (bestPlatformCode !== "OTHER") {
-          platformEnum = bestPlatformCode;
-          platformSlug = bestPlatformCode.toLowerCase();
-        }
-        if (dynamicPlatforms && dynamicPlatforms.length > 0) {
-          for (const p of dynamicPlatforms) {
-            if (p.keywords.some((k) => fullContent.includes(k.toLowerCase()))) {
-              platformSlug = p.slug.toLowerCase();
-              const upperSlug = p.slug.toUpperCase();
-              if (Object.keys(PLATFORM_KEYWORDS).includes(upperSlug)) {
-                platformEnum = upperSlug;
-              }
-              break;
-            }
-          }
-        }
-        let category = "OTHER";
+        const fullContent = `${name} ${sanitizedDescription} ${safeCategoryInput}`.toLowerCase();
+        const tokenized = NameTokenizerService.tokenize(name, categoryInput);
+        const rawDetectedGeo = detectGeoCode(fullContent);
+        const isExplicitNoWarranty = checkExplicitNoWarranty(fullContent);
+        const warranty = detectWarrantyDays(name, fullContent, isExplicitNoWarranty);
+        const { platformEnum, platformSlug } = detectPlatform(
+          nameNode,
+          sanitizedDescription.toLowerCase(),
+          catInputLower,
+          fullContent,
+          dynamicPlatforms
+        );
+        const category = detectCategory(nameNode, fullContent, platformEnum);
         const isAutoMention = fullContent.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u043A") || fullContent.includes("auto") || fullContent.includes("subscription") || fullContent.includes("\u0431\u0443\u0434\u0443\u0449") || fullContent.includes("\u0430\u0432\u0442\u043E");
-        const isViewMention = fullContent.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || fullContent.includes("view") || fullContent.includes("eye");
-        const isLikeMention = fullContent.includes("\u043B\u0430\u0439\u043A") || fullContent.includes("like") || fullContent.includes("heart");
-        const isReactionMention = fullContent.includes("\u0440\u0435\u0430\u043A\u0446\u0438") || fullContent.includes("reaction");
-        const isRepostMention = fullContent.includes("\u0440\u0435\u043F\u043E\u0441\u0442") || fullContent.includes("share");
-        const isCommentMention = fullContent.includes("\u043A\u043E\u043C\u043C\u0435\u043D\u0442") || fullContent.includes("comment");
-        const isPostModifier = fullContent.includes("\u043F\u043E\u0441\u0442") || fullContent.includes("\u0437\u0430\u043F\u0438\u0441") || fullContent.includes("\u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446") || fullContent.includes("future") || nameNode.includes("\u0430\u0432\u0442\u043E");
-        if (isAutoMention && (isViewMention || isLikeMention || isReactionMention || isRepostMention || isCommentMention) && isPostModifier) {
-          if (isViewMention) category = "AUTO_VIEWS";
-          else if (isLikeMention) category = "AUTO_LIKES";
-          else if (isReactionMention) category = "AUTO_REACTIONS";
-          else if (isRepostMention) category = "AUTO_REPOSTS";
-          else if (isCommentMention) category = "AUTO_COMMENTS";
-        } else if ((nameNode.includes("\u0431\u043E\u0442") || nameNode.includes(" bot")) && !nameNode.includes("\u043F\u043E\u0434\u043F\u0438\u0441") && !nameNode.includes("\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A")) {
-          category = "BOTS";
-        } else {
-          let bestCatMatch = null;
-          for (const [c, keywords] of Object.entries(CATEGORY_MAP)) {
-            for (const k of keywords) {
-              const idx = fullContent.indexOf(k);
-              if (idx !== -1) {
-                if (!bestCatMatch || idx < bestCatMatch.index) {
-                  bestCatMatch = { category: c, index: idx };
-                }
-              }
-            }
-          }
-          if (bestCatMatch) category = bestCatMatch.category;
-        }
-        const effectivePlatform = platformEnum;
-        if (effectivePlatform === "VK") {
-          if (fullContent.includes("\u0432 \u0434\u0440\u0443\u0437\u044C\u044F") || fullContent.includes("\u043D\u0430 \u043F\u0440\u043E\u0444\u0438\u043B\u044C")) category = "FRIENDS";
-          else if (fullContent.includes("\u0433\u0440\u0443\u043F\u043F") || fullContent.includes("\u0441\u043E\u043E\u0431\u0449\u0435\u0441\u0442")) category = "GROUPS";
-          else if (fullContent.includes("\u043F\u0440\u043E\u0441\u043B\u0443\u0448") || fullContent.includes("\u043F\u043B\u0435\u0439\u043B\u0438\u0441\u0442")) category = "PLAYS";
-          else if (fullContent.includes("\u0433\u043B\u0430\u0437\u0438\u043A") || fullContent.includes("\u043D\u0430 \u0437\u0430\u043F\u0438\u0441\u044C")) category = "VIEWS";
-          else if (fullContent.includes("\u043E\u043F\u0440\u043E\u0441") || fullContent.includes("\u0433\u043E\u043B\u043E\u0441")) category = "POLLS";
-        } else if (effectivePlatform === "FACEBOOK") {
-          if (fullContent.includes("group") || fullContent.includes("\u0433\u0440\u0443\u043F\u043F")) category = "SUBSCRIBERS";
-          else if (fullContent.includes("reel") || fullContent.includes("video")) category = "VIEWS";
-        } else if (effectivePlatform === "TELEGRAM") {
-          const vIdx = nameNode.indexOf("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440");
-          const vIdx2 = nameNode.indexOf("view");
-          const rIdx = nameNode.indexOf("\u0440\u0435\u0430\u043A\u0446\u0438");
-          const rIdx2 = nameNode.indexOf("reaction");
-          const minV = Math.min(vIdx === -1 ? Infinity : vIdx, vIdx2 === -1 ? Infinity : vIdx2);
-          const minR = Math.min(rIdx === -1 ? Infinity : rIdx, rIdx2 === -1 ? Infinity : rIdx2);
-          const isReactionsPrimary = minR < minV;
-          const isStory = nameNode.includes("\u0438\u0441\u0442\u043E\u0440\u0438") || nameNode.includes("story");
-          const isAutoViews = !isReactionsPrimary && (nameNode.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u043A") || nameNode.includes("auto") || nameNode.includes("\u0430\u0432\u0442\u043E")) && (nameNode.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || nameNode.includes("view") || nameNode.includes("\u0433\u043B\u0430\u0437"));
-          const isSubscribers = (/подписч|member|follower|читател|фолловер/i.test(nameNode) || nameNode.includes("\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A") && !nameNode.includes("\u043E\u043F\u0440\u043E\u0441") && !nameNode.includes("\u0433\u043E\u043B\u043E\u0441")) && !isAutoViews;
-          const isBoost = (nameNode.includes("boost") || nameNode.includes("\u0431\u0443\u0441\u0442") || fullContent.includes("\u0433\u043E\u043B\u043E\u0441 \u0434\u043B\u044F \u0431\u0443\u0441\u0442") || fullContent.includes("\u0433\u043E\u043B\u043E\u0441\u0430 \u0434\u043B\u044F \u0431\u0443\u0441\u0442")) && !isSubscribers;
-          const isStars = (fullContent.includes("stars") || nameNode.includes("\u0437\u0432\u0435\u0437\u0434") || nameNode.includes("star")) && !isSubscribers;
-          if (isStars) category = "STARS";
-          else if (fullContent.includes("\u0436\u0430\u043B\u043E\u0431\u0430") || fullContent.includes("report")) category = "COMPLAINTS";
-          else if (isBoost) category = "BOOSTS";
-          else if (isStory) category = "STORIES";
-          else if (isAutoViews) category = "AUTO_VIEWS";
-          else if (isSubscribers) category = "SUBSCRIBERS";
-          else if (nameNode.includes("\u0440\u0435\u0430\u043A\u0446\u0438") || nameNode.includes("reaction")) {
-            if (minV < minR) category = "VIEWS";
-            else category = "REACTIONS";
-          } else if (nameNode.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || nameNode.includes("view") || nameNode.includes("\u0433\u043B\u0430\u0437") || nameNode.includes("\u0433\u043B\u044F\u0434\u0435\u043B\u043E\u043A")) category = "VIEWS";
-        } else if (effectivePlatform === "YOUTUBE") {
-          if (fullContent.includes("\u0447\u0430\u0441") && !fullContent.includes("\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A") || fullContent.includes("hour")) category = "VIEWS";
-          if (fullContent.includes("short")) category = "VIEWS";
-          if (nameNode.includes("\u043B\u0430\u0439\u043A") || nameNode.includes("like")) category = "LIKES";
-        } else if (effectivePlatform === "DZEN") {
-          if (fullContent.includes("\u0441\u0442\u0430\u0442\u044C") || fullContent.includes("article")) category = "VIEWS";
-        } else if (effectivePlatform === "INSTAGRAM") {
-          if (nameNode.includes("story") || nameNode.includes("\u0441\u0442\u043E\u0440\u0438\u0441")) category = "STORIES";
-          else if (/подписч|follow/i.test(nameNode)) category = "SUBSCRIBERS";
-          else if (nameNode.includes("\u043B\u0430\u0439\u043A") || nameNode.includes("like")) category = "LIKES";
-          else if (nameNode.includes(" reels") || nameNode.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || nameNode.includes("view")) category = "VIEWS";
-        }
-        let targetType;
-        const isPrivate = fullContent.includes("private") || fullContent.includes("\u0437\u0430\u043A\u0440\u044B\u0442") || fullContent.includes("\u043F\u0440\u0438\u0432\u0430\u0442");
-        const isAuto = isAutoMention || fullContent.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0445") || fullContent.includes("\u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0435") || fullContent.includes("\u0431\u0443\u0434\u0443\u0449\u0438\u0435") || fullContent.includes("\u0431\u0443\u0434\u0443\u0449\u0438\u0445");
-        if (effectivePlatform === "TELEGRAM") {
-          if (category === "STARS") targetType = "CUSTOM";
-          else if (category === "BOTS" || category === "REFERRALS") targetType = "CHANNEL";
-          else if (category === "STORIES") targetType = "STORY";
-          else if (isAuto) targetType = "CHANNEL_POSTS";
-          else if (["SUBSCRIBERS", "GROUPS", "BOOSTS", "PREMIUM", "FRIENDS"].includes(category)) targetType = "CHANNEL";
-          else targetType = "POST";
-        } else if (effectivePlatform === "YOUTUBE") {
-          if (isAuto) targetType = "CHANNEL_POSTS";
-          else if (["SUBSCRIBERS", "FRIENDS", "GROUPS"].includes(category)) targetType = "CHANNEL";
-          else targetType = "POST";
-        } else if (effectivePlatform === "INSTAGRAM") {
-          if (isAuto) targetType = "CHANNEL_POSTS";
-          else if (["SUBSCRIBERS", "FRIENDS", "GROUPS"].includes(category)) targetType = "CHANNEL";
-          else if (category === "STORIES") targetType = "STORY";
-          else if (fullContent.includes("reel") || fullContent.includes("video")) targetType = "POST";
-          else targetType = "POST";
-        } else if (effectivePlatform === "VK") {
-          if (isAuto) targetType = "CHANNEL_POSTS";
-          else if (fullContent.includes("stream") || fullContent.includes("\u0437\u0440\u0438\u0442\u0435\u043B")) targetType = "POST";
-          else if (category === "POLLS") targetType = "POLL";
-          else if (["FRIENDS", "GROUPS", "SUBSCRIBERS"].includes(category)) targetType = "CHANNEL";
-          else if (fullContent.includes("clip") || fullContent.includes("\u043A\u043B\u0438\u043F")) targetType = "POST";
-          else if (fullContent.includes("video") || fullContent.includes("\u0432\u0438\u0434\u0435\u043E")) targetType = "POST";
-          else targetType = "POST";
-        } else if (effectivePlatform === "DZEN") {
-          if (isAuto) targetType = "CHANNEL_POSTS";
-          else if (fullContent.includes("\u0441\u0442\u0430\u0442\u044C") || fullContent.includes("article")) targetType = "POST";
-          else if (category === "SUBSCRIBERS") targetType = "CHANNEL";
-          else targetType = "POST";
-        } else {
-          if (isAuto) targetType = "CHANNEL_POSTS";
-          else if (["SUBSCRIBERS", "GROUPS", "FRIENDS", "PREMIUM"].includes(category)) {
-            targetType = "CHANNEL";
-          } else if (fullContent.includes("video") || fullContent.includes("reel") || fullContent.includes("shorts")) {
-            targetType = "POST";
-          } else {
-            targetType = "POST";
-          }
-        }
-        const isFast = fullContent.includes("fast") || fullContent.includes("\u0431\u044B\u0441\u0442\u0440");
-        const isHQ = fullContent.includes("hq") || fullContent.includes("high quality");
-        const desc = sanitizedDescription && sanitizedDescription.length > 20 ? sanitizedDescription : `\u0423\u0441\u043B\u0443\u0433\u0430 \u043F\u0440\u043E\u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F \u0434\u043B\u044F ${PLATFORM_LABELS[effectivePlatform] || "\u0441\u043E\u0446\u0441\u0435\u0442\u0435\u0439"}.`;
-        let requirements = "";
-        const reqKeywords = ["link:", "url:", "\u0444\u043E\u0440\u043C\u0430\u0442:", "link format:", "\u0442\u0440\u0435\u0431\u043E\u0432\u0430\u043D\u0438\u0435:", "\u043F\u0440\u0438\u043C\u0435\u0440:", "\u0441\u0441\u044B\u043B\u043A\u0430:", "example:", "requirement:"];
-        const lines = (sanitizedDescription || "").split("\n");
-        for (const line of lines) {
-          const lowLine = line.toLowerCase();
-          if (reqKeywords.some((k) => lowLine.includes(k))) {
-            requirements += line.trim() + " ";
-          }
-        }
-        let customDataType = "NONE";
-        if (category === "POLLS" || fullContent.includes("\u043D\u043E\u043C\u0435\u0440 \u043E\u0442\u0432\u0435\u0442") || fullContent.includes("\u0437\u0430 \u0432\u0430\u0440\u0438\u0430\u043D\u0442")) {
-          customDataType = "NUMBER";
-        } else if (fullContent.includes("\u0441\u0432\u043E\u0439 \u0442\u0435\u043A\u0441\u0442") || fullContent.includes("\u0441\u0432\u043E\u0438 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438") || fullContent.includes("\u043A\u0430\u0441\u0442\u043E\u043C\u043D\u044B\u0435 \u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438") || fullContent.includes("\u043A\u0430\u0441\u0442\u043E\u043C\u043D") && fullContent.includes("\u043A\u043E\u043C\u043C\u0435\u043D\u0442") || fullContent.includes("\u043F\u043E \u0441\u043F\u0438\u0441\u043A\u0443") && (fullContent.includes("\u043A\u043E\u043C\u043C\u0435\u043D\u0442") || fullContent.includes("\u0442\u0435\u043A\u0441\u0442")) || fullContent.includes("custom") && (fullContent.includes("comment") || fullContent.includes("text") || fullContent.includes("msg") || fullContent.includes("reply"))) {
-          customDataType = "TEXTAREA";
-        }
-        let isMediaGroupAware = false;
-        if (fullContent.includes("\u043C\u0435\u0434\u0438\u0430\u0433\u0440\u0443\u043F\u043F") || fullContent.includes("media group") || fullContent.includes("\u0430\u043B\u044C\u0431\u043E\u043C")) {
-          isMediaGroupAware = true;
-        }
+        const { targetType, isPrivate } = detectTargetType(platformEnum, category, fullContent, isAutoMention);
+        const customDataType = detectCustomDataType(category, fullContent);
+        const isMediaGroupAware = detectMediaGroupAware(fullContent);
+        const requirements = extractRequirements(sanitizedDescription);
         const geoTagMatch = name.match(/\[(.*?)\]/);
         let rawGeo = geoTagMatch ? geoTagMatch[1] : void 0;
         if (rawGeo && (rawGeo.includes("|") || rawGeo.length > 20)) {
           rawGeo = void 0;
         }
-        const compiledGeo = rawGeo ? normalizeGeo(rawGeo) : normalizeGeo(geo);
+        const compiledGeo = rawGeo ? normalizeGeo(rawGeo) : normalizeGeo(rawDetectedGeo);
         const metricsCompiler = compileServiceMetrics(name, basePriceUsd);
         const tagsStr = metricsCompiler.translatedTags.filter(Boolean).join(". ");
         let finalDescription = tagsStr ? `${tagsStr}. \u0413\u0435\u043E: ${compiledGeo}.` : `\u0413\u0435\u043E: ${compiledGeo}.`;
-        if (requirements.trim()) {
+        if (requirements) {
           finalDescription += `
-\u0422\u0440\u0435\u0431\u043E\u0432\u0430\u043D\u0438\u044F: ${requirements.trim()}`;
+\u0422\u0440\u0435\u0431\u043E\u0432\u0430\u043D\u0438\u044F: ${requirements}`;
         }
         if (!metricsCompiler.isRefill) {
           finalDescription += `
 \u0412\u043D\u0438\u043C\u0430\u043D\u0438\u0435: \u0412\u043E\u0437\u043C\u043E\u0436\u043D\u044B \u043E\u0442\u043F\u0438\u0441\u043A\u0438. \u0411\u0435\u0437 \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u0438 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F.`;
         }
-        if (desc && desc.length > 5) {
+        if (sanitizedDescription && sanitizedDescription.length > 5) {
           finalDescription += `
 
 --- \u041E\u0440\u0438\u0433\u0438\u043D\u0430\u043B\u044C\u043D\u043E\u0435 \u043E\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 ---
-${desc}`;
+${sanitizedDescription}`;
         }
         const catDefaults = DEFAULT_CATEGORY_METRICS[category] || DEFAULT_CATEGORY_METRICS.OTHER;
-        let detectedStartTime;
-        const startTimeMatch = name.match(/\[?(?:start(?:\s*time)?|старт)\s*:\s*([^\]\s]+(?:\s+[^\]]+)?)\]?/i);
-        if (startTimeMatch) {
-          const raw = startTimeMatch[1].trim().toLowerCase();
-          if (raw.includes("instant") || raw.includes("\u043C\u0433\u043D\u043E\u0432\u0435\u043D\u043D") || raw.includes("\u043C\u043E\u043C\u0435\u043D\u0442\u0430\u043B\u044C\u043D") || raw.includes("\u0430\u0432\u0442\u043E\u0441\u0442\u0430\u0440\u0442")) detectedStartTime = "\u041C\u0433\u043D\u043E\u0432\u0435\u043D\u043D\u043E";
-          else if (raw.includes("0-1") || raw.includes("0 - 1") || raw.includes("1 hour") || raw.includes("1 hr")) detectedStartTime = "0\u20131 \u0447\u0430\u0441";
-          else if (raw.includes("0-2") || raw.includes("0 - 2") || raw.includes("2 hour") || raw.includes("2 hr")) detectedStartTime = "0\u20132 \u0447\u0430\u0441\u0430";
-          else if (raw.includes("0-3") || raw.includes("0 - 3") || raw.includes("3 hour") || raw.includes("3 hr")) detectedStartTime = "0\u20133 \u0447\u0430\u0441\u0430";
-          else if (raw.includes("0-8") || raw.includes("0 - 8") || raw.includes("8 hour") || raw.includes("8 hr")) detectedStartTime = "0\u20138 \u0447\u0430\u0441\u043E\u0432";
-          else if (raw.includes("0-24") || raw.includes("0 - 24") || raw.includes("24 hour") || raw.includes("24 hr")) detectedStartTime = "0\u201324 \u0447\u0430\u0441\u0430";
-          else if (raw.includes("48 hour") || raw.includes("48 hr")) detectedStartTime = "\u0434\u043E 48 \u0447\u0430\u0441\u043E\u0432";
-          else if (raw.includes("5-15") || raw.includes("5 - 15") || raw.includes("15 min") || raw.includes("15 \u043C\u0438\u043D")) detectedStartTime = "5\u201315 \u043C\u0438\u043D";
-          else if (raw.includes("30 min") || raw.includes("30 \u043C\u0438\u043D")) detectedStartTime = "\u0434\u043E 30 \u043C\u0438\u043D";
-          else detectedStartTime = startTimeMatch[1].trim();
-        } else if (fullContent.includes("instant") || fullContent.includes("\u043C\u0433\u043D\u043E\u0432\u0435\u043D\u043D") || fullContent.includes("\u043C\u043E\u043C\u0435\u043D\u0442\u0430\u043B\u044C\u043D") || fullContent.includes("\u0430\u0432\u0442\u043E\u0441\u0442\u0430\u0440\u0442")) {
-          detectedStartTime = "\u041C\u0433\u043D\u043E\u0432\u0435\u043D\u043D\u043E";
-        } else if (fullContent.includes("0-1") || fullContent.includes("0 - 1")) {
-          detectedStartTime = "0\u20131 \u0447\u0430\u0441";
-        } else if (fullContent.includes("0-24") || fullContent.includes("0 - 24")) {
-          detectedStartTime = "0\u201324 \u0447\u0430\u0441\u0430";
-        } else {
-          detectedStartTime = catDefaults.startTime;
-        }
-        let detectedSpeedText;
-        const speedMatch = name.match(/\[?(?:speed|скорость)\s*:\s*([^\]]+)\]?/i);
-        if (speedMatch) {
-          let s = speedMatch[1].trim();
-          s = s.replace(/up\s*to\s*/i, "\u0434\u043E ");
-          s = s.replace(/(\d+(?:\.\d+)?)\s*([kmкм])?\s*\/\s*(?:d|day|days|сут|сутки|день)/i, (_, num, mult) => {
-            const m = (mult || "").toLowerCase();
-            const mStr = m === "k" || m === "\u043A" ? "k" : m === "m" || m === "\u043C" ? " \u043C\u043B\u043D" : "";
-            return `\u0434\u043E ${num}${mStr} / \u0434\u0435\u043D\u044C`;
-          });
-          if (s.toLowerCase() === "fast" || s.toLowerCase().includes("\u0431\u044B\u0441\u0442\u0440")) s = "\u0411\u044B\u0441\u0442\u0440\u0430\u044F";
-          else if (s.toLowerCase() === "gradual" || s.toLowerCase().includes("\u043F\u043B\u0430\u0432\u043D")) s = "\u041F\u043B\u0430\u0432\u043D\u0430\u044F";
-          else if (s.toLowerCase() === "slow" || s.toLowerCase().includes("\u043C\u0435\u0434\u043B\u0435\u043D\u043D")) s = "\u041F\u043B\u0430\u0432\u043D\u0430\u044F";
-          detectedSpeedText = s;
-        } else if (tokenized.metrics?.velocity) {
-          const v = tokenized.metrics.velocity;
-          detectedSpeedText = v >= 1e3 ? `\u0434\u043E ${v / 1e3}k / \u0434\u0435\u043D\u044C` : `\u0434\u043E ${v} / \u0434\u0435\u043D\u044C`;
-        } else if (fullContent.includes("fast") || fullContent.includes("\u0431\u044B\u0441\u0442\u0440") || fullContent.includes("\u26A1")) {
-          detectedSpeedText = "\u0411\u044B\u0441\u0442\u0440\u0430\u044F";
-        } else if (fullContent.includes("gradual") || fullContent.includes("\u043F\u043B\u0430\u0432\u043D") || fullContent.includes("drip")) {
-          detectedSpeedText = "\u041F\u043B\u0430\u0432\u043D\u0430\u044F";
-        } else {
-          detectedSpeedText = catDefaults.speedText;
-        }
+        const detectedStartTime = detectStartTime(name, fullContent, catDefaults.startTime);
+        const detectedSpeedText = detectSpeedText(name, fullContent, tokenized.metrics?.velocity, catDefaults.speedText);
         const finalWarranty = isExplicitNoWarranty ? 0 : metricsCompiler.warrantyDays || warranty || catDefaults.warranty;
         const hasRefillBadge = !isExplicitNoWarranty && (metricsCompiler.isRefill || warranty > 0 || tokenized.metrics?.hasRefill || catDefaults.warranty > 0);
-        const qualityMap = {
-          PREMIUM: "\u041F\u0440\u0435\u043C\u0438\u0443\u043C",
-          HIGH: "\u0416\u0438\u0432\u044B\u0435",
-          MEDIUM: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442",
-          LOW: "\u042D\u043A\u043E\u043D\u043E\u043C",
-          BOTS: "\u0411\u043E\u0442\u044B",
-          UNKNOWN: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442"
-        };
-        const tokenQuality = tokenized.metrics?.quality ? qualityMap[tokenized.metrics.quality] : void 0;
-        const finalQuality = metricsCompiler.tier && metricsCompiler.tier !== "\u042D\u043A\u043E\u043D\u043E\u043C" ? metricsCompiler.tier : tokenQuality || catDefaults.qualityLabel;
+        const finalQuality = resolveQualityLabel(tokenized.metrics?.quality, metricsCompiler.tier, catDefaults.qualityLabel);
         const categoryLabel = CATEGORY_LABELS[category] || "\u041F\u0440\u043E\u0434\u0432\u0438\u0436\u0435\u043D\u0438\u0435";
         const finalName = `${categoryLabel} (${finalQuality})`;
         const enrichedMetrics = {
@@ -111491,7 +111545,7 @@ ${desc}`;
           description_ru: finalDescription,
           suggestedName: finalName,
           cleanName: tokenized.cleanName,
-          requirements: requirements.trim() || void 0,
+          requirements: requirements || void 0,
           geo: compiledGeo,
           warranty: finalWarranty,
           startTime: detectedStartTime,
@@ -160427,11 +160481,8 @@ async function runETARecalculation() {
 // src/workers/processors/catalog.processor.ts
 init_queue_manager();
 
-// src/services/admin/catalog.service.ts
-var import_crypto8 = __toESM(require("crypto"));
+// src/services/admin/catalog/catalog-management.service.ts
 init_db();
-init_redis();
-init_logger();
 
 // src/lib/pagination.ts
 async function paginatedQuery(model, params) {
@@ -160494,7 +160545,401 @@ async function paginatedQuery(model, params) {
   };
 }
 
-// src/services/admin/catalog.service.ts
+// src/services/admin/catalog/catalog-management.service.ts
+init_admin_audit();
+init_settings();
+init_financial_constants();
+init_tenant_scope();
+init_currency_invariant();
+var CatalogManagementService = class {
+  /**
+   * Paginated service list with category, markup, and order count.
+   */
+  static async listServices(params) {
+    const andConditions = [];
+    if (params.tenantId && params.tenantId !== "all") {
+      andConditions.push({ tenantId: { in: [params.tenantId, "all"] } });
+    }
+    if (params.categoryId && params.categoryId !== "all") {
+      andConditions.push({ categoryId: params.categoryId });
+    } else if (params.networkSlug && params.networkSlug !== "ALL" && params.networkSlug !== "all") {
+      andConditions.push({ category: { network: { slug: params.networkSlug } } });
+    }
+    if (params.providerId && params.providerId !== "all") {
+      andConditions.push({ providerId: params.providerId === "none" ? null : params.providerId });
+    }
+    if (params.hideDeleted) {
+      andConditions.push({
+        isActive: true,
+        OR: [
+          { cooldownReason: null },
+          { cooldownReason: { notIn: ["ZOMBIE_AUTO_DISABLED", "ZOMBIE_ARCHIVED"] } }
+        ]
+      });
+    }
+    if (params.isActive !== void 0) {
+      andConditions.push({ isActive: params.isActive });
+    }
+    if (params.providerStatus && params.providerStatus !== "all") {
+      if (params.providerStatus === "active") {
+        andConditions.push({
+          providerId: { not: null },
+          cooldownReason: null
+        });
+      } else if (params.providerStatus === "zombie") {
+        andConditions.push({
+          cooldownReason: { in: ["ZOMBIE_AUTO_DISABLED", "ZOMBIE_ARCHIVED"] }
+        });
+      } else if (params.providerStatus === "cooldown") {
+        andConditions.push({
+          isActive: true,
+          cooldownUntil: { gt: /* @__PURE__ */ new Date() },
+          cooldownReason: { notIn: ["ZOMBIE_AUTO_DISABLED", "ZOMBIE_ARCHIVED"] }
+        });
+      } else if (params.providerStatus === "manual") {
+        andConditions.push({
+          providerId: null
+        });
+      }
+    }
+    if (params.externalId?.trim()) {
+      andConditions.push({ externalId: params.externalId.trim() });
+    }
+    if (params.search?.trim()) {
+      const q = params.search.trim();
+      const normalizedNumericQ = q.replace(/^[#№\s]+/, "").replace(/^id[\s:]*/i, "").trim();
+      const lowerQ = q.toLowerCase();
+      const numId = parseInt(normalizedNumericQ, 10);
+      const isPureNumber = !isNaN(numId) && normalizedNumericQ === String(numId);
+      const orConditions = [];
+      if (isPureNumber) {
+        orConditions.push({ numericId: numId });
+      }
+      orConditions.push({ name: { contains: q, mode: "insensitive" } });
+      orConditions.push({ externalId: q });
+      if (isPureNumber) {
+        orConditions.push({ externalId: String(numId) });
+      }
+      const providers = await db.provider.findMany({ select: { id: true, name: true } });
+      const matchedProvider = providers.find((p) => p.id === q || p.name.toLowerCase() === lowerQ);
+      if (matchedProvider) {
+        orConditions.push({ providerId: matchedProvider.id });
+      }
+      const networks = await db.network.findMany({ select: { id: true, slug: true } });
+      const matchedNetwork = networks.find((n) => n.slug === lowerQ || lowerQ.includes(n.slug));
+      if (matchedNetwork) {
+        orConditions.push({ category: { networkId: matchedNetwork.id } });
+      }
+      andConditions.push({ OR: orConditions });
+    }
+    const where = andConditions.length > 0 ? { AND: andConditions } : {};
+    let orderBy = { numericId: "asc" };
+    if (params.sortBy) {
+      const order = params.sortOrder || "asc";
+      switch (params.sortBy) {
+        case "id":
+          orderBy = { numericId: order };
+          break;
+        case "name":
+          orderBy = { name: order };
+          break;
+        case "rate":
+          orderBy = { rate: order };
+          break;
+        case "markup":
+          orderBy = { markup: order };
+          break;
+        case "price":
+          orderBy = { pricePer1000Cents: order };
+          break;
+        default:
+          orderBy = { numericId: order };
+          break;
+      }
+    }
+    return paginatedQuery(db.service, {
+      cursor: params.cursor,
+      page: params.page,
+      pageSize: params.pageSize || 50,
+      where,
+      orderBy,
+      include: {
+        category: { select: { id: true, name: true, icon: true, network: { select: { name: true, slug: true, icon: true } } } },
+        _count: { select: { orders: true } }
+      }
+    });
+  }
+  /**
+   * Updates service markup and recalculates prices with safety bounds.
+   */
+  static async updateMarkup(serviceId, newMarkup, admin) {
+    if (newMarkup < 1) throw new Error("\u041D\u0430\u0446\u0435\u043D\u043A\u0430 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442 \u0431\u044B\u0442\u044C \u043C\u0435\u043D\u044C\u0448\u0435 1.0 (\u043A\u043E\u044D\u0444\u0444\u0438\u0446\u0438\u0435\u043D\u0442 x1)");
+    if (newMarkup > 151) throw new Error("\u041D\u0430\u0446\u0435\u043D\u043A\u0430 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442 \u0431\u044B\u0442\u044C \u0431\u043E\u043B\u044C\u0448\u0435 151.0 (15000%)");
+    const service = await db.service.findUniqueOrThrow({ where: { id: serviceId } });
+    const oldMarkup = service.markup;
+    const usdToRub = await SettingsProvider.getExchangeRateUSD();
+    const costRub = getCostRub(service.rate, service.providerCurrency || "RUB", usdToRub);
+    await db.service.update({
+      where: { id: serviceId },
+      data: {
+        markup: newMarkup,
+        costPer1kRub: costRub,
+        pricePer1000Cents: Math.round(applyBeautifulRounding(costRub * newMarkup) * 100)
+      }
+    });
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: "MARKUP_UPDATE",
+      target: serviceId,
+      targetType: "SERVICE",
+      oldValue: { markup: oldMarkup },
+      newValue: { markup: newMarkup }
+    });
+  }
+  /**
+   * Toggles service active status with audit logging.
+   */
+  static async toggleService(serviceId, isActive, admin) {
+    const service = await db.service.findUniqueOrThrow({ where: { id: serviceId } });
+    const oldActive = service.isActive;
+    await db.service.update({
+      where: { id: serviceId },
+      data: {
+        isActive,
+        cooldownReason: isActive ? null : "MANUAL_DEACTIVATED"
+      }
+    });
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: isActive ? "SERVICE_ACTIVATE" : "SERVICE_DEACTIVATE",
+      target: serviceId,
+      targetType: "SERVICE",
+      oldValue: { isActive: oldActive },
+      newValue: { isActive }
+    });
+  }
+  /**
+   * Soft deletes a service (marks inactive and flags cooldown).
+   */
+  static async softDeleteService(serviceId, admin) {
+    const service = await db.service.findUniqueOrThrow({ where: { id: serviceId } });
+    await db.service.update({
+      where: { id: serviceId },
+      data: {
+        isActive: false,
+        cooldownReason: "ZOMBIE_ARCHIVED",
+        cooldownUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1e3),
+        name: service.name.startsWith("[ARCHIVED] ") ? service.name : `[ARCHIVED] ${service.name}`
+      }
+    });
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: "SERVICE_SOFT_DELETE",
+      target: serviceId,
+      targetType: "SERVICE",
+      oldValue: { name: service.name, isActive: service.isActive },
+      newValue: { archived: true }
+    });
+  }
+  /**
+   * Catalog stats for the header and dashboard.
+   */
+  static async getCatalogStats(tenantId, _startDate, _endDate) {
+    const where = {};
+    if (tenantId && tenantId !== "all") where.tenantId = { in: [tenantId, "all"] };
+    const categoryWhere = {};
+    if (tenantId && tenantId !== "all") categoryWhere.tenantId = { in: [tenantId, "all"] };
+    const [totalServices, activeServices, categories] = await Promise.all([
+      db.service.count({ where }),
+      db.service.count({ where: { ...where, isActive: true } }),
+      db.category.count({ where: categoryWhere })
+    ]);
+    return { totalServices, activeServices, categories };
+  }
+  /**
+   * Bulk updates markup for multiple services matching filter.
+   */
+  static async bulkUpdateMarkup(filter2, newMarkup, admin) {
+    if (newMarkup !== 0 && (newMarkup < 1 || newMarkup > 151)) {
+      throw new Error("\u041D\u0430\u0446\u0435\u043D\u043A\u0430 \u0434\u043E\u043B\u0436\u043D\u0430 \u0431\u044B\u0442\u044C \u0432 \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D\u0435 1.0\u2013151.0 \u0438\u043B\u0438 0 (\u0430\u0432\u0442\u043E\u043A\u0430\u043B\u044C\u043A\u0443\u043B\u044F\u0446\u0438\u044F)");
+    }
+    const where = {
+      isQuarantined: false
+    };
+    if (filter2.tenantId) where.tenantId = filter2.tenantId;
+    if (filter2.categoryId) where.categoryId = filter2.categoryId;
+    if (filter2.platform) where.category = { network: { slug: filter2.platform } };
+    const usdToRub = await SettingsProvider.getExchangeRateUSD();
+    const services = await db.service.findMany({ where, select: { id: true, rate: true, providerCurrency: true } });
+    const updates = services.map((s) => {
+      const costRub = getCostRub(s.rate, s.providerCurrency || "RUB", usdToRub);
+      let calculatedMarkup = newMarkup;
+      if (newMarkup <= 0) {
+        const retailFromLadder = applyPricingLadder(costRub);
+        calculatedMarkup = costRub > 0 ? Math.round(retailFromLadder / costRub * 100) / 100 : SAFETY_FLOOR_MARKUP;
+        if (calculatedMarkup < SAFETY_FLOOR_MARKUP) calculatedMarkup = SAFETY_FLOOR_MARKUP;
+      }
+      return db.service.update({
+        where: { id: s.id },
+        data: {
+          markup: calculatedMarkup,
+          costPer1kRub: costRub,
+          pricePer1000Cents: Math.round(applyBeautifulRounding(costRub * calculatedMarkup) * 100)
+        }
+      });
+    });
+    for (let i = 0; i < updates.length; i += 50) {
+      await db.$transaction(updates.slice(i, i + 50));
+    }
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: "BULK_MARKUP_UPDATE",
+      target: filter2.categoryId || filter2.platform || "ALL",
+      targetType: "SERVICE",
+      newValue: { markup: newMarkup <= 0 ? "AUTO" : newMarkup, filter: filter2, updatedCount: services.length }
+    });
+    return { updatedCount: services.length };
+  }
+  /**
+   * Markup Analytics: returns distribution of markups across all services.
+   */
+  static async getMarkupAnalytics(tenantId) {
+    const where = {
+      isActive: true,
+      ...tenantId && tenantId !== "all" ? { tenantId: { in: [tenantId, "all"] } } : {}
+    };
+    const services = await db.service.findMany({
+      where,
+      select: { markup: true }
+    });
+    if (services.length === 0) {
+      return {
+        averageMarkup: 0,
+        distribution: [],
+        autoMarkupCount: 0,
+        manualMarkupCount: 0
+      };
+    }
+    const brackets = [
+      { min: 1, max: 1.5, label: "1.0x - 1.5x (\u041D\u0438\u0437\u043A\u0430\u044F)", count: 0 },
+      { min: 1.5, max: 2, label: "1.5x - 2.0x (\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442)", count: 0 },
+      { min: 2, max: 3, label: "2.0x - 3.0x (\u041E\u043F\u0442\u0438\u043C\u0443\u043C)", count: 0 },
+      { min: 3, max: 5, label: "3.0x - 5.0x (\u0412\u044B\u0441\u043E\u043A\u0430\u044F)", count: 0 },
+      { min: 5, max: Infinity, label: "5.0x+ (\u041C\u0430\u043A\u0441\u0438\u043C\u0430\u043B\u044C\u043D\u0430\u044F)", count: 0 }
+    ];
+    let totalMarkup = 0;
+    for (const s of services) {
+      totalMarkup += s.markup;
+      for (const b of brackets) {
+        if (s.markup >= b.min && s.markup < b.max) {
+          b.count++;
+          break;
+        }
+      }
+    }
+    const total = services.length;
+    return {
+      averageMarkup: Math.round(totalMarkup / total * 100) / 100,
+      distribution: brackets.map((b) => ({
+        label: b.label,
+        count: b.count,
+        percentage: Math.round(b.count / total * 100)
+      })),
+      autoMarkupCount: 0,
+      manualMarkupCount: total
+    };
+  }
+  /**
+   * Category list for catalog filter dropdowns.
+   */
+  static async listCategories(tenantId) {
+    const tenantFilter = tenantId && tenantId !== "all" ? { in: [tenantId, "all"] } : void 0;
+    const rows = await db.category.findMany({
+      where: tenantId && tenantId !== "all" ? { tenantId: tenantVisibilityFilter(tenantId) } : void 0,
+      select: {
+        id: true,
+        name: true,
+        network: {
+          select: {
+            id: true,
+            name: true,
+            slug: true
+          }
+        },
+        _count: {
+          select: {
+            services: {
+              where: tenantFilter ? { tenantId: tenantFilter } : void 0
+            }
+          }
+        }
+      },
+      orderBy: { name: "asc" }
+    });
+    return rows.map((c) => ({
+      id: c.id,
+      name: c.name,
+      network: c.network ? {
+        id: c.network.id,
+        name: c.network.name,
+        slug: c.network.slug
+      } : null,
+      serviceCount: c._count.services
+    }));
+  }
+  /**
+   * Total count of quarantined services.
+   */
+  static async getQuarantineCount(tenantId) {
+    const tenantWhere = tenantId && tenantId !== "all" ? { in: [tenantId, "all"] } : void 0;
+    return db.service.count({
+      where: {
+        isQuarantined: true,
+        ...tenantWhere ? { tenantId: tenantWhere } : {}
+      }
+    });
+  }
+  /**
+   * Quick counts of catalog health for the notification badge.
+   */
+  static async getCatalogHealthCounts(tenantId) {
+    const now = /* @__PURE__ */ new Date();
+    const tenantWhere = tenantId && tenantId !== "all" ? { in: [tenantId, "all"] } : void 0;
+    const [quarantine, zombies, cooldown] = await Promise.all([
+      db.service.count({
+        where: {
+          isQuarantined: true,
+          ...tenantWhere ? { tenantId: tenantWhere } : {}
+        }
+      }),
+      db.service.count({
+        where: {
+          cooldownReason: { in: ["ZOMBIE_AUTO_DISABLED", "ZOMBIE_ARCHIVED"] },
+          ...tenantWhere ? { tenantId: tenantWhere } : {}
+        }
+      }),
+      db.service.count({
+        where: {
+          isActive: true,
+          cooldownUntil: { gt: now },
+          cooldownReason: { notIn: ["ZOMBIE_AUTO_DISABLED", "ZOMBIE_ARCHIVED"] },
+          ...tenantWhere ? { tenantId: tenantWhere } : {}
+        }
+      })
+    ]);
+    return { quarantine, zombies, cooldown };
+  }
+};
+
+// src/services/admin/catalog/catalog-sync.service.ts
+var import_crypto8 = __toESM(require("crypto"));
+init_db();
+init_redis();
+init_logger();
 init_admin_audit();
 init_notifications();
 init_provider_service();
@@ -160646,303 +161091,9 @@ var ServiceAuditEngine = class {
   }
 };
 
-// src/services/admin/catalog.service.ts
-init_tenant_scope();
+// src/services/admin/catalog/catalog-sync.service.ts
 init_zod();
 init_currency_invariant();
-init_anti_negative_margin();
-
-// src/lib/pricing/drift-circuit-breaker.ts
-init_db();
-init_financial_constants();
-var DEFAULT_DRIFT_CONFIG = {
-  MAX_SINGLE_DRIFT_PCT: 200,
-  MIN_REASONABLE_COST_RUB: 0.01,
-  MAX_REASONABLE_COST_RUB: UPPER_SANITY_LIMIT_RUB
-};
-var PriceDriftCircuitBreaker = class {
-  /**
-   * Validates a new cost against reasonable bounds, currency ratio limits, and historical shadow price.
-   * Returns: { ok: true } | { ok: false, reason, severity }
-   */
-  static async validate(providerId, externalId, newCostPer1kRub, config2 = DEFAULT_DRIFT_CONFIG, rawRate, currency) {
-    if (newCostPer1kRub < config2.MIN_REASONABLE_COST_RUB) {
-      return {
-        ok: false,
-        reason: `\u0421\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C ${newCostPer1kRub} \u20BD/1k \u043D\u0438\u0436\u0435 \u043C\u0438\u043D\u0438\u043C\u0430\u043B\u044C\u043D\u043E \u0434\u043E\u043F\u0443\u0441\u0442\u0438\u043C\u043E\u0433\u043E \u043F\u043E\u0440\u043E\u0433\u0430 ${config2.MIN_REASONABLE_COST_RUB} \u20BD/1k (\u0430\u043D\u043E\u043C\u0430\u043B\u0438\u044F \u043C\u0438\u043A\u0440\u043E-\u0446\u0435\u043D\u044B \u0438\u043B\u0438 \u0441\u0431\u043E\u0439 \u0432\u0430\u043B\u044E\u0442\u044B)`,
-        severity: "BLOCK"
-      };
-    }
-    if (newCostPer1kRub > config2.MAX_REASONABLE_COST_RUB) {
-      return {
-        ok: false,
-        reason: `\u0421\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C ${newCostPer1kRub} \u20BD/1k \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u043C\u0430\u043A\u0441\u0438\u043C\u0430\u043B\u044C\u043D\u044B\u0439 \u043B\u0438\u043C\u0438\u0442 ${config2.MAX_REASONABLE_COST_RUB} \u20BD/1k (\u0432\u0435\u0440\u043E\u044F\u0442\u043D\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430 \u0432\u0430\u043B\u044E\u0442\u044B)`,
-        severity: "BLOCK"
-      };
-    }
-    if (rawRate && rawRate > 0 && currency) {
-      const ratio = newCostPer1kRub / rawRate;
-      const upperRatioLimit = currency === "RUB" ? 1.5 : currency === "USD" ? 250 : 300;
-      if (ratio > upperRatioLimit) {
-        return {
-          ok: false,
-          reason: `\u041E\u0442\u043D\u043E\u0448\u0435\u043D\u0438\u0435 \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u0438 \u043A \u0438\u0441\u0445\u043E\u0434\u043D\u043E\u0439 \u0441\u0442\u0430\u0432\u043A\u0435 (${ratio.toFixed(2)}x) \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u044B\u0439 \u043A\u043E\u044D\u0444\u0444\u0438\u0446\u0438\u0435\u043D\u0442 ${upperRatioLimit}x \u0434\u043B\u044F \u0432\u0430\u043B\u044E\u0442\u044B ${currency}`,
-          severity: "BLOCK"
-        };
-      }
-    }
-    try {
-      const historical = await db.shadowService.findFirst({
-        where: { providerId, externalId },
-        select: { rateRub: true }
-      });
-      if (historical?.rateRub && historical.rateRub > 0) {
-        const driftPct = (newCostPer1kRub - historical.rateRub) / historical.rateRub * 100;
-        const absDrift = Math.abs(driftPct);
-        if (absDrift > config2.MAX_SINGLE_DRIFT_PCT) {
-          return {
-            ok: false,
-            reason: `\u0414\u0440\u0435\u0439\u0444 \u0446\u0435\u043D\u044B ${driftPct.toFixed(1)}% \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u0434\u043E\u043F\u0443\u0441\u0442\u0438\u043C\u044B\u0439 \u043F\u043E\u0440\u043E\u0433 (${historical.rateRub} \u20BD \u2192 ${newCostPer1kRub} \u20BD)`,
-            severity: absDrift > 500 ? "BLOCK" : "WARN",
-            previousCost: historical.rateRub
-          };
-        }
-      }
-    } catch (dbErr) {
-      console.error("[PriceDriftCircuitBreaker] DB query error while checking historical rate:", dbErr);
-    }
-    return { ok: true };
-  }
-};
-
-// src/services/providers/service-mutation-detector.ts
-var CRITICAL_PLATFORMS = [
-  "telegram",
-  "tg",
-  "vk",
-  "vkontakte",
-  "instagram",
-  "insta",
-  "ig",
-  "youtube",
-  "yt",
-  "tiktok",
-  "tt",
-  "twitter",
-  "x",
-  "facebook",
-  "fb",
-  "rutube",
-  "discord",
-  "twitch",
-  "threads",
-  "ok"
-];
-var ACTIVITY_KEYWORDS = {
-  followers: ["\u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438", "subscribers", "followers", "members", "\u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0438", "\u0444\u043E\u043B\u043B\u043E\u0432\u0435\u0440\u044B"],
-  likes: ["\u043B\u0430\u0439\u043A\u0438", "likes", "hearts", "\u0440\u0435\u0430\u043A\u0446\u0438\u0438", "reactions"],
-  views: ["\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u044B", "views", "\u043E\u0445\u0432\u0430\u0442", "reach", "impressions"],
-  comments: ["\u043A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0438", "comments", "\u043E\u0442\u0437\u044B\u0432\u044B", "reviews"],
-  reposts: ["\u0440\u0435\u043F\u043E\u0441\u0442\u044B", "reposts", "shares", "\u043F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F"],
-  votes: ["\u0433\u043E\u043B\u043E\u0441\u0430", "votes", "\u043E\u043F\u0440\u043E\u0441\u044B", "poll"],
-  boosts: ["\u0431\u0443\u0441\u0442\u044B", "boosts", "boost"]
-};
-function normalizeTokens(text) {
-  return new Set(
-    text.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter((t) => t.length > 1)
-  );
-}
-function detectActivity(tokens) {
-  for (const [activity, words] of Object.entries(ACTIVITY_KEYWORDS)) {
-    if (words.some((w) => tokens.has(w))) {
-      return activity;
-    }
-  }
-  return null;
-}
-function calculateNameSimilarity(nameA, nameB) {
-  const tokensA = normalizeTokens(nameA);
-  const tokensB = normalizeTokens(nameB);
-  if (tokensA.size === 0 && tokensB.size === 0) return 1;
-  if (tokensA.size === 0 || tokensB.size === 0) return 0;
-  const platformA = CRITICAL_PLATFORMS.filter((p) => tokensA.has(p));
-  const platformB = CRITICAL_PLATFORMS.filter((p) => tokensB.has(p));
-  if (platformA.length > 0 && platformB.length > 0) {
-    const hasCommonPlatform = platformA.some((p) => platformB.includes(p));
-    if (!hasCommonPlatform) {
-      return 0.05;
-    }
-  }
-  const activityA = detectActivity(tokensA);
-  const activityB = detectActivity(tokensB);
-  if (activityA && activityB && activityA !== activityB) {
-    return 0.1;
-  }
-  let intersectionCount = 0;
-  for (const token of tokensA) {
-    if (tokensB.has(token)) {
-      intersectionCount++;
-    }
-  }
-  const unionCount = (/* @__PURE__ */ new Set([...tokensA, ...tokensB])).size;
-  const baseJaccard = unionCount === 0 ? 1 : intersectionCount / unionCount;
-  if (activityA && activityB && activityA === activityB) {
-    return Math.max(baseJaccard, 0.5);
-  }
-  return baseJaccard;
-}
-var ServiceMutationDetector = class {
-  /**
-   * Analyzes an existing service against its fresh provider API DTO or ShadowService
-   */
-  static detect(service, providerDto, exchangeRate = 1, priceSpikeThreshold = 0.3) {
-    const externalId = providerDto?.service ? String(providerDto.service) : providerDto?.externalId ? String(providerDto.externalId) : "";
-    if (!providerDto) {
-      return {
-        serviceId: service.id,
-        externalId,
-        verdict: "NOT_FOUND_AT_PROVIDER",
-        shouldDeactivate: true,
-        isPriceSpike: false,
-        isParamMutated: true,
-        nameSimilarity: 0,
-        reasons: ["\u0423\u0441\u043B\u0443\u0433\u0430 \u043E\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u0432 \u043E\u0442\u0432\u0435\u0442\u0435 API \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 (\u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E \u0443\u0434\u0430\u043B\u0435\u043D\u0430 \u0438\u043B\u0438 \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0430)"],
-        summary: "\u0423\u0441\u043B\u0443\u0433\u0430 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u0430 \u0443 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430",
-        diff: {
-          name: { oldValue: service.name, newValue: "\u0423\u0414\u0410\u041B\u0415\u041D\u0410 \u0423 \u041F\u0420\u041E\u0412\u0410\u0419\u0414\u0415\u0420\u0410", changed: true, worsened: true },
-          rate: { oldValue: service.rate, newValue: 0, changed: true, oldCostRub: 0, newCostRub: 0, deltaPercent: 0, currency: service.providerCurrency || "RUB" },
-          minQty: { oldValue: service.minQty, newValue: 0, changed: true },
-          maxQty: { oldValue: service.maxQty, newValue: 0, changed: true },
-          refill: { oldValue: !!service.isRefillEnabled, newValue: false, changed: true, worsened: !!service.isRefillEnabled },
-          cancel: { oldValue: !!service.isCancelEnabled, newValue: false, changed: true },
-          type: { oldValue: service.providerServiceType || "Default", newValue: "NONE", changed: true }
-        }
-      };
-    }
-    const providerCurrency = service.providerCurrency || "USD";
-    const oldCostRub = providerCurrency === "RUB" ? service.rate : service.rate * exchangeRate;
-    const newRate = typeof providerDto.rate === "number" ? providerDto.rate : parseFloat(String(providerDto.rate)) || 0;
-    const newCostRub = providerCurrency === "RUB" ? newRate : newRate * exchangeRate;
-    const deltaPercent = oldCostRub > 0 ? (newCostRub - oldCostRub) / oldCostRub : 0;
-    const isPriceSpike = deltaPercent > priceSpikeThreshold;
-    const rawMin = providerDto.min ?? providerDto.minQty;
-    const rawMax = providerDto.max ?? providerDto.maxQty;
-    const newMin = rawMin !== void 0 ? parseInt(String(rawMin), 10) || service.minQty : service.minQty;
-    const newMax = rawMax !== void 0 ? parseInt(String(rawMax), 10) || service.maxQty : service.maxQty;
-    const newRefill = Boolean(providerDto.refill ?? providerDto.isRefillEnabled);
-    const newCancel = Boolean(providerDto.cancel ?? providerDto.isCancelEnabled);
-    const newType = providerDto.type || "Default";
-    const similarity = calculateNameSimilarity(service.name, providerDto.name);
-    const isNameReplaced = similarity < 0.4;
-    const isMinChanged = newMin !== service.minQty;
-    const isMaxChanged = newMax !== service.maxQty;
-    const isLimitsChanged = isMinChanged || isMaxChanged;
-    const oldRefill = Boolean(service.isRefillEnabled);
-    const isRefillStripped = oldRefill && !newRefill;
-    const oldCancel = Boolean(service.isCancelEnabled);
-    const isCancelChanged = oldCancel !== newCancel;
-    const oldType = service.providerServiceType || "Default";
-    const isTypeChanged = !!service.providerServiceType && oldType.toLowerCase() !== newType.toLowerCase();
-    const reasons = [];
-    if (isNameReplaced) {
-      reasons.push(`\u041F\u043E\u0434\u043C\u0435\u043D\u0430 \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u044F: \u0441\u0445\u043E\u0434\u0441\u0442\u0432\u043E ${(similarity * 100).toFixed(0)}% (\xAB${providerDto.name}\xBB)`);
-    }
-    if (isRefillStripped) {
-      reasons.push("\u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 \u0441\u043D\u044F\u043B \u0433\u0430\u0440\u0430\u043D\u0442\u0438\u044E \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F (refill: false)");
-    }
-    if (isLimitsChanged) {
-      const minText = isMinChanged ? `min: ${service.minQty} \u2192 ${newMin}` : "";
-      const maxText = isMaxChanged ? `max: ${service.maxQty} \u2192 ${newMax}` : "";
-      const parts = [minText, maxText].filter(Boolean).join(", ");
-      reasons.push(`\u0418\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u0435 \u043B\u0438\u043C\u0438\u0442\u043E\u0432 \u043E\u0431\u044A\u0435\u043C\u0430 (${parts})`);
-    }
-    if (isTypeChanged) {
-      reasons.push(`\u0421\u043C\u0435\u043D\u0430 \u0442\u0438\u043F\u0430 \u0443\u0441\u043B\u0443\u0433\u0438: ${oldType} \u2192 ${newType}`);
-    }
-    if (isPriceSpike) {
-      reasons.push(`\u0420\u043E\u0441\u0442 \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u0438 +${(deltaPercent * 100).toFixed(0)}% (${oldCostRub.toFixed(2)} \u20BD \u2192 ${newCostRub.toFixed(2)} \u20BD/1k)`);
-    }
-    const isParamMutated = isNameReplaced || isLimitsChanged || isRefillStripped || isTypeChanged;
-    let verdict = "SAFE";
-    let shouldDeactivate = false;
-    if (isNameReplaced) {
-      verdict = "SERVICE_REPLACED";
-      shouldDeactivate = true;
-    } else if (isParamMutated) {
-      verdict = "MUTATED_PARAMS";
-      shouldDeactivate = true;
-    } else if (isPriceSpike) {
-      verdict = "SAFE_PRICE_ONLY";
-      shouldDeactivate = false;
-    }
-    let summary = "\u041F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B \u0443\u0441\u043B\u0443\u0433\u0438 \u0432 \u043D\u043E\u0440\u043C\u0435";
-    if (verdict === "SERVICE_REPLACED") {
-      summary = "\u041A\u0440\u0438\u0442\u0438\u0447\u043D\u043E: \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E \u043F\u043E\u0434\u043C\u0435\u043D\u0435\u043D\u0430 \u0443\u0441\u043B\u0443\u0433\u0430 \u0443 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430!";
-    } else if (verdict === "MUTATED_PARAMS") {
-      summary = "\u0412\u043D\u0438\u043C\u0430\u043D\u0438\u0435: \u0438\u0437\u043C\u0435\u043D\u0438\u043B\u0438\u0441\u044C \u0443\u0441\u043B\u043E\u0432\u0438\u044F/\u043B\u0438\u043C\u0438\u0442\u044B \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 (\u0443\u0441\u043B\u0443\u0433\u0430 \u0430\u0432\u0442\u043E\u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0430)";
-    } else if (verdict === "SAFE_PRICE_ONLY") {
-      summary = "\u0422\u043E\u043B\u044C\u043A\u043E \u0446\u0435\u043D\u0430: \u043F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B \u0438\u0434\u0435\u043D\u0442\u0438\u0447\u043D\u044B, \u0438\u0437\u043C\u0435\u043D\u0438\u043B\u0441\u044F \u0442\u0430\u0440\u0438\u0444";
-    }
-    return {
-      serviceId: service.id,
-      externalId,
-      verdict,
-      shouldDeactivate,
-      isPriceSpike,
-      isParamMutated,
-      nameSimilarity: similarity,
-      reasons,
-      summary,
-      diff: {
-        name: {
-          oldValue: service.name,
-          newValue: providerDto.name,
-          changed: service.name !== providerDto.name,
-          worsened: isNameReplaced
-        },
-        rate: {
-          oldValue: service.rate,
-          newValue: newRate,
-          changed: service.rate !== newRate,
-          oldCostRub,
-          newCostRub,
-          deltaPercent,
-          currency: providerCurrency,
-          worsened: isPriceSpike
-        },
-        minQty: {
-          oldValue: service.minQty,
-          newValue: newMin,
-          changed: isMinChanged,
-          worsened: newMin > service.minQty
-        },
-        maxQty: {
-          oldValue: service.maxQty,
-          newValue: newMax,
-          changed: isMaxChanged,
-          worsened: newMax < service.maxQty
-        },
-        refill: {
-          oldValue: oldRefill,
-          newValue: newRefill,
-          changed: oldRefill !== newRefill,
-          worsened: isRefillStripped
-        },
-        cancel: {
-          oldValue: oldCancel,
-          newValue: newCancel,
-          changed: oldCancel !== newCancel,
-          worsened: oldCancel && !newCancel
-        },
-        type: {
-          oldValue: oldType,
-          newValue: newType,
-          changed: isTypeChanged
-        }
-      }
-    };
-  }
-};
 
 // src/utils/security-sanitizer.ts
 var SecuritySanitizer = class {
@@ -160999,9 +161150,12 @@ var SecuritySanitizer = class {
   }
 };
 
-// src/services/admin/catalog.service.ts
+// src/services/admin/catalog/catalog-sync.service.ts
 init_smart_analyzer_logic();
-init_link_rules_registry();
+
+// src/services/admin/catalog/catalog-taxonomy.service.ts
+init_db();
+init_logger();
 function parseProviderBoolean(val) {
   if (val === true || val === 1 || val === "1" || val === "true") return true;
   return false;
@@ -161276,6 +161430,8 @@ function formatFullServiceName(rawName, categoryName, networkName) {
   }
   return clean;
 }
+
+// src/services/admin/catalog/catalog-sync.service.ts
 var rawServiceSchema = external_exports.object({
   service: external_exports.union([external_exports.string(), external_exports.number()]),
   name: external_exports.string().transform((v) => SecuritySanitizer.sanitizePromptInjection(v)),
@@ -161290,196 +161446,26 @@ var rawServiceSchema = external_exports.object({
   desc: external_exports.string().optional().transform((v) => SecuritySanitizer.sanitizePromptInjection(v)),
   description: external_exports.string().optional().transform((v) => SecuritySanitizer.sanitizePromptInjection(v))
 }).strip();
-var AdminCatalogService = class {
+var CatalogSyncService = class {
   /**
-   * Paginated service list with category, markup, and order count.
+   * Fetches the default provider services.
    */
-  async listServices(params) {
-    const andConditions = [];
-    if (params.tenantId && params.tenantId !== "all") {
-      andConditions.push({ tenantId: { in: [params.tenantId, "all"] } });
-    }
-    if (params.categoryId && params.categoryId !== "all") {
-      andConditions.push({ categoryId: params.categoryId });
-    } else if (params.networkSlug && params.networkSlug !== "ALL" && params.networkSlug !== "all") {
-      andConditions.push({ category: { network: { slug: params.networkSlug } } });
-    }
-    if (params.providerId && params.providerId !== "all") {
-      andConditions.push({ providerId: params.providerId === "none" ? null : params.providerId });
-    }
-    if (params.hideDeleted) {
-      andConditions.push({
-        isActive: true,
-        OR: [
-          { cooldownReason: null },
-          { cooldownReason: { notIn: ["ZOMBIE_AUTO_DISABLED", "ZOMBIE_ARCHIVED"] } }
-        ]
-      });
-    }
-    if (params.isActive !== void 0) {
-      andConditions.push({ isActive: params.isActive });
-    }
-    if (params.providerStatus && params.providerStatus !== "all") {
-      if (params.providerStatus === "active") {
-        andConditions.push({
-          providerId: { not: null },
-          cooldownReason: null
-        });
-      } else if (params.providerStatus === "zombie") {
-        andConditions.push({
-          cooldownReason: { in: ["ZOMBIE_AUTO_DISABLED", "ZOMBIE_ARCHIVED"] }
-        });
-      } else if (params.providerStatus === "cooldown") {
-        andConditions.push({
-          isActive: true,
-          cooldownUntil: { gt: /* @__PURE__ */ new Date() },
-          cooldownReason: { notIn: ["ZOMBIE_AUTO_DISABLED", "ZOMBIE_ARCHIVED"] }
-        });
-      } else if (params.providerStatus === "manual") {
-        andConditions.push({
-          providerId: null
-        });
-      }
-    }
-    if (params.externalId?.trim()) {
-      andConditions.push({ externalId: params.externalId.trim() });
-    }
-    if (params.search?.trim()) {
-      const q = params.search.trim();
-      const normalizedNumericQ = q.replace(/^[#№\s]+/, "").replace(/^id[\s:]*/i, "").trim();
-      const lowerQ = q.toLowerCase();
-      const numId = parseInt(normalizedNumericQ, 10);
-      const isPureNumber = !isNaN(numId) && normalizedNumericQ === String(numId);
-      const orConditions = [];
-      if (isPureNumber) {
-        orConditions.push({ numericId: numId });
-      }
-      orConditions.push({ name: { contains: q, mode: "insensitive" } });
-      orConditions.push({ externalId: q });
-      if (isPureNumber) {
-        orConditions.push({ externalId: String(numId) });
-      }
-      const providers = await db.provider.findMany({ select: { id: true, name: true } });
-      const matchedProvider = providers.find((p) => p.id === q || p.name.toLowerCase() === lowerQ);
-      if (matchedProvider) {
-        orConditions.push({ providerId: matchedProvider.id });
-      }
-      const networks = await db.network.findMany({ select: { id: true, slug: true } });
-      const matchedNetwork = networks.find((n) => n.slug === lowerQ || lowerQ.includes(n.slug));
-      if (matchedNetwork) {
-        orConditions.push({ category: { networkId: matchedNetwork.id } });
-      }
-      andConditions.push({ OR: orConditions });
-    }
-    const where = andConditions.length > 0 ? { AND: andConditions } : {};
-    let orderBy = { numericId: "asc" };
-    if (params.sortBy) {
-      const order = params.sortOrder || "asc";
-      switch (params.sortBy) {
-        case "id":
-          orderBy = { numericId: order };
-          break;
-        case "name":
-          orderBy = { name: order };
-          break;
-        case "rate":
-          orderBy = { rate: order };
-          break;
-        case "markup":
-          orderBy = { markup: order };
-          break;
-        case "price":
-          orderBy = { pricePer1000Cents: order };
-          break;
-        default:
-          orderBy = { numericId: order };
-          break;
-      }
-    }
-    return paginatedQuery(db.service, {
-      cursor: params.cursor,
-      page: params.page,
-      pageSize: params.pageSize || 50,
-      where,
-      orderBy,
-      include: {
-        category: { select: { id: true, name: true, icon: true, network: { select: { name: true, slug: true, icon: true } } } },
-        _count: { select: { orders: true } }
-      }
-    });
-  }
-  /**
-   * Update markup for a service. Recalculates selling price.
-   */
-  async updateMarkup(serviceId, newMarkup, admin) {
-    if (newMarkup < 1) throw new Error("\u041D\u0430\u0446\u0435\u043D\u043A\u0430 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442 \u0431\u044B\u0442\u044C \u043C\u0435\u043D\u044C\u0448\u0435 1.0 (\u043C\u043D\u043E\u0436\u0438\u0442\u0435\u043B\u044C x1)");
-    if (newMarkup > 151) throw new Error("\u041D\u0430\u0446\u0435\u043D\u043A\u0430 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442 \u0431\u044B\u0442\u044C \u0431\u043E\u043B\u044C\u0448\u0435 151.0 (15000%)");
-    const service = await db.service.findUniqueOrThrow({ where: { id: serviceId } });
-    const oldMarkup = service.markup;
-    const usdToRub = await SettingsProvider.getExchangeRateUSD();
-    const costRub = getCostRub(service.rate, service.providerCurrency || "RUB", usdToRub);
-    await db.service.update({
-      where: { id: serviceId },
-      data: {
-        markup: newMarkup,
-        costPer1kRub: costRub,
-        pricePer1000Cents: Math.round(applyBeautifulRounding(costRub * newMarkup) * 100)
-      }
-    });
-    auditAdmin({
-      adminId: admin.id,
-      adminEmail: admin.email,
-      action: "SERVICE_MARKUP_CHANGE",
-      target: serviceId,
-      targetType: "SERVICE",
-      oldValue: { markup: oldMarkup },
-      newValue: { markup: newMarkup }
-    });
-    return { name: service.name, oldMarkup, newMarkup };
-  }
-  /**
-   * Toggle service active/inactive.
-   */
-  async toggleService(serviceId, isActive, admin) {
-    const service = await db.service.findUniqueOrThrow({ where: { id: serviceId } });
-    await db.service.update({
-      where: { id: serviceId },
-      data: { isActive }
-    });
-    auditAdmin({
-      adminId: admin.id,
-      adminEmail: admin.email,
-      action: isActive ? "SERVICE_ENABLE" : "SERVICE_DISABLE",
-      target: serviceId,
-      targetType: "SERVICE",
-      oldValue: { isActive: service.isActive },
-      newValue: { isActive }
-    });
-  }
-  /**
-   * Fetch available services from a provider for cherry-pick import.
-   */
-  async getProviderServices() {
+  static async getProviderServices() {
     try {
       const provider = await providerService.getDefaultProvider();
       const services = await provider.getServices();
       return services;
     } catch (err) {
-      console.warn("[CatalogService] getProviderServices failed:", err);
+      console.warn("[CatalogSyncService] getProviderServices failed:", err);
       return [];
     }
   }
   /**
-   * Zombie Eraser & Catalog Synchronization
-   * Finds services that were deleted by the provider and marks them inactive.
-   * Auto-restores services that reappeared.
-   */
-  /**
    * Refreshes the local ShadowService staging catalog by fetching the latest services from the provider API.
    * Clears existing records for this provider and populates new ones.
-   * This is session-agnostic and safe to use in background workers.
+   * Safe to use in background workers.
    */
-  async refreshShadowCatalog(providerId) {
+  static async refreshShadowCatalog(providerId) {
     const providerDbRecord = await db.provider.findUnique({ where: { id: providerId } });
     if (!providerDbRecord) throw new Error("Provider not found");
     await reconcileCurrencyBeforeSync(
@@ -161505,7 +161491,7 @@ var AdminCatalogService = class {
         return currentShadowCount;
       }
     } catch (cacheErr) {
-      console.warn("[CatalogService] Redis hash cache lookup error:", cacheErr);
+      console.warn("[CatalogSyncService] Redis hash cache lookup error:", cacheErr);
     }
     const usdRate = await SettingsProvider.getExchangeRateUSD();
     const currency = providerDbRecord.balanceCurrency || "USD";
@@ -161606,7 +161592,6 @@ var AdminCatalogService = class {
           });
         }
       },
-      // Large catalogs (10k+ rows) need room beyond the default 5s
       { timeout: 6e4, maxWait: 1e4 }
     );
     try {
@@ -161620,7 +161605,7 @@ var AdminCatalogService = class {
    * Finds services that were deleted by the provider and marks them inactive.
    * Auto-restores services that reappeared.
    */
-  async syncProviderCatalog(providerId, admin) {
+  static async syncProviderCatalog(providerId, admin) {
     const providerDbRecord = await db.provider.findUnique({ where: { id: providerId } });
     if (!providerDbRecord) throw new Error("\u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D");
     if (providerDbRecord.syncLock) throw new Error("\u0421\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0430\u0446\u0438\u044F \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0430 (syncLock)");
@@ -161650,7 +161635,7 @@ var AdminCatalogService = class {
     const providerCurrency = providerDbRecord.balanceCurrency || "USD";
     const exchangeRate = providerCurrency === "RUB" ? 1 : usdToRub;
     const zombieIds = [];
-    let pendingUpdates = [];
+    const pendingUpdates = [];
     const executeUpdatesChunk = async (chunk) => {
       await db.$transaction(async (tx) => {
         for (const item of chunk) {
@@ -161710,326 +161695,543 @@ var AdminCatalogService = class {
               data: {
                 isQuarantined: true,
                 pendingRate: rawRate,
-                quarantineReason: `Zombie Resurrection: \u041F\u0440\u0435\u0432\u044B\u0448\u0435\u043D \u043B\u0438\u043C\u0438\u0442 \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u0438 (${newCostRub.toFixed(2)} \u20BD/1k > ${UPPER_SANITY_LIMIT_RUB.toLocaleString("ru-RU")} \u20BD)`,
+                quarantineReason: `Upper Sanity Limit Exceeded: \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C ${newCostRub.toFixed(2)} \u20BD/1k \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u043B\u0438\u043C\u0438\u0442 ${UPPER_SANITY_LIMIT_RUB.toLocaleString("ru-RU")} \u20BD (${rawRate} ${providerCurrency})`,
                 quarantinedAt: /* @__PURE__ */ new Date()
               }
             });
             priceAnomalies++;
-          } else if (oldCostRub > 0 && newCostRub > oldCostRub * (1 + QUARANTINE_THRESHOLD) + EPSILON_RUB) {
+          } else if (oldCostRub > 0 && (newCostRub - oldCostRub) / oldCostRub >= ANOMALY_PRICE_SPIKE_THRESHOLD) {
+            const spikePct = Math.round((newCostRub - oldCostRub) / oldCostRub * 100);
             await db.service.update({
               where: { id: s.id },
               data: {
                 isQuarantined: true,
                 pendingRate: rawRate,
-                quarantineReason: `Zombie Resurrection: \u0421\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u0432\u044B\u0440\u043E\u0441\u043B\u0430 \u0441 ${oldCostRub.toFixed(2)} \u20BD \u0434\u043E ${newCostRub.toFixed(2)} \u20BD/1k (${s.rate} ${oldCurrency} \u2192 ${rawRate} ${providerCurrency})`,
+                quarantineReason: `Price Spike on Resurrection (+${spikePct}%): \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u0432\u044B\u0440\u043E\u0441\u043B\u0430 \u0441 ${oldCostRub.toFixed(2)} \u20BD \u0434\u043E ${newCostRub.toFixed(2)} \u20BD/1k`,
                 quarantinedAt: /* @__PURE__ */ new Date()
               }
             });
             priceAnomalies++;
           } else {
-            await db.service.update({
-              where: { id: s.id },
+            pendingUpdates.push({
+              id: s.id,
               data: {
                 isActive: true,
-                cooldownReason: null,
-                cooldownUntil: null,
                 rate: rawRate,
                 providerCurrency,
-                costPer1kRub: newCostRub,
-                pricePer1000Cents: Math.round(applyBeautifulRounding(newCostRub * s.markup) * 100)
-              }
+                cooldownReason: null,
+                isQuarantined: false,
+                quarantineReason: null
+              },
+              oldRate: s.rate,
+              newRate: rawRate
             });
             resurrected++;
           }
-        } else if (s.isActive && !s.isQuarantined) {
-          const targetCurrency = providerDbRecord.balanceCurrency || s.providerCurrency || "RUB";
-          const newCostExchangeRate = targetCurrency === "RUB" ? 1 : usdToRub;
-          const oldCostExchangeRate = s.providerCurrency === "RUB" ? 1 : usdToRub;
-          const oldCostRub = s.costPer1kRub ?? s.rate * oldCostExchangeRate;
-          let oldRate = s.rate;
-          const newRate = rawRate;
-          const serviceCurrency = targetCurrency;
-          if (providerDbRecord.balanceCurrency && s.providerCurrency !== providerDbRecord.balanceCurrency) {
-            const conversionFactor = s.providerCurrency === "USD" && providerDbRecord.balanceCurrency === "RUB" ? usdToRub : s.providerCurrency === "RUB" && providerDbRecord.balanceCurrency === "USD" ? 1 / usdToRub : 1;
-            oldRate = oldRate * conversionFactor;
-            await db.service.update({
-              where: { id: s.id },
-              data: { providerCurrency: providerDbRecord.balanceCurrency }
-            });
-          }
-          const newCostRub = newRate * newCostExchangeRate;
-          const currentRetailCents = s.pricePer1000Cents;
-          const newCostCents = newCostRub * 100;
-          const actualMarkup = newCostCents > 0 ? currentRetailCents / newCostCents : s.markup;
-          const pricePerUnitRub = currentRetailCents / 100 / 1e3;
-          const purchaseCostPerUnitRub = newCostRub / 1e3;
-          const costDeltaRub = oldCostRub > 0 ? (newCostRub - oldCostRub) / oldCostRub : 0;
-          const mutation = ServiceMutationDetector.detect(
-            {
-              id: s.id,
-              name: s.name,
-              rate: s.rate,
-              providerCurrency: s.providerCurrency,
-              minQty: s.minQty,
-              maxQty: s.maxQty,
-              isRefillEnabled: s.isRefillEnabled,
-              isCancelEnabled: s.isCancelEnabled,
-              description: s.description,
-              providerServiceType: s.providerServiceType
-            },
-            stagingExt,
-            newCostExchangeRate,
-            Math.min(0.3, QUARANTINE_THRESHOLD)
-          );
-          if (mutation.shouldDeactivate) {
+        } else if (Math.abs(s.rate - rawRate) > 1e-6) {
+          const oldCostRub = s.rate * (s.providerCurrency === "RUB" ? 1 : usdToRub);
+          const newCostRub = rawRate * exchangeRate;
+          const relChange = oldCostRub > 0 ? (newCostRub - oldCostRub) / oldCostRub : 0;
+          if (newCostRub > UPPER_SANITY_LIMIT_RUB) {
             await db.service.update({
               where: { id: s.id },
               data: {
                 isActive: false,
-                // Auto-deactivated!
                 isQuarantined: true,
-                pendingRate: newRate,
-                quarantineReason: mutation.reasons.join(" | "),
+                pendingRate: rawRate,
+                quarantineReason: `Upper Sanity Limit Exceeded: \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C ${newCostRub.toFixed(2)} \u20BD/1k \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u043B\u0438\u043C\u0438\u0442 ${UPPER_SANITY_LIMIT_RUB.toLocaleString("ru-RU")} \u20BD (${rawRate} ${providerCurrency})`,
                 quarantinedAt: /* @__PURE__ */ new Date()
               }
             });
-            const alertMsg = `\u{1F6A8} [\u0423\u0441\u043B\u0443\u0433\u0430 \u0430\u0432\u0442\u043E\u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0430] "${s.name}" (id=${s.id}) \u0443 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 \u0438\u0437\u043C\u0435\u043D\u0438\u043B\u0430\u0441\u044C \u043D\u0435 \u0442\u043E\u043B\u044C\u043A\u043E \u0446\u0435\u043D\u0430!
-\u0412\u0435\u0440\u0434\u0438\u043A\u0442: ${mutation.summary}
-\u041F\u0440\u0438\u0447\u0438\u043D\u044B: ${mutation.reasons.join("; ")}
-\u0414\u0435\u0439\u0441\u0442\u0432\u0438\u0435: \u0423\u0441\u043B\u0443\u0433\u0430 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0441\u043D\u044F\u0442\u0430 \u0441 \u043F\u0440\u043E\u0434\u0430\u0436\u0438 (isActive: false) \u0438 \u043F\u043E\u043C\u0435\u0449\u0435\u043D\u0430 \u0432 \u043A\u0430\u0440\u0430\u043D\u0442\u0438\u043D.`;
-            logger.warn(alertMsg, { serviceId: s.id, mutation });
-            await sendAdminAlert(alertMsg, mutation.verdict === "SERVICE_REPLACED" ? "CRITICAL" : "WARNING");
             priceAnomalies++;
-          } else if (newCostRub > UPPER_SANITY_LIMIT_RUB) {
+          } else if (relChange >= ANOMALY_PRICE_SPIKE_THRESHOLD) {
+            const spikePct = Math.round(relChange * 100);
             await db.service.update({
               where: { id: s.id },
               data: {
                 isActive: false,
-                // Immediately take off storefront
                 isQuarantined: true,
-                pendingRate: newRate,
-                quarantineReason: `Upper Sanity Limit Exceeded: \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C ${newCostRub.toFixed(2)} \u20BD/1k \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u043B\u0438\u043C\u0438\u0442 ${UPPER_SANITY_LIMIT_RUB.toLocaleString("ru-RU")} \u20BD (${newRate} ${serviceCurrency})`,
+                pendingRate: rawRate,
+                quarantineReason: `Price Spike (+${spikePct}%): \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u0432\u044B\u0440\u043E\u0441\u043B\u0430 \u0441 ${oldCostRub.toFixed(2)} \u20BD \u0434\u043E ${newCostRub.toFixed(2)} \u20BD/1k`,
                 quarantinedAt: /* @__PURE__ */ new Date()
               }
             });
-            const alertMsg = `\u{1F6A8} [Sanity Limit Breach] \u0423\u0441\u043B\u0443\u0433\u0430 "${s.name}" (id=${s.id}): \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C ${newCostRub.toFixed(2)} \u20BD/1k \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u043B\u0438\u043C\u0438\u0442 ${UPPER_SANITY_LIMIT_RUB.toLocaleString("ru-RU")} \u20BD (${newRate} ${serviceCurrency}). \u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0441\u043D\u044F\u0442\u0430 \u0441 \u0432\u0438\u0442\u0440\u0438\u043D\u044B \u0438 \u043F\u043E\u043C\u0435\u0449\u0435\u043D\u0430 \u0432 \u043A\u0430\u0440\u0430\u043D\u0442\u0438\u043D.`;
-            logger.warn(alertMsg, { serviceId: s.id, oldCostRub, newCostRub, rawRate, providerCurrency: serviceCurrency });
-            await sendAdminAlert(alertMsg, "CRITICAL");
             priceAnomalies++;
-          } else if (oldCostRub > 0 && (mutation.isPriceSpike || costDeltaRub > 0.3 || costDeltaRub > QUARANTINE_THRESHOLD || costDeltaRub > ANOMALY_PRICE_SPIKE_THRESHOLD)) {
+          } else if (Math.abs(relChange) >= QUARANTINE_THRESHOLD) {
             await db.service.update({
               where: { id: s.id },
               data: {
-                isActive: false,
-                // Immediately take off storefront
                 isQuarantined: true,
-                pendingRate: newRate,
-                quarantineReason: `Price Spike (+${(costDeltaRub * 100).toFixed(0)}%): \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u0432\u044B\u0440\u043E\u0441\u043B\u0430 \u0441 ${oldCostRub.toFixed(2)} \u20BD \u0434\u043E ${newCostRub.toFixed(2)} \u20BD/1k (${s.rate} ${serviceCurrency} \u2192 ${newRate} ${serviceCurrency}). \u041F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B \u0443\u0441\u043B\u0443\u0433\u0438 \u0432 \u043D\u043E\u0440\u043C\u0435.`,
+                pendingRate: rawRate,
+                quarantineReason: `\u041F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A \u0438\u0437\u043C\u0435\u043D\u0438\u043B \u0446\u0435\u043D\u0443: ${s.rate} -> ${rawRate} ${providerCurrency} (${relChange > 0 ? "+" : ""}${(relChange * 100).toFixed(1)}%)`,
                 quarantinedAt: /* @__PURE__ */ new Date()
               }
             });
-            const alertMsg = `\u{1F6A8} [Price Spike] \u0423\u0441\u043B\u0443\u0433\u0430 "${s.name}" (id=${s.id}) \u2014 \u0440\u043E\u0441\u0442 \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u0438 +${(costDeltaRub * 100).toFixed(0)}% (${oldCostRub.toFixed(2)} \u20BD \u2192 ${newCostRub.toFixed(2)} \u20BD/1k, ${s.rate} ${serviceCurrency} \u2192 ${newRate} ${serviceCurrency}). \u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0441\u043D\u044F\u0442\u0430 \u0441 \u0432\u0438\u0442\u0440\u0438\u043D\u044B \u0438 \u043F\u043E\u043C\u0435\u0449\u0435\u043D\u0430 \u0432 \u043A\u0430\u0440\u0430\u043D\u0442\u0438\u043D.`;
-            logger.warn(alertMsg, { serviceId: s.id, oldCostRub, newCostRub, costDeltaRub, oldRate: s.rate, newRate, providerCurrency: serviceCurrency });
-            await sendAdminAlert(alertMsg, "WARNING");
-            priceAnomalies++;
-          } else if (pricePerUnitRub < purchaseCostPerUnitRub || actualMarkup < 1) {
-            await db.service.update({
-              where: { id: s.id },
-              data: {
-                isActive: false,
-                lastSeenAt: /* @__PURE__ */ new Date()
-              }
-            });
-            const alertMsg = `\u{1F6A8} [Loss Prevention] \u0423\u0441\u043B\u0443\u0433\u0430 ${s.id} \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0430! \u0420\u043E\u0437\u043D\u0438\u0447\u043D\u0430\u044F \u0446\u0435\u043D\u0430 ${pricePerUnitRub.toFixed(4)} \u20BD/\u0448\u0442 \u043C\u0435\u043D\u044C\u0448\u0435 \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u0438 \u0437\u0430\u043A\u0443\u043F\u043A\u0438 ${purchaseCostPerUnitRub.toFixed(4)} \u20BD/\u0448\u0442.`;
-            console.error(alertMsg);
-            await db.routingAuditLog.create({
-              data: {
-                serviceId: s.id,
-                action: "LOSS_PREVENTION_BLOCK",
-                reason: `Retail price ${pricePerUnitRub.toFixed(4)} < Cost ${purchaseCostPerUnitRub.toFixed(4)}`
-              }
-            });
-            await sendAdminAlert(alertMsg, "CRITICAL");
             priceAnomalies++;
           } else {
-            let effectiveMarkup;
-            let calculatedPriceCents;
-            if (s.markup > 0) {
-              effectiveMarkup = s.markup;
-              calculatedPriceCents = Math.round(applyBeautifulRounding(newCostRub * effectiveMarkup) * 100);
-            } else {
-              const retailFromLadder = applyPricingLadder(newCostRub);
-              effectiveMarkup = newCostRub > 0 ? Math.round(retailFromLadder / newCostRub * 100) / 100 : settings.globalMarkup || 3;
-              calculatedPriceCents = Math.round(applyBeautifulRounding(retailFromLadder) * 100);
-            }
-            const updateData = {
-              rate: newRate,
-              costPer1kRub: newCostRub,
-              providerCurrency: serviceCurrency,
-              pricePer1000Cents: calculatedPriceCents,
-              markup: effectiveMarkup,
-              minQty: stagingExt.min,
-              maxQty: stagingExt.max,
-              lastSeenAt: /* @__PURE__ */ new Date(),
-              isQuarantined: false,
-              quarantineReason: null
-            };
-            if (!s.isCustomName) {
-              updateData.name = stagingExt.name || s.name;
-            }
-            if (!s.isCustomDescription && stagingExt.name) {
-            }
             pendingUpdates.push({
               id: s.id,
-              data: updateData,
-              oldRate,
-              newRate
+              data: {
+                rate: rawRate,
+                providerCurrency,
+                pricePer1000Cents: Math.round(applyBeautifulRounding(newCostRub * s.markup) * 100)
+              },
+              oldRate: s.rate,
+              newRate: rawRate
             });
-            if (pendingUpdates.length >= 50) {
-              await executeUpdatesChunk(pendingUpdates);
-              priceUpdatedSilent += pendingUpdates.filter((u) => u.newRate !== u.oldRate).length;
-              pendingUpdates = [];
-            }
+            priceUpdatedSilent++;
           }
         }
       }
     }
-    if (pendingUpdates.length > 0) {
-      await executeUpdatesChunk(pendingUpdates);
-      priceUpdatedSilent += pendingUpdates.filter((u) => u.newRate !== u.oldRate).length;
-      pendingUpdates = [];
-    }
-    if (ourServices.length >= 5 && zombieIds.length > ourServices.length * 0.3) {
-      const alertMsg = `\u{1F6A8} [Zombie Eraser Safety Gate] \u041C\u0430\u0441\u0441\u043E\u0432\u043E\u0435 \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435 \u0437\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u043E! \u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 \u043D\u0435 \u0432\u0435\u0440\u043D\u0443\u043B ${zombieIds.length} \u0438\u0437 ${ourServices.length} \u0443\u0441\u043B\u0443\u0433 (${(zombieIds.length / ourServices.length * 100).toFixed(0)}%). \u0412\u0438\u0442\u0440\u0438\u043D\u0430 \u0437\u0430\u0449\u0438\u0449\u0435\u043D\u0430 \u043E\u0442 \u0431\u043B\u044D\u043A\u0430\u0443\u0442\u0430.`;
-      logger.warn(alertMsg, { providerId, totalServices: ourServices.length, zombieCount: zombieIds.length });
-      await sendAdminAlert(alertMsg, "CRITICAL");
-      zombieIds.length = 0;
-    }
-    const ZOMBIE_BATCH_SIZE = 500;
+    const ZOMBIE_BATCH_SIZE = 50;
     for (let i = 0; i < zombieIds.length; i += ZOMBIE_BATCH_SIZE) {
-      const batchIds = zombieIds.slice(i, i + ZOMBIE_BATCH_SIZE);
+      const batch = zombieIds.slice(i, i + ZOMBIE_BATCH_SIZE);
       await db.service.updateMany({
-        where: { id: { in: batchIds } },
+        where: { id: { in: batch } },
         data: {
           isActive: false,
-          cooldownReason: "ZOMBIE_AUTO_DISABLED",
-          cooldownUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1e3)
+          cooldownReason: "ZOMBIE_AUTO_DISABLED"
         }
       });
-      await db.routingAuditLog.createMany({
-        data: batchIds.map((id) => ({
-          serviceId: id,
-          adminId: admin.id,
-          action: "ZOMBIE_AUTO_DISABLED",
-          reason: "\u0423\u0441\u043B\u0443\u0433\u0430 \u0443\u0434\u0430\u043B\u0435\u043D\u0430 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u043E\u043C \u0438\u0437 API"
-        }))
-      });
-      const alertMsg = `\u{1F9DF} [Zombie Eraser] \u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u043E ${batchIds.length} \u043C\u0435\u0440\u0442\u0432\u044B\u0445 \u0443\u0441\u043B\u0443\u0433 (\u041F\u0430\u043A\u0435\u0442 ${Math.floor(i / ZOMBIE_BATCH_SIZE) + 1}).`;
-      await sendAdminAlert(alertMsg, "WARNING");
+    }
+    const CHUNK_SIZE = 50;
+    for (let i = 0; i < pendingUpdates.length; i += CHUNK_SIZE) {
+      const chunk = pendingUpdates.slice(i, i + CHUNK_SIZE);
+      await executeUpdatesChunk(chunk);
     }
     auditAdmin({
       adminId: admin.id,
       adminEmail: admin.email,
-      action: "PROVIDER_CATALOG_SYNC",
+      action: "PROVIDER_SYNC",
       target: providerId,
       targetType: "PROVIDER",
-      newValue: { zombiesDisabled, resurrected, priceAnomalies, priceUpdatedSilent, marginFloorBreaches }
+      newValue: {
+        zombiesDisabled,
+        resurrected,
+        priceAnomalies,
+        priceUpdatedSilent,
+        marginFloorBreaches
+      }
     });
-    let smmplanCount = 0;
-    let fluxCount = 0;
-    for (const s of ourServices) {
-      if (s.tenantId === "flux") fluxCount++;
-      else smmplanCount++;
-    }
-    const syncResult = { zombiesDisabled, resurrected, priceAnomalies, priceUpdatedSilent, marginFloorBreaches, smmplanCount, fluxCount };
-    logger.info(`Rate sync: ${smmplanCount} smmplan + ${fluxCount} flux updated for provider ${providerId}`, { result: syncResult });
-    return syncResult;
+    return {
+      zombiesDisabled,
+      resurrected,
+      priceAnomalies,
+      priceUpdatedSilent,
+      marginFloorBreaches
+    };
   }
   /**
-   * AUD-04/11/13: Cherry-pick import with a fully transparent result report.
-   *
-   * - Reports every skipped service with a reason (duplicates, removed by provider,
-   *   invalid rate, stale selection) instead of silently dropping rows.
-   * - Resolves slug collisions with suffixes instead of relying on skipDuplicates.
-   * - Records safety-floor markup adjustments instead of bumping them silently.
-   * - Falls back to a fresh shadow catalog when the provider API is unavailable.
+   * Anomaly Detector: checks for price changes after catalog sync.
+   * Isolates services with price anomalies (>50% spike or >UPPER_SANITY_LIMIT_RUB) into quarantine.
    */
-  async importServices(externalIds, categoryId, defaultMarkup, admin, providerId, categoryIdMap, targetTenantId = "smmplan") {
-    const shadowServices = await db.shadowService.findMany({
-      where: {
-        providerId,
-        externalId: { in: externalIds.map(String) }
-      }
+  static async detectAnomalies(oldRates, newRates) {
+    const anomalies = [];
+    const settings = await SettingsProvider.get();
+    const usdToRub = settings.exchangeRateUSD || 95;
+    const serviceIds = Array.from(oldRates.keys());
+    if (serviceIds.length === 0) return anomalies;
+    const services = await db.service.findMany({
+      where: { id: { in: serviceIds } },
+      select: { id: true, name: true, rate: true, providerCurrency: true, isQuarantined: true }
     });
-    if (shadowServices.length === 0) throw new Error("\u041D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u044B \u0443\u0441\u043B\u0443\u0433\u0438 \u0434\u043B\u044F \u0438\u043C\u043F\u043E\u0440\u0442\u0430 \u0432 \u0442\u0435\u043D\u0435\u0432\u043E\u043C \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0435 (\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u0435 \u043A\u0430\u0442\u0430\u043B\u043E\u0433)");
-    const shadowByExtId = new Map(shadowServices.map((s) => [s.externalId, s]));
-    const skipped = [];
-    for (const extId of externalIds.map(String)) {
-      if (!shadowByExtId.has(extId)) {
-        skipped.push({ externalId: extId, name: null, reason: "NOT_IN_SHADOW_CATALOG" });
+    const serviceMap = new Map(services.map((s) => [s.id, s]));
+    for (const [serviceId, oldRateVal] of oldRates) {
+      const newRateVal = newRates.get(serviceId);
+      if (newRateVal === void 0) continue;
+      const service = serviceMap.get(serviceId);
+      const sCurrency = service?.providerCurrency || "USD";
+      const oldRateNum = typeof oldRateVal === "number" ? oldRateVal : oldRateVal.rate;
+      const oldCurr = typeof oldRateVal === "object" && oldRateVal.currency ? oldRateVal.currency : sCurrency;
+      const oldCostRub = typeof oldRateVal === "object" && typeof oldRateVal.costRub === "number" ? oldRateVal.costRub : oldRateNum * (oldCurr === "RUB" ? 1 : usdToRub);
+      const newRateNum = typeof newRateVal === "number" ? newRateVal : newRateVal.rate;
+      const newCurr = typeof newRateVal === "object" && newRateVal.currency ? newRateVal.currency : sCurrency;
+      const newCostRub = typeof newRateVal === "object" && typeof newRateVal.costRub === "number" ? newRateVal.costRub : newRateNum * (newCurr === "RUB" ? 1 : usdToRub);
+      if (oldCostRub === 0 && newCostRub === 0) continue;
+      if (newCostRub > UPPER_SANITY_LIMIT_RUB) {
+        const msg = `\u{1F6A8} [Sanity Breach] \u0423\u0441\u043B\u0443\u0433\u0430 "${service?.name || serviceId}" (${serviceId}): \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C ${newCostRub.toFixed(2)} \u20BD/1k (${newRateNum} ${newCurr}) \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u043B\u0438\u043C\u0438\u0442 ${UPPER_SANITY_LIMIT_RUB.toLocaleString("ru-RU")} \u20BD. \u0418\u0437\u043E\u043B\u0438\u0440\u043E\u0432\u0430\u043D\u0430 \u0432 \u043A\u0430\u0440\u0430\u043D\u0442\u0438\u043D.`;
+        anomalies.push(msg);
+        await db.service.update({
+          where: { id: serviceId },
+          data: {
+            isActive: false,
+            isQuarantined: true,
+            pendingRate: newRateNum,
+            quarantineReason: `Upper Sanity Limit Exceeded: \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C ${newCostRub.toFixed(2)} \u20BD/1k \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u043B\u0438\u043C\u0438\u0442 ${UPPER_SANITY_LIMIT_RUB.toLocaleString("ru-RU")} \u20BD (${newRateNum} ${newCurr})`,
+            quarantinedAt: /* @__PURE__ */ new Date()
+          }
+        }).catch(() => {
+        });
+        continue;
       }
-    }
-    const providerDbRecord = await db.provider.findUnique({ where: { id: providerId } });
-    if (!providerDbRecord) throw new Error("\u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D");
-    const warnings = [];
-    let usedLivePrices = true;
-    let shadowCatalogAgeHours = null;
-    const liveMap = /* @__PURE__ */ new Map();
-    const loadLiveCatalog = async () => {
-      const providerInstance = await providerService.getProviderInstance(providerDbRecord);
-      const liveServices = await providerInstance.getServices();
-      return liveServices.map((s) => ({
-        service: s.service.toString(),
-        name: s.name,
-        rate: String(s.rate),
-        min: String(s.min),
-        max: String(s.max),
-        dripfeed: parseProviderBooleanOptional(s.dripfeed),
-        refill: parseProviderBooleanOptional(s.refill),
-        cancel: parseProviderBooleanOptional(s.cancel),
-        desc: s.desc
-      }));
-    };
-    try {
-      const liveEntries = await loadLiveCatalog();
-      if (liveEntries.length === 0) {
-        throw new Error("API \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 \u0432\u0435\u0440\u043D\u0443\u043B \u043F\u0443\u0441\u0442\u043E\u0439 \u043A\u0430\u0442\u0430\u043B\u043E\u0433");
-      }
-      for (const entry of liveEntries) {
-        liveMap.set(entry.service, entry);
-      }
-    } catch (liveErr) {
-      const errMsg = liveErr instanceof Error ? liveErr.message : String(liveErr);
-      const latestShadow = await db.shadowService.findFirst({
-        where: { providerId },
-        orderBy: { updatedAt: "desc" },
-        select: { updatedAt: true }
-      });
-      shadowCatalogAgeHours = latestShadow ? (Date.now() - new Date(latestShadow.updatedAt).getTime()) / 36e5 : null;
-      const SHADOW_FALLBACK_MAX_AGE_HOURS = 24;
-      if (shadowServices.length > 0 && shadowCatalogAgeHours !== null && shadowCatalogAgeHours <= SHADOW_FALLBACK_MAX_AGE_HOURS) {
-        usedLivePrices = false;
-        warnings.push(
-          `\u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D (${errMsg}). \u0418\u043C\u043F\u043E\u0440\u0442 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D \u043F\u043E \u0446\u0435\u043D\u0430\u043C \u0442\u0435\u043D\u0435\u0432\u043E\u0433\u043E \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430 (\u0432\u043E\u0437\u0440\u0430\u0441\u0442: ${shadowCatalogAgeHours.toFixed(1)} \u0447). \u041F\u043E\u0441\u043B\u0435 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F \u0441\u0432\u044F\u0437\u0438 \u0432\u044B\u043F\u043E\u043B\u043D\u0438\u0442\u0435 \u0441\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0430\u0446\u0438\u044E \u0446\u0435\u043D.`
-        );
-        for (const s of shadowServices) {
-          liveMap.set(s.externalId, {
-            service: s.externalId,
-            name: s.name,
-            rate: String(s.rate),
-            min: String(s.min),
-            max: String(s.max),
-            dripfeed: s.dripfeed,
-            refill: s.refill,
-            cancel: s.cancel
-          });
+      if (oldCostRub > 0) {
+        const change = (newCostRub - oldCostRub) / oldCostRub;
+        const absChange = Math.abs(change);
+        if (absChange >= SYNC_ANOMALY_THRESHOLD) {
+          const direction = newCostRub > oldCostRub ? "\u{1F4C8}" : "\u{1F4C9}";
+          const msg = `${direction} \u0423\u0441\u043B\u0443\u0433\u0430 "${service?.name || serviceId}" (${serviceId}): ${oldCostRub.toFixed(2)} \u20BD (${oldRateNum} ${oldCurr}) \u2192 ${newCostRub.toFixed(2)} \u20BD (${newRateNum} ${newCurr}) (${change >= 0 ? "+" : ""}${(change * 100).toFixed(0)}%)`;
+          anomalies.push(msg);
+          if (change >= ANOMALY_PRICE_SPIKE_THRESHOLD) {
+            await db.service.update({
+              where: { id: serviceId },
+              data: {
+                isActive: false,
+                isQuarantined: true,
+                pendingRate: newRateNum,
+                quarantineReason: `Price Spike (+${(change * 100).toFixed(0)}%): \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u0432\u044B\u0440\u043E\u0441\u043B\u0430 \u0441 ${oldCostRub.toFixed(2)} \u20BD \u0434\u043E ${newCostRub.toFixed(2)} \u20BD/1k (${oldRateNum} ${oldCurr} \u2192 ${newRateNum} ${newCurr})`,
+                quarantinedAt: /* @__PURE__ */ new Date()
+              }
+            });
+          }
         }
+      }
+    }
+    if (anomalies.length > 0) {
+      await sendAdminAlert(
+        `\u26A1 \u041E\u0431\u043D\u0430\u0440\u0443\u0436\u0435\u043D\u044B \u0430\u043D\u043E\u043C\u0430\u043B\u0438\u0438 \u0446\u0435\u043D \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u043E\u0432:
+
+${anomalies.join("\n")}`,
+        "WARNING"
+      );
+    }
+    return anomalies;
+  }
+  /**
+   * Price synchronizer for exchange rate movements.
+   */
+  static async syncDenormalizedPrices(usdToRub) {
+    const { CBRRateService: CBRRateService2 } = await Promise.resolve().then(() => (init_cbr_rate_service(), cbr_rate_service_exports));
+    const liveCrossRates = await CBRRateService2.getLiveCrossRates();
+    const allServices = await db.service.findMany({
+      select: { id: true, name: true, rate: true, markup: true, isActive: true, providerCurrency: true, tenantId: true }
+    });
+    console.info(`[CatalogSyncService] Syncing prices for ${allServices.length} services with rate ${usdToRub}...`);
+    const updatesBatch = [];
+    for (const s of allServices) {
+      const costRub = getCostRub(s.rate, s.providerCurrency || "RUB", usdToRub, liveCrossRates);
+      const effectiveMarkup = s.markup > 0 ? s.markup : SAFETY_FLOOR_MARKUP;
+      const pricePer1kRubRounded = applyBeautifulRounding(costRub * effectiveMarkup);
+      const pricePerUnitRub = pricePer1kRubRounded / 1e3;
+      const purchaseCostPerUnitRub = costRub / 1e3;
+      if (pricePer1kRubRounded < costRub || pricePerUnitRub < purchaseCostPerUnitRub) {
+        updatesBatch.push(
+          db.service.update({
+            where: { id: s.id },
+            data: { isActive: false, costPer1kRub: costRub }
+          })
+        );
+        const alertMsg = `\u{1F6A8} [Loss Prevention] \u0423\u0441\u043B\u0443\u0433\u0430 ${s.id} \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0430 \u0438\u0437-\u0437\u0430 \u043A\u043E\u043B\u0435\u0431\u0430\u043D\u0438\u0439 \u043A\u0443\u0440\u0441\u0430 \u0426\u0411! \u0420\u043E\u0437\u043D\u0438\u0447\u043D\u0430\u044F \u0446\u0435\u043D\u0430 ${pricePerUnitRub.toFixed(4)} \u20BD/\u0448\u0442 \u043C\u0435\u043D\u044C\u0448\u0435 \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u0438 \u0437\u0430\u043A\u0443\u043F\u043A\u0438 ${purchaseCostPerUnitRub.toFixed(4)} \u20BD/\u0448\u0442.`;
+        console.error(alertMsg);
+        await db.routingAuditLog.create({
+          data: {
+            serviceId: s.id,
+            action: "LOSS_PREVENTION_BLOCK",
+            reason: `Exchange rate fluctuation: Retail price ${pricePerUnitRub.toFixed(4)} < Cost ${purchaseCostPerUnitRub.toFixed(4)}`
+          }
+        });
+        const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+        await sendAdminAlert2(alertMsg, "CRITICAL");
       } else {
-        throw new Error(
-          `\u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D (${errMsg}), \u0430 \u0442\u0435\u043D\u0435\u0432\u043E\u0439 \u043A\u0430\u0442\u0430\u043B\u043E\u0433 ${shadowCatalogAgeHours === null ? "\u043F\u0443\u0441\u0442" : `\u0443\u0441\u0442\u0430\u0440\u0435\u043B (${shadowCatalogAgeHours.toFixed(1)} \u0447 \u043D\u0430\u0437\u0430\u0434)`}. \u041D\u0430\u0436\u043C\u0438\u0442\u0435 \xAB\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C \u043A\u0430\u0442\u0430\u043B\u043E\u0433\xBB \u0438 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u0438\u043C\u043F\u043E\u0440\u0442.`
+        const newPriceCents = Math.round(pricePer1kRubRounded * 100);
+        updatesBatch.push(
+          db.service.update({
+            where: { id: s.id },
+            data: {
+              costPer1kRub: costRub,
+              pricePer1000Cents: newPriceCents
+            }
+          })
         );
       }
     }
+    for (let i = 0; i < updatesBatch.length; i += 100) {
+      await db.$transaction(updatesBatch.slice(i, i + 100));
+    }
+    console.info(`[CatalogSyncService] Price sync completed. Updated ${updatesBatch.length} services.`);
+    return { updatedCount: updatesBatch.length, totalCount: allServices.length };
+  }
+};
+
+// src/services/admin/catalog/catalog-import.service.ts
+init_db();
+init_logger();
+init_admin_audit();
+init_settings();
+init_financial_constants();
+init_target_type();
+init_currency_invariant();
+init_anti_negative_margin();
+
+// src/lib/pricing/drift-circuit-breaker.ts
+init_db();
+init_financial_constants();
+var DEFAULT_DRIFT_CONFIG = {
+  MAX_SINGLE_DRIFT_PCT: 200,
+  MIN_REASONABLE_COST_RUB: 0.01,
+  MAX_REASONABLE_COST_RUB: UPPER_SANITY_LIMIT_RUB
+};
+var PriceDriftCircuitBreaker = class {
+  /**
+   * Validates a new cost against reasonable bounds, currency ratio limits, and historical shadow price.
+   * Returns: { ok: true } | { ok: false, reason, severity }
+   */
+  static async validate(providerId, externalId, newCostPer1kRub, config2 = DEFAULT_DRIFT_CONFIG, rawRate, currency) {
+    if (newCostPer1kRub < config2.MIN_REASONABLE_COST_RUB) {
+      return {
+        ok: false,
+        reason: `\u0421\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C ${newCostPer1kRub} \u20BD/1k \u043D\u0438\u0436\u0435 \u043C\u0438\u043D\u0438\u043C\u0430\u043B\u044C\u043D\u043E \u0434\u043E\u043F\u0443\u0441\u0442\u0438\u043C\u043E\u0433\u043E \u043F\u043E\u0440\u043E\u0433\u0430 ${config2.MIN_REASONABLE_COST_RUB} \u20BD/1k (\u0430\u043D\u043E\u043C\u0430\u043B\u0438\u044F \u043C\u0438\u043A\u0440\u043E-\u0446\u0435\u043D\u044B \u0438\u043B\u0438 \u0441\u0431\u043E\u0439 \u0432\u0430\u043B\u044E\u0442\u044B)`,
+        severity: "BLOCK"
+      };
+    }
+    if (newCostPer1kRub > config2.MAX_REASONABLE_COST_RUB) {
+      return {
+        ok: false,
+        reason: `\u0421\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C ${newCostPer1kRub} \u20BD/1k \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u043C\u0430\u043A\u0441\u0438\u043C\u0430\u043B\u044C\u043D\u044B\u0439 \u043B\u0438\u043C\u0438\u0442 ${config2.MAX_REASONABLE_COST_RUB} \u20BD/1k (\u0432\u0435\u0440\u043E\u044F\u0442\u043D\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430 \u0432\u0430\u043B\u044E\u0442\u044B)`,
+        severity: "BLOCK"
+      };
+    }
+    if (rawRate && rawRate > 0 && currency) {
+      const ratio = newCostPer1kRub / rawRate;
+      const upperRatioLimit = currency === "RUB" ? 1.5 : currency === "USD" ? 250 : 300;
+      if (ratio > upperRatioLimit) {
+        return {
+          ok: false,
+          reason: `\u041E\u0442\u043D\u043E\u0448\u0435\u043D\u0438\u0435 \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u0438 \u043A \u0438\u0441\u0445\u043E\u0434\u043D\u043E\u0439 \u0441\u0442\u0430\u0432\u043A\u0435 (${ratio.toFixed(2)}x) \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u044B\u0439 \u043A\u043E\u044D\u0444\u0444\u0438\u0446\u0438\u0435\u043D\u0442 ${upperRatioLimit}x \u0434\u043B\u044F \u0432\u0430\u043B\u044E\u0442\u044B ${currency}`,
+          severity: "BLOCK"
+        };
+      }
+    }
+    try {
+      const historical = await db.shadowService.findFirst({
+        where: { providerId, externalId },
+        select: { rateRub: true }
+      });
+      if (historical?.rateRub && historical.rateRub > 0) {
+        const driftPct = (newCostPer1kRub - historical.rateRub) / historical.rateRub * 100;
+        const absDrift = Math.abs(driftPct);
+        if (absDrift > config2.MAX_SINGLE_DRIFT_PCT) {
+          return {
+            ok: false,
+            reason: `\u0414\u0440\u0435\u0439\u0444 \u0446\u0435\u043D\u044B ${driftPct.toFixed(1)}% \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u0434\u043E\u043F\u0443\u0441\u0442\u0438\u043C\u044B\u0439 \u043F\u043E\u0440\u043E\u0433 (${historical.rateRub} \u20BD \u2192 ${newCostPer1kRub} \u20BD)`,
+            severity: absDrift > 500 ? "BLOCK" : "WARN",
+            previousCost: historical.rateRub
+          };
+        }
+      }
+    } catch (dbErr) {
+      console.error("[PriceDriftCircuitBreaker] DB query error while checking historical rate:", dbErr);
+    }
+    return { ok: true };
+  }
+};
+
+// src/services/admin/catalog/catalog-import.service.ts
+init_link_rules_registry();
+
+// src/services/admin/catalog/catalog-import-preflight.ts
+init_db();
+init_provider_service();
+async function runCatalogImportPreflight(providerId, externalIds) {
+  const shadowServices = await db.shadowService.findMany({
+    where: {
+      providerId,
+      externalId: { in: externalIds.map(String) }
+    }
+  });
+  if (shadowServices.length === 0) {
+    throw new Error("\u041D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u044B \u0443\u0441\u043B\u0443\u0433\u0438 \u0434\u043B\u044F \u0438\u043C\u043F\u043E\u0440\u0442\u0430 \u0432 \u0442\u0435\u043D\u0435\u0432\u043E\u043C \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0435 (\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u0435 \u043A\u0430\u0442\u0430\u043B\u043E\u0433)");
+  }
+  const shadowByExtId = new Map(shadowServices.map((s) => [s.externalId, s]));
+  const skipped = [];
+  for (const extId of externalIds.map(String)) {
+    if (!shadowByExtId.has(extId)) {
+      skipped.push({ externalId: extId, name: null, reason: "NOT_IN_SHADOW_CATALOG" });
+    }
+  }
+  const providerDbRecord = await db.provider.findUnique({ where: { id: providerId } });
+  if (!providerDbRecord) throw new Error("\u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D");
+  const warnings = [];
+  let usedLivePrices = true;
+  let shadowCatalogAgeHours = null;
+  const liveMap = /* @__PURE__ */ new Map();
+  const loadLiveCatalog = async () => {
+    const providerInstance = await providerService.getProviderInstance(providerDbRecord);
+    const liveServices = await providerInstance.getServices();
+    return liveServices.map((s) => ({
+      service: s.service.toString(),
+      name: s.name,
+      rate: String(s.rate),
+      min: String(s.min),
+      max: String(s.max),
+      dripfeed: parseProviderBooleanOptional(s.dripfeed),
+      refill: parseProviderBooleanOptional(s.refill),
+      cancel: parseProviderBooleanOptional(s.cancel),
+      desc: s.desc
+    }));
+  };
+  try {
+    const liveEntries = await loadLiveCatalog();
+    if (liveEntries.length === 0) {
+      throw new Error("API \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 \u0432\u0435\u0440\u043D\u0443\u043B \u043F\u0443\u0441\u0442\u043E\u0439 \u043A\u0430\u0442\u0430\u043B\u043E\u0433");
+    }
+    for (const entry of liveEntries) {
+      liveMap.set(entry.service, entry);
+    }
+  } catch (liveErr) {
+    const errMsg = liveErr instanceof Error ? liveErr.message : String(liveErr);
+    const latestShadow = await db.shadowService.findFirst({
+      where: { providerId },
+      orderBy: { updatedAt: "desc" },
+      select: { updatedAt: true }
+    });
+    shadowCatalogAgeHours = latestShadow ? (Date.now() - new Date(latestShadow.updatedAt).getTime()) / 36e5 : null;
+    const SHADOW_FALLBACK_MAX_AGE_HOURS = 24;
+    if (shadowServices.length > 0 && shadowCatalogAgeHours !== null && shadowCatalogAgeHours <= SHADOW_FALLBACK_MAX_AGE_HOURS) {
+      usedLivePrices = false;
+      warnings.push(
+        `\u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D (${errMsg}). \u0418\u043C\u043F\u043E\u0440\u0442 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D \u043F\u043E \u0446\u0435\u043D\u0430\u043C \u0442\u0435\u043D\u0435\u0432\u043E\u0433\u043E \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430 (\u0432\u043E\u0437\u0440\u0430\u0441\u0442: ${shadowCatalogAgeHours.toFixed(1)} \u0447). \u041F\u043E\u0441\u043B\u0435 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F \u0441\u0432\u044F\u0437\u0438 \u0432\u044B\u043F\u043E\u043B\u043D\u0438\u0442\u0435 \u0441\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0430\u0446\u0438\u044E \u0446\u0435\u043D.`
+      );
+      for (const s of shadowServices) {
+        liveMap.set(s.externalId, {
+          service: s.externalId,
+          name: s.name,
+          rate: String(s.rate),
+          min: String(s.min),
+          max: String(s.max),
+          dripfeed: s.dripfeed,
+          refill: s.refill,
+          cancel: s.cancel
+        });
+      }
+    } else {
+      throw new Error(
+        `\u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D (${errMsg}), \u0430 \u0442\u0435\u043D\u0435\u0432\u043E\u0439 \u043A\u0430\u0442\u0430\u043B\u043E\u0433 ${shadowCatalogAgeHours === null ? "\u043F\u0443\u0441\u0442" : `\u0443\u0441\u0442\u0430\u0440\u0435\u043B (${shadowCatalogAgeHours.toFixed(1)} \u0447 \u043D\u0430\u0437\u0430\u0434)`}. \u041D\u0430\u0436\u043C\u0438\u0442\u0435 \xAB\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C \u043A\u0430\u0442\u0430\u043B\u043E\u0433\xBB \u0438 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u0438\u043C\u043F\u043E\u0440\u0442.`
+      );
+    }
+  }
+  return {
+    providerDbRecord,
+    shadowServices,
+    liveMap,
+    skipped,
+    warnings,
+    usedLivePrices,
+    shadowCatalogAgeHours
+  };
+}
+
+// src/services/admin/catalog/catalog-import-category-resolver.ts
+async function resolveImportCategory(extId, shadowExt, defaultCategoryId, tenantId, ctx) {
+  const explicitId = ctx.categoryIdMap?.[extId];
+  if (explicitId) {
+    const directNetwork = ctx.categoryNetworkMap.get(explicitId);
+    return {
+      resolvedCategoryId: explicitId,
+      effectiveServiceNetwork: directNetwork || null
+    };
+  }
+  const normCat = shadowExt.normalizedCategory;
+  const serviceCanonicalType = inferCanonicalActivityType(normCat, shadowExt.cleanName || shadowExt.name || "", shadowExt.targetType || void 0);
+  const candidateCatId = defaultCategoryId;
+  const candidateActivityType = ctx.categoryActivityTypeMap.get(candidateCatId) || ctx.fallbackCategoryRecord?.activityType || "";
+  const candidateName = (ctx.categoryNameMap.get(candidateCatId) || "").toLowerCase();
+  const detectedPlatformName = detectTargetPlatform(null, shadowExt.cleanName || shadowExt.name) || shadowExt.platform;
+  const detectedServiceNetwork = detectedPlatformName ? ctx.networkBySlug.get(detectedPlatformName.toLowerCase()) : null;
+  let targetNetwork = ctx.categoryNetworkMap.get(candidateCatId) || ctx.fallbackCategoryRecord?.network || ctx.networkBySlug.get((shadowExt.platform || "").toLowerCase());
+  if (detectedServiceNetwork && targetNetwork && detectedServiceNetwork.id !== targetNetwork.id) {
+    targetNetwork = detectedServiceNetwork;
+  }
+  const effectiveServiceNetwork = targetNetwork || null;
+  let isContradiction = false;
+  if (detectedServiceNetwork && targetNetwork && detectedServiceNetwork.id !== targetNetwork.id) {
+    isContradiction = true;
+    targetNetwork = detectedServiceNetwork;
+  }
+  if (serviceCanonicalType && targetNetwork) {
+    if (serviceCanonicalType === "SUBSCRIBERS") {
+      if (candidateActivityType && candidateActivityType !== "SUBSCRIBERS") isContradiction = true;
+      else if (candidateName && (candidateName.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || candidateName.includes("\u043B\u0430\u0439\u043A") || candidateName.includes("\u043A\u043E\u043C\u043C\u0435\u043D\u0442") || candidateName.includes("\u0440\u0435\u043F\u043E\u0441\u0442") || candidateName.includes("\u0440\u0435\u0430\u043A\u0446"))) isContradiction = true;
+    } else if (serviceCanonicalType === "VIEWS" || serviceCanonicalType === "AUTO_VIEWS") {
+      if (candidateActivityType && !["VIEWS", "AUTO_VIEWS", "AUTO_SERVICES"].includes(candidateActivityType)) isContradiction = true;
+      else if (candidateName && (candidateName.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447") || candidateName.includes("\u043B\u0430\u0439\u043A") || candidateName.includes("\u043A\u043E\u043C\u043C\u0435\u043D\u0442"))) isContradiction = true;
+    } else if (serviceCanonicalType === "STORIES") {
+      if (candidateActivityType && candidateActivityType !== "STORIES") isContradiction = true;
+      else if (candidateName && (candidateName.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") && !candidateName.includes("\u0438\u0441\u0442\u043E\u0440\u0438") && !candidateName.includes("\u0441\u0442\u043E\u0440\u0438\u0441") || candidateName.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447") || candidateName.includes("\u043B\u0430\u0439\u043A"))) isContradiction = true;
+    } else if (serviceCanonicalType === "POLLS") {
+      if (candidateActivityType && candidateActivityType !== "POLLS") isContradiction = true;
+      else if (candidateName && (candidateName.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || candidateName.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447") || candidateName.includes("\u043B\u0430\u0439\u043A"))) isContradiction = true;
+    } else if (serviceCanonicalType === "LIKES" || serviceCanonicalType === "AUTO_LIKES") {
+      if (candidateActivityType && !["LIKES", "AUTO_LIKES", "AUTO_SERVICES"].includes(candidateActivityType)) isContradiction = true;
+      else if (candidateName && (candidateName.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447") || candidateName.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || candidateName.includes("\u043A\u043E\u043C\u043C\u0435\u043D\u0442"))) isContradiction = true;
+    } else if (serviceCanonicalType === "COMMENTS" || serviceCanonicalType === "AUTO_COMMENTS") {
+      if (candidateActivityType && !["COMMENTS", "AUTO_COMMENTS"].includes(candidateActivityType)) isContradiction = true;
+      else if (candidateName && (candidateName.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447") || candidateName.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || candidateName.includes("\u043B\u0430\u0439\u043A"))) isContradiction = true;
+    } else if (serviceCanonicalType === "REACTIONS" || serviceCanonicalType === "AUTO_REACTIONS") {
+      if (candidateActivityType && !["REACTIONS", "AUTO_REACTIONS"].includes(candidateActivityType)) isContradiction = true;
+      else if (candidateName && (candidateName.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || candidateName.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447"))) isContradiction = true;
+    } else if (serviceCanonicalType === "BOOSTS") {
+      if (candidateActivityType && candidateActivityType !== "BOOSTS") isContradiction = true;
+      else if (candidateName && (candidateName.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || candidateName.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447") || candidateName.includes("\u043B\u0430\u0439\u043A"))) isContradiction = true;
+    } else if (serviceCanonicalType === "REPOSTS") {
+      if (candidateActivityType && candidateActivityType !== "REPOSTS") isContradiction = true;
+    } else if (serviceCanonicalType === "STREAMS") {
+      if (candidateActivityType && candidateActivityType !== "STREAMS") isContradiction = true;
+      else if (candidateName && (candidateName.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447") || candidateName.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || candidateName.includes("\u043B\u0430\u0439\u043A"))) isContradiction = true;
+    } else if (serviceCanonicalType === "STARS") {
+      if (candidateActivityType && candidateActivityType !== "STARS") isContradiction = true;
+    }
+  }
+  if (isContradiction && serviceCanonicalType && targetNetwork) {
+    const cacheKey = `${targetNetwork.id}_${serviceCanonicalType}_${tenantId}`;
+    if (!ctx.autoCreatedCategoryCache.has(cacheKey)) {
+      const autoId = await ensureCategoryForActivityType(
+        targetNetwork.id,
+        targetNetwork.name,
+        targetNetwork.slug,
+        serviceCanonicalType,
+        ctx.fallbackCategoryRecord?.tenantId || tenantId
+      );
+      ctx.autoCreatedCategoryCache.set(cacheKey, autoId);
+    }
+    return {
+      resolvedCategoryId: ctx.autoCreatedCategoryCache.get(cacheKey),
+      effectiveServiceNetwork
+    };
+  }
+  if (serviceCanonicalType && serviceCanonicalType !== "OTHER" && targetNetwork && serviceCanonicalType !== ctx.fallbackCategoryRecord?.activityType) {
+    const cacheKey = `${targetNetwork.id}_${serviceCanonicalType}_${tenantId}`;
+    if (!ctx.autoCreatedCategoryCache.has(cacheKey)) {
+      const autoId = await ensureCategoryForActivityType(
+        targetNetwork.id,
+        targetNetwork.name,
+        targetNetwork.slug,
+        serviceCanonicalType,
+        ctx.fallbackCategoryRecord?.tenantId || tenantId
+      );
+      ctx.autoCreatedCategoryCache.set(cacheKey, autoId);
+    }
+    return {
+      resolvedCategoryId: ctx.autoCreatedCategoryCache.get(cacheKey),
+      effectiveServiceNetwork
+    };
+  }
+  return {
+    resolvedCategoryId: defaultCategoryId,
+    effectiveServiceNetwork
+  };
+}
+
+// src/services/admin/catalog/catalog-import.service.ts
+var CatalogImportService = class {
+  /**
+   * Imports services from the Shadow Catalog into the curated production Service table.
+   * Performs live price checks against the provider API to prevent cache poisoning.
+   * Falls back to shadow catalog if the provider API is down.
+   */
+  static async importServices(externalIds, categoryId, defaultMarkup, admin, providerId, categoryIdMap, targetTenantId = "smmplan") {
+    const preflight = await runCatalogImportPreflight(providerId, externalIds);
+    const { providerDbRecord, shadowServices, liveMap, skipped, warnings, usedLivePrices, shadowCatalogAgeHours } = preflight;
     const tenantsToImport = targetTenantId === "both" ? ["smmplan", "flux"] : [targetTenantId];
     const existingServices = await db.service.findMany({
       where: {
@@ -162083,14 +162285,21 @@ var AdminCatalogService = class {
         );
       }
     }
-    const servicesToCreate = [];
-    const markupAdjustments = [];
-    const globalUsdToRub = await SettingsProvider.getExchangeRateUSD();
     const fallbackCategoryRecord = categoryId ? await db.category.findUnique({
       where: { id: categoryId },
       select: { activityType: true, networkId: true, tenantId: true, network: { select: { id: true, name: true, slug: true } } }
     }) : null;
-    const autoCreatedCategoryCache = /* @__PURE__ */ new Map();
+    const resolutionCtx = {
+      categoryIdMap,
+      categoryActivityTypeMap,
+      categoryNameMap,
+      categoryNetworkMap,
+      networkBySlug,
+      fallbackCategoryRecord,
+      autoCreatedCategoryCache: /* @__PURE__ */ new Map()
+    };
+    const servicesToCreate = [];
+    const markupAdjustments = [];
     for (const shadowExt of shadowServices) {
       const extId = shadowExt.externalId;
       const liveExt = liveMap.get(extId);
@@ -162107,7 +162316,7 @@ var AdminCatalogService = class {
       let snapshot;
       try {
         snapshot = await buildCurrencySnapshot(rawRate, providerCurrency);
-      } catch (snapErr) {
+      } catch {
         skipped.push({ externalId: extId, name: shadowExt.cleanName || shadowExt.name, reason: "CURRENCY_CONVERSION_FAILED" });
         continue;
       }
@@ -162181,96 +162390,16 @@ var AdminCatalogService = class {
           }
         }
         takenSlugs.add(`${tId}:${stableSlug}`);
-        let effectiveServiceNetwork = null;
-        const resolvedCategoryId = await (async () => {
-          const explicitId = categoryIdMap?.[extId];
-          if (explicitId) {
-            return explicitId;
-          }
-          const normCat = shadowExt.normalizedCategory;
-          const serviceCanonicalType2 = inferCanonicalActivityType(normCat, shadowExt.cleanName || shadowExt.name || "", shadowExt.targetType);
-          const candidateCatId = categoryId;
-          const candidateActivityType = categoryActivityTypeMap.get(candidateCatId) || fallbackCategoryRecord?.activityType || "";
-          const candidateName = (categoryNameMap.get(candidateCatId) || "").toLowerCase();
-          const detectedPlatformName = detectTargetPlatform(null, shadowExt.cleanName || shadowExt.name) || shadowExt.platform;
-          const detectedServiceNetwork = detectedPlatformName ? networkBySlug.get(detectedPlatformName.toLowerCase()) : null;
-          let targetNetwork = categoryNetworkMap.get(candidateCatId) || fallbackCategoryRecord?.network || networkBySlug.get((shadowExt.platform || "").toLowerCase());
-          if (detectedServiceNetwork && targetNetwork && detectedServiceNetwork.id !== targetNetwork.id) {
-            targetNetwork = detectedServiceNetwork;
-          }
-          effectiveServiceNetwork = targetNetwork || null;
-          let isContradiction = false;
-          if (detectedServiceNetwork && targetNetwork && detectedServiceNetwork.id !== targetNetwork.id) {
-            isContradiction = true;
-            targetNetwork = detectedServiceNetwork;
-          }
-          if (serviceCanonicalType2 && targetNetwork) {
-            if (serviceCanonicalType2 === "SUBSCRIBERS") {
-              if (candidateActivityType && candidateActivityType !== "SUBSCRIBERS") isContradiction = true;
-              else if (candidateName && (candidateName.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || candidateName.includes("\u043B\u0430\u0439\u043A") || candidateName.includes("\u043A\u043E\u043C\u043C\u0435\u043D\u0442") || candidateName.includes("\u0440\u0435\u043F\u043E\u0441\u0442") || candidateName.includes("\u0440\u0435\u0430\u043A\u0446"))) isContradiction = true;
-            } else if (serviceCanonicalType2 === "VIEWS" || serviceCanonicalType2 === "AUTO_VIEWS") {
-              if (candidateActivityType && !["VIEWS", "AUTO_VIEWS", "AUTO_SERVICES"].includes(candidateActivityType)) isContradiction = true;
-              else if (candidateName && (candidateName.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447") || candidateName.includes("\u043B\u0430\u0439\u043A") || candidateName.includes("\u043A\u043E\u043C\u043C\u0435\u043D\u0442"))) isContradiction = true;
-            } else if (serviceCanonicalType2 === "STORIES") {
-              if (candidateActivityType && candidateActivityType !== "STORIES") isContradiction = true;
-              else if (candidateName && (candidateName.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") && !candidateName.includes("\u0438\u0441\u0442\u043E\u0440\u0438") && !candidateName.includes("\u0441\u0442\u043E\u0440\u0438\u0441") || candidateName.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447") || candidateName.includes("\u043B\u0430\u0439\u043A"))) isContradiction = true;
-            } else if (serviceCanonicalType2 === "POLLS") {
-              if (candidateActivityType && candidateActivityType !== "POLLS") isContradiction = true;
-              else if (candidateName && (candidateName.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || candidateName.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447") || candidateName.includes("\u043B\u0430\u0439\u043A"))) isContradiction = true;
-            } else if (serviceCanonicalType2 === "LIKES" || serviceCanonicalType2 === "AUTO_LIKES") {
-              if (candidateActivityType && !["LIKES", "AUTO_LIKES", "AUTO_SERVICES"].includes(candidateActivityType)) isContradiction = true;
-              else if (candidateName && (candidateName.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447") || candidateName.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || candidateName.includes("\u043A\u043E\u043C\u043C\u0435\u043D\u0442"))) isContradiction = true;
-            } else if (serviceCanonicalType2 === "COMMENTS" || serviceCanonicalType2 === "AUTO_COMMENTS") {
-              if (candidateActivityType && !["COMMENTS", "AUTO_COMMENTS"].includes(candidateActivityType)) isContradiction = true;
-              else if (candidateName && (candidateName.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447") || candidateName.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || candidateName.includes("\u043B\u0430\u0439\u043A"))) isContradiction = true;
-            } else if (serviceCanonicalType2 === "REACTIONS" || serviceCanonicalType2 === "AUTO_REACTIONS") {
-              if (candidateActivityType && !["REACTIONS", "AUTO_REACTIONS"].includes(candidateActivityType)) isContradiction = true;
-              else if (candidateName && (candidateName.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || candidateName.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447"))) isContradiction = true;
-            } else if (serviceCanonicalType2 === "BOOSTS") {
-              if (candidateActivityType && candidateActivityType !== "BOOSTS") isContradiction = true;
-              else if (candidateName && (candidateName.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || candidateName.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447") || candidateName.includes("\u043B\u0430\u0439\u043A"))) isContradiction = true;
-            } else if (serviceCanonicalType2 === "REPOSTS") {
-              if (candidateActivityType && candidateActivityType !== "REPOSTS") isContradiction = true;
-            } else if (serviceCanonicalType2 === "STREAMS") {
-              if (candidateActivityType && candidateActivityType !== "STREAMS") isContradiction = true;
-              else if (candidateName && (candidateName.includes("\u043F\u043E\u0434\u043F\u0438\u0441\u0447") || candidateName.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || candidateName.includes("\u043B\u0430\u0439\u043A"))) isContradiction = true;
-            } else if (serviceCanonicalType2 === "STARS") {
-              if (candidateActivityType && candidateActivityType !== "STARS") isContradiction = true;
-            }
-          }
-          if (isContradiction && serviceCanonicalType2 && targetNetwork) {
-            const cacheKey = `${targetNetwork.id}_${serviceCanonicalType2}_${tId}`;
-            if (!autoCreatedCategoryCache.has(cacheKey)) {
-              const autoId = await ensureCategoryForActivityType(
-                targetNetwork.id,
-                targetNetwork.name,
-                targetNetwork.slug,
-                serviceCanonicalType2,
-                fallbackCategoryRecord?.tenantId || tId
-              );
-              autoCreatedCategoryCache.set(cacheKey, autoId);
-            }
-            return autoCreatedCategoryCache.get(cacheKey);
-          }
-          if (serviceCanonicalType2 && serviceCanonicalType2 !== "OTHER" && targetNetwork && serviceCanonicalType2 !== fallbackCategoryRecord?.activityType) {
-            const cacheKey = `${targetNetwork.id}_${serviceCanonicalType2}_${tId}`;
-            if (!autoCreatedCategoryCache.has(cacheKey)) {
-              const autoId = await ensureCategoryForActivityType(
-                targetNetwork.id,
-                targetNetwork.name,
-                targetNetwork.slug,
-                serviceCanonicalType2,
-                fallbackCategoryRecord?.tenantId || tId
-              );
-              autoCreatedCategoryCache.set(cacheKey, autoId);
-            }
-            return autoCreatedCategoryCache.get(cacheKey);
-          }
-          return categoryId;
-        })();
+        const { resolvedCategoryId, effectiveServiceNetwork } = await resolveImportCategory(
+          extId,
+          shadowExt,
+          categoryId,
+          tId,
+          resolutionCtx
+        );
         const resolvedCategoryName = categoryNameMap.get(resolvedCategoryId) || fallbackCategoryRecord?.network?.name || "";
         const resolvedNetworkName = categoryNetworkMap.get(resolvedCategoryId)?.name || effectiveServiceNetwork?.name || fallbackCategoryRecord?.network?.name || shadowExt.platform || "";
-        const serviceCanonicalType = inferCanonicalActivityType(shadowExt.normalizedCategory, shadowExt.cleanName || shadowExt.name || "", shadowExt.targetType);
+        const serviceCanonicalType = inferCanonicalActivityType(shadowExt.normalizedCategory, shadowExt.cleanName || shadowExt.name || "", shadowExt.targetType || void 0);
         let effectiveTargetType = shadowExt.targetType;
         if (serviceCanonicalType === "SUBSCRIBERS") {
           effectiveTargetType = "CHANNEL";
@@ -162286,7 +162415,6 @@ var AdminCatalogService = class {
           tenantId: tId,
           slug: stableSlug,
           name: formatFullServiceName(importedName, resolvedCategoryName, resolvedNetworkName),
-          // Use formatted Action — Tariff Name
           description: importedDesc ? sanitizeServiceDescription(ServiceAuditEngine.cleanText(importedDesc)) : null,
           externalId: extId,
           categoryId: resolvedCategoryId,
@@ -162296,7 +162424,6 @@ var AdminCatalogService = class {
           currencyCapturedAt: snapshot.capturedAt,
           usdRateAtCapture: snapshot.usdRateAtCapture,
           rate: snapshot.rawRate,
-          // Live provider rate (for audit)
           markup: effectiveMarkup,
           pricePer1000Cents: marginGuard.finalRetailPer1kCents,
           minQty,
@@ -162315,7 +162442,6 @@ var AdminCatalogService = class {
           },
           anomalyScore: shadowExt.anomalyScore || 0,
           targetType: effectiveTargetType,
-          // Declarative Link Rules from Unified Link Engine (SIL-2026)
           linkPlaceholder: linkSpec.placeholder,
           linkHint: linkSpec.hint,
           linkValidatorRegex: linkSpec.regex,
@@ -162401,359 +162527,113 @@ var AdminCatalogService = class {
       warnings
     };
   }
+};
+
+// src/services/admin/catalog.service.ts
+var AdminCatalogService = class {
   /**
-   * Anomaly Detector: checks for price changes after catalog sync.
-   * Active Quarantine Enforcement: automatically isolates services with price anomalies (>50% spike or >UPPER_SANITY_LIMIT_RUB) into quarantine.
+   * Paginated service list with category, markup, and order count.
+   */
+  async listServices(params) {
+    return CatalogManagementService.listServices(params);
+  }
+  /**
+   * Updates service markup and recalculates prices with safety bounds.
+   */
+  async updateMarkup(id, markup, admin) {
+    return CatalogManagementService.updateMarkup(id, markup, admin);
+  }
+  /**
+   * Toggles service active status with audit logging.
+   */
+  async toggleService(id, isActive, admin) {
+    return CatalogManagementService.toggleService(id, isActive, admin);
+  }
+  /**
+   * Soft deletes a service (marks inactive and flags cooldown).
+   */
+  async softDeleteService(id, admin) {
+    return CatalogManagementService.softDeleteService(id, admin);
+  }
+  /**
+   * Fetches provider external services from the default provider.
+   */
+  async getProviderServices() {
+    return CatalogSyncService.getProviderServices();
+  }
+  /**
+   * Refreshes the local ShadowService staging catalog by fetching services from the provider.
+   */
+  async refreshShadowCatalog(providerId) {
+    return CatalogSyncService.refreshShadowCatalog(providerId);
+  }
+  /**
+   * Synchronizes services with the provider catalog, discovering zombies and resurrected services.
+   */
+  async syncProviderCatalog(providerId, admin) {
+    return CatalogSyncService.syncProviderCatalog(providerId, admin);
+  }
+  /**
+   * Imports services from shadow catalog into live curated services.
+   */
+  async importServices(externalIds, categoryId, defaultMarkup, admin, providerId, categoryIdMap, targetTenantId = "smmplan") {
+    return CatalogImportService.importServices(
+      externalIds,
+      categoryId,
+      defaultMarkup,
+      admin,
+      providerId,
+      categoryIdMap,
+      targetTenantId
+    );
+  }
+  /**
+   * Detects anomalies in provider rates.
    */
   async detectAnomalies(oldRates, newRates) {
-    const anomalies = [];
-    const settings = await SettingsProvider.get();
-    const usdToRub = settings.exchangeRateUSD || 95;
-    const serviceIds = Array.from(oldRates.keys());
-    if (serviceIds.length === 0) return anomalies;
-    const services = await db.service.findMany({
-      where: { id: { in: serviceIds } },
-      select: { id: true, name: true, rate: true, providerCurrency: true, isQuarantined: true }
-    });
-    const serviceMap = new Map(services.map((s) => [s.id, s]));
-    for (const [serviceId, oldRateVal] of oldRates) {
-      const newRateVal = newRates.get(serviceId);
-      if (newRateVal === void 0) continue;
-      const service = serviceMap.get(serviceId);
-      const sCurrency = service?.providerCurrency || "USD";
-      const oldRateNum = typeof oldRateVal === "number" ? oldRateVal : oldRateVal.rate;
-      const oldCurr = typeof oldRateVal === "object" && oldRateVal.currency ? oldRateVal.currency : sCurrency;
-      const oldCostRub = typeof oldRateVal === "object" && typeof oldRateVal.costRub === "number" ? oldRateVal.costRub : oldRateNum * (oldCurr === "RUB" ? 1 : usdToRub);
-      const newRateNum = typeof newRateVal === "number" ? newRateVal : newRateVal.rate;
-      const newCurr = typeof newRateVal === "object" && newRateVal.currency ? newRateVal.currency : sCurrency;
-      const newCostRub = typeof newRateVal === "object" && typeof newRateVal.costRub === "number" ? newRateVal.costRub : newRateNum * (newCurr === "RUB" ? 1 : usdToRub);
-      if (oldCostRub === 0 && newCostRub === 0) continue;
-      if (newCostRub > UPPER_SANITY_LIMIT_RUB) {
-        const msg = `\u{1F6A8} [Sanity Breach] \u0423\u0441\u043B\u0443\u0433\u0430 "${service?.name || serviceId}" (${serviceId}): \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C ${newCostRub.toFixed(2)} \u20BD/1k (${newRateNum} ${newCurr}) \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u043B\u0438\u043C\u0438\u0442 ${UPPER_SANITY_LIMIT_RUB.toLocaleString("ru-RU")} \u20BD. \u0418\u0437\u043E\u043B\u0438\u0440\u043E\u0432\u0430\u043D\u0430 \u0432 \u043A\u0430\u0440\u0430\u043D\u0442\u0438\u043D.`;
-        anomalies.push(msg);
-        await db.service.update({
-          where: { id: serviceId },
-          data: {
-            isActive: false,
-            isQuarantined: true,
-            pendingRate: newRateNum,
-            quarantineReason: `Upper Sanity Limit Exceeded: \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C ${newCostRub.toFixed(2)} \u20BD/1k \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u043B\u0438\u043C\u0438\u0442 ${UPPER_SANITY_LIMIT_RUB.toLocaleString("ru-RU")} \u20BD (${newRateNum} ${newCurr})`,
-            quarantinedAt: /* @__PURE__ */ new Date()
-          }
-        }).catch(() => {
-        });
-        continue;
-      }
-      if (oldCostRub > 0) {
-        const change = (newCostRub - oldCostRub) / oldCostRub;
-        const absChange = Math.abs(change);
-        if (absChange >= SYNC_ANOMALY_THRESHOLD) {
-          const direction = newCostRub > oldCostRub ? "\u{1F4C8}" : "\u{1F4C9}";
-          const msg = `${direction} \u0423\u0441\u043B\u0443\u0433\u0430 "${service?.name || serviceId}" (${serviceId}): ${oldCostRub.toFixed(2)} \u20BD (${oldRateNum} ${oldCurr}) \u2192 ${newCostRub.toFixed(2)} \u20BD (${newRateNum} ${newCurr}) (${change >= 0 ? "+" : ""}${(change * 100).toFixed(0)}%)`;
-          anomalies.push(msg);
-          if (change >= ANOMALY_PRICE_SPIKE_THRESHOLD) {
-            await db.service.update({
-              where: { id: serviceId },
-              data: {
-                isActive: false,
-                isQuarantined: true,
-                pendingRate: newRateNum,
-                quarantineReason: `Price Spike (+${(change * 100).toFixed(0)}%): \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u0432\u044B\u0440\u043E\u0441\u043B\u0430 \u0441 ${oldCostRub.toFixed(2)} \u20BD \u0434\u043E ${newCostRub.toFixed(2)} \u20BD/1k (${oldRateNum} ${oldCurr} \u2192 ${newRateNum} ${newCurr})`,
-                quarantinedAt: /* @__PURE__ */ new Date()
-              }
-            }).catch(() => {
-            });
-          }
-        }
-      }
-    }
-    if (anomalies.length > 0) {
-      await sendAdminAlert(
-        `\u26A1 \u041E\u0431\u043D\u0430\u0440\u0443\u0436\u0435\u043D\u044B \u0430\u043D\u043E\u043C\u0430\u043B\u0438\u0438 \u0446\u0435\u043D \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u043E\u0432:
-
-${anomalies.join("\n")}`,
-        "WARNING"
-      );
-    }
-    return anomalies;
+    return CatalogSyncService.detectAnomalies(oldRates, newRates);
   }
   /**
-   * Catalog stats for the header and dashboard.
-   * Services and categories represent current inventory catalog state, not temporal transactions.
+   * Returns catalog stats for header and dashboard counters.
    */
   async getCatalogStats(tenantId, _startDate, _endDate) {
-    const where = {};
-    if (tenantId && tenantId !== "all") where.tenantId = { in: [tenantId, "all"] };
-    const categoryWhere = {};
-    if (tenantId && tenantId !== "all") categoryWhere.tenantId = { in: [tenantId, "all"] };
-    const [totalServices, activeServices, categories] = await Promise.all([
-      db.service.count({ where }),
-      db.service.count({ where: { ...where, isActive: true } }),
-      db.category.count({ where: categoryWhere })
-    ]);
-    return { totalServices, activeServices, categories };
+    return CatalogManagementService.getCatalogStats(tenantId, _startDate, _endDate);
   }
   /**
-   * Bulk update markup for multiple services matching a filter.
-   * Supports: by category, by platform, or all services.
+   * Bulk updates markup for multiple services matching filter.
    */
-  async bulkUpdateMarkup(filter2, newMarkup, admin) {
-    if (newMarkup !== 0 && (newMarkup < 1 || newMarkup > 151)) {
-      throw new Error("\u041D\u0430\u0446\u0435\u043D\u043A\u0430 \u0434\u043E\u043B\u0436\u043D\u0430 \u0431\u044B\u0442\u044C \u0432 \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D\u0435 1.0\u2013151.0 \u0438\u043B\u0438 0 (\u0430\u0432\u0442\u043E\u043A\u0430\u043B\u044C\u043A\u0443\u043B\u044F\u0446\u0438\u044F)");
-    }
-    const where = {
-      isQuarantined: false
-    };
-    if (filter2.tenantId) {
-      where.tenantId = filter2.tenantId;
-    }
-    if (filter2.categoryId) {
-      where.categoryId = filter2.categoryId;
-    }
-    if (filter2.platform) {
-      where.category = { network: { slug: filter2.platform } };
-    }
-    let updatedCount;
-    const usdToRub = await SettingsProvider.getExchangeRateUSD();
-    if (newMarkup <= 0) {
-      const services = await db.service.findMany({ where, select: { id: true, rate: true, providerCurrency: true } });
-      const updates = services.map((s) => {
-        const costRub = getCostRub(s.rate, s.providerCurrency || "RUB", usdToRub);
-        const retailFromLadder = applyPricingLadder(costRub);
-        let calculatedMarkup = costRub > 0 ? Math.round(retailFromLadder / costRub * 100) / 100 : SAFETY_FLOOR_MARKUP;
-        if (calculatedMarkup < SAFETY_FLOOR_MARKUP) {
-          calculatedMarkup = SAFETY_FLOOR_MARKUP;
-        }
-        return db.service.update({
-          where: { id: s.id },
-          data: {
-            markup: calculatedMarkup,
-            costPer1kRub: costRub,
-            pricePer1000Cents: Math.round(applyBeautifulRounding(costRub * calculatedMarkup) * 100)
-          }
-        });
-      });
-      for (let i = 0; i < updates.length; i += 50) {
-        await db.$transaction(updates.slice(i, i + 50));
-      }
-      updatedCount = services.length;
-    } else {
-      const services = await db.service.findMany({ where, select: { id: true, rate: true, providerCurrency: true } });
-      const updates = services.map((s) => {
-        const costRub = getCostRub(s.rate, s.providerCurrency || "RUB", usdToRub);
-        return db.service.update({
-          where: { id: s.id },
-          data: {
-            markup: newMarkup,
-            costPer1kRub: costRub,
-            pricePer1000Cents: Math.round(applyBeautifulRounding(costRub * newMarkup) * 100)
-          }
-        });
-      });
-      for (let i = 0; i < updates.length; i += 50) {
-        await db.$transaction(updates.slice(i, i + 50));
-      }
-      updatedCount = services.length;
-    }
-    auditAdmin({
-      adminId: admin.id,
-      adminEmail: admin.email,
-      action: "BULK_MARKUP_UPDATE",
-      target: filter2.categoryId || filter2.platform || "ALL",
-      targetType: "SERVICE",
-      newValue: { markup: newMarkup <= 0 ? "AUTO" : newMarkup, filter: filter2, updatedCount }
-    });
-    return { updatedCount };
+  async bulkUpdateMarkup(filter2, markup, admin) {
+    return CatalogManagementService.bulkUpdateMarkup(filter2, markup, admin);
   }
   /**
-   * Wave 2: Atomic Re-pricing logic.
-   * Updates all denormalized prices in the background when the exchange rate changes.
+   * Synchronizes denormalized prices when exchange rates change.
    */
   async syncDenormalizedPrices(usdToRub) {
-    const { CBRRateService: CBRRateService2 } = await Promise.resolve().then(() => (init_cbr_rate_service(), cbr_rate_service_exports));
-    const liveCrossRates = await CBRRateService2.getLiveCrossRates();
-    const allServices = await db.service.findMany({
-      select: { id: true, name: true, rate: true, markup: true, isActive: true, providerCurrency: true, tenantId: true }
-    });
-    console.info(`[AdminCatalogService] Syncing prices for ${allServices.length} services with rate ${usdToRub}...`);
-    const updatesBatch = [];
-    for (const s of allServices) {
-      const costRub = getCostRub(s.rate, s.providerCurrency || "RUB", usdToRub, liveCrossRates);
-      const effectiveMarkup = s.markup > 0 ? s.markup : SAFETY_FLOOR_MARKUP;
-      const pricePer1kRubRounded = applyBeautifulRounding(costRub * effectiveMarkup);
-      const pricePerUnitRub = pricePer1kRubRounded / 1e3;
-      const purchaseCostPerUnitRub = costRub / 1e3;
-      if (pricePer1kRubRounded < costRub || pricePerUnitRub < purchaseCostPerUnitRub) {
-        updatesBatch.push(
-          db.service.update({
-            where: { id: s.id },
-            data: { isActive: false, costPer1kRub: costRub }
-          })
-        );
-        const alertMsg = `\u{1F6A8} [Loss Prevention] \u0423\u0441\u043B\u0443\u0433\u0430 ${s.id} \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0430 \u0438\u0437-\u0437\u0430 \u043A\u043E\u043B\u0435\u0431\u0430\u043D\u0438\u0439 \u043A\u0443\u0440\u0441\u0430 \u0426\u0411! \u0420\u043E\u0437\u043D\u0438\u0447\u043D\u0430\u044F \u0446\u0435\u043D\u0430 ${pricePerUnitRub.toFixed(4)} \u20BD/\u0448\u0442 \u043C\u0435\u043D\u044C\u0448\u0435 \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u0438 \u0437\u0430\u043A\u0443\u043F\u043A\u0438 ${purchaseCostPerUnitRub.toFixed(4)} \u20BD/\u0448\u0442.`;
-        console.error(alertMsg);
-        await db.routingAuditLog.create({
-          data: {
-            serviceId: s.id,
-            action: "LOSS_PREVENTION_BLOCK",
-            reason: `Exchange rate fluctuation: Retail price ${pricePerUnitRub.toFixed(4)} < Cost ${purchaseCostPerUnitRub.toFixed(4)}`
-          }
-        });
-        const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-        await sendAdminAlert2(alertMsg, "CRITICAL");
-      } else {
-        const newPriceCents = Math.round(pricePer1kRubRounded * 100);
-        updatesBatch.push(
-          db.service.update({
-            where: { id: s.id },
-            data: {
-              costPer1kRub: costRub,
-              pricePer1000Cents: newPriceCents
-            }
-          })
-        );
-      }
-    }
-    for (let i = 0; i < updatesBatch.length; i += 100) {
-      await db.$transaction(updatesBatch.slice(i, i + 100));
-    }
-    console.info(`[AdminCatalogService] Price sync completed. Updated ${updatesBatch.length} services.`);
-    return { updatedCount: updatesBatch.length, totalCount: allServices.length };
+    return CatalogSyncService.syncDenormalizedPrices(usdToRub);
   }
   /**
-   * Markup Analytics: returns distribution of markups across all services.
+   * Returns markup distribution analytics across all services.
    */
   async getMarkupAnalytics(tenantId) {
-    const where = { isActive: true };
-    if (tenantId) where.tenantId = { in: [tenantId, "all"] };
-    const services = await db.service.findMany({
-      where,
-      select: {
-        id: true,
-        name: true,
-        rate: true,
-        markup: true,
-        category: { select: { name: true } }
-      }
-    });
-    const safetyMultiplier = (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
-    const stats = { total: services.length, loss: 0, thin: 0, normal: 0, high: 0, extreme: 0 };
-    const lossList = [];
-    let totalMarkup = 0;
-    for (const s of services) {
-      totalMarkup += s.markup;
-      if (s.markup < safetyMultiplier) {
-        stats.loss++;
-        lossList.push({ id: s.id, name: s.name, rate: s.rate, markup: s.markup, category: s.category.name });
-      } else if (s.markup < 3) {
-        stats.thin++;
-      } else if (s.markup < 8) {
-        stats.normal++;
-      } else if (s.markup < 20) {
-        stats.high++;
-      } else {
-        stats.extreme++;
-      }
-    }
-    const averageMarkup = services.length > 0 ? totalMarkup / services.length : 0;
-    return { stats, worstServices: lossList.slice(0, 20), averageMarkup };
-  }
-  async listCategories(tenantId) {
-    const tenantFilter = tenantId && tenantId !== "all" ? { in: [tenantId, "all"] } : void 0;
-    const rows = await db.category.findMany({
-      where: tenantId && tenantId !== "all" ? { tenantId: tenantVisibilityFilter(tenantId) } : void 0,
-      select: {
-        id: true,
-        name: true,
-        network: {
-          select: {
-            id: true,
-            name: true,
-            slug: true
-          }
-        },
-        _count: {
-          select: {
-            services: {
-              where: tenantFilter ? { tenantId: tenantFilter } : void 0
-            }
-          }
-        }
-      },
-      orderBy: { name: "asc" }
-    });
-    return rows.map((c) => ({
-      id: c.id,
-      name: c.name,
-      network: c.network ? {
-        id: c.network.id,
-        name: c.network.name,
-        slug: c.network.slug
-      } : null,
-      serviceCount: c._count.services
-    }));
-  }
-  async softDeleteService(serviceId, admin) {
-    const service = await db.service.findUniqueOrThrow({
-      where: { id: serviceId },
-      select: { id: true, numericId: true, name: true, isActive: true }
-    });
-    await db.service.update({
-      where: { id: serviceId },
-      data: {
-        isActive: false,
-        name: service.name.startsWith("[ARCHIVED] ") ? service.name : `[ARCHIVED] ${service.name}`
-      }
-    });
-    auditAdmin({
-      adminId: admin.id,
-      adminEmail: admin.email,
-      action: "SERVICE_SOFT_DELETE",
-      target: serviceId,
-      targetType: "SERVICE",
-      oldValue: { name: service.name, isActive: service.isActive },
-      newValue: { archived: true }
-    });
-  }
-  async getQuarantineCount(tenantId) {
-    const where = { isQuarantined: true };
-    if (tenantId) where.tenantId = tenantVisibilityFilter(tenantId);
-    return db.service.count({ where });
+    return CatalogManagementService.getMarkupAnalytics(tenantId);
   }
   /**
-   * AUD-14 (3.3): catalog health counters for the admin header.
-   *
-   * - quarantine: services awaiting admin approval after a price spike
-   * - zombies: services auto-disabled by the zombie eraser (ZOMBIE_*)
-   * - cooldown: active services temporarily hidden from the storefront
-   *   (cooldownUntil in the future, excluding zombies)
+   * Lists categories for catalog filtering.
+   */
+  async listCategories(tenantId) {
+    return CatalogManagementService.listCategories(tenantId);
+  }
+  /**
+   * Returns count of quarantined services.
+   */
+  async getQuarantineCount(tenantId) {
+    return CatalogManagementService.getQuarantineCount(tenantId);
+  }
+  /**
+   * Returns health summary counts: quarantine, zombies, cooldown.
    */
   async getCatalogHealthCounts(tenantId) {
-    const tenantWhere = tenantId ? tenantVisibilityFilter(tenantId) : void 0;
-    const now = /* @__PURE__ */ new Date();
-    const [quarantine, zombies, cooldown] = await Promise.all([
-      db.service.count({
-        where: {
-          isQuarantined: true,
-          ...tenantWhere ? { tenantId: tenantWhere } : {}
-        }
-      }),
-      db.service.count({
-        where: {
-          cooldownReason: { in: ["ZOMBIE_AUTO_DISABLED", "ZOMBIE_ARCHIVED"] },
-          ...tenantWhere ? { tenantId: tenantWhere } : {}
-        }
-      }),
-      db.service.count({
-        where: {
-          isActive: true,
-          cooldownUntil: { gt: now },
-          cooldownReason: { notIn: ["ZOMBIE_AUTO_DISABLED", "ZOMBIE_ARCHIVED"] },
-          ...tenantWhere ? { tenantId: tenantWhere } : {}
-        }
-      })
-    ]);
-    return { quarantine, zombies, cooldown };
+    return CatalogManagementService.getCatalogHealthCounts(tenantId);
   }
 };
 var adminCatalogService = new AdminCatalogService();

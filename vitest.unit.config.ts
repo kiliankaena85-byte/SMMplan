@@ -18,6 +18,10 @@ export default defineConfig({
     },
     include: [
       'src/__tests__/architecture/tenant-isolation-ast.test.ts',
+      'src/__tests__/architecture-boundaries.test.ts',
+      'src/__tests__/arch-viewer-server.test.ts',
+      'src/__tests__/unit/provider-form-decomposition.test.tsx',
+      'src/__tests__/unit/smart-analyzer-golden.test.ts',
       'src/__tests__/architecture/mobile-wizard-hygiene.test.ts',
       'src/__tests__/security/system-audit-remediation.test.ts',
       'src/__tests__/security/swarm-audit-remediation.test.ts',

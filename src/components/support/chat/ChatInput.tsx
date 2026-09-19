@@ -1,15 +1,20 @@
 // audit-disable STR-002
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, Sparkles, Send, CheckCircle } from 'lucide-react';
+import { Loader2, Send, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateSmartReplyAction, prefetchSmartReplyAction, changeTicketStatus } from '@/actions/support/ticket';
-
+import type { SupportTemplateDTO } from './ChatTemplateManager';
 import { Message } from './useChatMessages';
-import { ChatTemplateManager, type SupportTemplateDTO } from './ChatTemplateManager';
-import { incrementTemplateUsage } from '@/actions/support/template';
 import { OperatorVerificationGuard } from '@/services/admin/operator-verification-guard.service';
 
+import { parseSmartTemplate } from './input/chat-template-parser';
+import { useChatInputState } from './input/useChatInputState';
+import { useChatTemplateNavigation } from './input/useChatTemplateNavigation';
+import { ChatTemplatesDropdown } from './input/ChatTemplatesDropdown';
+import { ChatOrdersDropdown } from './input/ChatOrdersDropdown';
+import { ChatArticleSuggestion } from './input/ChatArticleSuggestion';
+import { ChatTopToolbar } from './input/ChatTopToolbar';
 
 export interface ChatInputOrder {
   id: string;
@@ -56,92 +61,71 @@ export function ChatInput({
   const [isInternal, setIsInternal] = useState(false);
   const [sending, setSending] = useState(false);
   const [templatesList, setTemplatesList] = useState(initialTemplates);
-    const [selectedOrder, setSelectedOrder] = useState<ChatInputOrder | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<ChatInputOrder | null>(null);
   const [showOrdersDropdown, setShowOrdersDropdown] = useState(false);
   const [isAiPending, startAiTransition] = useTransition();
 
-  const [suggestedArticle, setSuggestedArticle] = useState<{ title: string; slug: string } | null>(null);
-  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
-  const [isOnline, setIsOnline] = useState<boolean>(true);
-
-  const [showTemplatesDropdown, setShowTemplatesDropdown] = useState(false);
-  const [activeTemplateIndex, setActiveTemplateIndex] = useState(0);
-    const [filteredTemplates, setFilteredTemplates] = useState<SupportTemplateDTO[]>([]);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [kbOffset, setKbOffset] = useState(0);
 
-  // 1. Initial draft restore for this specific ticket
+  // Sync initial templates
   useEffect(() => {
-    if (typeof window === 'undefined' || !ticketId) return;
-    try {
-      const saved = localStorage.getItem(`smmplan_draft_ticket_${ticketId}`);
-      if (saved && saved.trim()) {
-        setText(saved);
-        setDraftSavedAt('восстановлен');
+    setTemplatesList(prev => {
+      if (prev.length === initialTemplates.length &&
+          prev.every((t, i) => t.id === initialTemplates[i]?.id && t.text === initialTemplates[i]?.text && t.label === initialTemplates[i]?.label)) {
+        return prev;
       }
-    } catch (err) {
-      void err;
+      return initialTemplates;
+    });
+  }, [initialTemplates]);
+
+  // Hook for draft auto-saving, online/offline tracking & visualViewport
+  const {
+    isOnline,
+    draftSavedAt,
+    kbOffset,
+    textareaRef,
+    clearDraft,
+  } = useChatInputState({
+    ticketId,
+    text,
+    setText,
+    sending,
+  });
+
+  // Pure template parsing with macro substitution
+  const parseTemplate = (tmplText: string) => parseSmartTemplate(tmplText, {
+    ticketId,
+    clientEmail,
+    selectedOrder,
+    initialOrders,
+  });
+
+  // Hook for slash '/' autocomplete & keyboard navigation
+  const {
+    showTemplatesDropdown,
+    setShowTemplatesDropdown,
+    activeTemplateIndex,
+    filteredTemplates,
+    handleSelectTemplate,
+    handleTextChange,
+    handleKeyDown,
+  } = useChatTemplateNavigation({
+    text,
+    setText,
+    templatesList,
+    isStaff,
+    textareaRef,
+    parseTemplateFn: parseTemplate,
+  });
+
+  // Background predictive prefetch for staff operators
+  useEffect(() => {
+    if (isStaff && ticketId) {
+      prefetchSmartReplyAction(ticketId).catch(() => {});
     }
-  }, [ticketId]);
+  }, [isStaff, ticketId]);
 
-  // 2. Draft auto-save on text change (isolated per ticketId)
-  useEffect(() => {
-    if (typeof window === 'undefined' || !ticketId) return;
-    const timer = setTimeout(() => {
-      try {
-        if (text.trim().length > 0) {
-          localStorage.setItem(`smmplan_draft_ticket_${ticketId}`, text);
-          const timeStr = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-          setDraftSavedAt(timeStr);
-        } else {
-          localStorage.removeItem(`smmplan_draft_ticket_${ticketId}`);
-          setDraftSavedAt(null);
-        }
-      } catch (err) {
-        void err;
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [text, ticketId]);
-
-  // 2.1 Dynamic auto-resize of textarea for multi-line AI replies & templates
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      const targetHeight = Math.min(Math.max(textareaRef.current.scrollHeight, 44), 280);
-      textareaRef.current.style.height = `${targetHeight}px`;
-    }
-  }, [text]);
-
-  // 3. Online/Offline network connection tracking
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    setIsOnline(navigator.onLine);
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  // 4. Protection against accidental tab closure when drafting response
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (text.trim().length > 15 && !sending) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [text, sending]);
-
+  // Drag and drop attachment handler
   useEffect(() => {
     const handleDrop = (e: DragEvent) => {
       e.preventDefault();
@@ -159,208 +143,6 @@ export function ChatInput({
       window.removeEventListener('dragover', handleDragOver);
     };
   }, []);
-
-  useEffect(() => {
-    if (!window.visualViewport) return;
-    const vp = window.visualViewport;
-    const update = () => {
-      const diff = window.innerHeight - vp.height;
-      setKbOffset(diff > 0 ? diff : 0);
-    };
-    vp.addEventListener('resize', update);
-    vp.addEventListener('scroll', update);
-    update();
-    return () => {
-      vp.removeEventListener('resize', update);
-      vp.removeEventListener('scroll', update);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (isStaff) return;
-    if (text.trim().length < 5) {
-      setSuggestedArticle(null);
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      const lower = text.toLowerCase();
-      if (lower.includes("спис") || lower.includes("пропал") || lower.includes("упал") || lower.includes("улет")) {
-        setSuggestedArticle({
-          title: "Как алгоритмы Telegram выявляют ботов и почему списываются подписчики в 2026 году",
-          slug: "how-telegram-detects-bots"
-        });
-      } else if (lower.includes("завис") || lower.includes("ошибк") || lower.includes("статус") || lower.includes("отмен")) {
-        setSuggestedArticle({
-          title: "Лимиты подписок и лайков в Instagram: Безопасные лимиты для продвижения",
-          slug: "instagram-limits"
-        });
-      } else if (lower.includes("прокси") || lower.includes("proxy") || lower.includes("ip rep")) {
-        setSuggestedArticle({
-          title: "IPv4, IPv6 и мобильные прокси: Как выбор прокси влияет на живучесть аккаунтов",
-          slug: "proxy-reputation"
-        });
-      } else if (lower.includes("рекоменд") || lower.includes("просмотр") || lower.includes("лайк") || lower.includes("реакц")) {
-        setSuggestedArticle({
-          title: "Как раскрутить Telegram-канал с нуля до 10 000 подписчиков без огромных бюджетов",
-          slug: "telegram-grow-zero"
-        });
-      } else {
-        setSuggestedArticle(null);
-      }
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [text, isStaff]);
-
-
-
-  useEffect(() => {
-    setTemplatesList(prev => {
-      if (prev.length === initialTemplates.length &&
-          prev.every((t, i) => t.id === initialTemplates[i]?.id && t.text === initialTemplates[i]?.text && t.label === initialTemplates[i]?.label)) {
-        return prev;
-      }
-      return initialTemplates;
-    });
-  }, [initialTemplates]);
-
-  const parseSmartTemplate = (templateText: string) => {
-    let result = templateText;
-    const userNameVal = clientEmail ? clientEmail.split('@')[0] : 'Клиент';
-    const domainVal = typeof window !== 'undefined' ? window.location.host : 'smmplan.pro';
-    
-    // Support aliases: {name}, {user_name}, {email}, {user_email}
-    result = result.replace(/{user_name}/g, userNameVal);
-    result = result.replace(/{name}/g, userNameVal);
-    result = result.replace(/{user_email}/g, clientEmail || 'Клиент');
-    result = result.replace(/{email}/g, clientEmail || 'Клиент');
-    result = result.replace(/{domain}/g, domainVal);
-    result = result.replace(/{ticket_id}/g, ticketId);
-    
-    const activeOrFallbackOrder = selectedOrder || (initialOrders && initialOrders.length > 0 ? initialOrders[0] : null);
-
-    if (activeOrFallbackOrder) {
-      const orderNumStr = String(activeOrFallbackOrder.numericId || activeOrFallbackOrder.id.slice(0, 8));
-      result = result.replace(/{order_id}/g, orderNumStr);
-      result = result.replace(/{orderId}/g, orderNumStr);
-      result = result.replace(/{service_name}/g, activeOrFallbackOrder.serviceName || activeOrFallbackOrder.service?.name || 'услуге');
-      
-      let statusRu = activeOrFallbackOrder.status;
-      if (activeOrFallbackOrder.status === 'COMPLETED') statusRu = 'Выполнен';
-      else if (activeOrFallbackOrder.status === 'PROCESSING') statusRu = 'В работе';
-      else if (activeOrFallbackOrder.status === 'IN_PROGRESS') statusRu = 'Выполняется';
-      else if (activeOrFallbackOrder.status === 'PENDING') statusRu = 'В очереди';
-      else if (activeOrFallbackOrder.status === 'CANCELED') statusRu = 'Отменен';
-      else if (activeOrFallbackOrder.status === 'ERROR') statusRu = 'Ошибка';
-      result = result.replace(/{order_status}/g, statusRu);
-      result = result.replace(/{status}/g, statusRu);
-    } else {
-      result = result.replace(/{order_id}/g, 'указанному заказу');
-      result = result.replace(/{orderId}/g, 'указанному заказу');
-      result = result.replace(/{service_name}/g, 'выбранной услуге');
-      result = result.replace(/{order_status}/g, 'обрабатывается');
-      result = result.replace(/{status}/g, 'обрабатывается');
-    }
-    result = result.replace(/{current_date}/g, new Date().toLocaleDateString('ru-RU'));
-    return result;
-  };
-
-  const handleSelectTemplate = (t: { id: string; label: string; text: string }) => {
-    const parsedText = parseSmartTemplate(t.text);
-    const words = text.split(/\s+/);
-    const lastWordIdx = words.findIndex((w, idx) => idx === words.length - 1 && w.startsWith('/'));
-    
-    if (lastWordIdx !== -1) {
-      words[lastWordIdx] = parsedText;
-      const newText = words.join(' ');
-      setText(newText);
-    } else {
-      setText(parsedText);
-    }
-    
-    setShowTemplatesDropdown(false);
-    incrementTemplateUsage(t.id).catch(console.error);
-
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        textareaRef.current.style.height = 'auto';
-        textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
-      }
-    }, 50);
-  };
-
-  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value;
-    setText(val);
-    
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
-    }
-
-    if (isStaff) {
-      const words = val.split(/\s+/);
-      const lastWord = words[words.length - 1];
-      
-      if (lastWord && lastWord.startsWith('/')) {
-        const prefix = lastWord.slice(1).toLowerCase().trim();
-        const filtered = templatesList.filter((t: SupportTemplateDTO) => {
-          if (!prefix) return true; // show all on standalone "/"
-          const matchShortcut = t.shortcut && t.shortcut.toLowerCase().includes(prefix);
-          const matchLabel = t.label && t.label.toLowerCase().includes(prefix);
-          const matchText = t.text && t.text.toLowerCase().includes(prefix);
-          return matchShortcut || matchLabel || matchText;
-        });
-        
-        if (filtered.length > 0) {
-          setFilteredTemplates(filtered);
-          setShowTemplatesDropdown(true);
-          setActiveTemplateIndex(0);
-        } else {
-          setShowTemplatesDropdown(false);
-        }
-      } else {
-        setShowTemplatesDropdown(false);
-      }
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (showTemplatesDropdown && filteredTemplates.length > 0) {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setActiveTemplateIndex((prev) => (prev + 1) % filteredTemplates.length);
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setActiveTemplateIndex((prev) => (prev - 1 + filteredTemplates.length) % filteredTemplates.length);
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        handleSelectTemplate(filteredTemplates[activeTemplateIndex]);
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        setShowTemplatesDropdown(false);
-      }
-    } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      if (e.shiftKey && isStaff) {
-        handleSubmit(e as unknown as React.FormEvent, true);
-      } else {
-        handleSubmit(e as unknown as React.FormEvent, false);
-      }
-    } else if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e as unknown as React.FormEvent, false);
-    }
-  };
-
-  // Background predictive prefetch for staff operators
-  useEffect(() => {
-    if (isStaff && ticketId) {
-      prefetchSmartReplyAction(ticketId).catch(() => {});
-    }
-  }, [isStaff, ticketId]);
 
   const handleAiReply = () => {
     startAiTransition(async () => {
@@ -406,7 +188,7 @@ export function ChatInput({
       replyTo: replyingTo ? {
         id: replyingTo.id,
         text: replyingTo.text,
-        sender: replyingTo.sender
+        sender: replyingTo.sender,
       } : null,
       orderId: selectedOrder?.id || null,
       order: selectedOrder ? {
@@ -415,8 +197,8 @@ export function ChatInput({
         status: selectedOrder.status,
         charge: Number(selectedOrder.charge),
         createdAt: String(selectedOrder.createdAt || new Date().toISOString()),
-        serviceName: selectedOrder.serviceName || selectedOrder.service?.name || ''
-      } : null
+        serviceName: selectedOrder.serviceName || selectedOrder.service?.name || '',
+      } : null,
     };
     setMessages(prev => [...prev, optimisticMsg]);
 
@@ -431,13 +213,12 @@ export function ChatInput({
       try {
         const res = await fetch('/api/support/upload', {
           method: 'POST',
-          body: uploadForm
+          body: uploadForm,
         });
         if (res.ok) {
           const data = await res.json();
           mediaUrl = data.mediaUrl;
           mediaType = data.mediaType;
-          
           setMessages(prev => prev.map(m => m.id === tempId ? { ...m, mediaUrl, mediaType } : m));
         } else {
           toast.error('Ошибка загрузки файла');
@@ -445,8 +226,7 @@ export function ChatInput({
           setSending(false);
           return;
         }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (e) {
+      } catch {
         toast.error('Ошибка загрузки файла');
         setMessages(prev => prev.filter(m => m.id !== tempId));
         setSending(false);
@@ -467,14 +247,7 @@ export function ChatInput({
     if (replyingTo) formData.set('replyToId', replyingTo.id);
     if (selectedOrder) formData.set('orderId', selectedOrder.id);
 
-    // Clear draft on successful initiation
-    try {
-      localStorage.removeItem(`smmplan_draft_ticket_${ticketId}`);
-      setDraftSavedAt(null);
-    } catch (err) {
-      void err;
-    }
-
+    clearDraft();
     setText('');
     setFile(null);
     setReplyingTo(null);
@@ -484,7 +257,7 @@ export function ChatInput({
     }
 
     try {
-            const res = await onSendMessage(formData);
+      const res = await onSendMessage(formData);
       if (res && typeof res === 'object') {
         const resObj = res as { success?: boolean; error?: string; warning?: string };
         if (resObj.success === false) {
@@ -506,7 +279,6 @@ export function ChatInput({
       console.error('[ChatInput] Send message failed:', err);
       const errMsg = (err as Error)?.message || 'Ошибка отправки сообщения';
       toast.error(errMsg);
-      // Restore message text to input on failure so user doesn't lose what they typed
       const failedText = formData.get('message') as string;
       if (failedText) {
         setText(failedText);
@@ -533,97 +305,26 @@ export function ChatInput({
         paddingBottom: kbOffset > 0 ? '0.5rem' : 'max(0.75rem, env(safe-area-inset-bottom))',
       }}
     >
-      <AnimatePresence>
-        {showTemplatesDropdown && filteredTemplates.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            className="absolute bottom-full left-3 mb-2 w-[calc(100%-1.5rem)] md:w-96 bg-card/95 backdrop-blur-xl border border-border/80 rounded-2xl shadow-2xl z-[90] overflow-hidden py-1.5 ring-1 ring-border/10"
-          >
-            <div className="px-3.5 py-1.5 border-b border-border/60 flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-wider bg-muted/30">
-              <span>⚡ Быстрые шаблоны ответов ({filteredTemplates.length})</span>
-              <span className="text-[9px] font-normal normal-case opacity-70">↑↓ навигация, Enter выбор</span>
-            </div>
-            <div className="max-h-56 overflow-y-auto divide-y divide-border/30">
-              {filteredTemplates.map((t, idx) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => handleSelectTemplate(t)}
-                  className={`w-full text-left px-3.5 py-2.5 flex flex-col transition-all cursor-pointer ${
-                    idx === activeTemplateIndex ? 'bg-primary/10 text-primary border-l-2 border-primary font-medium pl-3' : 'hover:bg-muted/40 text-foreground'
-                  }`}
-                >
-                  <div className="flex justify-between items-center w-full gap-2">
-                    <span className="text-xs font-bold truncate">{t.label}</span>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {t.category && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-muted/60 text-muted-foreground uppercase">
-                          {t.category === 'LEGAL' ? '⚖️ 152-ФЗ' :
-                           t.category === 'PAYMENT' ? '💳 Оплата' :
-                           t.category === 'ORDER' ? '📦 Заказ' : '📋 Общие'}
-                        </span>
-                      )}
-                      {t.shortcut && (
-                        <span className="text-[10px] font-mono font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded">
-                          /{t.shortcut}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-[11px] text-muted-foreground truncate w-full mt-0.5 opacity-90">{t.text}</span>
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ChatTemplatesDropdown
+        show={showTemplatesDropdown}
+        templates={filteredTemplates}
+        activeIndex={activeTemplateIndex}
+        onSelect={handleSelectTemplate}
+      />
 
-      {isStaff && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 mb-2">
-          <div className="flex items-center gap-1.5">
-            <ChatTemplateManager 
-              templatesList={templatesList}
-              setTemplatesList={setTemplatesList}
-              onSelectTemplate={handleSelectTemplate}
-              onOpenStateChange={(isOpen) => {
-                if (isOpen) setShowOrdersDropdown(false);
-              }}
-            />
-
-            <button
-              type="button"
-              onClick={handleAiReply}
-              disabled={isAiPending}
-              className="flex items-center justify-center gap-1 px-3 h-11 text-xs font-semibold bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-all rounded-xl disabled:opacity-50 cursor-pointer"
-              title="Автоматический ответ ИИ"
-              aria-label="Автоматический ответ ИИ"
-            >
-              {isAiPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="w-3.5 h-3.5" />
-              )}
-              <span>AI Ответ</span>
-            </button>
-          </div>
-
-          <label 
-            aria-label="Внутренняя скрытая заметка"
-            className="flex items-center gap-2 text-xs text-warning-text font-semibold cursor-pointer bg-warning/5 hover:bg-warning/15 px-3 h-11 rounded-xl border border-warning/20 transition-colors shrink-0"
-          >
-            <input
-              type="checkbox"
-              checked={isInternal}
-              onChange={(e) => setIsInternal(e.target.checked)}
-              className="rounded border-warning/35 text-warning focus:ring-warning w-4 h-4 cursor-pointer" 
-              aria-label="Включить скрытую заметку"
-            />
-            <span>🔒 Заметка</span>
-          </label>
-        </div>
-      )}
+      <ChatTopToolbar
+        isStaff={isStaff}
+        templatesList={templatesList}
+        setTemplatesList={setTemplatesList}
+        onSelectTemplate={handleSelectTemplate}
+        onAiReply={handleAiReply}
+        isAiPending={isAiPending}
+        isInternal={isInternal}
+        setIsInternal={setIsInternal}
+        onOpenStateChange={(isOpen) => {
+          if (isOpen) setShowOrdersDropdown(false);
+        }}
+      />
 
       <div className="flex flex-col gap-2 w-full">
         <AnimatePresence>
@@ -654,49 +355,14 @@ export function ChatInput({
                 <span className="text-primary font-bold text-xs shrink-0">📦 Заказ #{selectedOrder.numericId}</span>
                 <span className="text-xs text-foreground/80 line-clamp-1">— {selectedOrder.serviceName} ({selectedOrder.charge} ₽)</span>
               </div>
-              <button type="button" onClick={() => setSelectedOrder(null)} className="h-11 w-11 flex items-center justify-center p-1 text-primary/70 hover:text-primary font-bold ml-2 transition-colors" aria-label="Удалить привязку заказа">✕</button>
+              <button type="button" onClick={() => setSelectedOrder(null)} className="h-11 w-11 flex items-center justify-center p-1 text-primary/70 hover:text-primary font-bold ml-2 transition-colors cursor-pointer" aria-label="Удалить привязку заказа">✕</button>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <AnimatePresence>
-          {!isStaff && suggestedArticle && (
-            <motion.div
-              key="nlp-article-suggestion"
-              initial={{ opacity: 0, height: 0, overflow: 'hidden' }}
-              animate={{ opacity: 1, height: 'auto', overflow: 'visible' }}
-              exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
-              className="bg-primary/10 border-l-4 border-primary px-3 py-2 rounded-xl mb-1 flex items-center justify-between shadow-xs select-none"
-            >
-              <div className="flex items-start gap-2 min-w-0">
-                <span className="text-sm">💡</span>
-                <div className="min-w-0">
-                  <div className="text-[10px] font-bold text-primary uppercase tracking-wider">
-                    Часто помогает при этой проблеме:
-                  </div>
-                  <a
-                    href={`/knowledge/${suggestedArticle.slug}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs font-bold text-foreground hover:text-primary transition-colors hover:underline line-clamp-1 mt-0.5"
-                  >
-                    {suggestedArticle.title}
-                  </a>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSuggestedArticle(null)}
-                className="p-1 text-muted-foreground hover:text-foreground font-bold ml-2 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg"
-                aria-label="Закрыть подсказку"
-              >
-                ✕
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <ChatArticleSuggestion text={text} isStaff={isStaff} />
 
-        {/* ── LIVE DRAFT & NETWORK STATUS BAR ── */}
+        {/* Live Draft & Network Status Bar */}
         <div className="flex items-center justify-between px-1 text-[11px]">
           <div className="flex items-center gap-2">
             {!isOnline ? (
@@ -716,7 +382,7 @@ export function ChatInput({
           )}
         </div>
 
-        {/* ── UNIFIED INPUT CARD (Full-Width Textarea + Bottom Action Bar) ── */}
+        {/* Unified Input Card */}
         <div className="w-full bg-default-50 border border-border rounded-2xl flex flex-col focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all shadow-sm overflow-hidden">
           {file && (
             <div className="relative group shrink-0 ml-3 mt-2.5 mb-1 w-fit">
@@ -738,20 +404,17 @@ export function ChatInput({
             </div>
           )}
 
-          {/* Full-width Textarea */}
           <textarea
             ref={textareaRef}
             value={text}
             onChange={handleTextChange}
-            onKeyDown={handleKeyDown}
+            onKeyDown={(e) => handleKeyDown(e, handleSubmit)}
             placeholder={isStaff ? "Введите ответ или выберите шаблон (напишите /)..." : "Опишите вашу проблему..."}
             className="w-full bg-transparent px-4 pt-3 pb-2 max-h-[280px] min-h-[56px] resize-none outline-none text-base md:text-sm text-foreground placeholder:text-muted-foreground/70 leading-relaxed font-sans scrollbar-thin"
             rows={1}
           />
 
-          {/* Bottom Toolbar inside the unified card */}
           <div className="flex items-center justify-between px-3 py-2 border-t border-border/40 bg-default-100/40">
-            {/* Left toolbar tools: Attach file & Link order */}
             <div className="flex items-center gap-1.5">
               <input
                 type="file"
@@ -775,71 +438,17 @@ export function ChatInput({
                 <span className="hidden sm:inline text-[11px]">Файл</span>
               </button>
 
-              {initialOrders && initialOrders.length > 0 && (
-                <div className="relative shrink-0 flex">
-                  <button 
-                    type="button"
-                    onClick={() => setShowOrdersDropdown(!showOrdersDropdown)}
-                    className={`h-9 px-2.5 border text-xs transition-all flex items-center justify-center gap-1.5 rounded-lg font-medium cursor-pointer shadow-xs ${
-                      showOrdersDropdown 
-                        ? 'bg-primary/10 border-primary/30 text-primary shadow-inner' 
-                        : 'bg-background/80 border-border text-muted-foreground hover:bg-background hover:text-foreground'
-                    }`}
-                    title="Прикрепить заказ"
-                    aria-label="Прикрепить заказ"
-                  >
-                    <span className="text-sm">📦</span>
-                    <span className="hidden sm:inline text-[11px]">Заказ</span>
-                  </button>
-
-                  <AnimatePresence>
-                    {showOrdersDropdown && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute bottom-11 left-0 w-80 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden py-2"
-                      >
-                        <div className="px-3 py-1.5 border-b border-divider text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                          Выберите заказ для привязки:
-                        </div>
-                        <div className="max-h-60 overflow-y-auto">
-                          {initialOrders.map((order: ChatInputOrder) => (
-                            <button
-                              key={order.id}
-                              type="button"
-                              onClick={() => {
-                                setSelectedOrder(order);
-                                setShowOrdersDropdown(false);
-                              }}
-                              className="w-full text-left px-3 py-2 hover:bg-default-50 flex flex-col gap-0.5 border-b border-divider last:border-0 transition-colors cursor-pointer"
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="font-bold text-xs text-foreground">Заказ #{order.numericId || order.id.slice(0, 8)}</span>
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                                  order.status === 'COMPLETED' ? 'bg-success/15 text-success-text' :
-                                  order.status === 'IN_PROGRESS' ? 'bg-primary/15 text-primary' :
-                                  order.status === 'PENDING' ? 'bg-warning/15 text-warning-text' :
-                                  'bg-default-200/50 text-muted-foreground'
-                                }`}>
-                                  {order.status === 'COMPLETED' ? 'Выполнен' :
-                                   order.status === 'IN_PROGRESS' ? 'В процессе' :
-                                   order.status === 'PENDING' ? 'Ожидание' : order.status}
-                                </span>
-                              </div>
-                              <span className="text-[10px] text-muted-foreground truncate w-full">{order.serviceName}</span>
-                              <span className="text-[10px] font-medium text-foreground opacity-80">{order.charge} ₽</span>
-                            </button>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
+              <ChatOrdersDropdown
+                show={showOrdersDropdown}
+                orders={initialOrders}
+                onSelectOrder={(order) => {
+                  setSelectedOrder(order);
+                  setShowOrdersDropdown(false);
+                }}
+                onToggle={() => setShowOrdersDropdown(!showOrdersDropdown)}
+              />
             </div>
 
-            {/* Right action buttons: Answer & Close + Send */}
             <div className="flex items-center gap-2">
               {isStaff && (
                 <button

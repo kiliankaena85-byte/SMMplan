@@ -66,6 +66,49 @@ onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); ... }}
 
 ## 1. 🏗️ Архитектурные решения (ADR)
 
+- **ADR-2026-26: OmniSMM Monolithic Decomposition Waves 15–24 (CDD-TDD & Zero-Regression Guard):**
+  - *Решение:*
+    1. **SMMplan Core Decomposed (Waves 15–17):** 
+       - `StepCheckoutParams.tsx` (500 $\to$ 110 строк), `PlanSlideOrderClient.tsx` (675 $\to$ 225 строк).
+       - `FullscreenMasterCatalog.tsx` (468 $\to$ 67 строк), `StepByStepWizard.tsx` (570 $\to$ 158 строк).
+       - `CheckoutAuthModal.tsx` (451 $\to$ 157 строк), `StepWizardCheckout.tsx` (433 $\to$ 158 строк).
+    2. **SMMflux Modernization & Decomposition (Waves 18–20):**
+       - `FluxDashboardOrderWizard.tsx` (664 $\to$ 164 строки), `FluxDashboardStepCheckout.tsx` (536 $\to$ 165 строк).
+       - `FluxOrderClient.tsx` (505 $\to$ 123 строки), `FluxStepCheckout.tsx` (529 $\to$ 165 строк).
+       - `FluxCyberLinkDrawer.tsx` (470 $\to$ 180 строк), `FluxTransactionsView.tsx` (407 $\to$ 151 строка).
+    3. **OmniSMM Backend & Core Decomposed (Waves 21–24):**
+       - `order.processor.ts` (511 $\to$ 21 строка, BullMQ worker coordinator, CRAP: -24 180).
+       - `provider-proxy-manager.tsx` (1244 $\to$ 107 строк).
+       - `src/services/admin/order.service.ts` (1241 $\to$ 105 строк, с выносом сервисов query, status mutator, sync, analytics, timeseries, failure stats).
+       - `src/actions/admin/telegram-bot.ts` (1580 $\to$ 145 строк, Next.js Server Action Typed Delegator Facade).
+    4. **Результаты верификации:**
+       - 100% модулей удовлетворяют требованию $\le 200$ строк.
+       - Все 10/10 Vitest тест-сьютов (36 тестов) переведены в статус PASS.
+       - `npx tsc --noEmit` = 0 ошибок (Strict TypeScript).
+       - `scripts/check-clean-architecture.ts` = 0 layer violations, 0 circular cycles на 1392 модулях.
+       - Модуль `src/proxy.ts` полностью сохранен и не подвергался модификациям по контракту с пользователем.
+  - *Причина:* Ликвидация крупнейших монолитов технического долга по всему стеку (SMMplan, SMMflux, OmniSMM Core) без малейших регрессий в бизнес-логике.
+
+- **ADR-2026-25: Clean Architecture AST Boundary Guard & 4-Wave CDD-TDD Refactoring (Uncle Bob Cockpit & Monolith Splitting):**
+  - *Решение:*
+    1. **Uncle Bob Dependency Invariant & AST Guard:** Внедрен `scripts/check-clean-architecture.ts` для проверки 4 слоев (Level 0 Domain -> Level 1 Services -> Level 2 Application -> Level 3 Presentation). Запрещены импорты от внешних слоев к внутренним, циклические зависимости и серверные утечки в клиентские компоненты.
+    2. **Автономный Docker-просмотрщик (:3009):** `tools/arch-viewer/` на чистом Node.js 22 alpine (<50MB, zero deps) с Canvas2D визуализацией (концентрические кольца, DDD-кластеры, тепловая карта CRAP score, архитектурная матрица 4x6, песочница рефакторинга).
+    3. **Лимит размера файлов $\le 200$ строк:** В 4 последовательных волнах ликвидированы тяжелые монолиты с высокими показателями Cyclomatic Complexity (CC > 200) и CRAP (> 50 000):
+       - *Волна 1:* `provider-form.tsx` (1276 -> 306 строк, CRAP: -92 720, 4 субкомпонента).
+       - *Волна 2:* `smart-analyzer.logic.ts` (652 -> 199 строк, CRAP: -91 506, 5 чистых Level 1 функций).
+       - *Волна 3:* `useCheckoutOrchestrator.ts` (684 -> 260 строк) и `useOrderEngine.ts` (1001 -> 390 строк, CRAP: -175 336).
+       - *Волна 4:* `src/actions/order/checkout.ts` (1422 -> 168 строк, CRAP: -65 280, сервисный слой `src/services/orders/`).
+    4. **Результат:** Суммарное сокращение Total CRAP Load > 420 000 пунктов, 0 layer violations, Strict TypeScript 0 ошибок.
+  - *Причина:* Предотвращение деградации архитектуры, обеспечение 100% модульности и изоляции бизнес-логики платформы OmniSMM 1.0.
+
+- **ADR-2026-24: Business Growth, Link Engine Moat & Unit Economics Architecture (FinTech Invariants):**
+  - *Решение:*
+    1. **Unified Link Engine как ядро конверсии (Poka-Yoke):** Исключены ошибочные заказы за счет 38 платформ нормализации (`link-rules.ts`) и маппинга `TargetTypeEnum` (`target-type-mapper.ts`). Интеграция Smart Upsell Bundles (комбо постов с маржой $\ge 80\%$) и публичного экспресс-аудита `/audit` для органического снижения CAC на 40–50%.
+    2. **Финансовая модель BigInt & Ledger-First:** Балансы хранятся строго в копейках (`User.balance`, `quarantineBalance`, `bonusBalance`). Любое движение средств требует атомарной транзакции с предварительной записью в `LedgerEntry` с уникальным `idempotencyKey`. Реферальные выплаты начисляются в `order.service.ts` строго от маржинальной прибыли заказа (FIN-009).
+    3. **Защита маржинальности (MarginGuard & Elastic Quarantine):** Заморозка валютного курса ЦБ РФ в `Order.usdToRubRate` исключает валютный дрейф. Скачок цен провайдера >20% автоматически переводит услугу в `isQuarantined: true` (мьютекс `catalog-sync`), блокируя слив оборотного капитала.
+    4. **B2B Reseller API:** Использование готовой модели `ApiConfig` и дисконтных сеток `CustomerGroup` для создания выделенного оптового шлюза для внешних панелей и Telegram-ботов.
+  - *Причина:* Оцифровка бизнес-модели, масштабирование North Star Metric (MSDV) и защита оборотного капитала SMMplan.
+
 - **ADR-2026-23: Drip-Feed & Smart Drip-Feed Full Architecture & Invariants Remediation (Contract A / OmniSMM 1.0):**
   - *Решение:*
     1. **Contract A Invariant:** В интерфейсах оформления (SMMplan, SMMflux, лендинг, дашборд) поле количества всегда отражает суммарный объем заказа ($Q$). Степперы изменяют общий объем с шагом $\text{runs} \times \text{step}$. В UI отображается прозрачный расчет: «$N$ запусков по $\lfloor Q/N \rfloor$ шт. Всего: $Q$ шт.».

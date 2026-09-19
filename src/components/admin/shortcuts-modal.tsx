@@ -8,7 +8,7 @@ import {
   Sliders,
   Check
 } from 'lucide-react';
-import { useShortcuts, HotkeyConfig } from './shortcuts-provider';
+import { useShortcuts, type HotkeyConfig } from './shortcuts-context';
 
 interface ShortcutsModalProps {
   isOpen?: boolean;

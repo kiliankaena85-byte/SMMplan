@@ -1,4 +1,4 @@
-import { PublicService } from "@/actions/order/catalog";
+import type { PublicService } from "@/actions/order/catalog";
 
 /**
  * Точечная проверка наличия гарантии/автодокрутки (Refill) для услуги.
