@@ -1,3 +1,21 @@
+- [x] ⚡ [ADMIN-ROSPATENT-MANUAL-DOWNLOAD-2026] Оформление документации по стандарту Роспатента / ГОСТ ЕСПД и экспорт в Markdown (100% COMPLETE & VERIFIED):
+  * 🏛️ **Стандарт структуры документации (ГОСТ ЕСПД 19.505-79 / Роспатент):**
+    - Каждая статья и регламент формализованы по 6 обязательным разделам: 1. Область применения и назначение, 2. Термины и определения, 3. Техническая сущность и архитектура модуля, 4. Пошаговый регламент штатной эксплуатации, 5. Нестандартные и защитные функции, 6. Диагностика сбоев и план восстановления.
+    - В `src/types/admin-ai-manual.ts` расширены типы `AdminRunbook`, добавлены контракты `RunbookTerm`, `RunbookArchitecture`, `RunbookProtectiveMechanism`, `RunbookTroubleshootingItem`.
+    - Все 7 регламентов декомпозированы по доменным модулям в `src/services/admin/ai-manual/runbooks/` (`catalog-runbooks.ts`, `finance-runbooks.ts`, `orders-runbooks.ts`, `security-runbooks.ts`, `infra-runbooks.ts`).
+    - Устранен дефект инверсии разделов в UI (`ManualRunbookDetail.tsx` + `RunbookPatentSections.tsx`): шаги (раздел 4) теперь строго встроены между разделом 3 и разделом 5 через `stepsSlot`, соблюдая линейную последовательность 1..6 (верифицировано через `compareDocumentPosition`).
+    - Добавлены обязательные темы ТЗ: «Поломка валидатора ссылок» (диагностика сбоев в `catalog-runbooks.ts` и DR-08 в мануале) и «Настройка валют и курсов ЦБ РФ» (шаг 4 в `finance-runbooks.ts`).
+  * 📥 **Функция прямого скачивания (Direct Download):**
+    - Реализован Level 1 сервис `runbook-markdown-formatter.ts` (с гарантированными фолбэками для сохранения нумерации 1..6) и клиентский загрузчик `runbook-downloader.ts` с поддержкой UTF-8 BOM (`\uFEFF`) для идеального отображения кириллицы в Windows Notepad/Excel.
+    - В UI вкладки «Регламенты» (`ManualGuidesTab.tsx`) добавлена кнопка «Скачать все (.md)» с `aria-label` и расширенной зоной тапа, а также кнопки быстрого экспорта на карточках.
+    - В детальном окне регламента (`ManualRunbookDetail.tsx`) добавлена кнопка «Скачать регламент (.md)».
+    - Сгенерирован сводный эталонный файл `docs/manual/ADMIN_TECHNICAL_OPERATIONS_MANUAL.md`.
+    - Исправлен порядок импортов в `src/actions/admin/ai-manual/guides.action.ts`.
+  * 🧪 **Автоматическая верификация:**
+    - Все 15 файлов строго $\le 200$ строк (максимальный размер — 183 строки).
+    - Vitest: 9/9 тестов PASS (`admin-runbook-patent-formatter.test.ts`, `admin-runbook-patent-ui.test.tsx`), 22/22 в полном сьюте виджета.
+    - `npx tsc --noEmit` — 0 ошибок (100% CLEAN).
+    - `npm run check:arch` — 0 layer violations, 0 circular cycles на 1420 модулях.
 - [x] ⚡ [ADMIN-INTERACTIVE-AI-MANUAL-SPEC-2026] Разработка архитектуры и спецификации интерактивного виджета-инструктора админ-панели (OmniManual 1.0) на базе Gemini 3.8 Flash и векторной памяти в Docker (100% SPEC & ADR COMPLETE):
   * 🏛️ **Архитектурное решение MADR 3.0 (`docs/architecture/ADR-2026-20-ADMIN-INTERACTIVE-MANUAL-AI-WIDGET.md`):**
     - Зафиксирована гибридная топология: плавающий интерактивный виджет в админке + Docker векторная память (Qdrant на `:6333`, FastAPI на `:8100`) + каскад Gemini 3.8 Flash.

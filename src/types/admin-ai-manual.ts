@@ -31,6 +31,31 @@ export interface CodeReference {
   layer?: string;
 }
 
+export interface RunbookTerm {
+  term: string;
+  definition: string;
+}
+
+export interface RunbookArchitecture {
+  prismaTables?: string[];
+  serverActions?: string[];
+  level1Services?: string[];
+  description?: string;
+}
+
+export interface RunbookProtectiveMechanism {
+  title: string;
+  description: string;
+  ruleCode?: string;
+}
+
+export interface RunbookTroubleshootingItem {
+  scenario: string;
+  symptoms: string;
+  remedy: string;
+  files?: string[];
+}
+
 export interface AdminRunbookStep {
   stepNumber: number;
   title: string;
@@ -51,6 +76,11 @@ export interface AdminRunbook {
   steps: AdminRunbookStep[];
   relatedFiles: string[];
   tags: string[];
+  scopeAndObjectives?: string;
+  termsAndDefinitions?: RunbookTerm[];
+  technicalArchitecture?: RunbookArchitecture;
+  protectiveMechanisms?: RunbookProtectiveMechanism[];
+  troubleshooting?: RunbookTroubleshootingItem[];
 }
 
 export interface DockerMemoryStatus {

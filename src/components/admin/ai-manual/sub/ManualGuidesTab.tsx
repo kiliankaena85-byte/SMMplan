@@ -1,15 +1,19 @@
 'use client';
 
 /**
- * Tab 2: Interactive Guides & Runbooks Catalog
+ * Tab 2: Interactive Guides & Runbooks Catalog (with Direct Markdown Download)
  */
 
 import React, { useState, useEffect } from 'react';
 import type { AdminRunbook } from '@/types/admin-ai-manual';
 import { getAdminRunbooksAction } from '@/actions/admin/ai-manual/guides.action';
 import { ManualRunbookDetail } from './ManualRunbookDetail';
-import { Search, Clock, ChevronRight, BookOpen, Sparkles } from 'lucide-react';
+import { Search, Clock, ChevronRight, BookOpen, Sparkles, Download } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import {
+  downloadFullManualAsMarkdown,
+  downloadRunbookAsMarkdown,
+} from '@/services/admin/ai-manual/runbook-downloader';
 
 export const ManualGuidesTab: React.FC = () => {
   const pathname = usePathname() || '/admin/dashboard';
@@ -50,7 +54,6 @@ export const ManualGuidesTab: React.FC = () => {
     );
   });
 
-  // Sort so that runbooks relevant to the current page are shown first
   const sorted = [...filtered].sort((a, b) => {
     const aMatch = pathname.startsWith(a.targetRoute) ? 1 : 0;
     const bMatch = pathname.startsWith(b.targetRoute) ? 1 : 0;
@@ -59,16 +62,32 @@ export const ManualGuidesTab: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto p-4 space-y-3 text-xs">
-      {/* Search Input */}
-      <div className="relative shrink-0">
-        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Поиск по регламентам и сценариям..."
-          className="w-full bg-muted/40 border border-border/80 rounded-md pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-        />
+      {/* Search & Download Full Manual Bar */}
+      <div className="space-y-2 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Поиск по регламентам и сценариям..."
+              className="w-full bg-muted/40 border border-border/80 rounded-md pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => downloadFullManualAsMarkdown(runbooks)}
+            disabled={runbooks.length === 0}
+            aria-label="Скачать все регламенты (.md)"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 text-[11px] font-medium transition-colors shrink-0 disabled:opacity-50 cursor-pointer min-h-[32px]"
+            title="Скачать все регламенты единым файлом (.md)"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Скачать все (.md)</span>
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -114,10 +133,27 @@ export const ManualGuidesTab: React.FC = () => {
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3" /> ~{item.estimatedMinutes} мин
                   </span>
-                  <span className="flex items-center gap-0.5 text-primary font-medium hover:underline">
-                    <BookOpen className="w-3 h-3" /> Шагов: {item.steps.length}
-                    <ChevronRight className="w-3 h-3" />
-                  </span>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadRunbookAsMarkdown(item);
+                      }}
+                      className="inline-flex items-center gap-1 p-1 rounded hover:bg-muted/80 text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                      title="Скачать этот регламент (.md)"
+                      aria-label={`Скачать регламент ${item.title} (.md)`}
+                    >
+                      <Download className="w-3 h-3" />
+                      <span className="text-[10px]">.md</span>
+                    </button>
+
+                    <span className="flex items-center gap-0.5 text-primary font-medium hover:underline">
+                      <BookOpen className="w-3 h-3" /> Шагов: {item.steps.length}
+                      <ChevronRight className="w-3 h-3" />
+                    </span>
+                  </div>
                 </div>
               </div>
             );

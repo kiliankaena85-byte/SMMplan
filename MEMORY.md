@@ -66,6 +66,16 @@ onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); ... }}
 
 ## 1. 🏗️ Архитектурные решения (ADR)
 
+- **ADR-2026-27: Technical Documentation Standard (Rospatent / GOST ESPD 19.505-79) & Direct Markdown Export Engine:**
+  - *Решение:*
+    1. **Стандарт структуры документации (6 обязательных разделов):** Каждая статья регламента формализована по стандарту Роспатента для описания программ ЭВМ и ГОСТ ЕСПД 19.505-79: 1. Область применения и назначение, 2. Термины и определения, 3. Техническая сущность и архитектура модуля (Prisma, Actions, Services Level 1), 4. Пошаговый регламент штатной эксплуатации, 5. Нестандартные и защитные функции (карантины, инварианты, зомби-услуги), 6. Диагностика сбоев и план восстановления.
+    2. **Декомпозиция реестра регламентов ($\le 200$ строк):** 7 регламентов вынесены из монолита Server Action в доменные модули `src/services/admin/ai-manual/runbooks/` (`catalog-runbooks.ts`, `finance-runbooks.ts`, `orders-runbooks.ts`, `security-runbooks.ts`, `infra-runbooks.ts`, `index.ts`).
+    3. **Движок генерации и прямого скачивания Markdown:** Создан Level 1 сервис `runbook-markdown-formatter.ts` (форматирование отдельных статей и сводного руководства) и `runbook-downloader.ts` (клиентское скачивание через `Blob`).
+    4. **Интерактивный UI виджета OmniManual:** Кнопка «Скачать все (.md)» и быстрое скачивание отдельных регламентов в `ManualGuidesTab.tsx`, кнопка «Скачать (.md)» и компонент патентных секций `RunbookPatentSections.tsx` в `ManualRunbookDetail.tsx`.
+    5. **Сводный эталонный документ:** Сгенерирован `docs/manual/ADMIN_TECHNICAL_OPERATIONS_MANUAL.md`.
+    6. **Верификация:** 8/8 тестов PASS (`admin-runbook-patent-formatter.test.ts`, `admin-runbook-patent-ui.test.tsx`), `tsc --noEmit` 0 ошибок, `npm run check:arch` 0 нарушений.
+  - *Причина:* Полное соответствие требованиям пользователя по профессиональному структурированию документации (стандарт Роспатента / ГОСТ) и возможность автономного офлайн-изучения администраторами платформы.
+
 - **ADR-2026-20: Architecture of Interactive Admin Operating Manual & AI Consultant Widget (Gemini 3.8 Flash & Docker Vector Memory):**
   - *Решение:*
     1. **Интерактивный виджет админки (OmniManual 1.0):** Плавающий триггер (FAB) с шорткатом `Ctrl + /`, выдвижной Drawer с 3 табами: «AI-Консультант» (SSE-стриминг), «Инструкция и Гайды» (8 структурированных глав с пошаговыми чеклистами), «Инспектор Кода & ADR» (Prisma модели и решения).
