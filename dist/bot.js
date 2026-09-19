@@ -130534,6 +130534,8 @@ async function createProxyDispatcher(proxy) {
     const { SocksProxyAgent: SocksProxyAgent2 } = await Promise.resolve().then(() => (init_dist6(), dist_exports));
     const socksUrl = `socks5h://${auth}${proxy.host}:${proxy.port}`;
     const socksAgent = new SocksProxyAgent2(socksUrl);
+    socksAgent.on("error", () => {
+    });
     const connectFn = (opts, callback) => {
       try {
         const anyOpts = opts || {};
@@ -130542,14 +130544,34 @@ async function createProxyDispatcher(proxy) {
         const host = anyOpts.hostname || anyOpts.host || "localhost";
         const safeOpts = { ...anyOpts, port, host };
         const rawConnect = socksAgent.connect.bind(socksAgent);
-        rawConnect(
-          {},
+        const mockReq = {
+          emit: () => false,
+          on: () => {
+          },
+          once: () => {
+          },
+          removeListener: () => {
+          },
+          getHeader: () => void 0,
+          setHeader: () => {
+          }
+        };
+        const sock = rawConnect(
+          mockReq,
           safeOpts,
           (err, socket) => {
+            if (socket && typeof socket.on === "function") {
+              socket.on("error", () => {
+              });
+            }
             if (err) return callback(err, null);
             callback(null, socket || null);
           }
         );
+        if (sock && typeof sock.on === "function") {
+          sock.on("error", () => {
+          });
+        }
       } catch (err) {
         callback(err instanceof Error ? err : new Error(String(err)), null);
       }
