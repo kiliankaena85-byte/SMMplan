@@ -42,6 +42,18 @@ describe('Interactive Textbook (OmniBook 2026)', () => {
     expect(matches.length).toBeGreaterThanOrEqual(1);
   });
 
+  it('filters to Settings domain when clicking Настройки pill and renders chapter 45', () => {
+    render(<InteractiveTextbook />);
+
+    // Click "Настройки" domain pill
+    const settingsPill = screen.getByRole('button', { name: /^Настройки$/i });
+    fireEvent.click(settingsPill);
+
+    const matches = screen.getAllByText(/Настройки системы, брендинг и безопасность/i);
+    expect(matches.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Конфигурация Vault, рубильник KillSwitch/i).length).toBeGreaterThanOrEqual(1);
+  });
+
   it('switches between Textbook, RegEx stand, and API error codes view', () => {
     render(<InteractiveTextbook />);
 
@@ -130,6 +142,17 @@ describe('Interactive Textbook (OmniBook 2026)', () => {
     expect(screen.getByText(/Линия 3 • Эскалация/i)).toBeTruthy();
     expect(screen.getByText(/Скрытые заметки 🔒/i)).toBeTruthy();
     expect(screen.getByText(/SLA 15m Target/i)).toBeTruthy();
+  });
+
+  it('renders SYSTEM_SETTINGS diagram with Vault, Telegram Bot P0, RBAC Matrix, and KillSwitch', () => {
+    render(<InteractiveDiagram type="SYSTEM_SETTINGS" />);
+
+    expect(screen.getByText(/Схема 6: Контур системной безопасности и настроек OmniSMM/i)).toBeTruthy();
+    expect(screen.getByText(/Vault & Secrets/i)).toBeTruthy();
+    expect(screen.getByText(/Telegram Bot P0/i)).toBeTruthy();
+    expect(screen.getByText(/RBAC Matrix/i)).toBeTruthy();
+    expect(screen.getByText(/KillSwitch/i)).toBeTruthy();
+    expect(screen.getByText(/Zero-Trust & Vault/i)).toBeTruthy();
   });
 
   it('renders hotspots and opens info panel on click in InteractiveScreenshotViewer', () => {

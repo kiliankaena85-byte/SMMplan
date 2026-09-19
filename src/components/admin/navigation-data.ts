@@ -135,6 +135,7 @@ export const SYSTEM_TABS = [
   { label: 'CMS Страницы', href: '/admin/pages' },
   { label: 'Статьи блога', href: '/admin/knowledge' },
   { label: 'Фичи (Flags)', href: '/admin/system/features' },
+  { label: 'Учебник & Инструкция', href: '/admin/manual' },
 ];
 
 export const ONBOARDING_CONFIGS = {

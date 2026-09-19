@@ -12,6 +12,7 @@ export type TextbookDomainId =
   | 'CATALOG'
   | 'PROVIDERS'
   | 'FINANCE'
+  | 'SETTINGS'
   | 'RUNBOOKS';
 
 export interface TextbookDomain {
@@ -54,7 +55,8 @@ export type DiagramType =
   | 'ORDER_FLOW'
   | 'LEDGER_AUDIT'
   | 'CIRCUIT_BREAKER'
-  | 'SUPPORT_ESCALATION';
+  | 'SUPPORT_ESCALATION'
+  | 'SYSTEM_SETTINGS';
 
 export interface TextbookChecklistItem {
   id: string;

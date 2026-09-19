@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OmniSMM Architecture Topology (Uncle Bob Pattern)",
-  "generatedAt": "2026-09-19T17:57:12.076Z",
+  "generatedAt": "2026-09-19T18:05:01.463Z",
   "layers": [
     {
       "level": 0,
@@ -10265,29 +10265,29 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 1952,
+      "linesCount": 2124,
       "isClientComponent": true,
       "exportsCount": 1,
-      "functionsCount": 79,
-      "maxCyclomaticComplexity": 130,
-      "maxCrapScore": 17030,
-      "crapLoad": 17236,
+      "functionsCount": 81,
+      "maxCyclomaticComplexity": 132,
+      "maxCrapScore": 17556,
+      "crapLoad": 17762,
       "crappyMethodsCount": 5,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "AcademyClient",
           "startLine": 41,
-          "endLine": 1951,
-          "cyclomaticComplexity": 130,
+          "endLine": 2123,
+          "cyclomaticComplexity": 132,
           "coverageRatio": null,
-          "crapScore": 17030,
+          "crapScore": 17556,
           "isCrappy": true
         },
         {
           "name": "<anonymous>",
-          "startLine": 806,
-          "endLine": 860,
+          "startLine": 818,
+          "endLine": 872,
           "cyclomaticComplexity": 13,
           "coverageRatio": null,
           "crapScore": 182,
@@ -10337,7 +10337,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 114,
+      "linesCount": 125,
       "isClientComponent": false,
       "exportsCount": 1,
       "functionsCount": 7,
@@ -10349,8 +10349,8 @@
       "topRiskFunctions": [
         {
           "name": "mdToHtml",
-          "startLine": 11,
-          "endLine": 63,
+          "startLine": 14,
+          "endLine": 66,
           "cyclomaticComplexity": 8,
           "coverageRatio": null,
           "crapScore": 72,
@@ -10358,8 +10358,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 53,
-          "endLine": 60,
+          "startLine": 56,
+          "endLine": 63,
           "cyclomaticComplexity": 8,
           "coverageRatio": null,
           "crapScore": 72,
@@ -10367,8 +10367,8 @@
         },
         {
           "name": "AdminManualPage",
-          "startLine": 65,
-          "endLine": 113,
+          "startLine": 68,
+          "endLine": 124,
           "cyclomaticComplexity": 6,
           "coverageRatio": null,
           "crapScore": 42,
@@ -25283,7 +25283,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 126,
+      "linesCount": 191,
       "isClientComponent": false,
       "exportsCount": 0,
       "functionsCount": 0,
@@ -25345,7 +25345,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 82,
+      "linesCount": 91,
       "isClientComponent": false,
       "exportsCount": 0,
       "functionsCount": 0,
@@ -25424,23 +25424,23 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 224,
+      "linesCount": 265,
       "isClientComponent": true,
       "exportsCount": 1,
       "functionsCount": 3,
-      "maxCyclomaticComplexity": 7,
-      "maxCrapScore": 56,
-      "crapLoad": 26,
+      "maxCyclomaticComplexity": 8,
+      "maxCrapScore": 72,
+      "crapLoad": 42,
       "crappyMethodsCount": 1,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "InteractiveDiagram",
           "startLine": 11,
-          "endLine": 223,
-          "cyclomaticComplexity": 7,
+          "endLine": 264,
+          "cyclomaticComplexity": 8,
           "coverageRatio": null,
-          "crapScore": 56,
+          "crapScore": 72,
           "isCrappy": true
         },
         {
@@ -25739,7 +25739,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 120,
+      "linesCount": 122,
       "isClientComponent": false,
       "exportsCount": 0,
       "functionsCount": 0,
@@ -25801,7 +25801,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 262,
+      "linesCount": 263,
       "isClientComponent": false,
       "exportsCount": 2,
       "functionsCount": 5,
@@ -62966,6 +62966,20 @@
       "isViolating": false
     },
     {
+      "source": "src/app/admin/manual/page.tsx",
+      "target": "src/components/admin/tabbed-header.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/manual/page.tsx",
+      "target": "src/components/admin/navigation-data.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
       "source": "src/app/admin/marketing/client-referrers-table.tsx",
       "target": "src/components/admin/hero-ui.tsx",
       "kind": "dependency",
@@ -83788,17 +83802,17 @@
   "cycles": [],
   "metrics": {
     "totalFiles": 1443,
-    "totalEdges": 4026,
+    "totalEdges": 4028,
     "violationsCount": 0,
     "cyclesCount": 0,
     "blockersCount": 0,
-    "totalFunctions": 9855,
+    "totalFunctions": 9857,
     "highestCrapModule": {
       "id": "src/proxy.ts",
       "maxCrap": 38220,
       "maxCC": 195
     },
     "totalCrappyFunctions": 2305,
-    "totalCrapLoad": 1347900
+    "totalCrapLoad": 1348442
   }
 }

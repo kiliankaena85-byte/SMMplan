@@ -70,6 +70,15 @@ export const TEXTBOOK_DOMAINS: TextbookDomain[] = [
     volumeNumber: 9,
   },
   {
+    id: 'SETTINGS',
+    title: 'Настройки системы, брендинг и безопасность',
+    shortTitle: 'Настройки',
+    icon: 'Settings',
+    colorClass: 'text-slate-500 bg-slate-500/10 border-slate-500/20',
+    description: 'Конфигурация Vault, рубильник KillSwitch, Telegram Bot P0, курсы валют ЦБ РФ, CMS и флаги',
+    volumeNumber: 11,
+  },
+  {
     id: 'RUNBOOKS',
     title: 'Регламенты аварийных ситуаций (Runbooks)',
     shortTitle: 'Runbooks DR',

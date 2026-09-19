@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ArrowRight, Layers, ShieldCheck, Database, Zap, Cpu, AlertTriangle, Headphones, Lock, Send } from 'lucide-react';
+import { ArrowRight, Layers, ShieldCheck, Database, Zap, Cpu, AlertTriangle, Headphones, Lock, Send, Settings, Sliders, Globe } from 'lucide-react';
 import { DiagramType } from './types';
 
 interface InteractiveDiagramProps {
@@ -184,6 +184,47 @@ export function InteractiveDiagram({ type }: InteractiveDiagramProps) {
           <div className="flex items-center gap-1.5 text-[11px] font-semibold text-violet-600 bg-violet-500/10 px-2 py-0.5 rounded-md border border-violet-500/20">
             <Send className="w-3 h-3" />
             <span>Telegram Alert при простое &gt; 15м</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (type === 'SYSTEM_SETTINGS') {
+    return (
+      <div className="my-4 p-4 rounded-2xl bg-card border border-border shadow-xs space-y-3">
+        <div className="flex items-center justify-between border-b border-border/50 pb-2">
+          <div className="flex items-center gap-2">
+            <Settings className="w-4 h-4 text-slate-500" />
+            <span className="text-xs font-bold text-foreground">Схема 6: Контур системной безопасности и настроек OmniSMM</span>
+          </div>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20">Zero-Trust & Vault</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-center">
+          <div className="p-3 rounded-xl bg-slate-500/5 border border-slate-500/20 space-y-1">
+            <div className="flex justify-center"><Lock className="w-4 h-4 text-slate-500" /></div>
+            <span className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400 block">Vault & Secrets</span>
+            <span className="text-xs font-bold text-foreground block">AES-256 Storage</span>
+            <span className="text-[10px] text-muted-foreground block">Маскирование API ключей</span>
+          </div>
+          <div className="p-3 rounded-xl bg-sky-500/5 border border-sky-500/20 space-y-1">
+            <div className="flex justify-center"><Send className="w-4 h-4 text-sky-500" /></div>
+            <span className="text-[10px] font-black uppercase text-sky-600 block">Telegram Bot P0</span>
+            <span className="text-xs font-bold text-foreground block">Алерты и Заказы</span>
+            <span className="text-[10px] text-muted-foreground block">Idempotent Webhook Reset</span>
+          </div>
+          <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/20 space-y-1">
+            <div className="flex justify-center"><ShieldCheck className="w-4 h-4 text-purple-500" /></div>
+            <span className="text-[10px] font-black uppercase text-purple-600 block">RBAC Matrix</span>
+            <span className="text-xs font-bold text-foreground block">16 секций прав</span>
+            <span className="text-[10px] text-muted-foreground block">OWNER / ADMIN / SUPPORT</span>
+          </div>
+          <div className="p-3 rounded-xl bg-rose-500/5 border border-rose-500/20 space-y-1">
+            <div className="flex justify-center"><AlertTriangle className="w-4 h-4 text-rose-500" /></div>
+            <span className="text-[10px] font-black uppercase text-rose-600 block">KillSwitch</span>
+            <span className="text-xs font-bold text-foreground block">Режим техработ</span>
+            <span className="text-[10px] text-muted-foreground block">HTTP 503 Maintenance</span>
           </div>
         </div>
       </div>

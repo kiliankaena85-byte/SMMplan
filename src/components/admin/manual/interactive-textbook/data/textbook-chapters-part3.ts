@@ -65,6 +65,71 @@ export const CHAPTERS_PART_3: TextbookChapter[] = [
     tags: ['Finance', 'Ledger', '54-ФЗ', '425-ФЗ', 'WalletOps', 'Treasury'],
   },
   {
+    id: 'settings-system-security',
+    domainId: 'SETTINGS',
+    volumeNumber: 11,
+    chapterNumber: 45,
+    title: 'Настройки системы, брендинг и безопасность',
+    subtitle: 'Конфигурация Vault, рубильник KillSwitch, Telegram Bot P0, курсы валют ЦБ РФ, CMS и флаги',
+    readTimeMinutes: 12,
+    iconName: 'Settings',
+    targetRoute: '/admin/settings',
+    section1Scope: 'Настоящая глава регламентирует глобальную конфигурацию платформы OmniSMM 1.0, управление секретами Vault, аварийный рубильник KillSwitch, ролевую матрицу RBAC (16 разделов) и мультитенантный брендинг (SMMplan & SMMflux).',
+    section2Terms: [
+      { term: 'KillSwitch (Техработы)', definition: 'Глобальный рубильник в SystemSettings, переводящий витрины в HTTP 503 Maintenance Mode с сохранением доступа в панель управления.' },
+      { term: 'Vault & Secrets Storage', definition: 'Защищенное хранилище API ключей и токенов провайдеров в PostgreSQL, шифрованное AES-256 с маскированием в интерфейсе.' },
+      { term: 'Курсы ЦБ РФ & Мультивалютность', definition: 'Автоматическая ежедневная синхронизация курсов валют (USD, EUR, KZT) через API ЦБ РФ с возможностью ручной фиксации спреда.' },
+      { term: 'Матрица RBAC 16 секций', definition: 'Разграничение прав доступа (Full, Read-Only, None) для ролей OWNER, ADMIN, SUPPORT, ACCOUNTANT по 16 разделам платформы.' },
+    ],
+    section3Architecture: {
+      description: 'Системные настройки кэшируются в Redis с тегом tenantId и сбрасываются мгновенно при сохранении через Server Actions.',
+      diagramType: 'SYSTEM_SETTINGS',
+      coreTables: ['SystemSettings', 'StaffPermission', 'AuditLog', 'CurrencyRate', 'FeatureFlag'],
+      coreActions: ['updateSystemSettingsAction', 'syncCbrRatesAction', 'updateStaffPermissionsAction', 'toggleFeatureFlagAction'],
+    },
+    section4Walkthrough: {
+      steps: [
+        { stepNumber: 1, title: 'Глобальные параметры и рубильник KillSwitch', description: 'Управление сервисным режимом HTTP 503, системными лимитами и базовой конфигурацией тенантов.', actionUrl: '/admin/settings?tab=general', actionLabel: 'Общие настройки' },
+        { stepNumber: 2, title: 'Интеграция Telegram Bot P0 и алерты', description: 'Настройка токена Telegram, ID каналов для P0 алертов и безопасный сброс вебхука при 409 Conflict.', actionUrl: '/admin/settings?tab=telegram', actionLabel: 'Настройки Telegram' },
+        { stepNumber: 3, title: 'Управление прокси и таймаутами провайдеров', description: 'Конфигурация HTTP/SOCKS5 прокси-пулов для обхода региональных ограничений провайдеров API.', actionUrl: '/admin/settings?tab=proxies', actionLabel: 'Прокси шлюзов' },
+        { stepNumber: 4, title: 'Ролевая матрица сотрудников (RBAC)', description: 'Детальная настройка прав доступа персонала к 16 функциональным блокам OmniSMM 1.0.', actionUrl: '/admin/settings?tab=roles', actionLabel: 'Роли и доступы' },
+        { stepNumber: 5, title: 'Мультитенантный брендинг и домены', description: 'Управление доменами smmplan.pro и smmflux.ru, логотипами, фавиконами и цветовыми темами.', actionUrl: '/admin/settings?tab=branding', actionLabel: 'Брендинг и домены' },
+        { stepNumber: 6, title: 'CMS страницы, база знаний и Feature Flags', description: 'Управление пользовательскими страницами (Оферта, FAQ) и переключателями фич платформы.', actionUrl: '/admin/pages', actionLabel: 'CMS и флаги' },
+      ],
+    },
+    section5Safeguards: {
+      rules: [
+        { code: 'RULE-SET-01', name: 'Zero Secrets Leak Guard', description: 'Любое отображение ключей в интерфейсе строго маскируется (••••••••). Аудит безопасности блокирует утечки в бандл.' },
+        { code: 'RULE-SET-02', name: 'Fail-Closed KillSwitch Guard', description: 'Включение техработ защищает целостность БД, но не прерывает активные Server Actions авторизованного администратора.' },
+        { code: 'RULE-SET-03', name: 'Audit P0 Notification', description: 'Изменение настроек безопасности логируется через await auditAdminAwaitable() и немедленно шлется в Telegram P0.' },
+      ],
+    },
+    section6Troubleshooting: [
+      { scenario: 'Рассинхронизация настроек в кластере', symptoms: 'Изменение параметров в админке не отображается на витрине пользователей', solution: 'Сбросить кэш настроек в Redis или вызвать принудительную ревалидацию тэгов в панели Инспектора.', emergencyCommand: 'npx tsx scripts/flush-settings-cache.ts' },
+      { scenario: 'Сбой синхронизации курсов валют ЦБ РФ', symptoms: 'В казначействе отображается предупреждение о неактуальном курсе USD', solution: 'Нажать кнопку «Принудительно обновить курсы ЦБ РФ» на вкладке Валюты или проверить доступность cbr.ru.', emergencyCommand: 'npx tsx scripts/sync-cbr-rates.ts' },
+    ],
+    callouts: [
+      { type: 'CRITICAL', title: 'Инвариант безопасности настроек', content: 'Изменение любых системных параметров или прав ролей обязательно фиксируется в AuditLog через await auditAdminAwaitable() и дублируется в Telegram P0.' },
+      { type: 'TIP', title: 'Быстрый переход по вкладкам', content: 'Используйте верхнюю панель вкладок системных настроек для прямого перехода между Telegram, Прокси, Ролями, Брендингом и CMS.' },
+    ],
+    screenshot: {
+      src: '/manual/screenshots/08_stage_manual_inspector_status.png',
+      caption: 'Рис. 11.1 — Панель системного статуса, диагностика инспектора и конфигурационные параметры OmniSMM',
+      altText: 'Системные настройки OmniSMM',
+      hotspots: [
+        { badgeNumber: 1, xPercent: 25, yPercent: 20, title: 'Статус системных служб', description: 'Мониторинг доступности PostgreSQL, Redis, Worker очередей BullMQ и внешних шлюзов' },
+        { badgeNumber: 2, xPercent: 65, yPercent: 20, title: 'Конфигурация окружения', description: 'Проверка загрузки переменных окружения, режимов отладки и состояния Vault' },
+        { badgeNumber: 3, xPercent: 50, yPercent: 70, title: 'Диагностика и кэш', description: 'Инструменты сброса кэша настроек и тестирования сетевых подключений' },
+      ],
+    },
+    checklist: [
+      { id: 'set-1', title: 'Проверить актуальность курсов валют ЦБ РФ', detail: 'Убедиться, что курсы обновлены сегодня и спред не превышает допустимый лимит' },
+      { id: 'set-2', title: 'Провести аудит токенов Telegram P0 бота', detail: 'Проверить доставку тестового сообщения в канал алертов без ошибок 409 Conflict' },
+      { id: 'set-3', title: 'Проверить состояние рубильника KillSwitch', detail: 'Режим техработ должен быть отключен в штатном режиме' },
+    ],
+    tags: ['Settings', 'Security', 'Vault', 'Telegram', 'RBAC', 'KillSwitch', 'CBR', 'CMS'],
+  },
+  {
     id: 'runbooks-emergency',
     domainId: 'RUNBOOKS',
     volumeNumber: 12,

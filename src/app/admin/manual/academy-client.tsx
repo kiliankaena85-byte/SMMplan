@@ -41,7 +41,7 @@ interface AcademyClientProps {
 export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: AcademyClientProps) {
   // Navigation Modes: SHIFT (на смене) vs LEARN (обучение)
   const [activeMode, setActiveMode] = useState<'SHIFT' | 'LEARN'>('LEARN');
-  const [activeTab, setActiveTab] = useState<'simulator' | 'matrix' | 'cheatsheet' | 'handbook' | 'exam' | 'tech_db' | 'tech_analyzer' | 'tech_services' | 'tech_buttons' | 'tech_queues' | 'tech_multitenant'>('handbook');
+  const [activeTab, setActiveTab] = useState<'simulator' | 'matrix' | 'cheatsheet' | 'handbook' | 'exam' | 'tech_db' | 'tech_analyzer' | 'tech_services' | 'tech_buttons' | 'tech_queues' | 'tech_multitenant' | 'tech_settings'>('handbook');
   const [manualPresentationMode, setManualPresentationMode] = useState<'INTERACTIVE' | 'TEXT'>('INTERACTIVE');
   const [selectedManualType, setSelectedManualType] = useState<'admin' | 'support'>('admin');
   const [buttonSearch, setButtonSearch] = useState('');
@@ -621,6 +621,18 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                 }`}
               >
                 <span>🏢 Мульти-Тенант</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('tech_settings')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer select-none ${
+                  activeTab === 'tech_settings'
+                    ? 'bg-primary text-primary-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+              >
+                <span>⚙️ Настройки Системы</span>
               </button>
 
               <button
@@ -1836,6 +1848,166 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB TECH 7: SYSTEM SETTINGS & ARCHITECTURE */}
+      {activeTab === 'tech_settings' && (
+        <div className="space-y-6">
+          <div className="bg-card border border-border/80 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
+            <div className="flex items-center justify-between border-b border-border/60 pb-4 flex-wrap gap-3">
+              <div>
+                <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">
+                  <span>⚙️</span> Архитектура Настроек Системы & Безопасность (OmniSMM 1.0)
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Конфигурация параметров платформы, управление секретами Vault, аварийные механизмы и разграничение прав
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/admin/settings"
+                  className="px-3 py-1.5 bg-primary text-primary-foreground font-bold text-xs rounded-xl shadow-xs hover:opacity-90 transition-opacity flex items-center gap-1.5"
+                >
+                  <span>Открыть раздел настроек</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Grid of Settings Modules */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+              <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-foreground flex items-center gap-1.5">
+                    <span>🛑</span> Режим техработ (KillSwitch)
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-rose-500/10 text-rose-600 font-bold text-[10px]">HTTP 503</span>
+                </div>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  Аварийный рубильник в SystemSettings. Переводит витрины в защитный режим с сообщением о технических работах, не затрагивая админку.
+                </p>
+                <Link
+                  href="/admin/settings?tab=general"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                >
+                  Общие настройки & KillSwitch →
+                </Link>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-foreground flex items-center gap-1.5">
+                    <span>📢</span> Telegram Bot P0 & Алерты
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-sky-500/10 text-sky-600 font-bold text-[10px]">P0 Alert</span>
+                </div>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  Мгновенные оповещения в дежурный Telegram-канал при сбоях провайдеров, блокировках и финансовых аномалиях с защитой от 409 Conflict.
+                </p>
+                <Link
+                  href="/admin/settings?tab=telegram"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                >
+                  Настройки Telegram-бота →
+                </Link>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-foreground flex items-center gap-1.5">
+                    <span>🌐</span> Прокси-пулы Провайдеров
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 font-bold text-[10px]">SOCKS5 / HTTP</span>
+                </div>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  Маршрутизация запросов к API внешних провайдеров через изолированные прокси-ноды для обхода блокировок РКН и Cloudflare.
+                </p>
+                <Link
+                  href="/admin/settings?tab=proxies"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                >
+                  Управление прокси →
+                </Link>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-foreground flex items-center gap-1.5">
+                    <span>🛡️</span> Роли и Доступы (RBAC)
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 font-bold text-[10px]">16 секций</span>
+                </div>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  Матрица прав доступа: OWNER, ADMIN, SUPPORT, ACCOUNTANT с гранулярным контролем (Full, Read-Only, None) по каждому экрану.
+                </p>
+                <Link
+                  href="/admin/settings?tab=roles"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                >
+                  Матрица прав персонала →
+                </Link>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-foreground flex items-center gap-1.5">
+                    <span>🎨</span> Брендинг и Мульти-Тенант
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 font-bold text-[10px]">SMMplan / SMMflux</span>
+                </div>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  Логотипы, цветовые схемы, фавиконы и метаданные брендов для smmplan.pro и smmflux.ru с независимой изоляцией.
+                </p>
+                <Link
+                  href="/admin/settings?tab=branding"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                >
+                  Брендинг и домены →
+                </Link>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-foreground flex items-center gap-1.5">
+                    <span>🚩</span> Feature Flags & CMS
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-bold text-[10px]">Zero-Downtime</span>
+                </div>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
+                  Мгновенное включение и отключение экспериментальных фичей (Drip-Feed, Free Promotion, CryptoBot) без пересборки контейнеров.
+                </p>
+                <Link
+                  href="/admin/system/features"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                >
+                  Переключатели фич →
+                </Link>
+              </div>
+            </div>
+
+            {/* Quick Action to open Textbook domain */}
+            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="text-lg">📖</span>
+                <div>
+                  <h4 className="text-xs font-bold text-foreground">Интерактивный учебник по Настройкам и Безопасности</h4>
+                  <p className="text-[11px] text-muted-foreground">Глава 45 ГОСТ ЕСПД: регламенты, хотспоты скриншотов, чек-листы и схемы</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('handbook');
+                  setManualPresentationMode('INTERACTIVE');
+                }}
+                className="px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-bold shadow-xs hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-1"
+              >
+                <span>Читать главу в Учебнике</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         </div>
