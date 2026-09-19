@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OmniSMM Architecture Topology (Uncle Bob Pattern)",
-  "generatedAt": "2026-09-19T13:57:41.042Z",
+  "generatedAt": "2026-09-19T13:59:12.885Z",
   "layers": [
     {
       "level": 0,
@@ -45354,10 +45354,10 @@
       "level": 1,
       "layer": "Services",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 173,
+      "linesCount": 228,
       "isClientComponent": false,
       "exportsCount": 0,
-      "functionsCount": 8,
+      "functionsCount": 10,
       "maxCyclomaticComplexity": 12,
       "maxCrapScore": 156,
       "crapLoad": 220,
@@ -45366,8 +45366,8 @@
       "topRiskFunctions": [
         {
           "name": "retrieveContext",
-          "startLine": 91,
-          "endLine": 132,
+          "startLine": 92,
+          "endLine": 133,
           "cyclomaticComplexity": 12,
           "coverageRatio": null,
           "crapScore": 156,
@@ -45375,8 +45375,8 @@
         },
         {
           "name": "searchOfflineKnowledge",
-          "startLine": 137,
-          "endLine": 170,
+          "startLine": 138,
+          "endLine": 171,
           "cyclomaticComplexity": 8,
           "coverageRatio": null,
           "crapScore": 72,
@@ -45384,8 +45384,8 @@
         },
         {
           "name": "getMemoryStatus",
-          "startLine": 39,
-          "endLine": 86,
+          "startLine": 40,
+          "endLine": 87,
           "cyclomaticComplexity": 7,
           "coverageRatio": null,
           "crapScore": 56,
@@ -77991,13 +77991,6 @@
       "isViolating": false
     },
     {
-      "source": "src/services/admin/ai-manual/knowledge-retriever.service.ts",
-      "target": "src/services/admin/ai-manual/knowledge-fallback.ts",
-      "kind": "dependency",
-      "isTypeOnly": false,
-      "isViolating": false
-    },
-    {
       "source": "src/services/admin/ai-pricing-telegram-dispatcher.ts",
       "target": "src/lib/notifications.ts",
       "kind": "dependency",
@@ -82216,11 +82209,11 @@
   "cycles": [],
   "metrics": {
     "totalFiles": 1410,
-    "totalEdges": 3954,
+    "totalEdges": 3953,
     "violationsCount": 0,
     "cyclesCount": 0,
     "blockersCount": 0,
-    "totalFunctions": 9687,
+    "totalFunctions": 9689,
     "highestCrapModule": {
       "id": "src/proxy.ts",
       "maxCrap": 38220,
