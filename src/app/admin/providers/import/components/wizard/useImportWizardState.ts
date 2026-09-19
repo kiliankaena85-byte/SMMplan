@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ExternalServiceItem, CategoryItem, ProviderItem } from '../../types';
 import type { ImportServicesResult } from '@/services/admin/catalog.service';
-import { DEFAULT_FILTERS, type MixedTypeWarning } from './types';
+import { DEFAULT_FILTERS, type MixedTypeWarning, type ImportTab } from './types';
 import { detectMixedCategoryTypes } from './mixed-type-detector';
 import { computeReadyAndAttention, computePlatformBreakdown, computeIncompatibleIds } from './wizard-computed-stats';
 import { applyAutoMapping, loadPaginatedServices, syncProviderServices, selectAllFilteredServices, executeImportServices } from './wizard-import-handlers';
@@ -14,26 +14,23 @@ export function useImportWizardState(initialCategories: CategoryItem[], provider
   const [missingCategoryIds, setMissingCategoryIds] = useState<Set<string>>(new Set());
   const [bulkCategory, setBulkCategory] = useState<string>('');
   const [services, setServices] = useState<ExternalServiceItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
+  const knownServicesRef = useRef<Map<string, ExternalServiceItem>>(new Map());
+  const [loading, setLoading] = useState(false); const [syncing, setSyncing] = useState(false);
   const [isEmptyCache, setIsEmptyCache] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null); const [success, setSuccess] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedCategories, setSelectedCategories] = useState<Record<string, string>>({});
   const [autoMappedCategories, setAutoMappedCategories] = useState<Record<string, string>>({});
   const [aiConfidence, setAiConfidence] = useState<Record<string, boolean>>({});
   const [markup, setMarkup] = useState<string>('200');
   const [targetTenant, setTargetTenant] = useState<'smmplan' | 'flux' | 'both'>('smmplan');
-  const [activeTab, setActiveTab] = useState<'ready' | 'attention'>('ready');
-  const [filters, setFilters] = useState({ ...DEFAULT_FILTERS });
-  const [localSearch, setLocalSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<ImportTab>('all');
+  const [filters, setFilters] = useState({ ...DEFAULT_FILTERS }); const [localSearch, setLocalSearch] = useState('');
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0, pageSize: 50 });
   const [platformCounts, setPlatformCounts] = useState<Record<string, number>>({});
   const [providerCategories, setProviderCategories] = useState<{ name: string; count: number }[]>([]);
   const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false); const [showFilters, setShowFilters] = useState(false);
   const [importReport, setImportReport] = useState<ImportServicesResult | null>(null);
   const [selectingAllFiltered, setSelectingAllFiltered] = useState(false);
   const [mixedTypeWarnings, setMixedTypeWarnings] = useState<MixedTypeWarning[]>([]);
@@ -41,13 +38,11 @@ export function useImportWizardState(initialCategories: CategoryItem[], provider
 
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const setErrorWithTimer = useCallback((msg: string | null) => {
     setError(msg);
     if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
     if (msg) errorTimerRef.current = setTimeout(() => setError(null), 8000);
   }, []);
-
   const setSuccessWithTimer = useCallback((msg: string | null) => {
     setSuccess(msg);
     if (successTimerRef.current) clearTimeout(successTimerRef.current);
@@ -68,6 +63,7 @@ export function useImportWizardState(initialCategories: CategoryItem[], provider
   const loadServices = useCallback(async () => {
     await loadPaginatedServices(providerId, filters, {
       setLoading, setError, setIsEmptyCache, setServices, setPagination, setPlatformCounts, setProviderCategories, setErrorWithTimer,
+      addKnownServices: (items) => items.forEach((s) => knownServicesRef.current.set(String(s.service), s)),
     });
   }, [providerId, filters, setErrorWithTimer]);
 
@@ -76,21 +72,11 @@ export function useImportWizardState(initialCategories: CategoryItem[], provider
   const handleProviderChange = (nextId: string | null) => {
     if (!nextId || nextId === providerId) return;
     setProviderId(nextId);
-    setSelectedIds(new Set());
-    setSelectedCategories({});
-    setAutoMappedCategories({});
-    setAiConfidence({});
-    setMissingCategoryIds(new Set());
-    setFilters({ ...DEFAULT_FILTERS });
-    setLocalSearch('');
-    setPagination({ page: 1, totalPages: 1, total: 0, pageSize: 50 });
-    setPlatformCounts({});
-    setProviderCategories([]);
-    setIsEmptyCache(false);
-    setError(null);
-    setSuccess(null);
-    setImportReport(null);
-    setShowFilters(false);
+    knownServicesRef.current.clear();
+    setSelectedIds(new Set()); setSelectedCategories({}); setAutoMappedCategories({}); setAiConfidence({});
+    setMissingCategoryIds(new Set()); setFilters({ ...DEFAULT_FILTERS }); setLocalSearch('');
+    setPagination({ page: 1, totalPages: 1, total: 0, pageSize: 50 }); setPlatformCounts({}); setProviderCategories([]);
+    setIsEmptyCache(false); setError(null); setSuccess(null); setImportReport(null); setShowFilters(false);
   };
 
   const toggleSelection = (id: string) => setSelectedIds((prev) => {
@@ -133,11 +119,32 @@ export function useImportWizardState(initialCategories: CategoryItem[], provider
     () => computeReadyAndAttention(services, selectedCategories, autoMappedCategories, filters.minPrice, filters.maxPrice),
     [services, selectedCategories, autoMappedCategories, filters.minPrice, filters.maxPrice]
   );
-  const platformBreakdown = useMemo(() => computePlatformBreakdown(selectedIds, services), [selectedIds, services]);
+
+  const displayedServices = useMemo(() => {
+    if (activeTab === 'ready') return readyServices;
+    if (activeTab === 'attention') return attentionServices;
+    if (activeTab === 'selected') {
+      const list = Array.from(selectedIds).map((id) => knownServicesRef.current.get(id)).filter(Boolean) as ExternalServiceItem[];
+      return list.length > 0 ? list : services.filter((s) => selectedIds.has(String(s.service)));
+    }
+    return services;
+  }, [activeTab, readyServices, attentionServices, services, selectedIds]);
+
+  const platformBreakdown = useMemo(
+    () => computePlatformBreakdown(selectedIds, knownServicesRef.current.size > 0 ? knownServicesRef.current : services),
+    [selectedIds, services]
+  );
   const incompatibleIds = useMemo(
-    () => computeIncompatibleIds(selectedIds, services, selectedCategories, autoMappedCategories, localCategories),
+    () => computeIncompatibleIds(selectedIds, knownServicesRef.current.size > 0 ? knownServicesRef.current : services, selectedCategories, autoMappedCategories, localCategories),
     [selectedIds, services, selectedCategories, autoMappedCategories, localCategories]
   );
+
+  const handleSelectMissing = () => {
+    const ids = services.filter((s) => !s.alreadyImported && !(selectedCategories[String(s.service)] || autoMappedCategories[String(s.service)])).map((s) => String(s.service));
+    if (!ids.length) { setSuccessWithTimer('У всех услуг на странице уже есть категория'); return; }
+    setSelectedIds((p) => new Set([...p, ...ids]));
+    setSuccessWithTimer(`Выбрано ${ids.length} услуг без категории`);
+  };
 
   const handleStartImport = async () => {
     if (selectedIds.size === 0) return;
@@ -165,9 +172,13 @@ export function useImportWizardState(initialCategories: CategoryItem[], provider
   return {
     localCategories, setLocalCategories, handleCategoryCreated: (c: CategoryItem) => setLocalCategories((p) => (p.some((x) => x.id === c.id) ? p : [...p, c])),
     providerId, setProviderId, handleProviderChange,
-    services, loading, syncing, isEmptyCache, error, success, setError, setSuccess, setSuccessWithTimer, setErrorWithTimer,
-    selectedIds, setSelectedIds, toggleSelection, toggleAll,
-    handleSelectAllFiltered: () => selectAllFilteredServices(providerId, filters, { setSelectingAllFiltered, setSelectedIds, setSuccessWithTimer, setErrorWithTimer }),
+    services, displayedServices, loading, syncing, isEmptyCache, error, success, setError, setSuccess, setSuccessWithTimer, setErrorWithTimer,
+    selectedIds, setSelectedIds, toggleSelection, toggleAll, handleSelectMissing,
+    handleSelectAllFiltered: () => selectAllFilteredServices(providerId, filters, {
+      setSelectingAllFiltered, setSelectedIds, setSuccessWithTimer, setErrorWithTimer,
+      localCategories, setAutoMappedCategories, setAiConfidence, setSelectedCategories,
+      addKnownServices: (items) => items.forEach((s) => knownServicesRef.current.set(String(s.service), s)),
+    }),
     selectingAllFiltered, selectedCategories, setSelectedCategories, autoMappedCategories, aiConfidence,
     bulkCategory, setBulkCategory, handleApplyBulkCategory, missingCategoryIds, setMissingCategoryIds,
     markup, setMarkup, targetTenant, setTargetTenant, activeTab, setActiveTab,

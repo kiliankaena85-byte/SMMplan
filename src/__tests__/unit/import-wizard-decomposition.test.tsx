@@ -141,4 +141,54 @@ describe('ImportWizard Monolith Decomposition Standards (Wave 14 CDD-TDD)', () =
     expect(coordinatorContent).toContain('ConfirmationModal');
     expect(coordinatorContent).toContain('ImportReportCard');
   });
+
+  it('MUST keep all components in import/components/ <= 200 lines', () => {
+    const componentsDir = path.resolve(rootDir, 'src/app/admin/providers/import/components');
+    const files = fs.readdirSync(componentsDir).filter((f) => f.endsWith('.tsx') || f.endsWith('.ts'));
+
+    for (const file of files) {
+      const filePath = path.join(componentsDir, file);
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const lines = content.split('\n').length;
+      expect(lines, `Expected ${file} to be <= 200 lines, got ${lines}`).toBeLessThanOrEqual(200);
+    }
+  });
+
+  it('MUST compute platform breakdown accurately using Map for cross-page selections', async () => {
+    const { computePlatformBreakdown, computeIncompatibleIds } = await import(
+      '@/app/admin/providers/import/components/wizard/wizard-computed-stats'
+    );
+
+    const map = new Map<string, any>([
+      ['101', { service: 101, name: 'Telegram Subscribers', metrics: { platform: 'telegram', targetType: 'CHANNEL' } }],
+      ['102', { service: 102, name: 'VK Likes', metrics: { platform: 'vk', targetType: 'POST' } }],
+      ['103', { service: 103, name: 'Instagram Followers', metrics: { platform: 'instagram', targetType: 'PROFILE' } }],
+    ]);
+
+    const breakdown = computePlatformBreakdown(new Set(['101', '102', '103']), map);
+    expect(breakdown.length).toBe(3);
+    expect(breakdown.find((b) => b.name === 'Telegram')?.count).toBe(1);
+    expect(breakdown.find((b) => b.name === 'ВКонтакте')?.count).toBe(1);
+    expect(breakdown.find((b) => b.name === 'Instagram')?.count).toBe(1);
+
+    // Conflict detection using resolveServiceTargetType
+    const localCategories = [
+      { id: 'cat-post', name: 'Telegram Лайки Пост', network: { name: 'Telegram', slug: 'telegram' } } as any,
+    ];
+    // 101 is Subscribers (CHANNEL), mapped to cat-post (POST) -> should be incompatible
+    const conflicts = computeIncompatibleIds(new Set(['101']), map, { '101': 'cat-post' }, {}, localCategories);
+    expect(conflicts.has('101')).toBe(true);
+  });
+
+  it('MUST correctly normalize search queries with #, №, ID prefixes', async () => {
+    const { normalizeCatalogSearch } = await import('@/utils/search-normalizer');
+    expect(normalizeCatalogSearch('#1643').isPureNumber).toBe(true);
+    expect(normalizeCatalogSearch('#1643').normalizedNumericQ).toBe('1643');
+    expect(normalizeCatalogSearch('№ 2045').isPureNumber).toBe(true);
+    expect(normalizeCatalogSearch('№ 2045').normalizedNumericQ).toBe('2045');
+    expect(normalizeCatalogSearch('ID: 998').isPureNumber).toBe(true);
+    expect(normalizeCatalogSearch('ID: 998').normalizedNumericQ).toBe('998');
+    expect(normalizeCatalogSearch('Telegram подписчики').isPureNumber).toBe(false);
+  });
 });
+

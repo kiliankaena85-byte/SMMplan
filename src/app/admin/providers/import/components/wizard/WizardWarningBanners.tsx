@@ -40,14 +40,20 @@ export function WizardWarningBanners({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>{error}</span>
             <div className="flex items-center gap-2">
-              {missingCategoryIds.size > 0 && bulkCategory && (
-                <button
-                  type="button"
-                  onClick={onAssignMissingToBulk}
-                  className="px-3 py-1.5 rounded-lg bg-destructive text-white text-xs font-bold hover:opacity-90 transition-all active:scale-95 whitespace-nowrap cursor-pointer"
-                >
-                  Назначить всем нераспределённым ({missingCategoryIds.size})
-                </button>
+              {missingCategoryIds.size > 0 && (
+                bulkCategory ? (
+                  <button
+                    type="button"
+                    onClick={onAssignMissingToBulk}
+                    className="px-3 py-1.5 rounded-lg bg-destructive text-white text-xs font-bold hover:opacity-90 transition-all active:scale-95 whitespace-nowrap cursor-pointer"
+                  >
+                    Назначить всем нераспределённым ({missingCategoryIds.size})
+                  </button>
+                ) : (
+                  <span className="text-[11px] opacity-80 italic">
+                    Выберите категорию в панели для назначения
+                  </span>
+                )
               )}
               <button
                 onClick={onClearError}

@@ -31,6 +31,7 @@ interface WizardBulkToolbarProps {
   handleApplyBulkCategory: () => void;
   selectedCount: number;
   totalServicesCount: number;
+  onSelectMissing?: () => void;
 }
 
 export function WizardBulkToolbar({
@@ -51,6 +52,7 @@ export function WizardBulkToolbar({
   handleApplyBulkCategory,
   selectedCount,
   totalServicesCount,
+  onSelectMissing,
 }: WizardBulkToolbarProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
@@ -61,7 +63,7 @@ export function WizardBulkToolbar({
             type="text"
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
-            placeholder="Поиск по названию услуги..."
+            placeholder="Поиск по названию или #ID..."
             className="w-full pl-9 pr-4 py-2 rounded-lg bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
@@ -93,6 +95,16 @@ export function WizardBulkToolbar({
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
+        {onSelectMissing && (
+          <button
+            type="button"
+            onClick={onSelectMissing}
+            title="Выбрать все услуги на странице, у которых еще нет категории"
+            className="px-2.5 py-2 bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1 cursor-pointer select-none"
+          >
+            <span>⚠️ Без категории</span>
+          </button>
+        )}
         <button
           onClick={handleSelectAllFiltered}
           disabled={selectingAllFiltered || loading}

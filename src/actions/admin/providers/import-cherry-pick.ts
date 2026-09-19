@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { handleServerError } from "@/utils/error-handler";
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
+import { normalizeCatalogSearch } from '@/utils/search-normalizer';
 
 export interface ImportCherryPickFilters {
     category?: string;
@@ -117,16 +118,28 @@ export async function fetchPaginatedExternalServices(
                 }
             }
             if (filters.search) {
-                const q = filters.search.toLowerCase().trim();
-                const terms = q.split(/\s+/).filter(Boolean);
-                for (const term of terms) {
+                const rawSearch = filters.search.trim();
+                const { normalizedNumericQ, isPureNumber } = normalizeCatalogSearch(rawSearch);
+                if (isPureNumber) {
                     andConditions.push({
                         OR: [
-                            { name: { contains: term, mode: 'insensitive' } },
-                            { category: { contains: term, mode: 'insensitive' } },
-                            { externalId: { contains: term, mode: 'insensitive' } }
+                            { externalId: normalizedNumericQ },
+                            { externalId: { contains: normalizedNumericQ, mode: 'insensitive' } },
+                            { name: { contains: rawSearch, mode: 'insensitive' } }
                         ]
                     });
+                } else {
+                    const q = rawSearch.toLowerCase();
+                    const terms = q.split(/\s+/).filter(Boolean);
+                    for (const term of terms) {
+                        andConditions.push({
+                            OR: [
+                                { name: { contains: term, mode: 'insensitive' } },
+                                { category: { contains: term, mode: 'insensitive' } },
+                                { externalId: { contains: term, mode: 'insensitive' } }
+                            ]
+                        });
+                    }
                 }
             }
 

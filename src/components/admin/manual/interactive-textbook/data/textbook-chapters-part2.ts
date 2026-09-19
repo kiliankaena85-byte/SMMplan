@@ -148,7 +148,7 @@ export const CHAPTERS_PART_2: TextbookChapter[] = [
       steps: [
         { stepNumber: 1, title: 'Тестирование связи с провайдером', description: 'Нажмите «Проверить связь» в карточке провайдера: система запросит баланс и версию API.', actionUrl: '/admin/providers', actionLabel: 'Открыть провайдеров' },
         { stepNumber: 2, title: 'Запуск мастера импорта Cherry-Pick', description: 'Выберите поставщика, отметьте нужные услуги чекбоксами и привяжите к категориям OmniSMM.', actionUrl: '/admin/providers/import', actionLabel: 'Мастер импорта' },
-        { stepNumber: 3, title: 'Мониторинг здоровья шлюзов', description: 'Отслеживайте задержки (Latency P95) и процент отказов на экране мониторинга провайдеров.', actionUrl: '/admin/providers/health', actionLabel: 'Здоровье шлюзов' },
+        { stepNumber: 3, title: 'Мониторинг здоровья шлюзов', description: 'Отслеживайте задержки (Latency P95), баланс и статус связи в таблице провайдеров.', actionUrl: '/admin/providers', actionLabel: 'Статус провайдеров' },
       ],
     },
     section5Safeguards: {

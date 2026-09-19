@@ -1,3 +1,36 @@
+- [x] 🚀 [PROVIDERS-IMPORT-WIZARD-REWORK-2026] Комплексный рефакторинг мастера импорта услуг (/admin/providers/import) и устранение избыточной вкладки "Мониторинг & Здоровье" (100% COMPLETE & VERIFIED):
+  * 🎨 **Редизайн и эргономика мастера импорта услуг:**
+    - Устранена перегруженность таблицы импорта: компактная плотность ячеек (`px-2.5 py-2`), ограничение текстовых блоков, отсутствие горизонтального скролла (Rule 9 Viewport 100% Width Fit).
+    - Разработана умная нормализация поисковых запросов в `src/utils/search-normalizer.ts`: поддержка префиксов `#1643`, `№1643`, `ID: 1643` для быстрого поиска по Provider ID и названию.
+    - Внедрен кликабельный бейдж `#ID` с копированием в буфер обмена и тостом в каждой строке и мобильной карточке.
+    - Полноценная адаптивная мобильная верстка: при узких экранах отображаются эргономичные карточки `services-table-mobile-card.tsx` с мгновенным выбором категории, расчетом маржи и тумблером выбора.
+    - Панель массовых действий `WizardBulkToolbar.tsx`: быстрый выбор всех услуг, снятие выделения, фильтрация услуг без сопоставленной категории, пакетное назначение категории.
+  * 🧩 **Декомпозиция и чистая архитектура (строгий лимит <= 200 строк):**
+    - Файл `services-table.tsx` декомпозирован на 6 компактных специализированных компонентов:
+      - `services-table-header.tsx` (112 строк)
+      - `services-table-row.tsx` (197 строк)
+      - `services-table-badges.tsx` (77 строк)
+      - `services-table-mobile-card.tsx` (116 строк)
+      - `category-create-dialog.tsx` (104 строк)
+      - `category-dropdown-list.tsx` (134 строк)
+    - Файлы `wizard-import-handlers.ts` и `useImportWizardState.ts` отрефакторены строго до <= 200 строк.
+    - Все 28 файлов в директории `src/app/admin/providers/import` удовлетворяют лимиту <= 200 строк.
+  * 🛡️ **Соблюдение правил Catalog Ingestion Authority (Раздел 4.2 AGENTS.md):**
+    - Приоритет №1: ручной выбор оператора имеет безусловный приоритет и отключает семантический авто-сплит.
+    - Zero-Unknown-Platform: услуги без достоверно определенной соцсети отбраковываются с причиной `UNKNOWN_PLATFORM`.
+    - Zero False-Branding: канонический префикс платформы с учетом специфики эмодзи флагов Windows.
+    - `resolveServiceTargetType` интегрирован для надежного определения типа ссылки и совместимости.
+  * 🗂️ **Устранение избыточной вкладки "Мониторинг & Здоровье" (Вариант 1):**
+    - Из навигации `PROVIDERS_TABS` в `src/components/admin/navigation-data.ts` удалена вкладка `/admin/providers/health`.
+    - Основная таблица поставщиков `/admin/providers` уже содержит все актуальные данные: реальный пинг (RTT), баланс провайдера, счетчик ошибок и статус Circuit Breaker.
+    - Роут `/admin/providers/health/page.tsx` бесшовно перенаправляет на `/admin/providers` через серверный `redirect('/admin/providers')`.
+  * 🧪 **Автоматизированное тестирование & Сборка:**
+    - Создан сьют тестов декомпозиции `src/__tests__/unit/import-wizard-decomposition.test.tsx`.
+    - Все тесты каталога и импорта пройдены (55/55 PASS): `admin-import-integrity.test.ts`, `catalog-import-lifecycle-sdd.test.ts`, `pricing-import-guardrails.test.ts`.
+    - `npx tsc --noEmit` — 0 ошибок типов во всем проекте.
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - `npm run build` — чистая standalone-сборка.
+    - Контейнер `smmplan_web` успешно пересобран и запущен в Docker, статус `healthy`, `/api/health` 200 OK.
 - [x] 🛡️ [ADMIN-CROSS-TENANT-MISMATCH-ERROR-FIX-2026] Устранение сбоя при загрузке разделов админки при переключении сайтов (ID: 807575958) (100% COMPLETE & VERIFIED):
   * 🔍 **Диагностика и первопричина (Root Cause Analysis):**
     - В логах `smmplan_web` выявлен перехват: `SECURITY_TENANT_MISMATCH: Cross-tenant query blocked! Active: flux, Requested: smmplan`.

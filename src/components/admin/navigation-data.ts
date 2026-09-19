@@ -123,7 +123,6 @@ export const CATALOG_TABS = [
 export const PROVIDERS_TABS = [
   { label: 'Провайдеры API', href: '/admin/providers' },
   { label: 'Импорт услуг', href: '/admin/providers/import' },
-  { label: 'Мониторинг & Здоровье', href: '/admin/providers/health' },
 ];
 
 export const SYSTEM_TABS = [

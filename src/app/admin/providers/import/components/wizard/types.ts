@@ -1,4 +1,5 @@
-import type { CategoryItem } from '../../types';
+import type { CategoryItem, ExternalServiceItem } from '../../types';
+import type { ImportServicesResult } from '@/services/admin/catalog.service';
 
 export interface MixedTypeWarning {
   targetCategoryId: string;
@@ -80,3 +81,50 @@ export function groupCategoriesByNetwork(categories: CategoryItem[]): Array<{ ne
   }
   return ordered.map((name) => ({ network: name, items: groups[name] }));
 }
+
+export type ImportTab = 'all' | 'ready' | 'attention' | 'selected';
+
+export interface LoadServicesCallbacks {
+  setLoading: (b: boolean) => void;
+  setError: (e: string | null) => void;
+  setIsEmptyCache: (b: boolean) => void;
+  setServices: (s: ExternalServiceItem[]) => void;
+  setPagination: (p: any) => void;
+  setPlatformCounts: (c: Record<string, number>) => void;
+  setProviderCategories: (c: any[]) => void;
+  setErrorWithTimer: (msg: string | null) => void;
+  addKnownServices?: (services: ExternalServiceItem[]) => void;
+}
+
+export interface SyncProviderCallbacks {
+  setSyncing: (b: boolean) => void;
+  setErrorWithTimer: (msg: string | null) => void;
+  setSuccessWithTimer: (msg: string | null) => void;
+  setIsEmptyCache: (b: boolean) => void;
+  loadServices: () => Promise<void>;
+}
+
+export interface SelectAllFilteredCallbacks {
+  setSelectingAllFiltered: (b: boolean) => void;
+  setSelectedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  setSuccessWithTimer: (msg: string | null) => void;
+  setErrorWithTimer: (msg: string | null) => void;
+  localCategories?: CategoryItem[];
+  setAutoMappedCategories?: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  setAiConfidence?: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  setSelectedCategories?: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  addKnownServices?: (services: ExternalServiceItem[]) => void;
+}
+
+export interface ExecuteImportCallbacks {
+  setShowConfirmModal: (b: boolean) => void;
+  setImportProgress: (p: { current: number; total: number } | null) => void;
+  setError: (e: string | null) => void;
+  setImportReport: (r: ImportServicesResult | null) => void;
+  setSuccessWithTimer: (msg: string | null) => void;
+  setSelectedIds: (s: Set<string>) => void;
+  loadServices: () => Promise<void>;
+  refreshRouter: () => void;
+  setErrorWithTimer: (msg: string | null) => void;
+}
+

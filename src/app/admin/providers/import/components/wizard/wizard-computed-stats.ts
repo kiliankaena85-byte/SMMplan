@@ -1,5 +1,14 @@
-import { inferTargetTypeFromName, inferTargetTypeFromCategory, isTargetTypeCompatible } from '@/utils/target-type';
+import { inferTargetTypeFromCategory, isTargetTypeCompatible } from '@/utils/target-type';
+import { resolveServiceTargetType } from '@/utils/target-type-mapper';
 import type { ExternalServiceItem, CategoryItem } from '../../types';
+
+function findService(
+  services: ExternalServiceItem[] | Map<string, ExternalServiceItem>,
+  id: string
+): ExternalServiceItem | undefined {
+  if (services instanceof Map) return services.get(id);
+  return services.find((s) => String(s.service) === id);
+}
 
 export function computeReadyAndAttention(
   services: ExternalServiceItem[],
@@ -30,10 +39,13 @@ export function computeReadyAndAttention(
   return { ready, attention };
 }
 
-export function computePlatformBreakdown(selectedIds: Set<string>, services: ExternalServiceItem[]) {
+export function computePlatformBreakdown(
+  selectedIds: Set<string>,
+  services: ExternalServiceItem[] | Map<string, ExternalServiceItem>
+) {
   const counts: Record<string, number> = {};
   selectedIds.forEach((id) => {
-    const svc = services.find((s) => String(s.service) === id);
+    const svc = findService(services, id);
     if (!svc) return;
     const platform = (svc.metrics?.platform || 'other').toLowerCase();
     counts[platform] = (counts[platform] || 0) + 1;
@@ -65,19 +77,19 @@ export function computePlatformBreakdown(selectedIds: Set<string>, services: Ext
 
 export function computeIncompatibleIds(
   selectedIds: Set<string>,
-  services: ExternalServiceItem[],
+  services: ExternalServiceItem[] | Map<string, ExternalServiceItem>,
   selectedCategories: Record<string, string>,
   autoMappedCategories: Record<string, string>,
   localCategories: CategoryItem[]
 ): Set<string> {
   const set = new Set<string>();
   selectedIds.forEach((id) => {
-    const svc = services.find((s) => String(s.service) === id);
+    const svc = findService(services, id);
     const catId = selectedCategories[id] || autoMappedCategories[id];
     if (svc && catId) {
       const cat = localCategories.find((c) => c.id === catId);
       if (cat) {
-        const serviceType = inferTargetTypeFromName(svc.name);
+        const serviceType = resolveServiceTargetType({ name: svc.name, targetType: svc.metrics?.targetType });
         const catType = inferTargetTypeFromCategory(cat.name);
         if (!isTargetTypeCompatible(serviceType, catType)) {
           set.add(id);

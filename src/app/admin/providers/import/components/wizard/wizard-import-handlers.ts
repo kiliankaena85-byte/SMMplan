@@ -32,18 +32,24 @@ export function applyAutoMapping(
     const next = { ...prev };
     services.forEach((s) => {
       const idStr = String(s.service);
-      if (!next[idStr]) next[idStr] = aiMap[idStr];
+      if (!next[idStr] && aiMap[idStr]) next[idStr] = aiMap[idStr];
     });
     return next;
   });
 }
 
-export interface LoadServicesCallbacks {
-  setLoading: (b: boolean) => void; setError: (e: string | null) => void; setIsEmptyCache: (b: boolean) => void;
-  setServices: (s: ExternalServiceItem[]) => void; setPagination: (p: any) => void;
-  setPlatformCounts: (c: Record<string, number>) => void; setProviderCategories: (c: any[]) => void;
-  setErrorWithTimer: (msg: string | null) => void;
-}
+import type {
+  LoadServicesCallbacks,
+  SyncProviderCallbacks,
+  SelectAllFilteredCallbacks,
+  ExecuteImportCallbacks,
+} from './types';
+export type {
+  LoadServicesCallbacks,
+  SyncProviderCallbacks,
+  SelectAllFilteredCallbacks,
+  ExecuteImportCallbacks,
+};
 
 export async function loadPaginatedServices(providerId: string, filters: any, cb: LoadServicesCallbacks) {
   if (!providerId) return;
@@ -55,6 +61,7 @@ export async function loadPaginatedServices(providerId: string, filters: any, cb
     const res = await fetchPaginatedExternalServices(providerId, restFilters, filters.page, filters.pageSize);
     if (res.success && res.data) {
       cb.setServices(res.data);
+      cb.addKnownServices?.(res.data);
       if (res.pagination) cb.setPagination(res.pagination);
       if (res.platformCounts) cb.setPlatformCounts(res.platformCounts);
       if (res.providerCategories) cb.setProviderCategories(res.providerCategories);
@@ -73,13 +80,6 @@ export async function loadPaginatedServices(providerId: string, filters: any, cb
   }
 }
 
-export interface SyncProviderCallbacks {
-  setSyncing: (b: boolean) => void;
-  setErrorWithTimer: (msg: string | null) => void;
-  setSuccessWithTimer: (msg: string | null) => void;
-  setIsEmptyCache: (b: boolean) => void;
-  loadServices: () => Promise<void>;
-}
 
 export async function syncProviderServices(providerId: string, cb: SyncProviderCallbacks) {
   if (!providerId) return;
@@ -102,12 +102,6 @@ export async function syncProviderServices(providerId: string, cb: SyncProviderC
   }
 }
 
-export interface SelectAllFilteredCallbacks {
-  setSelectingAllFiltered: (b: boolean) => void;
-  setSelectedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
-  setSuccessWithTimer: (msg: string | null) => void;
-  setErrorWithTimer: (msg: string | null) => void;
-}
 
 export async function selectAllFilteredServices(providerId: string, filters: any, cb: SelectAllFilteredCallbacks) {
   try {
@@ -115,9 +109,29 @@ export async function selectAllFilteredServices(providerId: string, filters: any
     const { page: _p, pageSize: _ps, ...restFilters } = filters;
     const res = await fetchPaginatedExternalServices(providerId, restFilters, 1, 5000);
     if (res.success && res.data) {
-      const idsToAdd = res.data
-        .filter((s: ExternalServiceItem) => !s.alreadyImported)
-        .map((s: ExternalServiceItem) => String(s.service));
+      const idsToAdd: string[] = [];
+      const newAi: Record<string, string> = {};
+      const newConf: Record<string, boolean> = {};
+      res.data.forEach((s: ExternalServiceItem) => {
+        if (!s.alreadyImported) {
+          const id = String(s.service);
+          idsToAdd.push(id);
+          if (cb.localCategories) {
+            const m = autoMapCategory(s, cb.localCategories);
+            if (m) { newAi[id] = m.id; newConf[id] = m.confident; }
+          }
+        }
+      });
+      cb.addKnownServices?.(res.data);
+      if (Object.keys(newAi).length > 0) {
+        cb.setAutoMappedCategories?.((p) => ({ ...p, ...newAi }));
+        cb.setAiConfidence?.((p) => ({ ...p, ...newConf }));
+        cb.setSelectedCategories?.((p) => {
+          const n = { ...p };
+          Object.entries(newAi).forEach(([k, v]) => { if (!n[k]) n[k] = v; });
+          return n;
+        });
+      }
       cb.setSelectedIds((prev) => {
         const next = new Set(prev);
         idsToAdd.forEach((id: string) => next.add(id));
@@ -132,13 +146,6 @@ export async function selectAllFilteredServices(providerId: string, filters: any
   }
 }
 
-export interface ExecuteImportCallbacks {
-  setShowConfirmModal: (b: boolean) => void;
-  setImportProgress: (p: { current: number; total: number } | null) => void;
-  setError: (e: string | null) => void; setImportReport: (r: ImportServicesResult | null) => void;
-  setSuccessWithTimer: (msg: string | null) => void; setSelectedIds: (s: Set<string>) => void;
-  loadServices: () => Promise<void>; refreshRouter: () => void; setErrorWithTimer: (msg: string | null) => void;
-}
 
 export async function executeImportServices(
   providerId: string,
@@ -153,13 +160,10 @@ export async function executeImportServices(
   cb.setImportProgress({ current: 0, total: selectedIds.size });
   cb.setError(null);
   cb.setImportReport(null);
-
   const externalIds = Array.from(selectedIds);
   const firstCatId = selectedCategories[externalIds[0]] || autoMappedCategories[externalIds[0]] || '';
   const categoryIdMap: Record<string, string> = {};
-  externalIds.forEach((id) => {
-    categoryIdMap[id] = selectedCategories[id] || autoMappedCategories[id];
-  });
+  externalIds.forEach((id) => { categoryIdMap[id] = selectedCategories[id] || autoMappedCategories[id]; });
 
   try {
     const res = await importSelectedServices(
@@ -170,15 +174,12 @@ export async function executeImportServices(
       categoryIdMap,
       targetTenant
     );
-
     if (res.success) {
       if ('report' in res && res.report) cb.setImportReport(res.report);
       const importedCount = 'imported' in res && res.imported !== undefined ? res.imported : externalIds.length;
       const skippedCount = externalIds.length - importedCount;
       cb.setSuccessWithTimer(
-        skippedCount > 0
-          ? `Импортировано ${importedCount} из ${externalIds.length} услуг. ${skippedCount} пропущено.`
-          : `Успешно импортировано ${importedCount} услуг!`
+        skippedCount > 0 ? `Импортировано ${importedCount} из ${externalIds.length} услуг. ${skippedCount} пропущено.` : `Успешно импортировано ${importedCount} услуг!`
       );
       cb.setSelectedIds(new Set());
       await cb.loadServices();

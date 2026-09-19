@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OmniSMM Architecture Topology (Uncle Bob Pattern)",
-  "generatedAt": "2026-09-19T22:39:35.790Z",
+  "generatedAt": "2026-09-19T23:40:04.543Z",
   "layers": [
     {
       "level": 0,
@@ -1664,38 +1664,38 @@
       "level": 2,
       "layer": "Application",
       "boundedContext": "CATALOG_INGESTION",
-      "linesCount": 419,
+      "linesCount": 432,
       "isClientComponent": false,
       "exportsCount": 3,
       "functionsCount": 13,
-      "maxCyclomaticComplexity": 66,
-      "maxCrapScore": 4422,
-      "crapLoad": 8904,
+      "maxCyclomaticComplexity": 67,
+      "maxCrapScore": 4556,
+      "crapLoad": 9172,
       "crappyMethodsCount": 4,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "fetchPaginatedExternalServices",
-          "startLine": 32,
-          "endLine": 329,
-          "cyclomaticComplexity": 66,
+          "startLine": 33,
+          "endLine": 342,
+          "cyclomaticComplexity": 67,
           "coverageRatio": null,
-          "crapScore": 4422,
+          "crapScore": 4556,
           "isCrappy": true
         },
         {
           "name": "<anonymous>",
-          "startLine": 38,
-          "endLine": 328,
-          "cyclomaticComplexity": 66,
+          "startLine": 39,
+          "endLine": 341,
+          "cyclomaticComplexity": 67,
           "coverageRatio": null,
-          "crapScore": 4422,
+          "crapScore": 4556,
           "isCrappy": true
         },
         {
           "name": "fetchExternalServices",
-          "startLine": 331,
-          "endLine": 360,
+          "startLine": 344,
+          "endLine": 373,
           "cyclomaticComplexity": 9,
           "coverageRatio": null,
           "crapScore": 90,
@@ -12028,10 +12028,10 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CATALOG_INGESTION",
-      "linesCount": 112,
-      "isClientComponent": true,
+      "linesCount": 6,
+      "isClientComponent": false,
       "exportsCount": 1,
-      "functionsCount": 6,
+      "functionsCount": 1,
       "maxCyclomaticComplexity": 1,
       "maxCrapScore": 2,
       "crapLoad": 0,
@@ -12039,30 +12039,102 @@
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
-          "name": "ProviderHealthMonitorPage",
-          "startLine": 9,
-          "endLine": 111,
+          "name": "ProviderHealthRedirect",
+          "startLine": 3,
+          "endLine": 5,
           "cyclomaticComplexity": 1,
           "coverageRatio": null,
           "crapScore": 2,
           "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/app/admin/providers/import/components/category-create-dialog.tsx",
+      "label": "category-create-dialog.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CATALOG_INGESTION",
+      "linesCount": 158,
+      "isClientComponent": true,
+      "exportsCount": 1,
+      "functionsCount": 8,
+      "maxCyclomaticComplexity": 21,
+      "maxCrapScore": 462,
+      "crapLoad": 512,
+      "crappyMethodsCount": 2,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "CategoryCreateDialog",
+          "startLine": 19,
+          "endLine": 157,
+          "cyclomaticComplexity": 21,
+          "coverageRatio": null,
+          "crapScore": 462,
+          "isCrappy": true
         },
         {
-          "name": "handleResetCircuit",
-          "startLine": 12,
-          "endLine": 18,
-          "cyclomaticComplexity": 1,
+          "name": "handleSubmit",
+          "startLine": 39,
+          "endLine": 78,
+          "cyclomaticComplexity": 10,
           "coverageRatio": null,
-          "crapScore": 2,
+          "crapScore": 110,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 30,
+          "endLine": 30,
+          "cyclomaticComplexity": 2,
+          "coverageRatio": null,
+          "crapScore": 6,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/app/admin/providers/import/components/category-dropdown-list.tsx",
+      "label": "category-dropdown-list.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CATALOG_INGESTION",
+      "linesCount": 158,
+      "isClientComponent": true,
+      "exportsCount": 1,
+      "functionsCount": 11,
+      "maxCyclomaticComplexity": 10,
+      "maxCrapScore": 110,
+      "crapLoad": 80,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "CategoryDropdownList",
+          "startLine": 22,
+          "endLine": 157,
+          "cyclomaticComplexity": 10,
+          "coverageRatio": null,
+          "crapScore": 110,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 113,
+          "endLine": 140,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
           "isCrappy": false
         },
         {
           "name": "<anonymous>",
-          "startLine": 14,
-          "endLine": 17,
-          "cyclomaticComplexity": 1,
+          "startLine": 120,
+          "endLine": 137,
+          "cyclomaticComplexity": 3,
           "coverageRatio": null,
-          "crapScore": 2,
+          "crapScore": 12,
           "isCrappy": false
         }
       ]
@@ -12163,23 +12235,23 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CATALOG_INGESTION",
-      "linesCount": 195,
+      "linesCount": 196,
       "isClientComponent": true,
       "exportsCount": 1,
       "functionsCount": 22,
-      "maxCyclomaticComplexity": 11,
-      "maxCrapScore": 132,
-      "crapLoad": 102,
+      "maxCyclomaticComplexity": 10,
+      "maxCrapScore": 110,
+      "crapLoad": 80,
       "crappyMethodsCount": 1,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "ImportWizard",
           "startLine": 23,
-          "endLine": 194,
-          "cyclomaticComplexity": 11,
+          "endLine": 195,
+          "cyclomaticComplexity": 10,
           "coverageRatio": null,
-          "crapScore": 132,
+          "crapScore": 110,
           "isCrappy": true
         },
         {
@@ -12208,42 +12280,222 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CATALOG_INGESTION",
-      "linesCount": 436,
+      "linesCount": 197,
       "isClientComponent": true,
-      "exportsCount": 1,
-      "functionsCount": 34,
-      "maxCyclomaticComplexity": 63,
-      "maxCrapScore": 4032,
-      "crapLoad": 4224,
-      "crappyMethodsCount": 7,
+      "exportsCount": 2,
+      "functionsCount": 18,
+      "maxCyclomaticComplexity": 33,
+      "maxCrapScore": 1122,
+      "crapLoad": 1154,
+      "crappyMethodsCount": 5,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "SearchableCategorySelect",
-          "startLine": 39,
-          "endLine": 435,
-          "cyclomaticComplexity": 63,
+          "startLine": 48,
+          "endLine": 196,
+          "cyclomaticComplexity": 33,
           "coverageRatio": null,
-          "crapScore": 4032,
+          "crapScore": 1122,
           "isCrappy": true
         },
         {
-          "name": "openCreateDialog",
-          "startLine": 126,
-          "endLine": 136,
-          "cyclomaticComplexity": 10,
+          "name": "<anonymous>",
+          "startLine": 98,
+          "endLine": 115,
+          "cyclomaticComplexity": 7,
           "coverageRatio": null,
-          "crapScore": 110,
+          "crapScore": 56,
           "isCrappy": true
         },
         {
-          "name": "handleCreateCategory",
-          "startLine": 139,
-          "endLine": 181,
-          "cyclomaticComplexity": 10,
+          "name": "<anonymous>",
+          "startLine": 71,
+          "endLine": 83,
+          "cyclomaticComplexity": 6,
           "coverageRatio": null,
-          "crapScore": 110,
+          "crapScore": 42,
           "isCrappy": true
+        }
+      ]
+    },
+    {
+      "id": "src/app/admin/providers/import/components/services-table-badges.tsx",
+      "label": "services-table-badges.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CATALOG_INGESTION",
+      "linesCount": 77,
+      "isClientComponent": true,
+      "exportsCount": 2,
+      "functionsCount": 3,
+      "maxCyclomaticComplexity": 3,
+      "maxCrapScore": 12,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "RetailPrice",
+          "startLine": 52,
+          "endLine": 76,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        },
+        {
+          "name": "getPlatformDisplay",
+          "startLine": 22,
+          "endLine": 26,
+          "cyclomaticComplexity": 2,
+          "coverageRatio": null,
+          "crapScore": 6,
+          "isCrappy": false
+        },
+        {
+          "name": "TargetTypeBadge",
+          "startLine": 41,
+          "endLine": 50,
+          "cyclomaticComplexity": 2,
+          "coverageRatio": null,
+          "crapScore": 6,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/app/admin/providers/import/components/services-table-header.tsx",
+      "label": "services-table-header.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CATALOG_INGESTION",
+      "linesCount": 98,
+      "isClientComponent": true,
+      "exportsCount": 1,
+      "functionsCount": 5,
+      "maxCyclomaticComplexity": 4,
+      "maxCrapScore": 20,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "ServicesTableHeader",
+          "startLine": 17,
+          "endLine": 97,
+          "cyclomaticComplexity": 4,
+          "coverageRatio": null,
+          "crapScore": 20,
+          "isCrappy": false
+        },
+        {
+          "name": "getSortIcon",
+          "startLine": 26,
+          "endLine": 34,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 52,
+          "endLine": 52,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/app/admin/providers/import/components/services-table-mobile-card.tsx",
+      "label": "services-table-mobile-card.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CATALOG_INGESTION",
+      "linesCount": 116,
+      "isClientComponent": true,
+      "exportsCount": 1,
+      "functionsCount": 3,
+      "maxCyclomaticComplexity": 13,
+      "maxCrapScore": 182,
+      "crapLoad": 152,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "ServicesTableMobileCard",
+          "startLine": 32,
+          "endLine": 115,
+          "cyclomaticComplexity": 13,
+          "coverageRatio": null,
+          "crapScore": 182,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 103,
+          "endLine": 103,
+          "cyclomaticComplexity": 2,
+          "coverageRatio": null,
+          "crapScore": 6,
+          "isCrappy": false
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 63,
+          "endLine": 63,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/app/admin/providers/import/components/services-table-row.tsx",
+      "label": "services-table-row.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CATALOG_INGESTION",
+      "linesCount": 199,
+      "isClientComponent": true,
+      "exportsCount": 1,
+      "functionsCount": 6,
+      "maxCyclomaticComplexity": 34,
+      "maxCrapScore": 1190,
+      "crapLoad": 1186,
+      "crappyMethodsCount": 2,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "ServicesTableRow",
+          "startLine": 31,
+          "endLine": 198,
+          "cyclomaticComplexity": 34,
+          "coverageRatio": null,
+          "crapScore": 1190,
+          "isCrappy": true
+        },
+        {
+          "name": "handleRowClick",
+          "startLine": 60,
+          "endLine": 64,
+          "cyclomaticComplexity": 7,
+          "coverageRatio": null,
+          "crapScore": 56,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 144,
+          "endLine": 144,
+          "cyclomaticComplexity": 2,
+          "coverageRatio": null,
+          "crapScore": 6,
+          "isCrappy": false
         }
       ]
     },
@@ -12253,42 +12505,42 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CATALOG_INGESTION",
-      "linesCount": 445,
+      "linesCount": 178,
       "isClientComponent": true,
       "exportsCount": 2,
-      "functionsCount": 26,
-      "maxCyclomaticComplexity": 70,
-      "maxCrapScore": 4970,
-      "crapLoad": 7906,
-      "crappyMethodsCount": 3,
+      "functionsCount": 10,
+      "maxCyclomaticComplexity": 12,
+      "maxCrapScore": 156,
+      "crapLoad": 126,
+      "crappyMethodsCount": 1,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "ServicesTable",
-          "startLine": 96,
-          "endLine": 444,
-          "cyclomaticComplexity": 70,
+          "startLine": 31,
+          "endLine": 177,
+          "cyclomaticComplexity": 12,
           "coverageRatio": null,
-          "crapScore": 4970,
+          "crapScore": 156,
           "isCrappy": true
+        },
+        {
+          "name": "handleSort",
+          "startLine": 52,
+          "endLine": 60,
+          "cyclomaticComplexity": 4,
+          "coverageRatio": null,
+          "crapScore": 20,
+          "isCrappy": false
         },
         {
           "name": "<anonymous>",
-          "startLine": 237,
-          "endLine": 409,
-          "cyclomaticComplexity": 54,
+          "startLine": 62,
+          "endLine": 62,
+          "cyclomaticComplexity": 3,
           "coverageRatio": null,
-          "crapScore": 2970,
-          "isCrappy": true
-        },
-        {
-          "name": "handleRowClick",
-          "startLine": 245,
-          "endLine": 249,
-          "cyclomaticComplexity": 7,
-          "coverageRatio": null,
-          "crapScore": 56,
-          "isCrappy": true
+          "crapScore": 12,
+          "isCrappy": false
         }
       ]
     },
@@ -12298,38 +12550,38 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CATALOG_INGESTION",
-      "linesCount": 188,
+      "linesCount": 192,
       "isClientComponent": true,
       "exportsCount": 1,
-      "functionsCount": 6,
-      "maxCyclomaticComplexity": 15,
-      "maxCrapScore": 240,
-      "crapLoad": 210,
+      "functionsCount": 8,
+      "maxCyclomaticComplexity": 9,
+      "maxCrapScore": 90,
+      "crapLoad": 60,
       "crappyMethodsCount": 1,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "SummaryDashboard",
-          "startLine": 37,
-          "endLine": 187,
-          "cyclomaticComplexity": 15,
+          "startLine": 59,
+          "endLine": 191,
+          "cyclomaticComplexity": 9,
           "coverageRatio": null,
-          "crapScore": 240,
+          "crapScore": 90,
           "isCrappy": true
         },
         {
           "name": "formatMarkupHint",
-          "startLine": 29,
-          "endLine": 35,
+          "startLine": 27,
+          "endLine": 33,
           "cyclomaticComplexity": 4,
           "coverageRatio": null,
           "crapScore": 20,
           "isCrappy": false
         },
         {
-          "name": "<anonymous>",
-          "startLine": 116,
-          "endLine": 116,
+          "name": "TabCard",
+          "startLine": 40,
+          "endLine": 57,
           "cyclomaticComplexity": 2,
           "coverageRatio": null,
           "crapScore": 6,
@@ -12460,7 +12712,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CATALOG_INGESTION",
-      "linesCount": 83,
+      "linesCount": 131,
       "isClientComponent": false,
       "exportsCount": 4,
       "functionsCount": 5,
@@ -12472,8 +12724,8 @@
       "topRiskFunctions": [
         {
           "name": "checkIsFiltersActive",
-          "startLine": 52,
-          "endLine": 68,
+          "startLine": 53,
+          "endLine": 69,
           "cyclomaticComplexity": 13,
           "coverageRatio": null,
           "crapScore": 182,
@@ -12481,8 +12733,8 @@
         },
         {
           "name": "groupCategoriesByNetwork",
-          "startLine": 70,
-          "endLine": 82,
+          "startLine": 71,
+          "endLine": 83,
           "cyclomaticComplexity": 5,
           "coverageRatio": null,
           "crapScore": 30,
@@ -12490,8 +12742,8 @@
         },
         {
           "name": "formatMarkupLabel",
-          "startLine": 37,
-          "endLine": 43,
+          "startLine": 38,
+          "endLine": 44,
           "cyclomaticComplexity": 4,
           "coverageRatio": null,
           "crapScore": 20,
@@ -12505,29 +12757,29 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CATALOG_INGESTION",
-      "linesCount": 186,
+      "linesCount": 197,
       "isClientComponent": false,
       "exportsCount": 1,
-      "functionsCount": 42,
-      "maxCyclomaticComplexity": 22,
-      "maxCrapScore": 506,
-      "crapLoad": 502,
+      "functionsCount": 53,
+      "maxCyclomaticComplexity": 31,
+      "maxCrapScore": 992,
+      "crapLoad": 988,
       "crappyMethodsCount": 2,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "useImportWizardState",
           "startLine": 10,
-          "endLine": 185,
-          "cyclomaticComplexity": 22,
+          "endLine": 196,
+          "cyclomaticComplexity": 31,
           "coverageRatio": null,
-          "crapScore": 506,
+          "crapScore": 992,
           "isCrappy": true
         },
         {
           "name": "handleStartImport",
-          "startLine": 142,
-          "endLine": 163,
+          "startLine": 149,
+          "endLine": 170,
           "cyclomaticComplexity": 7,
           "coverageRatio": null,
           "crapScore": 56,
@@ -12535,11 +12787,11 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 45,
-          "endLine": 49,
-          "cyclomaticComplexity": 3,
+          "startLine": 123,
+          "endLine": 131,
+          "cyclomaticComplexity": 5,
           "coverageRatio": null,
-          "crapScore": 12,
+          "crapScore": 30,
           "isCrappy": false
         }
       ]
@@ -12550,20 +12802,20 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CATALOG_INGESTION",
-      "linesCount": 90,
+      "linesCount": 102,
       "isClientComponent": false,
       "exportsCount": 3,
       "functionsCount": 12,
       "maxCyclomaticComplexity": 15,
       "maxCrapScore": 240,
-      "crapLoad": 314,
+      "crapLoad": 342,
       "crappyMethodsCount": 6,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "computeReadyAndAttention",
-          "startLine": 4,
-          "endLine": 31,
+          "startLine": 13,
+          "endLine": 40,
           "cyclomaticComplexity": 15,
           "coverageRatio": null,
           "crapScore": 240,
@@ -12571,8 +12823,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 22,
-          "endLine": 28,
+          "startLine": 31,
+          "endLine": 37,
           "cyclomaticComplexity": 8,
           "coverageRatio": null,
           "crapScore": 72,
@@ -12580,8 +12832,8 @@
         },
         {
           "name": "computePlatformBreakdown",
-          "startLine": 33,
-          "endLine": 64,
+          "startLine": 42,
+          "endLine": 76,
           "cyclomaticComplexity": 7,
           "coverageRatio": null,
           "crapScore": 56,
@@ -12595,41 +12847,41 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CATALOG_INGESTION",
-      "linesCount": 195,
+      "linesCount": 196,
       "isClientComponent": false,
-      "exportsCount": 5,
-      "functionsCount": 15,
-      "maxCyclomaticComplexity": 12,
-      "maxCrapScore": 156,
-      "crapLoad": 240,
-      "crappyMethodsCount": 3,
+      "exportsCount": 6,
+      "functionsCount": 18,
+      "maxCyclomaticComplexity": 13,
+      "maxCrapScore": 182,
+      "crapLoad": 416,
+      "crappyMethodsCount": 4,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
-          "name": "executeImportServices",
-          "startLine": 143,
-          "endLine": 194,
+          "name": "selectAllFilteredServices",
+          "startLine": 106,
+          "endLine": 147,
+          "cyclomaticComplexity": 13,
+          "coverageRatio": null,
+          "crapScore": 182,
+          "isCrappy": true
+        },
+        {
+          "name": "loadPaginatedServices",
+          "startLine": 54,
+          "endLine": 81,
           "cyclomaticComplexity": 12,
           "coverageRatio": null,
           "crapScore": 156,
           "isCrappy": true
         },
         {
-          "name": "loadPaginatedServices",
-          "startLine": 48,
-          "endLine": 74,
-          "cyclomaticComplexity": 11,
+          "name": "executeImportServices",
+          "startLine": 150,
+          "endLine": 195,
+          "cyclomaticComplexity": 12,
           "coverageRatio": null,
-          "crapScore": 132,
-          "isCrappy": true
-        },
-        {
-          "name": "syncProviderServices",
-          "startLine": 84,
-          "endLine": 103,
-          "cyclomaticComplexity": 6,
-          "coverageRatio": null,
-          "crapScore": 42,
+          "crapScore": 156,
           "isCrappy": true
         }
       ]
@@ -12640,29 +12892,29 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CATALOG_INGESTION",
-      "linesCount": 156,
+      "linesCount": 168,
       "isClientComponent": true,
       "exportsCount": 1,
       "functionsCount": 9,
-      "maxCyclomaticComplexity": 12,
-      "maxCrapScore": 156,
-      "crapLoad": 126,
+      "maxCyclomaticComplexity": 13,
+      "maxCrapScore": 182,
+      "crapLoad": 152,
       "crappyMethodsCount": 1,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "WizardBulkToolbar",
-          "startLine": 36,
-          "endLine": 155,
-          "cyclomaticComplexity": 12,
+          "startLine": 37,
+          "endLine": 167,
+          "cyclomaticComplexity": 13,
           "coverageRatio": null,
-          "crapScore": 156,
+          "crapScore": 182,
           "isCrappy": true
         },
         {
           "name": "<anonymous>",
-          "startLine": 113,
-          "endLine": 116,
+          "startLine": 125,
+          "endLine": 128,
           "cyclomaticComplexity": 5,
           "coverageRatio": null,
           "crapScore": 30,
@@ -12670,8 +12922,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 110,
-          "endLine": 110,
+          "startLine": 122,
+          "endLine": 122,
           "cyclomaticComplexity": 2,
           "coverageRatio": null,
           "crapScore": 6,
@@ -12820,7 +13072,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CATALOG_INGESTION",
-      "linesCount": 133,
+      "linesCount": 139,
       "isClientComponent": true,
       "exportsCount": 1,
       "functionsCount": 3,
@@ -12833,7 +13085,7 @@
         {
           "name": "WizardWarningBanners",
           "startLine": 23,
-          "endLine": 132,
+          "endLine": 138,
           "cyclomaticComplexity": 7,
           "coverageRatio": null,
           "crapScore": 56,
@@ -12841,8 +13093,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 90,
-          "endLine": 110,
+          "startLine": 96,
+          "endLine": 116,
           "cyclomaticComplexity": 1,
           "coverageRatio": null,
           "crapScore": 2,
@@ -12850,8 +13102,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 96,
-          "endLine": 104,
+          "startLine": 102,
+          "endLine": 110,
           "cyclomaticComplexity": 1,
           "coverageRatio": null,
           "crapScore": 2,
@@ -12964,7 +13216,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CATALOG_INGESTION",
-      "linesCount": 69,
+      "linesCount": 70,
       "isClientComponent": false,
       "exportsCount": 0,
       "functionsCount": 0,
@@ -25801,7 +26053,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 263,
+      "linesCount": 262,
       "isClientComponent": false,
       "exportsCount": 2,
       "functionsCount": 5,
@@ -40041,29 +40293,29 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 95,
+      "linesCount": 100,
       "isClientComponent": true,
       "exportsCount": 1,
       "functionsCount": 3,
-      "maxCyclomaticComplexity": 11,
-      "maxCrapScore": 132,
-      "crapLoad": 114,
+      "maxCyclomaticComplexity": 17,
+      "maxCrapScore": 306,
+      "crapLoad": 288,
       "crappyMethodsCount": 2,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "ServiceIdBadge",
           "startLine": 16,
-          "endLine": 94,
-          "cyclomaticComplexity": 11,
+          "endLine": 99,
+          "cyclomaticComplexity": 17,
           "coverageRatio": null,
-          "crapScore": 132,
+          "crapScore": 306,
           "isCrappy": true
         },
         {
           "name": "copyId",
-          "startLine": 28,
-          "endLine": 46,
+          "startLine": 33,
+          "endLine": 51,
           "cyclomaticComplexity": 6,
           "coverageRatio": null,
           "crapScore": 42,
@@ -40071,8 +40323,8 @@
         },
         {
           "name": "handleClick",
-          "startLine": 48,
-          "endLine": 51,
+          "startLine": 53,
+          "endLine": 56,
           "cyclomaticComplexity": 1,
           "coverageRatio": null,
           "crapScore": 2,
@@ -53882,6 +54134,33 @@
       ]
     },
     {
+      "id": "src/utils/search-normalizer.ts",
+      "label": "search-normalizer.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 44,
+      "isClientComponent": false,
+      "exportsCount": 1,
+      "functionsCount": 1,
+      "maxCyclomaticComplexity": 4,
+      "maxCrapScore": 20,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "normalizeCatalogSearch",
+          "startLine": 16,
+          "endLine": 43,
+          "cyclomaticComplexity": 4,
+          "coverageRatio": null,
+          "crapScore": 20,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
       "id": "src/utils/security-sanitizer.ts",
       "label": "security-sanitizer.ts",
       "level": 1,
@@ -56862,6 +57141,13 @@
     {
       "source": "src/actions/admin/providers/import-cherry-pick.ts",
       "target": "src/utils/error-handler.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/actions/admin/providers/import-cherry-pick.ts",
+      "target": "src/utils/search-normalizer.ts",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
@@ -63979,17 +64265,24 @@
       "isViolating": false
     },
     {
-      "source": "src/app/admin/providers/health/page.tsx",
-      "target": "src/components/admin/tabbed-header.tsx",
+      "source": "src/app/admin/providers/import/components/category-create-dialog.tsx",
+      "target": "src/app/admin/providers/import/types.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/import/components/category-create-dialog.tsx",
+      "target": "src/actions/admin/catalog/categories.ts",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
     },
     {
-      "source": "src/app/admin/providers/health/page.tsx",
-      "target": "src/components/admin/navigation-data.ts",
-      "kind": "dependency",
-      "isTypeOnly": false,
+      "source": "src/app/admin/providers/import/components/category-dropdown-list.tsx",
+      "target": "src/app/admin/providers/import/types.ts",
+      "kind": "association",
+      "isTypeOnly": true,
       "isViolating": false
     },
     {
@@ -64099,14 +64392,126 @@
     },
     {
       "source": "src/app/admin/providers/import/components/searchable-category-select.tsx",
-      "target": "src/actions/admin/catalog/categories.ts",
+      "target": "src/app/admin/providers/import/components/category-create-dialog.tsx",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
     },
     {
-      "source": "src/app/admin/providers/import/components/services-table.tsx",
+      "source": "src/app/admin/providers/import/components/searchable-category-select.tsx",
+      "target": "src/app/admin/providers/import/components/category-dropdown-list.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/import/components/services-table-badges.tsx",
+      "target": "src/utils/target-type-mapper.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/import/components/services-table-badges.tsx",
+      "target": "src/utils/format-price.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/import/components/services-table-header.tsx",
+      "target": "src/app/admin/providers/import/types.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/import/components/services-table-mobile-card.tsx",
+      "target": "src/app/admin/providers/import/types.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/import/components/services-table-mobile-card.tsx",
+      "target": "src/app/admin/providers/import/components/services-table-badges.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/import/components/services-table-mobile-card.tsx",
+      "target": "src/app/admin/providers/import/components/searchable-category-select.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/import/components/services-table-mobile-card.tsx",
+      "target": "src/components/ui/service-id-badge.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/import/components/services-table-mobile-card.tsx",
+      "target": "src/utils/format-price.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/import/components/services-table-row.tsx",
+      "target": "src/app/admin/providers/import/types.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/import/components/services-table-row.tsx",
+      "target": "src/app/admin/providers/import/components/services-table-badges.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/import/components/services-table-row.tsx",
+      "target": "src/app/admin/providers/import/components/searchable-category-select.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/import/components/services-table-row.tsx",
+      "target": "src/app/admin/providers/import/components/services-table-mobile-card.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/import/components/services-table-row.tsx",
+      "target": "src/components/ui/service-id-badge.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/import/components/services-table-row.tsx",
+      "target": "src/utils/format-price.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/import/components/services-table-row.tsx",
       "target": "src/utils/target-type.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/import/components/services-table-row.tsx",
+      "target": "src/utils/target-type-mapper.ts",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
@@ -64120,14 +64525,14 @@
     },
     {
       "source": "src/app/admin/providers/import/components/services-table.tsx",
-      "target": "src/utils/format-price.ts",
+      "target": "src/app/admin/providers/import/components/services-table-header.tsx",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
     },
     {
       "source": "src/app/admin/providers/import/components/services-table.tsx",
-      "target": "src/app/admin/providers/import/components/searchable-category-select.tsx",
+      "target": "src/app/admin/providers/import/components/services-table-row.tsx",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
@@ -64189,6 +64594,13 @@
       "isViolating": false
     },
     {
+      "source": "src/app/admin/providers/import/components/wizard/types.ts",
+      "target": "src/services/admin/catalog.service.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
       "source": "src/app/admin/providers/import/components/wizard/useImportWizardState.ts",
       "target": "src/app/admin/providers/import/types.ts",
       "kind": "association",
@@ -64239,6 +64651,13 @@
     },
     {
       "source": "src/app/admin/providers/import/components/wizard/wizard-computed-stats.ts",
+      "target": "src/utils/target-type-mapper.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/import/components/wizard/wizard-computed-stats.ts",
       "target": "src/app/admin/providers/import/types.ts",
       "kind": "association",
       "isTypeOnly": true,
@@ -64277,6 +64696,13 @@
       "target": "src/app/admin/providers/import/components/wizard/category-auto-mapper.ts",
       "kind": "dependency",
       "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/import/components/wizard/wizard-import-handlers.ts",
+      "target": "src/app/admin/providers/import/components/wizard/types.ts",
+      "kind": "association",
+      "isTypeOnly": true,
       "isViolating": false
     },
     {
@@ -83848,18 +84274,18 @@
   "violations": [],
   "cycles": [],
   "metrics": {
-    "totalFiles": 1443,
-    "totalEdges": 4032,
+    "totalFiles": 1450,
+    "totalEdges": 4053,
     "violationsCount": 0,
     "cyclesCount": 0,
     "blockersCount": 0,
-    "totalFunctions": 9860,
+    "totalFunctions": 9876,
     "highestCrapModule": {
       "id": "src/proxy.ts",
       "maxCrap": 39402,
       "maxCC": 198
     },
-    "totalCrappyFunctions": 2305,
-    "totalCrapLoad": 1353354
+    "totalCrappyFunctions": 2308,
+    "totalCrapLoad": 1345420
   }
 }

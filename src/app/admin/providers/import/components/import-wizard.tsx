@@ -24,8 +24,8 @@ export function ImportWizard({ categories: initialCategories, providers }: Impor
   const {
     localCategories, handleCategoryCreated,
     providerId, handleProviderChange,
-    services, loading, syncing, isEmptyCache, error, success, setError, setSuccess, setSuccessWithTimer,
-    selectedIds, toggleSelection, toggleAll,
+    services, displayedServices, loading, syncing, isEmptyCache, error, success, setError, setSuccess, setSuccessWithTimer,
+    selectedIds, toggleSelection, toggleAll, handleSelectMissing,
     handleSelectAllFiltered, selectingAllFiltered,
     selectedCategories, setSelectedCategories, autoMappedCategories, aiConfidence,
     bulkCategory, setBulkCategory, handleApplyBulkCategory, missingCategoryIds, setMissingCategoryIds,
@@ -126,6 +126,7 @@ export function ImportWizard({ categories: initialCategories, providers }: Impor
           handleApplyBulkCategory={handleApplyBulkCategory}
           selectedCount={selectedIds.size}
           totalServicesCount={services.length}
+          onSelectMissing={handleSelectMissing}
         />
 
         <WizardFilterDrawer
@@ -146,7 +147,7 @@ export function ImportWizard({ categories: initialCategories, providers }: Impor
           <EmptyCacheCard syncing={syncing} onSync={handleSyncCache} />
         ) : (
           <ServicesTable
-            services={activeTab === 'ready' ? readyServices : attentionServices}
+            services={displayedServices}
             selectedIds={selectedIds}
             toggleSelection={toggleSelection}
             toggleAll={toggleAll}
