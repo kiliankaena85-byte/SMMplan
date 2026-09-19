@@ -47,7 +47,7 @@ const getCachedOpenTicketCount = unstable_cache(
 );
 
 // RBAC: Allowed roles for admin panel access
-const ADMIN_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'];
+const ADMIN_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR'];
 
 // Navigation sections with role-based visibility
 const ADMIN_NAVIGATION = [
@@ -72,10 +72,11 @@ const ADMIN_NAVIGATION = [
 ];
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
-  OWNER:   { label: 'Владелец',  color: 'bg-primary/10 text-primary border-primary/20 font-bold' },
-  ADMIN:   { label: 'Админ',     color: 'bg-info/10 text-info border-info/20 font-bold' },
-  MANAGER: { label: 'Менеджер',  color: 'bg-success/10 text-success-text border-success/20 font-bold' },
-  SUPPORT: { label: 'Саппорт',   color: 'bg-muted text-muted-foreground border-border font-bold' },
+  OWNER:    { label: 'Владелец',  color: 'bg-primary/10 text-primary border-primary/20 font-bold' },
+  ADMIN:    { label: 'Админ',     color: 'bg-info/10 text-info border-info/20 font-bold' },
+  MANAGER:  { label: 'Менеджер',  color: 'bg-success/10 text-success-text border-success/20 font-bold' },
+  SUPPORT:  { label: 'Саппорт',   color: 'bg-muted text-muted-foreground border-border font-bold' },
+  OPERATOR: { label: 'Оператор',  color: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20 font-bold' },
 };
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {

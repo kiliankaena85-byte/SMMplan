@@ -12,10 +12,15 @@ import { sendAdminAlert } from '@/lib/notifications';
 
 // ── User Role Update ──
 export async function updateUserRole(formData: FormData) {
-  return requireOwnerPermission(async (admin) => {
+  return requireStaffPermission('settings', 'edit', async (admin) => {
     const parsed = roleSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) return { success: false as const, error: 'Некорректные данные' };
     const { userId: targetUserId, role: newRole, staffRoleId } = parsed.data;
+
+    // Staff roles (SUPPORT, MANAGER, OPERATOR) cannot modify other staff members or user roles
+    if (['SUPPORT', 'MANAGER', 'OPERATOR'].includes(admin.role)) {
+      return { success: false as const, error: 'У вас недостаточно прав для управления ролями пользователей' };
+    }
 
     if (targetUserId === admin.id) {
       return { success: false as const, error: 'Нельзя изменить собственную роль' };

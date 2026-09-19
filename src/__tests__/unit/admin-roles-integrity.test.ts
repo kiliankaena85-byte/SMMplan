@@ -62,4 +62,66 @@ describe('Admin Roles & RBAC Matrix Integrity Suite (SIL-2026 Step 16)', () => {
       expect(rolesTab?.label).toBe('Роли и права');
     });
   });
+
+  describe('RBAC Section Aliases & Normalization', () => {
+    it('normalizes legacy aliases support and staff to tickets and settings', async () => {
+      const { normalizeRbacSection, RBAC_SECTION_ALIASES } = await import('@/lib/rbac-sections');
+      expect(RBAC_SECTION_ALIASES.support).toBe('tickets');
+      expect(RBAC_SECTION_ALIASES.staff).toBe('settings');
+
+      expect(normalizeRbacSection('support')).toBe('tickets');
+      expect(normalizeRbacSection('SUPPORT')).toBe('tickets');
+      expect(normalizeRbacSection('staff')).toBe('settings');
+      expect(normalizeRbacSection('STAFF')).toBe('settings');
+      expect(normalizeRbacSection('dashboard')).toBe('dashboard');
+      expect(normalizeRbacSection('refills')).toBe('refills');
+    });
+  });
+
+  describe('BUILTIN_ROLE_PERMISSIONS Consistency', () => {
+    it('includes DASHBOARD and REFILLS for SUPPORT, MANAGER and OPERATOR roles', async () => {
+      const { BUILTIN_ROLE_PERMISSIONS } = await import('@/lib/server/rbac');
+      
+      for (const role of ['SUPPORT', 'MANAGER', 'OPERATOR']) {
+        const perms = BUILTIN_ROLE_PERMISSIONS[role];
+        expect(perms).toBeDefined();
+        expect(perms.DASHBOARD).toBeDefined();
+        expect(perms.DASHBOARD.canView).toBe(true);
+        expect(perms.REFILLS).toBeDefined();
+        expect(perms.REFILLS.canView).toBe(true);
+        expect(perms.REFILLS.canEdit).toBe(true);
+      }
+    });
+
+    it('grants OPERATOR view access to CLIENTS and TRANSACTIONS for operator workspace', async () => {
+      const { BUILTIN_ROLE_PERMISSIONS } = await import('@/lib/server/rbac');
+      const op = BUILTIN_ROLE_PERMISSIONS.OPERATOR;
+      expect(op.CLIENTS).toBeDefined();
+      expect(op.CLIENTS.canView).toBe(true);
+      expect(op.TRANSACTIONS).toBeDefined();
+      expect(op.TRANSACTIONS.canView).toBe(true);
+    });
+  });
+
+  describe('OPERATOR Role UI Integration', () => {
+    it('includes OPERATOR in getAllowedRoles and assigns proper colors and schema validation', async () => {
+      const { getAllowedRoles, ROLE_COLORS, ROLE_LABELS } = await import('@/app/admin/settings/team/ui-helpers');
+      const { roleSchema } = await import('@/validators/admin.validators');
+
+      const regularAllowed = getAllowedRoles('MANAGER');
+      expect(regularAllowed).toContain('OPERATOR');
+
+      const ownerAllowed = getAllowedRoles('OWNER');
+      expect(ownerAllowed).toContain('OPERATOR');
+
+      expect(ROLE_COLORS.OPERATOR).toBeDefined();
+      expect(ROLE_COLORS.OPERATOR).toContain('cyan');
+
+      expect(ROLE_LABELS.OPERATOR).toBeDefined();
+      expect(ROLE_LABELS.OPERATOR).toContain('Оператор');
+
+      const validParsed = roleSchema.safeParse({ userId: 'u123', role: 'OPERATOR' });
+      expect(validParsed.success).toBe(true);
+    });
+  });
 });

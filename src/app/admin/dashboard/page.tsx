@@ -5,6 +5,7 @@ import { adminTicketService } from '@/services/admin/ticket.service';
 import { adminCatalogService } from '@/services/admin/catalog.service';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
+import { cookies, headers } from 'next/headers';
 import { unstable_cache } from 'next/cache';
 import nextDynamic from 'next/dynamic';
 
@@ -84,8 +85,14 @@ export default async function AdminDashboardPage({
 
   const resolvedSearchParams = await searchParams;
   const period = resolvedSearchParams.period || 'all';
+  const cookieStore = await cookies();
+  const reqHeaders = await headers();
+  const cookieTenant = cookieStore.get('x_admin_tenant')?.value;
+  const headerTenant = reqHeaders.get('x-tenant-id') || undefined;
+  const effectiveParamTenant = resolvedSearchParams.tenant || cookieTenant || headerTenant;
+
   const { resolveAdminTenantContext } = await import('@/utils/admin-tenant');
-  const resolvedTenant = resolveAdminTenantContext(user, resolvedSearchParams.tenant);
+  const resolvedTenant = resolveAdminTenantContext(user, effectiveParamTenant, cookieTenant || headerTenant);
   const tenantFilter = resolvedTenant !== 'all' ? resolvedTenant : undefined;
 
   // Calculate start and end date boundaries in local timezone

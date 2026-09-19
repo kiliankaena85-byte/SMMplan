@@ -12,7 +12,7 @@ import { updateUserRole, updateStaffGeminiApiKeyAction } from '@/actions/admin/s
 import { updateRoleAction } from '@/actions/admin/roles';
 import { toast } from 'sonner';
 import type { StaffRole, StaffPermission } from '@prisma/client';
-import { RBAC_SECTIONS, type RbacSectionId } from '@/lib/rbac-sections';
+import { RBAC_SECTIONS, normalizeRbacSection, type RbacSectionId } from '@/lib/rbac-sections';
 import {
   type StaffUser,
   type RegularUser,
@@ -73,7 +73,7 @@ export function TeamManagement({
   const openRolePermissionsModal = useCallback((role: StaffRole & { permissions: StaffPermission[] }) => {
     const permMap: Record<string, { canView: boolean; canEdit: boolean }> = {};
     for (const s of RBAC_SECTIONS) {
-      const p = role.permissions?.find(x => x.section === s.id);
+      const p = role.permissions?.find(x => normalizeRbacSection(x.section) === s.id);
       permMap[s.id] = {
         canView: p?.canView || false,
         canEdit: p?.canEdit || false,
@@ -159,18 +159,19 @@ export function TeamManagement({
 
   const handleTogglePermission = (roleId: string, section: string, currentVal: boolean, type: 'view' | 'edit') => {
     startTransition(async () => {
+      const canonicalSec = normalizeRbacSection(section);
       const existing = staffRoles.find(r => r.id === roleId);
-      const perm = existing?.permissions?.find(p => p.section === section);
+      const perm = existing?.permissions?.find(p => normalizeRbacSection(p.section) === canonicalSec);
       const nextView = type === 'view' ? !currentVal : (perm?.canView || false);
       const nextEdit = type === 'edit' ? !currentVal : (perm?.canEdit || false);
       const finalView = nextEdit ? true : nextView;
       const fd = new FormData();
       fd.append('roleId', roleId);
-      fd.append('section', section);
+      fd.append('section', canonicalSec);
       fd.append('canView', finalView ? 'true' : 'false');
       fd.append('canEdit', nextEdit ? 'true' : 'false');
       const res = await updateStaffRolePermissionsAction(fd);
-      if (res?.success) toast.success(`Права «${section.toUpperCase()}» обновлены`);
+      if (res?.success) toast.success(`Права «${canonicalSec.toUpperCase()}» обновлены`);
       else toast.error(res?.error || 'Ошибка');
     });
   };

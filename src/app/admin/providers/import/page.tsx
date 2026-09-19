@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Download, PlusCircle, FolderPlus } from 'lucide-react';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { PROVIDERS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 import { resolveAdminTenantContext } from '@/utils/admin-tenant';
 import { verifySession } from '@/lib/session';
@@ -24,14 +24,19 @@ export default async function ImportProvidersPage({ searchParams }: ImportPagePr
   const urlTenant = typeof sParams.tenant === 'string' ? sParams.tenant : undefined;
 
   const reqHeaders = await headers();
+  const cookieStore = await cookies();
+  const cookieTenant = cookieStore.get('x_admin_tenant')?.value;
+  const headerTenant = normalizeTenantId(reqHeaders.get('x-tenant-id')) || undefined;
+  const effectiveParamTenant = urlTenant || cookieTenant || headerTenant;
+
   const session = await verifySession();
   const user = session
     ? await db.user.findUnique({ where: { id: session.userId } })
     : null;
 
-  const resolvedTenant = resolveAdminTenantContext(user, urlTenant);
+  const resolvedTenant = resolveAdminTenantContext(user, effectiveParamTenant, cookieTenant || headerTenant);
   const selectedTenant =
-    resolvedTenant !== 'all' ? resolvedTenant : normalizeTenantId(reqHeaders.get('x-tenant-id')) || 'smmplan';
+    resolvedTenant !== 'all' ? resolvedTenant : (headerTenant || 'smmplan');
 
   const categories = await adminProviderService.listCategories(selectedTenant);
   const providers = await adminProviderService.listProviders();

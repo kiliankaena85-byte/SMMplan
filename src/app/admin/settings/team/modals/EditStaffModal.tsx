@@ -20,7 +20,7 @@ import {
 import { Settings2, ShieldCheck, Key, DollarSign, UserMinus, Loader2, Check } from 'lucide-react';
 import type { StaffRole, StaffPermission } from '@prisma/client';
 import type { StaffUser } from '../types';
-import { getAllowedRoles } from '../ui-helpers';
+import { getAllowedRoles, ROLE_LABELS } from '../ui-helpers';
 
 interface EditStaffModalProps {
   editingUser: StaffUser | null;
@@ -87,11 +87,11 @@ export function EditStaffModal({
               </label>
               <Select value={editRole} onValueChange={(v: string | null) => setEditRole(v || '')}>
                 <SelectTrigger className="h-10 bg-background text-xs font-bold rounded-xl">
-                  <SelectValue />
+                  <SelectValue>{ROLE_LABELS[editRole] || editRole}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {getAllowedRoles(currentAdminRole).map(r => (
-                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                    <SelectItem key={r} value={r}>{ROLE_LABELS[r] || r}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

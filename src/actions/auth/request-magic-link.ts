@@ -83,6 +83,18 @@ export async function requestMagicLink(prevState: unknown, formData: FormData) {
         }
       });
 
+      // Fallback: Global Admin/Owner login across any tenant (matches password-login.ts)
+      if (!user) {
+        // tenant-isolation-ignore: Global Admin/Owner login fallback across tenants
+        user = await tx.user.findFirst({
+          where: {
+            email: cleanEmail,
+            role: { in: ["OWNER", "ADMIN"] },
+            isDeleted: false
+          }
+        });
+      }
+
       if (user && (user.isDeleted || !user.isActive)) {
         return { type: 'blocked' as const };
       }

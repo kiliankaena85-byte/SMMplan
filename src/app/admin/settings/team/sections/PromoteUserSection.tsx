@@ -22,7 +22,7 @@ import {
 import { UserPlus, Search } from 'lucide-react';
 import type { StaffRole, StaffPermission } from '@prisma/client';
 import type { RegularUser } from '../types';
-import { RoleBadge, EmailAvatar, SearchButton, getAllowedRoles } from '../ui-helpers';
+import { RoleBadge, EmailAvatar, SearchButton, getAllowedRoles, ROLE_LABELS } from '../ui-helpers';
 
 interface PromoteUserSectionProps {
   regularUsers: RegularUser[];
@@ -104,12 +104,12 @@ export function PromoteUserSection({
                         <input type="hidden" name="userId" value={u.id} />
 
                         <Select name="role" defaultValue={u.role}>
-                          <SelectTrigger className="w-28 h-9 bg-background text-[11px] font-bold rounded-lg">
-                            <SelectValue>{(v: string) => v || 'Роль'}</SelectValue>
+                          <SelectTrigger className="w-36 h-9 bg-background text-[11px] font-bold rounded-lg">
+                            <SelectValue>{(v: string) => ROLE_LABELS[v] || v || 'Роль'}</SelectValue>
                           </SelectTrigger>
                           <SelectContent>
                             {getAllowedRoles(currentAdminRole).map(r => (
-                              <SelectItem key={r} value={r}>{r}</SelectItem>
+                              <SelectItem key={r} value={r}>{ROLE_LABELS[r] || r}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>

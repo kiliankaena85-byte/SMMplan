@@ -10,49 +10,44 @@ async function getSessionUserId(): Promise<string | null> {
   return sessionUser ? sessionUser.userId : null;
 }
 
-export type StaffPermissionSection = 
-  | 'clients'
-  | 'orders'
-  | 'catalog'
-  | 'providers'
-  | 'finance'
-  | 'content'
-  | 'support'
-  | 'marketing'
-  | 'analytics'
-  | 'settings'
-  | 'staff'
-  | 'balance_requests'
-  | 'balance_approvals'
-  | 'balance_stats'
-  | 'balance_policy'
-  | 'tickets';
+import { RbacSectionId, StaffPermissionSection, normalizeRbacSection } from "@/lib/rbac-sections";
+export type { StaffPermissionSection };
 
 export const BUILTIN_ROLE_PERMISSIONS: Record<string, Record<string, { canView: boolean; canEdit: boolean }>> = {
   SUPPORT: {
+    DASHBOARD: { canView: true, canEdit: false },
     CLIENTS: { canView: true, canEdit: true },
     ORDERS: { canView: true, canEdit: true },
+    REFILLS: { canView: true, canEdit: true },
     TICKETS: { canView: true, canEdit: true },
     SUPPORT: { canView: true, canEdit: true },
     STAFF: { canView: true, canEdit: false },
+    SETTINGS: { canView: false, canEdit: false },
     BALANCE_REQUESTS: { canView: true, canEdit: true },
     TRANSACTIONS: { canView: true, canEdit: false },
     FINANCE: { canView: true, canEdit: false },
   },
   MANAGER: {
+    DASHBOARD: { canView: true, canEdit: false },
     CLIENTS: { canView: true, canEdit: true },
     ORDERS: { canView: true, canEdit: true },
+    REFILLS: { canView: true, canEdit: true },
     CATALOG: { canView: true, canEdit: true },
     TICKETS: { canView: true, canEdit: true },
     SUPPORT: { canView: true, canEdit: true },
     STAFF: { canView: true, canEdit: false },
+    SETTINGS: { canView: false, canEdit: false },
     MARKETING: { canView: true, canEdit: true },
     CONTENT: { canView: true, canEdit: true },
     BALANCE_REQUESTS: { canView: true, canEdit: true },
     FINANCE: { canView: true, canEdit: false },
   },
   OPERATOR: {
+    DASHBOARD: { canView: true, canEdit: false },
+    CLIENTS: { canView: true, canEdit: false },
     ORDERS: { canView: true, canEdit: true },
+    REFILLS: { canView: true, canEdit: true },
+    TRANSACTIONS: { canView: true, canEdit: false },
     TICKETS: { canView: true, canEdit: true },
     SUPPORT: { canView: true, canEdit: true },
   },
@@ -99,9 +94,21 @@ export async function requireStaffPermission<T>(
     }
 
     const normalizedSection = section.toUpperCase();
-    const explicitPermission = user.staffRole?.permissions?.find(p => p.section.toUpperCase() === normalizedSection);
+    const canonicalUpper = normalizeRbacSection(section).toUpperCase();
+    const explicitPermission = user.staffRole?.permissions?.find(p => {
+      const sec = p.section.toUpperCase();
+      const secCanonical = normalizeRbacSection(p.section).toUpperCase();
+      return (
+        sec === normalizedSection ||
+        sec === canonicalUpper ||
+        secCanonical === canonicalUpper ||
+        secCanonical === normalizedSection
+      );
+    });
     const hasCustomRole = Boolean(user.staffRole && user.staffRole.permissions && user.staffRole.permissions.length > 0);
-    const builtin = !hasCustomRole ? BUILTIN_ROLE_PERMISSIONS[user.role]?.[normalizedSection] : null;
+    const builtin = !hasCustomRole
+      ? (BUILTIN_ROLE_PERMISSIONS[user.role]?.[normalizedSection] || BUILTIN_ROLE_PERMISSIONS[user.role]?.[canonicalUpper] || null)
+      : null;
 
     // When an explicit staffRole is assigned, its defined permissions strictly govern access.
     // Builtin role defaults are used as fallback when no custom staffRole is present.
@@ -282,9 +289,21 @@ export async function enforceSectionAccess(section: string) {
   }
 
   const normalizedSection = section.toUpperCase();
-  const explicitPermission = user.staffRole?.permissions?.find(p => p.section.toUpperCase() === normalizedSection);
+  const canonicalUpper = normalizeRbacSection(section).toUpperCase();
+  const explicitPermission = user.staffRole?.permissions?.find(p => {
+    const sec = p.section.toUpperCase();
+    const secCanonical = normalizeRbacSection(p.section).toUpperCase();
+    return (
+      sec === normalizedSection ||
+      sec === canonicalUpper ||
+      secCanonical === canonicalUpper ||
+      secCanonical === normalizedSection
+    );
+  });
   const hasCustomRole = Boolean(user.staffRole && user.staffRole.permissions && user.staffRole.permissions.length > 0);
-  const builtin = !hasCustomRole ? BUILTIN_ROLE_PERMISSIONS[user.role]?.[normalizedSection] : null;
+  const builtin = !hasCustomRole
+    ? (BUILTIN_ROLE_PERMISSIONS[user.role]?.[normalizedSection] || BUILTIN_ROLE_PERMISSIONS[user.role]?.[canonicalUpper] || null)
+    : null;
   const permission = explicitPermission || builtin;
 
   if (!permission || (!permission.canView && !permission.canEdit)) {
@@ -330,16 +349,25 @@ export async function enforceAnySectionAccess(sections: string[]) {
   }
 
   const normalizedSections = sections.map(s => s.toUpperCase());
+  const canonicalSections = sections.map(s => normalizeRbacSection(s).toUpperCase());
   const hasCustomRole = Boolean(user.staffRole && user.staffRole.permissions && user.staffRole.permissions.length > 0);
   const builtinPerms = !hasCustomRole ? (BUILTIN_ROLE_PERMISSIONS[user.role] || {}) : {};
-  const hasBuiltin = normalizedSections.some(s => {
-    const p = builtinPerms[s];
+  const hasBuiltin = normalizedSections.some((s, idx) => {
+    const c = canonicalSections[idx];
+    const p = builtinPerms[s] || (c ? builtinPerms[c] : undefined);
     return p && (p.canView || p.canEdit);
   });
 
-  const hasExplicit = user.staffRole?.permissions.some(p =>
-    normalizedSections.includes(p.section.toUpperCase()) && (p.canView || p.canEdit)
-  ) ?? false;
+  const hasExplicit = user.staffRole?.permissions.some(p => {
+    const sec = p.section.toUpperCase();
+    const secCanonical = normalizeRbacSection(p.section).toUpperCase();
+    return (
+      normalizedSections.includes(sec) ||
+      canonicalSections.includes(sec) ||
+      normalizedSections.includes(secCanonical) ||
+      canonicalSections.includes(secCanonical)
+    ) && (p.canView || p.canEdit);
+  }) ?? false;
 
   if (!hasBuiltin && !hasExplicit) {
     redirect('/admin/forbidden');

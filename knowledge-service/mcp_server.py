@@ -61,11 +61,14 @@ async def lifespan(app: FastAPI):
         neo4j_password=neo4j_password
     )
     
-    # 1. Bootstrap Neo4j Schema
-    try:
-        init_neo4j_schema(engine.neo4j_driver)
-    except Exception as e:
-        logger.error(f"Failed to bootstrap Neo4j: {e}")
+    # 1. Bootstrap Neo4j Schema (if enabled)
+    if os.getenv("NEO4J_ENABLED", "false").lower() == "true":
+        try:
+            init_neo4j_schema(engine.neo4j_driver)
+        except Exception as e:
+            logger.error(f"Failed to bootstrap Neo4j: {e}")
+    else:
+        logger.info("Neo4j is disabled (8GB profile). Skipping Neo4j schema bootstrap.")
         
         # 2. Bootstrap Qdrant Collections
     try:

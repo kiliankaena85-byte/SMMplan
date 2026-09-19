@@ -171,7 +171,7 @@ export async function getStaffMembersWithMetrics(dateParam?: string, tenantParam
         AND: [
           {
             OR: [
-              { role: { in: ['SUPPORT', 'MANAGER', 'ADMIN', 'OWNER'] } },
+              { role: { in: ['SUPPORT', 'OPERATOR', 'MANAGER', 'ADMIN', 'OWNER'] } },
               { staffRoleId: { not: null } },
             ]
           },
@@ -331,7 +331,7 @@ export async function getStaffPersonalLogsAction(staffUserId: string, limit = 50
 
 const updateStaffSchema = z.object({
   userId: z.string().min(1),
-  role: z.enum(['SUPPORT', 'MANAGER', 'ADMIN', 'OWNER', 'USER', 'BANNED']),
+  role: z.enum(['SUPPORT', 'OPERATOR', 'MANAGER', 'ADMIN', 'OWNER', 'USER', 'BANNED']),
   staffRoleId: z.string().nullable().optional(),
   supportLimitRubles: z.number().min(0).max(100000),
   allowedTenants: z.array(z.string()).optional(),

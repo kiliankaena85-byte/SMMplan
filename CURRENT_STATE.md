@@ -1,3 +1,84 @@
+- [x] 🛡️ [ADMIN-CROSS-TENANT-MISMATCH-ERROR-FIX-2026] Устранение сбоя при загрузке разделов админки при переключении сайтов (ID: 807575958) (100% COMPLETE & VERIFIED):
+  * 🔍 **Диагностика и первопричина (Root Cause Analysis):**
+    - В логах `smmplan_web` выявлен перехват: `SECURITY_TENANT_MISMATCH: Cross-tenant query blocked! Active: flux, Requested: smmplan`.
+    - При переключении админа в `<GlobalSiteSwitcher />` на SMMflux браузер выставляет cookie `x_admin_tenant=flux`, а `src/proxy.ts` передает заголовок `x-tenant-id: flux`.
+    - В страницах `/admin/orders`, `/admin/dashboard`, `/admin/transactions`, `/admin/finance`, `/admin/tickets`, `/admin/providers/import` вызов `resolveAdminTenantContext(user, params.tenant)` выполнялся без передачи 3-го параметра `cookieTenant`.
+    - При отсутствии `?tenant=...` в URL контекст откатывался к `user.tenantId` (`smmplan`). Prisma Tenant Enforcer (`prisma-tenant-enforcer.ts`) блокировал запрос, так как активный заголовок запроса был `flux`, а запрос в БД шел по `smmplan`, вызывая 500 ошибку с ID `807575958`.
+  * 🛠️ **Реализованное исправление и сквозная синхронизация:**
+    - В `src/utils/admin-tenant.ts` создана асинхронная серверная функция `resolveAdminTenantAsync(user, urlTenantParam, cookieTenant)` с авто-извлечением cookie и заголовков.
+    - В `src/app/admin/orders/page.tsx` добавлен безопасный парсер cookie `x_admin_tenant` и заголовка `x-tenant-id`, гарантирующий, что выбранный тенант из селектора сайтов имеет наивысший приоритет над `user.tenantId`.
+    - Аналогичная синхронизация проведена во всех смежных разделах: `/admin/dashboard`, `/admin/transactions`, `/admin/finance`, `/admin/tickets`, `/admin/providers/import`.
+  * 🧪 **Автоматизированное TDD/Vitest тестирование & Сборка:**
+    - Написан специализированный юнит-тест `src/__tests__/unit/admin-orders-tenant-resolution.test.ts` (6/6 PASS).
+    - Все 15 тестов мульти-тенантной изоляции персонала в `src/__tests__/multitenant-staff-isolation.test.ts` успешно пройдены (15/15 PASS).
+    - `npx tsc --noEmit` — 0 ошибок типов во всем проекте.
+    - `node scripts/check-bundle-secrets.mjs` — 100% чистый аудит секретов.
+    - `npm run build` — чистая standalone-сборка.
+    - Контейнер `smmplan_web` успешно пересобран и перезапущен в Docker, статус `healthy`, `/api/health` 200 OK.
+- [x] 🛡️ [RBAC-ROLES-UNIFICATION-OPERATOR-RECONCILIATION-2026] Комплексный рефакторинг и нормализация RBAC, унификация 16 секций и интеграция роли OPERATOR (100% COMPLETE & VERIFIED):
+  * 🔄 **Унификация секций RBAC и двунаправленная нормализация алиасов:**
+    - В `src/lib/rbac-sections.ts` консолидированы 16 канонических секций `RbacCanonicalSectionId` и алиасы `support -> tickets`, `staff -> settings`.
+    - В `src/lib/server/rbac.ts` реализовано двунаправленное сопоставление секций: гарды `requireStaffPermission`, `enforceSectionAccess` и `enforceAnySectionAccess` нормализуют как запрашиваемую секцию, так и хранящуюся в БД запись `p.section`.
+  * 🛠️ **Интеграция роли `OPERATOR` во все интерфейсы и политики:**
+    - В `BUILTIN_ROLE_PERMISSIONS.OPERATOR` добавлены секции `CLIENTS` и `TRANSACTIONS` (чтение) в полном соответствии со спецификацией контура `/operator`.
+    - В `src/app/admin/settings/team/ui-helpers.tsx`, `EditStaffModal.tsx`, `PromoteUserSection.tsx`, `src/app/admin/staff/staff-client.tsx` и `columns.tsx` роль `OPERATOR` интегрирована во все выпадающие списки и бейджи с русскими подписями (`Оператор (OPERATOR)`).
+  * ⚡ **Нормализация кастомных ролей и модалок:**
+    - Экшены `createRoleAction` и `updateRoleAction` в `src/actions/admin/roles.ts` строго нормализуют идентификаторы секций в канонический lowercase.
+    - В `src/app/admin/settings/team-management.tsx` и `CustomRolesSection.tsx` применен `normalizeRbacSection`, предотвращая затирание старых прав при редактировании.
+    - В `updateUserRole` гард обновлен до `requireStaffPermission('settings', 'edit')` с сохранением иерархического барьера (администратор может назначать младший персонал, но защищен от изменения аккаунтов владельцев).
+  * 🧪 **Верификация тестами и безопасность:**
+    - `src/__tests__/unit/admin-roles-integrity.test.ts` (9/9 PASS).
+    - `src/__tests__/unit/proxy-staff-multitenant-contour.test.ts` (2/2 PASS).
+    - `src/__tests__/unit/request-magic-link-owner.test.ts` (1/1 PASS).
+    - `npx tsc --noEmit` — 0 ошибок типов.
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+- [x] ⚡ [GEMINI-AUTH-KEY-DATABASE-INJECTION-2026] Интеграция и верификация официального 2026 Google Authorization Key (AQ.xxx) в базу данных и пул AI-сервисов (100% COMPLETE & VERIFIED):
+  * 🔑 **Верификация ключа Google Authorization (Auth) Key:**
+    - Протестирован ключ нового стандарта 2026 г. (`AQ.xxx`) прямым вызовом к `https://generativelanguage.googleapis.com` через прокси `smmplan_clash` (порт 7890).
+    - Выполнена генерация контента моделью `gemini-2.5-flash`: HTTP 200 OK, время отклика 7s, статус `STOP`.
+  * 🛡️ **Шифрование AES-256-GCM и внесение в БД:**
+    - Ключ зашифрован через централизованный сервис `VaultService.encrypt()` с использованием единого мастер-ключа `APP_ENCRYPTION_KEY`.
+    - Сохранен в `SystemSettings.geminiApiKeys` для обоих активных тенантов (`smmplan` и `flux`).
+    - Сохранен в `User.geminiApiKey` для профиля владельца `art@artmspektr.ru`.
+    - В профиле `art@artmspektr.ru` актуализирован массив `allowedTenants: ["smmplan", "flux"]`.
+  * ⚡ **Сброс кэша и готовность рантайма:**
+    - Инвалидирован кэш настроек в Redis (`settings:*`), перезагружены контексты AI.
+- [x] 🛡️ [OMNISMM-STAFF-MULTITENANT-LOGIN-FIX-2026] Устранение сброса сессии OWNER/ADMIN в прокси и кросс-тенантный fallback входа (100% COMPLETE & VERIFIED):
+  * 🌐 **Снятие ограничения контуров для персонала в `src/proxy.ts`:**
+    - В директиве `isContourMismatch` добавлены проверки `!isStaffRole && !isAdminPath && !isOperatorPath`.
+    - Персонал платформы (OWNER, ADMIN, MANAGER, SUPPORT) теперь свободно перемещается между доменами платформы (`smmplan.pro` и `smmflux.ru`) без принудительного сброса сессионных cookie и редиректа на `/login`.
+  * 🛡️ **Синхронизация проверки контуров в `src/lib/session.ts`:**
+    - Проверка `isStrictMismatch` обновлена до `!['OWNER', 'ADMIN'].includes(user.role)`, предотвращая сброс серверной сессии при кросс-доменных запросах администратора.
+  * 🔑 **Кросс-тенантный fallback входа через Magic Link в `src/actions/auth/request-magic-link.ts`:**
+    - Добавлен поиск ролей `OWNER` и `ADMIN` по всем тенантам (`where: { email, role: { in: ["OWNER", "ADMIN"] }, isDeleted: false }`) по аналогии с `password-login.ts`.
+    - Владелец может запрашивать ссылку для входа с любой витрины (SMMplan / SMMflux), система распознает существующий аккаунт без попыток повторной регистрации и отправляет одноразовый токен авторизации.
+  * 🧪 **Автоматизированное TDD/Vitest тестирование & Контроль типов:**
+    - Написан юнит-тест `src/__tests__/unit/proxy-staff-multitenant-contour.test.ts` (2/2 PASS — пропуск персонала на `smmflux.ru/admin` без редиректа и строгая изоляция обычных пользователей `USER`).
+    - Написан юнит-тест `src/__tests__/unit/request-magic-link-owner.test.ts` (1/1 PASS — кросс-тенантный поиск владельца).
+    - `npx tsc --noEmit` — 0 ошибок типов во всем проекте.
+    - `node scripts/check-bundle-secrets.mjs` — 100% прохождение гейта утечек секретов.
+- [x] ⚡ [PERF-AUDIT-WSL-REDIS-OOM-HARDENING-2026] Комплексный аудит производительности, ликвидация OOM-шторма и оптимизация инфраструктуры платформы (100% COMPLETE & VERIFIED):
+  * 🛑 **Ликвидация паразитной нагрузки и OOM-цикла индексатора:**
+    - Остановлен циклически падавший контейнер `remote-graphrag-indexer` (код 137 OOM Killer), сжигавший процессорное время и дисковый I/O в виртуальной машине WSL 2.
+    - В `knowledge-service/docker-compose.remote-8gb.yml` политика перезапуска изменена на `restart: "no"`.
+    - Нагрузка CPU контейнера `remote-graphrag-api` снизилась с 95.25% до 1.24%, высвободив системные ресурсы хоста.
+  * 🛡️ **Устранение критического риска OOM контейнера `smmplan_clash`:**
+    - Лимит памяти расширен с 64M до 96M в `docker-compose.yml` и применен на лету через `docker update --memory 96m smmplan_clash`.
+    - Доля потребления памяти упала с критических 92.7% (59.3 МБ) до безопасных 43.5% (41.7 МБ), исключив риск сбоя исходящих прокси-запросов к SMM-провайдерам и Telegram API.
+  * ⚡ **Стандартизация Redis 7 и очередей BullMQ (noeviction):**
+    - В `docker-compose.yml` и рантайме Redis применена политика `maxmemory-policy noeviction` и расширен лимит памяти до 96M (`CONFIG SET maxmemory-policy noeviction`, `CONFIG SET maxmemory 96mb`).
+    - Полностью устранены системные ворнинги BullMQ `IMPORTANT! Eviction policy is volatile-lru. It should be "noeviction"`, гарантирована сохранность метаданных задач в очередях.
+  * 🚀 **Оптимизация памяти Web и Worker контейнеров:**
+    - `smmplan_web`: лимит памяти увеличен с 384M до 512M, Node.js heap расширен до 384MB (`--max-old-space-size=384`). Устранены V8 GC-паузы при рендеринге каталога из 825 услуг.
+    - `smmplan_lite_worker`: лимит увеличен со 128M до 192M, Node.js heap расширен до 160MB (`--max-old-space-size=160`).
+  * 🌐 **Стабилизация отклика и сетевых маршрутов:**
+    - Восстановлен моментальный отклик локального веб-сервера (`/api/health` 28 мс, `/catalog` 25 мс, `/` 488 мс).
+    - Автоматический сторожевой демон зафиксировал полное восстановление: `🟢 Site availability recovered for https://smmplan.tailbb9d28.ts.net`.
+  * 🛡️ **Калибровка маршрутизации Clash Verge Rev (устранение Fake-IP и TLS-сбоев):**
+    - В `profiles/rSIXREmWOY5j.yaml` и `clash-verge.yaml` добавлен прямой маршрут (`DIRECT`) для `*.ts.net`, `smmflux.ru`, ключевых слов платформы и локальных подсетей (`100.64.0.0/10` Tailscale, `172.16.0.0/12` Docker, `192.168.0.0/16` LAN, `127.0.0.0/8`).
+    - В `dns_config.yaml` и `clash-verge.yaml` в `fake-ip-filter` внесены `*.ts.net`, `*.smmplan.pro`, `*.smmflux.ru`, `*.yookassa.ru`, `*.robokassa.ru`, `localhost`.
+    - Добавлена `nameserver-policy` с маршрутизацией запросов к Рунету и финтех-сервисам через Yandex DNS (`77.88.8.8`), включен `use-system-hosts: true`.
+    - Полностью ликвидирована ошибка `schannel: failed to receive handshake` при переходе по ссылке Tailscale Funnel. С хоста `https://smmplan.tailbb9d28.ts.net/` отдается моментально (`HTTP 200` за 1.75 с).
 - [x] ⚡ [CLIENT-SETTINGS-YOOKASSA-CATALOG-CLEANUP-2026] Оптимизация ЛК клиента (докрутка, ЮKassa во всех режимах, удаление аккаунта, вкладки настроек) и очистка тулбара каталога в админке (100% COMPLETE & VERIFIED):
   * 🛑 **Удаление докрутки (Refill) из ЛК клиента:**
     - Компонент `RefillRequestButton.tsx` переведен в `return null` — кнопки и статусы докрутки полностью скрыты из десктопных и мобильных таблиц заказов, карточек заказов, Flux-списков/канбана и страницы заказа.
@@ -322,6 +403,15 @@
     - Полная привязка стратегии к реальному коду `D:\SMM_plan_2` (Prisma-модели `User`, `Order`, `Service`, `Provider`, `LedgerEntry`, `ApiConfig`).
     - Моделирование юнит-экономики: CAC ~350 ₽, AOV ~650 ₽, Net Margin ~42%, LTV:CAC 25:1.
     - В `BACKLOG.md` добавлены и зафиксированы 5 ключевых стратегических задач (STRAT-001 — STRAT-005: Smart Bundles, /audit виджет, B2B Reseller Portal, Provider Balance Check, воркер шардирование).
+- [x] ⚡ [DATABASE-TEST-USERS-CLEANUP-2026] Очистка базы данных от тестовых клиентов с сохранением nikita8888@inbox.ru и art@artmspektr.ru (100% COMPLETE & VERIFIED):
+  * 🗄️ **Санация PostgreSQL (`smmplan_lite`):**
+    - Создан предварительный дамп базы `pre_cleanup_backup.dump` (1.65 MB) для гарантированного отката.
+    - Разработан скрипт безопасного транзакционного удаления `scripts/cleanup-test-users.ts` с защитой Hard Guard (`keepUsers.length === 2`).
+    - Удалены 1093 тестовых аккаунта и каскадно очищены связанные тестовые данные: 165 заказов, 240 платежей, 843 проводки леджера, 33 тикета, 53 сообщения тикетов, 152 смены.
+    - В базе осталось ровно 2 целевых пользователя (`art@artmspektr.ru` и `nikita8888@inbox.ru`) со всеми заказами (8 шт.), платежами (10 шт.), леджером (12 шт.), тикетами (1 шт.) и балансами.
+  * 🧪 **Верификация & Здоровье системы:**
+    - Итоговая проверка `User.count() === 2`, `Order.count() === 8`, `Payment.count() === 10`, `LedgerEntry.count() === 12`.
+    - Healthcheck `http://127.0.0.1:3000/api/health` — `HTTP 200 OK` (`healthy`).
 - [x] ⚡ [AUTH-COOKIE-CONSENT-AUTOCONFIRM-2026] Автоматическое подтверждение Cookie (152-ФЗ) при авторизации и устранение плашки в /dashboard (100% COMPLETE & VERIFIED):
   * 🍪 **Серверная авто-установка (`src/lib/session.ts` & `/api/auth/verify/route.ts`):**
     - При входе / регистрации / Magic Link сервер вместе с `session_token` выставляет `cookie_consent=true` (1 год, SameSite=Lax, httpOnly=false).

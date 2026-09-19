@@ -4,13 +4,13 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { requireStaffPermission } from '@/lib/server/rbac';
 import { auditAdminAwaitable } from '@/lib/admin-audit';
-import { RBAC_SECTIONS, RbacSectionId } from '@/lib/rbac-sections';
+import { RBAC_SECTIONS, RbacCanonicalSectionId, RbacSectionId, normalizeRbacSection } from '@/lib/rbac-sections';
 import { revalidatePath } from 'next/cache';
 
-const SECTION_IDS = RBAC_SECTIONS.map(s => s.id) as [RbacSectionId, ...RbacSectionId[]];
+const SECTION_IDS = RBAC_SECTIONS.map(s => s.id) as [RbacCanonicalSectionId, ...RbacCanonicalSectionId[]];
 
 const permissionItemSchema = z.object({
-  section: z.enum(SECTION_IDS),
+  section: z.string().min(1),
   canView: z.boolean(),
   canEdit: z.boolean(),
 });
@@ -96,9 +96,9 @@ export async function createRoleAction(input: z.input<typeof createRoleSchema>) 
       }
     }
 
-    // Normalize permissions: canEdit implies canView
+    // Normalize permissions: canEdit implies canView, normalize section to canonical
     const normalizedPermissions = permissions.map(p => ({
-      section: p.section,
+      section: normalizeRbacSection(p.section),
       canView: p.canEdit ? true : p.canView,
       canEdit: p.canEdit,
     }));
@@ -194,9 +194,9 @@ export async function updateRoleAction(input: z.input<typeof updateRoleSchema>) 
       }
     }
 
-    // Normalize permissions: canEdit implies canView
+    // Normalize permissions: canEdit implies canView, normalize section to canonical
     const normalizedPermissions = permissions.map(p => ({
-      section: p.section,
+      section: normalizeRbacSection(p.section),
       canView: p.canEdit ? true : p.canView,
       canEdit: p.canEdit,
     }));
@@ -393,3 +393,84 @@ export async function deleteRoleAction(input: z.infer<typeof deleteRoleSchema>) 
     return { success: true, id };
   });
 }
+
+/**
+ * Granularly update or toggle a single section permission for a StaffRole
+ */
+export async function updateSingleRolePermissionAction(input: {
+  roleId: string;
+  section: string;
+  canView: boolean;
+  canEdit: boolean;
+}) {
+  return requireStaffPermission('settings', 'edit', async (staffUser) => {
+    // Only OWNER can modify role permissions
+    if (staffUser.role !== 'OWNER') {
+      return { success: false, error: 'Только Владелец может изменять права ролей' };
+    }
+
+    const { roleId, section, canEdit } = input;
+    const canView = canEdit ? true : Boolean(input.canView);
+    const canonicalSection = normalizeRbacSection(section);
+
+    const role = await db.staffRole.findUnique({
+      where: { id: roleId },
+      include: { permissions: true },
+    });
+
+    if (!role) {
+      return { success: false, error: 'Роль не найдена' };
+    }
+
+    if (role.name === 'Admin' && role.isSystem) {
+      return { success: false, error: 'Системную роль Admin нельзя изменять или удалять' };
+    }
+
+    // Lockout guard: non-owner staff editing own role
+    if (staffUser.role !== 'OWNER' && staffUser.staffRoleId === role.id && canonicalSection === 'settings' && !canEdit) {
+      return { success: false, error: 'Нельзя снять права settings:edit с собственной роли' };
+    }
+
+    const existingPermission = role.permissions.find(
+      p => normalizeRbacSection(p.section) === canonicalSection
+    );
+
+    await db.$transaction(async (tx) => {
+      // Clean up legacy alias if it had a different section name in DB
+      if (existingPermission && existingPermission.section !== canonicalSection) {
+        await tx.staffPermission.deleteMany({
+          where: { roleId, section: existingPermission.section }
+        });
+      }
+
+      await tx.staffPermission.upsert({
+        where: { roleId_section: { roleId, section: canonicalSection } },
+        update: {
+          canView,
+          canEdit,
+        },
+        create: {
+          roleId,
+          section: canonicalSection,
+          canView,
+          canEdit,
+        },
+      });
+    });
+
+    await auditAdminAwaitable({
+      adminId: staffUser.id,
+      adminEmail: staffUser.email,
+      action: 'UPDATE_STAFF_ROLE_PERMISSIONS',
+      target: roleId,
+      targetType: 'StaffRole',
+      oldValue: existingPermission ? { section: canonicalSection, canView: existingPermission.canView, canEdit: existingPermission.canEdit } : null,
+      newValue: { section: canonicalSection, canView, canEdit },
+    });
+
+    revalidatePath('/admin/settings');
+    revalidatePath('/admin/settings/roles');
+    return { success: true };
+  });
+}
+

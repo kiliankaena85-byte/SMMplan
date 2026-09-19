@@ -107521,6 +107521,9 @@ var init_settings = __esm({
         if (isDummy && hasTestKeys) {
           shopId = settings.yookassaTestShopId;
           secretKeyRaw = settings.yookassaTestSecretKey;
+        } else if (isDummy && useTestKeys && settings.yookassaShopId && settings.yookassaShopId !== "test_shop_id") {
+          shopId = settings.yookassaShopId;
+          secretKeyRaw = settings.yookassaSecretKey;
         }
         const envShopId = useTestKeys ? process.env.YOOKASSA_TEST_SHOP_ID ?? process.env.YOOKASSA_SHOP_ID ?? null : process.env.YOOKASSA_SHOP_ID ?? null;
         const envSecretKey = useTestKeys ? process.env.YOOKASSA_TEST_SECRET_KEY ?? process.env.YOOKASSA_SECRET_KEY ?? null : process.env.YOOKASSA_SECRET_KEY ?? null;
@@ -107646,8 +107649,13 @@ var init_settings = __esm({
           console.warn("[SettingsProvider] Redis is unavailable in isTestMode:", err instanceof Error ? err.message : String(err));
         }
         const settings = await this.get(activeTenantId);
-        if (settings && typeof settings.isTestMode === "boolean") {
-          return settings.isTestMode;
+        if (settings) {
+          if (settings.environmentMode) {
+            return settings.environmentMode !== "PRODUCTION";
+          }
+          if (typeof settings.isTestMode === "boolean") {
+            return settings.isTestMode;
+          }
         }
         if (_SettingsProvider.isTestEnvironment()) return true;
         return false;
@@ -107789,9 +107797,8 @@ var init_settings = __esm({
           console.error("[SettingsProvider] Warning: Failed to invalidate cache tag:", cacheErr);
         }
       }
-      static async isMockPaymentEnabled(tenantId) {
-        const mode = await this.getEnvironmentMode(tenantId);
-        return mode === "SANDBOX" || mode === "HYBRID";
+      static async isMockPaymentEnabled(_tenantId) {
+        return false;
       }
       static async isMockProviderEnabled(tenantId) {
         const mode = await this.getEnvironmentMode(tenantId);
@@ -139797,9 +139804,9 @@ var init_payment_gateway_service = __esm({
       }
     };
     PaymentGatewayFactory = class {
-      static getGateway(gatewayName, options) {
+      static getGateway(gatewayName, _options) {
         const normalizedName = gatewayName.toLowerCase();
-        if (options?.isMockPayment && normalizedName !== "balance") {
+        if (normalizedName === "mock") {
           return new MockGateway();
         }
         switch (normalizedName) {
@@ -139819,8 +139826,6 @@ var init_payment_gateway_service = __esm({
             return new CryptoBotGateway();
           case "balance":
             return new BalanceGateway();
-          case "mock":
-            return new MockGateway();
           default:
             return new YooKassaGateway();
         }

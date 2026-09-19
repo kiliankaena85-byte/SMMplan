@@ -7,6 +7,7 @@ import { OrdersFilterForm } from './components/orders-filter-form';
 import { NumberedPagination } from '@/components/admin/ui/numbered-pagination';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
+import { cookies, headers } from 'next/headers';
 import { resolveOrderEnvironmentMode } from '@/utils/order-environment';
 
 export const dynamic = 'force-dynamic';
@@ -103,8 +104,14 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   const userId = params.userId || '';
   const editOrderId = params.edit_order_id || '';
   const networkSlug = params.networkSlug || '';
+  const cookieStore = await cookies();
+  const reqHeaders = await headers();
+  const cookieTenant = cookieStore.get('x_admin_tenant')?.value;
+  const headerTenant = reqHeaders.get('x-tenant-id') || undefined;
+  const effectiveParamTenant = params.tenant || cookieTenant || headerTenant;
+
   const { resolveAdminTenantContext } = await import('@/utils/admin-tenant');
-  const resolvedTenant = resolveAdminTenantContext(user, params.tenant);
+  const resolvedTenant = resolveAdminTenantContext(user, effectiveParamTenant, cookieTenant || headerTenant);
   const tenantFilter = resolvedTenant !== 'all' ? resolvedTenant : undefined;
 
   const networks = await getCachedNetworks();

@@ -28,7 +28,10 @@ class SettingsService {
   async listStaffUsers(tenantId?: string) {
     return db.user.findMany({
       where: { 
-        role: { in: ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'] },
+        OR: [
+          { role: { in: ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR'] } },
+          { staffRoleId: { not: null } }
+        ],
         ...(tenantId ? { tenantId } : {})
       },
       orderBy: { createdAt: 'desc' },
@@ -53,7 +56,7 @@ class SettingsService {
   }
 
   async updateUserRole(userId: string, role: string, staffRoleId?: string | null) {
-    const validRoles = ['USER', 'SUPPORT', 'MANAGER', 'ADMIN', 'OWNER', 'BANNED'];
+    const validRoles = ['USER', 'SUPPORT', 'OPERATOR', 'MANAGER', 'ADMIN', 'OWNER', 'BANNED'];
     if (!validRoles.includes(role)) throw new Error(`Invalid role: ${role}`);
     
         const dataToUpdate: Prisma.UserUpdateInput = { role };

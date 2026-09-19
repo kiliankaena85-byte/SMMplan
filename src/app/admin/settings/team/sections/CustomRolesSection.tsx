@@ -16,6 +16,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import type { StaffRole, StaffPermission } from '@prisma/client';
+import { normalizeRbacSection } from '@/lib/rbac-sections';
 
 interface CustomRolesSectionProps {
   staffRoles?: (StaffRole & { permissions: StaffPermission[] })[];
@@ -174,7 +175,7 @@ export function CustomRolesSection({
                 {/* Permissions Grid */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   {QUICK_SECTIONS.map(sec => {
-                    const perm = role.permissions?.find(p => p.section === sec.id) || { canView: false, canEdit: false };
+                    const perm = role.permissions?.find(p => normalizeRbacSection(p.section) === sec.id) || { canView: false, canEdit: false };
                     return (
                       <div key={sec.id} className="p-3 rounded-lg border border-border/50 bg-background space-y-2.5">
                         <span className="text-[10px] font-black uppercase tracking-widest text-foreground/80 border-b border-border/30 pb-1.5 block">

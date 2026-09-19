@@ -179,7 +179,7 @@ export async function verifySession(requiredTenantId?: string): Promise<{ userId
     const tokenContour = (payload.contour as ContourId) || (userTenantId === 'flux' ? 'flux' : 'test');
     const cleanHost = host.split(':')[0].toLowerCase().trim();
     const isLocalDev = cleanHost.includes('localhost') || cleanHost.includes('127.0.0.1') || cleanHost === '0.0.0.0' || cleanHost === 'web' || cleanHost.includes('host.docker.internal');
-    const isStrictMismatch = !isLocalDev && user.role !== 'OWNER' && tokenContour !== currentContour && (tokenContour === 'prod' || currentContour === 'prod' || tokenContour === 'flux' || currentContour === 'flux');
+    const isStrictMismatch = !isLocalDev && !['OWNER', 'ADMIN'].includes(user.role) && tokenContour !== currentContour && (tokenContour === 'prod' || currentContour === 'prod' || tokenContour === 'flux' || currentContour === 'flux');
     if (isStrictMismatch) {
       console.warn(`[verifySession] Contour mismatch: token was issued for "${tokenContour}", request is on "${currentContour}"`);
       try {

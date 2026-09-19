@@ -60,7 +60,7 @@ services:
       context: .
       dockerfile: Dockerfile.indexer
     container_name: remote-graphrag-indexer
-    restart: unless-stopped
+    restart: "no"
     environment:
       - QDRANT_URL=http://graphrag-qdrant:6333
       - WATCH_PATHS=/app/codebase/src,/app/codebase/prisma,/app/docs

@@ -3,6 +3,7 @@ import { TransactionsClient } from './transactions-client';
 import { ArrowLeftRight, CreditCard } from 'lucide-react';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
+import { cookies, headers } from 'next/headers';
 import { resolveAdminTenantContext } from '@/utils/admin-tenant';
 import { notFound, redirect } from 'next/navigation';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
@@ -44,7 +45,12 @@ export default async function TransactionsPage({ searchParams }: Props) {
   const period = params.period || 'month';
   const page = parseInt(params.page || '1', 10) || 1;
   const pageSize = parseInt(params.pageSize || '50', 10) || 50;
-  const activeTenantId = resolveAdminTenantContext(user, params.tenant);
+  const cookieStore = await cookies();
+  const reqHeaders = await headers();
+  const cookieTenant = cookieStore.get('x_admin_tenant')?.value;
+  const headerTenant = reqHeaders.get('x-tenant-id') || undefined;
+  const effectiveParamTenant = params.tenant || cookieTenant || headerTenant;
+  const activeTenantId = resolveAdminTenantContext(user, effectiveParamTenant, cookieTenant || headerTenant);
 
   const initialLedger = await getLedgerAction({
     period: period as any,

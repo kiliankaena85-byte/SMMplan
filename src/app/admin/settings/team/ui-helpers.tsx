@@ -16,18 +16,29 @@ export function SearchButton() {
 }
 
 export const getAllowedRoles = (adminRole?: string) => {
-  const base = ['USER', 'SUPPORT', 'MANAGER', 'BANNED'];
+  const base = ['USER', 'SUPPORT', 'OPERATOR', 'MANAGER', 'BANNED'];
   if (adminRole === 'OWNER') return [...base, 'ADMIN', 'OWNER'];
   return base;
 };
 
+export const ROLE_LABELS: Record<string, string> = {
+  OWNER:    'Владелец (OWNER)',
+  ADMIN:    'Администратор (ADMIN)',
+  MANAGER:  'Менеджер (MANAGER)',
+  OPERATOR: 'Оператор (OPERATOR)',
+  SUPPORT:  'Саппорт (SUPPORT)',
+  USER:     'Клиент (USER)',
+  BANNED:   'Заблокирован (BANNED)',
+};
+
 export const ROLE_COLORS: Record<string, string> = {
-  OWNER:   'bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:text-indigo-400',
-  ADMIN:   'bg-sky-500/10 text-sky-600 border-sky-500/20 dark:text-sky-400',
-  MANAGER: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400',
-  SUPPORT: 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400',
-  BANNED:  'bg-rose-500/10 text-rose-500 border-rose-500/20',
-  USER:    'bg-muted/60 text-muted-foreground border-border',
+  OWNER:    'bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:text-indigo-400',
+  ADMIN:    'bg-sky-500/10 text-sky-600 border-sky-500/20 dark:text-sky-400',
+  MANAGER:  'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400',
+  SUPPORT:  'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400',
+  OPERATOR: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20 dark:text-cyan-400',
+  BANNED:   'bg-rose-500/10 text-rose-500 border-rose-500/20',
+  USER:     'bg-muted/60 text-muted-foreground border-border',
 };
 
 export function RoleBadge({ role }: { role: string }) {

@@ -28,12 +28,13 @@ export type ClientColumn = {
 };
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
-  OWNER:   { label: 'Владелец', color: 'bg-warning/15 text-warning border-warning/20' },
-  ADMIN:   { label: 'Админ',   color: 'bg-primary/10 text-primary border-primary/20' },
-  MANAGER: { label: 'Менеджер', color: 'bg-success/15 text-emerald-700 border-success/20' },
-  SUPPORT: { label: 'Саппорт', color: 'bg-muted text-muted-foreground border-border' },
-  USER:    { label: 'Клиент',  color: 'bg-secondary text-secondary-foreground border-border' },
-  BANNED:  { label: 'Забанен', color: 'bg-destructive/15 text-destructive border-destructive/20' },
+  OWNER:    { label: 'Владелец', color: 'bg-warning/15 text-warning border-warning/20' },
+  ADMIN:    { label: 'Админ',   color: 'bg-primary/10 text-primary border-primary/20' },
+  MANAGER:  { label: 'Менеджер', color: 'bg-success/15 text-emerald-700 border-success/20' },
+  SUPPORT:  { label: 'Саппорт', color: 'bg-muted text-muted-foreground border-border' },
+  OPERATOR: { label: 'Оператор', color: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20' },
+  USER:     { label: 'Клиент',  color: 'bg-secondary text-secondary-foreground border-border' },
+  BANNED:   { label: 'Забанен', color: 'bg-destructive/15 text-destructive border-destructive/20' },
 };
 
 export const columns: ColumnDef<ClientColumn>[] = [

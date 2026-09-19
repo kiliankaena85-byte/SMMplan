@@ -56,6 +56,7 @@ knowledge-service/data/indexer_state.json
 stream-promotion-services.json
 curl_out.txt
 *.dump.json
+*.dump
 
 # ── SQLite dev database ──
 prisma/dev.db

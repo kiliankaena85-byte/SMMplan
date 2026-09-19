@@ -617,9 +617,10 @@ export async function proxy(request: NextRequest) {
     const isTenantMismatch = isCustomer && !isStaffRole && !isAdminPath && !isOperatorPath && (!payload || normalizeTenantId(payload.tenantId) !== finalTenantId);
 
     // Enforce contour matching in JWT (tokens issued in test contour cannot be used in prod contour)
+    // Staff roles have global multi-tenant access across contours (OmniSMM 1.0 architecture)
     const currentContour = resolveContourFromHost(host);
     const tokenContour = (payload?.contour as ContourId) || (normalizeTenantId(payload?.tenantId) === 'flux' ? 'flux' : 'test');
-    const isContourMismatch = !isLocalhost && tokenContour !== currentContour && (tokenContour === 'prod' || currentContour === 'prod' || tokenContour === 'flux' || currentContour === 'flux');
+    const isContourMismatch = !isLocalhost && !isStaffRole && !isAdminPath && !isOperatorPath && tokenContour !== currentContour && (tokenContour === 'prod' || currentContour === 'prod' || tokenContour === 'flux' || currentContour === 'flux');
 
     if (!payload || isTenantMismatch || isContourMismatch) {
       if (isRSC) {

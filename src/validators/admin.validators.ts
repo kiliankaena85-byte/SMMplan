@@ -79,7 +79,7 @@ export const bulkUpdateMarkupSchema = z.object({
 // Settings
 export const roleSchema = z.object({
   userId: z.string().min(1),
-  role: z.enum(['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'USER', 'CLIENT', 'BANNED']),
+  role: z.enum(['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT', 'OPERATOR', 'USER', 'CLIENT', 'BANNED']),
   staffRoleId: z.string().nullable().optional(),
 });
 

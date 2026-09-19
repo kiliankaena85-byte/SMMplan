@@ -7,7 +7,7 @@ import {
   cloneRoleAction, 
   deleteRoleAction 
 } from '@/actions/admin/roles';
-import { RbacSectionId } from '@/lib/rbac-sections';
+import { RbacSectionId, normalizeRbacSection } from '@/lib/rbac-sections';
 import { 
   Shield, 
   ShieldAlert, 
@@ -117,7 +117,7 @@ export function RolesClient({ initialRoles, sections }: RolesClientProps) {
     setEditingRole(role);
     const initialPerms: Record<string, { canView: boolean; canEdit: boolean }> = {};
     for (const sec of sections) {
-      const existing = role.permissions.find(p => p.section.toLowerCase() === sec.id.toLowerCase());
+      const existing = role.permissions.find(p => normalizeRbacSection(p.section) === sec.id);
       initialPerms[sec.id] = {
         canView: existing ? existing.canView || existing.canEdit : false,
         canEdit: existing ? existing.canEdit : false,

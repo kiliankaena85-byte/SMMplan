@@ -30,6 +30,7 @@ const ROLE_BADGES: Record<string, { label: string; bg: string; text: string; bor
   ADMIN: { label: 'Админ', bg: 'bg-sky-500/10', text: 'text-sky-600 dark:text-sky-400', border: 'border-sky-500/20' },
   MANAGER: { label: 'Менеджер', bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-500/20' },
   SUPPORT: { label: 'Саппорт', bg: 'bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-500/20' },
+  OPERATOR: { label: 'Оператор', bg: 'bg-cyan-500/10', text: 'text-cyan-600 dark:text-cyan-400', border: 'border-cyan-500/20' },
 };
 
 export function StaffClient({
@@ -85,7 +86,7 @@ export function StaffClient({
       try {
         const res = await updateStaffMemberAction({
           userId: editingStaff.id,
-          role: editRole as 'SUPPORT' | 'MANAGER' | 'ADMIN' | 'OWNER' | 'USER' | 'BANNED',
+          role: editRole as 'SUPPORT' | 'OPERATOR' | 'MANAGER' | 'ADMIN' | 'OWNER' | 'USER' | 'BANNED',
           staffRoleId: editStaffRoleId,
           supportLimitRubles: editLimitRubles,
         });
@@ -558,6 +559,7 @@ export function StaffClient({
                   className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
                   <option value="SUPPORT">Саппорт (Оператор поддержки)</option>
+                  <option value="OPERATOR">Оператор (Заказы и тикеты)</option>
                   <option value="MANAGER">Менеджер (Заказы и модерация)</option>
                   {currentUserRole === 'OWNER' && (
                     <>
