@@ -30,6 +30,7 @@ import {
   DifficultyLevel,
   ScenarioCategory
 } from '@/data/support-training-scenarios';
+import { InteractiveTextbook } from '@/components/admin/manual/interactive-textbook';
 
 interface AcademyClientProps {
   manualHtml: string;
@@ -41,6 +42,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
   // Navigation Modes: SHIFT (на смене) vs LEARN (обучение)
   const [activeMode, setActiveMode] = useState<'SHIFT' | 'LEARN'>('LEARN');
   const [activeTab, setActiveTab] = useState<'simulator' | 'matrix' | 'cheatsheet' | 'handbook' | 'exam' | 'tech_db' | 'tech_analyzer' | 'tech_services' | 'tech_buttons' | 'tech_queues' | 'tech_multitenant'>('handbook');
+  const [manualPresentationMode, setManualPresentationMode] = useState<'INTERACTIVE' | 'TEXT'>('INTERACTIVE');
   const [selectedManualType, setSelectedManualType] = useState<'admin' | 'support'>('admin');
   const [buttonSearch, setButtonSearch] = useState('');
   const [handbookSearch, setHandbookSearch] = useState('');
@@ -1136,60 +1138,100 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
 
       {/* TAB 4: HANDBOOK & CODEBASE ARCHITECTURE */}
       {activeTab === 'handbook' && (
-        <div className="space-y-4">
-          {/* Top Manual Switcher Bar */}
-          <div className="flex items-center justify-between gap-3 flex-wrap bg-card border border-border/80 rounded-2xl p-2 shadow-xs">
+        <div className="space-y-6">
+          {/* Main Format Presentation Switcher */}
+          <div className="flex items-center justify-between gap-3 flex-wrap bg-card border border-border/80 rounded-2xl p-2.5 shadow-xs">
             <div className="flex items-center gap-1.5 p-1 bg-muted rounded-xl text-xs font-bold">
               <button
                 type="button"
-                onClick={() => setSelectedManualType('admin')}
-                className={`px-3.5 py-1.5 rounded-lg transition-all ${
-                  selectedManualType === 'admin'
+                onClick={() => setManualPresentationMode('INTERACTIVE')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  manualPresentationMode === 'INTERACTIVE'
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                📘 Мастер-Руководство SMMpanel 1.0 (Сисадмин & MVP)
+                <span>🎨 Интерактивный учебник с иллюстрациями</span>
+                <span className="px-1.5 py-0.2 rounded bg-background/20 text-[10px]">ГОСТ ЕСПД</span>
               </button>
-              {supportManualHtml && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedManualType('support')}
-                  className={`px-3.5 py-1.5 rounded-lg transition-all ${
-                    selectedManualType === 'support'
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  🎓 Академия Саппорта & Политики
-                </button>
-              )}
+
+              <button
+                type="button"
+                onClick={() => setManualPresentationMode('TEXT')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  manualPresentationMode === 'TEXT'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <span>📄 Полный текст руководства (Markdown)</span>
+              </button>
             </div>
 
-            {/* Section Quick Jump Buttons */}
-            {selectedManualType === 'admin' && (
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold flex-wrap">
-                <a href="#раздел-0-архитектура-и-ключевые-инварианты" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
-                  0. Стек
-                </a>
-                <a href="#раздел-1-каталог-услуг-таксономия-и-импорт" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
-                  1. Каталог & Услуги
-                </a>
-                <a href="#раздел-2-операционный-центр-и-обработка-заказов" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
-                  2. Заказы & Refills
-                </a>
-                <a href="#раздел-3-финансы-54-фз-чеки-и-биллинг" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
-                  3. Финансы & 54-ФЗ
-                </a>
-                <a href="#раздел-4-команда-настройки-и-мульти-тенант" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
-                  4. Команда & Настройки
-                </a>
-                <a href="#чек-лист-готовности-к-запуску-mvp" className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold transition-colors">
-                  🎯 Чек-Лист MVP
-                </a>
-              </div>
-            )}
+            <span className="text-[11px] text-muted-foreground font-semibold px-2">
+              {manualPresentationMode === 'INTERACTIVE'
+                ? 'Режим иллюстрированного учебника с диаграммами и скриншотами'
+                : 'Режим классического чтения документации'}
+            </span>
           </div>
+
+          {manualPresentationMode === 'INTERACTIVE' ? (
+            <InteractiveTextbook />
+          ) : (
+            <div className="space-y-4">
+              {/* Top Manual Switcher Bar */}
+              <div className="flex items-center justify-between gap-3 flex-wrap bg-card border border-border/80 rounded-2xl p-2 shadow-xs">
+                <div className="flex items-center gap-1.5 p-1 bg-muted rounded-xl text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedManualType('admin')}
+                    className={`px-3.5 py-1.5 rounded-lg transition-all ${
+                      selectedManualType === 'admin'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    📘 Мастер-Руководство OmniSMM 1.0 (Сисадмин & MVP)
+                  </button>
+                  {supportManualHtml && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedManualType('support')}
+                      className={`px-3.5 py-1.5 rounded-lg transition-all ${
+                        selectedManualType === 'support'
+                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      🎓 Академия Саппорта & Политики
+                    </button>
+                  )}
+                </div>
+
+                {/* Section Quick Jump Buttons */}
+                {selectedManualType === 'admin' && (
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold flex-wrap">
+                    <a href="#раздел-0-архитектура-и-ключевые-инварианты" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
+                      0. Стек
+                    </a>
+                    <a href="#раздел-1-каталог-услуг-таксономия-и-импорт" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
+                      1. Каталог & Услуги
+                    </a>
+                    <a href="#раздел-2-операционный-центр-и-обработка-заказов" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
+                      2. Заказы & Refills
+                    </a>
+                    <a href="#раздел-3-финансы-54-фз-чеки-и-биллинг" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
+                      3. Финансы & 54-ФЗ
+                    </a>
+                    <a href="#раздел-4-команда-настройки-и-мульти-тенант" className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-colors">
+                      4. Команда & Настройки
+                    </a>
+                    <a href="#чек-лист-готовности-к-запуску-mvp" className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold transition-colors">
+                      🎯 Чек-Лист MVP
+                    </a>
+                  </div>
+                )}
+              </div>
 
           <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Sidebar TOC */}
@@ -1222,6 +1264,8 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
               />
             </main>
           </div>
+        </div>
+      )}
         </div>
       )}
 

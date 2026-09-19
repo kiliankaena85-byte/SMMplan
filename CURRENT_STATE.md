@@ -1,3 +1,74 @@
+- [x] ⚡ [ADMIN-INTERACTIVE-ILLUSTRATED-TEXTBOOK-2026] Разработка интерактивного иллюстрированного учебника администратора «OmniBook 2026» с иллюстрациями, скриншотами, иконками, интерактивными диаграммами и стандартом ГОСТ ЕСПД 19.505-79 (100% COMPLETE & VERIFIED):
+  * 📖 **Интерактивный учебник («OmniBook 2026»):**
+    - Создан полноценный интерактивный мультимедийный учебник на базе 14 томов Энциклопедии, оформленный по государственному стандарту **ГОСТ ЕСПД 19.505-79 / Роспатент** (6 обязательных разделов в каждой главе: 1. Область применения, 2. Термины и определения, 3. Архитектура и системные связи, 4. Пошаговый регламент штатной эксплуатации, 5. Нестандартные и защитные функции, 6. Диагностика сбоев и план восстановления).
+    - Охватывает все **8 операционных доменов** платформы: Архитектура & Мульти-тенантность (Next.js 16, Vault, RBAC), Дашборд & KPI (юнит-экономика, P&L, Liabilities), Реестр заказов & Drip-Feed (Failover, Partial), Саппорт & Тикет-центр (SLA 15м, скрытые заметки 🔒, шорткаты /), Каталог & Ценообразование (строго ₽/шт, TargetType, Карантин цен), Провайдеры API & Импорт (Cherry-Pick, Zero-Unknown-Platform, Circuit Breaker), Финансы & Казначейство (Ledger-First BigInt, 54-ФЗ, НДС 22%, 152-ФЗ), Регламенты аварийных ситуаций (DR-01...DR-06).
+  * 🖼️ **Иллюстрации, реальные скриншоты стейджа и визуальные диаграммы:**
+    - Подключены **25 реальных скриншотов** стейджа из `/manual/screenshots/` с интерактивным просмотрщиком: зум (Zoom In / Zoom Out / Reset), полноэкранный модальный режим, подписи к рисункам и интерактивные хотспоты (clickable hotspots).
+    - Разработаны **интерактивные архитектурные диаграммы** (`InteractiveDiagram.tsx`): 1. Топология слоев Clean Architecture, 2. Конвейер исполнения заказа (ACID & Failover), 3. Бухгалтерский Леджер двойной записи, 4. Автоматический Circuit Breaker провайдеров.
+  * 🚨 **Интерактивные Callout-плашки и бейджи безопасности:**
+    - Разработаны типизированные карточки предупреждений (`InteractiveCallout.tsx`): `NOTE` (ℹ️), `TIP` (💡), `WARNING` (⚠️), `CRITICAL` (🛑), `LEGAL` (⚖️) с возможностью 1-клик копирования сниппетов и ссылками на правила AGENTS.md.
+  * 🛠️ **Интерактивные инструменты оператора:**
+    - **Интерактивный тестовый стенд RegEx (`InteractiveRegexLookup.tsx`):** живая проверка целевых ссылок для 10 социальных сетей (TG, VK, YouTube, Rutube, Instagram и др.) с определением targetType и подтверждением ReDoS-иммунитета.
+    - **Интерактивный справочник кодов ошибок API (`InteractiveErrorCodeLookup.tsx`):** мгновенный поиск по 50+ кодам ошибок поставщиков со шкалой критичности (HIGH, MEDIUM, LOW), алгоритмом действий и 1-клик копированием готового скрипта ответа клиенту.
+    - **Интерактивный чек-лист регламентов (`InteractiveStepChecklist.tsx`):** отслеживание шагов регламента с сохранением прогресса в `localStorage`, прогресс-баром и поздравлением при 100% выполнении.
+    - **Прямой экспорт в Markdown:** скачивание глав учебника в 1 клик с кодировкой UTF-8 BOM.
+  * 🖥️ **Интеграция в панель администратора (`src/app/admin/manual/academy-client.tsx`):**
+    - Внедрен двухрежимный тумблер: «🎨 Интерактивный учебник с иллюстрациями (ГОСТ ЕСПД)» vs «📄 Полный текст руководства (Markdown)».
+    - Интерактивный режим назначен основным визуальным представлением по умолчанию.
+  * 🧪 **Автоматическое тестирование и гейты качества:**
+    - Vitest: `src/__tests__/unit/interactive-textbook.test.tsx` — 7/7 PASS (100% Green).
+    - `npx tsc --noEmit` — 0 ошибок (Clean).
+    - `npm run check:arch` — 0 нарушений слоев, 0 циклических зависимостей (1443 модуля).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - `src/proxy.ts` — 0 строк изменений (нетронут).
+  * 📁 **Созданные и измененные файлы:**
+    - `src/components/admin/manual/interactive-textbook/types.ts`
+    - `src/components/admin/manual/interactive-textbook/data/textbook-domains.ts`
+    - `src/components/admin/manual/interactive-textbook/data/textbook-chapters-part1.ts`
+    - `src/components/admin/manual/interactive-textbook/data/textbook-chapters-part2.ts`
+    - `src/components/admin/manual/interactive-textbook/data/textbook-chapters-part3.ts`
+    - `src/components/admin/manual/interactive-textbook/data/textbook-chapters.ts`
+    - `src/components/admin/manual/interactive-textbook/InteractiveCallout.tsx`
+    - `src/components/admin/manual/interactive-textbook/InteractiveDiagram.tsx`
+    - `src/components/admin/manual/interactive-textbook/InteractiveScreenshotViewer.tsx`
+    - `src/components/admin/manual/interactive-textbook/InteractiveStepChecklist.tsx`
+    - `src/components/admin/manual/interactive-textbook/InteractiveRegexLookup.tsx`
+    - `src/components/admin/manual/interactive-textbook/InteractiveErrorCodeLookup.tsx`
+    - `src/components/admin/manual/interactive-textbook/TextbookChapterViewer.tsx`
+    - `src/components/admin/manual/interactive-textbook/InteractiveTextbook.tsx`
+    - `src/components/admin/manual/interactive-textbook/index.ts`
+    - `src/app/admin/manual/academy-client.tsx`
+    - `src/__tests__/unit/interactive-textbook.test.tsx`
+    - `CURRENT_STATE.md`
+
+- [x] ⚡ [CATALOG-LIFECYCLE-SDD-TDD-2026] Сквозное тестирование и верификация жизненного цикла каталога и импорта услуг по методологии SDD-TDD (100% COMPLETE & VERIFIED):
+  * 🧪 **Контрактные и Unit-тесты (`src/__tests__/unit/catalog-import-lifecycle-sdd.test.ts`):**
+    - 16/16 тестов PASS (0 failures, 100% Green).
+    - **Приоритет №1 vs Приоритет №2:** Проверен безусловный приоритет ручного выбора оператора (`explicitId`, `categoryIdMap`), исключающий авто-сплит и переопределение.
+    - **Zero-Unknown-Platform Guard:** Проверена отбраковка услуг с неизвестной/неопределённой платформой (`UNKNOWN_PLATFORM`) при авто-импорте.
+    - **Токсичность и мусор:** Проверена фильтрация запрещённых услуг (`снос канала`, `жалобы`) и нерабочих сервисов (`[TEST]`, `не заказывать`).
+    - **Баг флагов Windows:** Проверено автодобавление канонического префикса бренда (`Telegram 🇷🇺 ...`).
+    - **Нормализация строки поиска #ID:** Проверена очистка `#1643`, `№1643`, `ID: 1643`, `id 1643` до точного `numericId = 1643`.
+    - **TargetType Semantic Resolution:** Проверено определение каналов, ботов, опросов и сторис, исключающее ложную несовместимость из-за дефолтного значения `POST` в БД.
+    - **Drip-Feed Floor:** Проверен инвариант объема на запуск $\lfloor Q/N \rfloor \ge \text{minQty}$.
+    - **Failover Routing:** Проверена защита от NUMERIC_ID_COLLISION и логика резервного шлюза при отказе провайдера.
+    - **Price Drift Circuit Breaker:** Проверена блокировка микро-цен (< 0.01 ₽) и аномальных валютных скачков.
+  * 🚀 **Автономный E2E Smoke-скрипт (`scripts/smoke-catalog-lifecycle.ts`):**
+    - 6 векторов надежности, 11/11 инвариантных проверок PASS (Exit code 0).
+  * 🛡️ **Контрольные гейты качества и регрессии:**
+    - `vitest src/__tests__/unit/catalog-import-lifecycle-sdd.test.ts` — 16/16 PASS.
+    - `npx tsx scripts/smoke-catalog-lifecycle.ts` — 11/11 PASS.
+    - `vitest src/__tests__/unit/interactive-textbook.test.tsx` — 7/7 PASS.
+    - `vitest src/__tests__/admin-nav-active.test.ts` — 21/21 PASS.
+    - `npx tsc --noEmit` — 0 ошибок (Clean).
+    - `npm run check:arch` — 0 нарушений слоев, 0 циклических связей (1443 модуля).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+  * 📁 **Созданные и обновленные файлы:**
+    - `src/__tests__/unit/catalog-import-lifecycle-sdd.test.ts`
+    - `scripts/smoke-catalog-lifecycle.ts`
+    - `src/__tests__/unit/interactive-textbook.test.tsx`
+    - `CURRENT_STATE.md`
+
 - [x] ⚡ [ADMIN-ENCYCLOPEDIA-HANDBOOK-2026] Разработка фундаментальной «Энциклопедии администратора OmniSMM 1.0» (14 томов, 52 главы, 20 скриптов саппорта, 50+ кодов ошибок, RegEx библиотека, CLI-справочник) (100% COMPLETE & VERIFIED):
   * 📚 **Монументальная Энциклопедия администратора (`docs/manual/ADMIN_DESK_HANDBOOK_2026.md`):**
     - Создана исчерпывающая настольная книга на 14 томов и 52 главы высокой смысловой плотности, охватывающая абсолютно все 6 операционных доменов и 22 административных экрана OmniSMM 1.0 (SMMplan & SMMflux).
