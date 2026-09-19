@@ -52,6 +52,11 @@ export const CHAPTERS_PART_3: TextbookChapter[] = [
       src: '/manual/screenshots/04_stage_admin_finance_reconciliation.png',
       caption: 'Рис. 7.1 — Финансовая сверка: балансы счетов эквайринга, сверка Леджера и статус фискализации 54-ФЗ',
       altText: 'Финансовая сверка OmniSMM',
+      hotspots: [
+        { badgeNumber: 1, xPercent: 24, yPercent: 25, title: 'Баланс эквайринга ЮKassa', description: 'Сверка реальных поступлений со шлюза с суммой дебетовых записей в Леджере' },
+        { badgeNumber: 2, xPercent: 55, yPercent: 25, title: 'Контроль неизменяемого Леджера', description: 'Бухгалтерский журнал двойной записи с копейками BigInt и защитой от перезаписи' },
+        { badgeNumber: 3, xPercent: 82, yPercent: 25, title: 'Фискализация 54-ФЗ', description: 'Статус онлайн-чеков с расчётом НДС 22% по закону № 425-ФЗ' },
+      ],
     },
     checklist: [
       { id: 'fin-1', title: 'Провести сверку целостности Леджера', detail: 'Убедиться в отсутствии аномалий и нулевом расхождении' },
@@ -105,6 +110,11 @@ export const CHAPTERS_PART_3: TextbookChapter[] = [
       src: '/manual/screenshots/03_stage_manual_runbook_detail_6_sections.png',
       caption: 'Рис. 8.1 — Экран регламента по стандарту ГОСТ ЕСПД 19.505-79 с 6 обязательными главами',
       altText: 'Регламент ГОСТ ЕСПД',
+      hotspots: [
+        { badgeNumber: 1, xPercent: 20, yPercent: 15, title: 'ГОСТ ЕСПД 19.505-79', description: 'Обязательные 6 разделов государственного стандарта для всех технических инструкций' },
+        { badgeNumber: 2, xPercent: 85, yPercent: 15, title: 'Экспорт .md (BOM)', description: 'Мгновенное скачивание регламента в UTF-8 BOM для дежурной папки и печати' },
+        { badgeNumber: 3, xPercent: 50, yPercent: 65, title: 'Интерактивный чек-лист', description: 'Пошаговый контроль действий дежурного инженера с сохранением прогресса в localStorage' },
+      ],
     },
     checklist: [
       { id: 'dr-1', title: 'Оповестить руководство в P0-канале', detail: 'Зафиксировать время начала инцидента и пострадавший контур' },

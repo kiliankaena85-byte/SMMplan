@@ -62,6 +62,38 @@ const REGEX_DIRECTORY: SocialPattern[] = [
     regex: /^(?:https?:\/\/)?rutube\.ru\/video\/([a-f0-9]{32})\/?$/,
     exampleUrl: 'https://rutube.ru/video/1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d/',
   },
+  {
+    platform: 'TikTok (Видео)',
+    icon: '🎵',
+    targetType: 'POST',
+    patternStr: '^(?:https?:\\/\\/)?(?:www\\.)?tiktok\\.com\\/@([a-zA-Z0-9_.-]+)\\/video\\/(\\d+)\\/?$',
+    regex: /^(?:https?:\/\/)?(?:www\.)?tiktok\.com\/@([a-zA-Z0-9_.-]+)\/video\/(\d+)\/?$/,
+    exampleUrl: 'https://www.tiktok.com/@tiktok/video/7123456789012345678',
+  },
+  {
+    platform: 'Twitter / X (Пост)',
+    icon: '✖️',
+    targetType: 'POST',
+    patternStr: '^(?:https?:\\/\\/)?(?:twitter\\.com|x\\.com)\\/([a-zA-Z0-9_]{1,15})\\/status\\/(\\d+)\\/?$',
+    regex: /^(?:https?:\/\/)?(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]{1,15})\/status\/(\d+)\/?$/,
+    exampleUrl: 'https://x.com/elonmusk/status/1234567890123456789',
+  },
+  {
+    platform: 'Дзен (Канал)',
+    icon: '📑',
+    targetType: 'CHANNEL',
+    patternStr: '^(?:https?:\\/\\/)?dzen\\.ru\\/([a-zA-Z0-9_.-]{3,32})\\/?$',
+    regex: /^(?:https?:\/\/)?dzen\.ru\/([a-zA-Z0-9_.-]{3,32})\/?$/,
+    exampleUrl: 'https://dzen.ru/yandex',
+  },
+  {
+    platform: 'Threads (Профиль)',
+    icon: '🧵',
+    targetType: 'USER',
+    patternStr: '^(?:https?:\\/\\/)?(?:www\\.)?threads\\.net\\/@([a-zA-Z0-9_.-]{1,30})\\/?$',
+    regex: /^(?:https?:\/\/)?(?:www\.)?threads\.net\/@([a-zA-Z0-9_.-]{1,30})\/?$/,
+    exampleUrl: 'https://threads.net/@zuck',
+  },
 ];
 
 export function InteractiveRegexLookup() {

@@ -48,16 +48,19 @@ ${chapter.section2Terms.map((t) => `- **${t.term}**: ${t.definition}`).join('\n'
 
 ## 3. АРХИТЕКТУРА И СИСТЕМНЫЕ СВЯЗИ
 ${chapter.section3Architecture.description}
-${chapter.section3Architecture.coreTables ? `Таблицы БД: ${chapter.section3Architecture.coreTables.join(', ')}` : ''}
+${chapter.section3Architecture.coreTables ? `\n- Таблицы БД: \`${chapter.section3Architecture.coreTables.join('`, `')}\`` : ''}
+${chapter.section3Architecture.coreActions ? `\n- Серверные действия: \`${chapter.section3Architecture.coreActions.join('`, `')}\`` : ''}
 
 ## 4. ПОШАГОВЫЙ РЕГЛАМЕНТ ШТАТНОЙ ЭКСПЛУАТАЦИИ
 ${chapter.section4Walkthrough.steps.map((s) => `${s.stepNumber}. **${s.title}**: ${s.description}`).join('\n')}
 
+${chapter.checklist.length > 0 ? `### Чек-лист проверки регламента:\n${chapter.checklist.map((c) => `- [ ] **${c.title}**: ${c.detail}`).join('\n')}\n` : ''}
 ## 5. НЕСТАНДАРТНЫЕ И ЗАЩИТНЫЕ ФУНКЦИИ
 ${chapter.section5Safeguards.rules.map((r) => `- [${r.code}] **${r.name}**: ${r.description}`).join('\n')}
 
+${chapter.callouts.length > 0 ? `### Нормативные предупреждения и плашки безопасности:\n${chapter.callouts.map((c) => `> **[${c.type}] ${c.title}**\n> ${c.content}${c.codeSnippet ? `\n> \`\`\`\n> ${c.codeSnippet}\n> \`\`\`` : ''}`).join('\n\n')}\n` : ''}
 ## 6. ДИАГНОСТИКА СБОЕВ И ПЛАН ВОССТАНОВЛЕНИЯ
-${chapter.section6Troubleshooting.map((tc) => `### ${tc.scenario}\n- Симптомы: ${tc.symptoms}\n- Решение: ${tc.solution}\n${tc.emergencyCommand ? `- Команда: \`${tc.emergencyCommand}\`` : ''}`).join('\n\n')}
+${chapter.section6Troubleshooting.map((tc) => `### ${tc.scenario}\n- **Симптомы**: ${tc.symptoms}\n- **Решение**: ${tc.solution}\n${tc.emergencyCommand ? `- **Аварийная команда**: \`${tc.emergencyCommand}\`` : ''}`).join('\n\n')}
 `;
       const blob = new Blob(['\uFEFF' + content], { type: 'text/markdown;charset=utf-8' });
       const url = URL.createObjectURL(blob);

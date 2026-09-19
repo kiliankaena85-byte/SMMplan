@@ -52,6 +52,11 @@ export const CHAPTERS_PART_1: TextbookChapter[] = [
       src: '/manual/screenshots/08_stage_manual_inspector_status.png',
       caption: 'Рис. 1.1 — Инспектор архитектуры, статус моделей Prisma и проверка целостности ADR-2026-20',
       altText: 'Инспектор архитектуры OmniSMM 1.0',
+      hotspots: [
+        { badgeNumber: 1, xPercent: 20, yPercent: 28, title: 'Модели Prisma & Реплики', description: 'Инспектор целостности схемы PostgreSQL, пула подключений и транзакций ACID' },
+        { badgeNumber: 2, xPercent: 55, yPercent: 28, title: 'Контроль ADR-2026-20', description: 'Автоматический аудит архитектурных решений, слоев и чистоты зависимостей' },
+        { badgeNumber: 3, xPercent: 82, yPercent: 18, title: 'Статус Tailscale Funnel', description: 'Официальный сетевой туннель платформы: порт 3000, 200 OK' },
+      ],
     },
     checklist: [
       { id: 'arch-1', title: 'Проверить доступность Tailscale Funnel', detail: 'Проверить статус узла в консоли' },
@@ -104,6 +109,11 @@ export const CHAPTERS_PART_1: TextbookChapter[] = [
       src: '/manual/screenshots/57_stage_admin_owner_executive_full.png',
       caption: 'Рис. 2.1 — Сводная панель владельца с графиками выручки, маржи и здоровья инфраструктуры',
       altText: 'Executive Dashboard OmniSMM 1.0',
+      hotspots: [
+        { badgeNumber: 1, xPercent: 24, yPercent: 25, title: 'P&L Маржинальность смены', description: 'Чистая операционная прибыль за вычетом оптовой себестоимости провайдеров и налогов' },
+        { badgeNumber: 2, xPercent: 50, yPercent: 25, title: 'Обязательства (Liabilities)', description: 'Суммарный неиспользованный баланс всех зарегистрированных пользователей в копейках' },
+        { badgeNumber: 3, xPercent: 76, yPercent: 25, title: 'Активные заказы & BullMQ', description: 'Текущий объем заказов в конвейере исполнения и распределение по шлюзам' },
+      ],
     },
     checklist: [
       { id: 'dash-1', title: 'Сверить дневной оборот Gross', detail: 'Проверить корректность транзакций эквайринга' },
@@ -157,6 +167,11 @@ export const CHAPTERS_PART_1: TextbookChapter[] = [
       src: '/manual/screenshots/order_placed_success.png',
       caption: 'Рис. 3.1 — Успешное оформление заказа с присвоением канонического #ID и регистрацией в Леджере',
       altText: 'Успешный заказ OmniSMM',
+      hotspots: [
+        { badgeNumber: 1, xPercent: 50, yPercent: 28, title: 'Номер заказа #ID', description: 'Кликабельный канонический бейдж ID с 1-клик копированием и тостом' },
+        { badgeNumber: 2, xPercent: 50, yPercent: 48, title: 'Проводка WalletOps', description: 'Списание средств с баланса зарегистрировано в неизменяемом Леджере двойной записи' },
+        { badgeNumber: 3, xPercent: 50, yPercent: 78, title: 'Переход в реестр', description: 'Прямая ссылка для диспетчеризации и проверки очередей исполнения' },
+      ],
     },
     checklist: [
       { id: 'order-1', title: 'Проверить статус синхронизации поставщика', detail: 'Убедиться в наличии remoteOrderId' },

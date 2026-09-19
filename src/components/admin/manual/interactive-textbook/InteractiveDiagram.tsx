@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ArrowRight, Layers, ShieldCheck, Database, Zap, Cpu, AlertTriangle } from 'lucide-react';
+import { ArrowRight, Layers, ShieldCheck, Database, Zap, Cpu, AlertTriangle, Headphones, Lock, Send } from 'lucide-react';
 import { DiagramType } from './types';
 
 interface InteractiveDiagramProps {
@@ -122,6 +122,68 @@ export function InteractiveDiagram({ type }: InteractiveDiagramProps) {
             <span>+50.00 ₽</span>
             <span>—</span>
             <span>80 000 копеек</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (type === 'SUPPORT_ESCALATION') {
+    return (
+      <div className="my-4 p-4 rounded-2xl bg-card border border-border shadow-xs space-y-3">
+        <div className="flex items-center justify-between border-b border-border/50 pb-2">
+          <div className="flex items-center gap-2">
+            <Headphones className="w-4 h-4 text-violet-500" />
+            <span className="text-xs font-bold text-foreground">Схема 5: Трехуровневая эскалация саппорта и SLA 15 минут</span>
+          </div>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-violet-500/10 text-violet-600 border border-violet-500/20">SLA 15m Target</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
+          <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/30 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase text-violet-600">Линия 1 • Дежурный</span>
+              <span className="text-[10px] font-mono text-muted-foreground">SLA ≤ 5 мин</span>
+            </div>
+            <p className="text-xs font-bold text-foreground">Оператор саппорта</p>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Первичная диагностика, Dual-Core готовые скрипты, проверка приватности каналов и ReDoS-ссылок.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase text-amber-600">Линия 2 • Старший</span>
+              <span className="text-[10px] font-mono text-muted-foreground">SLA ≤ 15 мин</span>
+            </div>
+            <p className="text-xs font-bold text-foreground">Старший смены / Финансы</p>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Финансовые споры, ручной частичный возврат (Partial Refund), сверка чеков ЮKassa и рефаллинг.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase text-rose-600">Линия 3 • Эскалация</span>
+              <span className="text-[10px] font-mono text-muted-foreground">P0 Alert TG</span>
+            </div>
+            <p className="text-xs font-bold text-foreground">Администратор / DevOps</p>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Аварии шлюзов поставщиков, Circuit Breaker OPEN, пополнение балансов провайдеров, блокировки фрода.
+            </p>
+          </div>
+        </div>
+
+        <div className="p-2.5 rounded-xl bg-muted/40 border border-border/60 flex items-center justify-between gap-3 text-xs flex-wrap">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Lock className="w-3.5 h-3.5 text-amber-500" />
+            <span className="text-[11px]">
+              <strong className="text-foreground">Скрытые заметки 🔒:</strong> Внутренняя переписка доступна только персоналу и не видна клиенту.
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-violet-600 bg-violet-500/10 px-2 py-0.5 rounded-md border border-violet-500/20">
+            <Send className="w-3 h-3" />
+            <span>Telegram Alert при простое &gt; 15м</span>
           </div>
         </div>
       </div>

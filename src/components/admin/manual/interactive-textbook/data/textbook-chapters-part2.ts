@@ -52,6 +52,11 @@ export const CHAPTERS_PART_2: TextbookChapter[] = [
       src: '/manual/screenshots/03_stage_admin_support.png',
       caption: 'Рис. 4.1 — Рабочее место оператора: тикет-лист, карточка заказа клиента и панель служебных заметок',
       altText: 'Рабочее место поддержки OmniSMM',
+      hotspots: [
+        { badgeNumber: 1, xPercent: 25, yPercent: 20, title: 'Таймер SLA 15 минут', description: 'Индикатор времени ответа на тикет. При превышении 15 мин уходит P0 алерт в Telegram' },
+        { badgeNumber: 2, xPercent: 65, yPercent: 45, title: 'Селектор ответов Dual-Core', description: '1-клик вставка стандартизированных вежливых скриптов ответов клиентам' },
+        { badgeNumber: 3, xPercent: 85, yPercent: 65, title: 'Служебные заметки 🔒', description: 'Внутренняя переписка между оператором и старшим смены, невидимая для клиента' },
+      ],
     },
     checklist: [
       { id: 'tick-1', title: 'Проверить очередь ожидающих тикетов', detail: 'Убедиться в отсутствии просрочек SLA > 15 минут' },
@@ -105,6 +110,11 @@ export const CHAPTERS_PART_2: TextbookChapter[] = [
       src: '/manual/screenshots/58_stage_admin_service_access_groups.png',
       caption: 'Рис. 5.1 — Редактирование услуги: семантический targetType, группы доступа и наценка ₽/шт',
       altText: 'Каталог услуг OmniSMM',
+      hotspots: [
+        { badgeNumber: 1, xPercent: 25, yPercent: 30, title: 'Семантический targetType', description: 'Точный тип ресурса (POST vs CHANNEL), исключающий ложную несовместимость' },
+        { badgeNumber: 2, xPercent: 55, yPercent: 30, title: 'Цена за 1 шт (₽ / шт)', description: 'Единый стандарт отображения розничной цены без умножений на 1000' },
+        { badgeNumber: 3, xPercent: 80, yPercent: 50, title: 'Переключатель активности', description: 'Safe Archive: при выключении услуга переводится в isActive: false' },
+      ],
     },
     checklist: [
       { id: 'cat-1', title: 'Проверить отображение ₽/шт', detail: 'Убедиться в отсутствии надписей /1000 шт' },
@@ -158,6 +168,11 @@ export const CHAPTERS_PART_2: TextbookChapter[] = [
       src: '/manual/screenshots/import-wizard-decomposed-preview.png',
       caption: 'Рис. 6.1 — Мастер импорта Cherry-Pick с предпросмотром услуг, валидатором цен и селектором категорий',
       altText: 'Мастер импорта услуг',
+      hotspots: [
+        { badgeNumber: 1, xPercent: 20, yPercent: 25, title: 'Выбор поставщика & баланс', description: 'Отображение валюты, баланса шлюза и времени задержки Latency P95' },
+        { badgeNumber: 2, xPercent: 55, yPercent: 40, title: 'Таблица Cherry-Pick выбора', description: 'Чекбоксы услуг для точечного импорта с предпросмотром расчётной наценки' },
+        { badgeNumber: 3, xPercent: 82, yPercent: 25, title: 'Приоритет №1 админа', description: 'Ручное сопоставление категории оператором полностью отключает авто-сплит' },
+      ],
     },
     checklist: [
       { id: 'prov-1', title: 'Проверить балансы всех активных провайдеров', detail: 'Убедиться в наличии достаточных средств на счетах' },

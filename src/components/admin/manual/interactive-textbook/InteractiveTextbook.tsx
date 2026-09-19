@@ -37,6 +37,22 @@ export function InteractiveTextbook() {
     return list;
   }, [activeDomain, searchQuery]);
 
+  const handleDomainChange = (domainId: TextbookDomainId | 'ALL') => {
+    setActiveDomain(domainId);
+    let list = ALL_TEXTBOOK_CHAPTERS;
+    if (domainId !== 'ALL') {
+      list = list.filter((ch) => ch.domainId === domainId);
+    }
+    if (searchQuery.trim()) {
+      list = searchChapters(searchQuery).filter((ch) =>
+        domainId === 'ALL' ? true : ch.domainId === domainId
+      );
+    }
+    if (list.length > 0 && !list.some((ch) => ch.id === selectedChapterId)) {
+      setSelectedChapterId(list[0].id);
+    }
+  };
+
   const currentChapter = useMemo(() => {
     return (
       filteredChapters.find((ch) => ch.id === selectedChapterId) ||
@@ -130,7 +146,7 @@ export function InteractiveTextbook() {
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
             <button
               type="button"
-              onClick={() => setActiveDomain('ALL')}
+              onClick={() => handleDomainChange('ALL')}
               className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all shrink-0 cursor-pointer ${
                 activeDomain === 'ALL'
                   ? 'bg-foreground text-background shadow-xs'
@@ -143,7 +159,7 @@ export function InteractiveTextbook() {
               <button
                 key={dom.id}
                 type="button"
-                onClick={() => setActiveDomain(dom.id)}
+                onClick={() => handleDomainChange(dom.id)}
                 className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all shrink-0 cursor-pointer ${
                   activeDomain === dom.id
                     ? 'bg-primary text-primary-foreground border-primary shadow-xs'
@@ -156,23 +172,30 @@ export function InteractiveTextbook() {
           </div>
 
           {/* Search Box */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Поиск по учебнику: термин, номер тома, правило, код ошибки..."
-              className="w-full h-10 pl-10 pr-10 text-xs rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground font-bold"
-              >
-                ✕
-              </button>
+          <div className="space-y-1.5">
+            <div className="relative">
+              <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Поиск по учебнику: термин, номер тома, правило, код ошибки..."
+                className="w-full h-10 pl-10 pr-10 text-xs rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground font-bold"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            {searchQuery.trim() && (
+              <div className="text-[11px] text-muted-foreground px-1">
+                Найдено глав: <strong className="text-foreground">{filteredChapters.length}</strong>
+              </div>
             )}
           </div>
 

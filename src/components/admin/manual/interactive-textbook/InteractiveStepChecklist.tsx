@@ -88,14 +88,24 @@ export function InteractiveStepChecklist({ chapterId, items }: InteractiveStepCh
       </div>
 
       {/* Checklist items */}
-      <div className="space-y-2">
+      <div className="space-y-2" role="group" aria-label="Пункты регламента">
         {items.map((item) => {
           const isChecked = !!checkedIds[item.id];
           return (
             <div
               key={item.id}
+              role="checkbox"
+              tabIndex={0}
+              aria-checked={isChecked}
+              aria-label={`${item.title}. ${item.detail}`}
               onClick={() => handleToggle(item.id)}
-              className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-start gap-2.5 select-none ${
+              onKeyDown={(e) => {
+                if (e.key === ' ' || e.key === 'Enter') {
+                  e.preventDefault();
+                  handleToggle(item.id);
+                }
+              }}
+              className={`p-2.5 min-h-[44px] rounded-xl border transition-all cursor-pointer flex items-start gap-2.5 select-none outline-hidden focus-visible:ring-2 focus-visible:ring-primary/40 ${
                 isChecked
                   ? 'bg-emerald-500/10 border-emerald-500/30 text-foreground'
                   : 'bg-muted/30 border-border/50 hover:bg-muted/60 text-foreground'
