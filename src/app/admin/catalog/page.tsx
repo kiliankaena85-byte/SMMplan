@@ -225,36 +225,16 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
                 </Button>
               </Link>
             )}
-            <Link href={`/admin/catalog/categories?tenant=${selectedTenant}`}>
-              <Button
-                intent="outline"
-                size="sm"
-                className="font-bold h-9 bg-background text-muted-foreground hover:text-foreground"
-              >
-                Категории & Соцсети
-              </Button>
-            </Link>
             {canEdit && (
-              <div className="flex items-center gap-2">
-                <Link href="/admin/providers/import">
-                  <Button
-                    intent="outline"
-                    size="sm"
-                    className="font-bold h-9 bg-background text-muted-foreground hover:text-foreground"
-                  >
-                    Импорт услуг
-                  </Button>
-                </Link>
-                <Link href="/admin/catalog/new">
-                  <Button
-                    intent="primary"
-                    size="sm"
-                    className="font-bold h-9"
-                  >
-                    + Создать услугу
-                  </Button>
-                </Link>
-              </div>
+              <Link href="/admin/catalog/new">
+                <Button
+                  intent="primary"
+                  size="sm"
+                  className="font-bold h-9"
+                >
+                  + Создать услугу
+                </Button>
+              </Link>
             )}
           </div>
         }

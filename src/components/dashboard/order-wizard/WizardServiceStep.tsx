@@ -87,7 +87,7 @@ export function WizardServiceStep({
                   </span>
                   {srv.isRefillEnabled ? (
                     <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-lg border border-emerald-500/20">
-                      <ShieldCheck className="w-3 h-3 shrink-0" /> Автодокрутка
+                      <ShieldCheck className="w-3 h-3 shrink-0" /> Гарантия
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 bg-muted px-2.5 py-0.5 rounded-lg text-muted-foreground">

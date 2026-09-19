@@ -1,6 +1,6 @@
 import { Plug } from 'lucide-react';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
-import { CATALOG_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
+import { PROVIDERS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 
 export default function ProvidersLoading() {
   return (
@@ -15,7 +15,7 @@ export default function ProvidersLoading() {
         icon={Plug}
         title="Провайдеры API"
         description="Загрузка поставщиков услуг и статусов синхронизации..."
-        tabs={CATALOG_TABS}
+        tabs={PROVIDERS_TABS}
         onboardingKey="providers"
         onboarding={ONBOARDING_CONFIGS.providers}
       />

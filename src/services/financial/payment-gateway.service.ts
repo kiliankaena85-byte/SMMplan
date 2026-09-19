@@ -784,11 +784,11 @@ class MockGateway extends BasePaymentGateway {
 }
 
 export class PaymentGatewayFactory {
-  static getGateway(gatewayName: string, options?: { isMockPayment?: boolean }): BasePaymentGateway {
+  static getGateway(gatewayName: string, _options?: { isMockPayment?: boolean }): BasePaymentGateway {
     const normalizedName = gatewayName.toLowerCase();
     
-    // In SANDBOX or HYBRID modes, route all external gateways to MockGateway to prevent network leakage
-    if (options?.isMockPayment && normalizedName !== 'balance') {
+    // MockGateway is strictly for explicit 'mock' gateway
+    if (normalizedName === 'mock') {
       return new MockGateway();
     }
 
@@ -809,8 +809,6 @@ export class PaymentGatewayFactory {
         return new CryptoBotGateway();
       case 'balance':
         return new BalanceGateway();
-      case 'mock':
-        return new MockGateway();
       default:
         // Fallback to YooKassa if unknown card/payment method passed
         return new YooKassaGateway();

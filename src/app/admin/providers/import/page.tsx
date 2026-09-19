@@ -3,7 +3,7 @@ import { ImportWizard } from './components/import-wizard';
 import Link from 'next/link';
 import { Download, PlusCircle, FolderPlus } from 'lucide-react';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
-import { CATALOG_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
+import { PROVIDERS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { headers } from 'next/headers';
 import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 import { resolveAdminTenantContext } from '@/utils/admin-tenant';
@@ -47,7 +47,7 @@ export default async function ImportProvidersPage({ searchParams }: ImportPagePr
         icon={Download}
         title="Импорт Услуг"
         description="Загрузите каталог провайдера, выберите услуги и импортируйте в один клик."
-        tabs={CATALOG_TABS}
+        tabs={PROVIDERS_TABS}
         onboardingKey="providers"
         onboarding={ONBOARDING_CONFIGS.providers}
       />

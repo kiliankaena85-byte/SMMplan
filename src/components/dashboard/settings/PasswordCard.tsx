@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { setPasswordAction, changePasswordAction } from '@/actions/auth/password-settings';
 import { Lock, Eye, EyeOff, KeyRound, Check } from 'lucide-react';
@@ -13,6 +14,7 @@ export default function PasswordCard({
   hasPassword: boolean;
   canResetPassword?: boolean;
 }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -25,12 +27,10 @@ export default function PasswordCard({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!newPassword || newPassword.length < 8) {
       toast.error('Пароль должен содержать не менее 8 символов');
       return;
     }
-
     if (newPassword !== confirmPassword) {
       toast.error('Пароли не совпадают');
       return;
@@ -61,13 +61,12 @@ export default function PasswordCard({
           toast.success('Пароль успешно установлен!');
         }
 
-        // Reset fields
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
+        router.refresh();
       } catch (error) {
-        const msg = error instanceof Error ? error.message : 'Неизвестная ошибка';
-        toast.error(`Не удалось обновить пароль: ${msg}`);
+        toast.error(`Не удалось обновить пароль: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
       }
     });
   };

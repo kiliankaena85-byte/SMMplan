@@ -106,10 +106,6 @@ export function UserCommandMenu() {
               <span>Пополнить баланс</span>
               <CommandShortcut>⌘B</CommandShortcut>
             </CommandItem>
-            <CommandItem onSelect={() => handleSelect('/dashboard/smart-drip')}>
-              <Cpu className="mr-2 h-4 w-4 text-indigo-500" />
-              <span>Умный Drip-feed</span>
-            </CommandItem>
             <CommandItem onSelect={() => handleSelect('/dashboard/transactions')}>
               <Receipt className="mr-2 h-4 w-4 text-muted-foreground" />
               <span>История транзакций</span>

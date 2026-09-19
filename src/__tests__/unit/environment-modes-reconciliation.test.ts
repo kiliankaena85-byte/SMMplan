@@ -4,8 +4,13 @@ import { SettingsProvider, EnvironmentMode } from '@/lib/settings';
 
 describe('Environment Modes & Reconciliation Hardening (CDD-TDD 2026)', () => {
   describe('PaymentGatewayFactory with isMockPayment option', () => {
-    it('returns MockGateway when isMockPayment is true and gateway is yookassa', () => {
-      const gateway = PaymentGatewayFactory.getGateway('yookassa', { isMockPayment: true });
+    it('returns YooKassaGateway when gateway is yookassa in any mode', () => {
+      const gateway = PaymentGatewayFactory.getGateway('yookassa');
+      expect(gateway.constructor.name).toBe('YooKassaGateway');
+    });
+
+    it('returns MockGateway only for explicit mock gateway', () => {
+      const gateway = PaymentGatewayFactory.getGateway('mock');
       expect(gateway.constructor.name).toBe('MockGateway');
     });
 
@@ -21,20 +26,43 @@ describe('Environment Modes & Reconciliation Hardening (CDD-TDD 2026)', () => {
   });
 
   describe('SettingsProvider mode semantic invariants', () => {
-    it('correctly maps isMockPaymentEnabled for all 4 modes', () => {
-      const mockModes: Record<EnvironmentMode, { mockPayment: boolean; mockProvider: boolean }> = {
-        SANDBOX: { mockPayment: true, mockProvider: true },
-        HYBRID: { mockPayment: true, mockProvider: false },
-        ACQUIRING_TEST: { mockPayment: false, mockProvider: true },
-        PRODUCTION: { mockPayment: false, mockProvider: false }
-      };
+    it('disables mock payment for all modes so real YooKassa is always used', async () => {
+      const isMockPayment = await SettingsProvider.isMockPaymentEnabled('smmplan');
+      expect(isMockPayment).toBe(false);
+    });
 
-      for (const [mode, expected] of Object.entries(mockModes)) {
-        const isMockPay = mode === 'SANDBOX' || mode === 'HYBRID';
-        const isMockProv = mode === 'SANDBOX' || mode === 'ACQUIRING_TEST';
-        expect(isMockPay).toBe(expected.mockPayment);
-        expect(isMockProv).toBe(expected.mockProvider);
+    it('correctly maps isTestMode based on environmentMode', async () => {
+      const modes: { mode: EnvironmentMode; expectedTestMode: boolean }[] = [
+        { mode: 'SANDBOX', expectedTestMode: true },
+        { mode: 'HYBRID', expectedTestMode: true },
+        { mode: 'ACQUIRING_TEST', expectedTestMode: true },
+        { mode: 'PRODUCTION', expectedTestMode: false }
+      ];
+
+      for (const { mode, expectedTestMode } of modes) {
+        vi.spyOn(SettingsProvider, 'get').mockResolvedValueOnce({
+          environmentMode: mode,
+          isTestMode: expectedTestMode
+        } as any);
+
+        const isTest = await SettingsProvider.isTestMode('smmplan');
+        expect(isTest).toBe(expectedTestMode);
       }
+    });
+
+    it('falls back to main credentials in test mode if test credentials are not set', async () => {
+      vi.spyOn(SettingsProvider, 'get').mockResolvedValue({
+        environmentMode: 'HYBRID',
+        isTestMode: true,
+        yookassaShopId: '123456',
+        yookassaSecretKey: 'test_custom_secret',
+        yookassaTestShopId: null,
+        yookassaTestSecretKey: null,
+      } as any);
+
+      const secrets = await SettingsProvider.getPaymentSecrets('smmplan');
+      expect(secrets.yookassaShopId).toBe('123456');
+      expect(secrets.yookassaSecretKey).toBe('test_custom_secret');
     });
   });
 });

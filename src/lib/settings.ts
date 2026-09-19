@@ -286,6 +286,9 @@ export class SettingsProvider {
     if (isDummy && hasTestKeys) {
       shopId = settings.yookassaTestShopId;
       secretKeyRaw = settings.yookassaTestSecretKey;
+    } else if (isDummy && useTestKeys && settings.yookassaShopId && settings.yookassaShopId !== 'test_shop_id') {
+      shopId = settings.yookassaShopId;
+      secretKeyRaw = settings.yookassaSecretKey;
     }
 
     // Environment variables fallback
@@ -430,8 +433,13 @@ export class SettingsProvider {
       console.warn('[SettingsProvider] Redis is unavailable in isTestMode:', err instanceof Error ? err.message : String(err));
     }
     const settings = await this.get(activeTenantId);
-    if (settings && typeof settings.isTestMode === 'boolean') {
-      return settings.isTestMode;
+    if (settings) {
+      if (settings.environmentMode) {
+        return settings.environmentMode !== 'PRODUCTION';
+      }
+      if (typeof settings.isTestMode === 'boolean') {
+        return settings.isTestMode;
+      }
     }
     if (SettingsProvider.isTestEnvironment()) return true;
     return false;
@@ -592,9 +600,8 @@ export class SettingsProvider {
     }
   }
 
-  static async isMockPaymentEnabled(tenantId?: string): Promise<boolean> {
-    const mode = await this.getEnvironmentMode(tenantId);
-    return mode === 'SANDBOX' || mode === 'HYBRID';
+  static async isMockPaymentEnabled(_tenantId?: string): Promise<boolean> {
+    return false;
   }
 
   static async isMockProviderEnabled(tenantId?: string): Promise<boolean> {

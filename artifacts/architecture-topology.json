@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OmniSMM Architecture Topology (Uncle Bob Pattern)",
-  "generatedAt": "2026-09-19T14:07:27.103Z",
+  "generatedAt": "2026-09-19T14:39:35.649Z",
   "layers": [
     {
       "level": 0,
@@ -35,7 +35,7 @@
       "level": 2,
       "layer": "Application",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 186,
+      "linesCount": 47,
       "isClientComponent": false,
       "exportsCount": 2,
       "functionsCount": 3,
@@ -47,8 +47,8 @@
       "topRiskFunctions": [
         {
           "name": "requireStaffUser",
-          "startLine": 14,
-          "endLine": 25,
+          "startLine": 15,
+          "endLine": 26,
           "cyclomaticComplexity": 5,
           "coverageRatio": null,
           "crapScore": 30,
@@ -56,8 +56,8 @@
         },
         {
           "name": "getDockerMemoryStatusAction",
-          "startLine": 27,
-          "endLine": 35,
+          "startLine": 28,
+          "endLine": 36,
           "cyclomaticComplexity": 3,
           "coverageRatio": null,
           "crapScore": 12,
@@ -65,8 +65,8 @@
         },
         {
           "name": "getAdminRunbooksAction",
-          "startLine": 37,
-          "endLine": 44,
+          "startLine": 38,
+          "endLine": 45,
           "cyclomaticComplexity": 3,
           "coverageRatio": null,
           "crapScore": 12,
@@ -19744,42 +19744,24 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 346,
+      "linesCount": 148,
       "isClientComponent": false,
       "exportsCount": 1,
-      "functionsCount": 4,
-      "maxCyclomaticComplexity": 25,
-      "maxCrapScore": 650,
-      "crapLoad": 646,
-      "crappyMethodsCount": 2,
+      "functionsCount": 1,
+      "maxCyclomaticComplexity": 9,
+      "maxCrapScore": 90,
+      "crapLoad": 60,
+      "crappyMethodsCount": 1,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "ClientSettingsPage",
-          "startLine": 26,
-          "endLine": 345,
-          "cyclomaticComplexity": 25,
+          "startLine": 15,
+          "endLine": 147,
+          "cyclomaticComplexity": 9,
           "coverageRatio": null,
-          "crapScore": 650,
+          "crapScore": 90,
           "isCrappy": true
-        },
-        {
-          "name": "<anonymous>",
-          "startLine": 270,
-          "endLine": 296,
-          "cyclomaticComplexity": 7,
-          "coverageRatio": null,
-          "crapScore": 56,
-          "isCrappy": true
-        },
-        {
-          "name": "<anonymous>",
-          "startLine": 131,
-          "endLine": 141,
-          "cyclomaticComplexity": 1,
-          "coverageRatio": null,
-          "crapScore": 2,
-          "isCrappy": false
         }
       ]
     },
@@ -23472,6 +23454,51 @@
       ]
     },
     {
+      "id": "src/components/admin/ai-manual/sub/detail/RunbookPatentSections.tsx",
+      "label": "RunbookPatentSections.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 156,
+      "isClientComponent": true,
+      "exportsCount": 0,
+      "functionsCount": 7,
+      "maxCyclomaticComplexity": 17,
+      "maxCrapScore": 306,
+      "crapLoad": 276,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "RunbookPatentSections",
+          "startLine": 16,
+          "endLine": 155,
+          "cyclomaticComplexity": 17,
+          "coverageRatio": null,
+          "crapScore": 306,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 132,
+          "endLine": 149,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 107,
+          "endLine": 119,
+          "cyclomaticComplexity": 2,
+          "coverageRatio": null,
+          "crapScore": 6,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
       "id": "src/components/admin/ai-manual/sub/ManualChatMessages.tsx",
       "label": "ManualChatMessages.tsx",
       "level": 3,
@@ -23621,10 +23648,10 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 130,
+      "linesCount": 166,
       "isClientComponent": true,
       "exportsCount": 0,
-      "functionsCount": 11,
+      "functionsCount": 13,
       "maxCyclomaticComplexity": 16,
       "maxCrapScore": 272,
       "crapLoad": 242,
@@ -23633,8 +23660,8 @@
       "topRiskFunctions": [
         {
           "name": "ManualGuidesTab",
-          "startLine": 14,
-          "endLine": 129,
+          "startLine": 18,
+          "endLine": 165,
           "cyclomaticComplexity": 16,
           "coverageRatio": null,
           "crapScore": 272,
@@ -23642,8 +23669,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 21,
-          "endLine": 32,
+          "startLine": 25,
+          "endLine": 36,
           "cyclomaticComplexity": 5,
           "coverageRatio": null,
           "crapScore": 30,
@@ -23651,8 +23678,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 23,
-          "endLine": 28,
+          "startLine": 27,
+          "endLine": 32,
           "cyclomaticComplexity": 5,
           "coverageRatio": null,
           "crapScore": 30,
@@ -23756,10 +23783,10 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 142,
+      "linesCount": 165,
       "isClientComponent": true,
       "exportsCount": 0,
-      "functionsCount": 7,
+      "functionsCount": 8,
       "maxCyclomaticComplexity": 11,
       "maxCrapScore": 132,
       "crapLoad": 128,
@@ -23768,8 +23795,8 @@
       "topRiskFunctions": [
         {
           "name": "ManualRunbookDetail",
-          "startLine": 17,
-          "endLine": 141,
+          "startLine": 19,
+          "endLine": 164,
           "cyclomaticComplexity": 11,
           "coverageRatio": null,
           "crapScore": 132,
@@ -23777,8 +23804,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 82,
-          "endLine": 137,
+          "startLine": 102,
+          "endLine": 158,
           "cyclomaticComplexity": 7,
           "coverageRatio": null,
           "crapScore": 56,
@@ -23786,8 +23813,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 20,
-          "endLine": 27,
+          "startLine": 22,
+          "endLine": 29,
           "cyclomaticComplexity": 3,
           "coverageRatio": null,
           "crapScore": 12,
@@ -25186,7 +25213,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 206,
+      "linesCount": 187,
       "isClientComponent": false,
       "exportsCount": 1,
       "functionsCount": 2,
@@ -25198,8 +25225,8 @@
       "topRiskFunctions": [
         {
           "name": "isNavTabActive",
-          "startLine": 6,
-          "endLine": 46,
+          "startLine": 2,
+          "endLine": 24,
           "cyclomaticComplexity": 12,
           "coverageRatio": null,
           "crapScore": 156,
@@ -25207,8 +25234,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 32,
-          "endLine": 43,
+          "startLine": 14,
+          "endLine": 21,
           "cyclomaticComplexity": 5,
           "coverageRatio": null,
           "crapScore": 30,
@@ -28448,42 +28475,42 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 219,
+      "linesCount": 188,
       "isClientComponent": true,
       "exportsCount": 1,
-      "functionsCount": 10,
-      "maxCyclomaticComplexity": 17,
-      "maxCrapScore": 306,
-      "crapLoad": 318,
-      "crappyMethodsCount": 2,
+      "functionsCount": 11,
+      "maxCyclomaticComplexity": 22,
+      "maxCrapScore": 506,
+      "crapLoad": 708,
+      "crappyMethodsCount": 3,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "DeleteAccountCard",
           "startLine": 13,
-          "endLine": 218,
-          "cyclomaticComplexity": 17,
+          "endLine": 187,
+          "cyclomaticComplexity": 22,
           "coverageRatio": null,
-          "crapScore": 306,
+          "crapScore": 506,
           "isCrappy": true
         },
         {
           "name": "handleDelete",
-          "startLine": 35,
-          "endLine": 72,
-          "cyclomaticComplexity": 8,
+          "startLine": 28,
+          "endLine": 52,
+          "cyclomaticComplexity": 13,
           "coverageRatio": null,
-          "crapScore": 72,
+          "crapScore": 182,
           "isCrappy": true
         },
         {
           "name": "<anonymous>",
-          "startLine": 48,
-          "endLine": 71,
-          "cyclomaticComplexity": 5,
+          "startLine": 33,
+          "endLine": 51,
+          "cyclomaticComplexity": 10,
           "coverageRatio": null,
-          "crapScore": 30,
-          "isCrappy": false
+          "crapScore": 110,
+          "isCrappy": true
         }
       ]
     },
@@ -28529,7 +28556,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 199,
+      "linesCount": 198,
       "isClientComponent": true,
       "exportsCount": 1,
       "functionsCount": 7,
@@ -28541,8 +28568,8 @@
       "topRiskFunctions": [
         {
           "name": "PasswordCard",
-          "startLine": 9,
-          "endLine": 198,
+          "startLine": 10,
+          "endLine": 197,
           "cyclomaticComplexity": 35,
           "coverageRatio": null,
           "crapScore": 1260,
@@ -28550,8 +28577,8 @@
         },
         {
           "name": "handleSubmit",
-          "startLine": 26,
-          "endLine": 73,
+          "startLine": 28,
+          "endLine": 72,
           "cyclomaticComplexity": 11,
           "coverageRatio": null,
           "crapScore": 132,
@@ -28560,11 +28587,56 @@
         {
           "name": "<anonymous>",
           "startLine": 39,
-          "endLine": 72,
+          "endLine": 71,
           "cyclomaticComplexity": 8,
           "coverageRatio": null,
           "crapScore": 72,
           "isCrappy": true
+        }
+      ]
+    },
+    {
+      "id": "src/components/dashboard/settings/SettingsTabsClient.tsx",
+      "label": "SettingsTabsClient.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 158,
+      "isClientComponent": true,
+      "exportsCount": 1,
+      "functionsCount": 5,
+      "maxCyclomaticComplexity": 8,
+      "maxCrapScore": 72,
+      "crapLoad": 42,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "SettingsTabsClient",
+          "startLine": 47,
+          "endLine": 157,
+          "cyclomaticComplexity": 8,
+          "coverageRatio": null,
+          "crapScore": 72,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 66,
+          "endLine": 90,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 52,
+          "endLine": 52,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
         }
       ]
     },
@@ -28664,10 +28736,10 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 158,
+      "linesCount": 154,
       "isClientComponent": true,
       "exportsCount": 1,
-      "functionsCount": 20,
+      "functionsCount": 19,
       "maxCyclomaticComplexity": 5,
       "maxCrapScore": 30,
       "crapLoad": 0,
@@ -28677,7 +28749,7 @@
         {
           "name": "UserCommandMenu",
           "startLine": 42,
-          "endLine": 157,
+          "endLine": 153,
           "cyclomaticComplexity": 5,
           "coverageRatio": null,
           "crapScore": 30,
@@ -35183,33 +35255,24 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "ORDERS_CHECKOUT",
-      "linesCount": 199,
+      "linesCount": 28,
       "isClientComponent": true,
       "exportsCount": 1,
-      "functionsCount": 2,
-      "maxCyclomaticComplexity": 29,
-      "maxCrapScore": 870,
-      "crapLoad": 882,
-      "crappyMethodsCount": 2,
+      "functionsCount": 1,
+      "maxCyclomaticComplexity": 1,
+      "maxCrapScore": 2,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "RefillRequestButton",
           "startLine": 23,
-          "endLine": 197,
-          "cyclomaticComplexity": 29,
+          "endLine": 26,
+          "cyclomaticComplexity": 1,
           "coverageRatio": null,
-          "crapScore": 870,
-          "isCrappy": true
-        },
-        {
-          "name": "handleRequestRefill",
-          "startLine": 147,
-          "endLine": 173,
-          "cyclomaticComplexity": 8,
-          "coverageRatio": null,
-          "crapScore": 72,
-          "isCrappy": true
+          "crapScore": 2,
+          "isCrappy": false
         }
       ]
     },
@@ -45228,29 +45291,29 @@
       "level": 1,
       "layer": "Services",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 117,
+      "linesCount": 136,
       "isClientComponent": false,
       "exportsCount": 0,
       "functionsCount": 4,
-      "maxCyclomaticComplexity": 5,
-      "maxCrapScore": 30,
-      "crapLoad": 0,
-      "crappyMethodsCount": 0,
+      "maxCyclomaticComplexity": 8,
+      "maxCrapScore": 72,
+      "crapLoad": 42,
+      "crappyMethodsCount": 1,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "streamConsultation",
-          "startLine": 16,
-          "endLine": 87,
-          "cyclomaticComplexity": 5,
+          "startLine": 17,
+          "endLine": 106,
+          "cyclomaticComplexity": 8,
           "coverageRatio": null,
-          "crapScore": 30,
-          "isCrappy": false
+          "crapScore": 72,
+          "isCrappy": true
         },
         {
           "name": "buildSystemPrompt",
-          "startLine": 92,
-          "endLine": 115,
+          "startLine": 111,
+          "endLine": 134,
           "cyclomaticComplexity": 2,
           "coverageRatio": null,
           "crapScore": 6,
@@ -45258,8 +45321,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 99,
-          "endLine": 99,
+          "startLine": 118,
+          "endLine": 118,
           "cyclomaticComplexity": 2,
           "coverageRatio": null,
           "crapScore": 6,
@@ -45313,6 +45376,51 @@
       ]
     },
     {
+      "id": "src/services/admin/ai-manual/assistant-response-cache.ts",
+      "label": "assistant-response-cache.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 157,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 6,
+      "maxCyclomaticComplexity": 7,
+      "maxCrapScore": 56,
+      "crapLoad": 26,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "set",
+          "startLine": 89,
+          "endLine": 118,
+          "cyclomaticComplexity": 7,
+          "coverageRatio": null,
+          "crapScore": 56,
+          "isCrappy": true
+        },
+        {
+          "name": "get",
+          "startLine": 57,
+          "endLine": 84,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        },
+        {
+          "name": "has",
+          "startLine": 123,
+          "endLine": 132,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
       "id": "src/services/admin/ai-manual/knowledge-fallback.ts",
       "label": "knowledge-fallback.ts",
       "level": 1,
@@ -45354,10 +45462,10 @@
       "level": 1,
       "layer": "Services",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 228,
+      "linesCount": 173,
       "isClientComponent": false,
       "exportsCount": 0,
-      "functionsCount": 10,
+      "functionsCount": 8,
       "maxCyclomaticComplexity": 12,
       "maxCrapScore": 156,
       "crapLoad": 220,
@@ -45366,8 +45474,8 @@
       "topRiskFunctions": [
         {
           "name": "retrieveContext",
-          "startLine": 92,
-          "endLine": 133,
+          "startLine": 91,
+          "endLine": 132,
           "cyclomaticComplexity": 12,
           "coverageRatio": null,
           "crapScore": 156,
@@ -45375,8 +45483,8 @@
         },
         {
           "name": "searchOfflineKnowledge",
-          "startLine": 138,
-          "endLine": 171,
+          "startLine": 137,
+          "endLine": 170,
           "cyclomaticComplexity": 8,
           "coverageRatio": null,
           "crapScore": 72,
@@ -45384,14 +45492,206 @@
         },
         {
           "name": "getMemoryStatus",
-          "startLine": 40,
-          "endLine": 87,
+          "startLine": 39,
+          "endLine": 86,
           "cyclomaticComplexity": 7,
           "coverageRatio": null,
           "crapScore": 56,
           "isCrappy": true
         }
       ]
+    },
+    {
+      "id": "src/services/admin/ai-manual/runbook-downloader.ts",
+      "label": "runbook-downloader.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 38,
+      "isClientComponent": false,
+      "exportsCount": 3,
+      "functionsCount": 3,
+      "maxCyclomaticComplexity": 3,
+      "maxCrapScore": 12,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "downloadMarkdownFile",
+          "startLine": 11,
+          "endLine": 24,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        },
+        {
+          "name": "downloadRunbookAsMarkdown",
+          "startLine": 26,
+          "endLine": 31,
+          "cyclomaticComplexity": 2,
+          "coverageRatio": null,
+          "crapScore": 6,
+          "isCrappy": false
+        },
+        {
+          "name": "downloadFullManualAsMarkdown",
+          "startLine": 33,
+          "endLine": 37,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/services/admin/ai-manual/runbook-markdown-formatter.ts",
+      "label": "runbook-markdown-formatter.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 131,
+      "isClientComponent": false,
+      "exportsCount": 2,
+      "functionsCount": 14,
+      "maxCyclomaticComplexity": 26,
+      "maxCrapScore": 702,
+      "crapLoad": 672,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "formatRunbookToPatentMarkdown",
+          "startLine": 7,
+          "endLine": 103,
+          "cyclomaticComplexity": 26,
+          "coverageRatio": null,
+          "crapScore": 702,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 60,
+          "endLine": 70,
+          "cyclomaticComplexity": 4,
+          "coverageRatio": null,
+          "crapScore": 20,
+          "isCrappy": false
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 87,
+          "endLine": 95,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/services/admin/ai-manual/runbooks/catalog-runbooks.ts",
+      "label": "catalog-runbooks.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CATALOG_INGESTION",
+      "linesCount": 108,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 0,
+      "maxCyclomaticComplexity": 1,
+      "maxCrapScore": 1,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": []
+    },
+    {
+      "id": "src/services/admin/ai-manual/runbooks/finance-runbooks.ts",
+      "label": "finance-runbooks.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 109,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 0,
+      "maxCyclomaticComplexity": 1,
+      "maxCrapScore": 1,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": []
+    },
+    {
+      "id": "src/services/admin/ai-manual/runbooks/index.ts",
+      "label": "index.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 23,
+      "isClientComponent": false,
+      "exportsCount": 1,
+      "functionsCount": 0,
+      "maxCyclomaticComplexity": 1,
+      "maxCrapScore": 1,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": []
+    },
+    {
+      "id": "src/services/admin/ai-manual/runbooks/infra-runbooks.ts",
+      "label": "infra-runbooks.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 162,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 0,
+      "maxCyclomaticComplexity": 1,
+      "maxCrapScore": 1,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": []
+    },
+    {
+      "id": "src/services/admin/ai-manual/runbooks/orders-runbooks.ts",
+      "label": "orders-runbooks.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "ORDERS_CHECKOUT",
+      "linesCount": 102,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 0,
+      "maxCyclomaticComplexity": 1,
+      "maxCrapScore": 1,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": []
+    },
+    {
+      "id": "src/services/admin/ai-manual/runbooks/security-runbooks.ts",
+      "label": "security-runbooks.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 183,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 0,
+      "maxCyclomaticComplexity": 1,
+      "maxCrapScore": 1,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": []
     },
     {
       "id": "src/services/admin/ai-pricing-telegram-dispatcher.ts",
@@ -48429,13 +48729,13 @@
       "level": 1,
       "layer": "Services",
       "boundedContext": "FINTECH_LEDGER",
-      "linesCount": 820,
+      "linesCount": 818,
       "isClientComponent": false,
       "exportsCount": 4,
       "functionsCount": 20,
       "maxCyclomaticComplexity": 30,
       "maxCrapScore": 930,
-      "crapLoad": 4038,
+      "crapLoad": 3942,
       "crappyMethodsCount": 10,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
@@ -51908,7 +52208,7 @@
       "level": 0,
       "layer": "Domain",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 77,
+      "linesCount": 107,
       "isClientComponent": false,
       "exportsCount": 0,
       "functionsCount": 0,
@@ -54550,6 +54850,13 @@
     {
       "source": "src/actions/admin/ai-manual/guides.action.ts",
       "target": "src/services/admin/ai-manual/knowledge-retriever.service.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/actions/admin/ai-manual/guides.action.ts",
+      "target": "src/services/admin/ai-manual/runbooks/index.ts",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
@@ -67807,62 +68114,6 @@
     },
     {
       "source": "src/app/dashboard/settings/page.tsx",
-      "target": "src/components/dashboard/settings/PasswordCard.tsx",
-      "kind": "dependency",
-      "isTypeOnly": false,
-      "isViolating": false
-    },
-    {
-      "source": "src/app/dashboard/settings/page.tsx",
-      "target": "src/components/dashboard/settings/DeleteAccountCard.tsx",
-      "kind": "dependency",
-      "isTypeOnly": false,
-      "isViolating": false
-    },
-    {
-      "source": "src/app/dashboard/settings/page.tsx",
-      "target": "src/components/dashboard/settings/LogoutCard.tsx",
-      "kind": "dependency",
-      "isTypeOnly": false,
-      "isViolating": false
-    },
-    {
-      "source": "src/app/dashboard/settings/page.tsx",
-      "target": "src/components/dashboard/settings/TelegramCard.tsx",
-      "kind": "dependency",
-      "isTypeOnly": false,
-      "isViolating": false
-    },
-    {
-      "source": "src/app/dashboard/settings/page.tsx",
-      "target": "src/components/dashboard/settings/Consent152FzCard.tsx",
-      "kind": "dependency",
-      "isTypeOnly": false,
-      "isViolating": false
-    },
-    {
-      "source": "src/app/dashboard/settings/page.tsx",
-      "target": "src/components/dashboard/settings/CompanyRequisitesCard.tsx",
-      "kind": "dependency",
-      "isTypeOnly": false,
-      "isViolating": false
-    },
-    {
-      "source": "src/app/dashboard/settings/page.tsx",
-      "target": "src/components/dashboard/settings/ApiWebhookCard.tsx",
-      "kind": "dependency",
-      "isTypeOnly": false,
-      "isViolating": false
-    },
-    {
-      "source": "src/app/dashboard/settings/page.tsx",
-      "target": "src/app/dashboard/settings/api/ApiKeyManager.tsx",
-      "kind": "dependency",
-      "isTypeOnly": false,
-      "isViolating": false
-    },
-    {
-      "source": "src/app/dashboard/settings/page.tsx",
       "target": "src/lib/utils.ts",
       "kind": "dependency",
       "isTypeOnly": false,
@@ -67871,6 +68122,13 @@
     {
       "source": "src/app/dashboard/settings/page.tsx",
       "target": "src/components/dashboard/DashboardBreadcrumbs.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/dashboard/settings/page.tsx",
+      "target": "src/components/dashboard/settings/SettingsTabsClient.tsx",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
@@ -70200,6 +70458,13 @@
       "isViolating": false
     },
     {
+      "source": "src/components/admin/ai-manual/sub/detail/RunbookPatentSections.tsx",
+      "target": "src/types/admin-ai-manual.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
       "source": "src/components/admin/ai-manual/sub/ManualChatMessages.tsx",
       "target": "src/components/admin/ai-manual/types.ts",
       "kind": "association",
@@ -70256,6 +70521,13 @@
       "isViolating": false
     },
     {
+      "source": "src/components/admin/ai-manual/sub/ManualGuidesTab.tsx",
+      "target": "src/services/admin/ai-manual/runbook-downloader.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
       "source": "src/components/admin/ai-manual/sub/ManualHeader.tsx",
       "target": "src/components/admin/ai-manual/types.ts",
       "kind": "association",
@@ -70281,6 +70553,20 @@
       "target": "src/types/admin-ai-manual.ts",
       "kind": "association",
       "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/sub/ManualRunbookDetail.tsx",
+      "target": "src/services/admin/ai-manual/runbook-downloader.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/admin/ai-manual/sub/ManualRunbookDetail.tsx",
+      "target": "src/components/admin/ai-manual/sub/detail/RunbookPatentSections.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
       "isViolating": false
     },
     {
@@ -72036,6 +72322,62 @@
     {
       "source": "src/components/dashboard/settings/PasswordCard.tsx",
       "target": "src/actions/auth/password-settings.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/dashboard/settings/SettingsTabsClient.tsx",
+      "target": "src/components/dashboard/settings/PasswordCard.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/dashboard/settings/SettingsTabsClient.tsx",
+      "target": "src/components/dashboard/settings/DeleteAccountCard.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/dashboard/settings/SettingsTabsClient.tsx",
+      "target": "src/components/dashboard/settings/LogoutCard.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/dashboard/settings/SettingsTabsClient.tsx",
+      "target": "src/components/dashboard/settings/TelegramCard.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/dashboard/settings/SettingsTabsClient.tsx",
+      "target": "src/components/dashboard/settings/Consent152FzCard.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/dashboard/settings/SettingsTabsClient.tsx",
+      "target": "src/components/dashboard/settings/CompanyRequisitesCard.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/dashboard/settings/SettingsTabsClient.tsx",
+      "target": "src/components/dashboard/settings/ApiWebhookCard.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/dashboard/settings/SettingsTabsClient.tsx",
+      "target": "src/app/dashboard/settings/api/ApiKeyManager.tsx",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
@@ -77964,7 +78306,21 @@
     },
     {
       "source": "src/services/admin/ai-manual/admin-ai-assistant.service.ts",
+      "target": "src/services/admin/ai-manual/assistant-response-cache.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/admin-ai-assistant.service.ts",
       "target": "src/types/admin-ai-manual.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/assistant-response-cache.ts",
+      "target": "src/services/admin/ai-manual/knowledge-retriever.service.ts",
       "kind": "association",
       "isTypeOnly": true,
       "isViolating": false
@@ -77988,6 +78344,111 @@
       "target": "src/services/admin/ai-manual/admin-ai-sanitizer.service.ts",
       "kind": "dependency",
       "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/knowledge-retriever.service.ts",
+      "target": "src/services/admin/ai-manual/knowledge-fallback.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/runbook-downloader.ts",
+      "target": "src/types/admin-ai-manual.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/runbook-downloader.ts",
+      "target": "src/services/admin/ai-manual/runbook-markdown-formatter.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/runbook-markdown-formatter.ts",
+      "target": "src/types/admin-ai-manual.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/runbooks/catalog-runbooks.ts",
+      "target": "src/types/admin-ai-manual.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/runbooks/finance-runbooks.ts",
+      "target": "src/types/admin-ai-manual.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/runbooks/index.ts",
+      "target": "src/types/admin-ai-manual.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/runbooks/index.ts",
+      "target": "src/services/admin/ai-manual/runbooks/catalog-runbooks.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/runbooks/index.ts",
+      "target": "src/services/admin/ai-manual/runbooks/finance-runbooks.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/runbooks/index.ts",
+      "target": "src/services/admin/ai-manual/runbooks/orders-runbooks.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/runbooks/index.ts",
+      "target": "src/services/admin/ai-manual/runbooks/security-runbooks.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/runbooks/index.ts",
+      "target": "src/services/admin/ai-manual/runbooks/infra-runbooks.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/runbooks/infra-runbooks.ts",
+      "target": "src/types/admin-ai-manual.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/runbooks/orders-runbooks.ts",
+      "target": "src/types/admin-ai-manual.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/admin/ai-manual/runbooks/security-runbooks.ts",
+      "target": "src/types/admin-ai-manual.ts",
+      "kind": "association",
+      "isTypeOnly": true,
       "isViolating": false
     },
     {
@@ -82208,18 +82669,18 @@
   "violations": [],
   "cycles": [],
   "metrics": {
-    "totalFiles": 1410,
-    "totalEdges": 3953,
+    "totalFiles": 1421,
+    "totalEdges": 3976,
     "violationsCount": 0,
     "cyclesCount": 0,
     "blockersCount": 0,
-    "totalFunctions": 9689,
+    "totalFunctions": 9721,
     "highestCrapModule": {
       "id": "src/proxy.ts",
       "maxCrap": 38220,
       "maxCC": 195
     },
-    "totalCrappyFunctions": 2280,
-    "totalCrapLoad": 1343370
+    "totalCrappyFunctions": 2283,
+    "totalCrapLoad": 1343254
   }
 }

@@ -2,7 +2,7 @@ import { adminProviderService } from '@/services/admin/provider.service';
 import Link from 'next/link';
 import { Plug } from 'lucide-react';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
-import { CATALOG_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
+import { PROVIDERS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { ProvidersTable } from './client-table';
 import { LiquidityDashboard } from './components/liquidity-dashboard';
 import { enforceSectionAccess } from '@/lib/server/rbac';
@@ -32,7 +32,7 @@ export default async function ProvidersAdminPage() {
             </Link>
           </div>
         )}
-        tabs={CATALOG_TABS}
+        tabs={PROVIDERS_TABS}
         onboardingKey="providers"
         onboarding={ONBOARDING_CONFIGS.providers}
       />
