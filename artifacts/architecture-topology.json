@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OmniSMM Architecture Topology (Uncle Bob Pattern)",
-  "generatedAt": "2026-09-19T18:05:01.463Z",
+  "generatedAt": "2026-09-19T18:12:40.663Z",
   "layers": [
     {
       "level": 0,
@@ -10265,7 +10265,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 2124,
+      "linesCount": 2135,
       "isClientComponent": true,
       "exportsCount": 1,
       "functionsCount": 81,
@@ -10277,8 +10277,8 @@
       "topRiskFunctions": [
         {
           "name": "AcademyClient",
-          "startLine": 41,
-          "endLine": 2123,
+          "startLine": 42,
+          "endLine": 2134,
           "cyclomaticComplexity": 132,
           "coverageRatio": null,
           "crapScore": 17556,
@@ -10286,8 +10286,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 818,
-          "endLine": 872,
+          "startLine": 829,
+          "endLine": 883,
           "cyclomaticComplexity": 13,
           "coverageRatio": null,
           "crapScore": 182,
@@ -10295,8 +10295,8 @@
         },
         {
           "name": "getMatrixRecommendation",
-          "startLine": 183,
-          "endLine": 254,
+          "startLine": 184,
+          "endLine": 255,
           "cyclomaticComplexity": 9,
           "coverageRatio": null,
           "crapScore": 90,
@@ -25649,7 +25649,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 270,
+      "linesCount": 283,
       "isClientComponent": true,
       "exportsCount": 1,
       "functionsCount": 23,
@@ -25661,8 +25661,8 @@
       "topRiskFunctions": [
         {
           "name": "InteractiveTextbook",
-          "startLine": 21,
-          "endLine": 269,
+          "startLine": 22,
+          "endLine": 282,
           "cyclomaticComplexity": 28,
           "coverageRatio": null,
           "crapScore": 812,
@@ -25670,8 +25670,8 @@
         },
         {
           "name": "handleDomainChange",
-          "startLine": 40,
-          "endLine": 54,
+          "startLine": 41,
+          "endLine": 55,
           "cyclomaticComplexity": 6,
           "coverageRatio": null,
           "crapScore": 42,
@@ -25679,8 +25679,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 27,
-          "endLine": 38,
+          "startLine": 28,
+          "endLine": 39,
           "cyclomaticComplexity": 4,
           "coverageRatio": null,
           "crapScore": 20,
@@ -25694,7 +25694,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 278,
+      "linesCount": 287,
       "isClientComponent": true,
       "exportsCount": 1,
       "functionsCount": 13,
@@ -25707,7 +25707,7 @@
         {
           "name": "TextbookChapterViewer",
           "startLine": 31,
-          "endLine": 277,
+          "endLine": 286,
           "cyclomaticComplexity": 18,
           "coverageRatio": null,
           "crapScore": 342,
@@ -25724,8 +25724,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 182,
-          "endLine": 203,
+          "startLine": 191,
+          "endLine": 212,
           "cyclomaticComplexity": 3,
           "coverageRatio": null,
           "crapScore": 12,

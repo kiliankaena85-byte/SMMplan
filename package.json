@@ -151,6 +151,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.4",
     "decimal.js": "^10.6.0",
+    "docx": "^9.7.1",
     "dotenv-cli": "^11.0.0",
     "eslint": "^10.2.0",
     "fast-check": "^4.8.0",

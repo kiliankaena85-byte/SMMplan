@@ -92,7 +92,16 @@ ${chapter.section6Troubleshooting.map((tc) => `### ${tc.scenario}\n- **Симп�
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <a
+              href="/manual/OMNISMM_ADMIN_DESK_HANDBOOK_2026.docx"
+              download="OMNISMM_ADMIN_DESK_HANDBOOK_2026.docx"
+              className="px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-bold border border-blue-500/30 flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Скачать полную настольную книгу администратора в формате Microsoft Word (DOCX) для распечатки"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Книга (.DOCX)</span>
+            </a>
             <button
               type="button"
               onClick={handleExportMarkdown}

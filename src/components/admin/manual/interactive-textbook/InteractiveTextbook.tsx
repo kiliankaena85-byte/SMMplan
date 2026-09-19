@@ -9,7 +9,8 @@ import {
   ShieldCheck, 
   Clock, 
   ChevronRight,
-  Filter
+  Filter,
+  Download
 } from 'lucide-react';
 import { TextbookDomainId } from './types';
 import { TEXTBOOK_DOMAINS } from './data/textbook-domains';
@@ -90,13 +91,24 @@ export function InteractiveTextbook() {
               Интерактивный иллюстрированный учебник OmniBook 2026
             </h2>
             <p className="text-[11px] text-muted-foreground">
-              Стандарт ГОСТ ЕСПД 19.505-79 • 14 томов • 8 операционных доменов
+              Стандарт ГОСТ ЕСПД 19.505-79 • 14 томов • 9 операционных доменов
             </p>
           </div>
         </div>
 
-        {/* View Switcher */}
-        <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/60">
+        <div className="flex items-center gap-2 flex-wrap">
+          <a
+            href="/manual/OMNISMM_ADMIN_DESK_HANDBOOK_2026.docx"
+            download="OMNISMM_ADMIN_DESK_HANDBOOK_2026.docx"
+            className="px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-bold border border-blue-500/30 flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Скачать полную настольную книгу администратора в формате Microsoft Word (DOCX) для распечатки"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>📄 Книга в DOCX для печати</span>
+          </a>
+
+          {/* View Switcher */}
+          <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/60">
           <button
             type="button"
             onClick={() => setToolView('TEXTBOOK')}
@@ -136,6 +148,7 @@ export function InteractiveTextbook() {
           </button>
         </div>
       </div>
+    </div>
 
       {toolView === 'REGEX' && <InteractiveRegexLookup />}
       {toolView === 'ERRORS' && <InteractiveErrorCodeLookup />}

@@ -21,7 +21,8 @@ import {
   Compass,
   Calculator,
   UserCheck,
-  TrendingUp
+  TrendingUp,
+  Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
@@ -301,6 +302,16 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
               <span>🔬</span>
               <span>Визуальный Двойник</span>
             </button>
+
+            <a
+              href="/manual/OMNISMM_ADMIN_DESK_HANDBOOK_2026.docx"
+              download="OMNISMM_ADMIN_DESK_HANDBOOK_2026.docx"
+              className="px-2.5 py-1 text-xs font-bold rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors flex items-center gap-1 cursor-pointer"
+              title="Скачать полную настольную книгу администратора в формате Microsoft Word (DOCX) для распечатки"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>📄 DOCX для печати</span>
+            </a>
 
             <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-700 dark:text-amber-400 font-bold text-xs">
               <Award className="w-4 h-4 text-amber-500" />
