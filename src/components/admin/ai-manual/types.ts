@@ -13,6 +13,7 @@ export interface ChatMessage {
   isStreaming?: boolean;
   timestamp: string;
   chunksUsed?: Array<{ title: string; filePath?: string }>;
+  isFromCache?: boolean;
 }
 
 export interface AdminAiManualWidgetProps {

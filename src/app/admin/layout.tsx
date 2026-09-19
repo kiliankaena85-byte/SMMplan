@@ -49,24 +49,24 @@ const getCachedOpenTicketCount = unstable_cache(
 // RBAC: Allowed roles for admin panel access
 const ADMIN_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'];
 
-// Navigation sections with role-based visibility
+// Navigation sections with role-based visibility.
+// ✅ FIX [ADMIN-NAV-DOMAIN-2026]: Only domain ROOTS are listed here.
+// Sub-pages are accessible via their domain's tab strip (CATALOG_TABS, FINANCE_TABS, etc.).
+// This ensures the sidebar never jumps between items when navigating sub-tabs.
 const ADMIN_NAVIGATION = [
   {
     group: 'Главное управление',
     items: [
-      { href: '/admin/dashboard',                 icon: 'Home',          label: 'Дашборд',              section: 'dashboard' },
-      { href: '/admin/orders',                    icon: 'Package',       label: 'Заказы',               section: 'orders' },
-      { href: '/admin/catalog',                   icon: 'ShoppingCart',  label: 'Каталог услуг',        section: 'catalog' },
-      { href: '/admin/catalog/categories',        icon: 'Layers',        label: 'Категории & Соцсети',  section: 'catalog' },
-      { href: '/admin/providers',                 icon: 'Link',          label: 'Провайдеры',           section: 'providers' },
-      { href: '/admin/tickets',                   icon: 'MessageSquare', label: 'Поддержка',            section: 'tickets' },
-      { href: '/admin/clients',                   icon: 'Users',         label: 'Клиенты',              section: 'clients' },
-      { href: '/admin/transactions',              icon: 'ArrowLeftRight', label: 'Транзакции',          section: 'clients' },
-      { href: '/admin/finance',                   icon: 'CreditCard',    label: 'Финансы & Касса',      section: 'finance' },
-      { href: '/admin/finance/treasury',          icon: 'Landmark',      label: 'Казначейство & Банк',  section: 'finance' },
-      { href: '/admin/finance/balance-requests',  icon: 'Inbox',         label: 'Заявки на баланс',     section: 'balance_requests' },
-      { href: '/admin/analytics',                 icon: 'BarChart3',     label: 'Аналитика',            section: 'analytics' },
-      { href: '/admin/settings',                  icon: 'Settings',      label: 'Настройки',            section: 'settings' },
+      { href: '/admin/dashboard',    icon: 'Home',           label: 'Дашборд',         section: 'dashboard' },
+      { href: '/admin/orders',       icon: 'Package',        label: 'Заказы',          section: 'orders' },
+      { href: '/admin/catalog',      icon: 'ShoppingCart',   label: 'Каталог услуг',   section: 'catalog' },
+      { href: '/admin/providers',    icon: 'Link',           label: 'Провайдеры',      section: 'providers' },
+      { href: '/admin/tickets',      icon: 'MessageSquare',  label: 'Поддержка',       section: 'tickets' },
+      { href: '/admin/clients',      icon: 'Users',          label: 'Клиенты',         section: 'clients' },
+      { href: '/admin/transactions', icon: 'ArrowLeftRight', label: 'Транзакции',      section: 'clients' },
+      { href: '/admin/finance',      icon: 'CreditCard',     label: 'Финансы & Касса', section: 'finance' },
+      { href: '/admin/analytics',    icon: 'BarChart3',      label: 'Аналитика',       section: 'analytics' },
+      { href: '/admin/settings',     icon: 'Settings',       label: 'Настройки',       section: 'settings' },
     ]
   }
 ];

@@ -63,7 +63,11 @@ function mdToHtml(md: string): string {
 }
 
 export default async function AdminManualPage() {
-  const adminManualPath = path.join(process.cwd(), 'project-docs', 'admin_master_manual_2026.md');
+  const primaryAdminManualPath = path.join(process.cwd(), 'docs', 'manual', 'ADMIN_DESK_HANDBOOK_2026.md');
+  const fallbackAdminManualPath = path.join(process.cwd(), 'project-docs', 'admin_master_manual_2026.md');
+  const adminManualPath = fs.existsSync(primaryAdminManualPath)
+    ? primaryAdminManualPath
+    : fallbackAdminManualPath;
   const supportManualPath = path.join(process.cwd(), 'project-docs', 'support_training_manual.md');
 
   let adminManualContent: string;

@@ -1,3 +1,94 @@
+- [x] ⚡ [ADMIN-DESK-HANDBOOK-2026] Разработка исчерпывающей «Настольной книги администратора OmniSMM 1.0» (10 томов, 33 главы) и интеграция в админ-панель (100% COMPLETE & VERIFIED):
+  * 📚 **Полноформатная Настольная книга администратора (`docs/manual/ADMIN_DESK_HANDBOOK_2026.md`):**
+    - Разработано фундаментальное практическое руководство из 10 томов и 33 глав, охватывающее все 6 операционных доменов и 22 административных экрана OmniSMM 1.0 (SMMplan & SMMflux).
+    - Описана полная архитектура: BigInt ExactMath, неизменяемый бухгалтерский Ledger, фискализация 54-ФЗ с НДС 22% (425-ФЗ), туннель Tailscale Funnel, ЮKassa во всех режимах, Drip-Feed Floor инвариант $\lfloor Q/N \rfloor \ge \text{minQty}$.
+    - Включены 6 пошаговых аварийных регламентов (Disaster Recovery): аварийный KillSwitch, сбой Link Engine, обнуление баланса провайдера, расхождение Леджера, Telegram 409 Conflict, анонимизация по 152-ФЗ.
+    - Описаны регламенты работы с интерактивным ИИ-инструктором OmniManual 1.0 (Gemini 3.8 Flash) и Академией саппорта.
+  * 🖥️ **Интеграция в админ-панель (`src/app/admin/manual/page.tsx`):**
+    - Роут `/admin/manual` переведен на чтение `docs/manual/ADMIN_DESK_HANDBOOK_2026.md` в качестве основного мастер-руководства (с сохранением безопасного фолбэка).
+    - Синхронизирован файл `project-docs/admin_master_manual_2026.md`.
+  * 🧪 **Автоматическая верификация и гейты:**
+    - `npx tsc --noEmit` — 0 ошибок (100% CLEAN).
+    - `npm run check:arch` — 0 нарушений слоев, 0 циклов на 1428 модулях (Clean Architecture Pass).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+  * 📁 **Созданные и измененные файлы:**
+    - `docs/manual/ADMIN_DESK_HANDBOOK_2026.md`
+    - `project-docs/admin_master_manual_2026.md`
+    - `src/app/admin/manual/page.tsx`
+    - `CURRENT_STATE.md`
+
+- [x] ⚡ [ADMIN-NAV-DOMAIN-FIX-2026] Комплексная гармонизация навигации и вкладок по методу Self-Loop Improving (100% COMPLETE & VERIFIED):
+  * 🌊 **Волна 1 (Core Tab Engine & Zero-Collision Guard):**
+    - Устранена критическая алгоритмическая коллизия в `isNavTabActive`: при переходе на `?tab=telegram` базовый URL `/admin/settings` больше ложно не подсвечивается (активен строго таб Telegram).
+    - TDD Red-to-Green цикл: написан сьют тестов на отсутствие коллизий параметров (21/21 PASS).
+  * 🌊 **Волна 2 (Domain Decoupling — Клиенты vs Финансы):**
+    - Устранён «прыгающий сайдбар»: создан массив `CLIENTS_TABS` («База клиентов»), роут `/admin/clients` полностью изолирован от финансовых вкладок.
+    - В `FINANCE_TABS` возвращена недостающая вкладка «Заявки на баланс» (`/admin/finance/balance-requests`).
+    - В `balance-requests-client.tsx` внедрен компонент `AdminTabs` с финансовыми вкладками.
+  * 🌊 **Волна 3 (Operations Restore — Заказы и Dripfeed):**
+    - На страницу «Заказы» (`/admin/orders` и `loading.tsx`) возвращена недостающая полоска `OPERATIONS_TABS`.
+    - Роут «Умный Dripfeed» (`/admin/smart`) гармонизирован с операционным доменом: переведён на `OPERATIONS_TABS`, RBAC-секция обновлена с `catalog` на `orders`.
+    - Справочник статусов заказов (`/admin/docs/order-statuses`) в `SIDEBAR_DOMAIN_ALIASES` перенаправлен на родительский домен `/admin/orders`.
+  * 🌊 **Волна 4 (Settings & CMS Stability):**
+    - Ликвидирован визуальный глитч «исчезающих табов» в Настройках (`/admin/settings`): в `page.tsx` добавлена полоска `tabs={SYSTEM_TABS}` над кластерами.
+    - На странице `/admin/catalog/drift` добавлен `AdminTabbedHeader` с `CATALOG_TABS`.
+    - На странице `/admin/cms` добавлен `AdminTabbedHeader` с `SYSTEM_TABS`.
+  * 🌊 **Волна 5 (Polish & RBAC Alignment):**
+    - На страницу мониторинга провайдеров (`/admin/providers/health`) внедрён `AdminTabbedHeader` с `PROVIDERS_TABS`, восстановив возможность возврата к шлюзам и импорту в 1 клик.
+    - Устранена коллизия RBAC на роуте `/admin/fraud-monitor`: проверка прав выровнена с `settings` на `enforceSectionAccess('finance')` в соответствии с родительским сайдбар-алиасом, внедрён `AdminTabbedHeader` с `FINANCE_TABS`.
+  * 🧪 **Финальная верификация и гейты надежности:**
+    - `vitest src/__tests__/admin-nav-active.test.ts` — 21/21 PASS.
+    - `npx tsx scripts/audit-admin-nav.ts` — 61/61 продуктовых маршрутов корректно подсвечивают сайдбар.
+    - `npx tsc --noEmit` — 0 ошибок (Clean).
+    - `npm run check:arch` — 0 нарушений слоев, 0 циклических зависимостей (1428 модулей).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+  * 📁 **Измененные файлы:**
+    - `src/components/admin/navigation-data.ts`
+    - `src/app/admin/layout.tsx`
+    - `src/components/admin/sidebar.tsx`
+    - `src/components/admin/mobile-nav-drawer.tsx`
+    - `src/components/admin/tabbed-header-client.tsx`
+    - `src/app/admin/clients/page.tsx` & `loading.tsx`
+    - `src/app/admin/orders/page.tsx` & `loading.tsx`
+    - `src/app/admin/smart/page.tsx`
+    - `src/app/admin/settings/page.tsx`
+    - `src/app/admin/catalog/drift/page.tsx`
+    - `src/app/admin/cms/page.tsx`
+    - `src/app/admin/finance/balance-requests/balance-requests-client.tsx`
+    - `src/app/admin/providers/health/page.tsx`
+    - `src/app/admin/fraud-monitor/page.tsx` & `fraud-monitor-client.tsx`
+    - `src/__tests__/admin-nav-active.test.ts`
+    - `scripts/audit-admin-nav.ts`
+
+- [x] ⚡ [AUTH-ZERO-TRAP-NAVIGATION-2026] Устранение ловушки экрана авторизации (Zero-Trap Navigation) и декомпозиция страницы входа (100% COMPLETE & VERIFIED):
+  * 🚪 **Навигация «На главную» для всех состояний авторизации:**
+    - Создан компонент `AuthBackLink.tsx` (33 строки) с поддержкой многотенантности (`/?tenant=flux` для SMMflux, `/` для SMMplan), соответствием WCAG 2.2 AA (высота $\ge 44$px) и плавной анимацией `group-hover:-translate-x-1`.
+    - Разработан компонент `AlreadyLoggedInCard.tsx` (100 строк) для авторизованных пользователей: устранен тупиковый экран, добавлена плавающая кнопка «На главную» в левом верхнем углу, вторичная кнопка «Вернуться на главную» в центре карточки рядом с кнопками «Продолжить как ...» и «Войти под другим аккаунтом».
+    - Созданы брендовые левые панели `FluxLoginHero.tsx` (48 строк) и `PlanLoginHero.tsx` (52 строки).
+    - Файл `src/app/(auth)/login/page.tsx` сжат с 275 строк до **160 строк** ($\le 200$), мобильный логотип обернут в ссылку на главную страницу, на экране гостевого входа размещена кнопка `AuthBackLink`.
+  * 🧪 **Автоматическое тестирование и верификация:**
+    - Написан сьют тестов `src/__tests__/unit/login-navigation-zero-trap.test.tsx` (4/4 PASS): проверены корректные ссылки для SMMplan и SMMflux, наличие доступных меток `aria-label` и поведение для авторизованных/неавторизованных пользователей.
+    - Визуально подтверждено на стейдже (порт 3005) через Puppeteer/Playwright: скриншоты `09_stage_login_guest_back_button.png` и `10_stage_login_already_logged_in.png`.
+
+- [x] ⚡ [ADMIN-OMNIMANUAL-STAGE-AUDIT-2026] Визуальный аудит и Self-Loop улучшение интерактивной справочной системы OmniManual 1.0 на стейдже (100% COMPLETE & VERIFIED):
+  * 📸 **Сквозной Playwright-аудит (10/10 сценариев):**
+    - `01_stage_manual_docked_mode.png`: Режим стыковки виджета OmniManual 1.0 в правом доке админ-панели (`/admin/providers`).
+    - `02_stage_manual_guides_patent_list.png`: Каталог регламентов по ГОСТ ЕСПД / Роспатент (6 обязательных глав, нумерация 1..6).
+    - `03_stage_manual_runbook_checklist_progress.png`: Интерактивный прогресс-бар выполнения чек-листа регламента (50%).
+    - `04_stage_manual_runbook_troubleshooting_section6.png`: Раздел 6 регламента — план действий при сбое («Поломка валидатора ссылок», «Несовместимость TargetType»).
+    - `05_stage_manual_runbook_download_toast.png`: Экспорт регламента в Markdown с поддержкой UTF-8 BOM и всплывающим тостом.
+    - `06_stage_manual_chat_live_response.png`: Живой диалог в чате с ИИ-консультантом: развернутый ответ по зомби-услугам (`CAT-ZOMBIE-PURGE`), карантину цен (`CAT-PRICE-QUARANTINE-30`), кликабельные ссылки на кодовую базу и регламенты.
+    - `07_stage_manual_chat_cached_zero_wait.png`: Демонстрация нулевого расхода токенов с бейджем `⚡ 0 токенов (Zero-Wait кэш)`.
+    - `08_stage_manual_inspector_status.png`: Инспектор архитектуры, статус моделей Prisma и ADR-2026-20.
+    - `09_stage_login_guest_back_button.png`: Кнопка «На главную» для гостя на экране входа.
+    - `10_stage_login_already_logged_in.png`: Экран «Вы уже вошли» с возможностью уйти на главную.
+  * 🛡️ **Надежность и Clean Architecture:**
+    - Все модифицированные/созданные файлы строго $\le 200$ строк.
+    - `npx tsc --noEmit` — 0 ошибок (100% CLEAN).
+    - `npm run check:arch` — 0 нарушений слоев, 0 циклических зависимостей на 1427 модулях.
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - `src/proxy.ts` — не затронут.
+
 - [x] ⚡ [CLIENT-SETTINGS-YOOKASSA-CATALOG-CLEANUP-2026] Оптимизация ЛК клиента (докрутка, ЮKassa во всех режимах, удаление аккаунта, вкладки настроек) и очистка тулбара каталога в админке (100% COMPLETE & VERIFIED):
   * 🛑 **Удаление докрутки (Refill) из ЛК клиента:**
     - Компонент `RefillRequestButton.tsx` переведен в `return null` — кнопки и статусы докрутки полностью скрыты из десктопных и мобильных таблиц заказов, карточек заказов, Flux-списков/канбана и страницы заказа.

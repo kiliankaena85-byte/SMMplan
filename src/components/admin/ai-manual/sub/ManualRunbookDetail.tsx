@@ -10,6 +10,7 @@ import { ArrowLeft, CheckCircle2, Circle, AlertTriangle, ExternalLink, Download 
 import Link from 'next/link';
 import { downloadRunbookAsMarkdown } from '@/services/admin/ai-manual/runbook-downloader';
 import { RunbookPatentSections } from './detail/RunbookPatentSections';
+import { toast } from 'sonner';
 
 interface ManualRunbookDetailProps {
   runbook: AdminRunbook;
@@ -58,7 +59,10 @@ export const ManualRunbookDetail: React.FC<ManualRunbookDetailProps> = ({ runboo
         <div className="flex items-center gap-1.5">
           <button
             type="button"
-            onClick={() => downloadRunbookAsMarkdown(runbook)}
+            onClick={() => {
+              downloadRunbookAsMarkdown(runbook);
+              toast.success('Регламент успешно экспортирован в Markdown!');
+            }}
             className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-medium bg-muted hover:bg-muted/80 text-foreground border border-border transition-colors cursor-pointer"
             title="Скачать регламент в формате Markdown"
             aria-label="Скачать регламент (.md)"
@@ -77,8 +81,8 @@ export const ManualRunbookDetail: React.FC<ManualRunbookDetailProps> = ({ runboo
         <p className="text-muted-foreground mt-1 leading-relaxed text-[11px]">{runbook.summary}</p>
       </div>
 
-      {/* Progress Bar */}
-      <div className="bg-muted/40 p-2.5 rounded-lg border border-border/60">
+      {/* Sticky Progress Bar */}
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md p-2.5 rounded-lg border border-border/80 shadow-xs">
         <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
           <span>Прогресс выполнения регламента</span>
           <span className="font-semibold text-foreground">{progressPercent}%</span>

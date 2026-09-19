@@ -4,6 +4,7 @@
 export function getRoutePromptChips(pathname: string): string[] {
   if (pathname.startsWith('/admin/providers')) {
     return [
+      'Что такое зомби-услуги и как работает карантин цен?',
       'Как работает Cherry-Pick импорт?',
       'Что такое теневой каталог?',
       'Как настроить наценку?',

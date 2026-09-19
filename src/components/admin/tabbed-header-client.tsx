@@ -114,15 +114,24 @@ export function OnboardingSection({
 }
 
 import { isNavTabActive } from '@/components/admin/navigation-data';
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
-export function AdminTabs({ tabs }: { tabs: TabItem[] }) {
+function AdminTabsInner({ tabs }: { tabs: TabItem[] }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const allHrefs = React.useMemo(() => tabs.map((t) => t.href), [tabs]);
+
+  // Build full path including ?query for correct query-param tab matching
+  const fullPath = React.useMemo(() => {
+    const qs = searchParams.toString();
+    return qs ? `${pathname}?${qs}` : pathname;
+  }, [pathname, searchParams]);
 
   return (
     <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1 border-t border-border/30 pt-3 w-full">
       {tabs.map((tab, idx) => {
-        const isActive = isNavTabActive(pathname, tab.href, allHrefs);
+        const isActive = isNavTabActive(fullPath, tab.href, allHrefs);
         return (
           <Link
             key={idx}
@@ -139,5 +148,20 @@ export function AdminTabs({ tabs }: { tabs: TabItem[] }) {
         );
       })}
     </div>
+  );
+}
+
+// Wrap in Suspense: useSearchParams() requires a Suspense boundary in Next.js App Router
+export function AdminTabs({ tabs }: { tabs: TabItem[] }) {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1 border-t border-border/30 pt-3 w-full">
+        {tabs.map((tab, idx) => (
+          <div key={idx} className="px-4 py-2 text-xs font-bold rounded-lg border border-border bg-background text-muted-foreground whitespace-nowrap animate-pulse h-8 w-24" />
+        ))}
+      </div>
+    }>
+      <AdminTabsInner tabs={tabs} />
+    </Suspense>
   );
 }

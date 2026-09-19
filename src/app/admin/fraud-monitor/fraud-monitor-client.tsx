@@ -18,6 +18,8 @@ import {
   Terminal 
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
+import { FINANCE_TABS } from '@/components/admin/navigation-data';
 import { getSecurityEventsAction, getSecurityStatsAction } from '@/actions/admin/security';
 import { type SecurityEvent } from '@prisma/client';
 
@@ -120,44 +122,40 @@ export function AntiFraudMonitorClient() {
   };
 
   return (
-    <div className="space-y-6 p-6 max-w-[1600px] mx-auto">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
       {/* Top Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-            <ShieldAlert className="w-7 h-7 text-primary" />
-            Security & Anti-Fraud Center
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Мониторинг атак на вебхуки в реальном времени, аномалий трафика и защита финансовых контуров.
-          </p>
-        </div>
+      <AdminTabbedHeader
+        icon={ShieldAlert}
+        title="Антифрод & Защита контуров"
+        description="Мониторинг атак на вебхуки в реальном времени, аномалий трафика и защита финансовых контуров"
+        action={(
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card text-xs">
+              <span className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-emerald-500 animate-ping' : 'bg-muted-foreground'}`} />
+              <span className="text-muted-foreground">Live Feed:</span>
+              <button
+                onClick={() => setAutoRefresh(!autoRefresh)}
+                className={`font-semibold transition-colors cursor-pointer ${autoRefresh ? 'text-emerald-500' : 'text-muted-foreground'}`}
+              >
+                {autoRefresh ? 'ВКЛ (5s)' : 'ВЫКЛ'}
+              </button>
+            </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card text-xs">
-            <span className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-emerald-500 animate-ping' : 'bg-muted-foreground'}`} />
-            <span className="text-muted-foreground">Live Feed:</span>
             <button
-              onClick={() => setAutoRefresh(!autoRefresh)}
-              className={`font-semibold transition-colors ${autoRefresh ? 'text-emerald-500' : 'text-muted-foreground'}`}
+              onClick={() => {
+                fetchData();
+                toast.success('Данные обновлены');
+              }}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium rounded-lg bg-card border border-border text-foreground hover:bg-muted transition-all duration-200 cursor-pointer"
             >
-              {autoRefresh ? 'ВКЛ (5s)' : 'ВЫКЛ'}
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              Обновить
             </button>
           </div>
-
-          <button
-            onClick={() => {
-              fetchData();
-              toast.success('Данные обновлены');
-            }}
-            disabled={loading}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium rounded-lg bg-card border border-border text-foreground hover:bg-muted transition-all duration-200"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            Обновить
-          </button>
-        </div>
-      </div>
+        )}
+        tabs={FINANCE_TABS}
+      />
 
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-border pb-2">

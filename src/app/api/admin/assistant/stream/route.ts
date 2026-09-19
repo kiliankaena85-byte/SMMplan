@@ -16,6 +16,7 @@ export const dynamic = 'force-dynamic';
 const ALLOWED_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'];
 
 export async function POST(req: NextRequest) {
+  console.log('>>> [SSE ROUTE] POST /api/admin/assistant/stream CALLED <<<');
   try {
     // 1. Authenticate Staff User
     const session = await verifySession();
@@ -74,6 +75,7 @@ export async function POST(req: NextRequest) {
 
         await writeSSE({
           type: 'done',
+          isFromCache: Boolean(result.isFromCache),
           chunksCount: result.chunksUsed.length,
           chunks: result.chunksUsed.map((c) => ({ title: c.title, filePath: c.filePath })),
         });

@@ -1,8 +1,11 @@
 import { getDriftCandidatesAction } from '@/actions/admin/catalog/price-drift';
 import { DriftClient } from './drift-client';
+import { TrendingUp } from 'lucide-react';
+import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
+import { CATALOG_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 
 export const metadata = {
-  title: 'Price Drift Monitor | OmniSMM 1.0',
+  title: 'Монитор дрейфа цен | OmniSMM 1.0',
 };
 
 export default async function DriftPage() {
@@ -17,14 +20,15 @@ export default async function DriftPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Price Drift Monitor</h1>
-        <p className="text-default-500 mt-2">
-          Мониторинг постепенного повышения цен провайдеров (дрейф от 5% до 20% за 30 дней). 
-          Эти услуги еще не ушли в карантин, но постепенно снижают маржинальность системы.
-        </p>
-      </div>
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
+      <AdminTabbedHeader
+        icon={TrendingUp}
+        title="Монитор дрейфа цен"
+        description="Мониторинг постепенного повышения цен провайдеров (дрейф от 5% до 20% за 30 дней)"
+        tabs={CATALOG_TABS}
+        onboardingKey="quarantine"
+        onboarding={ONBOARDING_CONFIGS.quarantine}
+      />
 
       <DriftClient initialData={result.data || []} />
     </div>

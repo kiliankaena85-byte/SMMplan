@@ -8,6 +8,8 @@ import React, { useState, useEffect, useCallback, useTransition } from "react";
 import { getBalanceAdjustmentsAction } from "@/actions/admin/balance-adjustments";
 import { BalanceAdjustmentDrawer, BalanceAdjustmentItem } from "@/components/admin/balance/BalanceAdjustmentDrawer";
 import { AdminBreadcrumbs } from "@/components/admin/AdminBreadcrumbs";
+import { AdminTabs } from "@/components/admin/tabbed-header-client";
+import { FINANCE_TABS } from "@/components/admin/navigation-data";
 import { PlanTable, PlanTableHeader, PlanTableHeadCell, PlanTableRow, PlanTableCell } from "@/components/ui/plan";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -181,6 +183,9 @@ export function BalanceRequestsClient({
           </Button>
         </div>
       </div>
+
+      {/* Finance Horizontal Tabs */}
+      <AdminTabs tabs={FINANCE_TABS} />
 
       {/* Filters Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-2xl border border-border/70 bg-card/60 backdrop-blur-md shadow-xs">

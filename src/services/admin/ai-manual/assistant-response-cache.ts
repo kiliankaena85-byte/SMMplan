@@ -37,9 +37,10 @@ export class AssistantResponseCache {
   private static tokensSaved = 0;
 
   /**
-   * Normalizes route and query to generate a deterministic cache key
+   * Normalizes tenant, route and query to generate a deterministic cache key
    */
-  static generateKey(route: string, query: string): string {
+  static generateKey(route: string, query: string, tenantId: string = 'smmplan'): string {
+    const normTenant = (tenantId || 'smmplan').trim().toLowerCase();
     const normRoute = (route || '/admin/dashboard').trim().toLowerCase().replace(/\/+$/, '');
     const normQuery = query
       .trim()
@@ -47,15 +48,15 @@ export class AssistantResponseCache {
       .replace(/[^\p{L}\p{N}\s]/gu, '') // Keep letters and digits in Russian and English
       .replace(/\s+/g, ' ');
 
-    const raw = `${normRoute}::${normQuery}`;
+    const raw = `${normTenant}::${normRoute}::${normQuery}`;
     return crypto.createHash('sha256').update(raw).digest('hex').slice(0, 32);
   }
 
   /**
    * Retrieves an item from LRU cache if valid and not expired
    */
-  static get(route: string, query: string): CachedAssistantResponse | null {
-    const key = this.generateKey(route, query);
+  static get(route: string, query: string, tenantId: string = 'smmplan'): CachedAssistantResponse | null {
+    const key = this.generateKey(route, query, tenantId);
     const item = this.cache.get(key);
 
     if (!item) {
@@ -90,11 +91,12 @@ export class AssistantResponseCache {
     route: string,
     query: string,
     data: { fullText: string; chunksUsed: RetrievedChunk[] },
-    ttlMs: number = this.DEFAULT_TTL_MS
+    ttlMs: number = this.DEFAULT_TTL_MS,
+    tenantId: string = 'smmplan'
   ): void {
     if (!data.fullText || data.fullText.length < 5) return;
 
-    const key = this.generateKey(route, query);
+    const key = this.generateKey(route, query, tenantId);
     const now = Date.now();
 
     // Evict oldest if capacity exceeded
@@ -120,8 +122,8 @@ export class AssistantResponseCache {
   /**
    * Checks if a query is cached and active
    */
-  static has(route: string, query: string): boolean {
-    const key = this.generateKey(route, query);
+  static has(route: string, query: string, tenantId: string = 'smmplan'): boolean {
+    const key = this.generateKey(route, query, tenantId);
     const item = this.cache.get(key);
     if (!item) return false;
     if (Date.now() > item.expiresAt) {

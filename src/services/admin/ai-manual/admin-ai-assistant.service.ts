@@ -8,6 +8,7 @@ import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { AdminAiSanitizerService } from './admin-ai-sanitizer.service';
 import { KnowledgeRetrieverService, RetrievedChunk } from './knowledge-retriever.service';
 import { AssistantResponseCache } from './assistant-response-cache';
+import { AdminAiFallbackService } from './admin-ai-fallback.service';
 import type { AdminAssistantQuery } from '@/types/admin-ai-manual';
 
 export class AdminAiAssistantService {
@@ -25,7 +26,7 @@ export class AdminAiAssistantService {
 
     // 0. Check LRU In-Memory Response Cache for 0-token instant return
     const route = payload.currentRoute || '/admin/dashboard';
-    const cached = AssistantResponseCache.get(route, sanitizedQuery);
+    const cached = AssistantResponseCache.get(route, sanitizedQuery, payload.activeTenantId || 'smmplan');
     if (cached) {
       await onToken(cached.fullText);
       return {
@@ -65,24 +66,54 @@ export class AdminAiAssistantService {
       parts: [{ text: sanitizedQuery }],
     });
 
-    // 4. Stream Tokens from Gemini 3.8 Flash
-    const fullText = await GeminiClient.streamGenerateContent(
-      {
-        staffUserId,
-        systemInstruction: systemPrompt,
-        contents,
-        temperature: 0.2, // Low temperature for high precision and zero hallucinations
-        maxOutputTokens: 2048,
-        timeoutMs: 40000,
-      },
-      onToken
-    );
+    // 4. Stream Tokens from Gemini 3.8 Flash (with intelligent local fallback)
+    let fullText = '';
+    try {
+      const geminiPromise = GeminiClient.streamGenerateContent(
+        {
+          staffUserId,
+          systemInstruction: systemPrompt,
+          contents,
+          temperature: 0.2, // Low temperature for high precision and zero hallucinations
+          maxOutputTokens: 2048,
+          timeoutMs: 5000,
+        },
+        onToken
+      );
+      const timeoutPromise = new Promise<string>((_, reject) =>
+        setTimeout(() => reject(new Error('AI Assistant generation timeout (5s)')), 5000)
+      );
+      fullText = await Promise.race([geminiPromise, timeoutPromise]);
+    } catch {
+      // Offline fallback: Generate grounded structured consultation from knowledge base
+      fullText = await AdminAiFallbackService.generateFallback(
+        sanitizedQuery,
+        route,
+        chunks,
+        onToken
+      );
+    }
+
+    if (!fullText || fullText.trim().length === 0) {
+      fullText = await AdminAiFallbackService.generateFallback(
+        sanitizedQuery,
+        route,
+        chunks,
+        onToken
+      );
+    }
 
     // 5. Store in LRU Cache for subsequent instant 0-token queries
-    AssistantResponseCache.set(payload.currentRoute || 'dashboard', sanitizedQuery, {
-      fullText,
-      chunksUsed: chunks,
-    });
+    AssistantResponseCache.set(
+      route,
+      sanitizedQuery,
+      {
+        fullText,
+        chunksUsed: chunks,
+      },
+      undefined,
+      payload.activeTenantId || 'smmplan'
+    );
 
     // 6. Audit Logging (Asynchronous & Non-blocking)
     const durationMs = Date.now() - startTime;

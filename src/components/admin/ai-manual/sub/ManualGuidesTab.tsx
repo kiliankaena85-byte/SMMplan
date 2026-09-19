@@ -14,6 +14,7 @@ import {
   downloadFullManualAsMarkdown,
   downloadRunbookAsMarkdown,
 } from '@/services/admin/ai-manual/runbook-downloader';
+import { toast } from 'sonner';
 
 export const ManualGuidesTab: React.FC = () => {
   const pathname = usePathname() || '/admin/dashboard';
@@ -78,7 +79,10 @@ export const ManualGuidesTab: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => downloadFullManualAsMarkdown(runbooks)}
+            onClick={() => {
+              downloadFullManualAsMarkdown(runbooks);
+              toast.success('Сводный регламент успешно экспортирован в Markdown!');
+            }}
             disabled={runbooks.length === 0}
             aria-label="Скачать все регламенты (.md)"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 text-[11px] font-medium transition-colors shrink-0 disabled:opacity-50 cursor-pointer min-h-[32px]"
@@ -140,6 +144,7 @@ export const ManualGuidesTab: React.FC = () => {
                       onClick={(e) => {
                         e.stopPropagation();
                         downloadRunbookAsMarkdown(item);
+                        toast.success(`Регламент «${item.title.slice(0, 30)}...» экспортирован!`);
                       }}
                       className="inline-flex items-center gap-1 p-1 rounded hover:bg-muted/80 text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
                       title="Скачать этот регламент (.md)"

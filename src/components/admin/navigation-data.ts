@@ -1,11 +1,78 @@
-// Calculates whether a navigation item is active using the Best Match Rule.
-export function isNavTabActive(pathname: string | null | undefined, tabHref: string, allHrefs: string[]): boolean {
+/**
+ * Domain alias map: maps sub-routes that are NOT directly listed in ADMIN_NAVIGATION
+ * to their logical sidebar parent domain. This prevents "ghost page" disappearance
+ * (sidebar losing all highlights) when navigating to these routes.
+ *
+ * Key   = route prefix (or exact path)
+ * Value = the sidebar href that should be highlighted
+ */
+export const SIDEBAR_DOMAIN_ALIASES: Record<string, string> = {
+  // Operations domain
+  '/admin/refills':       '/admin/orders',
+  '/admin/smart':         '/admin/orders',
+  '/admin/docs':          '/admin/orders',
+  // Finance domain
+  '/admin/marketing':     '/admin/finance',
+  '/admin/fraud-monitor': '/admin/finance',
+  // Catalog domain
+  '/admin/services':      '/admin/catalog',
+  // Analytics domain
+  '/admin/economics':     '/admin/analytics',
+  // Settings domain
+  '/admin/tenants':       '/admin/settings',
+  '/admin/pages':         '/admin/settings',
+  '/admin/knowledge':     '/admin/settings',
+  '/admin/system':        '/admin/settings',
+  '/admin/staff':         '/admin/settings',
+  '/admin/cms':           '/admin/settings',
+  '/admin/manual':        '/admin/settings',
+};
+
+/**
+ * Resolves the canonical sidebar href for the current pathname.
+ * For routes in SIDEBAR_DOMAIN_ALIASES, returns the aliased parent sidebar href.
+ * Otherwise returns the clean pathname unchanged.
+ */
+export function resolveSidebarDomain(pathname: string | null | undefined): string {
+  if (!pathname) return '';
+  const [cleanPath] = pathname.split('?');
+  if (SIDEBAR_DOMAIN_ALIASES[cleanPath]) return SIDEBAR_DOMAIN_ALIASES[cleanPath];
+  // Prefix match — longest match wins
+  let bestMatch = '';
+  for (const prefix of Object.keys(SIDEBAR_DOMAIN_ALIASES)) {
+    if ((cleanPath.startsWith(prefix + '/') || cleanPath === prefix) && prefix.length > bestMatch.length) {
+      bestMatch = prefix;
+    }
+  }
+  return bestMatch ? SIDEBAR_DOMAIN_ALIASES[bestMatch] : cleanPath;
+}
+
+/**
+ * Calculates whether a navigation item is active using the Best Match Rule.
+ * Pass resolvedPathname (from resolveSidebarDomain) to support ghost-page aliasing.
+ */
+export function isNavTabActive(
+  pathname: string | null | undefined,
+  tabHref: string,
+  allHrefs: string[],
+  resolvedPathname?: string,
+): boolean {
   if (!pathname) return false;
-  if (pathname === tabHref) return true;
+
+  // Use the domain-resolved pathname if provided
+  const effectivePathname = resolvedPathname ?? pathname;
+
+  if (effectivePathname === tabHref) return true;
 
   const [cleanTabPath] = tabHref.split('?');
-  const [cleanCurrentPath] = pathname.split('?');
-  if (cleanCurrentPath === cleanTabPath && !tabHref.includes('?')) return true;
+  const [cleanCurrentPath] = effectivePathname.split('?');
+  if (cleanCurrentPath === cleanTabPath && !tabHref.includes('?')) {
+    const hasSpecificQueryMatch = allHrefs.some((otherHref) => otherHref !== tabHref && otherHref === effectivePathname);
+    if (hasSpecificQueryMatch) return false;
+    const hasAnyQueryVariantInTabs = allHrefs.some((otherHref) => otherHref.startsWith(cleanTabPath + '?'));
+    if (hasAnyQueryVariantInTabs && effectivePathname.includes('?')) return false;
+    return true;
+  }
   if (cleanTabPath === '/admin/dashboard' || cleanTabPath === '/admin') return cleanCurrentPath === cleanTabPath;
 
   const isPrefixMatch = cleanCurrentPath.startsWith(cleanTabPath + '/');
@@ -27,14 +94,19 @@ export const OPERATIONS_TABS = [
   { label: 'Сводка дашборда', href: '/admin/dashboard' },
   { label: 'Заказы клиентов', href: '/admin/orders' },
   { label: 'Заявки на докрутку', href: '/admin/refills' },
+  { label: 'Умный Dripfeed', href: '/admin/smart' },
   { label: 'Тикеты поддержки', href: '/admin/tickets' },
 ];
 
+export const CLIENTS_TABS = [
+  { label: 'База клиентов', href: '/admin/clients' },
+];
+
 export const FINANCE_TABS = [
-  { label: 'Клиенты платформы', href: '/admin/clients' },
-  { label: 'Транзакции (Ledger)', href: '/admin/transactions' },
   { label: 'Финансы & P&L', href: '/admin/finance' },
+  { label: 'Транзакции (Ledger)', href: '/admin/transactions' },
   { label: 'Казначейство & Банк', href: '/admin/finance/treasury' },
+  { label: 'Заявки на баланс', href: '/admin/finance/balance-requests' },
   { label: 'Маркетинг и промокоды', href: '/admin/marketing' },
 ];
 
@@ -45,10 +117,13 @@ export const CATALOG_TABS = [
   { label: 'Карантин & Дрифт цен', href: '/admin/catalog/quarantine' },
 ];
 
+// ✅ FIX [ADMIN-NAV-DOMAIN-2026]: Removed cross-domain link `/admin/settings?tab=proxy`.
+// Proxy management lives under Настройки → Платежи и Каналы (SYSTEM_TABS).
+// Replaced with in-domain Мониторинг tab so operators stay in Providers context.
 export const PROVIDERS_TABS = [
   { label: 'Провайдеры API', href: '/admin/providers' },
   { label: 'Импорт услуг', href: '/admin/providers/import' },
-  { label: 'Прокси провайдеров', href: '/admin/settings?tab=proxy' },
+  { label: 'Мониторинг & Здоровье', href: '/admin/providers/health' },
 ];
 
 export const SYSTEM_TABS = [

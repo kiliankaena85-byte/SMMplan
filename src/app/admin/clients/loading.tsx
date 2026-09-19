@@ -1,7 +1,7 @@
 'use client';
 import { Skeleton } from "@heroui/react";
 import { AdminTabbedHeader } from "@/components/admin/tabbed-header";
-import { FINANCE_TABS, ONBOARDING_CONFIGS } from "@/components/admin/navigation-data";
+import { CLIENTS_TABS, ONBOARDING_CONFIGS } from "@/components/admin/navigation-data";
 import { Users } from "lucide-react";
 
 export default function ClientsLoading() {
@@ -22,7 +22,7 @@ export default function ClientsLoading() {
         action={
           <Skeleton className="h-8 w-28 rounded-lg" />
         }
-        tabs={FINANCE_TABS}
+        tabs={CLIENTS_TABS}
         onboardingKey="clients"
         onboarding={ONBOARDING_CONFIGS.clients}
       />

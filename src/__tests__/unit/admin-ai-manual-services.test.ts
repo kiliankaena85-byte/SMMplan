@@ -40,4 +40,70 @@ describe('Admin AI Manual Full Service Integration', () => {
     const model = await GeminiClient.resolveLatestModel();
     expect(model).toBe('gemini-3.8-flash');
   });
+
+  it('5. AdminAiFallbackService generates grounded answer for zombie services and price quarantine', async () => {
+    const { AdminAiFallbackService } = await import('@/services/admin/ai-manual/admin-ai-fallback.service');
+    const tokens: string[] = [];
+    const text = await AdminAiFallbackService.generateFallback(
+      'Что такое зомби-услуги и как работает карантин цен?',
+      '/admin/providers',
+      [],
+      (t) => {
+        tokens.push(t);
+      }
+    );
+
+    expect(text).toContain('Зомби-услуги (Zombie Services)');
+    expect(text).toContain('CAT-ZOMBIE-PURGE');
+    expect(text).toContain('Карантин цен (Price Quarantine)');
+    expect(text).toContain('CAT-PRICE-QUARANTINE-30');
+    expect(tokens.length).toBeGreaterThan(0);
+  });
+
+  it('6. AssistantResponseCache provides instant 0-token hit with isFromCache: true', async () => {
+    const { AssistantResponseCache } = await import('@/services/admin/ai-manual/assistant-response-cache');
+    const { AdminAiAssistantService } = await import('@/services/admin/ai-manual/admin-ai-assistant.service');
+
+    const query = 'Что такое зомби-услуги и как работает карантин цен?';
+    const route = '/admin/providers';
+
+    // Prime the cache
+    AssistantResponseCache.set(route, query, {
+      fullText: 'Тестовый кэшированный ответ',
+      chunksUsed: [{ title: 'Тест', content: 'Тест', category: 'admin_manuals', score: 1.0 }],
+    });
+
+    const result = await AdminAiAssistantService.streamConsultation(
+      { query, currentRoute: route, activeTenantId: 'smmplan', conversationHistory: [] },
+      'staff-123',
+      'OWNER',
+      () => {}
+    );
+
+    expect(result.isFromCache).toBe(true);
+    expect(result.fullText).toBe('Тестовый кэшированный ответ');
+  });
+
+  it('7. AssistantResponseCache isolates cache entries by tenantId (smmplan vs flux)', async () => {
+    const { AssistantResponseCache } = await import('@/services/admin/ai-manual/assistant-response-cache');
+
+    const query = 'Уникальный вопрос по тарифам';
+    const route = '/admin/dashboard';
+
+    AssistantResponseCache.set(
+      route,
+      query,
+      { fullText: 'Ответ для SMMplan', chunksUsed: [] },
+      undefined,
+      'smmplan'
+    );
+
+    const hitPlan = AssistantResponseCache.get(route, query, 'smmplan');
+    const hitFlux = AssistantResponseCache.get(route, query, 'flux');
+
+    expect(hitPlan).not.toBeNull();
+    expect(hitPlan?.fullText).toBe('Ответ для SMMplan');
+    expect(hitFlux).toBeNull();
+  });
 });
+

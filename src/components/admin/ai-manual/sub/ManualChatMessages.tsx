@@ -2,12 +2,13 @@
 
 /**
  * Chat Messages list with Markdown formatting and Citations
+ * Complies with Clean Architecture Level 3 Presentation (<= 200 lines).
  */
 
 import React, { useState } from 'react';
 import type { ChatMessage } from '../types';
-import { Bot, User, Copy, Check, FileText, ExternalLink } from 'lucide-react';
-import Link from 'next/link';
+import { Bot, User, Copy, Check, FileText } from 'lucide-react';
+import { ChatMarkdownRenderer, renderInlineTokens } from './chat-markdown-renderer';
 
 interface ManualChatMessagesProps {
   messages: ChatMessage[];
@@ -21,43 +22,6 @@ export const ManualChatMessages: React.FC<ManualChatMessagesProps> = ({ messages
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  // Convert markdown links like [Каталог](/admin/catalog) into Next.js Link
-  const renderFormattedText = (text: string) => {
-    const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g);
-
-    return parts.map((part, index) => {
-      const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
-      if (linkMatch) {
-        const [, label, href] = linkMatch;
-        const isInternal = href.startsWith('/');
-        if (isInternal) {
-          return (
-            <Link
-              key={index}
-              href={href}
-              className="inline-flex items-center gap-0.5 text-primary hover:underline font-semibold"
-            >
-              <span>{label}</span>
-              <ExternalLink className="w-2.5 h-2.5 opacity-70" />
-            </Link>
-          );
-        }
-        return (
-          <a
-            key={index}
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline font-mono text-xs"
-          >
-            {label}
-          </a>
-        );
-      }
-      return <span key={index}>{part}</span>;
-    });
   };
 
   return (
@@ -80,28 +44,43 @@ export const ManualChatMessages: React.FC<ManualChatMessagesProps> = ({ messages
                 : 'bg-muted/60 dark:bg-muted/30 border border-border/70 text-foreground mr-6'
             }`}
           >
-            <div className="whitespace-pre-wrap break-words leading-relaxed">
-              {renderFormattedText(msg.content)}
-              {msg.isStreaming && (
-                <span className="inline-block w-1.5 h-3.5 ml-1 bg-primary animate-pulse align-middle" />
-              )}
-            </div>
+            {msg.role === 'assistant' ? (
+              <div className="break-words">
+                <ChatMarkdownRenderer content={msg.content} />
+                {msg.isStreaming && (
+                  <span className="inline-block w-1.5 h-3.5 ml-1 bg-primary animate-pulse align-middle" />
+                )}
+              </div>
+            ) : (
+              <div className="whitespace-pre-wrap break-words leading-relaxed font-medium">
+                {renderInlineTokens(msg.content)}
+              </div>
+            )}
 
-            {/* Chunks/Citations footer */}
-            {msg.chunksUsed && msg.chunksUsed.length > 0 && (
+            {/* Chunks/Citations footer & Cache indicator */}
+            {((msg.chunksUsed && msg.chunksUsed.length > 0) || msg.isFromCache) && (
               <div className="mt-2.5 pt-2 border-t border-border/40 flex flex-wrap gap-1.5 items-center">
-                <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                  <FileText className="w-2.5 h-2.5" /> Фрагменты кода:
-                </span>
-                {msg.chunksUsed.map((chunk, idx) => (
-                  <span
-                    key={idx}
-                    className="inline-block px-1.5 py-0.5 rounded bg-background/80 border border-border text-[9px] font-mono text-muted-foreground truncate max-w-[140px]"
-                    title={chunk.filePath || chunk.title}
-                  >
-                    {chunk.filePath ? chunk.filePath.split('/').slice(-2).join('/') : chunk.title}
+                {msg.isFromCache && (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-mono text-[9px] border border-emerald-500/25 font-semibold">
+                    ⚡ 0 токенов (Zero-Wait кэш)
                   </span>
-                ))}
+                )}
+                {msg.chunksUsed && msg.chunksUsed.length > 0 && (
+                  <>
+                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                      <FileText className="w-2.5 h-2.5" /> Фрагменты кода:
+                    </span>
+                    {msg.chunksUsed.map((chunk, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-block px-1.5 py-0.5 rounded bg-background/80 border border-border text-[9px] font-mono text-muted-foreground truncate max-w-[140px]"
+                        title={chunk.filePath || chunk.title}
+                      >
+                        {chunk.filePath ? chunk.filePath.split('/').slice(-2).join('/') : chunk.title}
+                      </span>
+                    ))}
+                  </>
+                )}
               </div>
             )}
 
