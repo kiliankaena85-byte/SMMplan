@@ -320,6 +320,17 @@ export class GeminiClient {
           } catch (e: unknown) {
             lastError = e instanceof Error ? e : new Error(String(e));
             console.warn(`[GeminiClient] Stream attempt failed:`, lastError.message);
+            const isNetworkError =
+              lastError.name === 'TimeoutError' ||
+              lastError.name === 'AbortError' ||
+              lastError.message.includes('fetch failed') ||
+              lastError.message.includes('ECONN') ||
+              lastError.message.includes('ETIMEDOUT') ||
+              lastError.message.includes('UND_ERR') ||
+              lastError.message.includes('Socket closed');
+            if (isNetworkError) {
+              break;
+            }
             continue;
           }
         }

@@ -79,6 +79,176 @@
     - В `dns_config.yaml` и `clash-verge.yaml` в `fake-ip-filter` внесены `*.ts.net`, `*.smmplan.pro`, `*.smmflux.ru`, `*.yookassa.ru`, `*.robokassa.ru`, `localhost`.
     - Добавлена `nameserver-policy` с маршрутизацией запросов к Рунету и финтех-сервисам через Yandex DNS (`77.88.8.8`), включен `use-system-hosts: true`.
     - Полностью ликвидирована ошибка `schannel: failed to receive handshake` при переходе по ссылке Tailscale Funnel. С хоста `https://smmplan.tailbb9d28.ts.net/` отдается моментально (`HTTP 200` за 1.75 с).
+- [x] ⚡ [ADMIN-INTERACTIVE-ILLUSTRATED-TEXTBOOK-2026] Разработка интерактивного иллюстрированного учебника администратора «OmniBook 2026» с иллюстрациями, скриншотами, иконками, интерактивными диаграммами и стандартом ГОСТ ЕСПД 19.505-79 (100% COMPLETE & VERIFIED):
+  * 📖 **Интерактивный учебник («OmniBook 2026»):**
+    - Создан полноценный интерактивный мультимедийный учебник на базе 14 томов Энциклопедии, оформленный по государственному стандарту **ГОСТ ЕСПД 19.505-79 / Роспатент** (6 обязательных разделов в каждой главе: 1. Область применения, 2. Термины и определения, 3. Архитектура и системные связи, 4. Пошаговый регламент штатной эксплуатации, 5. Нестандартные и защитные функции, 6. Диагностика сбоев и план восстановления).
+    - Охватывает все **9 операционных доменов** платформы: Архитектура & Мульти-тенантность (Next.js 16, Vault, RBAC), Дашборд & KPI (юнит-экономика, P&L, Liabilities), Реестр заказов & Drip-Feed (Failover, Partial), Саппорт & Тикет-центр (SLA 15м, скрытые заметки 🔒, шорткаты /), Каталог & Ценообразование (строго ₽/шт, TargetType, Карантин цен), Провайдеры API & Импорт (Cherry-Pick, Zero-Unknown-Platform, Circuit Breaker), Финансы & Казначейство (Ledger-First BigInt, 54-ФЗ, НДС 22%, 152-ФЗ), **Настройки системы, брендинг и безопасность (KillSwitch HTTP 503, Vault AES-256, Telegram P0, ЦБ РФ)**, Регламенты аварийных ситуаций (DR-01...DR-06).
+  * 🖼️ **Иллюстрации, реальные скриншоты стейджа и визуальные диаграммы:**
+    - Подключены **25+ реальных скриншотов** стейджа из `/manual/screenshots/` (включая скопированные из `artifacts/stage-manual/` недостающие файлы `08_stage_manual_inspector_status.png` и `03_stage_manual_runbook_detail_6_sections.png`).
+    - Внедрены реальные **интерактивные хотспоты (hotspots)** во всех 9 главах учебника: метки привязаны к контейнеру скриншота и отображаются как в карточке, так и в полноэкранном модальном зум-режиме.
+    - Разработаны **6 интерактивных архитектурных диаграмм** (`InteractiveDiagram.tsx`): 1. Топология слоев Clean Architecture, 2. Конвейер исполнения заказа (ACID & Failover), 3. Бухгалтерский Леджер двойной записи, 4. Автоматический Circuit Breaker провайдеров, 5. Трехуровневая эскалация саппорта и SLA 15 минут (`SUPPORT_ESCALATION`), 6. Контур системной безопасности и настроек (`SYSTEM_SETTINGS`).
+  * 🚨 **Интерактивные Callout-плашки и бейджи безопасности:**
+    - Разработаны типизированные карточки предупреждений (`InteractiveCallout.tsx`): `NOTE` (ℹ️), `TIP` (💡), `WARNING` (⚠️), `CRITICAL` (🛑), `LEGAL` (⚖️) с возможностью 1-клик копирования сниппетов и ссылками на правила AGENTS.md.
+  * 🛠️ **Интерактивные инструменты оператора:**
+    - **Интерактивный тестовый стенд RegEx (`InteractiveRegexLookup.tsx`):** полная поддержка **10 социальных сетей** (Telegram, VK, YouTube, Instagram, Rutube, TikTok, Twitter/X, Дзен, Threads) с валидацией targetType и ReDoS-безопасными паттернами.
+    - **Интерактивный справочник кодов ошибок API (`InteractiveErrorCodeLookup.tsx`):** исчерпывающий реестр из **52 кодов ошибок** провайдеров (Глава 37), градация критичности (HIGH, MEDIUM, LOW), алгоритм действий и скрипты готовых ответов клиенту.
+    - **Интерактивный чек-лист регламентов (`InteractiveStepChecklist.tsx`):** стандарт доступности **WCAG 2.2 AA** (управление клавишами Пробел/Enter, `role="checkbox"`, `aria-checked`, тач-таргет $\ge 44$px), сохранение прогресса в `localStorage`.
+    - **Прямой экспорт в Markdown & DOCX для печати:** генерация официальной настольной книги в формате Microsoft Word (`.docx`, ГОСТ ЕСПД 19.505-79, таблицы, колонтитулы, нумерация страниц, статус-блок) через `scripts/generate-admin-handbook-docx.ts` (`docs/manual/OMNISMM_ADMIN_DESK_HANDBOOK_2026.docx` и `public/manual/OMNISMM_ADMIN_DESK_HANDBOOK_2026.docx`).
+  * 🖥️ **Интеграция в панель администратора (`src/app/admin/manual/academy-client.tsx`):**
+    - Внедрен двухрежимный тумблер: «🎨 Интерактивный учебник с иллюстрациями (ГОСТ ЕСПД)» vs «📄 Полный текст руководства (Markdown)».
+    - Интерактивный режим назначен основным визуальным представлением по умолчанию.
+    - Добавлена сквозная навигационная панель `AdminTabbedHeader` с вкладками `SYSTEM_TABS` (Глобальные настройки, Telegram, Прокси, Роли, Брендинг, CMS, Блог, Фичи, Учебник).
+    - Внедрена вкладка `⚙️ Настройки Системы` в Академии со сводными карточками модулей настроек и быстрыми переходами.
+    - Размещены 1-клик кнопки скачивания официальной книги администратора в формате `.DOCX` для распечатки прямо из интерфейса учебника и панели Академии.
+  * 🧪 **Автоматическое тестирование и гейты качества:**
+    - Vitest: `src/__tests__/unit/interactive-textbook.test.tsx` — 11/11 PASS (100% Green).
+    - `npx tsc --noEmit` — 0 ошибок (Clean).
+    - `npm run check:arch` — 0 нарушений слоев, 0 циклических зависимостей (1443 модуля).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - `libreoffice_render_docx` — 6/6 страниц успешно отрендерены, разметка и типографика проверены.
+    - `src/proxy.ts` — 0 строк изменений (нетронут).
+  * 📁 **Созданные и измененные файлы:**
+    - `src/components/admin/manual/interactive-textbook/types.ts`
+    - `src/components/admin/manual/interactive-textbook/data/textbook-domains.ts`
+    - `src/components/admin/manual/interactive-textbook/data/textbook-chapters-part1.ts`
+    - `src/components/admin/manual/interactive-textbook/data/textbook-chapters-part2.ts`
+    - `src/components/admin/manual/interactive-textbook/data/textbook-chapters-part3.ts`
+    - `src/components/admin/manual/interactive-textbook/data/textbook-chapters.ts`
+    - `src/components/admin/manual/interactive-textbook/InteractiveCallout.tsx`
+    - `src/components/admin/manual/interactive-textbook/InteractiveDiagram.tsx`
+    - `src/components/admin/manual/interactive-textbook/InteractiveScreenshotViewer.tsx`
+    - `src/components/admin/manual/interactive-textbook/InteractiveStepChecklist.tsx`
+    - `src/components/admin/manual/interactive-textbook/InteractiveRegexLookup.tsx`
+    - `src/components/admin/manual/interactive-textbook/InteractiveErrorCodeLookup.tsx`
+    - `src/components/admin/manual/interactive-textbook/TextbookChapterViewer.tsx`
+    - `src/components/admin/manual/interactive-textbook/InteractiveTextbook.tsx`
+    - `src/components/admin/manual/interactive-textbook/index.ts`
+    - `src/app/admin/manual/academy-client.tsx`
+    - `src/__tests__/unit/interactive-textbook.test.tsx`
+    - `CURRENT_STATE.md`
+
+- [x] ⚡ [CATALOG-LIFECYCLE-SDD-TDD-2026] Сквозное тестирование и верификация жизненного цикла каталога и импорта услуг по методологии SDD-TDD (100% COMPLETE & VERIFIED):
+  * 🧪 **Контрактные и Unit-тесты (`src/__tests__/unit/catalog-import-lifecycle-sdd.test.ts`):**
+    - 16/16 тестов PASS (0 failures, 100% Green).
+    - **Приоритет №1 vs Приоритет №2:** Проверен безусловный приоритет ручного выбора оператора (`explicitId`, `categoryIdMap`), исключающий авто-сплит и переопределение.
+    - **Zero-Unknown-Platform Guard:** Проверена отбраковка услуг с неизвестной/неопределённой платформой (`UNKNOWN_PLATFORM`) при авто-импорте.
+    - **Токсичность и мусор:** Проверена фильтрация запрещённых услуг (`снос канала`, `жалобы`) и нерабочих сервисов (`[TEST]`, `не заказывать`).
+    - **Баг флагов Windows:** Проверено автодобавление канонического префикса бренда (`Telegram 🇷🇺 ...`).
+    - **Нормализация строки поиска #ID:** Проверена очистка `#1643`, `№1643`, `ID: 1643`, `id 1643` до точного `numericId = 1643`.
+    - **TargetType Semantic Resolution:** Проверено определение каналов, ботов, опросов и сторис, исключающее ложную несовместимость из-за дефолтного значения `POST` в БД.
+    - **Drip-Feed Floor:** Проверен инвариант объема на запуск $\lfloor Q/N \rfloor \ge \text{minQty}$.
+    - **Failover Routing:** Проверена защита от NUMERIC_ID_COLLISION и логика резервного шлюза при отказе провайдера.
+    - **Price Drift Circuit Breaker:** Проверена блокировка микро-цен (< 0.01 ₽) и аномальных валютных скачков.
+  * 🚀 **Автономный E2E Smoke-скрипт (`scripts/smoke-catalog-lifecycle.ts`):**
+    - 6 векторов надежности, 11/11 инвариантных проверок PASS (Exit code 0).
+  * 🛡️ **Контрольные гейты качества и регрессии:**
+    - `vitest src/__tests__/unit/catalog-import-lifecycle-sdd.test.ts` — 16/16 PASS.
+    - `npx tsx scripts/smoke-catalog-lifecycle.ts` — 11/11 PASS.
+    - `vitest src/__tests__/unit/interactive-textbook.test.tsx` — 7/7 PASS.
+    - `vitest src/__tests__/admin-nav-active.test.ts` — 21/21 PASS.
+    - `npx tsc --noEmit` — 0 ошибок (Clean).
+    - `npm run check:arch` — 0 нарушений слоев, 0 циклических связей (1443 модуля).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+  * 📁 **Созданные и обновленные файлы:**
+    - `src/__tests__/unit/catalog-import-lifecycle-sdd.test.ts`
+    - `scripts/smoke-catalog-lifecycle.ts`
+    - `src/__tests__/unit/interactive-textbook.test.tsx`
+    - `CURRENT_STATE.md`
+
+- [x] ⚡ [ADMIN-ENCYCLOPEDIA-HANDBOOK-2026] Разработка фундаментальной «Энциклопедии администратора OmniSMM 1.0» (14 томов, 52 главы, 20 скриптов саппорта, 50+ кодов ошибок, RegEx библиотека, CLI-справочник) (100% COMPLETE & VERIFIED):
+  * 📚 **Монументальная Энциклопедия администратора (`docs/manual/ADMIN_DESK_HANDBOOK_2026.md`):**
+    - Создана исчерпывающая настольная книга на 14 томов и 52 главы высокой смысловой плотности, охватывающая абсолютно все 6 операционных доменов и 22 административных экрана OmniSMM 1.0 (SMMplan & SMMflux).
+    - Включена **Большая книга скриптов саппорта** на 20 типовых и конфликтных ситуаций (задержка старта, закрытый профиль, списания соцсетей, споры по эквайрингу, бан, шантаж отзывами).
+    - Добавлен **Справочник кодов ошибок провайдеров API** (50+ кодов с регламентными действиями оператора).
+    - Добавлена **Эталонная библиотека RegEx** для 10 социальных сетей (TG, VK, YouTube, Rutube, Дзен, TikTok, Instagram, OK, Twitch, X/Twitter) с защитой от ReDoS.
+    - Включен **Сводный справочник CLI-скриптов и DevOps** (`scripts/`), команды мониторинга Docker-контейнеров и очередей BullMQ.
+    - Разработаны официальные **чек-листы смен персонала** (открытие 08:00 МСК, закрытие 23:00 МСК, протокол эскалации P0).
+    - Описана вся правовая и фискальная база 2026 года: НДС 22% (425-ФЗ), порог УСН 20 млн ₽, 54-ФЗ чеки, 152-ФЗ анонимизация, разграничение ст. 54.1 НК РФ.
+  * 🖥️ **Интеграция в админ-панель (`src/app/admin/manual/page.tsx`):**
+    - Роут `/admin/manual` переведен на чтение `docs/manual/ADMIN_DESK_HANDBOOK_2026.md` в качестве основного мастер-руководства (с сохранением безопасного фолбэка).
+    - Синхронизирован файл `project-docs/admin_master_manual_2026.md`.
+  * 🧪 **Автоматическая верификация и гейты:**
+    - `npx tsc --noEmit` — 0 ошибок (100% CLEAN).
+    - `npm run check:arch` — 0 нарушений слоев, 0 циклов на 1428 модулях (Clean Architecture Pass).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+  * 📁 **Созданные и измененные файлы:**
+    - `docs/manual/ADMIN_DESK_HANDBOOK_2026.md`
+    - `project-docs/admin_master_manual_2026.md`
+    - `src/app/admin/manual/page.tsx`
+    - `CURRENT_STATE.md`
+
+- [x] ⚡ [ADMIN-NAV-DOMAIN-FIX-2026] Комплексная гармонизация навигации и вкладок по методу Self-Loop Improving (100% COMPLETE & VERIFIED):
+  * 🌊 **Волна 1 (Core Tab Engine & Zero-Collision Guard):**
+    - Устранена критическая алгоритмическая коллизия в `isNavTabActive`: при переходе на `?tab=telegram` базовый URL `/admin/settings` больше ложно не подсвечивается (активен строго таб Telegram).
+    - TDD Red-to-Green цикл: написан сьют тестов на отсутствие коллизий параметров (21/21 PASS).
+  * 🌊 **Волна 2 (Domain Decoupling — Клиенты vs Финансы):**
+    - Устранён «прыгающий сайдбар»: создан массив `CLIENTS_TABS` («База клиентов»), роут `/admin/clients` полностью изолирован от финансовых вкладок.
+    - В `FINANCE_TABS` возвращена недостающая вкладка «Заявки на баланс» (`/admin/finance/balance-requests`).
+    - В `balance-requests-client.tsx` внедрен компонент `AdminTabs` с финансовыми вкладками.
+  * 🌊 **Волна 3 (Operations Restore — Заказы и Dripfeed):**
+    - На страницу «Заказы» (`/admin/orders` и `loading.tsx`) возвращена недостающая полоска `OPERATIONS_TABS`.
+    - Роут «Умный Dripfeed» (`/admin/smart`) гармонизирован с операционным доменом: переведён на `OPERATIONS_TABS`, RBAC-секция обновлена с `catalog` на `orders`.
+    - Справочник статусов заказов (`/admin/docs/order-statuses`) в `SIDEBAR_DOMAIN_ALIASES` перенаправлен на родительский домен `/admin/orders`.
+  * 🌊 **Волна 4 (Settings & CMS Stability):**
+    - Ликвидирован визуальный глитч «исчезающих табов» в Настройках (`/admin/settings`): в `page.tsx` добавлена полоска `tabs={SYSTEM_TABS}` над кластерами.
+    - На странице `/admin/catalog/drift` добавлен `AdminTabbedHeader` с `CATALOG_TABS`.
+    - На странице `/admin/cms` добавлен `AdminTabbedHeader` с `SYSTEM_TABS`.
+  * 🌊 **Волна 5 (Polish & RBAC Alignment):**
+    - На страницу мониторинга провайдеров (`/admin/providers/health`) внедрён `AdminTabbedHeader` с `PROVIDERS_TABS`, восстановив возможность возврата к шлюзам и импорту в 1 клик.
+    - Устранена коллизия RBAC на роуте `/admin/fraud-monitor`: проверка прав выровнена с `settings` на `enforceSectionAccess('finance')` в соответствии с родительским сайдбар-алиасом, внедрён `AdminTabbedHeader` с `FINANCE_TABS`.
+  * 🧪 **Финальная верификация и гейты надежности:**
+    - `vitest src/__tests__/admin-nav-active.test.ts` — 21/21 PASS.
+    - `npx tsx scripts/audit-admin-nav.ts` — 61/61 продуктовых маршрутов корректно подсвечивают сайдбар.
+    - `npx tsc --noEmit` — 0 ошибок (Clean).
+    - `npm run check:arch` — 0 нарушений слоев, 0 циклических зависимостей (1428 модулей).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+  * 📁 **Измененные файлы:**
+    - `src/components/admin/navigation-data.ts`
+    - `src/app/admin/layout.tsx`
+    - `src/components/admin/sidebar.tsx`
+    - `src/components/admin/mobile-nav-drawer.tsx`
+    - `src/components/admin/tabbed-header-client.tsx`
+    - `src/app/admin/clients/page.tsx` & `loading.tsx`
+    - `src/app/admin/orders/page.tsx` & `loading.tsx`
+    - `src/app/admin/smart/page.tsx`
+    - `src/app/admin/settings/page.tsx`
+    - `src/app/admin/catalog/drift/page.tsx`
+    - `src/app/admin/cms/page.tsx`
+    - `src/app/admin/finance/balance-requests/balance-requests-client.tsx`
+    - `src/app/admin/providers/health/page.tsx`
+    - `src/app/admin/fraud-monitor/page.tsx` & `fraud-monitor-client.tsx`
+    - `src/__tests__/admin-nav-active.test.ts`
+    - `scripts/audit-admin-nav.ts`
+
+- [x] ⚡ [AUTH-ZERO-TRAP-NAVIGATION-2026] Устранение ловушки экрана авторизации (Zero-Trap Navigation) и декомпозиция страницы входа (100% COMPLETE & VERIFIED):
+  * 🚪 **Навигация «На главную» для всех состояний авторизации:**
+    - Создан компонент `AuthBackLink.tsx` (33 строки) с поддержкой многотенантности (`/?tenant=flux` для SMMflux, `/` для SMMplan), соответствием WCAG 2.2 AA (высота $\ge 44$px) и плавной анимацией `group-hover:-translate-x-1`.
+    - Разработан компонент `AlreadyLoggedInCard.tsx` (100 строк) для авторизованных пользователей: устранен тупиковый экран, добавлена плавающая кнопка «На главную» в левом верхнем углу, вторичная кнопка «Вернуться на главную» в центре карточки рядом с кнопками «Продолжить как ...» и «Войти под другим аккаунтом».
+    - Созданы брендовые левые панели `FluxLoginHero.tsx` (48 строк) и `PlanLoginHero.tsx` (52 строки).
+    - Файл `src/app/(auth)/login/page.tsx` сжат с 275 строк до **160 строк** ($\le 200$), мобильный логотип обернут в ссылку на главную страницу, на экране гостевого входа размещена кнопка `AuthBackLink`.
+  * 🧪 **Автоматическое тестирование и верификация:**
+    - Написан сьют тестов `src/__tests__/unit/login-navigation-zero-trap.test.tsx` (4/4 PASS): проверены корректные ссылки для SMMplan и SMMflux, наличие доступных меток `aria-label` и поведение для авторизованных/неавторизованных пользователей.
+    - Визуально подтверждено на стейдже (порт 3005) через Puppeteer/Playwright: скриншоты `09_stage_login_guest_back_button.png` и `10_stage_login_already_logged_in.png`.
+
+- [x] ⚡ [ADMIN-OMNIMANUAL-STAGE-AUDIT-2026] Визуальный аудит и Self-Loop улучшение интерактивной справочной системы OmniManual 1.0 на стейдже (100% COMPLETE & VERIFIED):
+  * 📸 **Сквозной Playwright-аудит (10/10 сценариев):**
+    - `01_stage_manual_docked_mode.png`: Режим стыковки виджета OmniManual 1.0 в правом доке админ-панели (`/admin/providers`).
+    - `02_stage_manual_guides_patent_list.png`: Каталог регламентов по ГОСТ ЕСПД / Роспатент (6 обязательных глав, нумерация 1..6).
+    - `03_stage_manual_runbook_checklist_progress.png`: Интерактивный прогресс-бар выполнения чек-листа регламента (50%).
+    - `04_stage_manual_runbook_troubleshooting_section6.png`: Раздел 6 регламента — план действий при сбое («Поломка валидатора ссылок», «Несовместимость TargetType»).
+    - `05_stage_manual_runbook_download_toast.png`: Экспорт регламента в Markdown с поддержкой UTF-8 BOM и всплывающим тостом.
+    - `06_stage_manual_chat_live_response.png`: Живой диалог в чате с ИИ-консультантом: развернутый ответ по зомби-услугам (`CAT-ZOMBIE-PURGE`), карантину цен (`CAT-PRICE-QUARANTINE-30`), кликабельные ссылки на кодовую базу и регламенты.
+    - `07_stage_manual_chat_cached_zero_wait.png`: Демонстрация нулевого расхода токенов с бейджем `⚡ 0 токенов (Zero-Wait кэш)`.
+    - `08_stage_manual_inspector_status.png`: Инспектор архитектуры, статус моделей Prisma и ADR-2026-20.
+    - `09_stage_login_guest_back_button.png`: Кнопка «На главную» для гостя на экране входа.
+    - `10_stage_login_already_logged_in.png`: Экран «Вы уже вошли» с возможностью уйти на главную.
+  * 🛡️ **Надежность и Clean Architecture:**
+    - Все модифицированные/созданные файлы строго $\le 200$ строк.
+    - `npx tsc --noEmit` — 0 ошибок (100% CLEAN).
+    - `npm run check:arch` — 0 нарушений слоев, 0 циклических зависимостей на 1427 модулях.
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - `src/proxy.ts` — не затронут.
+
 - [x] ⚡ [CLIENT-SETTINGS-YOOKASSA-CATALOG-CLEANUP-2026] Оптимизация ЛК клиента (докрутка, ЮKassa во всех режимах, удаление аккаунта, вкладки настроек) и очистка тулбара каталога в админке (100% COMPLETE & VERIFIED):
   * 🛑 **Удаление докрутки (Refill) из ЛК клиента:**
     - Компонент `RefillRequestButton.tsx` переведен в `return null` — кнопки и статусы докрутки полностью скрыты из десктопных и мобильных таблиц заказов, карточек заказов, Flux-списков/канбана и страницы заказа.

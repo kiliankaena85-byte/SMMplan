@@ -76,6 +76,15 @@ onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); ... }}
     6. **Верификация:** 8/8 тестов PASS (`admin-runbook-patent-formatter.test.ts`, `admin-runbook-patent-ui.test.tsx`), `tsc --noEmit` 0 ошибок, `npm run check:arch` 0 нарушений.
   - *Причина:* Полное соответствие требованиям пользователя по профессиональному структурированию документации (стандарт Роспатента / ГОСТ) и возможность автономного офлайн-изучения администраторами платформы.
 
+- **ADR-2026-27: Auth Navigation Zero-Trap & Stage Visual Verification Protocol (Login UX & Stage Gate):**
+  - *Решение:*
+    1. **Zero-Trap Auth Navigation:** Создан компонент `AuthBackLink.tsx` (33 строки) с поддержкой мультитенантности (`/?tenant=flux` vs `/`), высотой touch target $\ge 44$px по WCAG 2.2 AA и анимацией сдвига стрелки.
+    2. **AlreadyLoggedInCard:** Заменен тупиковый экран авторизованного пользователя: по центру размещена кнопка «Вернуться на главную», а в левом верхнем углу — плавающая кнопка возврата.
+    3. **Декомпозиция `/login/page.tsx`:** Сокращен с 275 до 160 строк ($\le 200$), брендовые панели вынесены в `FluxLoginHero.tsx` и `PlanLoginHero.tsx`.
+    4. **Сквозной Playwright-аудит (10/10 скриншотов):** Реализован `scripts/stage-audit-omnimanual.ts` с верификацией работы виджета OmniManual 1.0 на стейдже (:3005) и обоих экранов авторизации (гость и авторизованный).
+    5. **Верификация:** 4/4 юнит-тестов PASS (`login-navigation-zero-trap.test.tsx`), `tsc --noEmit` 0 ошибок, `npm run check:arch` 0 нарушений на 1427 модулях.
+  - *Причина:* Предотвращение тупиковых экранов для пользователей, улучшение конверсии и обеспечение 100% визуального контроля стейдж-контура.
+
 - **ADR-2026-20: Architecture of Interactive Admin Operating Manual & AI Consultant Widget (Gemini 3.8 Flash & Docker Vector Memory):**
   - *Решение:*
     1. **Интерактивный виджет админки (OmniManual 1.0):** Плавающий триггер (FAB) с шорткатом `Ctrl + /`, выдвижной Drawer с 3 табами: «AI-Консультант» (SSE-стриминг), «Инструкция и Гайды» (8 структурированных глав с пошаговыми чеклистами), «Инспектор Кода & ADR» (Prisma модели и решения).

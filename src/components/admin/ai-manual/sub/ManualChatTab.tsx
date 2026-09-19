@@ -1,22 +1,24 @@
 'use client';
 
 /**
- * Tab 1: AI Consultant Chat with SSE Streaming
+ * Tab 1: AI Consultant Chat with SSE Streaming & 0-Token Response Cache
  */
 
 import React, { useState, useRef, useEffect } from 'react';
 import type { ChatMessage } from '../types';
 import { ManualChatMessages } from './ManualChatMessages';
-import { Send, Sparkles, CornerDownLeft, MapPin } from 'lucide-react';
+import { Send, Sparkles, MapPin } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { getRoutePromptChips } from './route-chips';
+import { queryAdminAiAssistantAction } from '@/actions/admin/ai-manual/assistant.action';
 
 interface ManualChatTabProps {
   userRole?: string;
-  activeTenantId?: string;
+  activeTenantId?: 'smmplan' | 'flux' | string;
 }
 
 export const ManualChatTab: React.FC<ManualChatTabProps> = ({ activeTenantId = 'smmplan' }) => {
+  const tenant: 'smmplan' | 'flux' = activeTenantId === 'flux' ? 'flux' : 'smmplan';
   const pathname = usePathname() || '/admin/dashboard';
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -32,14 +34,8 @@ export const ManualChatTab: React.FC<ManualChatTabProps> = ({ activeTenantId = '
     },
   ]);
 
-  const scrollToBottom = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
   const handleSend = async (queryText?: string) => {
@@ -55,7 +51,6 @@ export const ManualChatTab: React.FC<ManualChatTabProps> = ({ activeTenantId = '
       { id: userMsgId, role: 'user', content: textToSend, timestamp: new Date().toLocaleTimeString() },
       { id: assistantMsgId, role: 'assistant', content: '', isStreaming: true, timestamp: new Date().toLocaleTimeString() },
     ]);
-
     setIsStreaming(true);
 
     try {
@@ -65,17 +60,25 @@ export const ManualChatTab: React.FC<ManualChatTabProps> = ({ activeTenantId = '
         body: JSON.stringify({
           query: textToSend,
           currentRoute: pathname,
-          activeTenantId,
+          activeTenantId: tenant,
           conversationHistory: messages.slice(-4).map((m) => ({ role: m.role, content: m.content })),
         }),
       });
 
-      if (!res.ok) {
+      if (!res.ok || !res.body) {
+        const actionRes = await queryAdminAiAssistantAction({
+          query: textToSend,
+          currentRoute: pathname,
+          activeTenantId: tenant,
+          conversationHistory: messages.slice(-4).map((m) => ({ role: m.role, content: m.content })),
+        });
+        if (actionRes.success && actionRes.result) {
+          setMessages((prev) =>
+            prev.map((m) => m.id === assistantMsgId ? { ...m, content: actionRes.result!.fullText, chunksUsed: actionRes.result!.chunksUsed, isFromCache: Boolean(actionRes.result!.isFromCache), isStreaming: false } : m)
+          );
+          return;
+        }
         throw new Error(`Ошибка сервера (${res.status})`);
-      }
-
-      if (!res.body) {
-        throw new Error('Ответ сервера пуст');
       }
 
       const reader = res.body.getReader();
@@ -93,60 +96,47 @@ export const ManualChatTab: React.FC<ManualChatTabProps> = ({ activeTenantId = '
         for (const line of lines) {
           const trimmed = line.trim();
           if (!trimmed.startsWith('data: ')) continue;
-          const jsonStr = trimmed.slice(6);
-
           try {
-            const data = JSON.parse(jsonStr);
+            const data = JSON.parse(trimmed.slice(6));
             if (data.type === 'token' && data.text) {
               setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMsgId
-                    ? { ...msg, content: msg.content + data.text }
-                    : msg
-                )
+                prev.map((m) => (m.id === assistantMsgId ? { ...m, content: m.content + data.text } : m))
               );
             } else if (data.type === 'done') {
               setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMsgId
-                    ? { ...msg, isStreaming: false, chunksUsed: data.chunks }
-                    : msg
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? {
+                        ...m,
+                        isStreaming: false,
+                        chunksUsed: data.chunks,
+                        isFromCache: Boolean(data.isFromCache),
+                      }
+                    : m
                 )
               );
             } else if (data.type === 'error') {
               setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMsgId
-                    ? { ...msg, content: `⚠️ Ошибка: ${data.error}`, isStreaming: false }
-                    : msg
-                )
+                prev.map((m) => (m.id === assistantMsgId ? { ...m, content: `⚠️ Ошибка: ${data.error}`, isStreaming: false } : m))
               );
             }
-          } catch {
-            // chunk parse error
-          }
+          } catch {}
         }
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Сбой связи с сервером';
       setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === assistantMsgId
-            ? { ...msg, content: `⚠️ Ошибка соединения: ${message}`, isStreaming: false }
-            : msg
-        )
+        prev.map((m) => (m.id === assistantMsgId ? { ...m, content: `⚠️ Ошибка соединения: ${message}`, isStreaming: false } : m))
       );
     } finally {
       setIsStreaming(false);
-      setMessages((prev) =>
-        prev.map((msg) => (msg.id === assistantMsgId ? { ...msg, isStreaming: false } : msg))
-      );
+      setMessages((prev) => prev.map((m) => (m.id === assistantMsgId ? { ...m, isStreaming: false } : m)));
     }
   };
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Current route indicator */}
+      {/* Route context header */}
       <div className="px-4 py-1.5 bg-muted/30 border-b border-border/40 flex items-center justify-between text-[11px] text-muted-foreground shrink-0">
         <div className="flex items-center gap-1.5 truncate">
           <MapPin className="w-3 h-3 text-primary shrink-0" />
@@ -197,11 +187,7 @@ export const ManualChatTab: React.FC<ManualChatTabProps> = ({ activeTenantId = '
             className="p-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0 cursor-pointer"
             title="Отправить (Enter)"
           >
-            {isStreaming ? (
-              <Sparkles className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Send className="w-3.5 h-3.5" />
-            )}
+            {isStreaming ? <Sparkles className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>

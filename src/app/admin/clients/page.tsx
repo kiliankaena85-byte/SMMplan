@@ -1,7 +1,7 @@
 import { adminUserService, getVolumeTier, USER_SORT_FIELDS, type UserSortField, type SortOrder } from '@/services/admin/user.service';
 import Link from 'next/link';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
-import { FINANCE_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
+import { CLIENTS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { ClientTable } from './components/client-table';
 import { ClientQuickSort } from './components/client-quick-sort';
 import { NumberedPagination } from '@/components/admin/ui/numbered-pagination';
@@ -113,7 +113,7 @@ export default async function AdminClientsPage({ searchParams }: Props) {
             </a>
           </div>
         ) : undefined}
-        tabs={FINANCE_TABS}
+        tabs={CLIENTS_TABS}
         onboardingKey="clients"
         onboarding={ONBOARDING_CONFIGS.clients}
       />

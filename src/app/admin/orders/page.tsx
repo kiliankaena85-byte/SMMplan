@@ -2,6 +2,7 @@ import { adminOrderService } from '@/services/admin/order.service';
 import { Package, Download, BookOpen, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
+import { OPERATIONS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { OrderClient } from './components/order-client';
 import { OrdersFilterForm } from './components/orders-filter-form';
 import { NumberedPagination } from '@/components/admin/ui/numbered-pagination';
@@ -242,6 +243,9 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
             )}
           </div>
         }
+        tabs={OPERATIONS_TABS}
+        onboardingKey="orders"
+        onboarding={ONBOARDING_CONFIGS.orders}
       />
 
       {/* Search + Filters & Orders Table Container */}

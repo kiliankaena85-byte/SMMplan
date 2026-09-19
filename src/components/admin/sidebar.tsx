@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
-import { isNavTabActive } from '@/components/admin/navigation-data';
+import { isNavTabActive, resolveSidebarDomain } from '@/components/admin/navigation-data';
 
 interface NavItem {
   href: string;
@@ -97,6 +97,10 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
     return navigation.flatMap((g) => g.items.map((item) => item.href));
   }, [navigation]);
 
+  // Domain-resolved pathname: maps ghost pages (e.g. /admin/refills) to their
+  // logical sidebar parent (e.g. /admin/orders) so the sidebar stays highlighted.
+  const resolvedPathname = React.useMemo(() => resolveSidebarDomain(pathname), [pathname]);
+
   // All flat items map for pinned rendering
   const allItemsMap = React.useMemo(() => {
     const map = new Map<string, NavItem>();
@@ -171,7 +175,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
               </h3>
             )}
             {pinnedItems.map((tab) => {
-              const isActive = isNavTabActive(pathname, tab.href, allNavHrefs);
+              const isActive = isNavTabActive(pathname, tab.href, allNavHrefs, resolvedPathname);
               const IconComponent = ICON_MAP[tab.icon] || Home;
               return (
                 <Link
@@ -234,7 +238,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
               {(!isGroupCollapsed || collapsed) && (
                 <div className="space-y-0.5">
                   {section.items.map((tab) => {
-                    const isActive = isNavTabActive(pathname, tab.href, allNavHrefs);
+                    const isActive = isNavTabActive(pathname, tab.href, allNavHrefs, resolvedPathname);
                     const isPinned = pinnedHrefs.includes(tab.href);
                     const IconComponent = ICON_MAP[tab.icon] || Home;
 

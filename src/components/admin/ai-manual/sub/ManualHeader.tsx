@@ -52,6 +52,7 @@ export const ManualHeader: React.FC<ManualHeaderProps> = ({
         <button
           type="button"
           onClick={() => onTabChange('chat')}
+          aria-label="Вкладка AI-Консультант"
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
             activeTab === 'chat'
               ? 'bg-primary text-primary-foreground shadow-xs'
@@ -65,6 +66,7 @@ export const ManualHeader: React.FC<ManualHeaderProps> = ({
         <button
           type="button"
           onClick={() => onTabChange('guides')}
+          aria-label="Вкладка Инструкция"
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
             activeTab === 'guides'
               ? 'bg-primary text-primary-foreground shadow-xs'
@@ -78,6 +80,7 @@ export const ManualHeader: React.FC<ManualHeaderProps> = ({
         <button
           type="button"
           onClick={() => onTabChange('inspector')}
+          aria-label="Вкладка Инспектор"
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
             activeTab === 'inspector'
               ? 'bg-primary text-primary-foreground shadow-xs'

@@ -148,6 +148,7 @@ export default defineConfig({
       'src/__tests__/unit/orders-mobile-layout-responsiveness.test.tsx',
       'src/__tests__/skills/**/*.test.ts',
       'src/__tests__/unit/**/*.test.ts',
+      'src/__tests__/unit/**/*.test.tsx',
     ],
   }
 });

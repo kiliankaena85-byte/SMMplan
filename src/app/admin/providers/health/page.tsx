@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { Activity, ShieldCheck, AlertTriangle, RefreshCw, Zap, Server } from 'lucide-react';
 import { toast } from 'sonner';
+import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
+import { PROVIDERS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 
 export default function ProviderHealthMonitorPage() {
   const [isResetting, setIsResetting] = useState(false);
@@ -16,26 +18,24 @@ export default function ProviderHealthMonitorPage() {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Activity className="w-7 h-7 text-primary shrink-0" />
-            Provider Health Monitor & Circuit Breakers
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Мониторинг SLA, отказоустойчивости и состояния цепей изоляции внешних провайдеров.
-          </p>
-        </div>
-        <button
-          onClick={() => toast.info('Метрики провайдеров обновлены')}
-          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-card border border-border text-foreground hover:bg-muted transition-all duration-200"
-        >
-          <RefreshCw className="w-4 h-4 shrink-0" />
-          Обновить статус
-        </button>
-      </div>
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
+      <AdminTabbedHeader
+        icon={Activity}
+        title="Мониторинг здоровья & Circuit Breakers"
+        description="Мониторинг SLA, отказоустойчивости и состояния цепей изоляции внешних провайдеров"
+        action={(
+          <button
+            onClick={() => toast.info('Метрики провайдеров обновлены')}
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-card border border-border text-foreground hover:bg-muted transition-all duration-200 cursor-pointer"
+          >
+            <RefreshCw className="w-4 h-4 shrink-0" />
+            Обновить статус
+          </button>
+        )}
+        tabs={PROVIDERS_TABS}
+        onboardingKey="providers"
+        onboarding={ONBOARDING_CONFIGS.providers}
+      />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">

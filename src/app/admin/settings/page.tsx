@@ -165,6 +165,7 @@ export default async function AdminSettingsPage({
           icon={Settings}
           title="Настройки системы"
           description="Глобальная конфигурация платформы, безопасность и персонал."
+          tabs={SYSTEM_TABS}
           onboardingKey="settings"
           onboarding={ONBOARDING_CONFIGS.settings}
         />

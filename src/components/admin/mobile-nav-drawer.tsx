@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { isNavTabActive } from '@/components/admin/navigation-data';
+import { isNavTabActive, resolveSidebarDomain } from '@/components/admin/navigation-data';
 
 interface NavItem {
   href: string;
@@ -64,6 +64,9 @@ export function MobileNavDrawer({ userEmail, roleInfo, navigation }: MobileNavDr
   const allNavHrefs = React.useMemo(() => {
     return navigation.flatMap((g) => g.items.map((item) => item.href));
   }, [navigation]);
+
+  // Domain-resolved pathname for ghost-page aliasing
+  const resolvedPathname = React.useMemo(() => resolveSidebarDomain(pathname), [pathname]);
 
   // Close drawer on route change
   React.useEffect(() => {
@@ -124,7 +127,7 @@ export function MobileNavDrawer({ userEmail, roleInfo, navigation }: MobileNavDr
               </h3>
               <div className="space-y-0.5">
                 {section.items.map((item) => {
-                  const isActive = isNavTabActive(pathname, item.href, allNavHrefs);
+                  const isActive = isNavTabActive(pathname, item.href, allNavHrefs, resolvedPathname);
                   const IconComponent = ICON_MAP[item.icon] || Home;
 
                   return (
