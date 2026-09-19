@@ -48,6 +48,7 @@ export class AdminAiSanitizerService {
 
     // Mask Tokens & Secrets
     for (const pattern of this.SECRET_PATTERNS) {
+      pattern.lastIndex = 0;
       cleaned = cleaned.replace(pattern, (match) => {
         if (/[:=]/.test(match)) {
           return match.replace(/[:=]\s*["']?.+["']?/, '="[REDACTED_SECRET]"');
