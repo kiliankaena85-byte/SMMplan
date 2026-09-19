@@ -66,6 +66,14 @@ onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); ... }}
 
 ## 1. 🏗️ Архитектурные решения (ADR)
 
+- **ADR-2026-20: Architecture of Interactive Admin Operating Manual & AI Consultant Widget (Gemini 3.8 Flash & Docker Vector Memory):**
+  - *Решение:*
+    1. **Интерактивный виджет админки (OmniManual 1.0):** Плавающий триггер (FAB) с шорткатом `Ctrl + /`, выдвижной Drawer с 3 табами: «AI-Консультант» (SSE-стриминг), «Инструкция и Гайды» (8 структурированных глав с пошаговыми чеклистами), «Инспектор Кода & ADR» (Prisma модели и решения).
+    2. **Векторная память в Docker:** Контейнеризированный контур (`docker-compose.graphrag.yml`) с Qdrant на `:6333` и FastAPI RAG на `:8100`, демон AST-индексации кодовой базы (`src/`, `prisma/`, `docs/`) по SHA256 хешам. Circuit Breaker с переключением на локальный кэш `.planning/memory_cache.json`.
+    3. **Gemini 3.8 Flash & Пул ротации ключей:** 3 уровня источников ключей (личный ключ сотрудника, системный пул из `SystemSettings`, `.env`) с временной изоляцией при 429 (5 минут кулдаун) и поддержкой `GEMINI_PROXY` (undici ProxyAgent).
+    4. **Заземление и безопасность:** 100% заземление на код без галлюцинаций, кликабельные ссылки на файлы и маршруты админки, пре- и пост-санитизация PII и маскирование секретов (`[REDACTED_SECRET]`).
+  - *Причина:* Устранение когнитивного барьера для операторов админ-панели, мгновенный онбординг и точные консультации по живой кодовой базе.
+
 - **ADR-2026-26: OmniSMM Monolithic Decomposition Waves 15–24 (CDD-TDD & Zero-Regression Guard):**
   - *Решение:*
     1. **SMMplan Core Decomposed (Waves 15–17):** 

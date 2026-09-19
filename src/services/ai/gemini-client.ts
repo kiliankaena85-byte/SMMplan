@@ -197,6 +197,139 @@ export class GeminiClient {
   }
 
   /**
+   * Выполняет потоковый запрос к Gemini (SSE) с ротацией ключей, Multi-Proxy Failover
+   * и каскадом моделей. Передает каждый чанк текста в коллбэк onChunk.
+   */
+  static async streamGenerateContent(
+    payload: GeminiCallOptions,
+    onChunk: (text: string) => void | Promise<void>
+  ): Promise<string> {
+    const activeKeys = await this.getActiveKeyPool(payload.staffUserId, payload.customApiKey);
+    if (activeKeys.length === 0) {
+      throw new Error('GEMINI_API_KEY / GEMINI_API_KEYS is not configured');
+    }
+
+    const startIndex = keyRotationIndex % activeKeys.length;
+    keyRotationIndex = (keyRotationIndex + 1) % 100000;
+
+    const keysToTry = [
+      ...activeKeys.slice(startIndex),
+      ...activeKeys.slice(0, startIndex),
+    ];
+
+    let lastError: Error | null = null;
+    const dispatchers = await this.getDispatchers();
+
+    for (const apiKey of keysToTry) {
+      const primaryModel = await this.resolveLatestModel(apiKey);
+      const candidateModels = Array.from(
+        new Set([primaryModel, ...FALLBACK_MODEL_CASCADES])
+      );
+
+      for (const model of candidateModels) {
+        for (const dispatcher of dispatchers) {
+          try {
+            const baseUrl = this.getBaseUrl();
+            const url = `${baseUrl}/v1beta/models/${model}:streamGenerateContent?alt=sse`;
+
+            const body: Record<string, unknown> = {
+              contents: payload.contents,
+            };
+
+            if (payload.systemInstruction) {
+              body.system_instruction = {
+                parts: [{ text: payload.systemInstruction }],
+              };
+            }
+
+            if (payload.temperature !== undefined || payload.maxOutputTokens !== undefined) {
+              body.generationConfig = {
+                ...(payload.temperature !== undefined ? { temperature: payload.temperature } : {}),
+                ...(payload.maxOutputTokens !== undefined ? { maxOutputTokens: payload.maxOutputTokens } : {}),
+              };
+            }
+
+            const res = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': apiKey,
+              },
+              body: JSON.stringify(body),
+              dispatcher,
+              signal: AbortSignal.timeout(payload.timeoutMs || 45000),
+            } as unknown as RequestInit);
+
+            if (res.status === 429 || res.status === 403) {
+              const errText = await res.text();
+              this.markKeyCooldown(apiKey, `HTTP ${res.status}: ${errText.slice(0, 100)}`);
+              break;
+            }
+
+            if (res.status === 404 || res.status === 400) {
+              console.warn(`[GeminiClient] Model ${model} returned HTTP ${res.status} on stream. Trying next model...`);
+              modelCache = null;
+              break;
+            }
+
+            if (!res.ok) {
+              const errText = await res.text();
+              throw new Error(`Gemini API HTTP ${res.status}: ${errText}`);
+            }
+
+            if (!res.body) {
+              throw new Error('No readable body in Gemini streaming response');
+            }
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let fullText = '';
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || '';
+
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed || !trimmed.startsWith('data: ')) continue;
+                const jsonStr = trimmed.slice(6);
+                if (jsonStr === '[DONE]') continue;
+
+                try {
+                  const parsed = JSON.parse(jsonStr);
+                  const partText = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+                  if (partText) {
+                    fullText += partText;
+                    await onChunk(partText);
+                  }
+                } catch {
+                  // ignore incomplete JSON chunk
+                }
+              }
+            }
+
+            if (fullText.length > 0) {
+              modelCache = { resolvedModel: model, cachedAt: Date.now() };
+              return fullText;
+            }
+          } catch (e: unknown) {
+            lastError = e instanceof Error ? e : new Error(String(e));
+            console.warn(`[GeminiClient] Stream attempt failed:`, lastError.message);
+            continue;
+          }
+        }
+      }
+    }
+
+    throw lastError || new Error('All Gemini API keys, proxies, and models exhausted for streaming');
+  }
+
+  /**
    * Выполняет запрос к Gemini с ротацией ключей, поддержкой пула прокси с авто-переключением (Multi-Proxy Failover)
    * и каскадным перебором моделей.
    */

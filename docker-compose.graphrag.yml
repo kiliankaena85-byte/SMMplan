@@ -76,7 +76,7 @@ services:
         condition: service_started
     volumes:
       - .:/app/codebase:ro
-      - ./project-docs:/app/docs:ro
+      - ./docs:/app/docs:ro
       - ./knowledge-service:/app
 
 volumes:
