@@ -7,20 +7,33 @@ import { GeminiClient } from '@/services/ai/gemini-client';
 import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { AdminAiSanitizerService } from './admin-ai-sanitizer.service';
 import { KnowledgeRetrieverService, RetrievedChunk } from './knowledge-retriever.service';
+import { AssistantResponseCache } from './assistant-response-cache';
 import type { AdminAssistantQuery } from '@/types/admin-ai-manual';
 
 export class AdminAiAssistantService {
   /**
-   * Generates a streaming response for admin query
+   * Generates a streaming response for admin query (with LRU 0-token caching)
    */
   static async streamConsultation(
     payload: AdminAssistantQuery,
     staffUserId: string,
     userRole: string,
     onToken: (token: string) => void | Promise<void>
-  ): Promise<{ fullText: string; chunksUsed: RetrievedChunk[] }> {
+  ): Promise<{ fullText: string; chunksUsed: RetrievedChunk[]; isFromCache?: boolean }> {
     const startTime = Date.now();
     const sanitizedQuery = AdminAiSanitizerService.sanitizeInput(payload.query);
+
+    // 0. Check LRU In-Memory Response Cache for 0-token instant return
+    const route = payload.currentRoute || '/admin/dashboard';
+    const cached = AssistantResponseCache.get(route, sanitizedQuery);
+    if (cached) {
+      await onToken(cached.fullText);
+      return {
+        fullText: cached.fullText,
+        chunksUsed: cached.chunksUsed,
+        isFromCache: true,
+      };
+    }
 
     // 1. Retrieve Grounding Chunks from Docker Vector Memory
     const chunks = await KnowledgeRetrieverService.retrieveContext(
@@ -62,10 +75,13 @@ export class AdminAiAssistantService {
         maxOutputTokens: 2048,
         timeoutMs: 40000,
       },
-      onToken
-    );
+    // 5. Store in LRU Cache for subsequent instant 0-token queries
+    AssistantResponseCache.set(route, sanitizedQuery, {
+      fullText,
+      chunksUsed: chunks,
+    });
 
-    // 5. Audit Logging (Asynchronous & Non-blocking)
+    // 6. Audit Logging (Asynchronous & Non-blocking)
     const durationMs = Date.now() - startTime;
     auditAdminAwaitable({
       adminId: staffUserId,

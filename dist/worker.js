@@ -5426,7 +5426,7 @@ var require_node = __commonJS({
     var tty = require("tty");
     var util2 = require("util");
     exports2.init = init;
-    exports2.log = log31;
+    exports2.log = log33;
     exports2.formatArgs = formatArgs;
     exports2.save = save;
     exports2.load = load;
@@ -5561,7 +5561,7 @@ var require_node = __commonJS({
       }
       return (/* @__PURE__ */ new Date()).toISOString() + " ";
     }
-    function log31(...args) {
+    function log33(...args) {
       return process.stderr.write(util2.formatWithOptions(exports2.inspectOpts, ...args) + "\n");
     }
     function save(namespaces) {
@@ -14201,14 +14201,14 @@ var require_unrecoverable_error = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.UnrecoverableError = exports2.UNRECOVERABLE_ERROR = void 0;
     exports2.UNRECOVERABLE_ERROR = "bullmq:unrecoverable";
-    var UnrecoverableError3 = class extends Error {
+    var UnrecoverableError6 = class extends Error {
       constructor(message = exports2.UNRECOVERABLE_ERROR) {
         super(message);
         this.name = this.constructor.name;
         Object.setPrototypeOf(this, new.target.prototype);
       }
     };
-    exports2.UnrecoverableError = UnrecoverableError3;
+    exports2.UnrecoverableError = UnrecoverableError6;
   }
 });
 
@@ -50285,11 +50285,11 @@ var require_tools = __commonJS({
         }
       }
     }
-    function buildFormatters(level, bindings, log31) {
+    function buildFormatters(level, bindings, log33) {
       return {
         level,
         bindings,
-        log: log31
+        log: log33
       };
     }
     function normalizeDestFileDescriptor(destination) {
@@ -50670,11 +50670,11 @@ var require_proto = __commonJS({
         }
       } else instance[serializersSym] = serializers;
       if (options.hasOwnProperty("formatters")) {
-        const { level, bindings: chindings, log: log31 } = options.formatters;
+        const { level, bindings: chindings, log: log33 } = options.formatters;
         instance[formattersSym] = buildFormatters(
           level || formatters.level,
           chindings || resetChildingsFormatter,
-          log31 || formatters.log
+          log33 || formatters.log
         );
       } else {
         instance[formattersSym] = buildFormatters(
@@ -51745,7 +51745,7 @@ var require_pino = __commonJS({
 
 // src/lib/logger.ts
 function createLoggerFromBase(pinoInstance) {
-  const log31 = (level) => (message, context) => {
+  const log33 = (level) => (message, context) => {
     const store = logContextStorage.getStore();
     const extra = typeof context === "object" && context !== null && !Array.isArray(context) ? context : context !== void 0 ? { detail: context } : {};
     const merged = {
@@ -51759,10 +51759,10 @@ function createLoggerFromBase(pinoInstance) {
     pinoInstance[level](safeContext, safeMessage);
   };
   return {
-    info: log31("info"),
-    warn: log31("warn"),
-    error: log31("error"),
-    debug: log31("debug"),
+    info: log33("info"),
+    warn: log33("warn"),
+    error: log33("error"),
+    debug: log33("debug"),
     child: (bindings) => createLoggerFromBase(pinoInstance.child(bindings))
   };
 }
@@ -58870,14 +58870,14 @@ var require_mailer = __commonJS({
           this.getVersionString()
         );
         if (typeof this.transporter.on === "function") {
-          this.transporter.on("log", (log31) => {
+          this.transporter.on("log", (log33) => {
             this.logger.debug(
               {
                 tnx: "transport"
               },
               "%s: %s",
-              log31.type,
-              log31.message
+              log33.type,
+              log33.message
             );
           });
           this.transporter.on("error", (err) => {
@@ -82068,13 +82068,13 @@ var require_mock_call_history = __commonJS({
     function makeFilterCalls(parameterName) {
       return (parameterValue, logs) => {
         if (typeof parameterValue === "string" || parameterValue == null) {
-          return logs.filter((log31) => {
-            return log31[parameterName] === parameterValue;
+          return logs.filter((log33) => {
+            return log33[parameterName] === parameterValue;
           });
         }
         if (parameterValue instanceof RegExp) {
-          return logs.filter((log31) => {
-            return parameterValue.test(log31[parameterName]);
+          return logs.filter((log33) => {
+            return parameterValue.test(log33[parameterName]);
           });
         }
         throw new InvalidArgumentError(`${parameterName} parameter should be one of string, regexp, undefined or null`);
@@ -82169,8 +82169,8 @@ var require_mock_call_history = __commonJS({
           return this.logs.filter(criteria);
         }
         if (criteria instanceof RegExp) {
-          return this.logs.filter((log31) => {
-            return criteria.test(log31.toString());
+          return this.logs.filter((log33) => {
+            return criteria.test(log33.toString());
           });
         }
         if (typeof criteria === "object" && criteria !== null) {
@@ -82220,13 +82220,13 @@ var require_mock_call_history = __commonJS({
         this.logs = [];
       }
       [kMockCallHistoryAddLog](requestInit) {
-        const log31 = new MockCallHistoryLog(requestInit);
-        this.logs.push(log31);
-        return log31;
+        const log33 = new MockCallHistoryLog(requestInit);
+        this.logs.push(log33);
+        return log33;
       }
       *[Symbol.iterator]() {
-        for (const log31 of this.calls()) {
-          yield log31;
+        for (const log33 of this.calls()) {
+          yield log33;
         }
       }
     };
@@ -95175,6 +95175,4184 @@ var init_notifications = __esm({
   }
 });
 
+// node_modules/zod/v3/helpers/util.js
+var util, objectUtil, ZodParsedType, getParsedType;
+var init_util = __esm({
+  "node_modules/zod/v3/helpers/util.js"() {
+    (function(util2) {
+      util2.assertEqual = (_) => {
+      };
+      function assertIs(_arg) {
+      }
+      util2.assertIs = assertIs;
+      function assertNever(_x) {
+        throw new Error();
+      }
+      util2.assertNever = assertNever;
+      util2.arrayToEnum = (items) => {
+        const obj = {};
+        for (const item of items) {
+          obj[item] = item;
+        }
+        return obj;
+      };
+      util2.getValidEnumValues = (obj) => {
+        const validKeys = util2.objectKeys(obj).filter((k) => typeof obj[obj[k]] !== "number");
+        const filtered = {};
+        for (const k of validKeys) {
+          filtered[k] = obj[k];
+        }
+        return util2.objectValues(filtered);
+      };
+      util2.objectValues = (obj) => {
+        return util2.objectKeys(obj).map(function(e) {
+          return obj[e];
+        });
+      };
+      util2.objectKeys = typeof Object.keys === "function" ? (obj) => Object.keys(obj) : (object) => {
+        const keys = [];
+        for (const key in object) {
+          if (Object.prototype.hasOwnProperty.call(object, key)) {
+            keys.push(key);
+          }
+        }
+        return keys;
+      };
+      util2.find = (arr, checker) => {
+        for (const item of arr) {
+          if (checker(item))
+            return item;
+        }
+        return void 0;
+      };
+      util2.isInteger = typeof Number.isInteger === "function" ? (val) => Number.isInteger(val) : (val) => typeof val === "number" && Number.isFinite(val) && Math.floor(val) === val;
+      function joinValues(array, separator = " | ") {
+        return array.map((val) => typeof val === "string" ? `'${val}'` : val).join(separator);
+      }
+      util2.joinValues = joinValues;
+      util2.jsonStringifyReplacer = (_, value) => {
+        if (typeof value === "bigint") {
+          return value.toString();
+        }
+        return value;
+      };
+    })(util || (util = {}));
+    (function(objectUtil2) {
+      objectUtil2.mergeShapes = (first, second) => {
+        return {
+          ...first,
+          ...second
+          // second overwrites first
+        };
+      };
+    })(objectUtil || (objectUtil = {}));
+    ZodParsedType = util.arrayToEnum([
+      "string",
+      "nan",
+      "number",
+      "integer",
+      "float",
+      "boolean",
+      "date",
+      "bigint",
+      "symbol",
+      "function",
+      "undefined",
+      "null",
+      "array",
+      "object",
+      "unknown",
+      "promise",
+      "void",
+      "never",
+      "map",
+      "set"
+    ]);
+    getParsedType = (data) => {
+      const t = typeof data;
+      switch (t) {
+        case "undefined":
+          return ZodParsedType.undefined;
+        case "string":
+          return ZodParsedType.string;
+        case "number":
+          return Number.isNaN(data) ? ZodParsedType.nan : ZodParsedType.number;
+        case "boolean":
+          return ZodParsedType.boolean;
+        case "function":
+          return ZodParsedType.function;
+        case "bigint":
+          return ZodParsedType.bigint;
+        case "symbol":
+          return ZodParsedType.symbol;
+        case "object":
+          if (Array.isArray(data)) {
+            return ZodParsedType.array;
+          }
+          if (data === null) {
+            return ZodParsedType.null;
+          }
+          if (data.then && typeof data.then === "function" && data.catch && typeof data.catch === "function") {
+            return ZodParsedType.promise;
+          }
+          if (typeof Map !== "undefined" && data instanceof Map) {
+            return ZodParsedType.map;
+          }
+          if (typeof Set !== "undefined" && data instanceof Set) {
+            return ZodParsedType.set;
+          }
+          if (typeof Date !== "undefined" && data instanceof Date) {
+            return ZodParsedType.date;
+          }
+          return ZodParsedType.object;
+        default:
+          return ZodParsedType.unknown;
+      }
+    };
+  }
+});
+
+// node_modules/zod/v3/ZodError.js
+var ZodIssueCode, quotelessJson, ZodError;
+var init_ZodError = __esm({
+  "node_modules/zod/v3/ZodError.js"() {
+    init_util();
+    ZodIssueCode = util.arrayToEnum([
+      "invalid_type",
+      "invalid_literal",
+      "custom",
+      "invalid_union",
+      "invalid_union_discriminator",
+      "invalid_enum_value",
+      "unrecognized_keys",
+      "invalid_arguments",
+      "invalid_return_type",
+      "invalid_date",
+      "invalid_string",
+      "too_small",
+      "too_big",
+      "invalid_intersection_types",
+      "not_multiple_of",
+      "not_finite"
+    ]);
+    quotelessJson = (obj) => {
+      const json = JSON.stringify(obj, null, 2);
+      return json.replace(/"([^"]+)":/g, "$1:");
+    };
+    ZodError = class _ZodError extends Error {
+      get errors() {
+        return this.issues;
+      }
+      constructor(issues) {
+        super();
+        this.issues = [];
+        this.addIssue = (sub) => {
+          this.issues = [...this.issues, sub];
+        };
+        this.addIssues = (subs = []) => {
+          this.issues = [...this.issues, ...subs];
+        };
+        const actualProto = new.target.prototype;
+        if (Object.setPrototypeOf) {
+          Object.setPrototypeOf(this, actualProto);
+        } else {
+          this.__proto__ = actualProto;
+        }
+        this.name = "ZodError";
+        this.issues = issues;
+      }
+      format(_mapper) {
+        const mapper = _mapper || function(issue) {
+          return issue.message;
+        };
+        const fieldErrors = { _errors: [] };
+        const processError = (error) => {
+          for (const issue of error.issues) {
+            if (issue.code === "invalid_union") {
+              issue.unionErrors.map(processError);
+            } else if (issue.code === "invalid_return_type") {
+              processError(issue.returnTypeError);
+            } else if (issue.code === "invalid_arguments") {
+              processError(issue.argumentsError);
+            } else if (issue.path.length === 0) {
+              fieldErrors._errors.push(mapper(issue));
+            } else {
+              let curr = fieldErrors;
+              let i = 0;
+              while (i < issue.path.length) {
+                const el = issue.path[i];
+                const terminal = i === issue.path.length - 1;
+                if (!terminal) {
+                  curr[el] = curr[el] || { _errors: [] };
+                } else {
+                  curr[el] = curr[el] || { _errors: [] };
+                  curr[el]._errors.push(mapper(issue));
+                }
+                curr = curr[el];
+                i++;
+              }
+            }
+          }
+        };
+        processError(this);
+        return fieldErrors;
+      }
+      static assert(value) {
+        if (!(value instanceof _ZodError)) {
+          throw new Error(`Not a ZodError: ${value}`);
+        }
+      }
+      toString() {
+        return this.message;
+      }
+      get message() {
+        return JSON.stringify(this.issues, util.jsonStringifyReplacer, 2);
+      }
+      get isEmpty() {
+        return this.issues.length === 0;
+      }
+      flatten(mapper = (issue) => issue.message) {
+        const fieldErrors = {};
+        const formErrors = [];
+        for (const sub of this.issues) {
+          if (sub.path.length > 0) {
+            const firstEl = sub.path[0];
+            fieldErrors[firstEl] = fieldErrors[firstEl] || [];
+            fieldErrors[firstEl].push(mapper(sub));
+          } else {
+            formErrors.push(mapper(sub));
+          }
+        }
+        return { formErrors, fieldErrors };
+      }
+      get formErrors() {
+        return this.flatten();
+      }
+    };
+    ZodError.create = (issues) => {
+      const error = new ZodError(issues);
+      return error;
+    };
+  }
+});
+
+// node_modules/zod/v3/locales/en.js
+var errorMap, en_default;
+var init_en = __esm({
+  "node_modules/zod/v3/locales/en.js"() {
+    init_ZodError();
+    init_util();
+    errorMap = (issue, _ctx) => {
+      let message;
+      switch (issue.code) {
+        case ZodIssueCode.invalid_type:
+          if (issue.received === ZodParsedType.undefined) {
+            message = "Required";
+          } else {
+            message = `Expected ${issue.expected}, received ${issue.received}`;
+          }
+          break;
+        case ZodIssueCode.invalid_literal:
+          message = `Invalid literal value, expected ${JSON.stringify(issue.expected, util.jsonStringifyReplacer)}`;
+          break;
+        case ZodIssueCode.unrecognized_keys:
+          message = `Unrecognized key(s) in object: ${util.joinValues(issue.keys, ", ")}`;
+          break;
+        case ZodIssueCode.invalid_union:
+          message = `Invalid input`;
+          break;
+        case ZodIssueCode.invalid_union_discriminator:
+          message = `Invalid discriminator value. Expected ${util.joinValues(issue.options)}`;
+          break;
+        case ZodIssueCode.invalid_enum_value:
+          message = `Invalid enum value. Expected ${util.joinValues(issue.options)}, received '${issue.received}'`;
+          break;
+        case ZodIssueCode.invalid_arguments:
+          message = `Invalid function arguments`;
+          break;
+        case ZodIssueCode.invalid_return_type:
+          message = `Invalid function return type`;
+          break;
+        case ZodIssueCode.invalid_date:
+          message = `Invalid date`;
+          break;
+        case ZodIssueCode.invalid_string:
+          if (typeof issue.validation === "object") {
+            if ("includes" in issue.validation) {
+              message = `Invalid input: must include "${issue.validation.includes}"`;
+              if (typeof issue.validation.position === "number") {
+                message = `${message} at one or more positions greater than or equal to ${issue.validation.position}`;
+              }
+            } else if ("startsWith" in issue.validation) {
+              message = `Invalid input: must start with "${issue.validation.startsWith}"`;
+            } else if ("endsWith" in issue.validation) {
+              message = `Invalid input: must end with "${issue.validation.endsWith}"`;
+            } else {
+              util.assertNever(issue.validation);
+            }
+          } else if (issue.validation !== "regex") {
+            message = `Invalid ${issue.validation}`;
+          } else {
+            message = "Invalid";
+          }
+          break;
+        case ZodIssueCode.too_small:
+          if (issue.type === "array")
+            message = `Array must contain ${issue.exact ? "exactly" : issue.inclusive ? `at least` : `more than`} ${issue.minimum} element(s)`;
+          else if (issue.type === "string")
+            message = `String must contain ${issue.exact ? "exactly" : issue.inclusive ? `at least` : `over`} ${issue.minimum} character(s)`;
+          else if (issue.type === "number")
+            message = `Number must be ${issue.exact ? `exactly equal to ` : issue.inclusive ? `greater than or equal to ` : `greater than `}${issue.minimum}`;
+          else if (issue.type === "bigint")
+            message = `Number must be ${issue.exact ? `exactly equal to ` : issue.inclusive ? `greater than or equal to ` : `greater than `}${issue.minimum}`;
+          else if (issue.type === "date")
+            message = `Date must be ${issue.exact ? `exactly equal to ` : issue.inclusive ? `greater than or equal to ` : `greater than `}${new Date(Number(issue.minimum))}`;
+          else
+            message = "Invalid input";
+          break;
+        case ZodIssueCode.too_big:
+          if (issue.type === "array")
+            message = `Array must contain ${issue.exact ? `exactly` : issue.inclusive ? `at most` : `less than`} ${issue.maximum} element(s)`;
+          else if (issue.type === "string")
+            message = `String must contain ${issue.exact ? `exactly` : issue.inclusive ? `at most` : `under`} ${issue.maximum} character(s)`;
+          else if (issue.type === "number")
+            message = `Number must be ${issue.exact ? `exactly` : issue.inclusive ? `less than or equal to` : `less than`} ${issue.maximum}`;
+          else if (issue.type === "bigint")
+            message = `BigInt must be ${issue.exact ? `exactly` : issue.inclusive ? `less than or equal to` : `less than`} ${issue.maximum}`;
+          else if (issue.type === "date")
+            message = `Date must be ${issue.exact ? `exactly` : issue.inclusive ? `smaller than or equal to` : `smaller than`} ${new Date(Number(issue.maximum))}`;
+          else
+            message = "Invalid input";
+          break;
+        case ZodIssueCode.custom:
+          message = `Invalid input`;
+          break;
+        case ZodIssueCode.invalid_intersection_types:
+          message = `Intersection results could not be merged`;
+          break;
+        case ZodIssueCode.not_multiple_of:
+          message = `Number must be a multiple of ${issue.multipleOf}`;
+          break;
+        case ZodIssueCode.not_finite:
+          message = "Number must be finite";
+          break;
+        default:
+          message = _ctx.defaultError;
+          util.assertNever(issue);
+      }
+      return { message };
+    };
+    en_default = errorMap;
+  }
+});
+
+// node_modules/zod/v3/errors.js
+function setErrorMap(map) {
+  overrideErrorMap = map;
+}
+function getErrorMap() {
+  return overrideErrorMap;
+}
+var overrideErrorMap;
+var init_errors = __esm({
+  "node_modules/zod/v3/errors.js"() {
+    init_en();
+    overrideErrorMap = en_default;
+  }
+});
+
+// node_modules/zod/v3/helpers/parseUtil.js
+function addIssueToContext(ctx, issueData) {
+  const overrideMap = getErrorMap();
+  const issue = makeIssue({
+    issueData,
+    data: ctx.data,
+    path: ctx.path,
+    errorMaps: [
+      ctx.common.contextualErrorMap,
+      // contextual error map is first priority
+      ctx.schemaErrorMap,
+      // then schema-bound map if available
+      overrideMap,
+      // then global override map
+      overrideMap === en_default ? void 0 : en_default
+      // then global default map
+    ].filter((x) => !!x)
+  });
+  ctx.common.issues.push(issue);
+}
+var makeIssue, EMPTY_PATH, ParseStatus, INVALID, DIRTY, OK, isAborted, isDirty, isValid, isAsync;
+var init_parseUtil = __esm({
+  "node_modules/zod/v3/helpers/parseUtil.js"() {
+    init_errors();
+    init_en();
+    makeIssue = (params) => {
+      const { data, path: path3, errorMaps, issueData } = params;
+      const fullPath = [...path3, ...issueData.path || []];
+      const fullIssue = {
+        ...issueData,
+        path: fullPath
+      };
+      if (issueData.message !== void 0) {
+        return {
+          ...issueData,
+          path: fullPath,
+          message: issueData.message
+        };
+      }
+      let errorMessage = "";
+      const maps = errorMaps.filter((m) => !!m).slice().reverse();
+      for (const map of maps) {
+        errorMessage = map(fullIssue, { data, defaultError: errorMessage }).message;
+      }
+      return {
+        ...issueData,
+        path: fullPath,
+        message: errorMessage
+      };
+    };
+    EMPTY_PATH = [];
+    ParseStatus = class _ParseStatus {
+      constructor() {
+        this.value = "valid";
+      }
+      dirty() {
+        if (this.value === "valid")
+          this.value = "dirty";
+      }
+      abort() {
+        if (this.value !== "aborted")
+          this.value = "aborted";
+      }
+      static mergeArray(status, results) {
+        const arrayValue = [];
+        for (const s of results) {
+          if (s.status === "aborted")
+            return INVALID;
+          if (s.status === "dirty")
+            status.dirty();
+          arrayValue.push(s.value);
+        }
+        return { status: status.value, value: arrayValue };
+      }
+      static async mergeObjectAsync(status, pairs) {
+        const syncPairs = [];
+        for (const pair of pairs) {
+          const key = await pair.key;
+          const value = await pair.value;
+          syncPairs.push({
+            key,
+            value
+          });
+        }
+        return _ParseStatus.mergeObjectSync(status, syncPairs);
+      }
+      static mergeObjectSync(status, pairs) {
+        const finalObject = {};
+        for (const pair of pairs) {
+          const { key, value } = pair;
+          if (key.status === "aborted")
+            return INVALID;
+          if (value.status === "aborted")
+            return INVALID;
+          if (key.status === "dirty")
+            status.dirty();
+          if (value.status === "dirty")
+            status.dirty();
+          if (key.value !== "__proto__" && (typeof value.value !== "undefined" || pair.alwaysSet)) {
+            finalObject[key.value] = value.value;
+          }
+        }
+        return { status: status.value, value: finalObject };
+      }
+    };
+    INVALID = Object.freeze({
+      status: "aborted"
+    });
+    DIRTY = (value) => ({ status: "dirty", value });
+    OK = (value) => ({ status: "valid", value });
+    isAborted = (x) => x.status === "aborted";
+    isDirty = (x) => x.status === "dirty";
+    isValid = (x) => x.status === "valid";
+    isAsync = (x) => typeof Promise !== "undefined" && x instanceof Promise;
+  }
+});
+
+// node_modules/zod/v3/helpers/typeAliases.js
+var init_typeAliases = __esm({
+  "node_modules/zod/v3/helpers/typeAliases.js"() {
+  }
+});
+
+// node_modules/zod/v3/helpers/errorUtil.js
+var errorUtil;
+var init_errorUtil = __esm({
+  "node_modules/zod/v3/helpers/errorUtil.js"() {
+    (function(errorUtil2) {
+      errorUtil2.errToObj = (message) => typeof message === "string" ? { message } : message || {};
+      errorUtil2.toString = (message) => typeof message === "string" ? message : message?.message;
+    })(errorUtil || (errorUtil = {}));
+  }
+});
+
+// node_modules/zod/v3/types.js
+function processCreateParams(params) {
+  if (!params)
+    return {};
+  const { errorMap: errorMap2, invalid_type_error, required_error, description } = params;
+  if (errorMap2 && (invalid_type_error || required_error)) {
+    throw new Error(`Can't use "invalid_type_error" or "required_error" in conjunction with custom error map.`);
+  }
+  if (errorMap2)
+    return { errorMap: errorMap2, description };
+  const customMap = (iss, ctx) => {
+    const { message } = params;
+    if (iss.code === "invalid_enum_value") {
+      return { message: message ?? ctx.defaultError };
+    }
+    if (typeof ctx.data === "undefined") {
+      return { message: message ?? required_error ?? ctx.defaultError };
+    }
+    if (iss.code !== "invalid_type")
+      return { message: ctx.defaultError };
+    return { message: message ?? invalid_type_error ?? ctx.defaultError };
+  };
+  return { errorMap: customMap, description };
+}
+function timeRegexSource(args) {
+  let secondsRegexSource = `[0-5]\\d`;
+  if (args.precision) {
+    secondsRegexSource = `${secondsRegexSource}\\.\\d{${args.precision}}`;
+  } else if (args.precision == null) {
+    secondsRegexSource = `${secondsRegexSource}(\\.\\d+)?`;
+  }
+  const secondsQuantifier = args.precision ? "+" : "?";
+  return `([01]\\d|2[0-3]):[0-5]\\d(:${secondsRegexSource})${secondsQuantifier}`;
+}
+function timeRegex(args) {
+  return new RegExp(`^${timeRegexSource(args)}$`);
+}
+function datetimeRegex(args) {
+  let regex = `${dateRegexSource}T${timeRegexSource(args)}`;
+  const opts = [];
+  opts.push(args.local ? `Z?` : `Z`);
+  if (args.offset)
+    opts.push(`([+-]\\d{2}:?\\d{2})`);
+  regex = `${regex}(${opts.join("|")})`;
+  return new RegExp(`^${regex}$`);
+}
+function isValidIP(ip, version2) {
+  if ((version2 === "v4" || !version2) && ipv4Regex.test(ip)) {
+    return true;
+  }
+  if ((version2 === "v6" || !version2) && ipv6Regex.test(ip)) {
+    return true;
+  }
+  return false;
+}
+function isValidJWT(jwt, alg) {
+  if (!jwtRegex.test(jwt))
+    return false;
+  try {
+    const [header] = jwt.split(".");
+    if (!header)
+      return false;
+    const base64 = header.replace(/-/g, "+").replace(/_/g, "/").padEnd(header.length + (4 - header.length % 4) % 4, "=");
+    const decoded = JSON.parse(atob(base64));
+    if (typeof decoded !== "object" || decoded === null)
+      return false;
+    if ("typ" in decoded && decoded?.typ !== "JWT")
+      return false;
+    if (!decoded.alg)
+      return false;
+    if (alg && decoded.alg !== alg)
+      return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+function isValidCidr(ip, version2) {
+  if ((version2 === "v4" || !version2) && ipv4CidrRegex.test(ip)) {
+    return true;
+  }
+  if ((version2 === "v6" || !version2) && ipv6CidrRegex.test(ip)) {
+    return true;
+  }
+  return false;
+}
+function floatSafeRemainder(val, step) {
+  const valDecCount = (val.toString().split(".")[1] || "").length;
+  const stepDecCount = (step.toString().split(".")[1] || "").length;
+  const decCount = valDecCount > stepDecCount ? valDecCount : stepDecCount;
+  const valInt = Number.parseInt(val.toFixed(decCount).replace(".", ""));
+  const stepInt = Number.parseInt(step.toFixed(decCount).replace(".", ""));
+  return valInt % stepInt / 10 ** decCount;
+}
+function deepPartialify(schema) {
+  if (schema instanceof ZodObject) {
+    const newShape = {};
+    for (const key in schema.shape) {
+      const fieldSchema = schema.shape[key];
+      newShape[key] = ZodOptional.create(deepPartialify(fieldSchema));
+    }
+    return new ZodObject({
+      ...schema._def,
+      shape: () => newShape
+    });
+  } else if (schema instanceof ZodArray) {
+    return new ZodArray({
+      ...schema._def,
+      type: deepPartialify(schema.element)
+    });
+  } else if (schema instanceof ZodOptional) {
+    return ZodOptional.create(deepPartialify(schema.unwrap()));
+  } else if (schema instanceof ZodNullable) {
+    return ZodNullable.create(deepPartialify(schema.unwrap()));
+  } else if (schema instanceof ZodTuple) {
+    return ZodTuple.create(schema.items.map((item) => deepPartialify(item)));
+  } else {
+    return schema;
+  }
+}
+function mergeValues(a, b) {
+  const aType = getParsedType(a);
+  const bType = getParsedType(b);
+  if (a === b) {
+    return { valid: true, data: a };
+  } else if (aType === ZodParsedType.object && bType === ZodParsedType.object) {
+    const bKeys = util.objectKeys(b);
+    const sharedKeys = util.objectKeys(a).filter((key) => bKeys.indexOf(key) !== -1);
+    const newObj = { ...a, ...b };
+    for (const key of sharedKeys) {
+      const sharedValue = mergeValues(a[key], b[key]);
+      if (!sharedValue.valid) {
+        return { valid: false };
+      }
+      newObj[key] = sharedValue.data;
+    }
+    return { valid: true, data: newObj };
+  } else if (aType === ZodParsedType.array && bType === ZodParsedType.array) {
+    if (a.length !== b.length) {
+      return { valid: false };
+    }
+    const newArray = [];
+    for (let index = 0; index < a.length; index++) {
+      const itemA = a[index];
+      const itemB = b[index];
+      const sharedValue = mergeValues(itemA, itemB);
+      if (!sharedValue.valid) {
+        return { valid: false };
+      }
+      newArray.push(sharedValue.data);
+    }
+    return { valid: true, data: newArray };
+  } else if (aType === ZodParsedType.date && bType === ZodParsedType.date && +a === +b) {
+    return { valid: true, data: a };
+  } else {
+    return { valid: false };
+  }
+}
+function createZodEnum(values, params) {
+  return new ZodEnum({
+    values,
+    typeName: ZodFirstPartyTypeKind.ZodEnum,
+    ...processCreateParams(params)
+  });
+}
+function cleanParams(params, data) {
+  const p = typeof params === "function" ? params(data) : typeof params === "string" ? { message: params } : params;
+  const p2 = typeof p === "string" ? { message: p } : p;
+  return p2;
+}
+function custom(check, _params = {}, fatal) {
+  if (check)
+    return ZodAny.create().superRefine((data, ctx) => {
+      const r = check(data);
+      if (r instanceof Promise) {
+        return r.then((r2) => {
+          if (!r2) {
+            const params = cleanParams(_params, data);
+            const _fatal = params.fatal ?? fatal ?? true;
+            ctx.addIssue({ code: "custom", ...params, fatal: _fatal });
+          }
+        });
+      }
+      if (!r) {
+        const params = cleanParams(_params, data);
+        const _fatal = params.fatal ?? fatal ?? true;
+        ctx.addIssue({ code: "custom", ...params, fatal: _fatal });
+      }
+      return;
+    });
+  return ZodAny.create();
+}
+var ParseInputLazyPath, handleResult, ZodType, cuidRegex, cuid2Regex, ulidRegex, uuidRegex, nanoidRegex, jwtRegex, durationRegex, emailRegex, _emojiRegex, emojiRegex, ipv4Regex, ipv4CidrRegex, ipv6Regex, ipv6CidrRegex, base64Regex, base64urlRegex, dateRegexSource, dateRegex, ZodString, ZodNumber, ZodBigInt, ZodBoolean, ZodDate, ZodSymbol, ZodUndefined, ZodNull, ZodAny, ZodUnknown, ZodNever, ZodVoid, ZodArray, ZodObject, ZodUnion, getDiscriminator, ZodDiscriminatedUnion, ZodIntersection, ZodTuple, ZodRecord, ZodMap, ZodSet, ZodFunction, ZodLazy, ZodLiteral, ZodEnum, ZodNativeEnum, ZodPromise, ZodEffects, ZodOptional, ZodNullable, ZodDefault, ZodCatch, ZodNaN, BRAND, ZodBranded, ZodPipeline, ZodReadonly, late, ZodFirstPartyTypeKind, instanceOfType, stringType, numberType, nanType, bigIntType, booleanType, dateType, symbolType, undefinedType, nullType, anyType, unknownType, neverType, voidType, arrayType, objectType, strictObjectType, unionType, discriminatedUnionType, intersectionType, tupleType, recordType, mapType, setType, functionType, lazyType, literalType, enumType, nativeEnumType, promiseType, effectsType, optionalType, nullableType, preprocessType, pipelineType, ostring, onumber, oboolean, coerce, NEVER;
+var init_types = __esm({
+  "node_modules/zod/v3/types.js"() {
+    init_ZodError();
+    init_errors();
+    init_errorUtil();
+    init_parseUtil();
+    init_util();
+    ParseInputLazyPath = class {
+      constructor(parent, value, path3, key) {
+        this._cachedPath = [];
+        this.parent = parent;
+        this.data = value;
+        this._path = path3;
+        this._key = key;
+      }
+      get path() {
+        if (!this._cachedPath.length) {
+          if (Array.isArray(this._key)) {
+            this._cachedPath.push(...this._path, ...this._key);
+          } else {
+            this._cachedPath.push(...this._path, this._key);
+          }
+        }
+        return this._cachedPath;
+      }
+    };
+    handleResult = (ctx, result) => {
+      if (isValid(result)) {
+        return { success: true, data: result.value };
+      } else {
+        if (!ctx.common.issues.length) {
+          throw new Error("Validation failed but no issues detected.");
+        }
+        return {
+          success: false,
+          get error() {
+            if (this._error)
+              return this._error;
+            const error = new ZodError(ctx.common.issues);
+            this._error = error;
+            return this._error;
+          }
+        };
+      }
+    };
+    ZodType = class {
+      get description() {
+        return this._def.description;
+      }
+      _getType(input) {
+        return getParsedType(input.data);
+      }
+      _getOrReturnCtx(input, ctx) {
+        return ctx || {
+          common: input.parent.common,
+          data: input.data,
+          parsedType: getParsedType(input.data),
+          schemaErrorMap: this._def.errorMap,
+          path: input.path,
+          parent: input.parent
+        };
+      }
+      _processInputParams(input) {
+        return {
+          status: new ParseStatus(),
+          ctx: {
+            common: input.parent.common,
+            data: input.data,
+            parsedType: getParsedType(input.data),
+            schemaErrorMap: this._def.errorMap,
+            path: input.path,
+            parent: input.parent
+          }
+        };
+      }
+      _parseSync(input) {
+        const result = this._parse(input);
+        if (isAsync(result)) {
+          throw new Error("Synchronous parse encountered promise.");
+        }
+        return result;
+      }
+      _parseAsync(input) {
+        const result = this._parse(input);
+        return Promise.resolve(result);
+      }
+      parse(data, params) {
+        const result = this.safeParse(data, params);
+        if (result.success)
+          return result.data;
+        throw result.error;
+      }
+      safeParse(data, params) {
+        const ctx = {
+          common: {
+            issues: [],
+            async: params?.async ?? false,
+            contextualErrorMap: params?.errorMap
+          },
+          path: params?.path || [],
+          schemaErrorMap: this._def.errorMap,
+          parent: null,
+          data,
+          parsedType: getParsedType(data)
+        };
+        const result = this._parseSync({ data, path: ctx.path, parent: ctx });
+        return handleResult(ctx, result);
+      }
+      "~validate"(data) {
+        const ctx = {
+          common: {
+            issues: [],
+            async: !!this["~standard"].async
+          },
+          path: [],
+          schemaErrorMap: this._def.errorMap,
+          parent: null,
+          data,
+          parsedType: getParsedType(data)
+        };
+        if (!this["~standard"].async) {
+          try {
+            const result = this._parseSync({ data, path: [], parent: ctx });
+            return isValid(result) ? {
+              value: result.value
+            } : {
+              issues: ctx.common.issues
+            };
+          } catch (err) {
+            if (err?.message?.toLowerCase()?.includes("encountered")) {
+              this["~standard"].async = true;
+            }
+            ctx.common = {
+              issues: [],
+              async: true
+            };
+          }
+        }
+        return this._parseAsync({ data, path: [], parent: ctx }).then((result) => isValid(result) ? {
+          value: result.value
+        } : {
+          issues: ctx.common.issues
+        });
+      }
+      async parseAsync(data, params) {
+        const result = await this.safeParseAsync(data, params);
+        if (result.success)
+          return result.data;
+        throw result.error;
+      }
+      async safeParseAsync(data, params) {
+        const ctx = {
+          common: {
+            issues: [],
+            contextualErrorMap: params?.errorMap,
+            async: true
+          },
+          path: params?.path || [],
+          schemaErrorMap: this._def.errorMap,
+          parent: null,
+          data,
+          parsedType: getParsedType(data)
+        };
+        const maybeAsyncResult = this._parse({ data, path: ctx.path, parent: ctx });
+        const result = await (isAsync(maybeAsyncResult) ? maybeAsyncResult : Promise.resolve(maybeAsyncResult));
+        return handleResult(ctx, result);
+      }
+      refine(check, message) {
+        const getIssueProperties = (val) => {
+          if (typeof message === "string" || typeof message === "undefined") {
+            return { message };
+          } else if (typeof message === "function") {
+            return message(val);
+          } else {
+            return message;
+          }
+        };
+        return this._refinement((val, ctx) => {
+          const result = check(val);
+          const setError = () => ctx.addIssue({
+            code: ZodIssueCode.custom,
+            ...getIssueProperties(val)
+          });
+          if (typeof Promise !== "undefined" && result instanceof Promise) {
+            return result.then((data) => {
+              if (!data) {
+                setError();
+                return false;
+              } else {
+                return true;
+              }
+            });
+          }
+          if (!result) {
+            setError();
+            return false;
+          } else {
+            return true;
+          }
+        });
+      }
+      refinement(check, refinementData) {
+        return this._refinement((val, ctx) => {
+          if (!check(val)) {
+            ctx.addIssue(typeof refinementData === "function" ? refinementData(val, ctx) : refinementData);
+            return false;
+          } else {
+            return true;
+          }
+        });
+      }
+      _refinement(refinement) {
+        return new ZodEffects({
+          schema: this,
+          typeName: ZodFirstPartyTypeKind.ZodEffects,
+          effect: { type: "refinement", refinement }
+        });
+      }
+      superRefine(refinement) {
+        return this._refinement(refinement);
+      }
+      constructor(def) {
+        this.spa = this.safeParseAsync;
+        this._def = def;
+        this.parse = this.parse.bind(this);
+        this.safeParse = this.safeParse.bind(this);
+        this.parseAsync = this.parseAsync.bind(this);
+        this.safeParseAsync = this.safeParseAsync.bind(this);
+        this.spa = this.spa.bind(this);
+        this.refine = this.refine.bind(this);
+        this.refinement = this.refinement.bind(this);
+        this.superRefine = this.superRefine.bind(this);
+        this.optional = this.optional.bind(this);
+        this.nullable = this.nullable.bind(this);
+        this.nullish = this.nullish.bind(this);
+        this.array = this.array.bind(this);
+        this.promise = this.promise.bind(this);
+        this.or = this.or.bind(this);
+        this.and = this.and.bind(this);
+        this.transform = this.transform.bind(this);
+        this.brand = this.brand.bind(this);
+        this.default = this.default.bind(this);
+        this.catch = this.catch.bind(this);
+        this.describe = this.describe.bind(this);
+        this.pipe = this.pipe.bind(this);
+        this.readonly = this.readonly.bind(this);
+        this.isNullable = this.isNullable.bind(this);
+        this.isOptional = this.isOptional.bind(this);
+        this["~standard"] = {
+          version: 1,
+          vendor: "zod",
+          validate: (data) => this["~validate"](data)
+        };
+      }
+      optional() {
+        return ZodOptional.create(this, this._def);
+      }
+      nullable() {
+        return ZodNullable.create(this, this._def);
+      }
+      nullish() {
+        return this.nullable().optional();
+      }
+      array() {
+        return ZodArray.create(this);
+      }
+      promise() {
+        return ZodPromise.create(this, this._def);
+      }
+      or(option) {
+        return ZodUnion.create([this, option], this._def);
+      }
+      and(incoming) {
+        return ZodIntersection.create(this, incoming, this._def);
+      }
+      transform(transform) {
+        return new ZodEffects({
+          ...processCreateParams(this._def),
+          schema: this,
+          typeName: ZodFirstPartyTypeKind.ZodEffects,
+          effect: { type: "transform", transform }
+        });
+      }
+      default(def) {
+        const defaultValueFunc = typeof def === "function" ? def : () => def;
+        return new ZodDefault({
+          ...processCreateParams(this._def),
+          innerType: this,
+          defaultValue: defaultValueFunc,
+          typeName: ZodFirstPartyTypeKind.ZodDefault
+        });
+      }
+      brand() {
+        return new ZodBranded({
+          typeName: ZodFirstPartyTypeKind.ZodBranded,
+          type: this,
+          ...processCreateParams(this._def)
+        });
+      }
+      catch(def) {
+        const catchValueFunc = typeof def === "function" ? def : () => def;
+        return new ZodCatch({
+          ...processCreateParams(this._def),
+          innerType: this,
+          catchValue: catchValueFunc,
+          typeName: ZodFirstPartyTypeKind.ZodCatch
+        });
+      }
+      describe(description) {
+        const This = this.constructor;
+        return new This({
+          ...this._def,
+          description
+        });
+      }
+      pipe(target) {
+        return ZodPipeline.create(this, target);
+      }
+      readonly() {
+        return ZodReadonly.create(this);
+      }
+      isOptional() {
+        return this.safeParse(void 0).success;
+      }
+      isNullable() {
+        return this.safeParse(null).success;
+      }
+    };
+    cuidRegex = /^c[^\s-]{8,}$/i;
+    cuid2Regex = /^[0-9a-z]+$/;
+    ulidRegex = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
+    uuidRegex = /^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$/i;
+    nanoidRegex = /^[a-z0-9_-]{21}$/i;
+    jwtRegex = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]*$/;
+    durationRegex = /^[-+]?P(?!$)(?:(?:[-+]?\d+Y)|(?:[-+]?\d+[.,]\d+Y$))?(?:(?:[-+]?\d+M)|(?:[-+]?\d+[.,]\d+M$))?(?:(?:[-+]?\d+W)|(?:[-+]?\d+[.,]\d+W$))?(?:(?:[-+]?\d+D)|(?:[-+]?\d+[.,]\d+D$))?(?:T(?=[\d+-])(?:(?:[-+]?\d+H)|(?:[-+]?\d+[.,]\d+H$))?(?:(?:[-+]?\d+M)|(?:[-+]?\d+[.,]\d+M$))?(?:[-+]?\d+(?:[.,]\d+)?S)?)??$/;
+    emailRegex = /^(?!\.)(?!.*\.\.)([A-Z0-9_'+\-\.]*)[A-Z0-9_+-]@([A-Z0-9][A-Z0-9\-]*\.)+[A-Z]{2,}$/i;
+    _emojiRegex = `^(\\p{Extended_Pictographic}|\\p{Emoji_Component})+$`;
+    ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$/;
+    ipv4CidrRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\/(3[0-2]|[12]?[0-9])$/;
+    ipv6Regex = /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/;
+    ipv6CidrRegex = /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))\/(12[0-8]|1[01][0-9]|[1-9]?[0-9])$/;
+    base64Regex = /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/;
+    base64urlRegex = /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/;
+    dateRegexSource = `((\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-((0[13578]|1[02])-(0[1-9]|[12]\\d|3[01])|(0[469]|11)-(0[1-9]|[12]\\d|30)|(02)-(0[1-9]|1\\d|2[0-8])))`;
+    dateRegex = new RegExp(`^${dateRegexSource}$`);
+    ZodString = class _ZodString extends ZodType {
+      _parse(input) {
+        if (this._def.coerce) {
+          input.data = String(input.data);
+        }
+        const parsedType = this._getType(input);
+        if (parsedType !== ZodParsedType.string) {
+          const ctx2 = this._getOrReturnCtx(input);
+          addIssueToContext(ctx2, {
+            code: ZodIssueCode.invalid_type,
+            expected: ZodParsedType.string,
+            received: ctx2.parsedType
+          });
+          return INVALID;
+        }
+        const status = new ParseStatus();
+        let ctx = void 0;
+        for (const check of this._def.checks) {
+          if (check.kind === "min") {
+            if (input.data.length < check.value) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                code: ZodIssueCode.too_small,
+                minimum: check.value,
+                type: "string",
+                inclusive: true,
+                exact: false,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "max") {
+            if (input.data.length > check.value) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                code: ZodIssueCode.too_big,
+                maximum: check.value,
+                type: "string",
+                inclusive: true,
+                exact: false,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "length") {
+            const tooBig = input.data.length > check.value;
+            const tooSmall = input.data.length < check.value;
+            if (tooBig || tooSmall) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              if (tooBig) {
+                addIssueToContext(ctx, {
+                  code: ZodIssueCode.too_big,
+                  maximum: check.value,
+                  type: "string",
+                  inclusive: true,
+                  exact: true,
+                  message: check.message
+                });
+              } else if (tooSmall) {
+                addIssueToContext(ctx, {
+                  code: ZodIssueCode.too_small,
+                  minimum: check.value,
+                  type: "string",
+                  inclusive: true,
+                  exact: true,
+                  message: check.message
+                });
+              }
+              status.dirty();
+            }
+          } else if (check.kind === "email") {
+            if (!emailRegex.test(input.data)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                validation: "email",
+                code: ZodIssueCode.invalid_string,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "emoji") {
+            if (!emojiRegex) {
+              emojiRegex = new RegExp(_emojiRegex, "u");
+            }
+            if (!emojiRegex.test(input.data)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                validation: "emoji",
+                code: ZodIssueCode.invalid_string,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "uuid") {
+            if (!uuidRegex.test(input.data)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                validation: "uuid",
+                code: ZodIssueCode.invalid_string,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "nanoid") {
+            if (!nanoidRegex.test(input.data)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                validation: "nanoid",
+                code: ZodIssueCode.invalid_string,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "cuid") {
+            if (!cuidRegex.test(input.data)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                validation: "cuid",
+                code: ZodIssueCode.invalid_string,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "cuid2") {
+            if (!cuid2Regex.test(input.data)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                validation: "cuid2",
+                code: ZodIssueCode.invalid_string,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "ulid") {
+            if (!ulidRegex.test(input.data)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                validation: "ulid",
+                code: ZodIssueCode.invalid_string,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "url") {
+            try {
+              new URL(input.data);
+            } catch {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                validation: "url",
+                code: ZodIssueCode.invalid_string,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "regex") {
+            check.regex.lastIndex = 0;
+            const testResult = check.regex.test(input.data);
+            if (!testResult) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                validation: "regex",
+                code: ZodIssueCode.invalid_string,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "trim") {
+            input.data = input.data.trim();
+          } else if (check.kind === "includes") {
+            if (!input.data.includes(check.value, check.position)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                code: ZodIssueCode.invalid_string,
+                validation: { includes: check.value, position: check.position },
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "toLowerCase") {
+            input.data = input.data.toLowerCase();
+          } else if (check.kind === "toUpperCase") {
+            input.data = input.data.toUpperCase();
+          } else if (check.kind === "startsWith") {
+            if (!input.data.startsWith(check.value)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                code: ZodIssueCode.invalid_string,
+                validation: { startsWith: check.value },
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "endsWith") {
+            if (!input.data.endsWith(check.value)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                code: ZodIssueCode.invalid_string,
+                validation: { endsWith: check.value },
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "datetime") {
+            const regex = datetimeRegex(check);
+            if (!regex.test(input.data)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                code: ZodIssueCode.invalid_string,
+                validation: "datetime",
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "date") {
+            const regex = dateRegex;
+            if (!regex.test(input.data)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                code: ZodIssueCode.invalid_string,
+                validation: "date",
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "time") {
+            const regex = timeRegex(check);
+            if (!regex.test(input.data)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                code: ZodIssueCode.invalid_string,
+                validation: "time",
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "duration") {
+            if (!durationRegex.test(input.data)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                validation: "duration",
+                code: ZodIssueCode.invalid_string,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "ip") {
+            if (!isValidIP(input.data, check.version)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                validation: "ip",
+                code: ZodIssueCode.invalid_string,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "jwt") {
+            if (!isValidJWT(input.data, check.alg)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                validation: "jwt",
+                code: ZodIssueCode.invalid_string,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "cidr") {
+            if (!isValidCidr(input.data, check.version)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                validation: "cidr",
+                code: ZodIssueCode.invalid_string,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "base64") {
+            if (!base64Regex.test(input.data)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                validation: "base64",
+                code: ZodIssueCode.invalid_string,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "base64url") {
+            if (!base64urlRegex.test(input.data)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                validation: "base64url",
+                code: ZodIssueCode.invalid_string,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else {
+            util.assertNever(check);
+          }
+        }
+        return { status: status.value, value: input.data };
+      }
+      _regex(regex, validation, message) {
+        return this.refinement((data) => regex.test(data), {
+          validation,
+          code: ZodIssueCode.invalid_string,
+          ...errorUtil.errToObj(message)
+        });
+      }
+      _addCheck(check) {
+        return new _ZodString({
+          ...this._def,
+          checks: [...this._def.checks, check]
+        });
+      }
+      email(message) {
+        return this._addCheck({ kind: "email", ...errorUtil.errToObj(message) });
+      }
+      url(message) {
+        return this._addCheck({ kind: "url", ...errorUtil.errToObj(message) });
+      }
+      emoji(message) {
+        return this._addCheck({ kind: "emoji", ...errorUtil.errToObj(message) });
+      }
+      uuid(message) {
+        return this._addCheck({ kind: "uuid", ...errorUtil.errToObj(message) });
+      }
+      nanoid(message) {
+        return this._addCheck({ kind: "nanoid", ...errorUtil.errToObj(message) });
+      }
+      cuid(message) {
+        return this._addCheck({ kind: "cuid", ...errorUtil.errToObj(message) });
+      }
+      cuid2(message) {
+        return this._addCheck({ kind: "cuid2", ...errorUtil.errToObj(message) });
+      }
+      ulid(message) {
+        return this._addCheck({ kind: "ulid", ...errorUtil.errToObj(message) });
+      }
+      base64(message) {
+        return this._addCheck({ kind: "base64", ...errorUtil.errToObj(message) });
+      }
+      base64url(message) {
+        return this._addCheck({
+          kind: "base64url",
+          ...errorUtil.errToObj(message)
+        });
+      }
+      jwt(options) {
+        return this._addCheck({ kind: "jwt", ...errorUtil.errToObj(options) });
+      }
+      ip(options) {
+        return this._addCheck({ kind: "ip", ...errorUtil.errToObj(options) });
+      }
+      cidr(options) {
+        return this._addCheck({ kind: "cidr", ...errorUtil.errToObj(options) });
+      }
+      datetime(options) {
+        if (typeof options === "string") {
+          return this._addCheck({
+            kind: "datetime",
+            precision: null,
+            offset: false,
+            local: false,
+            message: options
+          });
+        }
+        return this._addCheck({
+          kind: "datetime",
+          precision: typeof options?.precision === "undefined" ? null : options?.precision,
+          offset: options?.offset ?? false,
+          local: options?.local ?? false,
+          ...errorUtil.errToObj(options?.message)
+        });
+      }
+      date(message) {
+        return this._addCheck({ kind: "date", message });
+      }
+      time(options) {
+        if (typeof options === "string") {
+          return this._addCheck({
+            kind: "time",
+            precision: null,
+            message: options
+          });
+        }
+        return this._addCheck({
+          kind: "time",
+          precision: typeof options?.precision === "undefined" ? null : options?.precision,
+          ...errorUtil.errToObj(options?.message)
+        });
+      }
+      duration(message) {
+        return this._addCheck({ kind: "duration", ...errorUtil.errToObj(message) });
+      }
+      regex(regex, message) {
+        return this._addCheck({
+          kind: "regex",
+          regex,
+          ...errorUtil.errToObj(message)
+        });
+      }
+      includes(value, options) {
+        return this._addCheck({
+          kind: "includes",
+          value,
+          position: options?.position,
+          ...errorUtil.errToObj(options?.message)
+        });
+      }
+      startsWith(value, message) {
+        return this._addCheck({
+          kind: "startsWith",
+          value,
+          ...errorUtil.errToObj(message)
+        });
+      }
+      endsWith(value, message) {
+        return this._addCheck({
+          kind: "endsWith",
+          value,
+          ...errorUtil.errToObj(message)
+        });
+      }
+      min(minLength, message) {
+        return this._addCheck({
+          kind: "min",
+          value: minLength,
+          ...errorUtil.errToObj(message)
+        });
+      }
+      max(maxLength, message) {
+        return this._addCheck({
+          kind: "max",
+          value: maxLength,
+          ...errorUtil.errToObj(message)
+        });
+      }
+      length(len, message) {
+        return this._addCheck({
+          kind: "length",
+          value: len,
+          ...errorUtil.errToObj(message)
+        });
+      }
+      /**
+       * Equivalent to `.min(1)`
+       */
+      nonempty(message) {
+        return this.min(1, errorUtil.errToObj(message));
+      }
+      trim() {
+        return new _ZodString({
+          ...this._def,
+          checks: [...this._def.checks, { kind: "trim" }]
+        });
+      }
+      toLowerCase() {
+        return new _ZodString({
+          ...this._def,
+          checks: [...this._def.checks, { kind: "toLowerCase" }]
+        });
+      }
+      toUpperCase() {
+        return new _ZodString({
+          ...this._def,
+          checks: [...this._def.checks, { kind: "toUpperCase" }]
+        });
+      }
+      get isDatetime() {
+        return !!this._def.checks.find((ch) => ch.kind === "datetime");
+      }
+      get isDate() {
+        return !!this._def.checks.find((ch) => ch.kind === "date");
+      }
+      get isTime() {
+        return !!this._def.checks.find((ch) => ch.kind === "time");
+      }
+      get isDuration() {
+        return !!this._def.checks.find((ch) => ch.kind === "duration");
+      }
+      get isEmail() {
+        return !!this._def.checks.find((ch) => ch.kind === "email");
+      }
+      get isURL() {
+        return !!this._def.checks.find((ch) => ch.kind === "url");
+      }
+      get isEmoji() {
+        return !!this._def.checks.find((ch) => ch.kind === "emoji");
+      }
+      get isUUID() {
+        return !!this._def.checks.find((ch) => ch.kind === "uuid");
+      }
+      get isNANOID() {
+        return !!this._def.checks.find((ch) => ch.kind === "nanoid");
+      }
+      get isCUID() {
+        return !!this._def.checks.find((ch) => ch.kind === "cuid");
+      }
+      get isCUID2() {
+        return !!this._def.checks.find((ch) => ch.kind === "cuid2");
+      }
+      get isULID() {
+        return !!this._def.checks.find((ch) => ch.kind === "ulid");
+      }
+      get isIP() {
+        return !!this._def.checks.find((ch) => ch.kind === "ip");
+      }
+      get isCIDR() {
+        return !!this._def.checks.find((ch) => ch.kind === "cidr");
+      }
+      get isBase64() {
+        return !!this._def.checks.find((ch) => ch.kind === "base64");
+      }
+      get isBase64url() {
+        return !!this._def.checks.find((ch) => ch.kind === "base64url");
+      }
+      get minLength() {
+        let min = null;
+        for (const ch of this._def.checks) {
+          if (ch.kind === "min") {
+            if (min === null || ch.value > min)
+              min = ch.value;
+          }
+        }
+        return min;
+      }
+      get maxLength() {
+        let max = null;
+        for (const ch of this._def.checks) {
+          if (ch.kind === "max") {
+            if (max === null || ch.value < max)
+              max = ch.value;
+          }
+        }
+        return max;
+      }
+    };
+    ZodString.create = (params) => {
+      return new ZodString({
+        checks: [],
+        typeName: ZodFirstPartyTypeKind.ZodString,
+        coerce: params?.coerce ?? false,
+        ...processCreateParams(params)
+      });
+    };
+    ZodNumber = class _ZodNumber extends ZodType {
+      constructor() {
+        super(...arguments);
+        this.min = this.gte;
+        this.max = this.lte;
+        this.step = this.multipleOf;
+      }
+      _parse(input) {
+        if (this._def.coerce) {
+          input.data = Number(input.data);
+        }
+        const parsedType = this._getType(input);
+        if (parsedType !== ZodParsedType.number) {
+          const ctx2 = this._getOrReturnCtx(input);
+          addIssueToContext(ctx2, {
+            code: ZodIssueCode.invalid_type,
+            expected: ZodParsedType.number,
+            received: ctx2.parsedType
+          });
+          return INVALID;
+        }
+        let ctx = void 0;
+        const status = new ParseStatus();
+        for (const check of this._def.checks) {
+          if (check.kind === "int") {
+            if (!util.isInteger(input.data)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                code: ZodIssueCode.invalid_type,
+                expected: "integer",
+                received: "float",
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "min") {
+            const tooSmall = check.inclusive ? input.data < check.value : input.data <= check.value;
+            if (tooSmall) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                code: ZodIssueCode.too_small,
+                minimum: check.value,
+                type: "number",
+                inclusive: check.inclusive,
+                exact: false,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "max") {
+            const tooBig = check.inclusive ? input.data > check.value : input.data >= check.value;
+            if (tooBig) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                code: ZodIssueCode.too_big,
+                maximum: check.value,
+                type: "number",
+                inclusive: check.inclusive,
+                exact: false,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "multipleOf") {
+            if (floatSafeRemainder(input.data, check.value) !== 0) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                code: ZodIssueCode.not_multiple_of,
+                multipleOf: check.value,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "finite") {
+            if (!Number.isFinite(input.data)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                code: ZodIssueCode.not_finite,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else {
+            util.assertNever(check);
+          }
+        }
+        return { status: status.value, value: input.data };
+      }
+      gte(value, message) {
+        return this.setLimit("min", value, true, errorUtil.toString(message));
+      }
+      gt(value, message) {
+        return this.setLimit("min", value, false, errorUtil.toString(message));
+      }
+      lte(value, message) {
+        return this.setLimit("max", value, true, errorUtil.toString(message));
+      }
+      lt(value, message) {
+        return this.setLimit("max", value, false, errorUtil.toString(message));
+      }
+      setLimit(kind, value, inclusive, message) {
+        return new _ZodNumber({
+          ...this._def,
+          checks: [
+            ...this._def.checks,
+            {
+              kind,
+              value,
+              inclusive,
+              message: errorUtil.toString(message)
+            }
+          ]
+        });
+      }
+      _addCheck(check) {
+        return new _ZodNumber({
+          ...this._def,
+          checks: [...this._def.checks, check]
+        });
+      }
+      int(message) {
+        return this._addCheck({
+          kind: "int",
+          message: errorUtil.toString(message)
+        });
+      }
+      positive(message) {
+        return this._addCheck({
+          kind: "min",
+          value: 0,
+          inclusive: false,
+          message: errorUtil.toString(message)
+        });
+      }
+      negative(message) {
+        return this._addCheck({
+          kind: "max",
+          value: 0,
+          inclusive: false,
+          message: errorUtil.toString(message)
+        });
+      }
+      nonpositive(message) {
+        return this._addCheck({
+          kind: "max",
+          value: 0,
+          inclusive: true,
+          message: errorUtil.toString(message)
+        });
+      }
+      nonnegative(message) {
+        return this._addCheck({
+          kind: "min",
+          value: 0,
+          inclusive: true,
+          message: errorUtil.toString(message)
+        });
+      }
+      multipleOf(value, message) {
+        return this._addCheck({
+          kind: "multipleOf",
+          value,
+          message: errorUtil.toString(message)
+        });
+      }
+      finite(message) {
+        return this._addCheck({
+          kind: "finite",
+          message: errorUtil.toString(message)
+        });
+      }
+      safe(message) {
+        return this._addCheck({
+          kind: "min",
+          inclusive: true,
+          value: Number.MIN_SAFE_INTEGER,
+          message: errorUtil.toString(message)
+        })._addCheck({
+          kind: "max",
+          inclusive: true,
+          value: Number.MAX_SAFE_INTEGER,
+          message: errorUtil.toString(message)
+        });
+      }
+      get minValue() {
+        let min = null;
+        for (const ch of this._def.checks) {
+          if (ch.kind === "min") {
+            if (min === null || ch.value > min)
+              min = ch.value;
+          }
+        }
+        return min;
+      }
+      get maxValue() {
+        let max = null;
+        for (const ch of this._def.checks) {
+          if (ch.kind === "max") {
+            if (max === null || ch.value < max)
+              max = ch.value;
+          }
+        }
+        return max;
+      }
+      get isInt() {
+        return !!this._def.checks.find((ch) => ch.kind === "int" || ch.kind === "multipleOf" && util.isInteger(ch.value));
+      }
+      get isFinite() {
+        let max = null;
+        let min = null;
+        for (const ch of this._def.checks) {
+          if (ch.kind === "finite" || ch.kind === "int" || ch.kind === "multipleOf") {
+            return true;
+          } else if (ch.kind === "min") {
+            if (min === null || ch.value > min)
+              min = ch.value;
+          } else if (ch.kind === "max") {
+            if (max === null || ch.value < max)
+              max = ch.value;
+          }
+        }
+        return Number.isFinite(min) && Number.isFinite(max);
+      }
+    };
+    ZodNumber.create = (params) => {
+      return new ZodNumber({
+        checks: [],
+        typeName: ZodFirstPartyTypeKind.ZodNumber,
+        coerce: params?.coerce || false,
+        ...processCreateParams(params)
+      });
+    };
+    ZodBigInt = class _ZodBigInt extends ZodType {
+      constructor() {
+        super(...arguments);
+        this.min = this.gte;
+        this.max = this.lte;
+      }
+      _parse(input) {
+        if (this._def.coerce) {
+          try {
+            input.data = BigInt(input.data);
+          } catch {
+            return this._getInvalidInput(input);
+          }
+        }
+        const parsedType = this._getType(input);
+        if (parsedType !== ZodParsedType.bigint) {
+          return this._getInvalidInput(input);
+        }
+        let ctx = void 0;
+        const status = new ParseStatus();
+        for (const check of this._def.checks) {
+          if (check.kind === "min") {
+            const tooSmall = check.inclusive ? input.data < check.value : input.data <= check.value;
+            if (tooSmall) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                code: ZodIssueCode.too_small,
+                type: "bigint",
+                minimum: check.value,
+                inclusive: check.inclusive,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "max") {
+            const tooBig = check.inclusive ? input.data > check.value : input.data >= check.value;
+            if (tooBig) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                code: ZodIssueCode.too_big,
+                type: "bigint",
+                maximum: check.value,
+                inclusive: check.inclusive,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "multipleOf") {
+            if (input.data % check.value !== BigInt(0)) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                code: ZodIssueCode.not_multiple_of,
+                multipleOf: check.value,
+                message: check.message
+              });
+              status.dirty();
+            }
+          } else {
+            util.assertNever(check);
+          }
+        }
+        return { status: status.value, value: input.data };
+      }
+      _getInvalidInput(input) {
+        const ctx = this._getOrReturnCtx(input);
+        addIssueToContext(ctx, {
+          code: ZodIssueCode.invalid_type,
+          expected: ZodParsedType.bigint,
+          received: ctx.parsedType
+        });
+        return INVALID;
+      }
+      gte(value, message) {
+        return this.setLimit("min", value, true, errorUtil.toString(message));
+      }
+      gt(value, message) {
+        return this.setLimit("min", value, false, errorUtil.toString(message));
+      }
+      lte(value, message) {
+        return this.setLimit("max", value, true, errorUtil.toString(message));
+      }
+      lt(value, message) {
+        return this.setLimit("max", value, false, errorUtil.toString(message));
+      }
+      setLimit(kind, value, inclusive, message) {
+        return new _ZodBigInt({
+          ...this._def,
+          checks: [
+            ...this._def.checks,
+            {
+              kind,
+              value,
+              inclusive,
+              message: errorUtil.toString(message)
+            }
+          ]
+        });
+      }
+      _addCheck(check) {
+        return new _ZodBigInt({
+          ...this._def,
+          checks: [...this._def.checks, check]
+        });
+      }
+      positive(message) {
+        return this._addCheck({
+          kind: "min",
+          value: BigInt(0),
+          inclusive: false,
+          message: errorUtil.toString(message)
+        });
+      }
+      negative(message) {
+        return this._addCheck({
+          kind: "max",
+          value: BigInt(0),
+          inclusive: false,
+          message: errorUtil.toString(message)
+        });
+      }
+      nonpositive(message) {
+        return this._addCheck({
+          kind: "max",
+          value: BigInt(0),
+          inclusive: true,
+          message: errorUtil.toString(message)
+        });
+      }
+      nonnegative(message) {
+        return this._addCheck({
+          kind: "min",
+          value: BigInt(0),
+          inclusive: true,
+          message: errorUtil.toString(message)
+        });
+      }
+      multipleOf(value, message) {
+        return this._addCheck({
+          kind: "multipleOf",
+          value,
+          message: errorUtil.toString(message)
+        });
+      }
+      get minValue() {
+        let min = null;
+        for (const ch of this._def.checks) {
+          if (ch.kind === "min") {
+            if (min === null || ch.value > min)
+              min = ch.value;
+          }
+        }
+        return min;
+      }
+      get maxValue() {
+        let max = null;
+        for (const ch of this._def.checks) {
+          if (ch.kind === "max") {
+            if (max === null || ch.value < max)
+              max = ch.value;
+          }
+        }
+        return max;
+      }
+    };
+    ZodBigInt.create = (params) => {
+      return new ZodBigInt({
+        checks: [],
+        typeName: ZodFirstPartyTypeKind.ZodBigInt,
+        coerce: params?.coerce ?? false,
+        ...processCreateParams(params)
+      });
+    };
+    ZodBoolean = class extends ZodType {
+      _parse(input) {
+        if (this._def.coerce) {
+          input.data = Boolean(input.data);
+        }
+        const parsedType = this._getType(input);
+        if (parsedType !== ZodParsedType.boolean) {
+          const ctx = this._getOrReturnCtx(input);
+          addIssueToContext(ctx, {
+            code: ZodIssueCode.invalid_type,
+            expected: ZodParsedType.boolean,
+            received: ctx.parsedType
+          });
+          return INVALID;
+        }
+        return OK(input.data);
+      }
+    };
+    ZodBoolean.create = (params) => {
+      return new ZodBoolean({
+        typeName: ZodFirstPartyTypeKind.ZodBoolean,
+        coerce: params?.coerce || false,
+        ...processCreateParams(params)
+      });
+    };
+    ZodDate = class _ZodDate extends ZodType {
+      _parse(input) {
+        if (this._def.coerce) {
+          input.data = new Date(input.data);
+        }
+        const parsedType = this._getType(input);
+        if (parsedType !== ZodParsedType.date) {
+          const ctx2 = this._getOrReturnCtx(input);
+          addIssueToContext(ctx2, {
+            code: ZodIssueCode.invalid_type,
+            expected: ZodParsedType.date,
+            received: ctx2.parsedType
+          });
+          return INVALID;
+        }
+        if (Number.isNaN(input.data.getTime())) {
+          const ctx2 = this._getOrReturnCtx(input);
+          addIssueToContext(ctx2, {
+            code: ZodIssueCode.invalid_date
+          });
+          return INVALID;
+        }
+        const status = new ParseStatus();
+        let ctx = void 0;
+        for (const check of this._def.checks) {
+          if (check.kind === "min") {
+            if (input.data.getTime() < check.value) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                code: ZodIssueCode.too_small,
+                message: check.message,
+                inclusive: true,
+                exact: false,
+                minimum: check.value,
+                type: "date"
+              });
+              status.dirty();
+            }
+          } else if (check.kind === "max") {
+            if (input.data.getTime() > check.value) {
+              ctx = this._getOrReturnCtx(input, ctx);
+              addIssueToContext(ctx, {
+                code: ZodIssueCode.too_big,
+                message: check.message,
+                inclusive: true,
+                exact: false,
+                maximum: check.value,
+                type: "date"
+              });
+              status.dirty();
+            }
+          } else {
+            util.assertNever(check);
+          }
+        }
+        return {
+          status: status.value,
+          value: new Date(input.data.getTime())
+        };
+      }
+      _addCheck(check) {
+        return new _ZodDate({
+          ...this._def,
+          checks: [...this._def.checks, check]
+        });
+      }
+      min(minDate, message) {
+        return this._addCheck({
+          kind: "min",
+          value: minDate.getTime(),
+          message: errorUtil.toString(message)
+        });
+      }
+      max(maxDate, message) {
+        return this._addCheck({
+          kind: "max",
+          value: maxDate.getTime(),
+          message: errorUtil.toString(message)
+        });
+      }
+      get minDate() {
+        let min = null;
+        for (const ch of this._def.checks) {
+          if (ch.kind === "min") {
+            if (min === null || ch.value > min)
+              min = ch.value;
+          }
+        }
+        return min != null ? new Date(min) : null;
+      }
+      get maxDate() {
+        let max = null;
+        for (const ch of this._def.checks) {
+          if (ch.kind === "max") {
+            if (max === null || ch.value < max)
+              max = ch.value;
+          }
+        }
+        return max != null ? new Date(max) : null;
+      }
+    };
+    ZodDate.create = (params) => {
+      return new ZodDate({
+        checks: [],
+        coerce: params?.coerce || false,
+        typeName: ZodFirstPartyTypeKind.ZodDate,
+        ...processCreateParams(params)
+      });
+    };
+    ZodSymbol = class extends ZodType {
+      _parse(input) {
+        const parsedType = this._getType(input);
+        if (parsedType !== ZodParsedType.symbol) {
+          const ctx = this._getOrReturnCtx(input);
+          addIssueToContext(ctx, {
+            code: ZodIssueCode.invalid_type,
+            expected: ZodParsedType.symbol,
+            received: ctx.parsedType
+          });
+          return INVALID;
+        }
+        return OK(input.data);
+      }
+    };
+    ZodSymbol.create = (params) => {
+      return new ZodSymbol({
+        typeName: ZodFirstPartyTypeKind.ZodSymbol,
+        ...processCreateParams(params)
+      });
+    };
+    ZodUndefined = class extends ZodType {
+      _parse(input) {
+        const parsedType = this._getType(input);
+        if (parsedType !== ZodParsedType.undefined) {
+          const ctx = this._getOrReturnCtx(input);
+          addIssueToContext(ctx, {
+            code: ZodIssueCode.invalid_type,
+            expected: ZodParsedType.undefined,
+            received: ctx.parsedType
+          });
+          return INVALID;
+        }
+        return OK(input.data);
+      }
+    };
+    ZodUndefined.create = (params) => {
+      return new ZodUndefined({
+        typeName: ZodFirstPartyTypeKind.ZodUndefined,
+        ...processCreateParams(params)
+      });
+    };
+    ZodNull = class extends ZodType {
+      _parse(input) {
+        const parsedType = this._getType(input);
+        if (parsedType !== ZodParsedType.null) {
+          const ctx = this._getOrReturnCtx(input);
+          addIssueToContext(ctx, {
+            code: ZodIssueCode.invalid_type,
+            expected: ZodParsedType.null,
+            received: ctx.parsedType
+          });
+          return INVALID;
+        }
+        return OK(input.data);
+      }
+    };
+    ZodNull.create = (params) => {
+      return new ZodNull({
+        typeName: ZodFirstPartyTypeKind.ZodNull,
+        ...processCreateParams(params)
+      });
+    };
+    ZodAny = class extends ZodType {
+      constructor() {
+        super(...arguments);
+        this._any = true;
+      }
+      _parse(input) {
+        return OK(input.data);
+      }
+    };
+    ZodAny.create = (params) => {
+      return new ZodAny({
+        typeName: ZodFirstPartyTypeKind.ZodAny,
+        ...processCreateParams(params)
+      });
+    };
+    ZodUnknown = class extends ZodType {
+      constructor() {
+        super(...arguments);
+        this._unknown = true;
+      }
+      _parse(input) {
+        return OK(input.data);
+      }
+    };
+    ZodUnknown.create = (params) => {
+      return new ZodUnknown({
+        typeName: ZodFirstPartyTypeKind.ZodUnknown,
+        ...processCreateParams(params)
+      });
+    };
+    ZodNever = class extends ZodType {
+      _parse(input) {
+        const ctx = this._getOrReturnCtx(input);
+        addIssueToContext(ctx, {
+          code: ZodIssueCode.invalid_type,
+          expected: ZodParsedType.never,
+          received: ctx.parsedType
+        });
+        return INVALID;
+      }
+    };
+    ZodNever.create = (params) => {
+      return new ZodNever({
+        typeName: ZodFirstPartyTypeKind.ZodNever,
+        ...processCreateParams(params)
+      });
+    };
+    ZodVoid = class extends ZodType {
+      _parse(input) {
+        const parsedType = this._getType(input);
+        if (parsedType !== ZodParsedType.undefined) {
+          const ctx = this._getOrReturnCtx(input);
+          addIssueToContext(ctx, {
+            code: ZodIssueCode.invalid_type,
+            expected: ZodParsedType.void,
+            received: ctx.parsedType
+          });
+          return INVALID;
+        }
+        return OK(input.data);
+      }
+    };
+    ZodVoid.create = (params) => {
+      return new ZodVoid({
+        typeName: ZodFirstPartyTypeKind.ZodVoid,
+        ...processCreateParams(params)
+      });
+    };
+    ZodArray = class _ZodArray extends ZodType {
+      _parse(input) {
+        const { ctx, status } = this._processInputParams(input);
+        const def = this._def;
+        if (ctx.parsedType !== ZodParsedType.array) {
+          addIssueToContext(ctx, {
+            code: ZodIssueCode.invalid_type,
+            expected: ZodParsedType.array,
+            received: ctx.parsedType
+          });
+          return INVALID;
+        }
+        if (def.exactLength !== null) {
+          const tooBig = ctx.data.length > def.exactLength.value;
+          const tooSmall = ctx.data.length < def.exactLength.value;
+          if (tooBig || tooSmall) {
+            addIssueToContext(ctx, {
+              code: tooBig ? ZodIssueCode.too_big : ZodIssueCode.too_small,
+              minimum: tooSmall ? def.exactLength.value : void 0,
+              maximum: tooBig ? def.exactLength.value : void 0,
+              type: "array",
+              inclusive: true,
+              exact: true,
+              message: def.exactLength.message
+            });
+            status.dirty();
+          }
+        }
+        if (def.minLength !== null) {
+          if (ctx.data.length < def.minLength.value) {
+            addIssueToContext(ctx, {
+              code: ZodIssueCode.too_small,
+              minimum: def.minLength.value,
+              type: "array",
+              inclusive: true,
+              exact: false,
+              message: def.minLength.message
+            });
+            status.dirty();
+          }
+        }
+        if (def.maxLength !== null) {
+          if (ctx.data.length > def.maxLength.value) {
+            addIssueToContext(ctx, {
+              code: ZodIssueCode.too_big,
+              maximum: def.maxLength.value,
+              type: "array",
+              inclusive: true,
+              exact: false,
+              message: def.maxLength.message
+            });
+            status.dirty();
+          }
+        }
+        if (ctx.common.async) {
+          return Promise.all([...ctx.data].map((item, i) => {
+            return def.type._parseAsync(new ParseInputLazyPath(ctx, item, ctx.path, i));
+          })).then((result2) => {
+            return ParseStatus.mergeArray(status, result2);
+          });
+        }
+        const result = [...ctx.data].map((item, i) => {
+          return def.type._parseSync(new ParseInputLazyPath(ctx, item, ctx.path, i));
+        });
+        return ParseStatus.mergeArray(status, result);
+      }
+      get element() {
+        return this._def.type;
+      }
+      min(minLength, message) {
+        return new _ZodArray({
+          ...this._def,
+          minLength: { value: minLength, message: errorUtil.toString(message) }
+        });
+      }
+      max(maxLength, message) {
+        return new _ZodArray({
+          ...this._def,
+          maxLength: { value: maxLength, message: errorUtil.toString(message) }
+        });
+      }
+      length(len, message) {
+        return new _ZodArray({
+          ...this._def,
+          exactLength: { value: len, message: errorUtil.toString(message) }
+        });
+      }
+      nonempty(message) {
+        return this.min(1, message);
+      }
+    };
+    ZodArray.create = (schema, params) => {
+      return new ZodArray({
+        type: schema,
+        minLength: null,
+        maxLength: null,
+        exactLength: null,
+        typeName: ZodFirstPartyTypeKind.ZodArray,
+        ...processCreateParams(params)
+      });
+    };
+    ZodObject = class _ZodObject extends ZodType {
+      constructor() {
+        super(...arguments);
+        this._cached = null;
+        this.nonstrict = this.passthrough;
+        this.augment = this.extend;
+      }
+      _getCached() {
+        if (this._cached !== null)
+          return this._cached;
+        const shape = this._def.shape();
+        const keys = util.objectKeys(shape);
+        this._cached = { shape, keys };
+        return this._cached;
+      }
+      _parse(input) {
+        const parsedType = this._getType(input);
+        if (parsedType !== ZodParsedType.object) {
+          const ctx2 = this._getOrReturnCtx(input);
+          addIssueToContext(ctx2, {
+            code: ZodIssueCode.invalid_type,
+            expected: ZodParsedType.object,
+            received: ctx2.parsedType
+          });
+          return INVALID;
+        }
+        const { status, ctx } = this._processInputParams(input);
+        const { shape, keys: shapeKeys } = this._getCached();
+        const extraKeys = [];
+        if (!(this._def.catchall instanceof ZodNever && this._def.unknownKeys === "strip")) {
+          for (const key in ctx.data) {
+            if (!shapeKeys.includes(key)) {
+              extraKeys.push(key);
+            }
+          }
+        }
+        const pairs = [];
+        for (const key of shapeKeys) {
+          const keyValidator = shape[key];
+          const value = ctx.data[key];
+          pairs.push({
+            key: { status: "valid", value: key },
+            value: keyValidator._parse(new ParseInputLazyPath(ctx, value, ctx.path, key)),
+            alwaysSet: key in ctx.data
+          });
+        }
+        if (this._def.catchall instanceof ZodNever) {
+          const unknownKeys = this._def.unknownKeys;
+          if (unknownKeys === "passthrough") {
+            for (const key of extraKeys) {
+              pairs.push({
+                key: { status: "valid", value: key },
+                value: { status: "valid", value: ctx.data[key] }
+              });
+            }
+          } else if (unknownKeys === "strict") {
+            if (extraKeys.length > 0) {
+              addIssueToContext(ctx, {
+                code: ZodIssueCode.unrecognized_keys,
+                keys: extraKeys
+              });
+              status.dirty();
+            }
+          } else if (unknownKeys === "strip") {
+          } else {
+            throw new Error(`Internal ZodObject error: invalid unknownKeys value.`);
+          }
+        } else {
+          const catchall = this._def.catchall;
+          for (const key of extraKeys) {
+            const value = ctx.data[key];
+            pairs.push({
+              key: { status: "valid", value: key },
+              value: catchall._parse(
+                new ParseInputLazyPath(ctx, value, ctx.path, key)
+                //, ctx.child(key), value, getParsedType(value)
+              ),
+              alwaysSet: key in ctx.data
+            });
+          }
+        }
+        if (ctx.common.async) {
+          return Promise.resolve().then(async () => {
+            const syncPairs = [];
+            for (const pair of pairs) {
+              const key = await pair.key;
+              const value = await pair.value;
+              syncPairs.push({
+                key,
+                value,
+                alwaysSet: pair.alwaysSet
+              });
+            }
+            return syncPairs;
+          }).then((syncPairs) => {
+            return ParseStatus.mergeObjectSync(status, syncPairs);
+          });
+        } else {
+          return ParseStatus.mergeObjectSync(status, pairs);
+        }
+      }
+      get shape() {
+        return this._def.shape();
+      }
+      strict(message) {
+        errorUtil.errToObj;
+        return new _ZodObject({
+          ...this._def,
+          unknownKeys: "strict",
+          ...message !== void 0 ? {
+            errorMap: (issue, ctx) => {
+              const defaultError = this._def.errorMap?.(issue, ctx).message ?? ctx.defaultError;
+              if (issue.code === "unrecognized_keys")
+                return {
+                  message: errorUtil.errToObj(message).message ?? defaultError
+                };
+              return {
+                message: defaultError
+              };
+            }
+          } : {}
+        });
+      }
+      strip() {
+        return new _ZodObject({
+          ...this._def,
+          unknownKeys: "strip"
+        });
+      }
+      passthrough() {
+        return new _ZodObject({
+          ...this._def,
+          unknownKeys: "passthrough"
+        });
+      }
+      // const AugmentFactory =
+      //   <Def extends ZodObjectDef>(def: Def) =>
+      //   <Augmentation extends ZodRawShape>(
+      //     augmentation: Augmentation
+      //   ): ZodObject<
+      //     extendShape<ReturnType<Def["shape"]>, Augmentation>,
+      //     Def["unknownKeys"],
+      //     Def["catchall"]
+      //   > => {
+      //     return new ZodObject({
+      //       ...def,
+      //       shape: () => ({
+      //         ...def.shape(),
+      //         ...augmentation,
+      //       }),
+      //     }) as any;
+      //   };
+      extend(augmentation) {
+        return new _ZodObject({
+          ...this._def,
+          shape: () => ({
+            ...this._def.shape(),
+            ...augmentation
+          })
+        });
+      }
+      /**
+       * Prior to zod@1.0.12 there was a bug in the
+       * inferred type of merged objects. Please
+       * upgrade if you are experiencing issues.
+       */
+      merge(merging) {
+        const merged = new _ZodObject({
+          unknownKeys: merging._def.unknownKeys,
+          catchall: merging._def.catchall,
+          shape: () => ({
+            ...this._def.shape(),
+            ...merging._def.shape()
+          }),
+          typeName: ZodFirstPartyTypeKind.ZodObject
+        });
+        return merged;
+      }
+      // merge<
+      //   Incoming extends AnyZodObject,
+      //   Augmentation extends Incoming["shape"],
+      //   NewOutput extends {
+      //     [k in keyof Augmentation | keyof Output]: k extends keyof Augmentation
+      //       ? Augmentation[k]["_output"]
+      //       : k extends keyof Output
+      //       ? Output[k]
+      //       : never;
+      //   },
+      //   NewInput extends {
+      //     [k in keyof Augmentation | keyof Input]: k extends keyof Augmentation
+      //       ? Augmentation[k]["_input"]
+      //       : k extends keyof Input
+      //       ? Input[k]
+      //       : never;
+      //   }
+      // >(
+      //   merging: Incoming
+      // ): ZodObject<
+      //   extendShape<T, ReturnType<Incoming["_def"]["shape"]>>,
+      //   Incoming["_def"]["unknownKeys"],
+      //   Incoming["_def"]["catchall"],
+      //   NewOutput,
+      //   NewInput
+      // > {
+      //   const merged: any = new ZodObject({
+      //     unknownKeys: merging._def.unknownKeys,
+      //     catchall: merging._def.catchall,
+      //     shape: () =>
+      //       objectUtil.mergeShapes(this._def.shape(), merging._def.shape()),
+      //     typeName: ZodFirstPartyTypeKind.ZodObject,
+      //   }) as any;
+      //   return merged;
+      // }
+      setKey(key, schema) {
+        return this.augment({ [key]: schema });
+      }
+      // merge<Incoming extends AnyZodObject>(
+      //   merging: Incoming
+      // ): //ZodObject<T & Incoming["_shape"], UnknownKeys, Catchall> = (merging) => {
+      // ZodObject<
+      //   extendShape<T, ReturnType<Incoming["_def"]["shape"]>>,
+      //   Incoming["_def"]["unknownKeys"],
+      //   Incoming["_def"]["catchall"]
+      // > {
+      //   // const mergedShape = objectUtil.mergeShapes(
+      //   //   this._def.shape(),
+      //   //   merging._def.shape()
+      //   // );
+      //   const merged: any = new ZodObject({
+      //     unknownKeys: merging._def.unknownKeys,
+      //     catchall: merging._def.catchall,
+      //     shape: () =>
+      //       objectUtil.mergeShapes(this._def.shape(), merging._def.shape()),
+      //     typeName: ZodFirstPartyTypeKind.ZodObject,
+      //   }) as any;
+      //   return merged;
+      // }
+      catchall(index) {
+        return new _ZodObject({
+          ...this._def,
+          catchall: index
+        });
+      }
+      pick(mask) {
+        const shape = {};
+        for (const key of util.objectKeys(mask)) {
+          if (mask[key] && this.shape[key]) {
+            shape[key] = this.shape[key];
+          }
+        }
+        return new _ZodObject({
+          ...this._def,
+          shape: () => shape
+        });
+      }
+      omit(mask) {
+        const shape = {};
+        for (const key of util.objectKeys(this.shape)) {
+          if (!mask[key]) {
+            shape[key] = this.shape[key];
+          }
+        }
+        return new _ZodObject({
+          ...this._def,
+          shape: () => shape
+        });
+      }
+      /**
+       * @deprecated
+       */
+      deepPartial() {
+        return deepPartialify(this);
+      }
+      partial(mask) {
+        const newShape = {};
+        for (const key of util.objectKeys(this.shape)) {
+          const fieldSchema = this.shape[key];
+          if (mask && !mask[key]) {
+            newShape[key] = fieldSchema;
+          } else {
+            newShape[key] = fieldSchema.optional();
+          }
+        }
+        return new _ZodObject({
+          ...this._def,
+          shape: () => newShape
+        });
+      }
+      required(mask) {
+        const newShape = {};
+        for (const key of util.objectKeys(this.shape)) {
+          if (mask && !mask[key]) {
+            newShape[key] = this.shape[key];
+          } else {
+            const fieldSchema = this.shape[key];
+            let newField = fieldSchema;
+            while (newField instanceof ZodOptional) {
+              newField = newField._def.innerType;
+            }
+            newShape[key] = newField;
+          }
+        }
+        return new _ZodObject({
+          ...this._def,
+          shape: () => newShape
+        });
+      }
+      keyof() {
+        return createZodEnum(util.objectKeys(this.shape));
+      }
+    };
+    ZodObject.create = (shape, params) => {
+      return new ZodObject({
+        shape: () => shape,
+        unknownKeys: "strip",
+        catchall: ZodNever.create(),
+        typeName: ZodFirstPartyTypeKind.ZodObject,
+        ...processCreateParams(params)
+      });
+    };
+    ZodObject.strictCreate = (shape, params) => {
+      return new ZodObject({
+        shape: () => shape,
+        unknownKeys: "strict",
+        catchall: ZodNever.create(),
+        typeName: ZodFirstPartyTypeKind.ZodObject,
+        ...processCreateParams(params)
+      });
+    };
+    ZodObject.lazycreate = (shape, params) => {
+      return new ZodObject({
+        shape,
+        unknownKeys: "strip",
+        catchall: ZodNever.create(),
+        typeName: ZodFirstPartyTypeKind.ZodObject,
+        ...processCreateParams(params)
+      });
+    };
+    ZodUnion = class extends ZodType {
+      _parse(input) {
+        const { ctx } = this._processInputParams(input);
+        const options = this._def.options;
+        function handleResults(results) {
+          for (const result of results) {
+            if (result.result.status === "valid") {
+              return result.result;
+            }
+          }
+          for (const result of results) {
+            if (result.result.status === "dirty") {
+              ctx.common.issues.push(...result.ctx.common.issues);
+              return result.result;
+            }
+          }
+          const unionErrors = results.map((result) => new ZodError(result.ctx.common.issues));
+          addIssueToContext(ctx, {
+            code: ZodIssueCode.invalid_union,
+            unionErrors
+          });
+          return INVALID;
+        }
+        if (ctx.common.async) {
+          return Promise.all(options.map(async (option) => {
+            const childCtx = {
+              ...ctx,
+              common: {
+                ...ctx.common,
+                issues: []
+              },
+              parent: null
+            };
+            return {
+              result: await option._parseAsync({
+                data: ctx.data,
+                path: ctx.path,
+                parent: childCtx
+              }),
+              ctx: childCtx
+            };
+          })).then(handleResults);
+        } else {
+          let dirty = void 0;
+          const issues = [];
+          for (const option of options) {
+            const childCtx = {
+              ...ctx,
+              common: {
+                ...ctx.common,
+                issues: []
+              },
+              parent: null
+            };
+            const result = option._parseSync({
+              data: ctx.data,
+              path: ctx.path,
+              parent: childCtx
+            });
+            if (result.status === "valid") {
+              return result;
+            } else if (result.status === "dirty" && !dirty) {
+              dirty = { result, ctx: childCtx };
+            }
+            if (childCtx.common.issues.length) {
+              issues.push(childCtx.common.issues);
+            }
+          }
+          if (dirty) {
+            ctx.common.issues.push(...dirty.ctx.common.issues);
+            return dirty.result;
+          }
+          const unionErrors = issues.map((issues2) => new ZodError(issues2));
+          addIssueToContext(ctx, {
+            code: ZodIssueCode.invalid_union,
+            unionErrors
+          });
+          return INVALID;
+        }
+      }
+      get options() {
+        return this._def.options;
+      }
+    };
+    ZodUnion.create = (types, params) => {
+      return new ZodUnion({
+        options: types,
+        typeName: ZodFirstPartyTypeKind.ZodUnion,
+        ...processCreateParams(params)
+      });
+    };
+    getDiscriminator = (type) => {
+      if (type instanceof ZodLazy) {
+        return getDiscriminator(type.schema);
+      } else if (type instanceof ZodEffects) {
+        return getDiscriminator(type.innerType());
+      } else if (type instanceof ZodLiteral) {
+        return [type.value];
+      } else if (type instanceof ZodEnum) {
+        return type.options;
+      } else if (type instanceof ZodNativeEnum) {
+        return util.objectValues(type.enum);
+      } else if (type instanceof ZodDefault) {
+        return getDiscriminator(type._def.innerType);
+      } else if (type instanceof ZodUndefined) {
+        return [void 0];
+      } else if (type instanceof ZodNull) {
+        return [null];
+      } else if (type instanceof ZodOptional) {
+        return [void 0, ...getDiscriminator(type.unwrap())];
+      } else if (type instanceof ZodNullable) {
+        return [null, ...getDiscriminator(type.unwrap())];
+      } else if (type instanceof ZodBranded) {
+        return getDiscriminator(type.unwrap());
+      } else if (type instanceof ZodReadonly) {
+        return getDiscriminator(type.unwrap());
+      } else if (type instanceof ZodCatch) {
+        return getDiscriminator(type._def.innerType);
+      } else {
+        return [];
+      }
+    };
+    ZodDiscriminatedUnion = class _ZodDiscriminatedUnion extends ZodType {
+      _parse(input) {
+        const { ctx } = this._processInputParams(input);
+        if (ctx.parsedType !== ZodParsedType.object) {
+          addIssueToContext(ctx, {
+            code: ZodIssueCode.invalid_type,
+            expected: ZodParsedType.object,
+            received: ctx.parsedType
+          });
+          return INVALID;
+        }
+        const discriminator = this.discriminator;
+        const discriminatorValue = ctx.data[discriminator];
+        const option = this.optionsMap.get(discriminatorValue);
+        if (!option) {
+          addIssueToContext(ctx, {
+            code: ZodIssueCode.invalid_union_discriminator,
+            options: Array.from(this.optionsMap.keys()),
+            path: [discriminator]
+          });
+          return INVALID;
+        }
+        if (ctx.common.async) {
+          return option._parseAsync({
+            data: ctx.data,
+            path: ctx.path,
+            parent: ctx
+          });
+        } else {
+          return option._parseSync({
+            data: ctx.data,
+            path: ctx.path,
+            parent: ctx
+          });
+        }
+      }
+      get discriminator() {
+        return this._def.discriminator;
+      }
+      get options() {
+        return this._def.options;
+      }
+      get optionsMap() {
+        return this._def.optionsMap;
+      }
+      /**
+       * The constructor of the discriminated union schema. Its behaviour is very similar to that of the normal z.union() constructor.
+       * However, it only allows a union of objects, all of which need to share a discriminator property. This property must
+       * have a different value for each object in the union.
+       * @param discriminator the name of the discriminator property
+       * @param types an array of object schemas
+       * @param params
+       */
+      static create(discriminator, options, params) {
+        const optionsMap = /* @__PURE__ */ new Map();
+        for (const type of options) {
+          const discriminatorValues = getDiscriminator(type.shape[discriminator]);
+          if (!discriminatorValues.length) {
+            throw new Error(`A discriminator value for key \`${discriminator}\` could not be extracted from all schema options`);
+          }
+          for (const value of discriminatorValues) {
+            if (optionsMap.has(value)) {
+              throw new Error(`Discriminator property ${String(discriminator)} has duplicate value ${String(value)}`);
+            }
+            optionsMap.set(value, type);
+          }
+        }
+        return new _ZodDiscriminatedUnion({
+          typeName: ZodFirstPartyTypeKind.ZodDiscriminatedUnion,
+          discriminator,
+          options,
+          optionsMap,
+          ...processCreateParams(params)
+        });
+      }
+    };
+    ZodIntersection = class extends ZodType {
+      _parse(input) {
+        const { status, ctx } = this._processInputParams(input);
+        const handleParsed = (parsedLeft, parsedRight) => {
+          if (isAborted(parsedLeft) || isAborted(parsedRight)) {
+            return INVALID;
+          }
+          const merged = mergeValues(parsedLeft.value, parsedRight.value);
+          if (!merged.valid) {
+            addIssueToContext(ctx, {
+              code: ZodIssueCode.invalid_intersection_types
+            });
+            return INVALID;
+          }
+          if (isDirty(parsedLeft) || isDirty(parsedRight)) {
+            status.dirty();
+          }
+          return { status: status.value, value: merged.data };
+        };
+        if (ctx.common.async) {
+          return Promise.all([
+            this._def.left._parseAsync({
+              data: ctx.data,
+              path: ctx.path,
+              parent: ctx
+            }),
+            this._def.right._parseAsync({
+              data: ctx.data,
+              path: ctx.path,
+              parent: ctx
+            })
+          ]).then(([left, right]) => handleParsed(left, right));
+        } else {
+          return handleParsed(this._def.left._parseSync({
+            data: ctx.data,
+            path: ctx.path,
+            parent: ctx
+          }), this._def.right._parseSync({
+            data: ctx.data,
+            path: ctx.path,
+            parent: ctx
+          }));
+        }
+      }
+    };
+    ZodIntersection.create = (left, right, params) => {
+      return new ZodIntersection({
+        left,
+        right,
+        typeName: ZodFirstPartyTypeKind.ZodIntersection,
+        ...processCreateParams(params)
+      });
+    };
+    ZodTuple = class _ZodTuple extends ZodType {
+      _parse(input) {
+        const { status, ctx } = this._processInputParams(input);
+        if (ctx.parsedType !== ZodParsedType.array) {
+          addIssueToContext(ctx, {
+            code: ZodIssueCode.invalid_type,
+            expected: ZodParsedType.array,
+            received: ctx.parsedType
+          });
+          return INVALID;
+        }
+        if (ctx.data.length < this._def.items.length) {
+          addIssueToContext(ctx, {
+            code: ZodIssueCode.too_small,
+            minimum: this._def.items.length,
+            inclusive: true,
+            exact: false,
+            type: "array"
+          });
+          return INVALID;
+        }
+        const rest = this._def.rest;
+        if (!rest && ctx.data.length > this._def.items.length) {
+          addIssueToContext(ctx, {
+            code: ZodIssueCode.too_big,
+            maximum: this._def.items.length,
+            inclusive: true,
+            exact: false,
+            type: "array"
+          });
+          status.dirty();
+        }
+        const items = [...ctx.data].map((item, itemIndex) => {
+          const schema = this._def.items[itemIndex] || this._def.rest;
+          if (!schema)
+            return null;
+          return schema._parse(new ParseInputLazyPath(ctx, item, ctx.path, itemIndex));
+        }).filter((x) => !!x);
+        if (ctx.common.async) {
+          return Promise.all(items).then((results) => {
+            return ParseStatus.mergeArray(status, results);
+          });
+        } else {
+          return ParseStatus.mergeArray(status, items);
+        }
+      }
+      get items() {
+        return this._def.items;
+      }
+      rest(rest) {
+        return new _ZodTuple({
+          ...this._def,
+          rest
+        });
+      }
+    };
+    ZodTuple.create = (schemas, params) => {
+      if (!Array.isArray(schemas)) {
+        throw new Error("You must pass an array of schemas to z.tuple([ ... ])");
+      }
+      return new ZodTuple({
+        items: schemas,
+        typeName: ZodFirstPartyTypeKind.ZodTuple,
+        rest: null,
+        ...processCreateParams(params)
+      });
+    };
+    ZodRecord = class _ZodRecord extends ZodType {
+      get keySchema() {
+        return this._def.keyType;
+      }
+      get valueSchema() {
+        return this._def.valueType;
+      }
+      _parse(input) {
+        const { status, ctx } = this._processInputParams(input);
+        if (ctx.parsedType !== ZodParsedType.object) {
+          addIssueToContext(ctx, {
+            code: ZodIssueCode.invalid_type,
+            expected: ZodParsedType.object,
+            received: ctx.parsedType
+          });
+          return INVALID;
+        }
+        const pairs = [];
+        const keyType = this._def.keyType;
+        const valueType = this._def.valueType;
+        for (const key in ctx.data) {
+          pairs.push({
+            key: keyType._parse(new ParseInputLazyPath(ctx, key, ctx.path, key)),
+            value: valueType._parse(new ParseInputLazyPath(ctx, ctx.data[key], ctx.path, key)),
+            alwaysSet: key in ctx.data
+          });
+        }
+        if (ctx.common.async) {
+          return ParseStatus.mergeObjectAsync(status, pairs);
+        } else {
+          return ParseStatus.mergeObjectSync(status, pairs);
+        }
+      }
+      get element() {
+        return this._def.valueType;
+      }
+      static create(first, second, third) {
+        if (second instanceof ZodType) {
+          return new _ZodRecord({
+            keyType: first,
+            valueType: second,
+            typeName: ZodFirstPartyTypeKind.ZodRecord,
+            ...processCreateParams(third)
+          });
+        }
+        return new _ZodRecord({
+          keyType: ZodString.create(),
+          valueType: first,
+          typeName: ZodFirstPartyTypeKind.ZodRecord,
+          ...processCreateParams(second)
+        });
+      }
+    };
+    ZodMap = class extends ZodType {
+      get keySchema() {
+        return this._def.keyType;
+      }
+      get valueSchema() {
+        return this._def.valueType;
+      }
+      _parse(input) {
+        const { status, ctx } = this._processInputParams(input);
+        if (ctx.parsedType !== ZodParsedType.map) {
+          addIssueToContext(ctx, {
+            code: ZodIssueCode.invalid_type,
+            expected: ZodParsedType.map,
+            received: ctx.parsedType
+          });
+          return INVALID;
+        }
+        const keyType = this._def.keyType;
+        const valueType = this._def.valueType;
+        const pairs = [...ctx.data.entries()].map(([key, value], index) => {
+          return {
+            key: keyType._parse(new ParseInputLazyPath(ctx, key, ctx.path, [index, "key"])),
+            value: valueType._parse(new ParseInputLazyPath(ctx, value, ctx.path, [index, "value"]))
+          };
+        });
+        if (ctx.common.async) {
+          const finalMap = /* @__PURE__ */ new Map();
+          return Promise.resolve().then(async () => {
+            for (const pair of pairs) {
+              const key = await pair.key;
+              const value = await pair.value;
+              if (key.status === "aborted" || value.status === "aborted") {
+                return INVALID;
+              }
+              if (key.status === "dirty" || value.status === "dirty") {
+                status.dirty();
+              }
+              finalMap.set(key.value, value.value);
+            }
+            return { status: status.value, value: finalMap };
+          });
+        } else {
+          const finalMap = /* @__PURE__ */ new Map();
+          for (const pair of pairs) {
+            const key = pair.key;
+            const value = pair.value;
+            if (key.status === "aborted" || value.status === "aborted") {
+              return INVALID;
+            }
+            if (key.status === "dirty" || value.status === "dirty") {
+              status.dirty();
+            }
+            finalMap.set(key.value, value.value);
+          }
+          return { status: status.value, value: finalMap };
+        }
+      }
+    };
+    ZodMap.create = (keyType, valueType, params) => {
+      return new ZodMap({
+        valueType,
+        keyType,
+        typeName: ZodFirstPartyTypeKind.ZodMap,
+        ...processCreateParams(params)
+      });
+    };
+    ZodSet = class _ZodSet extends ZodType {
+      _parse(input) {
+        const { status, ctx } = this._processInputParams(input);
+        if (ctx.parsedType !== ZodParsedType.set) {
+          addIssueToContext(ctx, {
+            code: ZodIssueCode.invalid_type,
+            expected: ZodParsedType.set,
+            received: ctx.parsedType
+          });
+          return INVALID;
+        }
+        const def = this._def;
+        if (def.minSize !== null) {
+          if (ctx.data.size < def.minSize.value) {
+            addIssueToContext(ctx, {
+              code: ZodIssueCode.too_small,
+              minimum: def.minSize.value,
+              type: "set",
+              inclusive: true,
+              exact: false,
+              message: def.minSize.message
+            });
+            status.dirty();
+          }
+        }
+        if (def.maxSize !== null) {
+          if (ctx.data.size > def.maxSize.value) {
+            addIssueToContext(ctx, {
+              code: ZodIssueCode.too_big,
+              maximum: def.maxSize.value,
+              type: "set",
+              inclusive: true,
+              exact: false,
+              message: def.maxSize.message
+            });
+            status.dirty();
+          }
+        }
+        const valueType = this._def.valueType;
+        function finalizeSet(elements2) {
+          const parsedSet = /* @__PURE__ */ new Set();
+          for (const element of elements2) {
+            if (element.status === "aborted")
+              return INVALID;
+            if (element.status === "dirty")
+              status.dirty();
+            parsedSet.add(element.value);
+          }
+          return { status: status.value, value: parsedSet };
+        }
+        const elements = [...ctx.data.values()].map((item, i) => valueType._parse(new ParseInputLazyPath(ctx, item, ctx.path, i)));
+        if (ctx.common.async) {
+          return Promise.all(elements).then((elements2) => finalizeSet(elements2));
+        } else {
+          return finalizeSet(elements);
+        }
+      }
+      min(minSize, message) {
+        return new _ZodSet({
+          ...this._def,
+          minSize: { value: minSize, message: errorUtil.toString(message) }
+        });
+      }
+      max(maxSize, message) {
+        return new _ZodSet({
+          ...this._def,
+          maxSize: { value: maxSize, message: errorUtil.toString(message) }
+        });
+      }
+      size(size, message) {
+        return this.min(size, message).max(size, message);
+      }
+      nonempty(message) {
+        return this.min(1, message);
+      }
+    };
+    ZodSet.create = (valueType, params) => {
+      return new ZodSet({
+        valueType,
+        minSize: null,
+        maxSize: null,
+        typeName: ZodFirstPartyTypeKind.ZodSet,
+        ...processCreateParams(params)
+      });
+    };
+    ZodFunction = class _ZodFunction extends ZodType {
+      constructor() {
+        super(...arguments);
+        this.validate = this.implement;
+      }
+      _parse(input) {
+        const { ctx } = this._processInputParams(input);
+        if (ctx.parsedType !== ZodParsedType.function) {
+          addIssueToContext(ctx, {
+            code: ZodIssueCode.invalid_type,
+            expected: ZodParsedType.function,
+            received: ctx.parsedType
+          });
+          return INVALID;
+        }
+        function makeArgsIssue(args, error) {
+          return makeIssue({
+            data: args,
+            path: ctx.path,
+            errorMaps: [ctx.common.contextualErrorMap, ctx.schemaErrorMap, getErrorMap(), en_default].filter((x) => !!x),
+            issueData: {
+              code: ZodIssueCode.invalid_arguments,
+              argumentsError: error
+            }
+          });
+        }
+        function makeReturnsIssue(returns, error) {
+          return makeIssue({
+            data: returns,
+            path: ctx.path,
+            errorMaps: [ctx.common.contextualErrorMap, ctx.schemaErrorMap, getErrorMap(), en_default].filter((x) => !!x),
+            issueData: {
+              code: ZodIssueCode.invalid_return_type,
+              returnTypeError: error
+            }
+          });
+        }
+        const params = { errorMap: ctx.common.contextualErrorMap };
+        const fn = ctx.data;
+        if (this._def.returns instanceof ZodPromise) {
+          const me = this;
+          return OK(async function(...args) {
+            const error = new ZodError([]);
+            const parsedArgs = await me._def.args.parseAsync(args, params).catch((e) => {
+              error.addIssue(makeArgsIssue(args, e));
+              throw error;
+            });
+            const result = await Reflect.apply(fn, this, parsedArgs);
+            const parsedReturns = await me._def.returns._def.type.parseAsync(result, params).catch((e) => {
+              error.addIssue(makeReturnsIssue(result, e));
+              throw error;
+            });
+            return parsedReturns;
+          });
+        } else {
+          const me = this;
+          return OK(function(...args) {
+            const parsedArgs = me._def.args.safeParse(args, params);
+            if (!parsedArgs.success) {
+              throw new ZodError([makeArgsIssue(args, parsedArgs.error)]);
+            }
+            const result = Reflect.apply(fn, this, parsedArgs.data);
+            const parsedReturns = me._def.returns.safeParse(result, params);
+            if (!parsedReturns.success) {
+              throw new ZodError([makeReturnsIssue(result, parsedReturns.error)]);
+            }
+            return parsedReturns.data;
+          });
+        }
+      }
+      parameters() {
+        return this._def.args;
+      }
+      returnType() {
+        return this._def.returns;
+      }
+      args(...items) {
+        return new _ZodFunction({
+          ...this._def,
+          args: ZodTuple.create(items).rest(ZodUnknown.create())
+        });
+      }
+      returns(returnType) {
+        return new _ZodFunction({
+          ...this._def,
+          returns: returnType
+        });
+      }
+      implement(func) {
+        const validatedFunc = this.parse(func);
+        return validatedFunc;
+      }
+      strictImplement(func) {
+        const validatedFunc = this.parse(func);
+        return validatedFunc;
+      }
+      static create(args, returns, params) {
+        return new _ZodFunction({
+          args: args ? args : ZodTuple.create([]).rest(ZodUnknown.create()),
+          returns: returns || ZodUnknown.create(),
+          typeName: ZodFirstPartyTypeKind.ZodFunction,
+          ...processCreateParams(params)
+        });
+      }
+    };
+    ZodLazy = class extends ZodType {
+      get schema() {
+        return this._def.getter();
+      }
+      _parse(input) {
+        const { ctx } = this._processInputParams(input);
+        const lazySchema = this._def.getter();
+        return lazySchema._parse({ data: ctx.data, path: ctx.path, parent: ctx });
+      }
+    };
+    ZodLazy.create = (getter, params) => {
+      return new ZodLazy({
+        getter,
+        typeName: ZodFirstPartyTypeKind.ZodLazy,
+        ...processCreateParams(params)
+      });
+    };
+    ZodLiteral = class extends ZodType {
+      _parse(input) {
+        if (input.data !== this._def.value) {
+          const ctx = this._getOrReturnCtx(input);
+          addIssueToContext(ctx, {
+            received: ctx.data,
+            code: ZodIssueCode.invalid_literal,
+            expected: this._def.value
+          });
+          return INVALID;
+        }
+        return { status: "valid", value: input.data };
+      }
+      get value() {
+        return this._def.value;
+      }
+    };
+    ZodLiteral.create = (value, params) => {
+      return new ZodLiteral({
+        value,
+        typeName: ZodFirstPartyTypeKind.ZodLiteral,
+        ...processCreateParams(params)
+      });
+    };
+    ZodEnum = class _ZodEnum extends ZodType {
+      _parse(input) {
+        if (typeof input.data !== "string") {
+          const ctx = this._getOrReturnCtx(input);
+          const expectedValues = this._def.values;
+          addIssueToContext(ctx, {
+            expected: util.joinValues(expectedValues),
+            received: ctx.parsedType,
+            code: ZodIssueCode.invalid_type
+          });
+          return INVALID;
+        }
+        if (!this._cache) {
+          this._cache = new Set(this._def.values);
+        }
+        if (!this._cache.has(input.data)) {
+          const ctx = this._getOrReturnCtx(input);
+          const expectedValues = this._def.values;
+          addIssueToContext(ctx, {
+            received: ctx.data,
+            code: ZodIssueCode.invalid_enum_value,
+            options: expectedValues
+          });
+          return INVALID;
+        }
+        return OK(input.data);
+      }
+      get options() {
+        return this._def.values;
+      }
+      get enum() {
+        const enumValues = {};
+        for (const val of this._def.values) {
+          enumValues[val] = val;
+        }
+        return enumValues;
+      }
+      get Values() {
+        const enumValues = {};
+        for (const val of this._def.values) {
+          enumValues[val] = val;
+        }
+        return enumValues;
+      }
+      get Enum() {
+        const enumValues = {};
+        for (const val of this._def.values) {
+          enumValues[val] = val;
+        }
+        return enumValues;
+      }
+      extract(values, newDef = this._def) {
+        return _ZodEnum.create(values, {
+          ...this._def,
+          ...newDef
+        });
+      }
+      exclude(values, newDef = this._def) {
+        return _ZodEnum.create(this.options.filter((opt) => !values.includes(opt)), {
+          ...this._def,
+          ...newDef
+        });
+      }
+    };
+    ZodEnum.create = createZodEnum;
+    ZodNativeEnum = class extends ZodType {
+      _parse(input) {
+        const nativeEnumValues = util.getValidEnumValues(this._def.values);
+        const ctx = this._getOrReturnCtx(input);
+        if (ctx.parsedType !== ZodParsedType.string && ctx.parsedType !== ZodParsedType.number) {
+          const expectedValues = util.objectValues(nativeEnumValues);
+          addIssueToContext(ctx, {
+            expected: util.joinValues(expectedValues),
+            received: ctx.parsedType,
+            code: ZodIssueCode.invalid_type
+          });
+          return INVALID;
+        }
+        if (!this._cache) {
+          this._cache = new Set(util.getValidEnumValues(this._def.values));
+        }
+        if (!this._cache.has(input.data)) {
+          const expectedValues = util.objectValues(nativeEnumValues);
+          addIssueToContext(ctx, {
+            received: ctx.data,
+            code: ZodIssueCode.invalid_enum_value,
+            options: expectedValues
+          });
+          return INVALID;
+        }
+        return OK(input.data);
+      }
+      get enum() {
+        return this._def.values;
+      }
+    };
+    ZodNativeEnum.create = (values, params) => {
+      return new ZodNativeEnum({
+        values,
+        typeName: ZodFirstPartyTypeKind.ZodNativeEnum,
+        ...processCreateParams(params)
+      });
+    };
+    ZodPromise = class extends ZodType {
+      unwrap() {
+        return this._def.type;
+      }
+      _parse(input) {
+        const { ctx } = this._processInputParams(input);
+        if (ctx.parsedType !== ZodParsedType.promise && ctx.common.async === false) {
+          addIssueToContext(ctx, {
+            code: ZodIssueCode.invalid_type,
+            expected: ZodParsedType.promise,
+            received: ctx.parsedType
+          });
+          return INVALID;
+        }
+        const promisified = ctx.parsedType === ZodParsedType.promise ? ctx.data : Promise.resolve(ctx.data);
+        return OK(promisified.then((data) => {
+          return this._def.type.parseAsync(data, {
+            path: ctx.path,
+            errorMap: ctx.common.contextualErrorMap
+          });
+        }));
+      }
+    };
+    ZodPromise.create = (schema, params) => {
+      return new ZodPromise({
+        type: schema,
+        typeName: ZodFirstPartyTypeKind.ZodPromise,
+        ...processCreateParams(params)
+      });
+    };
+    ZodEffects = class extends ZodType {
+      innerType() {
+        return this._def.schema;
+      }
+      sourceType() {
+        return this._def.schema._def.typeName === ZodFirstPartyTypeKind.ZodEffects ? this._def.schema.sourceType() : this._def.schema;
+      }
+      _parse(input) {
+        const { status, ctx } = this._processInputParams(input);
+        const effect = this._def.effect || null;
+        const checkCtx = {
+          addIssue: (arg) => {
+            addIssueToContext(ctx, arg);
+            if (arg.fatal) {
+              status.abort();
+            } else {
+              status.dirty();
+            }
+          },
+          get path() {
+            return ctx.path;
+          }
+        };
+        checkCtx.addIssue = checkCtx.addIssue.bind(checkCtx);
+        if (effect.type === "preprocess") {
+          const processed = effect.transform(ctx.data, checkCtx);
+          if (ctx.common.async) {
+            return Promise.resolve(processed).then(async (processed2) => {
+              if (status.value === "aborted")
+                return INVALID;
+              const result = await this._def.schema._parseAsync({
+                data: processed2,
+                path: ctx.path,
+                parent: ctx
+              });
+              if (result.status === "aborted")
+                return INVALID;
+              if (result.status === "dirty")
+                return DIRTY(result.value);
+              if (status.value === "dirty")
+                return DIRTY(result.value);
+              return result;
+            });
+          } else {
+            if (status.value === "aborted")
+              return INVALID;
+            const result = this._def.schema._parseSync({
+              data: processed,
+              path: ctx.path,
+              parent: ctx
+            });
+            if (result.status === "aborted")
+              return INVALID;
+            if (result.status === "dirty")
+              return DIRTY(result.value);
+            if (status.value === "dirty")
+              return DIRTY(result.value);
+            return result;
+          }
+        }
+        if (effect.type === "refinement") {
+          const executeRefinement = (acc) => {
+            const result = effect.refinement(acc, checkCtx);
+            if (ctx.common.async) {
+              return Promise.resolve(result);
+            }
+            if (result instanceof Promise) {
+              throw new Error("Async refinement encountered during synchronous parse operation. Use .parseAsync instead.");
+            }
+            return acc;
+          };
+          if (ctx.common.async === false) {
+            const inner = this._def.schema._parseSync({
+              data: ctx.data,
+              path: ctx.path,
+              parent: ctx
+            });
+            if (inner.status === "aborted")
+              return INVALID;
+            if (inner.status === "dirty")
+              status.dirty();
+            executeRefinement(inner.value);
+            return { status: status.value, value: inner.value };
+          } else {
+            return this._def.schema._parseAsync({ data: ctx.data, path: ctx.path, parent: ctx }).then((inner) => {
+              if (inner.status === "aborted")
+                return INVALID;
+              if (inner.status === "dirty")
+                status.dirty();
+              return executeRefinement(inner.value).then(() => {
+                return { status: status.value, value: inner.value };
+              });
+            });
+          }
+        }
+        if (effect.type === "transform") {
+          if (ctx.common.async === false) {
+            const base = this._def.schema._parseSync({
+              data: ctx.data,
+              path: ctx.path,
+              parent: ctx
+            });
+            if (!isValid(base))
+              return INVALID;
+            const result = effect.transform(base.value, checkCtx);
+            if (result instanceof Promise) {
+              throw new Error(`Asynchronous transform encountered during synchronous parse operation. Use .parseAsync instead.`);
+            }
+            return { status: status.value, value: result };
+          } else {
+            return this._def.schema._parseAsync({ data: ctx.data, path: ctx.path, parent: ctx }).then((base) => {
+              if (!isValid(base))
+                return INVALID;
+              return Promise.resolve(effect.transform(base.value, checkCtx)).then((result) => ({
+                status: status.value,
+                value: result
+              }));
+            });
+          }
+        }
+        util.assertNever(effect);
+      }
+    };
+    ZodEffects.create = (schema, effect, params) => {
+      return new ZodEffects({
+        schema,
+        typeName: ZodFirstPartyTypeKind.ZodEffects,
+        effect,
+        ...processCreateParams(params)
+      });
+    };
+    ZodEffects.createWithPreprocess = (preprocess, schema, params) => {
+      return new ZodEffects({
+        schema,
+        effect: { type: "preprocess", transform: preprocess },
+        typeName: ZodFirstPartyTypeKind.ZodEffects,
+        ...processCreateParams(params)
+      });
+    };
+    ZodOptional = class extends ZodType {
+      _parse(input) {
+        const parsedType = this._getType(input);
+        if (parsedType === ZodParsedType.undefined) {
+          return OK(void 0);
+        }
+        return this._def.innerType._parse(input);
+      }
+      unwrap() {
+        return this._def.innerType;
+      }
+    };
+    ZodOptional.create = (type, params) => {
+      return new ZodOptional({
+        innerType: type,
+        typeName: ZodFirstPartyTypeKind.ZodOptional,
+        ...processCreateParams(params)
+      });
+    };
+    ZodNullable = class extends ZodType {
+      _parse(input) {
+        const parsedType = this._getType(input);
+        if (parsedType === ZodParsedType.null) {
+          return OK(null);
+        }
+        return this._def.innerType._parse(input);
+      }
+      unwrap() {
+        return this._def.innerType;
+      }
+    };
+    ZodNullable.create = (type, params) => {
+      return new ZodNullable({
+        innerType: type,
+        typeName: ZodFirstPartyTypeKind.ZodNullable,
+        ...processCreateParams(params)
+      });
+    };
+    ZodDefault = class extends ZodType {
+      _parse(input) {
+        const { ctx } = this._processInputParams(input);
+        let data = ctx.data;
+        if (ctx.parsedType === ZodParsedType.undefined) {
+          data = this._def.defaultValue();
+        }
+        return this._def.innerType._parse({
+          data,
+          path: ctx.path,
+          parent: ctx
+        });
+      }
+      removeDefault() {
+        return this._def.innerType;
+      }
+    };
+    ZodDefault.create = (type, params) => {
+      return new ZodDefault({
+        innerType: type,
+        typeName: ZodFirstPartyTypeKind.ZodDefault,
+        defaultValue: typeof params.default === "function" ? params.default : () => params.default,
+        ...processCreateParams(params)
+      });
+    };
+    ZodCatch = class extends ZodType {
+      _parse(input) {
+        const { ctx } = this._processInputParams(input);
+        const newCtx = {
+          ...ctx,
+          common: {
+            ...ctx.common,
+            issues: []
+          }
+        };
+        const result = this._def.innerType._parse({
+          data: newCtx.data,
+          path: newCtx.path,
+          parent: {
+            ...newCtx
+          }
+        });
+        if (isAsync(result)) {
+          return result.then((result2) => {
+            return {
+              status: "valid",
+              value: result2.status === "valid" ? result2.value : this._def.catchValue({
+                get error() {
+                  return new ZodError(newCtx.common.issues);
+                },
+                input: newCtx.data
+              })
+            };
+          });
+        } else {
+          return {
+            status: "valid",
+            value: result.status === "valid" ? result.value : this._def.catchValue({
+              get error() {
+                return new ZodError(newCtx.common.issues);
+              },
+              input: newCtx.data
+            })
+          };
+        }
+      }
+      removeCatch() {
+        return this._def.innerType;
+      }
+    };
+    ZodCatch.create = (type, params) => {
+      return new ZodCatch({
+        innerType: type,
+        typeName: ZodFirstPartyTypeKind.ZodCatch,
+        catchValue: typeof params.catch === "function" ? params.catch : () => params.catch,
+        ...processCreateParams(params)
+      });
+    };
+    ZodNaN = class extends ZodType {
+      _parse(input) {
+        const parsedType = this._getType(input);
+        if (parsedType !== ZodParsedType.nan) {
+          const ctx = this._getOrReturnCtx(input);
+          addIssueToContext(ctx, {
+            code: ZodIssueCode.invalid_type,
+            expected: ZodParsedType.nan,
+            received: ctx.parsedType
+          });
+          return INVALID;
+        }
+        return { status: "valid", value: input.data };
+      }
+    };
+    ZodNaN.create = (params) => {
+      return new ZodNaN({
+        typeName: ZodFirstPartyTypeKind.ZodNaN,
+        ...processCreateParams(params)
+      });
+    };
+    BRAND = /* @__PURE__ */ Symbol("zod_brand");
+    ZodBranded = class extends ZodType {
+      _parse(input) {
+        const { ctx } = this._processInputParams(input);
+        const data = ctx.data;
+        return this._def.type._parse({
+          data,
+          path: ctx.path,
+          parent: ctx
+        });
+      }
+      unwrap() {
+        return this._def.type;
+      }
+    };
+    ZodPipeline = class _ZodPipeline extends ZodType {
+      _parse(input) {
+        const { status, ctx } = this._processInputParams(input);
+        if (ctx.common.async) {
+          const handleAsync = async () => {
+            const inResult = await this._def.in._parseAsync({
+              data: ctx.data,
+              path: ctx.path,
+              parent: ctx
+            });
+            if (inResult.status === "aborted")
+              return INVALID;
+            if (inResult.status === "dirty") {
+              status.dirty();
+              return DIRTY(inResult.value);
+            } else {
+              return this._def.out._parseAsync({
+                data: inResult.value,
+                path: ctx.path,
+                parent: ctx
+              });
+            }
+          };
+          return handleAsync();
+        } else {
+          const inResult = this._def.in._parseSync({
+            data: ctx.data,
+            path: ctx.path,
+            parent: ctx
+          });
+          if (inResult.status === "aborted")
+            return INVALID;
+          if (inResult.status === "dirty") {
+            status.dirty();
+            return {
+              status: "dirty",
+              value: inResult.value
+            };
+          } else {
+            return this._def.out._parseSync({
+              data: inResult.value,
+              path: ctx.path,
+              parent: ctx
+            });
+          }
+        }
+      }
+      static create(a, b) {
+        return new _ZodPipeline({
+          in: a,
+          out: b,
+          typeName: ZodFirstPartyTypeKind.ZodPipeline
+        });
+      }
+    };
+    ZodReadonly = class extends ZodType {
+      _parse(input) {
+        const result = this._def.innerType._parse(input);
+        const freeze = (data) => {
+          if (isValid(data)) {
+            data.value = Object.freeze(data.value);
+          }
+          return data;
+        };
+        return isAsync(result) ? result.then((data) => freeze(data)) : freeze(result);
+      }
+      unwrap() {
+        return this._def.innerType;
+      }
+    };
+    ZodReadonly.create = (type, params) => {
+      return new ZodReadonly({
+        innerType: type,
+        typeName: ZodFirstPartyTypeKind.ZodReadonly,
+        ...processCreateParams(params)
+      });
+    };
+    late = {
+      object: ZodObject.lazycreate
+    };
+    (function(ZodFirstPartyTypeKind2) {
+      ZodFirstPartyTypeKind2["ZodString"] = "ZodString";
+      ZodFirstPartyTypeKind2["ZodNumber"] = "ZodNumber";
+      ZodFirstPartyTypeKind2["ZodNaN"] = "ZodNaN";
+      ZodFirstPartyTypeKind2["ZodBigInt"] = "ZodBigInt";
+      ZodFirstPartyTypeKind2["ZodBoolean"] = "ZodBoolean";
+      ZodFirstPartyTypeKind2["ZodDate"] = "ZodDate";
+      ZodFirstPartyTypeKind2["ZodSymbol"] = "ZodSymbol";
+      ZodFirstPartyTypeKind2["ZodUndefined"] = "ZodUndefined";
+      ZodFirstPartyTypeKind2["ZodNull"] = "ZodNull";
+      ZodFirstPartyTypeKind2["ZodAny"] = "ZodAny";
+      ZodFirstPartyTypeKind2["ZodUnknown"] = "ZodUnknown";
+      ZodFirstPartyTypeKind2["ZodNever"] = "ZodNever";
+      ZodFirstPartyTypeKind2["ZodVoid"] = "ZodVoid";
+      ZodFirstPartyTypeKind2["ZodArray"] = "ZodArray";
+      ZodFirstPartyTypeKind2["ZodObject"] = "ZodObject";
+      ZodFirstPartyTypeKind2["ZodUnion"] = "ZodUnion";
+      ZodFirstPartyTypeKind2["ZodDiscriminatedUnion"] = "ZodDiscriminatedUnion";
+      ZodFirstPartyTypeKind2["ZodIntersection"] = "ZodIntersection";
+      ZodFirstPartyTypeKind2["ZodTuple"] = "ZodTuple";
+      ZodFirstPartyTypeKind2["ZodRecord"] = "ZodRecord";
+      ZodFirstPartyTypeKind2["ZodMap"] = "ZodMap";
+      ZodFirstPartyTypeKind2["ZodSet"] = "ZodSet";
+      ZodFirstPartyTypeKind2["ZodFunction"] = "ZodFunction";
+      ZodFirstPartyTypeKind2["ZodLazy"] = "ZodLazy";
+      ZodFirstPartyTypeKind2["ZodLiteral"] = "ZodLiteral";
+      ZodFirstPartyTypeKind2["ZodEnum"] = "ZodEnum";
+      ZodFirstPartyTypeKind2["ZodEffects"] = "ZodEffects";
+      ZodFirstPartyTypeKind2["ZodNativeEnum"] = "ZodNativeEnum";
+      ZodFirstPartyTypeKind2["ZodOptional"] = "ZodOptional";
+      ZodFirstPartyTypeKind2["ZodNullable"] = "ZodNullable";
+      ZodFirstPartyTypeKind2["ZodDefault"] = "ZodDefault";
+      ZodFirstPartyTypeKind2["ZodCatch"] = "ZodCatch";
+      ZodFirstPartyTypeKind2["ZodPromise"] = "ZodPromise";
+      ZodFirstPartyTypeKind2["ZodBranded"] = "ZodBranded";
+      ZodFirstPartyTypeKind2["ZodPipeline"] = "ZodPipeline";
+      ZodFirstPartyTypeKind2["ZodReadonly"] = "ZodReadonly";
+    })(ZodFirstPartyTypeKind || (ZodFirstPartyTypeKind = {}));
+    instanceOfType = (cls, params = {
+      message: `Input not instance of ${cls.name}`
+    }) => custom((data) => data instanceof cls, params);
+    stringType = ZodString.create;
+    numberType = ZodNumber.create;
+    nanType = ZodNaN.create;
+    bigIntType = ZodBigInt.create;
+    booleanType = ZodBoolean.create;
+    dateType = ZodDate.create;
+    symbolType = ZodSymbol.create;
+    undefinedType = ZodUndefined.create;
+    nullType = ZodNull.create;
+    anyType = ZodAny.create;
+    unknownType = ZodUnknown.create;
+    neverType = ZodNever.create;
+    voidType = ZodVoid.create;
+    arrayType = ZodArray.create;
+    objectType = ZodObject.create;
+    strictObjectType = ZodObject.strictCreate;
+    unionType = ZodUnion.create;
+    discriminatedUnionType = ZodDiscriminatedUnion.create;
+    intersectionType = ZodIntersection.create;
+    tupleType = ZodTuple.create;
+    recordType = ZodRecord.create;
+    mapType = ZodMap.create;
+    setType = ZodSet.create;
+    functionType = ZodFunction.create;
+    lazyType = ZodLazy.create;
+    literalType = ZodLiteral.create;
+    enumType = ZodEnum.create;
+    nativeEnumType = ZodNativeEnum.create;
+    promiseType = ZodPromise.create;
+    effectsType = ZodEffects.create;
+    optionalType = ZodOptional.create;
+    nullableType = ZodNullable.create;
+    preprocessType = ZodEffects.createWithPreprocess;
+    pipelineType = ZodPipeline.create;
+    ostring = () => stringType().optional();
+    onumber = () => numberType().optional();
+    oboolean = () => booleanType().optional();
+    coerce = {
+      string: ((arg) => ZodString.create({ ...arg, coerce: true })),
+      number: ((arg) => ZodNumber.create({ ...arg, coerce: true })),
+      boolean: ((arg) => ZodBoolean.create({
+        ...arg,
+        coerce: true
+      })),
+      bigint: ((arg) => ZodBigInt.create({ ...arg, coerce: true })),
+      date: ((arg) => ZodDate.create({ ...arg, coerce: true }))
+    };
+    NEVER = INVALID;
+  }
+});
+
+// node_modules/zod/v3/external.js
+var external_exports = {};
+__export2(external_exports, {
+  BRAND: () => BRAND,
+  DIRTY: () => DIRTY,
+  EMPTY_PATH: () => EMPTY_PATH,
+  INVALID: () => INVALID,
+  NEVER: () => NEVER,
+  OK: () => OK,
+  ParseStatus: () => ParseStatus,
+  Schema: () => ZodType,
+  ZodAny: () => ZodAny,
+  ZodArray: () => ZodArray,
+  ZodBigInt: () => ZodBigInt,
+  ZodBoolean: () => ZodBoolean,
+  ZodBranded: () => ZodBranded,
+  ZodCatch: () => ZodCatch,
+  ZodDate: () => ZodDate,
+  ZodDefault: () => ZodDefault,
+  ZodDiscriminatedUnion: () => ZodDiscriminatedUnion,
+  ZodEffects: () => ZodEffects,
+  ZodEnum: () => ZodEnum,
+  ZodError: () => ZodError,
+  ZodFirstPartyTypeKind: () => ZodFirstPartyTypeKind,
+  ZodFunction: () => ZodFunction,
+  ZodIntersection: () => ZodIntersection,
+  ZodIssueCode: () => ZodIssueCode,
+  ZodLazy: () => ZodLazy,
+  ZodLiteral: () => ZodLiteral,
+  ZodMap: () => ZodMap,
+  ZodNaN: () => ZodNaN,
+  ZodNativeEnum: () => ZodNativeEnum,
+  ZodNever: () => ZodNever,
+  ZodNull: () => ZodNull,
+  ZodNullable: () => ZodNullable,
+  ZodNumber: () => ZodNumber,
+  ZodObject: () => ZodObject,
+  ZodOptional: () => ZodOptional,
+  ZodParsedType: () => ZodParsedType,
+  ZodPipeline: () => ZodPipeline,
+  ZodPromise: () => ZodPromise,
+  ZodReadonly: () => ZodReadonly,
+  ZodRecord: () => ZodRecord,
+  ZodSchema: () => ZodType,
+  ZodSet: () => ZodSet,
+  ZodString: () => ZodString,
+  ZodSymbol: () => ZodSymbol,
+  ZodTransformer: () => ZodEffects,
+  ZodTuple: () => ZodTuple,
+  ZodType: () => ZodType,
+  ZodUndefined: () => ZodUndefined,
+  ZodUnion: () => ZodUnion,
+  ZodUnknown: () => ZodUnknown,
+  ZodVoid: () => ZodVoid,
+  addIssueToContext: () => addIssueToContext,
+  any: () => anyType,
+  array: () => arrayType,
+  bigint: () => bigIntType,
+  boolean: () => booleanType,
+  coerce: () => coerce,
+  custom: () => custom,
+  date: () => dateType,
+  datetimeRegex: () => datetimeRegex,
+  defaultErrorMap: () => en_default,
+  discriminatedUnion: () => discriminatedUnionType,
+  effect: () => effectsType,
+  enum: () => enumType,
+  function: () => functionType,
+  getErrorMap: () => getErrorMap,
+  getParsedType: () => getParsedType,
+  instanceof: () => instanceOfType,
+  intersection: () => intersectionType,
+  isAborted: () => isAborted,
+  isAsync: () => isAsync,
+  isDirty: () => isDirty,
+  isValid: () => isValid,
+  late: () => late,
+  lazy: () => lazyType,
+  literal: () => literalType,
+  makeIssue: () => makeIssue,
+  map: () => mapType,
+  nan: () => nanType,
+  nativeEnum: () => nativeEnumType,
+  never: () => neverType,
+  null: () => nullType,
+  nullable: () => nullableType,
+  number: () => numberType,
+  object: () => objectType,
+  objectUtil: () => objectUtil,
+  oboolean: () => oboolean,
+  onumber: () => onumber,
+  optional: () => optionalType,
+  ostring: () => ostring,
+  pipeline: () => pipelineType,
+  preprocess: () => preprocessType,
+  promise: () => promiseType,
+  quotelessJson: () => quotelessJson,
+  record: () => recordType,
+  set: () => setType,
+  setErrorMap: () => setErrorMap,
+  strictObject: () => strictObjectType,
+  string: () => stringType,
+  symbol: () => symbolType,
+  transformer: () => effectsType,
+  tuple: () => tupleType,
+  undefined: () => undefinedType,
+  union: () => unionType,
+  unknown: () => unknownType,
+  util: () => util,
+  void: () => voidType
+});
+var init_external = __esm({
+  "node_modules/zod/v3/external.js"() {
+    init_errors();
+    init_parseUtil();
+    init_typeAliases();
+    init_util();
+    init_types();
+    init_ZodError();
+  }
+});
+
+// node_modules/zod/index.js
+var init_zod = __esm({
+  "node_modules/zod/index.js"() {
+    init_external();
+    init_external();
+  }
+});
+
+// src/schemas/jobs.schema.ts
+var jobs_schema_exports = {};
+__export2(jobs_schema_exports, {
+  CatalogJobSchema: () => CatalogJobSchema,
+  OrderJobSchema: () => OrderJobSchema,
+  PaymentGatewayJobSchema: () => PaymentGatewayJobSchema,
+  RefillJobSchema: () => RefillJobSchema,
+  SyncJobSchema: () => SyncJobSchema
+});
+var OrderJobSchema, CatalogJobSchema, RefillJobSchema, SyncJobSchema, PaymentGatewayJobSchema;
+var init_jobs_schema = __esm({
+  "src/schemas/jobs.schema.ts"() {
+    "use strict";
+    init_zod();
+    OrderJobSchema = external_exports.object({
+      orderId: external_exports.string().min(1),
+      isDripFeedChild: external_exports.boolean().optional()
+    });
+    CatalogJobSchema = external_exports.discriminatedUnion("type", [
+      external_exports.object({
+        type: external_exports.literal("SYNC_PRICES"),
+        usdToRub: external_exports.number().positive()
+      }),
+      external_exports.object({
+        type: external_exports.literal("RECONCILE_PRICES"),
+        batchSize: external_exports.number().positive().optional()
+      }),
+      external_exports.object({
+        type: external_exports.literal("SYNC_PROVIDER_CATALOG"),
+        providerId: external_exports.string().min(1),
+        admin: external_exports.any()
+      }),
+      external_exports.object({
+        type: external_exports.literal("SYNC_ALL_CATALOGS"),
+        admin: external_exports.any()
+      }),
+      external_exports.object({
+        type: external_exports.literal("BULK_MARKUP"),
+        filter: external_exports.object({
+          categoryId: external_exports.string().optional(),
+          platform: external_exports.string().optional()
+        }),
+        markupPercent: external_exports.number(),
+        admin: external_exports.any()
+      }),
+      external_exports.object({
+        type: external_exports.literal("SYNC_CBR_RATE"),
+        timestamp: external_exports.number()
+      })
+    ]);
+    RefillJobSchema = external_exports.object({
+      refillId: external_exports.string().min(1)
+    });
+    SyncJobSchema = external_exports.object({
+      providerId: external_exports.string().optional(),
+      orderIds: external_exports.array(external_exports.string()).optional()
+    }).optional().nullable();
+    PaymentGatewayJobSchema = external_exports.object({
+      paymentId: external_exports.string().min(1),
+      orderId: external_exports.string().optional(),
+      userId: external_exports.string().min(1),
+      amountRub: external_exports.number().positive(),
+      email: external_exports.string().nullable().optional(),
+      successUrl: external_exports.string().min(1),
+      description: external_exports.string().min(1),
+      isTestMode: external_exports.boolean(),
+      gateway: external_exports.enum(["yookassa", "cryptobot", "robokassa"]),
+      metadata: external_exports.any().optional()
+    });
+  }
+});
+
 // node_modules/next/dist/lib/constants.js
 var require_constants11 = __commonJS({
   "node_modules/next/dist/lib/constants.js"(exports2) {
@@ -103655,6034 +107833,6 @@ var init_settings = __esm({
   }
 });
 
-// src/lib/metrics.ts
-var log2, counters, metrics;
-var init_metrics = __esm({
-  "src/lib/metrics.ts"() {
-    "use strict";
-    init_logger();
-    log2 = logger.child({ component: "Metrics" });
-    counters = {
-      workerJobSuccess: 0,
-      workerJobFailure: 0,
-      circuitBreakerTripped: 0
-    };
-    metrics = {
-      recordWorkerSuccess(processorName) {
-        counters.workerJobSuccess++;
-        log2.debug(`[Metrics] ${processorName} job success (Total: ${counters.workerJobSuccess})`);
-      },
-      recordWorkerFailure(processorName, error) {
-        counters.workerJobFailure++;
-        log2.error(`[Metrics] ${processorName} job failure: ${error.message} (Total: ${counters.workerJobFailure})`);
-      },
-      recordCircuitBreakerTrip(host) {
-        counters.circuitBreakerTripped++;
-        log2.warn(`[Metrics] CircuitBreaker tripped for ${host} (Total: ${counters.circuitBreakerTripped})`);
-      },
-      getMetrics() {
-        return { ...counters, timestamp: (/* @__PURE__ */ new Date()).toISOString() };
-      }
-    };
-  }
-});
-
-// src/lib/circuit-breaker.ts
-var CircuitBreakerOpenException, CircuitBreaker;
-var init_circuit_breaker = __esm({
-  "src/lib/circuit-breaker.ts"() {
-    "use strict";
-    init_queue_manager();
-    init_metrics();
-    CircuitBreakerOpenException = class extends Error {
-      constructor(providerHost) {
-        super(`Circuit breaker is OPEN for provider: ${providerHost}`);
-        this.name = "CircuitBreakerOpenException";
-      }
-    };
-    CircuitBreaker = class {
-      static {
-        this.FAILURE_THRESHOLD = 5;
-      }
-      static {
-        // failures
-        this.FAILURE_WINDOW_SEC = 60;
-      }
-      static {
-        // window to accumulate failures
-        this.COOL_DOWN_SEC = 30;
-      }
-      // time before half-open state
-      /**
-       * Checks if a request to the given URL is allowed.
-       * Throws CircuitBreakerOpenException if the circuit is OPEN.
-       */
-      static async check(providerUrl) {
-        let host = providerUrl;
-        try {
-          host = new URL(providerUrl).hostname;
-        } catch (e) {
-        }
-        const redis2 = getRedisConnection();
-        const isOpen = await redis2.get(`cb:${host}:open`);
-        if (isOpen) {
-          throw new CircuitBreakerOpenException(host);
-        }
-        const isHalfOpen = await redis2.get(`cb:${host}:half_open`);
-        if (isHalfOpen) {
-          const locked = await redis2.set(`cb:${host}:probe_lock`, "1", "EX", 5, "NX");
-          if (!locked) {
-            throw new CircuitBreakerOpenException(host);
-          }
-        }
-      }
-      /**
-       * Records a successful request, resetting the circuit if it was HALF-OPEN.
-       */
-      static async recordSuccess(providerUrl) {
-        let host = providerUrl;
-        try {
-          host = new URL(providerUrl).hostname;
-        } catch (e) {
-        }
-        const redis2 = getRedisConnection();
-        await redis2.del(`cb:${host}:failures`);
-        await redis2.del(`cb:${host}:open`);
-        await redis2.del(`cb:${host}:half_open`);
-        await redis2.del(`cb:${host}:probe_lock`);
-      }
-      /**
-       * Records a failed request (timeout, 5xx).
-       */
-      static async recordFailure(providerUrl) {
-        let host = providerUrl;
-        try {
-          host = new URL(providerUrl).hostname;
-        } catch (e) {
-        }
-        const redis2 = getRedisConnection();
-        const isHalfOpen = await redis2.get(`cb:${host}:half_open`);
-        if (isHalfOpen) {
-          await this.trip(host);
-          return;
-        }
-        const failures = await redis2.incr(`cb:${host}:failures`);
-        if (failures === 1) {
-          await redis2.expire(`cb:${host}:failures`, this.FAILURE_WINDOW_SEC);
-        }
-        if (failures >= this.FAILURE_THRESHOLD) {
-          await this.trip(host);
-        }
-      }
-      static async trip(host) {
-        const redis2 = getRedisConnection();
-        metrics.recordCircuitBreakerTrip(host);
-        console.warn(`[CircuitBreaker] \u{1F534} TRIPPED for ${host}. Failing fast for ${this.COOL_DOWN_SEC}s`);
-        await redis2.setex(`cb:${host}:open`, this.COOL_DOWN_SEC, "1");
-        await redis2.setex(`cb:${host}:half_open`, this.COOL_DOWN_SEC * 2, "1");
-        await redis2.del(`cb:${host}:probe_lock`);
-      }
-    };
-  }
-});
-
-// src/lib/security/ssrf-guard.ts
-function isPublicIp(ip) {
-  if (!ip) return false;
-  if (ip.startsWith("::ffff:")) {
-    ip = ip.substring(7);
-  }
-  if (ip === AWS_METADATA_HOST) return false;
-  if (import_node_net.default.isIPv4(ip)) {
-    const parts = ip.split(".").map(Number);
-    if (parts.length === 4) {
-      if (parts[0] === 0) return false;
-      if (parts[0] === 10) return false;
-      if (parts[0] === 127) return false;
-      if (parts[0] === 169 && parts[1] === 254) return false;
-      if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return false;
-      if (parts[0] === 192 && parts[1] === 168) return false;
-      if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return false;
-      if (parts[0] >= 224) return false;
-    }
-    return true;
-  }
-  if (import_node_net.default.isIPv6(ip)) {
-    const lower = ip.toLowerCase();
-    if (lower === "::1" || lower === "::") return false;
-    if (lower.startsWith("fc") || lower.startsWith("fd")) return false;
-    if (lower.startsWith("fe8") || lower.startsWith("fe9") || lower.startsWith("fea") || lower.startsWith("feb")) {
-      return false;
-    }
-    return true;
-  }
-  return false;
-}
-async function assertSafeOutboundUrl(rawUrl) {
-  let parsed;
-  try {
-    parsed = new import_node_url.URL(rawUrl);
-  } catch {
-    return { ok: false, reason: "invalid-url" };
-  }
-  if (!ALLOWED_SCHEMES.has(parsed.protocol)) {
-    return { ok: false, reason: `scheme-${parsed.protocol}-blocked` };
-  }
-  const hostname = parsed.hostname.toLowerCase();
-  if (parsed.pathname.includes("/api/dev/mock-provider") && (process.env.ENABLE_DEV_ROUTES === "true" || process.env.NODE_ENV === "test" || process.env.NODE_ENV === "development")) {
-    return { ok: true, ip: "127.0.0.1", hostname };
-  }
-  if (BLOCKED_HOSTS.has(hostname) || hostname === AWS_METADATA_HOST) {
-    return { ok: false, reason: `host-${hostname}-blocked` };
-  }
-  const TRUSTED_SYSTEM_DOMAINS = [
-    "api.yookassa.ru",
-    "yookassa.ru",
-    "api.cryptomus.com",
-    "pay.cryptomus.com",
-    "api.telegram.org",
-    "t.me",
-    "auth.robokassa.ru",
-    "merchant.roboxchange.com",
-    "generativelanguage.googleapis.com",
-    // Verified official provider gateways
-    "vexboost.ru",
-    "api.vexboost.ru",
-    "soc-rocket.ru",
-    "stream-promotion.ru",
-    "likedrom.com",
-    "smmprime.com",
-    "smmpanelus.com"
-  ];
-  if (TRUSTED_SYSTEM_DOMAINS.some((d) => hostname === d || hostname.endsWith(`.${d}`))) {
-    return { ok: true, ip: "trusted-gateway", hostname };
-  }
-  if (import_node_net.default.isIP(hostname)) {
-    if (!isPublicIp(hostname)) {
-      return { ok: false, reason: `ip-${hostname}-private` };
-    }
-    return { ok: true, ip: hostname, hostname };
-  }
-  const isFakeIp = (ip) => {
-    if (ip.startsWith("198.18.") || ip.startsWith("198.19.")) return true;
-    if (ip.toLowerCase().startsWith("fdfe:dcba:9876:")) return true;
-    return false;
-  };
-  let addrs = [];
-  try {
-    const records = await import_node_dns.promises.lookup(hostname, { all: true });
-    addrs = records.map((r) => r.address);
-  } catch {
-    return { ok: false, reason: "dns-failed" };
-  }
-  if (addrs.length === 0) {
-    return { ok: false, reason: "dns-no-records" };
-  }
-  for (const ip of addrs) {
-    if (!isPublicIp(ip) && !isFakeIp(ip)) {
-      return { ok: false, reason: `ip-${ip}-private` };
-    }
-  }
-  try {
-    const secondCheckRecords = await import_node_dns.promises.lookup(hostname, { all: true });
-    const secondAddrs = secondCheckRecords.map((r) => r.address);
-    for (const ip of secondAddrs) {
-      if (!isPublicIp(ip) && !isFakeIp(ip)) {
-        return { ok: false, reason: `ip-${ip}-private-rebinding` };
-      }
-    }
-  } catch {
-    return { ok: false, reason: "dns-rebinding-lookup-failed" };
-  }
-  return { ok: true, ip: addrs[0], hostname };
-}
-async function safeFetch(url, init) {
-  const check = await assertSafeOutboundUrl(url);
-  if (!check.ok) {
-    throw new Error(`SSRF blocked: ${check.reason} for URL ${url}`);
-  }
-  return fetch(url, {
-    ...init,
-    signal: init?.signal || AbortSignal.timeout(1e4)
-  });
-}
-var import_node_url, import_node_dns, import_node_net, ALLOWED_SCHEMES, BLOCKED_HOSTS, AWS_METADATA_HOST;
-var init_ssrf_guard = __esm({
-  "src/lib/security/ssrf-guard.ts"() {
-    "use strict";
-    import_node_url = require("node:url");
-    import_node_dns = require("node:dns");
-    import_node_net = __toESM(require("node:net"));
-    ALLOWED_SCHEMES = /* @__PURE__ */ new Set(["https:", "http:"]);
-    BLOCKED_HOSTS = /* @__PURE__ */ new Set([
-      "localhost",
-      "localhost.localdomain",
-      "ip6-localhost",
-      "ip6-loopback",
-      "metadata.google.internal",
-      "metadata.internal",
-      "instance-data"
-    ]);
-    AWS_METADATA_HOST = "169.254.169.254";
-  }
-});
-
-// src/utils/ssrf-guard.ts
-async function assertSafeUrl(url) {
-  const res = await assertSafeOutboundUrl(url);
-  if (!res.ok) {
-    if (res.reason.includes("private")) {
-      throw new Error("Private IP blocked");
-    }
-    if (res.reason.includes("scheme")) {
-      throw new Error("Only HTTP/HTTPS allowed");
-    }
-    if (res.reason.includes("dns-failed")) {
-      throw new Error(`Failed to resolve target hostname`);
-    }
-    throw new Error("Blocked URL");
-  }
-}
-var init_ssrf_guard2 = __esm({
-  "src/utils/ssrf-guard.ts"() {
-    "use strict";
-    init_ssrf_guard();
-  }
-});
-
-// src/services/providers/proxy-pool.service.ts
-var proxy_pool_service_exports = {};
-__export2(proxy_pool_service_exports, {
-  ProxyPoolService: () => ProxyPoolService
-});
-var ProxyPoolService;
-var init_proxy_pool_service = __esm({
-  "src/services/providers/proxy-pool.service.ts"() {
-    "use strict";
-    init_db();
-    init_redis();
-    init_vault();
-    ProxyPoolService = class {
-      static {
-        this.QUARANTINE_DURATION_MS = 15 * 60 * 1e3;
-      }
-      static {
-        // 15 minutes
-        this.MAX_FAILURES_BEFORE_QUARANTINE = 3;
-      }
-      static {
-        this.REDIS_HEALTH_PREFIX = "proxy:health:";
-      }
-      /**
-       * Fetch active, healthy proxies from database & cache.
-       */
-      static async getHealthyProxy(providerId, category = "PAID_PREMIUM") {
-        try {
-          if (!db || !db.providerProxy) return null;
-          const notExpired = {
-            OR: [
-              { expiresAt: null },
-              { expiresAt: { gt: /* @__PURE__ */ new Date() } }
-            ]
-          };
-          if (providerId) {
-            const dedicated = await db.providerProxy.findFirst({
-              where: {
-                providers: {
-                  some: { id: providerId }
-                },
-                isActive: true,
-                ...notExpired
-              }
-            });
-            if (dedicated) {
-              const isQuarantined = await this.isProxyQuarantined(dedicated.id);
-              if (!isQuarantined) {
-                return this.hydrateProxyConfig(dedicated);
-              }
-            }
-          }
-          let pool = await db.providerProxy.findMany({
-            where: {
-              isActive: true,
-              category,
-              ...notExpired
-            },
-            orderBy: {
-              lastTestLatencyMs: "asc"
-            },
-            take: 20
-          });
-          if (!pool || pool.length === 0) {
-            pool = await db.providerProxy.findMany({
-              where: {
-                isActive: true,
-                ...notExpired
-              },
-              orderBy: {
-                updatedAt: "desc"
-              },
-              take: 20
-            });
-          }
-          if (!pool || pool.length === 0) {
-            return null;
-          }
-          const healthyList = [];
-          for (const p of pool) {
-            const isQuarantined = await this.isProxyQuarantined(p.id);
-            if (!isQuarantined) {
-              const config2 = this.hydrateProxyConfig(p);
-              if (config2) healthyList.push(config2);
-            }
-          }
-          if (healthyList.length === 0) {
-            return this.hydrateProxyConfig(pool[0]);
-          }
-          const randomIndex = Math.floor(Math.random() * healthyList.length);
-          return healthyList[randomIndex];
-        } catch (err) {
-          console.error("[ProxyPoolService] Error selecting healthy proxy:", err);
-          return null;
-        }
-      }
-      /**
-       * Fetch active, healthy Russian proxy (RU_SOVEREIGN_POOL)
-       * used as a secure domestic bridge when platform is hosted overseas.
-       */
-      static async getHealthyRuProxy() {
-        try {
-          if (!db || !db.providerProxy) return null;
-          const ruPool = await db.providerProxy.findMany({
-            where: {
-              isActive: true,
-              OR: [
-                { expiresAt: null },
-                { expiresAt: { gt: /* @__PURE__ */ new Date() } }
-              ],
-              AND: [
-                {
-                  OR: [
-                    { geoCountry: "RU" },
-                    { tags: { contains: "RU" } },
-                    { tags: { contains: "SOVEREIGN" } },
-                    { label: { contains: "\u0420\u043E\u0441\u0441\u0438\u044F", mode: "insensitive" } },
-                    { label: { contains: "RU", mode: "insensitive" } }
-                  ]
-                }
-              ]
-            },
-            orderBy: {
-              lastTestLatencyMs: "asc"
-            },
-            take: 10
-          });
-          if (!ruPool || ruPool.length === 0) return null;
-          for (const p of ruPool) {
-            const isQuarantined = await this.isProxyQuarantined(p.id);
-            if (!isQuarantined) {
-              const cfg = this.hydrateProxyConfig(p);
-              if (cfg) return cfg;
-            }
-          }
-          return this.hydrateProxyConfig(ruPool[0]);
-        } catch (err) {
-          console.error("[ProxyPoolService] Error selecting healthy RU proxy:", err);
-          return null;
-        }
-      }
-      /**
-       * Report proxy failure (HTTP 429, 403, 500, timeout).
-       */
-      static async reportFailure(proxyId, errorReason, httpStatus) {
-        if (!proxyId) return;
-        try {
-          if (redis) {
-            const key = `${this.REDIS_HEALTH_PREFIX}${proxyId}:fails`;
-            const count = await redis.incr(key);
-            await redis.expire(key, 1800);
-            if (count >= this.MAX_FAILURES_BEFORE_QUARANTINE || httpStatus === 429 || httpStatus === 403) {
-              const quarantineKey = `${this.REDIS_HEALTH_PREFIX}${proxyId}:quarantine`;
-              await redis.set(quarantineKey, errorReason, "PX", this.QUARANTINE_DURATION_MS);
-              console.warn(`[ProxyPoolService] Proxy ${proxyId} quarantined for 15m. Reason: ${errorReason} (Status: ${httpStatus})`);
-            }
-          }
-        } catch (err) {
-          console.error(`[ProxyPoolService] Failed to record proxy failure for ${proxyId}:`, err);
-        }
-      }
-      /**
-       * Report proxy success to reset failure counts.
-       */
-      static async reportSuccess(proxyId, latencyMs) {
-        if (!proxyId) return;
-        try {
-          if (redis) {
-            const key = `${this.REDIS_HEALTH_PREFIX}${proxyId}:fails`;
-            await redis.del(key);
-            if (latencyMs) {
-              await redis.set(`${this.REDIS_HEALTH_PREFIX}${proxyId}:latency`, latencyMs, "EX", 3600);
-            }
-          }
-        } catch (err) {
-          console.error(`[ProxyPoolService] Failed to record proxy success for ${proxyId}:`, err);
-        }
-      }
-      /**
-       * Check if proxy is currently quarantined.
-       */
-      static async isProxyQuarantined(proxyId) {
-        try {
-          if (!redis) return false;
-          const quarantine = await redis.get(`${this.REDIS_HEALTH_PREFIX}${proxyId}:quarantine`);
-          return !!quarantine;
-        } catch {
-          return false;
-        }
-      }
-      /**
-       * Decrypt and build ProxyConfig safely.
-       */
-      static hydrateProxyConfig(record) {
-        if (!record.host || !record.port) return null;
-        let decryptedPass = record.password;
-        if (record.password && (record.password.includes(":") || record.password.length > 32)) {
-          try {
-            decryptedPass = VaultService.decrypt(record.password);
-          } catch {
-            decryptedPass = record.password;
-          }
-        }
-        return {
-          id: record.id,
-          protocol: record.protocol,
-          host: record.host,
-          port: record.port,
-          username: record.username || void 0,
-          password: decryptedPass || void 0,
-          lastTestLatencyMs: record.lastTestLatencyMs ?? null,
-          category: record.category || "PAID_PREMIUM",
-          isActive: record.isActive ?? true
-        };
-      }
-    };
-  }
-});
-
-// src/services/security/security-alert.service.ts
-var security_alert_service_exports = {};
-__export2(security_alert_service_exports, {
-  SecurityAlertService: () => SecurityAlertService
-});
-var SecurityAlertService;
-var init_security_alert_service = __esm({
-  "src/services/security/security-alert.service.ts"() {
-    "use strict";
-    init_db();
-    init_notifications();
-    init_redis();
-    SecurityAlertService = class {
-      static {
-        this.THROTTLE_PREFIX = "security:alert:throttle:";
-      }
-      static {
-        this.THROTTLE_TTL_SEC = 60;
-      }
-      static {
-        // 1 alert per minute per event+ip pair
-        this.STREAM_CHANNEL = "security:events:stream";
-      }
-      /**
-       * Records a security event to DB, broadcasts via Redis Pub/Sub,
-       * and sends an immediate Telegram alert to admins if CRITICAL/HIGH (with anti-flooding).
-       */
-      static async record(input) {
-        const { event, severity, ip, tenantId = "smmplan", details = {} } = input;
-        let created = null;
-        try {
-          if (db.securityEvent) {
-            created = await db.securityEvent.create({
-              data: {
-                event,
-                severity,
-                ip: ip || null,
-                tenantId: tenantId || "smmplan",
-                details: details ? details : void 0
-              }
-            });
-          }
-        } catch (err) {
-          console.error("[SecurityAlertService] Failed to insert securityEvent into DB:", err);
-        }
-        try {
-          const payload = JSON.stringify({
-            id: created?.id || `temp-${Date.now()}`,
-            event,
-            severity,
-            ip: ip || null,
-            tenantId: tenantId || "smmplan",
-            details,
-            createdAt: created?.createdAt || (/* @__PURE__ */ new Date()).toISOString()
-          });
-          await redis.publish(this.STREAM_CHANNEL, payload).catch(() => {
-          });
-        } catch {
-        }
-        if (severity === "CRITICAL" || severity === "HIGH") {
-          await this.dispatchRealtimeAlert(event, severity, ip, tenantId, details).catch((err) => {
-            console.error("[SecurityAlertService] Failed to dispatch admin alert:", err);
-          });
-        }
-        return created;
-      }
-      static escapeHtml(str) {
-        if (!str) return "";
-        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-      }
-      /**
-       * Dispatches formatted Telegram alert with anti-flooding guard.
-       */
-      static async dispatchRealtimeAlert(event, severity, ip, tenantId, details) {
-        const cleanIp = ip || "unknown";
-        const throttleKey = `${this.THROTTLE_PREFIX}${event}:${cleanIp}`;
-        try {
-          const isThrottled = await redis.get(throttleKey);
-          if (isThrottled) {
-            await redis.incr(`${throttleKey}:suppressed`).catch(() => {
-            });
-            return;
-          }
-          await redis.set(throttleKey, "1", "EX", this.THROTTLE_TTL_SEC);
-        } catch {
-        }
-        const gateway = String(details?.gateway || details?.provider || "api");
-        const moscowTime = (/* @__PURE__ */ new Date()).toLocaleString("ru-RU", { timeZone: "Europe/Moscow" });
-        const emoji = severity === "CRITICAL" ? "\u{1F6A8}" : "\u26A0\uFE0F";
-        const safeDetailsStr = JSON.stringify(details, null, 2);
-        const truncatedDetails = safeDetailsStr.length > 500 ? `${safeDetailsStr.slice(0, 500)}...` : safeDetailsStr;
-        const cleanEvent = this.escapeHtml(event);
-        const cleanGateway = this.escapeHtml(gateway);
-        const cleanEscapedIp = this.escapeHtml(cleanIp);
-        const cleanTenant = this.escapeHtml(tenantId || "smmplan");
-        const cleanDetails = this.escapeHtml(truncatedDetails);
-        const isConfigWarning = event === "MISCONFIGURED_WEBHOOK_SECRET";
-        const alertTitle = isConfigWarning ? `[${severity}] \u0422\u0420\u0415\u0411\u0423\u0415\u0422\u0421\u042F \u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0410: \u0421\u0435\u043A\u0440\u0435\u0442\u043D\u044B\u0439 \u043A\u043B\u044E\u0447 ${cleanGateway.toUpperCase()}` : `[${severity}] \u041F\u0420\u0415\u0414\u0423\u041F\u0420\u0415\u0416\u0414\u0415\u041D\u0418\u0415 \u0411\u0415\u0417\u041E\u041F\u0410\u0421\u041D\u041E\u0421\u0422\u0418: ${cleanEvent}`;
-        const message = [
-          `${emoji} <b>${alertTitle}</b>`,
-          "",
-          `<b>\u0421\u043E\u0431\u044B\u0442\u0438\u0435:</b> <code>${cleanEvent}</code>`,
-          `<b>\u0428\u043B\u044E\u0437/\u041C\u043E\u0434\u0443\u043B\u044C:</b> <code>${cleanGateway}</code>`,
-          `<b>IP \u0438\u0441\u0442\u043E\u0447\u043D\u0438\u043A\u0430:</b> <code>${cleanEscapedIp}</code>`,
-          `<b>\u0421\u0430\u0439\u0442/\u0422\u0435\u043D\u0430\u043D\u0442:</b> <code>${cleanTenant}</code>`,
-          `<b>\u0414\u0435\u0442\u0430\u043B\u0438:</b> <pre>${cleanDetails}</pre>`,
-          "",
-          isConfigWarning ? "\u{1F4A1} <i>\u0414\u043B\u044F \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u043E\u0433\u043E \u0437\u0430\u0447\u0438\u0441\u043B\u0435\u043D\u0438\u044F \u043F\u043B\u0430\u0442\u0435\u0436\u0435\u0439 \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0435\u043A\u0440\u0435\u0442\u043D\u044B\u0439 \u043A\u043B\u044E\u0447 \u0432\u0435\u0431\u0445\u0443\u043A\u0430 \u0432 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430\u0445.</i>" : "\u{1F6E1}\uFE0F <i>\u0417\u0430\u043F\u0440\u043E\u0441 \u043E\u0442\u043A\u043B\u043E\u043D\u0435\u043D \u0441\u0438\u0441\u0442\u0435\u043C\u043E\u0439 \u0437\u0430\u0449\u0438\u0442\u044B.</i>",
-          "",
-          `<i>\u0424\u0438\u043A\u0441\u0430\u0446\u0438\u044F: ${moscowTime}</i>`
-        ].join("\n");
-        sendAdminAlert(message, severity === "CRITICAL" ? "CRITICAL" : "WARNING");
-      }
-      /**
-       * Fetches paginated security events for the admin panel.
-       */
-      static async getRecentEvents(options) {
-        const { limit = 50, offset = 0, severity, event, ip, tenantId } = options || {};
-        const where = {};
-        if (severity && severity !== "ALL") where.severity = severity;
-        if (event && event !== "ALL") where.event = event;
-        if (ip) where.ip = { contains: ip };
-        if (tenantId && tenantId !== "ALL") where.tenantId = tenantId;
-        try {
-          const [events, total] = await Promise.all([
-            db.securityEvent.findMany({
-              where,
-              orderBy: { createdAt: "desc" },
-              take: Math.min(limit, 100),
-              skip: offset
-            }),
-            db.securityEvent.count({ where })
-          ]);
-          return { events, total };
-        } catch (err) {
-          console.error("[SecurityAlertService] Failed to query security events:", err);
-          return { events: [], total: 0 };
-        }
-      }
-      /**
-       * Returns aggregated statistics for security events in the past 24 hours.
-       */
-      static async getSecurityDashboardStats(tenantId) {
-        const since = new Date(Date.now() - 24 * 60 * 60 * 1e3);
-        const isSingleTenant = tenantId && tenantId !== "all";
-        const whereClause = { createdAt: { gte: since } };
-        if (isSingleTenant) {
-          whereClause.tenantId = tenantId;
-        }
-        try {
-          const [total24h, critical24h, high24h, warning24h, recentEvents] = await Promise.all([
-            db.securityEvent.count({ where: whereClause }),
-            db.securityEvent.count({ where: { ...whereClause, severity: "CRITICAL" } }),
-            db.securityEvent.count({ where: { ...whereClause, severity: "HIGH" } }),
-            db.securityEvent.count({ where: { ...whereClause, severity: "WARNING" } }),
-            db.securityEvent.findMany({
-              where: whereClause,
-              select: { event: true, ip: true },
-              take: 1e3
-            })
-          ]);
-          const eventMap = /* @__PURE__ */ new Map();
-          const ipMap = /* @__PURE__ */ new Map();
-          for (const item of recentEvents) {
-            eventMap.set(item.event, (eventMap.get(item.event) || 0) + 1);
-            if (item.ip) {
-              ipMap.set(item.ip, (ipMap.get(item.ip) || 0) + 1);
-            }
-          }
-          const topEvents = Array.from(eventMap.entries()).map(([event, count]) => ({ event, count })).sort((a, b) => b.count - a.count).slice(0, 5);
-          const topIps = Array.from(ipMap.entries()).map(([ip, count]) => ({ ip, count })).sort((a, b) => b.count - a.count).slice(0, 5);
-          return {
-            total24h,
-            critical24h,
-            high24h,
-            warning24h,
-            uniqueIpsCount: ipMap.size,
-            topEvents,
-            topIps
-          };
-        } catch (err) {
-          console.error("[SecurityAlertService] Failed to calculate dashboard stats:", err);
-          return {
-            total24h: 0,
-            critical24h: 0,
-            high24h: 0,
-            warning24h: 0,
-            uniqueIpsCount: 0,
-            topEvents: [],
-            topIps: []
-          };
-        }
-      }
-    };
-  }
-});
-
-// src/lib/network/network-router.ts
-var network_router_exports = {};
-__export2(network_router_exports, {
-  DEFAULT_ROUTING_CONFIG: () => DEFAULT_ROUTING_CONFIG,
-  IMMUTABLE_DIRECT_PATTERNS: () => IMMUTABLE_DIRECT_PATTERNS,
-  UniversalNetworkRouter: () => UniversalNetworkRouter
-});
-var import_node_url2, IMMUTABLE_DIRECT_PATTERNS, DEFAULT_ROUTING_CONFIG, UniversalNetworkRouter;
-var init_network_router = __esm({
-  "src/lib/network/network-router.ts"() {
-    "use strict";
-    import_node_url2 = require("node:url");
-    init_ssrf_guard();
-    init_proxy_fetch();
-    init_logger();
-    IMMUTABLE_DIRECT_PATTERNS = [
-      "api.yookassa.ru",
-      "yookassa.ru",
-      "auth.robokassa.ru",
-      "robokassa.ru",
-      "cbr.ru",
-      "smtp.yandex.ru",
-      "smtp.mail.ru",
-      "vexboost.ru",
-      "panel.smmtoolbox.ru",
-      "smmtoolbox.ru",
-      "primelike.happydesk.ru",
-      "happydesk.ru",
-      "localhost",
-      "127.0.0.1"
-    ];
-    DEFAULT_ROUTING_CONFIG = {
-      serviceToggles: {
-        aiGemini: "PROXY_POOL",
-        providers: "PROXY_POOL",
-        catalogSync: "DIRECT",
-        paymentsRu: "DIRECT",
-        paymentsCrypto: "DIRECT",
-        telegram: "DIRECT"
-      },
-      systemProxyUrl: process.env.SYSTEM_PROXY_URL || process.env.HTTP_PROXY || process.env.ALL_PROXY || null,
-      rules: [
-        // 1. Immutable domestic services & payments
-        {
-          id: "rule-yookassa",
-          type: "DOMAIN-SUFFIX",
-          payload: "yookassa.ru",
-          target: "DIRECT",
-          comment: "\u042EKassa (\u0441\u0442\u0440\u043E\u0433\u043E \u043F\u0440\u044F\u043C\u043E\u0439 \u0434\u043E\u0441\u0442\u0443\u043F \u0420\u0424)",
-          isEnabled: true,
-          priority: 10
-        },
-        {
-          id: "rule-vexboost",
-          type: "DOMAIN-SUFFIX",
-          payload: "vexboost.ru",
-          target: "DIRECT",
-          comment: "\u041E\u0441\u043D\u043E\u0432\u043D\u043E\u0439 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A Vexboost (\u0441\u0442\u0440\u043E\u0433\u043E \u043F\u0440\u044F\u043C\u043E\u0439 \u0434\u043E\u0441\u0442\u0443\u043F \u0420\u0424)",
-          isEnabled: true,
-          priority: 15
-        },
-        {
-          id: "rule-robokassa",
-          type: "DOMAIN-SUFFIX",
-          payload: "robokassa.ru",
-          target: "DIRECT",
-          comment: "\u0420\u043E\u0431\u043E\u043A\u0430\u0441\u0441\u0430 (\u0441\u0442\u0440\u043E\u0433\u043E \u043F\u0440\u044F\u043C\u043E\u0439 \u0434\u043E\u0441\u0442\u0443\u043F \u0420\u0424)",
-          isEnabled: true,
-          priority: 20
-        },
-        {
-          id: "rule-cbr",
-          type: "DOMAIN-SUFFIX",
-          payload: "cbr.ru",
-          target: "DIRECT",
-          comment: "\u041A\u0443\u0440\u0441 \u0432\u0430\u043B\u044E\u0442 \u0426\u0411 \u0420\u0424",
-          isEnabled: true,
-          priority: 30
-        },
-        {
-          id: "rule-smtp-yandex",
-          type: "DOMAIN-SUFFIX",
-          payload: "smtp.yandex.ru",
-          target: "DIRECT",
-          comment: "\u041F\u043E\u0447\u0442\u043E\u0432\u044B\u0439 \u0448\u043B\u044E\u0437 \u042F\u043D\u0434\u0435\u043A\u0441 465",
-          isEnabled: true,
-          priority: 40
-        },
-        {
-          id: "rule-smmtoolbox",
-          type: "DOMAIN-SUFFIX",
-          payload: "smmtoolbox.ru",
-          target: "DIRECT",
-          comment: "SMMToolbox \u043F\u0430\u043D\u0435\u043B\u044C (\u0441\u0442\u0440\u043E\u0433\u043E \u043F\u0440\u044F\u043C\u043E\u0439 \u0434\u043E\u0441\u0442\u0443\u043F \u0420\u0424)",
-          isEnabled: true,
-          priority: 42
-        },
-        {
-          id: "rule-happydesk",
-          type: "DOMAIN-SUFFIX",
-          payload: "happydesk.ru",
-          target: "DIRECT",
-          comment: "HappyDesk \u0442\u0438\u043A\u0435\u0442\u044B \u0438 \u0432\u0438\u0434\u0436\u0435\u0442\u044B (\u0441\u0442\u0440\u043E\u0433\u043E \u043F\u0440\u044F\u043C\u043E\u0439 \u0434\u043E\u0441\u0442\u0443\u043F \u0420\u0424)",
-          isEnabled: true,
-          priority: 45
-        },
-        {
-          id: "rule-domestic-ru",
-          type: "DOMAIN-SUFFIX",
-          payload: "ru",
-          target: "DIRECT",
-          comment: "\u0412\u0441\u0435 \u0440\u043E\u0441\u0441\u0438\u0439\u0441\u043A\u0438\u0435 \u0441\u0435\u0440\u0432\u0438\u0441\u044B \u0437\u043E\u043D\u044B .ru \u043D\u0430\u043F\u0440\u044F\u043C\u0443\u044E",
-          isEnabled: true,
-          priority: 50
-        },
-        {
-          id: "rule-domestic-rf",
-          type: "DOMAIN-SUFFIX",
-          payload: "xn--p1ai",
-          target: "DIRECT",
-          comment: "\u0412\u0441\u0435 \u0441\u0435\u0440\u0432\u0438\u0441\u044B \u0437\u043E\u043D\u044B .\u0440\u0444 \u043D\u0430\u043F\u0440\u044F\u043C\u0443\u044E",
-          isEnabled: true,
-          priority: 51
-        },
-        // 2. AI Services (Google Gemini) - requires proxy in restricted regions
-        {
-          id: "rule-gemini-googleapis",
-          type: "DOMAIN-SUFFIX",
-          payload: "googleapis.com",
-          target: "PROXY_POOL",
-          comment: "Google API / Gemini Generative Language",
-          isEnabled: true,
-          priority: 100
-        },
-        {
-          id: "rule-gemini-service",
-          type: "SERVICE",
-          payload: "AI_GEMINI",
-          target: "PROXY_POOL",
-          comment: "\u041B\u044E\u0431\u044B\u0435 \u0437\u0430\u043F\u0440\u043E\u0441\u044B \u0441\u0435\u0440\u0432\u0438\u0441\u0430 AI Gemini",
-          isEnabled: true,
-          priority: 110
-        },
-        // 3. Telegram API
-        {
-          id: "rule-telegram-api",
-          type: "DOMAIN-SUFFIX",
-          payload: "api.telegram.org",
-          target: "DIRECT",
-          comment: "Telegram Bot API",
-          isEnabled: true,
-          priority: 200
-        },
-        // 4. Crypto payment gateways
-        {
-          id: "rule-cryptobot",
-          type: "DOMAIN-SUFFIX",
-          payload: "pay.crypt.bot",
-          target: "DIRECT",
-          comment: "CryptoBot Payment Gateway",
-          isEnabled: true,
-          priority: 300
-        },
-        // 5. Providers fallback
-        {
-          id: "rule-providers-service",
-          type: "SERVICE",
-          payload: "PROVIDERS",
-          target: "PROXY_POOL",
-          comment: "SMM \u043F\u0430\u043D\u0435\u043B\u0438 \u0438 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u044B \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
-          isEnabled: true,
-          priority: 400
-        },
-        // 6. Final Catch-All
-        {
-          id: "rule-final",
-          type: "FINAL",
-          payload: "",
-          target: "DIRECT",
-          comment: "\u0412\u0441\u0435 \u043E\u0441\u0442\u0430\u043B\u044C\u043D\u044B\u0435 \u0437\u0430\u043F\u0440\u043E\u0441\u044B \u043D\u0430\u043F\u0440\u044F\u043C\u0443\u044E",
-          isEnabled: true,
-          priority: 9999
-        }
-      ]
-    };
-    UniversalNetworkRouter = class {
-      static {
-        this.cachedConfig = null;
-      }
-      static {
-        this.lastConfigFetch = 0;
-      }
-      static {
-        this.CONFIG_CACHE_TTL_MS = 3e4;
-      }
-      /**
-       * Loads the current routing configuration from SystemSettings or returns default
-       */
-      static async getConfig(tenantId = "smmplan") {
-        const now = Date.now();
-        if (this.cachedConfig && now - this.lastConfigFetch < this.CONFIG_CACHE_TTL_MS) {
-          return this.cachedConfig;
-        }
-        try {
-          const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
-          const settings = await db2.systemSettings.findFirst({
-            where: { id: tenantId },
-            select: { id: true, geminiProxy: true }
-          });
-          let parsedRules = { ...DEFAULT_ROUTING_CONFIG };
-          if (settings?.geminiProxy && settings.geminiProxy.trim()) {
-            parsedRules.systemProxyUrl = settings.geminiProxy.trim();
-          }
-          this.cachedConfig = parsedRules;
-          this.lastConfigFetch = now;
-          return parsedRules;
-        } catch (err) {
-          console.warn("[NetworkRouter] Error fetching config from DB, using defaults:", err);
-          return DEFAULT_ROUTING_CONFIG;
-        }
-      }
-      /**
-       * Invalidates internal configuration cache (called after admin saves rules)
-       */
-      static invalidateCache() {
-        this.cachedConfig = null;
-        this.lastConfigFetch = 0;
-      }
-      /**
-       * Resolves routing target and proxy configuration for a given URL and context
-       */
-      static async resolveRoute(targetUrl, context) {
-        let parsedUrl;
-        try {
-          parsedUrl = new import_node_url2.URL(targetUrl);
-        } catch {
-          return {
-            target: "DIRECT",
-            reason: "Invalid URL, falling back to DIRECT",
-            isImmutableDirect: false
-          };
-        }
-        const hostname = parsedUrl.hostname.toLowerCase();
-        for (const pattern of IMMUTABLE_DIRECT_PATTERNS) {
-          if (hostname === pattern || hostname.endsWith("." + pattern)) {
-            return {
-              target: "DIRECT",
-              reason: `Strict security invariant: ${pattern} is locked to DIRECT`,
-              isImmutableDirect: true
-            };
-          }
-        }
-        if (context?.customProxy) {
-          return {
-            target: "SPECIFIC_PROXY",
-            proxyConfig: context.customProxy,
-            reason: "Explicit custom proxy provided by caller",
-            isImmutableDirect: false
-          };
-        }
-        const config2 = await this.getConfig();
-        for (const pattern of IMMUTABLE_DIRECT_PATTERNS) {
-          if (hostname === pattern || hostname.endsWith("." + pattern)) {
-            if (config2.serviceToggles.paymentsRu === "RU_SOVEREIGN_POOL" && (pattern.includes("yookassa") || pattern.includes("robokassa"))) {
-              const ruProxy = await this.resolveProxyForTarget("RU_SOVEREIGN_POOL", config2);
-              if (ruProxy) {
-                return {
-                  target: "RU_SOVEREIGN_POOL",
-                  proxyConfig: ruProxy,
-                  reason: `Sovereign Disaster Recovery: Routing ${pattern} via certified Russian exit node`,
-                  isImmutableDirect: false
-                };
-              }
-            }
-            return {
-              target: "DIRECT",
-              reason: `Strict security invariant: ${pattern} is locked to DIRECT`,
-              isImmutableDirect: true
-            };
-          }
-        }
-        if (context?.service) {
-          const toggleTarget = this.resolveServiceToggle(context.service, config2);
-          if (toggleTarget && toggleTarget !== "DIRECT") {
-            const proxyConfig = await this.resolveProxyForTarget(toggleTarget, config2, context.providerId);
-            return {
-              target: toggleTarget,
-              proxyConfig,
-              reason: `Service quick toggle: ${context.service} -> ${toggleTarget}`,
-              isImmutableDirect: false
-            };
-          }
-        }
-        const sortedRules = [...config2.rules].filter((r) => r.isEnabled).sort((a, b) => a.priority - b.priority);
-        for (const rule of sortedRules) {
-          let matched = false;
-          switch (rule.type) {
-            case "DOMAIN":
-              matched = hostname === rule.payload.toLowerCase();
-              break;
-            case "DOMAIN-SUFFIX": {
-              const suffix = rule.payload.toLowerCase();
-              matched = hostname === suffix || hostname.endsWith("." + suffix);
-              break;
-            }
-            case "DOMAIN-KEYWORD":
-              matched = hostname.includes(rule.payload.toLowerCase());
-              break;
-            case "SERVICE":
-              matched = Boolean(context?.service && context.service === rule.payload);
-              break;
-            case "FINAL":
-              matched = true;
-              break;
-          }
-          if (matched) {
-            const proxyConfig = await this.resolveProxyForTarget(rule.target, config2, context?.providerId, rule.targetProxyId);
-            return {
-              target: rule.target,
-              matchedRule: rule,
-              proxyConfig,
-              reason: `Matched rule [${rule.type}] ${rule.payload} -> ${rule.target}`,
-              isImmutableDirect: false
-            };
-          }
-        }
-        return {
-          target: "DIRECT",
-          reason: "No rules matched, fallback to DIRECT",
-          isImmutableDirect: false
-        };
-      }
-      static resolveServiceToggle(service, config2) {
-        switch (service) {
-          case "AI_GEMINI":
-            return config2.serviceToggles.aiGemini;
-          case "PROVIDERS":
-            return config2.serviceToggles.providers;
-          case "CATALOG_SYNC":
-            return config2.serviceToggles.catalogSync;
-          case "PAYMENTS_RU":
-            return config2.serviceToggles.paymentsRu;
-          case "PAYMENTS_CRYPTO":
-            return config2.serviceToggles.paymentsCrypto;
-          case "TELEGRAM":
-            return config2.serviceToggles.telegram;
-          default:
-            return null;
-        }
-      }
-      static async resolveProxyForTarget(target, config2, providerId, specificProxyId) {
-        if (target === "DIRECT" || target === "REJECT") return null;
-        if (target === "RU_SOVEREIGN_POOL") {
-          try {
-            const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
-            const ruProxy = await ProxyPoolService2.getHealthyRuProxy();
-            if (ruProxy) return ruProxy;
-          } catch (err) {
-            console.warn("[NetworkRouter] Error resolving RU_SOVEREIGN_POOL:", err);
-          }
-          return this.resolveProxyForTarget("PROXY_POOL", config2, providerId, specificProxyId);
-        }
-        if (target === "SYSTEM_PROXY" && config2.systemProxyUrl) {
-          try {
-            const u = new import_node_url2.URL(config2.systemProxyUrl);
-            return {
-              protocol: u.protocol.replace(":", "") || "http",
-              host: u.hostname,
-              port: parseInt(u.port || "80", 10),
-              username: u.username ? decodeURIComponent(u.username) : void 0,
-              password: u.password ? decodeURIComponent(u.password) : void 0
-            };
-          } catch {
-            return null;
-          }
-        }
-        if (target === "SPECIFIC_PROXY" && specificProxyId) {
-          try {
-            const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
-            const proxy = await db2.providerProxy.findUnique({ where: { id: specificProxyId } });
-            if (proxy && proxy.isActive) {
-              let password = "";
-              if (proxy.passwordEncrypted) {
-                const { VaultService: VaultService2 } = await Promise.resolve().then(() => (init_vault(), vault_exports));
-                password = VaultService2.decrypt(proxy.passwordEncrypted);
-              }
-              return {
-                id: proxy.id,
-                protocol: proxy.protocol,
-                host: proxy.host,
-                port: proxy.port,
-                username: proxy.username || void 0,
-                password: password || void 0,
-                lastTestLatencyMs: proxy.lastTestLatencyMs,
-                category: proxy.category
-              };
-            }
-          } catch (err) {
-            console.warn(`[NetworkRouter] Error loading specific proxy ${specificProxyId}:`, err);
-          }
-        }
-        if (target === "PROXY_POOL") {
-          try {
-            const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
-            const healthyProxy = await ProxyPoolService2.getHealthyProxy(providerId);
-            if (healthyProxy) return healthyProxy;
-          } catch (err) {
-            console.warn("[NetworkRouter] ProxyPoolService error, checking systemProxyUrl:", err);
-          }
-          if (config2.systemProxyUrl) {
-            return this.resolveProxyForTarget("SYSTEM_PROXY", config2);
-          }
-        }
-        return null;
-      }
-      /**
-       * Universal fetch drop-in replacement with Clash-style routing dispatch & Multi-Proxy Failover
-       */
-      static async fetch(url, init, context) {
-        const ssrfCheck = await assertSafeOutboundUrl(url);
-        if (!ssrfCheck.ok) {
-          throw new Error(`SSRF blocked: ${ssrfCheck.reason} for URL ${url}`);
-        }
-        const route = await this.resolveRoute(url, context);
-        if (route.target === "REJECT") {
-          throw new Error(`[NetworkRouter] Connection blocked by policy (REJECT): ${url}`);
-        }
-        if (route.target === "DIRECT" || !route.proxyConfig) {
-          return fetch(url, init);
-        }
-        try {
-          const dispatcher = await createProxyDispatcher(route.proxyConfig);
-          const { fetch: undiciFetch } = await Promise.resolve().then(() => __toESM(require_undici()));
-          return await undiciFetch(url, {
-            method: init?.method,
-            headers: init?.headers,
-            body: init?.body,
-            signal: init?.signal,
-            dispatcher
-          });
-        } catch (primaryErr) {
-          console.warn(`[NetworkRouter] Primary proxy failed (${route.proxyConfig.host}:${route.proxyConfig.port}):`, primaryErr?.message);
-          if (route.proxyConfig.id) {
-            const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
-            void ProxyPoolService2.reportFailure(route.proxyConfig.id, primaryErr?.message || "Connection error");
-          }
-          if (context?.service === "AI_GEMINI" || context?.service === "PAYMENTS_RU") {
-            const { SecurityAlertService: SecurityAlertService2 } = await Promise.resolve().then(() => (init_security_alert_service(), security_alert_service_exports));
-            void SecurityAlertService2.record({
-              event: "PROXY_NODE_FAILURE",
-              severity: "WARNING",
-              details: {
-                service: context.service,
-                url,
-                proxyHost: route.proxyConfig.host,
-                error: primaryErr?.message
-              }
-            });
-          }
-          try {
-            const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
-            const backupProxy = route.target === "RU_SOVEREIGN_POOL" ? await ProxyPoolService2.getHealthyRuProxy() : await ProxyPoolService2.getHealthyProxy(context?.providerId);
-            if (backupProxy && backupProxy.id !== route.proxyConfig.id) {
-              logger.info(`[NetworkRouter] Multi-Proxy Failover to: ${backupProxy.host}:${backupProxy.port}`);
-              const backupDisp = await createProxyDispatcher(backupProxy);
-              const { fetch: undiciFetch } = await Promise.resolve().then(() => __toESM(require_undici()));
-              return await undiciFetch(url, {
-                method: init?.method,
-                headers: init?.headers,
-                body: init?.body,
-                signal: init?.signal,
-                dispatcher: backupDisp
-              });
-            }
-          } catch (failoverErr) {
-            logger.warn("[NetworkRouter] Failover attempt also failed:", { error: String(failoverErr) });
-          }
-          if (context?.service !== "AI_GEMINI") {
-            logger.warn("[NetworkRouter] Proxies exhausted, falling back to direct connection");
-            return fetch(url, {
-              ...init,
-              signal: init?.signal || AbortSignal.timeout(1e4)
-            });
-          }
-          throw primaryErr;
-        }
-      }
-      /**
-       * Inspects a route without making a network request (for admin UI Route Inspector)
-       */
-      static async inspectRoute(url, service) {
-        const parsed = new import_node_url2.URL(url);
-        const resolution = await this.resolveRoute(url, { service });
-        return {
-          ...resolution,
-          checkedUrl: url,
-          hostname: parsed.hostname
-        };
-      }
-    };
-  }
-});
-
-// src/lib/http/proxy-fetch.ts
-var proxy_fetch_exports = {};
-__export2(proxy_fetch_exports, {
-  buildProxyConfig: () => buildProxyConfig2,
-  createProxyDispatcher: () => createProxyDispatcher,
-  proxiedFetch: () => proxiedFetch,
-  testProxyConnection: () => testProxyConnection
-});
-async function createProxyDispatcher(proxy) {
-  const { ProxyAgent: ProxyAgent3, Agent: Agent5 } = await Promise.resolve().then(() => __toESM(require_undici()));
-  const auth = proxy.username ? `${encodeURIComponent(proxy.username)}:${encodeURIComponent(proxy.password || "")}@` : "";
-  if (proxy.protocol === "socks5") {
-    const { SocksProxyAgent: SocksProxyAgent2 } = await Promise.resolve().then(() => (init_dist5(), dist_exports));
-    const socksUrl = `socks5h://${auth}${proxy.host}:${proxy.port}`;
-    const socksAgent = new SocksProxyAgent2(socksUrl);
-    const connectFn = (opts, callback) => {
-      try {
-        const anyOpts = opts || {};
-        const rawPort = anyOpts.port;
-        const port = typeof rawPort === "number" && !isNaN(rawPort) && rawPort > 0 ? rawPort : typeof rawPort === "string" && !isNaN(parseInt(rawPort, 10)) && parseInt(rawPort, 10) > 0 ? parseInt(rawPort, 10) : anyOpts.protocol === "http:" ? 80 : 443;
-        const host = anyOpts.hostname || anyOpts.host || "localhost";
-        const safeOpts = { ...anyOpts, port, host };
-        const rawConnect = socksAgent.connect.bind(socksAgent);
-        rawConnect(
-          {},
-          safeOpts,
-          (err, socket) => {
-            if (err) return callback(err, null);
-            callback(null, socket || null);
-          }
-        );
-      } catch (err) {
-        callback(err instanceof Error ? err : new Error(String(err)), null);
-      }
-    };
-    return new Agent5({
-      connect: connectFn,
-      connectTimeout: 8e3,
-      headersTimeout: 15e3
-    });
-  }
-  const proxyUrl = `${proxy.protocol}://${auth}${proxy.host}:${proxy.port}`;
-  return new ProxyAgent3({
-    uri: proxyUrl,
-    connectTimeout: 8e3,
-    headersTimeout: 15e3
-  });
-}
-async function proxiedFetch(url, init) {
-  const proxy = init?.proxy;
-  const cleanInit = { ...init };
-  delete cleanInit.proxy;
-  const { UniversalNetworkRouter: UniversalNetworkRouter2 } = await Promise.resolve().then(() => (init_network_router(), network_router_exports));
-  return UniversalNetworkRouter2.fetch(url, cleanInit, {
-    service: "PROVIDERS",
-    customProxy: proxy
-  });
-}
-function buildProxyConfig2(record) {
-  if (!record.host || !record.port) return null;
-  return {
-    protocol: record.protocol,
-    host: record.host,
-    port: record.port,
-    username: record.username || void 0,
-    password: record.password || void 0
-  };
-}
-async function testProxyConnection(proxy, targetUrl = "https://httpbin.org/ip", timeoutMs = 15e3) {
-  const start = Date.now();
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const ssrfCheck = await assertSafeOutboundUrl(targetUrl);
-    if (!ssrfCheck.ok) {
-      return { success: false, latencyMs: 0, error: `SSRF: ${ssrfCheck.reason}` };
-    }
-    const dispatcher = await createProxyDispatcher(proxy);
-    const { fetch: undiciFetch } = await Promise.resolve().then(() => __toESM(require_undici()));
-    const response = await undiciFetch(targetUrl, {
-      method: "GET",
-      signal: controller.signal,
-      dispatcher,
-      headers: {
-        "User-Agent": "SMMplan-ProxyTest/1.0"
-      }
-    });
-    const latencyMs = Date.now() - start;
-    const text = await response.text();
-    let resolvedIp;
-    try {
-      const data = JSON.parse(text);
-      resolvedIp = data.origin || data.ip;
-    } catch {
-    }
-    return {
-      success: response.ok,
-      latencyMs,
-      statusCode: response.status,
-      resolvedIp,
-      error: response.ok ? void 0 : `HTTP ${response.status}`
-    };
-  } catch (err) {
-    const latencyMs = Date.now() - start;
-    const msg = err instanceof Error ? err.message : String(err);
-    return {
-      success: false,
-      latencyMs,
-      error: msg.includes("abort") ? `\u0422\u0430\u0439\u043C\u0430\u0443\u0442 (${timeoutMs}ms)` : msg
-    };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-var init_proxy_fetch = __esm({
-  "src/lib/http/proxy-fetch.ts"() {
-    "use strict";
-    init_ssrf_guard();
-  }
-});
-
-// node_modules/zod/v3/helpers/util.js
-var util, objectUtil, ZodParsedType, getParsedType;
-var init_util = __esm({
-  "node_modules/zod/v3/helpers/util.js"() {
-    (function(util2) {
-      util2.assertEqual = (_) => {
-      };
-      function assertIs(_arg) {
-      }
-      util2.assertIs = assertIs;
-      function assertNever(_x) {
-        throw new Error();
-      }
-      util2.assertNever = assertNever;
-      util2.arrayToEnum = (items) => {
-        const obj = {};
-        for (const item of items) {
-          obj[item] = item;
-        }
-        return obj;
-      };
-      util2.getValidEnumValues = (obj) => {
-        const validKeys = util2.objectKeys(obj).filter((k) => typeof obj[obj[k]] !== "number");
-        const filtered = {};
-        for (const k of validKeys) {
-          filtered[k] = obj[k];
-        }
-        return util2.objectValues(filtered);
-      };
-      util2.objectValues = (obj) => {
-        return util2.objectKeys(obj).map(function(e) {
-          return obj[e];
-        });
-      };
-      util2.objectKeys = typeof Object.keys === "function" ? (obj) => Object.keys(obj) : (object) => {
-        const keys = [];
-        for (const key in object) {
-          if (Object.prototype.hasOwnProperty.call(object, key)) {
-            keys.push(key);
-          }
-        }
-        return keys;
-      };
-      util2.find = (arr, checker) => {
-        for (const item of arr) {
-          if (checker(item))
-            return item;
-        }
-        return void 0;
-      };
-      util2.isInteger = typeof Number.isInteger === "function" ? (val) => Number.isInteger(val) : (val) => typeof val === "number" && Number.isFinite(val) && Math.floor(val) === val;
-      function joinValues(array, separator = " | ") {
-        return array.map((val) => typeof val === "string" ? `'${val}'` : val).join(separator);
-      }
-      util2.joinValues = joinValues;
-      util2.jsonStringifyReplacer = (_, value) => {
-        if (typeof value === "bigint") {
-          return value.toString();
-        }
-        return value;
-      };
-    })(util || (util = {}));
-    (function(objectUtil2) {
-      objectUtil2.mergeShapes = (first, second) => {
-        return {
-          ...first,
-          ...second
-          // second overwrites first
-        };
-      };
-    })(objectUtil || (objectUtil = {}));
-    ZodParsedType = util.arrayToEnum([
-      "string",
-      "nan",
-      "number",
-      "integer",
-      "float",
-      "boolean",
-      "date",
-      "bigint",
-      "symbol",
-      "function",
-      "undefined",
-      "null",
-      "array",
-      "object",
-      "unknown",
-      "promise",
-      "void",
-      "never",
-      "map",
-      "set"
-    ]);
-    getParsedType = (data) => {
-      const t = typeof data;
-      switch (t) {
-        case "undefined":
-          return ZodParsedType.undefined;
-        case "string":
-          return ZodParsedType.string;
-        case "number":
-          return Number.isNaN(data) ? ZodParsedType.nan : ZodParsedType.number;
-        case "boolean":
-          return ZodParsedType.boolean;
-        case "function":
-          return ZodParsedType.function;
-        case "bigint":
-          return ZodParsedType.bigint;
-        case "symbol":
-          return ZodParsedType.symbol;
-        case "object":
-          if (Array.isArray(data)) {
-            return ZodParsedType.array;
-          }
-          if (data === null) {
-            return ZodParsedType.null;
-          }
-          if (data.then && typeof data.then === "function" && data.catch && typeof data.catch === "function") {
-            return ZodParsedType.promise;
-          }
-          if (typeof Map !== "undefined" && data instanceof Map) {
-            return ZodParsedType.map;
-          }
-          if (typeof Set !== "undefined" && data instanceof Set) {
-            return ZodParsedType.set;
-          }
-          if (typeof Date !== "undefined" && data instanceof Date) {
-            return ZodParsedType.date;
-          }
-          return ZodParsedType.object;
-        default:
-          return ZodParsedType.unknown;
-      }
-    };
-  }
-});
-
-// node_modules/zod/v3/ZodError.js
-var ZodIssueCode, quotelessJson, ZodError;
-var init_ZodError = __esm({
-  "node_modules/zod/v3/ZodError.js"() {
-    init_util();
-    ZodIssueCode = util.arrayToEnum([
-      "invalid_type",
-      "invalid_literal",
-      "custom",
-      "invalid_union",
-      "invalid_union_discriminator",
-      "invalid_enum_value",
-      "unrecognized_keys",
-      "invalid_arguments",
-      "invalid_return_type",
-      "invalid_date",
-      "invalid_string",
-      "too_small",
-      "too_big",
-      "invalid_intersection_types",
-      "not_multiple_of",
-      "not_finite"
-    ]);
-    quotelessJson = (obj) => {
-      const json = JSON.stringify(obj, null, 2);
-      return json.replace(/"([^"]+)":/g, "$1:");
-    };
-    ZodError = class _ZodError extends Error {
-      get errors() {
-        return this.issues;
-      }
-      constructor(issues) {
-        super();
-        this.issues = [];
-        this.addIssue = (sub) => {
-          this.issues = [...this.issues, sub];
-        };
-        this.addIssues = (subs = []) => {
-          this.issues = [...this.issues, ...subs];
-        };
-        const actualProto = new.target.prototype;
-        if (Object.setPrototypeOf) {
-          Object.setPrototypeOf(this, actualProto);
-        } else {
-          this.__proto__ = actualProto;
-        }
-        this.name = "ZodError";
-        this.issues = issues;
-      }
-      format(_mapper) {
-        const mapper = _mapper || function(issue) {
-          return issue.message;
-        };
-        const fieldErrors = { _errors: [] };
-        const processError = (error) => {
-          for (const issue of error.issues) {
-            if (issue.code === "invalid_union") {
-              issue.unionErrors.map(processError);
-            } else if (issue.code === "invalid_return_type") {
-              processError(issue.returnTypeError);
-            } else if (issue.code === "invalid_arguments") {
-              processError(issue.argumentsError);
-            } else if (issue.path.length === 0) {
-              fieldErrors._errors.push(mapper(issue));
-            } else {
-              let curr = fieldErrors;
-              let i = 0;
-              while (i < issue.path.length) {
-                const el = issue.path[i];
-                const terminal = i === issue.path.length - 1;
-                if (!terminal) {
-                  curr[el] = curr[el] || { _errors: [] };
-                } else {
-                  curr[el] = curr[el] || { _errors: [] };
-                  curr[el]._errors.push(mapper(issue));
-                }
-                curr = curr[el];
-                i++;
-              }
-            }
-          }
-        };
-        processError(this);
-        return fieldErrors;
-      }
-      static assert(value) {
-        if (!(value instanceof _ZodError)) {
-          throw new Error(`Not a ZodError: ${value}`);
-        }
-      }
-      toString() {
-        return this.message;
-      }
-      get message() {
-        return JSON.stringify(this.issues, util.jsonStringifyReplacer, 2);
-      }
-      get isEmpty() {
-        return this.issues.length === 0;
-      }
-      flatten(mapper = (issue) => issue.message) {
-        const fieldErrors = {};
-        const formErrors = [];
-        for (const sub of this.issues) {
-          if (sub.path.length > 0) {
-            const firstEl = sub.path[0];
-            fieldErrors[firstEl] = fieldErrors[firstEl] || [];
-            fieldErrors[firstEl].push(mapper(sub));
-          } else {
-            formErrors.push(mapper(sub));
-          }
-        }
-        return { formErrors, fieldErrors };
-      }
-      get formErrors() {
-        return this.flatten();
-      }
-    };
-    ZodError.create = (issues) => {
-      const error = new ZodError(issues);
-      return error;
-    };
-  }
-});
-
-// node_modules/zod/v3/locales/en.js
-var errorMap, en_default;
-var init_en = __esm({
-  "node_modules/zod/v3/locales/en.js"() {
-    init_ZodError();
-    init_util();
-    errorMap = (issue, _ctx) => {
-      let message;
-      switch (issue.code) {
-        case ZodIssueCode.invalid_type:
-          if (issue.received === ZodParsedType.undefined) {
-            message = "Required";
-          } else {
-            message = `Expected ${issue.expected}, received ${issue.received}`;
-          }
-          break;
-        case ZodIssueCode.invalid_literal:
-          message = `Invalid literal value, expected ${JSON.stringify(issue.expected, util.jsonStringifyReplacer)}`;
-          break;
-        case ZodIssueCode.unrecognized_keys:
-          message = `Unrecognized key(s) in object: ${util.joinValues(issue.keys, ", ")}`;
-          break;
-        case ZodIssueCode.invalid_union:
-          message = `Invalid input`;
-          break;
-        case ZodIssueCode.invalid_union_discriminator:
-          message = `Invalid discriminator value. Expected ${util.joinValues(issue.options)}`;
-          break;
-        case ZodIssueCode.invalid_enum_value:
-          message = `Invalid enum value. Expected ${util.joinValues(issue.options)}, received '${issue.received}'`;
-          break;
-        case ZodIssueCode.invalid_arguments:
-          message = `Invalid function arguments`;
-          break;
-        case ZodIssueCode.invalid_return_type:
-          message = `Invalid function return type`;
-          break;
-        case ZodIssueCode.invalid_date:
-          message = `Invalid date`;
-          break;
-        case ZodIssueCode.invalid_string:
-          if (typeof issue.validation === "object") {
-            if ("includes" in issue.validation) {
-              message = `Invalid input: must include "${issue.validation.includes}"`;
-              if (typeof issue.validation.position === "number") {
-                message = `${message} at one or more positions greater than or equal to ${issue.validation.position}`;
-              }
-            } else if ("startsWith" in issue.validation) {
-              message = `Invalid input: must start with "${issue.validation.startsWith}"`;
-            } else if ("endsWith" in issue.validation) {
-              message = `Invalid input: must end with "${issue.validation.endsWith}"`;
-            } else {
-              util.assertNever(issue.validation);
-            }
-          } else if (issue.validation !== "regex") {
-            message = `Invalid ${issue.validation}`;
-          } else {
-            message = "Invalid";
-          }
-          break;
-        case ZodIssueCode.too_small:
-          if (issue.type === "array")
-            message = `Array must contain ${issue.exact ? "exactly" : issue.inclusive ? `at least` : `more than`} ${issue.minimum} element(s)`;
-          else if (issue.type === "string")
-            message = `String must contain ${issue.exact ? "exactly" : issue.inclusive ? `at least` : `over`} ${issue.minimum} character(s)`;
-          else if (issue.type === "number")
-            message = `Number must be ${issue.exact ? `exactly equal to ` : issue.inclusive ? `greater than or equal to ` : `greater than `}${issue.minimum}`;
-          else if (issue.type === "bigint")
-            message = `Number must be ${issue.exact ? `exactly equal to ` : issue.inclusive ? `greater than or equal to ` : `greater than `}${issue.minimum}`;
-          else if (issue.type === "date")
-            message = `Date must be ${issue.exact ? `exactly equal to ` : issue.inclusive ? `greater than or equal to ` : `greater than `}${new Date(Number(issue.minimum))}`;
-          else
-            message = "Invalid input";
-          break;
-        case ZodIssueCode.too_big:
-          if (issue.type === "array")
-            message = `Array must contain ${issue.exact ? `exactly` : issue.inclusive ? `at most` : `less than`} ${issue.maximum} element(s)`;
-          else if (issue.type === "string")
-            message = `String must contain ${issue.exact ? `exactly` : issue.inclusive ? `at most` : `under`} ${issue.maximum} character(s)`;
-          else if (issue.type === "number")
-            message = `Number must be ${issue.exact ? `exactly` : issue.inclusive ? `less than or equal to` : `less than`} ${issue.maximum}`;
-          else if (issue.type === "bigint")
-            message = `BigInt must be ${issue.exact ? `exactly` : issue.inclusive ? `less than or equal to` : `less than`} ${issue.maximum}`;
-          else if (issue.type === "date")
-            message = `Date must be ${issue.exact ? `exactly` : issue.inclusive ? `smaller than or equal to` : `smaller than`} ${new Date(Number(issue.maximum))}`;
-          else
-            message = "Invalid input";
-          break;
-        case ZodIssueCode.custom:
-          message = `Invalid input`;
-          break;
-        case ZodIssueCode.invalid_intersection_types:
-          message = `Intersection results could not be merged`;
-          break;
-        case ZodIssueCode.not_multiple_of:
-          message = `Number must be a multiple of ${issue.multipleOf}`;
-          break;
-        case ZodIssueCode.not_finite:
-          message = "Number must be finite";
-          break;
-        default:
-          message = _ctx.defaultError;
-          util.assertNever(issue);
-      }
-      return { message };
-    };
-    en_default = errorMap;
-  }
-});
-
-// node_modules/zod/v3/errors.js
-function setErrorMap(map) {
-  overrideErrorMap = map;
-}
-function getErrorMap() {
-  return overrideErrorMap;
-}
-var overrideErrorMap;
-var init_errors = __esm({
-  "node_modules/zod/v3/errors.js"() {
-    init_en();
-    overrideErrorMap = en_default;
-  }
-});
-
-// node_modules/zod/v3/helpers/parseUtil.js
-function addIssueToContext(ctx, issueData) {
-  const overrideMap = getErrorMap();
-  const issue = makeIssue({
-    issueData,
-    data: ctx.data,
-    path: ctx.path,
-    errorMaps: [
-      ctx.common.contextualErrorMap,
-      // contextual error map is first priority
-      ctx.schemaErrorMap,
-      // then schema-bound map if available
-      overrideMap,
-      // then global override map
-      overrideMap === en_default ? void 0 : en_default
-      // then global default map
-    ].filter((x) => !!x)
-  });
-  ctx.common.issues.push(issue);
-}
-var makeIssue, EMPTY_PATH, ParseStatus, INVALID, DIRTY, OK, isAborted, isDirty, isValid, isAsync;
-var init_parseUtil = __esm({
-  "node_modules/zod/v3/helpers/parseUtil.js"() {
-    init_errors();
-    init_en();
-    makeIssue = (params) => {
-      const { data, path: path3, errorMaps, issueData } = params;
-      const fullPath = [...path3, ...issueData.path || []];
-      const fullIssue = {
-        ...issueData,
-        path: fullPath
-      };
-      if (issueData.message !== void 0) {
-        return {
-          ...issueData,
-          path: fullPath,
-          message: issueData.message
-        };
-      }
-      let errorMessage = "";
-      const maps = errorMaps.filter((m) => !!m).slice().reverse();
-      for (const map of maps) {
-        errorMessage = map(fullIssue, { data, defaultError: errorMessage }).message;
-      }
-      return {
-        ...issueData,
-        path: fullPath,
-        message: errorMessage
-      };
-    };
-    EMPTY_PATH = [];
-    ParseStatus = class _ParseStatus {
-      constructor() {
-        this.value = "valid";
-      }
-      dirty() {
-        if (this.value === "valid")
-          this.value = "dirty";
-      }
-      abort() {
-        if (this.value !== "aborted")
-          this.value = "aborted";
-      }
-      static mergeArray(status, results) {
-        const arrayValue = [];
-        for (const s of results) {
-          if (s.status === "aborted")
-            return INVALID;
-          if (s.status === "dirty")
-            status.dirty();
-          arrayValue.push(s.value);
-        }
-        return { status: status.value, value: arrayValue };
-      }
-      static async mergeObjectAsync(status, pairs) {
-        const syncPairs = [];
-        for (const pair of pairs) {
-          const key = await pair.key;
-          const value = await pair.value;
-          syncPairs.push({
-            key,
-            value
-          });
-        }
-        return _ParseStatus.mergeObjectSync(status, syncPairs);
-      }
-      static mergeObjectSync(status, pairs) {
-        const finalObject = {};
-        for (const pair of pairs) {
-          const { key, value } = pair;
-          if (key.status === "aborted")
-            return INVALID;
-          if (value.status === "aborted")
-            return INVALID;
-          if (key.status === "dirty")
-            status.dirty();
-          if (value.status === "dirty")
-            status.dirty();
-          if (key.value !== "__proto__" && (typeof value.value !== "undefined" || pair.alwaysSet)) {
-            finalObject[key.value] = value.value;
-          }
-        }
-        return { status: status.value, value: finalObject };
-      }
-    };
-    INVALID = Object.freeze({
-      status: "aborted"
-    });
-    DIRTY = (value) => ({ status: "dirty", value });
-    OK = (value) => ({ status: "valid", value });
-    isAborted = (x) => x.status === "aborted";
-    isDirty = (x) => x.status === "dirty";
-    isValid = (x) => x.status === "valid";
-    isAsync = (x) => typeof Promise !== "undefined" && x instanceof Promise;
-  }
-});
-
-// node_modules/zod/v3/helpers/typeAliases.js
-var init_typeAliases = __esm({
-  "node_modules/zod/v3/helpers/typeAliases.js"() {
-  }
-});
-
-// node_modules/zod/v3/helpers/errorUtil.js
-var errorUtil;
-var init_errorUtil = __esm({
-  "node_modules/zod/v3/helpers/errorUtil.js"() {
-    (function(errorUtil2) {
-      errorUtil2.errToObj = (message) => typeof message === "string" ? { message } : message || {};
-      errorUtil2.toString = (message) => typeof message === "string" ? message : message?.message;
-    })(errorUtil || (errorUtil = {}));
-  }
-});
-
-// node_modules/zod/v3/types.js
-function processCreateParams(params) {
-  if (!params)
-    return {};
-  const { errorMap: errorMap2, invalid_type_error, required_error, description } = params;
-  if (errorMap2 && (invalid_type_error || required_error)) {
-    throw new Error(`Can't use "invalid_type_error" or "required_error" in conjunction with custom error map.`);
-  }
-  if (errorMap2)
-    return { errorMap: errorMap2, description };
-  const customMap = (iss, ctx) => {
-    const { message } = params;
-    if (iss.code === "invalid_enum_value") {
-      return { message: message ?? ctx.defaultError };
-    }
-    if (typeof ctx.data === "undefined") {
-      return { message: message ?? required_error ?? ctx.defaultError };
-    }
-    if (iss.code !== "invalid_type")
-      return { message: ctx.defaultError };
-    return { message: message ?? invalid_type_error ?? ctx.defaultError };
-  };
-  return { errorMap: customMap, description };
-}
-function timeRegexSource(args) {
-  let secondsRegexSource = `[0-5]\\d`;
-  if (args.precision) {
-    secondsRegexSource = `${secondsRegexSource}\\.\\d{${args.precision}}`;
-  } else if (args.precision == null) {
-    secondsRegexSource = `${secondsRegexSource}(\\.\\d+)?`;
-  }
-  const secondsQuantifier = args.precision ? "+" : "?";
-  return `([01]\\d|2[0-3]):[0-5]\\d(:${secondsRegexSource})${secondsQuantifier}`;
-}
-function timeRegex(args) {
-  return new RegExp(`^${timeRegexSource(args)}$`);
-}
-function datetimeRegex(args) {
-  let regex = `${dateRegexSource}T${timeRegexSource(args)}`;
-  const opts = [];
-  opts.push(args.local ? `Z?` : `Z`);
-  if (args.offset)
-    opts.push(`([+-]\\d{2}:?\\d{2})`);
-  regex = `${regex}(${opts.join("|")})`;
-  return new RegExp(`^${regex}$`);
-}
-function isValidIP(ip, version2) {
-  if ((version2 === "v4" || !version2) && ipv4Regex.test(ip)) {
-    return true;
-  }
-  if ((version2 === "v6" || !version2) && ipv6Regex.test(ip)) {
-    return true;
-  }
-  return false;
-}
-function isValidJWT(jwt, alg) {
-  if (!jwtRegex.test(jwt))
-    return false;
-  try {
-    const [header] = jwt.split(".");
-    if (!header)
-      return false;
-    const base64 = header.replace(/-/g, "+").replace(/_/g, "/").padEnd(header.length + (4 - header.length % 4) % 4, "=");
-    const decoded = JSON.parse(atob(base64));
-    if (typeof decoded !== "object" || decoded === null)
-      return false;
-    if ("typ" in decoded && decoded?.typ !== "JWT")
-      return false;
-    if (!decoded.alg)
-      return false;
-    if (alg && decoded.alg !== alg)
-      return false;
-    return true;
-  } catch {
-    return false;
-  }
-}
-function isValidCidr(ip, version2) {
-  if ((version2 === "v4" || !version2) && ipv4CidrRegex.test(ip)) {
-    return true;
-  }
-  if ((version2 === "v6" || !version2) && ipv6CidrRegex.test(ip)) {
-    return true;
-  }
-  return false;
-}
-function floatSafeRemainder(val, step) {
-  const valDecCount = (val.toString().split(".")[1] || "").length;
-  const stepDecCount = (step.toString().split(".")[1] || "").length;
-  const decCount = valDecCount > stepDecCount ? valDecCount : stepDecCount;
-  const valInt = Number.parseInt(val.toFixed(decCount).replace(".", ""));
-  const stepInt = Number.parseInt(step.toFixed(decCount).replace(".", ""));
-  return valInt % stepInt / 10 ** decCount;
-}
-function deepPartialify(schema) {
-  if (schema instanceof ZodObject) {
-    const newShape = {};
-    for (const key in schema.shape) {
-      const fieldSchema = schema.shape[key];
-      newShape[key] = ZodOptional.create(deepPartialify(fieldSchema));
-    }
-    return new ZodObject({
-      ...schema._def,
-      shape: () => newShape
-    });
-  } else if (schema instanceof ZodArray) {
-    return new ZodArray({
-      ...schema._def,
-      type: deepPartialify(schema.element)
-    });
-  } else if (schema instanceof ZodOptional) {
-    return ZodOptional.create(deepPartialify(schema.unwrap()));
-  } else if (schema instanceof ZodNullable) {
-    return ZodNullable.create(deepPartialify(schema.unwrap()));
-  } else if (schema instanceof ZodTuple) {
-    return ZodTuple.create(schema.items.map((item) => deepPartialify(item)));
-  } else {
-    return schema;
-  }
-}
-function mergeValues(a, b) {
-  const aType = getParsedType(a);
-  const bType = getParsedType(b);
-  if (a === b) {
-    return { valid: true, data: a };
-  } else if (aType === ZodParsedType.object && bType === ZodParsedType.object) {
-    const bKeys = util.objectKeys(b);
-    const sharedKeys = util.objectKeys(a).filter((key) => bKeys.indexOf(key) !== -1);
-    const newObj = { ...a, ...b };
-    for (const key of sharedKeys) {
-      const sharedValue = mergeValues(a[key], b[key]);
-      if (!sharedValue.valid) {
-        return { valid: false };
-      }
-      newObj[key] = sharedValue.data;
-    }
-    return { valid: true, data: newObj };
-  } else if (aType === ZodParsedType.array && bType === ZodParsedType.array) {
-    if (a.length !== b.length) {
-      return { valid: false };
-    }
-    const newArray = [];
-    for (let index = 0; index < a.length; index++) {
-      const itemA = a[index];
-      const itemB = b[index];
-      const sharedValue = mergeValues(itemA, itemB);
-      if (!sharedValue.valid) {
-        return { valid: false };
-      }
-      newArray.push(sharedValue.data);
-    }
-    return { valid: true, data: newArray };
-  } else if (aType === ZodParsedType.date && bType === ZodParsedType.date && +a === +b) {
-    return { valid: true, data: a };
-  } else {
-    return { valid: false };
-  }
-}
-function createZodEnum(values, params) {
-  return new ZodEnum({
-    values,
-    typeName: ZodFirstPartyTypeKind.ZodEnum,
-    ...processCreateParams(params)
-  });
-}
-function cleanParams(params, data) {
-  const p = typeof params === "function" ? params(data) : typeof params === "string" ? { message: params } : params;
-  const p2 = typeof p === "string" ? { message: p } : p;
-  return p2;
-}
-function custom(check, _params = {}, fatal) {
-  if (check)
-    return ZodAny.create().superRefine((data, ctx) => {
-      const r = check(data);
-      if (r instanceof Promise) {
-        return r.then((r2) => {
-          if (!r2) {
-            const params = cleanParams(_params, data);
-            const _fatal = params.fatal ?? fatal ?? true;
-            ctx.addIssue({ code: "custom", ...params, fatal: _fatal });
-          }
-        });
-      }
-      if (!r) {
-        const params = cleanParams(_params, data);
-        const _fatal = params.fatal ?? fatal ?? true;
-        ctx.addIssue({ code: "custom", ...params, fatal: _fatal });
-      }
-      return;
-    });
-  return ZodAny.create();
-}
-var ParseInputLazyPath, handleResult, ZodType, cuidRegex, cuid2Regex, ulidRegex, uuidRegex, nanoidRegex, jwtRegex, durationRegex, emailRegex, _emojiRegex, emojiRegex, ipv4Regex, ipv4CidrRegex, ipv6Regex, ipv6CidrRegex, base64Regex, base64urlRegex, dateRegexSource, dateRegex, ZodString, ZodNumber, ZodBigInt, ZodBoolean, ZodDate, ZodSymbol, ZodUndefined, ZodNull, ZodAny, ZodUnknown, ZodNever, ZodVoid, ZodArray, ZodObject, ZodUnion, getDiscriminator, ZodDiscriminatedUnion, ZodIntersection, ZodTuple, ZodRecord, ZodMap, ZodSet, ZodFunction, ZodLazy, ZodLiteral, ZodEnum, ZodNativeEnum, ZodPromise, ZodEffects, ZodOptional, ZodNullable, ZodDefault, ZodCatch, ZodNaN, BRAND, ZodBranded, ZodPipeline, ZodReadonly, late, ZodFirstPartyTypeKind, instanceOfType, stringType, numberType, nanType, bigIntType, booleanType, dateType, symbolType, undefinedType, nullType, anyType, unknownType, neverType, voidType, arrayType, objectType, strictObjectType, unionType, discriminatedUnionType, intersectionType, tupleType, recordType, mapType, setType, functionType, lazyType, literalType, enumType, nativeEnumType, promiseType, effectsType, optionalType, nullableType, preprocessType, pipelineType, ostring, onumber, oboolean, coerce, NEVER;
-var init_types = __esm({
-  "node_modules/zod/v3/types.js"() {
-    init_ZodError();
-    init_errors();
-    init_errorUtil();
-    init_parseUtil();
-    init_util();
-    ParseInputLazyPath = class {
-      constructor(parent, value, path3, key) {
-        this._cachedPath = [];
-        this.parent = parent;
-        this.data = value;
-        this._path = path3;
-        this._key = key;
-      }
-      get path() {
-        if (!this._cachedPath.length) {
-          if (Array.isArray(this._key)) {
-            this._cachedPath.push(...this._path, ...this._key);
-          } else {
-            this._cachedPath.push(...this._path, this._key);
-          }
-        }
-        return this._cachedPath;
-      }
-    };
-    handleResult = (ctx, result) => {
-      if (isValid(result)) {
-        return { success: true, data: result.value };
-      } else {
-        if (!ctx.common.issues.length) {
-          throw new Error("Validation failed but no issues detected.");
-        }
-        return {
-          success: false,
-          get error() {
-            if (this._error)
-              return this._error;
-            const error = new ZodError(ctx.common.issues);
-            this._error = error;
-            return this._error;
-          }
-        };
-      }
-    };
-    ZodType = class {
-      get description() {
-        return this._def.description;
-      }
-      _getType(input) {
-        return getParsedType(input.data);
-      }
-      _getOrReturnCtx(input, ctx) {
-        return ctx || {
-          common: input.parent.common,
-          data: input.data,
-          parsedType: getParsedType(input.data),
-          schemaErrorMap: this._def.errorMap,
-          path: input.path,
-          parent: input.parent
-        };
-      }
-      _processInputParams(input) {
-        return {
-          status: new ParseStatus(),
-          ctx: {
-            common: input.parent.common,
-            data: input.data,
-            parsedType: getParsedType(input.data),
-            schemaErrorMap: this._def.errorMap,
-            path: input.path,
-            parent: input.parent
-          }
-        };
-      }
-      _parseSync(input) {
-        const result = this._parse(input);
-        if (isAsync(result)) {
-          throw new Error("Synchronous parse encountered promise.");
-        }
-        return result;
-      }
-      _parseAsync(input) {
-        const result = this._parse(input);
-        return Promise.resolve(result);
-      }
-      parse(data, params) {
-        const result = this.safeParse(data, params);
-        if (result.success)
-          return result.data;
-        throw result.error;
-      }
-      safeParse(data, params) {
-        const ctx = {
-          common: {
-            issues: [],
-            async: params?.async ?? false,
-            contextualErrorMap: params?.errorMap
-          },
-          path: params?.path || [],
-          schemaErrorMap: this._def.errorMap,
-          parent: null,
-          data,
-          parsedType: getParsedType(data)
-        };
-        const result = this._parseSync({ data, path: ctx.path, parent: ctx });
-        return handleResult(ctx, result);
-      }
-      "~validate"(data) {
-        const ctx = {
-          common: {
-            issues: [],
-            async: !!this["~standard"].async
-          },
-          path: [],
-          schemaErrorMap: this._def.errorMap,
-          parent: null,
-          data,
-          parsedType: getParsedType(data)
-        };
-        if (!this["~standard"].async) {
-          try {
-            const result = this._parseSync({ data, path: [], parent: ctx });
-            return isValid(result) ? {
-              value: result.value
-            } : {
-              issues: ctx.common.issues
-            };
-          } catch (err) {
-            if (err?.message?.toLowerCase()?.includes("encountered")) {
-              this["~standard"].async = true;
-            }
-            ctx.common = {
-              issues: [],
-              async: true
-            };
-          }
-        }
-        return this._parseAsync({ data, path: [], parent: ctx }).then((result) => isValid(result) ? {
-          value: result.value
-        } : {
-          issues: ctx.common.issues
-        });
-      }
-      async parseAsync(data, params) {
-        const result = await this.safeParseAsync(data, params);
-        if (result.success)
-          return result.data;
-        throw result.error;
-      }
-      async safeParseAsync(data, params) {
-        const ctx = {
-          common: {
-            issues: [],
-            contextualErrorMap: params?.errorMap,
-            async: true
-          },
-          path: params?.path || [],
-          schemaErrorMap: this._def.errorMap,
-          parent: null,
-          data,
-          parsedType: getParsedType(data)
-        };
-        const maybeAsyncResult = this._parse({ data, path: ctx.path, parent: ctx });
-        const result = await (isAsync(maybeAsyncResult) ? maybeAsyncResult : Promise.resolve(maybeAsyncResult));
-        return handleResult(ctx, result);
-      }
-      refine(check, message) {
-        const getIssueProperties = (val) => {
-          if (typeof message === "string" || typeof message === "undefined") {
-            return { message };
-          } else if (typeof message === "function") {
-            return message(val);
-          } else {
-            return message;
-          }
-        };
-        return this._refinement((val, ctx) => {
-          const result = check(val);
-          const setError = () => ctx.addIssue({
-            code: ZodIssueCode.custom,
-            ...getIssueProperties(val)
-          });
-          if (typeof Promise !== "undefined" && result instanceof Promise) {
-            return result.then((data) => {
-              if (!data) {
-                setError();
-                return false;
-              } else {
-                return true;
-              }
-            });
-          }
-          if (!result) {
-            setError();
-            return false;
-          } else {
-            return true;
-          }
-        });
-      }
-      refinement(check, refinementData) {
-        return this._refinement((val, ctx) => {
-          if (!check(val)) {
-            ctx.addIssue(typeof refinementData === "function" ? refinementData(val, ctx) : refinementData);
-            return false;
-          } else {
-            return true;
-          }
-        });
-      }
-      _refinement(refinement) {
-        return new ZodEffects({
-          schema: this,
-          typeName: ZodFirstPartyTypeKind.ZodEffects,
-          effect: { type: "refinement", refinement }
-        });
-      }
-      superRefine(refinement) {
-        return this._refinement(refinement);
-      }
-      constructor(def) {
-        this.spa = this.safeParseAsync;
-        this._def = def;
-        this.parse = this.parse.bind(this);
-        this.safeParse = this.safeParse.bind(this);
-        this.parseAsync = this.parseAsync.bind(this);
-        this.safeParseAsync = this.safeParseAsync.bind(this);
-        this.spa = this.spa.bind(this);
-        this.refine = this.refine.bind(this);
-        this.refinement = this.refinement.bind(this);
-        this.superRefine = this.superRefine.bind(this);
-        this.optional = this.optional.bind(this);
-        this.nullable = this.nullable.bind(this);
-        this.nullish = this.nullish.bind(this);
-        this.array = this.array.bind(this);
-        this.promise = this.promise.bind(this);
-        this.or = this.or.bind(this);
-        this.and = this.and.bind(this);
-        this.transform = this.transform.bind(this);
-        this.brand = this.brand.bind(this);
-        this.default = this.default.bind(this);
-        this.catch = this.catch.bind(this);
-        this.describe = this.describe.bind(this);
-        this.pipe = this.pipe.bind(this);
-        this.readonly = this.readonly.bind(this);
-        this.isNullable = this.isNullable.bind(this);
-        this.isOptional = this.isOptional.bind(this);
-        this["~standard"] = {
-          version: 1,
-          vendor: "zod",
-          validate: (data) => this["~validate"](data)
-        };
-      }
-      optional() {
-        return ZodOptional.create(this, this._def);
-      }
-      nullable() {
-        return ZodNullable.create(this, this._def);
-      }
-      nullish() {
-        return this.nullable().optional();
-      }
-      array() {
-        return ZodArray.create(this);
-      }
-      promise() {
-        return ZodPromise.create(this, this._def);
-      }
-      or(option) {
-        return ZodUnion.create([this, option], this._def);
-      }
-      and(incoming) {
-        return ZodIntersection.create(this, incoming, this._def);
-      }
-      transform(transform) {
-        return new ZodEffects({
-          ...processCreateParams(this._def),
-          schema: this,
-          typeName: ZodFirstPartyTypeKind.ZodEffects,
-          effect: { type: "transform", transform }
-        });
-      }
-      default(def) {
-        const defaultValueFunc = typeof def === "function" ? def : () => def;
-        return new ZodDefault({
-          ...processCreateParams(this._def),
-          innerType: this,
-          defaultValue: defaultValueFunc,
-          typeName: ZodFirstPartyTypeKind.ZodDefault
-        });
-      }
-      brand() {
-        return new ZodBranded({
-          typeName: ZodFirstPartyTypeKind.ZodBranded,
-          type: this,
-          ...processCreateParams(this._def)
-        });
-      }
-      catch(def) {
-        const catchValueFunc = typeof def === "function" ? def : () => def;
-        return new ZodCatch({
-          ...processCreateParams(this._def),
-          innerType: this,
-          catchValue: catchValueFunc,
-          typeName: ZodFirstPartyTypeKind.ZodCatch
-        });
-      }
-      describe(description) {
-        const This = this.constructor;
-        return new This({
-          ...this._def,
-          description
-        });
-      }
-      pipe(target) {
-        return ZodPipeline.create(this, target);
-      }
-      readonly() {
-        return ZodReadonly.create(this);
-      }
-      isOptional() {
-        return this.safeParse(void 0).success;
-      }
-      isNullable() {
-        return this.safeParse(null).success;
-      }
-    };
-    cuidRegex = /^c[^\s-]{8,}$/i;
-    cuid2Regex = /^[0-9a-z]+$/;
-    ulidRegex = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
-    uuidRegex = /^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$/i;
-    nanoidRegex = /^[a-z0-9_-]{21}$/i;
-    jwtRegex = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]*$/;
-    durationRegex = /^[-+]?P(?!$)(?:(?:[-+]?\d+Y)|(?:[-+]?\d+[.,]\d+Y$))?(?:(?:[-+]?\d+M)|(?:[-+]?\d+[.,]\d+M$))?(?:(?:[-+]?\d+W)|(?:[-+]?\d+[.,]\d+W$))?(?:(?:[-+]?\d+D)|(?:[-+]?\d+[.,]\d+D$))?(?:T(?=[\d+-])(?:(?:[-+]?\d+H)|(?:[-+]?\d+[.,]\d+H$))?(?:(?:[-+]?\d+M)|(?:[-+]?\d+[.,]\d+M$))?(?:[-+]?\d+(?:[.,]\d+)?S)?)??$/;
-    emailRegex = /^(?!\.)(?!.*\.\.)([A-Z0-9_'+\-\.]*)[A-Z0-9_+-]@([A-Z0-9][A-Z0-9\-]*\.)+[A-Z]{2,}$/i;
-    _emojiRegex = `^(\\p{Extended_Pictographic}|\\p{Emoji_Component})+$`;
-    ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$/;
-    ipv4CidrRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\/(3[0-2]|[12]?[0-9])$/;
-    ipv6Regex = /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/;
-    ipv6CidrRegex = /^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))\/(12[0-8]|1[01][0-9]|[1-9]?[0-9])$/;
-    base64Regex = /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/;
-    base64urlRegex = /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/;
-    dateRegexSource = `((\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-((0[13578]|1[02])-(0[1-9]|[12]\\d|3[01])|(0[469]|11)-(0[1-9]|[12]\\d|30)|(02)-(0[1-9]|1\\d|2[0-8])))`;
-    dateRegex = new RegExp(`^${dateRegexSource}$`);
-    ZodString = class _ZodString extends ZodType {
-      _parse(input) {
-        if (this._def.coerce) {
-          input.data = String(input.data);
-        }
-        const parsedType = this._getType(input);
-        if (parsedType !== ZodParsedType.string) {
-          const ctx2 = this._getOrReturnCtx(input);
-          addIssueToContext(ctx2, {
-            code: ZodIssueCode.invalid_type,
-            expected: ZodParsedType.string,
-            received: ctx2.parsedType
-          });
-          return INVALID;
-        }
-        const status = new ParseStatus();
-        let ctx = void 0;
-        for (const check of this._def.checks) {
-          if (check.kind === "min") {
-            if (input.data.length < check.value) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                code: ZodIssueCode.too_small,
-                minimum: check.value,
-                type: "string",
-                inclusive: true,
-                exact: false,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "max") {
-            if (input.data.length > check.value) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                code: ZodIssueCode.too_big,
-                maximum: check.value,
-                type: "string",
-                inclusive: true,
-                exact: false,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "length") {
-            const tooBig = input.data.length > check.value;
-            const tooSmall = input.data.length < check.value;
-            if (tooBig || tooSmall) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              if (tooBig) {
-                addIssueToContext(ctx, {
-                  code: ZodIssueCode.too_big,
-                  maximum: check.value,
-                  type: "string",
-                  inclusive: true,
-                  exact: true,
-                  message: check.message
-                });
-              } else if (tooSmall) {
-                addIssueToContext(ctx, {
-                  code: ZodIssueCode.too_small,
-                  minimum: check.value,
-                  type: "string",
-                  inclusive: true,
-                  exact: true,
-                  message: check.message
-                });
-              }
-              status.dirty();
-            }
-          } else if (check.kind === "email") {
-            if (!emailRegex.test(input.data)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                validation: "email",
-                code: ZodIssueCode.invalid_string,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "emoji") {
-            if (!emojiRegex) {
-              emojiRegex = new RegExp(_emojiRegex, "u");
-            }
-            if (!emojiRegex.test(input.data)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                validation: "emoji",
-                code: ZodIssueCode.invalid_string,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "uuid") {
-            if (!uuidRegex.test(input.data)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                validation: "uuid",
-                code: ZodIssueCode.invalid_string,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "nanoid") {
-            if (!nanoidRegex.test(input.data)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                validation: "nanoid",
-                code: ZodIssueCode.invalid_string,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "cuid") {
-            if (!cuidRegex.test(input.data)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                validation: "cuid",
-                code: ZodIssueCode.invalid_string,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "cuid2") {
-            if (!cuid2Regex.test(input.data)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                validation: "cuid2",
-                code: ZodIssueCode.invalid_string,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "ulid") {
-            if (!ulidRegex.test(input.data)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                validation: "ulid",
-                code: ZodIssueCode.invalid_string,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "url") {
-            try {
-              new URL(input.data);
-            } catch {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                validation: "url",
-                code: ZodIssueCode.invalid_string,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "regex") {
-            check.regex.lastIndex = 0;
-            const testResult = check.regex.test(input.data);
-            if (!testResult) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                validation: "regex",
-                code: ZodIssueCode.invalid_string,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "trim") {
-            input.data = input.data.trim();
-          } else if (check.kind === "includes") {
-            if (!input.data.includes(check.value, check.position)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                code: ZodIssueCode.invalid_string,
-                validation: { includes: check.value, position: check.position },
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "toLowerCase") {
-            input.data = input.data.toLowerCase();
-          } else if (check.kind === "toUpperCase") {
-            input.data = input.data.toUpperCase();
-          } else if (check.kind === "startsWith") {
-            if (!input.data.startsWith(check.value)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                code: ZodIssueCode.invalid_string,
-                validation: { startsWith: check.value },
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "endsWith") {
-            if (!input.data.endsWith(check.value)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                code: ZodIssueCode.invalid_string,
-                validation: { endsWith: check.value },
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "datetime") {
-            const regex = datetimeRegex(check);
-            if (!regex.test(input.data)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                code: ZodIssueCode.invalid_string,
-                validation: "datetime",
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "date") {
-            const regex = dateRegex;
-            if (!regex.test(input.data)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                code: ZodIssueCode.invalid_string,
-                validation: "date",
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "time") {
-            const regex = timeRegex(check);
-            if (!regex.test(input.data)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                code: ZodIssueCode.invalid_string,
-                validation: "time",
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "duration") {
-            if (!durationRegex.test(input.data)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                validation: "duration",
-                code: ZodIssueCode.invalid_string,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "ip") {
-            if (!isValidIP(input.data, check.version)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                validation: "ip",
-                code: ZodIssueCode.invalid_string,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "jwt") {
-            if (!isValidJWT(input.data, check.alg)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                validation: "jwt",
-                code: ZodIssueCode.invalid_string,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "cidr") {
-            if (!isValidCidr(input.data, check.version)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                validation: "cidr",
-                code: ZodIssueCode.invalid_string,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "base64") {
-            if (!base64Regex.test(input.data)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                validation: "base64",
-                code: ZodIssueCode.invalid_string,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "base64url") {
-            if (!base64urlRegex.test(input.data)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                validation: "base64url",
-                code: ZodIssueCode.invalid_string,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else {
-            util.assertNever(check);
-          }
-        }
-        return { status: status.value, value: input.data };
-      }
-      _regex(regex, validation, message) {
-        return this.refinement((data) => regex.test(data), {
-          validation,
-          code: ZodIssueCode.invalid_string,
-          ...errorUtil.errToObj(message)
-        });
-      }
-      _addCheck(check) {
-        return new _ZodString({
-          ...this._def,
-          checks: [...this._def.checks, check]
-        });
-      }
-      email(message) {
-        return this._addCheck({ kind: "email", ...errorUtil.errToObj(message) });
-      }
-      url(message) {
-        return this._addCheck({ kind: "url", ...errorUtil.errToObj(message) });
-      }
-      emoji(message) {
-        return this._addCheck({ kind: "emoji", ...errorUtil.errToObj(message) });
-      }
-      uuid(message) {
-        return this._addCheck({ kind: "uuid", ...errorUtil.errToObj(message) });
-      }
-      nanoid(message) {
-        return this._addCheck({ kind: "nanoid", ...errorUtil.errToObj(message) });
-      }
-      cuid(message) {
-        return this._addCheck({ kind: "cuid", ...errorUtil.errToObj(message) });
-      }
-      cuid2(message) {
-        return this._addCheck({ kind: "cuid2", ...errorUtil.errToObj(message) });
-      }
-      ulid(message) {
-        return this._addCheck({ kind: "ulid", ...errorUtil.errToObj(message) });
-      }
-      base64(message) {
-        return this._addCheck({ kind: "base64", ...errorUtil.errToObj(message) });
-      }
-      base64url(message) {
-        return this._addCheck({
-          kind: "base64url",
-          ...errorUtil.errToObj(message)
-        });
-      }
-      jwt(options) {
-        return this._addCheck({ kind: "jwt", ...errorUtil.errToObj(options) });
-      }
-      ip(options) {
-        return this._addCheck({ kind: "ip", ...errorUtil.errToObj(options) });
-      }
-      cidr(options) {
-        return this._addCheck({ kind: "cidr", ...errorUtil.errToObj(options) });
-      }
-      datetime(options) {
-        if (typeof options === "string") {
-          return this._addCheck({
-            kind: "datetime",
-            precision: null,
-            offset: false,
-            local: false,
-            message: options
-          });
-        }
-        return this._addCheck({
-          kind: "datetime",
-          precision: typeof options?.precision === "undefined" ? null : options?.precision,
-          offset: options?.offset ?? false,
-          local: options?.local ?? false,
-          ...errorUtil.errToObj(options?.message)
-        });
-      }
-      date(message) {
-        return this._addCheck({ kind: "date", message });
-      }
-      time(options) {
-        if (typeof options === "string") {
-          return this._addCheck({
-            kind: "time",
-            precision: null,
-            message: options
-          });
-        }
-        return this._addCheck({
-          kind: "time",
-          precision: typeof options?.precision === "undefined" ? null : options?.precision,
-          ...errorUtil.errToObj(options?.message)
-        });
-      }
-      duration(message) {
-        return this._addCheck({ kind: "duration", ...errorUtil.errToObj(message) });
-      }
-      regex(regex, message) {
-        return this._addCheck({
-          kind: "regex",
-          regex,
-          ...errorUtil.errToObj(message)
-        });
-      }
-      includes(value, options) {
-        return this._addCheck({
-          kind: "includes",
-          value,
-          position: options?.position,
-          ...errorUtil.errToObj(options?.message)
-        });
-      }
-      startsWith(value, message) {
-        return this._addCheck({
-          kind: "startsWith",
-          value,
-          ...errorUtil.errToObj(message)
-        });
-      }
-      endsWith(value, message) {
-        return this._addCheck({
-          kind: "endsWith",
-          value,
-          ...errorUtil.errToObj(message)
-        });
-      }
-      min(minLength, message) {
-        return this._addCheck({
-          kind: "min",
-          value: minLength,
-          ...errorUtil.errToObj(message)
-        });
-      }
-      max(maxLength, message) {
-        return this._addCheck({
-          kind: "max",
-          value: maxLength,
-          ...errorUtil.errToObj(message)
-        });
-      }
-      length(len, message) {
-        return this._addCheck({
-          kind: "length",
-          value: len,
-          ...errorUtil.errToObj(message)
-        });
-      }
-      /**
-       * Equivalent to `.min(1)`
-       */
-      nonempty(message) {
-        return this.min(1, errorUtil.errToObj(message));
-      }
-      trim() {
-        return new _ZodString({
-          ...this._def,
-          checks: [...this._def.checks, { kind: "trim" }]
-        });
-      }
-      toLowerCase() {
-        return new _ZodString({
-          ...this._def,
-          checks: [...this._def.checks, { kind: "toLowerCase" }]
-        });
-      }
-      toUpperCase() {
-        return new _ZodString({
-          ...this._def,
-          checks: [...this._def.checks, { kind: "toUpperCase" }]
-        });
-      }
-      get isDatetime() {
-        return !!this._def.checks.find((ch) => ch.kind === "datetime");
-      }
-      get isDate() {
-        return !!this._def.checks.find((ch) => ch.kind === "date");
-      }
-      get isTime() {
-        return !!this._def.checks.find((ch) => ch.kind === "time");
-      }
-      get isDuration() {
-        return !!this._def.checks.find((ch) => ch.kind === "duration");
-      }
-      get isEmail() {
-        return !!this._def.checks.find((ch) => ch.kind === "email");
-      }
-      get isURL() {
-        return !!this._def.checks.find((ch) => ch.kind === "url");
-      }
-      get isEmoji() {
-        return !!this._def.checks.find((ch) => ch.kind === "emoji");
-      }
-      get isUUID() {
-        return !!this._def.checks.find((ch) => ch.kind === "uuid");
-      }
-      get isNANOID() {
-        return !!this._def.checks.find((ch) => ch.kind === "nanoid");
-      }
-      get isCUID() {
-        return !!this._def.checks.find((ch) => ch.kind === "cuid");
-      }
-      get isCUID2() {
-        return !!this._def.checks.find((ch) => ch.kind === "cuid2");
-      }
-      get isULID() {
-        return !!this._def.checks.find((ch) => ch.kind === "ulid");
-      }
-      get isIP() {
-        return !!this._def.checks.find((ch) => ch.kind === "ip");
-      }
-      get isCIDR() {
-        return !!this._def.checks.find((ch) => ch.kind === "cidr");
-      }
-      get isBase64() {
-        return !!this._def.checks.find((ch) => ch.kind === "base64");
-      }
-      get isBase64url() {
-        return !!this._def.checks.find((ch) => ch.kind === "base64url");
-      }
-      get minLength() {
-        let min = null;
-        for (const ch of this._def.checks) {
-          if (ch.kind === "min") {
-            if (min === null || ch.value > min)
-              min = ch.value;
-          }
-        }
-        return min;
-      }
-      get maxLength() {
-        let max = null;
-        for (const ch of this._def.checks) {
-          if (ch.kind === "max") {
-            if (max === null || ch.value < max)
-              max = ch.value;
-          }
-        }
-        return max;
-      }
-    };
-    ZodString.create = (params) => {
-      return new ZodString({
-        checks: [],
-        typeName: ZodFirstPartyTypeKind.ZodString,
-        coerce: params?.coerce ?? false,
-        ...processCreateParams(params)
-      });
-    };
-    ZodNumber = class _ZodNumber extends ZodType {
-      constructor() {
-        super(...arguments);
-        this.min = this.gte;
-        this.max = this.lte;
-        this.step = this.multipleOf;
-      }
-      _parse(input) {
-        if (this._def.coerce) {
-          input.data = Number(input.data);
-        }
-        const parsedType = this._getType(input);
-        if (parsedType !== ZodParsedType.number) {
-          const ctx2 = this._getOrReturnCtx(input);
-          addIssueToContext(ctx2, {
-            code: ZodIssueCode.invalid_type,
-            expected: ZodParsedType.number,
-            received: ctx2.parsedType
-          });
-          return INVALID;
-        }
-        let ctx = void 0;
-        const status = new ParseStatus();
-        for (const check of this._def.checks) {
-          if (check.kind === "int") {
-            if (!util.isInteger(input.data)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                code: ZodIssueCode.invalid_type,
-                expected: "integer",
-                received: "float",
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "min") {
-            const tooSmall = check.inclusive ? input.data < check.value : input.data <= check.value;
-            if (tooSmall) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                code: ZodIssueCode.too_small,
-                minimum: check.value,
-                type: "number",
-                inclusive: check.inclusive,
-                exact: false,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "max") {
-            const tooBig = check.inclusive ? input.data > check.value : input.data >= check.value;
-            if (tooBig) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                code: ZodIssueCode.too_big,
-                maximum: check.value,
-                type: "number",
-                inclusive: check.inclusive,
-                exact: false,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "multipleOf") {
-            if (floatSafeRemainder(input.data, check.value) !== 0) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                code: ZodIssueCode.not_multiple_of,
-                multipleOf: check.value,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "finite") {
-            if (!Number.isFinite(input.data)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                code: ZodIssueCode.not_finite,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else {
-            util.assertNever(check);
-          }
-        }
-        return { status: status.value, value: input.data };
-      }
-      gte(value, message) {
-        return this.setLimit("min", value, true, errorUtil.toString(message));
-      }
-      gt(value, message) {
-        return this.setLimit("min", value, false, errorUtil.toString(message));
-      }
-      lte(value, message) {
-        return this.setLimit("max", value, true, errorUtil.toString(message));
-      }
-      lt(value, message) {
-        return this.setLimit("max", value, false, errorUtil.toString(message));
-      }
-      setLimit(kind, value, inclusive, message) {
-        return new _ZodNumber({
-          ...this._def,
-          checks: [
-            ...this._def.checks,
-            {
-              kind,
-              value,
-              inclusive,
-              message: errorUtil.toString(message)
-            }
-          ]
-        });
-      }
-      _addCheck(check) {
-        return new _ZodNumber({
-          ...this._def,
-          checks: [...this._def.checks, check]
-        });
-      }
-      int(message) {
-        return this._addCheck({
-          kind: "int",
-          message: errorUtil.toString(message)
-        });
-      }
-      positive(message) {
-        return this._addCheck({
-          kind: "min",
-          value: 0,
-          inclusive: false,
-          message: errorUtil.toString(message)
-        });
-      }
-      negative(message) {
-        return this._addCheck({
-          kind: "max",
-          value: 0,
-          inclusive: false,
-          message: errorUtil.toString(message)
-        });
-      }
-      nonpositive(message) {
-        return this._addCheck({
-          kind: "max",
-          value: 0,
-          inclusive: true,
-          message: errorUtil.toString(message)
-        });
-      }
-      nonnegative(message) {
-        return this._addCheck({
-          kind: "min",
-          value: 0,
-          inclusive: true,
-          message: errorUtil.toString(message)
-        });
-      }
-      multipleOf(value, message) {
-        return this._addCheck({
-          kind: "multipleOf",
-          value,
-          message: errorUtil.toString(message)
-        });
-      }
-      finite(message) {
-        return this._addCheck({
-          kind: "finite",
-          message: errorUtil.toString(message)
-        });
-      }
-      safe(message) {
-        return this._addCheck({
-          kind: "min",
-          inclusive: true,
-          value: Number.MIN_SAFE_INTEGER,
-          message: errorUtil.toString(message)
-        })._addCheck({
-          kind: "max",
-          inclusive: true,
-          value: Number.MAX_SAFE_INTEGER,
-          message: errorUtil.toString(message)
-        });
-      }
-      get minValue() {
-        let min = null;
-        for (const ch of this._def.checks) {
-          if (ch.kind === "min") {
-            if (min === null || ch.value > min)
-              min = ch.value;
-          }
-        }
-        return min;
-      }
-      get maxValue() {
-        let max = null;
-        for (const ch of this._def.checks) {
-          if (ch.kind === "max") {
-            if (max === null || ch.value < max)
-              max = ch.value;
-          }
-        }
-        return max;
-      }
-      get isInt() {
-        return !!this._def.checks.find((ch) => ch.kind === "int" || ch.kind === "multipleOf" && util.isInteger(ch.value));
-      }
-      get isFinite() {
-        let max = null;
-        let min = null;
-        for (const ch of this._def.checks) {
-          if (ch.kind === "finite" || ch.kind === "int" || ch.kind === "multipleOf") {
-            return true;
-          } else if (ch.kind === "min") {
-            if (min === null || ch.value > min)
-              min = ch.value;
-          } else if (ch.kind === "max") {
-            if (max === null || ch.value < max)
-              max = ch.value;
-          }
-        }
-        return Number.isFinite(min) && Number.isFinite(max);
-      }
-    };
-    ZodNumber.create = (params) => {
-      return new ZodNumber({
-        checks: [],
-        typeName: ZodFirstPartyTypeKind.ZodNumber,
-        coerce: params?.coerce || false,
-        ...processCreateParams(params)
-      });
-    };
-    ZodBigInt = class _ZodBigInt extends ZodType {
-      constructor() {
-        super(...arguments);
-        this.min = this.gte;
-        this.max = this.lte;
-      }
-      _parse(input) {
-        if (this._def.coerce) {
-          try {
-            input.data = BigInt(input.data);
-          } catch {
-            return this._getInvalidInput(input);
-          }
-        }
-        const parsedType = this._getType(input);
-        if (parsedType !== ZodParsedType.bigint) {
-          return this._getInvalidInput(input);
-        }
-        let ctx = void 0;
-        const status = new ParseStatus();
-        for (const check of this._def.checks) {
-          if (check.kind === "min") {
-            const tooSmall = check.inclusive ? input.data < check.value : input.data <= check.value;
-            if (tooSmall) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                code: ZodIssueCode.too_small,
-                type: "bigint",
-                minimum: check.value,
-                inclusive: check.inclusive,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "max") {
-            const tooBig = check.inclusive ? input.data > check.value : input.data >= check.value;
-            if (tooBig) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                code: ZodIssueCode.too_big,
-                type: "bigint",
-                maximum: check.value,
-                inclusive: check.inclusive,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "multipleOf") {
-            if (input.data % check.value !== BigInt(0)) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                code: ZodIssueCode.not_multiple_of,
-                multipleOf: check.value,
-                message: check.message
-              });
-              status.dirty();
-            }
-          } else {
-            util.assertNever(check);
-          }
-        }
-        return { status: status.value, value: input.data };
-      }
-      _getInvalidInput(input) {
-        const ctx = this._getOrReturnCtx(input);
-        addIssueToContext(ctx, {
-          code: ZodIssueCode.invalid_type,
-          expected: ZodParsedType.bigint,
-          received: ctx.parsedType
-        });
-        return INVALID;
-      }
-      gte(value, message) {
-        return this.setLimit("min", value, true, errorUtil.toString(message));
-      }
-      gt(value, message) {
-        return this.setLimit("min", value, false, errorUtil.toString(message));
-      }
-      lte(value, message) {
-        return this.setLimit("max", value, true, errorUtil.toString(message));
-      }
-      lt(value, message) {
-        return this.setLimit("max", value, false, errorUtil.toString(message));
-      }
-      setLimit(kind, value, inclusive, message) {
-        return new _ZodBigInt({
-          ...this._def,
-          checks: [
-            ...this._def.checks,
-            {
-              kind,
-              value,
-              inclusive,
-              message: errorUtil.toString(message)
-            }
-          ]
-        });
-      }
-      _addCheck(check) {
-        return new _ZodBigInt({
-          ...this._def,
-          checks: [...this._def.checks, check]
-        });
-      }
-      positive(message) {
-        return this._addCheck({
-          kind: "min",
-          value: BigInt(0),
-          inclusive: false,
-          message: errorUtil.toString(message)
-        });
-      }
-      negative(message) {
-        return this._addCheck({
-          kind: "max",
-          value: BigInt(0),
-          inclusive: false,
-          message: errorUtil.toString(message)
-        });
-      }
-      nonpositive(message) {
-        return this._addCheck({
-          kind: "max",
-          value: BigInt(0),
-          inclusive: true,
-          message: errorUtil.toString(message)
-        });
-      }
-      nonnegative(message) {
-        return this._addCheck({
-          kind: "min",
-          value: BigInt(0),
-          inclusive: true,
-          message: errorUtil.toString(message)
-        });
-      }
-      multipleOf(value, message) {
-        return this._addCheck({
-          kind: "multipleOf",
-          value,
-          message: errorUtil.toString(message)
-        });
-      }
-      get minValue() {
-        let min = null;
-        for (const ch of this._def.checks) {
-          if (ch.kind === "min") {
-            if (min === null || ch.value > min)
-              min = ch.value;
-          }
-        }
-        return min;
-      }
-      get maxValue() {
-        let max = null;
-        for (const ch of this._def.checks) {
-          if (ch.kind === "max") {
-            if (max === null || ch.value < max)
-              max = ch.value;
-          }
-        }
-        return max;
-      }
-    };
-    ZodBigInt.create = (params) => {
-      return new ZodBigInt({
-        checks: [],
-        typeName: ZodFirstPartyTypeKind.ZodBigInt,
-        coerce: params?.coerce ?? false,
-        ...processCreateParams(params)
-      });
-    };
-    ZodBoolean = class extends ZodType {
-      _parse(input) {
-        if (this._def.coerce) {
-          input.data = Boolean(input.data);
-        }
-        const parsedType = this._getType(input);
-        if (parsedType !== ZodParsedType.boolean) {
-          const ctx = this._getOrReturnCtx(input);
-          addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_type,
-            expected: ZodParsedType.boolean,
-            received: ctx.parsedType
-          });
-          return INVALID;
-        }
-        return OK(input.data);
-      }
-    };
-    ZodBoolean.create = (params) => {
-      return new ZodBoolean({
-        typeName: ZodFirstPartyTypeKind.ZodBoolean,
-        coerce: params?.coerce || false,
-        ...processCreateParams(params)
-      });
-    };
-    ZodDate = class _ZodDate extends ZodType {
-      _parse(input) {
-        if (this._def.coerce) {
-          input.data = new Date(input.data);
-        }
-        const parsedType = this._getType(input);
-        if (parsedType !== ZodParsedType.date) {
-          const ctx2 = this._getOrReturnCtx(input);
-          addIssueToContext(ctx2, {
-            code: ZodIssueCode.invalid_type,
-            expected: ZodParsedType.date,
-            received: ctx2.parsedType
-          });
-          return INVALID;
-        }
-        if (Number.isNaN(input.data.getTime())) {
-          const ctx2 = this._getOrReturnCtx(input);
-          addIssueToContext(ctx2, {
-            code: ZodIssueCode.invalid_date
-          });
-          return INVALID;
-        }
-        const status = new ParseStatus();
-        let ctx = void 0;
-        for (const check of this._def.checks) {
-          if (check.kind === "min") {
-            if (input.data.getTime() < check.value) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                code: ZodIssueCode.too_small,
-                message: check.message,
-                inclusive: true,
-                exact: false,
-                minimum: check.value,
-                type: "date"
-              });
-              status.dirty();
-            }
-          } else if (check.kind === "max") {
-            if (input.data.getTime() > check.value) {
-              ctx = this._getOrReturnCtx(input, ctx);
-              addIssueToContext(ctx, {
-                code: ZodIssueCode.too_big,
-                message: check.message,
-                inclusive: true,
-                exact: false,
-                maximum: check.value,
-                type: "date"
-              });
-              status.dirty();
-            }
-          } else {
-            util.assertNever(check);
-          }
-        }
-        return {
-          status: status.value,
-          value: new Date(input.data.getTime())
-        };
-      }
-      _addCheck(check) {
-        return new _ZodDate({
-          ...this._def,
-          checks: [...this._def.checks, check]
-        });
-      }
-      min(minDate, message) {
-        return this._addCheck({
-          kind: "min",
-          value: minDate.getTime(),
-          message: errorUtil.toString(message)
-        });
-      }
-      max(maxDate, message) {
-        return this._addCheck({
-          kind: "max",
-          value: maxDate.getTime(),
-          message: errorUtil.toString(message)
-        });
-      }
-      get minDate() {
-        let min = null;
-        for (const ch of this._def.checks) {
-          if (ch.kind === "min") {
-            if (min === null || ch.value > min)
-              min = ch.value;
-          }
-        }
-        return min != null ? new Date(min) : null;
-      }
-      get maxDate() {
-        let max = null;
-        for (const ch of this._def.checks) {
-          if (ch.kind === "max") {
-            if (max === null || ch.value < max)
-              max = ch.value;
-          }
-        }
-        return max != null ? new Date(max) : null;
-      }
-    };
-    ZodDate.create = (params) => {
-      return new ZodDate({
-        checks: [],
-        coerce: params?.coerce || false,
-        typeName: ZodFirstPartyTypeKind.ZodDate,
-        ...processCreateParams(params)
-      });
-    };
-    ZodSymbol = class extends ZodType {
-      _parse(input) {
-        const parsedType = this._getType(input);
-        if (parsedType !== ZodParsedType.symbol) {
-          const ctx = this._getOrReturnCtx(input);
-          addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_type,
-            expected: ZodParsedType.symbol,
-            received: ctx.parsedType
-          });
-          return INVALID;
-        }
-        return OK(input.data);
-      }
-    };
-    ZodSymbol.create = (params) => {
-      return new ZodSymbol({
-        typeName: ZodFirstPartyTypeKind.ZodSymbol,
-        ...processCreateParams(params)
-      });
-    };
-    ZodUndefined = class extends ZodType {
-      _parse(input) {
-        const parsedType = this._getType(input);
-        if (parsedType !== ZodParsedType.undefined) {
-          const ctx = this._getOrReturnCtx(input);
-          addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_type,
-            expected: ZodParsedType.undefined,
-            received: ctx.parsedType
-          });
-          return INVALID;
-        }
-        return OK(input.data);
-      }
-    };
-    ZodUndefined.create = (params) => {
-      return new ZodUndefined({
-        typeName: ZodFirstPartyTypeKind.ZodUndefined,
-        ...processCreateParams(params)
-      });
-    };
-    ZodNull = class extends ZodType {
-      _parse(input) {
-        const parsedType = this._getType(input);
-        if (parsedType !== ZodParsedType.null) {
-          const ctx = this._getOrReturnCtx(input);
-          addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_type,
-            expected: ZodParsedType.null,
-            received: ctx.parsedType
-          });
-          return INVALID;
-        }
-        return OK(input.data);
-      }
-    };
-    ZodNull.create = (params) => {
-      return new ZodNull({
-        typeName: ZodFirstPartyTypeKind.ZodNull,
-        ...processCreateParams(params)
-      });
-    };
-    ZodAny = class extends ZodType {
-      constructor() {
-        super(...arguments);
-        this._any = true;
-      }
-      _parse(input) {
-        return OK(input.data);
-      }
-    };
-    ZodAny.create = (params) => {
-      return new ZodAny({
-        typeName: ZodFirstPartyTypeKind.ZodAny,
-        ...processCreateParams(params)
-      });
-    };
-    ZodUnknown = class extends ZodType {
-      constructor() {
-        super(...arguments);
-        this._unknown = true;
-      }
-      _parse(input) {
-        return OK(input.data);
-      }
-    };
-    ZodUnknown.create = (params) => {
-      return new ZodUnknown({
-        typeName: ZodFirstPartyTypeKind.ZodUnknown,
-        ...processCreateParams(params)
-      });
-    };
-    ZodNever = class extends ZodType {
-      _parse(input) {
-        const ctx = this._getOrReturnCtx(input);
-        addIssueToContext(ctx, {
-          code: ZodIssueCode.invalid_type,
-          expected: ZodParsedType.never,
-          received: ctx.parsedType
-        });
-        return INVALID;
-      }
-    };
-    ZodNever.create = (params) => {
-      return new ZodNever({
-        typeName: ZodFirstPartyTypeKind.ZodNever,
-        ...processCreateParams(params)
-      });
-    };
-    ZodVoid = class extends ZodType {
-      _parse(input) {
-        const parsedType = this._getType(input);
-        if (parsedType !== ZodParsedType.undefined) {
-          const ctx = this._getOrReturnCtx(input);
-          addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_type,
-            expected: ZodParsedType.void,
-            received: ctx.parsedType
-          });
-          return INVALID;
-        }
-        return OK(input.data);
-      }
-    };
-    ZodVoid.create = (params) => {
-      return new ZodVoid({
-        typeName: ZodFirstPartyTypeKind.ZodVoid,
-        ...processCreateParams(params)
-      });
-    };
-    ZodArray = class _ZodArray extends ZodType {
-      _parse(input) {
-        const { ctx, status } = this._processInputParams(input);
-        const def = this._def;
-        if (ctx.parsedType !== ZodParsedType.array) {
-          addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_type,
-            expected: ZodParsedType.array,
-            received: ctx.parsedType
-          });
-          return INVALID;
-        }
-        if (def.exactLength !== null) {
-          const tooBig = ctx.data.length > def.exactLength.value;
-          const tooSmall = ctx.data.length < def.exactLength.value;
-          if (tooBig || tooSmall) {
-            addIssueToContext(ctx, {
-              code: tooBig ? ZodIssueCode.too_big : ZodIssueCode.too_small,
-              minimum: tooSmall ? def.exactLength.value : void 0,
-              maximum: tooBig ? def.exactLength.value : void 0,
-              type: "array",
-              inclusive: true,
-              exact: true,
-              message: def.exactLength.message
-            });
-            status.dirty();
-          }
-        }
-        if (def.minLength !== null) {
-          if (ctx.data.length < def.minLength.value) {
-            addIssueToContext(ctx, {
-              code: ZodIssueCode.too_small,
-              minimum: def.minLength.value,
-              type: "array",
-              inclusive: true,
-              exact: false,
-              message: def.minLength.message
-            });
-            status.dirty();
-          }
-        }
-        if (def.maxLength !== null) {
-          if (ctx.data.length > def.maxLength.value) {
-            addIssueToContext(ctx, {
-              code: ZodIssueCode.too_big,
-              maximum: def.maxLength.value,
-              type: "array",
-              inclusive: true,
-              exact: false,
-              message: def.maxLength.message
-            });
-            status.dirty();
-          }
-        }
-        if (ctx.common.async) {
-          return Promise.all([...ctx.data].map((item, i) => {
-            return def.type._parseAsync(new ParseInputLazyPath(ctx, item, ctx.path, i));
-          })).then((result2) => {
-            return ParseStatus.mergeArray(status, result2);
-          });
-        }
-        const result = [...ctx.data].map((item, i) => {
-          return def.type._parseSync(new ParseInputLazyPath(ctx, item, ctx.path, i));
-        });
-        return ParseStatus.mergeArray(status, result);
-      }
-      get element() {
-        return this._def.type;
-      }
-      min(minLength, message) {
-        return new _ZodArray({
-          ...this._def,
-          minLength: { value: minLength, message: errorUtil.toString(message) }
-        });
-      }
-      max(maxLength, message) {
-        return new _ZodArray({
-          ...this._def,
-          maxLength: { value: maxLength, message: errorUtil.toString(message) }
-        });
-      }
-      length(len, message) {
-        return new _ZodArray({
-          ...this._def,
-          exactLength: { value: len, message: errorUtil.toString(message) }
-        });
-      }
-      nonempty(message) {
-        return this.min(1, message);
-      }
-    };
-    ZodArray.create = (schema, params) => {
-      return new ZodArray({
-        type: schema,
-        minLength: null,
-        maxLength: null,
-        exactLength: null,
-        typeName: ZodFirstPartyTypeKind.ZodArray,
-        ...processCreateParams(params)
-      });
-    };
-    ZodObject = class _ZodObject extends ZodType {
-      constructor() {
-        super(...arguments);
-        this._cached = null;
-        this.nonstrict = this.passthrough;
-        this.augment = this.extend;
-      }
-      _getCached() {
-        if (this._cached !== null)
-          return this._cached;
-        const shape = this._def.shape();
-        const keys = util.objectKeys(shape);
-        this._cached = { shape, keys };
-        return this._cached;
-      }
-      _parse(input) {
-        const parsedType = this._getType(input);
-        if (parsedType !== ZodParsedType.object) {
-          const ctx2 = this._getOrReturnCtx(input);
-          addIssueToContext(ctx2, {
-            code: ZodIssueCode.invalid_type,
-            expected: ZodParsedType.object,
-            received: ctx2.parsedType
-          });
-          return INVALID;
-        }
-        const { status, ctx } = this._processInputParams(input);
-        const { shape, keys: shapeKeys } = this._getCached();
-        const extraKeys = [];
-        if (!(this._def.catchall instanceof ZodNever && this._def.unknownKeys === "strip")) {
-          for (const key in ctx.data) {
-            if (!shapeKeys.includes(key)) {
-              extraKeys.push(key);
-            }
-          }
-        }
-        const pairs = [];
-        for (const key of shapeKeys) {
-          const keyValidator = shape[key];
-          const value = ctx.data[key];
-          pairs.push({
-            key: { status: "valid", value: key },
-            value: keyValidator._parse(new ParseInputLazyPath(ctx, value, ctx.path, key)),
-            alwaysSet: key in ctx.data
-          });
-        }
-        if (this._def.catchall instanceof ZodNever) {
-          const unknownKeys = this._def.unknownKeys;
-          if (unknownKeys === "passthrough") {
-            for (const key of extraKeys) {
-              pairs.push({
-                key: { status: "valid", value: key },
-                value: { status: "valid", value: ctx.data[key] }
-              });
-            }
-          } else if (unknownKeys === "strict") {
-            if (extraKeys.length > 0) {
-              addIssueToContext(ctx, {
-                code: ZodIssueCode.unrecognized_keys,
-                keys: extraKeys
-              });
-              status.dirty();
-            }
-          } else if (unknownKeys === "strip") {
-          } else {
-            throw new Error(`Internal ZodObject error: invalid unknownKeys value.`);
-          }
-        } else {
-          const catchall = this._def.catchall;
-          for (const key of extraKeys) {
-            const value = ctx.data[key];
-            pairs.push({
-              key: { status: "valid", value: key },
-              value: catchall._parse(
-                new ParseInputLazyPath(ctx, value, ctx.path, key)
-                //, ctx.child(key), value, getParsedType(value)
-              ),
-              alwaysSet: key in ctx.data
-            });
-          }
-        }
-        if (ctx.common.async) {
-          return Promise.resolve().then(async () => {
-            const syncPairs = [];
-            for (const pair of pairs) {
-              const key = await pair.key;
-              const value = await pair.value;
-              syncPairs.push({
-                key,
-                value,
-                alwaysSet: pair.alwaysSet
-              });
-            }
-            return syncPairs;
-          }).then((syncPairs) => {
-            return ParseStatus.mergeObjectSync(status, syncPairs);
-          });
-        } else {
-          return ParseStatus.mergeObjectSync(status, pairs);
-        }
-      }
-      get shape() {
-        return this._def.shape();
-      }
-      strict(message) {
-        errorUtil.errToObj;
-        return new _ZodObject({
-          ...this._def,
-          unknownKeys: "strict",
-          ...message !== void 0 ? {
-            errorMap: (issue, ctx) => {
-              const defaultError = this._def.errorMap?.(issue, ctx).message ?? ctx.defaultError;
-              if (issue.code === "unrecognized_keys")
-                return {
-                  message: errorUtil.errToObj(message).message ?? defaultError
-                };
-              return {
-                message: defaultError
-              };
-            }
-          } : {}
-        });
-      }
-      strip() {
-        return new _ZodObject({
-          ...this._def,
-          unknownKeys: "strip"
-        });
-      }
-      passthrough() {
-        return new _ZodObject({
-          ...this._def,
-          unknownKeys: "passthrough"
-        });
-      }
-      // const AugmentFactory =
-      //   <Def extends ZodObjectDef>(def: Def) =>
-      //   <Augmentation extends ZodRawShape>(
-      //     augmentation: Augmentation
-      //   ): ZodObject<
-      //     extendShape<ReturnType<Def["shape"]>, Augmentation>,
-      //     Def["unknownKeys"],
-      //     Def["catchall"]
-      //   > => {
-      //     return new ZodObject({
-      //       ...def,
-      //       shape: () => ({
-      //         ...def.shape(),
-      //         ...augmentation,
-      //       }),
-      //     }) as any;
-      //   };
-      extend(augmentation) {
-        return new _ZodObject({
-          ...this._def,
-          shape: () => ({
-            ...this._def.shape(),
-            ...augmentation
-          })
-        });
-      }
-      /**
-       * Prior to zod@1.0.12 there was a bug in the
-       * inferred type of merged objects. Please
-       * upgrade if you are experiencing issues.
-       */
-      merge(merging) {
-        const merged = new _ZodObject({
-          unknownKeys: merging._def.unknownKeys,
-          catchall: merging._def.catchall,
-          shape: () => ({
-            ...this._def.shape(),
-            ...merging._def.shape()
-          }),
-          typeName: ZodFirstPartyTypeKind.ZodObject
-        });
-        return merged;
-      }
-      // merge<
-      //   Incoming extends AnyZodObject,
-      //   Augmentation extends Incoming["shape"],
-      //   NewOutput extends {
-      //     [k in keyof Augmentation | keyof Output]: k extends keyof Augmentation
-      //       ? Augmentation[k]["_output"]
-      //       : k extends keyof Output
-      //       ? Output[k]
-      //       : never;
-      //   },
-      //   NewInput extends {
-      //     [k in keyof Augmentation | keyof Input]: k extends keyof Augmentation
-      //       ? Augmentation[k]["_input"]
-      //       : k extends keyof Input
-      //       ? Input[k]
-      //       : never;
-      //   }
-      // >(
-      //   merging: Incoming
-      // ): ZodObject<
-      //   extendShape<T, ReturnType<Incoming["_def"]["shape"]>>,
-      //   Incoming["_def"]["unknownKeys"],
-      //   Incoming["_def"]["catchall"],
-      //   NewOutput,
-      //   NewInput
-      // > {
-      //   const merged: any = new ZodObject({
-      //     unknownKeys: merging._def.unknownKeys,
-      //     catchall: merging._def.catchall,
-      //     shape: () =>
-      //       objectUtil.mergeShapes(this._def.shape(), merging._def.shape()),
-      //     typeName: ZodFirstPartyTypeKind.ZodObject,
-      //   }) as any;
-      //   return merged;
-      // }
-      setKey(key, schema) {
-        return this.augment({ [key]: schema });
-      }
-      // merge<Incoming extends AnyZodObject>(
-      //   merging: Incoming
-      // ): //ZodObject<T & Incoming["_shape"], UnknownKeys, Catchall> = (merging) => {
-      // ZodObject<
-      //   extendShape<T, ReturnType<Incoming["_def"]["shape"]>>,
-      //   Incoming["_def"]["unknownKeys"],
-      //   Incoming["_def"]["catchall"]
-      // > {
-      //   // const mergedShape = objectUtil.mergeShapes(
-      //   //   this._def.shape(),
-      //   //   merging._def.shape()
-      //   // );
-      //   const merged: any = new ZodObject({
-      //     unknownKeys: merging._def.unknownKeys,
-      //     catchall: merging._def.catchall,
-      //     shape: () =>
-      //       objectUtil.mergeShapes(this._def.shape(), merging._def.shape()),
-      //     typeName: ZodFirstPartyTypeKind.ZodObject,
-      //   }) as any;
-      //   return merged;
-      // }
-      catchall(index) {
-        return new _ZodObject({
-          ...this._def,
-          catchall: index
-        });
-      }
-      pick(mask) {
-        const shape = {};
-        for (const key of util.objectKeys(mask)) {
-          if (mask[key] && this.shape[key]) {
-            shape[key] = this.shape[key];
-          }
-        }
-        return new _ZodObject({
-          ...this._def,
-          shape: () => shape
-        });
-      }
-      omit(mask) {
-        const shape = {};
-        for (const key of util.objectKeys(this.shape)) {
-          if (!mask[key]) {
-            shape[key] = this.shape[key];
-          }
-        }
-        return new _ZodObject({
-          ...this._def,
-          shape: () => shape
-        });
-      }
-      /**
-       * @deprecated
-       */
-      deepPartial() {
-        return deepPartialify(this);
-      }
-      partial(mask) {
-        const newShape = {};
-        for (const key of util.objectKeys(this.shape)) {
-          const fieldSchema = this.shape[key];
-          if (mask && !mask[key]) {
-            newShape[key] = fieldSchema;
-          } else {
-            newShape[key] = fieldSchema.optional();
-          }
-        }
-        return new _ZodObject({
-          ...this._def,
-          shape: () => newShape
-        });
-      }
-      required(mask) {
-        const newShape = {};
-        for (const key of util.objectKeys(this.shape)) {
-          if (mask && !mask[key]) {
-            newShape[key] = this.shape[key];
-          } else {
-            const fieldSchema = this.shape[key];
-            let newField = fieldSchema;
-            while (newField instanceof ZodOptional) {
-              newField = newField._def.innerType;
-            }
-            newShape[key] = newField;
-          }
-        }
-        return new _ZodObject({
-          ...this._def,
-          shape: () => newShape
-        });
-      }
-      keyof() {
-        return createZodEnum(util.objectKeys(this.shape));
-      }
-    };
-    ZodObject.create = (shape, params) => {
-      return new ZodObject({
-        shape: () => shape,
-        unknownKeys: "strip",
-        catchall: ZodNever.create(),
-        typeName: ZodFirstPartyTypeKind.ZodObject,
-        ...processCreateParams(params)
-      });
-    };
-    ZodObject.strictCreate = (shape, params) => {
-      return new ZodObject({
-        shape: () => shape,
-        unknownKeys: "strict",
-        catchall: ZodNever.create(),
-        typeName: ZodFirstPartyTypeKind.ZodObject,
-        ...processCreateParams(params)
-      });
-    };
-    ZodObject.lazycreate = (shape, params) => {
-      return new ZodObject({
-        shape,
-        unknownKeys: "strip",
-        catchall: ZodNever.create(),
-        typeName: ZodFirstPartyTypeKind.ZodObject,
-        ...processCreateParams(params)
-      });
-    };
-    ZodUnion = class extends ZodType {
-      _parse(input) {
-        const { ctx } = this._processInputParams(input);
-        const options = this._def.options;
-        function handleResults(results) {
-          for (const result of results) {
-            if (result.result.status === "valid") {
-              return result.result;
-            }
-          }
-          for (const result of results) {
-            if (result.result.status === "dirty") {
-              ctx.common.issues.push(...result.ctx.common.issues);
-              return result.result;
-            }
-          }
-          const unionErrors = results.map((result) => new ZodError(result.ctx.common.issues));
-          addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_union,
-            unionErrors
-          });
-          return INVALID;
-        }
-        if (ctx.common.async) {
-          return Promise.all(options.map(async (option) => {
-            const childCtx = {
-              ...ctx,
-              common: {
-                ...ctx.common,
-                issues: []
-              },
-              parent: null
-            };
-            return {
-              result: await option._parseAsync({
-                data: ctx.data,
-                path: ctx.path,
-                parent: childCtx
-              }),
-              ctx: childCtx
-            };
-          })).then(handleResults);
-        } else {
-          let dirty = void 0;
-          const issues = [];
-          for (const option of options) {
-            const childCtx = {
-              ...ctx,
-              common: {
-                ...ctx.common,
-                issues: []
-              },
-              parent: null
-            };
-            const result = option._parseSync({
-              data: ctx.data,
-              path: ctx.path,
-              parent: childCtx
-            });
-            if (result.status === "valid") {
-              return result;
-            } else if (result.status === "dirty" && !dirty) {
-              dirty = { result, ctx: childCtx };
-            }
-            if (childCtx.common.issues.length) {
-              issues.push(childCtx.common.issues);
-            }
-          }
-          if (dirty) {
-            ctx.common.issues.push(...dirty.ctx.common.issues);
-            return dirty.result;
-          }
-          const unionErrors = issues.map((issues2) => new ZodError(issues2));
-          addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_union,
-            unionErrors
-          });
-          return INVALID;
-        }
-      }
-      get options() {
-        return this._def.options;
-      }
-    };
-    ZodUnion.create = (types, params) => {
-      return new ZodUnion({
-        options: types,
-        typeName: ZodFirstPartyTypeKind.ZodUnion,
-        ...processCreateParams(params)
-      });
-    };
-    getDiscriminator = (type) => {
-      if (type instanceof ZodLazy) {
-        return getDiscriminator(type.schema);
-      } else if (type instanceof ZodEffects) {
-        return getDiscriminator(type.innerType());
-      } else if (type instanceof ZodLiteral) {
-        return [type.value];
-      } else if (type instanceof ZodEnum) {
-        return type.options;
-      } else if (type instanceof ZodNativeEnum) {
-        return util.objectValues(type.enum);
-      } else if (type instanceof ZodDefault) {
-        return getDiscriminator(type._def.innerType);
-      } else if (type instanceof ZodUndefined) {
-        return [void 0];
-      } else if (type instanceof ZodNull) {
-        return [null];
-      } else if (type instanceof ZodOptional) {
-        return [void 0, ...getDiscriminator(type.unwrap())];
-      } else if (type instanceof ZodNullable) {
-        return [null, ...getDiscriminator(type.unwrap())];
-      } else if (type instanceof ZodBranded) {
-        return getDiscriminator(type.unwrap());
-      } else if (type instanceof ZodReadonly) {
-        return getDiscriminator(type.unwrap());
-      } else if (type instanceof ZodCatch) {
-        return getDiscriminator(type._def.innerType);
-      } else {
-        return [];
-      }
-    };
-    ZodDiscriminatedUnion = class _ZodDiscriminatedUnion extends ZodType {
-      _parse(input) {
-        const { ctx } = this._processInputParams(input);
-        if (ctx.parsedType !== ZodParsedType.object) {
-          addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_type,
-            expected: ZodParsedType.object,
-            received: ctx.parsedType
-          });
-          return INVALID;
-        }
-        const discriminator = this.discriminator;
-        const discriminatorValue = ctx.data[discriminator];
-        const option = this.optionsMap.get(discriminatorValue);
-        if (!option) {
-          addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_union_discriminator,
-            options: Array.from(this.optionsMap.keys()),
-            path: [discriminator]
-          });
-          return INVALID;
-        }
-        if (ctx.common.async) {
-          return option._parseAsync({
-            data: ctx.data,
-            path: ctx.path,
-            parent: ctx
-          });
-        } else {
-          return option._parseSync({
-            data: ctx.data,
-            path: ctx.path,
-            parent: ctx
-          });
-        }
-      }
-      get discriminator() {
-        return this._def.discriminator;
-      }
-      get options() {
-        return this._def.options;
-      }
-      get optionsMap() {
-        return this._def.optionsMap;
-      }
-      /**
-       * The constructor of the discriminated union schema. Its behaviour is very similar to that of the normal z.union() constructor.
-       * However, it only allows a union of objects, all of which need to share a discriminator property. This property must
-       * have a different value for each object in the union.
-       * @param discriminator the name of the discriminator property
-       * @param types an array of object schemas
-       * @param params
-       */
-      static create(discriminator, options, params) {
-        const optionsMap = /* @__PURE__ */ new Map();
-        for (const type of options) {
-          const discriminatorValues = getDiscriminator(type.shape[discriminator]);
-          if (!discriminatorValues.length) {
-            throw new Error(`A discriminator value for key \`${discriminator}\` could not be extracted from all schema options`);
-          }
-          for (const value of discriminatorValues) {
-            if (optionsMap.has(value)) {
-              throw new Error(`Discriminator property ${String(discriminator)} has duplicate value ${String(value)}`);
-            }
-            optionsMap.set(value, type);
-          }
-        }
-        return new _ZodDiscriminatedUnion({
-          typeName: ZodFirstPartyTypeKind.ZodDiscriminatedUnion,
-          discriminator,
-          options,
-          optionsMap,
-          ...processCreateParams(params)
-        });
-      }
-    };
-    ZodIntersection = class extends ZodType {
-      _parse(input) {
-        const { status, ctx } = this._processInputParams(input);
-        const handleParsed = (parsedLeft, parsedRight) => {
-          if (isAborted(parsedLeft) || isAborted(parsedRight)) {
-            return INVALID;
-          }
-          const merged = mergeValues(parsedLeft.value, parsedRight.value);
-          if (!merged.valid) {
-            addIssueToContext(ctx, {
-              code: ZodIssueCode.invalid_intersection_types
-            });
-            return INVALID;
-          }
-          if (isDirty(parsedLeft) || isDirty(parsedRight)) {
-            status.dirty();
-          }
-          return { status: status.value, value: merged.data };
-        };
-        if (ctx.common.async) {
-          return Promise.all([
-            this._def.left._parseAsync({
-              data: ctx.data,
-              path: ctx.path,
-              parent: ctx
-            }),
-            this._def.right._parseAsync({
-              data: ctx.data,
-              path: ctx.path,
-              parent: ctx
-            })
-          ]).then(([left, right]) => handleParsed(left, right));
-        } else {
-          return handleParsed(this._def.left._parseSync({
-            data: ctx.data,
-            path: ctx.path,
-            parent: ctx
-          }), this._def.right._parseSync({
-            data: ctx.data,
-            path: ctx.path,
-            parent: ctx
-          }));
-        }
-      }
-    };
-    ZodIntersection.create = (left, right, params) => {
-      return new ZodIntersection({
-        left,
-        right,
-        typeName: ZodFirstPartyTypeKind.ZodIntersection,
-        ...processCreateParams(params)
-      });
-    };
-    ZodTuple = class _ZodTuple extends ZodType {
-      _parse(input) {
-        const { status, ctx } = this._processInputParams(input);
-        if (ctx.parsedType !== ZodParsedType.array) {
-          addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_type,
-            expected: ZodParsedType.array,
-            received: ctx.parsedType
-          });
-          return INVALID;
-        }
-        if (ctx.data.length < this._def.items.length) {
-          addIssueToContext(ctx, {
-            code: ZodIssueCode.too_small,
-            minimum: this._def.items.length,
-            inclusive: true,
-            exact: false,
-            type: "array"
-          });
-          return INVALID;
-        }
-        const rest = this._def.rest;
-        if (!rest && ctx.data.length > this._def.items.length) {
-          addIssueToContext(ctx, {
-            code: ZodIssueCode.too_big,
-            maximum: this._def.items.length,
-            inclusive: true,
-            exact: false,
-            type: "array"
-          });
-          status.dirty();
-        }
-        const items = [...ctx.data].map((item, itemIndex) => {
-          const schema = this._def.items[itemIndex] || this._def.rest;
-          if (!schema)
-            return null;
-          return schema._parse(new ParseInputLazyPath(ctx, item, ctx.path, itemIndex));
-        }).filter((x) => !!x);
-        if (ctx.common.async) {
-          return Promise.all(items).then((results) => {
-            return ParseStatus.mergeArray(status, results);
-          });
-        } else {
-          return ParseStatus.mergeArray(status, items);
-        }
-      }
-      get items() {
-        return this._def.items;
-      }
-      rest(rest) {
-        return new _ZodTuple({
-          ...this._def,
-          rest
-        });
-      }
-    };
-    ZodTuple.create = (schemas, params) => {
-      if (!Array.isArray(schemas)) {
-        throw new Error("You must pass an array of schemas to z.tuple([ ... ])");
-      }
-      return new ZodTuple({
-        items: schemas,
-        typeName: ZodFirstPartyTypeKind.ZodTuple,
-        rest: null,
-        ...processCreateParams(params)
-      });
-    };
-    ZodRecord = class _ZodRecord extends ZodType {
-      get keySchema() {
-        return this._def.keyType;
-      }
-      get valueSchema() {
-        return this._def.valueType;
-      }
-      _parse(input) {
-        const { status, ctx } = this._processInputParams(input);
-        if (ctx.parsedType !== ZodParsedType.object) {
-          addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_type,
-            expected: ZodParsedType.object,
-            received: ctx.parsedType
-          });
-          return INVALID;
-        }
-        const pairs = [];
-        const keyType = this._def.keyType;
-        const valueType = this._def.valueType;
-        for (const key in ctx.data) {
-          pairs.push({
-            key: keyType._parse(new ParseInputLazyPath(ctx, key, ctx.path, key)),
-            value: valueType._parse(new ParseInputLazyPath(ctx, ctx.data[key], ctx.path, key)),
-            alwaysSet: key in ctx.data
-          });
-        }
-        if (ctx.common.async) {
-          return ParseStatus.mergeObjectAsync(status, pairs);
-        } else {
-          return ParseStatus.mergeObjectSync(status, pairs);
-        }
-      }
-      get element() {
-        return this._def.valueType;
-      }
-      static create(first, second, third) {
-        if (second instanceof ZodType) {
-          return new _ZodRecord({
-            keyType: first,
-            valueType: second,
-            typeName: ZodFirstPartyTypeKind.ZodRecord,
-            ...processCreateParams(third)
-          });
-        }
-        return new _ZodRecord({
-          keyType: ZodString.create(),
-          valueType: first,
-          typeName: ZodFirstPartyTypeKind.ZodRecord,
-          ...processCreateParams(second)
-        });
-      }
-    };
-    ZodMap = class extends ZodType {
-      get keySchema() {
-        return this._def.keyType;
-      }
-      get valueSchema() {
-        return this._def.valueType;
-      }
-      _parse(input) {
-        const { status, ctx } = this._processInputParams(input);
-        if (ctx.parsedType !== ZodParsedType.map) {
-          addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_type,
-            expected: ZodParsedType.map,
-            received: ctx.parsedType
-          });
-          return INVALID;
-        }
-        const keyType = this._def.keyType;
-        const valueType = this._def.valueType;
-        const pairs = [...ctx.data.entries()].map(([key, value], index) => {
-          return {
-            key: keyType._parse(new ParseInputLazyPath(ctx, key, ctx.path, [index, "key"])),
-            value: valueType._parse(new ParseInputLazyPath(ctx, value, ctx.path, [index, "value"]))
-          };
-        });
-        if (ctx.common.async) {
-          const finalMap = /* @__PURE__ */ new Map();
-          return Promise.resolve().then(async () => {
-            for (const pair of pairs) {
-              const key = await pair.key;
-              const value = await pair.value;
-              if (key.status === "aborted" || value.status === "aborted") {
-                return INVALID;
-              }
-              if (key.status === "dirty" || value.status === "dirty") {
-                status.dirty();
-              }
-              finalMap.set(key.value, value.value);
-            }
-            return { status: status.value, value: finalMap };
-          });
-        } else {
-          const finalMap = /* @__PURE__ */ new Map();
-          for (const pair of pairs) {
-            const key = pair.key;
-            const value = pair.value;
-            if (key.status === "aborted" || value.status === "aborted") {
-              return INVALID;
-            }
-            if (key.status === "dirty" || value.status === "dirty") {
-              status.dirty();
-            }
-            finalMap.set(key.value, value.value);
-          }
-          return { status: status.value, value: finalMap };
-        }
-      }
-    };
-    ZodMap.create = (keyType, valueType, params) => {
-      return new ZodMap({
-        valueType,
-        keyType,
-        typeName: ZodFirstPartyTypeKind.ZodMap,
-        ...processCreateParams(params)
-      });
-    };
-    ZodSet = class _ZodSet extends ZodType {
-      _parse(input) {
-        const { status, ctx } = this._processInputParams(input);
-        if (ctx.parsedType !== ZodParsedType.set) {
-          addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_type,
-            expected: ZodParsedType.set,
-            received: ctx.parsedType
-          });
-          return INVALID;
-        }
-        const def = this._def;
-        if (def.minSize !== null) {
-          if (ctx.data.size < def.minSize.value) {
-            addIssueToContext(ctx, {
-              code: ZodIssueCode.too_small,
-              minimum: def.minSize.value,
-              type: "set",
-              inclusive: true,
-              exact: false,
-              message: def.minSize.message
-            });
-            status.dirty();
-          }
-        }
-        if (def.maxSize !== null) {
-          if (ctx.data.size > def.maxSize.value) {
-            addIssueToContext(ctx, {
-              code: ZodIssueCode.too_big,
-              maximum: def.maxSize.value,
-              type: "set",
-              inclusive: true,
-              exact: false,
-              message: def.maxSize.message
-            });
-            status.dirty();
-          }
-        }
-        const valueType = this._def.valueType;
-        function finalizeSet(elements2) {
-          const parsedSet = /* @__PURE__ */ new Set();
-          for (const element of elements2) {
-            if (element.status === "aborted")
-              return INVALID;
-            if (element.status === "dirty")
-              status.dirty();
-            parsedSet.add(element.value);
-          }
-          return { status: status.value, value: parsedSet };
-        }
-        const elements = [...ctx.data.values()].map((item, i) => valueType._parse(new ParseInputLazyPath(ctx, item, ctx.path, i)));
-        if (ctx.common.async) {
-          return Promise.all(elements).then((elements2) => finalizeSet(elements2));
-        } else {
-          return finalizeSet(elements);
-        }
-      }
-      min(minSize, message) {
-        return new _ZodSet({
-          ...this._def,
-          minSize: { value: minSize, message: errorUtil.toString(message) }
-        });
-      }
-      max(maxSize, message) {
-        return new _ZodSet({
-          ...this._def,
-          maxSize: { value: maxSize, message: errorUtil.toString(message) }
-        });
-      }
-      size(size, message) {
-        return this.min(size, message).max(size, message);
-      }
-      nonempty(message) {
-        return this.min(1, message);
-      }
-    };
-    ZodSet.create = (valueType, params) => {
-      return new ZodSet({
-        valueType,
-        minSize: null,
-        maxSize: null,
-        typeName: ZodFirstPartyTypeKind.ZodSet,
-        ...processCreateParams(params)
-      });
-    };
-    ZodFunction = class _ZodFunction extends ZodType {
-      constructor() {
-        super(...arguments);
-        this.validate = this.implement;
-      }
-      _parse(input) {
-        const { ctx } = this._processInputParams(input);
-        if (ctx.parsedType !== ZodParsedType.function) {
-          addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_type,
-            expected: ZodParsedType.function,
-            received: ctx.parsedType
-          });
-          return INVALID;
-        }
-        function makeArgsIssue(args, error) {
-          return makeIssue({
-            data: args,
-            path: ctx.path,
-            errorMaps: [ctx.common.contextualErrorMap, ctx.schemaErrorMap, getErrorMap(), en_default].filter((x) => !!x),
-            issueData: {
-              code: ZodIssueCode.invalid_arguments,
-              argumentsError: error
-            }
-          });
-        }
-        function makeReturnsIssue(returns, error) {
-          return makeIssue({
-            data: returns,
-            path: ctx.path,
-            errorMaps: [ctx.common.contextualErrorMap, ctx.schemaErrorMap, getErrorMap(), en_default].filter((x) => !!x),
-            issueData: {
-              code: ZodIssueCode.invalid_return_type,
-              returnTypeError: error
-            }
-          });
-        }
-        const params = { errorMap: ctx.common.contextualErrorMap };
-        const fn = ctx.data;
-        if (this._def.returns instanceof ZodPromise) {
-          const me = this;
-          return OK(async function(...args) {
-            const error = new ZodError([]);
-            const parsedArgs = await me._def.args.parseAsync(args, params).catch((e) => {
-              error.addIssue(makeArgsIssue(args, e));
-              throw error;
-            });
-            const result = await Reflect.apply(fn, this, parsedArgs);
-            const parsedReturns = await me._def.returns._def.type.parseAsync(result, params).catch((e) => {
-              error.addIssue(makeReturnsIssue(result, e));
-              throw error;
-            });
-            return parsedReturns;
-          });
-        } else {
-          const me = this;
-          return OK(function(...args) {
-            const parsedArgs = me._def.args.safeParse(args, params);
-            if (!parsedArgs.success) {
-              throw new ZodError([makeArgsIssue(args, parsedArgs.error)]);
-            }
-            const result = Reflect.apply(fn, this, parsedArgs.data);
-            const parsedReturns = me._def.returns.safeParse(result, params);
-            if (!parsedReturns.success) {
-              throw new ZodError([makeReturnsIssue(result, parsedReturns.error)]);
-            }
-            return parsedReturns.data;
-          });
-        }
-      }
-      parameters() {
-        return this._def.args;
-      }
-      returnType() {
-        return this._def.returns;
-      }
-      args(...items) {
-        return new _ZodFunction({
-          ...this._def,
-          args: ZodTuple.create(items).rest(ZodUnknown.create())
-        });
-      }
-      returns(returnType) {
-        return new _ZodFunction({
-          ...this._def,
-          returns: returnType
-        });
-      }
-      implement(func) {
-        const validatedFunc = this.parse(func);
-        return validatedFunc;
-      }
-      strictImplement(func) {
-        const validatedFunc = this.parse(func);
-        return validatedFunc;
-      }
-      static create(args, returns, params) {
-        return new _ZodFunction({
-          args: args ? args : ZodTuple.create([]).rest(ZodUnknown.create()),
-          returns: returns || ZodUnknown.create(),
-          typeName: ZodFirstPartyTypeKind.ZodFunction,
-          ...processCreateParams(params)
-        });
-      }
-    };
-    ZodLazy = class extends ZodType {
-      get schema() {
-        return this._def.getter();
-      }
-      _parse(input) {
-        const { ctx } = this._processInputParams(input);
-        const lazySchema = this._def.getter();
-        return lazySchema._parse({ data: ctx.data, path: ctx.path, parent: ctx });
-      }
-    };
-    ZodLazy.create = (getter, params) => {
-      return new ZodLazy({
-        getter,
-        typeName: ZodFirstPartyTypeKind.ZodLazy,
-        ...processCreateParams(params)
-      });
-    };
-    ZodLiteral = class extends ZodType {
-      _parse(input) {
-        if (input.data !== this._def.value) {
-          const ctx = this._getOrReturnCtx(input);
-          addIssueToContext(ctx, {
-            received: ctx.data,
-            code: ZodIssueCode.invalid_literal,
-            expected: this._def.value
-          });
-          return INVALID;
-        }
-        return { status: "valid", value: input.data };
-      }
-      get value() {
-        return this._def.value;
-      }
-    };
-    ZodLiteral.create = (value, params) => {
-      return new ZodLiteral({
-        value,
-        typeName: ZodFirstPartyTypeKind.ZodLiteral,
-        ...processCreateParams(params)
-      });
-    };
-    ZodEnum = class _ZodEnum extends ZodType {
-      _parse(input) {
-        if (typeof input.data !== "string") {
-          const ctx = this._getOrReturnCtx(input);
-          const expectedValues = this._def.values;
-          addIssueToContext(ctx, {
-            expected: util.joinValues(expectedValues),
-            received: ctx.parsedType,
-            code: ZodIssueCode.invalid_type
-          });
-          return INVALID;
-        }
-        if (!this._cache) {
-          this._cache = new Set(this._def.values);
-        }
-        if (!this._cache.has(input.data)) {
-          const ctx = this._getOrReturnCtx(input);
-          const expectedValues = this._def.values;
-          addIssueToContext(ctx, {
-            received: ctx.data,
-            code: ZodIssueCode.invalid_enum_value,
-            options: expectedValues
-          });
-          return INVALID;
-        }
-        return OK(input.data);
-      }
-      get options() {
-        return this._def.values;
-      }
-      get enum() {
-        const enumValues = {};
-        for (const val of this._def.values) {
-          enumValues[val] = val;
-        }
-        return enumValues;
-      }
-      get Values() {
-        const enumValues = {};
-        for (const val of this._def.values) {
-          enumValues[val] = val;
-        }
-        return enumValues;
-      }
-      get Enum() {
-        const enumValues = {};
-        for (const val of this._def.values) {
-          enumValues[val] = val;
-        }
-        return enumValues;
-      }
-      extract(values, newDef = this._def) {
-        return _ZodEnum.create(values, {
-          ...this._def,
-          ...newDef
-        });
-      }
-      exclude(values, newDef = this._def) {
-        return _ZodEnum.create(this.options.filter((opt) => !values.includes(opt)), {
-          ...this._def,
-          ...newDef
-        });
-      }
-    };
-    ZodEnum.create = createZodEnum;
-    ZodNativeEnum = class extends ZodType {
-      _parse(input) {
-        const nativeEnumValues = util.getValidEnumValues(this._def.values);
-        const ctx = this._getOrReturnCtx(input);
-        if (ctx.parsedType !== ZodParsedType.string && ctx.parsedType !== ZodParsedType.number) {
-          const expectedValues = util.objectValues(nativeEnumValues);
-          addIssueToContext(ctx, {
-            expected: util.joinValues(expectedValues),
-            received: ctx.parsedType,
-            code: ZodIssueCode.invalid_type
-          });
-          return INVALID;
-        }
-        if (!this._cache) {
-          this._cache = new Set(util.getValidEnumValues(this._def.values));
-        }
-        if (!this._cache.has(input.data)) {
-          const expectedValues = util.objectValues(nativeEnumValues);
-          addIssueToContext(ctx, {
-            received: ctx.data,
-            code: ZodIssueCode.invalid_enum_value,
-            options: expectedValues
-          });
-          return INVALID;
-        }
-        return OK(input.data);
-      }
-      get enum() {
-        return this._def.values;
-      }
-    };
-    ZodNativeEnum.create = (values, params) => {
-      return new ZodNativeEnum({
-        values,
-        typeName: ZodFirstPartyTypeKind.ZodNativeEnum,
-        ...processCreateParams(params)
-      });
-    };
-    ZodPromise = class extends ZodType {
-      unwrap() {
-        return this._def.type;
-      }
-      _parse(input) {
-        const { ctx } = this._processInputParams(input);
-        if (ctx.parsedType !== ZodParsedType.promise && ctx.common.async === false) {
-          addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_type,
-            expected: ZodParsedType.promise,
-            received: ctx.parsedType
-          });
-          return INVALID;
-        }
-        const promisified = ctx.parsedType === ZodParsedType.promise ? ctx.data : Promise.resolve(ctx.data);
-        return OK(promisified.then((data) => {
-          return this._def.type.parseAsync(data, {
-            path: ctx.path,
-            errorMap: ctx.common.contextualErrorMap
-          });
-        }));
-      }
-    };
-    ZodPromise.create = (schema, params) => {
-      return new ZodPromise({
-        type: schema,
-        typeName: ZodFirstPartyTypeKind.ZodPromise,
-        ...processCreateParams(params)
-      });
-    };
-    ZodEffects = class extends ZodType {
-      innerType() {
-        return this._def.schema;
-      }
-      sourceType() {
-        return this._def.schema._def.typeName === ZodFirstPartyTypeKind.ZodEffects ? this._def.schema.sourceType() : this._def.schema;
-      }
-      _parse(input) {
-        const { status, ctx } = this._processInputParams(input);
-        const effect = this._def.effect || null;
-        const checkCtx = {
-          addIssue: (arg) => {
-            addIssueToContext(ctx, arg);
-            if (arg.fatal) {
-              status.abort();
-            } else {
-              status.dirty();
-            }
-          },
-          get path() {
-            return ctx.path;
-          }
-        };
-        checkCtx.addIssue = checkCtx.addIssue.bind(checkCtx);
-        if (effect.type === "preprocess") {
-          const processed = effect.transform(ctx.data, checkCtx);
-          if (ctx.common.async) {
-            return Promise.resolve(processed).then(async (processed2) => {
-              if (status.value === "aborted")
-                return INVALID;
-              const result = await this._def.schema._parseAsync({
-                data: processed2,
-                path: ctx.path,
-                parent: ctx
-              });
-              if (result.status === "aborted")
-                return INVALID;
-              if (result.status === "dirty")
-                return DIRTY(result.value);
-              if (status.value === "dirty")
-                return DIRTY(result.value);
-              return result;
-            });
-          } else {
-            if (status.value === "aborted")
-              return INVALID;
-            const result = this._def.schema._parseSync({
-              data: processed,
-              path: ctx.path,
-              parent: ctx
-            });
-            if (result.status === "aborted")
-              return INVALID;
-            if (result.status === "dirty")
-              return DIRTY(result.value);
-            if (status.value === "dirty")
-              return DIRTY(result.value);
-            return result;
-          }
-        }
-        if (effect.type === "refinement") {
-          const executeRefinement = (acc) => {
-            const result = effect.refinement(acc, checkCtx);
-            if (ctx.common.async) {
-              return Promise.resolve(result);
-            }
-            if (result instanceof Promise) {
-              throw new Error("Async refinement encountered during synchronous parse operation. Use .parseAsync instead.");
-            }
-            return acc;
-          };
-          if (ctx.common.async === false) {
-            const inner = this._def.schema._parseSync({
-              data: ctx.data,
-              path: ctx.path,
-              parent: ctx
-            });
-            if (inner.status === "aborted")
-              return INVALID;
-            if (inner.status === "dirty")
-              status.dirty();
-            executeRefinement(inner.value);
-            return { status: status.value, value: inner.value };
-          } else {
-            return this._def.schema._parseAsync({ data: ctx.data, path: ctx.path, parent: ctx }).then((inner) => {
-              if (inner.status === "aborted")
-                return INVALID;
-              if (inner.status === "dirty")
-                status.dirty();
-              return executeRefinement(inner.value).then(() => {
-                return { status: status.value, value: inner.value };
-              });
-            });
-          }
-        }
-        if (effect.type === "transform") {
-          if (ctx.common.async === false) {
-            const base = this._def.schema._parseSync({
-              data: ctx.data,
-              path: ctx.path,
-              parent: ctx
-            });
-            if (!isValid(base))
-              return INVALID;
-            const result = effect.transform(base.value, checkCtx);
-            if (result instanceof Promise) {
-              throw new Error(`Asynchronous transform encountered during synchronous parse operation. Use .parseAsync instead.`);
-            }
-            return { status: status.value, value: result };
-          } else {
-            return this._def.schema._parseAsync({ data: ctx.data, path: ctx.path, parent: ctx }).then((base) => {
-              if (!isValid(base))
-                return INVALID;
-              return Promise.resolve(effect.transform(base.value, checkCtx)).then((result) => ({
-                status: status.value,
-                value: result
-              }));
-            });
-          }
-        }
-        util.assertNever(effect);
-      }
-    };
-    ZodEffects.create = (schema, effect, params) => {
-      return new ZodEffects({
-        schema,
-        typeName: ZodFirstPartyTypeKind.ZodEffects,
-        effect,
-        ...processCreateParams(params)
-      });
-    };
-    ZodEffects.createWithPreprocess = (preprocess, schema, params) => {
-      return new ZodEffects({
-        schema,
-        effect: { type: "preprocess", transform: preprocess },
-        typeName: ZodFirstPartyTypeKind.ZodEffects,
-        ...processCreateParams(params)
-      });
-    };
-    ZodOptional = class extends ZodType {
-      _parse(input) {
-        const parsedType = this._getType(input);
-        if (parsedType === ZodParsedType.undefined) {
-          return OK(void 0);
-        }
-        return this._def.innerType._parse(input);
-      }
-      unwrap() {
-        return this._def.innerType;
-      }
-    };
-    ZodOptional.create = (type, params) => {
-      return new ZodOptional({
-        innerType: type,
-        typeName: ZodFirstPartyTypeKind.ZodOptional,
-        ...processCreateParams(params)
-      });
-    };
-    ZodNullable = class extends ZodType {
-      _parse(input) {
-        const parsedType = this._getType(input);
-        if (parsedType === ZodParsedType.null) {
-          return OK(null);
-        }
-        return this._def.innerType._parse(input);
-      }
-      unwrap() {
-        return this._def.innerType;
-      }
-    };
-    ZodNullable.create = (type, params) => {
-      return new ZodNullable({
-        innerType: type,
-        typeName: ZodFirstPartyTypeKind.ZodNullable,
-        ...processCreateParams(params)
-      });
-    };
-    ZodDefault = class extends ZodType {
-      _parse(input) {
-        const { ctx } = this._processInputParams(input);
-        let data = ctx.data;
-        if (ctx.parsedType === ZodParsedType.undefined) {
-          data = this._def.defaultValue();
-        }
-        return this._def.innerType._parse({
-          data,
-          path: ctx.path,
-          parent: ctx
-        });
-      }
-      removeDefault() {
-        return this._def.innerType;
-      }
-    };
-    ZodDefault.create = (type, params) => {
-      return new ZodDefault({
-        innerType: type,
-        typeName: ZodFirstPartyTypeKind.ZodDefault,
-        defaultValue: typeof params.default === "function" ? params.default : () => params.default,
-        ...processCreateParams(params)
-      });
-    };
-    ZodCatch = class extends ZodType {
-      _parse(input) {
-        const { ctx } = this._processInputParams(input);
-        const newCtx = {
-          ...ctx,
-          common: {
-            ...ctx.common,
-            issues: []
-          }
-        };
-        const result = this._def.innerType._parse({
-          data: newCtx.data,
-          path: newCtx.path,
-          parent: {
-            ...newCtx
-          }
-        });
-        if (isAsync(result)) {
-          return result.then((result2) => {
-            return {
-              status: "valid",
-              value: result2.status === "valid" ? result2.value : this._def.catchValue({
-                get error() {
-                  return new ZodError(newCtx.common.issues);
-                },
-                input: newCtx.data
-              })
-            };
-          });
-        } else {
-          return {
-            status: "valid",
-            value: result.status === "valid" ? result.value : this._def.catchValue({
-              get error() {
-                return new ZodError(newCtx.common.issues);
-              },
-              input: newCtx.data
-            })
-          };
-        }
-      }
-      removeCatch() {
-        return this._def.innerType;
-      }
-    };
-    ZodCatch.create = (type, params) => {
-      return new ZodCatch({
-        innerType: type,
-        typeName: ZodFirstPartyTypeKind.ZodCatch,
-        catchValue: typeof params.catch === "function" ? params.catch : () => params.catch,
-        ...processCreateParams(params)
-      });
-    };
-    ZodNaN = class extends ZodType {
-      _parse(input) {
-        const parsedType = this._getType(input);
-        if (parsedType !== ZodParsedType.nan) {
-          const ctx = this._getOrReturnCtx(input);
-          addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_type,
-            expected: ZodParsedType.nan,
-            received: ctx.parsedType
-          });
-          return INVALID;
-        }
-        return { status: "valid", value: input.data };
-      }
-    };
-    ZodNaN.create = (params) => {
-      return new ZodNaN({
-        typeName: ZodFirstPartyTypeKind.ZodNaN,
-        ...processCreateParams(params)
-      });
-    };
-    BRAND = /* @__PURE__ */ Symbol("zod_brand");
-    ZodBranded = class extends ZodType {
-      _parse(input) {
-        const { ctx } = this._processInputParams(input);
-        const data = ctx.data;
-        return this._def.type._parse({
-          data,
-          path: ctx.path,
-          parent: ctx
-        });
-      }
-      unwrap() {
-        return this._def.type;
-      }
-    };
-    ZodPipeline = class _ZodPipeline extends ZodType {
-      _parse(input) {
-        const { status, ctx } = this._processInputParams(input);
-        if (ctx.common.async) {
-          const handleAsync = async () => {
-            const inResult = await this._def.in._parseAsync({
-              data: ctx.data,
-              path: ctx.path,
-              parent: ctx
-            });
-            if (inResult.status === "aborted")
-              return INVALID;
-            if (inResult.status === "dirty") {
-              status.dirty();
-              return DIRTY(inResult.value);
-            } else {
-              return this._def.out._parseAsync({
-                data: inResult.value,
-                path: ctx.path,
-                parent: ctx
-              });
-            }
-          };
-          return handleAsync();
-        } else {
-          const inResult = this._def.in._parseSync({
-            data: ctx.data,
-            path: ctx.path,
-            parent: ctx
-          });
-          if (inResult.status === "aborted")
-            return INVALID;
-          if (inResult.status === "dirty") {
-            status.dirty();
-            return {
-              status: "dirty",
-              value: inResult.value
-            };
-          } else {
-            return this._def.out._parseSync({
-              data: inResult.value,
-              path: ctx.path,
-              parent: ctx
-            });
-          }
-        }
-      }
-      static create(a, b) {
-        return new _ZodPipeline({
-          in: a,
-          out: b,
-          typeName: ZodFirstPartyTypeKind.ZodPipeline
-        });
-      }
-    };
-    ZodReadonly = class extends ZodType {
-      _parse(input) {
-        const result = this._def.innerType._parse(input);
-        const freeze = (data) => {
-          if (isValid(data)) {
-            data.value = Object.freeze(data.value);
-          }
-          return data;
-        };
-        return isAsync(result) ? result.then((data) => freeze(data)) : freeze(result);
-      }
-      unwrap() {
-        return this._def.innerType;
-      }
-    };
-    ZodReadonly.create = (type, params) => {
-      return new ZodReadonly({
-        innerType: type,
-        typeName: ZodFirstPartyTypeKind.ZodReadonly,
-        ...processCreateParams(params)
-      });
-    };
-    late = {
-      object: ZodObject.lazycreate
-    };
-    (function(ZodFirstPartyTypeKind2) {
-      ZodFirstPartyTypeKind2["ZodString"] = "ZodString";
-      ZodFirstPartyTypeKind2["ZodNumber"] = "ZodNumber";
-      ZodFirstPartyTypeKind2["ZodNaN"] = "ZodNaN";
-      ZodFirstPartyTypeKind2["ZodBigInt"] = "ZodBigInt";
-      ZodFirstPartyTypeKind2["ZodBoolean"] = "ZodBoolean";
-      ZodFirstPartyTypeKind2["ZodDate"] = "ZodDate";
-      ZodFirstPartyTypeKind2["ZodSymbol"] = "ZodSymbol";
-      ZodFirstPartyTypeKind2["ZodUndefined"] = "ZodUndefined";
-      ZodFirstPartyTypeKind2["ZodNull"] = "ZodNull";
-      ZodFirstPartyTypeKind2["ZodAny"] = "ZodAny";
-      ZodFirstPartyTypeKind2["ZodUnknown"] = "ZodUnknown";
-      ZodFirstPartyTypeKind2["ZodNever"] = "ZodNever";
-      ZodFirstPartyTypeKind2["ZodVoid"] = "ZodVoid";
-      ZodFirstPartyTypeKind2["ZodArray"] = "ZodArray";
-      ZodFirstPartyTypeKind2["ZodObject"] = "ZodObject";
-      ZodFirstPartyTypeKind2["ZodUnion"] = "ZodUnion";
-      ZodFirstPartyTypeKind2["ZodDiscriminatedUnion"] = "ZodDiscriminatedUnion";
-      ZodFirstPartyTypeKind2["ZodIntersection"] = "ZodIntersection";
-      ZodFirstPartyTypeKind2["ZodTuple"] = "ZodTuple";
-      ZodFirstPartyTypeKind2["ZodRecord"] = "ZodRecord";
-      ZodFirstPartyTypeKind2["ZodMap"] = "ZodMap";
-      ZodFirstPartyTypeKind2["ZodSet"] = "ZodSet";
-      ZodFirstPartyTypeKind2["ZodFunction"] = "ZodFunction";
-      ZodFirstPartyTypeKind2["ZodLazy"] = "ZodLazy";
-      ZodFirstPartyTypeKind2["ZodLiteral"] = "ZodLiteral";
-      ZodFirstPartyTypeKind2["ZodEnum"] = "ZodEnum";
-      ZodFirstPartyTypeKind2["ZodEffects"] = "ZodEffects";
-      ZodFirstPartyTypeKind2["ZodNativeEnum"] = "ZodNativeEnum";
-      ZodFirstPartyTypeKind2["ZodOptional"] = "ZodOptional";
-      ZodFirstPartyTypeKind2["ZodNullable"] = "ZodNullable";
-      ZodFirstPartyTypeKind2["ZodDefault"] = "ZodDefault";
-      ZodFirstPartyTypeKind2["ZodCatch"] = "ZodCatch";
-      ZodFirstPartyTypeKind2["ZodPromise"] = "ZodPromise";
-      ZodFirstPartyTypeKind2["ZodBranded"] = "ZodBranded";
-      ZodFirstPartyTypeKind2["ZodPipeline"] = "ZodPipeline";
-      ZodFirstPartyTypeKind2["ZodReadonly"] = "ZodReadonly";
-    })(ZodFirstPartyTypeKind || (ZodFirstPartyTypeKind = {}));
-    instanceOfType = (cls, params = {
-      message: `Input not instance of ${cls.name}`
-    }) => custom((data) => data instanceof cls, params);
-    stringType = ZodString.create;
-    numberType = ZodNumber.create;
-    nanType = ZodNaN.create;
-    bigIntType = ZodBigInt.create;
-    booleanType = ZodBoolean.create;
-    dateType = ZodDate.create;
-    symbolType = ZodSymbol.create;
-    undefinedType = ZodUndefined.create;
-    nullType = ZodNull.create;
-    anyType = ZodAny.create;
-    unknownType = ZodUnknown.create;
-    neverType = ZodNever.create;
-    voidType = ZodVoid.create;
-    arrayType = ZodArray.create;
-    objectType = ZodObject.create;
-    strictObjectType = ZodObject.strictCreate;
-    unionType = ZodUnion.create;
-    discriminatedUnionType = ZodDiscriminatedUnion.create;
-    intersectionType = ZodIntersection.create;
-    tupleType = ZodTuple.create;
-    recordType = ZodRecord.create;
-    mapType = ZodMap.create;
-    setType = ZodSet.create;
-    functionType = ZodFunction.create;
-    lazyType = ZodLazy.create;
-    literalType = ZodLiteral.create;
-    enumType = ZodEnum.create;
-    nativeEnumType = ZodNativeEnum.create;
-    promiseType = ZodPromise.create;
-    effectsType = ZodEffects.create;
-    optionalType = ZodOptional.create;
-    nullableType = ZodNullable.create;
-    preprocessType = ZodEffects.createWithPreprocess;
-    pipelineType = ZodPipeline.create;
-    ostring = () => stringType().optional();
-    onumber = () => numberType().optional();
-    oboolean = () => booleanType().optional();
-    coerce = {
-      string: ((arg) => ZodString.create({ ...arg, coerce: true })),
-      number: ((arg) => ZodNumber.create({ ...arg, coerce: true })),
-      boolean: ((arg) => ZodBoolean.create({
-        ...arg,
-        coerce: true
-      })),
-      bigint: ((arg) => ZodBigInt.create({ ...arg, coerce: true })),
-      date: ((arg) => ZodDate.create({ ...arg, coerce: true }))
-    };
-    NEVER = INVALID;
-  }
-});
-
-// node_modules/zod/v3/external.js
-var external_exports = {};
-__export2(external_exports, {
-  BRAND: () => BRAND,
-  DIRTY: () => DIRTY,
-  EMPTY_PATH: () => EMPTY_PATH,
-  INVALID: () => INVALID,
-  NEVER: () => NEVER,
-  OK: () => OK,
-  ParseStatus: () => ParseStatus,
-  Schema: () => ZodType,
-  ZodAny: () => ZodAny,
-  ZodArray: () => ZodArray,
-  ZodBigInt: () => ZodBigInt,
-  ZodBoolean: () => ZodBoolean,
-  ZodBranded: () => ZodBranded,
-  ZodCatch: () => ZodCatch,
-  ZodDate: () => ZodDate,
-  ZodDefault: () => ZodDefault,
-  ZodDiscriminatedUnion: () => ZodDiscriminatedUnion,
-  ZodEffects: () => ZodEffects,
-  ZodEnum: () => ZodEnum,
-  ZodError: () => ZodError,
-  ZodFirstPartyTypeKind: () => ZodFirstPartyTypeKind,
-  ZodFunction: () => ZodFunction,
-  ZodIntersection: () => ZodIntersection,
-  ZodIssueCode: () => ZodIssueCode,
-  ZodLazy: () => ZodLazy,
-  ZodLiteral: () => ZodLiteral,
-  ZodMap: () => ZodMap,
-  ZodNaN: () => ZodNaN,
-  ZodNativeEnum: () => ZodNativeEnum,
-  ZodNever: () => ZodNever,
-  ZodNull: () => ZodNull,
-  ZodNullable: () => ZodNullable,
-  ZodNumber: () => ZodNumber,
-  ZodObject: () => ZodObject,
-  ZodOptional: () => ZodOptional,
-  ZodParsedType: () => ZodParsedType,
-  ZodPipeline: () => ZodPipeline,
-  ZodPromise: () => ZodPromise,
-  ZodReadonly: () => ZodReadonly,
-  ZodRecord: () => ZodRecord,
-  ZodSchema: () => ZodType,
-  ZodSet: () => ZodSet,
-  ZodString: () => ZodString,
-  ZodSymbol: () => ZodSymbol,
-  ZodTransformer: () => ZodEffects,
-  ZodTuple: () => ZodTuple,
-  ZodType: () => ZodType,
-  ZodUndefined: () => ZodUndefined,
-  ZodUnion: () => ZodUnion,
-  ZodUnknown: () => ZodUnknown,
-  ZodVoid: () => ZodVoid,
-  addIssueToContext: () => addIssueToContext,
-  any: () => anyType,
-  array: () => arrayType,
-  bigint: () => bigIntType,
-  boolean: () => booleanType,
-  coerce: () => coerce,
-  custom: () => custom,
-  date: () => dateType,
-  datetimeRegex: () => datetimeRegex,
-  defaultErrorMap: () => en_default,
-  discriminatedUnion: () => discriminatedUnionType,
-  effect: () => effectsType,
-  enum: () => enumType,
-  function: () => functionType,
-  getErrorMap: () => getErrorMap,
-  getParsedType: () => getParsedType,
-  instanceof: () => instanceOfType,
-  intersection: () => intersectionType,
-  isAborted: () => isAborted,
-  isAsync: () => isAsync,
-  isDirty: () => isDirty,
-  isValid: () => isValid,
-  late: () => late,
-  lazy: () => lazyType,
-  literal: () => literalType,
-  makeIssue: () => makeIssue,
-  map: () => mapType,
-  nan: () => nanType,
-  nativeEnum: () => nativeEnumType,
-  never: () => neverType,
-  null: () => nullType,
-  nullable: () => nullableType,
-  number: () => numberType,
-  object: () => objectType,
-  objectUtil: () => objectUtil,
-  oboolean: () => oboolean,
-  onumber: () => onumber,
-  optional: () => optionalType,
-  ostring: () => ostring,
-  pipeline: () => pipelineType,
-  preprocess: () => preprocessType,
-  promise: () => promiseType,
-  quotelessJson: () => quotelessJson,
-  record: () => recordType,
-  set: () => setType,
-  setErrorMap: () => setErrorMap,
-  strictObject: () => strictObjectType,
-  string: () => stringType,
-  symbol: () => symbolType,
-  transformer: () => effectsType,
-  tuple: () => tupleType,
-  undefined: () => undefinedType,
-  union: () => unionType,
-  unknown: () => unknownType,
-  util: () => util,
-  void: () => voidType
-});
-var init_external = __esm({
-  "node_modules/zod/v3/external.js"() {
-    init_errors();
-    init_parseUtil();
-    init_typeAliases();
-    init_util();
-    init_types();
-    init_ZodError();
-  }
-});
-
-// node_modules/zod/index.js
-var init_zod = __esm({
-  "node_modules/zod/index.js"() {
-    init_external();
-    init_external();
-  }
-});
-
-// src/services/providers/universal.provider.ts
-var ProviderServiceSchema, ProviderServicesArraySchema, UniversalProvider;
-var init_universal_provider = __esm({
-  "src/services/providers/universal.provider.ts"() {
-    "use strict";
-    init_circuit_breaker();
-    init_ssrf_guard2();
-    init_proxy_fetch();
-    init_zod();
-    ProviderServiceSchema = external_exports.object({
-      service: external_exports.union([external_exports.string(), external_exports.number()]).transform(String),
-      name: external_exports.string().optional().default("Unknown Service"),
-      category: external_exports.string().optional().default("Unknown Category"),
-      rate: external_exports.union([external_exports.string(), external_exports.number()]).transform(String),
-      min: external_exports.union([external_exports.string(), external_exports.number()]).transform(String),
-      max: external_exports.union([external_exports.string(), external_exports.number()]).transform(String),
-      type: external_exports.string().optional().default("Default"),
-      desc: external_exports.string().nullable().optional(),
-      description: external_exports.string().nullable().optional(),
-      dripfeed: external_exports.union([external_exports.number(), external_exports.boolean(), external_exports.string()]).optional(),
-      refill: external_exports.union([external_exports.number(), external_exports.boolean(), external_exports.string()]).optional(),
-      cancel: external_exports.union([external_exports.number(), external_exports.boolean(), external_exports.string()]).optional()
-    }).passthrough();
-    ProviderServicesArraySchema = external_exports.array(ProviderServiceSchema);
-    UniversalProvider = class {
-      constructor(apiUrl, apiKey, metadata, proxyConfig) {
-        this.mapping = null;
-        this.proxyConfig = null;
-        this.apiUrl = apiUrl;
-        this.apiKey = apiKey;
-        if (metadata && typeof metadata === "object" && metadata.mapping) {
-          this.mapping = metadata.mapping;
-        }
-        if (proxyConfig) {
-          this.proxyConfig = proxyConfig;
-        }
-      }
-      extractNested(obj, path3) {
-        if (!path3 || path3 === "$") return obj;
-        const parts = path3.split(".");
-        let current = obj;
-        for (const part of parts) {
-          if (current === void 0 || current === null) return void 0;
-          if (typeof current === "object" && current !== null && part in current) {
-            current = current[part];
-          } else {
-            return void 0;
-          }
-        }
-        return current;
-      }
-      async request(paramsOrPayload, retries = 2) {
-        await assertSafeUrl(this.apiUrl);
-        await CircuitBreaker.check(this.apiUrl);
-        let httpMethod = "POST";
-        let contentType = "form";
-        let authType = "body";
-        let authField = "key";
-        let authPrefix = "";
-        if (this.mapping) {
-          httpMethod = this.mapping.httpMethod || "POST";
-          contentType = this.mapping.contentType || "form";
-          if (this.mapping.auth) {
-            authType = this.mapping.auth.type || "body";
-            authField = this.mapping.auth.field || "key";
-            authPrefix = this.mapping.auth.prefix || "";
-          }
-        }
-        const authValue = authPrefix ? `${authPrefix}${this.apiKey}` : this.apiKey;
-        for (let attempt = 0; attempt <= retries; attempt++) {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 15e3);
-          try {
-            let finalUrl = this.apiUrl;
-            const headers2 = {
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            };
-            if (contentType === "json") {
-              headers2["Content-Type"] = "application/json";
-            } else {
-              headers2["Content-Type"] = "application/x-www-form-urlencoded";
-            }
-            const params = new URLSearchParams();
-            if (authType === "header") {
-              headers2[authField] = authValue;
-            } else if (authType === "query") {
-              params.append(authField, authValue);
-            } else {
-              params.append(authField, authValue);
-            }
-            for (const [key, value] of Object.entries(paramsOrPayload)) {
-              if (value !== void 0 && value !== null) {
-                params.append(key, String(value));
-              }
-            }
-            let body = void 0;
-            if (httpMethod === "GET") {
-              const qs = params.toString();
-              if (qs) {
-                finalUrl = finalUrl.includes("?") ? `${finalUrl}&${qs}` : `${finalUrl}?${qs}`;
-              }
-            } else {
-              if (contentType === "json") {
-                const jsonObj = {};
-                params.forEach((value, key) => {
-                  jsonObj[key] = value;
-                });
-                body = JSON.stringify(jsonObj);
-              } else {
-                body = params.toString();
-              }
-            }
-            const response = await proxiedFetch(finalUrl, {
-              method: httpMethod,
-              headers: headers2,
-              body,
-              redirect: "error",
-              signal: controller.signal,
-              proxy: this.proxyConfig
-            });
-            const contentLength = response.headers.get("content-length");
-            if (contentLength && parseInt(contentLength, 10) > 10 * 1024 * 1024) {
-              throw new Error("Provider response exceeds size limit (10MB)");
-            }
-            if (response.status === 429) {
-              if (attempt < retries) {
-                const retryAfter = response.headers.get("Retry-After");
-                const parsed = parseInt(retryAfter || "", 10);
-                const waitTime = !isNaN(parsed) && parsed > 0 ? Math.min(parsed * 1e3, 6e4) : 3e4;
-                console.warn(`[API] 429 Rate Limit from ${this.apiUrl}. Waiting ${waitTime}ms...`);
-                await new Promise((resolve) => setTimeout(resolve, waitTime));
-                continue;
-              }
-              throw new Error("Provider Rate Limit Exceeded (429)");
-            }
-            if (!response.ok) {
-              if (response.status >= 500 && attempt < retries) {
-                const backoff = Math.pow(2, attempt) * 1500;
-                console.warn(`[API] ${response.status} Error from ${this.apiUrl}. Retrying in ${backoff}ms...`);
-                await new Promise((resolve) => setTimeout(resolve, backoff));
-                continue;
-              }
-              const text2 = await response.text();
-              let parsedError = null;
-              try {
-                const data = JSON.parse(text2);
-                if (data && typeof data === "object" && "error" in data) {
-                  parsedError = String(data.error);
-                }
-              } catch {
-              }
-              if (parsedError) {
-                throw new Error(parsedError);
-              }
-              throw new Error(`Provider HTTP Error: ${response.status}`);
-            }
-            const text = await response.text();
-            try {
-              const data = JSON.parse(text);
-              if (data && typeof data === "object" && "error" in data && data.error) {
-                const errStr = String(data.error).toLowerCase();
-                const isSystemic = errStr.includes("balance") || errStr.includes("maintenance") || errStr.includes("down") || errStr.includes("busy");
-                if (isSystemic) {
-                  await CircuitBreaker.recordFailure(this.apiUrl);
-                }
-                return data;
-              }
-              await CircuitBreaker.recordSuccess(this.apiUrl);
-              return data;
-            } catch (jsonErr) {
-              throw new Error(`Provider returned invalid JSON: ${text.substring(0, 100)}...`, { cause: jsonErr });
-            }
-          } catch (error) {
-            const errName = error instanceof Error ? error.name : "";
-            if (errName === "AbortError") {
-              if (attempt < retries) {
-                console.warn(`[API] Timeout from ${this.apiUrl}. Retrying...`);
-                continue;
-              }
-              await CircuitBreaker.recordFailure(this.apiUrl);
-              throw new Error("Provider Request Timeout (15s)", { cause: error });
-            }
-            if (errName !== "CircuitBreakerOpenException" && attempt === retries) {
-              await CircuitBreaker.recordFailure(this.apiUrl);
-            }
-            if (attempt === retries) throw error;
-          } finally {
-            clearTimeout(timeoutId);
-          }
-        }
-        throw new Error("Max retries exceeded");
-      }
-      async getBalance() {
-        const res = await this.request({ action: "balance" });
-        if (this.mapping && this.mapping.balance) {
-          const bPath = this.mapping.balance.balancePath || "balance";
-          const cPath = this.mapping.balance.currencyPath || "currency";
-          const balanceVal = this.extractNested(res, bPath);
-          const currencyVal = this.extractNested(res, cPath);
-          if (balanceVal === void 0) {
-            throw new Error(`Schema Drift Error: \u041E\u0436\u0438\u0434\u0430\u043B\u0441\u044F \u043A\u043B\u044E\u0447 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 '${bPath}', \u043D\u043E \u043E\u043D \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D \u0432 \u043E\u0442\u0432\u0435\u0442\u0435.`);
-          }
-          return {
-            balance: String(balanceVal || "0"),
-            currency: String(currencyVal || "USD")
-          };
-        }
-        if (res.error) throw new Error(String(res.error));
-        return {
-          balance: String(res.balance || "0"),
-          currency: String(res.currency || "USD")
-        };
-      }
-      async getServices() {
-        const res = await this.request({ action: "services" }, 3);
-        let servicesArray;
-        if (this.mapping && this.mapping.catalog) {
-          const c = this.mapping.catalog;
-          const extracted = this.extractNested(res, c.itemsPath || "");
-          if (!Array.isArray(extracted)) {
-            const possibleArray = typeof res === "object" && res !== null ? Object.values(res).find(Array.isArray) : void 0;
-            if (possibleArray) {
-              servicesArray = possibleArray;
-            } else {
-              throw new Error(`Schema Drift Error: \u041E\u0436\u0438\u0434\u0430\u043B\u0441\u044F \u043C\u0430\u0441\u0441\u0438\u0432 \u0443\u0441\u043B\u0443\u0433 \u043F\u043E \u043F\u0443\u0442\u0438 '${c.itemsPath || "$"}', \u043D\u043E \u043F\u043E\u043B\u0443\u0447\u0435\u043D ${typeof extracted}`);
-            }
-          } else {
-            servicesArray = extracted;
-          }
-          servicesArray = servicesArray.map((item) => ({
-            service: this.extractNested(item, c.serviceIdField || "service"),
-            name: this.extractNested(item, c.nameField || "name"),
-            category: this.extractNested(item, c.typeField || "category"),
-            rate: this.extractNested(item, c.priceField || "rate"),
-            min: this.extractNested(item, c.minField || "min"),
-            max: this.extractNested(item, c.maxField || "max"),
-            type: this.extractNested(item, c.typeField || "type"),
-            desc: this.extractNested(item, c.descField || "desc"),
-            description: this.extractNested(item, c.descField || "description")
-          }));
-          if (servicesArray.length > 0 && servicesArray[0].service === void 0) {
-            throw new Error(`Schema Drift Error: \u041E\u0436\u0438\u0434\u0430\u043B\u0441\u044F \u043A\u043B\u044E\u0447 ID \u0443\u0441\u043B\u0443\u0433\u0438 '${c.serviceIdField || "service"}', \u043D\u043E \u043E\u043D \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D.`);
-          }
-        } else {
-          if (typeof res === "object" && res !== null && "error" in res) throw new Error(String(res.error));
-          if (!Array.isArray(res)) throw new Error("Invalid services payload");
-          servicesArray = res;
-        }
-        try {
-          const parsed = ProviderServicesArraySchema.parse(servicesArray);
-          return parsed.map((s) => ({
-            ...s,
-            desc: s.desc || s.description || ""
-          }));
-        } catch (err) {
-          const errMsg = err instanceof Error ? err.message : String(err);
-          console.error("[API] Zod parsing failed for getServices:", errMsg);
-          throw new Error(`Provider schema validation failed: ${errMsg}`, { cause: err });
-        }
-      }
-      async createOrder(params) {
-        let payload;
-        if (this.mapping && this.mapping.order) {
-          payload = { action: "add" };
-          payload[this.mapping.order.serviceField || "service"] = params.service;
-          payload[this.mapping.order.linkField || "link"] = params.link;
-          payload[this.mapping.order.quantityField || "quantity"] = params.quantity;
-          for (const [k, v] of Object.entries(params)) {
-            if (!["service", "link", "quantity"].includes(k) && v !== void 0) {
-              payload[k] = v;
-            }
-          }
-        } else {
-          payload = { action: "add", ...params };
-        }
-        const res = await this.request(payload, 0);
-        if (this.mapping && this.mapping.response) {
-          const err = this.extractNested(res, this.mapping.response.errorField);
-          if (err) throw new Error(String(err));
-          const orderId = this.extractNested(res, this.mapping.response.orderIdField);
-          if (!orderId) throw new Error("Order ID not found in provider response");
-          return { order: String(orderId) };
-        } else {
-          if (res.error) throw new Error(String(res.error));
-          return res;
-        }
-      }
-      async getOrderStatus(orderId) {
-        const res = await this.request({ action: "status", order: orderId });
-        if (res.error) throw new Error(String(res.error));
-        if (typeof res === "string") throw new Error(res);
-        return res;
-      }
-      async getMultiOrderStatus(orderIds) {
-        if (orderIds.length === 0) return {};
-        const res = await this.request({ action: "status", orders: orderIds.join(",") });
-        if (res.error) throw new Error(String(res.error));
-        return res;
-      }
-      async cancelOrder(orderId) {
-        try {
-          const res = await this.request({ action: "cancel", orders: String(orderId) }, 0);
-          if (Array.isArray(res) && res.length > 0) {
-            const item = res[0];
-            if (item && typeof item === "object") {
-              if (item.cancel === 1 || item.cancel === true || item.status === "canceled" || item.status === "Canceled") {
-                return { success: true, raw: res };
-              }
-              if (item.cancel && typeof item.cancel === "object" && item.cancel.error) {
-                return { success: false, error: String(item.cancel.error), raw: res };
-              }
-              if (item.error) {
-                return { success: false, error: String(item.error), raw: res };
-              }
-            }
-          }
-          if (res && typeof res === "object") {
-            const obj = res;
-            if (obj.cancel === 1 || obj.cancel === true || obj.status === "canceled" || obj.status === "Canceled") {
-              return { success: true, raw: res };
-            }
-            if (obj.error) {
-              return { success: false, error: String(obj.error), raw: res };
-            }
-          }
-          return { success: true, raw: res };
-        } catch (err) {
-          const errMsg = err instanceof Error ? err.message : String(err);
-          return { success: false, error: errMsg };
-        }
-      }
-      async refill(orderId) {
-        const res = await this.request({ action: "refill", order: orderId }, 0);
-        if (!res) return { error: "Empty response from provider" };
-        if (res.error) return { error: String(res.error) };
-        if (res.refill && typeof res.refill === "object" && res.refill.error) {
-          return { error: String(res.refill.error) };
-        }
-        if (res.status === "fail" && (res.message || res.error)) {
-          return { error: String(res.message || res.error) };
-        }
-        return res;
-      }
-      async getRefillStatus(refillId) {
-        const res = await this.request({ action: "refill_status", refill: refillId });
-        if (!res) return { error: "Empty response from provider" };
-        if (res.error) return { error: String(res.error) };
-        if (res.status && typeof res.status === "object" && res.status.error) {
-          return { error: String(res.status.error) };
-        }
-        return res;
-      }
-    };
-  }
-});
-
-// src/services/providers/provider.service.ts
-var ProviderService, providerService;
-var init_provider_service = __esm({
-  "src/services/providers/provider.service.ts"() {
-    "use strict";
-    init_db();
-    init_settings();
-    init_universal_provider();
-    init_vault();
-    init_redis();
-    ProviderService = class {
-      /**
-       * Retrieves all active providers from DB
-       */
-      async getActiveProviders() {
-        return db.provider.findMany({ where: { isActive: true } });
-      }
-      /**
-       * Resolves proxy config from DB for a given provider
-       */
-      async resolveProxyConfig(provider) {
-        if (!provider.proxyId) {
-          const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
-          return ProxyPoolService2.getHealthyProxy(provider.id);
-        }
-        try {
-          const proxy = await db.providerProxy.findUnique({
-            where: { id: provider.proxyId, isActive: true }
-          });
-          if (!proxy) {
-            const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
-            return ProxyPoolService2.getHealthyProxy(provider.id);
-          }
-          let password;
-          if (proxy.passwordEncrypted) {
-            try {
-              password = VaultService.decrypt(proxy.passwordEncrypted);
-            } catch {
-              console.warn(`[Proxy] Failed to decrypt password for proxy ${proxy.id}, falling back to pool`);
-              const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
-              return ProxyPoolService2.getHealthyProxy(provider.id);
-            }
-          }
-          return {
-            protocol: proxy.protocol,
-            host: proxy.host,
-            port: proxy.port,
-            username: proxy.username || void 0,
-            password
-          };
-        } catch (err) {
-          console.warn(`[Proxy] Error resolving proxy for provider ${provider.id}:`, err);
-          const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
-          return ProxyPoolService2.getHealthyProxy(provider.id);
-        }
-      }
-      /**
-       * Main Factory Method — resolves and passes proxy config to UniversalProvider
-       */
-      async getProviderInstance(config2) {
-        let apiUrl = config2.apiUrl;
-        let decryptedKey;
-        try {
-          decryptedKey = VaultService.decrypt(config2.apiKey);
-        } catch {
-          decryptedKey = config2.apiKey;
-        }
-        if (apiUrl.includes("mock.smmplan.internal") || apiUrl.includes("mock-provider") || config2.name.toLowerCase().includes("mock provider")) {
-          const port = process.env.PORT || "3000";
-          const internalBase = process.env.INTERNAL_WEB_URL || (process.env.NODE_ENV === "production" ? "http://web:3000" : `http://127.0.0.1:${port}`);
-          const internalUrl = `${internalBase}/api/dev/mock-provider`;
-          decryptedKey = process.env.MOCK_PROVIDER_KEY || decryptedKey || "mock_master_key_2026";
-          return new UniversalProvider(
-            internalUrl,
-            decryptedKey,
-            config2.metadata,
-            null
-          );
-        }
-        const proxyConfig = await this.resolveProxyConfig(config2);
-        return new UniversalProvider(
-          apiUrl,
-          decryptedKey || config2.apiKey,
-          config2.metadata,
-          proxyConfig
-        );
-      }
-      /**
-       * Retrieves services from the provider, utilizing a Redis cache (24-hour expiration)
-       * unless forceRefresh is true.
-       */
-      async getServicesWithCache(config2, providerInstance, forceRefresh = false) {
-        const cacheKey = `provider:${config2.id}:catalog`;
-        if (!forceRefresh) {
-          try {
-            const cached = await redis.get(cacheKey);
-            if (cached) {
-              return JSON.parse(cached);
-            }
-          } catch (err) {
-            console.warn(`[Redis Cache] Failed to read ${cacheKey}:`, err);
-          }
-        }
-        const rawServices = await providerInstance.getServices();
-        try {
-          await redis.set(cacheKey, JSON.stringify(rawServices), "EX", 24 * 60 * 60);
-        } catch (err) {
-          console.warn(`[Redis Cache] Failed to write ${cacheKey}:`, err);
-        }
-        return rawServices;
-      }
-      /**
-       * Factory for background workers (order/sync processors).
-       * In test mode, redirects ALL provider traffic to the internal mock-provider API.
-       * This protects real provider balance from being charged during QA testing.
-       */
-      async getWorkerProviderInstance(config2, tenantId) {
-        const isMockProvider = await SettingsManager.isMockProviderEnabled(tenantId);
-        if (isMockProvider) {
-          const mockKey = process.env.MOCK_PROVIDER_KEY || "mock_master_key_2026";
-          const port = process.env.PORT || "3000";
-          const internalBase = process.env.INTERNAL_WEB_URL || (process.env.NODE_ENV === "production" ? "http://web:3000" : `http://127.0.0.1:${port}`);
-          return new UniversalProvider(
-            `${internalBase}/api/dev/mock-provider`,
-            mockKey,
-            config2.metadata
-          );
-        }
-        let decryptedKey;
-        try {
-          decryptedKey = VaultService.decrypt(config2.apiKey);
-        } catch {
-          decryptedKey = config2.apiKey;
-        }
-        const proxyConfig = await this.resolveProxyConfig(config2);
-        return new UniversalProvider(
-          config2.apiUrl,
-          decryptedKey || config2.apiKey,
-          config2.metadata,
-          proxyConfig
-        );
-      }
-      /**
-       * Auto-resolves the default provider
-       */
-      async getDefaultProvider() {
-        const provider = await db.provider.findFirst({
-          where: { isActive: true }
-        });
-        if (!provider) {
-          throw new Error("No active providers found in the database. Please add one (e.g., Vexboost).");
-        }
-        return await this.getProviderInstance(provider);
-      }
-    };
-    providerService = new ProviderService();
-  }
-});
-
-// src/schemas/jobs.schema.ts
-var jobs_schema_exports = {};
-__export2(jobs_schema_exports, {
-  CatalogJobSchema: () => CatalogJobSchema,
-  OrderJobSchema: () => OrderJobSchema,
-  PaymentGatewayJobSchema: () => PaymentGatewayJobSchema,
-  RefillJobSchema: () => RefillJobSchema,
-  SyncJobSchema: () => SyncJobSchema
-});
-var OrderJobSchema, CatalogJobSchema, RefillJobSchema, SyncJobSchema, PaymentGatewayJobSchema;
-var init_jobs_schema = __esm({
-  "src/schemas/jobs.schema.ts"() {
-    "use strict";
-    init_zod();
-    OrderJobSchema = external_exports.object({
-      orderId: external_exports.string().min(1),
-      isDripFeedChild: external_exports.boolean().optional()
-    });
-    CatalogJobSchema = external_exports.discriminatedUnion("type", [
-      external_exports.object({
-        type: external_exports.literal("SYNC_PRICES"),
-        usdToRub: external_exports.number().positive()
-      }),
-      external_exports.object({
-        type: external_exports.literal("RECONCILE_PRICES"),
-        batchSize: external_exports.number().positive().optional()
-      }),
-      external_exports.object({
-        type: external_exports.literal("SYNC_PROVIDER_CATALOG"),
-        providerId: external_exports.string().min(1),
-        admin: external_exports.any()
-      }),
-      external_exports.object({
-        type: external_exports.literal("SYNC_ALL_CATALOGS"),
-        admin: external_exports.any()
-      }),
-      external_exports.object({
-        type: external_exports.literal("BULK_MARKUP"),
-        filter: external_exports.object({
-          categoryId: external_exports.string().optional(),
-          platform: external_exports.string().optional()
-        }),
-        markupPercent: external_exports.number(),
-        admin: external_exports.any()
-      }),
-      external_exports.object({
-        type: external_exports.literal("SYNC_CBR_RATE"),
-        timestamp: external_exports.number()
-      })
-    ]);
-    RefillJobSchema = external_exports.object({
-      refillId: external_exports.string().min(1)
-    });
-    SyncJobSchema = external_exports.object({
-      providerId: external_exports.string().optional(),
-      orderIds: external_exports.array(external_exports.string()).optional()
-    }).optional().nullable();
-    PaymentGatewayJobSchema = external_exports.object({
-      paymentId: external_exports.string().min(1),
-      orderId: external_exports.string().optional(),
-      userId: external_exports.string().min(1),
-      amountRub: external_exports.number().positive(),
-      email: external_exports.string().nullable().optional(),
-      successUrl: external_exports.string().min(1),
-      description: external_exports.string().min(1),
-      isTestMode: external_exports.boolean(),
-      gateway: external_exports.enum(["yookassa", "cryptobot", "robokassa"]),
-      metadata: external_exports.any().optional()
-    });
-  }
-});
-
 // src/lib/transactions.ts
 async function runSerializableTransaction(fn, maxRetries = 15) {
   let attempt = 0;
@@ -110245,14 +108395,14 @@ var init_refund = __esm({
 });
 
 // src/services/financial/compensation.service.ts
-var log4, CompensationService;
+var log2, CompensationService;
 var init_compensation_service = __esm({
   "src/services/financial/compensation.service.ts"() {
     "use strict";
     init_db();
     init_settings();
     init_logger();
-    log4 = logger.child({ component: "CompensationService" });
+    log2 = logger.child({ component: "CompensationService" });
     CompensationService = class {
       /**
        * Tracks and stores actual provider cost and real margin delta for an order
@@ -110268,7 +108418,7 @@ var init_compensation_service = __esm({
             include: { service: true }
           });
           if (!order) {
-            log4.warn("Order not found for compensation tracking", { orderId });
+            log2.warn("Order not found for compensation tracking", { orderId });
             return;
           }
           let actualProviderCostCents = 0;
@@ -110332,7 +108482,7 @@ var init_compensation_service = __esm({
               realMarginDelta
             }
           });
-          log4.info("Compensation tracking complete", {
+          log2.info("Compensation tracking complete", {
             orderId,
             status,
             actualProviderCost: actualProviderCost.toString(),
@@ -110340,7 +108490,7 @@ var init_compensation_service = __esm({
             realMarginDelta: realMarginDelta.toString()
           });
         } catch (error) {
-          log4.error("Failed to track compensation", {
+          log2.error("Failed to track compensation", {
             orderId,
             error: error instanceof Error ? error.message : String(error)
           });
@@ -112274,11 +110424,11 @@ var ssrf_guard_exports = {};
 __export2(ssrf_guard_exports, {
   SHORT_LINK_HOSTS: () => SHORT_LINK_HOSTS,
   isPublicHost: () => isPublicHost,
-  isPublicIp: () => isPublicIp2,
+  isPublicIp: () => isPublicIp,
   isUrlSafeForFetch: () => isUrlSafeForFetch,
   resolveShortLink: () => resolveShortLink
 });
-function isPublicIp2(rawIp) {
+function isPublicIp(rawIp) {
   let ip = rawIp.trim().toLowerCase();
   if (ip.startsWith("[") && ip.endsWith("]")) {
     ip = ip.slice(1, -1);
@@ -112338,7 +110488,7 @@ function isUrlSafeForFetch(urlString) {
   if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal") || host === "metadata.google.internal" || host.endsWith(".metadata.internal")) {
     return false;
   }
-  if (!isPublicIp2(host)) {
+  if (!isPublicIp(host)) {
     return false;
   }
   return true;
@@ -112348,7 +110498,7 @@ async function isPublicHost(hostname) {
   if (cleanHost === "localhost" || cleanHost.endsWith(".local") || cleanHost.endsWith(".internal")) {
     return false;
   }
-  if (!isPublicIp2(cleanHost)) {
+  if (!isPublicIp(cleanHost)) {
     return false;
   }
   try {
@@ -112356,7 +110506,7 @@ async function isPublicHost(hostname) {
     const records = await dns4.lookup(cleanHost, { all: true });
     if (!records || records.length === 0) return false;
     for (const record of records) {
-      if (!isPublicIp2(record.address)) {
+      if (!isPublicIp(record.address)) {
         return false;
       }
     }
@@ -112412,7 +110562,7 @@ async function resolveShortLink(rawUrl) {
   return currentUrl;
 }
 var import_url3, SHORT_LINK_HOSTS;
-var init_ssrf_guard3 = __esm({
+var init_ssrf_guard = __esm({
   "src/lib/ssrf-guard.ts"() {
     "use strict";
     import_url3 = require("url");
@@ -112528,7 +110678,7 @@ var init_link_analyzer = __esm({
       async resolve(url) {
         try {
           const parsed = new URL(url.startsWith("http") ? url : `https://${url}`);
-          const { SHORT_LINK_HOSTS: SHORT_LINK_HOSTS2, resolveShortLink: resolveShortLink2 } = await Promise.resolve().then(() => (init_ssrf_guard3(), ssrf_guard_exports));
+          const { SHORT_LINK_HOSTS: SHORT_LINK_HOSTS2, resolveShortLink: resolveShortLink2 } = await Promise.resolve().then(() => (init_ssrf_guard(), ssrf_guard_exports));
           if (SHORT_LINK_HOSTS2.has(parsed.hostname.toLowerCase())) {
             if (url.includes("youtu.be/")) {
               return url.replace("youtu.be/", "youtube.com/watch?v=");
@@ -126267,7 +124417,7 @@ async function getTransporter(tenantId) {
   const s = await SettingsProvider.getEmailSettings(normTenant);
   if (s.emailProvider === "RESEND") {
     if (!s.resendApiKey) {
-      log5.error("RESEND selected but API key is not configured");
+      log3.error("RESEND selected but API key is not configured");
       throw new Error("Email provider is set to Resend but API key is missing. Check admin settings.");
     }
     const defaultFrom = normTenant === "flux" ? "no-reply@smmflux.ru" : "no-reply@smmplan.pro";
@@ -126292,7 +124442,7 @@ async function getTransporter(tenantId) {
 async function dispatch(result, options) {
   const fromAddress = `"${options.companyName} Support" <${result.fromEmail}>`;
   if (result.provider === "RESEND") {
-    log5.info("Sending via RESEND", { to: options.to, subject: options.subject });
+    log3.info("Sending via RESEND", { to: options.to, subject: options.subject });
     const { error } = await result.resend.emails.send({
       from: fromAddress,
       to: options.to,
@@ -126301,11 +124451,11 @@ async function dispatch(result, options) {
       ...options.replyTo ? { reply_to: options.replyTo } : {}
     });
     if (error) {
-      log5.error("Resend delivery failed", { to: options.to, subject: options.subject, code: error instanceof Error ? error.name : "Error" });
+      log3.error("Resend delivery failed", { to: options.to, subject: options.subject, code: error instanceof Error ? error.name : "Error" });
       throw new Error(`Resend error: ${error instanceof Error ? error.message : String(error)}`);
     }
   } else {
-    log5.info("Sending via SMTP", { to: options.to, subject: options.subject });
+    log3.info("Sending via SMTP", { to: options.to, subject: options.subject });
     await result.transporter.sendMail({
       from: fromAddress,
       to: options.to,
@@ -126334,7 +124484,7 @@ ${link}
 `);
   const result = await getTransporter(tenantId);
   if (!result) {
-    log5.warn("SMTP Not configured. Magic link printed to console.", { email, link });
+    log3.warn("SMTP Not configured. Magic link printed to console.", { email, link });
     return;
   }
   const htmlContent = `
@@ -126352,7 +124502,7 @@ ${link}
   try {
     await dispatch(result, { companyName, to: email, subject: `\u0412\u0430\u0448\u0430 \u0441\u0441\u044B\u043B\u043A\u0430 \u0434\u043B\u044F \u0432\u0445\u043E\u0434\u0430 \u0432 ${companyName}`, html: htmlContent });
   } catch (err) {
-    log5.error("SMTP send failed (printed link above in console)", {
+    log3.error("SMTP send failed (printed link above in console)", {
       error: err instanceof Error ? err.message : String(err),
       email,
       link
@@ -126368,9 +124518,9 @@ async function sendMail(email, subject, htmlContent, replyTo, tenantId) {
   const result = await getTransporter(tenantId);
   if (!result) {
     if (process.env.NODE_ENV === "production") {
-      log5.error("Not configured in AdminPanel");
+      log3.error("Not configured in AdminPanel");
     } else {
-      log5.warn("Not configured. Email skipped.", { to: email, subject });
+      log3.warn("Not configured. Email skipped.", { to: email, subject });
     }
     return;
   }
@@ -126380,7 +124530,7 @@ async function sendMail(email, subject, htmlContent, replyTo, tenantId) {
     if (process.env.NODE_ENV === "production" && process.env.DEV_MOCK_SMTP !== "true") {
       throw err;
     } else {
-      log5.error("SMTP email delivery failed", { to: email, subject, error: err instanceof Error ? err.message : String(err) });
+      log3.error("SMTP email delivery failed", { to: email, subject, error: err instanceof Error ? err.message : String(err) });
     }
   }
 }
@@ -126545,7 +124695,7 @@ async function sendTicketCreatedMail(email, ticketId, ticketSubject, tenantId) {
   `;
   return sendMail(email, `[\u0422\u0438\u043A\u0435\u0442 #${shortId}] ${ticketSubject}`, htmlContent, replyTo, tenantId);
 }
-var import_nodemailer2, import_dns, import_net, import_tls, log5;
+var import_nodemailer2, import_dns, import_net, import_tls, log3;
 var init_smtp = __esm({
   "src/lib/smtp.ts"() {
     "use strict";
@@ -126562,7 +124712,7 @@ var init_smtp = __esm({
     if (import_dns.default.setDefaultResultOrder) {
       import_dns.default.setDefaultResultOrder("ipv4first");
     }
-    log5 = logger.child({ component: "SMTP" });
+    log3 = logger.child({ component: "SMTP" });
   }
 });
 
@@ -127546,6 +125696,1856 @@ ${classification.supportAction}`,
   }
 });
 
+// src/lib/metrics.ts
+var log7, counters, metrics;
+var init_metrics = __esm({
+  "src/lib/metrics.ts"() {
+    "use strict";
+    init_logger();
+    log7 = logger.child({ component: "Metrics" });
+    counters = {
+      workerJobSuccess: 0,
+      workerJobFailure: 0,
+      circuitBreakerTripped: 0
+    };
+    metrics = {
+      recordWorkerSuccess(processorName) {
+        counters.workerJobSuccess++;
+        log7.debug(`[Metrics] ${processorName} job success (Total: ${counters.workerJobSuccess})`);
+      },
+      recordWorkerFailure(processorName, error) {
+        counters.workerJobFailure++;
+        log7.error(`[Metrics] ${processorName} job failure: ${error.message} (Total: ${counters.workerJobFailure})`);
+      },
+      recordCircuitBreakerTrip(host) {
+        counters.circuitBreakerTripped++;
+        log7.warn(`[Metrics] CircuitBreaker tripped for ${host} (Total: ${counters.circuitBreakerTripped})`);
+      },
+      getMetrics() {
+        return { ...counters, timestamp: (/* @__PURE__ */ new Date()).toISOString() };
+      }
+    };
+  }
+});
+
+// src/lib/circuit-breaker.ts
+var CircuitBreakerOpenException, CircuitBreaker;
+var init_circuit_breaker = __esm({
+  "src/lib/circuit-breaker.ts"() {
+    "use strict";
+    init_queue_manager();
+    init_metrics();
+    CircuitBreakerOpenException = class extends Error {
+      constructor(providerHost) {
+        super(`Circuit breaker is OPEN for provider: ${providerHost}`);
+        this.name = "CircuitBreakerOpenException";
+      }
+    };
+    CircuitBreaker = class {
+      static {
+        this.FAILURE_THRESHOLD = 5;
+      }
+      static {
+        // failures
+        this.FAILURE_WINDOW_SEC = 60;
+      }
+      static {
+        // window to accumulate failures
+        this.COOL_DOWN_SEC = 30;
+      }
+      // time before half-open state
+      /**
+       * Checks if a request to the given URL is allowed.
+       * Throws CircuitBreakerOpenException if the circuit is OPEN.
+       */
+      static async check(providerUrl) {
+        let host = providerUrl;
+        try {
+          host = new URL(providerUrl).hostname;
+        } catch (e) {
+        }
+        const redis2 = getRedisConnection();
+        const isOpen = await redis2.get(`cb:${host}:open`);
+        if (isOpen) {
+          throw new CircuitBreakerOpenException(host);
+        }
+        const isHalfOpen = await redis2.get(`cb:${host}:half_open`);
+        if (isHalfOpen) {
+          const locked = await redis2.set(`cb:${host}:probe_lock`, "1", "EX", 5, "NX");
+          if (!locked) {
+            throw new CircuitBreakerOpenException(host);
+          }
+        }
+      }
+      /**
+       * Records a successful request, resetting the circuit if it was HALF-OPEN.
+       */
+      static async recordSuccess(providerUrl) {
+        let host = providerUrl;
+        try {
+          host = new URL(providerUrl).hostname;
+        } catch (e) {
+        }
+        const redis2 = getRedisConnection();
+        await redis2.del(`cb:${host}:failures`);
+        await redis2.del(`cb:${host}:open`);
+        await redis2.del(`cb:${host}:half_open`);
+        await redis2.del(`cb:${host}:probe_lock`);
+      }
+      /**
+       * Records a failed request (timeout, 5xx).
+       */
+      static async recordFailure(providerUrl) {
+        let host = providerUrl;
+        try {
+          host = new URL(providerUrl).hostname;
+        } catch (e) {
+        }
+        const redis2 = getRedisConnection();
+        const isHalfOpen = await redis2.get(`cb:${host}:half_open`);
+        if (isHalfOpen) {
+          await this.trip(host);
+          return;
+        }
+        const failures = await redis2.incr(`cb:${host}:failures`);
+        if (failures === 1) {
+          await redis2.expire(`cb:${host}:failures`, this.FAILURE_WINDOW_SEC);
+        }
+        if (failures >= this.FAILURE_THRESHOLD) {
+          await this.trip(host);
+        }
+      }
+      static async trip(host) {
+        const redis2 = getRedisConnection();
+        metrics.recordCircuitBreakerTrip(host);
+        console.warn(`[CircuitBreaker] \u{1F534} TRIPPED for ${host}. Failing fast for ${this.COOL_DOWN_SEC}s`);
+        await redis2.setex(`cb:${host}:open`, this.COOL_DOWN_SEC, "1");
+        await redis2.setex(`cb:${host}:half_open`, this.COOL_DOWN_SEC * 2, "1");
+        await redis2.del(`cb:${host}:probe_lock`);
+      }
+    };
+  }
+});
+
+// src/lib/security/ssrf-guard.ts
+function isPublicIp2(ip) {
+  if (!ip) return false;
+  if (ip.startsWith("::ffff:")) {
+    ip = ip.substring(7);
+  }
+  if (ip === AWS_METADATA_HOST) return false;
+  if (import_node_net.default.isIPv4(ip)) {
+    const parts = ip.split(".").map(Number);
+    if (parts.length === 4) {
+      if (parts[0] === 0) return false;
+      if (parts[0] === 10) return false;
+      if (parts[0] === 127) return false;
+      if (parts[0] === 169 && parts[1] === 254) return false;
+      if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return false;
+      if (parts[0] === 192 && parts[1] === 168) return false;
+      if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return false;
+      if (parts[0] >= 224) return false;
+    }
+    return true;
+  }
+  if (import_node_net.default.isIPv6(ip)) {
+    const lower = ip.toLowerCase();
+    if (lower === "::1" || lower === "::") return false;
+    if (lower.startsWith("fc") || lower.startsWith("fd")) return false;
+    if (lower.startsWith("fe8") || lower.startsWith("fe9") || lower.startsWith("fea") || lower.startsWith("feb")) {
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+async function assertSafeOutboundUrl(rawUrl) {
+  let parsed;
+  try {
+    parsed = new import_node_url.URL(rawUrl);
+  } catch {
+    return { ok: false, reason: "invalid-url" };
+  }
+  if (!ALLOWED_SCHEMES.has(parsed.protocol)) {
+    return { ok: false, reason: `scheme-${parsed.protocol}-blocked` };
+  }
+  const hostname = parsed.hostname.toLowerCase();
+  if (parsed.pathname.includes("/api/dev/mock-provider") && (process.env.ENABLE_DEV_ROUTES === "true" || process.env.NODE_ENV === "test" || process.env.NODE_ENV === "development")) {
+    return { ok: true, ip: "127.0.0.1", hostname };
+  }
+  if (BLOCKED_HOSTS.has(hostname) || hostname === AWS_METADATA_HOST) {
+    return { ok: false, reason: `host-${hostname}-blocked` };
+  }
+  const TRUSTED_SYSTEM_DOMAINS = [
+    "api.yookassa.ru",
+    "yookassa.ru",
+    "api.cryptomus.com",
+    "pay.cryptomus.com",
+    "api.telegram.org",
+    "t.me",
+    "auth.robokassa.ru",
+    "merchant.roboxchange.com",
+    "generativelanguage.googleapis.com",
+    // Verified official provider gateways
+    "vexboost.ru",
+    "api.vexboost.ru",
+    "soc-rocket.ru",
+    "stream-promotion.ru",
+    "likedrom.com",
+    "smmprime.com",
+    "smmpanelus.com"
+  ];
+  if (TRUSTED_SYSTEM_DOMAINS.some((d) => hostname === d || hostname.endsWith(`.${d}`))) {
+    return { ok: true, ip: "trusted-gateway", hostname };
+  }
+  if (import_node_net.default.isIP(hostname)) {
+    if (!isPublicIp2(hostname)) {
+      return { ok: false, reason: `ip-${hostname}-private` };
+    }
+    return { ok: true, ip: hostname, hostname };
+  }
+  const isFakeIp = (ip) => {
+    if (ip.startsWith("198.18.") || ip.startsWith("198.19.")) return true;
+    if (ip.toLowerCase().startsWith("fdfe:dcba:9876:")) return true;
+    return false;
+  };
+  let addrs = [];
+  try {
+    const records = await import_node_dns.promises.lookup(hostname, { all: true });
+    addrs = records.map((r) => r.address);
+  } catch {
+    return { ok: false, reason: "dns-failed" };
+  }
+  if (addrs.length === 0) {
+    return { ok: false, reason: "dns-no-records" };
+  }
+  for (const ip of addrs) {
+    if (!isPublicIp2(ip) && !isFakeIp(ip)) {
+      return { ok: false, reason: `ip-${ip}-private` };
+    }
+  }
+  try {
+    const secondCheckRecords = await import_node_dns.promises.lookup(hostname, { all: true });
+    const secondAddrs = secondCheckRecords.map((r) => r.address);
+    for (const ip of secondAddrs) {
+      if (!isPublicIp2(ip) && !isFakeIp(ip)) {
+        return { ok: false, reason: `ip-${ip}-private-rebinding` };
+      }
+    }
+  } catch {
+    return { ok: false, reason: "dns-rebinding-lookup-failed" };
+  }
+  return { ok: true, ip: addrs[0], hostname };
+}
+async function safeFetch(url, init) {
+  const check = await assertSafeOutboundUrl(url);
+  if (!check.ok) {
+    throw new Error(`SSRF blocked: ${check.reason} for URL ${url}`);
+  }
+  return fetch(url, {
+    ...init,
+    signal: init?.signal || AbortSignal.timeout(1e4)
+  });
+}
+var import_node_url, import_node_dns, import_node_net, ALLOWED_SCHEMES, BLOCKED_HOSTS, AWS_METADATA_HOST;
+var init_ssrf_guard2 = __esm({
+  "src/lib/security/ssrf-guard.ts"() {
+    "use strict";
+    import_node_url = require("node:url");
+    import_node_dns = require("node:dns");
+    import_node_net = __toESM(require("node:net"));
+    ALLOWED_SCHEMES = /* @__PURE__ */ new Set(["https:", "http:"]);
+    BLOCKED_HOSTS = /* @__PURE__ */ new Set([
+      "localhost",
+      "localhost.localdomain",
+      "ip6-localhost",
+      "ip6-loopback",
+      "metadata.google.internal",
+      "metadata.internal",
+      "instance-data"
+    ]);
+    AWS_METADATA_HOST = "169.254.169.254";
+  }
+});
+
+// src/utils/ssrf-guard.ts
+async function assertSafeUrl(url) {
+  const res = await assertSafeOutboundUrl(url);
+  if (!res.ok) {
+    if (res.reason.includes("private")) {
+      throw new Error("Private IP blocked");
+    }
+    if (res.reason.includes("scheme")) {
+      throw new Error("Only HTTP/HTTPS allowed");
+    }
+    if (res.reason.includes("dns-failed")) {
+      throw new Error(`Failed to resolve target hostname`);
+    }
+    throw new Error("Blocked URL");
+  }
+}
+var init_ssrf_guard3 = __esm({
+  "src/utils/ssrf-guard.ts"() {
+    "use strict";
+    init_ssrf_guard2();
+  }
+});
+
+// src/services/providers/proxy-pool.service.ts
+var proxy_pool_service_exports = {};
+__export2(proxy_pool_service_exports, {
+  ProxyPoolService: () => ProxyPoolService
+});
+var ProxyPoolService;
+var init_proxy_pool_service = __esm({
+  "src/services/providers/proxy-pool.service.ts"() {
+    "use strict";
+    init_db();
+    init_redis();
+    init_vault();
+    ProxyPoolService = class {
+      static {
+        this.QUARANTINE_DURATION_MS = 15 * 60 * 1e3;
+      }
+      static {
+        // 15 minutes
+        this.MAX_FAILURES_BEFORE_QUARANTINE = 3;
+      }
+      static {
+        this.REDIS_HEALTH_PREFIX = "proxy:health:";
+      }
+      /**
+       * Fetch active, healthy proxies from database & cache.
+       */
+      static async getHealthyProxy(providerId, category = "PAID_PREMIUM") {
+        try {
+          if (!db || !db.providerProxy) return null;
+          const notExpired = {
+            OR: [
+              { expiresAt: null },
+              { expiresAt: { gt: /* @__PURE__ */ new Date() } }
+            ]
+          };
+          if (providerId) {
+            const dedicated = await db.providerProxy.findFirst({
+              where: {
+                providers: {
+                  some: { id: providerId }
+                },
+                isActive: true,
+                ...notExpired
+              }
+            });
+            if (dedicated) {
+              const isQuarantined = await this.isProxyQuarantined(dedicated.id);
+              if (!isQuarantined) {
+                return this.hydrateProxyConfig(dedicated);
+              }
+            }
+          }
+          let pool = await db.providerProxy.findMany({
+            where: {
+              isActive: true,
+              category,
+              ...notExpired
+            },
+            orderBy: {
+              lastTestLatencyMs: "asc"
+            },
+            take: 20
+          });
+          if (!pool || pool.length === 0) {
+            pool = await db.providerProxy.findMany({
+              where: {
+                isActive: true,
+                ...notExpired
+              },
+              orderBy: {
+                updatedAt: "desc"
+              },
+              take: 20
+            });
+          }
+          if (!pool || pool.length === 0) {
+            return null;
+          }
+          const healthyList = [];
+          for (const p of pool) {
+            const isQuarantined = await this.isProxyQuarantined(p.id);
+            if (!isQuarantined) {
+              const config2 = this.hydrateProxyConfig(p);
+              if (config2) healthyList.push(config2);
+            }
+          }
+          if (healthyList.length === 0) {
+            return this.hydrateProxyConfig(pool[0]);
+          }
+          const randomIndex = Math.floor(Math.random() * healthyList.length);
+          return healthyList[randomIndex];
+        } catch (err) {
+          console.error("[ProxyPoolService] Error selecting healthy proxy:", err);
+          return null;
+        }
+      }
+      /**
+       * Fetch active, healthy Russian proxy (RU_SOVEREIGN_POOL)
+       * used as a secure domestic bridge when platform is hosted overseas.
+       */
+      static async getHealthyRuProxy() {
+        try {
+          if (!db || !db.providerProxy) return null;
+          const ruPool = await db.providerProxy.findMany({
+            where: {
+              isActive: true,
+              OR: [
+                { expiresAt: null },
+                { expiresAt: { gt: /* @__PURE__ */ new Date() } }
+              ],
+              AND: [
+                {
+                  OR: [
+                    { geoCountry: "RU" },
+                    { tags: { contains: "RU" } },
+                    { tags: { contains: "SOVEREIGN" } },
+                    { label: { contains: "\u0420\u043E\u0441\u0441\u0438\u044F", mode: "insensitive" } },
+                    { label: { contains: "RU", mode: "insensitive" } }
+                  ]
+                }
+              ]
+            },
+            orderBy: {
+              lastTestLatencyMs: "asc"
+            },
+            take: 10
+          });
+          if (!ruPool || ruPool.length === 0) return null;
+          for (const p of ruPool) {
+            const isQuarantined = await this.isProxyQuarantined(p.id);
+            if (!isQuarantined) {
+              const cfg = this.hydrateProxyConfig(p);
+              if (cfg) return cfg;
+            }
+          }
+          return this.hydrateProxyConfig(ruPool[0]);
+        } catch (err) {
+          console.error("[ProxyPoolService] Error selecting healthy RU proxy:", err);
+          return null;
+        }
+      }
+      /**
+       * Report proxy failure (HTTP 429, 403, 500, timeout).
+       */
+      static async reportFailure(proxyId, errorReason, httpStatus) {
+        if (!proxyId) return;
+        try {
+          if (redis) {
+            const key = `${this.REDIS_HEALTH_PREFIX}${proxyId}:fails`;
+            const count = await redis.incr(key);
+            await redis.expire(key, 1800);
+            if (count >= this.MAX_FAILURES_BEFORE_QUARANTINE || httpStatus === 429 || httpStatus === 403) {
+              const quarantineKey = `${this.REDIS_HEALTH_PREFIX}${proxyId}:quarantine`;
+              await redis.set(quarantineKey, errorReason, "PX", this.QUARANTINE_DURATION_MS);
+              console.warn(`[ProxyPoolService] Proxy ${proxyId} quarantined for 15m. Reason: ${errorReason} (Status: ${httpStatus})`);
+            }
+          }
+        } catch (err) {
+          console.error(`[ProxyPoolService] Failed to record proxy failure for ${proxyId}:`, err);
+        }
+      }
+      /**
+       * Report proxy success to reset failure counts.
+       */
+      static async reportSuccess(proxyId, latencyMs) {
+        if (!proxyId) return;
+        try {
+          if (redis) {
+            const key = `${this.REDIS_HEALTH_PREFIX}${proxyId}:fails`;
+            await redis.del(key);
+            if (latencyMs) {
+              await redis.set(`${this.REDIS_HEALTH_PREFIX}${proxyId}:latency`, latencyMs, "EX", 3600);
+            }
+          }
+        } catch (err) {
+          console.error(`[ProxyPoolService] Failed to record proxy success for ${proxyId}:`, err);
+        }
+      }
+      /**
+       * Check if proxy is currently quarantined.
+       */
+      static async isProxyQuarantined(proxyId) {
+        try {
+          if (!redis) return false;
+          const quarantine = await redis.get(`${this.REDIS_HEALTH_PREFIX}${proxyId}:quarantine`);
+          return !!quarantine;
+        } catch {
+          return false;
+        }
+      }
+      /**
+       * Decrypt and build ProxyConfig safely.
+       */
+      static hydrateProxyConfig(record) {
+        if (!record.host || !record.port) return null;
+        let decryptedPass = record.password;
+        if (record.password && (record.password.includes(":") || record.password.length > 32)) {
+          try {
+            decryptedPass = VaultService.decrypt(record.password);
+          } catch {
+            decryptedPass = record.password;
+          }
+        }
+        return {
+          id: record.id,
+          protocol: record.protocol,
+          host: record.host,
+          port: record.port,
+          username: record.username || void 0,
+          password: decryptedPass || void 0,
+          lastTestLatencyMs: record.lastTestLatencyMs ?? null,
+          category: record.category || "PAID_PREMIUM",
+          isActive: record.isActive ?? true
+        };
+      }
+    };
+  }
+});
+
+// src/services/security/security-alert.service.ts
+var security_alert_service_exports = {};
+__export2(security_alert_service_exports, {
+  SecurityAlertService: () => SecurityAlertService
+});
+var SecurityAlertService;
+var init_security_alert_service = __esm({
+  "src/services/security/security-alert.service.ts"() {
+    "use strict";
+    init_db();
+    init_notifications();
+    init_redis();
+    SecurityAlertService = class {
+      static {
+        this.THROTTLE_PREFIX = "security:alert:throttle:";
+      }
+      static {
+        this.THROTTLE_TTL_SEC = 60;
+      }
+      static {
+        // 1 alert per minute per event+ip pair
+        this.STREAM_CHANNEL = "security:events:stream";
+      }
+      /**
+       * Records a security event to DB, broadcasts via Redis Pub/Sub,
+       * and sends an immediate Telegram alert to admins if CRITICAL/HIGH (with anti-flooding).
+       */
+      static async record(input) {
+        const { event, severity, ip, tenantId = "smmplan", details = {} } = input;
+        let created = null;
+        try {
+          if (db.securityEvent) {
+            created = await db.securityEvent.create({
+              data: {
+                event,
+                severity,
+                ip: ip || null,
+                tenantId: tenantId || "smmplan",
+                details: details ? details : void 0
+              }
+            });
+          }
+        } catch (err) {
+          console.error("[SecurityAlertService] Failed to insert securityEvent into DB:", err);
+        }
+        try {
+          const payload = JSON.stringify({
+            id: created?.id || `temp-${Date.now()}`,
+            event,
+            severity,
+            ip: ip || null,
+            tenantId: tenantId || "smmplan",
+            details,
+            createdAt: created?.createdAt || (/* @__PURE__ */ new Date()).toISOString()
+          });
+          await redis.publish(this.STREAM_CHANNEL, payload).catch(() => {
+          });
+        } catch {
+        }
+        if (severity === "CRITICAL" || severity === "HIGH") {
+          await this.dispatchRealtimeAlert(event, severity, ip, tenantId, details).catch((err) => {
+            console.error("[SecurityAlertService] Failed to dispatch admin alert:", err);
+          });
+        }
+        return created;
+      }
+      static escapeHtml(str) {
+        if (!str) return "";
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+      }
+      /**
+       * Dispatches formatted Telegram alert with anti-flooding guard.
+       */
+      static async dispatchRealtimeAlert(event, severity, ip, tenantId, details) {
+        const cleanIp = ip || "unknown";
+        const throttleKey = `${this.THROTTLE_PREFIX}${event}:${cleanIp}`;
+        try {
+          const isThrottled = await redis.get(throttleKey);
+          if (isThrottled) {
+            await redis.incr(`${throttleKey}:suppressed`).catch(() => {
+            });
+            return;
+          }
+          await redis.set(throttleKey, "1", "EX", this.THROTTLE_TTL_SEC);
+        } catch {
+        }
+        const gateway = String(details?.gateway || details?.provider || "api");
+        const moscowTime = (/* @__PURE__ */ new Date()).toLocaleString("ru-RU", { timeZone: "Europe/Moscow" });
+        const emoji = severity === "CRITICAL" ? "\u{1F6A8}" : "\u26A0\uFE0F";
+        const safeDetailsStr = JSON.stringify(details, null, 2);
+        const truncatedDetails = safeDetailsStr.length > 500 ? `${safeDetailsStr.slice(0, 500)}...` : safeDetailsStr;
+        const cleanEvent = this.escapeHtml(event);
+        const cleanGateway = this.escapeHtml(gateway);
+        const cleanEscapedIp = this.escapeHtml(cleanIp);
+        const cleanTenant = this.escapeHtml(tenantId || "smmplan");
+        const cleanDetails = this.escapeHtml(truncatedDetails);
+        const isConfigWarning = event === "MISCONFIGURED_WEBHOOK_SECRET";
+        const alertTitle = isConfigWarning ? `[${severity}] \u0422\u0420\u0415\u0411\u0423\u0415\u0422\u0421\u042F \u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0410: \u0421\u0435\u043A\u0440\u0435\u0442\u043D\u044B\u0439 \u043A\u043B\u044E\u0447 ${cleanGateway.toUpperCase()}` : `[${severity}] \u041F\u0420\u0415\u0414\u0423\u041F\u0420\u0415\u0416\u0414\u0415\u041D\u0418\u0415 \u0411\u0415\u0417\u041E\u041F\u0410\u0421\u041D\u041E\u0421\u0422\u0418: ${cleanEvent}`;
+        const message = [
+          `${emoji} <b>${alertTitle}</b>`,
+          "",
+          `<b>\u0421\u043E\u0431\u044B\u0442\u0438\u0435:</b> <code>${cleanEvent}</code>`,
+          `<b>\u0428\u043B\u044E\u0437/\u041C\u043E\u0434\u0443\u043B\u044C:</b> <code>${cleanGateway}</code>`,
+          `<b>IP \u0438\u0441\u0442\u043E\u0447\u043D\u0438\u043A\u0430:</b> <code>${cleanEscapedIp}</code>`,
+          `<b>\u0421\u0430\u0439\u0442/\u0422\u0435\u043D\u0430\u043D\u0442:</b> <code>${cleanTenant}</code>`,
+          `<b>\u0414\u0435\u0442\u0430\u043B\u0438:</b> <pre>${cleanDetails}</pre>`,
+          "",
+          isConfigWarning ? "\u{1F4A1} <i>\u0414\u043B\u044F \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u043E\u0433\u043E \u0437\u0430\u0447\u0438\u0441\u043B\u0435\u043D\u0438\u044F \u043F\u043B\u0430\u0442\u0435\u0436\u0435\u0439 \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u0441\u0435\u043A\u0440\u0435\u0442\u043D\u044B\u0439 \u043A\u043B\u044E\u0447 \u0432\u0435\u0431\u0445\u0443\u043A\u0430 \u0432 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430\u0445.</i>" : "\u{1F6E1}\uFE0F <i>\u0417\u0430\u043F\u0440\u043E\u0441 \u043E\u0442\u043A\u043B\u043E\u043D\u0435\u043D \u0441\u0438\u0441\u0442\u0435\u043C\u043E\u0439 \u0437\u0430\u0449\u0438\u0442\u044B.</i>",
+          "",
+          `<i>\u0424\u0438\u043A\u0441\u0430\u0446\u0438\u044F: ${moscowTime}</i>`
+        ].join("\n");
+        sendAdminAlert(message, severity === "CRITICAL" ? "CRITICAL" : "WARNING");
+      }
+      /**
+       * Fetches paginated security events for the admin panel.
+       */
+      static async getRecentEvents(options) {
+        const { limit = 50, offset = 0, severity, event, ip, tenantId } = options || {};
+        const where = {};
+        if (severity && severity !== "ALL") where.severity = severity;
+        if (event && event !== "ALL") where.event = event;
+        if (ip) where.ip = { contains: ip };
+        if (tenantId && tenantId !== "ALL") where.tenantId = tenantId;
+        try {
+          const [events, total] = await Promise.all([
+            db.securityEvent.findMany({
+              where,
+              orderBy: { createdAt: "desc" },
+              take: Math.min(limit, 100),
+              skip: offset
+            }),
+            db.securityEvent.count({ where })
+          ]);
+          return { events, total };
+        } catch (err) {
+          console.error("[SecurityAlertService] Failed to query security events:", err);
+          return { events: [], total: 0 };
+        }
+      }
+      /**
+       * Returns aggregated statistics for security events in the past 24 hours.
+       */
+      static async getSecurityDashboardStats(tenantId) {
+        const since = new Date(Date.now() - 24 * 60 * 60 * 1e3);
+        const isSingleTenant = tenantId && tenantId !== "all";
+        const whereClause = { createdAt: { gte: since } };
+        if (isSingleTenant) {
+          whereClause.tenantId = tenantId;
+        }
+        try {
+          const [total24h, critical24h, high24h, warning24h, recentEvents] = await Promise.all([
+            db.securityEvent.count({ where: whereClause }),
+            db.securityEvent.count({ where: { ...whereClause, severity: "CRITICAL" } }),
+            db.securityEvent.count({ where: { ...whereClause, severity: "HIGH" } }),
+            db.securityEvent.count({ where: { ...whereClause, severity: "WARNING" } }),
+            db.securityEvent.findMany({
+              where: whereClause,
+              select: { event: true, ip: true },
+              take: 1e3
+            })
+          ]);
+          const eventMap = /* @__PURE__ */ new Map();
+          const ipMap = /* @__PURE__ */ new Map();
+          for (const item of recentEvents) {
+            eventMap.set(item.event, (eventMap.get(item.event) || 0) + 1);
+            if (item.ip) {
+              ipMap.set(item.ip, (ipMap.get(item.ip) || 0) + 1);
+            }
+          }
+          const topEvents = Array.from(eventMap.entries()).map(([event, count]) => ({ event, count })).sort((a, b) => b.count - a.count).slice(0, 5);
+          const topIps = Array.from(ipMap.entries()).map(([ip, count]) => ({ ip, count })).sort((a, b) => b.count - a.count).slice(0, 5);
+          return {
+            total24h,
+            critical24h,
+            high24h,
+            warning24h,
+            uniqueIpsCount: ipMap.size,
+            topEvents,
+            topIps
+          };
+        } catch (err) {
+          console.error("[SecurityAlertService] Failed to calculate dashboard stats:", err);
+          return {
+            total24h: 0,
+            critical24h: 0,
+            high24h: 0,
+            warning24h: 0,
+            uniqueIpsCount: 0,
+            topEvents: [],
+            topIps: []
+          };
+        }
+      }
+    };
+  }
+});
+
+// src/lib/network/network-router.ts
+var network_router_exports = {};
+__export2(network_router_exports, {
+  DEFAULT_ROUTING_CONFIG: () => DEFAULT_ROUTING_CONFIG,
+  IMMUTABLE_DIRECT_PATTERNS: () => IMMUTABLE_DIRECT_PATTERNS,
+  UniversalNetworkRouter: () => UniversalNetworkRouter
+});
+var import_node_url2, IMMUTABLE_DIRECT_PATTERNS, DEFAULT_ROUTING_CONFIG, UniversalNetworkRouter;
+var init_network_router = __esm({
+  "src/lib/network/network-router.ts"() {
+    "use strict";
+    import_node_url2 = require("node:url");
+    init_ssrf_guard2();
+    init_proxy_fetch();
+    init_logger();
+    IMMUTABLE_DIRECT_PATTERNS = [
+      "api.yookassa.ru",
+      "yookassa.ru",
+      "auth.robokassa.ru",
+      "robokassa.ru",
+      "cbr.ru",
+      "smtp.yandex.ru",
+      "smtp.mail.ru",
+      "vexboost.ru",
+      "panel.smmtoolbox.ru",
+      "smmtoolbox.ru",
+      "primelike.happydesk.ru",
+      "happydesk.ru",
+      "localhost",
+      "127.0.0.1"
+    ];
+    DEFAULT_ROUTING_CONFIG = {
+      serviceToggles: {
+        aiGemini: "PROXY_POOL",
+        providers: "PROXY_POOL",
+        catalogSync: "DIRECT",
+        paymentsRu: "DIRECT",
+        paymentsCrypto: "DIRECT",
+        telegram: "DIRECT"
+      },
+      systemProxyUrl: process.env.SYSTEM_PROXY_URL || process.env.HTTP_PROXY || process.env.ALL_PROXY || null,
+      rules: [
+        // 1. Immutable domestic services & payments
+        {
+          id: "rule-yookassa",
+          type: "DOMAIN-SUFFIX",
+          payload: "yookassa.ru",
+          target: "DIRECT",
+          comment: "\u042EKassa (\u0441\u0442\u0440\u043E\u0433\u043E \u043F\u0440\u044F\u043C\u043E\u0439 \u0434\u043E\u0441\u0442\u0443\u043F \u0420\u0424)",
+          isEnabled: true,
+          priority: 10
+        },
+        {
+          id: "rule-vexboost",
+          type: "DOMAIN-SUFFIX",
+          payload: "vexboost.ru",
+          target: "DIRECT",
+          comment: "\u041E\u0441\u043D\u043E\u0432\u043D\u043E\u0439 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A Vexboost (\u0441\u0442\u0440\u043E\u0433\u043E \u043F\u0440\u044F\u043C\u043E\u0439 \u0434\u043E\u0441\u0442\u0443\u043F \u0420\u0424)",
+          isEnabled: true,
+          priority: 15
+        },
+        {
+          id: "rule-robokassa",
+          type: "DOMAIN-SUFFIX",
+          payload: "robokassa.ru",
+          target: "DIRECT",
+          comment: "\u0420\u043E\u0431\u043E\u043A\u0430\u0441\u0441\u0430 (\u0441\u0442\u0440\u043E\u0433\u043E \u043F\u0440\u044F\u043C\u043E\u0439 \u0434\u043E\u0441\u0442\u0443\u043F \u0420\u0424)",
+          isEnabled: true,
+          priority: 20
+        },
+        {
+          id: "rule-cbr",
+          type: "DOMAIN-SUFFIX",
+          payload: "cbr.ru",
+          target: "DIRECT",
+          comment: "\u041A\u0443\u0440\u0441 \u0432\u0430\u043B\u044E\u0442 \u0426\u0411 \u0420\u0424",
+          isEnabled: true,
+          priority: 30
+        },
+        {
+          id: "rule-smtp-yandex",
+          type: "DOMAIN-SUFFIX",
+          payload: "smtp.yandex.ru",
+          target: "DIRECT",
+          comment: "\u041F\u043E\u0447\u0442\u043E\u0432\u044B\u0439 \u0448\u043B\u044E\u0437 \u042F\u043D\u0434\u0435\u043A\u0441 465",
+          isEnabled: true,
+          priority: 40
+        },
+        {
+          id: "rule-smmtoolbox",
+          type: "DOMAIN-SUFFIX",
+          payload: "smmtoolbox.ru",
+          target: "DIRECT",
+          comment: "SMMToolbox \u043F\u0430\u043D\u0435\u043B\u044C (\u0441\u0442\u0440\u043E\u0433\u043E \u043F\u0440\u044F\u043C\u043E\u0439 \u0434\u043E\u0441\u0442\u0443\u043F \u0420\u0424)",
+          isEnabled: true,
+          priority: 42
+        },
+        {
+          id: "rule-happydesk",
+          type: "DOMAIN-SUFFIX",
+          payload: "happydesk.ru",
+          target: "DIRECT",
+          comment: "HappyDesk \u0442\u0438\u043A\u0435\u0442\u044B \u0438 \u0432\u0438\u0434\u0436\u0435\u0442\u044B (\u0441\u0442\u0440\u043E\u0433\u043E \u043F\u0440\u044F\u043C\u043E\u0439 \u0434\u043E\u0441\u0442\u0443\u043F \u0420\u0424)",
+          isEnabled: true,
+          priority: 45
+        },
+        {
+          id: "rule-domestic-ru",
+          type: "DOMAIN-SUFFIX",
+          payload: "ru",
+          target: "DIRECT",
+          comment: "\u0412\u0441\u0435 \u0440\u043E\u0441\u0441\u0438\u0439\u0441\u043A\u0438\u0435 \u0441\u0435\u0440\u0432\u0438\u0441\u044B \u0437\u043E\u043D\u044B .ru \u043D\u0430\u043F\u0440\u044F\u043C\u0443\u044E",
+          isEnabled: true,
+          priority: 50
+        },
+        {
+          id: "rule-domestic-rf",
+          type: "DOMAIN-SUFFIX",
+          payload: "xn--p1ai",
+          target: "DIRECT",
+          comment: "\u0412\u0441\u0435 \u0441\u0435\u0440\u0432\u0438\u0441\u044B \u0437\u043E\u043D\u044B .\u0440\u0444 \u043D\u0430\u043F\u0440\u044F\u043C\u0443\u044E",
+          isEnabled: true,
+          priority: 51
+        },
+        // 2. AI Services (Google Gemini) - requires proxy in restricted regions
+        {
+          id: "rule-gemini-googleapis",
+          type: "DOMAIN-SUFFIX",
+          payload: "googleapis.com",
+          target: "PROXY_POOL",
+          comment: "Google API / Gemini Generative Language",
+          isEnabled: true,
+          priority: 100
+        },
+        {
+          id: "rule-gemini-service",
+          type: "SERVICE",
+          payload: "AI_GEMINI",
+          target: "PROXY_POOL",
+          comment: "\u041B\u044E\u0431\u044B\u0435 \u0437\u0430\u043F\u0440\u043E\u0441\u044B \u0441\u0435\u0440\u0432\u0438\u0441\u0430 AI Gemini",
+          isEnabled: true,
+          priority: 110
+        },
+        // 3. Telegram API
+        {
+          id: "rule-telegram-api",
+          type: "DOMAIN-SUFFIX",
+          payload: "api.telegram.org",
+          target: "DIRECT",
+          comment: "Telegram Bot API",
+          isEnabled: true,
+          priority: 200
+        },
+        // 4. Crypto payment gateways
+        {
+          id: "rule-cryptobot",
+          type: "DOMAIN-SUFFIX",
+          payload: "pay.crypt.bot",
+          target: "DIRECT",
+          comment: "CryptoBot Payment Gateway",
+          isEnabled: true,
+          priority: 300
+        },
+        // 5. Providers fallback
+        {
+          id: "rule-providers-service",
+          type: "SERVICE",
+          payload: "PROVIDERS",
+          target: "PROXY_POOL",
+          comment: "SMM \u043F\u0430\u043D\u0435\u043B\u0438 \u0438 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u044B \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
+          isEnabled: true,
+          priority: 400
+        },
+        // 6. Final Catch-All
+        {
+          id: "rule-final",
+          type: "FINAL",
+          payload: "",
+          target: "DIRECT",
+          comment: "\u0412\u0441\u0435 \u043E\u0441\u0442\u0430\u043B\u044C\u043D\u044B\u0435 \u0437\u0430\u043F\u0440\u043E\u0441\u044B \u043D\u0430\u043F\u0440\u044F\u043C\u0443\u044E",
+          isEnabled: true,
+          priority: 9999
+        }
+      ]
+    };
+    UniversalNetworkRouter = class {
+      static {
+        this.cachedConfig = null;
+      }
+      static {
+        this.lastConfigFetch = 0;
+      }
+      static {
+        this.CONFIG_CACHE_TTL_MS = 3e4;
+      }
+      /**
+       * Loads the current routing configuration from SystemSettings or returns default
+       */
+      static async getConfig(tenantId = "smmplan") {
+        const now = Date.now();
+        if (this.cachedConfig && now - this.lastConfigFetch < this.CONFIG_CACHE_TTL_MS) {
+          return this.cachedConfig;
+        }
+        try {
+          const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const settings = await db2.systemSettings.findFirst({
+            where: { id: tenantId },
+            select: { id: true, geminiProxy: true }
+          });
+          let parsedRules = { ...DEFAULT_ROUTING_CONFIG };
+          if (settings?.geminiProxy && settings.geminiProxy.trim()) {
+            parsedRules.systemProxyUrl = settings.geminiProxy.trim();
+          }
+          this.cachedConfig = parsedRules;
+          this.lastConfigFetch = now;
+          return parsedRules;
+        } catch (err) {
+          console.warn("[NetworkRouter] Error fetching config from DB, using defaults:", err);
+          return DEFAULT_ROUTING_CONFIG;
+        }
+      }
+      /**
+       * Invalidates internal configuration cache (called after admin saves rules)
+       */
+      static invalidateCache() {
+        this.cachedConfig = null;
+        this.lastConfigFetch = 0;
+      }
+      /**
+       * Resolves routing target and proxy configuration for a given URL and context
+       */
+      static async resolveRoute(targetUrl, context) {
+        let parsedUrl;
+        try {
+          parsedUrl = new import_node_url2.URL(targetUrl);
+        } catch {
+          return {
+            target: "DIRECT",
+            reason: "Invalid URL, falling back to DIRECT",
+            isImmutableDirect: false
+          };
+        }
+        const hostname = parsedUrl.hostname.toLowerCase();
+        for (const pattern of IMMUTABLE_DIRECT_PATTERNS) {
+          if (hostname === pattern || hostname.endsWith("." + pattern)) {
+            return {
+              target: "DIRECT",
+              reason: `Strict security invariant: ${pattern} is locked to DIRECT`,
+              isImmutableDirect: true
+            };
+          }
+        }
+        if (context?.customProxy) {
+          return {
+            target: "SPECIFIC_PROXY",
+            proxyConfig: context.customProxy,
+            reason: "Explicit custom proxy provided by caller",
+            isImmutableDirect: false
+          };
+        }
+        const config2 = await this.getConfig();
+        for (const pattern of IMMUTABLE_DIRECT_PATTERNS) {
+          if (hostname === pattern || hostname.endsWith("." + pattern)) {
+            if (config2.serviceToggles.paymentsRu === "RU_SOVEREIGN_POOL" && (pattern.includes("yookassa") || pattern.includes("robokassa"))) {
+              const ruProxy = await this.resolveProxyForTarget("RU_SOVEREIGN_POOL", config2);
+              if (ruProxy) {
+                return {
+                  target: "RU_SOVEREIGN_POOL",
+                  proxyConfig: ruProxy,
+                  reason: `Sovereign Disaster Recovery: Routing ${pattern} via certified Russian exit node`,
+                  isImmutableDirect: false
+                };
+              }
+            }
+            return {
+              target: "DIRECT",
+              reason: `Strict security invariant: ${pattern} is locked to DIRECT`,
+              isImmutableDirect: true
+            };
+          }
+        }
+        if (context?.service) {
+          const toggleTarget = this.resolveServiceToggle(context.service, config2);
+          if (toggleTarget && toggleTarget !== "DIRECT") {
+            const proxyConfig = await this.resolveProxyForTarget(toggleTarget, config2, context.providerId);
+            return {
+              target: toggleTarget,
+              proxyConfig,
+              reason: `Service quick toggle: ${context.service} -> ${toggleTarget}`,
+              isImmutableDirect: false
+            };
+          }
+        }
+        const sortedRules = [...config2.rules].filter((r) => r.isEnabled).sort((a, b) => a.priority - b.priority);
+        for (const rule of sortedRules) {
+          let matched = false;
+          switch (rule.type) {
+            case "DOMAIN":
+              matched = hostname === rule.payload.toLowerCase();
+              break;
+            case "DOMAIN-SUFFIX": {
+              const suffix = rule.payload.toLowerCase();
+              matched = hostname === suffix || hostname.endsWith("." + suffix);
+              break;
+            }
+            case "DOMAIN-KEYWORD":
+              matched = hostname.includes(rule.payload.toLowerCase());
+              break;
+            case "SERVICE":
+              matched = Boolean(context?.service && context.service === rule.payload);
+              break;
+            case "FINAL":
+              matched = true;
+              break;
+          }
+          if (matched) {
+            const proxyConfig = await this.resolveProxyForTarget(rule.target, config2, context?.providerId, rule.targetProxyId);
+            return {
+              target: rule.target,
+              matchedRule: rule,
+              proxyConfig,
+              reason: `Matched rule [${rule.type}] ${rule.payload} -> ${rule.target}`,
+              isImmutableDirect: false
+            };
+          }
+        }
+        return {
+          target: "DIRECT",
+          reason: "No rules matched, fallback to DIRECT",
+          isImmutableDirect: false
+        };
+      }
+      static resolveServiceToggle(service, config2) {
+        switch (service) {
+          case "AI_GEMINI":
+            return config2.serviceToggles.aiGemini;
+          case "PROVIDERS":
+            return config2.serviceToggles.providers;
+          case "CATALOG_SYNC":
+            return config2.serviceToggles.catalogSync;
+          case "PAYMENTS_RU":
+            return config2.serviceToggles.paymentsRu;
+          case "PAYMENTS_CRYPTO":
+            return config2.serviceToggles.paymentsCrypto;
+          case "TELEGRAM":
+            return config2.serviceToggles.telegram;
+          default:
+            return null;
+        }
+      }
+      static async resolveProxyForTarget(target, config2, providerId, specificProxyId) {
+        if (target === "DIRECT" || target === "REJECT") return null;
+        if (target === "RU_SOVEREIGN_POOL") {
+          try {
+            const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
+            const ruProxy = await ProxyPoolService2.getHealthyRuProxy();
+            if (ruProxy) return ruProxy;
+          } catch (err) {
+            console.warn("[NetworkRouter] Error resolving RU_SOVEREIGN_POOL:", err);
+          }
+          return this.resolveProxyForTarget("PROXY_POOL", config2, providerId, specificProxyId);
+        }
+        if (target === "SYSTEM_PROXY" && config2.systemProxyUrl) {
+          try {
+            const u = new import_node_url2.URL(config2.systemProxyUrl);
+            return {
+              protocol: u.protocol.replace(":", "") || "http",
+              host: u.hostname,
+              port: parseInt(u.port || "80", 10),
+              username: u.username ? decodeURIComponent(u.username) : void 0,
+              password: u.password ? decodeURIComponent(u.password) : void 0
+            };
+          } catch {
+            return null;
+          }
+        }
+        if (target === "SPECIFIC_PROXY" && specificProxyId) {
+          try {
+            const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
+            const proxy = await db2.providerProxy.findUnique({ where: { id: specificProxyId } });
+            if (proxy && proxy.isActive) {
+              let password = "";
+              if (proxy.passwordEncrypted) {
+                const { VaultService: VaultService2 } = await Promise.resolve().then(() => (init_vault(), vault_exports));
+                password = VaultService2.decrypt(proxy.passwordEncrypted);
+              }
+              return {
+                id: proxy.id,
+                protocol: proxy.protocol,
+                host: proxy.host,
+                port: proxy.port,
+                username: proxy.username || void 0,
+                password: password || void 0,
+                lastTestLatencyMs: proxy.lastTestLatencyMs,
+                category: proxy.category
+              };
+            }
+          } catch (err) {
+            console.warn(`[NetworkRouter] Error loading specific proxy ${specificProxyId}:`, err);
+          }
+        }
+        if (target === "PROXY_POOL") {
+          try {
+            const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
+            const healthyProxy = await ProxyPoolService2.getHealthyProxy(providerId);
+            if (healthyProxy) return healthyProxy;
+          } catch (err) {
+            console.warn("[NetworkRouter] ProxyPoolService error, checking systemProxyUrl:", err);
+          }
+          if (config2.systemProxyUrl) {
+            return this.resolveProxyForTarget("SYSTEM_PROXY", config2);
+          }
+        }
+        return null;
+      }
+      /**
+       * Universal fetch drop-in replacement with Clash-style routing dispatch & Multi-Proxy Failover
+       */
+      static async fetch(url, init, context) {
+        const ssrfCheck = await assertSafeOutboundUrl(url);
+        if (!ssrfCheck.ok) {
+          throw new Error(`SSRF blocked: ${ssrfCheck.reason} for URL ${url}`);
+        }
+        const route = await this.resolveRoute(url, context);
+        if (route.target === "REJECT") {
+          throw new Error(`[NetworkRouter] Connection blocked by policy (REJECT): ${url}`);
+        }
+        if (route.target === "DIRECT" || !route.proxyConfig) {
+          return fetch(url, init);
+        }
+        try {
+          const dispatcher = await createProxyDispatcher(route.proxyConfig);
+          const { fetch: undiciFetch } = await Promise.resolve().then(() => __toESM(require_undici()));
+          return await undiciFetch(url, {
+            method: init?.method,
+            headers: init?.headers,
+            body: init?.body,
+            signal: init?.signal,
+            dispatcher
+          });
+        } catch (primaryErr) {
+          console.warn(`[NetworkRouter] Primary proxy failed (${route.proxyConfig.host}:${route.proxyConfig.port}):`, primaryErr?.message);
+          if (route.proxyConfig.id) {
+            const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
+            void ProxyPoolService2.reportFailure(route.proxyConfig.id, primaryErr?.message || "Connection error");
+          }
+          if (context?.service === "AI_GEMINI" || context?.service === "PAYMENTS_RU") {
+            const { SecurityAlertService: SecurityAlertService2 } = await Promise.resolve().then(() => (init_security_alert_service(), security_alert_service_exports));
+            void SecurityAlertService2.record({
+              event: "PROXY_NODE_FAILURE",
+              severity: "WARNING",
+              details: {
+                service: context.service,
+                url,
+                proxyHost: route.proxyConfig.host,
+                error: primaryErr?.message
+              }
+            });
+          }
+          try {
+            const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
+            const backupProxy = route.target === "RU_SOVEREIGN_POOL" ? await ProxyPoolService2.getHealthyRuProxy() : await ProxyPoolService2.getHealthyProxy(context?.providerId);
+            if (backupProxy && backupProxy.id !== route.proxyConfig.id) {
+              logger.info(`[NetworkRouter] Multi-Proxy Failover to: ${backupProxy.host}:${backupProxy.port}`);
+              const backupDisp = await createProxyDispatcher(backupProxy);
+              const { fetch: undiciFetch } = await Promise.resolve().then(() => __toESM(require_undici()));
+              return await undiciFetch(url, {
+                method: init?.method,
+                headers: init?.headers,
+                body: init?.body,
+                signal: init?.signal,
+                dispatcher: backupDisp
+              });
+            }
+          } catch (failoverErr) {
+            logger.warn("[NetworkRouter] Failover attempt also failed:", { error: String(failoverErr) });
+          }
+          if (context?.service !== "AI_GEMINI") {
+            logger.warn("[NetworkRouter] Proxies exhausted, falling back to direct connection");
+            return fetch(url, {
+              ...init,
+              signal: init?.signal || AbortSignal.timeout(1e4)
+            });
+          }
+          throw primaryErr;
+        }
+      }
+      /**
+       * Inspects a route without making a network request (for admin UI Route Inspector)
+       */
+      static async inspectRoute(url, service) {
+        const parsed = new import_node_url2.URL(url);
+        const resolution = await this.resolveRoute(url, { service });
+        return {
+          ...resolution,
+          checkedUrl: url,
+          hostname: parsed.hostname
+        };
+      }
+    };
+  }
+});
+
+// src/lib/http/proxy-fetch.ts
+var proxy_fetch_exports = {};
+__export2(proxy_fetch_exports, {
+  buildProxyConfig: () => buildProxyConfig2,
+  createProxyDispatcher: () => createProxyDispatcher,
+  proxiedFetch: () => proxiedFetch,
+  testProxyConnection: () => testProxyConnection
+});
+async function createProxyDispatcher(proxy) {
+  const { ProxyAgent: ProxyAgent3, Agent: Agent5 } = await Promise.resolve().then(() => __toESM(require_undici()));
+  const auth = proxy.username ? `${encodeURIComponent(proxy.username)}:${encodeURIComponent(proxy.password || "")}@` : "";
+  if (proxy.protocol === "socks5") {
+    const { SocksProxyAgent: SocksProxyAgent2 } = await Promise.resolve().then(() => (init_dist5(), dist_exports));
+    const socksUrl = `socks5h://${auth}${proxy.host}:${proxy.port}`;
+    const socksAgent = new SocksProxyAgent2(socksUrl);
+    const connectFn = (opts, callback) => {
+      try {
+        const anyOpts = opts || {};
+        const rawPort = anyOpts.port;
+        const port = typeof rawPort === "number" && !isNaN(rawPort) && rawPort > 0 ? rawPort : typeof rawPort === "string" && !isNaN(parseInt(rawPort, 10)) && parseInt(rawPort, 10) > 0 ? parseInt(rawPort, 10) : anyOpts.protocol === "http:" ? 80 : 443;
+        const host = anyOpts.hostname || anyOpts.host || "localhost";
+        const safeOpts = { ...anyOpts, port, host };
+        const rawConnect = socksAgent.connect.bind(socksAgent);
+        rawConnect(
+          {},
+          safeOpts,
+          (err, socket) => {
+            if (err) return callback(err, null);
+            callback(null, socket || null);
+          }
+        );
+      } catch (err) {
+        callback(err instanceof Error ? err : new Error(String(err)), null);
+      }
+    };
+    return new Agent5({
+      connect: connectFn,
+      connectTimeout: 8e3,
+      headersTimeout: 15e3
+    });
+  }
+  const proxyUrl = `${proxy.protocol}://${auth}${proxy.host}:${proxy.port}`;
+  return new ProxyAgent3({
+    uri: proxyUrl,
+    connectTimeout: 8e3,
+    headersTimeout: 15e3
+  });
+}
+async function proxiedFetch(url, init) {
+  const proxy = init?.proxy;
+  const cleanInit = { ...init };
+  delete cleanInit.proxy;
+  const { UniversalNetworkRouter: UniversalNetworkRouter2 } = await Promise.resolve().then(() => (init_network_router(), network_router_exports));
+  return UniversalNetworkRouter2.fetch(url, cleanInit, {
+    service: "PROVIDERS",
+    customProxy: proxy
+  });
+}
+function buildProxyConfig2(record) {
+  if (!record.host || !record.port) return null;
+  return {
+    protocol: record.protocol,
+    host: record.host,
+    port: record.port,
+    username: record.username || void 0,
+    password: record.password || void 0
+  };
+}
+async function testProxyConnection(proxy, targetUrl = "https://httpbin.org/ip", timeoutMs = 15e3) {
+  const start = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const ssrfCheck = await assertSafeOutboundUrl(targetUrl);
+    if (!ssrfCheck.ok) {
+      return { success: false, latencyMs: 0, error: `SSRF: ${ssrfCheck.reason}` };
+    }
+    const dispatcher = await createProxyDispatcher(proxy);
+    const { fetch: undiciFetch } = await Promise.resolve().then(() => __toESM(require_undici()));
+    const response = await undiciFetch(targetUrl, {
+      method: "GET",
+      signal: controller.signal,
+      dispatcher,
+      headers: {
+        "User-Agent": "SMMplan-ProxyTest/1.0"
+      }
+    });
+    const latencyMs = Date.now() - start;
+    const text = await response.text();
+    let resolvedIp;
+    try {
+      const data = JSON.parse(text);
+      resolvedIp = data.origin || data.ip;
+    } catch {
+    }
+    return {
+      success: response.ok,
+      latencyMs,
+      statusCode: response.status,
+      resolvedIp,
+      error: response.ok ? void 0 : `HTTP ${response.status}`
+    };
+  } catch (err) {
+    const latencyMs = Date.now() - start;
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      success: false,
+      latencyMs,
+      error: msg.includes("abort") ? `\u0422\u0430\u0439\u043C\u0430\u0443\u0442 (${timeoutMs}ms)` : msg
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+var init_proxy_fetch = __esm({
+  "src/lib/http/proxy-fetch.ts"() {
+    "use strict";
+    init_ssrf_guard2();
+  }
+});
+
+// src/services/providers/universal.provider.ts
+var ProviderServiceSchema, ProviderServicesArraySchema, UniversalProvider;
+var init_universal_provider = __esm({
+  "src/services/providers/universal.provider.ts"() {
+    "use strict";
+    init_circuit_breaker();
+    init_ssrf_guard3();
+    init_proxy_fetch();
+    init_zod();
+    ProviderServiceSchema = external_exports.object({
+      service: external_exports.union([external_exports.string(), external_exports.number()]).transform(String),
+      name: external_exports.string().optional().default("Unknown Service"),
+      category: external_exports.string().optional().default("Unknown Category"),
+      rate: external_exports.union([external_exports.string(), external_exports.number()]).transform(String),
+      min: external_exports.union([external_exports.string(), external_exports.number()]).transform(String),
+      max: external_exports.union([external_exports.string(), external_exports.number()]).transform(String),
+      type: external_exports.string().optional().default("Default"),
+      desc: external_exports.string().nullable().optional(),
+      description: external_exports.string().nullable().optional(),
+      dripfeed: external_exports.union([external_exports.number(), external_exports.boolean(), external_exports.string()]).optional(),
+      refill: external_exports.union([external_exports.number(), external_exports.boolean(), external_exports.string()]).optional(),
+      cancel: external_exports.union([external_exports.number(), external_exports.boolean(), external_exports.string()]).optional()
+    }).passthrough();
+    ProviderServicesArraySchema = external_exports.array(ProviderServiceSchema);
+    UniversalProvider = class {
+      constructor(apiUrl, apiKey, metadata, proxyConfig) {
+        this.mapping = null;
+        this.proxyConfig = null;
+        this.apiUrl = apiUrl;
+        this.apiKey = apiKey;
+        if (metadata && typeof metadata === "object" && metadata.mapping) {
+          this.mapping = metadata.mapping;
+        }
+        if (proxyConfig) {
+          this.proxyConfig = proxyConfig;
+        }
+      }
+      extractNested(obj, path3) {
+        if (!path3 || path3 === "$") return obj;
+        const parts = path3.split(".");
+        let current = obj;
+        for (const part of parts) {
+          if (current === void 0 || current === null) return void 0;
+          if (typeof current === "object" && current !== null && part in current) {
+            current = current[part];
+          } else {
+            return void 0;
+          }
+        }
+        return current;
+      }
+      async request(paramsOrPayload, retries = 2) {
+        await assertSafeUrl(this.apiUrl);
+        await CircuitBreaker.check(this.apiUrl);
+        let httpMethod = "POST";
+        let contentType = "form";
+        let authType = "body";
+        let authField = "key";
+        let authPrefix = "";
+        if (this.mapping) {
+          httpMethod = this.mapping.httpMethod || "POST";
+          contentType = this.mapping.contentType || "form";
+          if (this.mapping.auth) {
+            authType = this.mapping.auth.type || "body";
+            authField = this.mapping.auth.field || "key";
+            authPrefix = this.mapping.auth.prefix || "";
+          }
+        }
+        const authValue = authPrefix ? `${authPrefix}${this.apiKey}` : this.apiKey;
+        for (let attempt = 0; attempt <= retries; attempt++) {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15e3);
+          try {
+            let finalUrl = this.apiUrl;
+            const headers2 = {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            };
+            if (contentType === "json") {
+              headers2["Content-Type"] = "application/json";
+            } else {
+              headers2["Content-Type"] = "application/x-www-form-urlencoded";
+            }
+            const params = new URLSearchParams();
+            if (authType === "header") {
+              headers2[authField] = authValue;
+            } else if (authType === "query") {
+              params.append(authField, authValue);
+            } else {
+              params.append(authField, authValue);
+            }
+            for (const [key, value] of Object.entries(paramsOrPayload)) {
+              if (value !== void 0 && value !== null) {
+                params.append(key, String(value));
+              }
+            }
+            let body = void 0;
+            if (httpMethod === "GET") {
+              const qs = params.toString();
+              if (qs) {
+                finalUrl = finalUrl.includes("?") ? `${finalUrl}&${qs}` : `${finalUrl}?${qs}`;
+              }
+            } else {
+              if (contentType === "json") {
+                const jsonObj = {};
+                params.forEach((value, key) => {
+                  jsonObj[key] = value;
+                });
+                body = JSON.stringify(jsonObj);
+              } else {
+                body = params.toString();
+              }
+            }
+            const response = await proxiedFetch(finalUrl, {
+              method: httpMethod,
+              headers: headers2,
+              body,
+              redirect: "error",
+              signal: controller.signal,
+              proxy: this.proxyConfig
+            });
+            const contentLength = response.headers.get("content-length");
+            if (contentLength && parseInt(contentLength, 10) > 10 * 1024 * 1024) {
+              throw new Error("Provider response exceeds size limit (10MB)");
+            }
+            if (response.status === 429) {
+              if (attempt < retries) {
+                const retryAfter = response.headers.get("Retry-After");
+                const parsed = parseInt(retryAfter || "", 10);
+                const waitTime = !isNaN(parsed) && parsed > 0 ? Math.min(parsed * 1e3, 6e4) : 3e4;
+                console.warn(`[API] 429 Rate Limit from ${this.apiUrl}. Waiting ${waitTime}ms...`);
+                await new Promise((resolve) => setTimeout(resolve, waitTime));
+                continue;
+              }
+              throw new Error("Provider Rate Limit Exceeded (429)");
+            }
+            if (!response.ok) {
+              if (response.status >= 500 && attempt < retries) {
+                const backoff = Math.pow(2, attempt) * 1500;
+                console.warn(`[API] ${response.status} Error from ${this.apiUrl}. Retrying in ${backoff}ms...`);
+                await new Promise((resolve) => setTimeout(resolve, backoff));
+                continue;
+              }
+              const text2 = await response.text();
+              let parsedError = null;
+              try {
+                const data = JSON.parse(text2);
+                if (data && typeof data === "object" && "error" in data) {
+                  parsedError = String(data.error);
+                }
+              } catch {
+              }
+              if (parsedError) {
+                throw new Error(parsedError);
+              }
+              throw new Error(`Provider HTTP Error: ${response.status}`);
+            }
+            const text = await response.text();
+            try {
+              const data = JSON.parse(text);
+              if (data && typeof data === "object" && "error" in data && data.error) {
+                const errStr = String(data.error).toLowerCase();
+                const isSystemic = errStr.includes("balance") || errStr.includes("maintenance") || errStr.includes("down") || errStr.includes("busy");
+                if (isSystemic) {
+                  await CircuitBreaker.recordFailure(this.apiUrl);
+                }
+                return data;
+              }
+              await CircuitBreaker.recordSuccess(this.apiUrl);
+              return data;
+            } catch (jsonErr) {
+              throw new Error(`Provider returned invalid JSON: ${text.substring(0, 100)}...`, { cause: jsonErr });
+            }
+          } catch (error) {
+            const errName = error instanceof Error ? error.name : "";
+            if (errName === "AbortError") {
+              if (attempt < retries) {
+                console.warn(`[API] Timeout from ${this.apiUrl}. Retrying...`);
+                continue;
+              }
+              await CircuitBreaker.recordFailure(this.apiUrl);
+              throw new Error("Provider Request Timeout (15s)", { cause: error });
+            }
+            if (errName !== "CircuitBreakerOpenException" && attempt === retries) {
+              await CircuitBreaker.recordFailure(this.apiUrl);
+            }
+            if (attempt === retries) throw error;
+          } finally {
+            clearTimeout(timeoutId);
+          }
+        }
+        throw new Error("Max retries exceeded");
+      }
+      async getBalance() {
+        const res = await this.request({ action: "balance" });
+        if (this.mapping && this.mapping.balance) {
+          const bPath = this.mapping.balance.balancePath || "balance";
+          const cPath = this.mapping.balance.currencyPath || "currency";
+          const balanceVal = this.extractNested(res, bPath);
+          const currencyVal = this.extractNested(res, cPath);
+          if (balanceVal === void 0) {
+            throw new Error(`Schema Drift Error: \u041E\u0436\u0438\u0434\u0430\u043B\u0441\u044F \u043A\u043B\u044E\u0447 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 '${bPath}', \u043D\u043E \u043E\u043D \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D \u0432 \u043E\u0442\u0432\u0435\u0442\u0435.`);
+          }
+          return {
+            balance: String(balanceVal || "0"),
+            currency: String(currencyVal || "USD")
+          };
+        }
+        if (res.error) throw new Error(String(res.error));
+        return {
+          balance: String(res.balance || "0"),
+          currency: String(res.currency || "USD")
+        };
+      }
+      async getServices() {
+        const res = await this.request({ action: "services" }, 3);
+        let servicesArray;
+        if (this.mapping && this.mapping.catalog) {
+          const c = this.mapping.catalog;
+          const extracted = this.extractNested(res, c.itemsPath || "");
+          if (!Array.isArray(extracted)) {
+            const possibleArray = typeof res === "object" && res !== null ? Object.values(res).find(Array.isArray) : void 0;
+            if (possibleArray) {
+              servicesArray = possibleArray;
+            } else {
+              throw new Error(`Schema Drift Error: \u041E\u0436\u0438\u0434\u0430\u043B\u0441\u044F \u043C\u0430\u0441\u0441\u0438\u0432 \u0443\u0441\u043B\u0443\u0433 \u043F\u043E \u043F\u0443\u0442\u0438 '${c.itemsPath || "$"}', \u043D\u043E \u043F\u043E\u043B\u0443\u0447\u0435\u043D ${typeof extracted}`);
+            }
+          } else {
+            servicesArray = extracted;
+          }
+          servicesArray = servicesArray.map((item) => ({
+            service: this.extractNested(item, c.serviceIdField || "service"),
+            name: this.extractNested(item, c.nameField || "name"),
+            category: this.extractNested(item, c.typeField || "category"),
+            rate: this.extractNested(item, c.priceField || "rate"),
+            min: this.extractNested(item, c.minField || "min"),
+            max: this.extractNested(item, c.maxField || "max"),
+            type: this.extractNested(item, c.typeField || "type"),
+            desc: this.extractNested(item, c.descField || "desc"),
+            description: this.extractNested(item, c.descField || "description")
+          }));
+          if (servicesArray.length > 0 && servicesArray[0].service === void 0) {
+            throw new Error(`Schema Drift Error: \u041E\u0436\u0438\u0434\u0430\u043B\u0441\u044F \u043A\u043B\u044E\u0447 ID \u0443\u0441\u043B\u0443\u0433\u0438 '${c.serviceIdField || "service"}', \u043D\u043E \u043E\u043D \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D.`);
+          }
+        } else {
+          if (typeof res === "object" && res !== null && "error" in res) throw new Error(String(res.error));
+          if (!Array.isArray(res)) throw new Error("Invalid services payload");
+          servicesArray = res;
+        }
+        try {
+          const parsed = ProviderServicesArraySchema.parse(servicesArray);
+          return parsed.map((s) => ({
+            ...s,
+            desc: s.desc || s.description || ""
+          }));
+        } catch (err) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          console.error("[API] Zod parsing failed for getServices:", errMsg);
+          throw new Error(`Provider schema validation failed: ${errMsg}`, { cause: err });
+        }
+      }
+      async createOrder(params) {
+        let payload;
+        if (this.mapping && this.mapping.order) {
+          payload = { action: "add" };
+          payload[this.mapping.order.serviceField || "service"] = params.service;
+          payload[this.mapping.order.linkField || "link"] = params.link;
+          payload[this.mapping.order.quantityField || "quantity"] = params.quantity;
+          for (const [k, v] of Object.entries(params)) {
+            if (!["service", "link", "quantity"].includes(k) && v !== void 0) {
+              payload[k] = v;
+            }
+          }
+        } else {
+          payload = { action: "add", ...params };
+        }
+        const res = await this.request(payload, 0);
+        if (this.mapping && this.mapping.response) {
+          const err = this.extractNested(res, this.mapping.response.errorField);
+          if (err) throw new Error(String(err));
+          const orderId = this.extractNested(res, this.mapping.response.orderIdField);
+          if (!orderId) throw new Error("Order ID not found in provider response");
+          return { order: String(orderId) };
+        } else {
+          if (res.error) throw new Error(String(res.error));
+          return res;
+        }
+      }
+      async getOrderStatus(orderId) {
+        const res = await this.request({ action: "status", order: orderId });
+        if (res.error) throw new Error(String(res.error));
+        if (typeof res === "string") throw new Error(res);
+        return res;
+      }
+      async getMultiOrderStatus(orderIds) {
+        if (orderIds.length === 0) return {};
+        const res = await this.request({ action: "status", orders: orderIds.join(",") });
+        if (res.error) throw new Error(String(res.error));
+        return res;
+      }
+      async cancelOrder(orderId) {
+        try {
+          const res = await this.request({ action: "cancel", orders: String(orderId) }, 0);
+          if (Array.isArray(res) && res.length > 0) {
+            const item = res[0];
+            if (item && typeof item === "object") {
+              if (item.cancel === 1 || item.cancel === true || item.status === "canceled" || item.status === "Canceled") {
+                return { success: true, raw: res };
+              }
+              if (item.cancel && typeof item.cancel === "object" && item.cancel.error) {
+                return { success: false, error: String(item.cancel.error), raw: res };
+              }
+              if (item.error) {
+                return { success: false, error: String(item.error), raw: res };
+              }
+            }
+          }
+          if (res && typeof res === "object") {
+            const obj = res;
+            if (obj.cancel === 1 || obj.cancel === true || obj.status === "canceled" || obj.status === "Canceled") {
+              return { success: true, raw: res };
+            }
+            if (obj.error) {
+              return { success: false, error: String(obj.error), raw: res };
+            }
+          }
+          return { success: true, raw: res };
+        } catch (err) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          return { success: false, error: errMsg };
+        }
+      }
+      async refill(orderId) {
+        const res = await this.request({ action: "refill", order: orderId }, 0);
+        if (!res) return { error: "Empty response from provider" };
+        if (res.error) return { error: String(res.error) };
+        if (res.refill && typeof res.refill === "object" && res.refill.error) {
+          return { error: String(res.refill.error) };
+        }
+        if (res.status === "fail" && (res.message || res.error)) {
+          return { error: String(res.message || res.error) };
+        }
+        return res;
+      }
+      async getRefillStatus(refillId) {
+        const res = await this.request({ action: "refill_status", refill: refillId });
+        if (!res) return { error: "Empty response from provider" };
+        if (res.error) return { error: String(res.error) };
+        if (res.status && typeof res.status === "object" && res.status.error) {
+          return { error: String(res.status.error) };
+        }
+        return res;
+      }
+    };
+  }
+});
+
+// src/services/providers/provider.service.ts
+var ProviderService, providerService;
+var init_provider_service = __esm({
+  "src/services/providers/provider.service.ts"() {
+    "use strict";
+    init_db();
+    init_settings();
+    init_universal_provider();
+    init_vault();
+    init_redis();
+    ProviderService = class {
+      /**
+       * Retrieves all active providers from DB
+       */
+      async getActiveProviders() {
+        return db.provider.findMany({ where: { isActive: true } });
+      }
+      /**
+       * Resolves proxy config from DB for a given provider
+       */
+      async resolveProxyConfig(provider) {
+        if (!provider.proxyId) {
+          const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
+          return ProxyPoolService2.getHealthyProxy(provider.id);
+        }
+        try {
+          const proxy = await db.providerProxy.findUnique({
+            where: { id: provider.proxyId, isActive: true }
+          });
+          if (!proxy) {
+            const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
+            return ProxyPoolService2.getHealthyProxy(provider.id);
+          }
+          let password;
+          if (proxy.passwordEncrypted) {
+            try {
+              password = VaultService.decrypt(proxy.passwordEncrypted);
+            } catch {
+              console.warn(`[Proxy] Failed to decrypt password for proxy ${proxy.id}, falling back to pool`);
+              const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
+              return ProxyPoolService2.getHealthyProxy(provider.id);
+            }
+          }
+          return {
+            protocol: proxy.protocol,
+            host: proxy.host,
+            port: proxy.port,
+            username: proxy.username || void 0,
+            password
+          };
+        } catch (err) {
+          console.warn(`[Proxy] Error resolving proxy for provider ${provider.id}:`, err);
+          const { ProxyPoolService: ProxyPoolService2 } = await Promise.resolve().then(() => (init_proxy_pool_service(), proxy_pool_service_exports));
+          return ProxyPoolService2.getHealthyProxy(provider.id);
+        }
+      }
+      /**
+       * Main Factory Method — resolves and passes proxy config to UniversalProvider
+       */
+      async getProviderInstance(config2) {
+        let apiUrl = config2.apiUrl;
+        let decryptedKey;
+        try {
+          decryptedKey = VaultService.decrypt(config2.apiKey);
+        } catch {
+          decryptedKey = config2.apiKey;
+        }
+        if (apiUrl.includes("mock.smmplan.internal") || apiUrl.includes("mock-provider") || config2.name.toLowerCase().includes("mock provider")) {
+          const port = process.env.PORT || "3000";
+          const internalBase = process.env.INTERNAL_WEB_URL || (process.env.NODE_ENV === "production" ? "http://web:3000" : `http://127.0.0.1:${port}`);
+          const internalUrl = `${internalBase}/api/dev/mock-provider`;
+          decryptedKey = process.env.MOCK_PROVIDER_KEY || decryptedKey || "mock_master_key_2026";
+          return new UniversalProvider(
+            internalUrl,
+            decryptedKey,
+            config2.metadata,
+            null
+          );
+        }
+        const proxyConfig = await this.resolveProxyConfig(config2);
+        return new UniversalProvider(
+          apiUrl,
+          decryptedKey || config2.apiKey,
+          config2.metadata,
+          proxyConfig
+        );
+      }
+      /**
+       * Retrieves services from the provider, utilizing a Redis cache (24-hour expiration)
+       * unless forceRefresh is true.
+       */
+      async getServicesWithCache(config2, providerInstance, forceRefresh = false) {
+        const cacheKey = `provider:${config2.id}:catalog`;
+        if (!forceRefresh) {
+          try {
+            const cached = await redis.get(cacheKey);
+            if (cached) {
+              return JSON.parse(cached);
+            }
+          } catch (err) {
+            console.warn(`[Redis Cache] Failed to read ${cacheKey}:`, err);
+          }
+        }
+        const rawServices = await providerInstance.getServices();
+        try {
+          await redis.set(cacheKey, JSON.stringify(rawServices), "EX", 24 * 60 * 60);
+        } catch (err) {
+          console.warn(`[Redis Cache] Failed to write ${cacheKey}:`, err);
+        }
+        return rawServices;
+      }
+      /**
+       * Factory for background workers (order/sync processors).
+       * In test mode, redirects ALL provider traffic to the internal mock-provider API.
+       * This protects real provider balance from being charged during QA testing.
+       */
+      async getWorkerProviderInstance(config2, tenantId) {
+        const isMockProvider = await SettingsManager.isMockProviderEnabled(tenantId);
+        if (isMockProvider) {
+          const mockKey = process.env.MOCK_PROVIDER_KEY || "mock_master_key_2026";
+          const port = process.env.PORT || "3000";
+          const internalBase = process.env.INTERNAL_WEB_URL || (process.env.NODE_ENV === "production" ? "http://web:3000" : `http://127.0.0.1:${port}`);
+          return new UniversalProvider(
+            `${internalBase}/api/dev/mock-provider`,
+            mockKey,
+            config2.metadata
+          );
+        }
+        let decryptedKey;
+        try {
+          decryptedKey = VaultService.decrypt(config2.apiKey);
+        } catch {
+          decryptedKey = config2.apiKey;
+        }
+        const proxyConfig = await this.resolveProxyConfig(config2);
+        return new UniversalProvider(
+          config2.apiUrl,
+          decryptedKey || config2.apiKey,
+          config2.metadata,
+          proxyConfig
+        );
+      }
+      /**
+       * Auto-resolves the default provider
+       */
+      async getDefaultProvider() {
+        const provider = await db.provider.findFirst({
+          where: { isActive: true }
+        });
+        if (!provider) {
+          throw new Error("No active providers found in the database. Please add one (e.g., Vexboost).");
+        }
+        return await this.getProviderInstance(provider);
+      }
+    };
+    providerService = new ProviderService();
+  }
+});
+
 // src/services/providers/adaptive-rate-limiter.service.ts
 var adaptive_rate_limiter_service_exports = {};
 __export2(adaptive_rate_limiter_service_exports, {
@@ -127731,18 +127731,18 @@ __export2(quality_detector_processor_exports, {
 });
 async function scanSubscriberQuality(campaignId, taskQuantity, link) {
   try {
-    log7.info(`[QualityDetector] \u0417\u0430\u043F\u0443\u0441\u043A \u0442\u0438\u0445\u043E\u0433\u043E \u0441\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u0430 \u0434\u043B\u044F \u043A\u0430\u043C\u043F\u0430\u043D\u0438\u0438 ${campaignId}, \u043F\u043E\u0440\u0446\u0438\u044F: ${taskQuantity} \u0448\u0442.`);
+    log9.info(`[QualityDetector] \u0417\u0430\u043F\u0443\u0441\u043A \u0442\u0438\u0445\u043E\u0433\u043E \u0441\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u0430 \u0434\u043B\u044F \u043A\u0430\u043C\u043F\u0430\u043D\u0438\u0438 ${campaignId}, \u043F\u043E\u0440\u0446\u0438\u044F: ${taskQuantity} \u0448\u0442.`);
     const campaign = await db.smartCampaign.findUnique({
       where: { id: campaignId },
       include: { service: { include: { category: { include: { network: true } } } } }
     });
     if (!campaign) {
-      log7.warn(`[QualityDetector] \u041A\u0430\u043C\u043F\u0430\u043D\u0438\u044F ${campaignId} \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u0430 \u0434\u043B\u044F \u0441\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F.`);
+      log9.warn(`[QualityDetector] \u041A\u0430\u043C\u043F\u0430\u043D\u0438\u044F ${campaignId} \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u0430 \u0434\u043B\u044F \u0441\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F.`);
       return;
     }
     const platformSlug = campaign.service.category?.network?.slug?.toLowerCase() || "";
     if (!platformSlug.includes("telegram") && !campaign.service.name.toLowerCase().includes("telegram")) {
-      log7.info(`[QualityDetector] \u041A\u0430\u043C\u043F\u0430\u043D\u0438\u044F ${campaignId} \u043D\u0435 \u043E\u0442\u043D\u043E\u0441\u0438\u0442\u0441\u044F \u043A Telegram. \u041F\u0440\u043E\u043F\u0443\u0441\u043A \u0441\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F.`);
+      log9.info(`[QualityDetector] \u041A\u0430\u043C\u043F\u0430\u043D\u0438\u044F ${campaignId} \u043D\u0435 \u043E\u0442\u043D\u043E\u0441\u0438\u0442\u0441\u044F \u043A Telegram. \u041F\u0440\u043E\u043F\u0443\u0441\u043A \u0441\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F.`);
       return;
     }
     const lastSnapshot = await db.smartSnapshot.findFirst({
@@ -127750,7 +127750,7 @@ async function scanSubscriberQuality(campaignId, taskQuantity, link) {
       orderBy: { createdAt: "desc" }
     });
     const previousMembers = lastSnapshot?.members || [];
-    log7.info(`[QualityDetector] \u041F\u0440\u0435\u0434\u044B\u0434\u0443\u0449\u0438\u0439 \u0441\u043B\u0435\u043F\u043E\u043A \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u0442 ${previousMembers.length} \u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u043E\u0432.`);
+    log9.info(`[QualityDetector] \u041F\u0440\u0435\u0434\u044B\u0434\u0443\u0449\u0438\u0439 \u0441\u043B\u0435\u043F\u043E\u043A \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u0442 ${previousMembers.length} \u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u043E\u0432.`);
     const newMembers = [];
     const suspiciousUsers = [];
     const botReasons = ["NO_PHOTO", "RECENT_JOIN", "NUMERIC_USERNAME", "ARABIC_CHARS", "SUSPICIOUS_BIO"];
@@ -127791,21 +127791,21 @@ async function scanSubscriberQuality(campaignId, taskQuantity, link) {
         });
       }
     });
-    log7.info(
+    log9.info(
       `[QualityDetector] \u0421\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u043E \u0443\u0441\u043F\u0435\u0448\u043D\u043E. \u0421\u043E\u0437\u0434\u0430\u043D \u043D\u043E\u0432\u044B\u0439 \u0441\u043B\u0435\u043F\u043E\u043A \u043D\u0430 ${totalMembers.length} \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0435\u0439. \u041E\u0431\u043D\u0430\u0440\u0443\u0436\u0435\u043D\u043E \u043F\u043E\u0434\u043E\u0437\u0440\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0445 \u0431\u043E\u0442\u043E\u0432 \u0432 \u043F\u043E\u0440\u0446\u0438\u0438: ${suspiciousUsers.length} \u0448\u0442.`
     );
   } catch (err) {
-    log7.error(`[QualityDetector] Critical error during silent quality scanning for campaign ${campaignId}:`, err instanceof Error ? err.message : String(err));
+    log9.error(`[QualityDetector] Critical error during silent quality scanning for campaign ${campaignId}:`, err instanceof Error ? err.message : String(err));
   }
 }
-var import_crypto4, log7;
+var import_crypto4, log9;
 var init_quality_detector_processor = __esm({
   "src/workers/processors/quality-detector.processor.ts"() {
     "use strict";
     init_db();
     import_crypto4 = __toESM(require("crypto"));
     init_logger();
-    log7 = logger.child({ component: "QualityDetector" });
+    log9 = logger.child({ component: "QualityDetector" });
   }
 });
 
@@ -127890,7 +127890,7 @@ async function checkAndCompleteCampaign(campaignId) {
         }
       }, { isolationLevel: "Serializable" });
     }
-    log8.info(`[Dripfeed] SmartCampaign ${campaignId} \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u0430 \u0441\u043E \u0441\u0442\u0430\u0442\u0443\u0441\u043E\u043C ${finalStatus}.`);
+    log10.info(`[Dripfeed] SmartCampaign ${campaignId} \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u0430 \u0441\u043E \u0441\u0442\u0430\u0442\u0443\u0441\u043E\u043C ${finalStatus}.`);
   }
 }
 async function runSmartDripfeedTick() {
@@ -127935,7 +127935,7 @@ async function runSmartDripfeedTick() {
             ]);
             const { scanSubscriberQuality: scanSubscriberQuality2 } = await Promise.resolve().then(() => (init_quality_detector_processor(), quality_detector_processor_exports));
             void scanSubscriberQuality2(campaign.id, exec.qtySent, campaign.link).catch(
-              (err) => log8.error("[Dripfeed] Failed to run silent quality scanner:", { error: err })
+              (err) => log10.error("[Dripfeed] Failed to run silent quality scanner:", { error: err })
             );
             await checkAndCompleteCampaign(campaign.id);
           } else if (["CANCELED", "PARTIAL", "FAILED"].includes(providerStatus)) {
@@ -127965,7 +127965,7 @@ async function runSmartDripfeedTick() {
           }
         }
       } catch (err) {
-        log8.error(
+        log10.error(
           `[Dripfeed Status Sync] \u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0441\u0442\u0430\u0442\u0443\u0441 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F ${exec.id}:`,
           err instanceof Error ? err.message : String(err)
         );
@@ -127994,7 +127994,7 @@ async function runSmartDripfeedTick() {
           data: { status: import_client3.SmartTaskStatus.SENT }
         });
         if (affected.count === 0) {
-          log8.warn(`[Dripfeed Worker] \u0417\u0430\u0434\u0430\u0447\u0430 ${task.id} \u0443\u0436\u0435 \u0437\u0430\u043F\u0443\u0449\u0435\u043D\u0430 \u0434\u0440\u0443\u0433\u0438\u043C \u0438\u043D\u0441\u0442\u0430\u043D\u0441\u043E\u043C \u0432\u043E\u0440\u043A\u0435\u0440\u0430. \u041F\u0440\u043E\u043F\u0443\u0441\u043A\u0430\u0435\u043C.`);
+          log10.warn(`[Dripfeed Worker] \u0417\u0430\u0434\u0430\u0447\u0430 ${task.id} \u0443\u0436\u0435 \u0437\u0430\u043F\u0443\u0449\u0435\u043D\u0430 \u0434\u0440\u0443\u0433\u0438\u043C \u0438\u043D\u0441\u0442\u0430\u043D\u0441\u043E\u043C \u0432\u043E\u0440\u043A\u0435\u0440\u0430. \u041F\u0440\u043E\u043F\u0443\u0441\u043A\u0430\u0435\u043C.`);
           continue;
         }
         const campaign = task.campaign;
@@ -128012,10 +128012,10 @@ async function runSmartDripfeedTick() {
             where: { id: task.id },
             data: { status: import_client3.SmartTaskStatus.COMPLETED }
           });
-          log8.info(`[Dripfeed Worker] \u0422\u0435\u0441\u0442\u043E\u0432\u0430\u044F \u0437\u0430\u0434\u0430\u0447\u0430 ${task.id} \u0438\u043C\u0438\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0430 \u0443\u0441\u043F\u0435\u0448\u043D\u043E.`);
+          log10.info(`[Dripfeed Worker] \u0422\u0435\u0441\u0442\u043E\u0432\u0430\u044F \u0437\u0430\u0434\u0430\u0447\u0430 ${task.id} \u0438\u043C\u0438\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0430 \u0443\u0441\u043F\u0435\u0448\u043D\u043E.`);
           const { scanSubscriberQuality: scanSubscriberQuality2 } = await Promise.resolve().then(() => (init_quality_detector_processor(), quality_detector_processor_exports));
           void scanSubscriberQuality2(campaign.id, task.quantity, campaign.link).catch(
-            (err) => log8.error("[Dripfeed] Failed to run silent quality scanner:", { error: err })
+            (err) => log10.error("[Dripfeed] Failed to run silent quality scanner:", { error: err })
           );
           await checkAndCompleteCampaign(campaign.id);
           continue;
@@ -128054,15 +128054,15 @@ async function runSmartDripfeedTick() {
             status: "IN_PROGRESS"
           }
         });
-        log8.info(
+        log10.info(
           `[Dripfeed Worker] \u0417\u0430\u0434\u0430\u0447\u0430 ${task.id} \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0430 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0443. External ID: ${extOrderId}`
         );
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
-        log8.error(`[Dripfeed Worker] \u041E\u0448\u0438\u0431\u043A\u0430 \u043E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0438 \u0437\u0430\u0434\u0430\u0447\u0438 ${task.id}:`, errorMsg);
+        log10.error(`[Dripfeed Worker] \u041E\u0448\u0438\u0431\u043A\u0430 \u043E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0438 \u0437\u0430\u0434\u0430\u0447\u0438 ${task.id}:`, errorMsg);
         const isBalanceError = errorMsg.toLowerCase().includes("balance") || errorMsg.toLowerCase().includes("not enough") || errorMsg.toLowerCase().includes("low balance") || errorMsg.toLowerCase().includes("insufficient");
         if (isBalanceError) {
-          log8.warn(`[Dripfeed Worker] \u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 \u0438\u0441\u0447\u0435\u0440\u043F\u0430\u043B \u0431\u0430\u043B\u0430\u043D\u0441. \u041E\u0442\u043A\u043B\u0430\u0434\u044B\u0432\u0430\u0435\u043C \u0437\u0430\u0434\u0430\u0447\u0443 ${task.id} \u043D\u0430 20 \u043C\u0438\u043D\u0443\u0442.`);
+          log10.warn(`[Dripfeed Worker] \u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 \u0438\u0441\u0447\u0435\u0440\u043F\u0430\u043B \u0431\u0430\u043B\u0430\u043D\u0441. \u041E\u0442\u043A\u043B\u0430\u0434\u044B\u0432\u0430\u0435\u043C \u0437\u0430\u0434\u0430\u0447\u0443 ${task.id} \u043D\u0430 20 \u043C\u0438\u043D\u0443\u0442.`);
           await db.smartTask.update({
             where: { id: task.id },
             data: {
@@ -128081,10 +128081,10 @@ async function runSmartDripfeedTick() {
       }
     }
   }).catch((err) => {
-    log8.warn("[Dripfeed] Tick lock skipped or failed:", { error: err instanceof Error ? err.message : String(err) });
+    log10.warn("[Dripfeed] Tick lock skipped or failed:", { error: err instanceof Error ? err.message : String(err) });
   });
 }
-var import_client3, log8;
+var import_client3, log10;
 var init_dripfeed_processor = __esm({
   "src/workers/processors/dripfeed.processor.ts"() {
     "use strict";
@@ -128093,7 +128093,7 @@ var init_dripfeed_processor = __esm({
     import_client3 = require("@prisma/client");
     init_logger();
     init_redis_lock();
-    log8 = logger.child({ component: "DripfeedProcessor" });
+    log10 = logger.child({ component: "DripfeedProcessor" });
   }
 });
 
@@ -128102,7 +128102,7 @@ var ProviderDiagnosticService;
 var init_provider_diagnostic_service = __esm({
   "src/services/admin/provider-diagnostic.service.ts"() {
     "use strict";
-    init_ssrf_guard2();
+    init_ssrf_guard3();
     init_universal_provider();
     ProviderDiagnosticService = class {
       /**
@@ -128988,18 +128988,18 @@ var smart_feedback_loop_processor_exports = {};
 __export2(smart_feedback_loop_processor_exports, {
   SmartFeedbackLoopProcessor: () => SmartFeedbackLoopProcessor
 });
-var log9, SmartFeedbackLoopProcessor;
+var log11, SmartFeedbackLoopProcessor;
 var init_smart_feedback_loop_processor = __esm({
   "src/workers/processors/smart-feedback-loop.processor.ts"() {
     "use strict";
     init_logger();
-    log9 = logger.child({ component: "SmartFeedbackLoopProcessor" });
+    log11 = logger.child({ component: "SmartFeedbackLoopProcessor" });
     SmartFeedbackLoopProcessor = class {
       /**
        * Main cron/tick executor. Checks all running campaigns for drops and compensates if needed.
        */
       static async runSmartFeedbackLoopTick() {
-        log9.info("[Smart Drip 2.5] Smart Feedback-Loop Simulator is disabled by admin request.");
+        log11.info("[Smart Drip 2.5] Smart Feedback-Loop Simulator is disabled by admin request.");
         return;
       }
     };
@@ -141636,7 +141636,7 @@ var init_unified_link_engine = __esm({
     init_link_rules_registry();
     init_target_type();
     init_link_service_compatibility();
-    init_ssrf_guard3();
+    init_ssrf_guard();
     init_prohibited_content();
     UnifiedLinkEngineImpl = class {
       constructor() {
@@ -142588,13 +142588,13 @@ var p0_alert_debouncer_exports = {};
 __export2(p0_alert_debouncer_exports, {
   P0AlertDebouncer: () => P0AlertDebouncer
 });
-var log11, inMemoryLocks, inMemoryCounters, P0AlertDebouncer;
+var log13, inMemoryLocks, inMemoryCounters, P0AlertDebouncer;
 var init_p0_alert_debouncer = __esm({
   "src/lib/alerts/p0-alert-debouncer.ts"() {
     "use strict";
     init_redis();
     init_logger();
-    log11 = logger.child({ component: "P0AlertDebouncer" });
+    log13 = logger.child({ component: "P0AlertDebouncer" });
     inMemoryLocks = /* @__PURE__ */ new Map();
     inMemoryCounters = /* @__PURE__ */ new Map();
     P0AlertDebouncer = class {
@@ -142617,7 +142617,7 @@ var init_p0_alert_debouncer = __esm({
             return acquired === "OK";
           }
         } catch (redisErr) {
-          log11.warn("[P0AlertDebouncer] Redis unavailable, using in-memory debounce lock", { error: redisErr });
+          log13.warn("[P0AlertDebouncer] Redis unavailable, using in-memory debounce lock", { error: redisErr });
         }
         const now = Date.now();
         const existingExpiry = inMemoryLocks.get(fullKey);
@@ -142646,7 +142646,7 @@ var init_p0_alert_debouncer = __esm({
             };
           }
         } catch (redisErr) {
-          log11.warn("[P0AlertDebouncer] Redis unavailable, using in-memory threshold counter", { error: redisErr });
+          log13.warn("[P0AlertDebouncer] Redis unavailable, using in-memory threshold counter", { error: redisErr });
         }
         const now = Date.now();
         const entry = inMemoryCounters.get(fullKey);
@@ -142688,7 +142688,7 @@ var init_p0_alert_debouncer = __esm({
             }
           }
         } catch (redisErr) {
-          log11.warn("[P0AlertDebouncer] Redis error on occurrence increment", { error: redisErr });
+          log13.warn("[P0AlertDebouncer] Redis error on occurrence increment", { error: redisErr });
         }
         const shouldSend = await this.shouldSendAlert(alertKey, cooldownSeconds);
         return { shouldSend, occurrences };
@@ -142698,7 +142698,7 @@ var init_p0_alert_debouncer = __esm({
 });
 
 // src/services/telemetry/p0-threat-sensor.service.ts
-var import_os, import_fs, log12, P0ThreatSensorService;
+var import_os, import_fs, log14, P0ThreatSensorService;
 var init_p0_threat_sensor_service = __esm({
   "src/services/telemetry/p0-threat-sensor.service.ts"() {
     "use strict";
@@ -142710,7 +142710,7 @@ var init_p0_threat_sensor_service = __esm({
     init_notifications();
     init_settings();
     init_provider_service();
-    log12 = logger.child({ component: "P0ThreatSensorService" });
+    log14 = logger.child({ component: "P0ThreatSensorService" });
     P0ThreatSensorService = class {
       /**
        * Checks free disk space on the primary partition.
@@ -142740,7 +142740,7 @@ var init_p0_threat_sensor_service = __esm({
             return { isCritical, freePercent: Math.round(freePercent * 10) / 10, totalGb, freeGb };
           }
         } catch (err) {
-          log12.warn("[P0ThreatSensor] statfs check failed, using fallback", { error: err });
+          log14.warn("[P0ThreatSensor] statfs check failed, using fallback", { error: err });
         }
         return { isCritical: false, freePercent: 100, totalGb: 100, freeGb: 100 };
       }
@@ -142809,11 +142809,11 @@ var init_p0_threat_sensor_service = __esm({
                 }
               }
             } catch (provErr) {
-              log12.warn(`[P0ThreatSensor] Could not check balance for ${provider.name}`, { error: provErr });
+              log14.warn(`[P0ThreatSensor] Could not check balance for ${provider.name}`, { error: provErr });
             }
           }
         } catch (err) {
-          log12.error("[P0ThreatSensor] checkProviderBalances query failed", { cause: err });
+          log14.error("[P0ThreatSensor] checkProviderBalances query failed", { cause: err });
         }
         return lowBalanceProviders;
       }
@@ -142841,7 +142841,7 @@ var init_p0_threat_sensor_service = __esm({
             return { isStale, hoursOld: Math.round(hoursOld * 10) / 10 };
           }
         } catch (err) {
-          log12.warn("[P0ThreatSensor] checkStaleCurrencyRate failed", { error: err });
+          log14.warn("[P0ThreatSensor] checkStaleCurrencyRate failed", { error: err });
         }
         return { isStale: false, hoursOld: 0 };
       }
@@ -142861,7 +142861,7 @@ var init_p0_threat_sensor_service = __esm({
             })
           ]);
           if (sessionsResult.count > 0 || tokensResult.count > 0) {
-            log12.info("[P0ThreatSensor] Cleaned expired sessions and auth tokens", {
+            log14.info("[P0ThreatSensor] Cleaned expired sessions and auth tokens", {
               deletedSessions: sessionsResult.count,
               deletedTokens: tokensResult.count
             });
@@ -142871,7 +142871,7 @@ var init_p0_threat_sensor_service = __esm({
             deletedTokens: tokensResult.count
           };
         } catch (err) {
-          log12.warn("[P0ThreatSensor] purgeExpiredSessionsWithSafetyMargin failed", { error: err });
+          log14.warn("[P0ThreatSensor] purgeExpiredSessionsWithSafetyMargin failed", { error: err });
           return { deletedSessions: 0, deletedTokens: 0 };
         }
       }
@@ -158262,7 +158262,7 @@ var init_subscription_sync_service = __esm({
   "src/services/providers/subscription-sync.service.ts"() {
     "use strict";
     init_db();
-    init_ssrf_guard();
+    init_ssrf_guard2();
     SubscriptionSyncService = class {
       /**
        * Parses the standard `Subscription-Userinfo` header
@@ -158401,25 +158401,132 @@ var init_subscription_sync_service = __esm({
 });
 
 // src/workers/index.ts
-var import_bullmq4 = __toESM(require_cjs());
+var import_bullmq7 = __toESM(require_cjs());
 init_queue_manager();
 init_db();
 init_logger();
 init_queue_manager();
 init_notifications();
 
-// src/workers/processors/order.processor.ts
+// src/workers/processors/order/order-preflight-guard.ts
 var import_bullmq2 = __toESM(require_cjs());
 init_db();
-init_provider_service();
 init_queue_manager();
+init_logger();
+
+// src/workers/processors/order/types.ts
+var DatabaseOrderError = class extends Error {
+  constructor(message) {
+    super(message);
+    this.isDatabaseError = true;
+    this.name = "DatabaseOrderError";
+  }
+};
+async function fetchOrderWithRelations(database, orderId) {
+  return database.order.findUnique({
+    where: { id: orderId },
+    include: {
+      service: {
+        include: {
+          provider: true,
+          category: { include: { network: true } }
+        }
+      },
+      user: { select: { id: true, email: true, tenantId: true } },
+      smartCampaign: true
+    }
+  });
+}
+
+// src/workers/processors/order/order-preflight-guard.ts
+var log4 = logger.child({ component: "OrderPreflightGuard" });
+var OrderPreflightGuard = class {
+  static async validateAndFetchOrder(job) {
+    let orderId;
+    try {
+      const { OrderJobSchema: OrderJobSchema2 } = await Promise.resolve().then(() => (init_jobs_schema(), jobs_schema_exports));
+      const parsed = OrderJobSchema2.parse(job.data);
+      orderId = parsed.orderId;
+    } catch (zodErr) {
+      log4.error(`[OrderProcessor] Invalid job payload for job ${job.id}`, { cause: zodErr });
+      throw new import_bullmq2.UnrecoverableError("Invalid job payload");
+    }
+    const order = await fetchOrderWithRelations(db, orderId);
+    if (!order) {
+      log4.warn(`[OrderProcessor] Order ${orderId} not found.`);
+      return { order: null, redisKey: "" };
+    }
+    if (order.status !== "PENDING") {
+      log4.warn(`[OrderProcessor] Order ${orderId} is not PENDING (current status: ${order.status}). Skip.`);
+      return { order: null, redisKey: "" };
+    }
+    if (order.smartCampaign) {
+      log4.info(`[OrderProcessor] Intercepted SmartDrip parent order ${orderId}. Activating SmartCampaign.`);
+      await db.$transaction([
+        db.order.update({
+          where: { id: order.id },
+          data: { status: "IN_PROGRESS" }
+        }),
+        db.smartCampaign.update({
+          where: { id: order.smartCampaign.id },
+          data: { status: "RUNNING" }
+        })
+      ]);
+      return { order: null, redisKey: "" };
+    }
+    const envMode = order.environmentMode;
+    const isMockProvider = envMode === "SANDBOX" || envMode === "ACQUIRING_TEST";
+    if (order.isTest && !isMockProvider && envMode !== "HYBRID") {
+      log4.error(`[OrderProcessor] CRITICAL: Test order ${orderId} picked up in production mode. Failing safely.`);
+      const { orderService: orderService2 } = await Promise.resolve().then(() => (init_order_service(), order_service_exports));
+      await orderService2.failOrderTerminal(
+        orderId,
+        "SYSTEM_GUARD: \u041F\u043E\u043F\u044B\u0442\u043A\u0430 \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0438 \u0442\u0435\u0441\u0442\u043E\u0432\u043E\u0433\u043E \u0437\u0430\u043A\u0430\u0437\u0430 \u0440\u0435\u0430\u043B\u044C\u043D\u043E\u043C\u0443 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0443 \u0432 \u0431\u043E\u0435\u0432\u043E\u043C \u0440\u0435\u0436\u0438\u043C\u0435 \u043F\u0440\u0435\u0440\u0432\u0430\u043D\u0430."
+      );
+      return { order: null, redisKey: "" };
+    }
+    if (order.externalId) {
+      log4.warn(`[OrderProcessor] Order ${orderId} already has an externalId (${order.externalId}). Skipping to prevent duplicate dispatch.`);
+      return { order: null, redisKey: "" };
+    }
+    const connection2 = getRedisConnection();
+    const redisKey = `order:dispatched:${order.id}`;
+    const alreadyDispatched = await connection2.get(redisKey);
+    if (alreadyDispatched) {
+      log4.warn(`[OrderProcessor] Duplicate Dispatch Guard: Order ${order.id} was already dispatched to provider but DB write failed previously. Shifting to PENDING_CHECK.`);
+      await db.order.update({
+        where: { id: order.id },
+        data: {
+          status: "PENDING_CHECK",
+          error: "\u041F\u043E\u043F\u044B\u0442\u043A\u0430 \u043F\u043E\u0432\u0442\u043E\u0440\u043D\u043E\u0439 \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0438 \u0437\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u0430: \u0437\u0430\u043A\u0430\u0437 \u0443\u0436\u0435 \u0431\u044B\u043B \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u0435\u043D \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0443."
+        }
+      });
+      try {
+        const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+        await sendAdminAlert2(
+          `\u{1F6E1}\uFE0F [\u0417\u0410\u0429\u0418\u0422\u0410 \u041E\u0422 \u0414\u0412\u041E\u0419\u041D\u041E\u0413\u041E \u0421\u041F\u0418\u0421\u0410\u041D\u0418\u042F] \u0417\u0430\u043A\u0430\u0437 #${order.numericId} (\u0423\u0441\u043B\u0443\u0433\u0430: ${order.service.name})
+\u0421\u0438\u0441\u0442\u0435\u043C\u0430 \u043F\u0440\u0435\u0434\u043E\u0442\u0432\u0440\u0430\u0442\u0438\u043B\u0430 \u043F\u043E\u0432\u0442\u043E\u0440\u043D\u0443\u044E \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0443 \u0437\u0430\u043A\u0430\u0437\u0430 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0443.
+\u0417\u0430\u043A\u0430\u0437 \u043F\u0435\u0440\u0435\u0432\u0435\u0434\u0451\u043D \u0432 \u0441\u0442\u0430\u0442\u0443\u0441 \xAB\u041D\u0430 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0435\xBB (PENDING_CHECK). \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0432 \u043A\u0430\u0431\u0438\u043D\u0435\u0442\u0435 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430, \u0431\u044B\u043B \u043B\u0438 \u0441\u043E\u0437\u0434\u0430\u043D \u0437\u0430\u043A\u0430\u0437, \u0447\u0442\u043E\u0431\u044B \u043D\u0435 \u043F\u043B\u0430\u0442\u0438\u0442\u044C \u0434\u0432\u0430\u0436\u0434\u044B.`,
+          "CRITICAL"
+        );
+      } catch {
+      }
+      throw new import_bullmq2.UnrecoverableError(`Duplicate dispatch prevented: already sent to provider.`);
+    }
+    return { order, redisKey };
+  }
+};
+
+// src/workers/processors/order/order-route-evaluator.ts
+var import_bullmq3 = __toESM(require_cjs());
+init_db();
 init_logger();
 
 // src/services/providers/smart-routing.service.ts
 init_db();
 init_settings();
 init_logger();
-var log3 = logger.child({ component: "SmartRoutingService" });
+var log5 = logger.child({ component: "SmartRoutingService" });
 var MarginGuard = class {
   /**
    * Asserts whether dispatching to candidate route preserves financial margin (>= 0%).
@@ -158510,175 +158617,82 @@ var SmartRoutingService = class {
           reason: params.reason
         }
       });
-      log3.info(`[SmartRoutingService] Routing audit event recorded: ${params.action} for service ${params.serviceId}`);
+      log5.info(`[SmartRoutingService] Routing audit event recorded: ${params.action} for service ${params.serviceId}`);
     } catch (err) {
-      log3.warn(`[SmartRoutingService] Failed to record routing audit log`, { err });
+      log5.warn(`[SmartRoutingService] Failed to record routing audit log`, { err });
     }
   }
 };
 
-// src/workers/processors/order.processor.ts
-var DatabaseOrderError = class extends Error {
-  constructor(message) {
-    super(message);
-    this.isDatabaseError = true;
-    this.name = "DatabaseOrderError";
-  }
-};
-var log6 = logger.child({ component: "OrderProcessor" });
-async function orderProcessor(job) {
-  let orderId;
-  try {
-    const { OrderJobSchema: OrderJobSchema2 } = await Promise.resolve().then(() => (init_jobs_schema(), jobs_schema_exports));
-    const parsed = OrderJobSchema2.parse(job.data);
-    orderId = parsed.orderId;
-  } catch (zodErr) {
-    log6.error(`[OrderProcessor] Invalid job payload for job ${job.id}`, { cause: zodErr });
-    throw new import_bullmq2.UnrecoverableError("Invalid job payload");
-  }
-  const order = await db.order.findUnique({
-    where: { id: orderId },
-    include: {
-      service: {
-        include: {
-          provider: true,
-          category: { include: { network: true } }
+// src/workers/processors/order/order-route-evaluator.ts
+var log6 = logger.child({ component: "OrderRouteEvaluator" });
+var OrderRouteEvaluator = class {
+  static async resolveRoutes(order) {
+    let candidateRoutes = [];
+    try {
+      candidateRoutes = await SmartRoutingService.getPrioritizedRoutes(order.serviceId);
+    } catch (routeErr) {
+      log6.warn(`[OrderProcessor] Failed to query prioritized routes, falling back to service provider`, { routeErr });
+    }
+    if (candidateRoutes.length === 0 && order.service?.provider) {
+      candidateRoutes = [
+        {
+          id: "fallback_primary",
+          serviceId: order.serviceId,
+          providerId: order.service.provider.id,
+          providerServiceId: order.providerServiceId || order.service.externalId || "",
+          isPrimary: true,
+          isActive: true,
+          priority: 0,
+          failoverMode: "manual",
+          provider: order.service.provider,
+          createdAt: /* @__PURE__ */ new Date(),
+          updatedAt: /* @__PURE__ */ new Date()
         }
-      },
-      user: { select: { id: true, email: true, tenantId: true } },
-      smartCampaign: true
+      ];
     }
-  });
-  if (!order) {
-    log6.warn(`[OrderProcessor] Order ${orderId} not found.`);
-    return;
-  }
-  if (order.status !== "PENDING") {
-    log6.warn(`[OrderProcessor] Order ${orderId} is not PENDING (current status: ${order.status}). Skip.`);
-    return;
-  }
-  if (order.smartCampaign) {
-    log6.info(`[OrderProcessor] Intercepted SmartDrip parent order ${orderId}. Activating SmartCampaign.`);
-    await db.$transaction([
-      db.order.update({
+    if (candidateRoutes.length === 0) {
+      const noRoutesMsg = "\u041D\u0435\u0442 \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u044B\u0445 \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u0445 \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u043E\u0432 \u0438\u043B\u0438 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u043E\u0432 \u0434\u043B\u044F \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F \u0437\u0430\u043A\u0430\u0437\u0430.";
+      log6.warn(`[OrderProcessor] Order ${order.id}: ${noRoutesMsg}`);
+      try {
+        const { QuarantineService: QuarantineService2 } = await Promise.resolve().then(() => (init_quarantine_service(), quarantine_service_exports));
+        await QuarantineService2.evaluateTriggerA(order.serviceId, noRoutesMsg);
+      } catch {
+      }
+      await db.order.update({
         where: { id: order.id },
-        data: { status: "IN_PROGRESS" }
-      }),
-      db.smartCampaign.update({
-        where: { id: order.smartCampaign.id },
-        data: { status: "RUNNING" }
-      })
-    ]);
-    return;
-  }
-  const envMode = order.environmentMode;
-  const isMockProvider = envMode === "SANDBOX" || envMode === "ACQUIRING_TEST";
-  if (order.isTest && !isMockProvider && envMode !== "HYBRID") {
-    log6.error(`[OrderProcessor] CRITICAL: Test order ${orderId} picked up in production mode. Failing safely.`);
-    const { orderService: orderService2 } = await Promise.resolve().then(() => (init_order_service(), order_service_exports));
-    await orderService2.failOrderTerminal(
-      orderId,
-      "SYSTEM_GUARD: \u041F\u043E\u043F\u044B\u0442\u043A\u0430 \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0438 \u0442\u0435\u0441\u0442\u043E\u0432\u043E\u0433\u043E \u0437\u0430\u043A\u0430\u0437\u0430 \u0440\u0435\u0430\u043B\u044C\u043D\u043E\u043C\u0443 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0443 \u0432 \u0431\u043E\u0435\u0432\u043E\u043C \u0440\u0435\u0436\u0438\u043C\u0435 \u043F\u0440\u0435\u0440\u0432\u0430\u043D\u0430."
-    );
-    return;
-  }
-  if (order.externalId) {
-    log6.warn(`[OrderProcessor] Order ${orderId} already has an externalId (${order.externalId}). Skipping to prevent duplicate dispatch.`);
-    return;
-  }
-  const connection2 = getRedisConnection();
-  const redisKey = `order:dispatched:${order.id}`;
-  const alreadyDispatched = await connection2.get(redisKey);
-  if (alreadyDispatched) {
-    log6.warn(`[OrderProcessor] Duplicate Dispatch Guard: Order ${order.id} was already dispatched to provider but DB write failed previously. Shifting to PENDING_CHECK.`);
-    await db.order.update({
-      where: { id: order.id },
-      data: {
-        status: "PENDING_CHECK",
-        error: "\u041F\u043E\u043F\u044B\u0442\u043A\u0430 \u043F\u043E\u0432\u0442\u043E\u0440\u043D\u043E\u0439 \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0438 \u0437\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u0430: \u0437\u0430\u043A\u0430\u0437 \u0443\u0436\u0435 \u0431\u044B\u043B \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u0435\u043D \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0443."
+        data: {
+          status: "PENDING_CHECK",
+          error: `[NO_ACTIVE_PROVIDER] ${noRoutesMsg} \u0417\u0430\u043A\u0430\u0437 \u043E\u0436\u0438\u0434\u0430\u0435\u0442 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u044F \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u043E\u043C.`
+        }
+      });
+      try {
+        const { OrderTriageAlertService: OrderTriageAlertService2 } = await Promise.resolve().then(() => (init_order_triage_alert_service(), order_triage_alert_service_exports));
+        await OrderTriageAlertService2.sendOrderCheckAlert({
+          orderId: order.id,
+          numericId: order.numericId,
+          serviceName: order.service?.name || "",
+          categoryName: order.service?.category?.name,
+          networkName: order.service?.category?.network?.name,
+          link: order.link,
+          quantity: order.quantity,
+          chargeKopecks: order.charge,
+          userEmail: order.user?.email,
+          tenantId: order.tenantId,
+          providerName: "\u041D\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D"
+        }, noRoutesMsg, "\u041D\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D");
+      } catch {
       }
-    });
-    try {
-      const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-      await sendAdminAlert2(
-        `\u{1F6E1}\uFE0F [\u0417\u0410\u0429\u0418\u0422\u0410 \u041E\u0422 \u0414\u0412\u041E\u0419\u041D\u041E\u0413\u041E \u0421\u041F\u0418\u0421\u0410\u041D\u0418\u042F] \u0417\u0430\u043A\u0430\u0437 #${order.numericId} (\u0423\u0441\u043B\u0443\u0433\u0430: ${order.service.name})
-\u0421\u0438\u0441\u0442\u0435\u043C\u0430 \u043F\u0440\u0435\u0434\u043E\u0442\u0432\u0440\u0430\u0442\u0438\u043B\u0430 \u043F\u043E\u0432\u0442\u043E\u0440\u043D\u0443\u044E \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0443 \u0437\u0430\u043A\u0430\u0437\u0430 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0443.
-\u0417\u0430\u043A\u0430\u0437 \u043F\u0435\u0440\u0435\u0432\u0435\u0434\u0451\u043D \u0432 \u0441\u0442\u0430\u0442\u0443\u0441 \xAB\u041D\u0430 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0435\xBB (PENDING_CHECK). \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0432 \u043A\u0430\u0431\u0438\u043D\u0435\u0442\u0435 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430, \u0431\u044B\u043B \u043B\u0438 \u0441\u043E\u0437\u0434\u0430\u043D \u0437\u0430\u043A\u0430\u0437, \u0447\u0442\u043E\u0431\u044B \u043D\u0435 \u043F\u043B\u0430\u0442\u0438\u0442\u044C \u0434\u0432\u0430\u0436\u0434\u044B.`,
-        "CRITICAL"
-      );
-    } catch {
+      throw new import_bullmq3.UnrecoverableError(`No active routes: ${noRoutesMsg}`);
     }
-    throw new import_bullmq2.UnrecoverableError(`Duplicate dispatch prevented: already sent to provider.`);
+    return candidateRoutes;
   }
-  let candidateRoutes = [];
-  try {
-    candidateRoutes = await SmartRoutingService.getPrioritizedRoutes(order.serviceId);
-  } catch (routeErr) {
-    log6.warn(`[OrderProcessor] Failed to query prioritized routes, falling back to service provider`, { routeErr });
-  }
-  if (candidateRoutes.length === 0 && order.service?.provider) {
-    candidateRoutes = [
-      {
-        id: "fallback_primary",
-        serviceId: order.serviceId,
-        providerId: order.service.provider.id,
-        providerServiceId: order.providerServiceId || order.service.externalId || "",
-        isPrimary: true,
-        isActive: true,
-        priority: 0,
-        failoverMode: "manual",
-        provider: order.service.provider,
-        createdAt: /* @__PURE__ */ new Date(),
-        updatedAt: /* @__PURE__ */ new Date()
-      }
-    ];
-  }
-  if (candidateRoutes.length === 0) {
-    const noRoutesMsg = "\u041D\u0435\u0442 \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u044B\u0445 \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u0445 \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u043E\u0432 \u0438\u043B\u0438 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u043E\u0432 \u0434\u043B\u044F \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F \u0437\u0430\u043A\u0430\u0437\u0430.";
-    log6.warn(`[OrderProcessor] Order ${orderId}: ${noRoutesMsg}`);
-    try {
-      const { QuarantineService: QuarantineService2 } = await Promise.resolve().then(() => (init_quarantine_service(), quarantine_service_exports));
-      await QuarantineService2.evaluateTriggerA(order.serviceId, noRoutesMsg);
-    } catch {
-    }
-    await db.order.update({
-      where: { id: order.id },
-      data: {
-        status: "PENDING_CHECK",
-        error: `[NO_ACTIVE_PROVIDER] ${noRoutesMsg} \u0417\u0430\u043A\u0430\u0437 \u043E\u0436\u0438\u0434\u0430\u0435\u0442 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u044F \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 \u043E\u043F\u0435\u0440\u0430\u0442\u043E\u0440\u043E\u043C.`
-      }
-    });
-    try {
-      const { OrderTriageAlertService: OrderTriageAlertService2 } = await Promise.resolve().then(() => (init_order_triage_alert_service(), order_triage_alert_service_exports));
-      await OrderTriageAlertService2.sendOrderCheckAlert({
-        orderId: order.id,
-        numericId: order.numericId,
-        serviceName: order.service?.name || "",
-        categoryName: order.service?.category?.name,
-        networkName: order.service?.category?.network?.name,
-        link: order.link,
-        quantity: order.quantity,
-        chargeKopecks: order.charge,
-        userEmail: order.user?.email,
-        tenantId: order.tenantId,
-        providerName: "\u041D\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D"
-      }, noRoutesMsg, "\u041D\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D");
-    } catch {
-    }
-    throw new import_bullmq2.UnrecoverableError(`No active routes: ${noRoutesMsg}`);
-  }
-  const primaryProviderId = candidateRoutes.find((r) => r.isPrimary)?.providerId || candidateRoutes[0]?.providerId;
-  let dispatched = false;
-  let lastError = "";
-  let marginRejectionCount = 0;
-  let lastMarginError = "";
-  for (let i = 0; i < candidateRoutes.length; i++) {
-    const route = candidateRoutes[i];
-    const nextRoute = candidateRoutes[i + 1];
+  static async verifyRouteCapabilitiesAndMargin(order, route, primaryProviderId) {
     if (!route.provider?.apiUrl || !route.provider?.apiKey) {
-      lastError = `\u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 ${route.provider?.name || route.providerId} \u043D\u0435 \u0438\u043C\u0435\u0435\u0442 \u0432\u0430\u043B\u0438\u0434\u043D\u043E\u0433\u043E API URL \u0438\u043B\u0438 \u043A\u043B\u044E\u0447\u0430`;
-      log6.warn(`[OrderProcessor] Route ${route.id} skipped: ${lastError}`);
-      continue;
+      return {
+        isCompatible: false,
+        reason: `\u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 ${route.provider?.name || route.providerId} \u043D\u0435 \u0438\u043C\u0435\u0435\u0442 \u0432\u0430\u043B\u0438\u0434\u043D\u043E\u0433\u043E API URL \u0438\u043B\u0438 \u043A\u043B\u044E\u0447\u0430`
+      };
     }
     let shadowSvc = null;
     try {
@@ -158698,17 +158712,13 @@ async function orderProcessor(job) {
     if (order.isDripFeed) {
       const supportsDrip = shadowSvc ? shadowSvc.dripfeed : route.providerId === order.service?.providerId ? order.service.isDripFeedEnabled : true;
       if (!supportsDrip) {
-        lastError = `\u041C\u0430\u0440\u0448\u0440\u0443\u0442 ${route.provider.name} \u043D\u0435 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442 Drip-Feed`;
-        log6.info(`[OrderProcessor] Route ${route.id} skipped: ${lastError}`);
-        continue;
+        return { isCompatible: false, reason: `\u041C\u0430\u0440\u0448\u0440\u0443\u0442 ${route.provider.name} \u043D\u0435 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442 Drip-Feed` };
       }
     }
     if (order.customData) {
       const customType = shadowSvc ? shadowSvc.customDataType : route.providerId === order.service?.providerId ? order.service.customDataType : "NONE";
       if (customType === "NONE" && shadowSvc) {
-        lastError = `\u041C\u0430\u0440\u0448\u0440\u0443\u0442 ${route.provider.name} \u043D\u0435 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442 customData`;
-        log6.info(`[OrderProcessor] Route ${route.id} skipped: ${lastError}`);
-        continue;
+        return { isCompatible: false, reason: `\u041C\u0430\u0440\u0448\u0440\u0443\u0442 ${route.provider.name} \u043D\u0435 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442 customData` };
       }
     }
     const providerRate = shadowSvc?.rate ?? (route.providerId === order.service?.providerId ? order.service.rate : 0);
@@ -158722,189 +158732,48 @@ async function orderProcessor(job) {
         0.05
       );
       if (!marginCheck.isProfitable) {
-        lastError = marginCheck.reason || "\u041C\u0430\u0440\u0436\u0430 \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u0430 \u043E\u0442\u0440\u0438\u0446\u0430\u0442\u0435\u043B\u044C\u043D\u0430 \u0441 \u0443\u0447\u0435\u0442\u043E\u043C \u0431\u0443\u0444\u0435\u0440\u0430 5%";
-        lastMarginError = lastError;
-        marginRejectionCount++;
-        log6.warn(`[OrderProcessor] Margin rejected for route ${route.provider.name}: ${lastError}`);
+        const errorReason = marginCheck.reason || "\u041C\u0430\u0440\u0436\u0430 \u043C\u0430\u0440\u0448\u0440\u0443\u0442\u0430 \u043E\u0442\u0440\u0438\u0446\u0430\u0442\u0435\u043B\u044C\u043D\u0430 \u0441 \u0443\u0447\u0435\u0442\u043E\u043C \u0431\u0443\u0444\u0435\u0440\u0430 5%";
+        log6.warn(`[OrderProcessor] Margin rejected for route ${route.provider.name}: ${errorReason}`);
         await SmartRoutingService.recordFailoverEvent({
           serviceId: order.serviceId,
           action: "MARGIN_REJECTED",
           fromProviderId: primaryProviderId,
           toProviderId: route.providerId,
-          reason: lastError
+          reason: errorReason
         });
-        continue;
+        return { isCompatible: false, reason: errorReason, isMarginError: true };
       }
     }
-    try {
-      const provider = await providerService.getWorkerProviderInstance(route.provider);
-      const runQty = order.isDripFeed && order.runs && order.runs > 0 ? Math.max(1, Math.floor(order.quantity / order.runs)) : order.quantity;
-      const serviceName = order.service?.name?.toLowerCase() || "";
-      const payload = {
-        service: route.providerServiceId,
-        link: order.link,
-        quantity: runQty,
-        ref: order.id,
-        custom_id: order.id
-      };
-      if (order.isDripFeed && order.runs && order.interval) {
-        payload.runs = order.runs;
-        payload.interval = order.interval;
-      }
-      if (order.customData) {
-        const cType = shadowSvc?.customDataType || order.service?.customDataType;
-        if (cType === "NUMBER" || serviceName.includes("\u043E\u043F\u0440\u043E\u0441") && !serviceName.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || serviceName.includes("\u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435") || serviceName.includes("poll")) {
-          payload.answers_number = order.customData;
-        } else {
-          payload.comments = order.customData;
-        }
-      }
-      await connection2.set(redisKey, "1", "EX", 3600);
-      const { AdaptiveRateLimiterService: AdaptiveRateLimiterService2 } = await Promise.resolve().then(() => (init_adaptive_rate_limiter_service(), adaptive_rate_limiter_service_exports));
-      await AdaptiveRateLimiterService2.acquireToken(route.providerId);
-      const response = await provider.createOrder(payload);
-      if (response.error && !response.order) {
-        throw new Error(response.error);
-      }
-      const extId = response.order ? response.order.toString() : "";
-      try {
-        await db.order.update({
-          where: { id: order.id },
-          data: {
-            externalId: extId,
-            providerId: route.providerId,
-            providerServiceId: route.providerServiceId,
-            status: "IN_PROGRESS"
-          }
-        });
-      } catch (dbError) {
-        throw new DatabaseOrderError(dbError instanceof Error ? dbError.message : String(dbError));
-      }
-      if (route.providerId !== primaryProviderId) {
-        await SmartRoutingService.recordFailoverEvent({
-          serviceId: order.serviceId,
-          action: "FAILOVER_SWAP",
-          fromProviderId: primaryProviderId,
-          toProviderId: route.providerId,
-          reason: `Failover to ${route.provider.name} succeeded. Previous error: ${lastError}`
-        });
-      }
-      log6.info(`[OrderProcessor] Dispatched Order ${order.id} | Provider: ${route.provider.name} | External ID: ${extId}`);
-      dispatched = true;
-      break;
-    } catch (error) {
-      if (error instanceof DatabaseOrderError || typeof error === "object" && error !== null && "isDatabaseError" in error) {
-        throw error;
-      }
-      const errMsg = (error instanceof Error ? error.message : String(error)).toLowerCase();
-      const isNetworkTimeout = errMsg.includes("timeout") || errMsg.includes("etimedout") || errMsg.includes("econnreset") || errMsg.includes("socket hang up") || errMsg.includes("eai_again");
-      if (isNetworkTimeout) {
-        log6.warn(`[OrderProcessor] AMBIGUOUS TIMEOUT for Order ${order.id}. Moving to PENDING_CHECK.`);
-        await db.order.update({
-          where: { id: order.id },
-          data: {
-            status: "PENDING_CHECK",
-            error: `\u0421\u0435\u0442\u0435\u0432\u043E\u0439 \u0442\u0430\u0439\u043C\u0430\u0443\u0442 \u043F\u0440\u0438 \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0435: ${error instanceof Error ? error.message : String(error)}`
-          }
-        });
-        try {
-          const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-          sendAdminAlert2(
-            `\u26A0\uFE0F [\u0422\u0410\u0419\u041C\u0410\u0423\u0422 \u0421\u0412\u042F\u0417\u0418 \u0421 \u041F\u041E\u0421\u0422\u0410\u0412\u0429\u0418\u041A\u041E\u041C] \u0417\u0430\u043A\u0430\u0437 #${order.numericId} (\u0423\u0441\u043B\u0443\u0433\u0430: ${order.service?.name || ""})
-\u041F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A ${route.provider.name} \u043D\u0435 \u043E\u0442\u0432\u0435\u0442\u0438\u043B \u0432\u043E\u0432\u0440\u0435\u043C\u044F (\u043E\u0431\u0440\u044B\u0432 \u0441\u0432\u044F\u0437\u0438 / \u0442\u0430\u0439\u043C\u0430\u0443\u0442).
-\u0417\u0430\u043A\u0430\u0437 \u043F\u0435\u0440\u0435\u0432\u0435\u0434\u0451\u043D \u0432 \u0441\u0442\u0430\u0442\u0443\u0441 \xAB\u041D\u0430 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0435\xBB (PENDING_CHECK). \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0432 \u043A\u0430\u0431\u0438\u043D\u0435\u0442\u0435 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430, \u0443\u0441\u043F\u0435\u043B \u043B\u0438 \u043E\u043D \u043F\u0440\u0438\u043D\u044F\u0442\u044C \u0437\u0430\u043A\u0430\u0437, \u043F\u0440\u0435\u0436\u0434\u0435 \u0447\u0435\u043C \u043D\u0430\u0436\u0438\u043C\u0430\u0442\u044C \u043F\u043E\u0432\u0442\u043E\u0440!`,
-            "WARNING"
-          );
-        } catch {
-        }
-        throw new import_bullmq2.UnrecoverableError(`Ambiguous Timeout: ${error instanceof Error ? error.message : String(error)}`);
-      }
-      const originalError = error instanceof Error ? error.message : String(error);
-      lastError = originalError;
-      log6.error(`[OrderProcessor] Provider error on route ${route.provider.name} for order ${order.id}: ${originalError}`);
-      if (route.failoverMode !== "automatic") {
-        log6.warn(`[OrderProcessor] Failover mode is '${route.failoverMode}' for route ${route.id}. Halting cascade to prevent quality drift.`);
-        const { OrderTriageAlertService: OrderTriageAlertService2 } = await Promise.resolve().then(() => (init_order_triage_alert_service(), order_triage_alert_service_exports));
-        const classification = OrderTriageAlertService2.classifyError(originalError);
-        const formattedError = OrderTriageAlertService2.formatOrderErrorMessage(classification, originalError, route.provider.name);
-        await db.order.update({
-          where: { id: order.id },
-          data: {
-            status: "PENDING_CHECK",
-            providerId: route.providerId,
-            providerServiceId: route.providerServiceId,
-            error: formattedError
-          }
-        });
-        try {
-          await OrderTriageAlertService2.sendOrderCheckAlert({
-            orderId: order.id,
-            numericId: order.numericId,
-            serviceName: order.service?.name || "",
-            categoryName: order.service?.category?.name,
-            networkName: order.service?.category?.network?.name,
-            link: order.link,
-            quantity: order.quantity,
-            chargeKopecks: order.charge,
-            userEmail: order.user?.email,
-            tenantId: order.tenantId,
-            providerName: route.provider.name
-          }, originalError, route.provider.name);
-        } catch {
-        }
-        await connection2.del(redisKey).catch(() => {
-        });
-        throw new import_bullmq2.UnrecoverableError(`Manual failover mode: operator triage required`);
-      }
-      if (nextRoute) {
-        await SmartRoutingService.recordFailoverEvent({
-          serviceId: order.serviceId,
-          action: "FAILOVER_SWAP",
-          fromProviderId: route.providerId,
-          toProviderId: nextRoute.providerId,
-          reason: `Provider ${route.provider.name} failed: ${originalError}. Cascading to ${nextRoute.provider.name}`
-        });
-      }
-    }
+    return { isCompatible: true };
   }
-  if (!dispatched) {
+};
+
+// src/workers/processors/order/order-dispatch-executor.ts
+var import_bullmq5 = __toESM(require_cjs());
+init_db();
+init_queue_manager();
+init_logger();
+init_provider_service();
+
+// src/workers/processors/order/order-all-routes-failed-handler.ts
+var import_bullmq4 = __toESM(require_cjs());
+init_db();
+init_queue_manager();
+var OrderAllRoutesFailedHandler = class {
+  static async handle(ctx, marginRejectionCount, lastMarginError, lastError) {
+    const { order, candidateRoutes, redisKey } = ctx;
+    const connection2 = getRedisConnection();
     if (marginRejectionCount > 0 && marginRejectionCount === candidateRoutes.length) {
-      const holdMessage = `PRICE_DRIFT_HOLD: ${lastMarginError || "\u0421\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u043E\u043F\u043B\u0430\u0442\u0443 \u043A\u043B\u0438\u0435\u043D\u0442\u0430. \u0417\u0430\u043A\u0430\u0437 \u043F\u0440\u0438\u043E\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D \u0432\u043E \u0438\u0437\u0431\u0435\u0436\u0430\u043D\u0438\u0435 \u043E\u0442\u0440\u0438\u0446\u0430\u0442\u0435\u043B\u044C\u043D\u043E\u0439 \u043C\u0430\u0440\u0436\u0438."}`;
-      log6.warn(`[OrderProcessor] PRICE DRIFT HOLD for Order ${order.id}: ${holdMessage}`);
-      await db.order.update({
-        where: { id: order.id },
-        data: {
-          status: "PENDING_CHECK",
-          error: holdMessage
-        }
-      });
-      try {
-        const { OrderTriageAlertService: OrderTriageAlertService3 } = await Promise.resolve().then(() => (init_order_triage_alert_service(), order_triage_alert_service_exports));
-        await OrderTriageAlertService3.sendOrderCheckAlert({
-          orderId: order.id,
-          numericId: order.numericId,
-          serviceName: order.service?.name || "",
-          categoryName: order.service?.category?.name,
-          networkName: order.service?.category?.network?.name,
-          link: order.link,
-          quantity: order.quantity,
-          chargeKopecks: order.charge,
-          userEmail: order.user?.email,
-          tenantId: order.tenantId,
-          providerName: candidateRoutes[0]?.provider?.name
-        }, holdMessage, candidateRoutes[0]?.provider?.name);
-      } catch {
-      }
+      const holdMessage = `PRICE_DRIFT_HOLD: ${lastMarginError || "\u0421\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430 \u043F\u0440\u0435\u0432\u044B\u0448\u0430\u0435\u0442 \u043E\u043F\u043B\u0430\u0442\u0443 \u043A\u043B\u0438\u0435\u043D\u0442\u0430."}`;
+      await db.order.update({ where: { id: order.id }, data: { status: "PENDING_CHECK", error: holdMessage } });
       await connection2.del(redisKey).catch(() => {
       });
-      throw new import_bullmq2.UnrecoverableError(`Price Drift Hold: ${holdMessage}`);
+      throw new import_bullmq4.UnrecoverableError(`Price Drift Hold: ${holdMessage}`);
     }
-    log6.error(`[OrderProcessor] All routes failed for Order ${order.id}. Moving to PENDING_CHECK: ${lastError}`);
     try {
       const { QuarantineService: QuarantineService2 } = await Promise.resolve().then(() => (init_quarantine_service(), quarantine_service_exports));
       await QuarantineService2.evaluateTriggerA(order.serviceId, lastError);
-    } catch (quarantineErr) {
-      log6.error(`[OrderProcessor] Quarantine evaluation failed: ${quarantineErr instanceof Error ? quarantineErr.message : String(quarantineErr)}`);
+    } catch {
     }
     const { OrderTriageAlertService: OrderTriageAlertService2 } = await Promise.resolve().then(() => (init_order_triage_alert_service(), order_triage_alert_service_exports));
     const classification = OrderTriageAlertService2.classifyError(lastError);
@@ -158918,26 +158787,171 @@ async function orderProcessor(job) {
         error: formattedError
       }
     });
-    try {
-      await OrderTriageAlertService2.sendOrderCheckAlert({
-        orderId: order.id,
-        numericId: order.numericId,
-        serviceName: order.service?.name || "",
-        categoryName: order.service?.category?.name,
-        networkName: order.service?.category?.network?.name,
-        link: order.link,
-        quantity: order.quantity,
-        chargeKopecks: order.charge,
-        userEmail: order.user?.email,
-        tenantId: order.tenantId,
-        providerName: candidateRoutes[0]?.provider?.name
-      }, lastError, candidateRoutes[0]?.provider?.name);
-    } catch {
-    }
     await connection2.del(redisKey).catch(() => {
     });
-    throw new import_bullmq2.UnrecoverableError(`Order moved to PENDING_CHECK: ${lastError}`);
+    throw new import_bullmq4.UnrecoverableError(`Order moved to PENDING_CHECK: ${lastError}`);
   }
+};
+
+// src/workers/processors/order/order-dispatch-executor.ts
+var log8 = logger.child({ component: "OrderDispatchExecutor" });
+var OrderDispatchExecutor = class {
+  static async executeDispatchLoop(ctx) {
+    const { order, candidateRoutes, primaryProviderId, redisKey } = ctx;
+    const connection2 = getRedisConnection();
+    let dispatched = false;
+    let lastError = "";
+    let marginRejectionCount = 0;
+    let lastMarginError = "";
+    for (let i = 0; i < candidateRoutes.length; i++) {
+      const route = candidateRoutes[i];
+      const nextRoute = candidateRoutes[i + 1];
+      const check = await OrderRouteEvaluator.verifyRouteCapabilitiesAndMargin(order, route, primaryProviderId);
+      if (!check.isCompatible) {
+        lastError = check.reason || "";
+        if (check.isMarginError) {
+          marginRejectionCount++;
+          lastMarginError = lastError;
+        }
+        continue;
+      }
+      try {
+        const provider = await providerService.getWorkerProviderInstance(route.provider);
+        const runQty = order.isDripFeed && order.runs && order.runs > 0 ? Math.max(1, Math.floor(order.quantity / order.runs)) : order.quantity;
+        const serviceName = order.service?.name?.toLowerCase() || "";
+        const payload = {
+          service: route.providerServiceId,
+          link: order.link,
+          quantity: runQty,
+          ref: order.id,
+          custom_id: order.id
+        };
+        if (order.isDripFeed && order.runs && order.interval) {
+          payload.runs = order.runs;
+          payload.interval = order.interval;
+        }
+        if (order.customData) {
+          const cType = order.service?.customDataType;
+          if (cType === "NUMBER" || serviceName.includes("\u043E\u043F\u0440\u043E\u0441") && !serviceName.includes("\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440") || serviceName.includes("\u0433\u043E\u043B\u043E\u0441\u043E\u0432\u0430\u043D\u0438\u0435") || serviceName.includes("poll")) {
+            payload.answers_number = order.customData;
+          } else {
+            payload.comments = order.customData;
+          }
+        }
+        await connection2.set(redisKey, "1", "EX", 3600);
+        const { AdaptiveRateLimiterService: AdaptiveRateLimiterService2 } = await Promise.resolve().then(() => (init_adaptive_rate_limiter_service(), adaptive_rate_limiter_service_exports));
+        await AdaptiveRateLimiterService2.acquireToken(route.providerId);
+        const response = await provider.createOrder(payload);
+        if (response.error && !response.order) {
+          throw new Error(response.error);
+        }
+        const extId = response.order ? response.order.toString() : "";
+        try {
+          await db.order.update({
+            where: { id: order.id },
+            data: {
+              externalId: extId,
+              providerId: route.providerId,
+              providerServiceId: route.providerServiceId,
+              status: "IN_PROGRESS"
+            }
+          });
+        } catch (dbError) {
+          throw new DatabaseOrderError(dbError instanceof Error ? dbError.message : String(dbError));
+        }
+        if (route.providerId !== primaryProviderId) {
+          await SmartRoutingService.recordFailoverEvent({
+            serviceId: order.serviceId,
+            action: "FAILOVER_SWAP",
+            fromProviderId: primaryProviderId,
+            toProviderId: route.providerId,
+            reason: `Failover to ${route.provider.name} succeeded. Previous error: ${lastError}`
+          });
+        }
+        log8.info(`[OrderProcessor] Dispatched Order ${order.id} | Provider: ${route.provider.name} | External ID: ${extId}`);
+        dispatched = true;
+        break;
+      } catch (error) {
+        if (error instanceof DatabaseOrderError || typeof error === "object" && error !== null && "isDatabaseError" in error) {
+          throw error;
+        }
+        const errMsg = (error instanceof Error ? error.message : String(error)).toLowerCase();
+        const isTimeout = errMsg.includes("timeout") || errMsg.includes("etimedout") || errMsg.includes("econnreset") || errMsg.includes("socket hang up") || errMsg.includes("eai_again");
+        if (isTimeout) {
+          await db.order.update({
+            where: { id: order.id },
+            data: { status: "PENDING_CHECK", error: `\u0421\u0435\u0442\u0435\u0432\u043E\u0439 \u0442\u0430\u0439\u043C\u0430\u0443\u0442 \u043F\u0440\u0438 \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0435: ${error instanceof Error ? error.message : String(error)}` }
+          });
+          try {
+            const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+            sendAdminAlert2(
+              `\u26A0\uFE0F [\u0422\u0410\u0419\u041C\u0410\u0423\u0422 \u0421\u0412\u042F\u0417\u0418 \u0421 \u041F\u041E\u0421\u0422\u0410\u0412\u0429\u0418\u041A\u041E\u041C] \u0417\u0430\u043A\u0430\u0437 #${order.numericId} (\u0423\u0441\u043B\u0443\u0433\u0430: ${order.service?.name || ""})
+\u041F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A ${route.provider.name} \u043D\u0435 \u043E\u0442\u0432\u0435\u0442\u0438\u043B \u0432\u043E\u0432\u0440\u0435\u043C\u044F. \u0417\u0430\u043A\u0430\u0437 \u043F\u0435\u0440\u0435\u0432\u0435\u0434\u0451\u043D \u0432 \u0441\u0442\u0430\u0442\u0443\u0441 PENDING_CHECK.`,
+              "WARNING"
+            );
+          } catch {
+          }
+          throw new import_bullmq5.UnrecoverableError(`Ambiguous Timeout: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        const originalError = error instanceof Error ? error.message : String(error);
+        lastError = originalError;
+        if (route.failoverMode !== "automatic") {
+          const { OrderTriageAlertService: OrderTriageAlertService2 } = await Promise.resolve().then(() => (init_order_triage_alert_service(), order_triage_alert_service_exports));
+          const classification = OrderTriageAlertService2.classifyError(originalError);
+          const formattedError = OrderTriageAlertService2.formatOrderErrorMessage(classification, originalError, route.provider.name);
+          await db.order.update({
+            where: { id: order.id },
+            data: { status: "PENDING_CHECK", providerId: route.providerId, providerServiceId: route.providerServiceId, error: formattedError }
+          });
+          try {
+            await OrderTriageAlertService2.sendOrderCheckAlert({
+              orderId: order.id,
+              numericId: order.numericId,
+              serviceName: order.service?.name || "",
+              categoryName: order.service?.category?.name,
+              networkName: order.service?.category?.network?.name,
+              link: order.link,
+              quantity: order.quantity,
+              chargeKopecks: order.charge,
+              userEmail: order.user?.email,
+              tenantId: order.tenantId,
+              providerName: route.provider.name
+            }, originalError, route.provider.name);
+          } catch {
+          }
+          await connection2.del(redisKey).catch(() => {
+          });
+          throw new import_bullmq5.UnrecoverableError(`Manual failover mode: operator triage required`);
+        }
+        if (nextRoute) {
+          await SmartRoutingService.recordFailoverEvent({
+            serviceId: order.serviceId,
+            action: "FAILOVER_SWAP",
+            fromProviderId: route.providerId,
+            toProviderId: nextRoute.providerId,
+            reason: `Provider ${route.provider.name} failed: ${originalError}. Cascading.`
+          });
+        }
+      }
+    }
+    if (!dispatched) {
+      await OrderAllRoutesFailedHandler.handle(ctx, marginRejectionCount, lastMarginError, lastError);
+    }
+  }
+};
+
+// src/workers/processors/order.processor.ts
+async function orderProcessor(job) {
+  const { order, redisKey } = await OrderPreflightGuard.validateAndFetchOrder(job);
+  if (!order) return;
+  const candidateRoutes = await OrderRouteEvaluator.resolveRoutes(order);
+  const primaryProviderId = candidateRoutes.find((r) => r.isPrimary)?.providerId || candidateRoutes[0]?.providerId;
+  await OrderDispatchExecutor.executeDispatchLoop({
+    order,
+    candidateRoutes,
+    primaryProviderId,
+    redisKey
+  });
 }
 
 // src/workers/processors/sync.processor.ts
@@ -159050,7 +159064,7 @@ var RefundPolicyService = class {
 // src/workers/processors/sync.processor.ts
 init_smtp();
 init_logger();
-var log10 = logger.child({ component: "SyncProcessor" });
+var log12 = logger.child({ component: "SyncProcessor" });
 async function safeUpdateOrderStatus(tx, orderId, data) {
   const fresh = await tx.order.findUnique({ where: { id: orderId } });
   if (!fresh || !["PENDING", "IN_PROGRESS", "PENDING_CHECK", "CANCELING"].includes(fresh.status)) {
@@ -159063,13 +159077,13 @@ async function safeUpdateOrderStatus(tx, orderId, data) {
 }
 async function syncProcessor(job) {
   if (job.name === "dripfeed-tick") {
-    log10.info("Starting Smart Dripfeed Tick processing...");
+    log12.info("Starting Smart Dripfeed Tick processing...");
     const { runSmartDripfeedTick: runSmartDripfeedTick2 } = await Promise.resolve().then(() => (init_dripfeed_processor(), dripfeed_processor_exports));
     await runSmartDripfeedTick2();
-    log10.info("Finished Smart Dripfeed Tick processing.");
+    log12.info("Finished Smart Dripfeed Tick processing.");
     return;
   }
-  log10.info("Beginning massive status sync...");
+  log12.info("Beginning massive status sync...");
   const activeProviders = await db.provider.findMany({
     where: { isActive: true }
   });
@@ -159086,7 +159100,7 @@ async function syncProcessor(job) {
         orderBy: { updatedAt: "asc" }
       });
       if (activeOrderIds.length >= MAX_SYNC_PER_PROVIDER) {
-        log10.warn(`[SyncProcessor] Provider ${providerDef.name}: sync truncated to ${MAX_SYNC_PER_PROVIDER} orders (oldest first) \u2014 remaining orders will sync next tick`);
+        log12.warn(`[SyncProcessor] Provider ${providerDef.name}: sync truncated to ${MAX_SYNC_PER_PROVIDER} orders (oldest first) \u2014 remaining orders will sync next tick`);
       }
       if (activeOrderIds.length === 0) return;
       const provider = await providerService.getWorkerProviderInstance(providerDef);
@@ -159127,7 +159141,7 @@ async function syncProcessor(job) {
             }
           });
         } catch (batchErr) {
-          log10.warn(`[SyncProcessor] Batch status polling failed for ${providerDef.name}, falling back to 1-by-1 query:`, { error: batchErr });
+          log12.warn(`[SyncProcessor] Batch status polling failed for ${providerDef.name}, falling back to 1-by-1 query:`, { error: batchErr });
           try {
             await db.provider.update({
               where: { id: providerDef.id },
@@ -159137,7 +159151,7 @@ async function syncProcessor(job) {
               }
             });
           } catch (slaErr) {
-            log10.error(`Failed to update SLA error metrics for ${providerDef.id}`, { cause: slaErr });
+            log12.error(`Failed to update SLA error metrics for ${providerDef.id}`, { cause: slaErr });
           }
           for (const extId of allExtIds) {
             try {
@@ -159212,7 +159226,7 @@ async function syncProcessor(job) {
           const statusObj = statuses[order.externalId];
           if (!statusObj) continue;
           if (typeof statusObj === "string" || !statusObj.status) {
-            log10.warn(`Invalid multi-status response for Order ${order.id}`, { statusObj });
+            log12.warn(`Invalid multi-status response for Order ${order.id}`, { statusObj });
             continue;
           }
           const normalizedStatus = statusObj.status.toLowerCase();
@@ -159236,7 +159250,7 @@ async function syncProcessor(job) {
                 startCount: startCountNum !== void 0 && !isNaN(startCountNum) ? startCountNum : void 0
               });
               if (updated && order.email) {
-                await sendOrderCompletedMail(order.email, String(order.numericId || order.id), order.service.name, order.tenantId).catch((err) => log10.error("Failed to send order completed email", { error: err }));
+                await sendOrderCompletedMail(order.email, String(order.numericId || order.id), order.service.name, order.tenantId).catch((err) => log12.error("Failed to send order completed email", { error: err }));
               }
             });
           } else if (targetStatus === "CANCELED") {
@@ -159278,7 +159292,7 @@ async function syncProcessor(job) {
         }
       }
     } catch (e) {
-      log10.error(`Exception while pinging Provider ${providerDef.id}`, { cause: e });
+      log12.error(`Exception while pinging Provider ${providerDef.id}`, { cause: e });
       try {
         await db.provider.update({
           where: { id: providerDef.id },
@@ -159288,7 +159302,7 @@ async function syncProcessor(job) {
           }
         });
       } catch (slaErr) {
-        log10.error(`Failed to update SLA error metrics for ${providerDef.id}`, { cause: slaErr });
+        log12.error(`Failed to update SLA error metrics for ${providerDef.id}`, { cause: slaErr });
       }
     }
   }));
@@ -159297,7 +159311,7 @@ async function syncProcessor(job) {
     await QuarantineService2.restoreExpiredQuarantines();
     await QuarantineService2.evaluateTriggerC();
   } catch (e) {
-    log10.error("Failed to execute Quarantine Service tasks", { cause: e });
+    log12.error("Failed to execute Quarantine Service tasks", { cause: e });
   }
   try {
     const orphanThreshold = new Date(Date.now() - 15 * 60 * 1e3);
@@ -159310,35 +159324,35 @@ async function syncProcessor(job) {
       select: { id: true, numericId: true }
     });
     if (orphanOrders.length > 0) {
-      log10.warn(`Found ${orphanOrders.length} orphaned PENDING orders. Re-enqueuing to dispatch queue...`);
+      log12.warn(`Found ${orphanOrders.length} orphaned PENDING orders. Re-enqueuing to dispatch queue...`);
       const { ordersQueue: ordersQueue2 } = await Promise.resolve().then(() => (init_queue_manager(), queue_manager_exports));
       for (const orphan of orphanOrders) {
         try {
           await ordersQueue2.add("order-dispatch", { orderId: orphan.id }, { jobId: `dispatch-${orphan.id}` });
-          log10.info(`[SyncProcessor] Re-enqueued orphan order #${orphan.numericId} (ID: ${orphan.id})`);
+          log12.info(`[SyncProcessor] Re-enqueued orphan order #${orphan.numericId} (ID: ${orphan.id})`);
         } catch (enqueueErr) {
-          log10.error(`[SyncProcessor] Failed to re-enqueue orphan order #${orphan.numericId}`, { error: enqueueErr });
+          log12.error(`[SyncProcessor] Failed to re-enqueue orphan order #${orphan.numericId}`, { error: enqueueErr });
         }
       }
     }
   } catch (e) {
-    log10.error("Failed to execute Orphan Sweeper", { cause: e });
+    log12.error("Failed to execute Orphan Sweeper", { cause: e });
   }
   try {
     const { BalanceAutoFlushService: BalanceAutoFlushService2 } = await Promise.resolve().then(() => (init_balance_autoflush_service(), balance_autoflush_service_exports));
     const flushed = await BalanceAutoFlushService2.sweepAllProviders();
     if (flushed.length > 0) {
-      log10.info(`[SyncProcessor] Smart Balance Auto-Flush dispatched ${flushed.reduce((acc, f) => acc + f.flushedCount, 0)} orders across ${flushed.length} providers.`);
+      log12.info(`[SyncProcessor] Smart Balance Auto-Flush dispatched ${flushed.reduce((acc, f) => acc + f.flushedCount, 0)} orders across ${flushed.length} providers.`);
     }
   } catch (err) {
-    log10.error("Failed to run BalanceAutoFlushService sweep in sync processor", { error: err });
+    log12.error("Failed to run BalanceAutoFlushService sweep in sync processor", { error: err });
   }
   try {
     const { SmartFeedbackLoopProcessor: SmartFeedbackLoopProcessor2 } = await Promise.resolve().then(() => (init_smart_feedback_loop_processor(), smart_feedback_loop_processor_exports));
     await SmartFeedbackLoopProcessor2.runSmartFeedbackLoopTick();
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
-    log10.error("[SyncProcessor] SmartFeedbackLoop tick failed", { error: errMsg });
+    log12.error("[SyncProcessor] SmartFeedbackLoop tick failed", { error: errMsg });
   }
   try {
     const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1e3);
@@ -159355,11 +159369,11 @@ async function syncProcessor(job) {
     for (const order of slowOrders) {
       const createdTime = order.createdAt ? new Date(order.createdAt).getTime() : Date.now();
       const hoursWaiting = Math.floor((Date.now() - createdTime) / (1e3 * 60 * 60));
-      log10.info(`[SyncProcessor] Order #${order.numericId} in progress for ${hoursWaiting}h awaiting provider execution (remains: ${order.remains}/${order.quantity}). Kept active.`);
+      log12.info(`[SyncProcessor] Order #${order.numericId} in progress for ${hoursWaiting}h awaiting provider execution (remains: ${order.remains}/${order.quantity}). Kept active.`);
     }
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
-    log10.error("[SyncProcessor] Delayed order monitor failed", { error: errMsg });
+    log12.error("[SyncProcessor] Delayed order monitor failed", { error: errMsg });
   }
 }
 
@@ -159380,10 +159394,10 @@ init_refund();
 init_db();
 init_payment_service();
 init_settings();
-init_ssrf_guard();
+init_ssrf_guard2();
 init_notifications();
 init_logger();
-var log13 = logger.child({ component: "PaymentReconciliation" });
+var log15 = logger.child({ component: "PaymentReconciliation" });
 async function reconcileStalePayments() {
   const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1e3);
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1e3);
@@ -159410,15 +159424,15 @@ async function reconcileStalePayments() {
     });
     report.scanned = stalePayments.length;
     if (stalePayments.length === 0) {
-      log13.info("No stale PENDING payments found for reconciliation");
+      log15.info("No stale PENDING payments found for reconciliation");
       return report;
     }
-    log13.info(`Found ${stalePayments.length} stale PENDING payments for reconciliation`);
+    log15.info(`Found ${stalePayments.length} stale PENDING payments for reconciliation`);
     const reconciledItems = [];
     for (const payment of stalePayments) {
       if (!payment.gatewayId) {
         report.orphans += 1;
-        log13.warn(`Stale payment ${payment.id} has no remote gatewayId`);
+        log15.warn(`Stale payment ${payment.id} has no remote gatewayId`);
         continue;
       }
       if (payment.gateway === "yookassa") {
@@ -159433,7 +159447,7 @@ async function reconcileStalePayments() {
           });
           if (res.status === 404) {
             report.orphans += 1;
-            log13.warn(`Payment ${payment.id} (YooKassa: ${payment.gatewayId}) not found on remote gateway`);
+            log15.warn(`Payment ${payment.id} (YooKassa: ${payment.gatewayId}) not found on remote gateway`);
             continue;
           }
           if (res.ok) {
@@ -159459,19 +159473,19 @@ async function reconcileStalePayments() {
                 amountRub: (Number(payment.amount) / 100).toFixed(2),
                 latencyMinutes
               });
-              log13.info(`Reconciled succeeded payment ${payment.id} (latency: ${latencyMinutes}m)`);
+              log15.info(`Reconciled succeeded payment ${payment.id} (latency: ${latencyMinutes}m)`);
             } else if (data.status === "canceled") {
               await db.payment.update({
                 where: { id: payment.id },
                 data: { status: "CANCELED" }
               });
               report.reconciledCanceled += 1;
-              log13.info(`Reconciled canceled payment ${payment.id}`);
+              log15.info(`Reconciled canceled payment ${payment.id}`);
             }
           }
         } catch (err) {
           report.errors += 1;
-          log13.error(`Failed to reconcile payment ${payment.id}`, { error: err instanceof Error ? err.message : String(err) });
+          log15.error(`Failed to reconcile payment ${payment.id}`, { error: err instanceof Error ? err.message : String(err) });
         }
       }
     }
@@ -159490,7 +159504,7 @@ ${itemsList}`,
     }
     return report;
   } catch (err) {
-    log13.error("Payment reconciliation job failed", { error: err instanceof Error ? err.message : String(err) });
+    log15.error("Payment reconciliation job failed", { error: err instanceof Error ? err.message : String(err) });
     return report;
   }
 }
@@ -159499,7 +159513,7 @@ ${itemsList}`,
 init_db();
 init_notifications();
 init_logger();
-var log14 = logger.child({ component: "WebhookHealthMonitor" });
+var log16 = logger.child({ component: "WebhookHealthMonitor" });
 async function checkWebhookHealth() {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1e3);
   try {
@@ -159521,7 +159535,7 @@ async function checkWebhookHealth() {
     if (pendingCount >= 3 && succeededCount === 0) {
       healthy = false;
       alertSent = true;
-      log14.error("Silent Webhook Failure Detected: 0 successes with multiple pending payments", {
+      log16.error("Silent Webhook Failure Detected: 0 successes with multiple pending payments", {
         pendingCount,
         succeededCount
       });
@@ -159532,7 +159546,7 @@ async function checkWebhookHealth() {
         "CRITICAL"
       );
     } else {
-      log14.info("Webhook health check OK", { pendingCount, succeededCount });
+      log16.info("Webhook health check OK", { pendingCount, succeededCount });
     }
     return {
       healthy,
@@ -159541,7 +159555,7 @@ async function checkWebhookHealth() {
       alertSent
     };
   } catch (err) {
-    log14.error("Failed to execute webhook health check", {
+    log16.error("Failed to execute webhook health check", {
       error: err instanceof Error ? err.message : String(err)
     });
     return {
@@ -159558,7 +159572,7 @@ init_db();
 init_notifications();
 init_security_alert_service();
 init_logger();
-var log15 = logger.child({ component: "LoginAnomalyDetector" });
+var log17 = logger.child({ component: "LoginAnomalyDetector" });
 async function detectLoginAnomalies() {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1e3);
   try {
@@ -159588,7 +159602,7 @@ async function detectLoginAnomalies() {
       if (ips.size > 3) {
         flaggedEmails.push(email);
         const ipList = Array.from(ips).join(", ");
-        log15.warn("Login anomaly detected: multiple IPs for single account", {
+        log17.warn("Login anomaly detected: multiple IPs for single account", {
           email,
           ipCount: ips.size,
           ips: ipList
@@ -159617,7 +159631,7 @@ Email: <code>${email}</code>
       flaggedEmails
     };
   } catch (err) {
-    log15.error("Failed to run login anomaly detector", {
+    log17.error("Failed to run login anomaly detector", {
       error: err instanceof Error ? err.message : String(err)
     });
     return {
@@ -159629,46 +159643,46 @@ Email: <code>${email}</code>
 }
 
 // src/workers/processors/cleanup.processor.ts
-var log16 = logger.child({ component: "CleanupProcessor" });
+var log18 = logger.child({ component: "CleanupProcessor" });
 var ANALYTICS_RETENTION_DAYS = 90;
 var LOGIN_LOG_RETENTION_DAYS = 180;
 async function runCleanup() {
   const startedAt = Date.now();
-  log16.info("Daily cleanup started");
+  log18.info("Daily cleanup started");
   const now = /* @__PURE__ */ new Date();
   const analyticsThreshold = new Date(now);
   analyticsThreshold.setDate(analyticsThreshold.getDate() - ANALYTICS_RETENTION_DAYS);
   const analyticsResult = await db.analyticsEvent.deleteMany({
     where: { createdAt: { lt: analyticsThreshold } }
   });
-  log16.info("AnalyticsEvent cleanup done", {
+  log18.info("AnalyticsEvent cleanup done", {
     deleted: analyticsResult.count,
     olderThan: analyticsThreshold.toISOString()
   });
   const rateLimitResult = await db.rateLimit.deleteMany({
     where: { expiresAt: { lte: now } }
   });
-  log16.info("RateLimit cleanup done", { deleted: rateLimitResult.count });
+  log18.info("RateLimit cleanup done", { deleted: rateLimitResult.count });
   const loginLogThreshold = new Date(now);
   loginLogThreshold.setDate(loginLogThreshold.getDate() - LOGIN_LOG_RETENTION_DAYS);
   const loginLogResult = await db.loginLog.deleteMany({
     where: { createdAt: { lt: loginLogThreshold } }
   });
-  log16.info("LoginLog cleanup done", {
+  log18.info("LoginLog cleanup done", {
     deleted: loginLogResult.count,
     olderThan: loginLogThreshold.toISOString()
   });
   const authTokenResult = await db.authToken.deleteMany({
     where: { expiresAt: { lt: now } }
   });
-  log16.info("AuthToken cleanup done", { deleted: authTokenResult.count });
+  log18.info("AuthToken cleanup done", { deleted: authTokenResult.count });
   await runPendingCheckResolution();
   try {
     await reconcileStalePayments();
     await checkWebhookHealth();
     await detectLoginAnomalies();
   } catch (err) {
-    log16.error("Failed to run periodic payment reconciliation / health checks", { error: err });
+    log18.error("Failed to run periodic payment reconciliation / health checks", { error: err });
   }
   try {
     const proxyLogThreshold = new Date(now);
@@ -159676,21 +159690,21 @@ async function runCleanup() {
     const proxyLogResult = await db.providerProxyLog.deleteMany({
       where: { createdAt: { lt: proxyLogThreshold } }
     });
-    log16.info("ProviderProxyLog cleanup done", {
+    log18.info("ProviderProxyLog cleanup done", {
       deleted: proxyLogResult.count,
       olderThan: proxyLogThreshold.toISOString()
     });
   } catch (err) {
-    log16.error("Failed to prune old ProviderProxyLog records", { error: err });
+    log18.error("Failed to prune old ProviderProxyLog records", { error: err });
   }
   try {
     const { BalanceAutoFlushService: BalanceAutoFlushService2 } = await Promise.resolve().then(() => (init_balance_autoflush_service(), balance_autoflush_service_exports));
     const flushed = await BalanceAutoFlushService2.sweepAllProviders();
     if (flushed.length > 0) {
-      log16.info(`[Cleanup] Smart Balance Auto-Flush dispatched ${flushed.reduce((acc, f) => acc + f.flushedCount, 0)} orders across ${flushed.length} providers.`);
+      log18.info(`[Cleanup] Smart Balance Auto-Flush dispatched ${flushed.reduce((acc, f) => acc + f.flushedCount, 0)} orders across ${flushed.length} providers.`);
     }
   } catch (err) {
-    log16.error("Failed to run BalanceAutoFlushService sweep", { error: err });
+    log18.error("Failed to run BalanceAutoFlushService sweep", { error: err });
   }
   try {
     const securityEventThreshold = new Date(now);
@@ -159701,12 +159715,12 @@ async function runCleanup() {
         severity: { in: ["INFO", "WARNING"] }
       }
     });
-    log16.info("SecurityEvent (low severity) cleanup done", {
+    log18.info("SecurityEvent (low severity) cleanup done", {
       deleted: securityEventResult.count,
       olderThan: securityEventThreshold.toISOString()
     });
   } catch (err) {
-    log16.error("Failed to prune old low-severity SecurityEvent records", { error: err });
+    log18.error("Failed to prune old low-severity SecurityEvent records", { error: err });
   }
   try {
     const emptyCats = await db.category.findMany({
@@ -159717,10 +159731,10 @@ async function runCleanup() {
       const deleteResult = await db.category.deleteMany({
         where: { id: { in: emptyCats.map((c) => c.id) } }
       });
-      log16.info("Empty categories cleanup done", { deleted: deleteResult.count });
+      log18.info("Empty categories cleanup done", { deleted: deleteResult.count });
     }
   } catch (err) {
-    log16.error("Failed to cleanup empty categories in maintenance cycle", { error: err });
+    log18.error("Failed to cleanup empty categories in maintenance cycle", { error: err });
   }
   const zombieThreshold = new Date(now);
   zombieThreshold.setHours(zombieThreshold.getHours() - 24);
@@ -159814,7 +159828,7 @@ async function runCleanup() {
           zombie.numericId.toString(),
           zombie.service.name,
           zombie.tenantId
-        ).catch((err) => log16.error("Failed to send zombie cancellation email", { orderId: zombie.id, error: err instanceof Error ? err.message : String(err) }));
+        ).catch((err) => log18.error("Failed to send zombie cancellation email", { orderId: zombie.id, error: err instanceof Error ? err.message : String(err) }));
       }
     }
     if (zombies.length < 50) {
@@ -159822,7 +159836,7 @@ async function runCleanup() {
     }
   }
   if (iterations >= MAX_ITERATIONS) {
-    log16.warn("runCleanup: reached MAX_ITERATIONS limit", {
+    log18.warn("runCleanup: reached MAX_ITERATIONS limit", {
       canceledCount,
       iterations
     });
@@ -159831,7 +159845,7 @@ async function runCleanup() {
       "WARNING"
     );
   }
-  log16.info("Zombie AWAITING_PAYMENT cleanup done", {
+  log18.info("Zombie AWAITING_PAYMENT cleanup done", {
     canceled: canceledCount,
     olderThan: zombieThreshold.toISOString()
   });
@@ -159839,16 +159853,16 @@ async function runCleanup() {
     await runInProgressTTLSweep();
   } catch (ttlErr) {
     const errMsg = ttlErr instanceof Error ? ttlErr.message : String(ttlErr);
-    log16.error("runCleanup: runInProgressTTLSweep failed", { error: errMsg });
+    log18.error("runCleanup: runInProgressTTLSweep failed", { error: errMsg });
   }
   try {
     await runPendingCheckTTLSweep();
   } catch (pcErr) {
     const errMsg = pcErr instanceof Error ? pcErr.message : String(pcErr);
-    log16.error("runCleanup: runPendingCheckTTLSweep failed", { error: errMsg });
+    log18.error("runCleanup: runPendingCheckTTLSweep failed", { error: errMsg });
   }
   const durationMs = Date.now() - startedAt;
-  log16.info("Daily cleanup completed", {
+  log18.info("Daily cleanup completed", {
     durationMs,
     analytics: analyticsResult.count,
     rateLimit: rateLimitResult.count,
@@ -159873,15 +159887,15 @@ async function runPendingCheckResolution() {
           const providerStatus = await providerInstance.getOrderStatus(pOrder.externalId);
           if (providerStatus?.status) {
             await orderService.processStatusUpdate(pOrder.externalId, providerStatus.status, Number(providerStatus.remains) || 0);
-            log16.info(`[Cleanup] Auto-resolved PENDING_CHECK Order #${pOrder.numericId} via provider status ${providerStatus.status}`);
+            log18.info(`[Cleanup] Auto-resolved PENDING_CHECK Order #${pOrder.numericId} via provider status ${providerStatus.status}`);
             continue;
           }
         }
         if (!pOrder.externalId) {
-          log16.warn(`[Cleanup] PENDING_CHECK Order #${pOrder.numericId} has no externalId after 6h. Kept in queue for operator review.`);
+          log18.warn(`[Cleanup] PENDING_CHECK Order #${pOrder.numericId} has no externalId after 6h. Kept in queue for operator review.`);
         }
       } catch (err) {
-        log16.error(`[Cleanup] Failed to poll status for PENDING_CHECK Order #${pOrder.numericId}`, { error: err instanceof Error ? err.message : String(err) });
+        log18.error(`[Cleanup] Failed to poll status for PENDING_CHECK Order #${pOrder.numericId}`, { error: err instanceof Error ? err.message : String(err) });
       }
     }
   }
@@ -159912,7 +159926,7 @@ async function runOrphanSweep() {
         }
       } catch (redisErr) {
         const msg = `[CRITICAL][ACTION REQUIRED] Redis unavailable during sweep-orphans getJob. Order ${orphan.id} remains PENDING. Error: ${redisErr instanceof Error ? redisErr.message : String(redisErr)}`;
-        log16.error(msg);
+        log18.error(msg);
         criticalAlerts.push(`\u{1F6A8} \u041E\u0448\u0438\u0431\u043A\u0430 Redis \u043F\u0440\u0438 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0435 \u0437\u0430\u043A\u0430\u0437\u0430 #${orphan.numericId}: ${redisErr instanceof Error ? redisErr.message : String(redisErr)}`);
         continue;
       }
@@ -159926,14 +159940,14 @@ async function runOrphanSweep() {
               where: { id: orphan.id },
               data: { status: "IN_PROGRESS", updatedAt: /* @__PURE__ */ new Date() }
             });
-            log16.info(`[Auto-Heal] Order ${orphan.id} with externalId ${orphan.externalId} resolved PENDING -> IN_PROGRESS`);
+            log18.info(`[Auto-Heal] Order ${orphan.id} with externalId ${orphan.externalId} resolved PENDING -> IN_PROGRESS`);
           } else {
             await orderService.failOrderTerminal(
               orphan.id,
               "\u0410\u0432\u0442\u043E\u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435: Job completed without provider externalId",
               false
             );
-            log16.warn(`[Auto-Heal] Order ${orphan.id} without externalId failed & refunded`);
+            log18.warn(`[Auto-Heal] Order ${orphan.id} without externalId failed & refunded`);
           }
           continue;
         }
@@ -159949,17 +159963,17 @@ async function runOrphanSweep() {
               select: { status: true }
             });
             if (recovered?.status === "ERROR") {
-              log16.warn(`[ARCH-2] Auto-recovered failed job order ${orphan.id} \u2192 ERROR + refund`);
+              log18.warn(`[ARCH-2] Auto-recovered failed job order ${orphan.id} \u2192 ERROR + refund`);
               criticalAlerts.push(
                 `\u26A0\uFE0F \u0410\u0432\u0442\u043E-\u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435: \u0417\u0430\u043A\u0430\u0437 #${orphan.numericId} (ID: ${orphan.id}) \u043F\u0435\u0440\u0435\u0432\u0435\u0434\u0451\u043D \u0432 ERROR \u0438 \u0434\u0435\u043D\u044C\u0433\u0438 \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0435\u043D\u044B. Dead-letter \u0440\u0430\u043D\u0435\u0435 \u043D\u0435 \u043E\u0442\u0440\u0430\u0431\u043E\u0442\u0430\u043B.`
               );
             } else {
-              log16.info(`[ARCH-2] Order ${orphan.id} already terminal, no action needed`);
+              log18.info(`[ARCH-2] Order ${orphan.id} already terminal, no action needed`);
             }
           } catch (recoveryErr) {
             const refundRub = (Number(orphan.charge) / 100).toFixed(2);
             const msg = `[CRITICAL][ACTION REQUIRED] ARCH-2 auto-recovery failed. Order ${orphan.id}, User ${orphan.userId}, Amount ${refundRub} RUB. Error: ${recoveryErr instanceof Error ? recoveryErr.message : String(recoveryErr)}`;
-            log16.error(msg);
+            log18.error(msg);
             criticalAlerts.push(
               `\u{1F6A8} \u041A\u0420\u0418\u0422\u0418\u0427\u041D\u041E: \u0410\u0432\u0442\u043E-\u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u041D\u0415 \u0423\u0414\u0410\u041B\u041E\u0421\u042C. \u0417\u0430\u043A\u0430\u0437 #${orphan.numericId} (ID: \`${orphan.id}\`), \u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C: \`${orphan.userId}\`. \u0421\u0443\u043C\u043C\u0430: ${refundRub} \u20BD. \u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u0440\u0443\u0447\u043D\u043E\u0439 \u0432\u043E\u0437\u0432\u0440\u0430\u0442.`
             );
@@ -159972,16 +159986,16 @@ async function runOrphanSweep() {
         await ordersQueue.add("order-dispatch", { orderId: orphan.id }, { jobId });
         sweptCount++;
         const minutesPending = Math.round((Date.now() - orphan.createdAt.getTime()) / 6e4);
-        log16.warn(`[WARNING] recovered orphan orderId=${orphan.id} jobId=${jobId}`);
+        log18.warn(`[WARNING] recovered orphan orderId=${orphan.id} jobId=${jobId}`);
         sweptDetails.push(`\u2022 \u0412\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D: ID \`${orphan.id}\` (#${orphan.numericId}), \u0432\u0438\u0441\u0435\u043B ${minutesPending} \u043C\u0438\u043D`);
       } catch (addErr) {
         const msg = `[CRITICAL][ACTION REQUIRED] Redis unavailable during sweep-orphans add. Order ${orphan.id} remains PENDING. Error: ${addErr instanceof Error ? addErr.message : String(addErr)}`;
-        log16.error(msg);
+        log18.error(msg);
         criticalAlerts.push(`\u{1F6A8} \u041E\u0448\u0438\u0431\u043A\u0430 Redis \u043F\u0440\u0438 \u043F\u0435\u0440\u0435\u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0435 \u0437\u0430\u043A\u0430\u0437\u0430 #${orphan.numericId}: ${addErr instanceof Error ? addErr.message : String(addErr)}`);
       }
     }
     if (sweptCount > 0) {
-      log16.info(`Swept ${sweptCount} orphan PENDING orders`, { durationMs: Date.now() - startedAt });
+      log18.info(`Swept ${sweptCount} orphan PENDING orders`, { durationMs: Date.now() - startedAt });
       await sendAdminAlert(
         `\u267B\uFE0F *sweep-orphans recovery*
 \u041F\u043E\u0434\u043D\u044F\u0442\u043E \u043F\u043E\u0442\u0435\u0440\u044F\u043D\u043D\u044B\u0445 \u0437\u0430\u043A\u0430\u0437\u043E\u0432: ${sweptCount}
@@ -160012,7 +160026,7 @@ async function runInProgressTTLSweep() {
   let processedCount = 0;
   let lastOrderId = void 0;
   const processedDetails = [];
-  log16.info("InProgress TTL sweep started", { threshold: threshold.toISOString() });
+  log18.info("InProgress TTL sweep started", { threshold: threshold.toISOString() });
   while (hasMore && iterations < MAX_ITERATIONS) {
     iterations++;
     const stuckOrders = await db.order.findMany({
@@ -160063,7 +160077,7 @@ async function runInProgressTTLSweep() {
         const dynamicTtlHours = Math.max(72, Math.ceil((order.runs || 1) * (order.interval || 60) / 60) + 48);
         const orderDynamicThreshold = new Date(Date.now() - dynamicTtlHours * 60 * 60 * 1e3);
         if (order.createdAt > orderDynamicThreshold) {
-          log16.info(`Skipping Drip-Feed order ${order.id} TTL sweep (within scheduled run window: ${dynamicTtlHours}h)`);
+          log18.info(`Skipping Drip-Feed order ${order.id} TTL sweep (within scheduled run window: ${dynamicTtlHours}h)`);
           continue;
         }
       }
@@ -160071,7 +160085,7 @@ async function runInProgressTTLSweep() {
         const smartTtlHours = Math.max(72, (order.smartCampaign.totalDays || 1) * 24 + 48);
         const smartDynamicThreshold = new Date(Date.now() - smartTtlHours * 60 * 60 * 1e3);
         if (order.createdAt > smartDynamicThreshold) {
-          log16.info(`Skipping Smart Drip order ${order.id} TTL sweep (active campaign ${order.smartCampaign.id}, within scheduled run window: ${smartTtlHours}h)`);
+          log18.info(`Skipping Smart Drip order ${order.id} TTL sweep (active campaign ${order.smartCampaign.id}, within scheduled run window: ${smartTtlHours}h)`);
           continue;
         }
       }
@@ -160089,12 +160103,12 @@ async function runInProgressTTLSweep() {
             }
           }
         } catch (apiErr) {
-          log16.error("Failed to get status from provider during TTL sweep, falling back to local database values", { orderId: order.id, error: apiErr instanceof Error ? apiErr.message : String(apiErr) });
+          log18.error("Failed to get status from provider during TTL sweep, falling back to local database values", { orderId: order.id, error: apiErr instanceof Error ? apiErr.message : String(apiErr) });
           if ((apiErr instanceof Error ? apiErr.message : String(apiErr))?.includes("Incorrect order ID") || (apiErr instanceof Error ? apiErr.message : String(apiErr))?.includes("not found") || (apiErr instanceof Error ? apiErr.message : String(apiErr))?.includes("not exist")) {
             remains = order.quantity;
             statusFromProvider = "error";
           } else {
-            log16.warn(`Skipping order ${order.id} TTL sweep due to transient provider API error: ${apiErr instanceof Error ? apiErr.message : String(apiErr)}`);
+            log18.warn(`Skipping order ${order.id} TTL sweep due to transient provider API error: ${apiErr instanceof Error ? apiErr.message : String(apiErr)}`);
             continue;
           }
         }
@@ -160110,7 +160124,7 @@ async function runInProgressTTLSweep() {
         });
         const orderAgeHours = Math.floor((Date.now() - order.createdAt.getTime()) / (1e3 * 60 * 60));
         if (orderAgeHours > 168) {
-          log16.warn(`Order ${order.id} still in_progress at provider after ${orderAgeHours}h (remains: ${remains}/${order.quantity})`, {
+          log18.warn(`Order ${order.id} still in_progress at provider after ${orderAgeHours}h (remains: ${remains}/${order.quantity})`, {
             orderId: order.id,
             externalId: order.externalId
           });
@@ -160156,7 +160170,7 @@ async function runInProgressTTLSweep() {
           reasonText = `\u0417\u0430\u043A\u0430\u0437 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D \u043F\u043E \u0442\u0430\u0439\u043C\u0430\u0443\u0442\u0443 (72\u0447 IN_PROGRESS). \u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043E ${delivered} \u0438\u0437 ${quantity}. \u041D\u0435\u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043D\u044B\u0439 \u043E\u0441\u0442\u0430\u0442\u043E\u043A \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0451\u043D \u043D\u0430 \u0431\u0430\u043B\u0430\u043D\u0441.`;
         }
       } else {
-        log16.info(`Order ${order.id} has no terminal status from provider (status: ${statusFromProvider || "unknown"}). Keeping in IN_PROGRESS.`);
+        log18.info(`Order ${order.id} has no terminal status from provider (status: ${statusFromProvider || "unknown"}). Keeping in IN_PROGRESS.`);
         continue;
       }
       try {
@@ -160212,9 +160226,9 @@ async function runInProgressTTLSweep() {
             `\u2022 ID: \`${order.id}\` (#${order.numericId}), \u042E\u0437\u0435\u0440: \`${order.userId}\`, \u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043E: ${delivered}/${quantity}, \u0421\u0442\u0430\u0442\u0443\u0441: \`${targetStatus}\`, \u0412\u043E\u0437\u0432\u0440\u0430\u0442: ${refundRub} \u20BD`
           );
         }, { isolationLevel: "Serializable" });
-        CompensationService.trackCompensation(order.id).catch((err) => log16.error("Failed to track compensation on TTL sweep", { orderId: order.id, error: err instanceof Error ? err.message : String(err) }));
+        CompensationService.trackCompensation(order.id).catch((err) => log18.error("Failed to track compensation on TTL sweep", { orderId: order.id, error: err instanceof Error ? err.message : String(err) }));
       } catch (orderErr) {
-        log16.error(`runInProgressTTLSweep: failed to sweep order ${order.id}`, { error: orderErr instanceof Error ? orderErr.message : String(orderErr) });
+        log18.error(`runInProgressTTLSweep: failed to sweep order ${order.id}`, { error: orderErr instanceof Error ? orderErr.message : String(orderErr) });
       }
     }
     if (stuckOrders.length < IN_PROGRESS_TTL_BATCH_SIZE) {
@@ -160222,7 +160236,7 @@ async function runInProgressTTLSweep() {
     }
   }
   if (processedCount > 0) {
-    log16.info(`InProgress TTL sweep completed`, { processedCount, durationMs: Date.now() - startedAt });
+    log18.info(`InProgress TTL sweep completed`, { processedCount, durationMs: Date.now() - startedAt });
     await sendAdminAlert(
       `\u23F1\uFE0F *in-progress-ttl \u0430\u0432\u0442\u043E\u043E\u0442\u043C\u0435\u043D\u0430*
 \u041E\u0431\u0440\u0430\u0431\u043E\u0442\u0430\u043D\u043E \u0437\u0430\u0432\u0438\u0441\u0448\u0438\u0445 \u0437\u0430\u043A\u0430\u0437\u043E\u0432: ${processedCount}
@@ -160231,7 +160245,7 @@ ${processedDetails.join("\n")}`,
       "WARNING"
     );
   } else {
-    log16.info("InProgress TTL sweep completed: no stuck orders found");
+    log18.info("InProgress TTL sweep completed: no stuck orders found");
   }
 }
 async function runPendingCheckTTLSweep() {
@@ -160267,25 +160281,25 @@ async function runPendingCheckTTLSweep() {
         const providerStatus = await provider.getOrderStatus(order.externalId);
         statusFromProvider = providerStatus.status?.toLowerCase() || null;
       } catch (apiErr) {
-        log16.error("Failed to get status from provider during PENDING_CHECK TTL sweep", { orderId: order.id, error: apiErr instanceof Error ? apiErr.message : String(apiErr) });
+        log18.error("Failed to get status from provider during PENDING_CHECK TTL sweep", { orderId: order.id, error: apiErr instanceof Error ? apiErr.message : String(apiErr) });
         if ((apiErr instanceof Error ? apiErr.message : String(apiErr))?.includes("Incorrect order ID") || (apiErr instanceof Error ? apiErr.message : String(apiErr))?.includes("not found") || (apiErr instanceof Error ? apiErr.message : String(apiErr))?.includes("not exist")) {
           statusFromProvider = "error";
         } else {
-          log16.warn(`Skipping order ${order.id} PENDING_CHECK TTL sweep due to transient provider API error: ${apiErr instanceof Error ? apiErr.message : String(apiErr)}`);
+          log18.warn(`Skipping order ${order.id} PENDING_CHECK TTL sweep due to transient provider API error: ${apiErr instanceof Error ? apiErr.message : String(apiErr)}`);
           continue;
         }
       }
       const normalizedStatus = (statusFromProvider || "").toLowerCase().replace(/[\s-]+/g, "_");
       if (normalizedStatus === "completed" || normalizedStatus === "processing" || normalizedStatus === "in_progress" || normalizedStatus === "pending") {
-        log16.warn(`Order ${order.id} is active at provider (status: ${statusFromProvider}). Skipping auto-refund to prevent loss.`);
+        log18.warn(`Order ${order.id} is active at provider (status: ${statusFromProvider}). Skipping auto-refund to prevent loss.`);
         continue;
       }
       if (!["canceled", "cancelled", "error", "fail", "failed"].includes(normalizedStatus)) {
-        log16.info(`Skipping order ${order.id} PENDING_CHECK sweep (status: ${statusFromProvider || "unknown"}). Order kept active.`);
+        log18.info(`Skipping order ${order.id} PENDING_CHECK sweep (status: ${statusFromProvider || "unknown"}). Order kept active.`);
         continue;
       }
     } else {
-      log16.warn(`Order #${order.numericId} (${order.id}) in PENDING_CHECK has no externalId. Kept for operator review / auto-flush.`);
+      log18.warn(`Order #${order.numericId} (${order.id}) in PENDING_CHECK has no externalId. Kept for operator review / auto-flush.`);
       continue;
     }
     try {
@@ -160320,14 +160334,14 @@ async function runPendingCheckTTLSweep() {
         }
         processedCount++;
       }, { isolationLevel: "Serializable" });
-      CompensationService.trackCompensation(order.id).catch((err) => log16.error("Failed to track compensation on pending check TTL sweep", { orderId: order.id, error: err instanceof Error ? err.message : String(err) }));
+      CompensationService.trackCompensation(order.id).catch((err) => log18.error("Failed to track compensation on pending check TTL sweep", { orderId: order.id, error: err instanceof Error ? err.message : String(err) }));
     } catch (err) {
       const errMsg = err instanceof Error ? err instanceof Error ? err.message : String(err) : String(err);
-      log16.error(`runPendingCheckTTLSweep: failed for order ${order.id}`, { error: errMsg });
+      log18.error(`runPendingCheckTTLSweep: failed for order ${order.id}`, { error: errMsg });
     }
   }
   if (processedCount > 0) {
-    log16.info(`PENDING_CHECK TTL sweep completed`, { processedCount });
+    log18.info(`PENDING_CHECK TTL sweep completed`, { processedCount });
     await sendAdminAlert(
       `\u23F1\uFE0F *pending-check-ttl*
 \u041E\u0447\u0438\u0449\u0435\u043D\u043E \u0437\u0430\u0432\u0438\u0441\u0448\u0438\u0445 PENDING_CHECK \u0437\u0430\u043A\u0430\u0437\u043E\u0432: ${processedCount}`,
@@ -160339,7 +160353,7 @@ async function runPendingCheckTTLSweep() {
 // src/services/eta/eta.service.ts
 init_db();
 init_logger();
-var log17 = logger.child({ component: "ETAService" });
+var log19 = logger.child({ component: "ETAService" });
 var SPEED_THRESHOLDS = {
   FAST: 1800,
   // < 30 min
@@ -160376,7 +160390,7 @@ async function recalculateAllETAs() {
     HAVING COUNT(*) >= 3
   `;
   if (speedClassRows.length === 0) {
-    log17.info("ETA recalc: no services with enough data");
+    log19.info("ETA recalc: no services with enough data");
     return { updated: 0, skipped: 0 };
   }
   const serviceWindows = /* @__PURE__ */ new Map();
@@ -160454,7 +160468,7 @@ async function recalculateAllETAs() {
   const updated = allResults.length;
   const skipped = speedClassRows.length - updated;
   const durationMs = Date.now() - startMs;
-  log17.info(`ETA recalc complete`, {
+  log19.info(`ETA recalc complete`, {
     updated,
     skipped,
     durationMs,
@@ -160467,13 +160481,13 @@ async function recalculateAllETAs() {
 
 // src/workers/processors/eta.processor.ts
 init_logger();
-var log18 = logger.child({ component: "ETACron" });
+var log20 = logger.child({ component: "ETACron" });
 async function runETARecalculation() {
   try {
     const result = await recalculateAllETAs();
-    log18.info("ETA cron completed", result);
+    log20.info("ETA cron completed", result);
   } catch (error) {
-    log18.error("ETA cron failed", { error: error.message });
+    log20.error("ETA cron failed", { error: error.message });
     throw error;
   }
 }
@@ -162643,12 +162657,12 @@ init_logger();
 
 // src/lib/revalidate-cache.ts
 init_logger();
-var log19 = logger.child({ component: "CacheRevalidator" });
+var log21 = logger.child({ component: "CacheRevalidator" });
 async function triggerCacheRevalidation(tags) {
   const secret = process.env.INTERNAL_API_SECRET;
   const baseUrl2 = process.env.NEXT_PUBLIC_APP_URL || "http://127.0.0.1:3000";
   if (!secret) {
-    log19.warn("INTERNAL_API_SECRET is missing. Cache revalidation skipped. This is normal during build/dev, but critical in production.");
+    log21.warn("INTERNAL_API_SECRET is missing. Cache revalidation skipped. This is normal during build/dev, but critical in production.");
     return false;
   }
   try {
@@ -162663,13 +162677,13 @@ async function triggerCacheRevalidation(tags) {
       signal: AbortSignal.timeout(5e3)
     });
     if (!response.ok) {
-      log19.error(`Failed to revalidate tags: ${tags.join(", ")}. Status: ${response.status} ${response.statusText}`);
+      log21.error(`Failed to revalidate tags: ${tags.join(", ")}. Status: ${response.status} ${response.statusText}`);
       return false;
     }
-    log19.info(`Successfully triggered cache revalidation for tags: ${tags.join(", ")}`);
+    log21.info(`Successfully triggered cache revalidation for tags: ${tags.join(", ")}`);
     return true;
   } catch (error) {
-    log19.error(`Network error while trying to revalidate tags: ${tags.join(", ")}`, {
+    log21.error(`Network error while trying to revalidate tags: ${tags.join(", ")}`, {
       error: error instanceof Error ? error.message : String(error)
     });
     return false;
@@ -162677,14 +162691,14 @@ async function triggerCacheRevalidation(tags) {
 }
 
 // src/workers/processors/catalog.processor.ts
-var log20 = logger.child({ component: "CatalogProcessor" });
+var log22 = logger.child({ component: "CatalogProcessor" });
 var MULTI_TENANT_CATALOG_TAGS = ["catalog", "services", "catalog-smmplan", "catalog-flux", "catalog-global"];
 async function safeTriggerCacheRevalidation(tags) {
   try {
     await triggerCacheRevalidation(tags);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    log20.warn(`[CatalogProcessor] Non-critical cache revalidation failed: ${msg}`);
+    log22.warn(`[CatalogProcessor] Non-critical cache revalidation failed: ${msg}`);
   }
 }
 async function catalogProcessor(job) {
@@ -162693,9 +162707,9 @@ async function catalogProcessor(job) {
     const { CatalogJobSchema: CatalogJobSchema2 } = await Promise.resolve().then(() => (init_jobs_schema(), jobs_schema_exports));
     payload = CatalogJobSchema2.parse(job.data);
   } catch (zodErr) {
-    const { UnrecoverableError: UnrecoverableError3 } = await Promise.resolve().then(() => __toESM(require_cjs()));
-    log20.error(`[CatalogProcessor] Invalid job payload for job ${job.id}`, { cause: zodErr });
-    throw new UnrecoverableError3("Invalid job payload");
+    const { UnrecoverableError: UnrecoverableError6 } = await Promise.resolve().then(() => __toESM(require_cjs()));
+    log22.error(`[CatalogProcessor] Invalid job payload for job ${job.id}`, { cause: zodErr });
+    throw new UnrecoverableError6("Invalid job payload");
   }
   try {
     switch (payload.type) {
@@ -162703,15 +162717,15 @@ async function catalogProcessor(job) {
         const { SettingsProvider: SettingsProvider2 } = await Promise.resolve().then(() => (init_settings(), settings_exports));
         const freshUsdRate = await SettingsProvider2.getExchangeRateUSD();
         const effectiveRate = Number.isFinite(payload.usdToRub) && payload.usdToRub > 0 ? payload.usdToRub : freshUsdRate;
-        log20.info(`[CatalogProcessor] Starting background price sync with rate ${effectiveRate}...`);
+        log22.info(`[CatalogProcessor] Starting background price sync with rate ${effectiveRate}...`);
         await adminCatalogService.syncDenormalizedPrices(effectiveRate);
-        log20.info(`[CatalogProcessor] Price sync completed successfully.`);
+        log22.info(`[CatalogProcessor] Price sync completed successfully.`);
         await safeTriggerCacheRevalidation(MULTI_TENANT_CATALOG_TAGS);
         break;
       }
       case "RECONCILE_PRICES": {
         const { batchSize = 500 } = payload;
-        log20.info(`[CatalogProcessor] Starting paginated price reconciliation (batchSize: ${batchSize})...`);
+        log22.info(`[CatalogProcessor] Starting paginated price reconciliation (batchSize: ${batchSize})...`);
         const { SettingsProvider: SettingsProvider2 } = await Promise.resolve().then(() => (init_settings(), settings_exports));
         const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
         const { getCostRub: getCostRub2 } = await Promise.resolve().then(() => (init_currency_invariant(), currency_invariant_exports));
@@ -162804,7 +162818,7 @@ async function catalogProcessor(job) {
             }
           }
         }
-        log20.info(`[CatalogProcessor] Price reconciliation completed:`, {
+        log22.info(`[CatalogProcessor] Price reconciliation completed:`, {
           scanned,
           costCacheFixed,
           lossQuarantined,
@@ -162817,7 +162831,7 @@ async function catalogProcessor(job) {
       }
       case "SYNC_ALL_CATALOGS": {
         const { admin } = payload;
-        log20.info(`[CatalogProcessor] Starting background sync for ALL catalogs...`);
+        log22.info(`[CatalogProcessor] Starting background sync for ALL catalogs...`);
         const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
         const { catalogQueue: catalogQueue2 } = await Promise.resolve().then(() => (init_queue_manager(), queue_manager_exports));
         const providers = await db2.provider.findMany({ where: { isActive: true } });
@@ -162827,27 +162841,27 @@ async function catalogProcessor(job) {
             providerId: provider.id,
             admin
           });
-          log20.info(`[CatalogProcessor] Queued SYNC_PROVIDER_CATALOG for ${provider.id} (${provider.name})`);
+          log22.info(`[CatalogProcessor] Queued SYNC_PROVIDER_CATALOG for ${provider.id} (${provider.name})`);
         }
         break;
       }
       case "SYNC_PROVIDER_CATALOG": {
         const { providerId, admin } = payload;
-        log20.info(`[CatalogProcessor] Starting background catalog sync for provider ${providerId}...`);
+        log22.info(`[CatalogProcessor] Starting background catalog sync for provider ${providerId}...`);
         try {
           const stats = await adminCatalogService.syncProviderCatalog(providerId, admin);
-          log20.info(`[CatalogProcessor] Catalog sync completed for ${providerId}. Disabled Zombies: ${stats.zombiesDisabled}, Resurrected: ${stats.resurrected}, Anomalies: ${stats.priceAnomalies}`);
+          log22.info(`[CatalogProcessor] Catalog sync completed for ${providerId}. Disabled Zombies: ${stats.zombiesDisabled}, Resurrected: ${stats.resurrected}, Anomalies: ${stats.priceAnomalies}`);
           try {
             const { applyPostSyncRules: applyPostSyncRules2 } = await Promise.resolve().then(() => (init_post_sync_rules(), post_sync_rules_exports));
             await applyPostSyncRules2();
           } catch (postSyncErr) {
             const errMsg = postSyncErr instanceof Error ? postSyncErr.message : String(postSyncErr);
-            log20.error(`[CatalogProcessor] applyPostSyncRules failed: ${errMsg}`);
+            log22.error(`[CatalogProcessor] applyPostSyncRules failed: ${errMsg}`);
           }
           await safeTriggerCacheRevalidation(MULTI_TENANT_CATALOG_TAGS);
         } catch (syncErr) {
           const errMsg = syncErr instanceof Error ? syncErr.message : String(syncErr);
-          log20.warn(`[CatalogProcessor] Skipping catalog sync for provider ${providerId} due to provider API error: ${errMsg}`);
+          log22.warn(`[CatalogProcessor] Skipping catalog sync for provider ${providerId} due to provider API error: ${errMsg}`);
           try {
             const { db: db2 } = await Promise.resolve().then(() => (init_db(), db_exports));
             await db2.provider.update({
@@ -162864,33 +162878,33 @@ async function catalogProcessor(job) {
       }
       case "BULK_MARKUP": {
         const { markupPercent, filter: filter2, admin } = payload;
-        log20.info(`[CatalogProcessor] Starting background bulk markup...`);
+        log22.info(`[CatalogProcessor] Starting background bulk markup...`);
         const result = await adminCatalogService.bulkUpdateMarkup(
           filter2,
           markupPercent,
           admin
         );
-        log20.info(`[CatalogProcessor] Bulk markup completed. Updated ${result.updatedCount} services.`);
+        log22.info(`[CatalogProcessor] Bulk markup completed. Updated ${result.updatedCount} services.`);
         await safeTriggerCacheRevalidation(MULTI_TENANT_CATALOG_TAGS);
         break;
       }
       case "SYNC_CBR_RATE": {
-        log20.info("[CatalogProcessor] Starting scheduled CBR exchange rate sync...");
+        log22.info("[CatalogProcessor] Starting scheduled CBR exchange rate sync...");
         try {
           const { CBRRateService: CBRRateService2 } = await Promise.resolve().then(() => (init_cbr_rate_service(), cbr_rate_service_exports));
           const result = await CBRRateService2.syncCBRExchangeRate();
           if (result.updated) {
-            log20.info(`[CatalogProcessor] CBR rate updated: nominal=${result.nominalRate}, system=${result.systemRate}. Triggering price sync...`);
+            log22.info(`[CatalogProcessor] CBR rate updated: nominal=${result.nominalRate}, system=${result.systemRate}. Triggering price sync...`);
             await catalogQueue.add("sync-prices-bg", {
               type: "SYNC_PRICES",
               usdToRub: result.systemRate
             });
           } else {
-            log20.info(`[CatalogProcessor] CBR rate unchanged (API issue or already current).`);
+            log22.info(`[CatalogProcessor] CBR rate unchanged (API issue or already current).`);
           }
         } catch (cbrErr) {
           const errMsg = cbrErr instanceof Error ? cbrErr.message : String(cbrErr);
-          log20.error(`[CatalogProcessor] CBR sync failed: ${errMsg}`);
+          log22.error(`[CatalogProcessor] CBR sync failed: ${errMsg}`);
         }
         break;
       }
@@ -162898,7 +162912,7 @@ async function catalogProcessor(job) {
         throw new Error(`Unknown catalog mutation type`);
     }
   } catch (error) {
-    log20.error(`[CatalogProcessor] Failed processing job ${job.id}: ${error instanceof Error ? error.message : String(error)}`);
+    log22.error(`[CatalogProcessor] Failed processing job ${job.id}: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
   }
 }
@@ -162908,10 +162922,10 @@ init_db();
 init_settings();
 init_payment_service();
 init_logger();
-init_ssrf_guard();
-var log21 = logger.child({ component: "PaymentSyncProcessor" });
+init_ssrf_guard2();
+var log23 = logger.child({ component: "PaymentSyncProcessor" });
 async function paymentSyncProcessor(job) {
-  log21.info("Starting pending payments synchronization...");
+  log23.info("Starting pending payments synchronization...");
   const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1e3);
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1e3);
   const staleThreshold = new Date(Date.now() - 24 * 60 * 60 * 1e3);
@@ -162944,15 +162958,15 @@ async function paymentSyncProcessor(job) {
             data: { status: "CANCELED", error: "\u041E\u043F\u043B\u0430\u0442\u0430 \u043D\u0435 \u043F\u043E\u0441\u0442\u0443\u043F\u0438\u043B\u0430 \u0432 \u0442\u0435\u0447\u0435\u043D\u0438\u0435 24\u0447 (auto-expire)" }
           });
         });
-        log21.info(`Stale non-YooKassa payment ${payment.id} expired successfully.`);
+        log23.info(`Stale non-YooKassa payment ${payment.id} expired successfully.`);
       } catch (err) {
         const errMsg = err instanceof Error ? err instanceof Error ? err.message : String(err) : String(err);
-        log21.error(`Failed to expire stale payment ${payment.id}: ${errMsg}`);
+        log23.error(`Failed to expire stale payment ${payment.id}: ${errMsg}`);
       }
     }
   } catch (err) {
     const errMsg = err instanceof Error ? err instanceof Error ? err.message : String(err) : String(err);
-    log21.error(`Error during stale payments cleanup: ${errMsg}`);
+    log23.error(`Error during stale payments cleanup: ${errMsg}`);
   }
   const pendingPayments = await db.payment.findMany({
     where: {
@@ -162967,10 +162981,10 @@ async function paymentSyncProcessor(job) {
     orderBy: { createdAt: "asc" }
   });
   if (pendingPayments.length === 0) {
-    log21.info("No pending YooKassa payments found for synchronization.");
+    log23.info("No pending YooKassa payments found for synchronization.");
     return;
   }
-  log21.info(`Found ${pendingPayments.length} pending YooKassa payments to check.`);
+  log23.info(`Found ${pendingPayments.length} pending YooKassa payments to check.`);
   const tenantSecretsCache = /* @__PURE__ */ new Map();
   async function getTenantAuth(tenantId) {
     const tid = tenantId || "smmplan";
@@ -162998,20 +163012,20 @@ async function paymentSyncProcessor(job) {
   }
   for (const payment of pendingPayments) {
     if (!payment.gatewayId) {
-      log21.warn(`Pending payment ${payment.id} has no remote gatewayId. Skipping.`);
+      log23.warn(`Pending payment ${payment.id} has no remote gatewayId. Skipping.`);
       continue;
     }
     const { authHeader, isTest } = await getTenantAuth(payment.tenantId || "smmplan");
     if (isTest) {
-      log21.info(`Payment ${payment.id} is in test mode for tenant ${payment.tenantId || "smmplan"}. Skipping live check.`);
+      log23.info(`Payment ${payment.id} is in test mode for tenant ${payment.tenantId || "smmplan"}. Skipping live check.`);
       continue;
     }
     if (!authHeader) {
-      log21.warn(`Payment ${payment.id} tenant ${payment.tenantId || "smmplan"} missing YooKassa keys. Skipping.`);
+      log23.warn(`Payment ${payment.id} tenant ${payment.tenantId || "smmplan"} missing YooKassa keys. Skipping.`);
       continue;
     }
     try {
-      log21.info(`Checking remote status for payment ${payment.id} (YooKassa ID: ${payment.gatewayId}, Tenant: ${payment.tenantId})...`);
+      log23.info(`Checking remote status for payment ${payment.id} (YooKassa ID: ${payment.gatewayId}, Tenant: ${payment.tenantId})...`);
       const response = await safeFetch(`https://api.yookassa.ru/v3/payments/${payment.gatewayId}`, {
         method: "GET",
         headers: {
@@ -163020,15 +163034,15 @@ async function paymentSyncProcessor(job) {
         signal: AbortSignal.timeout(15e3)
       });
       if (!response.ok) {
-        log21.error(`Failed to fetch YooKassa payment ${payment.gatewayId}. Status code: ${response.status}`);
+        log23.error(`Failed to fetch YooKassa payment ${payment.gatewayId}. Status code: ${response.status}`);
         continue;
       }
       const data = await response.json();
       const remoteStatus = data.status;
-      log21.info(`Payment ${payment.id} remote status is: ${remoteStatus}`);
+      log23.info(`Payment ${payment.id} remote status is: ${remoteStatus}`);
       if (remoteStatus === "succeeded") {
         const realAmountCents = Math.round(parseFloat(data.amount.value) * 100);
-        log21.info(`Payment ${payment.id} succeeded remotely with amount: ${realAmountCents} cents. Confirming locally...`);
+        log23.info(`Payment ${payment.id} succeeded remotely with amount: ${realAmountCents} cents. Confirming locally...`);
         const success = await paymentService.confirmPayment(
           payment.gatewayId,
           realAmountCents,
@@ -163038,12 +163052,12 @@ async function paymentSyncProcessor(job) {
           payment.id
         );
         if (success) {
-          log21.info(`Successfully synced and confirmed payment ${payment.id}.`);
+          log23.info(`Successfully synced and confirmed payment ${payment.id}.`);
         } else {
-          log21.error(`Failed to confirm payment ${payment.id} locally during synchronization.`);
+          log23.error(`Failed to confirm payment ${payment.id} locally during synchronization.`);
         }
       } else if (remoteStatus === "canceled") {
-        log21.info(`Payment ${payment.id} has been canceled remotely. Updating local database...`);
+        log23.info(`Payment ${payment.id} has been canceled remotely. Updating local database...`);
         await db.payment.update({
           where: { id: payment.id },
           data: { status: "CANCELED" }
@@ -163052,42 +163066,42 @@ async function paymentSyncProcessor(job) {
           where: { paymentId: payment.id, status: "AWAITING_PAYMENT" },
           data: { status: "CANCELED", error: "\u041F\u043B\u0430\u0442\u0451\u0436 \u043E\u0442\u043C\u0435\u043D\u0451\u043D \u043D\u0430 \u0441\u0442\u043E\u0440\u043E\u043D\u0435 \u0448\u043B\u044E\u0437\u0430 (auto-sync)" }
         });
-        log21.info(`Successfully marked payment ${payment.id} and linked orders as CANCELED.`);
+        log23.info(`Successfully marked payment ${payment.id} and linked orders as CANCELED.`);
       }
     } catch (err) {
-      log21.error(`Exception while syncing payment ${payment.id}: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
+      log23.error(`Exception while syncing payment ${payment.id}: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
     }
   }
-  log21.info("Finished pending payments synchronization.");
+  log23.info("Finished pending payments synchronization.");
 }
 
 // src/workers/processors/payment-gateway.processor.ts
 init_db();
 init_payment_gateway_service();
 init_logger();
-var log22 = logger.child({ component: "PaymentGatewayProcessor" });
+var log24 = logger.child({ component: "PaymentGatewayProcessor" });
 async function paymentGatewayProcessor(job) {
   let validatedData;
   try {
     const { PaymentGatewayJobSchema: PaymentGatewayJobSchema2 } = await Promise.resolve().then(() => (init_jobs_schema(), jobs_schema_exports));
     validatedData = PaymentGatewayJobSchema2.parse(job.data);
   } catch (zodErr) {
-    const { UnrecoverableError: UnrecoverableError3 } = await Promise.resolve().then(() => __toESM(require_cjs()));
-    log22.error(`[PaymentGatewayProcessor] Invalid job payload for job ${job.id}`, { cause: zodErr });
-    throw new UnrecoverableError3("Invalid job payload");
+    const { UnrecoverableError: UnrecoverableError6 } = await Promise.resolve().then(() => __toESM(require_cjs()));
+    log24.error(`[PaymentGatewayProcessor] Invalid job payload for job ${job.id}`, { cause: zodErr });
+    throw new UnrecoverableError6("Invalid job payload");
   }
   const { paymentId, userId, amountRub, email, successUrl, description, isTestMode, gateway, metadata } = validatedData;
-  log22.info(`Processing payment generation for ${paymentId} via ${gateway}`);
+  log24.info(`Processing payment generation for ${paymentId} via ${gateway}`);
   try {
     const payment = await db.payment.findUnique({
       where: { id: paymentId }
     });
     if (!payment) {
-      log22.error(`Payment ${paymentId} not found`);
+      log24.error(`Payment ${paymentId} not found`);
       return;
     }
     if (payment.status !== "PENDING" || payment.checkoutUrl) {
-      log22.warn(`Payment ${paymentId} already processed (status: ${payment.status}, url: ${payment.checkoutUrl ? "yes" : "no"})`);
+      log24.warn(`Payment ${paymentId} already processed (status: ${payment.status}, url: ${payment.checkoutUrl ? "yes" : "no"})`);
       return;
     }
     const gatewaySvc = PaymentGatewayFactory.getGateway(gateway);
@@ -163109,25 +163123,25 @@ async function paymentGatewayProcessor(job) {
           checkoutUrl: gatewayResult.paymentUrl || void 0
         }
       });
-      log22.info(`Payment ${paymentId} successfully registered with ${gateway}. URL generated.`);
+      log24.info(`Payment ${paymentId} successfully registered with ${gateway}. URL generated.`);
     } else {
-      log22.error(`Failed to generate URL for payment ${paymentId} with ${gateway}.`);
+      log24.error(`Failed to generate URL for payment ${paymentId} with ${gateway}.`);
       throw new Error(`Failed to generate URL for ${gateway}`);
     }
   } catch (err) {
-    log22.error(`Payment gateway generation error for ${paymentId}: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
+    log24.error(`Payment gateway generation error for ${paymentId}: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
     if (job.attemptsMade >= (job.opts.attempts || 3) - 1) {
       await db.payment.update({
         where: { id: paymentId },
         data: { status: "CANCELED" }
-      }).catch((e) => log22.error(`Fallback DB update failed: ${e instanceof Error ? e.message : String(e)}`));
+      }).catch((e) => log24.error(`Fallback DB update failed: ${e instanceof Error ? e.message : String(e)}`));
     }
     throw err;
   }
 }
 
 // src/workers/processors/refill.processor.ts
-var import_bullmq3 = __toESM(require_cjs());
+var import_bullmq6 = __toESM(require_cjs());
 init_db();
 init_provider_service();
 init_logger();
@@ -163224,7 +163238,7 @@ function classifyRefillError(rawError) {
 }
 
 // src/workers/processors/refill.processor.ts
-var log23 = logger.child({ component: "RefillProcessor" });
+var log25 = logger.child({ component: "RefillProcessor" });
 async function refillProcessor(job) {
   let refillId;
   try {
@@ -163232,8 +163246,8 @@ async function refillProcessor(job) {
     const parsed = RefillJobSchema2.parse(job.data);
     refillId = parsed.refillId;
   } catch (zodErr) {
-    log23.error(`[RefillProcessor] Invalid job payload for job ${job.id}`, { cause: zodErr });
-    throw new import_bullmq3.UnrecoverableError("Invalid job payload");
+    log25.error(`[RefillProcessor] Invalid job payload for job ${job.id}`, { cause: zodErr });
+    throw new import_bullmq6.UnrecoverableError("Invalid job payload");
   }
   const refill = await db.refill.findUnique({
     where: { id: refillId },
@@ -163250,23 +163264,23 @@ async function refillProcessor(job) {
     }
   });
   if (!refill) {
-    log23.error(`[RefillProcessor] Refill ${refillId} not found.`);
+    log25.error(`[RefillProcessor] Refill ${refillId} not found.`);
     return;
   }
   if (refill.status !== "PENDING") {
-    log23.warn(`[RefillProcessor] Refill ${refillId} is not PENDING (current status: ${refill.status}). Skipping.`);
+    log25.warn(`[RefillProcessor] Refill ${refillId} is not PENDING (current status: ${refill.status}). Skipping.`);
     return;
   }
   const order = refill.order;
   if (!order) {
-    throw new import_bullmq3.UnrecoverableError(`Refill ${refillId} has no associated order.`);
+    throw new import_bullmq6.UnrecoverableError(`Refill ${refillId} has no associated order.`);
   }
   if (order.status === "CANCELED" || order.status === "ERROR") {
     await db.refill.update({
       where: { id: refillId },
       data: { status: "REJECTED" }
     });
-    log23.warn(`[RefillProcessor] Refill ${refillId} rejected: order status is ${order.status}`);
+    log25.warn(`[RefillProcessor] Refill ${refillId} rejected: order status is ${order.status}`);
     return { success: false, status: "REJECTED", reason: `Order status is ${order.status}` };
   }
   if (!order.externalId) {
@@ -163274,7 +163288,7 @@ async function refillProcessor(job) {
       where: { id: refillId },
       data: { status: "ERROR" }
     });
-    log23.error(`[RefillProcessor] Refill ${refillId} aborted: Order ${order.id} has no external ID`);
+    log25.error(`[RefillProcessor] Refill ${refillId} aborted: Order ${order.id} has no external ID`);
     return { success: false, status: "ERROR", reason: "Order has no external ID" };
   }
   const providerDef = order.service.provider;
@@ -163283,7 +163297,7 @@ async function refillProcessor(job) {
       where: { id: refillId },
       data: { status: "ERROR" }
     });
-    throw new import_bullmq3.UnrecoverableError("Provider is missing or misconfigured.");
+    throw new import_bullmq6.UnrecoverableError("Provider is missing or misconfigured.");
   }
   const { getRedisConnection: getRedisConnection2 } = await Promise.resolve().then(() => (init_queue_manager(), queue_manager_exports));
   const redis2 = getRedisConnection2();
@@ -163291,7 +163305,7 @@ async function refillProcessor(job) {
   try {
     const acquired = await redis2.set(mutexKey, "1", "EX", 300, "NX");
     if (!acquired) {
-      log23.warn(`[RefillProcessor] Duplicate Dispatch Guard: Refill ${refill.id} was already dispatched by previous attempt. Skipping.`);
+      log25.warn(`[RefillProcessor] Duplicate Dispatch Guard: Refill ${refill.id} was already dispatched by previous attempt. Skipping.`);
       return;
     }
     const provider = await providerService.getWorkerProviderInstance(providerDef);
@@ -163305,7 +163319,7 @@ async function refillProcessor(job) {
         });
         await redis2.del(mutexKey).catch(() => {
         });
-        log23.warn(
+        log25.warn(
           `[RefillProcessor] Refill ${refill.id} for order #${order.numericId} rejected by provider (${providerDef.name}): ${response.error} [${classification.code}]`
         );
         return {
@@ -163329,10 +163343,10 @@ async function refillProcessor(job) {
         externalId: extId
       }
     });
-    log23.info(`[RefillProcessor] Successfully dispatched refill ${refill.id} for order #${order.numericId} | External ID: ${extId}`);
+    log25.info(`[RefillProcessor] Successfully dispatched refill ${refill.id} for order #${order.numericId} | External ID: ${extId}`);
     return { success: true, status: "IN_PROGRESS", externalId: extId };
   } catch (error) {
-    log23.error(`[RefillProcessor] Failed to process refill ${refill.id}: ${error instanceof Error ? error.message : String(error)}`);
+    log25.error(`[RefillProcessor] Failed to process refill ${refill.id}: ${error instanceof Error ? error.message : String(error)}`);
     await redis2.del(mutexKey).catch(() => {
     });
     throw error;
@@ -163342,10 +163356,10 @@ async function refillProcessor(job) {
 // src/workers/processors/article-publish.processor.ts
 init_db();
 init_logger();
-var log24 = logger.child({ component: "ArticlePublishWorker" });
+var log26 = logger.child({ component: "ArticlePublishWorker" });
 async function articlePublishProcessor(job) {
   try {
-    log24.info(`[${job.id}] Starting automated article publishing tick...`);
+    log26.info(`[${job.id}] Starting automated article publishing tick...`);
     const articleToPublish = await db.article.findFirst({
       where: {
         status: "DRAFT"
@@ -163357,7 +163371,7 @@ async function articlePublishProcessor(job) {
       ]
     });
     if (!articleToPublish) {
-      log24.info(`[${job.id}] No DRAFT articles found to publish.`);
+      log26.info(`[${job.id}] No DRAFT articles found to publish.`);
       return { publishedCount: 0 };
     }
     const published = await db.article.update({
@@ -163368,10 +163382,10 @@ async function articlePublishProcessor(job) {
         // Force timestamp update just in case
       }
     });
-    log24.info(`[${job.id}] Successfully published article: "${published.title}" (Priority: ${published.priority})`);
+    log26.info(`[${job.id}] Successfully published article: "${published.title}" (Priority: ${published.priority})`);
     return { publishedCount: 1, publishedArticleId: published.id };
   } catch (error) {
-    log24.error(`[${job.id}] Error during article publishing: ${error.message}`);
+    log26.error(`[${job.id}] Error during article publishing: ${error.message}`);
     throw error;
   }
 }
@@ -163517,7 +163531,115 @@ var GeminiClient = class {
     if (process.env.GEMINI_MODEL) {
       return process.env.GEMINI_MODEL.trim();
     }
-    return "gemini-3-flash-preview";
+    return "gemini-3.8-flash";
+  }
+  /**
+   * Выполняет потоковый запрос к Gemini (SSE) с ротацией ключей, Multi-Proxy Failover
+   * и каскадом моделей. Передает каждый чанк текста в коллбэк onChunk.
+   */
+  static async streamGenerateContent(payload, onChunk) {
+    const activeKeys = await this.getActiveKeyPool(payload.staffUserId, payload.customApiKey);
+    if (activeKeys.length === 0) {
+      throw new Error("GEMINI_API_KEY / GEMINI_API_KEYS is not configured");
+    }
+    const startIndex = keyRotationIndex % activeKeys.length;
+    keyRotationIndex = (keyRotationIndex + 1) % 1e5;
+    const keysToTry = [
+      ...activeKeys.slice(startIndex),
+      ...activeKeys.slice(0, startIndex)
+    ];
+    let lastError = null;
+    const dispatchers = await this.getDispatchers();
+    for (const apiKey of keysToTry) {
+      const primaryModel = await this.resolveLatestModel(apiKey);
+      const candidateModels = Array.from(
+        /* @__PURE__ */ new Set([primaryModel, ...FALLBACK_MODEL_CASCADES])
+      );
+      for (const model of candidateModels) {
+        for (const dispatcher of dispatchers) {
+          try {
+            const baseUrl2 = this.getBaseUrl();
+            const url = `${baseUrl2}/v1beta/models/${model}:streamGenerateContent?alt=sse`;
+            const body = {
+              contents: payload.contents
+            };
+            if (payload.systemInstruction) {
+              body.system_instruction = {
+                parts: [{ text: payload.systemInstruction }]
+              };
+            }
+            if (payload.temperature !== void 0 || payload.maxOutputTokens !== void 0) {
+              body.generationConfig = {
+                ...payload.temperature !== void 0 ? { temperature: payload.temperature } : {},
+                ...payload.maxOutputTokens !== void 0 ? { maxOutputTokens: payload.maxOutputTokens } : {}
+              };
+            }
+            const res = await fetch(url, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-goog-api-key": apiKey
+              },
+              body: JSON.stringify(body),
+              dispatcher,
+              signal: AbortSignal.timeout(payload.timeoutMs || 45e3)
+            });
+            if (res.status === 429 || res.status === 403) {
+              const errText = await res.text();
+              this.markKeyCooldown(apiKey, `HTTP ${res.status}: ${errText.slice(0, 100)}`);
+              break;
+            }
+            if (res.status === 404 || res.status === 400) {
+              console.warn(`[GeminiClient] Model ${model} returned HTTP ${res.status} on stream. Trying next model...`);
+              modelCache = null;
+              break;
+            }
+            if (!res.ok) {
+              const errText = await res.text();
+              throw new Error(`Gemini API HTTP ${res.status}: ${errText}`);
+            }
+            if (!res.body) {
+              throw new Error("No readable body in Gemini streaming response");
+            }
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+            let fullText = "";
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split("\n");
+              buffer = lines.pop() || "";
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed || !trimmed.startsWith("data: ")) continue;
+                const jsonStr = trimmed.slice(6);
+                if (jsonStr === "[DONE]") continue;
+                try {
+                  const parsed = JSON.parse(jsonStr);
+                  const partText = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+                  if (partText) {
+                    fullText += partText;
+                    await onChunk(partText);
+                  }
+                } catch {
+                }
+              }
+            }
+            if (fullText.length > 0) {
+              modelCache = { resolvedModel: model, cachedAt: Date.now() };
+              return fullText;
+            }
+          } catch (e) {
+            lastError = e instanceof Error ? e : new Error(String(e));
+            console.warn(`[GeminiClient] Stream attempt failed:`, lastError.message);
+            continue;
+          }
+        }
+      }
+    }
+    throw lastError || new Error("All Gemini API keys, proxies, and models exhausted for streaming");
   }
   /**
    * Выполняет запрос к Gemini с ротацией ключей, поддержкой пула прокси с авто-переключением (Multi-Proxy Failover)
@@ -164401,10 +164523,10 @@ ${JSON.stringify(safeMetrics, null, 2)}`;
 };
 
 // src/workers/processors/ai-observer.processor.ts
-var log25 = logger.child({ component: "AiObserverWorker" });
+var log27 = logger.child({ component: "AiObserverWorker" });
 async function aiObserverProcessor(job) {
   try {
-    log25.info(`[${job.id}] Executing daily Executive AI Observer pipeline...`);
+    log27.info(`[${job.id}] Executing daily Executive AI Observer pipeline...`);
     const tenantId = job.data?.tenantId || "smmplan";
     const result = await AiObserverService.runObserverPipeline({
       tenantId,
@@ -164412,10 +164534,10 @@ async function aiObserverProcessor(job) {
       forceRun: false
     });
     if (result.isKillswitchActive) {
-      log25.info(`[${job.id}] AI Observer was skipped due to Master Kill-Switch.`);
+      log27.info(`[${job.id}] AI Observer was skipped due to Master Kill-Switch.`);
       return { skipped: true, reason: "KILLSWITCH_ACTIVE" };
     }
-    log25.info(`[${job.id}] Executive AI Observer completed successfully in ${result.latencyMs}ms (Source: ${result.source})`);
+    log27.info(`[${job.id}] Executive AI Observer completed successfully in ${result.latencyMs}ms (Source: ${result.source})`);
     return {
       success: true,
       source: result.source,
@@ -164423,7 +164545,7 @@ async function aiObserverProcessor(job) {
       generatedAt: result.generatedAt
     };
   } catch (error) {
-    log25.error(`[${job.id}] Critical error in AI Observer worker: ${error.message}`);
+    log27.error(`[${job.id}] Critical error in AI Observer worker: ${error.message}`);
     throw error;
   }
 }
@@ -164437,7 +164559,7 @@ init_db();
 init_logger();
 init_settings();
 init_financial_constants();
-var log26 = logger.child({ component: "AiEconomicOptimizerService" });
+var log28 = logger.child({ component: "AiEconomicOptimizerService" });
 var AiEconomicOptimizerService = class {
   static {
     this.MIN_MARGIN_FLOOR_FACTOR = 1.15;
@@ -164637,7 +164759,7 @@ var AiEconomicOptimizerService = class {
       outputSnapshot: { snapshotId: snapshot.id }
     });
     const totalDurationMs = Date.now() - startTime;
-    log26.info(`[Tenant: ${tenantId}] Economic optimization snapshot created [ID: ${snapshot.id}] in ${totalDurationMs}ms`);
+    log28.info(`[Tenant: ${tenantId}] Economic optimization snapshot created [ID: ${snapshot.id}] in ${totalDurationMs}ms`);
     return {
       snapshotId: snapshot.id,
       tenantId,
@@ -164650,18 +164772,18 @@ var AiEconomicOptimizerService = class {
 };
 
 // src/workers/processors/ai-economic-optimizer.processor.ts
-var log27 = logger.child({ component: "AiEconomicOptimizerWorker" });
+var log29 = logger.child({ component: "AiEconomicOptimizerWorker" });
 async function aiEconomicOptimizerProcessor(job) {
   const { tenantId = "all", analyzedPeriodDays = 30, forceRun = false } = job.data || {};
   const tenantsToProcess = tenantId === "all" ? ["smmplan", "flux"] : [tenantId];
-  log27.info(`[${job.id}] Starting Nightly Economic Optimization for tenants: [${tenantsToProcess.join(", ")}]`);
+  log29.info(`[${job.id}] Starting Nightly Economic Optimization for tenants: [${tenantsToProcess.join(", ")}]`);
   const results = [];
   for (const currentTenant of tenantsToProcess) {
     const lockKey = `worker:ai-economic-optimizer:${currentTenant}`;
     const LOCK_TTL_MS = 10 * 60 * 1e3;
     try {
       const tenantResult = await MutexManager.withLock(lockKey, LOCK_TTL_MS, 3e3, async () => {
-        log27.info(`[${job.id}][Tenant: ${currentTenant}] Acquired lock, executing optimization pipeline...`);
+        log29.info(`[${job.id}][Tenant: ${currentTenant}] Acquired lock, executing optimization pipeline...`);
         return await AiEconomicOptimizerService.runNightlyOptimization({
           tenantId: currentTenant,
           analyzedPeriodDays,
@@ -164672,17 +164794,17 @@ async function aiEconomicOptimizerProcessor(job) {
     } catch (err) {
       const errorMsg = err.message;
       if (errorMsg.includes("Failed to acquire lock")) {
-        log27.warn(`[${job.id}][Tenant: ${currentTenant}] Optimization skipped due to lock contention.`);
+        log29.warn(`[${job.id}][Tenant: ${currentTenant}] Optimization skipped due to lock contention.`);
         results.push({ tenantId: currentTenant, skipped: true, reason: "LOCK_CONTENTION" });
       } else {
-        log27.error(`[${job.id}][Tenant: ${currentTenant}] Failed economic optimization: ${errorMsg}`, {
+        log29.error(`[${job.id}][Tenant: ${currentTenant}] Failed economic optimization: ${errorMsg}`, {
           stack: err.stack
         });
         throw err;
       }
     }
   }
-  log27.info(`[${job.id}] Nightly Economic Optimization finished across all tenants.`);
+  log29.info(`[${job.id}] Nightly Economic Optimization finished across all tenants.`);
   return { success: true, processedTenants: results };
 }
 
@@ -164691,10 +164813,10 @@ init_geo_availability_service();
 init_notifications();
 init_redis();
 init_logger();
-var log28 = logger.child({ component: "GeoAvailabilityWatchdog" });
+var log30 = logger.child({ component: "GeoAvailabilityWatchdog" });
 async function processGeoAvailabilityCheck(job) {
   const targetUrl = job?.data?.targetUrl || process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "https://test.smmplan.pro";
-  log28.info(`\u{1F50D} Running automated Geo-Availability probe for: ${targetUrl}`);
+  log30.info(`\u{1F50D} Running automated Geo-Availability probe for: ${targetUrl}`);
   const report = await GeoAvailabilityService.checkAvailability(targetUrl, 12, 5e3);
   const stateKey = `geo_monitor:state:${Buffer.from(targetUrl).toString("base64")}`;
   let previousState = {
@@ -164708,7 +164830,7 @@ async function processGeoAvailabilityCheck(job) {
       previousState = JSON.parse(rawState);
     }
   } catch (err) {
-    log28.warn(`Failed to read previous geo monitor state: ${err.message}`);
+    log30.warn(`Failed to read previous geo monitor state: ${err.message}`);
   }
   const now = Date.now();
   let alertSent = false;
@@ -164733,7 +164855,7 @@ async function processGeoAvailabilityCheck(job) {
 ` + (report.permanentLink ? `\u{1F517} <a href="${report.permanentLink}">\u041F\u043E\u0434\u0440\u043E\u0431\u043D\u044B\u0439 \u0434\u0438\u0430\u0433\u043D\u043E\u0441\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0439 \u043E\u0442\u0447\u0435\u0442</a>` : "");
       sendAdminAlert(alertMsg, "CRITICAL");
       alertSent = true;
-      log28.error(`\u{1F6A8} Dispatched CRITICAL Geo-Availability alert for ${targetUrl}`);
+      log30.error(`\u{1F6A8} Dispatched CRITICAL Geo-Availability alert for ${targetUrl}`);
     }
     const newState = {
       isBlocked: true,
@@ -164752,7 +164874,7 @@ async function processGeoAvailabilityCheck(job) {
 <i>\u0412\u0441\u0435 \u0441\u0438\u0441\u0442\u0435\u043C\u044B \u0440\u0430\u0431\u043E\u0442\u0430\u044E\u0442 \u0432 \u0448\u0442\u0430\u0442\u043D\u043E\u043C \u0440\u0435\u0436\u0438\u043C\u0435.</i>`;
     sendAdminAlert(recoveryMsg, "INFO");
     alertSent = true;
-    log28.info(`\u{1F7E2} Site availability recovered for ${targetUrl}`);
+    log30.info(`\u{1F7E2} Site availability recovered for ${targetUrl}`);
     const newState = {
       isBlocked: false,
       consecutiveFails: 0,
@@ -164760,7 +164882,7 @@ async function processGeoAvailabilityCheck(job) {
     };
     await redis.set(stateKey, JSON.stringify(newState), "EX", 86400);
   } else {
-    log28.info(`\u{1F7E2} Geo probe healthy: RU=${Math.round(report.ruRate * 100)}%, Global=${Math.round(report.globalRate * 100)}%`);
+    log30.info(`\u{1F7E2} Geo probe healthy: RU=${Math.round(report.ruRate * 100)}%, Global=${Math.round(report.globalRate * 100)}%`);
     if (previousState.consecutiveFails > 0) {
       await redis.set(
         stateKey,
@@ -164784,7 +164906,7 @@ init_order_service();
 // src/workers/eta-alerts.ts
 init_notifications();
 init_logger();
-var log29 = logger.child({ component: "ETAAlerts" });
+var log31 = logger.child({ component: "ETAAlerts" });
 var ETA_ALERT_THRESHOLD = 5;
 var etaFailureStreak = 0;
 function resetEtaFailureStreak() {
@@ -164792,7 +164914,7 @@ function resetEtaFailureStreak() {
 }
 function trackEtaFailure(job, err) {
   etaFailureStreak++;
-  log29.error("[etaWorker] Job failed", {
+  log31.error("[etaWorker] Job failed", {
     jobId: job?.id,
     jobName: job?.name,
     error: err?.message,
@@ -164809,8 +164931,8 @@ function trackEtaFailure(job, err) {
 
 // src/workers/index.ts
 init_queue_manager();
-var log30 = logger.child({ component: "WorkerManager" });
-log30.info("\u{1F680} Starting BullMQ workers...");
+var log32 = logger.child({ component: "WorkerManager" });
+log32.info("\u{1F680} Starting BullMQ workers...");
 var connection = getRedisConnection();
 var workerConfig = {
   connection,
@@ -164829,10 +164951,10 @@ var workerConfig = {
     }
   }
 };
-var orderWorker = new import_bullmq4.Worker("ordersQueue", orderProcessor, workerConfig);
-var syncWorker = new import_bullmq4.Worker("syncQueue", syncProcessor, { ...workerConfig, concurrency: 2 });
-var catalogWorker = new import_bullmq4.Worker("catalogQueue", catalogProcessor, workerConfig);
-var cleanupWorker = new import_bullmq4.Worker("cleanup", async (job) => {
+var orderWorker = new import_bullmq7.Worker("ordersQueue", orderProcessor, workerConfig);
+var syncWorker = new import_bullmq7.Worker("syncQueue", syncProcessor, { ...workerConfig, concurrency: 2 });
+var catalogWorker = new import_bullmq7.Worker("catalogQueue", catalogProcessor, workerConfig);
+var cleanupWorker = new import_bullmq7.Worker("cleanup", async (job) => {
   if (job.name === "sweep-orphans") {
     await runOrphanSweep();
   } else if (job.name === "resolve-pending-check") {
@@ -164844,7 +164966,7 @@ var cleanupWorker = new import_bullmq4.Worker("cleanup", async (job) => {
     await runCleanup();
   }
 }, workerConfig);
-var telegramWorker = new import_bullmq4.Worker("telegram-notifications", async (job) => {
+var telegramWorker = new import_bullmq7.Worker("telegram-notifications", async (job) => {
   await sendAdminAlertSync(job.data.message, job.data.severity);
 }, {
   ...workerConfig,
@@ -164855,21 +164977,21 @@ var telegramWorker = new import_bullmq4.Worker("telegram-notifications", async (
     // per 1 second
   }
 });
-var etaWorker = new import_bullmq4.Worker("eta-recalc", async () => {
+var etaWorker = new import_bullmq7.Worker("eta-recalc", async () => {
   await runETARecalculation();
 }, workerConfig);
-var paymentSyncWorker = new import_bullmq4.Worker("paymentSyncQueue", paymentSyncProcessor, workerConfig);
-var paymentGatewayWorker = new import_bullmq4.Worker("paymentGatewayQueue", paymentGatewayProcessor, workerConfig);
-var refillWorker = new import_bullmq4.Worker("refillQueue", refillProcessor, workerConfig);
-var articlePublishWorker = new import_bullmq4.Worker("articlePublishQueue", articlePublishProcessor, workerConfig);
-var aiObserverWorker = new import_bullmq4.Worker("aiObserverQueue", aiObserverProcessor, workerConfig);
-var aiEconomicOptimizerWorker = new import_bullmq4.Worker("aiEconomicOptimizerQueue", aiEconomicOptimizerProcessor, workerConfig);
-var geoAvailabilityWorker = new import_bullmq4.Worker("geoAvailabilityQueue", geo_availability_processor_default, workerConfig);
+var paymentSyncWorker = new import_bullmq7.Worker("paymentSyncQueue", paymentSyncProcessor, workerConfig);
+var paymentGatewayWorker = new import_bullmq7.Worker("paymentGatewayQueue", paymentGatewayProcessor, workerConfig);
+var refillWorker = new import_bullmq7.Worker("refillQueue", refillProcessor, workerConfig);
+var articlePublishWorker = new import_bullmq7.Worker("articlePublishQueue", articlePublishProcessor, workerConfig);
+var aiObserverWorker = new import_bullmq7.Worker("aiObserverQueue", aiObserverProcessor, workerConfig);
+var aiEconomicOptimizerWorker = new import_bullmq7.Worker("aiEconomicOptimizerQueue", aiEconomicOptimizerProcessor, workerConfig);
+var geoAvailabilityWorker = new import_bullmq7.Worker("geoAvailabilityQueue", geo_availability_processor_default, workerConfig);
 var MAX_ATTEMPTS = 3;
 async function handleDeadLetter(queueName, job, err) {
   if (!job) return;
   const maxAttempts = job.opts?.attempts ?? MAX_ATTEMPTS;
-  log30.error(`Job failed`, {
+  log32.error(`Job failed`, {
     queue: queueName,
     jobId: job.id,
     attemptsMade: job.attemptsMade,
@@ -164898,11 +165020,11 @@ async function handleDeadLetter(queueName, job, err) {
             select: { status: true, numericId: true }
           });
           if (currentOrder && (currentOrder.status === "PENDING_CHECK" || currentOrder.status === "IN_PROGRESS")) {
-            log30.info(`[WORKER] Order #${currentOrder.numericId} (${payload.orderId}) is in '${currentOrder.status}'. Skipping auto-fail to allow operator triage / balance autoflush.`);
+            log32.info(`[WORKER] Order #${currentOrder.numericId} (${payload.orderId}) is in '${currentOrder.status}'. Skipping auto-fail to allow operator triage / balance autoflush.`);
             isParkedForTriage = true;
           } else {
             await orderService.failOrderTerminal(payload.orderId, err.message);
-            log30.info(`Auto-refunded dead-letter order ${payload.orderId}`);
+            log32.info(`Auto-refunded dead-letter order ${payload.orderId}`);
           }
         }
       }
@@ -164913,7 +165035,7 @@ async function handleDeadLetter(queueName, job, err) {
             where: { id: payload.refillId },
             data: { status: "ERROR" }
           });
-          log30.info(`Marked dead-letter refill ${payload.refillId} as ERROR`);
+          log32.info(`Marked dead-letter refill ${payload.refillId} as ERROR`);
         }
       }
       const isFinancialQueue = ["ordersQueue", "paymentSyncQueue", "paymentGatewayQueue"].includes(queueName);
@@ -164943,12 +165065,12 @@ Job ID: \`${job.id}\`
             "WARNING"
           );
         } else {
-          log30.info(`Suppressed duplicate DLQ alert for ${queueName} (${occurrences} occurrences in window)`);
+          log32.info(`Suppressed duplicate DLQ alert for ${queueName} (${occurrences} occurrences in window)`);
         }
       }
-      log30.error("Job dead-lettered", { queue: queueName, jobId: job.id });
+      log32.error("Job dead-lettered", { queue: queueName, jobId: job.id });
     } catch (dlqErr) {
-      log30.error("Failed to write to DLQ", { error: dlqErr.message });
+      log32.error("Failed to write to DLQ", { error: dlqErr.message });
     }
   }
 }
@@ -164962,10 +165084,10 @@ catalogWorker.on("failed", (job, err) => {
   handleDeadLetter("catalogQueue", job, err);
 });
 cleanupWorker.on("failed", (job, err) => {
-  log30.error("Cleanup job failed", { error: err.message });
+  log32.error("Cleanup job failed", { error: err.message });
 });
 telegramWorker.on("failed", (job, err) => {
-  log30.error("Telegram notification failed", { error: err.message });
+  log32.error("Telegram notification failed", { error: err.message });
 });
 paymentSyncWorker.on("failed", (job, err) => {
   handleDeadLetter("paymentSyncQueue", job, err);
@@ -164991,28 +165113,28 @@ async function updateHeartbeat() {
   try {
     await connection.set(HEARTBEAT_KEY, Date.now().toString(), "EX", HEARTBEAT_TTL);
   } catch {
-    log30.warn("Heartbeat update failed (Redis connection issue)");
+    log32.warn("Heartbeat update failed (Redis connection issue)");
   }
 }
 updateHeartbeat();
 var heartbeatInterval = setInterval(updateHeartbeat, 6e4);
-ensureSyncCron().catch((e) => log30.error("Failed to setup Sync Cron", { error: e.message }));
-ensureCleanupCron().catch((e) => log30.error("Failed to setup Cleanup Cron", { error: e.message }));
-ensureETACron().catch((e) => log30.error("Failed to setup ETA Cron", { error: e.message }));
-ensureCatalogSyncCron().catch((e) => log30.error("Failed to setup Catalog Sync Cron", { error: e.message }));
-ensureOrphanSweepCron().catch((e) => log30.error("Failed to setup Orphan Sweep Cron", { error: e.message }));
-ensurePaymentSyncCron().catch((e) => log30.error("Failed to setup Payment Sync Cron", { error: e.message }));
-ensureDripfeedCron().catch((e) => log30.error("Failed to setup Dripfeed Cron", { error: e.message }));
-ensureArticlePublishCron().catch((e) => log30.error("Failed to setup Article Publish Cron", { error: e.message }));
-ensurePendingCheckCron().catch((e) => log30.error("Failed to setup PendingCheck Cron", { error: e.message }));
-ensureAiObserverCron().catch((e) => log30.error("Failed to setup AI Observer Cron", { error: e.message }));
-ensureAiEconomicOptimizerCron().catch((e) => log30.error("Failed to setup AI Economic Optimizer Cron", { error: e.message }));
-ensureGeoAvailabilityCron().catch((e) => log30.error("Failed to setup Geo Availability Cron", { error: e.message }));
-ensureCBRSyncCron().catch((e) => log30.error("Failed to setup CBR Rate Sync Cron", { error: e.message }));
-ensureProxySubscriptionSyncCron().catch((e) => log30.error("Failed to setup Proxy Subscription Sync Cron", { error: e.message }));
-log30.info("All workers started", { queues: ["ordersQueue", "refillQueue", "syncQueue", "catalogQueue", "cleanup", "paymentSyncQueue", "articlePublishQueue", "aiObserverQueue", "aiEconomicOptimizerQueue", "geoAvailabilityQueue"] });
+ensureSyncCron().catch((e) => log32.error("Failed to setup Sync Cron", { error: e.message }));
+ensureCleanupCron().catch((e) => log32.error("Failed to setup Cleanup Cron", { error: e.message }));
+ensureETACron().catch((e) => log32.error("Failed to setup ETA Cron", { error: e.message }));
+ensureCatalogSyncCron().catch((e) => log32.error("Failed to setup Catalog Sync Cron", { error: e.message }));
+ensureOrphanSweepCron().catch((e) => log32.error("Failed to setup Orphan Sweep Cron", { error: e.message }));
+ensurePaymentSyncCron().catch((e) => log32.error("Failed to setup Payment Sync Cron", { error: e.message }));
+ensureDripfeedCron().catch((e) => log32.error("Failed to setup Dripfeed Cron", { error: e.message }));
+ensureArticlePublishCron().catch((e) => log32.error("Failed to setup Article Publish Cron", { error: e.message }));
+ensurePendingCheckCron().catch((e) => log32.error("Failed to setup PendingCheck Cron", { error: e.message }));
+ensureAiObserverCron().catch((e) => log32.error("Failed to setup AI Observer Cron", { error: e.message }));
+ensureAiEconomicOptimizerCron().catch((e) => log32.error("Failed to setup AI Economic Optimizer Cron", { error: e.message }));
+ensureGeoAvailabilityCron().catch((e) => log32.error("Failed to setup Geo Availability Cron", { error: e.message }));
+ensureCBRSyncCron().catch((e) => log32.error("Failed to setup CBR Rate Sync Cron", { error: e.message }));
+ensureProxySubscriptionSyncCron().catch((e) => log32.error("Failed to setup Proxy Subscription Sync Cron", { error: e.message }));
+log32.info("All workers started", { queues: ["ordersQueue", "refillQueue", "syncQueue", "catalogQueue", "cleanup", "paymentSyncQueue", "articlePublishQueue", "aiObserverQueue", "aiEconomicOptimizerQueue", "geoAvailabilityQueue"] });
 var shutdown = async () => {
-  log30.info("Gracefully shutting down workers...");
+  log32.info("Gracefully shutting down workers...");
   clearInterval(heartbeatInterval);
   await connection.del(HEARTBEAT_KEY);
   await Promise.all([
@@ -165032,14 +165154,14 @@ var shutdown = async () => {
   ]);
   await db.$disconnect();
   if (connection) await connection.quit();
-  log30.info("Workers stopped successfully");
+  log32.info("Workers stopped successfully");
   process.exit(0);
 };
 process.on("unhandledRejection", (reason, promise) => {
-  log30.error("Unhandled Rejection in Worker process:", { reason, promise });
+  log32.error("Unhandled Rejection in Worker process:", { reason, promise });
 });
 process.on("uncaughtException", (error) => {
-  log30.error("Uncaught Exception in Worker process:", { error: error.message, stack: error.stack });
+  log32.error("Uncaught Exception in Worker process:", { error: error.message, stack: error.stack });
 });
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);

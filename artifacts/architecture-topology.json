@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OmniSMM Architecture Topology (Uncle Bob Pattern)",
-  "generatedAt": "2026-09-19T13:59:12.885Z",
+  "generatedAt": "2026-09-19T14:07:27.103Z",
   "layers": [
     {
       "level": 0,
@@ -45273,23 +45273,23 @@
       "level": 1,
       "layer": "Services",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 75,
+      "linesCount": 79,
       "isClientComponent": false,
       "exportsCount": 0,
       "functionsCount": 5,
-      "maxCyclomaticComplexity": 6,
-      "maxCrapScore": 42,
-      "crapLoad": 12,
+      "maxCyclomaticComplexity": 7,
+      "maxCrapScore": 56,
+      "crapLoad": 26,
       "crappyMethodsCount": 1,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "sanitizeInput",
           "startLine": 26,
-          "endLine": 57,
-          "cyclomaticComplexity": 6,
+          "endLine": 61,
+          "cyclomaticComplexity": 7,
           "coverageRatio": null,
-          "crapScore": 42,
+          "crapScore": 56,
           "isCrappy": true
         },
         {
@@ -82220,6 +82220,6 @@
       "maxCC": 195
     },
     "totalCrappyFunctions": 2280,
-    "totalCrapLoad": 1343356
+    "totalCrapLoad": 1343370
   }
 }
