@@ -74,6 +74,7 @@ export async function updateApiWebhookAction(
     });
 
     revalidatePath('/dashboard/settings');
+    revalidatePath('/dashboard/settings/api');
     return {
       success: true,
       webhookUrl: updatedConfig.webhookUrl,

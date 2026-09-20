@@ -94,6 +94,7 @@ export async function updateTelegramNotificationSettingsAction(
     });
 
     revalidatePath('/dashboard/settings');
+    revalidatePath('/dashboard/settings/notifications');
     return {
       success: true,
       telegramNotifyOrders: updatedUser.telegramNotifyOrders,
@@ -144,6 +145,7 @@ export async function unbindTelegramAction(): Promise<UnbindTelegramResult> {
     });
 
     revalidatePath('/dashboard/settings');
+    revalidatePath('/dashboard/settings/notifications');
     return { success: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Неизвестная ошибка';

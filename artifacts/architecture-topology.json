@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OmniSMM Architecture Topology (Uncle Bob Pattern)",
-  "generatedAt": "2026-09-20T05:58:49.382Z",
+  "generatedAt": "2026-09-20T08:05:48.703Z",
   "layers": [
     {
       "level": 0,
@@ -3508,7 +3508,7 @@
       "level": 2,
       "layer": "Application",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 148,
+      "linesCount": 150,
       "isClientComponent": false,
       "exportsCount": 2,
       "functionsCount": 5,
@@ -3520,8 +3520,8 @@
       "topRiskFunctions": [
         {
           "name": "changePasswordAction",
-          "startLine": 72,
-          "endLine": 147,
+          "startLine": 73,
+          "endLine": 149,
           "cyclomaticComplexity": 12,
           "coverageRatio": null,
           "crapScore": 156,
@@ -3530,7 +3530,7 @@
         {
           "name": "setPasswordAction",
           "startLine": 26,
-          "endLine": 70,
+          "endLine": 71,
           "cyclomaticComplexity": 8,
           "coverageRatio": null,
           "crapScore": 72,
@@ -4858,7 +4858,7 @@
       "level": 2,
       "layer": "Application",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 43,
+      "linesCount": 44,
       "isClientComponent": false,
       "exportsCount": 1,
       "functionsCount": 1,
@@ -4871,7 +4871,7 @@
         {
           "name": "confirm152FzConsentAction",
           "startLine": 9,
-          "endLine": 42,
+          "endLine": 43,
           "cyclomaticComplexity": 5,
           "coverageRatio": null,
           "crapScore": 30,
@@ -4885,7 +4885,7 @@
       "level": 2,
       "layer": "Application",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 74,
+      "linesCount": 75,
       "isClientComponent": false,
       "exportsCount": 2,
       "functionsCount": 5,
@@ -4898,7 +4898,7 @@
         {
           "name": "updateTaxRequisitesAction",
           "startLine": 26,
-          "endLine": 67,
+          "endLine": 68,
           "cyclomaticComplexity": 23,
           "coverageRatio": null,
           "crapScore": 552,
@@ -4930,7 +4930,7 @@
       "level": 2,
       "layer": "Application",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 154,
+      "linesCount": 156,
       "isClientComponent": false,
       "exportsCount": 3,
       "functionsCount": 3,
@@ -4952,7 +4952,7 @@
         {
           "name": "updateTelegramNotificationSettingsAction",
           "startLine": 68,
-          "endLine": 108,
+          "endLine": 109,
           "cyclomaticComplexity": 9,
           "coverageRatio": null,
           "crapScore": 90,
@@ -4960,8 +4960,8 @@
         },
         {
           "name": "unbindTelegramAction",
-          "startLine": 110,
-          "endLine": 153,
+          "startLine": 111,
+          "endLine": 155,
           "cyclomaticComplexity": 7,
           "coverageRatio": null,
           "crapScore": 56,
@@ -4975,7 +4975,7 @@
       "level": 2,
       "layer": "Application",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 89,
+      "linesCount": 90,
       "isClientComponent": false,
       "exportsCount": 1,
       "functionsCount": 2,
@@ -4988,7 +4988,7 @@
         {
           "name": "updateApiWebhookAction",
           "startLine": 26,
-          "endLine": 88,
+          "endLine": 89,
           "cyclomaticComplexity": 21,
           "coverageRatio": null,
           "crapScore": 462,
@@ -20599,7 +20599,34 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 37,
+      "linesCount": 50,
+      "isClientComponent": false,
+      "exportsCount": 1,
+      "functionsCount": 1,
+      "maxCyclomaticComplexity": 4,
+      "maxCrapScore": 20,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "ApiSettingsPage",
+          "startLine": 13,
+          "endLine": 49,
+          "cyclomaticComplexity": 4,
+          "coverageRatio": null,
+          "crapScore": 20,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/app/dashboard/settings/layout.tsx",
+      "label": "layout.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 62,
       "isClientComponent": false,
       "exportsCount": 1,
       "functionsCount": 1,
@@ -20610,9 +20637,36 @@
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
-          "name": "ApiSettingsPage",
+          "name": "SettingsLayout",
+          "startLine": 15,
+          "endLine": 61,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/app/dashboard/settings/notifications/page.tsx",
+      "label": "page.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 46,
+      "isClientComponent": false,
+      "exportsCount": 1,
+      "functionsCount": 1,
+      "maxCyclomaticComplexity": 3,
+      "maxCrapScore": 12,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "NotificationsSettingsPage",
           "startLine": 13,
-          "endLine": 36,
+          "endLine": 45,
           "cyclomaticComplexity": 3,
           "coverageRatio": null,
           "crapScore": 12,
@@ -20626,24 +20680,78 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 148,
+      "linesCount": 27,
       "isClientComponent": false,
       "exportsCount": 1,
       "functionsCount": 1,
-      "maxCyclomaticComplexity": 9,
-      "maxCrapScore": 90,
-      "crapLoad": 60,
+      "maxCyclomaticComplexity": 7,
+      "maxCrapScore": 56,
+      "crapLoad": 26,
       "crappyMethodsCount": 1,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
-          "name": "ClientSettingsPage",
-          "startLine": 15,
-          "endLine": 147,
-          "cyclomaticComplexity": 9,
+          "name": "SettingsIndexPage",
+          "startLine": 9,
+          "endLine": 26,
+          "cyclomaticComplexity": 7,
           "coverageRatio": null,
-          "crapScore": 90,
+          "crapScore": 56,
           "isCrappy": true
+        }
+      ]
+    },
+    {
+      "id": "src/app/dashboard/settings/requisites/page.tsx",
+      "label": "page.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 43,
+      "isClientComponent": false,
+      "exportsCount": 1,
+      "functionsCount": 1,
+      "maxCyclomaticComplexity": 3,
+      "maxCrapScore": 12,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "RequisitesSettingsPage",
+          "startLine": 12,
+          "endLine": 42,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/app/dashboard/settings/security/page.tsx",
+      "label": "page.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 38,
+      "isClientComponent": false,
+      "exportsCount": 1,
+      "functionsCount": 1,
+      "maxCyclomaticComplexity": 3,
+      "maxCrapScore": 12,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "SecuritySettingsPage",
+          "startLine": 14,
+          "endLine": 37,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
         }
       ]
     },
@@ -29912,29 +30020,29 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 78,
+      "linesCount": 97,
       "isClientComponent": true,
       "exportsCount": 1,
       "functionsCount": 4,
-      "maxCyclomaticComplexity": 5,
-      "maxCrapScore": 30,
+      "maxCyclomaticComplexity": 4,
+      "maxCrapScore": 20,
       "crapLoad": 0,
       "crappyMethodsCount": 0,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "ApiDashboardClient",
-          "startLine": 12,
-          "endLine": 77,
-          "cyclomaticComplexity": 5,
+          "startLine": 18,
+          "endLine": 96,
+          "cyclomaticComplexity": 4,
           "coverageRatio": null,
-          "crapScore": 30,
+          "crapScore": 20,
           "isCrappy": false
         },
         {
           "name": "<anonymous>",
-          "startLine": 26,
-          "endLine": 26,
+          "startLine": 28,
+          "endLine": 28,
           "cyclomaticComplexity": 1,
           "coverageRatio": null,
           "crapScore": 2,
@@ -29942,8 +30050,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 35,
-          "endLine": 35,
+          "startLine": 42,
+          "endLine": 42,
           "cyclomaticComplexity": 1,
           "coverageRatio": null,
           "crapScore": 2,
@@ -30310,6 +30418,96 @@
           "name": "<anonymous>",
           "startLine": 41,
           "endLine": 73,
+          "cyclomaticComplexity": 8,
+          "coverageRatio": null,
+          "crapScore": 72,
+          "isCrappy": true
+        }
+      ]
+    },
+    {
+      "id": "src/components/dashboard/settings/ProfileSummaryCard.tsx",
+      "label": "ProfileSummaryCard.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 85,
+      "isClientComponent": false,
+      "exportsCount": 1,
+      "functionsCount": 1,
+      "maxCyclomaticComplexity": 6,
+      "maxCrapScore": 42,
+      "crapLoad": 12,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "ProfileSummaryCard",
+          "startLine": 14,
+          "endLine": 84,
+          "cyclomaticComplexity": 6,
+          "coverageRatio": null,
+          "crapScore": 42,
+          "isCrappy": true
+        }
+      ]
+    },
+    {
+      "id": "src/components/dashboard/settings/SettingsBreadcrumbs.tsx",
+      "label": "SettingsBreadcrumbs.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 28,
+      "isClientComponent": true,
+      "exportsCount": 1,
+      "functionsCount": 1,
+      "maxCyclomaticComplexity": 3,
+      "maxCrapScore": 12,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "SettingsBreadcrumbs",
+          "startLine": 14,
+          "endLine": 27,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/components/dashboard/settings/SettingsSubNav.tsx",
+      "label": "SettingsSubNav.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 91,
+      "isClientComponent": true,
+      "exportsCount": 1,
+      "functionsCount": 2,
+      "maxCyclomaticComplexity": 8,
+      "maxCrapScore": 72,
+      "crapLoad": 84,
+      "crappyMethodsCount": 2,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "SettingsSubNav",
+          "startLine": 47,
+          "endLine": 90,
+          "cyclomaticComplexity": 8,
+          "coverageRatio": null,
+          "crapScore": 72,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 56,
+          "endLine": 87,
           "cyclomaticComplexity": 8,
           "coverageRatio": null,
           "crapScore": 72,
@@ -70818,36 +71016,120 @@
       "isViolating": false
     },
     {
-      "source": "src/app/dashboard/settings/page.tsx",
+      "source": "src/app/dashboard/settings/layout.tsx",
       "target": "src/lib/session.ts",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
     },
     {
-      "source": "src/app/dashboard/settings/page.tsx",
+      "source": "src/app/dashboard/settings/layout.tsx",
       "target": "src/lib/db.ts",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
     },
     {
-      "source": "src/app/dashboard/settings/page.tsx",
-      "target": "src/lib/utils.ts",
+      "source": "src/app/dashboard/settings/layout.tsx",
+      "target": "src/components/dashboard/settings/SettingsBreadcrumbs.tsx",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
     },
     {
-      "source": "src/app/dashboard/settings/page.tsx",
-      "target": "src/components/dashboard/DashboardBreadcrumbs.tsx",
+      "source": "src/app/dashboard/settings/layout.tsx",
+      "target": "src/components/dashboard/settings/ProfileSummaryCard.tsx",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
     },
     {
-      "source": "src/app/dashboard/settings/page.tsx",
-      "target": "src/components/dashboard/settings/SettingsTabsClient.tsx",
+      "source": "src/app/dashboard/settings/layout.tsx",
+      "target": "src/components/dashboard/settings/SettingsSubNav.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/dashboard/settings/notifications/page.tsx",
+      "target": "src/lib/session.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/dashboard/settings/notifications/page.tsx",
+      "target": "src/lib/db.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/dashboard/settings/notifications/page.tsx",
+      "target": "src/components/dashboard/settings/TelegramCard.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/dashboard/settings/notifications/page.tsx",
+      "target": "src/components/dashboard/settings/Consent152FzCard.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/dashboard/settings/requisites/page.tsx",
+      "target": "src/lib/session.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/dashboard/settings/requisites/page.tsx",
+      "target": "src/lib/db.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/dashboard/settings/requisites/page.tsx",
+      "target": "src/components/dashboard/settings/CompanyRequisitesCard.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/dashboard/settings/security/page.tsx",
+      "target": "src/lib/session.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/dashboard/settings/security/page.tsx",
+      "target": "src/lib/db.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/dashboard/settings/security/page.tsx",
+      "target": "src/components/dashboard/settings/PasswordCard.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/dashboard/settings/security/page.tsx",
+      "target": "src/components/dashboard/settings/LogoutCard.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/dashboard/settings/security/page.tsx",
+      "target": "src/components/dashboard/settings/DeleteAccountCard.tsx",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
@@ -75194,6 +75476,13 @@
     },
     {
       "source": "src/components/dashboard/settings/api/ApiDashboardClient.tsx",
+      "target": "src/components/dashboard/settings/ApiWebhookCard.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/dashboard/settings/api/ApiDashboardClient.tsx",
       "target": "src/components/dashboard/settings/api/ApiReferenceDocs.tsx",
       "kind": "dependency",
       "isTypeOnly": false,
@@ -75265,6 +75554,20 @@
     {
       "source": "src/components/dashboard/settings/PasswordCard.tsx",
       "target": "src/components/dashboard/settings/password/PasswordInputField.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/dashboard/settings/ProfileSummaryCard.tsx",
+      "target": "src/lib/utils.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/dashboard/settings/SettingsBreadcrumbs.tsx",
+      "target": "src/components/dashboard/DashboardBreadcrumbs.tsx",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
@@ -85689,18 +85992,18 @@
   "violations": [],
   "cycles": [],
   "metrics": {
-    "totalFiles": 1478,
-    "totalEdges": 4110,
+    "totalFiles": 1485,
+    "totalEdges": 4125,
     "violationsCount": 0,
     "cyclesCount": 0,
     "blockersCount": 0,
-    "totalFunctions": 9904,
+    "totalFunctions": 9912,
     "highestCrapModule": {
       "id": "src/proxy.ts",
       "maxCrap": 39402,
       "maxCC": 198
     },
-    "totalCrappyFunctions": 2317,
-    "totalCrapLoad": 1318344
+    "totalCrappyFunctions": 2320,
+    "totalCrapLoad": 1318406
   }
 }

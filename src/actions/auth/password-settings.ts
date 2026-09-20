@@ -62,6 +62,7 @@ export async function setPasswordAction(formData: FormData) {
     });
 
     revalidatePath('/dashboard/settings');
+    revalidatePath('/dashboard/settings/security');
     return { success: true };
   } catch (error: unknown) {
     console.error('Failed to set password:', error);
@@ -139,6 +140,7 @@ export async function changePasswordAction(formData: FormData) {
     });
 
     revalidatePath('/dashboard/settings');
+    revalidatePath('/dashboard/settings/security');
     return { success: true };
   } catch (error: unknown) {
     console.error('Failed to change password:', error);

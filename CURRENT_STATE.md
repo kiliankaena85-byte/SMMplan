@@ -1,3 +1,23 @@
+- [x] 🚀 [USER-SETTINGS-SUBROUTES-OPTION-A-2026] Разнесение функционала вкладки "Настройки" по вложенным подстраницам (Next.js 16 Nested Sub-Routes) (100% COMPLETE & VERIFIED):
+  * 🏛️ **Архитектурный макет и подстраницы (Nested Layout & Sub-Routes):**
+    - Создан корневой макет `src/app/dashboard/settings/layout.tsx` (62 строки) с общей карточкой профиля `ProfileSummaryCard.tsx` (85 строк), динамическими хлебными крошками `SettingsBreadcrumbs.tsx` (28 строк) и адаптивным таб-баром `SettingsSubNav.tsx` (91 строка).
+    - Разнесены 4 изолированные страницы с гранулярной выборкой из PostgreSQL (Zero Overfetching):
+      - `/dashboard/settings/security` (38 строк) — запрашивает только `passwordHash` (PasswordCard, LogoutCard, DeleteAccountCard).
+      - `/dashboard/settings/notifications` (43 строки) — запрашивает только `telegramId`, флаги оповещений и согласия 152-ФЗ (TelegramCard, Consent152FzCard).
+      - `/dashboard/settings/api` (50 строк) — единый консолидированный раздел API v2 с переключателем «Ключи и Вебхуки» / «Документация API v2». Полностью ликвидировано дублирование!
+      - `/dashboard/settings/requisites` (43 строки) — запрашивает только реквизиты ИП/ООО (CompanyRequisitesCard).
+    - Базовый роут `/dashboard/settings/page.tsx` (27 строк) обеспечивает серверный редирект с поддержкой обратной совместимости старых query-параметров (`?tab=api`, `?tab=notifications`, `?tab=company`).
+  * 🔄 **Инвалидация кэша Next.js App Router (revalidatePath):**
+    - Во все 5 модулей Server Actions (`webhook.action.ts`, `telegram.action.ts`, `requisites.action.ts`, `consent.action.ts`, `password-settings.ts`) добавлена точечная инвалидация соответствующих путей (`/dashboard/settings/api`, `/dashboard/settings/notifications`, `/dashboard/settings/requisites`, `/dashboard/settings/security`), гарантируя мгновенное обновление UI без задержек.
+  * ♿ **Эргономика и доступность (Rule 9 & WCAG 2.2 AA):**
+    - Таб-бар `SettingsSubNav` построен на сетке `grid grid-cols-2 lg:grid-cols-4 gap-2` без риска появления горизонтального скролла на экранах от 320px до 4K.
+    - Все кнопки табов имеют гарантированный Touch Target $\ge 44$px (`min-h-[44px]`).
+  * 🧪 **Автоматизированное тестирование & Сборка:**
+    - Создан сьют интеграционных тестов `src/__tests__/unit/dashboard-settings-subroutes.test.tsx` (17/17 PASS).
+    - Полный прогон сьюта настроек пользователя: 48/48 PASS.
+    - `npm run check:arch` — 0 layer violations, 0 circular cycles.
+    - `npx tsc --noEmit` — 0 ошибок типов во всем проекте.
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
 - [x] 🚀 [USER-SETTINGS-DECOMPOSITION-2026] Комплексная декомпозиция вкладки "Настройки" в личном кабинете пользователя (/dashboard/settings) (100% COMPLETE & VERIFIED):
   * 🧩 **Декомпозиция монолитов и чистота слоев (лимит <= 200 строк на файл):**
     - Вкладка настроек пользователя и все связанные субмодули разбиты на 37 специализированных компонентов и хуков в `src/components/dashboard/settings/` и `src/app/dashboard/settings/`.

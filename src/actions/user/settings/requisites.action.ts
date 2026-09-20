@@ -58,6 +58,7 @@ export async function updateTaxRequisitesAction(
     });
 
     revalidatePath('/dashboard/settings');
+    revalidatePath('/dashboard/settings/requisites');
     return { success: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Неизвестная ошибка';

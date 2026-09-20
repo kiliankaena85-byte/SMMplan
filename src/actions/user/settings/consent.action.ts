@@ -29,6 +29,7 @@ export async function confirm152FzConsentAction(): Promise<Confirm152FzConsentRe
     });
 
     revalidatePath('/dashboard/settings');
+    revalidatePath('/dashboard/settings/notifications');
     return {
       success: true,
       tosAcceptedAt: updatedUser.tosAcceptedAt,
