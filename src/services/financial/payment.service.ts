@@ -6,6 +6,7 @@ import { sendOrderPaidMail } from '@/lib/smtp';
 import { logPromoCodeUsageIfNeeded } from '@/services/marketing-utils';
 import { PromoAutomationService } from '../users/promo-automation.service';
 import { SecurityAlertService } from '@/services/security/security-alert.service';
+import { ORDER_COOLING_OFF_MS } from '@/config/order-constants';
 
 function safeRevalidatePath(path: string, type?: 'layout' | 'page') {
   try {
@@ -316,7 +317,7 @@ export class PaymentService {
       if (activatedOrders.length > 0) {
         const { ordersQueue } = await import('@/lib/queue-manager');
         for (const activated of activatedOrders) {
-          await ordersQueue.add('order-dispatch', { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: 3 * 60 * 1000 }); // 3 min cooling-off
+          await ordersQueue.add('order-dispatch', { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: ORDER_COOLING_OFF_MS }); // 90s cooling-off
           
           if (activated.userEmail && activated.serviceName) {
             void sendOrderPaidMail(
@@ -550,7 +551,7 @@ export class PaymentService {
       if (activatedOrders.length > 0) {
         const { ordersQueue } = await import('@/lib/queue-manager');
         for (const activated of activatedOrders) {
-          await ordersQueue.add('order-dispatch', { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: 3 * 60 * 1000 }); // 3 min cooling-off
+          await ordersQueue.add('order-dispatch', { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: ORDER_COOLING_OFF_MS }); // 90s cooling-off
           
           if (activated.userEmail && activated.serviceName) {
             void sendOrderPaidMail(

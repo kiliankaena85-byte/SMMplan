@@ -9,6 +9,7 @@ import { CompensationService } from '@/services/financial/compensation.service';
 import { runSerializableTransaction } from '@/lib/transactions';
 
 import { ordersQueue } from '@/lib/queue-manager';
+import { ORDER_COOLING_OFF_MS } from '@/config/order-constants';
 
 /**
  * MANDATORY INTEGRITY WARNING:
@@ -215,7 +216,7 @@ class OrderService {
 
       // 3. Dispatch to Queues (Drip-feed is now passed natively to the provider)
       try {
-        await ordersQueue.add('order-dispatch', { orderId: newOrder.id }, { jobId: `dispatch-${newOrder.id}`, delay: 3 * 60 * 1000 });
+        await ordersQueue.add('order-dispatch', { orderId: newOrder.id }, { jobId: `dispatch-${newOrder.id}`, delay: ORDER_COOLING_OFF_MS });
       } catch (queueError: unknown) {
         // [FIN-006] Premortem Bugfix: Ghost Order Prevention.
         // If Redis is down, we MUST NOT fail the request since the balance is already charged 

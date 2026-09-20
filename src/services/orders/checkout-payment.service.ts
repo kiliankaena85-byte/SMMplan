@@ -6,7 +6,8 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { SettingsProvider } from '@/lib/settings';
 import { createSession } from '@/lib/session';
-import { sendOrderBalanceDebitMail } from "@/lib/smtp";
+import { sendOrderBalanceDebitMail } from '@/lib/smtp';
+import { ORDER_COOLING_OFF_MS } from '@/config/order-constants';
 import { generateGuestOrderToken } from '@/lib/order-token';
 import { getBaseUrlSync } from "@/utils/get-base-url";
 import type { User } from '@prisma/client';
@@ -49,9 +50,9 @@ export class CheckoutPaymentService {
 
     if (gateway === 'balance') {
       const { ordersQueue } = await import('@/lib/queue-manager');
-      await ordersQueue.add('order-dispatch', { orderId: result.orderId }, { jobId: `dispatch-${result.orderId}`, delay: 3 * 60 * 1000 });
+      await ordersQueue.add('order-dispatch', { orderId: result.orderId }, { jobId: `dispatch-${result.orderId}`, delay: ORDER_COOLING_OFF_MS });
       if (result.secondOrderId) {
-        await ordersQueue.add('order-dispatch', { orderId: result.secondOrderId }, { jobId: `dispatch-${result.secondOrderId}`, delay: 3 * 60 * 1000 });
+        await ordersQueue.add('order-dispatch', { orderId: result.secondOrderId }, { jobId: `dispatch-${result.secondOrderId}`, delay: ORDER_COOLING_OFF_MS });
       }
 
       void sendOrderBalanceDebitMail({

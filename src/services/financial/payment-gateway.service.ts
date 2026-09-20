@@ -6,6 +6,7 @@ import { WalletOps } from './wallet-ops';
 import { MutexManager } from '@/lib/redis-lock';
 import crypto from 'crypto';
 import { UniversalNetworkRouter } from '@/lib/network/network-router';
+import { ORDER_COOLING_OFF_MS } from '@/config/order-constants';
 
 export const VAT_THRESHOLD_KOPECKS = BigInt(20_000_000) * BigInt(100); // 20,000,000 RUB in kopecks (2,000,000,000 cents)
 
@@ -674,7 +675,7 @@ class BalanceGateway extends BasePaymentGateway {
     }, { isolationLevel: 'Serializable', timeout: 15000 });
 
     for (const id of updatedOrderIds) {
-      await ordersQueue.add('order-dispatch', { orderId: id }, { jobId: `dispatch-${id}`, delay: 3 * 60 * 1000 });
+      await ordersQueue.add('order-dispatch', { orderId: id }, { jobId: `dispatch-${id}`, delay: ORDER_COOLING_OFF_MS });
     }
 
     return {

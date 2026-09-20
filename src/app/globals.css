@@ -237,6 +237,12 @@
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 200ms;
   }
+
+  /* Disable native Edge / IE password reveal and clear buttons to prevent collision with custom eye toggle */
+  input::-ms-reveal,
+  input::-ms-clear {
+    display: none;
+  }
 }
 
 /* --- THEME: EMERALD LIGHT --- */

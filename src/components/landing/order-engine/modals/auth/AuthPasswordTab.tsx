@@ -106,13 +106,14 @@ export function AuthPasswordTab({
               onChange={(e) => setPassword(e.target.value)}
               disabled={isSubmitting}
               autoFocus
-              className="w-full h-11 pl-3.5 pr-10 rounded-xl bg-content2/60 border border-border text-foreground text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
-              placeholder="••••••••"
+              className="w-full h-11 pl-3.5 pr-11 rounded-xl bg-content2/60 border border-border text-foreground text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
+              placeholder="Введите пароль"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer z-10"
+              aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
