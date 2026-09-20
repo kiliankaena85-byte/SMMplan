@@ -35,7 +35,7 @@ export function TenantSelector({ tenants, activeFilter }: TenantSelectorProps) {
         onValueChange={handleSelectChange}
         disabled={isPending}
       >
-        <SelectTrigger size="sm" className="w-[180px] bg-background/60 backdrop-blur-md border-border/40 font-semibold shadow-sm transition-all duration-200">
+        <SelectTrigger size="sm" className="w-[180px] max-w-full bg-background/60 backdrop-blur-md border-border/40 font-semibold shadow-sm transition-all duration-200">
           <SelectValue placeholder="Все бренды">
             {(value) => {
               if (value === 'all' || !value) return 'Все бренды';

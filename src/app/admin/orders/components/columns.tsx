@@ -189,7 +189,7 @@ function EtaTooltipContent({ service }: { service: OrderColumn['service'] }) {
   const meta = SPEED_CLASS_META[service.etaSpeedClass ?? ''] ?? SPEED_CLASS_META.MEDIUM;
   
   return (
-    <div className="p-2.5 space-y-2 min-w-[180px]">
+    <div className="p-2.5 space-y-2 min-w-[180px] max-w-full">
       {/* Speed Class Header */}
       <div className="flex items-center gap-1.5">
         <span className={meta.color}>{meta.icon}</span>
@@ -433,7 +433,7 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
       const order = row.original;
       const email = order.user.email;
       return (
-        <div className="flex flex-col text-xs leading-normal py-1 space-y-1 min-w-[130px]">
+        <div className="flex flex-col text-xs leading-normal py-1 space-y-1 min-w-[130px] max-w-full">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-bold text-foreground tabular-nums text-xs">
               #{order.numericId}
@@ -528,7 +528,7 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
       const meta = showEta ? (SPEED_CLASS_META[s.etaSpeedClass ?? ''] ?? SPEED_CLASS_META.MEDIUM) : null;
  
       return (
-        <div className="flex flex-col gap-1 py-1 whitespace-nowrap min-w-[110px]">
+        <div className="flex flex-col gap-1 py-1 whitespace-nowrap min-w-[110px] max-w-full">
           <div className="flex items-center gap-1.5 flex-wrap">
             <Badge className={`font-black text-[10px] uppercase border px-2 py-0.5 rounded-md ${classes[style] || classes.default}`}>
               {STATUS_LABELS[status] || status}
@@ -553,7 +553,7 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
  
               {/* Tooltip */}
               <div className="absolute right-0 top-full mt-1.5 z-50 invisible opacity-0 group-hover/eta:visible group-hover/eta:opacity-100 transition-all duration-200 pointer-events-none">
-                <div className="bg-card border border-border/80 rounded-lg shadow-xl p-2.5 min-w-[190px]">
+                <div className="bg-card border border-border/80 rounded-lg shadow-xl p-2.5 min-w-[190px] max-w-full">
                   <EtaTooltipContent service={s} />
                   {/* Arrow */}
                   <div className="absolute bottom-full right-4 w-3 h-3 bg-card border-t border-l border-border/80 rotate-[45deg] translate-y-1.5" />

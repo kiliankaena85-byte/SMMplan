@@ -290,6 +290,7 @@ export function ReconciliationTab({ tenantId, initialSummary }: ReconciliationTa
 
       {/* ── Table of Reconciled Accounts ── */}
       <div className="space-y-4">
+      <div className="overflow-x-auto">
         <PlanTable compact={true} className="w-full table-fixed">
           <PlanTableHeader>
             <tr>
@@ -423,6 +424,7 @@ export function ReconciliationTab({ tenantId, initialSummary }: ReconciliationTa
             )}
           </tbody>
         </PlanTable>
+      </div>
 
         {/* ── Pagination Controls ── */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-2 text-xs text-muted-foreground">

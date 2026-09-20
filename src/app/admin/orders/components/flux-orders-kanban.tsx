@@ -68,7 +68,7 @@ function KanbanColumn({ title, count, orders, type }: { title: string, count: nu
   };
 
   return (
-    <div className="w-[320px] flex flex-col bg-muted/20 border border-border/30 rounded-3xl p-3">
+    <div className="w-[320px] max-w-full flex flex-col bg-muted/20 border border-border/30 rounded-3xl p-3">
       <div className="flex items-center justify-between px-2 py-3 mb-2">
         <h3 className="text-sm font-semibold text-foreground/80 tracking-wide">{title}</h3>
         <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${getBadgeStyle()}`}>

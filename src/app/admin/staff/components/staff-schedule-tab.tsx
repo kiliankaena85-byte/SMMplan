@@ -647,7 +647,7 @@ export function StaffScheduleTab({
                   }`}
                 >
                   {/* Left: Date Badge */}
-                  <div className="flex items-center gap-3 min-w-[170px]">
+                  <div className="flex items-center gap-3 min-w-[170px] max-w-full">
                     <div className={`w-10 h-10 rounded-xl flex flex-col items-center justify-center font-mono font-bold shrink-0 ${
                       isToday
                         ? 'bg-primary text-primary-foreground shadow-2xs'

@@ -328,7 +328,7 @@ export function TransactionsClient({
         
         {/* Row 1: Search, Period, Status, Export */}
         <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap">
-          <form onSubmit={handleSearchSubmit} className="flex-1 min-w-[200px] relative">
+          <form onSubmit={handleSearchSubmit} className="flex-1 min-w-[200px] max-w-full relative">
             <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"

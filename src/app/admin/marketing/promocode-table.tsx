@@ -26,7 +26,7 @@ export function PromoCodeTable({ data }: PromoCodeTableProps) {
       renderToolbar={(table) => {
         return (
           <div className="flex flex-wrap gap-4 items-center bg-muted/20 p-3.5 rounded-lg border border-border/70 shadow-xs mb-2">
-            <div className="flex flex-col gap-1.5 min-w-[150px]">
+            <div className="flex flex-col gap-1.5 min-w-[150px] max-w-full">
               <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Тип бонуса</Label>
               <Select
                 value={(table.getColumn('type')?.getFilterValue() as string) ?? 'ALL'}
@@ -52,7 +52,7 @@ export function PromoCodeTable({ data }: PromoCodeTableProps) {
               </Select>
             </div>
 
-            <div className="flex flex-col gap-1.5 min-w-[150px]">
+            <div className="flex flex-col gap-1.5 min-w-[150px] max-w-full">
               <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Статус</Label>
               <Select
                 value={
@@ -86,7 +86,7 @@ export function PromoCodeTable({ data }: PromoCodeTableProps) {
               </Select>
             </div>
 
-            <div className="flex flex-col gap-1.5 min-w-[150px]">
+            <div className="flex flex-col gap-1.5 min-w-[150px] max-w-full">
               <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">UTM Кампании</Label>
               <Select
                 value={

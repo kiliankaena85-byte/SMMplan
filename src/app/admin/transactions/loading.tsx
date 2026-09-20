@@ -37,7 +37,7 @@ export default function TransactionsLoading() {
       <div className="bg-card/90 backdrop-blur-sm border border-border/70 rounded-lg p-3 shadow-xs space-y-2.5">
         {/* Row 1: Search, Period, Status, Refresh/Export */}
         <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap">
-          <Skeleton className="h-8 flex-1 min-w-[200px] rounded-lg" />
+          <Skeleton className="h-8 flex-1 min-w-[200px] max-w-full rounded-lg" />
           <Skeleton className="h-8 w-60 rounded-lg shrink-0" />
           <Skeleton className="h-8 w-28 rounded-lg shrink-0" />
           <Skeleton className="h-8 w-20 rounded-lg shrink-0" />

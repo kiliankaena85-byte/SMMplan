@@ -120,7 +120,7 @@ export function WizardBulkToolbar({
           <span className="sm:hidden">Все</span>
         </button>
         <Select value={bulkCategory} onValueChange={(val) => setBulkCategory(val || '')}>
-          <SelectTrigger className="w-[200px] h-9 text-xs">
+          <SelectTrigger className="w-[200px] max-w-full h-9 text-xs">
             <SelectValue placeholder="Массовая категория...">
               {(val: string) => {
                 const cat = localCategories.find((c) => c.id === val);

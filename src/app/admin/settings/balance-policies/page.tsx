@@ -199,6 +199,7 @@ export default function BalancePoliciesPage() {
           </span>
         </div>
 
+        <div className="overflow-x-auto">
         <PlanTable compact={true} className="w-full table-fixed">
           <PlanTableHeader>
             <tr>
@@ -282,6 +283,7 @@ export default function BalancePoliciesPage() {
             )}
           </tbody>
         </PlanTable>
+        </div>
       </div>
 
       {loading ? (

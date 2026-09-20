@@ -227,7 +227,7 @@ export function RolePermissionsModal({
             size="sm"
             onClick={onSave}
             disabled={isSaving}
-            className="font-bold gap-1.5 min-w-[120px]"
+            className="font-bold gap-1.5 min-w-[120px] max-w-full"
           >
             {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
             Сохранить права

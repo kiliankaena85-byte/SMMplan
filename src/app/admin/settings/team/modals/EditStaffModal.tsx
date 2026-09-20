@@ -205,7 +205,7 @@ export function EditStaffModal({
             size="sm"
             onClick={onSave}
             disabled={isSavingEdit}
-            className="font-bold gap-1.5 min-w-[110px]"
+            className="font-bold gap-1.5 min-w-[110px] max-w-full"
           >
             {isSavingEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
             Сохранить

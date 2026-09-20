@@ -223,7 +223,7 @@ export function OrdersChart({ data }: OrdersChartProps) {
               content={({ active, payload, label }) => {
                 if (!active || !payload || payload.length === 0) return null;
                 return (
-                  <div className="bg-card text-card-foreground border border-border/80 rounded-lg p-3 shadow-xl text-xs space-y-1.5 min-w-[170px] select-none font-sans">
+                  <div className="bg-card text-card-foreground border border-border/80 rounded-lg p-3 shadow-xl text-xs space-y-1.5 min-w-[170px] max-w-full select-none font-sans">
                     <div className="font-bold text-foreground border-b border-border/60 pb-1 flex items-center justify-between">
                       <span>{label}</span>
                       <span className="text-[10px] text-muted-foreground font-normal">Заказов</span>

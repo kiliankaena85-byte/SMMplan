@@ -55,7 +55,7 @@ export default function OrdersLoading() {
           <div className="divide-y divide-border/40">
             {[...Array(8)].map((_, i) => (
               <div key={i} className="py-3 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 w-[180px]">
+                <div className="flex items-center gap-3 w-full max-w-[180px]">
                   <Skeleton className="h-4 w-12 rounded-md" />
                   <Skeleton className="h-4 w-28 rounded-md" />
                 </div>

@@ -198,7 +198,7 @@ export function BalanceRequestsClient({
                 if (v) { setStatusFilter(v); setPage(1); } 
               }}
             >
-              <SelectTrigger className="w-[160px] h-9 text-xs" size="sm">
+              <SelectTrigger className="w-[160px] max-w-full h-9 text-xs" size="sm">
                 <SelectValue placeholder="Статус">
                   {(val: string) => STATUS_OPTIONS.find(s => s.value === val)?.label ?? val}
                 </SelectValue>
@@ -219,7 +219,7 @@ export function BalanceRequestsClient({
                 if (v) { setDirectionFilter(v); setPage(1); } 
               }}
             >
-              <SelectTrigger className="w-[150px] h-9 text-xs" size="sm">
+              <SelectTrigger className="w-[150px] max-w-full h-9 text-xs" size="sm">
                 <SelectValue placeholder="Тип">
                   {(val: string) => DIRECTION_OPTIONS.find(d => d.value === val)?.label ?? val}
                 </SelectValue>
@@ -252,6 +252,7 @@ export function BalanceRequestsClient({
 
       {/* PlanTable */}
       <div className="space-y-4">
+      <div className="overflow-x-auto">
         <PlanTable compact={true} className="w-full table-fixed">
           <PlanTableHeader>
             <tr>
@@ -330,7 +331,7 @@ export function BalanceRequestsClient({
                             💳 ВОЗВРАТ НА КАРТУ
                           </span>
                         ) : (
-                          <span className={`text-xs font-bold font-mono truncate ${isCredit ? 'text-success' : 'text-destructive'}`}>
+                          <span className={`text-xs font-bold font-mono truncate min-w-0 ${isCredit ? 'text-success' : 'text-destructive'}`}>
                             {isCredit ? '+ CREDIT' : '- DEBIT'}
                           </span>
                         )}
@@ -381,6 +382,7 @@ export function BalanceRequestsClient({
             )}
           </tbody>
         </PlanTable>
+      </div>
 
         {/* Pagination */}
         {total > pageSize && (

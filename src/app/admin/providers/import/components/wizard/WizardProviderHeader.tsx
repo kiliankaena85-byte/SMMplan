@@ -37,7 +37,7 @@ export function WizardProviderHeader({
       </div>
       <div className="flex items-center gap-2">
         <Select value={providerId} onValueChange={onProviderChange}>
-          <SelectTrigger className="w-[260px] h-10 text-sm font-semibold" aria-label="Выбор провайдера для импорта">
+          <SelectTrigger className="w-[260px] max-w-full h-10 text-sm font-semibold" aria-label="Выбор провайдера для импорта">
             <SelectValue placeholder="Выберите провайдера...">
               {(val: string) => {
                 const provider = providers.find((p) => p.id === val);

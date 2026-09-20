@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-09-20T19:30:18.613Z",
+  "timestamp": "2026-09-20T20:19:49.587Z",
   "filesScanned": 623,
-  "totalDefects": 49,
-  "highSeverity": 48,
-  "mediumSeverity": 1,
+  "totalDefects": 22,
+  "highSeverity": 22,
+  "mediumSeverity": 0,
   "lowSeverity": 0,
   "verdict": "DEFECTS_DETECTED",
   "findings": [
@@ -13,22 +13,6 @@
       "type": "FIXED_WIDTH_HAZARD",
       "severity": "HIGH",
       "snippet": "collapsed ? \"w-16\" : \"w-[280px]\"",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/components/admin/tenant-selector.tsx",
-      "line": 38,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<SelectTrigger size=\"sm\" className=\"w-[180px] bg-background/60 backdrop-blur-md border-border/40 font-semibold shadow-sm transition-all duration-200\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/dashboard/orders-chart.tsx",
-      "line": 226,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<div className=\"bg-card text-card-foreground border border-border/80 rounded-lg p-3 shadow-xl text-xs space-y-1.5 min-w-[170px] select-none font-sans\">",
       "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
     },
     {
@@ -73,23 +57,7 @@
     },
     {
       "file": "src/app/admin/finance/balance-requests/balance-requests-client.tsx",
-      "line": 201,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<SelectTrigger className=\"w-[160px] h-9 text-xs\" size=\"sm\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/finance/balance-requests/balance-requests-client.tsx",
-      "line": 222,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<SelectTrigger className=\"w-[150px] h-9 text-xs\" size=\"sm\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/finance/balance-requests/balance-requests-client.tsx",
-      "line": 258,
+      "line": 259,
       "type": "FIXED_WIDTH_HAZARD",
       "severity": "HIGH",
       "snippet": "<PlanTableHeadCell className=\"w-[105px]\">ID / Дата</PlanTableHeadCell>",
@@ -97,7 +65,7 @@
     },
     {
       "file": "src/app/admin/finance/balance-requests/balance-requests-client.tsx",
-      "line": 262,
+      "line": 263,
       "type": "FIXED_WIDTH_HAZARD",
       "severity": "HIGH",
       "snippet": "<PlanTableHeadCell className=\"w-[110px] text-right\">Сумма</PlanTableHeadCell>",
@@ -105,71 +73,15 @@
     },
     {
       "file": "src/app/admin/finance/balance-requests/balance-requests-client.tsx",
-      "line": 264,
+      "line": 265,
       "type": "FIXED_WIDTH_HAZARD",
       "severity": "HIGH",
       "snippet": "<PlanTableHeadCell className=\"w-[115px]\">Статус</PlanTableHeadCell>",
       "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
     },
     {
-      "file": "src/app/admin/finance/balance-requests/balance-requests-client.tsx",
-      "line": 333,
-      "type": "TRUNCATE_WITHOUT_MIN_W_ZERO",
-      "severity": "MEDIUM",
-      "snippet": "<span className={`text-xs font-bold font-mono truncate ${isCredit ? 'text-success' : 'text-destructive'}`}>",
-      "remediation": "Add \"min-w-0\" to element or flex-parent with \"truncate\" to allow text shrinkage."
-    },
-    {
-      "file": "src/app/admin/finance/components/finance-ledger-tab.tsx",
-      "line": 244,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<SelectTrigger className=\"w-[180px] h-9 text-xs\" size=\"sm\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/finance/components/finance-ledger-tab.tsx",
-      "line": 260,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<SelectTrigger className=\"w-[130px] h-9 text-xs\" size=\"sm\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/finance/components/finance-ledger-tab.tsx",
-      "line": 276,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<SelectTrigger className=\"w-[140px] h-9 text-xs\" size=\"sm\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/finance/components/finance-payments-tab.tsx",
-      "line": 165,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<SelectTrigger className=\"w-[130px] h-9 text-xs\" size=\"sm\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/finance/components/finance-payments-tab.tsx",
-      "line": 181,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<SelectTrigger className=\"w-[140px] h-9 text-xs\" size=\"sm\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/finance/components/finance-payments-tab.tsx",
-      "line": 197,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<SelectTrigger className=\"w-[130px] h-9 text-xs\" size=\"sm\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
       "file": "src/app/admin/finance/components/reconciliation-tab.tsx",
-      "line": 302,
+      "line": 303,
       "type": "FIXED_WIDTH_HAZARD",
       "severity": "HIGH",
       "snippet": "<PlanTableHeadCell className=\"w-[100px]\">Статус</PlanTableHeadCell>",
@@ -181,70 +93,6 @@
       "type": "FIXED_WIDTH_HAZARD",
       "severity": "HIGH",
       "snippet": "<div className=\"w-full lg:w-[400px] bg-slate-900 border-t lg:border-t-0 lg:border-l border-border/60 p-8 flex flex-col justify-between shrink-0 no-print z-20\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/marketing/promocode-table.tsx",
-      "line": 29,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<div className=\"flex flex-col gap-1.5 min-w-[150px]\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/marketing/promocode-table.tsx",
-      "line": 55,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<div className=\"flex flex-col gap-1.5 min-w-[150px]\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/marketing/promocode-table.tsx",
-      "line": 89,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<div className=\"flex flex-col gap-1.5 min-w-[150px]\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/orders/components/columns.tsx",
-      "line": 192,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<div className=\"p-2.5 space-y-2 min-w-[180px]\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/orders/components/columns.tsx",
-      "line": 436,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<div className=\"flex flex-col text-xs leading-normal py-1 space-y-1 min-w-[130px]\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/orders/components/columns.tsx",
-      "line": 531,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<div className=\"flex flex-col gap-1 py-1 whitespace-nowrap min-w-[110px]\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/orders/components/columns.tsx",
-      "line": 556,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<div className=\"bg-card border border-border/80 rounded-lg shadow-xl p-2.5 min-w-[190px]\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/orders/components/flux-orders-kanban.tsx",
-      "line": 71,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<div className=\"w-[320px] flex flex-col bg-muted/20 border border-border/30 rounded-3xl p-3\">",
       "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
     },
     {
@@ -288,32 +136,8 @@
       "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
     },
     {
-      "file": "src/app/admin/orders/loading.tsx",
-      "line": 58,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<div className=\"flex items-center gap-3 w-[180px]\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/providers/import/components/wizard/WizardBulkToolbar.tsx",
-      "line": 123,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<SelectTrigger className=\"w-[200px] h-9 text-xs\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/providers/import/components/wizard/WizardProviderHeader.tsx",
-      "line": 40,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<SelectTrigger className=\"w-[260px] h-10 text-sm font-semibold\" aria-label=\"Выбор провайдера для импорта\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
       "file": "src/app/admin/settings/balance-policies/page.tsx",
-      "line": 205,
+      "line": 206,
       "type": "FIXED_WIDTH_HAZARD",
       "severity": "HIGH",
       "snippet": "<PlanTableHeadCell className=\"w-[110px]\">Область</PlanTableHeadCell>",
@@ -321,26 +145,10 @@
     },
     {
       "file": "src/app/admin/settings/balance-policies/page.tsx",
-      "line": 207,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<PlanTableHeadCell className=\"w-[140px]\">Права</PlanTableHeadCell>",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/settings/team/modals/EditStaffModal.tsx",
       "line": 208,
       "type": "FIXED_WIDTH_HAZARD",
       "severity": "HIGH",
-      "snippet": "className=\"font-bold gap-1.5 min-w-[110px]\"",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/settings/team/modals/RolePermissionsModal.tsx",
-      "line": 230,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "className=\"font-bold gap-1.5 min-w-[120px]\"",
+      "snippet": "<PlanTableHeadCell className=\"w-[140px]\">Права</PlanTableHeadCell>",
       "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
     },
     {
@@ -350,14 +158,6 @@
       "severity": "HIGH",
       "snippet": "<Dialog open={isResetWebhookModalOpen} onOpenChange={setIsResetWebhookModalOpen}>",
       "remediation": "Modal Hoisting Violation: Popup rendered inside overflow-hidden parent. Hoist via Portal."
-    },
-    {
-      "file": "src/app/admin/staff/components/staff-schedule-tab.tsx",
-      "line": 650,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<div className=\"flex items-center gap-3 min-w-[170px]\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
     },
     {
       "file": "src/app/admin/staff/staff-client.tsx",
@@ -381,22 +181,6 @@
       "type": "FIXED_WIDTH_HAZARD",
       "severity": "HIGH",
       "snippet": "<div className=\"w-[280px] xl:w-[320px] shrink-0 border-l border-border/50 h-full min-h-0 bg-card/60 backdrop-blur-md overflow-hidden animate-in slide-in-from-right duration-300 min-w-0\">",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/transactions/loading.tsx",
-      "line": 40,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<Skeleton className=\"h-8 flex-1 min-w-[200px] rounded-lg\" />",
-      "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
-    },
-    {
-      "file": "src/app/admin/transactions/transactions-client.tsx",
-      "line": 331,
-      "type": "FIXED_WIDTH_HAZARD",
-      "severity": "HIGH",
-      "snippet": "<form onSubmit={handleSearchSubmit} className=\"flex-1 min-w-[200px] relative\">",
       "remediation": "Add \"max-w-full\" or move fixed width behind responsive prefix (e.g., \"w-full sm:w-[...px]\")."
     }
   ]
