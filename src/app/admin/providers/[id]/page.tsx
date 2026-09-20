@@ -1,9 +1,10 @@
 import { adminProviderService } from '@/services/admin/provider.service';
 import { ProviderForm } from '../components/provider-form';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { Plug } from 'lucide-react';
 import { enforceSectionAccess } from '@/lib/server/rbac';
+import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
+import { PROVIDERS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,33 +26,27 @@ export default async function EditProviderPage({
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div className="flex items-center gap-3">
-        <Link
-          href="/admin/providers"
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-all duration-200 active:scale-95 w-fit"
-          aria-label="Назад к списку провайдеров"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Провайдеры
-        </Link>
-      </div>
-
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          Настройки: {provider.name}
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Технические параметры API-подключения.
-          {provider.hasApiKey && (
-            <span className="ml-2 inline-flex items-center gap-1 text-xs text-success font-medium bg-success/10 px-2 py-0.5 rounded-full border border-success/20">
-              🔒 API Key установлен
-            </span>
-          )}
-        </p>
-      </div>
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out min-h-full pb-10">
+      <AdminTabbedHeader
+        icon={Plug}
+        title={`Провайдер: ${provider.name}`}
+        description={
+          <span className="flex items-center gap-2 text-xs">
+            <span>Технические параметры API-подключения.</span>
+            {provider.hasApiKey && (
+              <span className="inline-flex items-center gap-1 text-xs text-success font-medium bg-success/10 px-2 py-0.5 rounded-full border border-success/20">
+                🔒 API Key установлен
+              </span>
+            )}
+          </span>
+        }
+        tabs={PROVIDERS_TABS}
+        onboardingKey="providers"
+        onboarding={ONBOARDING_CONFIGS.providers}
+      />
 
       <ProviderForm initialData={provider} />
     </div>
   );
 }
+

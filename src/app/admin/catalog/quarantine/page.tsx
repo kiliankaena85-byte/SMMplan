@@ -7,6 +7,8 @@ import { headers, cookies } from 'next/headers';
 import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 import { verifySession } from '@/lib/session';
 import { enforceSectionAccess } from '@/lib/server/rbac';
+import { getDriftCandidatesAction } from '@/actions/admin/catalog/price-drift';
+
 
 interface ServiceWithRelations {
   id: string;
@@ -196,6 +198,10 @@ export default async function QuarantinePage({ searchParams }: Props) {
 
   const totalAnomalies = priceSpikes.length + zombieItems.length + apiErrors.length;
 
+  // Загружаем данные дрейфа для вкладки «Дрейф цен»
+  const driftResult = await getDriftCandidatesAction();
+  const driftData = driftResult.success ? (driftResult.data ?? []) : [];
+
   return (
     <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out min-h-full pb-10">
       <AdminTabbedHeader
@@ -203,10 +209,15 @@ export default async function QuarantinePage({ searchParams }: Props) {
         title="Карантин цен и аномалий"
         description={
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground font-medium text-xs">
-            <span>Карантин цен, зомби-услуги и сбои API провайдеров.</span>
+            <span>Карантин цен, зомби-услуги, сбои API и монитор дрейфа.</span>
             {totalAnomalies > 0 && (
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-warning/10 text-warning border border-warning/20 animate-pulse">
                 Аномалий: {totalAnomalies}
+              </span>
+            )}
+            {driftData.length > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/10 text-sky-500 border border-sky-500/20">
+                Дрейф: {driftData.length}
               </span>
             )}
           </div>
@@ -215,11 +226,12 @@ export default async function QuarantinePage({ searchParams }: Props) {
         onboardingKey="quarantine"
         onboarding={ONBOARDING_CONFIGS.quarantine}
       />
-      <QuarantineClient 
-        initialPriceSpikes={priceSpikes} 
-        initialZombies={zombieItems} 
-        initialApiErrors={apiErrors} 
+      <QuarantineClient
+        initialPriceSpikes={priceSpikes}
+        initialZombies={zombieItems}
+        initialApiErrors={apiErrors}
         initialAutoFixes={autoFixes}
+        initialDriftData={driftData}
       />
     </div>
   );

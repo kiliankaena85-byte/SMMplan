@@ -8,24 +8,33 @@
  */
 export const SIDEBAR_DOMAIN_ALIASES: Record<string, string> = {
   // Operations domain
-  '/admin/refills':       '/admin/orders',
-  '/admin/smart':         '/admin/orders',
-  '/admin/docs':          '/admin/orders',
+  '/admin/refills':            '/admin/orders',
+  '/admin/smart':              '/admin/orders',
+  '/admin/docs':               '/admin/orders',
   // Finance domain
-  '/admin/marketing':     '/admin/finance',
-  '/admin/fraud-monitor': '/admin/finance',
-  // Catalog domain
-  '/admin/services':      '/admin/catalog',
+  '/admin/marketing':          '/admin/finance',
+  '/admin/fraud-monitor':      '/admin/finance',
+  // Catalog domain — все суб-маршруты каталога
+  '/admin/services':           '/admin/catalog',
+  '/admin/catalog/import':     '/admin/catalog',
+  '/admin/catalog/categories': '/admin/catalog',
+  '/admin/catalog/networks':   '/admin/catalog',
+  '/admin/catalog/patterns':   '/admin/catalog',
+  '/admin/catalog/quarantine': '/admin/catalog',
+  '/admin/catalog/drift':      '/admin/catalog',
+  '/admin/catalog/sync':       '/admin/catalog',
+  // Обратная совместимость — старый URL Импорта
+  '/admin/providers/import':   '/admin/providers',
   // Analytics domain
-  '/admin/economics':     '/admin/analytics',
+  '/admin/economics':          '/admin/analytics',
   // Settings domain
-  '/admin/tenants':       '/admin/settings',
-  '/admin/pages':         '/admin/settings',
-  '/admin/knowledge':     '/admin/settings',
-  '/admin/system':        '/admin/settings',
-  '/admin/staff':         '/admin/settings',
-  '/admin/cms':           '/admin/settings',
-  '/admin/manual':        '/admin/settings',
+  '/admin/tenants':            '/admin/settings',
+  '/admin/pages':              '/admin/settings',
+  '/admin/knowledge':          '/admin/settings',
+  '/admin/system':             '/admin/settings',
+  '/admin/staff':              '/admin/settings',
+  '/admin/cms':                '/admin/settings',
+  '/admin/manual':             '/admin/settings',
 };
 
 /**
@@ -111,18 +120,20 @@ export const FINANCE_TABS = [
 ];
 
 export const CATALOG_TABS = [
-  { label: 'Каталог услуг', href: '/admin/catalog' },
-  { label: 'Категории & Соцсети', href: '/admin/catalog/categories' },
+  { label: 'Каталог услуг',   href: '/admin/catalog' },
+  { label: 'Импорт услуг',    href: '/admin/catalog/import' },
+  { label: 'Категории',       href: '/admin/catalog/categories' },
+  { label: 'Соцсети',         href: '/admin/catalog/networks' },
   { label: 'Паттерны ссылок', href: '/admin/catalog/patterns' },
-  { label: 'Карантин & Дрифт цен', href: '/admin/catalog/quarantine' },
+  { label: 'Карантин цен',    href: '/admin/catalog/quarantine' },
+  { label: 'Синхронизация',   href: '/admin/catalog/sync' },
 ];
 
 // ✅ FIX [ADMIN-NAV-DOMAIN-2026]: Removed cross-domain link `/admin/settings?tab=proxy`.
 // Proxy management lives under Настройки → Платежи и Каналы (SYSTEM_TABS).
-// Replaced with in-domain Мониторинг tab so operators stay in Providers context.
+// Импорт перенесён в домен Каталога (/admin/catalog/import).
 export const PROVIDERS_TABS = [
   { label: 'Провайдеры API', href: '/admin/providers' },
-  { label: 'Импорт услуг', href: '/admin/providers/import' },
 ];
 
 export const SYSTEM_TABS = [
