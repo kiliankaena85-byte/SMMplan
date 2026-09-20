@@ -73,6 +73,14 @@ export function MobileNavDrawer({ userEmail, roleInfo, navigation }: MobileNavDr
     setOpen(false);
   }, [pathname]);
 
+  // Listen for custom open event from MobileBottomNav
+  React.useEffect(() => {
+    const handleOpen = () => setOpen(true);
+    window.addEventListener('open-admin-mobile-drawer', handleOpen);
+    return () => window.removeEventListener('open-admin-mobile-drawer', handleOpen);
+  }, []);
+
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger

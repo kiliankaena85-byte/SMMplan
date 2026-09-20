@@ -150,7 +150,7 @@ export function TenantSwitcher({
         onClick={() => canSwitch && setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-haspopup="true"
-        className={`flex items-center gap-2 px-3.5 py-2 min-h-[44px] bg-card/90 hover:bg-card border border-border/80 text-foreground font-semibold rounded-xl transition-all duration-200 shadow-sm text-xs sm:text-sm select-none ${
+        className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 min-h-[44px] bg-card/90 hover:bg-card border border-border/80 text-foreground font-semibold rounded-xl transition-all duration-200 shadow-sm text-xs sm:text-sm select-none ${
           canSwitch ? 'hover:border-primary/50 active:scale-95 cursor-pointer' : 'cursor-default opacity-90'
         }`}
       >
@@ -158,7 +158,7 @@ export function TenantSwitcher({
           {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
         </div>
         
-        <span className="font-black text-foreground tracking-tight">
+        <span className="font-black text-foreground tracking-tight max-w-[85px] sm:max-w-none truncate">
           {activeTenant.domain}
         </span>
 
@@ -172,7 +172,8 @@ export function TenantSwitcher({
       </button>
 
       {isOpen && canSwitch && (
-        <div className="absolute left-0 mt-2 w-72 rounded-2xl bg-card/95 border border-border/80 shadow-2xl z-[100] py-2 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl">
+        <div className="absolute left-0 mt-2 w-72 max-w-[calc(100vw-32px)] rounded-2xl bg-card/95 border border-border/80 shadow-2xl z-[100] py-2 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-xl">
+
           <div className="px-3.5 py-2 border-b border-border/50 flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
               Список сайтов

@@ -57,7 +57,7 @@ export function OnboardingSection({
         {onboarding && (
           <button
             onClick={toggleOpen}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-muted-foreground hover:text-primary bg-muted/50 border border-border hover:border-primary/20 rounded-lg shadow-sm transition-all duration-200"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-muted-foreground hover:text-primary bg-muted/50 border border-border hover:border-primary/20 rounded-xl shadow-xs transition-all duration-150 active:scale-95"
             aria-label="Toggle onboarding guide"
           >
             <Info className="w-3.5 h-3.5" />
@@ -121,6 +121,8 @@ function AdminTabsInner({ tabs }: { tabs: TabItem[] }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const allHrefs = React.useMemo(() => tabs.map((t) => t.href), [tabs]);
+  const activeTabRef = React.useRef<HTMLAnchorElement>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
 
   // Build full path including ?query for correct query-param tab matching
   const fullPath = React.useMemo(() => {
@@ -128,25 +130,43 @@ function AdminTabsInner({ tabs }: { tabs: TabItem[] }) {
     return qs ? `${pathname}?${qs}` : pathname;
   }, [pathname, searchParams]);
 
+  // Auto-scroll active tab into center on mobile
+  React.useEffect(() => {
+    if (activeTabRef.current) {
+      activeTabRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      });
+    }
+  }, [fullPath]);
+
   return (
-    <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1 border-t border-border/30 pt-3 w-full">
-      {tabs.map((tab, idx) => {
-        const isActive = isNavTabActive(fullPath, tab.href, allHrefs);
-        return (
-          <Link
-            key={idx}
-            href={tab.href}
-            className={cn(
-              "px-4 py-2 text-xs font-bold rounded-lg border transition-all duration-200 whitespace-nowrap shadow-sm hover:scale-[1.01]",
-              isActive
-                ? "bg-primary text-primary-foreground border-primary font-black scale-[1.02]"
-                : "bg-background text-muted-foreground border-border hover:bg-muted/50 hover:text-foreground"
-            )}
-          >
-            {tab.label}
-          </Link>
-        );
-      })}
+    <div className="relative w-full group pt-2 sm:pt-3 border-t border-border/30">
+      {/* Tabs list container */}
+      <div
+        ref={containerRef}
+        className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1 px-1 sm:px-0 w-full scroll-smooth"
+      >
+        {tabs.map((tab, idx) => {
+          const isActive = isNavTabActive(fullPath, tab.href, allHrefs);
+          return (
+            <Link
+              key={idx}
+              ref={isActive ? activeTabRef : undefined}
+              href={tab.href}
+              className={cn(
+                "px-3.5 sm:px-4 min-h-[42px] sm:min-h-0 h-10 sm:h-9 flex items-center justify-center text-xs font-bold rounded-xl border transition-all duration-150 whitespace-nowrap shadow-xs active:scale-95",
+                isActive
+                  ? "bg-primary text-primary-foreground border-primary font-bold shadow-xs"
+                  : "bg-background text-muted-foreground border-border hover:bg-muted/50 hover:text-foreground"
+              )}
+            >
+              {tab.label}
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -157,7 +177,7 @@ export function AdminTabs({ tabs }: { tabs: TabItem[] }) {
     <Suspense fallback={
       <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1 border-t border-border/30 pt-3 w-full">
         {tabs.map((tab, idx) => (
-          <div key={idx} className="px-4 py-2 text-xs font-bold rounded-lg border border-border bg-background text-muted-foreground whitespace-nowrap animate-pulse h-8 w-24" />
+          <div key={idx} className="px-4 py-2 min-h-[40px] sm:min-h-0 h-10 sm:h-9 text-xs font-bold rounded-xl border border-border bg-background text-muted-foreground whitespace-nowrap animate-pulse w-24" />
         ))}
       </div>
     }>
@@ -165,3 +185,4 @@ export function AdminTabs({ tabs }: { tabs: TabItem[] }) {
     </Suspense>
   );
 }
+

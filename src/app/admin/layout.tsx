@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Toaster } from '@/components/ui/sonner';
 import { AdminSidebar } from '@/components/admin/sidebar';
 import { MobileNavDrawer } from '@/components/admin/mobile-nav-drawer';
+import { MobileBottomNav } from '@/components/admin/mobile-bottom-nav';
 import { CommandPalette } from '@/components/admin/command-palette';
 import { ShortcutsProvider } from '@/components/admin/shortcuts-provider';
 import { DensityProvider } from '@/components/admin/density-provider';
@@ -152,7 +153,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   return (
     <DensityProvider>
       <ShortcutsProvider>
-        <div className="h-screen w-full overflow-hidden bg-muted/10 dark:bg-background flex flex-col md:flex-row relative selection:bg-primary/20 selection:text-foreground font-sans">
+        <div className="min-h-dvh h-dvh w-full overflow-hidden bg-muted/10 dark:bg-background flex flex-col md:flex-row relative selection:bg-primary/20 selection:text-foreground font-sans">
           {/* Soft Ambient Background */}
           <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20 pointer-events-none z-0" />
 
@@ -163,11 +164,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           />
 
           {/* Floating Main Content Area */}
-          <div className="flex-1 min-w-0 h-screen overflow-y-auto has-[.tickets-workspace]:overflow-hidden p-0 md:p-3.5 z-10 relative flex flex-col">
+          <div className="flex-1 min-w-0 h-full overflow-y-auto has-[.tickets-workspace]:overflow-hidden p-0 md:p-3.5 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-3.5 z-10 relative flex flex-col">
             <SystemEmergencyBanner />
             {/* Top Sticky Header Bar with Mobile Drawer, Global Site Switcher & Profile Dropdown */}
-            <header className="sticky top-0 z-30 mb-2 px-3 md:px-3 py-2 md:py-2.5 flex items-center justify-between gap-3 shrink-0 bg-background/90 backdrop-blur-md border-b border-border/70 shadow-xs md:rounded-lg">
-              <div className="flex items-center gap-2 md:gap-3">
+            <header className="sticky top-0 z-30 mb-2 px-2.5 sm:px-3 py-2 md:py-2.5 flex items-center justify-between gap-2 sm:gap-3 shrink-0 bg-background/95 backdrop-blur-md border-b border-border/70 shadow-xs md:rounded-lg">
+              <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 min-w-0">
                 <MobileNavDrawer
                   userEmail={user.email}
                   roleInfo={roleInfo}
@@ -180,7 +181,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                 />
                 <EnvironmentModeSwitcher readOnly={!canEditSettings} />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <AdminProfileDropdown
                   userEmail={user.email}
                   role={user.role}
@@ -197,6 +198,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             </main>
           </div>
 
+          <MobileBottomNav anomalyCount={anomalyCount} openTicketCount={openTicketCount} />
           <CommandPalette />
           <AdminAiManualWidget userRole={user.role} activeTenantId={activeTenantId} />
           <Toaster position="top-right" richColors closeButton className="mt-4 mr-4" />
@@ -205,3 +207,4 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     </DensityProvider>
   );
 }
+

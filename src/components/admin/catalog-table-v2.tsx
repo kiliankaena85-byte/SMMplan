@@ -30,6 +30,12 @@ import {
   TOTAL_MANDATORY_DEDUCTIONS,
 } from '@/lib/financial-constants';
 import { BatchActionBar } from './catalog/batch-action-bar';
+import { CatalogMobileCard } from './catalog/catalog-mobile-card';
+import {
+  calcDisplayPrice,
+  calcDisplayCost,
+  ArchiveButton,
+} from './catalog/catalog-price-helpers';
 import {
   CatalogFilters,
   type FilterCategoryItem,
@@ -42,27 +48,7 @@ import {
 const SAFETY_MULTIPLIER = (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
 
 export type { FilterCategoryItem as CatalogTableCategory, FilterProviderItem as CatalogTableProvider, FilterNetworkItem as CatalogTableNetwork };
-export { formatCleanCategoryName, formatCleanActivityName };
-
-export function calcDisplayPrice(rate: number, markup: number, usdToRub: number, curr: 'RUB' | 'USD', vol: 'UNIT' | '1K') {
-  if (vol === '1K') {
-    const rawPrice = curr === 'USD' ? rate * markup : rate * markup * usdToRub;
-    return curr === 'RUB' ? applyBeautifulRounding(rawPrice) : parseFloat(rawPrice.toFixed(4));
-  } else {
-    const rawPrice = curr === 'USD' ? (rate * markup) / 1000 : (rate * markup * usdToRub) / 1000;
-    return curr === 'RUB' 
-      ? applyBeautifulRounding(rawPrice * 1000) / 1000 
-      : parseFloat(rawPrice.toFixed(6));
-  }
-}
-
-export function calcDisplayCost(rate: number, usdToRub: number, curr: 'RUB' | 'USD', vol: 'UNIT' | '1K') {
-  if (vol === '1K') {
-    return curr === 'USD' ? rate : rate * usdToRub;
-  } else {
-    return curr === 'USD' ? rate / 1000 : (rate * usdToRub) / 1000;
-  }
-}
+export { formatCleanCategoryName, formatCleanActivityName, calcDisplayPrice, calcDisplayCost, ArchiveButton };
 
 export function CreateServiceButton() {
   return (
@@ -73,76 +59,6 @@ export function CreateServiceButton() {
       <Plus className="w-4 h-4" />
       Добавить услугу
     </Link>
-  );
-}
-
-// ─── Archive / Delete Button with Optimistic UI & Rollback ───────────────────
-export function ArchiveButton({
-  service,
-  onDeleted,
-}: {
-  service: CatalogServiceDTO;
-  onDeleted?: (id: string) => void;
-}) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [confirmOpen, setConfirmOpen] = useState(false);
-
-  function handleArchive() {
-    setConfirmOpen(true);
-  }
-
-  function executeArchive() {
-    setConfirmOpen(false);
-    
-    // ⚡ Optimistic UI: Notify parent to hide row immediately
-    if (onDeleted) {
-      onDeleted(service.id);
-    }
-
-    startTransition(async () => {
-      try {
-        const { deleteOrArchiveServiceAction } = await import('@/actions/admin/catalog/services');
-        const r = await deleteOrArchiveServiceAction(service.id);
-        if (r.success) {
-          toast.success(r.message);
-          router.refresh();
-        } else {
-          toast.error(r.error || 'Ошибка удаления услуги');
-          router.refresh();
-        }
-      } catch {
-        toast.error('Сетевой сбой при удалении');
-        router.refresh();
-      }
-    });
-  }
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={handleArchive}
-        disabled={isPending}
-        title="Удалить или архивировать услугу"
-        aria-label={`Удалить услугу ${service.name}`}
-        className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200 disabled:opacity-40 cursor-pointer"
-      >
-        <Trash2 className="w-3.5 h-3.5" />
-      </button>
-
-      <ConfirmModal
-        isOpen={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={executeArchive}
-        title="Удаление / Архивация услуги"
-        isDanger={true}
-        confirmText="Удалить / В архив"
-        cancelText="Отмена"
-      >
-        Удалить услугу «{service.name}»? Если по ней нет заказов, она будет удалена навсегда. Если есть заказы — перенесена в архив.
-      </ConfirmModal>
-    </>
   );
 }
 
@@ -422,8 +338,8 @@ export function CatalogTable({
         </div>
       </div>
 
-      {/* ─── DATA TABLE ─── */}
-      <div className="bg-card/70 backdrop-blur-md border border-border rounded-xl shadow-2xs overflow-hidden w-full">
+      {/* ─── DATA TABLE (Desktop: md+) ─── */}
+      <div className="hidden md:block bg-card/70 backdrop-blur-md border border-border rounded-xl shadow-2xs overflow-hidden w-full">
         <Table.ScrollContainer>
           <Table aria-label="Таблица услуг каталога" className="w-full">
             <Table.Header className="bg-muted/40 border-b border-border">
@@ -699,6 +615,58 @@ export function CatalogTable({
             </Table.Body>
           </Table>
         </Table.ScrollContainer>
+      </div>
+
+      {/* ─── MOBILE ACTION CARDS (< md) ─── */}
+      <div className="block md:hidden space-y-3 w-full">
+        {visibleServices.length === 0 ? (
+          <div className="py-12 bg-card/60 border border-border rounded-2xl flex flex-col items-center justify-center text-muted-foreground gap-2">
+            <ShoppingCart className="w-8 h-8 opacity-20" />
+            <p className="text-sm">Услуги по выбранным критериям не найдены</p>
+          </div>
+        ) : (
+          visibleServices.map((s) => {
+            const isChecked = selectedIds.includes(s.id);
+            const currentIsActive = rowActive[s.id] !== undefined ? rowActive[s.id] : s.isActive;
+            const currentMarkup = rowMarkups[s.id] !== undefined ? rowMarkups[s.id] : s.markup;
+            const currentPrice = rowPrices[s.id] !== undefined 
+              ? rowPrices[s.id] 
+              : String(calcDisplayPrice(s.rate, currentMarkup, usdToRub, currency, volume));
+
+            const categoryObj = categories.find((c) => c.id === s.categoryId);
+            const networkName = categoryObj?.network?.name || s.networkName;
+            const networkSlug = categoryObj?.network?.slug || s.networkSlug || 'telegram';
+            const cleanCatName = formatCleanCategoryName(categoryObj?.name || s.categoryName, networkName || undefined);
+            const providerObj = providers.find((p) => p.id === s.providerId);
+            const providerName = providerObj?.name || (s.providerId ? 'Провайдер' : '—');
+
+            return (
+              <CatalogMobileCard
+                key={s.id}
+                service={s}
+                categoryName={cleanCatName}
+                networkName={networkName}
+                networkSlug={networkSlug}
+                providerName={providerName}
+                isChecked={isChecked}
+                isActive={currentIsActive}
+                markup={currentMarkup}
+                price={currentPrice}
+                usdToRub={usdToRub}
+                currency={currency}
+                volume={volume}
+                canEdit={canEdit}
+                canEditFinance={canEditFinance}
+                isPending={isPending}
+                onToggleCheck={() => handleToggleRow(s.id)}
+                onToggleActive={() => handleToggleActive(s.id, s.isActive)}
+                onPercentChange={(val) => handlePercentChange(s, val)}
+                onSaveMarkup={() => saveMarkup(s)}
+                onArchive={() => handleServiceDeleted(s.id)}
+              />
+            );
+          })
+        )}
       </div>
     </div>
   );

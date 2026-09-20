@@ -1,3 +1,41 @@
+- [x] 🎨 [ADMIN-UI-BUTTONS-DESIGN-SYSTEM-2026] Ликвидация градиента на кнопке «Каталог услуг» и унификация дизайн-системы кнопок (100% COMPLETE & STAGE VERIFIED):
+  * 🚫 **Устранение паразитного градиента:**
+    - В `src/components/admin/tabbed-header-client.tsx` полностью удалены фиксированные индикаторы мобильного скролла (`absolute left-0 ... bg-gradient-to-r from-card to-transparent`), которые заслоняли левый край активной кнопки «Каталог услуг».
+  * 🔘 **Гармонизация дизайн-системы кнопок (`@/components/ui/button.tsx`):**
+    - Унифицирован радиус: `rounded-xl` для всех размеров (`sm`, `default`, `lg`), ликвидирован принудительный оверайд `rounded-lg` в `size.sm`.
+    - Семантические тени: заменены сырые RGB-тени на семантические токены Tailwind CSS 4 (`shadow-xs` / `hover:shadow-sm`).
+    - Тактильный отклик и скорость: добавлен `active:scale-95`, ускорен переход с `duration-500` до `duration-150`.
+    - Начертание: стандартизировано `font-bold` для всех интерактивных кнопок и табов.
+  * 📑 **Синхронизация таб-бара (`tabbed-header-client.tsx`):**
+    - Табы переведены на эталонную высоту `sm:h-9` (36px, оптическое совпадение 1:1 с экшен-кнопками `+ Создать услугу`), единый радиус `rounded-xl` и начертание `font-bold`.
+    - Синхронизированы тулбары категорий, соцсетей и переключателей режимов (`category-toolbar.tsx`, `networks-client.tsx`, `EnvironmentModeSwitcher.tsx`, `CategoryMobileCard.tsx`).
+  * 🧪 **Автоматизированная верификация и Stage-аудит (Blue-Green Protocol):**
+    - `npx tsc --noEmit` — 0 ошибок типов (Strict mode).
+    - `npm run check:arch` — 0 нарушений слоев, 0 циклических зависимостей (1495 модулей).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - Playwright Dual-Viewport аудит на Stage (порт 3005):
+      - Десктоп (1440x900): 8/8 экранов PASSED (высота кнопок 36px, единый rounded-xl, 0 регрессий).
+      - Смартфон (390x844): 8/8 экранов PASSED (кнопка «Каталог услуг» чистая, без градиента, глобальный overflow = 0px).
+- [x] 📱 [ADMIN-MOBILE-ADAPTIVE-DUALISM-PHASE1-2-2026] Мобильная адаптация панели администратора OmniSMM 1.0 (iOS Safari, Android Chrome, Telegram WebApp) с гарантией нулевой регрессии десктопа (100% COMPLETE & STAGE VERIFIED):
+  * 🧱 **Базовый каркас, Thumb Zone и Safe Area (Этап 1):**
+    - `src/components/admin/mobile-bottom-nav.tsx` (112 строк): фиксированный нижний бар быстрого доступа (Заказы, Тикеты, Каталог, Финансы, Меню) с поддержкой Safe Area (`pb-[env(safe-area-inset-bottom,0px)]`).
+    - `src/components/admin/mobile-nav-drawer.tsx`: шина событий `open-admin-mobile-drawer` для вызова полного меню сайдбара.
+    - `src/app/admin/layout.tsx`: переход на `min-h-dvh h-dvh`, отступ `pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-3.5`.
+    - `src/components/admin/tabbed-header-client.tsx`: Touch Target $\ge 42$px, градиентный скролл и центрирование активных вкладок.
+    - `tenant-switcher.tsx` и `EnvironmentModeSwitcher.tsx`: компактные кнопки, защита выпадающих меню (`max-w-[calc(100vw-32px)]`).
+  * 📦 **Каталог услуг, Категории и Соцсети (Этап 2):**
+    - `src/components/admin/catalog/catalog-mobile-card.tsx` (190 строк): мобильные Action Cards с крупным тумблером ВКЛ/ВЫКЛ (44px), ID с копированием, инпутом наценки с шрифтом 16px (защита от iOS авто-зума).
+    - `src/components/admin/catalog/catalog-price-helpers.tsx` (114 строк): ликвидация циклов зависимостей, расчёт розницы и кнопка архивации.
+    - `src/components/admin/catalog-table-v2.tsx`: полная изоляция десктопной таблицы в `hidden md:block` и мобильных карточек в `block md:hidden`.
+    - `CategoryMobileCard.tsx` (105 строк) и `CategoryTable.tsx`: мобильные карточки категорий.
+    - `NetworkMobileCard.tsx` (88 строк) и `networks-client.tsx`: мобильные карточки соцсетей с крупными кнопками действий.
+  * 🧪 **Верификация и Stage-аудит (Blue-Green Protocol):**
+    - `npx tsc --noEmit` — 0 ошибок типов (Strict mode).
+    - `npm run check:arch` — 0 нарушений слоев, 0 циклических зависимостей (1495 модулей).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - `verify-stage-dual-viewport.ts` на Stage (порт 3005):
+      - Десктоп (1440x900): 8/8 экранов PASSED (BottomNav скрыт, 100% сохранение).
+      - Смартфон (390x844): 8/8 экранов PASSED (BottomNav виден, 0px overflow).
 - [x] 🚀 [USER-SETTINGS-SUBROUTES-OPTION-A-2026] Разнесение функционала вкладки "Настройки" по вложенным подстраницам (Next.js 16 Nested Sub-Routes) (100% COMPLETE & VERIFIED):
   * 🏛️ **Архитектурный макет и подстраницы (Nested Layout & Sub-Routes):**
     - Создан корневой макет `src/app/dashboard/settings/layout.tsx` (62 строки) с общей карточкой профиля `ProfileSummaryCard.tsx` (85 строк), динамическими хлебными крошками `SettingsBreadcrumbs.tsx` (28 строк) и адаптивным таб-баром `SettingsSubNav.tsx` (91 строка).

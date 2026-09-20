@@ -59,7 +59,7 @@ export function CategoryToolbar({
             intent="destructive"
             size="sm"
             onClick={onCleanupEmpty}
-            className="font-bold h-8.5 bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20 cursor-pointer"
+            className="font-bold bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20 cursor-pointer"
           >
             <Trash2 className="w-3.5 h-3.5 mr-1.5" />
             Очистить пустые ({selectedNetworkFilter !== 'ALL' ? `${activeTrulyEmptyCount} в сети` : activeTrulyEmptyCount})
@@ -70,7 +70,7 @@ export function CategoryToolbar({
           intent="outline"
           size="sm"
           onClick={onMerge}
-          className="font-bold h-8.5 bg-background text-muted-foreground hover:text-foreground cursor-pointer"
+          className="font-bold bg-background text-muted-foreground hover:text-foreground cursor-pointer"
         >
           <GitMerge className="w-3.5 h-3.5 mr-1.5" />
           Объединить
@@ -80,7 +80,7 @@ export function CategoryToolbar({
           intent="outline"
           size="sm"
           onClick={onManageNetworks}
-          className="font-bold h-8.5 bg-background text-muted-foreground hover:text-foreground cursor-pointer"
+          className="font-bold bg-background text-muted-foreground hover:text-foreground cursor-pointer"
         >
           <Globe className="w-3.5 h-3.5 mr-1.5" />
           Соцсети ({networks.length})
@@ -90,7 +90,7 @@ export function CategoryToolbar({
           intent="primary"
           size="sm"
           onClick={onAddCategory}
-          className="font-bold h-8.5 cursor-pointer"
+          className="font-bold cursor-pointer"
         >
           <Plus className="w-4 h-4 mr-1.5" />
           Добавить категорию

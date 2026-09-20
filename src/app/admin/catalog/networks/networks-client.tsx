@@ -14,6 +14,7 @@ import { UniversalIcon } from '@/components/ui/UniversalIcon';
 import { IconPicker } from '@/components/admin/icon-picker/IconPicker';
 import { Table } from '@/components/admin/hero-ui';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
+import { NetworkMobileCard } from './components/NetworkMobileCard';
 
 interface NetworkRow {
   id: string;
@@ -122,7 +123,7 @@ export function NetworksClient({ networks: initialNetworks }: NetworksClientProp
         <span className="text-xs font-mono font-bold text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-lg border border-border/50">
           {networks.length} соцсетей
         </span>
-        <Button intent="primary" size="sm" className="font-bold h-8.5 cursor-pointer" onClick={openCreate}>
+        <Button intent="primary" size="sm" className="font-bold min-h-[44px] md:min-h-0 md:h-9 cursor-pointer" onClick={openCreate}>
           <Plus className="w-4 h-4 mr-1.5" />
           Добавить соцсеть
         </Button>
@@ -157,7 +158,7 @@ export function NetworksClient({ networks: initialNetworks }: NetworksClientProp
                       slug: editingId ? f.slug : v.toLowerCase().replace(/[^a-z0-9-_]/g, '-'),
                     }));
                   }}
-                  className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full px-2.5 py-1.5 text-base md:text-xs min-h-[44px] md:min-h-[32px] rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div className="space-y-1">
@@ -168,7 +169,7 @@ export function NetworksClient({ networks: initialNetworks }: NetworksClientProp
                   placeholder="rutube"
                   value={form.slug}
                   onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value.toLowerCase() }))}
-                  className="w-full px-2.5 py-1.5 text-xs font-mono rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full px-2.5 py-1.5 text-base md:text-xs font-mono min-h-[44px] md:min-h-[32px] rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
@@ -187,7 +188,7 @@ export function NetworksClient({ networks: initialNetworks }: NetworksClientProp
                   type="number"
                   value={form.sort}
                   onChange={(e) => setForm((f) => ({ ...f, sort: e.target.value }))}
-                  className="w-full px-2.5 py-1.5 text-xs font-mono rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full px-2.5 py-1.5 text-base md:text-xs font-mono min-h-[44px] md:min-h-[32px] rounded-lg border border-border bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
@@ -196,11 +197,11 @@ export function NetworksClient({ networks: initialNetworks }: NetworksClientProp
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer min-h-[44px] md:min-h-[32px] flex items-center"
               >
                 Отмена
               </button>
-              <Button type="submit" intent="primary" size="sm" disabled={isPending} className="cursor-pointer">
+              <Button type="submit" intent="primary" size="sm" disabled={isPending} className="cursor-pointer min-h-[44px] md:min-h-[32px]">
                 {isPending && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}
                 {mode === 'create' ? 'Создать' : 'Сохранить'}
               </Button>
@@ -209,8 +210,8 @@ export function NetworksClient({ networks: initialNetworks }: NetworksClientProp
         </div>
       )}
 
-      {/* ─── Networks Table ─── */}
-      <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm w-full">
+      {/* ─── Desktop Networks Table ─── */}
+      <div className="hidden md:block bg-card border border-border rounded-2xl overflow-hidden shadow-sm w-full">
         <Table aria-label="Социальные сети каталога" className="w-full text-left">
           <Table.ScrollContainer>
             <Table.Content>
@@ -296,6 +297,25 @@ export function NetworksClient({ networks: initialNetworks }: NetworksClientProp
             </Table.Content>
           </Table.ScrollContainer>
         </Table>
+      </div>
+
+      {/* ─── Mobile Networks Cards ─── */}
+      <div className="block md:hidden space-y-2.5">
+        {networks.length === 0 ? (
+          <div className="bg-card border border-border rounded-2xl p-6 text-center text-xs text-muted-foreground">
+            Соцсети не найдены. Нажмите «Добавить соцсеть», чтобы создать первую.
+          </div>
+        ) : (
+          networks.map((n) => (
+            <NetworkMobileCard
+              key={n.id}
+              network={n}
+              isEditing={editingId === n.id}
+              onEdit={openEdit}
+              onDelete={setDeleteTarget}
+            />
+          ))
+        )}
       </div>
 
       {/* ─── Delete Confirm Modal ─── */}

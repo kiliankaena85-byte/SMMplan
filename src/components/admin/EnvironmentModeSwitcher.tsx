@@ -149,7 +149,7 @@ export function EnvironmentModeSwitcher({
         type="button"
         onClick={() => !readOnly && setIsOpen(!isOpen)}
         disabled={isPending || readOnly}
-        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all duration-200 shadow-sm ${activeConfig.badgeClass} ${
+        className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 sm:py-1 min-h-[40px] sm:min-h-0 rounded-xl border text-xs font-bold transition-all duration-150 shadow-xs ${activeConfig.badgeClass} ${
           readOnly ? 'cursor-default opacity-85' : 'hover:opacity-90 active:scale-95 cursor-pointer'
         }`}
         title={
@@ -163,13 +163,14 @@ export function EnvironmentModeSwitcher({
         ) : (
           <ActiveIcon className="w-3.5 h-3.5 shrink-0" />
         )}
-        <span className="truncate max-w-[120px]">{activeConfig.badge}</span>
+        <span className="truncate max-w-[65px] sm:max-w-[120px]">{activeConfig.badge}</span>
         {!readOnly && <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />}
       </button>
 
       {/* Dropdown Menu */}
       {!readOnly && isOpen && (
-        <div className="absolute right-0 mt-1.5 w-80 rounded-xl border border-border bg-card shadow-2xl p-1.5 z-50 animate-in fade-in-0 zoom-in-95">
+        <div className="absolute right-0 mt-1.5 w-80 max-w-[calc(100vw-32px)] rounded-xl border border-border bg-card shadow-2xl p-1.5 z-50 animate-in fade-in-0 zoom-in-95">
+
           <div className="px-2 py-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/50 mb-1">
             Режимы платформы (Оплата × Исполнение)
           </div>

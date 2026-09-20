@@ -6,6 +6,7 @@ import { SocialIcon } from '@/components/ui/SocialIcon';
 import { UniversalIcon } from '@/components/ui/UniversalIcon';
 import { cleanCategoryName } from '@/components/ui/CategoryIcon';
 import { NetworkItem, CategoryItem } from './types';
+import { CategoryMobileCard } from './CategoryMobileCard';
 
 interface CategoryTableProps {
   networks: NetworkItem[];
@@ -73,135 +74,131 @@ export function CategoryTable({
                 В этой соцсети пока нет категорий. Нажмите «Добавить категорию», чтобы создать первую.
               </div>
             ) : (
-              <Table aria-label={`Категории ${net.name}`} className="w-full text-left">
-                <Table.ScrollContainer>
-                  <Table.Content>
-                    <Table.Header>
-                      <Table.Column isRowHeader className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-2.5">
-                        НАЗВАНИЕ КАТЕГОРИИ
-                      </Table.Column>
-                      <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider py-2.5">
-                        SLUG
-                      </Table.Column>
-                      <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider py-2.5 text-center">
-                        СОРТИРОВКА
-                      </Table.Column>
-                      <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider py-2.5 text-center">
-                        АКТИВНЫХ УСЛУГ
-                      </Table.Column>
-                      <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider py-2.5">
-                        ТЕГИ АНАЛИЗАТОРА
-                      </Table.Column>
-                      <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider text-right px-4 py-2.5">
-                        ДЕЙСТВИЯ
-                      </Table.Column>
-                    </Table.Header>
-                    <Table.Body>
-                      {netCategories.map((c) => {
-                        const tenantCount = c.tenantServicesCount ?? c._count?.services ?? 0;
-                        const globalCount = c.globalServicesCount ?? c._count?.services ?? 0;
-                        const isTrulyEmpty = globalCount === 0;
+              <>
+                {/* Desktop Semantic Table (md+) */}
+                <div className="hidden md:block">
+                  <Table aria-label={`Категории ${net.name}`} className="w-full text-left">
+                    <Table.ScrollContainer>
+                      <Table.Content>
+                        <Table.Header>
+                          <Table.Column isRowHeader className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider px-4 py-2.5">
+                            НАЗВАНИЕ КАТЕГОРИИ
+                          </Table.Column>
+                          <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider py-2.5">
+                            SLUG
+                          </Table.Column>
+                          <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider py-2.5 text-center">
+                            СОРТИРОВКА
+                          </Table.Column>
+                          <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider py-2.5 text-center">
+                            АКТИВНЫХ УСЛУГ
+                          </Table.Column>
+                          <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider py-2.5">
+                            ТЕГИ АНАЛИЗАТОРА
+                          </Table.Column>
+                          <Table.Column className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider text-right px-4 py-2.5">
+                            ДЕЙСТВИЯ
+                          </Table.Column>
+                        </Table.Header>
+                        <Table.Body>
+                          {netCategories.map((c) => {
+                            const tenantCount = c.tenantServicesCount ?? c._count?.services ?? 0;
+                            const globalCount = c.globalServicesCount ?? c._count?.services ?? 0;
+                            const isTrulyEmpty = globalCount === 0;
 
-                        return (
-                          <Table.Row key={c.id} className="hover:bg-muted/30 transition-colors duration-150 border-b border-border/40">
-                            <Table.Cell className="px-4 py-3">
-                              <div className="flex items-center gap-2.5">
-                                <div className="w-7 h-7 rounded-lg bg-muted/60 border border-border/50 flex items-center justify-center shrink-0 text-foreground">
-                                  <UniversalIcon icon={c.icon || c.network?.icon || `brand:${net.slug}`} size={16} />
-                                </div>
-                                <div className="flex flex-col min-w-0">
-                                  <span className="font-bold text-foreground text-xs truncate">{cleanCategoryName(c.name)}</span>
-                                  {c.requireWarning && (
-                                    <span className="text-[10px] text-amber-500 font-medium truncate max-w-xs" title={c.warningMessage || ''}>
-                                      ⚠️ {c.warningMessage}
-                                    </span>
+                            return (
+                              <Table.Row key={c.id} className="hover:bg-muted/30 transition-colors duration-150 border-b border-border/40">
+                                <Table.Cell className="px-4 py-3">
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-7 h-7 rounded-lg bg-muted/60 border border-border/50 flex items-center justify-center shrink-0 text-foreground">
+                                      <UniversalIcon icon={c.icon || c.network?.icon || `brand:${net.slug}`} size={16} />
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                      <span className="font-bold text-foreground text-xs truncate">{cleanCategoryName(c.name)}</span>
+                                      {c.requireWarning && (
+                                        <span className="text-[10px] text-amber-500 font-medium truncate max-w-xs" title={c.warningMessage || ''}>
+                                          ⚠️ {c.warningMessage}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </Table.Cell>
+                                <Table.Cell className="py-3">
+                                  <span className="text-muted-foreground text-xs font-mono bg-muted/60 px-2 py-0.5 rounded-md border border-border/40">
+                                    {c.slug}
+                                  </span>
+                                </Table.Cell>
+                                <Table.Cell className="py-3 text-center">
+                                  <span className="text-muted-foreground text-xs font-mono font-bold">{c.sort}</span>
+                                </Table.Cell>
+                                <Table.Cell className="py-3 text-center">
+                                  <span className="text-muted-foreground text-xs font-mono font-bold">{tenantCount}</span>
+                                </Table.Cell>
+                                <Table.Cell className="py-3">
+                                  {c.analyzerTags ? (
+                                    <div className="flex flex-wrap gap-1">
+                                      {c.analyzerTags.split(',').map((tag) => (
+                                        <span key={tag} className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/60">
+                                          {tag.trim()}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <span className="text-[10px] text-muted-foreground italic">По умолчанию</span>
                                   )}
-                                </div>
-                              </div>
-                            </Table.Cell>
-                            <Table.Cell className="py-3">
-                              <span className="text-muted-foreground text-xs font-mono bg-muted/60 px-2 py-0.5 rounded-md border border-border/40">
-                                {c.slug}
-                              </span>
-                            </Table.Cell>
-                            <Table.Cell className="py-3 text-center">
-                              <span className="text-muted-foreground text-xs font-mono font-bold">{c.sort}</span>
-                            </Table.Cell>
-                            <Table.Cell className="py-3 text-center">
-                              {tenantCount > 0 ? (
-                                <span 
-                                  className="text-xs font-mono font-bold bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-md"
-                                  title={
-                                    globalCount > tenantCount
-                                      ? `${tenantCount} активных на ${currentTenantLabel}, всего ${globalCount} по всем проектам`
-                                      : undefined
-                                  }
-                                >
-                                  {tenantCount}
-                                </span>
-                              ) : globalCount > 0 ? (
-                                <span 
-                                  className="text-[10px] font-mono font-bold bg-sky-500/10 text-sky-500 border border-sky-500/25 px-2 py-0.5 rounded-md"
-                                  title={c.otherTenantsLabel || `Категория содержит ${globalCount} услуг в других проектах или архиве`}
-                                >
-                                  {c.otherTenantsLabel || `В других проектах (${globalCount})`}
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-mono font-bold bg-destructive/10 text-destructive border border-destructive/25 px-2 py-0.5 rounded-md">
-                                  0 (пустая)
-                                </span>
-                              )}
-                            </Table.Cell>
-                            <Table.Cell className="py-3">
-                              {c.analyzerTags ? (
-                                <div className="flex flex-wrap gap-1">
-                                  {c.analyzerTags.split(',').map(tag => (
-                                    <span key={tag} className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border/60">
-                                      {tag.trim()}
-                                    </span>
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="text-[10px] text-muted-foreground italic">По умолчанию</span>
-                              )}
-                            </Table.Cell>
-                            <Table.Cell className="px-4 py-3 text-right">
-                              <div className="flex items-center justify-end gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => onEditCategory(c)}
-                                  title="Редактировать категорию"
-                                  className="p-1.5 rounded-lg border border-border/60 hover:border-primary/50 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all duration-150 cursor-pointer"
-                                >
-                                  <Pencil className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => onDeleteCategory(c)}
-                                  title={
-                                    isTrulyEmpty
-                                      ? "Удалить пустую категорию"
-                                      : tenantCount === 0
-                                        ? `Категория содержит ${globalCount} услуг в других проектах или архиве`
-                                        : "Удалить категорию"
-                                  }
-                                  className={`p-1.5 rounded-lg border transition-all duration-150 cursor-pointer ${
-                                    isTrulyEmpty
-                                      ? "border-destructive/40 text-destructive bg-destructive/10 hover:bg-destructive/20 hover:border-destructive"
-                                      : "border-border/60 hover:border-destructive/50 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                  }`}
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </Table.Cell>
-                          </Table.Row>
-                        );
-                      })}
-                    </Table.Body>
-                  </Table.Content>
-                </Table.ScrollContainer>
-              </Table>
+                                </Table.Cell>
+                                <Table.Cell className="px-4 py-3 text-right">
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => onEditCategory(c)}
+                                      title="Редактировать категорию"
+                                      className="p-1.5 rounded-lg border border-border/60 hover:border-primary/50 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-150 cursor-pointer"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => onDeleteCategory(c)}
+                                      title={
+                                        isTrulyEmpty
+                                          ? "Удалить пустую категорию"
+                                          : tenantCount === 0
+                                            ? `Категория содержит ${globalCount} услуг в других проектах или архиве`
+                                            : "Удалить категорию"
+                                      }
+                                      className={`p-1.5 rounded-lg border transition-all duration-150 cursor-pointer ${
+                                        isTrulyEmpty
+                                          ? "border-destructive/40 text-destructive bg-destructive/10 hover:bg-destructive/20 hover:border-destructive"
+                                          : "border-border/60 hover:border-destructive/50 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                      }`}
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </Table.Cell>
+                              </Table.Row>
+                            );
+                          })}
+                        </Table.Body>
+                      </Table.Content>
+                    </Table.ScrollContainer>
+                  </Table>
+                </div>
+
+                {/* Mobile Cards Stack (< md) */}
+                <div className="block md:hidden p-3 space-y-2.5">
+                  {netCategories.map((c) => (
+                    <CategoryMobileCard
+                      key={c.id}
+                      category={c}
+                      networkSlug={net.slug}
+                      onEdit={onEditCategory}
+                      onDelete={onDeleteCategory}
+                    />
+                  ))}
+                </div>
+              </>
             )}
           </div>
         );
