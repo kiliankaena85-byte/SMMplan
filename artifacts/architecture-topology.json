@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OmniSMM Architecture Topology (Uncle Bob Pattern)",
-  "generatedAt": "2026-09-19T23:40:04.543Z",
+  "generatedAt": "2026-09-20T05:30:21.070Z",
   "layers": [
     {
       "level": 0,
@@ -11579,41 +11579,41 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CATALOG_INGESTION",
-      "linesCount": 756,
+      "linesCount": 196,
       "isClientComponent": true,
       "exportsCount": 1,
-      "functionsCount": 38,
-      "maxCyclomaticComplexity": 72,
-      "maxCrapScore": 5256,
-      "crapLoad": 5868,
-      "crappyMethodsCount": 5,
+      "functionsCount": 23,
+      "maxCyclomaticComplexity": 28,
+      "maxCrapScore": 812,
+      "crapLoad": 942,
+      "crappyMethodsCount": 3,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "ProvidersTable",
-          "startLine": 50,
-          "endLine": 755,
-          "cyclomaticComplexity": 72,
+          "startLine": 21,
+          "endLine": 195,
+          "cyclomaticComplexity": 28,
           "coverageRatio": null,
-          "crapScore": 5256,
+          "crapScore": 812,
           "isCrappy": true
         },
         {
           "name": "<anonymous>",
-          "startLine": 365,
-          "endLine": 544,
-          "cyclomaticComplexity": 18,
+          "startLine": 62,
+          "endLine": 72,
+          "cyclomaticComplexity": 10,
           "coverageRatio": null,
-          "crapScore": 342,
+          "crapScore": 110,
           "isCrappy": true
         },
         {
           "name": "<anonymous>",
-          "startLine": 551,
-          "endLine": 707,
-          "cyclomaticComplexity": 15,
+          "startLine": 64,
+          "endLine": 71,
+          "cyclomaticComplexity": 10,
           "coverageRatio": null,
-          "crapScore": 240,
+          "crapScore": 110,
           "isCrappy": true
         }
       ]
@@ -11714,42 +11714,42 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CATALOG_INGESTION",
-      "linesCount": 397,
+      "linesCount": 132,
       "isClientComponent": true,
       "exportsCount": 1,
-      "functionsCount": 26,
-      "maxCyclomaticComplexity": 188,
-      "maxCrapScore": 35532,
-      "crapLoad": 37984,
-      "crappyMethodsCount": 8,
+      "functionsCount": 6,
+      "maxCyclomaticComplexity": 10,
+      "maxCrapScore": 110,
+      "crapLoad": 80,
+      "crappyMethodsCount": 1,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "ProviderForm",
-          "startLine": 29,
-          "endLine": 396,
-          "cyclomaticComplexity": 188,
+          "startLine": 12,
+          "endLine": 131,
+          "cyclomaticComplexity": 10,
           "coverageRatio": null,
-          "crapScore": 35532,
-          "isCrappy": true
-        },
-        {
-          "name": "handleModeChange",
-          "startLine": 86,
-          "endLine": 111,
-          "cyclomaticComplexity": 34,
-          "coverageRatio": null,
-          "crapScore": 1190,
+          "crapScore": 110,
           "isCrappy": true
         },
         {
           "name": "<anonymous>",
-          "startLine": 93,
-          "endLine": 105,
-          "cyclomaticComplexity": 29,
+          "startLine": 70,
+          "endLine": 70,
+          "cyclomaticComplexity": 1,
           "coverageRatio": null,
-          "crapScore": 870,
-          "isCrappy": true
+          "crapScore": 2,
+          "isCrappy": false
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 98,
+          "endLine": 98,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
         }
       ]
     },
@@ -11952,6 +11952,231 @@
       ]
     },
     {
+      "id": "src/app/admin/providers/components/table/provider-delete-dialog.tsx",
+      "label": "provider-delete-dialog.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CATALOG_INGESTION",
+      "linesCount": 73,
+      "isClientComponent": true,
+      "exportsCount": 1,
+      "functionsCount": 1,
+      "maxCyclomaticComplexity": 7,
+      "maxCrapScore": 56,
+      "crapLoad": 26,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "ProviderDeleteDialog",
+          "startLine": 23,
+          "endLine": 72,
+          "cyclomaticComplexity": 7,
+          "coverageRatio": null,
+          "crapScore": 56,
+          "isCrappy": true
+        }
+      ]
+    },
+    {
+      "id": "src/app/admin/providers/components/table/providers-table-desktop.tsx",
+      "label": "providers-table-desktop.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CATALOG_INGESTION",
+      "linesCount": 61,
+      "isClientComponent": true,
+      "exportsCount": 1,
+      "functionsCount": 2,
+      "maxCyclomaticComplexity": 1,
+      "maxCrapScore": 2,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "ProvidersTableDesktop",
+          "startLine": 19,
+          "endLine": 60,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 43,
+          "endLine": 55,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/app/admin/providers/components/table/providers-table-empty.tsx",
+      "label": "providers-table-empty.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CATALOG_INGESTION",
+      "linesCount": 54,
+      "isClientComponent": true,
+      "exportsCount": 1,
+      "functionsCount": 1,
+      "maxCyclomaticComplexity": 5,
+      "maxCrapScore": 30,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "ProvidersTableEmpty",
+          "startLine": 15,
+          "endLine": 53,
+          "cyclomaticComplexity": 5,
+          "coverageRatio": null,
+          "crapScore": 30,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/app/admin/providers/components/table/providers-table-mobile-card.tsx",
+      "label": "providers-table-mobile-card.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CATALOG_INGESTION",
+      "linesCount": 186,
+      "isClientComponent": true,
+      "exportsCount": 1,
+      "functionsCount": 5,
+      "maxCyclomaticComplexity": 15,
+      "maxCrapScore": 240,
+      "crapLoad": 210,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "ProvidersTableMobileCard",
+          "startLine": 22,
+          "endLine": 185,
+          "cyclomaticComplexity": 15,
+          "coverageRatio": null,
+          "crapScore": 240,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 59,
+          "endLine": 59,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 87,
+          "endLine": 87,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/app/admin/providers/components/table/providers-table-row.tsx",
+      "label": "providers-table-row.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CATALOG_INGESTION",
+      "linesCount": 143,
+      "isClientComponent": true,
+      "exportsCount": 1,
+      "functionsCount": 5,
+      "maxCyclomaticComplexity": 16,
+      "maxCrapScore": 272,
+      "crapLoad": 242,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "ProvidersTableRow",
+          "startLine": 23,
+          "endLine": 142,
+          "cyclomaticComplexity": 16,
+          "coverageRatio": null,
+          "crapScore": 272,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 55,
+          "endLine": 55,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 88,
+          "endLine": 88,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/app/admin/providers/components/table/providers-table-toolbar.tsx",
+      "label": "providers-table-toolbar.tsx",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CATALOG_INGESTION",
+      "linesCount": 140,
+      "isClientComponent": true,
+      "exportsCount": 1,
+      "functionsCount": 7,
+      "maxCyclomaticComplexity": 8,
+      "maxCrapScore": 72,
+      "crapLoad": 42,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "ProvidersTableToolbar",
+          "startLine": 25,
+          "endLine": 139,
+          "cyclomaticComplexity": 8,
+          "coverageRatio": null,
+          "crapScore": 72,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 40,
+          "endLine": 40,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 55,
+          "endLine": 55,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
       "id": "src/app/admin/providers/components/types.ts",
       "label": "types.ts",
       "level": 3,
@@ -11967,6 +12192,141 @@
       "crappyMethodsCount": 0,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": []
+    },
+    {
+      "id": "src/app/admin/providers/components/useProviderFormState.ts",
+      "label": "useProviderFormState.ts",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CATALOG_INGESTION",
+      "linesCount": 162,
+      "isClientComponent": true,
+      "exportsCount": 1,
+      "functionsCount": 11,
+      "maxCyclomaticComplexity": 34,
+      "maxCrapScore": 1190,
+      "crapLoad": 1414,
+      "crappyMethodsCount": 3,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "useProviderFormState",
+          "startLine": 12,
+          "endLine": 161,
+          "cyclomaticComplexity": 34,
+          "coverageRatio": null,
+          "crapScore": 1190,
+          "isCrappy": true
+        },
+        {
+          "name": "handleSave",
+          "startLine": 80,
+          "endLine": 128,
+          "cyclomaticComplexity": 16,
+          "coverageRatio": null,
+          "crapScore": 272,
+          "isCrappy": true
+        },
+        {
+          "name": "handleUrlBlur",
+          "startLine": 37,
+          "endLine": 42,
+          "cyclomaticComplexity": 6,
+          "coverageRatio": null,
+          "crapScore": 42,
+          "isCrappy": true
+        }
+      ]
+    },
+    {
+      "id": "src/app/admin/providers/components/useProviderMappingState.ts",
+      "label": "useProviderMappingState.ts",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CATALOG_INGESTION",
+      "linesCount": 115,
+      "isClientComponent": true,
+      "exportsCount": 1,
+      "functionsCount": 7,
+      "maxCyclomaticComplexity": 120,
+      "maxCrapScore": 14520,
+      "crapLoad": 16490,
+      "crappyMethodsCount": 3,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "useProviderMappingState",
+          "startLine": 7,
+          "endLine": 114,
+          "cyclomaticComplexity": 120,
+          "coverageRatio": null,
+          "crapScore": 14520,
+          "isCrappy": true
+        },
+        {
+          "name": "handleModeChange",
+          "startLine": 74,
+          "endLine": 98,
+          "cyclomaticComplexity": 34,
+          "coverageRatio": null,
+          "crapScore": 1190,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 80,
+          "endLine": 92,
+          "cyclomaticComplexity": 29,
+          "coverageRatio": null,
+          "crapScore": 870,
+          "isCrappy": true
+        }
+      ]
+    },
+    {
+      "id": "src/app/admin/providers/components/useProviderProbeState.ts",
+      "label": "useProviderProbeState.ts",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "CATALOG_INGESTION",
+      "linesCount": 154,
+      "isClientComponent": true,
+      "exportsCount": 1,
+      "functionsCount": 6,
+      "maxCyclomaticComplexity": 27,
+      "maxCrapScore": 756,
+      "crapLoad": 954,
+      "crappyMethodsCount": 4,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "useProviderProbeState",
+          "startLine": 19,
+          "endLine": 153,
+          "cyclomaticComplexity": 27,
+          "coverageRatio": null,
+          "crapScore": 756,
+          "isCrappy": true
+        },
+        {
+          "name": "handleDeepProbe",
+          "startLine": 39,
+          "endLine": 81,
+          "cyclomaticComplexity": 12,
+          "coverageRatio": null,
+          "crapScore": 156,
+          "isCrappy": true
+        },
+        {
+          "name": "handleInferSchema",
+          "startLine": 106,
+          "endLine": 135,
+          "cyclomaticComplexity": 9,
+          "coverageRatio": null,
+          "crapScore": 90,
+          "isCrappy": true
+        }
+      ]
     },
     {
       "id": "src/app/admin/providers/error.tsx",
@@ -13260,10 +13620,10 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CATALOG_INGESTION",
-      "linesCount": 56,
-      "isClientComponent": true,
+      "linesCount": 6,
+      "isClientComponent": false,
       "exportsCount": 1,
-      "functionsCount": 4,
+      "functionsCount": 1,
       "maxCyclomaticComplexity": 1,
       "maxCrapScore": 2,
       "crapLoad": 0,
@@ -13271,27 +13631,9 @@
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
-          "name": "ProviderKeysManagementPage",
-          "startLine": 7,
-          "endLine": 55,
-          "cyclomaticComplexity": 1,
-          "coverageRatio": null,
-          "crapScore": 2,
-          "isCrappy": false
-        },
-        {
-          "name": "handleRotate",
-          "startLine": 10,
-          "endLine": 12,
-          "cyclomaticComplexity": 1,
-          "coverageRatio": null,
-          "crapScore": 2,
-          "isCrappy": false
-        },
-        {
-          "name": "<anonymous>",
-          "startLine": 37,
-          "endLine": 51,
+          "name": "ProviderKeysPage",
+          "startLine": 3,
+          "endLine": 5,
           "cyclomaticComplexity": 1,
           "coverageRatio": null,
           "crapScore": 2,
@@ -54139,10 +54481,10 @@
       "level": 1,
       "layer": "Services",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 44,
+      "linesCount": 55,
       "isClientComponent": false,
-      "exportsCount": 1,
-      "functionsCount": 1,
+      "exportsCount": 2,
+      "functionsCount": 2,
       "maxCyclomaticComplexity": 4,
       "maxCrapScore": 20,
       "crapLoad": 0,
@@ -54156,6 +54498,15 @@
           "cyclomaticComplexity": 4,
           "coverageRatio": null,
           "crapScore": 20,
+          "isCrappy": false
+        },
+        {
+          "name": "normalizeSearchQuery",
+          "startLine": 45,
+          "endLine": 53,
+          "cyclomaticComplexity": 2,
+          "coverageRatio": null,
+          "crapScore": 6,
           "isCrappy": false
         }
       ]
@@ -64042,34 +64393,6 @@
     },
     {
       "source": "src/app/admin/providers/client-table.tsx",
-      "target": "src/components/ui/table.tsx",
-      "kind": "dependency",
-      "isTypeOnly": false,
-      "isViolating": false
-    },
-    {
-      "source": "src/app/admin/providers/client-table.tsx",
-      "target": "src/components/ui/badge.tsx",
-      "kind": "dependency",
-      "isTypeOnly": false,
-      "isViolating": false
-    },
-    {
-      "source": "src/app/admin/providers/client-table.tsx",
-      "target": "src/components/ui/input.tsx",
-      "kind": "dependency",
-      "isTypeOnly": false,
-      "isViolating": false
-    },
-    {
-      "source": "src/app/admin/providers/client-table.tsx",
-      "target": "src/components/ui/button.tsx",
-      "kind": "dependency",
-      "isTypeOnly": false,
-      "isViolating": false
-    },
-    {
-      "source": "src/app/admin/providers/client-table.tsx",
       "target": "src/services/admin/provider.service.ts",
       "kind": "association",
       "isTypeOnly": true,
@@ -64077,28 +64400,49 @@
     },
     {
       "source": "src/app/admin/providers/client-table.tsx",
-      "target": "src/app/admin/providers/components/provider-balance-cell.tsx",
-      "kind": "dependency",
-      "isTypeOnly": false,
-      "isViolating": false
-    },
-    {
-      "source": "src/app/admin/providers/client-table.tsx",
-      "target": "src/app/admin/providers/components/sync-provider-button.tsx",
-      "kind": "dependency",
-      "isTypeOnly": false,
-      "isViolating": false
-    },
-    {
-      "source": "src/app/admin/providers/client-table.tsx",
-      "target": "src/components/ui/confirm-modal.tsx",
-      "kind": "dependency",
-      "isTypeOnly": false,
-      "isViolating": false
-    },
-    {
-      "source": "src/app/admin/providers/client-table.tsx",
       "target": "src/actions/admin/providers/crud.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/client-table.tsx",
+      "target": "src/utils/search-normalizer.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/client-table.tsx",
+      "target": "src/app/admin/providers/components/table/providers-table-toolbar.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/client-table.tsx",
+      "target": "src/app/admin/providers/components/table/providers-table-desktop.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/client-table.tsx",
+      "target": "src/app/admin/providers/components/table/providers-table-mobile-card.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/client-table.tsx",
+      "target": "src/app/admin/providers/components/table/providers-table-empty.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/client-table.tsx",
+      "target": "src/app/admin/providers/components/table/provider-delete-dialog.tsx",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
@@ -64129,27 +64473,6 @@
       "target": "src/services/admin/provider-balance.service.ts",
       "kind": "dependency",
       "isTypeOnly": false,
-      "isViolating": false
-    },
-    {
-      "source": "src/app/admin/providers/components/provider-form.tsx",
-      "target": "src/actions/admin/providers/crud.ts",
-      "kind": "dependency",
-      "isTypeOnly": false,
-      "isViolating": false
-    },
-    {
-      "source": "src/app/admin/providers/components/provider-form.tsx",
-      "target": "src/services/admin/provider.service.ts",
-      "kind": "association",
-      "isTypeOnly": true,
-      "isViolating": false
-    },
-    {
-      "source": "src/app/admin/providers/components/provider-form.tsx",
-      "target": "src/services/admin/provider-diagnostic.service.ts",
-      "kind": "association",
-      "isTypeOnly": true,
       "isViolating": false
     },
     {
@@ -64183,6 +64506,13 @@
     {
       "source": "src/app/admin/providers/components/provider-form.tsx",
       "target": "src/app/admin/providers/components/sub/ProviderCatalogPreviewModal.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/provider-form.tsx",
+      "target": "src/app/admin/providers/components/useProviderFormState.ts",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
@@ -64237,6 +64567,118 @@
       "isViolating": false
     },
     {
+      "source": "src/app/admin/providers/components/table/provider-delete-dialog.tsx",
+      "target": "src/components/ui/confirm-modal.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/table/providers-table-desktop.tsx",
+      "target": "src/components/ui/table.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/table/providers-table-desktop.tsx",
+      "target": "src/services/admin/provider.service.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/table/providers-table-desktop.tsx",
+      "target": "src/app/admin/providers/components/table/providers-table-row.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/table/providers-table-empty.tsx",
+      "target": "src/components/ui/button.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/table/providers-table-mobile-card.tsx",
+      "target": "src/components/ui/badge.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/table/providers-table-mobile-card.tsx",
+      "target": "src/services/admin/provider.service.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/table/providers-table-mobile-card.tsx",
+      "target": "src/app/admin/providers/components/provider-balance-cell.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/table/providers-table-mobile-card.tsx",
+      "target": "src/app/admin/providers/components/sync-provider-button.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/table/providers-table-row.tsx",
+      "target": "src/components/ui/table.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/table/providers-table-row.tsx",
+      "target": "src/components/ui/badge.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/table/providers-table-row.tsx",
+      "target": "src/services/admin/provider.service.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/table/providers-table-row.tsx",
+      "target": "src/app/admin/providers/components/provider-balance-cell.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/table/providers-table-row.tsx",
+      "target": "src/app/admin/providers/components/sync-provider-button.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/table/providers-table-toolbar.tsx",
+      "target": "src/components/ui/input.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/table/providers-table-toolbar.tsx",
+      "target": "src/components/ui/button.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
       "source": "src/app/admin/providers/components/types.ts",
       "target": "src/services/admin/provider.service.ts",
       "kind": "association",
@@ -64248,6 +64690,83 @@
       "target": "src/services/admin/provider-diagnostic.service.ts",
       "kind": "association",
       "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/useProviderFormState.ts",
+      "target": "src/actions/admin/providers/crud.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/useProviderFormState.ts",
+      "target": "src/services/admin/provider.service.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/useProviderFormState.ts",
+      "target": "src/app/admin/providers/components/types.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/useProviderFormState.ts",
+      "target": "src/app/admin/providers/components/useProviderMappingState.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/useProviderFormState.ts",
+      "target": "src/app/admin/providers/components/useProviderProbeState.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/useProviderMappingState.ts",
+      "target": "src/services/admin/provider.service.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/useProviderMappingState.ts",
+      "target": "src/app/admin/providers/components/types.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/useProviderProbeState.ts",
+      "target": "src/actions/admin/providers/crud.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/useProviderProbeState.ts",
+      "target": "src/services/admin/provider.service.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/useProviderProbeState.ts",
+      "target": "src/services/admin/provider-diagnostic.service.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/admin/providers/components/useProviderProbeState.ts",
+      "target": "src/app/admin/providers/components/types.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
       "isViolating": false
     },
     {
@@ -84274,18 +84793,18 @@
   "violations": [],
   "cycles": [],
   "metrics": {
-    "totalFiles": 1450,
-    "totalEdges": 4053,
+    "totalFiles": 1459,
+    "totalEdges": 4077,
     "violationsCount": 0,
     "cyclesCount": 0,
     "blockersCount": 0,
-    "totalFunctions": 9876,
+    "totalFunctions": 9884,
     "highestCrapModule": {
       "id": "src/proxy.ts",
       "maxCrap": 39402,
       "maxCC": 198
     },
-    "totalCrappyFunctions": 2308,
-    "totalCrapLoad": 1345420
+    "totalCrappyFunctions": 2313,
+    "totalCrapLoad": 1321968
   }
 }

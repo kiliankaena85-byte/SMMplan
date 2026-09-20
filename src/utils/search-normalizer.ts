@@ -41,3 +41,14 @@ export function normalizeCatalogSearch(query: string): NormalizedSearchQuery {
     cleanText: raw,
   };
 }
+
+export function normalizeSearchQuery(query: string): string {
+  if (!query) return '';
+  return query
+    .trim()
+    .replace(/^[#№\s]+/, '')
+    .replace(/^id[\s:]*/i, '')
+    .trim()
+    .toLowerCase();
+}
+
