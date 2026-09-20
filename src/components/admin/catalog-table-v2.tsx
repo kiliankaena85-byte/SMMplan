@@ -56,7 +56,7 @@ export function CreateServiceButton() {
       href="/admin/providers/import"
       className="inline-flex items-center justify-center gap-1.5 min-h-[36px] px-4 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/95 transition-all duration-200 cursor-pointer shadow-xs active:scale-95 text-xs"
     >
-      <Plus className="w-4 h-4" />
+      <Plus className="w-4 h-4 shrink-0" />
       Добавить услугу
     </Link>
   );
@@ -168,7 +168,7 @@ export function CatalogTable({
         <span>{label}</span>
         {isActive ? (
           currentSortOrder === 'asc' ? (
-            <ArrowUp className="w-3 h-3 text-primary" />
+            <ArrowUp className="w-3 h-3 text-primary shrink-0" />
           ) : (
             <ArrowDown className="w-3 h-3 text-primary" />
           )
@@ -458,7 +458,7 @@ export function CatalogTable({
                       <div className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <UniversalIcon icon={s.icon || s.categoryIcon || (networkSlug ? `brand:${networkSlug}` : null)} size={14} className="shrink-0 text-primary" />
-                          <span className="font-semibold text-xs text-foreground truncate block" title={s.name}>
+                          <span className="font-semibold text-xs text-foreground truncate block min-w-0" title={s.name}>
                             {s.name}
                           </span>
                         </div>
@@ -481,22 +481,22 @@ export function CatalogTable({
                     <Table.Cell className="py-2 px-2">
                       <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                         {networkSlug && <UniversalIcon icon={networkSlug ? `brand:${networkSlug}` : null} size={14} />}
-                        <span className="truncate max-w-[80px]">{networkName || '—'}</span>
+                        <span className="truncate max-w-[80px] min-w-0">{networkName || '—'}</span>
                       </div>
                     </Table.Cell>
 
                     {/* 5. КАТЕГОРИЯ */}
                     <Table.Cell className="py-2 px-2">
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium truncate max-w-[120px]" title={cleanCategoryName}>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium truncate max-w-[120px] min-w-0" title={cleanCategoryName}>
                         {s.categoryIcon && <UniversalIcon icon={s.categoryIcon} size={12} className="shrink-0" />}
-                        <span className="truncate">{cleanCategoryName}</span>
+                        <span className="truncate min-w-0">{cleanCategoryName}</span>
                       </div>
                     </Table.Cell>
 
                     {/* 6. ПРОВАЙДЕР */}
                     <Table.Cell className="py-2 px-2 max-w-[160px]">
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-xs font-semibold text-foreground truncate" title={providerName}>
+                        <span className="text-xs font-semibold text-foreground truncate min-w-0" title={providerName}>
                           {providerName}
                         </span>
                         {s.externalId && (

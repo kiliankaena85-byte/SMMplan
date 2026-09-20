@@ -84,7 +84,7 @@ export function InteractiveTextbook() {
       <div className="flex items-center justify-between flex-wrap gap-3 p-3 sm:p-4 rounded-2xl bg-card border border-border/80 shadow-xs">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-xl bg-primary/10 text-primary">
-            <BookOpen className="w-5 h-5" />
+            <BookOpen className="w-5 h-5 shrink-0" />
           </div>
           <div>
             <h2 className="text-sm sm:text-base font-black text-foreground">
@@ -244,11 +244,11 @@ export function InteractiveTextbook() {
                               Том {ch.volumeNumber} • Гл. {ch.chapterNumber}
                             </span>
                             <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                              <Clock className="w-3 h-3" /> {ch.readTimeMinutes}м
+                              <Clock className="w-3 h-3 shrink-0" /> {ch.readTimeMinutes}м
                             </span>
                           </div>
-                          <div className="text-xs font-bold text-foreground truncate">{ch.title}</div>
-                          <p className="text-[11px] text-muted-foreground truncate mt-0.5">{ch.subtitle}</p>
+                          <div className="text-xs font-bold text-foreground truncate min-w-0">{ch.title}</div>
+                          <p className="text-[11px] text-muted-foreground truncate mt-0.5 min-w-0">{ch.subtitle}</p>
                         </div>
                         <ChevronRight className={`w-4 h-4 mt-2 shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground/50'}`} />
                       </button>

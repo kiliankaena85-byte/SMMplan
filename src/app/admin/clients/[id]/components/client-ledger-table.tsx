@@ -220,7 +220,7 @@ export function ClientLedgerTable({
                     <td className="py-2.5 px-3 whitespace-nowrap font-mono text-[11px]">
                       <div className="flex items-center gap-1">
                         <span
-                          className="px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground border border-border/50 text-[10px] font-bold truncate max-w-[120px] inline-block select-all"
+                          className="px-1.5 py-0.5 rounded-md bg-muted/60 text-foreground border border-border/50 text-[10px] font-bold truncate max-w-[120px] inline-block select-all min-w-0"
                           title={displayUuid}
                         >
                           {displayUuid.startsWith('gateway-credit-')
@@ -255,7 +255,7 @@ export function ClientLedgerTable({
                         <span>{isIncome ? '+' : '−'}{item.amountRub.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽</span>
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-foreground text-xs font-medium max-w-[280px] truncate" title={item.reason}>
+                    <td className="py-2.5 px-3 text-foreground text-xs font-medium max-w-[280px] truncate min-w-0" title={item.reason}>
                       {item.reason}
                     </td>
                     <td className="py-2.5 px-3 text-muted-foreground text-[11px] truncate max-w-[140px]" title={item.adminEmail || 'Система / Клиент'}>

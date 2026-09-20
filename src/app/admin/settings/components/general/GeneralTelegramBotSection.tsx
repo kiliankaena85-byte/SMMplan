@@ -56,7 +56,7 @@ export function GeneralTelegramBotSection({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/50 pb-5">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl border border-blue-500/20">
-            <Sparkles className="w-5 h-5" />
+            <Sparkles className="w-5 h-5 shrink-0" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -101,7 +101,7 @@ export function GeneralTelegramBotSection({
         <DialogContent className="sm:max-w-md bg-card border-border">
           <DialogHeader>
             <div className="flex items-center gap-3 text-rose-500 pb-2">
-              <AlertTriangle className="w-6 h-6" />
+              <AlertTriangle className="w-6 h-6 shrink-0" />
               <DialogTitle className="text-lg font-bold">Отвязать Telegram-бота?</DialogTitle>
             </div>
             <DialogDescription className="text-xs text-muted-foreground leading-relaxed">

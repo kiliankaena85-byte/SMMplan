@@ -119,7 +119,7 @@ export function InteractiveRegexLookup() {
     <div className="my-6 p-4 sm:p-5 rounded-2xl bg-card border border-border/80 shadow-xs space-y-4">
       <div className="flex items-center justify-between border-b border-border/60 pb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="w-5 h-5 text-emerald-500" />
+          <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0" />
           <h3 className="text-sm font-bold text-foreground">
             Интерактивный тестовый стенд RegEx (Защита от ReDoS)
           </h3>

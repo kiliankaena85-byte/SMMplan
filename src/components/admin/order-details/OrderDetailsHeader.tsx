@@ -33,7 +33,7 @@ export function OrderDetailsHeader({
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-base font-extrabold text-foreground tracking-tight truncate">
+            <h2 className="text-base font-extrabold text-foreground tracking-tight truncate min-w-0">
               Заказ #{order.numericId}
             </h2>
             <button

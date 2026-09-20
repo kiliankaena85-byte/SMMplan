@@ -189,7 +189,7 @@ export default async function OrderStatusesDocPage() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
-                <XCircle className="w-4 h-4 text-rose-500" />
+                <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
                 CANCELED (Отменён)
               </span>
               <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
@@ -226,7 +226,7 @@ export default async function OrderStatusesDocPage() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-red-500/10 text-red-700 dark:text-red-300 border border-red-500/20">
-                <AlertOctagon className="w-4 h-4 text-red-500" />
+                <AlertOctagon className="w-4 h-4 text-red-500 shrink-0" />
                 ERROR (Ошибка)
               </span>
               <span className="text-[11px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">
@@ -262,7 +262,7 @@ export default async function OrderStatusesDocPage() {
       {/* Lifecycle Flow Visual Timeline */}
       <div className="p-5 rounded-2xl bg-card border border-border/70 shadow-xs space-y-4">
         <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-          <Zap className="w-4 h-4 text-primary" />
+          <Zap className="w-4 h-4 text-primary shrink-0" />
           <span>Диаграмма жизненного цикла заказа</span>
         </h3>
 
@@ -405,7 +405,7 @@ export default async function OrderStatusesDocPage() {
         <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-border/60">
           <div>
             <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-rose-500" />
+              <ShieldAlert className="w-4 h-4 text-rose-500 shrink-0" />
               <span>Справочник кодов ошибок платформы и шлюзов (Error Codes Taxonomy)</span>
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">

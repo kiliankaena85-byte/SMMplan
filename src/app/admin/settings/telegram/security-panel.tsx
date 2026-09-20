@@ -222,7 +222,7 @@ export function SecurityPanel({ settings, diagnostics, onRefresh }: Props) {
 
         <div className="flex justify-end pt-2">
           <Button type="button" onClick={handleSave} disabled={isPending} className="font-bold uppercase tracking-widest text-xs h-11 px-6 shadow-lg shadow-primary/20 cursor-pointer">
-            {isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Shield className="w-4 h-4 mr-2" />}
+            {isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin shrink-0" /> : <Shield className="w-4 h-4 mr-2" />}
             Сохранить безопасность
           </Button>
         </div>

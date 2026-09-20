@@ -128,7 +128,7 @@ export function ProviderServiceSearchModal({
                         ID: {service.service}
                       </span>
                       {service.category && (
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80 truncate">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80 truncate min-w-0">
                           {service.category}
                         </span>
                       )}

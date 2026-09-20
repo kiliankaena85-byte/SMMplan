@@ -41,7 +41,7 @@ export function ConfirmationModal({
             <CheckCircle2 className="w-5 h-5 text-primary" />
             Подтверждение импорта
           </h3>
-          <button onClick={onClose} className="p-1.5 rounded-[8px] hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer">
+          <button type="button" onClick={onClose} className="p-1.5 rounded-[8px] hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer min-w-[44px] min-h-[44px] inline-flex items-center justify-center">
             <X className="w-4 h-4" />
           </button>
         </div>

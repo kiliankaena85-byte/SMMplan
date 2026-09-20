@@ -270,7 +270,7 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
       <div className="p-4 sm:p-5 rounded-2xl border border-primary/20 bg-primary/5 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
-            <Bot className="w-5 h-5" />
+            <Bot className="w-5 h-5 shrink-0" />
           </div>
           <div className="space-y-0.5">
             <p className="text-xs font-bold text-foreground flex items-center gap-2">
@@ -301,7 +301,7 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/50 pb-5">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-emerald-500/10 text-emerald-500 rounded-xl border border-emerald-500/20">
-                <CreditCard className="w-5 h-5" />
+                <CreditCard className="w-5 h-5 shrink-0" />
               </div>
               <div>
                 <h3 className="text-base font-bold text-foreground">Платёжные шлюзы & Эквайринг</h3>
@@ -508,7 +508,7 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/50 pb-5">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-red-500/10 text-red-500 rounded-xl border border-red-500/20">
-                <Landmark className="w-5 h-5" />
+                <Landmark className="w-5 h-5 shrink-0" />
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -686,7 +686,7 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/50 pb-5">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl border border-blue-500/20">
-                <Mail className="w-5 h-5" />
+                <Mail className="w-5 h-5 shrink-0" />
               </div>
               <div>
                 <h3 className="text-base font-bold text-foreground">Почтовый сервис (SMTP / Resend & Inbound)</h3>
@@ -884,7 +884,7 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/50 pb-5">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-primary/10 text-primary rounded-xl border border-primary/20">
-                <Sparkles className="w-5 h-5" />
+                <Sparkles className="w-5 h-5 shrink-0" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -983,7 +983,7 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
         <DialogContent className="sm:max-w-lg bg-card border-border">
           <DialogHeader>
             <div className="flex items-center gap-3 text-primary pb-2">
-              <Mail className="w-6 h-6" />
+              <Mail className="w-6 h-6 shrink-0" />
               <DialogTitle className="text-lg font-bold">Симуляция входящего письма (Inbound Webhook)</DialogTitle>
             </div>
             <DialogDescription className="text-xs text-muted-foreground leading-relaxed">

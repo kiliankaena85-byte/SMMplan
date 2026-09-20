@@ -143,7 +143,7 @@ export function DesktopOrderTable({ orders, user }: DesktopOrderTableProps) {
                             href={order.link}
                             target="_blank"
                             rel="noreferrer noopener"
-                            className="text-primary hover:underline text-xs max-w-[180px] truncate font-medium"
+                            className="text-primary hover:underline text-xs max-w-[180px] truncate font-medium min-w-0"
                             aria-label={`Открыть ссылку заказа #${order.numericId}`}
                           >
                             {order.link}

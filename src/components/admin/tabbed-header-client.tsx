@@ -62,7 +62,7 @@ export function OnboardingSection({
           >
             <Info className="w-3.5 h-3.5" />
             <span>База знаний</span>
-            {isOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            {isOpen ? <ChevronUp className="w-3 h-3 shrink-0" /> : <ChevronDown className="w-3 h-3" />}
           </button>
         )}
         {children && <div className="flex items-center gap-2">{children}</div>}
@@ -73,7 +73,7 @@ export function OnboardingSection({
           <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
           <div className="flex items-start gap-3 relative z-10">
             <div className="p-1.5 bg-primary/10 text-primary rounded-lg shadow-sm shrink-0 mt-0.5">
-              <BookOpen className="w-4 h-4" />
+              <BookOpen className="w-4 h-4 shrink-0" />
             </div>
             <div className="space-y-3 flex-1 min-w-0">
               <div>
@@ -100,7 +100,7 @@ export function OnboardingSection({
                   >
                     📖 Полное руководство оператора →
                   </a>
-                  <button onClick={toggleOpen} className="text-[10px] font-bold text-muted-foreground hover:text-foreground">
+                  <button type="button" onClick={toggleOpen} className="text-[10px] font-bold text-muted-foreground hover:text-foreground">
                     Скрыть справочник
                   </button>
                 </div>

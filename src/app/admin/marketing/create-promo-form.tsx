@@ -78,7 +78,7 @@ export function CreatePromoForm({ onSuccess }: CreatePromoFormProps) {
             className="w-[44px] h-[44px] flex items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-all active:scale-95 disabled:opacity-50"
             title="Сгенерировать случайный код"
           >
-            <Shuffle className="w-4 h-4" />
+            <Shuffle className="w-4 h-4 shrink-0" />
           </button>
         </div>
       </div>
@@ -189,7 +189,7 @@ export function CreatePromoModal() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger className="flex items-center gap-1.5 px-4 text-xs font-bold uppercase tracking-wider bg-primary text-primary-foreground hover:opacity-90 active:scale-95 transition-all rounded-xl shadow-sm cursor-pointer h-[44px]">
-        <Plus className="w-4 h-4" />
+        <Plus className="w-4 h-4 shrink-0" />
         Создать
       </DialogTrigger>
       <DialogContent className="sm:max-w-[450px] max-h-[90vh] overflow-y-auto bg-card border-border/80">

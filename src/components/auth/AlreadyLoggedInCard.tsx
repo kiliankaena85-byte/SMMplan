@@ -81,7 +81,7 @@ export const AlreadyLoggedInCard: React.FC<AlreadyLoggedInCardProps> = ({
             className="w-full flex items-center justify-center gap-2 h-12 rounded-xl bg-card hover:bg-muted/80 text-foreground font-bold text-sm transition-all duration-200 border border-border/60 min-h-[44px]"
             aria-label="Вернуться на главную страницу"
           >
-            <ArrowLeft className="w-4 h-4 text-muted-foreground" />
+            <ArrowLeft className="w-4 h-4 text-muted-foreground shrink-0" />
             <span>Вернуться на главную</span>
           </Link>
 

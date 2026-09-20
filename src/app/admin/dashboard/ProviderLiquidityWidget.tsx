@@ -58,7 +58,7 @@ export function ProviderLiquidityWidget() {
       <div className="bg-card text-card-foreground rounded-lg p-5 shadow-sm border border-destructive/30 transition-all hover:shadow-md h-[280px] flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <span className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Ликвидность у поставщиков</span>
-          <AlertTriangle className="w-4 h-4 text-destructive" />
+          <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
         </div>
         <div className="flex-1 flex flex-col items-center justify-center text-center">
           <p className="text-sm text-destructive mb-3">{error || 'Ошибка загрузки данных'}</p>
@@ -119,11 +119,11 @@ export function ProviderLiquidityWidget() {
           <div className="ml-auto">
             {isDanger ? (
               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-md">
-                <TrendingDown className="w-3 h-3" /> Требует пополнения
+                <TrendingDown className="w-3 h-3 shrink-0" /> Требует пополнения
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
-                <TrendingUp className="w-3 h-3" /> В норме
+                <TrendingUp className="w-3 h-3 shrink-0" /> В норме
               </span>
             )}
           </div>
@@ -144,7 +144,7 @@ export function ProviderLiquidityWidget() {
               title="Провайдеры с низким балансом"
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 select-none text-[11px]"
             >
-              <AlertTriangle className="w-3 h-3" />
+              <AlertTriangle className="w-3 h-3 shrink-0" />
               <span className="tabular-nums font-mono font-bold">{data.warningCount}</span> мало
             </span>
           )}
@@ -154,7 +154,7 @@ export function ProviderLiquidityWidget() {
               title="Критический остаток. Срочно требуется пополнение!"
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20 animate-pulse select-none text-[11px]"
             >
-              <AlertCircle className="w-3 h-3" />
+              <AlertCircle className="w-3 h-3 shrink-0" />
               <span className="tabular-nums font-mono font-bold">{data.criticalCount}</span> критично
             </span>
           )}

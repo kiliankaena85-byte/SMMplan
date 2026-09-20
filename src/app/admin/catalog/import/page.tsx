@@ -66,7 +66,7 @@ export default async function CatalogImportPage({ searchParams }: ImportPageProp
         <div className="bg-card/60 backdrop-blur-xs border border-border/70 p-6 rounded-lg shadow-xs space-y-4">
           <h2 className="text-base font-bold tracking-tight flex items-center gap-2 text-foreground">
             <span className="bg-muted/50 p-1.5 rounded-md">
-              {noProviders ? <PlusCircle className="w-4 h-4 text-warning" /> : <FolderPlus className="w-4 h-4 text-warning" />}
+              {noProviders ? <PlusCircle className="w-4 h-4 text-warning shrink-0" /> : <FolderPlus className="w-4 h-4 text-warning" />}
             </span>
             {noProviders && noCategories
               ? 'Подготовка к первому импорту'
@@ -87,7 +87,7 @@ export default async function CatalogImportPage({ searchParams }: ImportPageProp
                 href="/admin/providers/new"
                 className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 active:scale-95 shadow-xs"
               >
-                <PlusCircle className="w-4 h-4" />
+                <PlusCircle className="w-4 h-4 shrink-0" />
                 + Добавить провайдера
               </Link>
             )}
@@ -96,7 +96,7 @@ export default async function CatalogImportPage({ searchParams }: ImportPageProp
                 href="/admin/catalog/categories"
                 className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 active:scale-95 shadow-xs"
               >
-                <FolderPlus className="w-4 h-4" />
+                <FolderPlus className="w-4 h-4 shrink-0" />
                 Создать категории
               </Link>
             )}

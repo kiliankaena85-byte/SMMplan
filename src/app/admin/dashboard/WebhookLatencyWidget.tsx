@@ -26,7 +26,7 @@ export function WebhookLatencyWidget() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-md bg-primary/10 text-primary flex items-center justify-center">
-            <CreditCard className="w-4 h-4" />
+            <CreditCard className="w-4 h-4 shrink-0" />
           </div>
           <div>
             <h4 className="text-xs font-bold text-foreground">Скорость платежных шлюзов</h4>
@@ -47,7 +47,7 @@ export function WebhookLatencyWidget() {
             className="p-2.5 rounded-md border border-border/50 bg-muted/20 flex items-center justify-between"
           >
             <div className="space-y-0.5 min-w-0">
-              <div className="font-semibold text-foreground truncate text-[11px]">{gw.name}</div>
+              <div className="font-semibold text-foreground truncate text-[11px] min-w-0">{gw.name}</div>
               <div className="text-[10px] text-muted-foreground flex items-center gap-1">
                 <span>Лаг:</span>
                 <strong className="font-mono text-foreground">{gw.latencyAvg}</strong>

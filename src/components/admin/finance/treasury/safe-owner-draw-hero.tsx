@@ -40,9 +40,9 @@ export function SafeOwnerDrawHero({ report }: Props) {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              {isSolvent && <ShieldCheck className="w-4 h-4 text-emerald-500" />}
-              {isWarning && <AlertTriangle className="w-4 h-4 text-amber-500" />}
-              {isInsolvent && <AlertOctagon className="w-4 h-4 text-destructive" />}
+              {isSolvent && <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />}
+              {isWarning && <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />}
+              {isInsolvent && <AlertOctagon className="w-4 h-4 text-destructive shrink-0" />}
               Безопасная сумма для вывода прибыли (Safe Owner Draw)
               <button
                 onClick={() => setShowInfoModal(true)}
@@ -92,7 +92,7 @@ export function SafeOwnerDrawHero({ report }: Props) {
           <div className="bg-card border border-border rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
                 Как рассчитывается Safe Owner Draw
               </h3>
               <button

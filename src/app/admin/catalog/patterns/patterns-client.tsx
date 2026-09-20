@@ -248,7 +248,7 @@ export function PatternsClient({ initialPatterns, networks }: PatternsClientProp
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border border-border/70 rounded-lg p-4 shadow-xs">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Filter className="w-4 h-4" />
+            <Filter className="w-4 h-4 shrink-0" />
             <span>Соцсеть:</span>
           </div>
           <select
@@ -272,7 +272,7 @@ export function PatternsClient({ initialPatterns, networks }: PatternsClientProp
           onClick={handleOpenCreate}
           className="inline-flex items-center justify-center gap-2 px-3.5 py-2 text-xs font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 shadow-sm shrink-0"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 shrink-0" />
           Добавить паттерн
         </button>
       </div>
@@ -311,7 +311,7 @@ export function PatternsClient({ initialPatterns, networks }: PatternsClientProp
                         {pattern.contentType}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-[11px] text-foreground max-w-md truncate" title={pattern.pattern}>
+                    <td className="px-4 py-3 font-mono text-[11px] text-foreground max-w-md truncate min-w-0" title={pattern.pattern}>
                       <code className="bg-muted/80 px-2 py-1 rounded border border-border/80">
                         {pattern.pattern}
                       </code>
@@ -435,7 +435,7 @@ export function PatternsClient({ initialPatterns, networks }: PatternsClientProp
                 {isAiOpen && (
                   <div className="p-3.5 rounded-xl bg-primary/5 border border-primary/20 space-y-2.5 animate-in fade-in duration-150">
                     <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
-                      <Sparkles className="w-4 h-4" />
+                      <Sparkles className="w-4 h-4 shrink-0" />
                       AI-генерация безопасного регулярного выражения (gemini-3-flash)
                     </div>
                     <p className="text-[11px] text-muted-foreground">
@@ -495,7 +495,7 @@ export function PatternsClient({ initialPatterns, networks }: PatternsClientProp
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-destructive font-semibold">
-                            <XCircle className="w-4 h-4" /> Ссылка не соответствует паттерну
+                            <XCircle className="w-4 h-4 shrink-0" /> Ссылка не соответствует паттерну
                           </span>
                         )}
                         {!testResult.isSafe && (
@@ -553,7 +553,7 @@ export function PatternsClient({ initialPatterns, networks }: PatternsClientProp
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs">
           <div className="bg-card border border-border/70 rounded-lg shadow-2xl w-full max-w-md p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center gap-2 text-destructive font-semibold text-base">
-              <AlertTriangle className="w-5 h-5" />
+              <AlertTriangle className="w-5 h-5 shrink-0" />
               Удаление паттерна
             </div>
             <p className="text-xs text-muted-foreground">

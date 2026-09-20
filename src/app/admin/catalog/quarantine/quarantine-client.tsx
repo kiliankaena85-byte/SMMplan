@@ -277,7 +277,7 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">{priceSpikes.length} услуг ожидают решения</p>
             {priceSpikes.length > 0 && (
-              <button onClick={handleApproveAll} disabled={isPending} className="px-4 py-2 rounded-lg text-sm font-medium bg-success text-primary-foreground hover:bg-success/90 transition-all duration-200 disabled:opacity-50">
+              <button type="button" onClick={handleApproveAll} disabled={isPending} className="px-4 py-2 rounded-lg text-sm font-medium bg-success text-primary-foreground hover:bg-success/90 transition-all duration-200 disabled:opacity-50">
                 ✅ Принять все
               </button>
             )}
@@ -322,8 +322,8 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                                 >
                                   <span>🔍 Сверить API</span>
                                 </button>
-                                <button onClick={() => handleApprove(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-success/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50 cursor-pointer">✅ Принять</button>
-                                <button onClick={() => handleReject(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-muted-foreground/10 transition-all duration-200 disabled:opacity-50 cursor-pointer">✕ Отклонить</button>
+                                <button type="button" onClick={() => handleApprove(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-success/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50 cursor-pointer">✅ Принять</button>
+                                <button type="button" onClick={() => handleReject(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-muted-foreground/10 transition-all duration-200 disabled:opacity-50 cursor-pointer">✕ Отклонить</button>
                               </div>
                             </Table.Cell>
                           </Table.Row>
@@ -371,7 +371,7 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                                 >
                                   <span>🔍 Сверить API</span>
                                 </button>
-                                <button onClick={() => handleArchiveZombie(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-muted-foreground/10 transition-all duration-200 disabled:opacity-50 cursor-pointer">📦 Скрыть навсегда</button>
+                                <button type="button" onClick={() => handleArchiveZombie(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground border border-border hover:bg-muted-foreground/10 transition-all duration-200 disabled:opacity-50 cursor-pointer">📦 Скрыть навсегда</button>
                               </div>
                             </Table.Cell>
                           </Table.Row>
@@ -422,7 +422,7 @@ export function QuarantineClient({ initialPriceSpikes, initialZombies, initialAp
                                 >
                                   <span>🔍 Сверить API</span>
                                 </button>
-                                <button onClick={() => handleLiftApiBlock(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-success/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50 cursor-pointer">🔓 Снять блок</button>
+                                <button type="button" onClick={() => handleLiftApiBlock(item)} disabled={isPending} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-success/15 text-success border border-success/30 hover:bg-success/25 transition-all duration-200 disabled:opacity-50 cursor-pointer">🔓 Снять блок</button>
                               </div>
                             </Table.Cell>
                           </Table.Row>

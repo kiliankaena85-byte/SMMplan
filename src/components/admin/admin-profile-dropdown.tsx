@@ -107,7 +107,7 @@ export function AdminProfileDropdown({
           {initials}
         </div>
         <div className="hidden sm:flex flex-col text-left">
-          <span className="text-xs font-bold text-foreground leading-tight max-w-[120px] truncate">
+          <span className="text-xs font-bold text-foreground leading-tight max-w-[120px] truncate min-w-0">
             {userEmail.split('@')[0]}
           </span>
           <span className="text-[10px] text-muted-foreground font-medium">
@@ -127,7 +127,7 @@ export function AdminProfileDropdown({
                 {initials}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-bold text-foreground truncate" title={userEmail}>
+                <div className="text-xs font-bold text-foreground truncate min-w-0" title={userEmail}>
                   {userEmail}
                 </div>
                 <div className="flex items-center gap-1.5 mt-1">
@@ -154,7 +154,7 @@ export function AdminProfileDropdown({
               className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
             >
               <span className="flex items-center gap-2">
-                <Keyboard className="w-4 h-4 text-primary" />
+                <Keyboard className="w-4 h-4 text-primary shrink-0" />
                 Горячие клавиши
               </span>
               <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-muted border border-border rounded">
@@ -171,7 +171,7 @@ export function AdminProfileDropdown({
                 {soundEnabled ? (
                   <Volume2 className="w-4 h-4 text-success" />
                 ) : (
-                  <VolumeX className="w-4 h-4 text-muted-foreground" />
+                  <VolumeX className="w-4 h-4 text-muted-foreground shrink-0" />
                 )}
                 Звук уведомлений
               </span>
@@ -186,7 +186,7 @@ export function AdminProfileDropdown({
               className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
             >
               <span className="flex items-center gap-2">
-                <LayoutGrid className="w-4 h-4 text-primary" />
+                <LayoutGrid className="w-4 h-4 text-primary shrink-0" />
                 Компактность таблиц
               </span>
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isCompact ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
@@ -202,9 +202,9 @@ export function AdminProfileDropdown({
             >
               <span className="flex items-center gap-2">
                 {isDark ? (
-                  <Sun className="w-4 h-4 text-warning" />
+                  <Sun className="w-4 h-4 text-warning shrink-0" />
                 ) : (
-                  <Moon className="w-4 h-4 text-info" />
+                  <Moon className="w-4 h-4 text-info shrink-0" />
                 )}
                 Тема оформления
               </span>
@@ -221,7 +221,7 @@ export function AdminProfileDropdown({
               onClick={() => setIsOpen(false)}
               className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-muted transition-colors"
             >
-              <ArrowLeft className="w-4 h-4 text-muted-foreground" />
+              <ArrowLeft className="w-4 h-4 text-muted-foreground shrink-0" />
               В кабинет клиента
             </Link>
 
@@ -230,7 +230,7 @@ export function AdminProfileDropdown({
               onClick={() => setIsOpen(false)}
               className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-muted transition-colors"
             >
-              <HelpCircle className="w-4 h-4 text-primary" />
+              <HelpCircle className="w-4 h-4 text-primary shrink-0" />
               Справочник статусов
             </Link>
 
@@ -239,7 +239,7 @@ export function AdminProfileDropdown({
               onClick={() => setIsOpen(false)}
               className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-foreground hover:bg-muted transition-colors"
             >
-              <ShieldCheck className="w-4 h-4 text-primary" />
+              <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
               Сотрудники и смены
             </Link>
 
@@ -254,7 +254,7 @@ export function AdminProfileDropdown({
               }}
               className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer text-left"
             >
-              <LogOut className="w-4 h-4 text-rose-500" />
+              <LogOut className="w-4 h-4 text-rose-500 shrink-0" />
               Выйти из системы
             </button>
           </div>

@@ -33,7 +33,7 @@ export function GeneralMaintenanceSection({
     <Card className="rounded-3xl border border-border/60 shadow-lg bg-card/70 backdrop-blur-xl p-6 sm:p-8 space-y-6">
       <div className="flex items-center gap-3 border-b border-border/50 pb-5">
         <div className="p-2.5 bg-primary/10 text-primary rounded-xl border border-primary/20">
-          <SlidersHorizontal className="w-5 h-5" />
+          <SlidersHorizontal className="w-5 h-5 shrink-0" />
         </div>
         <div>
           <h3 className="text-base font-bold text-foreground">Статус платформы & Режим техработ</h3>
@@ -86,7 +86,7 @@ export function GeneralMaintenanceSection({
           <DialogContent className="sm:max-w-md bg-card border-border">
             <DialogHeader>
               <div className="flex items-center gap-3 text-rose-500 pb-2">
-                <AlertTriangle className="w-6 h-6" />
+                <AlertTriangle className="w-6 h-6 shrink-0" />
                 <DialogTitle className="text-lg font-bold">Включение режима техработ</DialogTitle>
               </div>
               <DialogDescription className="text-xs text-muted-foreground leading-relaxed">

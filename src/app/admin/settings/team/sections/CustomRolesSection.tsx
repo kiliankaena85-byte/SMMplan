@@ -61,7 +61,7 @@ export function CustomRolesSection({
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/15 text-primary rounded-xl border border-primary/20">
-              <ShieldCheck className="w-4 h-4" />
+              <ShieldCheck className="w-4 h-4 shrink-0" />
             </div>
             <div>
               <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Роли и Права Доступа</h3>

@@ -49,7 +49,7 @@ export default function OrdersLoading() {
 
         <div className="p-4 sm:p-5 pt-4">
           <div className="flex justify-between items-center pb-3 border-b border-border/40">
-            <Skeleton className="h-5 w-44 rounded-md" />
+            <Skeleton className="h-5 w-44 rounded-md shrink-0" />
             <Skeleton className="h-7 w-28 rounded-md" />
           </div>
           <div className="divide-y divide-border/40">

@@ -114,9 +114,9 @@ export function CategoryTable({
                                       <UniversalIcon icon={c.icon || c.network?.icon || `brand:${net.slug}`} size={16} />
                                     </div>
                                     <div className="flex flex-col min-w-0">
-                                      <span className="font-bold text-foreground text-xs truncate">{cleanCategoryName(c.name)}</span>
+                                      <span className="font-bold text-foreground text-xs truncate min-w-0">{cleanCategoryName(c.name)}</span>
                                       {c.requireWarning && (
-                                        <span className="text-[10px] text-amber-500 font-medium truncate max-w-xs" title={c.warningMessage || ''}>
+                                        <span className="text-[10px] text-amber-500 font-medium truncate max-w-xs min-w-0" title={c.warningMessage || ''}>
                                           ⚠️ {c.warningMessage}
                                         </span>
                                       )}

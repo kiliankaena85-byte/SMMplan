@@ -54,7 +54,7 @@ export function RolePermissionsModal({
         <DialogHeader className="pb-2 border-b border-border/60">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
-              <ShieldCheck className="w-5 h-5 text-primary" />
+              <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
             </div>
             <div>
               <DialogTitle className="text-base font-bold flex items-center gap-2">

@@ -165,7 +165,7 @@ export default async function AdminClientsPage({ searchParams }: Props) {
             {sortOrder !== 'desc' && <input type="hidden" name="sortOrder" value={sortOrder} />}
             
             <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground shrink-0" />
               <input
                 type="text"
                 name="q"

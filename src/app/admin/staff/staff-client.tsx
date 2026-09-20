@@ -182,7 +182,7 @@ export function StaffClient({
             {/* Metric 1: Total Staff */}
             <div className="bg-card border border-border/60 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
               <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
-                <Users className="w-5 h-5" />
+                <Users className="w-5 h-5 shrink-0" />
               </div>
               <div>
                 <div className="text-2xl font-black text-foreground">{totalStaff}</div>
@@ -193,7 +193,7 @@ export function StaffClient({
             {/* Metric 2: Active on shift today */}
             <div className="bg-card border border-border/60 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
               <div className="w-11 h-11 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 flex-shrink-0">
-                <UserCheck className="w-5 h-5" />
+                <UserCheck className="w-5 h-5 shrink-0" />
               </div>
               <div>
                 <div className="text-2xl font-black text-foreground">{activeTodayCount}</div>
@@ -204,7 +204,7 @@ export function StaffClient({
             {/* Metric 3: Tickets handled today */}
             <div className="bg-card border border-border/60 rounded-xl p-4 shadow-sm flex items-center gap-3.5">
               <div className="w-11 h-11 rounded-lg bg-sky-500/10 flex items-center justify-center text-sky-600 dark:text-sky-400 flex-shrink-0">
-                <MessageSquare className="w-5 h-5" />
+                <MessageSquare className="w-5 h-5 shrink-0" />
               </div>
               <div>
                 <div className="text-2xl font-black text-foreground">{totalTicketsClosedToday}</div>
@@ -219,7 +219,7 @@ export function StaffClient({
                   ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' 
                   : 'bg-muted/40 text-muted-foreground'
               }`}>
-                <Moon className="w-5 h-5" />
+                <Moon className="w-5 h-5 shrink-0" />
               </div>
               <div>
                 <div className="text-2xl font-black text-foreground">{nightAlertCount}</div>
@@ -231,7 +231,7 @@ export function StaffClient({
           {/* ── SEARCH & FILTER CONTROLS ── */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card border border-border/60 rounded-xl p-3.5 shadow-sm">
             <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground shrink-0" />
               <input
                 type="text"
                 placeholder="Поиск сотрудника по email..."
@@ -355,13 +355,13 @@ export function StaffClient({
                         {hasActions ? (
                           <div className="space-y-0.5">
                             <div className="text-xs font-bold text-foreground flex items-center justify-center gap-1">
-                              <Clock className="w-3 h-3 text-muted-foreground" />
+                              <Clock className="w-3 h-3 text-muted-foreground shrink-0" />
                               {new Date(staff.firstActionAt!).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                               {' — '}
                               {new Date(staff.lastActionAt!).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                             </div>
                             <div className="text-[11px] text-muted-foreground flex items-center justify-center gap-1">
-                              <Coffee className="w-3 h-3 text-amber-500/80" />
+                              <Coffee className="w-3 h-3 text-amber-500/80 shrink-0" />
                               Простой: {staff.maxIdleMinutes > 0 ? `${staff.maxIdleMinutes} мин` : 'без пауз'}
                             </div>
                           </div>
@@ -442,7 +442,7 @@ export function StaffClient({
                     {selectedStaff.email}
                     {selectedStaff.hasNightActivity && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                        <Moon className="w-3 h-3" /> Ночные действия
+                        <Moon className="w-3 h-3 shrink-0" /> Ночные действия
                       </span>
                     )}
                   </h3>
@@ -463,7 +463,7 @@ export function StaffClient({
             <div className="flex-1 overflow-y-auto p-5 space-y-3">
               {isLoadingLogs ? (
                 <div className="flex flex-col items-center justify-center py-16 text-muted-foreground space-y-3">
-                  <RefreshCw className="w-6 h-6 animate-spin text-primary" />
+                  <RefreshCw className="w-6 h-6 animate-spin text-primary shrink-0" />
                   <span className="text-sm font-medium">Загрузка журнала аудита...</span>
                 </div>
               ) : logs.length === 0 ? (

@@ -230,7 +230,7 @@ export function GeneralLegalFiscalSection({
       {/* ── LIVE FOOTER & REQUISITES PREVIEW ── */}
       <div className="p-5 rounded-2xl border border-border/60 bg-muted/20 space-y-3">
         <div className="flex items-center gap-2">
-          <Eye className="w-4 h-4 text-primary" />
+          <Eye className="w-4 h-4 text-primary shrink-0" />
           <span className="text-xs font-black uppercase tracking-wider text-foreground">
             Brand-First предпросмотр (Безопасность реквизитов оператора)
           </span>

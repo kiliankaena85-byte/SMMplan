@@ -32,7 +32,7 @@ export function AdminPageHeader({
             <Link href="/admin/dashboard" className="hover:text-primary transition-colors">Admin</Link>
             {breadcrumbs.map((crumb, idx) => (
               <React.Fragment key={idx}>
-                <ChevronRight className="w-3 h-3 mx-1 opacity-50" />
+                <ChevronRight className="w-3 h-3 mx-1 opacity-50 shrink-0" />
                 {crumb.href ? (
                   <Link href={crumb.href} className="hover:text-primary transition-colors">
                     {crumb.label}
@@ -47,7 +47,7 @@ export function AdminPageHeader({
         <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
           {Icon && (
             <div className="p-2.5 bg-primary/10 text-primary rounded-xl shadow-sm">
-              <Icon className="w-6 h-6" />
+              <Icon className="w-6 h-6 shrink-0" />
             </div>
           )}
           {title}

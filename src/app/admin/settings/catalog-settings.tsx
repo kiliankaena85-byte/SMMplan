@@ -116,7 +116,7 @@ export function CatalogSettings({ settings, tenantId = 'smmplan' }: CatalogSetti
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/50 pb-5">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-primary/10 text-primary rounded-xl border border-primary/20">
-              <TrendingUp className="w-5 h-5" />
+              <TrendingUp className="w-5 h-5 shrink-0" />
             </div>
             <div>
               <h3 className="text-base font-bold text-foreground">Правила ценообразования & Маржинальность</h3>
@@ -213,7 +213,7 @@ export function CatalogSettings({ settings, tenantId = 'smmplan' }: CatalogSetti
         <div className="p-5 sm:p-6 rounded-2xl border border-primary/20 bg-primary/5 backdrop-blur-md space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Calculator className="w-4 h-4 text-primary" />
+              <Calculator className="w-4 h-4 text-primary shrink-0" />
               <span className="text-xs font-black uppercase tracking-wider text-foreground">
                 Калькулятор наценки & Красивого округления (Маркетинговая цена)
               </span>
@@ -291,7 +291,7 @@ export function CatalogSettings({ settings, tenantId = 'smmplan' }: CatalogSetti
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/50 pb-5">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-primary/10 text-primary rounded-xl border border-primary/20">
-              <Coins className="w-5 h-5" />
+              <Coins className="w-5 h-5 shrink-0" />
             </div>
             <div>
               <h3 className="text-base font-bold text-foreground">Валютный курс ЦБ РФ & Конвертация</h3>

@@ -337,7 +337,7 @@ export function UnifiedTicketsWorkspace({
                         onClick={handleClearActiveTicket}
                         className="mr-1 min-h-[44px] min-w-[44px] touch-target-expand rounded-full p-0 flex items-center justify-center cursor-pointer text-foreground hover:bg-muted"
                       >
-                        <ChevronLeft className="w-5 h-5 text-foreground" />
+                        <ChevronLeft className="w-5 h-5 text-foreground shrink-0" />
                       </Button>
                     )}
                     <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 font-black text-xs border border-border text-foreground bg-muted shadow-xs">
@@ -345,7 +345,7 @@ export function UnifiedTicketsWorkspace({
                     </div>
                     <div className="min-w-0 flex-1 overflow-hidden">
                       <div className="flex items-center gap-2 mb-1">
-                        <h2 className="font-black text-xs leading-tight truncate max-w-[180px] sm:max-w-xs text-foreground" title={activeTicket.subject}>
+                        <h2 className="font-black text-xs leading-tight truncate max-w-[180px] sm:max-w-xs text-foreground min-w-0" title={activeTicket.subject}>
                           {activeTicket.subject}
                         </h2>
                         <span className={`text-[9px] px-1.5 py-0.5 rounded font-black uppercase tracking-wider shrink-0 ${
@@ -357,8 +357,8 @@ export function UnifiedTicketsWorkspace({
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 text-[10px] font-bold overflow-hidden flex-nowrap">
-                        <span className="flex items-center gap-1 truncate max-w-[120px] sm:max-w-[160px] text-muted-foreground shrink-0" title={activeTicket.user.email}>
-                          <Mail className="w-3 h-3 shrink-0 text-muted-foreground" /> <span className="truncate text-muted-foreground">{activeTicket.user.email}</span>
+                        <span className="flex items-center gap-1 truncate max-w-[120px] sm:max-w-[160px] text-muted-foreground shrink-0 min-w-0" title={activeTicket.user.email}>
+                          <Mail className="w-3 h-3 shrink-0 text-muted-foreground" /> <span className="truncate text-muted-foreground min-w-0">{activeTicket.user.email}</span>
                         </span>
                         <span className="hidden sm:inline w-1 h-1 rounded-full bg-border shrink-0" />
                         <span className="text-foreground flex items-center gap-1 px-1.5 py-0.5 bg-muted border border-border rounded-md shrink-0">
@@ -427,7 +427,7 @@ export function UnifiedTicketsWorkspace({
                       className="min-h-[44px] min-w-[44px] touch-target-expand rounded-lg p-0 flex items-center justify-center cursor-pointer text-foreground hover:bg-muted border border-border"
                       title="Профиль клиента"
                     >
-                      <Info className="w-5 h-5 text-foreground" />
+                      <Info className="w-5 h-5 text-foreground shrink-0" />
                     </Button>
                   </div>
                 </div>

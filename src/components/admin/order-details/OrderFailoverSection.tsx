@@ -41,7 +41,7 @@ export function OrderFailoverSection({
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-amber-500" />
+          <Zap className="w-4 h-4 text-amber-500 shrink-0" />
           <h3 className="font-extrabold text-sm text-foreground">
             Резервные маршруты (Failover Provider Switch)
           </h3>

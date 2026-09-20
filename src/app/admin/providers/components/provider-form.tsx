@@ -62,7 +62,7 @@ export function ProviderForm({ initialData }: ProviderFormProps) {
             disabled={previewLoading || !formData.apiUrl || (!formData.apiKey && !initialData?.hasApiKey)}
             className="px-4 py-2 text-sm font-medium rounded-lg border border-border bg-background hover:bg-muted transition-all duration-200 disabled:opacity-40 flex items-center gap-2"
           >
-            {previewLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
+            {previewLoading ? <RefreshCw className="w-4 h-4 animate-spin shrink-0" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
             <span>Предпросмотр каталога</span>
           </button>
           <button

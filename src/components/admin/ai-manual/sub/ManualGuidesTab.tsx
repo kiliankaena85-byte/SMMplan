@@ -96,7 +96,7 @@ export const ManualGuidesTab: React.FC = () => {
 
       {isLoading ? (
         <div className="flex items-center justify-center p-8 text-muted-foreground">
-          <Sparkles className="w-4 h-4 animate-spin mr-2 text-primary" />
+          <Sparkles className="w-4 h-4 animate-spin mr-2 text-primary shrink-0" />
           <span>Загрузка регламентов...</span>
         </div>
       ) : sorted.length === 0 ? (
@@ -135,7 +135,7 @@ export const ManualGuidesTab: React.FC = () => {
 
                 <div className="mt-2.5 pt-2 border-t border-border/40 flex items-center justify-between text-[10px] text-muted-foreground">
                   <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> ~{item.estimatedMinutes} мин
+                    <Clock className="w-3 h-3 shrink-0" /> ~{item.estimatedMinutes} мин
                   </span>
 
                   <div className="flex items-center gap-3">
@@ -150,13 +150,13 @@ export const ManualGuidesTab: React.FC = () => {
                       title="Скачать этот регламент (.md)"
                       aria-label={`Скачать регламент ${item.title} (.md)`}
                     >
-                      <Download className="w-3 h-3" />
+                      <Download className="w-3 h-3 shrink-0" />
                       <span className="text-[10px]">.md</span>
                     </button>
 
                     <span className="flex items-center gap-0.5 text-primary font-medium hover:underline">
-                      <BookOpen className="w-3 h-3" /> Шагов: {item.steps.length}
-                      <ChevronRight className="w-3 h-3" />
+                      <BookOpen className="w-3 h-3 shrink-0" /> Шагов: {item.steps.length}
+                      <ChevronRight className="w-3 h-3 shrink-0" />
                     </span>
                   </div>
                 </div>

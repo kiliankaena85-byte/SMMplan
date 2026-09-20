@@ -202,17 +202,17 @@ export function ButtonManager({ diagnostics, onRefresh }: Props) {
                 editingId === btn.id ? 'border-primary bg-primary/5' : 'border-border/60 hover:bg-muted/20'
               }`}>
                 <div className="flex flex-col gap-0.5">
-                  <button type="button" onClick={() => moveButton(btn, 'up')} disabled={idx === 0} className="p-0.5 hover:text-primary disabled:opacity-20 cursor-pointer"><ArrowUp className="w-3 h-3" /></button>
-                  <button type="button" onClick={() => moveButton(btn, 'down')} disabled={idx === buttons.length - 1} className="p-0.5 hover:text-primary disabled:opacity-20 cursor-pointer"><ArrowDown className="w-3 h-3" /></button>
+                  <button type="button" onClick={() => moveButton(btn, 'up')} disabled={idx === 0} className="p-0.5 hover:text-primary disabled:opacity-20 cursor-pointer shrink-0"><ArrowUp className="w-3 h-3" /></button>
+                  <button type="button" onClick={() => moveButton(btn, 'down')} disabled={idx === buttons.length - 1} className="p-0.5 hover:text-primary disabled:opacity-20 cursor-pointer shrink-0"><ArrowDown className="w-3 h-3" /></button>
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">{btn.emoji}</span>
-                    <span className="text-xs font-bold text-foreground truncate">{btn.label}</span>
+                    <span className="text-xs font-bold text-foreground truncate min-w-0">{btn.label}</span>
                     <code className="text-[10px] font-mono text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">/{btn.command}</code>
-                    {btn.isNew && <Sparkles className="w-3 h-3 text-amber-400" />}
-                    {btn.requiresAuth && <Lock className="w-3 h-3 text-rose-400" />}
+                    {btn.isNew && <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />}
+                    {btn.requiresAuth && <Lock className="w-3 h-3 text-rose-400 shrink-0" />}
                     {btn.openUrl && <Link className="w-3 h-3 text-blue-400" />}
                     {!btn.isVisible && <span className="text-[9px] font-bold text-zinc-500 uppercase">hidden</span>}
                   </div>

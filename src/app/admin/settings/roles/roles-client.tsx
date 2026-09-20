@@ -297,7 +297,7 @@ export function RolesClient({ initialRoles, sections }: RolesClientProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border border-border/70 rounded-lg p-4 shadow-xs">
         <div>
           <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-primary" />
+            <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
             Реестр ролей персонала
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -308,7 +308,7 @@ export function RolesClient({ initialRoles, sections }: RolesClientProps) {
           onClick={handleOpenCreate}
           className="inline-flex items-center justify-center gap-2 px-3.5 py-2 text-xs font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 shadow-xs shrink-0 cursor-pointer"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 shrink-0" />
           Создать роль
         </button>
       </div>
@@ -361,7 +361,7 @@ export function RolesClient({ initialRoles, sections }: RolesClientProps) {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                          <Eye className="w-3 h-3 text-sky-500" />
+                          <Eye className="w-3 h-3 text-sky-500 shrink-0" />
                           {viewPermsCount} просм.
                         </span>
                         <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
@@ -415,7 +415,7 @@ export function RolesClient({ initialRoles, sections }: RolesClientProps) {
             <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/20">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                  <Shield className="w-5 h-5" />
+                  <Shield className="w-5 h-5 shrink-0" />
                 </div>
                 <div>
                   <h3 className="text-base font-semibold text-foreground">
@@ -454,7 +454,7 @@ export function RolesClient({ initialRoles, sections }: RolesClientProps) {
                     />
                     {editingRole?.isSystem && (
                       <p className="text-[11px] text-amber-500 flex items-center gap-1">
-                        <Lock className="w-3 h-3" /> Системное название роли заблокировано от изменений
+                        <Lock className="w-3 h-3 shrink-0" /> Системное название роли заблокировано от изменений
                       </p>
                     )}
                   </div>
@@ -590,7 +590,7 @@ export function RolesClient({ initialRoles, sections }: RolesClientProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
           <div className="bg-card border border-border/70 rounded-lg shadow-2xl w-full max-w-md p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center gap-2 text-foreground font-semibold text-base">
-              <Copy className="w-5 h-5 text-primary" />
+              <Copy className="w-5 h-5 text-primary shrink-0" />
               Клонирование роли
             </div>
             <p className="text-xs text-muted-foreground">
@@ -635,7 +635,7 @@ export function RolesClient({ initialRoles, sections }: RolesClientProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
           <div className="bg-card border border-border/70 rounded-lg shadow-2xl w-full max-w-md p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center gap-2 text-destructive font-semibold text-base">
-              <AlertTriangle className="w-5 h-5" />
+              <AlertTriangle className="w-5 h-5 shrink-0" />
               Удаление роли
             </div>
             <p className="text-xs text-muted-foreground">

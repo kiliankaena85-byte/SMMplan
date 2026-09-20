@@ -41,12 +41,12 @@ export function SyncProviderButton({ providerId }: Props) {
     >
       {isPending ? (
         <div className="flex items-center gap-1.5">
-          <RefreshCw className="h-3 w-3 animate-spin" />
+          <RefreshCw className="h-3 w-3 animate-spin shrink-0" />
           <span>Синхронизация...</span>
         </div>
       ) : (
         <div className="flex items-center gap-1.5">
-          <RefreshCw className="h-3 w-3" />
+          <RefreshCw className="h-3 w-3 shrink-0" />
           <span>Обновить</span>
         </div>
       )}

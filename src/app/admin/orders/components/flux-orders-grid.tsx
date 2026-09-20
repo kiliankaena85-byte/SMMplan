@@ -80,7 +80,7 @@ export function FluxOrdersGrid({ data, canSeeRates, onSelect, selectedIds, onBul
                   <span className="px-2 py-1 rounded-md bg-background border border-border/50 text-[9px] font-black uppercase text-muted-foreground tracking-wider">
                     {s.category.network?.name || '—'}
                   </span>
-                  <span className="text-[10px] font-bold text-muted-foreground truncate">
+                  <span className="text-[10px] font-bold text-muted-foreground truncate min-w-0">
                     {s.category.name}
                   </span>
                 </div>
@@ -118,7 +118,7 @@ export function FluxOrdersGrid({ data, canSeeRates, onSelect, selectedIds, onBul
             <div className="relative z-10 pt-4 border-t border-border/40 flex justify-between items-center">
               <Link
                 href={`/admin/clients?q=${encodeURIComponent(order.user.email)}`}
-                className="text-xs font-semibold text-muted-foreground hover:text-primary transition-colors truncate max-w-[150px]"
+                className="text-xs font-semibold text-muted-foreground hover:text-primary transition-colors truncate max-w-[150px] min-w-0"
               >
                 {order.user.email}
               </Link>

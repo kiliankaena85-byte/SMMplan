@@ -210,7 +210,7 @@ export function BulkActionsPanel({
           >
             <div className="flex items-center justify-between border-b border-border/50 pb-3">
               <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-black text-base">
-                <ShieldAlert className="w-5 h-5" />
+                <ShieldAlert className="w-5 h-5 shrink-0" />
                 Массовая отмена с возвратом
               </div>
               <button

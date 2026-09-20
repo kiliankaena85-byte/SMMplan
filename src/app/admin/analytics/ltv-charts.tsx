@@ -36,7 +36,7 @@ export function LTVCharts({ ltv }: LTVChartsProps) {
         <CardContent className="space-y-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-background rounded-xl shadow-sm border border-primary/20 text-primary">
-              <Users className="w-6 h-6" />
+              <Users className="w-6 h-6 shrink-0" />
             </div>
             <div>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Всего клиентов</p>
@@ -47,7 +47,7 @@ export function LTVCharts({ ltv }: LTVChartsProps) {
           <div className="p-4 bg-background rounded-2xl shadow-sm border border-primary/20">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
-                <TrendingUp className="w-3 h-3 text-success" /> Доля топ 10%
+                <TrendingUp className="w-3 h-3 text-success shrink-0" /> Доля топ 10%
               </span>
               <span className="text-sm font-black text-success">{ltv.top10PercentShare.toFixed(1)}%</span>
             </div>

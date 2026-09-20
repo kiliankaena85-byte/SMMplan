@@ -125,7 +125,7 @@ export function DesktopOrderCards({ orders, user }: DesktopOrderCardsProps) {
                       href={order.link}
                       target="_blank"
                       rel="noreferrer noopener"
-                      className="text-primary hover:underline truncate max-w-[220px] font-medium"
+                      className="text-primary hover:underline truncate max-w-[220px] font-medium min-w-0"
                     >
                       {order.link}
                     </a>

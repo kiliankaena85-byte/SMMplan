@@ -30,7 +30,7 @@ export function DeleteRoleModal({
       <DialogContent className="sm:max-w-md bg-card border-border">
         <DialogHeader>
           <div className="flex items-center gap-3 text-rose-500 pb-1">
-            <AlertTriangle className="w-5 h-5" />
+            <AlertTriangle className="w-5 h-5 shrink-0" />
             <DialogTitle className="text-base font-bold">Удалить роль</DialogTitle>
           </div>
           <DialogDescription className="text-xs text-muted-foreground leading-relaxed">

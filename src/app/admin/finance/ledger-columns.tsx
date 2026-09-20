@@ -75,14 +75,14 @@ export const columns: ColumnDef<LedgerEntryDTO>[] = [
       <div className="flex flex-col gap-0.5 min-w-0 w-full max-w-full">
         <Link
           href={`/admin/clients?q=${encodeURIComponent(row.original.userEmail)}`}
-          className="text-primary hover:text-primary/80 hover:underline font-mono text-xs font-semibold truncate block transition-colors"
+          className="text-primary hover:text-primary/80 hover:underline font-mono text-xs font-semibold truncate block transition-colors min-w-0"
           title={row.original.userEmail}
         >
           {row.original.userEmail}
         </Link>
         <div className="flex items-center gap-1 min-w-0">
           <span 
-            className="text-[10px] text-muted-foreground font-mono truncate"
+            className="text-[10px] text-muted-foreground font-mono truncate min-w-0"
             title={row.original.id}
           >
             ID: {row.original.id.slice(0, 8)}...
@@ -131,10 +131,10 @@ export const columns: ColumnDef<LedgerEntryDTO>[] = [
       const adminId = row.original.adminId;
       return (
         <div className="flex flex-col items-start gap-0.5 min-w-0 w-full">
-          <span className="text-xs text-foreground font-medium truncate block w-full leading-relaxed" title={row.original.reason}>
+          <span className="text-xs text-foreground font-medium truncate block w-full leading-relaxed min-w-0" title={row.original.reason}>
             {row.original.reason}
           </span>
-          <span className="text-[10px] text-muted-foreground font-medium truncate">
+          <span className="text-[10px] text-muted-foreground font-medium truncate min-w-0">
             {adminId ? `👤 Оператор (${adminId.slice(0, 6)})` : '⚙️ Система'}
           </span>
         </div>

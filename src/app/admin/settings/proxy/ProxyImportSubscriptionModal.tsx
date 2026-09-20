@@ -37,7 +37,7 @@ export function ProxyImportSubscriptionModal({
       <DialogContent className="sm:max-w-xl bg-card border-border">
         <DialogHeader>
           <div className="flex items-center gap-2.5 text-primary pb-1">
-            <Download className="w-5 h-5" />
+            <Download className="w-5 h-5 shrink-0" />
             <DialogTitle className="text-base font-bold">Импорт подписки в 1 клик</DialogTitle>
           </div>
           <DialogDescription className="text-xs text-muted-foreground leading-relaxed">

@@ -44,7 +44,7 @@ export function ProfileSummaryCard({
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-bold text-foreground truncate max-w-[200px] sm:max-w-xs md:max-w-none" title={email}>
+            <p className="font-bold text-foreground truncate max-w-[200px] sm:max-w-xs md:max-w-none min-w-0" title={email}>
               {email}
             </p>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border uppercase shrink-0 ${tier.color}`}>
@@ -62,19 +62,19 @@ export function ProfileSummaryCard({
       <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
         <div className="flex-1 md:flex-initial bg-muted/40 border border-border/50 rounded-xl px-3.5 py-2">
           <div className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
-            <CreditCard className="w-3 h-3 text-primary" /> Баланс
+            <CreditCard className="w-3 h-3 text-primary shrink-0" /> Баланс
           </div>
           <div className="text-sm font-black text-foreground tabular-nums">{balanceFormatted}</div>
         </div>
         <div className="flex-1 md:flex-initial bg-muted/40 border border-border/50 rounded-xl px-3.5 py-2">
           <div className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
-            <TrendingUp className="w-3 h-3 text-emerald-500" /> Заказов
+            <TrendingUp className="w-3 h-3 text-emerald-500 shrink-0" /> Заказов
           </div>
           <div className="text-sm font-black text-foreground tabular-nums">{orderCount}</div>
         </div>
         <div className="flex-1 md:flex-initial bg-muted/40 border border-border/50 rounded-xl px-3.5 py-2">
           <div className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
-            <Star className="w-3 h-3 text-amber-500" /> Рефералов
+            <Star className="w-3 h-3 text-amber-500 shrink-0" /> Рефералов
           </div>
           <div className="text-sm font-black text-foreground tabular-nums">{referralCount}</div>
         </div>

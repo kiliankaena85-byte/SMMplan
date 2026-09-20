@@ -20,7 +20,7 @@ export function FinancialEscalationWidget({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-md bg-amber-500/10 text-amber-600 flex items-center justify-center">
-            <ShieldCheck className="w-4 h-4" />
+            <ShieldCheck className="w-4 h-4 shrink-0" />
           </div>
           <div>
             <h4 className="text-xs font-bold text-foreground">Оперативный диспетчер</h4>
@@ -48,7 +48,7 @@ export function FinancialEscalationWidget({
             className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 px-2.5 py-1 rounded-md border border-rose-500/20 transition-colors"
           >
             <span>{errorOrdersCount} сбоев</span>
-            <ArrowRight className="w-3 h-3" />
+            <ArrowRight className="w-3 h-3 shrink-0" />
           </Link>
         </div>
 
@@ -66,7 +66,7 @@ export function FinancialEscalationWidget({
             className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-md border border-amber-500/20 transition-colors"
           >
             <span>{openTicketsCount} тикетов</span>
-            <ArrowRight className="w-3 h-3" />
+            <ArrowRight className="w-3 h-3 shrink-0" />
           </Link>
         </div>
       </div>
@@ -78,7 +78,7 @@ export function FinancialEscalationWidget({
           className="font-semibold text-primary hover:underline flex items-center gap-1"
         >
           <span>Журнал сверок ({pendingBalanceRequestsCount})</span>
-          <ArrowRight className="w-3 h-3" />
+          <ArrowRight className="w-3 h-3 shrink-0" />
         </Link>
       </div>
     </div>

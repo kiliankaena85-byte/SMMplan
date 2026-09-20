@@ -44,11 +44,11 @@ export function StorefrontKeyRow({
     <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-border/60 bg-card/40 hover:bg-card/70 transition-all gap-4">
       <div className="flex items-start gap-3 min-w-0">
         <div className={`p-2.5 rounded-lg shrink-0 ${isPublishable ? 'bg-blue-500/10 text-blue-500' : 'bg-amber-500/10 text-amber-500'}`}>
-          <KeyRound className="w-5 h-5" />
+          <KeyRound className="w-5 h-5 shrink-0" />
         </div>
         <div className="min-w-0 space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-medium text-sm text-foreground truncate max-w-[240px]">
+            <span className="font-medium text-sm text-foreground truncate max-w-[240px] min-w-0">
               {name || (isPublishable ? 'Публичный ключ' : 'Секретный ключ')}
             </span>
             <Badge intent={isPublishable ? 'secondary' : 'outline'} className="text-[10px] tracking-wider uppercase">
@@ -79,7 +79,7 @@ export function StorefrontKeyRow({
             <span>Создан: {new Date(createdAt).toLocaleDateString('ru-RU')}</span>
             <span>•</span>
             <span className="inline-flex items-center gap-1">
-              <Clock className="w-3 h-3" />
+              <Clock className="w-3 h-3 shrink-0" />
               {lastUsedAt ? `Исп.: ${new Date(lastUsedAt).toLocaleDateString('ru-RU')}` : 'Не использовался'}
             </span>
           </div>

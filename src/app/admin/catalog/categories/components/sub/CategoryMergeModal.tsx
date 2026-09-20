@@ -77,7 +77,7 @@ export function CategoryMergeModal({
       <DialogContent className="max-w-md p-6 rounded-2xl bg-card border border-border">
         <DialogHeader>
           <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
-            <GitMerge className="w-4 h-4 text-primary" />
+            <GitMerge className="w-4 h-4 text-primary shrink-0" />
             Объединение категорий
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">

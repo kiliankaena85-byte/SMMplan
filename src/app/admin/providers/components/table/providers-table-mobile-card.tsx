@@ -35,7 +35,7 @@ export function ProvidersTableMobileCard({
       <div className="flex items-start justify-between gap-2 border-b border-border/40 pb-2.5">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="font-bold text-foreground text-sm truncate" title={provider.name}>
+            <span className="font-bold text-foreground text-sm truncate min-w-0" title={provider.name}>
               {provider.name}
             </span>
             {provider.ticketUrl && (
@@ -51,7 +51,7 @@ export function ProvidersTableMobileCard({
             )}
           </div>
           <div className="flex items-center gap-1 mt-0.5">
-            <span className="text-muted-foreground/70 font-mono text-[10px] truncate max-w-[200px]" title={provider.apiUrl}>
+            <span className="text-muted-foreground/70 font-mono text-[10px] truncate max-w-[200px] min-w-0" title={provider.apiUrl}>
               {provider.apiUrl}
             </span>
             <button
@@ -61,7 +61,7 @@ export function ProvidersTableMobileCard({
               aria-label="Скопировать URL"
             >
               {copiedId === provider.id ? (
-                <Check className="w-3 h-3 text-success" />
+                <Check className="w-3 h-3 text-success shrink-0" />
               ) : (
                 <Copy className="w-3 h-3" />
               )}

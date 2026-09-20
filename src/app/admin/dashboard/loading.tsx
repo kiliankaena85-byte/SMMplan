@@ -17,7 +17,7 @@ export default function DashboardLoading() {
         <div className="flex items-center gap-3">
           <Skeleton className="h-8 w-8 rounded-md" />
           <div className="space-y-1.5">
-            <Skeleton className="h-4 w-48 rounded-md" />
+            <Skeleton className="h-4 w-48 rounded-md shrink-0" />
             <Skeleton className="h-3 w-72 rounded-md" />
           </div>
         </div>
@@ -27,7 +27,7 @@ export default function DashboardLoading() {
       {/* Wave Chart Skeleton */}
       <div className="bg-card rounded-lg border border-border/70 p-5 space-y-4 shadow-sm">
         <div className="flex justify-between items-center border-b border-border/50 pb-3">
-          <Skeleton className="h-5 w-64 rounded-md" />
+          <Skeleton className="h-5 w-64 rounded-md shrink-0" />
           <Skeleton className="h-7 w-32 rounded-md" />
         </div>
         <Skeleton className="h-48 w-full rounded-md" />
@@ -42,7 +42,7 @@ export default function DashboardLoading() {
               <Skeleton className="h-4 w-14 rounded-md" />
             </div>
             <Skeleton className="h-7 w-36 rounded-md" />
-            <Skeleton className="h-3 w-44 rounded-md" />
+            <Skeleton className="h-3 w-44 rounded-md shrink-0" />
           </div>
         ))}
       </div>

@@ -44,7 +44,7 @@ export function PromoteUserSection({
       <CardContent className="p-5 sm:p-7 space-y-5">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/15 text-primary rounded-xl border border-primary/20">
-            <UserPlus className="w-4 h-4" />
+            <UserPlus className="w-4 h-4 shrink-0" />
           </div>
           <div>
             <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Назначение ролей</h3>
@@ -58,7 +58,7 @@ export function PromoteUserSection({
         <form className="flex gap-3" action="/admin/settings" method="GET">
           <input type="hidden" name="tab" value="team" />
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground shrink-0" />
             <Input
               type="text"
               name="q"
@@ -93,7 +93,7 @@ export function PromoteUserSection({
                     <TableCell className="px-4 py-3">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <EmailAvatar email={u.email} />
-                        <span className="font-mono text-xs text-foreground truncate" title={u.email}>{u.email}</span>
+                        <span className="font-mono text-xs text-foreground truncate min-w-0" title={u.email}>{u.email}</span>
                       </div>
                     </TableCell>
                     <TableCell className="px-3 py-3">

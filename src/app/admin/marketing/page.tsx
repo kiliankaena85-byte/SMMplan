@@ -82,7 +82,7 @@ export default async function MarketingPage() {
               <Card className="rounded-lg border-border/70 shadow-xs bg-background/60 backdrop-blur-xl">
                 <CardContent className="p-6 flex items-center gap-4">
                   <div className="p-3 bg-success/20 text-success rounded-lg">
-                    <TrendingUp className="w-6 h-6" />
+                    <TrendingUp className="w-6 h-6 shrink-0" />
                   </div>
                   <div>
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Выплачено всего</p>
@@ -94,7 +94,7 @@ export default async function MarketingPage() {
               <Card className="rounded-lg border-border/70 shadow-xs bg-background/60 backdrop-blur-xl">
                 <CardContent className="p-6 flex items-center gap-4">
                   <div className="p-3 bg-warning/20 text-warning rounded-lg">
-                    <Wallet className="w-6 h-6" />
+                    <Wallet className="w-6 h-6 shrink-0" />
                   </div>
                   <div>
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">В ожидании</p>
@@ -106,7 +106,7 @@ export default async function MarketingPage() {
               <Card className="rounded-lg border-border/70 shadow-xs bg-background/60 backdrop-blur-xl">
                 <CardContent className="p-6 flex items-center gap-4">
                   <div className="p-3 bg-primary/10 text-primary rounded-lg">
-                    <Users className="w-6 h-6" />
+                    <Users className="w-6 h-6 shrink-0" />
                   </div>
                   <div>
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Топ рефоводов</p>
@@ -120,7 +120,7 @@ export default async function MarketingPage() {
                <Card className="rounded-lg border-border/70 shadow-xs bg-background/60 backdrop-blur-xl overflow-hidden">
                   <CardHeader className="border-b border-border/70 bg-muted/30 rounded-t-lg pb-4">
                     <CardTitle className="text-foreground text-sm font-bold uppercase tracking-widest flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-success" />
+                      <TrendingUp className="w-4 h-4 text-success shrink-0" />
                       Экономика программы (последние 6 мес.)
                     </CardTitle>
                   </CardHeader>
@@ -132,7 +132,7 @@ export default async function MarketingPage() {
                <Card className="rounded-lg border-border/70 shadow-xs bg-background/60 backdrop-blur-xl overflow-hidden">
                   <CardHeader className="border-b border-border/70 bg-muted/30 rounded-t-lg pb-4">
                     <CardTitle className="text-foreground text-sm font-bold uppercase tracking-widest flex items-center gap-2">
-                      <Users className="w-4 h-4 text-primary" />
+                      <Users className="w-4 h-4 text-primary shrink-0" />
                       Аудит рефоводов
                     </CardTitle>
                     <CardDescription className="text-xs text-muted-foreground mt-1">Клиенты с балансом на партнерском счету</CardDescription>

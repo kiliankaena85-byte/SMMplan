@@ -683,7 +683,7 @@ export function OrderClient({ data, canSeeRates = true, userRole = 'SUPPORT' }: 
                 <span className="text-muted-foreground">Клиент:</span>
                 <Link
                   href={`/admin/clients?q=${encodeURIComponent(order.user.email)}`}
-                  className="font-semibold text-primary hover:underline truncate max-w-[200px]"
+                  className="font-semibold text-primary hover:underline truncate max-w-[200px] min-w-0"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {order.user.email}

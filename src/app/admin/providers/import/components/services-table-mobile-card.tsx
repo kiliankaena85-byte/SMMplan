@@ -68,7 +68,7 @@ export function ServicesTableMobileCard({
             <span className="text-xs font-semibold text-foreground line-clamp-2">{s.cleanName || s.name}</span>
             <div className="flex items-center gap-1">
               <ServiceIdBadge numericId={numericIdVal} providerId={svcId} size="xs" />
-              <span className="text-[10px] text-muted-foreground truncate">{s.name}</span>
+              <span className="text-[10px] text-muted-foreground truncate min-w-0">{s.name}</span>
             </div>
           </div>
         </div>

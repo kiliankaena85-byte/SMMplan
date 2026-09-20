@@ -76,7 +76,7 @@ export function ClientPaymentsModal({
         <div className="px-6 py-4 border-b border-border/60 bg-muted/25 flex items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0 shadow-2xs">
-              <CreditCard className="w-5 h-5" />
+              <CreditCard className="w-5 h-5 shrink-0" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2.5 flex-wrap">
@@ -155,7 +155,7 @@ export function ClientPaymentsModal({
                             {st.label}
                           </span>
                         </td>
-                        <td className="px-3.5 py-2.5 font-mono text-[11px] text-muted-foreground truncate max-w-[160px]" title={p.gatewayId || p.id}>
+                        <td className="px-3.5 py-2.5 font-mono text-[11px] text-muted-foreground truncate max-w-[160px] min-w-0" title={p.gatewayId || p.id}>
                           {p.gatewayId || p.id}
                         </td>
                         <td className="px-3.5 py-2.5 font-mono text-[11px] text-muted-foreground">
@@ -180,7 +180,7 @@ export function ClientPaymentsModal({
                               className="px-2 py-1 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 rounded-lg text-[11px] font-bold transition-all cursor-pointer shadow-2xs flex items-center gap-1 ml-auto"
                               title="Подтвердить зачисление по чеку/письму"
                             >
-                              <ShieldCheck className="w-3 h-3" />
+                              <ShieldCheck className="w-3 h-3 shrink-0" />
                               <span>Подтвердить</span>
                             </button>
                           )}

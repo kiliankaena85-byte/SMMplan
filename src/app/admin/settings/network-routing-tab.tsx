@@ -192,7 +192,7 @@ export function NetworkRoutingTab({ proxies = [] }: Props) {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12 text-muted-foreground">
-        <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+        <RefreshCw className="h-6 w-6 animate-spin mr-2 shrink-0" />
         Загрузка сетевого маршрутизатора...
       </div>
     );
@@ -205,7 +205,7 @@ export function NetworkRoutingTab({ proxies = [] }: Props) {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-base font-semibold flex items-center gap-2">
-              <Zap className="h-4 w-4 text-primary" />
+              <Zap className="h-4 w-4 text-primary shrink-0" />
               Матрица сервисов (Быстрые переключатели в 1 клик)
             </h3>
             <p className="text-xs text-muted-foreground">
@@ -221,7 +221,7 @@ export function NetworkRoutingTab({ proxies = [] }: Props) {
           {/* AI Gemini */}
           <div className="p-3 rounded-lg border border-border/60 bg-muted/20 flex flex-col justify-between">
             <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-4 w-4 text-amber-500" />
+              <Sparkles className="h-4 w-4 text-amber-500 shrink-0" />
               <span className="text-xs font-semibold">Google Gemini AI</span>
             </div>
             <p className="text-[11px] text-muted-foreground mb-3">
@@ -258,7 +258,7 @@ export function NetworkRoutingTab({ proxies = [] }: Props) {
           {/* SMM Providers */}
           <div className="p-3 rounded-lg border border-border/60 bg-muted/20 flex flex-col justify-between">
             <div className="flex items-center gap-2 mb-2">
-              <ShoppingCart className="h-4 w-4 text-blue-500" />
+              <ShoppingCart className="h-4 w-4 text-blue-500 shrink-0" />
               <span className="text-xs font-semibold">SMM Провайдеры (API)</span>
             </div>
             <p className="text-[11px] text-muted-foreground mb-3">
@@ -287,7 +287,7 @@ export function NetworkRoutingTab({ proxies = [] }: Props) {
           {/* Catalog Sync */}
           <div className="p-3 rounded-lg border border-border/60 bg-muted/20 flex flex-col justify-between">
             <div className="flex items-center gap-2 mb-2">
-              <RefreshCw className="h-4 w-4 text-emerald-500" />
+              <RefreshCw className="h-4 w-4 text-emerald-500 shrink-0" />
               <span className="text-xs font-semibold">Проверка цен и каталог</span>
             </div>
             <p className="text-[11px] text-muted-foreground mb-3">
@@ -316,7 +316,7 @@ export function NetworkRoutingTab({ proxies = [] }: Props) {
           {/* Russian Payments (IMMUTABLE) */}
           <div className="p-3 rounded-lg border border-border/60 bg-muted/20 flex flex-col justify-between">
             <div className="flex items-center gap-2 mb-2">
-              <CreditCard className="h-4 w-4 text-emerald-600" />
+              <CreditCard className="h-4 w-4 text-emerald-600 shrink-0" />
               <span className="text-xs font-semibold">Платежи РФ (ЮKassa, Robokassa)</span>
             </div>
             <p className="text-[11px] text-muted-foreground mb-3">
@@ -329,7 +329,7 @@ export function NetworkRoutingTab({ proxies = [] }: Props) {
                 className="h-7 text-xs flex-1 cursor-pointer"
                 onClick={() => handleToggleChange('paymentsRu', 'DIRECT')}
               >
-                <Lock className="h-3 w-3 mr-1" />
+                <Lock className="h-3 w-3 mr-1 shrink-0" />
                 Direct (РФ)
               </Button>
               <Button
@@ -347,7 +347,7 @@ export function NetworkRoutingTab({ proxies = [] }: Props) {
           {/* CryptoBot */}
           <div className="p-3 rounded-lg border border-border/60 bg-muted/20 flex flex-col justify-between">
             <div className="flex items-center gap-2 mb-2">
-              <Globe className="h-4 w-4 text-indigo-500" />
+              <Globe className="h-4 w-4 text-indigo-500 shrink-0" />
               <span className="text-xs font-semibold">CryptoBot Gateway</span>
             </div>
             <p className="text-[11px] text-muted-foreground mb-3">
@@ -376,7 +376,7 @@ export function NetworkRoutingTab({ proxies = [] }: Props) {
           {/* Telegram Bot */}
           <div className="p-3 rounded-lg border border-border/60 bg-muted/20 flex flex-col justify-between">
             <div className="flex items-center gap-2 mb-2">
-              <Send className="h-4 w-4 text-sky-500" />
+              <Send className="h-4 w-4 text-sky-500 shrink-0" />
               <span className="text-xs font-semibold">Telegram Bot & Alerts</span>
             </div>
             <p className="text-[11px] text-muted-foreground mb-3">
@@ -407,7 +407,7 @@ export function NetworkRoutingTab({ proxies = [] }: Props) {
       {/* SECTION 2: Route Inspector */}
       <Card className="p-5 border-border/80 bg-card">
         <h3 className="text-base font-semibold flex items-center gap-2 mb-1">
-          <Search className="h-4 w-4 text-primary" />
+          <Search className="h-4 w-4 text-primary shrink-0" />
           Инспектор маршрутов (Route Inspector & Tracing)
         </h3>
         <p className="text-xs text-muted-foreground mb-4">
@@ -482,7 +482,7 @@ export function NetworkRoutingTab({ proxies = [] }: Props) {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-base font-semibold flex items-center gap-2">
-              <Shield className="h-4 w-4 text-primary" />
+              <Shield className="h-4 w-4 text-primary shrink-0" />
               Таблица правил маршрутизации (Clash Verge Rules Matrix)
             </h3>
             <p className="text-xs text-muted-foreground">

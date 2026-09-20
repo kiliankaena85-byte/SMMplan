@@ -138,10 +138,10 @@ export const ManualChatTab: React.FC<ManualChatTabProps> = ({ activeTenantId = '
     <div className="flex flex-col h-full overflow-hidden">
       {/* Route context header */}
       <div className="px-4 py-1.5 bg-muted/30 border-b border-border/40 flex items-center justify-between text-[11px] text-muted-foreground shrink-0">
-        <div className="flex items-center gap-1.5 truncate">
+        <div className="flex items-center gap-1.5 truncate min-w-0">
           <MapPin className="w-3 h-3 text-primary shrink-0" />
           <span>Контекст страницы:</span>
-          <span className="font-mono text-foreground truncate">{pathname}</span>
+          <span className="font-mono text-foreground truncate min-w-0">{pathname}</span>
         </div>
       </div>
 

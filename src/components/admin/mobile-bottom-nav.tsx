@@ -100,7 +100,7 @@ export function MobileBottomNav({ anomalyCount = 0, openTicketCount = 0 }: Mobil
           aria-label="Открыть полное меню"
           className="relative flex flex-col items-center justify-center h-full min-h-[44px] text-muted-foreground hover:text-foreground active:scale-95 cursor-pointer transition-all duration-150 rounded-lg"
         >
-          <Menu className="w-5 h-5 stroke-2" />
+          <Menu className="w-5 h-5 stroke-2 shrink-0" />
           <span className="text-[10px] mt-1 tracking-tight leading-none font-bold">
             Меню
           </span>

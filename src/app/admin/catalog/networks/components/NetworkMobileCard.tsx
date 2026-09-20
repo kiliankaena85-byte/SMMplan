@@ -42,7 +42,7 @@ export function NetworkMobileCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-sm font-bold text-foreground truncate">{network.name}</span>
+              <span className="text-sm font-bold text-foreground truncate min-w-0">{network.name}</span>
               <span className="text-[10px] font-mono text-muted-foreground bg-muted/60 px-2 py-0.5 rounded border border-border/50">
                 {network.slug}
               </span>
@@ -68,7 +68,7 @@ export function NetworkMobileCard({
             aria-label={`Редактировать соцсеть ${network.name}`}
             className="min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:text-primary rounded-xl hover:bg-primary/10 transition-colors cursor-pointer"
           >
-            <Pencil className="w-4 h-4" />
+            <Pencil className="w-4 h-4 shrink-0" />
           </button>
           <button
             type="button"

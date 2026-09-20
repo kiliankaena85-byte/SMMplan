@@ -96,9 +96,9 @@ export function OrderSortableHeader({
       <span className="flex items-center justify-center shrink-0">
         {isActive ? (
           activeSortOrder === 'desc' ? (
-            <ArrowDown className="w-3 h-3 text-primary animate-in fade-in duration-150" />
+            <ArrowDown className="w-3 h-3 text-primary animate-in fade-in duration-150 shrink-0" />
           ) : (
-            <ArrowUp className="w-3 h-3 text-primary animate-in fade-in duration-150" />
+            <ArrowUp className="w-3 h-3 text-primary animate-in fade-in duration-150 shrink-0" />
           )
         ) : (
           <ArrowUpDown className="w-3 h-3 text-muted-foreground/35 group-hover:text-foreground/70 transition-colors" />

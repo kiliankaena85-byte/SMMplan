@@ -244,7 +244,7 @@ export function SupportCommandCenter({
 
           <div className="pt-3 border-t border-border/40 space-y-2">
             <label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1">
-              <Percent className="w-3 h-3" /> Персональная скидка
+              <Percent className="w-3 h-3 shrink-0" /> Персональная скидка
             </label>
             <div className="flex gap-2">
               <input type="number" min={0} max={50} step={1} value={discount} onChange={e => setDiscount(parseFloat(e.target.value) || 0)}
@@ -296,7 +296,7 @@ export function SupportCommandCenter({
             </h3>
             {lastLog && (
               <span className="inline-flex items-center gap-1 text-[10px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-lg">
-                <Globe className="w-3 h-3" /> {lastLog.ipAddress}
+                <Globe className="w-3 h-3 shrink-0" /> {lastLog.ipAddress}
               </span>
             )}
           </div>
@@ -321,11 +321,11 @@ export function SupportCommandCenter({
           <div className="pt-3 border-t border-border/40 space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1">
-                <KeyRound className="w-3 h-3" /> Новый пароль
+                <KeyRound className="w-3 h-3 shrink-0" /> Новый пароль
               </label>
               <button type="button" onClick={generatePass}
                 className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 hover:bg-primary/20 px-2 py-0.5 rounded-lg transition-all cursor-pointer">
-                <Sparkles className="w-3 h-3" /> Сгенерировать
+                <Sparkles className="w-3 h-3 shrink-0" /> Сгенерировать
               </button>
             </div>
             <div className="relative flex items-center">
@@ -367,12 +367,12 @@ export function SupportCommandCenter({
 
           <div className="pt-3 border-t border-border/40 space-y-2">
             <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-muted-foreground">
-              <ShoppingBag className="w-3 h-3" /> Последние заказы
+              <ShoppingBag className="w-3 h-3 shrink-0" /> Последние заказы
             </div>
             {orders.slice(0, 5).map(o => (
               <div key={o.id} className="flex items-center justify-between gap-2 py-1.5 border-b border-border/30 last:border-0">
                 <div className="min-w-0">
-                  <div className="text-xs font-medium text-foreground truncate max-w-[155px]">#{o.numericId} {o.serviceName}</div>
+                  <div className="text-xs font-medium text-foreground truncate max-w-[155px] min-w-0">#{o.numericId} {o.serviceName}</div>
                   <div className="text-[10px] text-muted-foreground">{new Date(o.createdAt).toLocaleDateString('ru-RU')}</div>
                 </div>
                 <div className="text-right shrink-0">
@@ -383,7 +383,7 @@ export function SupportCommandCenter({
             ))}
             {user.ordersCount > 5 && (
               <a href={`/admin/orders?userId=${user.id}`} className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
-                <TrendingUp className="w-3 h-3" /> Все {user.ordersCount} заказов →
+                <TrendingUp className="w-3 h-3 shrink-0" /> Все {user.ordersCount} заказов →
               </a>
             )}
           </div>

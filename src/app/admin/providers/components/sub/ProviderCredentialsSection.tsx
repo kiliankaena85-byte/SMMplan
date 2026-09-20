@@ -126,7 +126,7 @@ export function ProviderCredentialsSection({
         >
           {checkLoading ? (
             <>
-              <RefreshCw className="w-4 h-4 animate-spin text-primary" />
+              <RefreshCw className="w-4 h-4 animate-spin text-primary shrink-0" />
               <span>Диагностика API...</span>
             </>
           ) : (
@@ -147,7 +147,7 @@ export function ProviderCredentialsSection({
         }`}>
           <div className="flex items-center justify-between font-bold">
             <span className="flex items-center gap-1.5">
-              {probeResult.success ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+              {probeResult.success ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <XCircle className="w-4 h-4" />}
               {probeResult.success ? 'Соединение успешно установлено' : 'Сбой подключения к API'}
             </span>
             {probeResult.latencyMs > 0 && <span>Задержка: {probeResult.latencyMs} мс</span>}

@@ -50,7 +50,7 @@ export default function ClientsLoading() {
       <div className="bg-card/60 backdrop-blur-md border border-border/70 shadow-xs rounded-lg ring-1 ring-border/5 overflow-hidden">
         <div className="p-4 sm:p-6 space-y-4">
           <div className="border-b border-border/50 pb-3 flex items-center justify-between gap-4">
-            <Skeleton className="h-4 w-32 rounded-md" />
+            <Skeleton className="h-4 w-32 rounded-md shrink-0" />
             <Skeleton className="h-4 w-20 rounded-md" />
             <Skeleton className="h-4 w-16 rounded-md" />
             <Skeleton className="h-4 w-24 rounded-md" />
@@ -61,7 +61,7 @@ export default function ClientsLoading() {
           {[...Array(10)].map((_, i) => (
             <div key={i} className="border-b border-border/40 py-3 flex items-center justify-between gap-4">
               <div className="space-y-1.5 flex-1 max-w-[200px]">
-                <Skeleton className="h-4 w-36 rounded-md" />
+                <Skeleton className="h-4 w-36 rounded-md shrink-0" />
                 <Skeleton className="h-3 w-24 rounded-md" />
               </div>
               <Skeleton className="h-5 w-16 rounded-md" />
@@ -75,7 +75,7 @@ export default function ClientsLoading() {
 
           {/* Pagination Skeleton */}
           <div className="pt-2 flex items-center justify-between">
-            <Skeleton className="h-4 w-36 rounded-md" />
+            <Skeleton className="h-4 w-36 rounded-md shrink-0" />
             <Skeleton className="h-8 w-48 rounded-lg" />
           </div>
         </div>

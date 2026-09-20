@@ -124,7 +124,7 @@ export function NetworksClient({ networks: initialNetworks }: NetworksClientProp
           {networks.length} соцсетей
         </span>
         <Button intent="primary" size="sm" className="font-bold min-h-[44px] md:min-h-0 md:h-9 cursor-pointer" onClick={openCreate}>
-          <Plus className="w-4 h-4 mr-1.5" />
+          <Plus className="w-4 h-4 mr-1.5 shrink-0" />
           Добавить соцсеть
         </Button>
       </div>
@@ -133,7 +133,7 @@ export function NetworksClient({ networks: initialNetworks }: NetworksClientProp
       {mode !== 'idle' && (
         <div className="bg-card border border-primary/30 rounded-xl p-4 shadow-xs animate-in fade-in slide-in-from-top-2 duration-200">
           <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-            <Globe className="w-4 h-4 text-primary" />
+            <Globe className="w-4 h-4 text-primary shrink-0" />
             {mode === 'create' ? 'Новая соцсеть' : `Редактирование: ${form.name}`}
           </h3>
           {formError && (

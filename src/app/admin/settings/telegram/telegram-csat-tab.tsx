@@ -105,7 +105,7 @@ export function TelegramCsatTab({ initialReasons, onReasonsChange, tenantId = 's
       <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-muted/20 border border-border/60">
         <div>
           <h3 className="text-sm font-extrabold text-foreground tracking-tight flex items-center gap-2">
-            <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+            <Star className="w-4 h-4 text-amber-400 fill-amber-400 shrink-0" />
             Причины оценок пользователей (CSAT Reasons)
           </h3>
           <p className="text-xs text-muted-foreground">
@@ -146,7 +146,7 @@ export function TelegramCsatTab({ initialReasons, onReasonsChange, tenantId = 's
           <div className="flex items-center justify-between pb-3 border-b border-border/40">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-rose-500/15 text-rose-400 flex items-center justify-center">
-                <ThumbsDown className="w-4 h-4" />
+                <ThumbsDown className="w-4 h-4 shrink-0" />
               </div>
               <div>
                 <h4 className="text-xs font-black text-rose-400 uppercase tracking-wider">Негативные (1–2 ⭐)</h4>
@@ -202,7 +202,7 @@ export function TelegramCsatTab({ initialReasons, onReasonsChange, tenantId = 's
           <div className="flex items-center justify-between pb-3 border-b border-border/40">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center">
-                <Meh className="w-4 h-4" />
+                <Meh className="w-4 h-4 shrink-0" />
               </div>
               <div>
                 <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider">Нейтральные (3 ⭐)</h4>
@@ -258,7 +258,7 @@ export function TelegramCsatTab({ initialReasons, onReasonsChange, tenantId = 's
           <div className="flex items-center justify-between pb-3 border-b border-border/40">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
-                <ThumbsUp className="w-4 h-4" />
+                <ThumbsUp className="w-4 h-4 shrink-0" />
               </div>
               <div>
                 <h4 className="text-xs font-black text-emerald-400 uppercase tracking-wider">Позитивные (4–5 ⭐)</h4>

@@ -21,7 +21,7 @@ export function ProvidersTableEmpty({
   return (
     <div className="py-16 px-6 text-center space-y-4 max-w-md mx-auto">
       <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
-        <SlidersHorizontal className="w-6 h-6" />
+        <SlidersHorizontal className="w-6 h-6 shrink-0" />
       </div>
       <div>
         <h3 className="font-bold text-foreground text-sm">

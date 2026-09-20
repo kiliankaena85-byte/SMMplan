@@ -70,7 +70,7 @@ export function RefundMonitorWidget({ stats }: Props) {
             className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
           >
             <span>Проблемные заказы</span>
-            <ArrowRight className="w-3 h-3" />
+            <ArrowRight className="w-3 h-3 shrink-0" />
           </Link>
         </div>
       </div>
@@ -79,7 +79,7 @@ export function RefundMonitorWidget({ stats }: Props) {
       <div className="grid grid-cols-3 gap-2.5 sm:gap-3 text-xs">
         {/* Отменено */}
         <div className="p-3 rounded-lg bg-muted/25 border border-border/50 flex flex-col justify-between min-w-0">
-          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider truncate">
+          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider truncate min-w-0">
             Отменено
           </span>
           <span className="font-mono font-extrabold text-rose-600 dark:text-rose-400 text-lg sm:text-xl mt-1 tabular-nums">
@@ -90,7 +90,7 @@ export function RefundMonitorWidget({ stats }: Props) {
 
         {/* Частично */}
         <div className="p-3 rounded-lg bg-muted/25 border border-border/50 flex flex-col justify-between min-w-0">
-          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider truncate">
+          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider truncate min-w-0">
             Частично
           </span>
           <span className="font-mono font-extrabold text-amber-600 dark:text-amber-400 text-lg sm:text-xl mt-1 tabular-nums">
@@ -101,10 +101,10 @@ export function RefundMonitorWidget({ stats }: Props) {
 
         {/* Возвращено */}
         <div className="p-3 rounded-lg bg-muted/25 border border-border/50 flex flex-col justify-between min-w-0">
-          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider truncate">
+          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider truncate min-w-0">
             Возвращено
           </span>
-          <span className="font-mono font-extrabold text-foreground text-sm sm:text-base mt-1 tabular-nums truncate">
+          <span className="font-mono font-extrabold text-foreground text-sm sm:text-base mt-1 tabular-nums truncate min-w-0">
             {formatKopecks(stats.totalRefundsKopecks)}
           </span>
           <span className="text-[10px] text-muted-foreground mt-0.5">на балансы</span>
@@ -137,7 +137,7 @@ export function RefundMonitorWidget({ stats }: Props) {
                 className="p-2.5 rounded-lg bg-muted/25 border border-border/40 flex items-center justify-between text-xs min-w-0 gap-2 hover:bg-muted/40 transition-colors"
               >
                 <div className="truncate pr-1 min-w-0">
-                  <span className="font-semibold text-foreground truncate block text-[11px]" title={fs.name}>
+                  <span className="font-semibold text-foreground truncate block text-[11px] min-w-0" title={fs.name}>
                     {fs.name}
                   </span>
                   <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">

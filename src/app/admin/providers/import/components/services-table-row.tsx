@@ -92,12 +92,12 @@ export function ServicesTableRow({
         </div>
 
         <div className="flex flex-col gap-0.5 min-w-0 pr-1">
-          <span className="text-xs font-semibold text-foreground truncate" title={s.cleanName || s.name}>
+          <span className="text-xs font-semibold text-foreground truncate min-w-0" title={s.cleanName || s.name}>
             {s.cleanName || s.name}
           </span>
           <div className="flex items-center gap-1.5 min-w-0">
             <ServiceIdBadge numericId={numericIdVal} providerId={svcId} size="xs" />
-            <span className="text-[10px] text-muted-foreground truncate" title={s.name}>
+            <span className="text-[10px] text-muted-foreground truncate min-w-0" title={s.name}>
               {s.name}
             </span>
           </div>
@@ -110,7 +110,7 @@ export function ServicesTableRow({
             return (
               <span className={`${p.color} px-1.5 py-0.5 rounded text-[10px] font-semibold border flex items-center gap-0.5 select-none whitespace-nowrap`}>
                 <span>{p.icon}</span>
-                <span className="truncate max-w-[70px]">{p.name}</span>
+                <span className="truncate max-w-[70px] min-w-0">{p.name}</span>
               </span>
             );
           })()}
@@ -125,7 +125,7 @@ export function ServicesTableRow({
 
         <div className="flex flex-col gap-0.5 font-mono min-w-0">
           <RetailPrice procurement={priceProcurement} markup={markup} isAuto={isAutoMarkup} />
-          <span className="text-muted-foreground font-medium text-[10px] truncate block tabular-nums">
+          <span className="text-muted-foreground font-medium text-[10px] truncate block tabular-nums min-w-0">
             {formatPricePerUnit(priceProcurement)} ₽
             <span className="font-sans ml-0.5 select-none">зак.</span>
           </span>
@@ -134,7 +134,7 @@ export function ServicesTableRow({
         {showCategoryColumn && (
           <div className="min-w-0">
             {s.alreadyImported ? (
-              <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1 select-none bg-muted px-2 py-1 rounded-md border border-border w-fit truncate">
+              <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1 select-none bg-muted px-2 py-1 rounded-md border border-border w-fit truncate min-w-0">
                 📦 Импортировано
               </span>
             ) : (

@@ -76,7 +76,7 @@ export function StorefrontKeyCreateModal({
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <KeyRound className="w-5 h-5 text-primary" />
+            <KeyRound className="w-5 h-5 text-primary shrink-0" />
             {createdToken ? 'Ключ успешно выпущен' : 'Выпуск нового ключа Storefront API'}
           </DialogTitle>
           <DialogDescription>

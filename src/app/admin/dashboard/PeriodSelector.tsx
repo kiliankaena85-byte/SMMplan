@@ -40,7 +40,7 @@ export function PeriodSelector({ period }: PeriodSelectorProps) {
 
   return (
     <div className="flex items-center gap-2">
-      <Calendar className="w-4 h-4 text-muted-foreground" />
+      <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
       <Select value={period} onValueChange={handlePeriodChange}>
         <SelectTrigger size="sm" className="w-36 h-8 border border-border/70 bg-card text-foreground transition-all cursor-pointer text-xs font-semibold rounded-md">
           <SelectValue placeholder="Все время">

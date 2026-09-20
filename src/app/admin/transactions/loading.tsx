@@ -28,7 +28,7 @@ export default function TransactionsLoading() {
               <Skeleton className="w-7 h-7 rounded-lg" />
             </div>
             <Skeleton className="h-6 w-28 rounded-md" />
-            <Skeleton className="h-3 w-32 rounded-md" />
+            <Skeleton className="h-3 w-32 rounded-md shrink-0" />
           </div>
         ))}
       </div>
@@ -55,7 +55,7 @@ export default function TransactionsLoading() {
       {/* Main Table Skeleton */}
       <div className="bg-card border border-border/70 rounded-lg overflow-hidden shadow-xs">
         <div className="p-3 sm:px-4 border-b border-border/60 bg-muted/15 flex items-center justify-between gap-3">
-          <Skeleton className="h-4 w-36 rounded-md" />
+          <Skeleton className="h-4 w-36 rounded-md shrink-0" />
           <Skeleton className="h-7 w-48 rounded-lg" />
         </div>
 
@@ -88,7 +88,7 @@ export default function TransactionsLoading() {
         </div>
 
         <div className="p-3 sm:px-4 border-t border-border/70 bg-muted/10 flex items-center justify-between gap-3">
-          <Skeleton className="h-4 w-44 rounded-md" />
+          <Skeleton className="h-4 w-44 rounded-md shrink-0" />
           <Skeleton className="h-8 w-56 rounded-lg" />
         </div>
       </div>

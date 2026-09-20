@@ -80,7 +80,7 @@ export function AiFunnelAdvisor({ initialAnalysis, period }: AiFunnelAdvisorProp
       <CardHeader className="pb-3 border-b border-border/40 flex flex-row items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-4 h-4 shrink-0" />
           </div>
           <div>
             <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
@@ -180,7 +180,7 @@ export function AiFunnelAdvisor({ initialAnalysis, period }: AiFunnelAdvisorProp
         {/* Footer Meta */}
         <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-2 border-t border-border/30">
           <div className="flex items-center gap-1">
-            <HelpCircle className="w-3 h-3" />
+            <HelpCircle className="w-3 h-3 shrink-0" />
             Движок: {analysis.source === 'AI_GEMINI' ? '✨ Google Gemini 3 Flash' : '⚡ Эвристический расчет'}
           </div>
           <div>

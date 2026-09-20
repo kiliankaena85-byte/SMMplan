@@ -66,7 +66,7 @@ export function CommandPalette() {
            if (e.key === 'Escape') setOpen(false);
         }}>
           <div className="flex items-center px-4 py-4 border-b border-border/50 bg-background/50">
-             <Search className="w-5 h-5 text-primary mr-3 animate-pulse" />
+             <Search className="w-5 h-5 text-primary mr-3 animate-pulse shrink-0" />
              <Command.Input 
                autoFocus
                placeholder="Поиск по клиентам, заказам, или услугам (⌘K)..." 

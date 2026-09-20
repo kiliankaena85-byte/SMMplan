@@ -152,7 +152,7 @@ export function ProxyCardItem({
               const isAssigned = prov.proxyId === p.id;
               return (
                 <div key={prov.id} className="flex items-center justify-between p-2 rounded-xl bg-card border border-border/60 text-xs">
-                  <span className="font-semibold truncate mr-2">{prov.name}</span>
+                  <span className="font-semibold truncate mr-2 min-w-0">{prov.name}</span>
                   <Button
                     type="button"
                     variant={isAssigned ? 'destructive' : 'outline'}

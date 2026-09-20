@@ -79,7 +79,7 @@ export function TelegramFeedbackListTab() {
         <Card className="p-5 rounded-3xl bg-card border border-border/80 shadow-sm space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Индекс удовлетворенности (CSAT)</span>
-            <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+            <Star className="w-4 h-4 text-amber-400 fill-amber-400 shrink-0" />
           </div>
 
           <div className="flex items-baseline gap-3">
@@ -219,7 +219,7 @@ export function TelegramFeedbackListTab() {
                       </span>
                       <Link
                         href={`/admin/tickets/${item.ticketId}`}
-                        className="font-bold text-foreground hover:text-primary transition-colors flex items-center gap-1 truncate max-w-[280px]"
+                        className="font-bold text-foreground hover:text-primary transition-colors flex items-center gap-1 truncate max-w-[280px] min-w-0"
                       >
                         <span>{item.ticketSubject}</span>
                         <ExternalLink className="w-3 h-3 shrink-0 opacity-60" />

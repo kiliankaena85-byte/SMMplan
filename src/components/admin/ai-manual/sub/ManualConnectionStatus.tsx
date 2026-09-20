@@ -17,7 +17,7 @@ export const ManualConnectionStatus: React.FC<ManualConnectionStatusProps> = ({ 
   if (isLoading) {
     return (
       <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-muted text-[10px] text-muted-foreground animate-pulse">
-        <Database className="w-3 h-3 animate-spin" />
+        <Database className="w-3 h-3 animate-spin shrink-0" />
         <span>Проверка Docker RAG...</span>
       </div>
     );

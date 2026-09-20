@@ -106,7 +106,7 @@ export function TicketsSidebar({
       <div className="p-3.5 border-b border-border space-y-2.5 bg-card text-card-foreground shrink-0">
         <div className="flex items-center justify-between">
           <h1 className="font-black text-base flex items-center gap-2">
-            <Headphones className="w-5 h-5 text-primary" />
+            <Headphones className="w-5 h-5 text-primary shrink-0" />
             <span>Список диалогов</span>
           </h1>
           {stats.open > 0 && (
@@ -241,7 +241,7 @@ export function TicketsSidebar({
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline mb-1">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="text-[11px] font-bold text-foreground truncate max-w-[100px] sm:max-w-[145px]" title={ticket.user.email || "Аноним"}>
+                      <span className="text-[11px] font-bold text-foreground truncate max-w-[100px] sm:max-w-[145px] min-w-0" title={ticket.user.email || "Аноним"}>
                         {ticket.user.email || "Аноним"}
                       </span>
                       {ticket.user.apiConfig?.isApiEnabled && (
@@ -263,7 +263,7 @@ export function TicketsSidebar({
                   </span>
                   
                   <div className="flex items-center justify-between gap-2 mt-0.5">
-                    <p className="text-[11px] text-muted-foreground truncate leading-normal flex-1">
+                    <p className="text-[11px] text-muted-foreground truncate leading-normal flex-1 min-w-0">
                       {croppedMsg}
                     </p>
                     
@@ -282,7 +282,7 @@ export function TicketsSidebar({
         {tickets.length === 0 && (
           <div className="p-8 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-3 my-auto">
             <div className="w-12 h-12 rounded-lg bg-muted/60 flex items-center justify-center text-muted-foreground border border-border/70 shadow-xs">
-              <Headphones className="w-6 h-6 opacity-60 text-primary" />
+              <Headphones className="w-6 h-6 opacity-60 text-primary shrink-0" />
             </div>
             <div className="space-y-1">
               <p className="font-semibold text-foreground text-sm">В этой категории нет диалогов</p>

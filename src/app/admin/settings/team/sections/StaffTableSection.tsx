@@ -57,7 +57,7 @@ export function StaffTableSection({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-destructive/15 text-destructive rounded-xl border border-destructive/20 shrink-0">
-              <ShieldAlert className="w-4 h-4" />
+              <ShieldAlert className="w-4 h-4 shrink-0" />
             </div>
             <div>
               <h3 className="text-sm font-bold uppercase tracking-widest text-foreground">Команда и Escrow Guard</h3>
@@ -74,7 +74,7 @@ export function StaffTableSection({
         {/* Filter Toolbar */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-3 bg-muted/20 rounded-xl border border-border/60">
           <div className="relative flex-1 min-w-0">
-            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 shrink-0" />
             <Input
               placeholder="Поиск по email..."
               value={searchEmail}
@@ -145,7 +145,7 @@ export function StaffTableSection({
                     <TableCell className="px-4 py-3">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <EmailAvatar email={u.email} />
-                        <span className="font-mono text-xs text-foreground truncate" title={u.email}>
+                        <span className="font-mono text-xs text-foreground truncate min-w-0" title={u.email}>
                           {u.email}
                         </span>
                       </div>
@@ -159,7 +159,7 @@ export function StaffTableSection({
                     {/* Custom Group */}
                     <TableCell className="px-3 py-3">
                       {u.staffRole ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-primary/8 text-primary border border-primary/20 truncate max-w-full" title={u.staffRole.name}>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-primary/8 text-primary border border-primary/20 truncate max-w-full min-w-0" title={u.staffRole.name}>
                           {u.staffRole.name}
                         </span>
                       ) : (
@@ -171,11 +171,11 @@ export function StaffTableSection({
                     <TableCell className="px-3 py-3 text-center">
                       <div className="flex items-center justify-center gap-3 text-[10px] text-muted-foreground font-medium">
                         <span className="flex items-center gap-1" title="Заказы">
-                          <Package className="w-3 h-3" />
+                          <Package className="w-3 h-3 shrink-0" />
                           {u._count.orders}
                         </span>
                         <span className="flex items-center gap-1" title="Тикеты">
-                          <Users className="w-3 h-3" />
+                          <Users className="w-3 h-3 shrink-0" />
                           {u._count.tickets}
                         </span>
                       </div>

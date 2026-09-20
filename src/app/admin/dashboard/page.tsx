@@ -511,7 +511,7 @@ export default async function AdminDashboardPage({
               className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
             >
               <span>Полный журнал</span>
-              <ArrowRight className="w-3 h-3" />
+              <ArrowRight className="w-3 h-3 shrink-0" />
             </Link>
           </div>
 
@@ -548,7 +548,7 @@ async function SystemHealthBanner() {
     <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
       <div className="flex items-start gap-3">
         <div className="p-2 bg-amber-500/10 rounded-md text-amber-600 shrink-0">
-          <AlertTriangle className="w-4 h-4" />
+          <AlertTriangle className="w-4 h-4 shrink-0" />
         </div>
         <div>
           <h4 className="font-bold text-foreground text-xs">Обнаружены аномалии в каталоге</h4>

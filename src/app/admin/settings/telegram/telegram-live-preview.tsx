@@ -114,7 +114,7 @@ export function TelegramLivePreview({
             }}
             className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer transition-colors"
           >
-            <RotateCcw className="w-3 h-3" />
+            <RotateCcw className="w-3 h-3 shrink-0" />
             Сброс
           </button>
         </div>
@@ -187,10 +187,10 @@ export function TelegramLivePreview({
           {/* Header */}
           <div className="pt-6 pb-2.5 px-4 bg-[#17212b] border-b border-[#232e3c] flex items-center gap-3 shrink-0 z-10">
             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#2AABEE] to-[#229ED9] flex items-center justify-center text-white font-black text-sm shadow-md">
-              <Bot className="w-5 h-5" />
+              <Bot className="w-5 h-5 shrink-0" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-xs font-bold truncate leading-tight">{siteName || 'SMMplan'} Support</div>
+              <div className="text-xs font-bold truncate leading-tight min-w-0">{siteName || 'SMMplan'} Support</div>
               <div className="text-[10px] text-[#2AABEE] font-medium leading-tight">@{botUsername || 'bot'} • бот</div>
             </div>
           </div>

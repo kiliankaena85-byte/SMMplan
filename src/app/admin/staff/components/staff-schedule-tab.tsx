@@ -480,7 +480,7 @@ export function StaffScheduleTab({
         <div className="bg-card border border-border/80 rounded-2xl p-4 shadow-xs flex flex-col justify-between space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              <Sun className="w-4 h-4 text-amber-500" />
+              <Sun className="w-4 h-4 text-amber-500 shrink-0" />
               <span>Дежурный сегодня (09:00 – 21:00)</span>
             </div>
             {todayDuty && (
@@ -514,7 +514,7 @@ export function StaffScheduleTab({
             ) : (
               <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
                 <div className="w-10 h-10 rounded-2xl bg-amber-500/15 flex items-center justify-center border border-amber-500/30">
-                  <AlertTriangle className="w-5 h-5 text-amber-500" />
+                  <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
                 </div>
                 <div>
                   <div className="text-sm font-bold">Смена не назначена</div>
@@ -549,7 +549,7 @@ export function StaffScheduleTab({
         <div className="bg-card border border-border/80 rounded-2xl p-4 shadow-xs flex flex-col justify-between space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              <UserCheck className="w-4 h-4 text-primary" />
+              <UserCheck className="w-4 h-4 text-primary shrink-0" />
               <span>Мой график дежурств</span>
             </div>
             <span className="text-xs font-mono font-bold text-foreground">
@@ -741,7 +741,7 @@ export function StaffScheduleTab({
                         className="px-2.5 py-1 rounded-lg border border-border/60 hover:bg-muted text-[11px] font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex items-center gap-1"
                         title="Оформить подмену смены"
                       >
-                        <ArrowLeftRight className="w-3 h-3 text-blue-500" />
+                        <ArrowLeftRight className="w-3 h-3 text-blue-500 shrink-0" />
                         <span>Подмена</span>
                       </button>
                     ) : (
@@ -839,7 +839,7 @@ export function StaffScheduleTab({
                       <button
                         type="button"
                         onClick={() => setSelectedShiftModal({ day, shift: dutyShift })}
-                        className={`w-full text-left px-1.5 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer truncate flex items-center gap-1 shadow-2xs ${
+                        className={`w-full text-left px-1.5 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer truncate flex items-center gap-1 shadow-2xs min-w-0 ${
                           dutyShift.status === 'SWAPPED'
                             ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30'
                             : 'bg-amber-500/15 text-amber-800 dark:text-amber-200 border-amber-500/30 hover:bg-amber-500/25'
@@ -862,7 +862,7 @@ export function StaffScheduleTab({
                       <div
                         key={l.id}
                         onClick={() => setSelectedShiftModal({ day, shift: l })}
-                        className={`px-1 py-0.5 rounded text-[9px] font-medium border truncate flex items-center gap-0.5 cursor-pointer ${
+                        className={`px-1 py-0.5 rounded text-[9px] font-medium border truncate flex items-center gap-0.5 cursor-pointer min-w-0 ${
                           l.status === 'VACATION'
                             ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
                             : 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20'
@@ -886,7 +886,7 @@ export function StaffScheduleTab({
           <div className="bg-card border border-border/80 rounded-2xl w-full max-w-md p-5 shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-border/60">
               <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <CalendarIcon className="w-4 h-4 text-primary" />
+                <CalendarIcon className="w-4 h-4 text-primary shrink-0" />
                 <span>
                   {selectedShiftModal.shift ? 'Редактирование смены' : 'Назначение дежурного'} — {selectedShiftModal.day} {MONTH_NAMES[currentMonth - 1]}
                 </span>
@@ -1006,7 +1006,7 @@ export function StaffScheduleTab({
           <div className="bg-card border border-border/80 rounded-2xl w-full max-w-md p-5 shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-border/60">
               <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <ArrowLeftRight className="w-4 h-4 text-blue-500" />
+                <ArrowLeftRight className="w-4 h-4 text-blue-500 shrink-0" />
                 <span>Передача смены — {swapShift.dayNumber} {MONTH_NAMES[currentMonth - 1]}</span>
               </h3>
               <button
@@ -1091,7 +1091,7 @@ export function StaffScheduleTab({
           <div className="bg-card border border-border/80 rounded-2xl w-full max-w-md p-5 shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-border/60">
               <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <Palmtree className="w-4 h-4 text-emerald-500" />
+                <Palmtree className="w-4 h-4 text-emerald-500 shrink-0" />
                 <span>Оформление отсутствия</span>
               </h3>
               <button
@@ -1192,7 +1192,7 @@ export function StaffScheduleTab({
           <div className="bg-card border border-border/80 rounded-2xl w-full max-w-md p-5 shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-border/60">
               <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-primary" />
+                <SlidersHorizontal className="w-4 h-4 text-primary shrink-0" />
                 <span>Авто-шаблон графика смен</span>
               </h3>
               <button

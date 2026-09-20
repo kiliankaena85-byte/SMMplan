@@ -89,7 +89,7 @@ export function ExecutiveAiDigestCard({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border pb-4">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-primary/10 text-primary">
-            <Sparkles className="w-5 h-5" />
+            <Sparkles className="w-5 h-5 shrink-0" />
           </div>
           <div>
             <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
@@ -144,7 +144,7 @@ export function ExecutiveAiDigestCard({
       {/* Content Body */}
       {isLoading ? (
         <div className="py-8 flex items-center justify-center text-xs text-muted-foreground gap-2">
-          <RefreshCw className="w-4 h-4 animate-spin text-primary" />
+          <RefreshCw className="w-4 h-4 animate-spin text-primary shrink-0" />
           Загрузка последнего дайджеста...
         </div>
       ) : digestData ? (

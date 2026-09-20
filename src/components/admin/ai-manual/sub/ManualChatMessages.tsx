@@ -33,7 +33,7 @@ export const ManualChatMessages: React.FC<ManualChatMessagesProps> = ({ messages
         >
           {msg.role === 'assistant' && (
             <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
-              <Bot className="w-4 h-4 text-primary" />
+              <Bot className="w-4 h-4 text-primary shrink-0" />
             </div>
           )}
 
@@ -103,7 +103,7 @@ export const ManualChatMessages: React.FC<ManualChatMessagesProps> = ({ messages
 
           {msg.role === 'user' && (
             <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center shrink-0 mt-0.5">
-              <User className="w-4 h-4 text-secondary-foreground" />
+              <User className="w-4 h-4 text-secondary-foreground shrink-0" />
             </div>
           )}
         </div>

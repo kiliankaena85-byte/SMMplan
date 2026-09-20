@@ -33,7 +33,7 @@ export default function FinanceLoading() {
           <div key={i} className="bg-card rounded-lg border border-border/70 p-5 space-y-2 shadow-xs">
             <div className="flex items-center justify-between">
               <Skeleton className="h-3.5 w-24 rounded-md" />
-              <Skeleton className="h-4 w-4 rounded-md" />
+              <Skeleton className="h-4 w-4 rounded-md shrink-0" />
             </div>
             <Skeleton className="h-7 w-36 rounded-md" />
             <Skeleton className="h-3 w-28 rounded-md" />
@@ -52,8 +52,8 @@ export default function FinanceLoading() {
             {[...Array(4)].map((_, i) => (
               <div key={i} className="flex justify-between items-center p-3 rounded-lg bg-muted/20 border border-border/40">
                 <div className="space-y-1">
-                  <Skeleton className="h-4 w-32 rounded-md" />
-                  <Skeleton className="h-3 w-48 rounded-md" />
+                  <Skeleton className="h-4 w-32 rounded-md shrink-0" />
+                  <Skeleton className="h-3 w-48 rounded-md shrink-0" />
                 </div>
                 <Skeleton className="h-5 w-20 rounded-md" />
               </div>

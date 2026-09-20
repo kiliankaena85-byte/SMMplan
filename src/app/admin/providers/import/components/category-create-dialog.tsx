@@ -86,7 +86,7 @@ export function CategoryCreateDialog({
         <div className="p-4 border-b border-border/60 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-primary/10 text-primary rounded-lg">
-              <Layers className="w-4 h-4" />
+              <Layers className="w-4 h-4 shrink-0" />
             </div>
             <h3 className="text-sm font-bold text-foreground">Новая категория</h3>
           </div>

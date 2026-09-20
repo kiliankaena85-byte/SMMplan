@@ -52,7 +52,7 @@ export function RecentOrdersFeedWidget({ orders }: Props) {
       <div className="flex items-center justify-between border-b border-border/50 pb-3">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400">
-            <Package className="w-4 h-4" />
+            <Package className="w-4 h-4 shrink-0" />
           </div>
           <div>
             <h4 className="font-bold text-xs uppercase tracking-wider text-foreground">
@@ -68,7 +68,7 @@ export function RecentOrdersFeedWidget({ orders }: Props) {
           className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
         >
           <span>Все заказы</span>
-          <ArrowRight className="w-3 h-3" />
+          <ArrowRight className="w-3 h-3 shrink-0" />
         </Link>
       </div>
 
@@ -110,12 +110,12 @@ export function RecentOrdersFeedWidget({ orders }: Props) {
                     <div className="font-semibold text-foreground truncate max-w-[180px] sm:max-w-[240px]" title={o.service?.name}>
                       {o.service?.name || 'Услуга'}
                     </div>
-                    <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 truncate">
+                    <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 truncate min-w-0">
                       <span className="font-medium text-foreground/80">
                         {o.service?.category?.network?.name || '—'}
                       </span>
                       <span>•</span>
-                      <span className="truncate">{o.user.email}</span>
+                      <span className="truncate min-w-0">{o.user.email}</span>
                     </div>
                   </div>
                 </div>

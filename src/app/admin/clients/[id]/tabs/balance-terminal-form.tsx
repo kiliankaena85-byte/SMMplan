@@ -97,7 +97,7 @@ export function BalanceTerminalForm({ user, orders, payments }: BalanceTerminalF
         <div>
           <h3 className="text-base font-bold tracking-tight text-foreground flex items-center gap-2">
             <span className="bg-primary/10 text-primary p-1.5 rounded-lg">
-              <Zap className="w-4 h-4" />
+              <Zap className="w-4 h-4 shrink-0" />
             </span>
             Терминал изменения баланса
           </h3>

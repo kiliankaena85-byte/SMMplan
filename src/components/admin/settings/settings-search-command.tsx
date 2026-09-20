@@ -302,7 +302,7 @@ export function SettingsSearchCommand() {
                     className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-muted/40 transition-colors group cursor-pointer"
                   >
                     <div className="p-2 bg-primary/10 text-primary rounded-lg border border-primary/20 shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                      <Icon className="w-4 h-4" />
+                      <Icon className="w-4 h-4 shrink-0" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">

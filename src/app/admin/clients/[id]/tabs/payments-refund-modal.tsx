@@ -80,7 +80,7 @@ export function PaymentsRefundModal({
         <div className="flex items-center justify-between border-b border-border/60 pb-3">
           <h3 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
             <span className="bg-amber-500/10 text-amber-600 p-1 rounded-md">
-              <RotateCcw className="w-4 h-4" />
+              <RotateCcw className="w-4 h-4 shrink-0" />
             </span>
             Оформление возврата на карту
           </h3>
@@ -102,7 +102,7 @@ export function PaymentsRefundModal({
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">ID транзакции:</span>
-            <span className="font-bold text-foreground truncate max-w-[180px]">
+            <span className="font-bold text-foreground truncate max-w-[180px] min-w-0">
               {payment.gatewayId || payment.id}
             </span>
           </div>

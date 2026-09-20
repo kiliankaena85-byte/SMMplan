@@ -314,7 +314,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
             </a>
 
             <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-700 dark:text-amber-400 font-bold text-xs">
-              <Award className="w-4 h-4 text-amber-500" />
+              <Award className="w-4 h-4 text-amber-500 shrink-0" />
               <span>{totalScore} / {maxPossibleScore} XP</span>
             </div>
 
@@ -333,7 +333,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
           <div className="p-4 sm:p-5 rounded-2xl bg-rose-500/5 border border-rose-500/30 shadow-md animate-in slide-in-from-top-2 duration-300 space-y-4">
             <div className="flex items-center justify-between border-b border-rose-500/20 pb-2">
               <h3 className="text-xs font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4 text-rose-500" /> 🚨 SOS-Памятка Новичка: Первый день на смене (3 минуты)
+                <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" /> 🚨 SOS-Памятка Новичка: Первый день на смене (3 минуты)
               </h3>
               <span className="text-[10px] px-2 py-0.5 bg-rose-500/10 text-rose-600 rounded-md font-bold">
                 Zero-Training Shield
@@ -350,7 +350,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                   onClick={() => handleCopy('«Здравствуйте! Взял ваш вопрос в работу. Сейчас поднимаю технические логи серверов по заказу и связываюсь со старшим инженером. Вернусь к вам с детальным решением в течение 10–15 минут!»', 'sos-magic')}
                   className="px-2.5 py-1 bg-rose-600 text-white text-[10px] font-bold rounded-lg hover:bg-rose-700 transition-colors flex items-center gap-1 cursor-pointer"
                 >
-                  {copiedId === 'sos-magic' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  {copiedId === 'sos-magic' ? <Check className="w-3 h-3 shrink-0" /> : <Copy className="w-3 h-3" />}
                   <span>{copiedId === 'sos-magic' ? 'Скопировано!' : 'Скопировать спасительный скрипт'}</span>
                 </button>
               </div>
@@ -387,7 +387,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
           <div className="p-4 rounded-2xl bg-card border border-primary/20 shadow-sm animate-in slide-in-from-top-2 duration-300 space-y-3">
             <div className="flex items-center justify-between border-b border-border/50 pb-2">
               <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-primary" /> Экспресс-Гид: Как работать с Академией
+                <Sparkles className="w-4 h-4 text-primary shrink-0" /> Экспресс-Гид: Как работать с Академией
               </h3>
               <span className="text-[11px] text-muted-foreground font-medium">Краткая памятка оператора</span>
             </div>
@@ -420,7 +420,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-primary/10 text-primary rounded-2xl ring-1 ring-primary/20 shrink-0">
-              <GraduationCap className="w-6 h-6" />
+              <GraduationCap className="w-6 h-6 shrink-0" />
             </div>
             <div>
               <h1 className="text-lg sm:text-xl font-extrabold text-foreground tracking-tight flex items-center gap-2 flex-wrap">
@@ -505,7 +505,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                       onClick={() => handleCopy(item.script, `gs-${idx}`)}
                       className="px-2.5 py-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-1 cursor-pointer"
                     >
-                      {copiedId === `gs-${idx}` ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      {copiedId === `gs-${idx}` ? <Check className="w-3 h-3 shrink-0" /> : <Copy className="w-3 h-3" />}
                       <span>{copiedId === `gs-${idx}` ? 'Скопировано!' : 'Копировать ответ'}</span>
                     </button>
                   </div>
@@ -728,7 +728,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                       <span className="text-lg">{sc.icon}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1 mb-0.5">
-                          <span className="text-xs font-bold truncate text-foreground">{sc.title}</span>
+                          <span className="text-xs font-bold truncate text-foreground min-w-0">{sc.title}</span>
                           {score !== undefined && (
                             <span className={`text-[10px] font-black font-mono px-1.5 py-0.2 rounded ${
                               score >= 100 ? 'bg-emerald-500/20 text-emerald-600' : 'bg-amber-500/20 text-amber-600'
@@ -864,7 +864,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                             opt.isCorrect ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-800 dark:text-rose-300'
                           }`}>
                             <div className="font-bold flex items-center gap-1 mb-1">
-                              {opt.isCorrect ? <Check className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                              {opt.isCorrect ? <Check className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4" />}
                               Разбор решения ({opt.score}/100 XP):
                             </div>
                             <p className="leading-relaxed">{opt.analysis}</p>
@@ -892,7 +892,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                   disabled={!selectedOptionId}
                   className="w-full h-11 bg-primary text-primary-foreground text-xs font-bold rounded-xl shadow-xs hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <ShieldCheck className="w-4 h-4" />
+                  <ShieldCheck className="w-4 h-4 shrink-0" />
                   <span>Проверить ответ и разобрать последствия</span>
                 </button>
               ) : (
@@ -901,7 +901,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                   <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-black text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                        <Check className="w-4 h-4" /> Эталонный ответ клиенту (Legal & Marketing Symbiosis):
+                        <Check className="w-4 h-4 shrink-0" /> Эталонный ответ клиенту (Legal & Marketing Symbiosis):
                       </span>
                       <button
                         type="button"
@@ -939,7 +939,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                           className="inline-flex items-center gap-1 px-2.5 py-1 bg-background text-primary border border-border rounded-lg text-xs font-bold hover:bg-muted transition-all"
                         >
                           <span>{lnk.label}</span>
-                          <ExternalLink className="w-3 h-3" />
+                          <ExternalLink className="w-3 h-3 shrink-0" />
                         </Link>
                       ))}
                     </div>
@@ -957,7 +957,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
           <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-6 shadow-sm ring-1 ring-border/5 space-y-6">
             <div>
               <h2 className="text-base font-extrabold text-foreground flex items-center gap-2">
-                <Compass className="w-5 h-5 text-primary" />
+                <Compass className="w-5 h-5 text-primary shrink-0" />
                 Интерактивная карта решений: «Услуга БЕЗ гарантии & Списания»
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
@@ -969,7 +969,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
               {/* 1. LTV / Сегмент клиента */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <UserCheck className="w-4 h-4 text-primary" /> 1. Сегмент клиента (LTV)
+                  <UserCheck className="w-4 h-4 text-primary shrink-0" /> 1. Сегмент клиента (LTV)
                 </label>
                 <div className="space-y-1.5">
                   {[
@@ -997,7 +997,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
               {/* 2. Тип тарифа */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-primary" /> 2. Тариф услуги
+                  <ShieldCheck className="w-4 h-4 text-primary shrink-0" /> 2. Тариф услуги
                 </label>
                 <div className="space-y-1.5">
                   {[
@@ -1023,7 +1023,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
               {/* 3. Суть проблемы */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-primary" /> 3. Суть обращения
+                  <AlertTriangle className="w-4 h-4 text-primary shrink-0" /> 3. Суть обращения
                 </label>
                 <div className="space-y-1.5">
                   {[
@@ -1096,7 +1096,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
         <div className="space-y-6">
           <div className="flex items-center justify-between gap-4">
             <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+              <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground shrink-0" />
               <input
                 type="text"
                 value={cheatSearch}
@@ -1122,7 +1122,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
               return (
                 <div key={idx} className="bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl p-5 shadow-sm ring-1 ring-border/5 space-y-4">
                   <h3 className="text-sm font-bold text-foreground flex items-center gap-2 border-b border-border/50 pb-3">
-                    <Zap className="w-4 h-4 text-primary" />
+                    <Zap className="w-4 h-4 text-primary shrink-0" />
                     {cat.category}
                   </h3>
 
@@ -2076,7 +2076,7 @@ export function AcademyClient({ manualHtml, supportManualHtml, sidebarItems }: A
                   className="w-full h-11 bg-primary text-primary-foreground text-xs font-bold rounded-xl shadow-xs hover:bg-primary/90 transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   <span>{examStep < examScenarios.length - 1 ? 'Следующий вопрос' : 'Завершить экзамен'}</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-4 h-4 shrink-0" />
                 </button>
               </>
             ) : (

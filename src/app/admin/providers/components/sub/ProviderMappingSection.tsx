@@ -84,7 +84,7 @@ export function ProviderMappingSection({
                 disabled={inferLoading}
                 className="px-2.5 py-1 text-[11px] font-semibold rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 flex items-center gap-1.5 border border-border"
               >
-                {inferLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3 text-primary" />}
+                {inferLoading ? <RefreshCw className="w-3 h-3 animate-spin shrink-0" /> : <Sparkles className="w-3 h-3 text-primary" />}
                 Определить структуру API
               </button>
             </div>

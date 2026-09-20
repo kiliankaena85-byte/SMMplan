@@ -128,7 +128,7 @@ export function ClientQuickSort() {
         <DropdownMenuTrigger className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold bg-background/60 hover:bg-muted/80 text-foreground border border-border/70 rounded-lg transition-all shadow-xs outline-none focus-visible:ring-1 focus-visible:ring-primary cursor-pointer select-none">
           <ArrowUpDown className="w-3.5 h-3.5 text-primary" />
           <span className="hidden sm:inline text-muted-foreground font-normal">Сортировка:</span>
-          <span className="font-bold truncate max-w-[160px]">
+          <span className="font-bold truncate max-w-[160px] min-w-0">
             {activePreset ? activePreset.label.replace(/^[^\s]+\s/, '') : `${currentSortBy} (${currentSortOrder})`}
           </span>
         </DropdownMenuTrigger>

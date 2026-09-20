@@ -331,14 +331,14 @@ export default async function PaymentDisputePackPage({ params }: Props) {
             href="/admin/finance"
             className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 shrink-0" />
             <span>Вернуться к биллингу</span>
           </Link>
 
           {/* Info Card */}
           <div className="space-y-4">
             <div className="inline-flex p-3 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded-2xl">
-              <ShieldCheck className="w-6 h-6" />
+              <ShieldCheck className="w-6 h-6 shrink-0" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-foreground">Генератор Dispute Pack</h2>
@@ -354,7 +354,7 @@ export default async function PaymentDisputePackPage({ params }: Props) {
           {/* Quick instructions checklist */}
           <div className="space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-              <HelpCircle className="w-4 h-4 text-sky-400" />
+              <HelpCircle className="w-4 h-4 text-sky-400 shrink-0" />
               <span>Инструкция по отправке</span>
             </h3>
             <ol className="space-y-3 text-xs text-muted-foreground list-decimal list-inside leading-relaxed">

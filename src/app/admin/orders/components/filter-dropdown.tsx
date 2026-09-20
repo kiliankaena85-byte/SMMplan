@@ -70,9 +70,9 @@ export function FilterDropdown({
         onClick={() => setIsOpen((prev) => !prev)}
         className={`h-8 px-2.5 text-xs font-semibold bg-card/90 hover:bg-card text-foreground border border-border/70 hover:border-primary/40 rounded-xl flex items-center justify-between gap-1.5 transition-all cursor-pointer shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-primary/20 select-none ${className}`}
       >
-        <span className="truncate flex items-center gap-1.5 text-foreground">
+        <span className="truncate flex items-center gap-1.5 text-foreground min-w-0">
           {icon}
-          <span className="truncate">{displayLabel}</span>
+          <span className="truncate min-w-0">{displayLabel}</span>
         </span>
         <ChevronDown
           className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${
@@ -102,7 +102,7 @@ export function FilterDropdown({
                   isSelected ? 'bg-primary/15 text-primary font-bold' : 'text-foreground'
                 }`}
               >
-                <span className="truncate">{opt.label}</span>
+                <span className="truncate min-w-0">{opt.label}</span>
                 {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
               </button>
             );

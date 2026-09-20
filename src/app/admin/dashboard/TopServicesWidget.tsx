@@ -25,7 +25,7 @@ export function TopServicesWidget({ services }: Props) {
       <div className="flex items-center justify-between border-b border-border/50 pb-3">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded-md bg-rose-500/10 text-rose-600 dark:text-rose-400">
-            <Flame className="w-4 h-4" />
+            <Flame className="w-4 h-4 shrink-0" />
           </div>
           <div>
             <h4 className="font-bold text-xs uppercase tracking-wider text-foreground">
@@ -41,7 +41,7 @@ export function TopServicesWidget({ services }: Props) {
           className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1"
         >
           <span>Каталог</span>
-          <ArrowRight className="w-3 h-3" />
+          <ArrowRight className="w-3 h-3 shrink-0" />
         </Link>
       </div>
 
@@ -63,7 +63,7 @@ export function TopServicesWidget({ services }: Props) {
                   {idx + 1}
                 </span>
                 <div className="min-w-0">
-                  <div className="font-semibold text-foreground truncate max-w-[200px] sm:max-w-[260px]" title={s.name}>
+                  <div className="font-semibold text-foreground truncate max-w-[200px] sm:max-w-[260px] min-w-0" title={s.name}>
                     {s.name}
                   </div>
                   <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 mt-0.5">

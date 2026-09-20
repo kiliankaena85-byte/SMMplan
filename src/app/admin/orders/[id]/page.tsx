@@ -66,7 +66,7 @@ export default async function AdminOrderDetailPage({
             href="/admin/orders"
             className="p-2 rounded-xl bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground transition-all flex items-center gap-1.5 text-xs font-bold border border-border/40"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 shrink-0" />
             <span>Назад к заказам</span>
           </Link>
           <div className="h-4 w-[1px] bg-border" />

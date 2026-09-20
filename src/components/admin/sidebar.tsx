@@ -127,7 +127,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
           aria-label={collapsed ? "Развернуть меню" : "Свернуть меню"}
           className="flex items-center justify-center w-9 h-9 min-h-[36px] min-w-[36px] rounded-[10px] bg-card/80 backdrop-blur-md border border-border/40 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all duration-300 active:scale-95 shadow-sm cursor-pointer"
         >
-          {collapsed ? <PanelLeftOpen className="w-4 h-4 ml-0.5" /> : <PanelLeftClose className="w-4 h-4 mr-0.5" />}
+          {collapsed ? <PanelLeftOpen className="w-4 h-4 ml-0.5 shrink-0" /> : <PanelLeftClose className="w-4 h-4 mr-0.5" />}
         </button>
       </div>
 
@@ -170,7 +170,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
           <div className="space-y-1 pb-3 mb-2 border-b border-border/40">
             {!collapsed && (
               <h3 className="px-3 mb-1.5 text-[10px] font-black text-warning uppercase tracking-[0.2em] flex items-center gap-1.5">
-                <Star className="w-3 h-3 fill-warning/20" />
+                <Star className="w-3 h-3 fill-warning/20 shrink-0" />
                 Избранное
               </h3>
             )}
@@ -197,7 +197,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
                   )}>
                     <IconComponent className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={isActive ? 2.5 : 2} />
                   </span>
-                  {!collapsed && <span className="tracking-wide flex-1 truncate">{tab.label}</span>}
+                  {!collapsed && <span className="tracking-wide flex-1 truncate min-w-0">{tab.label}</span>}
                   
                   {/* Unpin button */}
                   {!collapsed && (
@@ -229,7 +229,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
                 >
                   <span>{section.group}</span>
                   <span className="opacity-0 group-hover/hdr:opacity-100 transition-opacity">
-                    {isGroupCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                    {isGroupCollapsed ? <ChevronRight className="w-3 h-3 shrink-0" /> : <ChevronDown className="w-3 h-3" />}
                   </span>
                 </button>
               )}
@@ -263,7 +263,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
                         )}>
                           <IconComponent className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={isActive ? 2.5 : 2} />
                         </span>
-                        {!collapsed && <span className="tracking-wide flex-1 truncate">{tab.label}</span>}
+                        {!collapsed && <span className="tracking-wide flex-1 truncate min-w-0">{tab.label}</span>}
                         
                         {/* Badge counter */}
                         {!collapsed && tab.badge !== undefined && tab.badge > 0 && (

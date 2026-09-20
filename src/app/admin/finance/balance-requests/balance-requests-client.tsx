@@ -136,7 +136,7 @@ export function BalanceRequestsClient({
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-primary/10 text-primary border border-primary/20 rounded-2xl">
-              <Wallet className="w-6 h-6" />
+              <Wallet className="w-6 h-6 shrink-0" />
             </div>
             <div>
               <h1 className="text-2xl font-black text-foreground tracking-tight">Заявки на корректировку баланса</h1>
@@ -326,7 +326,7 @@ export function BalanceRequestsClient({
                     <PlanTableCell className="min-w-0 overflow-hidden">
                       <div className="flex flex-col gap-0.5 min-w-0">
                         {item.reasonCode === 'REFUND_TO_CARD' ? (
-                          <span className="text-xs font-bold font-mono text-amber-600 dark:text-amber-400 flex items-center gap-1 truncate">
+                          <span className="text-xs font-bold font-mono text-amber-600 dark:text-amber-400 flex items-center gap-1 truncate min-w-0">
                             💳 ВОЗВРАТ НА КАРТУ
                           </span>
                         ) : (

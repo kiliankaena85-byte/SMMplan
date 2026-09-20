@@ -34,7 +34,7 @@ export function FluxCheckoutPromoCard({
           onClick={() => setShowPromo(true)}
           className="text-xs font-bold text-primary hover:underline flex items-center gap-1.5 min-h-[44px] py-1 cursor-pointer transition-colors"
         >
-          <Ticket className="w-4 h-4" />
+          <Ticket className="w-4 h-4 shrink-0" />
           <span>+ У меня есть промокод</span>
         </button>
       ) : (

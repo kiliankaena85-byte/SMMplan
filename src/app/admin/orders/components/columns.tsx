@@ -426,7 +426,7 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
         className="flex items-center gap-1 hover:text-foreground transition-colors font-bold text-foreground text-xs cursor-pointer"
       >
         ЗАКАЗ
-        <ArrowUpDown className="w-3 h-3 ml-1" />
+        <ArrowUpDown className="w-3 h-3 ml-1 shrink-0" />
       </button>
     ),
     cell: ({ row }) => {
@@ -467,7 +467,7 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
           className="flex items-center gap-1 hover:text-foreground transition-colors font-bold text-foreground text-xs cursor-pointer"
         >
           СУММА
-          <ArrowUpDown className="w-3 h-3 ml-1" />
+          <ArrowUpDown className="w-3 h-3 ml-1 shrink-0" />
         </button>
       </div>
     ),
@@ -507,7 +507,7 @@ export const columns = (canSeeRates: boolean = true): ColumnDef<OrderColumn>[] =
         className="flex items-center gap-1 hover:text-foreground transition-colors font-bold text-foreground text-xs"
       >
         СТАТУС
-        <ArrowUpDown className="w-3 h-3 ml-1" />
+        <ArrowUpDown className="w-3 h-3 ml-1 shrink-0" />
       </button>
     ),
     cell: ({ row }) => {

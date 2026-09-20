@@ -72,7 +72,7 @@ export function FinanceClient({
       <div className="bg-card/70 border border-border/80 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
-            <Landmark className="w-5 h-5 text-red-500" />
+            <Landmark className="w-5 h-5 text-red-500 shrink-0" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -81,7 +81,7 @@ export function FinanceClient({
                 Safe Owner Draw & Эскроу
               </span>
             </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+            <p className="text-[11px] text-muted-foreground mt-0.5 truncate min-w-0">
               Мониторинг банковского остатка, автоматическое резервирование клиентских депозитов и налогов УСН
             </p>
           </div>

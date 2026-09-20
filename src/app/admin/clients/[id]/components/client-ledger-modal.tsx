@@ -65,7 +65,7 @@ export function ClientLedgerModal({
         <div className="px-6 py-4 border-b border-border/60 bg-muted/25 flex items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0 shadow-2xs">
-              <BookOpen className="w-5 h-5" />
+              <BookOpen className="w-5 h-5 shrink-0" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2.5 flex-wrap">

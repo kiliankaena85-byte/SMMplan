@@ -80,7 +80,7 @@ export function CatalogMobileCard({
           <div className="flex flex-col min-w-0 pt-0.5">
             <div className="flex items-center gap-1.5 flex-wrap mb-1">
               <ServiceIdBadge numericId={service.numericId} />
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground truncate max-w-[120px]">
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground truncate max-w-[120px] min-w-0">
                 {categoryName}
               </span>
               {isZombie && (
@@ -163,8 +163,8 @@ export function CatalogMobileCard({
 
       {/* 3. Footer: Limits, Provider & Quick Action Buttons */}
       <div className="flex items-center justify-between pt-1 border-t border-border/40 text-[11px] text-muted-foreground">
-        <div className="flex items-center gap-2 truncate">
-          <span className="font-medium truncate max-w-[120px]" title={providerName}>
+        <div className="flex items-center gap-2 truncate min-w-0">
+          <span className="font-medium truncate max-w-[120px] min-w-0" title={providerName}>
             Провайдер: <strong className="text-foreground">{providerName}</strong>
           </span>
           <span>•</span>
@@ -179,7 +179,7 @@ export function CatalogMobileCard({
             className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-muted/60 text-foreground hover:bg-muted transition-colors active:scale-95"
             title="Редактировать услугу"
           >
-            <Pencil className="w-4 h-4 text-primary" />
+            <Pencil className="w-4 h-4 text-primary shrink-0" />
           </Link>
           {canEdit && (
             <div className="flex items-center justify-center min-h-[44px] min-w-[44px]">

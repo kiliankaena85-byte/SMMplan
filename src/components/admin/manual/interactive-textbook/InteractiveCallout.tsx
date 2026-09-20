@@ -86,7 +86,7 @@ export function InteractiveCallout({ callout }: InteractiveCalloutProps) {
     >
       <div className="flex items-start gap-3">
         <div className="p-1.5 rounded-lg shrink-0 mt-0.5 bg-background/80 border border-border/50 shadow-2xs">
-          <IconComponent className="w-4 h-4 text-foreground" />
+          <IconComponent className="w-4 h-4 text-foreground shrink-0" />
         </div>
 
         <div className="flex-1 min-w-0 space-y-1.5">
@@ -111,7 +111,7 @@ export function InteractiveCallout({ callout }: InteractiveCalloutProps) {
 
           {callout.codeSnippet && (
             <div className="mt-2 pt-2 border-t border-border/40 flex items-center justify-between gap-2 bg-background/60 p-2 rounded-lg border border-border/40">
-              <code className="text-[11px] font-mono text-foreground truncate select-all">
+              <code className="text-[11px] font-mono text-foreground truncate select-all min-w-0">
                 {callout.codeSnippet}
               </code>
               <button

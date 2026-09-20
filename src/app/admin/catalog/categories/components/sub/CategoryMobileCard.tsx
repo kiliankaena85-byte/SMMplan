@@ -31,10 +31,10 @@ export function CategoryMobileCard({
             <UniversalIcon icon={c.icon || c.network?.icon || `brand:${networkSlug}`} size={16} />
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="font-bold text-foreground text-xs truncate">
+            <span className="font-bold text-foreground text-xs truncate min-w-0">
               {cleanCategoryName(c.name)}
             </span>
-            <span className="text-[10px] text-muted-foreground font-mono truncate">
+            <span className="text-[10px] text-muted-foreground font-mono truncate min-w-0">
               /{c.slug}
             </span>
           </div>
@@ -48,7 +48,7 @@ export function CategoryMobileCard({
             title="Редактировать категорию"
             className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-border/60 hover:border-primary/50 text-muted-foreground hover:text-primary active:bg-primary/10 transition-all duration-150 active:scale-95 cursor-pointer"
           >
-            <Pencil className="w-4 h-4" />
+            <Pencil className="w-4 h-4 shrink-0" />
           </button>
 
           <button

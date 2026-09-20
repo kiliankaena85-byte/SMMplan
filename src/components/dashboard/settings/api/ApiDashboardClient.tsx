@@ -59,7 +59,7 @@ export function ApiDashboardClient({ hasKey, webhookInitialData }: ApiDashboardC
           <div className="bg-card border border-border/60 rounded-2xl overflow-hidden shadow-xs">
             <div className="px-5 py-4 border-b border-border/40 flex items-center gap-2.5 bg-muted/20">
               <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <Key className="w-4 h-4" />
+                <Key className="w-4 h-4 shrink-0" />
               </div>
               <div>
                 <h2 className="font-semibold text-foreground text-sm">Управление API-ключами</h2>

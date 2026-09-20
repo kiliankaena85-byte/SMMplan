@@ -59,7 +59,7 @@ export function TelegramSimulator({ settings, diagnostics }: Props) {
     <div className="space-y-4">
       <div className="flex items-center justify-between px-1">
         <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-          <Smartphone className="w-4 h-4 text-primary" />
+          <Smartphone className="w-4 h-4 text-primary shrink-0" />
           Live Simulator
         </span>
         <span className="text-[10px] font-mono text-muted-foreground">iOS Dark</span>

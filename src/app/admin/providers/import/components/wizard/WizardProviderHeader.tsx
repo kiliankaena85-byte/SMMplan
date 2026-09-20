@@ -24,7 +24,7 @@ export function WizardProviderHeader({
     <div className="flex flex-wrap items-center justify-between gap-3 bg-card/60 backdrop-blur-md border border-border/50 rounded-2xl px-4 py-3 shadow-sm">
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-          <Package className="w-4 h-4 text-primary" />
+          <Package className="w-4 h-4 text-primary shrink-0" />
         </div>
         <div className="min-w-0">
           <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">

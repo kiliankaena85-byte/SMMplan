@@ -67,7 +67,7 @@ export const ManualRunbookDetail: React.FC<ManualRunbookDetailProps> = ({ runboo
             title="Скачать регламент в формате Markdown"
             aria-label="Скачать регламент (.md)"
           >
-            <Download className="w-3 h-3 text-primary" />
+            <Download className="w-3 h-3 text-primary shrink-0" />
             <span>Скачать регламент (.md)</span>
           </button>
           <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">

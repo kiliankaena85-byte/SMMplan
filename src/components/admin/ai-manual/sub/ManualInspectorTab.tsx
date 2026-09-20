@@ -122,9 +122,9 @@ export const ManualInspectorTab: React.FC = () => {
           >
             <div className="flex items-center justify-between gap-2 mb-1.5">
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary flex items-center gap-1">
-                {item.category === 'ADR' && <Layers className="w-3 h-3" />}
-                {item.category === 'MODEL' && <Database className="w-3 h-3" />}
-                {item.category === 'SECURITY' && <Shield className="w-3 h-3" />}
+                {item.category === 'ADR' && <Layers className="w-3 h-3 shrink-0" />}
+                {item.category === 'MODEL' && <Database className="w-3 h-3 shrink-0" />}
+                {item.category === 'SECURITY' && <Shield className="w-3 h-3 shrink-0" />}
                 <span>{item.badge}</span>
               </span>
             </div>
@@ -134,7 +134,7 @@ export const ManualInspectorTab: React.FC = () => {
 
             <div className="mt-2.5 pt-2 border-t border-border/40 flex items-center justify-between text-[10px] text-muted-foreground">
               <span className="font-mono flex items-center gap-1 text-primary">
-                <FileCode className="w-3 h-3" />
+                <FileCode className="w-3 h-3 shrink-0" />
                 <span>{item.linkText}</span>
               </span>
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />

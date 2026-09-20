@@ -176,7 +176,7 @@ export function ErrorTracker() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${levelStyle.bg}`}>
-                        <LevelIcon className="w-3 h-3 inline mr-0.5" /> {err.level}
+                        <LevelIcon className="w-3 h-3 inline mr-0.5 shrink-0" /> {err.level}
                       </span>
                       <span className="text-[9px] font-mono text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">{err.source}</span>
                       {err.errorCode && <code className="text-[9px] font-mono text-amber-400">{err.errorCode}</code>}
@@ -185,9 +185,9 @@ export function ErrorTracker() {
                     </div>
                     <p className="text-xs text-foreground mt-1 font-medium truncate">{err.errorMessage}</p>
                     <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
-                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(err.lastSeenAt).toLocaleString('ru-RU')}</span>
-                      {err.userId && <span className="flex items-center gap-1"><User className="w-3 h-3" /> {err.userId.substring(0, 8)}...</span>}
-                      {err.chatId && <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" /> {err.chatId}</span>}
+                      <span className="flex items-center gap-1 shrink-0"><Clock className="w-3 h-3" /> {new Date(err.lastSeenAt).toLocaleString('ru-RU')}</span>
+                      {err.userId && <span className="flex items-center gap-1 shrink-0"><User className="w-3 h-3" /> {err.userId.substring(0, 8)}...</span>}
+                      {err.chatId && <span className="flex items-center gap-1 shrink-0"><MessageSquare className="w-3 h-3" /> {err.chatId}</span>}
                     </div>
                   </div>
 

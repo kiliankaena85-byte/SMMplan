@@ -79,7 +79,7 @@ export function SummaryDashboard({
       <div className="relative z-10 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <Package className="w-4 h-4 text-primary" />
+            <Package className="w-4 h-4 text-primary shrink-0" />
           </div>
           <div>
             <h3 className="text-sm font-bold text-foreground">{providerName}</h3>

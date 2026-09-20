@@ -26,7 +26,7 @@ export function ProxyDeleteDialog({
       <DialogContent className="sm:max-w-md bg-card border-border">
         <DialogHeader>
           <div className="flex items-center gap-3 text-rose-500 pb-2">
-            <AlertTriangle className="w-6 h-6" />
+            <AlertTriangle className="w-6 h-6 shrink-0" />
             <DialogTitle className="text-lg font-bold">Удаление прокси-сервера</DialogTitle>
           </div>
           <DialogDescription className="text-xs text-muted-foreground leading-relaxed">

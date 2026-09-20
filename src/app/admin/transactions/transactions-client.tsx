@@ -290,7 +290,7 @@ export function TransactionsClient({
               <CreditCard className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1.5 truncate">
+          <div className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1.5 truncate min-w-0">
             +{totalApprovedRub.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
           </div>
           <div className="text-[11px] text-muted-foreground mt-0.5">Пополнения и начисления</div>
@@ -303,7 +303,7 @@ export function TransactionsClient({
               <RotateCcw className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-lg font-bold font-mono text-blue-600 dark:text-blue-400 mt-1.5 truncate">
+          <div className="text-lg font-bold font-mono text-blue-600 dark:text-blue-400 mt-1.5 truncate min-w-0">
             {totalRefundsRub.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
           </div>
           <div className="text-[11px] text-muted-foreground mt-0.5">Авто-возвраты по заказам</div>
@@ -316,7 +316,7 @@ export function TransactionsClient({
               <Clock className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-lg font-bold font-mono text-amber-600 dark:text-amber-400 mt-1.5 truncate">
+          <div className="text-lg font-bold font-mono text-amber-600 dark:text-amber-400 mt-1.5 truncate min-w-0">
             {((data.totals?.quarantine || 0) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2 })} ₽
           </div>
           <div className="text-[11px] text-muted-foreground mt-0.5">На проверке эскроу</div>
@@ -625,10 +625,10 @@ export function TransactionsClient({
                         <div className="flex flex-col min-w-0 max-w-[140px]">
                           <Link
                             href={`/admin/clients/${entry.userId}`}
-                            className="text-primary hover:underline font-mono text-xs font-bold truncate flex items-center gap-0.5"
+                            className="text-primary hover:underline font-mono text-xs font-bold truncate flex items-center gap-0.5 min-w-0"
                             title={entry.userEmail}
                           >
-                            <span className="truncate">{entry.userEmail}</span>
+                            <span className="truncate min-w-0">{entry.userEmail}</span>
                             <ExternalLink className="w-2.5 h-2.5 shrink-0 opacity-60" />
                           </Link>
                           <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono">
@@ -643,7 +643,7 @@ export function TransactionsClient({
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-1">
                             <span
-                              className="px-1.5 py-0.5 rounded bg-muted/60 text-foreground border border-border/50 text-[10px] font-bold truncate max-w-[110px] inline-block select-all"
+                              className="px-1.5 py-0.5 rounded bg-muted/60 text-foreground border border-border/50 text-[10px] font-bold truncate max-w-[110px] inline-block select-all min-w-0"
                               title={displayUuid}
                             >
                               {displayUuid.startsWith('gateway-credit-')
@@ -659,7 +659,7 @@ export function TransactionsClient({
                           {entry.gatewayId && (
                             <div className="flex items-center gap-1">
                               <span
-                                className="px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold truncate max-w-[110px] inline-block select-all"
+                                className="px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold truncate max-w-[110px] inline-block select-all min-w-0"
                                 title={`ID платежа в шлюзе: ${entry.gatewayId}`}
                               >
                                 {entry.gatewayId.startsWith('test_') ? 'test:' : 'yoo:'}
@@ -680,7 +680,7 @@ export function TransactionsClient({
                       <td className="px-2 py-2 whitespace-nowrap">
                         <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase border ${cfg.badgeClass}`}>
                           <span>{cfg.emoji}</span>
-                          <span className="truncate max-w-[90px]">{cfg.label}</span>
+                          <span className="truncate max-w-[90px] min-w-0">{cfg.label}</span>
                         </span>
                       </td>
 

@@ -209,7 +209,7 @@ export function ReconciliationTab({ tenantId, initialSummary }: ReconciliationTa
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-2xl border border-border/80 bg-card/60 backdrop-blur-md shadow-sm">
         <form onSubmit={handleSearchSubmit} className="flex-1 flex items-center gap-2 max-w-md">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 shrink-0" />
             <Input
               placeholder="Поиск по email или ID пользователя..."
               value={search}
@@ -329,7 +329,7 @@ export function ReconciliationTab({ tenantId, initialSummary }: ReconciliationTa
                         <div className="flex items-center gap-1 min-w-0">
                           <Link
                             href={`/admin/clients?q=${encodeURIComponent(acc.email)}`}
-                            className="text-primary hover:text-primary/80 hover:underline font-mono text-xs font-semibold truncate block w-full transition-colors"
+                            className="text-primary hover:text-primary/80 hover:underline font-mono text-xs font-semibold truncate block w-full transition-colors min-w-0"
                             title={acc.email}
                           >
                             {acc.email}
@@ -338,7 +338,7 @@ export function ReconciliationTab({ tenantId, initialSummary }: ReconciliationTa
                         </div>
                         <div className="flex items-center gap-1">
                           <span
-                            className="text-[10px] text-muted-foreground font-mono truncate"
+                            className="text-[10px] text-muted-foreground font-mono truncate min-w-0"
                             title={acc.userId}
                           >
                             ID: {acc.userId.slice(0, 8)}...

@@ -87,7 +87,7 @@ export function MobileNavDrawer({ userEmail, roleInfo, navigation }: MobileNavDr
         className="md:hidden flex items-center justify-center h-10 w-10 sm:h-11 sm:w-11 min-h-[40px] min-w-[40px] rounded-xl border border-border/50 text-foreground hover:bg-muted/80 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none transition-all cursor-pointer shrink-0"
         aria-label="Открыть меню навигации"
       >
-        <Menu className="h-5 w-5" />
+        <Menu className="h-5 w-5 shrink-0" />
       </SheetTrigger>
 
       <SheetContent side="left" className="w-[290px] sm:w-[320px] p-0 bg-card/95 backdrop-blur-xl border-r border-border flex flex-col h-full z-50">
@@ -156,7 +156,7 @@ export function MobileNavDrawer({ userEmail, roleInfo, navigation }: MobileNavDr
                         )}
                         strokeWidth={isActive ? 2.5 : 2}
                       />
-                      <span className="flex-1 truncate">{item.label}</span>
+                      <span className="flex-1 truncate min-w-0">{item.label}</span>
 
                       {item.badge !== undefined && item.badge > 0 && (
                         <span className="ml-auto px-2 py-0.5 text-[10px] font-black leading-none rounded-full bg-rose-500 text-white shadow-sm shadow-rose-500/30">
@@ -177,7 +177,7 @@ export function MobileNavDrawer({ userEmail, roleInfo, navigation }: MobileNavDr
             href="/dashboard/new-order"
             className="flex items-center px-3 py-2 text-xs font-semibold rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200"
           >
-            <svg className="w-4 h-4 mr-2.5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <svg className="w-4 h-4 mr-2.5 text-muted-foreground shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M19 12H5M12 19l-7-7 7-7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <span>В кабинет клиента</span>

@@ -147,7 +147,7 @@ ${chapter.section6Troubleshooting.map((tc) => `### ${tc.scenario}\n- **Симп�
         {/* Section 1: Scope */}
         <section className="p-5 rounded-2xl bg-card border border-border/80 shadow-xs space-y-2">
           <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-            <BookOpen className="w-4 h-4 text-primary" /> 1. Область применения и назначение
+            <BookOpen className="w-4 h-4 text-primary shrink-0" /> 1. Область применения и назначение
           </h3>
           <p className="text-xs sm:text-sm text-foreground leading-relaxed">
             {chapter.section1Scope}
@@ -157,7 +157,7 @@ ${chapter.section6Troubleshooting.map((tc) => `### ${tc.scenario}\n- **Симп�
         {/* Section 2: Terms */}
         <section className="p-5 rounded-2xl bg-card border border-border/80 shadow-xs space-y-3">
           <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-            <Layers className="w-4 h-4 text-indigo-500" /> 2. Термины и определения
+            <Layers className="w-4 h-4 text-indigo-500 shrink-0" /> 2. Термины и определения
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             {chapter.section2Terms.map((t, idx) => (
@@ -172,7 +172,7 @@ ${chapter.section6Troubleshooting.map((tc) => `### ${tc.scenario}\n- **Симп�
         {/* Section 3: Architecture & Diagram */}
         <section className="p-5 rounded-2xl bg-card border border-border/80 shadow-xs space-y-3">
           <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-blue-500" /> 3. Архитектура и системные связи
+            <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0" /> 3. Архитектура и системные связи
           </h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
             {chapter.section3Architecture.description}
@@ -202,7 +202,7 @@ ${chapter.section6Troubleshooting.map((tc) => `### ${tc.scenario}\n- **Симп�
                         className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1"
                       >
                         <span>{s.actionLabel || 'Перейти'}</span>
-                        <ArrowRight className="w-3 h-3" />
+                        <ArrowRight className="w-3 h-3 shrink-0" />
                       </Link>
                     )}
                   </div>
@@ -219,7 +219,7 @@ ${chapter.section6Troubleshooting.map((tc) => `### ${tc.scenario}\n- **Симп�
         {/* Section 5: Safeguards */}
         <section className="p-5 rounded-2xl bg-card border border-border/80 shadow-xs space-y-3">
           <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-500" /> 5. Нестандартные и защитные функции
+            <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" /> 5. Нестандартные и защитные функции
           </h3>
           <div className="space-y-2">
             {chapter.section5Safeguards.rules.map((r, idx) => (
@@ -236,7 +236,7 @@ ${chapter.section6Troubleshooting.map((tc) => `### ${tc.scenario}\n- **Симп�
         {/* Section 6: Troubleshooting */}
         <section className="p-5 rounded-2xl bg-card border border-border/80 shadow-xs space-y-3">
           <h3 className="text-xs font-black uppercase tracking-wider text-rose-500 flex items-center gap-1.5">
-            <AlertOctagon className="w-4 h-4 text-rose-500" /> 6. Диагностика сбоев и план восстановления
+            <AlertOctagon className="w-4 h-4 text-rose-500 shrink-0" /> 6. Диагностика сбоев и план восстановления
           </h3>
           <div className="space-y-3">
             {chapter.section6Troubleshooting.map((tc, idx) => (

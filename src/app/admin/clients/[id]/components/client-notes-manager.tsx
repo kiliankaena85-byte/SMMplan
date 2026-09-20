@@ -130,7 +130,7 @@ export function ClientNotesManager({ userId, initialNotes, compact = false }: Cl
       {/* Historical Notes Feed */}
       <div className="space-y-2.5 pt-2 border-t border-border/40">
         <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1">
-          <Clock className="w-3 h-3" />
+          <Clock className="w-3 h-3 shrink-0" />
           <span>История заметок ({notes.length})</span>
         </div>
 
@@ -154,9 +154,9 @@ export function ClientNotesManager({ userId, initialNotes, compact = false }: Cl
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="w-5 h-5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center text-[10px] font-bold shrink-0">
-                        <User className="w-3 h-3" />
+                        <User className="w-3 h-3 shrink-0" />
                       </span>
-                      <span className="text-[11px] font-bold text-foreground truncate max-w-[130px]" title={item.authorEmail || 'Оператор'}>
+                      <span className="text-[11px] font-bold text-foreground truncate max-w-[130px] min-w-0" title={item.authorEmail || 'Оператор'}>
                         {item.authorEmail ? item.authorEmail.split('@')[0] : 'Оператор'}
                       </span>
                     </div>

@@ -34,11 +34,11 @@ export function FluxOrdersKanban({
             onClick={() => document.dispatchEvent(new CustomEvent('open-command-palette'))}
             className="flex items-center gap-2 px-4 py-2 bg-background/50 hover:bg-muted/80 border border-border/40 backdrop-blur-md rounded-2xl text-sm font-medium transition-all shadow-sm"
           >
-            <Search className="w-4 h-4 text-muted-foreground" />
+            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
             <span className="text-muted-foreground">Cmd + K to Search</span>
           </button>
           <button className="w-10 h-10 flex items-center justify-center bg-background/50 hover:bg-muted/80 border border-border/40 backdrop-blur-md rounded-2xl transition-all shadow-sm">
-            <Filter className="w-4 h-4 text-muted-foreground" />
+            <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
           </button>
         </div>
       </div>

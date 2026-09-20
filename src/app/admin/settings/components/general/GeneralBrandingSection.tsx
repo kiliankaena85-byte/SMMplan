@@ -45,7 +45,7 @@ export function GeneralBrandingSection({
     <Card className="rounded-3xl border border-border/60 shadow-lg bg-card/70 backdrop-blur-xl p-6 sm:p-8 space-y-6">
       <div className="flex items-center gap-3 border-b border-border/50 pb-5">
         <div className="p-2.5 bg-primary/10 text-primary rounded-xl border border-primary/20">
-          <Globe className="w-5 h-5" />
+          <Globe className="w-5 h-5 shrink-0" />
         </div>
         <div>
           <h3 className="text-base font-bold text-foreground">Брендинг & Идентичность сайта</h3>
@@ -104,7 +104,7 @@ export function GeneralBrandingSection({
               {logoUrl ? (
                 <img src={logoUrl} alt="Logo" className="w-full h-full object-contain p-1.5" />
               ) : (
-                <UploadCloud className="w-6 h-6 text-muted-foreground" />
+                <UploadCloud className="w-6 h-6 text-muted-foreground shrink-0" />
               )}
               {logoUploading && (
                 <div className="absolute inset-0 bg-background/85 flex items-center justify-center">
@@ -166,7 +166,7 @@ export function GeneralBrandingSection({
               {faviconUrl ? (
                 <img src={faviconUrl} alt="Favicon" className="w-8 h-8 object-contain" />
               ) : (
-                <UploadCloud className="w-6 h-6 text-muted-foreground" />
+                <UploadCloud className="w-6 h-6 text-muted-foreground shrink-0" />
               )}
               {faviconUploading && (
                 <div className="absolute inset-0 bg-background/85 flex items-center justify-center">

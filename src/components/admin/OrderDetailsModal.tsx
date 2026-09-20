@@ -373,7 +373,7 @@ export function OrderDetailsModal({
                 <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 space-y-2.5">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2 text-xs font-extrabold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
-                      <ShieldAlert className="w-4 h-4" />
+                      <ShieldAlert className="w-4 h-4 shrink-0" />
                       <span>Ответ / Ошибка провайдера:</span>
                     </div>
                     {classifiedError && (

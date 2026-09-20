@@ -59,7 +59,7 @@ export function StormRadarWidget({ report }: Props) {
                 Радар штормов соцсетей и сбоев провайдеров
               </h4>
               <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-bold bg-muted text-muted-foreground border border-border/50">
-                <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                <ShieldCheck className="w-3 h-3 text-emerald-500 shrink-0" />
                 Shadow Mode (Без риска авто-отключения)
               </span>
             </div>
@@ -93,7 +93,7 @@ export function StormRadarWidget({ report }: Props) {
       {/* Main Alert List or Clean Slate */}
       {report.alerts.length === 0 ? (
         <div className="py-5 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-emerald-500" />
+          <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
           <span>Все проверенные услуги работают стабильно. Массовых отмен и штормов алгоритмов не зафиксировано.</span>
         </div>
       ) : (
@@ -168,7 +168,7 @@ export function StormRadarWidget({ report }: Props) {
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-muted/60 hover:bg-muted text-foreground border border-border/50 transition-colors"
                     >
                       <span>Заказы</span>
-                      <ExternalLink className="w-3 h-3" />
+                      <ExternalLink className="w-3 h-3 shrink-0" />
                     </Link>
                   </div>
                 </div>

@@ -113,7 +113,7 @@ export function InteractiveScreenshotViewer({ screenshot }: InteractiveScreensho
           aria-label={screenshot.caption}
         >
           <div className="w-full max-w-6xl flex items-center justify-between text-white pb-3 border-b border-white/20">
-            <span className="text-xs font-bold truncate pr-4">{screenshot.caption}</span>
+            <span className="text-xs font-bold truncate pr-4 min-w-0">{screenshot.caption}</span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -121,7 +121,7 @@ export function InteractiveScreenshotViewer({ screenshot }: InteractiveScreensho
                 className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
                 title="Увеличить"
               >
-                <ZoomIn className="w-4 h-4" />
+                <ZoomIn className="w-4 h-4 shrink-0" />
               </button>
               <button
                 type="button"
@@ -129,7 +129,7 @@ export function InteractiveScreenshotViewer({ screenshot }: InteractiveScreensho
                 className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
                 title="Уменьшить"
               >
-                <ZoomOut className="w-4 h-4" />
+                <ZoomOut className="w-4 h-4 shrink-0" />
               </button>
               <button
                 type="button"
@@ -137,7 +137,7 @@ export function InteractiveScreenshotViewer({ screenshot }: InteractiveScreensho
                 className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
                 title="Сброс масштаба"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-4 h-4 shrink-0" />
               </button>
               <button
                 type="button"

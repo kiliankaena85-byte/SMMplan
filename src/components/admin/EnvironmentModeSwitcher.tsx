@@ -192,7 +192,7 @@ export function EnvironmentModeSwitcher({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 font-bold text-foreground">
-                      <Icon className="w-4 h-4 text-primary" />
+                      <Icon className="w-4 h-4 text-primary shrink-0" />
                       <span>{modeConfig.label}</span>
                     </div>
                     {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
@@ -215,7 +215,7 @@ export function EnvironmentModeSwitcher({
           <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in-0 zoom-in-95">
             <div className="flex items-center gap-3 text-amber-500">
               <div className="p-2.5 bg-amber-500/10 rounded-xl">
-                <AlertTriangle className="w-6 h-6" />
+                <AlertTriangle className="w-6 h-6 shrink-0" />
               </div>
               <div>
                 <h3 className="font-bold text-foreground text-sm">

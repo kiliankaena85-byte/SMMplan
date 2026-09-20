@@ -93,14 +93,14 @@ export function SupportReviewDashboard() {
           onClick={handleExportCSV}
           className="px-3 py-1.5 bg-secondary text-secondary-foreground hover:opacity-90 rounded-md text-xs font-medium flex items-center gap-2 transition-opacity"
         >
-          <Download className="w-4 h-4" />
+          <Download className="w-4 h-4 shrink-0" />
           Экспорт в CSV (Защита OWASP)
         </button>
       </div>
 
       <div className="p-4 bg-card border border-border rounded-xl flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
-          <Filter className="w-4 h-4 text-muted-foreground" />
+          <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
           <span className="text-xs font-medium text-foreground">Статус проверки:</span>
           <select
             value={statusFilter}

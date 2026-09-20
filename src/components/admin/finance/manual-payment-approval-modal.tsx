@@ -98,7 +98,7 @@ export function ManualPaymentApprovalModal({
         <div className="flex items-center justify-between p-4 border-b border-border/60 bg-muted/20">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4" />
+              <ShieldCheck className="w-4 h-4 shrink-0" />
             </div>
             <div>
               <h3 className="text-sm font-bold text-foreground">Ручное подтверждение платежа</h3>

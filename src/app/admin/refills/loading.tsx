@@ -31,7 +31,7 @@ export default function AdminRefillsLoading() {
           <Skeleton className="w-10 h-10 rounded-lg shrink-0" />
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <Skeleton className="h-4 w-48 rounded-md" />
+              <Skeleton className="h-4 w-48 rounded-md shrink-0" />
               <Skeleton className="h-4 w-24 rounded-full" />
             </div>
             <Skeleton className="h-3 w-80 max-w-full rounded-md" />

@@ -40,7 +40,7 @@ export function ProviderCatalogPreviewModal({
         {/* Modal Header */}
         <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30">
           <div className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-primary" />
+            <Layers className="w-5 h-5 text-primary shrink-0" />
             <div>
               <h3 className="text-base font-extrabold text-foreground">
                 Каталог провайдера ({total} услуг)
@@ -78,7 +78,7 @@ export function ProviderCatalogPreviewModal({
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {loading ? (
             <div className="py-16 text-center text-muted-foreground space-y-2">
-              <RefreshCw className="w-6 h-6 animate-spin mx-auto text-primary" />
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto text-primary shrink-0" />
               <p className="text-sm">Загрузка каталога из API провайдера...</p>
             </div>
           ) : services.length === 0 ? (

@@ -145,7 +145,7 @@ export function EditStaffModal({
           {/* Row 2: Gemini Key */}
           <div className="space-y-1.5">
             <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-              <Key className="w-3 h-3" />
+              <Key className="w-3 h-3 shrink-0" />
               Персональный Gemini API ключ
               {editingUser?.geminiApiKey && (
                 <span className="ml-1 text-emerald-500 font-medium normal-case tracking-normal text-[9px]">
@@ -165,7 +165,7 @@ export function EditStaffModal({
           {/* Row 3: Daily Limit */}
           <div className="space-y-1.5">
             <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-              <DollarSign className="w-3 h-3" />
+              <DollarSign className="w-3 h-3 shrink-0" />
               Дневной лимит компенсаций (₽)
             </label>
             <Input

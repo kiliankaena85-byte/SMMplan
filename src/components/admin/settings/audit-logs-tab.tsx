@@ -121,7 +121,7 @@ export function AuditLogsTab({ logs }: AuditLogsTabProps) {
         <DialogContent className="sm:max-w-2xl bg-card border-border max-h-[85vh] flex flex-col">
           <DialogHeader>
             <div className="flex items-center gap-2 text-primary pb-1">
-              <Terminal className="w-5 h-5" />
+              <Terminal className="w-5 h-5 shrink-0" />
               <DialogTitle className="text-base font-bold font-mono">
                 {selectedLog?.action}
               </DialogTitle>

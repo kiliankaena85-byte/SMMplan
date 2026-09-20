@@ -1,3 +1,16 @@
+- [x] 🏛️ [ADMIN-PANEL-TRIUMVIRATE-AUDIT-2026] Комплексный триумвират аудита админки OmniSMM 1.0 (AST-анализ верстки + Guardrails + E2E Браузерный харнес) (100% COMPLETE & VERIFIED):
+  * 📐 **Уровень 1: AST-анализ верстки (`npm run layout:audit` -> `scripts/ui/layout-sentry.ts`):**
+    - Просканированы ключевые UI-директории: `src/components/admin`, `src/app/admin`, `src/components/dashboard`, `src/components/landing`, `src/components/auth`, `src/components/orders`.
+    - Всего замечаний: 431 (49 High, 382 Medium, 0 Low).
+    - Полный структурированный отчёт: `docs/audits/layout-audit-report.md`.
+  * 🛡️ **Уровень 2: Архитектурные Guardrails (`npm run lint:guardrails` -> `scripts/run-ast-guardrails.ts`):**
+    - Статус: 🟢 PASS (0 Blocker-нарушений).
+    - Архитектурные границы, server-actions guards и client/server разделение чисты.
+  * 🌐 **Уровень 3: Браузерный E2E-харнес (`npm run audit:admin:harness` -> `scripts/audit-admin-layout.ts`):**
+    - Подключена база данных `smmplan_lite_db` (порт 5435) и сидированы детерминированные фикстуры (`scripts/ci/seed-admin-audit-fixtures.ts`).
+    - Протестирован 21 маршрут админки x 4 вьюпорта (Desktop, Tablet, Mobile 375, Mobile 390) = 84 проверки.
+    - Метрики: Desktop 21/21 PASS (100%), Tablet 20/21 PASS, 0 Error Boundaries, 0 Clipped Cells, 0 Hydration Mismatches, 0 Server Action Crashes, Multi-tenant cookie `x_admin_tenant` verified.
+    - Отчёт сохранён в `docs/audits/admin-harness-audit.md` и `docs/audits/admin-harness-audit.json`.
 - [x] 📱 [ADMIN-PANEL-MOBILE-OVERLAPS-AND-COLLISIONS-FIX-2026] Комплексная ликвидация наложений, коллизий и вылета элементов в мобильной верстке админ-панели (100% COMPLETE & VERIFIED):
   * 🎛️ **Волна 1: Ликвидация обрезания шапки и вылета кнопки профиля (`src/app/admin/layout.tsx`, `EnvironmentModeSwitcher.tsx`, `tenant-switcher.tsx`):**
     - В `src/components/admin/EnvironmentModeSwitcher.tsx` на экранах `< sm` скрыт текстовый бейдж «Песочница» (`hidden sm:inline`), кнопка превращена в компактный интерактивный индикатор с цветной иконкой режима (щит/молния) и атрибутом `title`, снижая ширину элемента со 125px до 38px.

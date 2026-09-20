@@ -118,7 +118,7 @@ export function SystemHealthOverview({ settings }: SystemHealthOverviewProps) {
         <div>
           <div className="flex items-center gap-2.5 mb-1.5">
             <div className="p-2 bg-primary/10 text-primary rounded-xl border border-primary/20">
-              <Zap className="w-4 h-4" />
+              <Zap className="w-4 h-4 shrink-0" />
             </div>
             <h2 className="text-base font-black uppercase tracking-wider text-foreground">
               Пульс Платформы и Интеграций
@@ -136,17 +136,17 @@ export function SystemHealthOverview({ settings }: SystemHealthOverviewProps) {
         <div className="flex items-center gap-3">
           {settings.maintenanceMode ? (
             <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-destructive/15 border border-destructive/30 text-destructive animate-pulse">
-              <AlertTriangle className="w-4 h-4" />
+              <AlertTriangle className="w-4 h-4 shrink-0" />
               <span className="text-xs font-black uppercase tracking-wider">Техработы активны</span>
             </div>
           ) : settings.isTestMode ? (
             <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-warning/15 border border-warning/30 text-warning">
-              <HelpCircle className="w-4 h-4" />
+              <HelpCircle className="w-4 h-4 shrink-0" />
               <span className="text-xs font-black uppercase tracking-wider">Тестовый Sandbox</span>
             </div>
           ) : (
             <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-success/15 border border-success/30 text-success">
-              <ShieldCheck className="w-4 h-4" />
+              <ShieldCheck className="w-4 h-4 shrink-0" />
               <span className="text-xs font-black uppercase tracking-wider">Боевой Live режим</span>
             </div>
           )}
@@ -159,7 +159,7 @@ export function SystemHealthOverview({ settings }: SystemHealthOverviewProps) {
         <div className="p-4 rounded-lg border border-border/70 bg-background/60 backdrop-blur-md space-y-3 shadow-xs">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-primary" />
+              <CreditCard className="w-4 h-4 text-primary shrink-0" />
               <span className="text-xs font-bold text-foreground">Приём платежей</span>
             </div>
             {isYooKassaReady || isCryptoBotReady || isRobokassaReady ? (
@@ -198,7 +198,7 @@ export function SystemHealthOverview({ settings }: SystemHealthOverviewProps) {
         <div className="p-4 rounded-lg border border-border/70 bg-background/60 backdrop-blur-md space-y-3 shadow-xs">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-2">
-              <Mail className="w-4 h-4 text-primary" />
+              <Mail className="w-4 h-4 text-primary shrink-0" />
               <span className="text-xs font-bold text-foreground">Почта & Тикеты</span>
             </div>
             {isEmailReady ? (
@@ -229,7 +229,7 @@ export function SystemHealthOverview({ settings }: SystemHealthOverviewProps) {
         <div className="p-4 rounded-lg border border-border/70 bg-background/60 backdrop-blur-md space-y-3 shadow-xs">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-2">
-              <Bot className="w-4 h-4 text-primary" />
+              <Bot className="w-4 h-4 text-primary shrink-0" />
               <span className="text-xs font-bold text-foreground">ИИ Ассистент</span>
             </div>
             {isGeminiReady ? (
@@ -249,7 +249,7 @@ export function SystemHealthOverview({ settings }: SystemHealthOverviewProps) {
             </div>
             <div className="flex justify-between items-center">
               <span>Прокси РФ:</span>
-              <span className="text-foreground font-bold truncate max-w-[100px]" title={settings.geminiProxy || 'Прямое / Clash'}>
+              <span className="text-foreground font-bold truncate max-w-[100px] min-w-0" title={settings.geminiProxy || 'Прямое / Clash'}>
                 {settings.geminiProxy ? 'Настроен' : 'Прямое'}
               </span>
             </div>
@@ -260,7 +260,7 @@ export function SystemHealthOverview({ settings }: SystemHealthOverviewProps) {
         <div className="p-4 rounded-lg border border-border/70 bg-background/60 backdrop-blur-md space-y-3 shadow-xs">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-2">
-              <RefreshCw className="w-4 h-4 text-primary" />
+              <RefreshCw className="w-4 h-4 text-primary shrink-0" />
               <span className="text-xs font-bold text-foreground">Курс ЦБ РФ (USD)</span>
             </div>
             <Button
@@ -335,7 +335,7 @@ export function SystemHealthOverview({ settings }: SystemHealthOverviewProps) {
           {/* Queues & Stuck Orders */}
           {healthReport && (healthReport.queues.waitingOrders > 0 || healthReport.stuckOrders.pendingOlderThan15m > 0) && (
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-warning/10 border border-warning/20 text-warning text-[10px]">
-              <AlertTriangle className="w-3 h-3" />
+              <AlertTriangle className="w-3 h-3 shrink-0" />
               <span>Очередь: {healthReport.queues.waitingOrders} | Зависло: {healthReport.stuckOrders.pendingOlderThan15m}</span>
             </div>
           )}

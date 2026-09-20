@@ -39,21 +39,21 @@ export function ProvidersTableRow({
       {/* 1. Name & URL + Copy */}
       <TableCell className="py-2.5 px-4">
         <div className="flex items-center gap-1.5">
-          <span className="font-semibold text-foreground group-hover:text-primary transition-colors text-xs truncate max-w-[220px]" title={provider.name}>
+          <span className="font-semibold text-foreground group-hover:text-primary transition-colors text-xs truncate max-w-[220px] min-w-0" title={provider.name}>
             {provider.name}
           </span>
           {provider.ticketUrl && (
             <a href={provider.ticketUrl} target="_blank" rel="noopener noreferrer" title="Открыть панель поддержки" className="text-muted-foreground hover:text-primary p-0.5 shrink-0 inline-flex items-center justify-center min-w-[24px] min-h-[24px]">
-              <LifeBuoy className="w-3 h-3 text-primary" />
+              <LifeBuoy className="w-3 h-3 text-primary shrink-0" />
             </a>
           )}
         </div>
         <div className="flex items-center gap-1 mt-0.5">
-          <span className="text-muted-foreground/70 font-mono text-[10px] truncate max-w-[180px]" title={provider.apiUrl}>
+          <span className="text-muted-foreground/70 font-mono text-[10px] truncate max-w-[180px] min-w-0" title={provider.apiUrl}>
             {provider.apiUrl}
           </span>
           <button type="button" onClick={() => onCopyUrl(provider.id, provider.apiUrl)} title="Скопировать URL" className="text-muted-foreground/50 hover:text-foreground p-1 cursor-pointer shrink-0 inline-flex items-center justify-center rounded-md" aria-label="Скопировать URL">
-            {copiedId === provider.id ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
+            {copiedId === provider.id ? <Check className="w-3 h-3 text-success shrink-0" /> : <Copy className="w-3 h-3" />}
           </button>
         </div>
       </TableCell>

@@ -67,7 +67,7 @@ export function DriftClient({ initialData }: { initialData: DriftCandidate[] }) 
       {errorMessage && (
         <div className="mb-4 p-3.5 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium flex items-center justify-between">
           <span>{errorMessage}</span>
-          <button onClick={() => setErrorMessage(null)} className="text-xs underline hover:opacity-80">Закрыть</button>
+          <button type="button" onClick={() => setErrorMessage(null)} className="text-xs underline hover:opacity-80">Закрыть</button>
         </div>
       )}
       <div className="bg-card border border-border rounded-xl overflow-hidden w-full">

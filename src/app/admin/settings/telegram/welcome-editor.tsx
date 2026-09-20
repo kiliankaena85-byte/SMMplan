@@ -182,7 +182,7 @@ export function WelcomeEditor({ settings }: Props) {
           <Card className="rounded-3xl border border-border/80 shadow-sm bg-card p-6 space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <MessageSquare className="w-4 h-4 text-primary" /> Предпросмотр
+                <MessageSquare className="w-4 h-4 text-primary shrink-0" /> Предпросмотр
               </span>
               <Button type="button" variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(previewText); toast.success('Скопировано'); }} className="h-7 w-7 p-0">
                 <Copy className="w-3.5 h-3.5" />
