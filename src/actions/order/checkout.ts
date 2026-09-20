@@ -44,7 +44,7 @@ export async function calculatePriceAction(
 
     const cleanPromo = promoCodeStr ? promoCodeStr.trim().toUpperCase() : undefined;
     if (cleanPromo) {
-      if (cleanPromo.length < 3 || cleanPromo.length > 32 || !/^[A-Z0-9_-]+$/.test(cleanPromo)) {
+      if (cleanPromo.length < 3 || cleanPromo.length > 64 || !/^[A-Z0-9_-]+$/.test(cleanPromo)) {
         return { success: false, error: "Некорректный формат промокода" };
       }
       let clientIp = '127.0.0.1';
@@ -91,7 +91,7 @@ const checkoutSchema = z.object({
   link: z.string().min(3, "Ссылка слишком короткая").max(2048, "Ссылка слишком длинная").refine(val => !val.includes(' '), "Ссылка не должна содержать пробелов"),
   quantity: z.number().int("Количество должно быть целым числом").min(1, "Минимальное количество — 1").max(10_000_000, "Превышен максимальный лимит количества"),
   email: z.string().email("Неверный email"),
-  promoCodeStr: z.string().trim().max(32, "Промокод не может быть длиннее 32 символов").regex(/^[a-zA-Z0-9_-]*$/, "Некорректный формат промокода").optional(),
+  promoCodeStr: z.string().trim().max(64, "Промокод не может быть длиннее 64 символов").regex(/^[a-zA-Z0-9_-]*$/, "Некорректный формат промокода").optional(),
   runs: z.number().int("Количество запусков должно быть целым числом").min(1).max(100).optional(),
   interval: z.number().int("Интервал должен быть целым числом").min(1).max(10080).optional(),
   customData: z.string().optional(),

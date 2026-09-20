@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { requireStaffPermission } from '@/lib/server/rbac';
 
 const promoCodeSchema = z.object({
-  code: z.string().min(1).max(12).toUpperCase().regex(/^[A-Z0-9_-]+$/, "Разрешены только буквы, цифры, дефис и подчеркивание"),
+  code: z.string().min(1).max(64, "Код не должен превышать 64 символа").toUpperCase().regex(/^[A-Z0-9_-]+$/, "Разрешены только буквы, цифры, дефис и подчеркивание"),
   type: z.enum(['DISCOUNT', 'VOUCHER']),
   discountPercent: z.coerce.number().min(0, "Процент скидки не может быть отрицательным").max(90, "Максимальная скидка 90%").optional().default(0),
   amount: z.coerce.number().min(0, "Сумма не может быть отрицательной").max(5000, "Максимальная сумма ваучера 5,000 ₽").optional().default(0),

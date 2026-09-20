@@ -59,7 +59,7 @@ export function CreatePromoForm({ onSuccess }: CreatePromoFormProps) {
   return (
     <form action={action} ref={formRef} className="space-y-5">
       <div className="space-y-2">
-        <Label className="text-xs uppercase tracking-wider text-muted-foreground font-extrabold">Код (до 12 символов)</Label>
+        <Label className="text-xs uppercase tracking-wider text-muted-foreground font-extrabold">Код (до 64 символов)</Label>
         <div className="flex gap-2">
           <Input 
             name="code" 
@@ -67,7 +67,7 @@ export function CreatePromoForm({ onSuccess }: CreatePromoFormProps) {
             onChange={(e) => setCodeValue(e.target.value.toUpperCase())}
             placeholder="WELCOME2026" 
             required 
-            maxLength={12}
+            maxLength={64}
             disabled={isPending}
             className="uppercase font-mono tracking-widest text-foreground bg-muted/60 border-border flex-grow focus:border-primary focus:ring-2 focus:ring-primary/20 h-[44px]" 
           />

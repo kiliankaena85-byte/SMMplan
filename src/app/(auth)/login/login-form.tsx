@@ -374,7 +374,9 @@ export function LoginForm({ isFlux = false }: { isFlux?: boolean }) {
                 id="register-password"
                 type={showPassword ? 'text' : 'password'}
                 required
-                placeholder="Создайте пароль (мин. 12 символов)"
+                minLength={6}
+                maxLength={128}
+                placeholder="Создайте пароль (от 6 до 128 символов)"
                 value={registerPassword}
                 onChange={(e) => setRegisterPassword(e.target.value)}
                 className={`${inputCls} pl-10 pr-10`}
@@ -396,11 +398,12 @@ export function LoginForm({ isFlux = false }: { isFlux?: boolean }) {
           <button
             type="submit"
             onClick={(e) => {
-              if (!registerEmail || registerPassword.length < 12) {
+              if (!registerEmail || registerPassword.length < 6 || registerPassword.length > 128) {
                 e.preventDefault();
                 setShakeKey(Date.now());
                 if (!registerEmail) toast.error('Пожалуйста, введите Email');
-                else if (registerPassword.length < 12) toast.error('Пароль должен быть не менее 12 символов');
+                else if (registerPassword.length < 6) toast.error('Пароль должен быть не менее 6 символов');
+                else if (registerPassword.length > 128) toast.error('Пароль не должен превышать 128 символов');
               }
             }}
             disabled={registerPending}

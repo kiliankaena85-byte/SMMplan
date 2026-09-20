@@ -30,7 +30,7 @@ export class PromoValidatorService {
     tenantId?: string
   ): Promise<PromoValidationResult> {
     const cleanCode = code.trim().toUpperCase();
-    if (!cleanCode || cleanCode.length < 3 || cleanCode.length > 32) {
+    if (!cleanCode || cleanCode.length < 3 || cleanCode.length > 64) {
       return { valid: false, error: 'Неверный формат промокода' };
     }
 

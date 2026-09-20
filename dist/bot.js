@@ -15348,17 +15348,11 @@ var init_exact_math = __esm({
   "src/lib/financial/exact-math.ts"() {
     "use strict";
     ExactMath = class {
-      static {
-        this.MICRO_SCALE = BigInt(1e4);
-      }
-      static {
-        // 10^4 precision factor for sub-kopecks
-        this.BPS_BASE = BigInt(1e4);
-      }
-      static {
-        // 100.00% = 10,000 basis points
-        this.KOPECK_TO_RUB = BigInt(100);
-      }
+      static MICRO_SCALE = BigInt(1e4);
+      // 10^4 precision factor for sub-kopecks
+      static BPS_BASE = BigInt(1e4);
+      // 100.00% = 10,000 basis points
+      static KOPECK_TO_RUB = BigInt(100);
       // 100 kopecks = 1 RUB
       /**
        * Converts floating rubles to BigInt kopecks safely.
@@ -15492,23 +15486,23 @@ var init_wallet_ops = __esm({
     init_transactions();
     init_exact_math();
     WalletInsufficientFundsError = class extends Error {
+      code = "INSUFFICIENT_FUNDS";
       constructor(needed, got) {
         super(`Insufficient funds: needed ${needed.toString()}, got ${got.toString()}`);
-        this.code = "INSUFFICIENT_FUNDS";
         this.name = "WalletInsufficientFundsError";
       }
     };
     WalletUserNotFoundError = class extends Error {
+      code = "USER_NOT_FOUND";
       constructor(userId) {
         super(`User ${userId} not found or tenant access forbidden.`);
-        this.code = "USER_NOT_FOUND";
         this.name = "WalletUserNotFoundError";
       }
     };
     WalletInvalidAmountError = class extends Error {
+      code = "INVALID_AMOUNT";
       constructor(action) {
         super(`${action} amount must be a strictly positive finite number.`);
-        this.code = "INVALID_AMOUNT";
         this.name = "WalletInvalidAmountError";
       }
     };
@@ -70681,6 +70675,16 @@ var init_queue_manager = __esm({
   }
 });
 
+// src/config/order-constants.ts
+var ORDER_COOLING_OFF_SECONDS, ORDER_COOLING_OFF_MS;
+var init_order_constants = __esm({
+  "src/config/order-constants.ts"() {
+    "use strict";
+    ORDER_COOLING_OFF_SECONDS = 90;
+    ORDER_COOLING_OFF_MS = ORDER_COOLING_OFF_SECONDS * 1e3;
+  }
+});
+
 // src/utils/target-type-mapper.ts
 var target_type_mapper_exports = {};
 __export2(target_type_mapper_exports, {
@@ -97934,9 +97938,7 @@ var init_emergency_email = __esm({
     init_logger();
     log3 = logger.child({ component: "EmergencyEmailService" });
     EmergencyEmailService = class {
-      static {
-        this.transporter = null;
-      }
+      static transporter = null;
       static getTransporter() {
         if (this.transporter) return this.transporter;
         const host = process.env.SMTP_HOST || "smtp.yandex.ru";
@@ -129370,6 +129372,7 @@ var init_order_service = __esm({
     init_compensation_service();
     init_transactions();
     init_queue_manager();
+    init_order_constants();
     OrderService = class {
       /**
        * Fast secure path for Orders.
@@ -129524,7 +129527,7 @@ var init_order_service = __esm({
             return createdOrder;
           });
           try {
-            await ordersQueue.add("order-dispatch", { orderId: newOrder.id }, { jobId: `dispatch-${newOrder.id}`, delay: 3 * 60 * 1e3 });
+            await ordersQueue.add("order-dispatch", { orderId: newOrder.id }, { jobId: `dispatch-${newOrder.id}`, delay: ORDER_COOLING_OFF_MS });
           } catch (queueError) {
             console.error("[OrderService] Non-fatal queue dispatch error:", queueError instanceof Error ? queueError.message : String(queueError));
           }
@@ -129965,18 +129968,10 @@ var init_cbr_rate_service = __esm({
     "use strict";
     init_settings();
     CBRRateService = class {
-      static {
-        this.CBR_OFFICIAL_XML_URL = "https://www.cbr.ru/scripts/XML_daily.asp";
-      }
-      static {
-        this.CBR_JSON_MIRROR_URL = "https://www.cbr-xml-daily.ru/daily_json.js";
-      }
-      static {
-        this.GLOBAL_FX_API_URL = "https://open.er-api.com/v6/latest/USD";
-      }
-      static {
-        this.SPREAD_MULTIPLIER = 1.03;
-      }
+      static CBR_OFFICIAL_XML_URL = "https://www.cbr.ru/scripts/XML_daily.asp";
+      static CBR_JSON_MIRROR_URL = "https://www.cbr-xml-daily.ru/daily_json.js";
+      static GLOBAL_FX_API_URL = "https://open.er-api.com/v6/latest/USD";
+      static SPREAD_MULTIPLIER = 1.03;
       // +3% Margin Safety Net (PB-003)
       /**
        * Fetches raw currency rates from CBR with multi-tiered fallback.
@@ -130228,7 +130223,7 @@ var init_marketing_service = __esm({
       async calculatePrice(userId, serviceId, quantity, promoCodeStr, preloadedContext) {
         if (promoCodeStr) {
           const clean = promoCodeStr.trim().toUpperCase();
-          promoCodeStr = clean.length <= 32 && /^[A-Z0-9_-]+$/.test(clean) ? clean : null;
+          promoCodeStr = clean.length <= 64 && /^[A-Z0-9_-]+$/.test(clean) ? clean : null;
         } else {
           promoCodeStr = null;
         }
@@ -130619,16 +130614,10 @@ var init_proxy_pool_service = __esm({
     init_redis();
     init_vault();
     ProxyPoolService = class {
-      static {
-        this.QUARANTINE_DURATION_MS = 15 * 60 * 1e3;
-      }
-      static {
-        // 15 minutes
-        this.MAX_FAILURES_BEFORE_QUARANTINE = 3;
-      }
-      static {
-        this.REDIS_HEALTH_PREFIX = "proxy:health:";
-      }
+      static QUARANTINE_DURATION_MS = 15 * 60 * 1e3;
+      // 15 minutes
+      static MAX_FAILURES_BEFORE_QUARANTINE = 3;
+      static REDIS_HEALTH_PREFIX = "proxy:health:";
       /**
        * Fetch active, healthy proxies from database & cache.
        */
@@ -130838,16 +130827,10 @@ var init_security_alert_service = __esm({
     init_notifications();
     init_redis();
     SecurityAlertService = class {
-      static {
-        this.THROTTLE_PREFIX = "security:alert:throttle:";
-      }
-      static {
-        this.THROTTLE_TTL_SEC = 60;
-      }
-      static {
-        // 1 alert per minute per event+ip pair
-        this.STREAM_CHANNEL = "security:events:stream";
-      }
+      static THROTTLE_PREFIX = "security:alert:throttle:";
+      static THROTTLE_TTL_SEC = 60;
+      // 1 alert per minute per event+ip pair
+      static STREAM_CHANNEL = "security:events:stream";
       /**
        * Records a security event to DB, broadcasts via Redis Pub/Sub,
        * and sends an immediate Telegram alert to admins if CRITICAL/HIGH (with anti-flooding).
@@ -131208,15 +131191,9 @@ var init_network_router = __esm({
       ]
     };
     UniversalNetworkRouter = class {
-      static {
-        this.cachedConfig = null;
-      }
-      static {
-        this.lastConfigFetch = 0;
-      }
-      static {
-        this.CONFIG_CACHE_TTL_MS = 3e4;
-      }
+      static cachedConfig = null;
+      static lastConfigFetch = 0;
+      static CONFIG_CACHE_TTL_MS = 3e4;
       /**
        * Loads the current routing configuration from SystemSettings or returns default
        */
@@ -131601,6 +131578,7 @@ var init_payment_gateway_service = __esm({
     init_wallet_ops();
     import_crypto3 = __toESM(require("crypto"));
     init_network_router();
+    init_order_constants();
     VAT_THRESHOLD_KOPECKS = BigInt(2e7) * BigInt(100);
     vatThresholdCache = /* @__PURE__ */ new Map();
     BasePaymentGateway = class {
@@ -132034,7 +132012,7 @@ var init_payment_gateway_service = __esm({
           return ids;
         }, { isolationLevel: "Serializable", timeout: 15e3 });
         for (const id of updatedOrderIds) {
-          await ordersQueue2.add("order-dispatch", { orderId: id }, { jobId: `dispatch-${id}`, delay: 3 * 60 * 1e3 });
+          await ordersQueue2.add("order-dispatch", { orderId: id }, { jobId: `dispatch-${id}`, delay: ORDER_COOLING_OFF_MS });
         }
         return {
           paymentUrl: params.successUrl,
@@ -132327,9 +132305,7 @@ var init_bot_settings_service = __esm({
     init_telegram();
     CACHE_TTL_MS2 = 3e4;
     BotSettingsService = class {
-      static {
-        this.cache = /* @__PURE__ */ new Map();
-      }
+      static cache = /* @__PURE__ */ new Map();
       /**
        * Invalidate settings cache (called by admin actions on update)
        */
@@ -137790,12 +137766,10 @@ var init_unified_link_engine = __esm({
     init_ssrf_guard();
     init_prohibited_content();
     UnifiedLinkEngineImpl = class {
-      constructor() {
-        this.analyzer = new IntelligenceLinkAnalyzer();
-        this.cache = /* @__PURE__ */ new Map();
-        this.MAX_CACHE_SIZE = 2e3;
-        this.CACHE_TTL_MS = 6e4;
-      }
+      analyzer = new IntelligenceLinkAnalyzer();
+      cache = /* @__PURE__ */ new Map();
+      MAX_CACHE_SIZE = 2e3;
+      CACHE_TTL_MS = 6e4;
       // 1 minute
       /**
        * Fast In-Memory Analysis with LRU Caching and Security Guard.
@@ -138745,12 +138719,8 @@ var init_p0_alert_debouncer = __esm({
     inMemoryLocks = /* @__PURE__ */ new Map();
     inMemoryCounters = /* @__PURE__ */ new Map();
     P0AlertDebouncer = class {
-      static {
-        this.PREFIX = "p0:debounce:";
-      }
-      static {
-        this.THRESHOLD_PREFIX = "p0:threshold:";
-      }
+      static PREFIX = "p0:debounce:";
+      static THRESHOLD_PREFIX = "p0:threshold:";
       /**
        * Attempts to acquire an alert lock.
        * Returns TRUE if this is the first alert in the window (lock acquired -> ALLOW SEND).
@@ -138890,17 +138860,11 @@ var init_circuit_breaker = __esm({
       }
     };
     CircuitBreaker = class {
-      static {
-        this.FAILURE_THRESHOLD = 5;
-      }
-      static {
-        // failures
-        this.FAILURE_WINDOW_SEC = 60;
-      }
-      static {
-        // window to accumulate failures
-        this.COOL_DOWN_SEC = 30;
-      }
+      static FAILURE_THRESHOLD = 5;
+      // failures
+      static FAILURE_WINDOW_SEC = 60;
+      // window to accumulate failures
+      static COOL_DOWN_SEC = 30;
       // time before half-open state
       /**
        * Checks if a request to the given URL is allowed.
@@ -139023,9 +138987,11 @@ var init_universal_provider = __esm({
     }).passthrough();
     ProviderServicesArraySchema = external_exports.array(ProviderServiceSchema);
     UniversalProvider = class {
+      apiUrl;
+      apiKey;
+      mapping = null;
+      proxyConfig = null;
       constructor(apiUrl, apiKey, metadata, proxyConfig) {
-        this.mapping = null;
-        this.proxyConfig = null;
         this.apiUrl = apiUrl;
         this.apiKey = apiKey;
         if (metadata && typeof metadata === "object" && metadata.mapping) {
@@ -139724,9 +139690,7 @@ var init_geo_availability_service = __esm({
   "src/services/telemetry/geo-availability.service.ts"() {
     "use strict";
     GeoAvailabilityService = class _GeoAvailabilityService {
-      static {
-        this.DEFAULT_TARGET = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "https://test.smmplan.pro";
-      }
+      static DEFAULT_TARGET = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "https://test.smmplan.pro";
       /**
        * Performs an asynchronous geo-distributed HTTP probe across Russian and international probe nodes.
        */
@@ -140633,6 +140597,7 @@ var init_payment_service = __esm({
     init_marketing_utils();
     init_promo_automation_service();
     init_security_alert_service();
+    init_order_constants();
     PaymentService = class {
       /**
        * Confirms a payment and activates the linked order.
@@ -140876,7 +140841,7 @@ var init_payment_service = __esm({
           if (activatedOrders.length > 0) {
             const { ordersQueue: ordersQueue2 } = await Promise.resolve().then(() => (init_queue_manager(), queue_manager_exports));
             for (const activated of activatedOrders) {
-              await ordersQueue2.add("order-dispatch", { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: 3 * 60 * 1e3 });
+              await ordersQueue2.add("order-dispatch", { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: ORDER_COOLING_OFF_MS });
               if (activated.userEmail && activated.serviceName) {
                 void sendOrderPaidMail(
                   activated.userEmail,
@@ -141087,7 +141052,7 @@ var init_payment_service = __esm({
           if (activatedOrders.length > 0) {
             const { ordersQueue: ordersQueue2 } = await Promise.resolve().then(() => (init_queue_manager(), queue_manager_exports));
             for (const activated of activatedOrders) {
-              await ordersQueue2.add("order-dispatch", { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: 3 * 60 * 1e3 });
+              await ordersQueue2.add("order-dispatch", { orderId: activated.id }, { jobId: `dispatch-${activated.id}`, delay: ORDER_COOLING_OFF_MS });
               if (activated.userEmail && activated.serviceName) {
                 void sendOrderPaidMail(
                   activated.userEmail,
@@ -141118,9 +141083,7 @@ var init_sse_broadcaster = __esm({
   "src/lib/sse-broadcaster.ts"() {
     "use strict";
     SSEBroadcaster = class {
-      constructor() {
-        this.channels = /* @__PURE__ */ new Map();
-      }
+      channels = /* @__PURE__ */ new Map();
       /**
        * Subscribe a listener to a ticket's message stream.
        * Returns an unsubscribe function for cleanup.
@@ -141579,9 +141542,8 @@ var init_support_bot_service = __esm({
     import_fs2 = __toESM(require("fs"));
     import_path = __toESM(require("path"));
     SupportBotService = class {
+      UPLOAD_DIR_BASE = import_path.default.join(process.cwd(), "private", "uploads", "tickets");
       constructor() {
-        this.UPLOAD_DIR_BASE = import_path.default.join(process.cwd(), "private", "uploads", "tickets");
-        this.lastError = null;
         try {
           if (!import_fs2.default.existsSync(this.UPLOAD_DIR_BASE)) {
             import_fs2.default.mkdirSync(this.UPLOAD_DIR_BASE, { recursive: true });
@@ -141705,6 +141667,7 @@ var init_support_bot_service = __esm({
         }
         return json;
       }
+      lastError = null;
       getLastError() {
         return this.lastError;
       }

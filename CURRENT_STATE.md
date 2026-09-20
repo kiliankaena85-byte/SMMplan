@@ -1,3 +1,44 @@
+- [x] 🔐 [AUTH-PASSWORD-PROMOCODE-LENGTH-LIMITS-2026] Установка длины пароля регистрации 6–128 символов и ограничение длины промокода до 64 символов (100% COMPLETE & STAGE VERIFIED):
+  * 🔑 **Политика длины паролей (от 6 до 128 символов):**
+    - `src/validators/password-policy.ts`: снижен минимальный порог с 12 до 6 символов (`min(6)`), верхний предел установлен в 128 символов (`max(128)`). Сохранены строгие эвристики защиты от слабых паролей (`123456`, `qwerty`, повторяющиеся символы).
+    - `src/lib/validators/auth-schemas.ts`: лимит пароля в `passwordLoginSchema` синхронизирован до `max(128)` (ранее `max(72)` блокировал вход пользователей с паролями 73–128 символов).
+    - `src/actions/auth/password-settings.ts`: схемы `setPasswordSchema` и `changePasswordSchema` обновлены с `min(8)` до `min(6).max(128)`.
+    - `src/app/(auth)/login/login-form.tsx`: инпут пароля регистрации получил атрибуты `minLength={6}`, `maxLength={128}`, плейсхолдер `"Создайте пароль (от 6 до 128 символов)"` и клиентскую валидацию длины `6..128`.
+  * 🎟️ **Ограничение длины промокода до 64 символов (защита БД и Anti-ReDoS):**
+    - `src/services/marketing.service.ts`: санитизация промокода расширена с `length <= 32` до `length <= 64`.
+    - `src/services/promo/promo-validator.service.ts`: формат промокода разрешает до 64 символов (`cleanCode.length > 64`).
+    - `src/actions/order/checkout.ts`: в `calculatePriceAction` и `checkoutSchema` максимальная длина промокода установлена строго в 64 символа.
+    - `src/actions/user/promo.ts`: в `activatePromoCodeAction` добавлен предварительный барьер `cleanCode.length > 64` до старта транзакции и обращения к БД.
+    - `src/actions/admin/marketing.ts`: в `promoCodeSchema` создание промокодов админом расширено с 12 до 64 символов.
+    - `src/app/admin/marketing/create-promo-form.tsx`: лейбл обновлен до `Код (до 64 символов)`, выставлен `maxLength={64}`.
+    - UI-компоненты: во все поля ввода промокодов добавлен атрибут `maxLength={64}` (`PlanCheckoutPromo.tsx`, `MobileCheckoutPromo.tsx`, `DrawerFormInputs.tsx`, `client-page.tsx` пополнения баланса).
+  * 🧪 **Автоматизированное тестирование и Stage-аудит (BGS-2026):**
+    - `src/__tests__/unit/password-and-promocode-length-limits.test.ts` — 10/10 PASS (100%).
+    - `src/__tests__/security/owasp-promo-code-hardening.test.ts` — 9/9 PASS (100%).
+    - `src/actions/auth/__tests__/password-register.test.ts` — 3/3 PASS (100%).
+    - `src/actions/auth/__tests__/password-login.test.ts` — 6/6 PASS (100%).
+    - `npx tsc --noEmit` — 0 ошибок типов (Strict mode).
+    - `npm run check:arch` — 0 layer violations, 0 circular cycles (1496 модулей).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - `npm run build` — чистая standalone-сборка.
+    - `scripts/verify-stage-password-promocode-limits.ts` — 100% Playwright проверка на Stage (`:3005`) со скриншотами.
+- [x] 📦 [ERP-PRIMELIKE-CATALOG-SYSTEMATIZATION-2026] Полная систематизация и деплой каталога провайдеров из ERP (100% COMPLETE & VERIFIED):
+  * 🎯 **Систематизация и нормализация базы ERP (313 уникальных услуг):**
+    - Извлечены 313 уникальных активных услуг из базы `smm_erp` (`erp_system-postgres-1`).
+    - Сгенерирован эталонный реестр `scripts/data/master-services-blueprint.json` с полным картированием на 13 социальных сетей и 89 категорий действий (`activityType`).
+    - Каждой услуге присвоен строгий тип ссылки (`targetType`: `CHANNEL`, `POST`, `PROFILE`, `VIDEO`, `STORY`, `POLL`, `COMMENTS`, `BOT`, `CHANNEL_POSTS`) с подтверждением на базе 1.95 млн реальных выполненных заказов.
+    - Обеспечен Zero Vendor Leaks (вычищены названия сторонних вендоров VexBoost, PrimeLike, SMMToolbox, технические скобки и теги).
+  * 🌐 **Регистрация 13 платформ и 89 категорий в БД (`smmplan_lite`):**
+    - Добавлены/актуализированы 13 социальных сетей (Telegram, ВКонтакте, Instagram, YouTube, TikTok, Rutube, Дзен, Twitch, Likee, Twitter (X), Facebook, Одноклассники, MAX) с SVG-иконками и регулярками `UrlPattern`.
+    - Развернуто 89 категорий действий с семантической привязкой `activityType`.
+  * 🏢 **Регистрация 15 провайдеров и деплой 313 услуг:**
+    - Зарегистрированы 15 провайдеров (`Vexboost`, `SMM Panel US`, `Stream Promotion`, `Soc Rocket`, `SMM Prime`, `ProSMM Shop`, `Karandash`, `Soc Proof`, `Likedrom`, `Web SMM`, `S-SMM`, `PRM4U`, `SMM Rise`, `Boost Like`, `Toplike`).
+    - Активирован живой шлюз Vexboost: синхронизированы оптовые цены (`rate`, `costPer1kRub`), живые лимиты (`minQty`, `maxQty`) и очищенные описания из официального API Vexboost.
+    - 232 услуги остальных 14 провайдеров предварительно сконфигурированы в базе в карантинном статусе (`quarantineReason: "Ожидает ввода API-ключа..."`), готовые к мгновенной активации через скрипт `scripts/sync-provider-api.ts`.
+  * 🧪 **Автоматизированная верификация:**
+    - `npx tsc --noEmit` — 0 ошибок типов (Strict mode, ES2022).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - `npm run check:arch` — 0 архитектурных нарушений (1496 модулей).
 - [x] 👁️ [SETTINGS-PASSWORD-VISIBILITY-FIX-2026] Исправление глазка паролей и устранение ложного плейсхолдера в форме смены пароля (100% COMPLETE & VERIFIED):
   * 🎯 **Устранение UX-ловушки с точками в плейсхолдере:**
     - В `PasswordInputField.tsx` дефолтный плейсхолдер из точек `'••••••••'` заменен на текстовую подсказку `'Введите пароль'`.

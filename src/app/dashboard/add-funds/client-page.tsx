@@ -224,6 +224,10 @@ export default function AddFundsForm() {
       setPromoError('Введите промокод');
       return;
     }
+    if (promoCode.trim().length > 64) {
+      setPromoError('Длина промокода не должна превышать 64 символа');
+      return;
+    }
     setPromoError(null);
     setPromoSuccess(null);
     startPromoTransition(async () => {
@@ -621,6 +625,7 @@ export default function AddFundsForm() {
         <div className="flex flex-col sm:flex-row gap-2.5">
           <input
             type="text"
+            maxLength={64}
             value={promoCode}
             onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
             placeholder="PROMO-2026"

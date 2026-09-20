@@ -64,7 +64,7 @@ class MarketingService {
     // CHK-07 & OWASP A03: Strict promo code normalization and injection sanitization
     if (promoCodeStr) {
       const clean = promoCodeStr.trim().toUpperCase();
-      promoCodeStr = (clean.length <= 32 && /^[A-Z0-9_-]+$/.test(clean)) ? clean : null;
+      promoCodeStr = (clean.length <= 64 && /^[A-Z0-9_-]+$/.test(clean)) ? clean : null;
     } else {
       promoCodeStr = null;
     }

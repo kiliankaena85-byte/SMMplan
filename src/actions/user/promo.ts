@@ -18,6 +18,10 @@ export async function activatePromoCodeAction(code: string): Promise<{ success: 
       return { success: false, error: "Введите промокод" };
     }
 
+    if (cleanCode.length > 64) {
+      return { success: false, error: "Длина промокода не должна превышать 64 символа" };
+    }
+
     // Rate Limit: Prevent brute-force guessing
     const isAllowed = await RateLimitService.checkCustomKey(`promo_activate_user:${session.userId}`, 5, 60);
     if (!isAllowed) {

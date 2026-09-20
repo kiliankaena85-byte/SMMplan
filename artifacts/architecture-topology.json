@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OmniSMM Architecture Topology (Uncle Bob Pattern)",
-  "generatedAt": "2026-09-20T12:37:49.961Z",
+  "generatedAt": "2026-09-20T13:12:57.486Z",
   "layers": [
     {
       "level": 0,
@@ -4741,29 +4741,29 @@
       "level": 2,
       "layer": "Application",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 106,
+      "linesCount": 110,
       "isClientComponent": false,
       "exportsCount": 1,
       "functionsCount": 2,
-      "maxCyclomaticComplexity": 30,
-      "maxCrapScore": 930,
-      "crapLoad": 1142,
+      "maxCyclomaticComplexity": 31,
+      "maxCrapScore": 992,
+      "crapLoad": 1204,
       "crappyMethodsCount": 2,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "activatePromoCodeAction",
           "startLine": 9,
-          "endLine": 105,
-          "cyclomaticComplexity": 30,
+          "endLine": 109,
+          "cyclomaticComplexity": 31,
           "coverageRatio": null,
-          "crapScore": 930,
+          "crapScore": 992,
           "isCrappy": true
         },
         {
           "name": "<anonymous>",
-          "startLine": 30,
-          "endLine": 83,
+          "startLine": 34,
+          "endLine": 87,
           "cyclomaticComplexity": 16,
           "coverageRatio": null,
           "crapScore": 272,
@@ -5109,23 +5109,23 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 437,
+      "linesCount": 440,
       "isClientComponent": true,
       "exportsCount": 1,
       "functionsCount": 17,
-      "maxCyclomaticComplexity": 55,
-      "maxCrapScore": 3080,
-      "crapLoad": 3158,
-      "crappyMethodsCount": 5,
+      "maxCyclomaticComplexity": 57,
+      "maxCrapScore": 3306,
+      "crapLoad": 3410,
+      "crappyMethodsCount": 6,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "LoginForm",
           "startLine": 17,
-          "endLine": 436,
-          "cyclomaticComplexity": 55,
+          "endLine": 439,
+          "cyclomaticComplexity": 57,
           "coverageRatio": null,
-          "crapScore": 3080,
+          "crapScore": 3306,
           "isCrappy": true
         },
         {
@@ -20113,23 +20113,23 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 650,
+      "linesCount": 655,
       "isClientComponent": true,
       "exportsCount": 1,
       "functionsCount": 25,
-      "maxCyclomaticComplexity": 80,
-      "maxCrapScore": 6480,
-      "crapLoad": 7534,
+      "maxCyclomaticComplexity": 81,
+      "maxCrapScore": 6642,
+      "crapLoad": 7716,
       "crappyMethodsCount": 10,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "AddFundsForm",
           "startLine": 80,
-          "endLine": 649,
-          "cyclomaticComplexity": 80,
+          "endLine": 654,
+          "cyclomaticComplexity": 81,
           "coverageRatio": null,
-          "crapScore": 6480,
+          "crapScore": 6642,
           "isCrappy": true
         },
         {
@@ -32454,7 +32454,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "ORDERS_CHECKOUT",
-      "linesCount": 238,
+      "linesCount": 239,
       "isClientComponent": true,
       "exportsCount": 1,
       "functionsCount": 13,
@@ -32467,7 +32467,7 @@
         {
           "name": "DrawerFormInputs",
           "startLine": 20,
-          "endLine": 237,
+          "endLine": 238,
           "cyclomaticComplexity": 45,
           "coverageRatio": null,
           "crapScore": 2070,
@@ -33362,23 +33362,23 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "ORDERS_CHECKOUT",
-      "linesCount": 158,
+      "linesCount": 159,
       "isClientComponent": true,
       "exportsCount": 1,
       "functionsCount": 6,
-      "maxCyclomaticComplexity": 16,
-      "maxCrapScore": 272,
-      "crapLoad": 344,
+      "maxCyclomaticComplexity": 17,
+      "maxCrapScore": 306,
+      "crapLoad": 378,
       "crappyMethodsCount": 2,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "AuthPasswordTab",
           "startLine": 16,
-          "endLine": 157,
-          "cyclomaticComplexity": 16,
+          "endLine": 158,
+          "cyclomaticComplexity": 17,
           "coverageRatio": null,
-          "crapScore": 272,
+          "crapScore": 306,
           "isCrappy": true
         },
         {
@@ -34476,7 +34476,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "ORDERS_CHECKOUT",
-      "linesCount": 154,
+      "linesCount": 155,
       "isClientComponent": true,
       "exportsCount": 1,
       "functionsCount": 6,
@@ -34489,7 +34489,7 @@
         {
           "name": "PlanCheckoutPromo",
           "startLine": 16,
-          "endLine": 153,
+          "endLine": 154,
           "cyclomaticComplexity": 33,
           "coverageRatio": null,
           "crapScore": 1122,
@@ -35986,7 +35986,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "ORDERS_CHECKOUT",
-      "linesCount": 154,
+      "linesCount": 155,
       "isClientComponent": true,
       "exportsCount": 1,
       "functionsCount": 6,
@@ -35999,7 +35999,7 @@
         {
           "name": "MobileCheckoutPromo",
           "startLine": 16,
-          "endLine": 153,
+          "endLine": 154,
           "cyclomaticComplexity": 33,
           "coverageRatio": null,
           "crapScore": 1122,
@@ -36940,7 +36940,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "ORDERS_CHECKOUT",
-      "linesCount": 101,
+      "linesCount": 102,
       "isClientComponent": true,
       "exportsCount": 1,
       "functionsCount": 7,
@@ -36952,8 +36952,8 @@
       "topRiskFunctions": [
         {
           "name": "CancelOrderButton",
-          "startLine": 17,
-          "endLine": 99,
+          "startLine": 18,
+          "endLine": 100,
           "cyclomaticComplexity": 15,
           "coverageRatio": null,
           "crapScore": 240,
@@ -36961,8 +36961,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 23,
-          "endLine": 42,
+          "startLine": 24,
+          "endLine": 43,
           "cyclomaticComplexity": 4,
           "coverageRatio": null,
           "crapScore": 20,
@@ -36970,8 +36970,8 @@
         },
         {
           "name": "handleConfirm",
-          "startLine": 52,
-          "endLine": 63,
+          "startLine": 53,
+          "endLine": 64,
           "cyclomaticComplexity": 4,
           "coverageRatio": null,
           "crapScore": 20,
@@ -42364,6 +42364,23 @@
           "isCrappy": true
         }
       ]
+    },
+    {
+      "id": "src/config/order-constants.ts",
+      "label": "order-constants.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "ORDERS_CHECKOUT",
+      "linesCount": 15,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 0,
+      "maxCyclomaticComplexity": 1,
+      "maxCrapScore": 1,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": []
     },
     {
       "id": "src/config/tenant-config.ts",
@@ -50766,7 +50783,7 @@
       "level": 1,
       "layer": "Services",
       "boundedContext": "ORDERS_CHECKOUT",
-      "linesCount": 640,
+      "linesCount": 641,
       "isClientComponent": false,
       "exportsCount": 0,
       "functionsCount": 18,
@@ -50778,8 +50795,8 @@
       "topRiskFunctions": [
         {
           "name": "createOrder",
-          "startLine": 37,
-          "endLine": 255,
+          "startLine": 38,
+          "endLine": 256,
           "cyclomaticComplexity": 44,
           "coverageRatio": null,
           "crapScore": 1980,
@@ -50787,8 +50804,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 54,
-          "endLine": 214,
+          "startLine": 55,
+          "endLine": 215,
           "cyclomaticComplexity": 30,
           "coverageRatio": null,
           "crapScore": 930,
@@ -50796,8 +50813,8 @@
         },
         {
           "name": "processStatusUpdate",
-          "startLine": 353,
-          "endLine": 458,
+          "startLine": 354,
+          "endLine": 459,
           "cyclomaticComplexity": 23,
           "coverageRatio": null,
           "crapScore": 552,
@@ -51369,7 +51386,7 @@
       "level": 1,
       "layer": "Services",
       "boundedContext": "FINTECH_LEDGER",
-      "linesCount": 818,
+      "linesCount": 819,
       "isClientComponent": false,
       "exportsCount": 4,
       "functionsCount": 20,
@@ -51381,8 +51398,8 @@
       "topRiskFunctions": [
         {
           "name": "createPayment",
-          "startLine": 159,
-          "endLine": 288,
+          "startLine": 160,
+          "endLine": 289,
           "cyclomaticComplexity": 30,
           "coverageRatio": null,
           "crapScore": 930,
@@ -51390,8 +51407,8 @@
         },
         {
           "name": "createPayment",
-          "startLine": 447,
-          "endLine": 534,
+          "startLine": 448,
+          "endLine": 535,
           "cyclomaticComplexity": 29,
           "coverageRatio": null,
           "crapScore": 870,
@@ -51399,8 +51416,8 @@
         },
         {
           "name": "executeRefund",
-          "startLine": 336,
-          "endLine": 443,
+          "startLine": 337,
+          "endLine": 444,
           "cyclomaticComplexity": 28,
           "coverageRatio": null,
           "crapScore": 812,
@@ -51414,7 +51431,7 @@
       "level": 1,
       "layer": "Services",
       "boundedContext": "FINTECH_LEDGER",
-      "linesCount": 580,
+      "linesCount": 581,
       "isClientComponent": false,
       "exportsCount": 0,
       "functionsCount": 12,
@@ -51426,8 +51443,8 @@
       "topRiskFunctions": [
         {
           "name": "confirmPayment",
-          "startLine": 26,
-          "endLine": 374,
+          "startLine": 27,
+          "endLine": 375,
           "cyclomaticComplexity": 82,
           "coverageRatio": null,
           "crapScore": 6806,
@@ -51435,8 +51452,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 93,
-          "endLine": 310,
+          "startLine": 94,
+          "endLine": 311,
           "cyclomaticComplexity": 49,
           "coverageRatio": null,
           "crapScore": 2450,
@@ -51444,8 +51461,8 @@
         },
         {
           "name": "confirmPaymentById",
-          "startLine": 433,
-          "endLine": 575,
+          "startLine": 434,
+          "endLine": 576,
           "cyclomaticComplexity": 27,
           "coverageRatio": null,
           "crapScore": 756,
@@ -52179,7 +52196,7 @@
       "level": 1,
       "layer": "Services",
       "boundedContext": "ORDERS_CHECKOUT",
-      "linesCount": 176,
+      "linesCount": 177,
       "isClientComponent": false,
       "exportsCount": 0,
       "functionsCount": 5,
@@ -52191,8 +52208,8 @@
       "topRiskFunctions": [
         {
           "name": "dispatch",
-          "startLine": 39,
-          "endLine": 174,
+          "startLine": 40,
+          "endLine": 175,
           "cyclomaticComplexity": 28,
           "coverageRatio": null,
           "crapScore": 812,
@@ -52200,8 +52217,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 64,
-          "endLine": 64,
+          "startLine": 65,
+          "endLine": 65,
           "cyclomaticComplexity": 1,
           "coverageRatio": null,
           "crapScore": 2,
@@ -52209,8 +52226,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 123,
-          "endLine": 123,
+          "startLine": 124,
+          "endLine": 124,
           "cyclomaticComplexity": 1,
           "coverageRatio": null,
           "crapScore": 2,
@@ -56478,7 +56495,7 @@
       "level": 1,
       "layer": "Services",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 21,
+      "linesCount": 24,
       "isClientComponent": false,
       "exportsCount": 0,
       "functionsCount": 2,
@@ -56490,8 +56507,8 @@
       "topRiskFunctions": [
         {
           "name": "<anonymous>",
-          "startLine": 19,
-          "endLine": 19,
+          "startLine": 22,
+          "endLine": 22,
           "cyclomaticComplexity": 1,
           "coverageRatio": null,
           "crapScore": 2,
@@ -56499,8 +56516,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 20,
-          "endLine": 20,
+          "startLine": 23,
+          "endLine": 23,
           "cyclomaticComplexity": 1,
           "coverageRatio": null,
           "crapScore": 2,
@@ -79087,6 +79104,13 @@
     },
     {
       "source": "src/components/orders/CancelOrderButton.tsx",
+      "target": "src/config/order-constants.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/components/orders/CancelOrderButton.tsx",
       "target": "src/components/ui/confirm-modal.tsx",
       "kind": "dependency",
       "isTypeOnly": false,
@@ -83671,6 +83695,13 @@
       "isViolating": false
     },
     {
+      "source": "src/services/core/order.service.ts",
+      "target": "src/config/order-constants.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
       "source": "src/services/core/rate-limit.service.ts",
       "target": "src/lib/db.ts",
       "kind": "dependency",
@@ -83923,6 +83954,13 @@
       "isViolating": false
     },
     {
+      "source": "src/services/financial/payment-gateway.service.ts",
+      "target": "src/config/order-constants.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
       "source": "src/services/financial/payment.service.ts",
       "target": "src/lib/db.ts",
       "kind": "dependency",
@@ -83967,6 +84005,13 @@
     {
       "source": "src/services/financial/payment.service.ts",
       "target": "src/services/security/security-alert.service.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/financial/payment.service.ts",
+      "target": "src/config/order-constants.ts",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
@@ -84380,6 +84425,13 @@
     {
       "source": "src/services/orders/checkout-payment.service.ts",
       "target": "src/lib/smtp.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/orders/checkout-payment.service.ts",
+      "target": "src/config/order-constants.ts",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
@@ -86656,8 +86708,8 @@
   "violations": [],
   "cycles": [],
   "metrics": {
-    "totalFiles": 1495,
-    "totalEdges": 4162,
+    "totalFiles": 1496,
+    "totalEdges": 4167,
     "violationsCount": 0,
     "cyclesCount": 0,
     "blockersCount": 0,
@@ -86667,7 +86719,7 @@
       "maxCrap": 39402,
       "maxCC": 198
     },
-    "totalCrappyFunctions": 2329,
-    "totalCrapLoad": 1320538
+    "totalCrappyFunctions": 2330,
+    "totalCrapLoad": 1321068
   }
 }
