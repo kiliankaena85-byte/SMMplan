@@ -4,21 +4,23 @@ import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { setPasswordAction, changePasswordAction } from '@/actions/auth/password-settings';
-import { Lock, Eye, EyeOff, KeyRound, Check } from 'lucide-react';
+import { Lock, KeyRound, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { PasswordInputField } from './password/PasswordInputField';
+
+export interface PasswordCardProps {
+  hasPassword: boolean;
+  canResetPassword?: boolean;
+}
 
 export default function PasswordCard({
   hasPassword,
   canResetPassword = false,
-}: {
-  hasPassword: boolean;
-  canResetPassword?: boolean;
-}) {
+}: PasswordCardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
 
-  // Form fields
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -104,74 +106,36 @@ export default function PasswordCard({
 
         <div className="space-y-3.5">
           {hasPassword && !canResetPassword && (
-            <div className="space-y-1">
-              <label htmlFor="currentPassword" className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                Текущий пароль
-              </label>
-              <div className="relative">
-                <input
-                  id="currentPassword"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  placeholder="••••••••"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full text-base sm:text-sm border border-border/80 rounded-xl px-4 py-2.5 pr-10 outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 bg-background/50 hover:bg-background/80 transition-all duration-200"
-                />
-                <button
-                  type="button"
-                  onClick={toggleShowPassword}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
+            <PasswordInputField
+              id="currentPassword"
+              label="Текущий пароль"
+              value={currentPassword}
+              onChange={setCurrentPassword}
+              showPasswordToggle={true}
+              showPassword={showPassword}
+              onToggleShowPassword={toggleShowPassword}
+            />
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <div className="space-y-1">
-              <label htmlFor="newPassword" className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                {hasPassword ? 'Новый пароль' : 'Пароль'}
-              </label>
-              <div className="relative">
-                <input
-                  id="newPassword"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  placeholder="Минимум 8 символов"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full text-base sm:text-sm border border-border/80 rounded-xl px-4 py-2.5 pr-10 outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 bg-background/50 hover:bg-background/80 transition-all duration-200"
-                />
-                {!hasPassword && (
-                  <button
-                    type="button"
-                    onClick={toggleShowPassword}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                )}
-              </div>
-            </div>
+            <PasswordInputField
+              id="newPassword"
+              label={hasPassword ? 'Новый пароль' : 'Пароль'}
+              placeholder="Минимум 8 символов"
+              value={newPassword}
+              onChange={setNewPassword}
+              showPasswordToggle={!hasPassword}
+              showPassword={showPassword}
+              onToggleShowPassword={toggleShowPassword}
+            />
 
-            <div className="space-y-1">
-              <label htmlFor="confirmPassword" className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                Подтверждение пароля
-              </label>
-              <input
-                id="confirmPassword"
-                type={showPassword ? 'text' : 'password'}
-                required
-                placeholder="Повторите новый пароль"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full text-base sm:text-sm border border-border/80 rounded-xl px-4 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 bg-background/50 hover:bg-background/80 transition-all duration-200"
-              />
-            </div>
+            <PasswordInputField
+              id="confirmPassword"
+              label="Подтверждение пароля"
+              placeholder="Повторите новый пароль"
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+            />
           </div>
         </div>
 
@@ -186,7 +150,7 @@ export default function PasswordCard({
             size="sm"
             isAnimated={true}
             disabled={isPending || !newPassword || !confirmPassword || (hasPassword && !canResetPassword && !currentPassword)}
-            className="rounded-xl shrink-0 font-semibold px-6 shadow-sm"
+            className="rounded-xl shrink-0 font-semibold px-6 shadow-sm min-h-[44px]"
           >
             {isPending ? 'Сохранение...' : canResetPassword ? 'Сохранить новый пароль' : hasPassword ? 'Обновить пароль' : 'Установить пароль'}
           </Button>

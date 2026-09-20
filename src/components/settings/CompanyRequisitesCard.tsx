@@ -172,7 +172,7 @@ export default function CompanyRequisitesCard({ initialData }: CompanyRequisites
             size="sm"
             isAnimated={true}
             disabled={isPending}
-            className="rounded-xl shrink-0 font-semibold px-6 shadow-sm gap-2"
+            className="rounded-xl shrink-0 font-semibold px-6 shadow-sm gap-2 min-h-[44px]"
           >
             <Save className="w-4 h-4" />
             {isPending ? 'Сохранение...' : 'Сохранить реквизиты'}

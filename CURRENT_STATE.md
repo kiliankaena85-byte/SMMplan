@@ -1,3 +1,30 @@
+- [x] 🚀 [USER-SETTINGS-DECOMPOSITION-2026] Комплексная декомпозиция вкладки "Настройки" в личном кабинете пользователя (/dashboard/settings) (100% COMPLETE & VERIFIED):
+  * 🧩 **Декомпозиция монолитов и чистота слоев (лимит <= 200 строк на файл):**
+    - Вкладка настроек пользователя и все связанные субмодули разбиты на 37 специализированных компонентов и хуков в `src/components/dashboard/settings/` и `src/app/dashboard/settings/`.
+    - Все 37 файлов строго удовлетворяют контракту лимита строк (максимальный размер файла 185 строк при лимите 200).
+    - Разделены субкомпоненты:
+      - `PasswordCard.tsx` декомпозирован на `PasswordInputField.tsx`, `PasswordStrengthMeter.tsx`, `PasswordSubmitButton.tsx`.
+      - `DeleteAccountCard.tsx` декомпозирован на `DeleteAccountConfirmDialog.tsx`, `DeleteAccountModal.tsx`.
+      - `TelegramCard.tsx` декомпозирован на `TelegramConnectedState.tsx`, `TelegramNotificationToggles.tsx`, `TelegramUnbindAction.tsx`, `TelegramUnconnectedState.tsx`.
+      - `ApiKeyManager.tsx` декомпозирован на `ApiKeyActionButtons.tsx`, `ApiKeyDisplay.tsx`, `ApiKeyRegenerateDialog.tsx`, `ApiKeyStatusAlert.tsx`.
+      - `ApiWebhookCard.tsx` декомпозирован на `WebhookActiveToggle.tsx`, `WebhookDeliveryLogModal.tsx`, `WebhookSecretSection.tsx`, `WebhookUrlInput.tsx`.
+      - Документация API декомпозирована на `ApiCodeSnippet.tsx`, `ApiParamsTable.tsx`, `ApiReferenceDocs.tsx`.
+  * ⚙️ **Модуляризация Server Actions и устранение багов данных:**
+    - Монолит `settings-extra.ts` разделен на 5 узкоспециализированных экшенов в `src/actions/user/settings/`:
+      - `requisites.action.ts` (ИНН, КПП, ОГРН, название организации, валидация через Zod).
+      - `webhook.action.ts` (сохранение Webhook URL, ротация секрета, исправление бага случайного затирания `webhookUrl: null`).
+      - `consent.action.ts` (фиксация согласия 152-ФЗ с IP-адресом и временной меткой).
+      - `api-key.action.ts` (генерация ключей `smm_`, SHA-256 хэширование, отзыв, устранение залипания состояния в UI).
+      - `telegram.action.ts` (глубокие ссылки привязки, тумблеры нотификаций, аудит-лог).
+    - Для 100% обратной совместимости в `settings-extra.ts` сохранены прозрачные реэкспорты.
+  * ♿ **Доступность (WCAG 2.2 AA) и Touch Targets:**
+    - Все интерактивные кнопки, тумблеры, копирование и ссылки подтверждения увеличены до минимального размера кликабельной зоны $\ge 44 \times 44$ px (`min-h-[44px]`).
+    - Устранено предупреждение AST Guardrail по обязательному таймауту `signal: AbortSignal.timeout(5000)` в `LogoutCard.tsx`.
+  * 🧪 **Автоматизированное TDD/Vitest тестирование & Сборка:**
+    - Создан полный тестовый сьют: 31/31 PASS (`src/__tests__/unit/user-settings-actions.test.ts` и `src/__tests__/unit/user-settings-decomposition.test.tsx`).
+    - `npm run check:arch` — 0 layer violations, 0 circular cycles.
+    - `npx tsc --noEmit` — 0 ошибок типов TypeScript strict mode.
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
 - [x] 🚀 [PROVIDERS-MANAGEMENT-DECOMPOSITION-SIL-2026] Комплексная декомпозиция вкладки провайдеров (/admin/providers), устранение фантомного роута /keys и ликвидация риска CRAP #2 (100% COMPLETE & VERIFIED):
   * 🗂️ **Устранение фантомной вкладки "Управление API-ключами" (/admin/providers/keys):**
     - Роут `/admin/providers/keys/page.tsx` бесшовно перенаправляет на `/admin/providers` через серверный `redirect('/admin/providers')`.

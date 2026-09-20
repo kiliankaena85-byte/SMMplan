@@ -144,7 +144,7 @@ export default function Consent152FzCard({
               intent="primary"
               size="sm"
               isAnimated={true}
-              className="rounded-xl shrink-0 font-semibold px-5 shadow-sm"
+              className="rounded-xl shrink-0 font-semibold px-5 shadow-sm min-h-[44px]"
             >
               {isPending ? 'Запись...' : 'Подтвердить согласие 152-ФЗ'}
             </Button>

@@ -12,7 +12,8 @@ export default function LogoutCard({ tenantId = 'smmplan' }: { tenantId?: string
     try {
       await fetch('/api/auth/logout', { 
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(5000),
       });
     } catch {
       // Fallback
@@ -54,7 +55,7 @@ export default function LogoutCard({ tenantId = 'smmplan' }: { tenantId?: string
           type="button"
           onClick={handleLogout}
           disabled={isLoading}
-          className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-xs bg-destructive/10 text-destructive hover:bg-destructive hover:text-white transition-all duration-200 flex items-center justify-center gap-2 shrink-0 cursor-pointer disabled:opacity-50 active:scale-95 shadow-sm"
+          className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-xs bg-destructive/10 text-destructive hover:bg-destructive hover:text-white transition-all duration-200 flex items-center justify-center gap-2 shrink-0 cursor-pointer disabled:opacity-50 active:scale-95 shadow-sm min-h-[44px]"
         >
           {isLoading ? (
             <>
