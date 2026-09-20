@@ -149,22 +149,23 @@ export function EnvironmentModeSwitcher({
         type="button"
         onClick={() => !readOnly && setIsOpen(!isOpen)}
         disabled={isPending || readOnly}
-        className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 sm:py-1 min-h-[40px] sm:min-h-0 rounded-xl border text-xs font-bold transition-all duration-150 shadow-xs ${activeConfig.badgeClass} ${
+        className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 sm:py-1 min-h-[38px] sm:min-h-0 rounded-xl border text-xs font-bold transition-all duration-150 shadow-xs shrink-0 ${activeConfig.badgeClass} ${
           readOnly ? 'cursor-default opacity-85' : 'hover:opacity-90 active:scale-95 cursor-pointer'
         }`}
         title={
           readOnly
             ? `Текущий режим: ${activeConfig.label} (только просмотр)`
-            : 'Переключение режимов окружения (Оплата x Провайдер)'
+            : `Режим: ${activeConfig.label}`
         }
+        aria-label={`Режим окружения: ${activeConfig.label}`}
       >
         {isPending ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
         ) : (
           <ActiveIcon className="w-3.5 h-3.5 shrink-0" />
         )}
-        <span className="truncate max-w-[65px] sm:max-w-[120px]">{activeConfig.badge}</span>
-        {!readOnly && <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />}
+        <span className="hidden sm:inline truncate max-w-[120px]">{activeConfig.badge}</span>
+        {!readOnly && <ChevronDown className="w-3 h-3 opacity-60 ml-0.5 shrink-0" />}
       </button>
 
       {/* Dropdown Menu */}

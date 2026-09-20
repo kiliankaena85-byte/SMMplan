@@ -119,6 +119,33 @@ export class AstGuardrailsEngine {
     }
 
     // -------------------------------------------------------------
+    // ПРАВИЛО 4: Admin Server Actions обязаны содержать RBAC-проверки
+    // -------------------------------------------------------------
+    const isAdminActionFile = relPath.startsWith('src/actions/admin/') && !relPath.includes('__tests__') && !relPath.endsWith('.test.ts');
+    if (isAdminActionFile && (content.includes('"use server"') || content.includes("'use server'"))) {
+      const rbacKeywords = [
+        'requireStaffPermission', 'requireOwnerPermission', 'requireAdmin', 'requireRole',
+        'requireAdminPermission', 'verifySession', 'enforceSectionAccess', 'enforcePageRole',
+        'enforceAnySectionAccess', 'assertStaff', 'assertAdmin', 'requireSession', 'getSessionUserId',
+        'runWithTenantBypass', 'requireAuth', 'rbac'
+      ];
+      // Check if file uses RBAC directly or delegates to actions in submodules
+      const hasDirectRbac = rbacKeywords.some((kw) => content.includes(kw));
+      const isActionFacade = content.includes("from './") || content.includes('from "./');
+
+      if (!hasDirectRbac && !isActionFacade) {
+        this.violations.push({
+          ruleId: 'admin-action-rbac-guard',
+          severity: 'BLOCKER',
+          file: relPath,
+          line: 1,
+          message: 'Admin Server Action файл не содержит RBAC-проверки (requireStaffPermission, requireOwnerPermission, requireAdmin)! Защитите действия администратора.',
+          snippet: lines[0] || "'use server'",
+        });
+      }
+    }
+
+    // -------------------------------------------------------------
     // Глубокий рекурсивный обход AST с контекстным скоупом
     // -------------------------------------------------------------
     const visitNode = (node: ts.Node, txParam: string | null) => {
@@ -162,7 +189,9 @@ export class AstGuardrailsEngine {
             severity: 'WARNING',
             file: relPath,
             line: getLine(node),
-            message: 'Сырой "throw new Error" в Server Action. Рекомендуется возвращать типизированный { success: false, error: "..." }.',
+            message: isAdminActionFile
+              ? 'Сырой "throw new Error" в Admin Server Action. Рекомендуется возвращать типизированный { success: false, error: "..." }.'
+              : 'Сырой "throw new Error" в Server Action. Рекомендуется возвращать типизированный { success: false, error: "..." }.',
             snippet: getSnippet(node),
           });
         }

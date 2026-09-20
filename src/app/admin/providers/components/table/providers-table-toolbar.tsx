@@ -32,9 +32,9 @@ export function ProvidersTableToolbar({
   isPresetPending,
 }: ProvidersTableToolbarProps) {
   return (
-    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card/40 p-2.5 rounded-lg border border-border/70 backdrop-blur-xs shadow-xs">
+    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card/40 p-2.5 rounded-lg border border-border/70 backdrop-blur-xs shadow-xs w-full max-w-full overflow-hidden">
       {/* Filter Pills */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none w-full max-w-full flex-nowrap">
         <button
           type="button"
           onClick={() => onStatusFilterChange('all')}

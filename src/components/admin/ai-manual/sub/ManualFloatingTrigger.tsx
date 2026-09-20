@@ -21,7 +21,7 @@ export const ManualFloatingTrigger: React.FC<ManualFloatingTriggerProps> = ({
   if (isOpen) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-40 flex items-center gap-2 group">
+    <div className="fixed bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] md:bottom-4 right-3 md:right-4 z-40 flex items-center gap-2 group">
       {/* Keyboard Shortcut Tooltip */}
       <div className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-md bg-background/90 backdrop-blur-md border border-border/80 shadow-md text-[11px] font-medium text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none">
         <BookOpen className="w-3 h-3 text-primary" />

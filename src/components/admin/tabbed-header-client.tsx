@@ -142,11 +142,11 @@ function AdminTabsInner({ tabs }: { tabs: TabItem[] }) {
   }, [fullPath]);
 
   return (
-    <div className="relative w-full group pt-2 sm:pt-3 border-t border-border/30">
+    <div className="relative w-full max-w-full group pt-2 sm:pt-3 border-t border-border/30 overflow-hidden">
       {/* Tabs list container */}
       <div
         ref={containerRef}
-        className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1 px-1 sm:px-0 w-full scroll-smooth"
+        className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1 px-1 sm:px-0 w-full max-w-full scroll-smooth flex-nowrap"
       >
         {tabs.map((tab, idx) => {
           const isActive = isNavTabActive(fullPath, tab.href, allHrefs);
@@ -156,7 +156,7 @@ function AdminTabsInner({ tabs }: { tabs: TabItem[] }) {
               ref={isActive ? activeTabRef : undefined}
               href={tab.href}
               className={cn(
-                "px-3.5 sm:px-4 min-h-[42px] sm:min-h-0 h-10 sm:h-9 flex items-center justify-center text-xs font-bold rounded-xl border transition-all duration-150 whitespace-nowrap shadow-xs active:scale-95",
+                "px-3.5 sm:px-4 min-h-[42px] sm:min-h-0 h-10 sm:h-9 flex items-center justify-center text-xs font-bold rounded-xl border transition-all duration-150 whitespace-nowrap shadow-xs active:scale-95 shrink-0",
                 isActive
                   ? "bg-primary text-primary-foreground border-primary font-bold shadow-xs"
                   : "bg-background text-muted-foreground border-border hover:bg-muted/50 hover:text-foreground"
@@ -175,9 +175,9 @@ function AdminTabsInner({ tabs }: { tabs: TabItem[] }) {
 export function AdminTabs({ tabs }: { tabs: TabItem[] }) {
   return (
     <Suspense fallback={
-      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1 border-t border-border/30 pt-3 w-full">
+      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1 border-t border-border/30 pt-3 w-full max-w-full flex-nowrap">
         {tabs.map((tab, idx) => (
-          <div key={idx} className="px-4 py-2 min-h-[40px] sm:min-h-0 h-10 sm:h-9 text-xs font-bold rounded-xl border border-border bg-background text-muted-foreground whitespace-nowrap animate-pulse w-24" />
+          <div key={idx} className="px-4 py-2 min-h-[40px] sm:min-h-0 h-10 sm:h-9 text-xs font-bold rounded-xl border border-border bg-background text-muted-foreground whitespace-nowrap animate-pulse w-24 shrink-0" />
         ))}
       </div>
     }>

@@ -150,7 +150,7 @@ export function TenantSwitcher({
         onClick={() => canSwitch && setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-haspopup="true"
-        className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 min-h-[44px] bg-card/90 hover:bg-card border border-border/80 text-foreground font-semibold rounded-xl transition-all duration-200 shadow-sm text-xs sm:text-sm select-none ${
+        className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3.5 py-1 sm:py-2 min-h-[38px] sm:min-h-[44px] bg-card/90 hover:bg-card border border-border/80 text-foreground font-semibold rounded-xl transition-all duration-200 shadow-sm text-xs sm:text-sm select-none shrink-0 ${
           canSwitch ? 'hover:border-primary/50 active:scale-95 cursor-pointer' : 'cursor-default opacity-90'
         }`}
       >
@@ -158,7 +158,7 @@ export function TenantSwitcher({
           {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
         </div>
         
-        <span className="font-black text-foreground tracking-tight max-w-[85px] sm:max-w-none truncate">
+        <span className="font-black text-foreground tracking-tight max-w-[70px] sm:max-w-[110px] md:max-w-none truncate">
           {activeTenant.domain}
         </span>
 
@@ -167,7 +167,7 @@ export function TenantSwitcher({
         </span>
 
         {canSwitch && (
-          <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180 text-primary' : ''}`} />
+          <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180 text-primary' : ''}`} />
         )}
       </button>
 

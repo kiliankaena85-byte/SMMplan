@@ -1,0 +1,1074 @@
+{
+  "timestamp": "2026-09-20T14:29:46.222Z",
+  "baseUrl": "http://127.0.0.1:3000",
+  "totalRoutesAudited": 20,
+  "viewportsCount": 3,
+  "passedTests": 60,
+  "failedTests": 0,
+  "tenantPersistenceVerified": true,
+  "results": [
+    {
+      "route": "/admin/dashboard",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 455,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/dashboard",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 434,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/dashboard",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 428,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/orders",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 425,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/orders",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 382,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/orders",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 398,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/orders/cuid_audit_order_0000000000001",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 438,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/orders/cuid_audit_order_0000000000001",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 388,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/orders/cuid_audit_order_0000000000001",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 377,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/clients",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 446,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [
+        "Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error.",
+        "[Admin Клиенты Error Boundary] Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error."
+      ],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/clients",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 376,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [
+        "Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error.",
+        "[Admin Клиенты Error Boundary] Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error."
+      ],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/clients",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 378,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [
+        "Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error.",
+        "[Admin Клиенты Error Boundary] Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error."
+      ],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/clients/cuid_audit_client_user_00000001",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 419,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [
+        "Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error.",
+        "[Admin Карточка клиента Error Boundary] Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error."
+      ],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/clients/cuid_audit_client_user_00000001",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 386,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [
+        "Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error.",
+        "[Admin Карточка клиента Error Boundary] Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error."
+      ],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/clients/cuid_audit_client_user_00000001",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 380,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [
+        "Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error.",
+        "[Admin Карточка клиента Error Boundary] Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error."
+      ],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/providers",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 461,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/providers",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 426,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/providers",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 408,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/providers/cuid_audit_provider_00000000001",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 446,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/providers/cuid_audit_provider_00000000001",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 377,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/providers/cuid_audit_provider_00000000001",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 373,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/catalog",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 474,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/catalog",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 419,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/catalog",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 408,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/catalog/cuid_audit_service_000000000001",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 421,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/catalog/cuid_audit_service_000000000001",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 399,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/catalog/cuid_audit_service_000000000001",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 393,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/services/cuid_audit_service_000000000001/routing",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 449,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/services/cuid_audit_service_000000000001/routing",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 395,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/services/cuid_audit_service_000000000001/routing",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 395,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/tickets",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 433,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [
+        "Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error.",
+        "[Admin Поддержка (тикеты) Error Boundary] Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error."
+      ],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/tickets",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 372,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [
+        "Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error.",
+        "[Admin Поддержка (тикеты) Error Boundary] Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error."
+      ],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/tickets",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 374,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [
+        "Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error.",
+        "[Admin Поддержка (тикеты) Error Boundary] Error: An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error."
+      ],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/tickets/cuid_audit_ticket_000000000001",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 420,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/tickets/cuid_audit_ticket_000000000001",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 364,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/tickets/cuid_audit_ticket_000000000001",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 365,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/cms",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 392,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+      ],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/cms",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 374,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/cms",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 375,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/cms/cuid_audit_content_000000000001",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 432,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [
+        "Failed to parse initial content for BlockNote TypeError: n.map is not a function\n    at L (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:64561)\n    at http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73624\n    at tC.transact (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:135144)\n    at e.transact (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:145566)\n    at Y.replaceBlocks (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73612)\n    at e.replaceBlocks (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:148378)\n    at http://127.0.0.1:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:367\n    at http://127.0.0.1:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:475\n    at ik (http://127.0.0.1:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:92679)\n    at e (http://127.0.0.1:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:117841)",
+        "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+      ],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/cms/cuid_audit_content_000000000001",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 379,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [
+        "Failed to parse initial content for BlockNote TypeError: n.map is not a function\n    at L (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:64561)\n    at http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73624\n    at tC.transact (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:135144)\n    at e.transact (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:145566)\n    at Y.replaceBlocks (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73612)\n    at e.replaceBlocks (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:148378)\n    at http://127.0.0.1:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:367\n    at http://127.0.0.1:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:475\n    at ik (http://127.0.0.1:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:92679)\n    at e (http://127.0.0.1:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:117841)",
+        "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+      ],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/cms/cuid_audit_content_000000000001",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 382,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [
+        "Failed to parse initial content for BlockNote TypeError: n.map is not a function\n    at L (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:64561)\n    at http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73624\n    at tC.transact (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:135144)\n    at e.transact (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:145566)\n    at Y.replaceBlocks (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73612)\n    at e.replaceBlocks (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:148378)\n    at http://127.0.0.1:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:367\n    at http://127.0.0.1:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:475\n    at ik (http://127.0.0.1:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:92679)\n    at e (http://127.0.0.1:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:117841)"
+      ],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/knowledge/cuid_audit_article_000000000001/edit",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 416,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/knowledge/cuid_audit_article_000000000001/edit",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 365,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/knowledge/cuid_audit_article_000000000001/edit",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 378,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/finance",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 453,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/finance",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 407,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/finance",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 396,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/finance/payments/cuid_audit_payment_000000000001/dispute-pack",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 467,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/finance/payments/cuid_audit_payment_000000000001/dispute-pack",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 393,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/finance/payments/cuid_audit_payment_000000000001/dispute-pack",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 372,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/settings",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 481,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/settings",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 399,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/settings",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 402,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/staff",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 456,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/staff",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 387,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/staff",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 388,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/system/features",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 417,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/system/features",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 380,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/system/features",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 377,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    }
+  ],
+  "summary": {
+    "horizontalOverflowCount": 0,
+    "clippedCellsCount": 0,
+    "hydrationMismatchesCount": 0,
+    "serverActionCrashesCount": 0
+  }
+}

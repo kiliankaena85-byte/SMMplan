@@ -126,7 +126,7 @@ export function TicketsSidebar({
         </div>
 
         {/* Status Filter Row */}
-        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none w-full max-w-full flex-nowrap">
           {[
             { label: 'Все', value: 'ALL', count: stats.total },
             { label: 'В работе', value: 'OPEN', count: stats.open },
@@ -139,7 +139,7 @@ export function TicketsSidebar({
                 key={pill.value}
                 type="button"
                 onClick={() => handleStatusFilter(pill.value)}
-                className={`px-3 text-[11px] font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer min-h-[36px] h-[36px] flex items-center justify-center gap-1.5 ${
+                className={`px-3 text-[11px] font-bold rounded-lg transition-colors whitespace-nowrap cursor-pointer min-h-[36px] h-[36px] flex items-center justify-center gap-1.5 shrink-0 ${
                   isActive 
                     ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs' 
                     : 'bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80'

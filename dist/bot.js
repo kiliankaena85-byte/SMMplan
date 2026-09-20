@@ -15201,7 +15201,6 @@ var init_prisma_tenant_enforcer = __esm({
       "category",
       "customerGroup",
       "ticketFeedback",
-      "promoCode",
       "ledgerEntry"
     ];
   }

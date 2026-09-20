@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OmniSMM Architecture Topology (Uncle Bob Pattern)",
-  "generatedAt": "2026-09-20T13:12:57.486Z",
+  "generatedAt": "2026-09-20T15:23:22.024Z",
   "layers": [
     {
       "level": 0,
@@ -26059,7 +26059,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 267,
+      "linesCount": 268,
       "isClientComponent": true,
       "exportsCount": 1,
       "functionsCount": 15,
@@ -26072,7 +26072,7 @@
         {
           "name": "EnvironmentModeSwitcher",
           "startLine": 77,
-          "endLine": 266,
+          "endLine": 267,
           "cyclomaticComplexity": 28,
           "coverageRatio": null,
           "crapScore": 812,

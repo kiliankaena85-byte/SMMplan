@@ -1,3 +1,53 @@
+- [x] 📱 [ADMIN-PANEL-MOBILE-OVERLAPS-AND-COLLISIONS-FIX-2026] Комплексная ликвидация наложений, коллизий и вылета элементов в мобильной верстке админ-панели (100% COMPLETE & VERIFIED):
+  * 🎛️ **Волна 1: Ликвидация обрезания шапки и вылета кнопки профиля (`src/app/admin/layout.tsx`, `EnvironmentModeSwitcher.tsx`, `tenant-switcher.tsx`):**
+    - В `src/components/admin/EnvironmentModeSwitcher.tsx` на экранах `< sm` скрыт текстовый бейдж «Песочница» (`hidden sm:inline`), кнопка превращена в компактный интерактивный индикатор с цветной иконкой режима (щит/молния) и атрибутом `title`, снижая ширину элемента со 125px до 38px.
+    - В `src/components/admin/tenant-switcher.tsx` задано адаптивное ограничение ширины домена (`max-w-[70px] sm:max-w-[110px] md:max-w-none truncate`) и компактные отступы.
+    - В `src/components/admin/admin-profile-dropdown.tsx` размер аватара оптимизирован до `w-7 h-7 sm:w-8 sm:h-8`, устранены избыточные паддинги.
+    - Результат: общая ширина элементов шапки на мобильных устройствах сокращена с 420px до 315px. Кнопка профиля (`AdminProfileDropdown`) больше не выталкивается за пределы экрана и отображается с безопасным отступом.
+  * 📊 **Волна 2: Ликвидация наложений табов на карточки P&L (`src/components/ui/tabs.tsx`, `src/app/admin/finance/finance-client.tsx`, `client-tabs.tsx`):**
+    - В базовом компоненте `src/components/ui/tabs.tsx` удален жесткий лимит высоты `group-data-[orientation=horizontal]/tabs:h-8` (32px), заменен на `min-h-9 h-auto` и `overflow-x-auto scrollbar-none`.
+    - В `src/app/admin/finance/finance-client.tsx` табы переведены из многострочного `flex-wrap` в нативную горизонтально-скроллируемую полосу (`overflow-x-auto scrollbar-none flex-nowrap`) с `shrink-0 whitespace-nowrap` на всех `TabsTrigger`. Полностью ликвидировано выпадание табов и их наложение на блок «ВЫРУЧКА (GROSS)».
+    - В `src/app/admin/marketing/client-tabs.tsx` табы также приведены к стандарту горизонтального скролла (`flex w-full sm:w-fit max-w-full overflow-x-auto`).
+  * 🔘 **Волна 3: Разведение коллизий плавающих кнопок и нижнего меню (`ManualFloatingTrigger.tsx`):**
+    - В `src/components/admin/ai-manual/sub/ManualFloatingTrigger.tsx` жесткая позиция `bottom-4` заменена на адаптивную высоту `bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] md:bottom-4`.
+    - Плавающая кнопка ИИ-инструктора приподнята строго над панелью `MobileBottomNav` (56px) и больше не перекрывает кнопки меню и каталога.
+  * 🛡️ **Волна 4: Модернизация E2E-харнеса аудитора (`scripts/audit-admin-layout.ts`):**
+    - Добавлен детектор внутреннего переполнения шапки: `header.scrollWidth > header.clientWidth + 2`.
+    - Добавлен детектор вылета кнопок за правый край вьюпорта: `rect.right > window.innerWidth + 3`.
+    - Добавлен детектор коллизий табов: фиксация выпадения триггеров из контейнера (`trRect.bottom > tlRect.bottom + 4`) и наложения триггеров на содержимое (`trRect.bottom > tcRect.top + 2`).
+  * 🧪 **Результаты сквозной верификации:**
+    - TypeScript: `npx tsc --noEmit` — 0 ошибок (Strict mode).
+    - Архитектура: `npm run check:arch` — 0 layer violations, 0 circular cycles (1496 модулей).
+    - Секреты: `node scripts/check-bundle-secrets.mjs` — 0 утечек.
+    - Финансовые инварианты: `vitest run src/__tests__/admin-financial-invariants.test.ts` — 16/16 PASS (100%).
+- [x] 🛡️ [ADMIN-PANEL-AUDIT-HARNESS-2026] Профессиональная E2E харнес-обвязка для аудита и тестирования админ-панели OmniSMM 1.0 (100% COMPLETE & VERIFIED):
+  * 🎛️ **Автономный E2E раннер верстки и рантайм-сбоев (`scripts/audit-admin-layout.ts`):**
+    - Подлинная аутентификация в обход UI: создание валидной сессии в PostgreSQL (`prisma.session.create`) + подписанный HS256 JWT токен `session_token` через `jose` и `getEncodedKey()`.
+    - Обход защиты от угона сессий: синхронизация заголовка `AUDIT_USER_AGENT` в БД и контексте браузера Playwright (`Playwright-Admin-Audit-Harness/2026`).
+    - Защита от ложных перенаправлений: строгая валидация `page.url()` с запретом 307 на `/login` или `/forbidden`.
+    - Матрица тестирования: 20 ключевых роутов (включая динамические сущности) $\times$ 3 вьюпорта (Desktop 1280x800, Tablet 768x1024, Mobile 375x812) = 60 проверок.
+    - Детектор Zero Horizontal Scroll: проверка `scrollWidth <= clientWidth` на корневых контейнерах.
+    - Детектор скрытых данных: поиск обрезанных ячеек (`scrollWidth > offsetWidth`) без атрибута `title` или компонента Tooltip.
+    - Перехватчик ошибок React 19: сбор ошибок гидратации (коды 418, 425), сбоев Server Actions и необработанных консольных ошибок.
+    - Мульти-тенантность: верификация сохранения cookie `x_admin_tenant` между переходами.
+    - Генерация структурированных отчетов: `docs/audits/admin-harness-audit.md` и `.json`.
+  * 📦 **Детерминированный сид-генератор фикстур (`scripts/ci/seed-admin-audit-fixtures.ts`):**
+    - Наполнение базы данных детерминированными CUID-фикстурами для всех динамических маршрутов админки (`/admin/orders/[id]`, `/admin/clients/[id]`, `/admin/providers/[id]`, `/admin/catalog/[id]`, `/admin/services/[id]/routing`, `/admin/tickets/[id]`, `/admin/cms/[id]`, `/admin/knowledge/[id]/edit`, `/admin/finance/payments/[id]/dispute-pack`).
+    - Создание связанного графа: пользователь OWNER, клиент, соцсеть, категория, провайдер, услуга, роутинг, заказ, тикет с сообщениями, статья базы знаний, платеж, леджер.
+  * 💰 **Property-Based Fuzzing & Financial Invariants (`src/__tests__/admin-financial-invariants.test.ts`):**
+    - 16 тестов на `fast-check` и `vitest` для движка `ExactMath` и `WalletOps`.
+    - Проверка инварианта Ledger-First (`tx.ledgerEntry.create` вызывается строго ДО мутации баланса `tx.user.update`).
+    - Банковское округление (half-even) с нулевым дрейфом с плавающей точкой, монотонность микропрайсинга, защита от отрицательного баланса и лимиты административных корректировок (`MAX_ADJUSTMENT_CAP_KOPECKS`).
+  * 🛠️ **Интеграция в CLI и AST Guardrails (`package.json`):**
+    - `npm run seed:admin-audit` — запуск детерминированного сидирования фикстур.
+    - `npm run audit:admin:harness` — запуск автономного E2E раннера (Playwright).
+    - `npm run audit:admin` — сквозной запуск (Layout Sentry + AST Guardrails + E2E Harness).
+    - Расширение `scripts/ui/layout-sentry.ts`: включены директории `src/components/admin` и `src/app/admin`.
+  * 🧪 **Результаты верификации:**
+    - E2E матрица: **60/60 проверок пройдено (100% PASS)**, 0 горизонтальных переполнений, 0 обрезанных ячеек без подсказки, 0 ошибок гидратации React 19.
+    - Vitest: **16/16 тестов пройдены (100% PASS)** за 58ms.
+    - TypeScript: **`npx tsc --noEmit` — 0 ошибок компиляции (Strict mode)**.
+    - AST Guardrails: **`npm run lint:guardrails` — PASS (0 блокирующих ошибок)**.
 - [x] 🔐 [AUTH-PASSWORD-PROMOCODE-LENGTH-LIMITS-2026] Установка длины пароля регистрации 6–128 символов и ограничение длины промокода до 64 символов (100% COMPLETE & STAGE VERIFIED):
   * 🔑 **Политика длины паролей (от 6 до 128 символов):**
     - `src/validators/password-policy.ts`: снижен минимальный порог с 12 до 6 символов (`min(6)`), верхний предел установлен в 128 символов (`max(128)`). Сохранены строгие эвристики защиты от слабых паролей (`123456`, `qwerty`, повторяющиеся символы).

@@ -47,7 +47,7 @@ export function AdminTabbedHeader({
   tabs,
 }: AdminTabbedHeaderProps) {
   return (
-    <div className="w-full flex flex-col gap-3 mb-5 border-b border-border/50 pb-4">
+    <div className="w-full max-w-full overflow-hidden flex flex-col gap-3 mb-5 border-b border-border/50 pb-4">
       {/* Breadcrumbs & Header Title */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col gap-2">

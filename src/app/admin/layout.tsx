@@ -167,8 +167,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           <div className="flex-1 min-w-0 h-full overflow-y-auto has-[.tickets-workspace]:overflow-hidden p-0 md:p-3.5 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-3.5 z-10 relative flex flex-col">
             <SystemEmergencyBanner />
             {/* Top Sticky Header Bar with Mobile Drawer, Global Site Switcher & Profile Dropdown */}
-            <header className="sticky top-0 z-30 mb-2 px-2.5 sm:px-3 py-2 md:py-2.5 flex items-center justify-between gap-2 sm:gap-3 shrink-0 bg-background/95 backdrop-blur-md border-b border-border/70 shadow-xs md:rounded-lg">
-              <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 min-w-0">
+            <header className="sticky top-0 z-30 mb-2 px-2 sm:px-3 py-1.5 sm:py-2 md:py-2.5 flex items-center justify-between gap-1.5 sm:gap-3 shrink-0 bg-background/95 backdrop-blur-md border-b border-border/70 shadow-xs md:rounded-lg w-full max-w-full">
+              <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 min-w-0 flex-1">
                 <MobileNavDrawer
                   userEmail={user.email}
                   roleInfo={roleInfo}
@@ -181,7 +181,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                 />
                 <EnvironmentModeSwitcher readOnly={!canEditSettings} />
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 <AdminProfileDropdown
                   userEmail={user.email}
                   role={user.role}
