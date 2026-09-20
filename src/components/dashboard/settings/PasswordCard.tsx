@@ -19,13 +19,13 @@ export default function PasswordCard({
 }: PasswordCardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [showPassword, setShowPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
-  const toggleShowPassword = () => setShowPassword(!showPassword);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +66,9 @@ export default function PasswordCard({
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
+        setShowCurrentPassword(false);
+        setShowNewPassword(false);
+        setShowConfirmPassword(false);
         router.refresh();
       } catch (error) {
         toast.error(`Не удалось обновить пароль: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
@@ -109,11 +112,12 @@ export default function PasswordCard({
             <PasswordInputField
               id="currentPassword"
               label="Текущий пароль"
+              placeholder="Введите текущий пароль"
               value={currentPassword}
               onChange={setCurrentPassword}
               showPasswordToggle={true}
-              showPassword={showPassword}
-              onToggleShowPassword={toggleShowPassword}
+              showPassword={showCurrentPassword}
+              onToggleShowPassword={() => setShowCurrentPassword((prev) => !prev)}
             />
           )}
 
@@ -124,9 +128,9 @@ export default function PasswordCard({
               placeholder="Минимум 8 символов"
               value={newPassword}
               onChange={setNewPassword}
-              showPasswordToggle={!hasPassword}
-              showPassword={showPassword}
-              onToggleShowPassword={toggleShowPassword}
+              showPasswordToggle={true}
+              showPassword={showNewPassword}
+              onToggleShowPassword={() => setShowNewPassword((prev) => !prev)}
             />
 
             <PasswordInputField
@@ -135,6 +139,9 @@ export default function PasswordCard({
               placeholder="Повторите новый пароль"
               value={confirmPassword}
               onChange={setConfirmPassword}
+              showPasswordToggle={true}
+              showPassword={showConfirmPassword}
+              onToggleShowPassword={() => setShowConfirmPassword((prev) => !prev)}
             />
           </div>
         </div>

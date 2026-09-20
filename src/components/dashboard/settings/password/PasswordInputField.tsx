@@ -20,7 +20,7 @@ export function PasswordInputField({
   label,
   value,
   onChange,
-  placeholder = '••••••••',
+  placeholder = 'Введите пароль',
   required = true,
   showPasswordToggle = false,
   showPassword = false,

@@ -184,7 +184,7 @@ describe('User Settings Decomposition Suite (Wave 2026)', () => {
         />
       );
 
-      const input = screen.getByPlaceholderText('••••••••') as HTMLInputElement;
+      const input = screen.getByPlaceholderText('Введите пароль') as HTMLInputElement;
       expect(input.type).toBe('password');
 
       const toggleBtn = screen.getByLabelText('Показать пароль');
