@@ -71,7 +71,7 @@ export class CheckoutPaymentService {
         /* Ignore in non-HTTP context */
       }
 
-      if (isNewUser || currentSessionUserId || user.id) {
+      if (isNewUser || currentSessionUserId || (user.tenantId && user.tenantId !== 'smmplan')) {
         await createSession(user.id);
       }
 
