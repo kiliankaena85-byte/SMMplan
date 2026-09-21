@@ -26,9 +26,7 @@ import {
   parseAmountRub,
 } from './order-details/types';
 import { OrderDetailsHeader } from './order-details/OrderDetailsHeader';
-import { OrderServiceDetails } from './order-details/OrderServiceDetails';
-import { OrderProviderStatusCard } from './order-details/OrderProviderStatusCard';
-import { OrderFinancialSummary } from './order-details/OrderFinancialSummary';
+import { OrderMinimalSummary } from './order-details/OrderMinimalSummary';
 import { OrderFailoverSection } from './order-details/OrderFailoverSection';
 import { OrderBottomActions } from './order-details/OrderBottomActions';
 
@@ -336,37 +334,18 @@ export function OrderDetailsModal({
             </div>
           ) : (
             <>
-              {/* 3-COLUMN BENTO GRID */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <OrderServiceDetails
-                  order={currentOrder}
-                  copiedLink={copiedLink}
-                  onCopyLink={handleCopyLink}
-                  quantity={quantity}
-                  progressPercent={progressPercent}
-                />
-
-                <OrderProviderStatusCard
-                  order={currentOrder}
-                  selectedStatus={selectedStatus}
-                  onSelectedStatusChange={setSelectedStatus}
-                  remains={remains}
-                  onRemainsChange={setRemains}
-                  quantity={quantity}
-                  isPending={isPending}
-                  onSetStatus={handleSetStatus}
-                />
-
-                <OrderFinancialSummary
-                  order={currentOrder}
-                  chargeRub={chargeRub}
-                  costRub={costRub}
-                  marginRub={marginRub}
-                  marginPercent={marginPercent}
-                  pricePerUnitRub={pricePerUnitRub}
-                  canSeeRates={canSeeRates}
-                />
-              </div>
+              <OrderMinimalSummary
+                order={currentOrder}
+                quantity={quantity}
+                progressPercent={progressPercent}
+                copiedLink={copiedLink}
+                onCopyLink={handleCopyLink}
+                chargeRub={chargeRub}
+                costRub={costRub}
+                marginRub={marginRub}
+                marginPercent={marginPercent}
+                canSeeRates={canSeeRates}
+              />
 
               {/* PROVIDER ERROR BANNER */}
               {currentOrder.error && (
