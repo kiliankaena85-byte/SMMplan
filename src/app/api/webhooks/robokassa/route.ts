@@ -149,7 +149,8 @@ export async function POST(req: NextRequest) {
       const result = await MutexManager.withLock(`webhook_payment_robo_${shp_paymentId}`, 15000, 10000, async () => {
         // Fetch the payment record in our DB
         const payment = await db.payment.findUnique({
-          where: { id: shp_paymentId }
+          where: { id: shp_paymentId },
+          include: { orders: { select: { id: true }, take: 1 } }
         });
 
         if (!payment) {
@@ -185,7 +186,7 @@ export async function POST(req: NextRequest) {
           isTestMode,
           'robokassa',
           shp_paymentId,
-          payment.orderId ? 'order' : 'deposit'
+          (payment.orders && payment.orders.length > 0) ? 'order' : 'deposit'
         );
 
         if (success) {

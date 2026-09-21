@@ -223,6 +223,37 @@ export async function requireOwnerPermission<T>(
   }
 }
 
+/**
+ * Quick Admin session resolver for Server Actions.
+ * Returns the admin/staff User entity or null if not authenticated or not staff.
+ */
+export async function requireAdmin(): Promise<User | null> {
+  const userId = await getSessionUserId();
+  if (!userId) return null;
+
+  const user = await runWithTenantBypass('RBAC requireAdmin staff lookup', async () => {
+    return db.user.findUnique({
+      where: { id: userId },
+      include: {
+        staffRole: {
+          include: { permissions: true }
+        }
+      }
+    });
+  });
+
+  if (!user || user.role === 'BANNED' || user.role === 'USER' || user.isDeleted || !user.isActive) {
+    return null;
+  }
+
+  const staffRoles = ['OWNER', 'ADMIN', 'SUPPORT', 'MANAGER', 'OPERATOR'];
+  if (!staffRoles.includes(user.role)) {
+    return null;
+  }
+
+  return user;
+}
+
 
 
 import { redirect } from "next/navigation";

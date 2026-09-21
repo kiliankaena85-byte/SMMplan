@@ -261,17 +261,22 @@ class OrderService {
    */
   async cancelPendingOrderClient(orderId: string, userId: string, tenantId?: string): Promise<{ success: boolean; error?: string }> {
     try {
-      return await runSerializableTransaction(async (tx) => {
+      const result = await runSerializableTransaction(async (tx) => {
         const order = await tx.order.findUnique({
           where: { id: orderId }
         });
 
         if (!order || order.userId !== userId || (tenantId && order.tenantId !== tenantId)) {
-          return { success: false, error: 'Заказ не найден или доступ ограничен' };
+          return { success: false as const, error: 'Заказ не найден или доступ ограничен' };
         }
 
         if (order.status !== 'PENDING' && order.status !== 'AWAITING_PAYMENT') {
-          return { success: false, error: 'Заказ уже ушел в работу или отменен' };
+          return { success: false as const, error: 'Заказ уже ушел в работу или отменен' };
+        }
+
+        // Запрет отмены если заказ уже отправлен провайдеру
+        if (order.externalId || (order as unknown as { providerOrderId?: string }).providerOrderId) {
+          return { success: false as const, error: 'Заказ уже передан в обработку и не может быть отменён' };
         }
 
         const charge = order.charge; // totalCents
@@ -289,7 +294,7 @@ class OrderService {
         });
 
         if (updated.count === 0) {
-          return { success: false, error: 'Заказ уже ушел в работу или отменен' };
+          return { success: false as const, error: 'Заказ уже ушел в работу или отменен' };
         }
 
         // Cascade cancel associated SmartCampaign and pending SmartTasks
@@ -327,19 +332,31 @@ class OrderService {
           }
         }
 
-        // Email Notification for Canceled
-        import('../../lib/smtp').then(({ sendOrderCanceledMail }) => {
-          db.user.findUnique({ where: { id: userId }, select: { email: true } }).then(u => {
-            if (u?.email) {
-              db.service.findUnique({ where: { id: order.serviceId }, select: { name: true } }).then(s => {
-                if (s?.name) sendOrderCanceledMail(u.email, order.numericId.toString(), s.name, order.tenantId).catch(console.error);
-              });
-            }
-          });
-        });
-
-        return { success: true };
+        return {
+          success: true as const,
+          emailData: {
+            userId,
+            numericId: order.numericId,
+            serviceId: order.serviceId,
+            tenantId: order.tenantId,
+          }
+        };
       });
+
+      if (result.success && result.emailData) {
+        try {
+          const { sendOrderCanceledMail } = await import('../../lib/smtp');
+          const user = await db.user.findUnique({ where: { id: result.emailData.userId }, select: { email: true } });
+          const service = await db.service.findUnique({ where: { id: result.emailData.serviceId }, select: { name: true } });
+          if (user?.email && service?.name) {
+            await sendOrderCanceledMail(user.email, result.emailData.numericId.toString(), service.name, result.emailData.tenantId);
+          }
+        } catch (emailErr) {
+          console.error('[OrderService] Failed to send cancel email:', emailErr);
+        }
+      }
+
+      return { success: result.success, error: 'error' in result ? result.error : undefined };
     } catch (e: unknown) {
       console.error('[OrderService] cancelPendingOrderClient failed:', (e instanceof Error ? e.message : String(e)));
       return { success: false, error: 'Внутренняя ошибка при отмене заказа' };

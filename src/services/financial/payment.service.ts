@@ -12,7 +12,7 @@ function safeRevalidatePath(path: string, type?: 'layout' | 'page') {
   try {
     revalidatePath(path, type);
   } catch (err) {
-    const msg = err instanceof Error ? (err instanceof Error ? err.message : String(err)) : String(err);
+    const msg = err instanceof Error ? err.message : String(err);
     console.warn(`[Cache] revalidatePath failed for ${path}:`, msg);
   }
 }

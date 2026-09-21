@@ -4,14 +4,13 @@
  * Finance Ledger Server Action — Sprint 1.6
  *
  * Paginated ledger entries with filters.
- * Security: Admin-only route (layout enforces enforcePageRole).
- * No requireAdmin wrapper needed — page is behind /admin layout guard.
+ * Security: Admin-only route (guarded by requireAdmin and requireStaffPermission).
  */
 
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
-import { requireStaffPermission } from '@/lib/server/rbac';
+import { requireAdmin, requireStaffPermission } from '@/lib/server/rbac';
 import { resolveAdminTenantContext } from '@/utils/admin-tenant';
 
 const ledgerParamsSchema = z.object({
@@ -83,6 +82,9 @@ function getPeriodStart(period: string): Date | undefined {
 
 export async function getLedgerAction(params: Partial<LedgerParams>): Promise<LedgerPageResult | { success: false, error: string }> {
   try {
+    const session = await requireAdmin();
+    if (!session) return { success: false, error: 'Unauthorized' };
+
     return await requireStaffPermission('finance', 'view', async (admin) => {
       const p = ledgerParamsSchema.parse(params);
       const periodStart = getPeriodStart(p.period);
