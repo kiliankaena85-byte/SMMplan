@@ -119,16 +119,25 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
   const tenantConfig = TENANTS.find(t => t.id === tenantId);
   const siteName = tenantConfig?.name || settings.SITE_NAME || "SMMplan";
 
-  // Resolve user session, email and balance
+  // Resolve user session, email and balance strictly isolated to active tenant
   let userEmail: string | undefined = undefined;
   if (session?.userId) {
     const user = await db.user.findUnique({
       where: { id: session.userId },
-      select: { email: true, balance: true }
+      select: { email: true, balance: true, tenantId: true }
     });
     if (user) {
       userEmail = user.email;
-      userBalanceCents = Number(user.balance);
+      if (user.tenantId === tenantId) {
+        userBalanceCents = Number(user.balance);
+      } else {
+        // Staff/multi-tenant user: look up their corresponding account in the active tenant
+        const tenantAccount = await db.user.findFirst({
+          where: { email: user.email.toLowerCase(), tenantId },
+          select: { balance: true }
+        });
+        userBalanceCents = tenantAccount ? Number(tenantAccount.balance) : 0;
+      }
     }
   }
 

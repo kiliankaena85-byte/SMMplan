@@ -23,14 +23,14 @@ export function FluxStepLink({
 }: FluxStepLinkProps) {
   return (
     <div className="w-full flex flex-col items-center relative z-20">
-      <div className="text-center mb-8 max-w-2xl relative z-30 isolate">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-foreground mb-4">
+      <div className="text-center mb-8 max-w-2xl relative z-30 px-6 py-5 sm:px-10 sm:py-7 rounded-[28px] sm:rounded-[36px] bg-white/75 dark:bg-neutral-950/75 backdrop-blur-xl border border-white/80 dark:border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-foreground mb-3 sm:mb-4">
           Продвижение соцсетей <br className="hidden sm:inline" />
-          <span className="relative inline-block z-30 bg-gradient-to-r from-purple-950 via-fuchsia-900 to-pink-900 dark:from-white dark:via-fuchsia-200 dark:to-pink-200 bg-clip-text text-transparent drop-shadow-sm">
+          <span className="bg-gradient-to-r from-purple-700 via-fuchsia-600 to-pink-600 dark:from-purple-300 dark:via-fuchsia-200 dark:to-pink-200 bg-clip-text text-transparent drop-shadow-sm">
             нового поколения
           </span>
         </h1>
-        <p className="text-sm sm:text-base text-neutral-800 dark:text-neutral-200 font-semibold max-w-md mx-auto relative z-30">
+        <p className="text-sm sm:text-base text-neutral-700 dark:text-neutral-300 font-semibold max-w-md mx-auto">
           Вставьте ссылку на ваш профиль, канал или публикацию для автоматического подбора услуг
         </p>
       </div>

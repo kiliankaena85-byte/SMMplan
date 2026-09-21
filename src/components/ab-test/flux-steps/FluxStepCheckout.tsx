@@ -181,11 +181,11 @@ export function FluxStepCheckout({
           <Button
             type="submit"
             size="lg"
-            className="w-full h-14 bg-foreground text-background font-bold text-base rounded-[1.25rem] sm:rounded-[1.5rem] shadow-lg hover:bg-foreground/90 transition-all cursor-pointer"
+            className="w-full h-14 bg-foreground text-background font-bold text-base rounded-[1.25rem] sm:rounded-[1.5rem] shadow-lg hover:bg-foreground/90 transition-all cursor-pointer inline-flex flex-row items-center justify-center gap-2.5 whitespace-nowrap"
             isPending={isPending}
           >
             <span>{selectedGateway === "balance" ? "Оплатить с баланса" : "Перейти к оплате"}</span>
-            <ArrowRightIcon className="w-5 h-5 ml-2" />
+            <ArrowRightIcon className="w-5 h-5 shrink-0" />
           </Button>
         </div>
       </form>
