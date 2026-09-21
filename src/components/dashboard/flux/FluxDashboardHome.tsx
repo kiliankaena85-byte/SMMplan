@@ -82,7 +82,7 @@ export function FluxDashboardHome({
                 <span className="font-bold text-foreground text-base">Ваш баланс</span>
               </div>
               <Link
-                href="/dashboard/add-funds"
+                href="/dashboard/add-funds?tenant=flux"
                 className="text-xs font-bold px-3 py-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors"
               >
                 + Пополнить
@@ -108,7 +108,7 @@ export function FluxDashboardHome({
                 </div>
                 <span className="font-bold text-foreground text-base">Активные заказы</span>
               </div>
-              <Link href="/dashboard/orders" className="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
+              <Link href="/dashboard/orders?tenant=flux" className="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
                 Все <ArrowRight className="w-3 h-3 shrink-0" />
               </Link>
             </div>
@@ -125,7 +125,7 @@ export function FluxDashboardHome({
           <div>
             <div className="flex items-center justify-between mb-5">
               <span className="font-bold text-foreground text-lg">Последняя активность</span>
-              <Link href="/dashboard/orders" className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
+              <Link href="/dashboard/orders?tenant=flux" className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
                 История <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>

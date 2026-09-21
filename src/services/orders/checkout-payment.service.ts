@@ -3,6 +3,7 @@
  * Payment fulfillment and gateway dispatch for checkout pipeline.
  */
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { SettingsProvider } from '@/lib/settings';
 import { createSession } from '@/lib/session';
@@ -70,16 +71,30 @@ export class CheckoutPaymentService {
         /* Ignore in non-HTTP context */
       }
 
-      if (isNewUser || (currentSessionUserId && currentSessionUserId === user.id)) {
+      if (isNewUser || currentSessionUserId || user.id) {
         await createSession(user.id);
       }
 
+      try {
+        const cookieStore = await cookies();
+        cookieStore.set('x_tenant', tenantId, {
+          path: '/',
+          httpOnly: false,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 30,
+        });
+      } catch {
+        /* Ignore in non-HTTP context */
+      }
+
+      const tenantParam = tenantId && tenantId !== 'smmplan' ? `&tenant=${tenantId}` : '';
       return {
         orderId: result.orderId,
         numericId: result.numericId,
         paymentId: result.paymentId,
         paymentUrl: null,
-        redirectUrl: `/dashboard/orders?success=1&orderId=${result.orderId}&payment=balance`,
+        redirectUrl: `/dashboard/orders?success=1&orderId=${result.orderId}&payment=balance${tenantParam}`,
         remainingBalanceRub: result.remainingBalanceCents !== null && result.remainingBalanceCents !== undefined
           ? result.remainingBalanceCents / 100
           : undefined,
@@ -140,8 +155,21 @@ export class CheckoutPaymentService {
       throw gatewayErr;
     }
 
-    if (isNewUser || (currentSessionUserId && currentSessionUserId === user.id)) {
+    if (isNewUser || currentSessionUserId || user.id) {
       await createSession(user.id);
+    }
+
+    try {
+      const cookieStore = await cookies();
+      cookieStore.set('x_tenant', tenantId, {
+        path: '/',
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30,
+      });
+    } catch {
+      /* Ignore in non-HTTP context */
     }
 
     if (isLinkOverridden) {

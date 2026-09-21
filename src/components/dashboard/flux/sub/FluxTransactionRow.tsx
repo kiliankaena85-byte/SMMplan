@@ -63,7 +63,7 @@ export function FluxTransactionRow({
             {/* Order link badge if available */}
             {tx.orderNumericId && (
               <Link
-                href={`/dashboard/orders?search=${tx.orderNumericId}`}
+                href={`/dashboard/orders?search=${tx.orderNumericId}&tenant=flux`}
                 className="inline-flex items-center gap-1 text-[11px] font-mono font-black text-primary bg-primary/10 hover:bg-primary/20 px-2 py-0.5 rounded-md transition-colors"
                 title="Посмотреть этот заказ"
               >

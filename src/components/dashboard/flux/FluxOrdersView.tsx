@@ -108,7 +108,7 @@ export function FluxOrdersView({
           </div>
 
           <Link
-            href="/dashboard/new-order"
+            href="/dashboard/new-order?tenant=flux"
             className="h-11 px-5 flex items-center text-sm font-bold bg-foreground text-background rounded-2xl hover:opacity-90 transition-all shadow-md shrink-0"
           >
             + Новый заказ

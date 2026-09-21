@@ -1,3 +1,23 @@
+- [x] 💳 [MULTI-TENANT-BALANCE-ISOLATION-2026] Строгая изоляция балансов между тенантами (SMMplan & SMMflux) и исключение кросс-тенантных утечек (ст. 54.1 НК РФ, multi-tenant-isolation-arch) (100% COMPLETE & LIVE VERIFIED):
+  * 🛡️ **Архитектурный инвариант разделения балансов (ст. 54.1 НК РФ):**
+    - `src/lib/tenant-user-resolver.ts`: разработаны безопасные хелперы `resolveTenantUser` и `resolveTenantUserBalance`, предотвращающие отображение и списание баланса чужого тенанта при кросс-тенантной сессии.
+    - В витринах `src/app/page.tsx`, `src/app/services/[network]/page.tsx`, `src/app/services/[network]/[category]/page.tsx` и `src/app/dashboard/page.tsx` заменена монолитная выборка `user.balance` на изолированное разрешение баланса целевого тенанта (`tenantId: 'flux'`).
+  * ⚡ **Чекаут транзакции, редирект и сохранение тенанта:**
+    - `src/services/orders/checkout-payment.service.ts`: устранена проблема редиректа в ЛК SMMplan при оплате с баланса на SMMflux. Формируется точный `redirectUrl: /dashboard/orders?success=1&orderId=...&payment=balance&tenant=flux`, сессия обновляется для аккаунта SMMflux (`createSession(user.id)`), устанавливается кука `x_tenant`.
+    - `src/services/orders/checkout-transaction.service.ts`: устранена ложная ошибка `AccountExistsError` для авторизованных пользователей при заказе на соседнем бренде; добавлено корректное наследование привилегий `OWNER` и `allowedTenants: ['smmplan', 'flux']`.
+  * 🏢 **Лейаут и изоляция личного кабинета SMMflux (Zero SMMplan Brand Bleed):**
+    - `src/app/dashboard/layout.tsx`: резолвит пользователя через `resolveTenantUser(session.userId, tenantId, true)` с приоритетом тенанта из запроса/сессии, подключает `FluxDashboardShell` с **логотипом SMMflux** (`TenantLogo tenantId="flux"`), Аврора-фоном и ссылками `?tenant=flux`.
+    - `src/app/dashboard/orders/page.tsx`: динамический заголовок «Мои заказы | SMMflux», фильтрация заказов и статистики строго по `{ userId: user.id, tenantId }`, рендеринг `FluxOrdersView`.
+    - `src/app/dashboard/finance/page.tsx`: выписка `ledgerEntry` фильтруется по `{ userId: user.id, tenantId }`, текущий баланс якорится к фактическому балансу пользователя на SMMflux.
+    - В `FluxDashboardHome`, `FluxOrdersView`, `FluxTransactionsView`, `FluxWizardSuccessCard`, `FluxTransactionRow`, `FluxTransactionsHeader` и `settings/page.tsx` все внутренние ссылки и кнопки действий гарантированно сохраняют параметр `?tenant=flux`.
+  * 👤 **Провижининг аккаунта Владельца (OWNER) в БД:**
+    - Аккаунт `art@artmspektr.ru` обновлен до роли `OWNER` на тенанте `smmplan`.
+    - На тенанте `flux` создан синхронизированный профиль `OWNER` с тестовым балансом 100 000 ₽ (10 000 000 коп.) и создана запись аудита `LedgerEntry` (`ADMIN_ADJUST`).
+  * 🧪 **Автотесты и верификация:**
+    - Разработан юнит-сьют `src/__tests__/unit/multi-tenant-balance-isolation.test.ts` (4/4 PASS).
+    - `npx tsc --noEmit`: 0 ошибок (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+    - `checkout-resilience-and-bypass.test.ts`: 9/9 PASS.
 - [x] 🎨 [SMMFLUX-FULL-VISUAL-AND-AST-AUDIT-2026] Комплексный визуальный, функциональный и AST-аудит всех страниц SMMflux (десктоп + мобайл) и устранение всех выявленных дефектов (100% COMPLETE & VERIFIED):
   * 🗺️ **Детальная карта сайта и покрытие маршрутов SMMflux (`tenantId: 'flux'`):**
     - Витрина (Шаги 1–5): `/?tenant=flux` (Ввод ссылки -> Сеть -> Категория -> Услуга -> Чекаут с выбором СБП/Банковская карта/USDT/Баланс).

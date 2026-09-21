@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { headers } from "next/headers";
 import { absoluteCanonical, getTenantSiteName, normalizeTenantId, getTenantHost } from "@/lib/seo-helpers";
+import { resolveTenantUserBalance } from "@/lib/tenant-user-resolver";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { SettingsProvider } from "@/lib/settings";
 import { verifySession } from "@/lib/session";
@@ -90,18 +91,9 @@ export default async function NetworkServicesPage({
   const firstCatId = currentNetwork.categories[0]?.id;
   const initialServices = firstCatId ? await getServicesByCategoryAction(firstCatId, tenantId) : [];
 
-  // Resolve user session and email
+  // Resolve user session, email and tenant-isolated balance (ст. 54.1 НК РФ)
   const session = await verifySession();
-  let userEmail: string | undefined = undefined;
-  if (session?.userId) {
-    const user = await db.user.findUnique({
-      where: { id: session.userId },
-      select: { email: true }
-    });
-    if (user) {
-      userEmail = user.email;
-    }
-  }
+  const { userEmail, userBalanceCents } = await resolveTenantUserBalance(session?.userId, tenantId);
 
   // Related networks and categories for Silo cross-linking
   const relatedCategories = currentNetwork.categories.map(c => ({
@@ -229,6 +221,7 @@ export default async function NetworkServicesPage({
               <FluxOrderClient 
                 initialCatalog={catalog} 
                 initialEmail={userEmail}
+                userBalanceCents={userBalanceCents}
                 initialNetworkId={currentNetwork.id}
                 initialServiceId={initialServiceId}
                 tenantId={tenantId}

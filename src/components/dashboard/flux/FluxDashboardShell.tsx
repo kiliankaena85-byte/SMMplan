@@ -30,6 +30,17 @@ export function FluxDashboardShell({
   const pathname = usePathname();
   const unreadCount = useUnreadSupport(user.unreadTicketsCount ?? 0);
 
+  const isFlux = user.tenantId === 'flux';
+  const withTenant = (url: string) => {
+    if (!isFlux) return url;
+    const [path, query] = url.split('?');
+    const params = new URLSearchParams(query || '');
+    if (!params.has('tenant')) {
+      params.set('tenant', 'flux');
+    }
+    return `${path}?${params.toString()}`;
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
       {/* ── FLUX VIBRANT HERO BACKGROUND (Full Bleed - GPU Isolated Layer) ── */}
@@ -55,12 +66,12 @@ export function FluxDashboardShell({
       <header className="relative z-40 w-full px-2.5 sm:px-8 py-2 sm:py-3.5 flex items-center justify-between backdrop-blur-2xl bg-white/60 dark:bg-black/60 border-b border-border/30 shadow-sm sticky top-0 min-h-[56px]">
         <div className="flex items-center gap-2 sm:gap-8 min-w-0">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <Link href="/" className="flex items-center gap-2 sm:gap-2.5 font-black text-base sm:text-xl text-foreground tracking-tight hover:opacity-90 transition-opacity min-w-0 shrink-0" title="Перейти на главную страницу (Витрина)" aria-label="На главную">
+            <Link href={withTenant('/')} className="flex items-center gap-2 sm:gap-2.5 font-black text-base sm:text-xl text-foreground tracking-tight hover:opacity-90 transition-opacity min-w-0 shrink-0" title="Перейти на главную страницу (Витрина)" aria-label="На главную">
               <TenantLogo tenantId="flux" className="w-7 h-7 sm:w-9 sm:h-9 shrink-0" iconClassName="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="truncate tracking-tight font-black min-w-0">SMMflux</span>
             </Link>
             <Link
-              href="/"
+              href={withTenant('/')}
               className="hidden lg:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-muted-foreground hover:text-foreground bg-secondary/60 hover:bg-secondary border border-border/60 transition-all hover:scale-105 active:scale-95 shrink-0"
               title="Перейти на главную страницу (Витрина услуг)"
               aria-label="На главную"
@@ -80,7 +91,7 @@ export function FluxDashboardShell({
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={withTenant(item.href)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all relative ${
                     active
                       ? 'bg-foreground text-background shadow-sm font-bold'
@@ -109,7 +120,7 @@ export function FluxDashboardShell({
           <ThemeSwitcher variant="toggle" className="hidden min-[400px]:flex w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-border/70 bg-card/60 shrink-0" />
           <BalanceDisplay initialBalance={balanceRub} variant="mobile-header" />
           <Link
-            href="/dashboard/finance"
+            href={withTenant('/dashboard/finance')}
             className="px-2 sm:px-4 py-1.5 sm:py-2 min-h-[34px] sm:min-h-[40px] text-xs sm:text-sm font-bold bg-primary text-primary-foreground rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-md flex items-center justify-center gap-1 sm:gap-1.5 shrink-0"
             title="Пополнить баланс"
             aria-label="Пополнить баланс"
@@ -120,7 +131,7 @@ export function FluxDashboardShell({
 
           {/* Mobile Profile Avatar Link (Variant A) */}
           <Link
-            href="/dashboard/settings"
+            href={withTenant('/dashboard/settings')}
             className="md:hidden flex items-center justify-center w-8 h-8 rounded-xl bg-primary/10 text-primary border border-primary/20 font-bold text-xs uppercase shrink-0"
             title="Профиль и настройки"
           >
@@ -130,7 +141,7 @@ export function FluxDashboardShell({
           {/* Desktop User Menu (Variant B) */}
           <div className="hidden md:flex items-center gap-2 pl-3 border-l border-border/40">
             <Link
-              href="/dashboard/settings"
+              href={withTenant('/dashboard/settings')}
               className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-muted/50 text-foreground transition-colors group"
               title="Настройки профиля и безопасность"
             >
@@ -143,7 +154,7 @@ export function FluxDashboardShell({
             </Link>
 
             <Link
-              href="/dashboard/settings"
+              href={withTenant('/dashboard/settings')}
               className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-xl transition-colors"
               title="Настройки профиля"
             >
@@ -178,7 +189,7 @@ export function FluxDashboardShell({
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={withTenant(item.href)}
               className={`flex flex-col items-center justify-center min-h-[44px] min-w-[44px] px-2 py-1 rounded-xl text-[10px] font-medium transition-all ${
                 active ? 'text-primary font-bold bg-primary/10' : 'text-muted-foreground hover:text-foreground'
               }`}

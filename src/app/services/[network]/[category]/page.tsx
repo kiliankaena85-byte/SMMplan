@@ -3,6 +3,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { Metadata } from "next";
 import { headers } from "next/headers";
 import { absoluteCanonical, getTenantSiteName, normalizeTenantId, getTenantHost } from "@/lib/seo-helpers";
+import { resolveTenantUserBalance } from "@/lib/tenant-user-resolver";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { SettingsProvider } from "@/lib/settings";
 import { verifySession } from "@/lib/session";
@@ -110,18 +111,9 @@ export default async function CategoryServicesPage({
   const settings = await SettingsProvider.getContactAndLegalSettings();
   const cleanCatName = cleanEmoji(currentCategory.name);
 
-  // Resolve user session and email
+  // Resolve user session, email and tenant-isolated balance (ст. 54.1 НК РФ)
   const session = await verifySession();
-  let userEmail: string | undefined = undefined;
-  if (session?.userId) {
-    const user = await db.user.findUnique({
-      where: { id: session.userId },
-      select: { email: true }
-    });
-    if (user) {
-      userEmail = user.email;
-    }
-  }
+  const { userEmail, userBalanceCents } = await resolveTenantUserBalance(session?.userId, tenantId);
 
   // Fetch services for structured data JSON-LD
   const services = await getServicesByCategoryAction(currentCategory.id, tenantId);
@@ -296,6 +288,7 @@ export default async function CategoryServicesPage({
               <FluxOrderClient 
                 initialCatalog={catalog} 
                 initialEmail={userEmail}
+                userBalanceCents={userBalanceCents}
                 initialNetworkId={currentNetwork.id}
                 initialCategoryId={currentCategory.id}
                 initialServiceId={initialServiceId}

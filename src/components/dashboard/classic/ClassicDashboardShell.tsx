@@ -11,7 +11,7 @@ export function ClassicDashboardShell({
   user,
   children,
 }: {
-  user: { email: string; balanceCents: number; unreadTicketsCount?: number };
+  user: { email: string; balanceCents: number; unreadTicketsCount?: number; tenantId?: string };
   children: React.ReactNode;
 }) {
   const balanceRub = formatBalance(user.balanceCents);

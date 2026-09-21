@@ -5,13 +5,16 @@ import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
-import { resolveTenantFromRequest } from '@/lib/tenant-resolver-edge';
+import { resolveTenantFromRequest, normalizeTenantId } from '@/lib/tenant-resolver-edge';
+import { resolveTenantUser } from '@/lib/tenant-user-resolver';
 import FinanceClientPage from './client-page';
 import { Metadata } from 'next';
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({ searchParams }: { searchParams?: Promise<{ tenant?: string }> }): Promise<Metadata> {
+  const sp = searchParams ? await searchParams : undefined;
   const reqHeaders = await headers();
-  const tenantId = resolveTenantFromRequest(reqHeaders);
+  const rawTenantId = sp?.tenant || reqHeaders.get('x-tenant-id');
+  const tenantId = normalizeTenantId(rawTenantId) || 'smmplan';
   const isFlux = tenantId === 'flux';
 
   return {
@@ -20,30 +23,32 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function FinancePage() {
+export default async function FinancePage({ searchParams }: { searchParams?: Promise<{ tenant?: string }> }) {
   const session = await verifySession();
   if (!session) redirect('/login');
 
-  const [user, entries] = await Promise.all([
-    db.user.findUnique({
-      where: { id: session.userId },
-      select: { id: true, email: true, balance: true },
-    }),
-    db.ledgerEntry.findMany({
-      where: { userId: session.userId },
-      orderBy: { createdAt: 'asc' },
-      select: {
-        id: true,
-        amount: true,
-        reason: true,
-        status: true,
-        idempotencyKey: true,
-        transactionType: true,
-        adminId: true,
-        createdAt: true,
-      },
-    }),
-  ]);
+  const reqHeaders = await headers();
+  const sp = searchParams ? await searchParams : undefined;
+  const rawTenantId = sp?.tenant || reqHeaders.get('x-tenant-id') || session.tenantId;
+  const tenantId = normalizeTenantId(rawTenantId) || 'smmplan';
+
+  const user = await resolveTenantUser(session.userId, tenantId, true);
+  if (!user) redirect('/login');
+
+  const entries = await db.ledgerEntry.findMany({
+    where: { userId: user.id, tenantId },
+    orderBy: { createdAt: 'asc' },
+    select: {
+      id: true,
+      amount: true,
+      reason: true,
+      status: true,
+      idempotencyKey: true,
+      transactionType: true,
+      adminId: true,
+      createdAt: true,
+    },
+  });
 
   if (!user) redirect('/login');
 
@@ -85,9 +90,6 @@ export default async function FinancePage() {
   // Reverse so newest transactions are at the top
   const serializedEntries = enrichedEntries.reverse();
   const currentBalanceRub = Number(user.balance ?? 0) / 100;
-
-  const reqHeaders = await headers();
-  const tenantId = resolveTenantFromRequest(reqHeaders);
 
   return (
     <Suspense fallback={<div className="max-w-4xl animate-pulse text-muted-foreground">Загрузка финансов...</div>}>

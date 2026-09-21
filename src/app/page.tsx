@@ -19,6 +19,7 @@ import { verifySession } from "@/lib/session";
 import { db } from "@/lib/db";
 import { headers, cookies } from "next/headers";
 import { absoluteCanonical, getTenantSiteName, normalizeTenantId } from "@/lib/seo-helpers";
+import { resolveTenantUserBalance } from "@/lib/tenant-user-resolver";
 
 export const dynamic = "force-dynamic";
 
@@ -95,7 +96,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
   const isHoldingParam = params.mode === "holding";
   const isHoldingMode = isHoldingParam || (isProdHost && params.contour !== "test");
 
-  let userBalanceCents = 0;
   const [catalogResult, settings, session, baseUrl] = await Promise.all([
     getPublicCatalogAction(tenantId),
     SettingsProvider.getContactAndLegalSettings(),
@@ -119,18 +119,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
   const tenantConfig = TENANTS.find(t => t.id === tenantId);
   const siteName = tenantConfig?.name || settings.SITE_NAME || "SMMplan";
 
-  // Resolve user session, email and balance
-  let userEmail: string | undefined = undefined;
-  if (session?.userId) {
-    const user = await db.user.findUnique({
-      where: { id: session.userId },
-      select: { email: true, balance: true }
-    });
-    if (user) {
-      userEmail = user.email;
-      userBalanceCents = Number(user.balance);
-    }
-  }
+  // Resolve user session, email and tenant-isolated balance (ст. 54.1 НК РФ)
+  const { userEmail, userBalanceCents } = await resolveTenantUserBalance(session?.userId, tenantId);
 
   return (
     <>

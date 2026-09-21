@@ -71,16 +71,43 @@ export class CheckoutTransactionService {
         throw new Error("Ваш аккаунт заблокирован или удален");
       }
       if (user.passwordHash && (!currentSessionUserId || currentSessionUserId !== user.id)) {
-        throw new AccountExistsError(user.email);
+        let isCrossTenantAuthUser = false;
+        if (currentSessionUserId) {
+          const sessionUser = await db.user.findUnique({
+            where: { id: currentSessionUserId },
+            select: { email: true }
+          });
+          if (sessionUser && sessionUser.email.toLowerCase() === email.toLowerCase()) {
+            isCrossTenantAuthUser = true;
+          }
+        }
+        if (!isCrossTenantAuthUser) {
+          throw new AccountExistsError(user.email);
+        }
       }
     }
 
     let isNewUser = false;
     if (!user) {
+      let initialRole = 'USER';
+      let allowedTenants = [tenantId];
+      if (currentSessionUserId) {
+        const sessionUser = await db.user.findUnique({
+          where: { id: currentSessionUserId },
+          select: { role: true, email: true }
+        });
+        if (sessionUser && sessionUser.email.toLowerCase() === email.toLowerCase() && sessionUser.role === 'OWNER') {
+          initialRole = 'OWNER';
+          allowedTenants = ['smmplan', 'flux'];
+        }
+      }
+
       user = await db.user.create({
         data: {
           email: email.toLowerCase(),
           tenantId,
+          role: initialRole,
+          allowedTenants,
           tosAcceptedAt: new Date(),
           tosAcceptedIp: consentIp,
         }

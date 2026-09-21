@@ -66,6 +66,15 @@ onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); ... }}
 
 ## 1. 🏗️ Архитектурные решения (ADR)
 
+- **ADR-2026-32: Multi-Tenant Balance Isolation (ст. 54.1 НК РФ) & SMMflux Personal Cabinet Branding Continuity:**
+  - *Решение:*
+    1. **Изоляция балансов и аккаунтов (ст. 54.1 НК РФ):** Разработаны безопасные резолверы `resolveTenantUser` и `resolveTenantUserBalance` (`src/lib/tenant-user-resolver.ts`), исключающие отображение и списание баланса чужого тенанта при кросс-тенантной сессии.
+    2. **Устранение сбоя редиректа при оплате с баланса:** В `CheckoutPaymentService.ts` результат оплаты с баланса возвращает точный `redirectUrl` с параметром `&tenant=flux`, сессия обновляется для аккаунта SMMflux (`createSession(user.id)`), устанавливается кука `x_tenant`.
+    3. **Сквозная изоляция личного кабинета SMMflux (Zero Brand Bleed):** `DashboardLayout` резолвит пользователя под целевой тенант и подключает `FluxDashboardShell` с **логотипом SMMflux** (`TenantLogo tenantId="flux"`), Аврора-фоном и ссылками `?tenant=flux`. Страницы `/dashboard/orders`, `/dashboard/finance`, `/dashboard/new-order`, `/dashboard/settings` изолируют выборки заказов и проводок леджера строго по `{ userId: user.id, tenantId }`.
+    4. **Сохранение контекста во всех дочерних ссылках:** Все ссылки и кнопки в `FluxDashboardHome`, `FluxOrdersView`, `FluxTransactionsView`, `FluxWizardSuccessCard`, `FluxTransactionRow`, `FluxTransactionsHeader` и `settings/page.tsx` обновлены для строгого сохранения параметра `?tenant=flux`.
+    5. **Верификация:** 4/4 тестов PASS (`multi-tenant-balance-isolation.test.ts`), `npx tsc --noEmit` 0 ошибок (Strict mode), `node scripts/check-bundle-secrets.mjs` 0 утечек секретов.
+  - *Причина:* Полное устранение выброса в ЛК SMMplan при чекауте с баланса на SMMflux и исключение чужого логотипа/заказов в личном кабинете.
+
 - **ADR-2026-31: SMMflux Full Visual & AST Audit, Layout Remediation, and Deep Catalog Pre-selection Integration:**
   - *Решение:*
     1. **AST Layout Hardening:** Ликвидированы Flex-усечения `TRUNCATE_WITHOUT_MIN_W_ZERO` путем добавления `min-w-0` к заголовку категории в `FluxStepCategory.tsx` и способу оплаты в `FluxStepCheckoutPaymentMethods.tsx`. На 30+ иконках во всех шагах чекаута, базе знаний и блоке преимуществ зафиксирован `shrink-0`.
@@ -596,6 +605,10 @@ npx @next/codemod@latest middleware-to-proxy
 - **[BACKLOG] [UX-CATALOG-FILTER-PERSIST] Сохранение фильтров каталога при возврате после редактирования услуги:**
   - *Контекст:* При сохранении/отмене редактирования услуги на `/admin/catalog/[id]` происходит возврат на чистый `/admin/catalog` без query-параметров. Оператор теряет выбранные фильтры (соцсеть, категорию, поисковый запрос, статус провайдера, страницу).
   - *План:* Прокидывать `returnUrl` / `searchParams` через ссылку редактирования и `router.push(returnUrl || '/admin/catalog')` при завершении действия.
+
+- **[RESOLVED] [BUG-TENANT-BALANCE-LEAK] Кросс-тенантная утечка баланса между SMMplan и SMMflux (ст. 54.1 НК РФ):**
+  - *Причина:* При авторизованной сессии на SMMplan серверный рендеринг витрины SMMflux (`src/app/page.tsx`, `services/[network]`) считывал баланс напрямую из `sessionUser.balance` (записи `smmplan`). Пользователь видел баланс SMMplan на витрине SMMflux, но при оплате бэкенд справедливо искал пользователя на `tenantId: 'flux'`, где баланс был 0, возвращая ошибку `WalletInsufficientFundsError`.
+  - *Исправление:* Внедрен `src/lib/tenant-user-resolver.ts` с функциями `resolveTenantUser` и `resolveTenantUserBalance`. Баланс теперь строго изолирован по целевому `targetTenantId`. На витрине и в чекауте соседнего бренда баланс чужого тенанта равен 0. Для аккаунта владельца `art@artmspektr.ru` на `flux` начислен тестовый баланс 100 000 ₽ через леджер `LedgerEntry`. Покрыто тестами `multi-tenant-balance-isolation.test.ts`.
 
 
 
