@@ -70,16 +70,17 @@ export class CheckoutPaymentService {
         /* Ignore in non-HTTP context */
       }
 
-      if (isNewUser || (currentSessionUserId && currentSessionUserId === user.id)) {
+      if (isNewUser || (currentSessionUserId && currentSessionUserId === user.id) || (user.tenantId && user.tenantId !== 'smmplan')) {
         await createSession(user.id);
       }
 
+      const tenantParam = tenantId && tenantId !== 'smmplan' ? `&tenant=${tenantId}` : '';
       return {
         orderId: result.orderId,
         numericId: result.numericId,
         paymentId: result.paymentId,
         paymentUrl: null,
-        redirectUrl: `/dashboard/orders?success=1&orderId=${result.orderId}&payment=balance`,
+        redirectUrl: `/dashboard/orders?success=1&orderId=${result.orderId}&payment=balance${tenantParam}`,
         remainingBalanceRub: result.remainingBalanceCents !== null && result.remainingBalanceCents !== undefined
           ? result.remainingBalanceCents / 100
           : undefined,

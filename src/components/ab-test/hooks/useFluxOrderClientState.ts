@@ -293,7 +293,13 @@ export function useFluxOrderClientState({
             return { error: undefined };
           }
           if (redirectUrl) {
-            window.location.href = redirectUrl;
+            if (typeof document !== "undefined" && tenantId) {
+              document.cookie = `x_tenant=${tenantId}; path=/; max-age=31536000; SameSite=Lax`;
+            }
+            const finalRedirect = (tenantId && !redirectUrl.includes('tenant='))
+              ? `${redirectUrl}${redirectUrl.includes('?') ? '&' : '?'}tenant=${tenantId}`
+              : redirectUrl;
+            window.location.href = finalRedirect;
             return { error: undefined };
           }
           window.location.href = `/order/${res.data.orderId}${guestOrderToken ? `?token=${guestOrderToken}` : ''}`;
