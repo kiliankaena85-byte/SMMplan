@@ -11,6 +11,8 @@ import { db } from "@/lib/db";
 import { Header } from "@/components/landing/Header";
 import { MegaFooter } from "@/components/landing/MegaFooter";
 import { ServiceIdBadge } from "@/components/ui/service-id-badge";
+import { SiloLinkingService } from "@/services/seo/silo-linking.service";
+import { SiloCrossLinking } from "@/components/seo/SiloCrossLinking";
 
 export const dynamic = 'force-dynamic';
 
@@ -138,9 +140,16 @@ export default async function ServiceDetailPage({
     select: { id: true, name: true, slug: true, rate: true, markup: true }
   });
 
+  // Silo 2026: сопутствующие услуги из смежных категорий текущей соцсети
+  const siloBundle = await SiloLinkingService.getComplementaryServicesForService({
+    serviceId: service.id,
+    tenantId,
+    limit: 4,
+  });
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      <Header siteName={siteName} activePath="/services" />
+      <Header siteName={siteName} tenantId={tenantId} activePath="/services" />
 
       <JsonLd data={breadcrumbData} />
       <JsonLd data={serviceData} />
@@ -222,6 +231,11 @@ export default async function ServiceDetailPage({
             </Link>
           </div>
         </div>
+
+        {/* Silo 2026: Блок сопутствующих услуг «С этой услугой также заказывают» */}
+        {siloBundle && (
+          <SiloCrossLinking bundle={siloBundle} tenantId={tenantId} />
+        )}
 
         {/* Смежные услуги */}
         {siblingServices.length > 0 && (

@@ -12,6 +12,8 @@ import { Header } from "@/components/landing/Header";
 import { MegaFooter } from "@/components/landing/MegaFooter";
 import { FluxServicesCatalog } from "@/components/services/flux/FluxServicesCatalog";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { SiloLinkingService } from "@/services/seo/silo-linking.service";
+import { SiloCrossLinking } from "@/components/seo/SiloCrossLinking";
 
 export const dynamic = 'force-dynamic';
 
@@ -63,6 +65,11 @@ export default async function ServicesCatalogPage() {
   const featuredArticles = articlesResult.success && articlesResult.articles 
     ? articlesResult.articles.slice(0, 3) 
     : [];
+
+  const siloBundle = await SiloLinkingService.getPopularSiloBundle({
+    tenantId,
+    limit: 4,
+  });
 
   const breadcrumbData = {
     "@context": "https://schema.org",
@@ -130,6 +137,11 @@ export default async function ServicesCatalogPage() {
         <Header initialEmail={userEmail} siteName={siteName} tenantId={tenantId} activePath={undefined} />
         <main className="flex-1 w-full relative z-10">
           <FluxServicesCatalog networks={networks} featuredArticles={featuredArticles} />
+          {siloBundle && (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+              <SiloCrossLinking bundle={siloBundle} tenantId={tenantId} />
+            </div>
+          )}
         </main>
         <MegaFooter contactSettings={settings} tenantId={tenantId} />
       </div>
@@ -300,6 +312,13 @@ export default async function ServicesCatalogPage() {
             </div>
 
           </div>
+
+          {/* Silo 2026: Сопутствующие услуги / С этой услугой также заказывают */}
+          {siloBundle && (
+            <div className="pt-6 border-t border-border/60">
+              <SiloCrossLinking bundle={siloBundle} tenantId={tenantId} />
+            </div>
+          )}
         </div>
       </main>
 

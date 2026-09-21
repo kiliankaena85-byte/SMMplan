@@ -18,6 +18,7 @@ import { MutexManager } from "@/lib/redis-lock";
 import { adminCatalogService } from "@/services/admin/catalog.service";
 import { providerService } from "@/services/providers/provider.service";
 import { ServiceMutationDetector, type ServiceMutationResult } from "@/services/providers/service-mutation-detector";
+import { invalidateYandexFeedCache } from "@/services/seo/yandex-feed-cache.service";
 
 function revalidateQuarantineAndAnomalies() {
   try {
@@ -25,6 +26,7 @@ function revalidateQuarantineAndAnomalies() {
     revalidateTag('catalog', 'default');
     revalidatePath('/admin/catalog/quarantine');
     revalidatePath('/admin', 'layout');
+    invalidateYandexFeedCache().catch(() => {});
   } catch (err) {
     console.warn('[Quarantine] Revalidation warning:', err);
   }

@@ -17,6 +17,7 @@ import { FluxReviews } from "@/components/ab-test/FluxReviews";
 import { FluxFAQ } from "@/components/ab-test/FluxFAQ";
 import { ROUTES } from "@/lib/routes";
 import { LandingSeoHub } from "@/components/seo/LandingSeoHub";
+import { SiloLinkingService } from "@/services/seo/silo-linking.service";
 
 export const dynamic = 'force-dynamic';
 
@@ -171,6 +172,12 @@ export default async function NetworkServicesPage({
     }
   };
 
+  const siloBundle = await SiloLinkingService.getComplementaryForNetwork({
+    networkSlug: currentNetwork.slug,
+    tenantId,
+    limit: 4,
+  });
+
   const seoHub = (
     <LandingSeoHub
       networkName={currentNetwork.name}
@@ -181,6 +188,8 @@ export default async function NetworkServicesPage({
       host={host}
       relatedCategories={relatedCategories}
       relatedNetworks={relatedNetworks}
+      siloBundle={siloBundle}
+      tenantId={tenantId}
     />
   );
 

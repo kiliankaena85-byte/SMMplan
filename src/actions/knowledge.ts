@@ -406,18 +406,18 @@ export async function createArticle(data: {
         const smmplanUrl = absoluteCanonical('smmplan', `/knowledge/${article.slug}`);
         const smmfluxUrl = absoluteCanonical('flux', `/knowledge/${article.slug}`);
 
-        IndexNowService.submitUrls({
+        IndexNowService.enqueueUrls({
           host: 'smmplan.pro',
           urls: [smmplanUrl],
         }).catch((err) => {
-          console.warn('[IndexNow] Background notification failed for smmplan.pro', err);
+          console.warn('[IndexNow] Background enqueuing failed for smmplan.pro', err);
         });
 
-        IndexNowService.submitUrls({
+        IndexNowService.enqueueUrls({
           host: 'smmflux.ru',
           urls: [smmfluxUrl],
         }).catch((err) => {
-          console.warn('[IndexNow] Background notification failed for smmflux.ru', err);
+          console.warn('[IndexNow] Background enqueuing failed for smmflux.ru', err);
         });
       }
 
@@ -478,18 +478,18 @@ export async function updateArticle(id: string, data: {
         const smmplanUrl = absoluteCanonical('smmplan', `/knowledge/${article.slug}`);
         const smmfluxUrl = absoluteCanonical('flux', `/knowledge/${article.slug}`);
 
-        IndexNowService.submitUrls({
+        IndexNowService.enqueueUrls({
           host: 'smmplan.pro',
           urls: [smmplanUrl],
         }).catch((err) => {
-          console.warn('[IndexNow] Background notification failed for smmplan.pro', err);
+          console.warn('[IndexNow] Background enqueuing failed for smmplan.pro', err);
         });
 
-        IndexNowService.submitUrls({
+        IndexNowService.enqueueUrls({
           host: 'smmflux.ru',
           urls: [smmfluxUrl],
         }).catch((err) => {
-          console.warn('[IndexNow] Background notification failed for smmflux.ru', err);
+          console.warn('[IndexNow] Background enqueuing failed for smmflux.ru', err);
         });
       }
 

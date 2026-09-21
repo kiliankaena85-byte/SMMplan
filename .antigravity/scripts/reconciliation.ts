@@ -1,6 +1,17 @@
+import '../../scripts/init-host-env';
 import { PrismaClient } from '@prisma/client';
 
-const db = new PrismaClient();
+function getDatasourceUrl(): string | undefined {
+  return process.env.DATABASE_URL;
+}
+
+const db = new PrismaClient({
+  datasources: {
+    db: {
+      url: getDatasourceUrl(),
+    },
+  },
+});
 
 export interface ReconciliationCheckResult {
   check_id: string;
@@ -149,12 +160,11 @@ export async function runReconciliation(): Promise<ReconciliationReport> {
       id: 'REFUND_OVERCHARGE',
       severity: 'CRITICAL',
       query: `
-        SELECT p."orderId", o.charge, SUM(ABS(l.amount)) as refunded_sum
+        SELECT o.id, o.charge, SUM(ABS(l.amount)) as refunded_sum
         FROM "LedgerEntry" l
-        JOIN "Payment" p ON l."paymentId" = p.id
-        JOIN "Order" o ON p."orderId" = o.id
-        WHERE l.type::text = 'REFUND'
-        GROUP BY p."orderId", o.charge
+        JOIN "Order" o ON l."idempotencyKey" LIKE '%' || o.id || '%'
+        WHERE l."transactionType" IN ('REFUND', 'ORDER_CANCEL')
+        GROUP BY o.id, o.charge
         HAVING SUM(ABS(l.amount)) > o.charge
       `
     }
@@ -181,14 +191,15 @@ export async function runReconciliation(): Promise<ReconciliationReport> {
         rows,
         passed
       });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
+      if (item.severity === 'CRITICAL') criticalFailuresCount++;
+      else warningsCount++;
       checks.push({
         check_id: item.id,
         severity: item.severity,
         query: item.query.trim().replace(/\s+/g, ' '),
         rows: [],
-        passed: true,
+        passed: false,
         error: err.message
       });
     }
@@ -209,7 +220,7 @@ if (require.main === module) {
   runReconciliation()
     .then(report => {
       console.log('=== AEARH FINANCIAL RECONCILIATION REPORT ===');
-      console.log(JSON.stringify(report, null, 2));
+      console.log(JSON.stringify(report, (_k, v) => typeof v === 'bigint' ? v.toString() : v, 2));
       db.$disconnect();
       if (!report.passed) {
         process.exit(1);

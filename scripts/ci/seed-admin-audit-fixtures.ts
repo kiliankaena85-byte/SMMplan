@@ -445,12 +445,30 @@ export async function seedAdminAuditFixtures(): Promise<SeedAuditResult> {
       data: {
         id: AUDIT_FIXTURES.ledger.id,
         user: { connect: { id: AUDIT_FIXTURES.client.id } },
-        amount: BigInt(150000),
+        amount: AUDIT_FIXTURES.client.balance,
         reason: 'Тестовое пополнение баланса для аудита',
         status: 'APPROVED',
         transactionType: 'PAYMENT',
         tenantId: 'smmplan',
         idempotencyKey: 'audit-seed-ledger-001',
+      },
+    });
+  }
+
+  const existingAdminLedger = await prisma.ledgerEntry.findFirst({
+    where: { idempotencyKey: 'audit-seed-admin-ledger-001' },
+  });
+
+  if (!existingAdminLedger) {
+    await prisma.ledgerEntry.create({
+      data: {
+        userId: AUDIT_FIXTURES.admin.id,
+        amount: 10000000n,
+        reason: 'Audit fixture initial admin reserve allocation',
+        status: 'APPROVED',
+        transactionType: 'PAYMENT',
+        tenantId: 'smmplan',
+        idempotencyKey: 'audit-seed-admin-ledger-001',
       },
     });
   }

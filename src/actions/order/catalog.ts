@@ -554,13 +554,23 @@ export async function getServicesByCategoryAction(categoryId: string, rawTenantI
 export async function getServiceBySlugAction(slug: string, tenantId: string = 'smmplan') {
   try {
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
+    const isNumeric = /^\d+$/.test(slug);
     const service = await db.service.findFirst({
       where: {
-        slug,
+        ...(isNumeric
+          ? {
+              AND: [
+                { OR: [{ slug }, { numericId: parseInt(slug, 10) }] },
+                { OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }] },
+              ],
+            }
+          : {
+              slug,
+              OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }],
+            }),
         tenantId: { in: [tenantId, 'all'] },
         isActive: true,
         isQuarantined: false,
-        OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }],
         category: {
           network: { isActive: true }
         }

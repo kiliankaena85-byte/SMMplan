@@ -10,8 +10,10 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { getPublicCatalogAction, getServicesByCategoryAction } from '@/actions/order/catalog';
 import { normalizeTenantId, getTenantHost, getTenantSiteName } from '@/lib/seo-helpers';
+import { YandexFeedCacheService, invalidateYandexFeedCache } from '@/services/seo/yandex-feed-cache.service';
 
 export const dynamic = 'force-dynamic';
+export { invalidateYandexFeedCache };
 
 function escapeXml(unsafe: string): string {
   return unsafe
@@ -30,6 +32,20 @@ export async function GET() {
   const reqHeaders = await headers();
   const rawHost = reqHeaders.get('host') || reqHeaders.get('x-forwarded-host') || '';
   const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id') || (rawHost.includes('flux') ? 'flux' : 'smmplan'));
+
+  // 1. Check Redis Cache (TTL 3600s) — Cache-Aside with Fail-Open
+  const cachedXml = await YandexFeedCacheService.get(tenantId);
+  if (cachedXml) {
+    return new NextResponse(cachedXml, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/xml; charset=utf-8',
+        'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=43200',
+        'X-Cache': 'HIT',
+      },
+    });
+  }
+
   const isFlux = tenantId === 'flux';
   const siteName = getTenantSiteName(tenantId);
   const host = getTenantHost(tenantId, rawHost);
@@ -124,11 +140,15 @@ export async function GET() {
   </shop>
 </yml_catalog>`;
 
+  // 2. Cache the newly generated XML for 3600 seconds (1 hour)
+  await YandexFeedCacheService.set(tenantId, xml, 3600);
+
   return new NextResponse(xml, {
     status: 200,
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',
       'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=43200',
+      'X-Cache': 'MISS',
     },
   });
 }

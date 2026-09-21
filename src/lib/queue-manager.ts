@@ -16,9 +16,26 @@ export const getQueuePrefix = (): string => {
 export const getRedisConnection = (): Redis => {
   if (redisConnection) return redisConnection;
 
-  const redisUrl = (process.env.CONTOUR === 'test' && process.env.REDIS_URL_TEST)
+  let redisUrl = (process.env.CONTOUR === 'test' && process.env.REDIS_URL_TEST)
     ? process.env.REDIS_URL_TEST
     : (process.env.REDIS_URL || 'redis://127.0.0.1:6379');
+
+  if (typeof window === 'undefined') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const fs = require('fs');
+      if (!fs.existsSync('/.dockerenv')) {
+        if (redisUrl.includes('@redis:')) {
+          redisUrl = redisUrl.replace('@redis:', '@127.0.0.1:');
+        } else if (redisUrl.includes('//redis:')) {
+          redisUrl = redisUrl.replace('//redis:', '//127.0.0.1:');
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   const redisPassword = process.env.REDIS_PASSWORD || undefined;
   const dbIndex = process.env.REDIS_DB_INDEX
     ? parseInt(process.env.REDIS_DB_INDEX, 10)
@@ -216,6 +233,20 @@ export interface PaymentGatewayJobPayload {
 export const paymentGatewayQueue = createQueue<PaymentGatewayJobPayload>('paymentGatewayQueue', {
   attempts: 3,
   backoff: { type: 'exponential', delay: 2000 }
+});
+
+// Resilient IndexNow Submission Queue (SPEC-2026-09-21)
+export interface IndexNowJobPayload {
+  host: string;
+  urls: string[];
+  key?: string;
+  keyLocation?: string;
+  submissionId?: string;
+}
+
+export const indexNowQueue = createQueue<IndexNowJobPayload>('indexnow-queue', {
+  attempts: 5,
+  backoff: { type: 'exponential', delay: 10000 },
 });
 
 // Article publishing queue payload (empty for cron tick)

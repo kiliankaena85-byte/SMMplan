@@ -48,6 +48,7 @@ import articlePublishProcessor from './processors/article-publish.processor';
 import aiObserverProcessor from './processors/ai-observer.processor';
 import aiEconomicOptimizerProcessor from './processors/ai-economic-optimizer.processor';
 import geoAvailabilityProcessor from './processors/geo-availability.processor';
+import indexNowProcessor from './processors/indexnow.processor';
 import { orderService } from '../services/core/order.service';
 import { trackEtaFailure, resetEtaFailureStreak } from './eta-alerts';
 
@@ -107,6 +108,7 @@ const articlePublishWorker = new Worker('articlePublishQueue', articlePublishPro
 const aiObserverWorker = new Worker('aiObserverQueue', aiObserverProcessor, workerConfig);
 const aiEconomicOptimizerWorker = new Worker('aiEconomicOptimizerQueue', aiEconomicOptimizerProcessor, workerConfig);
 const geoAvailabilityWorker = new Worker('geoAvailabilityQueue', geoAvailabilityProcessor, workerConfig);
+const indexNowWorker = new Worker('indexnow-queue', indexNowProcessor, workerConfig);
 
 // ── P2.1: DLQ — Dead Letter Queue handler ────────────────────────────────────
 const MAX_ATTEMPTS = 3; // Must match createQueue defaults
@@ -218,6 +220,7 @@ articlePublishWorker.on('failed', (job, err) => { handleDeadLetter('articlePubli
 aiObserverWorker.on('failed', (job, err) => { handleDeadLetter('aiObserverQueue', job, err); });
 aiEconomicOptimizerWorker.on('failed', (job, err) => { handleDeadLetter('aiEconomicOptimizerQueue', job, err); });
 geoAvailabilityWorker.on('failed', (job, err) => { handleDeadLetter('geoAvailabilityQueue', job, err); });
+indexNowWorker.on('failed', (job, err) => { handleDeadLetter('indexnow-queue', job, err); });
 // WRK-04: alert on consecutive ETA failures
 etaWorker.on('failed', (job, err) => {
   trackEtaFailure(job, err);
@@ -280,6 +283,7 @@ const shutdown = async () => {
     aiObserverWorker.close(),
     aiEconomicOptimizerWorker.close(),
     geoAvailabilityWorker.close(),
+    indexNowWorker.close(),
   ]);
   await db.$disconnect();
   if (connection) await connection.quit();

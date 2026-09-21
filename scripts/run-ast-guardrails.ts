@@ -18,6 +18,214 @@ export interface GuardrailViolation {
   snippet: string;
 }
 
+/**
+ * Извлекает строковое имя свойства из AST-узла (Identifier, StringLiteral и др.)
+ */
+function getPropertyName(propNameNode: ts.PropertyName, sourceFile: ts.SourceFile): string {
+  if (ts.isIdentifier(propNameNode) || ts.isStringLiteral(propNameNode)) {
+    return propNameNode.text;
+  }
+  return propNameNode.getText(sourceFile).replace(/['"]/g, '');
+}
+
+/**
+ * Рекурсивно разворачивает обертки выражений:
+ * as Type, <Type>, (expr), expr!, expr satisfies Type
+ */
+function unwrapExpression(expr: ts.Expression): ts.Expression {
+  let current: ts.Expression = expr;
+  while (current) {
+    if (ts.isAsExpression(current)) {
+      current = current.expression;
+    } else if (ts.isTypeAssertionExpression(current)) {
+      current = current.expression;
+    } else if (ts.isParenthesizedExpression(current)) {
+      current = current.expression;
+    } else if (ts.isNonNullExpression(current)) {
+      current = current.expression;
+    } else if (ts.isSatisfiesExpression(current)) {
+      current = current.expression;
+    } else {
+      break;
+    }
+  }
+  return current;
+}
+
+/**
+ * Проверяет, является ли объектный литерал типизированным ответом об ошибке { success: false, ... }
+ */
+function isTypedErrorObject(obj: ts.ObjectLiteralExpression, sourceFile: ts.SourceFile): boolean {
+  let hasSuccessFalse = false;
+
+  for (const prop of obj.properties) {
+    if (ts.isPropertyAssignment(prop) || ts.isShorthandPropertyAssignment(prop)) {
+      const name = getPropertyName(prop.name, sourceFile);
+      if (name === 'success') {
+        if (ts.isPropertyAssignment(prop)) {
+          const init = unwrapExpression(prop.initializer);
+          if (
+            init.kind === ts.SyntaxKind.FalseKeyword ||
+            init.getText(sourceFile) === 'false' ||
+            (ts.isPrefixUnaryExpression(init) && init.operator === ts.SyntaxKind.ExclamationToken)
+          ) {
+            hasSuccessFalse = true;
+          }
+        }
+      }
+    }
+  }
+
+  return hasSuccessFalse;
+}
+
+/**
+ * Проверяет, возвращает ли блок catch типизированный объект ошибки { success: false, error: ... }
+ * Выполняет строгий AST-анализ:
+ * - Запрещает ложные срабатывания от комментариев или строковых литералов
+ * - Распознает прямые return { success: false, error: ... }
+ * - Распознает возврат через локальную переменную, объявленную в catch-блоке
+ * - Учитывает satisfies, as const, type assertions
+ * - Отклоняет блоки, которые безусловно ре-бросают ошибку (throw)
+ */
+function catchReturnsTypedError(catchClause: ts.CatchClause, sourceFile: ts.SourceFile): boolean {
+  if (!catchClause.block) return false;
+
+  // 1. Проверяем, нет ли безусловного throw на верхнем уровне catch-блока
+  let unconditionallyThrows = false;
+  for (const stmt of catchClause.block.statements) {
+    if (ts.isThrowStatement(stmt)) {
+      unconditionallyThrows = true;
+      break;
+    }
+  }
+  if (unconditionallyThrows) {
+    return false;
+  }
+
+  // 2. Собираем локальные переменные в catch-блоке, инициализированные типизированной ошибкой
+  const localTypedVars = new Set<string>();
+  for (const stmt of catchClause.block.statements) {
+    if (ts.isVariableStatement(stmt)) {
+      for (const decl of stmt.declarationList.declarations) {
+        if (ts.isIdentifier(decl.name) && decl.initializer) {
+          const unwrappedInit = unwrapExpression(decl.initializer);
+          if (ts.isObjectLiteralExpression(unwrappedInit) && isTypedErrorObject(unwrappedInit, sourceFile)) {
+            localTypedVars.add(decl.name.text);
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Ищем операторы return в catch-блоке (не заходя во вложенные функции)
+  let hasTypedReturn = false;
+  const inspectReturns = (n: ts.Node) => {
+    if (ts.isReturnStatement(n) && n.expression) {
+      const unwrapped = unwrapExpression(n.expression);
+      if (ts.isObjectLiteralExpression(unwrapped)) {
+        if (isTypedErrorObject(unwrapped, sourceFile)) {
+          hasTypedReturn = true;
+        }
+      } else if (ts.isIdentifier(unwrapped) && localTypedVars.has(unwrapped.text)) {
+        hasTypedReturn = true;
+      }
+    }
+    // Не погружаемся во вложенные объявления функций/стрелочных функций
+    if (!ts.isFunctionDeclaration(n) && !ts.isArrowFunction(n) && !ts.isFunctionExpression(n)) {
+      ts.forEachChild(n, inspectReturns);
+    }
+  };
+
+  ts.forEachChild(catchClause.block, inspectReturns);
+  return hasTypedReturn;
+}
+
+/**
+ * Проверяет, находится ли throw внутри колбэка db.$transaction,
+ * который обернут во внешний try/catch с возвратом { success: false, error }
+ */
+function isHandledTransactionRollback(node: ts.Node, sourceFile: ts.SourceFile): boolean {
+  // 1. Проверяем цепочку предков от throw вверх до $transaction
+  let curr: ts.Node | undefined = node.parent;
+  let txCall: ts.CallExpression | null = null;
+  let insideTxCallback = false;
+
+  while (curr && !ts.isSourceFile(curr)) {
+    // Если по пути встретили асинхронный барьер (setTimeout, setInterval, queueMicrotask),
+    // то throw не приведет к безопасному роллбэку транзакции
+    if (ts.isCallExpression(curr)) {
+      const calleeText = curr.expression.getText(sourceFile);
+      if (
+        calleeText === 'setTimeout' ||
+        calleeText === 'setInterval' ||
+        calleeText === 'setImmediate' ||
+        calleeText === 'queueMicrotask'
+      ) {
+        return false;
+      }
+
+      // Проверяем, является ли curr вызовом .$transaction(...)
+      const expr = curr.expression;
+      const isTx =
+        (ts.isPropertyAccessExpression(expr) && expr.name.text === '$transaction') ||
+        calleeText.endsWith('$transaction');
+
+      if (isTx) {
+        // Проверяем, является ли node потомком одного из аргументов-колбэков
+        for (const arg of curr.arguments) {
+          const unwrappedArg = unwrapExpression(arg);
+          if (ts.isArrowFunction(unwrappedArg) || ts.isFunctionExpression(unwrappedArg)) {
+            // Проверяем, что node действительно находится внутри unwrappedArg
+            let check: ts.Node | undefined = node;
+            while (check && check !== curr) {
+              if (check === unwrappedArg || check === arg) {
+                insideTxCallback = true;
+                break;
+              }
+              check = check.parent;
+            }
+            if (insideTxCallback) break;
+          }
+        }
+
+        if (insideTxCallback) {
+          txCall = curr;
+          break;
+        }
+      }
+    }
+    curr = curr.parent;
+  }
+
+  if (!txCall || !insideTxCallback) return false;
+
+  // 2. Ищем объемлющий try/catch, перехватывающий результат txCall
+  let p: ts.Node | undefined = txCall.parent;
+  while (p && !ts.isSourceFile(p)) {
+    if (ts.isTryStatement(p)) {
+      // Проверяем, что txCall находится именно внутри tryBlock
+      let isInsideTryBlock = false;
+      let check: ts.Node | undefined = txCall;
+      while (check && check !== p) {
+        if (check === p.tryBlock) {
+          isInsideTryBlock = true;
+          break;
+        }
+        check = check.parent;
+      }
+
+      if (isInsideTryBlock && p.catchClause && catchReturnsTypedError(p.catchClause, sourceFile)) {
+        return true;
+      }
+    }
+
+    p = p.parent;
+  }
+
+  return false;
+}
+
 export class AstGuardrailsEngine {
   private projectRoot: string;
   private violations: GuardrailViolation[] = [];
@@ -183,7 +391,9 @@ export class AstGuardrailsEngine {
           parent = parent.parent;
         }
 
-        if (!isInsideCatch && !filePath.includes('.test.')) {
+        const isTxRollback = isHandledTransactionRollback(node, sourceFile);
+
+        if (!isInsideCatch && !isTxRollback && !filePath.includes('.test.')) {
           this.violations.push({
             ruleId: 'server-action-typed-return',
             severity: 'WARNING',
@@ -206,14 +416,16 @@ export class AstGuardrailsEngine {
           const args = node.arguments;
           let hasSignal = false;
 
-          if (args.length >= 2 && ts.isObjectLiteralExpression(args[1])) {
-            const options = args[1] as ts.ObjectLiteralExpression;
-            hasSignal = options.properties.some((prop) => {
-              if (ts.isPropertyAssignment(prop) || ts.isShorthandPropertyAssignment(prop)) {
-                return prop.name.getText(sourceFile) === 'signal';
-              }
-              return false;
-            });
+          if (args.length >= 2) {
+            const options = unwrapExpression(args[1]);
+            if (ts.isObjectLiteralExpression(options)) {
+              hasSignal = options.properties.some((prop) => {
+                if (ts.isPropertyAssignment(prop) || ts.isShorthandPropertyAssignment(prop)) {
+                  return getPropertyName(prop.name, sourceFile) === 'signal';
+                }
+                return false;
+              });
+            }
           }
 
           if (!hasSignal) {
@@ -241,13 +453,14 @@ export class AstGuardrailsEngine {
 
           // Обрабатываем аргументы
           node.arguments.forEach((arg) => {
-            if (ts.isArrowFunction(arg) || ts.isFunctionExpression(arg)) {
+            const unwrappedArg = unwrapExpression(arg);
+            if (ts.isArrowFunction(unwrappedArg) || ts.isFunctionExpression(unwrappedArg)) {
               let innerTxName = 'tx';
-              if (arg.parameters.length > 0) {
-                innerTxName = arg.parameters[0].name.getText(sourceFile);
+              if (unwrappedArg.parameters.length > 0) {
+                innerTxName = unwrappedArg.parameters[0].name.getText(sourceFile);
               }
               // Обходим тело колбэка с передачей innerTxName
-              arg.forEachChild((child) => visitNode(child, innerTxName));
+              unwrappedArg.forEachChild((child) => visitNode(child, innerTxName));
             } else {
               visitNode(arg, txParam);
             }

@@ -109,7 +109,10 @@ export async function verifySession(requiredTenantId?: string): Promise<{ userId
     const cookieStore = await cookies();
     sessionToken = readSessionTokenFromCookies(cookieStore);
   } catch {
-    // If called outside Next.js request scope (e.g. background tasks or CLI)
+    // If called outside Next.js request scope (e.g. background tasks, tests or CLI)
+    if (process.env.APP_ENV === 'test' && (process.env.DEV_AUTO_LOGIN === 'true' || process.env.DEV_AUTO_LOGIN === '1')) {
+      return handleDevAutoLogin();
+    }
     return null;
   }
 

@@ -18,6 +18,7 @@ import { FluxFAQ } from "@/components/ab-test/FluxFAQ";
 import { ROUTES } from "@/lib/routes";
 import { getFaqForCategory } from "@/data/seo/faq-templates";
 import { LandingSeoHub } from "@/components/seo/LandingSeoHub";
+import { SiloLinkingService } from "@/services/seo/silo-linking.service";
 
 export const dynamic = 'force-dynamic';
 
@@ -233,6 +234,13 @@ export default async function CategoryServicesPage({
     })),
   };
 
+  const siloBundle = await SiloLinkingService.getComplementaryCategoriesForCategory({
+    categoryId: currentCategory.id,
+    networkSlug: currentNetwork.slug,
+    tenantId,
+    limit: 4,
+  });
+
   const seoHub = (
     <LandingSeoHub
       networkName={currentNetwork.name}
@@ -245,6 +253,8 @@ export default async function CategoryServicesPage({
       host={host}
       relatedCategories={relatedCategories}
       relatedNetworks={relatedNetworks}
+      siloBundle={siloBundle}
+      tenantId={tenantId}
     />
   );
 

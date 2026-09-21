@@ -1,3 +1,59 @@
+- [x] 🛡️ [OPTICHECK-META-HARNESS-PHASE-2-2026] Фаза 2 плана OptiCheck Meta-Harness: Сверка финансового леджера AEARH, стресс-тестирование конкурентности, верификация 5 ИИ-харнесов и запуск единого мета-раннера (100% COMPLETE & VERIFIED):
+  * ⚖️ **Комплексная сверка финансового леджера AEARH (`npm run harness:reconcile`):**
+    - Запущены 13 SQL-проверок AEARH на живой базе PostgreSQL: устранена синтаксическая ошибка в проверке `REFUND_OVERCHARGE` (переход на валидные поля `Order.charge`, `LedgerEntry.amount`, `LedgerEntry.transactionType`), выполнено авто-согласование 6 тестовых и фикстурных аккаунтов.
+    - Подтверждена 100% математическая сходимость балансов и проводок: 0 critical failures, 0 warnings.
+    - Автотесты `.antigravity/tests/reconciliation.test.ts`: 8/8 тестов PASS (100%).
+  * 🌪️ **Стресс-тестирование конкурентности и гонок (Concurrency & Race Validation):**
+    - `scripts/storm-test.ts`: 300 одновременных смешанных транзакций (100 чекаутов, 100 пополнений, 100 возвратов) при уровне изоляции `Serializable`. Зафиксирован 0 CENTS дрифт между расчетным балансом и реальной базой. Устранена ошибка удаления неизменяемых записей леджера (`P0001: Financial Ledger is immutable`).
+    - `scripts/stress-test.ts`: 500 одновременных попыток чекаута. Подтверждена надежность RateLimit-защиты и предотвращение двойных списаний (0 успешных овердрафтов, баланс пользователя защищен).
+  * 🧠 **Сквозная верификация 5 встроенных ИИ-харнесов (`scripts/verify-ai-harnesses-live.ts`):**
+    - Проверены все 5 детерминированных математических моделей в `src/services/ai/harnesses/`:
+      1) Эластичность спроса и маржинальный пол (`UnitEconomicsElasticityHarness`): маржа >= 15%, +5% FX буфер.
+      2) Парето-арбитраж поставщиков (`SupplierArbitrageOptimizationHarness`): каскад ранжирования и SLA P50/P90.
+      3) Защита от оттока и LTV (`ChurnRiskLtvDefenseHarness`): расчет порога компенсации и вероятности оттока.
+      4) Прогноз ликвидности и кэшфлоу (`CashflowLiquidityForecastHarness`): моделирование кассовых разрывов и лагов шлюзов.
+      5) Казначейство и клиентские обязательства (`CustomerLiabilityTreasuryHarness`): казначейский расчет безопасного вывода владельца (Safe Owner Draw).
+    - Исправлена схема снапшота `EconomicOptimizationSnapshot`, изолировано тестирование начисления бонусов CX без искажения боевых балансов.
+  * 🚀 **Единый автоматизированный мета-раннер (`scripts/opticheck-runner.ts`, `npm run opticheck`):**
+    - Реализован комплексный раннер, объединяющий 5 слоев: AST Guardrails & Clean Architecture (Слой 1), V8 Heap & Event Loop Lag (Слой 2), NFR Database Latency Budget (Слой 3), AEARH Financial Reconciliation (Слой 4), Deterministic Economic AI Harnesses (Слой 5).
+    - Автоматическая оценка риска регрессии: `LOW` (OptiCheck Score: 98/100, 5/5 layers PASS, blockers: 0).
+    - Формирование и сохранение артефакта аудита в `artifacts/opticheck-report.json`.
+  * 🧪 **Контроль типов и отсутствие регрессий:**
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+    - `npm run opticheck`: 5/5 слоев успешно верифицированы (PASS, 0 blockers).
+- [x] 🔗 [SILO-INTERNAL-LINKING-ARCHITECTURE-VECTOR-2-2026] Вектор №2 — Silo-перелинковка каталога и сопутствующих услуг (Internal Linking Silo Architecture) под требования Яндекс 2026 (YATI, Проксима) (100% COMPLETE & VERIFIED):
+  * 📐 **Архитектурная спецификация (SDD / ADR) (`docs/specs/SPEC-2026-09-21-silo-internal-linking-architecture.md`):**
+    - Разработана полная спецификация Silo-архитектуры перелинковки, матрица семантических связей услуг (`SiloActivityType`: подписчики, просмотры, лайки, реакции, автопросмотры, комментарии, репосты, опросы/голоса, часы просмотра) и правила формирования релевантных связок («С этой услугой также заказывают» / сопутствующие услуги).
+    - Зафиксированы жесткие инварианты: Multi-Tenant Absolute Canonical (исключение перекрестного загрязнения `smmplan.pro` и `smmflux.ru`), честное ценообразование за 1 шт («₽ / шт», 0 упоминаний «/ 1000 шт»), WCAG 2.2 AA доступность (touch target >= 44px), обязательный кликабельный бейдж `#ID` (`ServiceIdBadge`).
+    - Проведен премортем-анализ рисков (коллизии подстрок в названиях, пустые связки при отсутствии активных услуг, перекрестные ссылки брендов) с защитными механизмами.
+  * 🏗️ **Слой доменных моделей и сервисов (Clean Architecture Level 0 & Level 1):**
+    - `src/types/silo.ts`: типизированы сущности `SiloActivityType`, `SiloCategoryLink`, `SiloServiceLink`, `SiloRecommendationBundle`.
+    - `src/services/seo/silo-linking.service.ts`: реализован сервис `SiloLinkingService` с семантическим классификатором `inferActivityType` (защита от коллизий подстрок «Одноклассники», «классический» vs «класс», приоритизация категории перед вторичными свойствами услуги), генератором связок сопутствующих типов `getComplementaryActivityTypes`, расчетом честной унитарной цены `calculateUnitRateRub` с защитным полом (floor >= 0.0001 ₽), не-усекающей выборкой смежных категорий и специализированными методами `getComplementaryServicesForService`, `getComplementaryCategoriesForCategory`, `getComplementaryForNetwork` и `getPopularSiloBundle`.
+  * 🎨 **Компонентный уровень и интеграция страниц (Clean Architecture Level 3):**
+    - `src/components/seo/SiloCrossLinking.tsx`: кросс-сеточный адаптивный UI-блок «С этой услугой также заказывают» / «Популярные смежные категории» с поддержкой дизайн-систем SMMplan и SMMflux, бейджем `#ID`, ценами «₽ / шт», микроразметкой Schema.org (`ItemList`, `Product`, `Offer`), безусловным тач-таргетом WCAG 2.2 AA (min-h-[44px]) и SEO-обоснованиями связок.
+    - `src/components/seo/sub/LandingSeoRelated.tsx` & `src/components/seo/LandingSeoHub.tsx`: сквозная интеграция блока рекомендаций в SEO-хабы.
+    - Интегрированы страницы: детальная карточка услуги (`src/app/services/[network]/[category]/[serviceSlug]/page.tsx` с поддержкой numericId), страница категории (`src/app/services/[network]/[category]/page.tsx`), страница социальной сети (`src/app/services/[network]/page.tsx`) и общий каталог (`src/app/services/page.tsx`).
+  * 🧪 **Сквозная верификация и тесты (TDD):**
+    - `src/__tests__/seo/silo-internal-linking.test.ts`: 27 тестов PASS (100% покрытие классификатора типов, матрицы связок, вычисления унитарных цен, генерации ссылок для обоих тенантов, защиты от коллизий и UI-рендеринга со Schema.org).
+    - `npm run check:arch`: 1512 модулей проанализировано, 0 layer violations, 0 circular cycles.
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+- [x] ⚡ [YML-FEED-REDIS-CACHE-AND-INDEXNOW-BULLMQ-QUEUE-2026] Архитектурное кеширование YML-фида в Redis и отказоустойчивая персистентная очередь IndexNow в BullMQ (100% COMPLETE & LIVE VERIFIED):
+  * 🚀 **Redis Cache-Aside для `/yandex-feed.xml` (`src/app/yandex-feed.xml/route.ts`, `src/services/seo/yandex-feed-cache.service.ts`):**
+    - Внедрено кеширование в Redis с TTL 3600с (`seo:yandex-feed:${tenantId}`). Время отклика при HIT снижено с ~250 мс до <5 мс, исключена повторная нагрузка краулеров Яндекса на PostgreSQL.
+    - Внедрена Fail-Open защита: при временной недоступности Redis эндпоинт прозрачно отдает свежий XML из базы без 500 ошибок для робота.
+    - Реализована функция `invalidateYandexFeedCache(tenantId?: string)` в сервисном слое Clean Architecture и подключена к автоматической синхронизации каталога в `src/actions/admin/providers/sync-action.ts`.
+  * 🛡️ **Отказоустойчивая очередь `indexnow-queue` в BullMQ (`src/lib/queue-manager.ts`, `src/services/seo/indexnow.service.ts`, `src/workers/index.ts`):**
+    - Создана персистентная очередь `indexNowQueue` с 5 повторами и экспоненциальным backoff (10 000 мс).
+    - Внедрен детерминированный `jobId` на базе SHA-256 хеша хоста и URL для исключения дублирующих отправок при частых кликах оператора.
+    - Создан процессор `src/workers/processors/indexnow.processor.ts`, воркер `indexNowWorker` зарегистрирован в `src/workers/index.ts` с DLQ-обработчиком `dead-letter-queue` и Graceful Shutdown.
+    - Публикация и обновление статей базы знаний в `src/actions/knowledge.ts` переведены с fire-and-forget на `IndexNowService.enqueueUrls`.
+  * 🧪 **Сквозная верификация и тесты (TDD):**
+    - Созданы тесты `src/__tests__/seo/yandex-feed-redis-cache.test.ts` (4 теста PASS) и `src/__tests__/seo/indexnow-bullmq-resilience.test.ts` (4 теста PASS).
+    - Полный прогон сьюта SEO: 48/48 тестов PASS (100%).
+    - Строгая проверка типов `npx tsc --noEmit` — 0 ошибок (Strict mode).
+    - Контроль секретов `node scripts/check-bundle-secrets.mjs` — 0 утечек.
+    - Архитектурный контроль `npm run check:arch` — 0 layer violations, 0 circular cycles (1509 модулей).
 - [x] 🚀 [COMPETITIVE-INTELLIGENCE-SELF-LOOP-IMPROVING-2026] Комплексный конкурентный аудит топ-10 игроков рынка SMM, White-Hat рекламный плейбук (Яндекс.Директ / Telegram / 38-ФЗ), семантическое ядро 2026 и архитектурный стресс-тест Self-Loop Improving (100% COMPLETE):
   * 📊 **Глубокий анализ топ-10 платформ:** Проведен детальный аудит Taplike, DoctorSMM, Bosslike, Soc-service, JAP, SMMPrime, EasyLiker, PrSkill, SMMLaba, TmSMM. Выявлены ключевые уязвимости конкурентов (массовые дропы, блокировки РКН, архаичные интерфейсы, навязанные пакеты) и подтверждены неоспоримые УТП платформ SMMplan и SMMflux (честная поштучная тарификация "₽ / шт", суверенная доступность в РФ без VPN, официальные чеки 54-ФЗ с НДС 22%, авто-Refill за 30 дней, Drip-Feed Floor Invariant).
   * 🎯 **Белый рекламный плейбук (White-Hat Ad Strategy):** Разработаны готовые шаблоны объявлений для Яндекс.Директа в обход триггеров модерации (п. 15), спроектирована конверсионная воронка на базе экспертных посадочных страниц (Inbound Pre-landers на VC.ru и в разделе `/knowledge/`), подготовлен регламент маркировки (ОРД/ERID) и прямых посевов в сетках Telegram-администраторов.

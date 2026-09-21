@@ -5,6 +5,8 @@ import { LandingSeoHowTo } from "@/components/seo/sub/LandingSeoHowTo";
 import { LandingSeoExpertise } from "@/components/seo/sub/LandingSeoExpertise";
 import { LandingSeoRelated } from "@/components/seo/sub/LandingSeoRelated";
 
+import type { SiloRecommendationBundle } from "@/types/silo";
+
 export interface LandingSeoHubProps {
   networkName: string;
   networkSlug: string;
@@ -16,6 +18,8 @@ export interface LandingSeoHubProps {
   host?: string;
   relatedCategories?: Array<{ id: string; name: string; slug: string }>;
   relatedNetworks?: Array<{ id: string; name: string; slug: string }>;
+  siloBundle?: SiloRecommendationBundle | null;
+  tenantId?: string;
 }
 
 export function LandingSeoHub({
@@ -28,7 +32,9 @@ export function LandingSeoHub({
   siteName = "SMMplan",
   host = "smmplan.pro", // audit-ignore
   relatedCategories = [],
-  relatedNetworks = []
+  relatedNetworks = [],
+  siloBundle = null,
+  tenantId = "smmplan"
 }: LandingSeoHubProps) {
   const currentTitle = categoryName ? `${categoryName} в ${networkName}` : `Продвижение в ${networkName}`;
   const targetEntity = categoryName ? categoryName.toLowerCase() : "услуги продвижения";
@@ -70,6 +76,8 @@ export function LandingSeoHub({
         networkSlug={networkSlug}
         relatedCategories={relatedCategories}
         relatedNetworks={relatedNetworks}
+        siloBundle={siloBundle}
+        tenantId={tenantId}
       />
     </div>
   );
