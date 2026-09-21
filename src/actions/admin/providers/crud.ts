@@ -342,10 +342,24 @@ export async function checkProviderConnection(rawId: string) {
               };
             }
             
+            let finalCurrency = providerRecord.balanceCurrency;
+            if (probeResult.detectedCurrency) {
+              const { normalizeProviderCurrency, reconcileCurrencyBeforeSync } = await import('@/lib/pricing/currency-invariant');
+              const normalized = normalizeProviderCurrency(probeResult.detectedCurrency);
+              if (normalized) {
+                finalCurrency = normalized;
+                try {
+                  await reconcileCurrencyBeforeSync(providerRecord.id, normalized);
+                } catch (reconcileErr) {
+                  console.warn(`[checkProviderConnection] Reconcile error:`, reconcileErr);
+                }
+              }
+            }
+            
             return { 
                 success: true, 
                 balance: probeResult.balance, 
-                currency: probeResult.detectedCurrency || providerRecord.balanceCurrency,
+                currency: finalCurrency,
                 servicesCount: probeResult.servicesCount,
                 latencyMs: probeResult.latencyMs
             };
@@ -382,7 +396,19 @@ export async function probeProviderAction(params: {
       }
     }
 
-    return await ProviderDiagnosticService.probe(targetUrl, targetKey, mapping);
+    const probeRes = await ProviderDiagnosticService.probe(targetUrl, targetKey, mapping);
+    if (params.providerId && probeRes.success && probeRes.detectedCurrency) {
+      const { normalizeProviderCurrency, reconcileCurrencyBeforeSync } = await import('@/lib/pricing/currency-invariant');
+      const normalized = normalizeProviderCurrency(probeRes.detectedCurrency);
+      if (normalized) {
+        try {
+          await reconcileCurrencyBeforeSync(params.providerId, normalized);
+        } catch (reconcileErr) {
+          console.warn(`[probeProviderAction] Reconcile error:`, reconcileErr);
+        }
+      }
+    }
+    return probeRes;
   });
 }
 

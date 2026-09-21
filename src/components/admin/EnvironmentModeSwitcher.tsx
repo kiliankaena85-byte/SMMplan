@@ -48,7 +48,7 @@ const MODES: ModeConfig[] = [
     badgeClass: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30',
     icon: Zap,
     paymentDesc: 'Тестовая оплата (0 ₽)',
-    providerDesc: 'РЕАЛЬНЫЙ VexBoost',
+    providerDesc: 'Реальный SMM-поставщик',
     note: 'Идеально для тестов: бесплатный заказ на сайте отправляется реальному поставщику.'
   },
   {
@@ -68,7 +68,7 @@ const MODES: ModeConfig[] = [
     badgeClass: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30',
     icon: Rocket,
     paymentDesc: 'Боевая ЮKassa / СБП',
-    providerDesc: 'РЕАЛЬНЫЙ VexBoost',
+    providerDesc: 'Реальный SMM-поставщик',
     note: 'Штатный боевой режим: реальные платежи клиентов и реальное исполнение.'
   }
 ];
@@ -279,7 +279,7 @@ export function EnvironmentModeSwitcher({
             <p className="text-xs text-muted-foreground leading-relaxed">
               {confirmModalMode === 'HYBRID' && (
                 <>
-                  В <b>Гибридном режиме</b> оплата на чекауте останется тестовой (0 ₽), но заказы будут отправляться в <b>реальный VexBoost</b> со списанием вашего реального баланса поставщика.
+                  В <b>Гибридном режиме</b> оплата на чекауте останется тестовой (0 ₽), но заказы будут отправляться к <b>реальному SMM-поставщику</b> со списанием вашего реального баланса поставщика.
                 </>
               )}
               {confirmModalMode === 'PRODUCTION' && (

@@ -96,8 +96,18 @@ class AdminOrderService {
   /**
    * Get refund and failure monitoring stats
    */
-  async getRefundAndFailureStats(startDate?: Date, endDate?: Date, tenantId?: string) {
-    return OrderAnalyticsService.getRefundAndFailureStats(startDate, endDate, tenantId);
+  async getRefundAndFailureStats(
+    startDate?: Date,
+    endDate?: Date,
+    tenantId?: string,
+    precomputedCounts?: {
+      total?: number;
+      canceled?: number;
+      partial?: number;
+      error?: number;
+    }
+  ) {
+    return OrderAnalyticsService.getRefundAndFailureStats(startDate, endDate, tenantId, precomputedCounts);
   }
 }
 

@@ -1,35 +1,41 @@
-# Handoff Report — Sentinel Routing & Subagent Dispatch Escalation
+# Handoff Report — Sentinel Routing, Orchestrator Dispatch & Monitoring Initialization
 
 ## Observation
-- Received user request: "Провести глубокий многопроходный конкурентный анализ рынка SMM-панелей и платформ продвижения (RuNet и международный рынок), исследовать их реальные стратегии поискового и рекламного трафика, ценообразование, семантику и воронки продаж, а также верифицировать и усилить архитектурную, поисковую и рекламную стратегию платформ SMMplan и SMMflux методом self-loop improving."
-- Working directory: `e:/SMM`. Integrity mode: `development`.
-- Recorded user request verbatim under UTC timestamp `## 2026-09-21T11:08:03Z` across authoritative locations:
-  1. `e:\SMM\.agents\ORIGINAL_REQUEST.md`
-  2. `e:\SMM\.agents\sentinel\ORIGINAL_REQUEST.md`
+- Received user request for full-scale deep codebase audit and error resolution after refactoring and decomposition:
+  - Scope: Admin panel, Service layer (Prisma, financial modules, business logic), API routes and webhooks, Client showcase and catalog.
+  - Types of targeted errors: Circular dependencies / imports, TypeScript errors (`tsc --noEmit`), Server/Client component violations (Next.js App Router `"use client"`/`"use server"`), Runtime errors & failing tests.
+  - Acceptance criteria: 0 TypeScript errors, 0 build errors (`npm run build`), all unit/E2E tests pass (`npx vitest run`), routing/hydration bugs resolved.
+  - Constraints: OmniSMM 1.0 Zero-Defect Protocol, Multi-Tenant isolation, Ledger-First principles, WalletOps BigInt kopecks, no unilateral breaking DDL migrations.
+- Appended request verbatim under UTC timestamp `## 2026-09-21T22:35:00Z` to:
+  1. `c:\Users\Shadow\Documents\SMM\.agents\ORIGINAL_REQUEST.md`
+  2. `c:\Users\Shadow\Documents\SMM\.agents\sentinel\ORIGINAL_REQUEST.md`
 - Evaluated Routing Decision Table:
-  - Not Document Review (no supplied document/paper for critique).
-  - Not Math / Proof (no formal mathematical theorem or proof).
-  - Not SWE Light (broad multi-pass competitive audit, reverse-engineering, semantic clustering, and self-loop roadmap; no explicit small/quick/light request).
+  - Not Document Review (not reviewing an attached document/paper).
+  - Not Math / Proof.
+  - Not SWE Light (full-scale multi-domain codebase audit across 4 scopes, multiple parallel streams, not a small/quick single-file task).
   - Selected Route: **General** (`teamwork_preview_orchestrator`).
-- Attempted to spawn `teamwork_preview_orchestrator` via `invoke_subagent`.
-- Execution returned error: `Encountered error in tool execution: subagent "teamwork_preview_orchestrator" not found or not allowed to be invoked`.
-- Root cause: Platform configuration excluded subagents from invocation in this subagent context due to context budget limits (`The following items were excluded due to context budget limits: teamwork_preview_document, teamwork_preview_document_victory_auditor, teamwork_preview_orchestrator, teamwork_preview_pipeline, teamwork_preview_proof, teamwork_preview_swe, teamwork_preview_victory_auditor`).
+- Initialized orchestrator directory `c:\Users\Shadow\Documents\SMM\.agents\teamwork_preview_orchestrator_codebase_audit_1`.
+- Spawned `teamwork_preview_orchestrator` with conversation ID: `f608dd26-cad5-4170-872a-89391c0ef559`.
+- Scheduled Sentinel monitoring crons:
+  - Cron 1 (Progress Reporting, `*/8 * * * *`): task-26
+  - Cron 2 (Liveness Check, `*/10 * * * *`): task-28
 
 ## Logic Chain
-1. Sentinel is strictly constrained to relaying and monitoring, and must not write code, analyze domain problems, or make technical decisions ("You MUST NOT write code, analyze problems, or make any technical decisions. Keep your context ultra-light").
-2. The orchestrator cannot be spawned from this sentinel instance because all subagent types are disallowed/excluded by the platform harness for this subagent session.
-3. Therefore, Sentinel must escalate back to `parent` (ID: `e592d99f-9d53-44c5-bd96-a33519834f4b`) with full context, request details, and routing recommendation so that `parent` can execute the multi-pass research, analysis, and report generation directly or orchestrate accordingly.
+1. Sentinel is strictly forbidden from writing code, analyzing domain problems, or making technical decisions ("You MUST NOT write code, analyze problems, or make any technical decisions. Keep your context ultra-light").
+2. Full-scale codebase audit and repair across multiple subsystems strictly requires the **General** route orchestrator (`teamwork_preview_orchestrator`) to decompose work into parallel specialist streams (workers, reviewers, challengers).
+3. Sentinel maintains situational awareness via `BRIEFING.md` and runs two monitoring crons (Progress Reporting every 8 minutes, Liveness Check every 10 minutes).
+4. An independent Victory Audit (`teamwork_preview_victory_auditor`) is mandatory and will be spawned when the orchestrator claims project completion.
 
 ## Caveats
-- No subagents could be spawned from this sentinel.
-- Crons were not scheduled as no orchestrator process is actively running in the background.
-- All request files and directory structures are initialized and intact.
+- The orchestrator has been launched asynchronously; it will decompose the task into parallel streams and report progress via `progress.md`.
+- No victory claim has been made yet. Independent victory audit remains pending.
 
 ## Conclusion
-Task routing completed (Route: General). Request recorded verbatim in `ORIGINAL_REQUEST.md`. Subagent invocation blocked by platform harness. Escalating immediately to caller agent `parent`.
+Routing executed successfully to General path (`teamwork_preview_orchestrator`). Orchestrator conversation ID `f608dd26-cad5-4170-872a-89391c0ef559` is running. Monitoring crons are active. Sentinel is in reactive waiting mode.
 
 ## Verification Method
-- Verified `e:\SMM\.agents\ORIGINAL_REQUEST.md` contains the new request under `## 2026-09-21T11:08:03Z`.
-- Verified `e:\SMM\.agents\sentinel\ORIGINAL_REQUEST.md` contains the new request under `## 2026-09-21T11:08:03Z`.
-- Verified `invoke_subagent` returns `not found or not allowed to be invoked`.
-- Verified `BRIEFING.md` accurately tracks the blocked/escalated status.
+- Verified `c:\Users\Shadow\Documents\SMM\.agents\ORIGINAL_REQUEST.md` contains the verbatim request under `## 2026-09-21T22:35:00Z`.
+- Verified `c:\Users\Shadow\Documents\SMM\.agents\sentinel\ORIGINAL_REQUEST.md` contains the verbatim request.
+- Verified `invoke_subagent` succeeded with conversation ID `f608dd26-cad5-4170-872a-89391c0ef559`.
+- Verified Cron 1 (task-26) and Cron 2 (task-28) are registered in background tasks.
+- Verified `BRIEFING.md` reflects current active state.

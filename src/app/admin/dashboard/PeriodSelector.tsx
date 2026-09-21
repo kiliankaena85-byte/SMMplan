@@ -38,17 +38,14 @@ export function PeriodSelector({ period }: PeriodSelectorProps) {
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
+  const currentPeriodLabel = PERIODS.find(p => p.id === period)?.name ?? 'Все время';
+
   return (
     <div className="flex items-center gap-2">
       <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
       <Select value={period} onValueChange={handlePeriodChange}>
         <SelectTrigger size="sm" className="w-36 h-8 border border-border/70 bg-card text-foreground transition-all cursor-pointer text-xs font-semibold rounded-md">
-          <SelectValue placeholder="Все время">
-            {(value: string | null) => {
-              if (!value) return 'Все время';
-              return PERIODS.find(p => p.id === value)?.name ?? value;
-            }}
-          </SelectValue>
+          <SelectValue placeholder="Все время">{currentPeriodLabel}</SelectValue>
         </SelectTrigger>
         <SelectContent className="bg-popover border border-border/80 rounded-md shadow-md text-foreground">
           {PERIODS.map(p => (

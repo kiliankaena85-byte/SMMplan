@@ -20,6 +20,24 @@ export class OrderAnalyticsService {
     }
   >();
 
+  private static topServicesCache = new Map<
+    string,
+    {
+      data: Array<{
+        id: string;
+        name: string;
+        networkName: string;
+        categoryName: string;
+        ordersCount: number;
+        revenueKopecks: bigint;
+        costKopecks: bigint;
+        profitKopecks: bigint;
+        marginPct: number;
+      }>;
+      expiresAt: number;
+    }
+  >();
+
   /**
    * Retrieves order stats using a single high-performance groupBy query with 15s cache.
    */
@@ -101,6 +119,14 @@ export class OrderAnalyticsService {
    * Complexity: O(1 groupBy query) + O(limit service metadata) instead of O(all orders).
    */
   static async getTopServices(limit = 6, startDate?: Date, endDate?: Date, tenantId?: string) {
+    const cacheKey = `${limit}_${startDate?.toISOString() || 'all'}_${endDate?.toISOString() || 'all'}_${tenantId || 'all'}`;
+    const cached = OrderAnalyticsService.topServicesCache.get(cacheKey);
+    const now = Date.now();
+
+    if (cached && cached.expiresAt > now) {
+      return cached.data;
+    }
+
     const isSingleTenant = tenantId && tenantId !== 'all';
     const where: Prisma.OrderWhereInput = {};
     if (startDate && endDate) where.createdAt = { gte: startDate, lte: endDate };
@@ -116,7 +142,10 @@ export class OrderAnalyticsService {
       take: limit,
     });
 
-    if (grouped.length === 0) return [];
+    if (grouped.length === 0) {
+      OrderAnalyticsService.topServicesCache.set(cacheKey, { data: [], expiresAt: now + 30000 });
+      return [];
+    }
 
     // Step 2: Fetch service metadata in one query
     const serviceIds = grouped.map(g => g.serviceId);
@@ -132,7 +161,7 @@ export class OrderAnalyticsService {
     const serviceMap = new Map(services.map(s => [s.id, s]));
 
     // Step 3: Combine and sort by revenue
-    return grouped
+    const result = grouped
       .map(g => {
         const svc = serviceMap.get(g.serviceId);
         if (!svc) return null;
@@ -157,12 +186,25 @@ export class OrderAnalyticsService {
         };
       })
       .filter(<T>(x: T | null): x is T => x !== null);
+
+    OrderAnalyticsService.topServicesCache.set(cacheKey, { data: result, expiresAt: now + 30000 });
+    return result;
   }
 
   /**
    * Get refund and failure monitoring stats
    */
-  static async getRefundAndFailureStats(startDate?: Date, endDate?: Date, tenantId?: string) {
-    return OrderFailureStatsService.getRefundAndFailureStats(startDate, endDate, tenantId);
+  static async getRefundAndFailureStats(
+    startDate?: Date,
+    endDate?: Date,
+    tenantId?: string,
+    precomputedCounts?: {
+      total?: number;
+      canceled?: number;
+      partial?: number;
+      error?: number;
+    }
+  ) {
+    return OrderFailureStatsService.getRefundAndFailureStats(startDate, endDate, tenantId, precomputedCounts);
   }
 }

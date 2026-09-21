@@ -1,75 +1,52 @@
-# Project: SMMplan / SMMflux Admin Reliability & Ergonomics
+# Project: SMMplan / OmniSMM 1.0 Codebase Audit & Healing
 
 ## Architecture
-- **Framework & Runtime**: Next.js 16 (App Router), React 19, TypeScript 5.7+ (strict), Tailwind CSS 4 (`@theme`), HeroUI v3.
-- **Database & Cache Layer**: PostgreSQL via Prisma 5 ORM, Redis singleton via `ioredis` for 60s TTL provider balance cache and rate limiting.
-- **Financial Subsystem**: Invariant-driven Double-Entry Ledger (`LedgerEntry` sum vs `User.balance`), BigInt (kopecks), `WalletOps` primitives, `auditAdminAwaitable()` logging, and `idempotencyKey` tracking.
-- **Data Fetching & Pagination**: Keyset pagination with deterministic compound index tie-breaking (`(createdAt DESC, id DESC)`), sub-30ms query latency on 50,000+ records.
-- **UI & UX Layer**: Server Components by default, Server Actions with `requireStaffPermission()`, `useRangeSelection` for $O(K)$ Shift+Click multi-selection, global `ShortcutsModal` (`?` key) adhering to 100/100 Design Guild semantic tokens.
+- **Framework**: Next.js 16.x App Router (Standalone build with Webpack/Turbopack)
+- **UI Engine**: React 19, Tailwind CSS 4 (`@theme`), HeroUI v3 (Compound dot notation)
+- **Data & Services**: Prisma 5 (PostgreSQL), Redis (ioredis), BullMQ
+- **Domain Invariants**: OmniSMM 1.0 Multi-Tenant (`SMMplan` / `SMMflux`), Ledger-First financial engine (`WalletOps`, BigInt kopecks, stable `idempotencyKey`), fail-closed timing-safe webhooks.
 
 ## Feature Inventory
-| # | Feature | Description | Milestone | Source |
-|---|---------|-------------|-----------|--------|
-| 1 | R1.1 Redis Provider Balance Caching | 60s Redis TTL cache (`provider:${id}:balance`), 5s timeout race, error backoff | M1 | ORIGINAL_REQUEST §R1 |
-| 2 | R1.2 Provider Health & Status Categorization | 3-tier status (> $50 Green, $10-$50 Yellow, < $10 Red Alert) with currency normalization | M1 | ORIGINAL_REQUEST §R1 |
-| 3 | R1.3 Admin Providers & Dashboard UI | Upgraded `ProviderBalanceCell` and `ProviderLiquidityWidget` with auto-polling & tooltips | M1 | ORIGINAL_REQUEST §R1 |
-| 4 | R2.1 Ledger Reconciliation Aggregator | Single SQL query comparing `User.balance` with `SUM(LedgerEntry.amount WHERE status = 'APPROVED')` | M2 | ORIGINAL_REQUEST §R2 |
-| 5 | R2.2 Finance Reconciliation Dashboard | 4th tab in `/admin/finance` with KPI cards, anomaly badge counters, and search filter | M2 | ORIGINAL_REQUEST §R2 |
-| 6 | R2.3 Interactive Transaction Audit & Drawer | Step-by-step running balance timeline reconstruction and audited remediation (`LOCK`, `AUTO_ADJUST`) | M2 | ORIGINAL_REQUEST §R2 |
-| 7 | R3.1 Database B-Tree Index Optimization | Compound indexes on `Order`, `LedgerEntry`, and `User` for `[tenantId, createdAt(Desc), id(Desc)]` | M3 | ORIGINAL_REQUEST §R3 |
-| 8 | R3.2 Keyset Pagination Engine | Bidirectional deterministic cursor pagination helper (`src/lib/pagination.ts`) with tie-breaker | M3 | ORIGINAL_REQUEST §R3 |
-| 9 | R4.1 Shift + Click Range Selection | $O(K)$ Range selection hook and integration into `catalog-table-v2.tsx` and `order-client.tsx` | M4 | ORIGINAL_REQUEST §R4 |
-| 10 | R4.2 Global Keyboard Shortcuts Modal | Global `?` shortcut modal in `/admin/layout.tsx` with navigation shortcuts and input guarding | M4 | ORIGINAL_REQUEST §R4 |
-| 11 | R5.1 System Integration & Quality Gate | 0 type errors (`npx tsc --noEmit`), 100% Vitest pass, Design Guild 100/100, Forensic Audit | M5 | ORIGINAL_REQUEST §Acceptance |
+| # | Feature / Issue | Description | Milestone | Source |
+|---|-----------------|-------------|-----------|--------|
+| 1 | Client/Server Boundaries & Typo Fix | Fix `'client';` typos in `error-tracker.tsx` and `telegram-simulator.tsx`, add missing `'use client'` across 18 decomposed client subcomponents. | M1 | Survey Explorer 2 |
+| 2 | Suspense Boundary on Payment Redirect | Wrap `useSearchParams()` in `<Suspense>` in `src/app/payment-redirect/page.tsx` to prevent CSR bailout. | M1 | Survey Explorer 1 |
+| 3 | HeroUI v3 Compound Modals & Buttons | Migrate flat modal imports in `promocode-columns.tsx` and `RoutingPanelClient.tsx` to compound `<Modal.*>`, fix `isPending` prop to `isLoading`. | M1 | Survey Explorer 2 |
+| 4 | Catalog TargetType Resolution | Replace `s.targetType || inferTargetTypeFromName(s.name)` with `resolveServiceTargetType(s)` across 4 files to eliminate false channel link incompatibility. | M1 | Survey Explorer 2 |
+| 5 | De-brand Lovable Residuals | Clean up `/ab-lovable` page and dead `handleLovableBulkCancel` helper per OmniSMM 1.0 single-brand rules. | M1 | Survey Explorer 2 |
+| 6 | Server Action Function Exports | Fix `export const adminChangeTicketStatus = changeTicketStatus;` to explicit `async function` in `ticket.ts`. | M1 | Survey Explorer 2 |
+| 7 | Deterministic Financial Idempotency Keys | Eliminate volatile `Date.now()` suffixes in `actions/admin/users.ts`, `actions/admin/orders.ts`, `order-status-mutator.service.ts`, `ledger-reconciliation.service.ts`. | M2 | Survey Explorer 3 |
+| 8 | Server Actions Return Contract Healing | Remove raw `throw new Error` in `actions/admin/catalog.ts:133`, return typed `{ success, error }` in `finance/settings.ts` and `order/sync-payment.ts`. | M2 | Survey Explorer 1, 3 |
+| 9 | Secondary Test Typecheck Healing | Fix 29 TypeScript errors in `test/tsconfig.json` (purged `/api/dev/*` tests, queue imports, schema property mismatches, type narrowing). | M3 | Survey Explorer 1 |
+| 10 | Vitest Pool & DB Wipe Protection Stability | Stabilize `.env.test` connection limit (30) and ensure test harness execution executes without pool exhaustion. | M3 | Survey Explorer 3 |
+| 11 | Full-Spectrum Regression & Build Gate | Verify `tsc --noEmit` (0 errors), `npm test` (100% pass), `next build --webpack` (0 errors), AST guardrails, and bundle secret checks. | M4 | Project Acceptance |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
-| M1 | Provider Health & Balance Monitor | R1.1, R1.2, R1.3: Service, Server Actions, `ProviderBalanceCell`, `ProviderLiquidityWidget`, Unit tests | none | DONE |
-| M2 | Ledger Reconciliation Guard | R2.1, R2.2, R2.3: Service, Server Actions, `ReconciliationTab`, `LedgerAuditDrawer`, Unit tests | none | IN_PROGRESS |
-| M3 | Keyset Pagination & B-Tree Optimization | R3.1, R3.2: Prisma schema indexes, `keysetPaginatedQuery` helper, table action updates | none | PLANNED |
-| M4 | Keyboard-First & Range Selection Ergonomics | R4.1, R4.2: `useRangeSelection` hook, `catalog-table-v2.tsx`, `order-client.tsx`, `ShortcutsModal` | none | PLANNED |
-| M5 | E2E Integration & Full Suite Verification | R5.1: Full TypeScript check, Vitest run, Design Guild 100/100 audit, Forensic integrity verification | M1, M2, M3, M4 | PLANNED |
+| 1 | M1: Frontend Contracts & UI Boundaries | Client/server boundaries, Suspense, HeroUI v3 compound modals, targetType resolution, branding cleanup | none | IN_PROGRESS (Worker: df2bfdef-3ae0-429c-ac84-4934c75a79e9) |
+| 2 | M2: Financial Invariants & Server Actions | Idempotency key stability, Server Actions { success, error } contracts, WalletOps audit | none | IN_PROGRESS (Worker: bf7cf831-858c-4ee9-90ac-f7ffc0652b8e) |
+| 3 | M3: Test Suite & Typecheck Healing | Fix test/tsconfig.json 29 errors, test runner stability, Vitest connection pool configuration | none | IN_PROGRESS (Worker: c1764647-6f4a-43ca-93e4-28235a309c9f) |
+| 4 | M4: Full-Spectrum Verification & Hardening | Run root tsc, test tsc, full Vitest suite, next build --webpack, secret audit, Challenger & Forensic Auditor gates | M1, M2, M3 | PLANNED |
 
 ## Interface Contracts
+### UI Components ↔ Next.js App Router
+- Client components MUST start with `'use client';` (not `'client';`).
+- Client components using `useSearchParams()` MUST be wrapped in a React `<Suspense>` boundary.
+- Server Actions in `src/actions/` MUST return `{ success: boolean, error?: string, data?: any }` and MUST NOT throw unhandled raw `Error`.
 
-### M1: Provider Balance Monitor
-- `ProviderBalanceService.getProviderBalance(providerId: string, forceRefresh?: boolean): Promise<CachedProviderBalance>`
-- `ProviderBalanceService.getAllProviderBalances(forceRefresh?: boolean): Promise<CachedProviderBalance[]>`
-- `ProviderBalanceService.getGlobalLiquiditySummary(forceRefresh?: boolean): Promise<GlobalLiquiditySummary>`
-- `CachedProviderBalance`: `{ providerId, providerName, balance, rawBalance, currency, balanceUsd, balanceRub, status: 'healthy' | 'warning' | 'critical' | 'error', latencyMs, cachedAt, expiresAt, error? }`
+### Services ↔ Financial Ledger
+- All balance mutations MUST use `WalletOps`.
+- All idempotency keys MUST be stable and deterministic: `IdempotencyKeys.generate(...)` without `Date.now()` or random suffixes.
 
-### M2: Ledger Reconciliation Guard
-- `LedgerReconciliationService.getSummary(tenantId?: string): Promise<ReconciliationSummaryDTO>`
-- `LedgerReconciliationService.getAccounts(params): Promise<{ items: ReconciledAccountDTO[], totalCount: number, page: number, pageSize: number }>`
-- `LedgerReconciliationService.getUserAuditTimeline(userId: string): Promise<UserAuditTimelineDTO>`
-- `LedgerReconciliationService.remediateUser(userId: string, action: 'LOCK' | 'AUTO_ADJUST', admin, reason?): Promise<{ success: boolean, message: string }>`
-
-### M3: Keyset Pagination
-- `keysetPaginatedQuery<T>(model: any, options: KeysetPaginationOptions): Promise<KeysetPaginatedResult<T>>`
-- Indices:
-  - `Order`: `@@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])`, `@@index([createdAt(sort: Desc), id(sort: Desc)])`
-  - `LedgerEntry`: `@@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])`, `@@index([createdAt(sort: Desc), id(sort: Desc)])`, `@@index([userId, createdAt(sort: Desc), id(sort: Desc)])`
-  - `User`: `@@index([createdAt(sort: Desc), id(sort: Desc)])`, `@@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])`
-
-### M4: Range Selection & Shortcuts
-- `useRangeSelection<T extends { id: string }>(items: T[])`: `{ selectedIds, selectedCount, isSelected, isAllSelected, toggleRow(id, e), selectAll, clearSelection, toggleSelectAll }`
-- Global Shortcut Modal: Triggered by `?` (`Shift + /`), dismissed with `Escape`, ignores focused input/textarea.
+### Catalog Engine ↔ Services
+- Target type resolution MUST use `resolveServiceTargetType(service)` from `@/utils/target-type-mapper`.
 
 ## Code Layout
-- `src/services/admin/provider-balance.service.ts`: Provider balance caching & health evaluation.
-- `src/actions/admin/providers/balance.ts`: Provider balance server actions.
-- `src/app/admin/providers/components/provider-balance-cell.tsx`: Upgraded provider balance cell.
-- `src/app/admin/dashboard/ProviderLiquidityWidget.tsx`: Upgraded provider liquidity widget.
-- `src/services/financial/ledger-reconciliation.service.ts`: SQL ledger reconciliation aggregator.
-- `src/actions/admin/finance/reconciliation.ts`: Finance reconciliation server actions.
-- `src/app/admin/finance/components/reconciliation-tab.tsx`: Reconciliation tab component.
-- `src/app/admin/finance/components/ledger-audit-drawer.tsx`: Transaction audit drawer.
-- `src/app/admin/finance/finance-client.tsx`: Updated finance client tabs.
-- `src/lib/pagination.ts`: Keyset pagination helper.
-- `prisma/schema.prisma`: Composite B-Tree indexes.
-- `src/hooks/use-range-selection.ts`: Shift+Click range selection hook.
-- `src/components/admin/catalog-table-v2.tsx`: Catalog table range selection.
-- `src/app/admin/orders/components/order-client.tsx`: Orders table range selection.
-- `src/components/admin/shortcuts-modal.tsx`: Global shortcuts modal.
-- `src/app/admin/layout.tsx`: Admin layout with shortcuts modal.
+- `src/app/`: Next.js 16 App Router pages and route handlers
+- `src/actions/`: Server Actions with typed `{ success, error }` returns
+- `src/components/admin/`: OmniSMM 1.0 Admin Panel widgets and components
+- `src/components/landing/`, `src/components/catalog/`: Client showcase and order wizards
+- `src/services/`: Domain services (Financial, Analyzer, Providers, Admin)
+- `src/utils/`, `src/lib/`: Utilities, database client, target type resolvers
+- `test/`, `src/__tests__/`: Integration and unit test suites

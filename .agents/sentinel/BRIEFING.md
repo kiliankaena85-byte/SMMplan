@@ -1,12 +1,12 @@
-# BRIEFING — 2026-09-21T11:08:03Z
+# BRIEFING — 2026-09-21T23:06:00Z
 
 ## Mission
-Conduct comprehensive multi-pass competitive audit of SMM panels (RuNet & Global), reverse-engineer search/advertising traffic strategies, pricing models, semantics, and sales funnels, and verify/strengthen SMMplan & SMMflux architectural, SEO, and ad strategy via self-loop improving.
+Coordinate full-scale deep audit and error fixing across the entire codebase (TypeScript, imports, Next.js Server/Client contracts, tests, build) via project orchestrator.
 
 ## 🔒 My Identity
 - Archetype: sentinel
-- Working directory: e:\SMM\.agents\sentinel
-- Orchestrator: blocked (platform harness excluded subagents from context budget)
+- Working directory: c:\Users\Shadow\Documents\SMM\.agents\sentinel
+- Orchestrator: f608dd26-cad5-4170-872a-89391c0ef559
 - Victory Auditor: to be spawned on victory claim
 
 ## 🔒 Key Constraints
@@ -14,18 +14,26 @@ Conduct comprehensive multi-pass competitive audit of SMM panels (RuNet & Global
 - Victory Audit is MANDATORY before reporting completion
 - Routing Decision: General -> teamwork_preview_orchestrator
 - Ultra-light context, no coding or problem analysis
+- OmniSMM 1.0 Zero-Defect Protocol, Multi-Tenant isolation, Ledger-First, WalletOps BigInt
 
 ## User Context
-- **Last user request**: Deep multi-pass competitive audit of SMM panels (Bosslike, Soc-service, Taplike, Doctorsmm, SMMPrime, EasyLiker, PrSkill, SMMLaba, JustAnotherPanel), White-Hat Ad Playbook (Yandex Direct, TG Ads, VK Ads, 38-FZ/ORD compliance), 2026 Semantic Matrix & LSI graph (B2B SMMplan vs B2C SMMflux + AEO Yandex Neuro), and Self-Loop Improving Roadmap.
+- **Last user request**: Full-scale deep audit and fix of entire codebase after refactoring (Admin panel, Service layer, API routes and webhooks, Client showcase and catalog). Fix circular deps, `tsc --noEmit`, Next.js App Router Server/Client contracts, vitest tests, and `npm run build`.
 - **Pending clarifications**: none
-- **Delivered results**: Request recorded verbatim in ORIGINAL_REQUEST.md files, routing determined.
+- **Delivered results**: Request recorded verbatim in ORIGINAL_REQUEST.md, survey completed (0 circular deps, 0 core tsc errors, 11 specific hazards cataloged), parallel remediation launched.
 
 ## Project Status
-- **Phase**: blocked / escalated
+- **Phase**: in progress (Milestone Remediation Underway)
 - **Route**: General -> teamwork_preview_orchestrator
-- **Working Directory**: e:/SMM
-- **Dispatch Status**: Attempted `invoke_subagent` for `teamwork_preview_orchestrator`. Failed with `subagent "teamwork_preview_orchestrator" not found or not allowed to be invoked` due to platform context budget exclusion.
-- **Escalation**: Reporting status to caller agent `parent` (id: e592d99f-9d53-44c5-bd96-a33519834f4b).
+- **Working Directory**: c:\Users\Shadow\Documents\SMM
+- **Orchestrator Conversation ID**: f608dd26-cad5-4170-872a-89391c0ef559 (active)
+- **Concurrent Milestones Dispatched**:
+  - **Milestone 1 (Worker 1: df2bfdef-3ae0-429c-ac84-4934c75a79e9)**: Frontend & UI Boundaries (missing `'use client'`, `<Suspense>` wrapper in payment redirect, HeroUI compound modals, targetType mapper).
+  - **Milestone 2 (Worker 2: bf7cf831-858c-4ee9-90ac-f7ffc0652b8e)**: Financial Invariants & Server Actions (deterministic idempotency keys, typed `{ success, error }` contracts, unhandled error guards).
+  - **Milestone 3 (Worker 3: c1764647-6f4a-43ca-93e4-28235a309c9f)**: Test Suite & Typecheck Healing (29 TS errors in `test/tsconfig.json`, `.env.test` DB protection and pool config).
+- **File Ownership**: Completely disjoint file boundaries, executing in parallel.
+- **Monitoring Crons Active**:
+  - Cron 1 (Progress Reporting, */8 * * * *): task-26
+  - Cron 2 (Liveness Check, */10 * * * *): task-28
 
 ## Victory Audit Status
 - **Triggered**: no
@@ -33,7 +41,8 @@ Conduct comprehensive multi-pass competitive audit of SMM panels (RuNet & Global
 - **Retry count**: 0
 
 ## Artifact Index
-- e:\SMM\.agents\ORIGINAL_REQUEST.md — Authoritative record of user requests in root workspace
-- e:\SMM\.agents\sentinel\ORIGINAL_REQUEST.md — Sentinel request log
-- e:\SMM\.agents\sentinel\BRIEFING.md — Sentinel persistent memory
-- e:\SMM\.agents\sentinel\handoff.md — Sentinel handoff and escalation report
+- c:\Users\Shadow\Documents\SMM\.agents\ORIGINAL_REQUEST.md — Authoritative record of user requests in workspace root
+- c:\Users\Shadow\Documents\SMM\.agents\sentinel\ORIGINAL_REQUEST.md — Sentinel request log
+- c:\Users\Shadow\Documents\SMM\.agents\sentinel\BRIEFING.md — Sentinel persistent memory
+- c:\Users\Shadow\Documents\SMM\.agents\sentinel\handoff.md — Sentinel handoff report
+- c:\Users\Shadow\Documents\SMM\PROJECT.md — Master project decomposition and feature inventory

@@ -1,5 +1,6 @@
 'use server';
 
+import crypto from 'crypto';
 import { db } from '@/lib/db';
 import { adminUserService } from '@/services/admin/user.service';
 import { escrowService } from '@/services/admin/escrow.service';
@@ -81,7 +82,7 @@ export async function updateBalanceAction(formData: FormData) {
     const userAgent = reqHeaders.get('user-agent') || 'Unknown';
     
     const clientKey = (formData.get('idempotencyKey') as string)?.trim();
-    const idempotencyKey = clientKey || `direct-adjust-${userId}-${amount}-${Date.now()}`;
+    const idempotencyKey = clientKey || `direct-adjust-${userId}-${amount}-${crypto.randomUUID()}`;
 
     // Anti-Double-Click & Idempotency Lock
     if (clientKey) {
@@ -306,15 +307,14 @@ export async function requestCardRefundAction(formData: FormData) {
 
     const ipAddress = await getClientIp('unknown');
     const clientKey = (formData.get('idempotencyKey') as string)?.trim();
-    const idempotencyKey = clientKey || `card-refund-${userId}-${paymentId}-${Date.now()}`;
+    const idempotencyKey = clientKey || `card-refund-${userId}-${paymentId}`;
 
-    if (clientKey) {
-      const existingAdj = await db.manualBalanceAdjustment.findFirst({
-        where: { idempotencyKey: clientKey }
-      });
-      if (existingAdj) {
-        return { success: true as const, message: 'Заявка на возврат уже создана (защита от двойного клика)' };
-      }
+    const checkKey = clientKey || idempotencyKey;
+    const existingAdj = await db.manualBalanceAdjustment.findFirst({
+      where: { idempotencyKey: checkKey }
+    });
+    if (existingAdj) {
+      return { success: true as const, message: 'Заявка на возврат уже создана (защита от двойного клика)' };
     }
 
     const gwName = (payment.gateway || 'эквайринг').toUpperCase();

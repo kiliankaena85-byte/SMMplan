@@ -2,7 +2,7 @@ async function sendWelcomeLetter(email: string) {
   throw new Error("Welcome Letter Sync Throw");
 }
 
-async function test() {
+async function runTest() {
   Promise.resolve().then(async () => {
     try {
       if (true) {
@@ -14,4 +14,5 @@ async function test() {
   });
 }
 
-test();
+runTest();
+export {};

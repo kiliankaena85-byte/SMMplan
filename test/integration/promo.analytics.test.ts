@@ -36,7 +36,7 @@ describe('Smmplan Ads Analytics Module Tests', () => {
     const found = list.find((p) => p.id === promo.id);
     expect(found).toBeDefined();
     expect(found?.isSuspicious).toBe(true);
-    expect(found?.usages).toBeDefined();
+    expect(found?.uses).toBeDefined();
 
     // Clean up
     await db.promoCode.delete({ where: { id: promo.id } });
@@ -129,15 +129,15 @@ describe('Smmplan Ads Analytics Module Tests', () => {
     const list = await adminMarketingService.listPromoCodes();
     const promoWithUsages = list.find((p) => p.id === promo.id);
     expect(promoWithUsages).toBeDefined();
-    expect(promoWithUsages?.usages.length).toBe(1);
+    expect(promoWithUsages?.uses).toBe(1);
+    expect(promoWithUsages?._count?.usages).toBe(1);
     
-    const mappedUsage = promoWithUsages?.usages[0];
-    expect(typeof mappedUsage?.discountCents).toBe('number');
-    expect(typeof mappedUsage?.revenueCents).toBe('number');
-    expect(typeof mappedUsage?.profitCents).toBe('number');
-    expect(mappedUsage?.discountCents).toBe(30);
-    expect(mappedUsage?.revenueCents).toBe(200);
-    expect(mappedUsage?.profitCents).toBe(100);
+    expect(typeof Number(usage?.discountCents)).toBe('number');
+    expect(typeof Number(usage?.revenueCents)).toBe('number');
+    expect(typeof Number(usage?.profitCents)).toBe('number');
+    expect(Number(usage?.discountCents)).toBe(30);
+    expect(Number(usage?.revenueCents)).toBe(200);
+    expect(Number(usage?.profitCents)).toBe(100);
 
     // Clean up
     await db.promoCodeUsage.delete({ where: { orderId: order.id } });

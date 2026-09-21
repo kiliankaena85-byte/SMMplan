@@ -242,16 +242,24 @@ export class UniversalProvider implements BaseProvider {
          throw new Error(`Schema Drift Error: Ожидался ключ баланса '${bPath}', но он не найден в ответе.`);
       }
 
+      const parsedMappedCurrency = currencyVal !== undefined && currencyVal !== null && String(currencyVal).trim() !== ''
+        ? String(currencyVal).trim()
+        : '';
+
       return {
         balance: String(balanceVal || '0'),
-        currency: String(currencyVal || 'USD')
+        currency: parsedMappedCurrency
       };
     }
 
     if (res.error) throw new Error(String(res.error));
+    const parsedCurrency = res.currency !== undefined && res.currency !== null && String(res.currency).trim() !== ''
+      ? String(res.currency).trim()
+      : '';
+
     return {
       balance: String(res.balance || '0'),
-      currency: String(res.currency || 'USD')
+      currency: parsedCurrency
     };
   }
 

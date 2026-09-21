@@ -1,4 +1,4 @@
-import { verifySession } from './src/lib/session';
+import { verifySession } from '@/lib/session';
 import 'dotenv/config';
 
 async function test() {

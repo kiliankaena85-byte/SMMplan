@@ -1,6 +1,25 @@
 import { db } from '@/lib/db';
 
+export type WaveChartRow = {
+  dateStr: string;
+  completed: number;
+  inProgress: number;
+  pending: number;
+  unpaid: number;
+  canceled: number;
+  partial: number;
+  total: number;
+};
+
 export class OrderTimeseriesService {
+  private static timeseriesCache = new Map<
+    string,
+    {
+      data: WaveChartRow[];
+      expiresAt: number;
+    }
+  >();
+
   /**
    * Retrieves order counts grouped by hour/day/week/month to build the Orders Dynamics Chart.
    */
@@ -9,7 +28,15 @@ export class OrderTimeseriesService {
     endDate: Date,
     step: 'hour' | 'day' | 'week' | 'month',
     tenantId?: string
-  ) {
+  ): Promise<WaveChartRow[]> {
+    const cacheKey = `${startDate.toISOString()}_${endDate.toISOString()}_${step}_${tenantId || 'all'}`;
+    const cached = OrderTimeseriesService.timeseriesCache.get(cacheKey);
+    const now = Date.now();
+
+    if (cached && cached.expiresAt > now) {
+      return cached.data;
+    }
+
     const rawData = step === 'hour'
       ? await db.$queryRaw<{ date: Date; status: string; count: number }[]>`
         SELECT 
@@ -58,16 +85,6 @@ export class OrderTimeseriesService {
         ORDER BY date ASC
       `;
 
-    type WaveChartRow = {
-      dateStr: string;
-      completed: number;
-      inProgress: number;
-      pending: number;
-      unpaid: number;
-      canceled: number;
-      partial: number;
-      total: number;
-    };
     const result: WaveChartRow[] = [];
 
     if (step === 'hour') {
@@ -128,6 +145,7 @@ export class OrderTimeseriesService {
       }
     }
 
+    OrderTimeseriesService.timeseriesCache.set(cacheKey, { data: result, expiresAt: now + 30000 });
     return result;
   }
 }

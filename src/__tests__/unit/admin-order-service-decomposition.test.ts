@@ -6,19 +6,19 @@ import { adminOrderService } from '@/services/admin/order.service';
 describe('Wave 23: Admin Order Service Decomposition (CDD-TDD)', () => {
   describe('resolveOrderOrderBy', () => {
     it('should default to createdAt desc if no sortField provided', () => {
-      expect(resolveOrderOrderBy()).toEqual({ createdAt: 'desc' });
+      expect(resolveOrderOrderBy()).toEqual([{ createdAt: 'desc' }, { id: 'desc' }]);
     });
 
     it('should sort by allowed direct fields', () => {
-      expect(resolveOrderOrderBy('numericId', 'asc')).toEqual({ numericId: 'asc' });
-      expect(resolveOrderOrderBy('status', 'desc')).toEqual({ status: 'desc' });
-      expect(resolveOrderOrderBy('charge', 'asc')).toEqual({ charge: 'asc' });
-      expect(resolveOrderOrderBy('providerCost', 'desc')).toEqual({ providerCost: 'desc' });
+      expect(resolveOrderOrderBy('numericId', 'asc')).toEqual([{ numericId: 'asc' }, { id: 'asc' }]);
+      expect(resolveOrderOrderBy('status', 'desc')).toEqual([{ status: 'desc' }, { id: 'desc' }]);
+      expect(resolveOrderOrderBy('charge', 'asc')).toEqual([{ charge: 'asc' }, { id: 'asc' }]);
+      expect(resolveOrderOrderBy('providerCost', 'desc')).toEqual([{ providerCost: 'desc' }, { id: 'desc' }]);
     });
 
     it('should sort by user email for client/user/email fields', () => {
-      expect(resolveOrderOrderBy('client', 'asc')).toEqual({ user: { email: 'asc' } });
-      expect(resolveOrderOrderBy('email', 'desc')).toEqual({ user: { email: 'desc' } });
+      expect(resolveOrderOrderBy('client', 'asc')).toEqual([{ user: { email: 'asc' } }, { id: 'asc' }]);
+      expect(resolveOrderOrderBy('email', 'desc')).toEqual([{ user: { email: 'desc' } }, { id: 'desc' }]);
     });
   });
 

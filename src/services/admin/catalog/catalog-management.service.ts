@@ -50,6 +50,11 @@ export type CatalogRow = {
 };
 
 export class CatalogManagementService {
+  private static catalogStatsCache = new Map<string, { data: { totalServices: number; activeServices: number; categories: number }; expiresAt: number }>();
+  private static markupAnalyticsCache = new Map<string, { data: { averageMarkup: number; distribution: { label: string; count: number; percentage: number }[]; autoMarkupCount: number; manualMarkupCount: number }; expiresAt: number }>();
+  private static catalogHealthCache = new Map<string, { data: { quarantine: number; zombies: number; cooldown: number }; expiresAt: number }>();
+  private static categoriesListCache = new Map<string, { data: Array<{ id: string; name: string; network: { id: string; name: string; slug: string } | null; serviceCount: number }>; expiresAt: number }>();
+
   /**
    * Paginated service list with category, markup, and order count.
    */
@@ -297,6 +302,13 @@ export class CatalogManagementService {
    * Catalog stats for the header and dashboard.
    */
   static async getCatalogStats(tenantId?: string, _startDate?: Date, _endDate?: Date) {
+    const cacheKey = tenantId || 'all';
+    const cached = CatalogManagementService.catalogStatsCache.get(cacheKey);
+    const now = Date.now();
+    if (cached && cached.expiresAt > now) {
+      return cached.data;
+    }
+
     const where: Prisma.ServiceWhereInput = {};
     if (tenantId && tenantId !== 'all') where.tenantId = { in: [tenantId, 'all'] };
 
@@ -309,7 +321,9 @@ export class CatalogManagementService {
       db.category.count({ where: categoryWhere }),
     ]);
 
-    return { totalServices, activeServices, categories };
+    const result = { totalServices, activeServices, categories };
+    CatalogManagementService.catalogStatsCache.set(cacheKey, { data: result, expiresAt: now + 30000 });
+    return result;
   }
 
   /**
@@ -377,6 +391,13 @@ export class CatalogManagementService {
     autoMarkupCount: number;
     manualMarkupCount: number;
   }> {
+    const cacheKey = tenantId || 'all';
+    const cached = CatalogManagementService.markupAnalyticsCache.get(cacheKey);
+    const now = Date.now();
+    if (cached && cached.expiresAt > now) {
+      return cached.data;
+    }
+
     const where: Prisma.ServiceWhereInput = {
       isActive: true,
       ...(tenantId && tenantId !== 'all' ? { tenantId: { in: [tenantId, 'all'] } } : {}),
@@ -388,12 +409,14 @@ export class CatalogManagementService {
     });
 
     if (services.length === 0) {
-      return {
+      const emptyResult = {
         averageMarkup: 0,
         distribution: [],
         autoMarkupCount: 0,
         manualMarkupCount: 0,
       };
+      CatalogManagementService.markupAnalyticsCache.set(cacheKey, { data: emptyResult, expiresAt: now + 60000 });
+      return emptyResult;
     }
 
     const brackets = [
@@ -416,7 +439,7 @@ export class CatalogManagementService {
     }
 
     const total = services.length;
-    return {
+    const result = {
       averageMarkup: Math.round((totalMarkup / total) * 100) / 100,
       distribution: brackets.map(b => ({
         label: b.label,
@@ -426,13 +449,22 @@ export class CatalogManagementService {
       autoMarkupCount: 0,
       manualMarkupCount: total,
     };
+
+    CatalogManagementService.markupAnalyticsCache.set(cacheKey, { data: result, expiresAt: now + 60000 });
+    return result;
   }
 
   /**
    * Category list for catalog filter dropdowns.
    */
   static async listCategories(tenantId?: string) {
-    const tenantFilter = tenantId && tenantId !== 'all' ? { in: [tenantId, 'all'] } : undefined;
+    const cacheKey = tenantId || 'all';
+    const cached = CatalogManagementService.categoriesListCache.get(cacheKey);
+    const now = Date.now();
+    if (cached && cached.expiresAt > now) {
+      return cached.data;
+    }
+
     const rows = await db.category.findMany({
       where: tenantId && tenantId !== 'all' ? { tenantId: tenantVisibilityFilter(tenantId) } : undefined,
       select: {
@@ -445,18 +477,11 @@ export class CatalogManagementService {
             slug: true,
           }
         },
-        _count: {
-          select: {
-            services: {
-              where: tenantFilter ? { tenantId: tenantFilter } : undefined
-            }
-          }
-        },
       },
       orderBy: { name: 'asc' },
     });
 
-    return rows.map(c => ({
+    const result = rows.map(c => ({
       id: c.id,
       name: c.name,
       network: c.network ? {
@@ -464,8 +489,11 @@ export class CatalogManagementService {
         name: c.network.name,
         slug: c.network.slug
       } : null,
-      serviceCount: c._count.services,
+      serviceCount: 0,
     }));
+
+    CatalogManagementService.categoriesListCache.set(cacheKey, { data: result, expiresAt: now + 60000 });
+    return result;
   }
 
   /**
@@ -485,7 +513,14 @@ export class CatalogManagementService {
    * Quick counts of catalog health for the notification badge.
    */
   static async getCatalogHealthCounts(tenantId?: string): Promise<{ quarantine: number; zombies: number; cooldown: number }> {
-    const now = new Date();
+    const cacheKey = tenantId || 'all';
+    const cached = CatalogManagementService.catalogHealthCache.get(cacheKey);
+    const nowMs = Date.now();
+    if (cached && cached.expiresAt > nowMs) {
+      return cached.data;
+    }
+
+    const nowDate = new Date();
     const tenantWhere = tenantId && tenantId !== 'all' ? { in: [tenantId, 'all'] } : undefined;
 
     const [quarantine, zombies, cooldown] = await Promise.all([
@@ -504,13 +539,15 @@ export class CatalogManagementService {
       db.service.count({
         where: {
           isActive: true,
-          cooldownUntil: { gt: now },
+          cooldownUntil: { gt: nowDate },
           cooldownReason: { notIn: ['ZOMBIE_AUTO_DISABLED', 'ZOMBIE_ARCHIVED'] },
           ...(tenantWhere ? { tenantId: tenantWhere } : {}),
         },
       }),
     ]);
 
-    return { quarantine, zombies, cooldown };
+    const result = { quarantine, zombies, cooldown };
+    CatalogManagementService.catalogHealthCache.set(cacheKey, { data: result, expiresAt: nowMs + 30000 });
+    return result;
   }
 }

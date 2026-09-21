@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 
-interface ServiceProfitability {
+export interface ServiceProfitability {
   serviceId: string;
   serviceName: string;
   categoryName: string;
@@ -11,7 +11,7 @@ interface ServiceProfitability {
   ordersCount: number;
 }
 
-interface CategoryProfitability {
+export interface CategoryProfitability {
   categoryId: string;
   categoryName: string;
   revenue: number;

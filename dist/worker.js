@@ -127383,15 +127383,17 @@ var init_universal_provider = __esm({
           if (balanceVal === void 0) {
             throw new Error(`Schema Drift Error: \u041E\u0436\u0438\u0434\u0430\u043B\u0441\u044F \u043A\u043B\u044E\u0447 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 '${bPath}', \u043D\u043E \u043E\u043D \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D \u0432 \u043E\u0442\u0432\u0435\u0442\u0435.`);
           }
+          const parsedMappedCurrency = currencyVal !== void 0 && currencyVal !== null && String(currencyVal).trim() !== "" ? String(currencyVal).trim() : "";
           return {
             balance: String(balanceVal || "0"),
-            currency: String(currencyVal || "USD")
+            currency: parsedMappedCurrency
           };
         }
         if (res.error) throw new Error(String(res.error));
+        const parsedCurrency = res.currency !== void 0 && res.currency !== null && String(res.currency).trim() !== "" ? String(res.currency).trim() : "";
         return {
           balance: String(res.balance || "0"),
-          currency: String(res.currency || "USD")
+          currency: parsedCurrency
         };
       }
       async getServices() {
@@ -128439,6 +128441,191 @@ var init_provider_diagnostic_service = __esm({
   }
 });
 
+// src/lib/pricing/currency-invariant.ts
+var currency_invariant_exports = {};
+__export2(currency_invariant_exports, {
+  SUPPORTED_CURRENCIES: () => SUPPORTED_CURRENCIES,
+  buildCurrencySnapshot: () => buildCurrencySnapshot,
+  detectCurrencyChange: () => detectCurrencyChange,
+  getCostRub: () => getCostRub,
+  isValidProviderCurrency: () => isValidProviderCurrency,
+  normalizeProviderCurrency: () => normalizeProviderCurrency,
+  reconcileCurrencyBeforeSync: () => reconcileCurrencyBeforeSync,
+  resnapshotOnCurrencyChange: () => resnapshotOnCurrencyChange
+});
+function normalizeProviderCurrency(currency) {
+  if (!currency || typeof currency !== "string") return null;
+  const upper = currency.toUpperCase().trim();
+  if (upper === "RUR") return "RUB";
+  if (SUPPORTED_CURRENCIES.includes(upper)) {
+    return upper;
+  }
+  return null;
+}
+function isValidProviderCurrency(currency) {
+  return normalizeProviderCurrency(currency) !== null;
+}
+function getCostRub(rate, currency, usdRate, crossRates) {
+  if (typeof rate !== "number" || !isFinite(rate) || rate < 0) {
+    throw new Error(`INVALID_RATE: rate must be a non-negative finite number, got ${rate}`);
+  }
+  if (!currency || typeof currency !== "string") {
+    throw new Error(`CURRENCY_UNSUPPORTED: currency is required (rate=${rate})`);
+  }
+  const normalized = currency.toUpperCase().trim();
+  let cost;
+  switch (normalized) {
+    case "RUB":
+      cost = rate;
+      break;
+    case "USD":
+      if (typeof usdRate !== "number" || !isFinite(usdRate) || usdRate <= 0) {
+        throw new Error(`INVALID_USD_RATE: usdRate must be a positive number, got ${usdRate}`);
+      }
+      cost = rate * usdRate;
+      break;
+    case "EUR":
+      if (typeof usdRate !== "number" || !isFinite(usdRate) || usdRate <= 0) {
+        throw new Error(`INVALID_USD_RATE: usdRate must be a positive number, got ${usdRate}`);
+      }
+      const eurFactor = crossRates?.eurToUsd && crossRates.eurToUsd > 0 ? crossRates.eurToUsd : 1.08;
+      cost = rate * eurFactor * usdRate;
+      break;
+    case "UAH":
+      if (typeof usdRate !== "number" || !isFinite(usdRate) || usdRate <= 0) {
+        throw new Error(`INVALID_USD_RATE: usdRate must be a positive number, got ${usdRate}`);
+      }
+      const uahFactor = crossRates?.uahToUsd && crossRates.uahToUsd > 0 ? crossRates.uahToUsd : 0.027;
+      cost = rate * uahFactor * usdRate;
+      break;
+    case "KZT":
+      if (typeof usdRate !== "number" || !isFinite(usdRate) || usdRate <= 0) {
+        throw new Error(`INVALID_USD_RATE: usdRate must be a positive number, got ${usdRate}`);
+      }
+      const kztFactor = crossRates?.kztToUsd && crossRates.kztToUsd > 0 ? crossRates.kztToUsd : 23e-4;
+      cost = rate * kztFactor * usdRate;
+      break;
+    default:
+      throw new Error(`CURRENCY_UNSUPPORTED: ${currency} (rate=${rate})`);
+  }
+  if (!isFinite(cost) || cost < 0) {
+    throw new Error(`CURRENCY_CONVERSION_INVALID: ${rate} ${currency} \u2192 ${cost} RUB`);
+  }
+  return Math.round(cost * 1e4) / 1e4;
+}
+async function buildCurrencySnapshot(rawRate, providerCurrency) {
+  if (!providerCurrency || typeof providerCurrency !== "string") {
+    throw new Error(`CURRENCY_UNSUPPORTED: providerCurrency is required (rate=${rawRate})`);
+  }
+  const currency = providerCurrency.toUpperCase().trim();
+  let usdRate = 95;
+  try {
+    const fetched = await SettingsProvider.getExchangeRateUSD();
+    if (fetched && fetched > 0) usdRate = fetched;
+  } catch {
+    usdRate = 95;
+  }
+  const costPer1kRub = getCostRub(rawRate, currency, usdRate);
+  if (!isFinite(costPer1kRub) || costPer1kRub <= 0) {
+    throw new Error(`CURRENCY_CONVERSION_INVALID: ${rawRate} ${currency} \u2192 ${costPer1kRub} RUB`);
+  }
+  return {
+    rawRate,
+    currency,
+    costPer1kRub,
+    usdRateAtCapture: usdRate,
+    capturedAt: /* @__PURE__ */ new Date()
+  };
+}
+async function detectCurrencyChange(providerId, newCurrency) {
+  const normalizedNew = normalizeProviderCurrency(newCurrency) || (newCurrency || "USD").toUpperCase().trim();
+  const provider = await db.provider.findUnique({
+    where: { id: providerId },
+    select: { balanceCurrency: true }
+  });
+  const oldCurrency = provider?.balanceCurrency ? provider.balanceCurrency.toUpperCase().trim() : null;
+  const currencyDiffers = !oldCurrency || oldCurrency !== normalizedNew;
+  const mismatchedServicesCount = await db.service.count({
+    where: {
+      providerId,
+      providerCurrency: { not: normalizedNew }
+    }
+  });
+  if (currencyDiffers || mismatchedServicesCount > 0) {
+    const serviceCount = await db.service.count({
+      where: { providerId }
+    });
+    return { changed: true, oldCurrency: oldCurrency || "USD", serviceCount };
+  }
+  return { changed: false, oldCurrency, serviceCount: 0 };
+}
+async function resnapshotOnCurrencyChange(providerId, oldCurrency, newCurrency) {
+  const normalizedNew = normalizeProviderCurrency(newCurrency) || (newCurrency || "USD").toUpperCase().trim();
+  const services = await db.service.findMany({
+    where: { providerId },
+    select: { id: true, rate: true, providerCurrency: true, markup: true }
+  });
+  let updated = 0;
+  for (const svc of services) {
+    try {
+      const snapshot = await buildCurrencySnapshot(svc.rate, normalizedNew);
+      const markup = svc.markup && svc.markup > 0 ? svc.markup : 2;
+      await db.service.update({
+        where: { id: svc.id },
+        data: {
+          providerCurrency: normalizedNew,
+          costPer1kRub: snapshot.costPer1kRub,
+          currencyCapturedAt: snapshot.capturedAt,
+          usdRateAtCapture: snapshot.usdRateAtCapture,
+          // Recompute retail from new base cost
+          pricePer1000Cents: Math.round(snapshot.costPer1kRub * markup * 100)
+        }
+      });
+      updated++;
+    } catch (err) {
+      console.error(`[CurrencyResnapshot] Failed for service ${svc.id}:`, err);
+    }
+  }
+  try {
+    await db.provider.update({
+      where: { id: providerId },
+      data: { balanceCurrency: normalizedNew }
+    });
+  } catch (provErr) {
+    console.warn(`[CurrencyResnapshot] Failed to update balanceCurrency for provider ${providerId}:`, provErr);
+  }
+  try {
+    await db.routingAuditLog.create({
+      data: {
+        serviceId: "SYSTEM",
+        action: "PROVIDER_CURRENCY_CHANGED",
+        reason: `Provider currency changed ${oldCurrency} \u2192 ${normalizedNew}, resnapshotted ${updated} services`
+      }
+    });
+  } catch (auditErr) {
+    console.warn(`[CurrencyResnapshot] Failed to create routingAuditLog:`, auditErr);
+  }
+  return updated;
+}
+async function reconcileCurrencyBeforeSync(providerId, newBalanceCurrency) {
+  const normalizedNew = normalizeProviderCurrency(newBalanceCurrency) || (newBalanceCurrency || "USD").toUpperCase().trim();
+  const change = await detectCurrencyChange(providerId, normalizedNew);
+  if (!change.changed) {
+    return { resnapshotted: false, serviceCount: 0 };
+  }
+  const updated = await resnapshotOnCurrencyChange(providerId, change.oldCurrency || "USD", normalizedNew);
+  return { resnapshotted: true, serviceCount: updated };
+}
+var SUPPORTED_CURRENCIES;
+var init_currency_invariant = __esm({
+  "src/lib/pricing/currency-invariant.ts"() {
+    "use strict";
+    init_db();
+    init_settings();
+    SUPPORTED_CURRENCIES = ["USD", "RUB", "EUR", "UAH", "KZT"];
+  }
+});
+
 // src/services/admin/provider-balance.service.ts
 var ProviderBalanceService, providerBalanceService;
 var init_provider_balance_service = __esm({
@@ -128449,6 +128636,7 @@ var init_provider_balance_service = __esm({
     init_settings();
     init_provider_service();
     init_provider_diagnostic_service();
+    init_currency_invariant();
     ProviderBalanceService = class {
       CACHE_TTL_SECONDS = 60;
       ERROR_CACHE_TTL_SECONDS = 15;
@@ -128516,16 +128704,16 @@ var init_provider_balance_service = __esm({
             const parsed = parseFloat(str.replace(/,/g, "."));
             numBalance = isNaN(parsed) ? 0 : parsed;
           }
-          const reportedCurrency = balanceData.currency?.toUpperCase().trim();
+          const normalizedReported = normalizeProviderCurrency(balanceData.currency);
           const storedCurrency = provider.balanceCurrency?.toUpperCase().trim();
           let currency;
-          if (reportedCurrency && reportedCurrency !== "UNKNOWN" && reportedCurrency.length >= 3) {
-            currency = reportedCurrency;
-          } else if (storedCurrency && storedCurrency.length >= 3) {
+          if (normalizedReported) {
+            currency = normalizedReported;
+          } else if (storedCurrency && isValidProviderCurrency(storedCurrency)) {
             currency = storedCurrency;
           } else {
             currency = "USD";
-            console.warn(`[ProviderBalance] Provider ${provider.name} returned no currency and none stored in DB; fallback to USD`);
+            console.warn(`[ProviderBalance] Provider ${provider.name} returned no valid currency and none stored in DB; fallback to USD`);
           }
           let usdRate = 95;
           try {
@@ -128614,14 +128802,32 @@ var init_provider_balance_service = __esm({
           try {
             const prevAvg = provider.avgResponseMs || 0;
             const newAvg = prevAvg > 0 ? Math.round(prevAvg * 0.7 + latencyMs * 0.3) : latencyMs;
+            const currencyChanged = Boolean(
+              normalizedReported && provider.id && normalizedReported !== storedCurrency
+            );
+            const updateData = {
+              lastSuccessAt: /* @__PURE__ */ new Date(),
+              avgResponseMs: newAvg,
+              errorCount5m: 0
+            };
+            if (currencyChanged && normalizedReported) {
+              updateData.balanceCurrency = normalizedReported;
+            }
             await db.provider.update({
               where: { id: provider.id },
-              data: {
-                lastSuccessAt: /* @__PURE__ */ new Date(),
-                avgResponseMs: newAvg,
-                errorCount5m: 0
-              }
+              data: updateData
             });
+            if (currencyChanged && normalizedReported && provider.id) {
+              try {
+                await resnapshotOnCurrencyChange(
+                  provider.id,
+                  storedCurrency || "USD",
+                  normalizedReported
+                );
+              } catch (resnapErr) {
+                console.warn(`[ProviderBalanceService] Auto-resnapshot failed for provider ${provider.id}:`, resnapErr);
+              }
+            }
           } catch (dbErr) {
             console.warn(`[ProviderBalanceService] SLA update failed for provider ${provider.id}:`, dbErr);
           }
@@ -138779,155 +138985,6 @@ var require_lib4 = __commonJS({
       return session_1.MemorySessionStore;
     } });
     exports2.Scenes = __importStar(require_scenes2());
-  }
-});
-
-// src/lib/pricing/currency-invariant.ts
-var currency_invariant_exports = {};
-__export2(currency_invariant_exports, {
-  SUPPORTED_CURRENCIES: () => SUPPORTED_CURRENCIES,
-  buildCurrencySnapshot: () => buildCurrencySnapshot,
-  detectCurrencyChange: () => detectCurrencyChange,
-  getCostRub: () => getCostRub,
-  reconcileCurrencyBeforeSync: () => reconcileCurrencyBeforeSync,
-  resnapshotOnCurrencyChange: () => resnapshotOnCurrencyChange
-});
-function getCostRub(rate, currency, usdRate, crossRates) {
-  if (typeof rate !== "number" || !isFinite(rate) || rate < 0) {
-    throw new Error(`INVALID_RATE: rate must be a non-negative finite number, got ${rate}`);
-  }
-  if (!currency || typeof currency !== "string") {
-    throw new Error(`CURRENCY_UNSUPPORTED: currency is required (rate=${rate})`);
-  }
-  const normalized = currency.toUpperCase().trim();
-  let cost;
-  switch (normalized) {
-    case "RUB":
-      cost = rate;
-      break;
-    case "USD":
-      if (typeof usdRate !== "number" || !isFinite(usdRate) || usdRate <= 0) {
-        throw new Error(`INVALID_USD_RATE: usdRate must be a positive number, got ${usdRate}`);
-      }
-      cost = rate * usdRate;
-      break;
-    case "EUR":
-      if (typeof usdRate !== "number" || !isFinite(usdRate) || usdRate <= 0) {
-        throw new Error(`INVALID_USD_RATE: usdRate must be a positive number, got ${usdRate}`);
-      }
-      const eurFactor = crossRates?.eurToUsd && crossRates.eurToUsd > 0 ? crossRates.eurToUsd : 1.08;
-      cost = rate * eurFactor * usdRate;
-      break;
-    case "UAH":
-      if (typeof usdRate !== "number" || !isFinite(usdRate) || usdRate <= 0) {
-        throw new Error(`INVALID_USD_RATE: usdRate must be a positive number, got ${usdRate}`);
-      }
-      const uahFactor = crossRates?.uahToUsd && crossRates.uahToUsd > 0 ? crossRates.uahToUsd : 0.027;
-      cost = rate * uahFactor * usdRate;
-      break;
-    case "KZT":
-      if (typeof usdRate !== "number" || !isFinite(usdRate) || usdRate <= 0) {
-        throw new Error(`INVALID_USD_RATE: usdRate must be a positive number, got ${usdRate}`);
-      }
-      const kztFactor = crossRates?.kztToUsd && crossRates.kztToUsd > 0 ? crossRates.kztToUsd : 23e-4;
-      cost = rate * kztFactor * usdRate;
-      break;
-    default:
-      throw new Error(`CURRENCY_UNSUPPORTED: ${currency} (rate=${rate})`);
-  }
-  if (!isFinite(cost) || cost < 0) {
-    throw new Error(`CURRENCY_CONVERSION_INVALID: ${rate} ${currency} \u2192 ${cost} RUB`);
-  }
-  return Math.round(cost * 1e4) / 1e4;
-}
-async function buildCurrencySnapshot(rawRate, providerCurrency) {
-  if (!providerCurrency || typeof providerCurrency !== "string") {
-    throw new Error(`CURRENCY_UNSUPPORTED: providerCurrency is required (rate=${rawRate})`);
-  }
-  const currency = providerCurrency.toUpperCase().trim();
-  let usdRate = 95;
-  try {
-    const fetched = await SettingsProvider.getExchangeRateUSD();
-    if (fetched && fetched > 0) usdRate = fetched;
-  } catch {
-    usdRate = 95;
-  }
-  const costPer1kRub = getCostRub(rawRate, currency, usdRate);
-  if (!isFinite(costPer1kRub) || costPer1kRub <= 0) {
-    throw new Error(`CURRENCY_CONVERSION_INVALID: ${rawRate} ${currency} \u2192 ${costPer1kRub} RUB`);
-  }
-  return {
-    rawRate,
-    currency,
-    costPer1kRub,
-    usdRateAtCapture: usdRate,
-    capturedAt: /* @__PURE__ */ new Date()
-  };
-}
-async function detectCurrencyChange(providerId, newCurrency) {
-  const provider = await db.provider.findUnique({
-    where: { id: providerId },
-    select: { balanceCurrency: true }
-  });
-  const oldCurrency = provider?.balanceCurrency || null;
-  const normalizedNew = (newCurrency || "USD").toUpperCase().trim();
-  if (oldCurrency && oldCurrency.toUpperCase().trim() !== normalizedNew) {
-    const serviceCount = await db.service.count({
-      where: { providerId, isActive: true }
-    });
-    return { changed: true, oldCurrency, serviceCount };
-  }
-  return { changed: false, oldCurrency, serviceCount: 0 };
-}
-async function resnapshotOnCurrencyChange(providerId, oldCurrency, newCurrency) {
-  const services = await db.service.findMany({
-    where: { providerId, isActive: true },
-    select: { id: true, rate: true, providerCurrency: true, markup: true }
-  });
-  let updated = 0;
-  for (const svc of services) {
-    try {
-      const snapshot = await buildCurrencySnapshot(svc.rate, newCurrency);
-      await db.service.update({
-        where: { id: svc.id },
-        data: {
-          providerCurrency: newCurrency,
-          costPer1kRub: snapshot.costPer1kRub,
-          currencyCapturedAt: snapshot.capturedAt,
-          usdRateAtCapture: snapshot.usdRateAtCapture,
-          // Recompute retail from new base cost
-          pricePer1000Cents: Math.round(snapshot.costPer1kRub * svc.markup * 100)
-        }
-      });
-      updated++;
-    } catch (err) {
-      console.error(`[CurrencyResnapshot] Failed for service ${svc.id}:`, err);
-    }
-  }
-  await db.routingAuditLog.create({
-    data: {
-      serviceId: "SYSTEM",
-      action: "PROVIDER_CURRENCY_CHANGED",
-      reason: `Provider currency changed ${oldCurrency} \u2192 ${newCurrency}, resnapshotted ${updated} services`
-    }
-  });
-  return updated;
-}
-async function reconcileCurrencyBeforeSync(providerId, newBalanceCurrency) {
-  const change = await detectCurrencyChange(providerId, newBalanceCurrency);
-  if (!change.changed || !change.oldCurrency) {
-    return { resnapshotted: false, serviceCount: 0 };
-  }
-  const updated = await resnapshotOnCurrencyChange(providerId, change.oldCurrency, newBalanceCurrency);
-  return { resnapshotted: true, serviceCount: updated };
-}
-var SUPPORTED_CURRENCIES;
-var init_currency_invariant = __esm({
-  "src/lib/pricing/currency-invariant.ts"() {
-    "use strict";
-    init_db();
-    init_settings();
-    SUPPORTED_CURRENCIES = ["USD", "RUB", "EUR", "UAH", "KZT"];
   }
 });
 
@@ -160931,7 +160988,11 @@ init_settings();
 init_financial_constants();
 init_tenant_scope();
 init_currency_invariant();
-var CatalogManagementService = class {
+var CatalogManagementService = class _CatalogManagementService {
+  static catalogStatsCache = /* @__PURE__ */ new Map();
+  static markupAnalyticsCache = /* @__PURE__ */ new Map();
+  static catalogHealthCache = /* @__PURE__ */ new Map();
+  static categoriesListCache = /* @__PURE__ */ new Map();
   /**
    * Paginated service list with category, markup, and order count.
    */
@@ -161128,6 +161189,12 @@ var CatalogManagementService = class {
    * Catalog stats for the header and dashboard.
    */
   static async getCatalogStats(tenantId, _startDate, _endDate) {
+    const cacheKey = tenantId || "all";
+    const cached = _CatalogManagementService.catalogStatsCache.get(cacheKey);
+    const now = Date.now();
+    if (cached && cached.expiresAt > now) {
+      return cached.data;
+    }
     const where = {};
     if (tenantId && tenantId !== "all") where.tenantId = { in: [tenantId, "all"] };
     const categoryWhere = {};
@@ -161137,7 +161204,9 @@ var CatalogManagementService = class {
       db.service.count({ where: { ...where, isActive: true } }),
       db.category.count({ where: categoryWhere })
     ]);
-    return { totalServices, activeServices, categories };
+    const result = { totalServices, activeServices, categories };
+    _CatalogManagementService.catalogStatsCache.set(cacheKey, { data: result, expiresAt: now + 3e4 });
+    return result;
   }
   /**
    * Bulk updates markup for multiple services matching filter.
@@ -161188,6 +161257,12 @@ var CatalogManagementService = class {
    * Markup Analytics: returns distribution of markups across all services.
    */
   static async getMarkupAnalytics(tenantId) {
+    const cacheKey = tenantId || "all";
+    const cached = _CatalogManagementService.markupAnalyticsCache.get(cacheKey);
+    const now = Date.now();
+    if (cached && cached.expiresAt > now) {
+      return cached.data;
+    }
     const where = {
       isActive: true,
       ...tenantId && tenantId !== "all" ? { tenantId: { in: [tenantId, "all"] } } : {}
@@ -161197,12 +161272,14 @@ var CatalogManagementService = class {
       select: { markup: true }
     });
     if (services.length === 0) {
-      return {
+      const emptyResult = {
         averageMarkup: 0,
         distribution: [],
         autoMarkupCount: 0,
         manualMarkupCount: 0
       };
+      _CatalogManagementService.markupAnalyticsCache.set(cacheKey, { data: emptyResult, expiresAt: now + 6e4 });
+      return emptyResult;
     }
     const brackets = [
       { min: 1, max: 1.5, label: "1.0x - 1.5x (\u041D\u0438\u0437\u043A\u0430\u044F)", count: 0 },
@@ -161222,7 +161299,7 @@ var CatalogManagementService = class {
       }
     }
     const total = services.length;
-    return {
+    const result = {
       averageMarkup: Math.round(totalMarkup / total * 100) / 100,
       distribution: brackets.map((b) => ({
         label: b.label,
@@ -161232,12 +161309,19 @@ var CatalogManagementService = class {
       autoMarkupCount: 0,
       manualMarkupCount: total
     };
+    _CatalogManagementService.markupAnalyticsCache.set(cacheKey, { data: result, expiresAt: now + 6e4 });
+    return result;
   }
   /**
    * Category list for catalog filter dropdowns.
    */
   static async listCategories(tenantId) {
-    const tenantFilter = tenantId && tenantId !== "all" ? { in: [tenantId, "all"] } : void 0;
+    const cacheKey = tenantId || "all";
+    const cached = _CatalogManagementService.categoriesListCache.get(cacheKey);
+    const now = Date.now();
+    if (cached && cached.expiresAt > now) {
+      return cached.data;
+    }
     const rows = await db.category.findMany({
       where: tenantId && tenantId !== "all" ? { tenantId: tenantVisibilityFilter(tenantId) } : void 0,
       select: {
@@ -161249,18 +161333,11 @@ var CatalogManagementService = class {
             name: true,
             slug: true
           }
-        },
-        _count: {
-          select: {
-            services: {
-              where: tenantFilter ? { tenantId: tenantFilter } : void 0
-            }
-          }
         }
       },
       orderBy: { name: "asc" }
     });
-    return rows.map((c) => ({
+    const result = rows.map((c) => ({
       id: c.id,
       name: c.name,
       network: c.network ? {
@@ -161268,8 +161345,10 @@ var CatalogManagementService = class {
         name: c.network.name,
         slug: c.network.slug
       } : null,
-      serviceCount: c._count.services
+      serviceCount: 0
     }));
+    _CatalogManagementService.categoriesListCache.set(cacheKey, { data: result, expiresAt: now + 6e4 });
+    return result;
   }
   /**
    * Total count of quarantined services.
@@ -161287,7 +161366,13 @@ var CatalogManagementService = class {
    * Quick counts of catalog health for the notification badge.
    */
   static async getCatalogHealthCounts(tenantId) {
-    const now = /* @__PURE__ */ new Date();
+    const cacheKey = tenantId || "all";
+    const cached = _CatalogManagementService.catalogHealthCache.get(cacheKey);
+    const nowMs = Date.now();
+    if (cached && cached.expiresAt > nowMs) {
+      return cached.data;
+    }
+    const nowDate = /* @__PURE__ */ new Date();
     const tenantWhere = tenantId && tenantId !== "all" ? { in: [tenantId, "all"] } : void 0;
     const [quarantine, zombies, cooldown] = await Promise.all([
       db.service.count({
@@ -161305,13 +161390,15 @@ var CatalogManagementService = class {
       db.service.count({
         where: {
           isActive: true,
-          cooldownUntil: { gt: now },
+          cooldownUntil: { gt: nowDate },
           cooldownReason: { notIn: ["ZOMBIE_AUTO_DISABLED", "ZOMBIE_ARCHIVED"] },
           ...tenantWhere ? { tenantId: tenantWhere } : {}
         }
       })
     ]);
-    return { quarantine, zombies, cooldown };
+    const result = { quarantine, zombies, cooldown };
+    _CatalogManagementService.catalogHealthCache.set(cacheKey, { data: result, expiresAt: nowMs + 3e4 });
+    return result;
   }
 };
 

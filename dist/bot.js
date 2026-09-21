@@ -139310,15 +139310,17 @@ var init_universal_provider = __esm({
           if (balanceVal === void 0) {
             throw new Error(`Schema Drift Error: \u041E\u0436\u0438\u0434\u0430\u043B\u0441\u044F \u043A\u043B\u044E\u0447 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 '${bPath}', \u043D\u043E \u043E\u043D \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D \u0432 \u043E\u0442\u0432\u0435\u0442\u0435.`);
           }
+          const parsedMappedCurrency = currencyVal !== void 0 && currencyVal !== null && String(currencyVal).trim() !== "" ? String(currencyVal).trim() : "";
           return {
             balance: String(balanceVal || "0"),
-            currency: String(currencyVal || "USD")
+            currency: parsedMappedCurrency
           };
         }
         if (res.error) throw new Error(String(res.error));
+        const parsedCurrency = res.currency !== void 0 && res.currency !== null && String(res.currency).trim() !== "" ? String(res.currency).trim() : "";
         return {
           balance: String(res.balance || "0"),
-          currency: String(res.currency || "USD")
+          currency: parsedCurrency
         };
       }
       async getServices() {

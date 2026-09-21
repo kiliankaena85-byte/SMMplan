@@ -115,4 +115,52 @@ describe('Keyset & Safe Pagination Unit Tests', () => {
     expect(result.hasMore).toBe(false);
     expect(result.nextCursor).toBe('item-12');
   });
+
+  it('should skip count query in offset mode when skipCount is true and set totalCount to -1', async () => {
+    const mockFindMany = vi.fn().mockResolvedValue([
+      { id: 'item-1' },
+      { id: 'item-2' },
+    ]);
+    const mockCount = vi.fn();
+
+    const model = {
+      findMany: mockFindMany as any,
+      count: mockCount as any,
+    };
+
+    const result = await paginatedQuery(model, {
+      page: 1,
+      pageSize: 2,
+      skipCount: true,
+    });
+
+    expect(mockFindMany).toHaveBeenCalled();
+    expect(mockCount).not.toHaveBeenCalled();
+    expect(result.totalCount).toBe(-1);
+    expect(result.totalPages).toBe(-1);
+    expect(result.hasMore).toBe(true); // items.length === safePageSize (2 === 2)
+  });
+
+  it('should skip count query in cursor mode when skipCount is true', async () => {
+    const mockFindMany = vi.fn().mockResolvedValue([
+      { id: 'item-1' },
+      { id: 'item-2' },
+    ]);
+    const mockCount = vi.fn();
+
+    const model = {
+      findMany: mockFindMany as any,
+      count: mockCount as any,
+    };
+
+    const result = await paginatedQuery(model, {
+      cursor: 'prev-id',
+      pageSize: 5,
+      skipCount: true,
+    });
+
+    expect(mockFindMany).toHaveBeenCalled();
+    expect(mockCount).not.toHaveBeenCalled();
+    expect(result.totalCount).toBe(-1);
+  });
 });

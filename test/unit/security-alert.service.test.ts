@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 let messagesSent: Array<{ msg: string; severity: string }> = [];
 let redisStore: Record<string, string> = {};
 let publishedEvents: Array<{ channel: string; payload: string }> = [];
-let dbEvents: Array<record<string, unknown>> = [];
+let dbEvents: Array<Record<string, unknown>> = [];
 
 vi.mock('@/lib/notifications', () => ({
   sendAdminAlert: vi.fn((msg, severity) => {

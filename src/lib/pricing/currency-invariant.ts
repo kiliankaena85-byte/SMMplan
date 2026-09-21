@@ -19,6 +19,20 @@ export type SupportedCurrency = 'USD' | 'RUB' | 'EUR' | 'UAH' | 'KZT';
 
 export const SUPPORTED_CURRENCIES: readonly SupportedCurrency[] = ['USD', 'RUB', 'EUR', 'UAH', 'KZT'] as const;
 
+export function normalizeProviderCurrency(currency: unknown): SupportedCurrency | null {
+  if (!currency || typeof currency !== 'string') return null;
+  const upper = currency.toUpperCase().trim();
+  if (upper === 'RUR') return 'RUB';
+  if ((SUPPORTED_CURRENCIES as readonly string[]).includes(upper)) {
+    return upper as SupportedCurrency;
+  }
+  return null;
+}
+
+export function isValidProviderCurrency(currency: unknown): currency is SupportedCurrency {
+  return normalizeProviderCurrency(currency) !== null;
+}
+
 export interface CustomCrossRates {
   eurToUsd?: number;
   uahToUsd?: number;
@@ -129,26 +143,34 @@ export async function buildCurrencySnapshot(
 
 /**
  * PROVIDER CURRENCY CHANGE DETECTOR (P0-2)
- * If provider's balanceCurrency changes, all existing Service rows
- * become invalid and need a fresh snapshot before catalog synchronization.
+ * If provider's balanceCurrency changes or existing services have mismatched currencies,
+ * all existing Service rows need a fresh snapshot before catalog synchronization.
  */
 export async function detectCurrencyChange(
   providerId: string,
   newCurrency: string
 ): Promise<{ changed: boolean; oldCurrency: string | null; serviceCount: number }> {
+  const normalizedNew = normalizeProviderCurrency(newCurrency) || (newCurrency || 'USD').toUpperCase().trim();
   const provider = await db.provider.findUnique({
     where: { id: providerId },
     select: { balanceCurrency: true }
   });
 
-  const oldCurrency = provider?.balanceCurrency || null;
-  const normalizedNew = (newCurrency || 'USD').toUpperCase().trim();
+  const oldCurrency = provider?.balanceCurrency ? provider.balanceCurrency.toUpperCase().trim() : null;
+  const currencyDiffers = !oldCurrency || oldCurrency !== normalizedNew;
 
-  if (oldCurrency && oldCurrency.toUpperCase().trim() !== normalizedNew) {
+  const mismatchedServicesCount = await db.service.count({
+    where: {
+      providerId,
+      providerCurrency: { not: normalizedNew }
+    }
+  });
+
+  if (currencyDiffers || mismatchedServicesCount > 0) {
     const serviceCount = await db.service.count({
-      where: { providerId, isActive: true }
+      where: { providerId }
     });
-    return { changed: true, oldCurrency, serviceCount };
+    return { changed: true, oldCurrency: oldCurrency || 'USD', serviceCount };
   }
 
   return { changed: false, oldCurrency, serviceCount: 0 };
@@ -156,32 +178,34 @@ export async function detectCurrencyChange(
 
 /**
  * BULK RE-SNAPSHOT when provider currency changes
- * Called before shadow catalog refresh so existing Service rows get fresh costPer1kRub
- * BEFORE new services land.
+ * Called before shadow catalog refresh or on balance auto-sync so existing Service rows
+ * get fresh costPer1kRub and pricePer1000Cents BEFORE new services land.
  */
 export async function resnapshotOnCurrencyChange(
   providerId: string,
   oldCurrency: string,
   newCurrency: string
 ): Promise<number> {
+  const normalizedNew = normalizeProviderCurrency(newCurrency) || (newCurrency || 'USD').toUpperCase().trim();
   const services = await db.service.findMany({
-    where: { providerId, isActive: true },
+    where: { providerId },
     select: { id: true, rate: true, providerCurrency: true, markup: true }
   });
 
   let updated = 0;
   for (const svc of services) {
     try {
-      const snapshot = await buildCurrencySnapshot(svc.rate, newCurrency);
+      const snapshot = await buildCurrencySnapshot(svc.rate, normalizedNew);
+      const markup = svc.markup && svc.markup > 0 ? svc.markup : 2.0;
       await db.service.update({
         where: { id: svc.id },
         data: {
-          providerCurrency: newCurrency,
+          providerCurrency: normalizedNew,
           costPer1kRub: snapshot.costPer1kRub,
           currencyCapturedAt: snapshot.capturedAt,
           usdRateAtCapture: snapshot.usdRateAtCapture,
           // Recompute retail from new base cost
-          pricePer1000Cents: Math.round(snapshot.costPer1kRub * svc.markup * 100)
+          pricePer1000Cents: Math.round(snapshot.costPer1kRub * markup * 100)
         }
       });
       updated++;
@@ -190,29 +214,44 @@ export async function resnapshotOnCurrencyChange(
     }
   }
 
-  await db.routingAuditLog.create({
-    data: {
-      serviceId: 'SYSTEM',
-      action: 'PROVIDER_CURRENCY_CHANGED',
-      reason: `Provider currency changed ${oldCurrency} → ${newCurrency}, resnapshotted ${updated} services`
-    }
-  });
+  // Ensure Provider.balanceCurrency in PostgreSQL matches normalizedNew
+  try {
+    await db.provider.update({
+      where: { id: providerId },
+      data: { balanceCurrency: normalizedNew }
+    });
+  } catch (provErr) {
+    console.warn(`[CurrencyResnapshot] Failed to update balanceCurrency for provider ${providerId}:`, provErr);
+  }
+
+  try {
+    await db.routingAuditLog.create({
+      data: {
+        serviceId: 'SYSTEM',
+        action: 'PROVIDER_CURRENCY_CHANGED',
+        reason: `Provider currency changed ${oldCurrency} → ${normalizedNew}, resnapshotted ${updated} services`
+      }
+    });
+  } catch (auditErr) {
+    console.warn(`[CurrencyResnapshot] Failed to create routingAuditLog:`, auditErr);
+  }
 
   return updated;
 }
 
 /**
- * Reconciles provider currency changes before sync
+ * Reconciles provider currency changes and resnapshots services if mismatched
  */
 export async function reconcileCurrencyBeforeSync(
   providerId: string,
   newBalanceCurrency: string
 ): Promise<{ resnapshotted: boolean; serviceCount: number }> {
-  const change = await detectCurrencyChange(providerId, newBalanceCurrency);
-  if (!change.changed || !change.oldCurrency) {
+  const normalizedNew = normalizeProviderCurrency(newBalanceCurrency) || (newBalanceCurrency || 'USD').toUpperCase().trim();
+  const change = await detectCurrencyChange(providerId, normalizedNew);
+  if (!change.changed) {
     return { resnapshotted: false, serviceCount: 0 };
   }
 
-  const updated = await resnapshotOnCurrencyChange(providerId, change.oldCurrency, newBalanceCurrency);
+  const updated = await resnapshotOnCurrencyChange(providerId, change.oldCurrency || 'USD', normalizedNew);
   return { resnapshotted: true, serviceCount: updated };
 }
