@@ -146,10 +146,6 @@ export const PROVIDERS_TABS = [
 ];
 
 export const SYSTEM_TABS = [
-  { label: 'Глобальные настройки', href: '/admin/settings' },
-  { label: 'Telegram Бот', href: '/admin/settings?tab=telegram' },
-  { label: 'Прокси провайдеров', href: '/admin/settings?tab=proxy' },
-  { label: 'Роли и права', href: '/admin/settings/roles' },
   { label: 'Бренды & Домены', href: '/admin/tenants' },
   { label: 'CMS Страницы', href: '/admin/pages' },
   { label: 'Статьи блога', href: '/admin/knowledge' },
@@ -279,3 +275,4 @@ export const ONBOARDING_CONFIGS = {
     docLink: '/admin/manual#5-административная-панель'
   }
 };
+
