@@ -33897,8 +33897,12 @@ var init_settings = __esm({
        */
       static async resolveTenantRecordId(tenantSlug) {
         const slug = normalizeTenantId(tenantSlug) || "smmplan";
-        const tenant = await db.tenant.findUnique({ where: { slug } }) || await db.tenant.findFirst({ where: { slug: "smmplan" } }) || await db.tenant.findFirst();
-        if (tenant) return tenant.id;
+        try {
+          const tenant = await db.tenant.findUnique({ where: { slug } }) || await db.tenant.findFirst({ where: { slug: "smmplan" } }) || await db.tenant.findFirst();
+          if (tenant) return tenant.id;
+        } catch (dbErr) {
+          console.warn(`[SettingsProvider] Database unreachable in resolveTenantRecordId for ${slug}, using fallback slug.`);
+        }
         return slug;
       }
       /**
@@ -97483,12 +97487,14 @@ function resolveCanonicalHost(tenantId, incomingHost) {
     if (hostWithoutPort === "flux.smmplan.pro" || rawHost === "flux.smmplan.pro") return "flux.smmplan.pro";
     if (hostWithoutPort === "smmflux.ru" || rawHost === "smmflux.ru") return "smmflux.ru";
     if (rawHost.includes("localhost") || rawHost.includes("127.0.0.1") || rawHost.endsWith(".ts.net")) return rawHost;
-    return process.env.NODE_ENV === "production" && !process.env.APP_URL?.includes("test.") ? "smmflux.ru" : "flux.smmplan.pro";
+    const isStaging = process.env.APP_ENV === "staging" || Boolean(process.env.APP_URL) && process.env.APP_URL.includes("flux.smmplan.pro");
+    return isStaging ? "flux.smmplan.pro" : "smmflux.ru";
   } else {
     if (hostWithoutPort === "test.smmplan.pro" || rawHost === "test.smmplan.pro") return "test.smmplan.pro";
     if (hostWithoutPort === "smmplan.pro" || rawHost === "smmplan.pro") return "smmplan.pro";
     if (rawHost.includes("localhost") || rawHost.includes("127.0.0.1") || rawHost.endsWith(".ts.net")) return rawHost;
-    return process.env.NODE_ENV === "production" && !process.env.APP_URL?.includes("test.") ? "smmplan.pro" : "test.smmplan.pro";
+    const isStaging = process.env.APP_ENV === "staging" || Boolean(process.env.APP_URL) && process.env.APP_URL.includes("test.");
+    return isStaging ? "test.smmplan.pro" : "smmplan.pro";
   }
 }
 function getTenantHost(tenantId, incomingHost) {
@@ -97591,6 +97597,7 @@ async function verifyDirectSmtpConnection(host = "smtp.yandex.ru", port = 465, t
             host,
             port,
             servername: host,
+            localAddress: process.env.SMTP_LOCAL_ADDRESS || void 0,
             rejectUnauthorized: true,
             timeout: timeoutMs
           },
@@ -97659,6 +97666,7 @@ async function getTransporter(tenantId) {
       user: s.smtpUser,
       pass: s.smtpPassword
     },
+    localAddress: process.env.SMTP_LOCAL_ADDRESS || void 0,
     family: 4
     // Force IPv4 to prevent ENETUNREACH on systems without IPv6 routing
   });
@@ -97966,6 +97974,8 @@ var init_emergency_email = __esm({
           port,
           secure: port === 465,
           auth: { user, pass },
+          localAddress: process.env.SMTP_LOCAL_ADDRESS || void 0,
+          family: 4,
           connectionTimeout: 5e3,
           socketTimeout: 5e3
         });
@@ -131545,6 +131555,11 @@ __export2(payment_gateway_service_exports, {
 function invalidateVatThresholdCache(tenantId) {
   if (tenantId) {
     vatThresholdCache.delete(tenantId);
+    for (const key of vatThresholdCache.keys()) {
+      if (key === tenantId || key.startsWith(`${tenantId}:`)) {
+        vatThresholdCache.delete(key);
+      }
+    }
   } else {
     vatThresholdCache.clear();
   }

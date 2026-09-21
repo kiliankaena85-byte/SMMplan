@@ -26,7 +26,7 @@ export function FluxStepLink({
       <div className="text-center mb-8 max-w-2xl">
         <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-foreground mb-4">
           Продвижение соцсетей <br className="hidden sm:inline" />
-          <span className="bg-gradient-to-r from-purple-500 via-indigo-500 to-pink-500 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-purple-950 via-fuchsia-900 to-pink-900 dark:from-white dark:via-fuchsia-200 dark:to-pink-200 bg-clip-text text-transparent drop-shadow-sm">
             нового поколения
           </span>
         </h1>

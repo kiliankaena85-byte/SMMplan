@@ -6,6 +6,7 @@ import { motion, type Variants } from "framer-motion";
 import type { FluxNetwork, FluxCategory } from "@/types/flux";
 import { CategoryIcon, cleanCategoryName } from "@/components/ui/CategoryIcon";
 import { matchesSuggestedCategory } from "@/services/analyzer/category-matcher";
+import { SocialIcon } from "@/components/ui/SocialIcon";
 
 export interface FluxStepCategoryProps {
   activeNetwork: FluxNetwork;
@@ -24,6 +25,12 @@ export function FluxStepCategory({
   containerVariants,
   itemVariants,
 }: FluxStepCategoryProps) {
+  const [imgError, setImgError] = React.useState(false);
+
+  React.useEffect(() => {
+    setImgError(false);
+  }, [activeNetwork.icon]);
+
   const availableCategories = activeNetwork.categories || [];
   const filteredCategories = (suggestedCategories.length > 0 || detectedType)
     ? availableCategories.filter(c => matchesSuggestedCategory(c.name, suggestedCategories, undefined, detectedType))
@@ -34,13 +41,20 @@ export function FluxStepCategory({
     <div className="w-full transform-gpu">
       <div className="mb-6 w-full">
         <div className="flex items-center gap-3 mb-6">
-          <img 
-            src={activeNetwork.icon || undefined} 
-            alt={activeNetwork.name} 
-            className="w-8 h-8 object-contain" 
-            loading="lazy"
-            decoding="async"
-          />
+          <div className="w-8 h-8 flex items-center justify-center shrink-0">
+            {activeNetwork.icon && !imgError ? (
+              <img 
+                src={activeNetwork.icon} 
+                alt={activeNetwork.name} 
+                className="w-8 h-8 object-contain" 
+                loading="lazy"
+                decoding="async"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <SocialIcon slug={activeNetwork.slug || activeNetwork.name} size={28} />
+            )}
+          </div>
           <h2 className="text-2xl font-bold text-foreground tracking-tight">Выберите категорию</h2>
         </div>
       </div>

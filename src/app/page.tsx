@@ -180,7 +180,16 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
             </div>
 
             <div className="flex-1 w-full max-w-screen-2xl mx-auto px-4 pt-2 md:pt-6 pb-2 md:pb-4 flex flex-col items-center relative z-10">
-              <FluxOrderClient initialCatalog={catalog} initialEmail={userEmail} userBalanceCents={userBalanceCents} tenantId={tenantId} />
+              <FluxOrderClient 
+                initialCatalog={catalog} 
+                initialEmail={userEmail} 
+                userBalanceCents={userBalanceCents} 
+                tenantId={tenantId}
+                initialNetworkId={initialNetworkId}
+                initialCategoryId={initialCategoryId}
+                initialServiceId={initialServiceId}
+                initialServices={initialServiceId ? (initialServices as any) : undefined}
+              />
             </div>
 
             <div className="relative z-10 w-full my-2 md:my-4">

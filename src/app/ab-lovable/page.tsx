@@ -86,6 +86,7 @@ export default async function LovablePage() {
       <main className="flex-1 w-full max-w-screen-2xl mx-auto px-4 pt-12 md:pt-28 pb-8 md:pb-16 flex flex-col items-center relative z-10">
         <LovableOrderClient 
           initialCatalog={catalog} 
+          tenantId={tenantId}
         />
       </main>
       <div className="relative z-10 w-full mb-8 md:mb-12">

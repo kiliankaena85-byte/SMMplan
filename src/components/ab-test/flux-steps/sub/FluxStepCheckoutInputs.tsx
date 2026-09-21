@@ -5,6 +5,8 @@ import { LinkGuideService } from "@/services/catalog/link-guide.service";
 import { FluxCyberLinkDrawer } from "@/components/orders/flux/FluxCyberLinkDrawer";
 import type { FluxService, FluxNetwork, FluxCategory } from "@/types/flux";
 
+import { resolveServiceTargetType } from "@/utils/target-type-mapper";
+
 interface FluxStepCheckoutInputsProps {
   selectedService: FluxService;
   activeNetwork: FluxNetwork | null;
@@ -48,6 +50,16 @@ export function FluxStepCheckoutInputs({
   emailRef,
   linkRef,
 }: FluxStepCheckoutInputsProps) {
+  const resolvedTarget = resolveServiceTargetType({
+    ...selectedService,
+    category: activeCategory,
+  });
+  const linkTargetLabel = resolvedTarget === 'CHANNEL' || resolvedTarget === 'PROFILE'
+    ? 'канал/профиль'
+    : resolvedTarget === 'POST' || resolvedTarget === 'VIDEO'
+      ? 'пост'
+      : 'объект';
+
   return (
     <>
       {/* 1. Количество */}
@@ -72,10 +84,8 @@ export function FluxStepCheckoutInputs({
         <AnimatePresence mode="popLayout">
           {formState.error && formState.field === "quantity" && (
             <motion.div 
-              key={`err-qty-${shakeKey}`} 
-              initial={{ opacity: 0, height: 0, marginTop: 0 }} 
-              animate={{ opacity: 1, height: "auto", marginTop: 8 }} 
-              exit={{ opacity: 0, height: 0, marginTop: 0 }}
+              key={`err-qty-${shakeKey}`} initial={{ opacity: 0, height: 0, marginTop: 0 }} 
+              animate={{ opacity: 1, height: "auto", marginTop: 8 }} exit={{ opacity: 0, height: 0, marginTop: 0 }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-bold shadow-sm overflow-hidden"
             >
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -89,7 +99,7 @@ export function FluxStepCheckoutInputs({
       <div id="field-link" className="mb-3 space-y-1.5">
         <div className="flex items-center justify-between flex-wrap gap-1 px-1">
           <label className="block text-xs font-bold text-foreground/80 uppercase tracking-wider">
-            Ссылка на {selectedService.targetType === 'CHANNEL' ? 'канал/профиль' : selectedService.targetType === 'POST' ? 'пост' : 'объект'}
+            Ссылка на {linkTargetLabel}
           </label>
           {LinkGuideService.isTelegramViewsService(activeNetwork?.slug || 'telegram', activeCategory?.slug, selectedService.name) && (
             <button
@@ -103,28 +113,17 @@ export function FluxStepCheckoutInputs({
           )}
         </div>
 
-        <FluxCyberLinkDrawer
-          isOpen={isTgGuideOpen}
-          onClose={() => setIsTgGuideOpen(false)}
-          onApplyLink={l => setLink(l)}
-        />
+        <FluxCyberLinkDrawer isOpen={isTgGuideOpen} onClose={() => setIsTgGuideOpen(false)} onApplyLink={l => setLink(l)} />
         <input 
-          ref={linkRef}
-          name="link"
-          type="text" 
-          inputMode="url"
-          placeholder="https://..."
-          value={link}
+          ref={linkRef} name="link" type="text" inputMode="url" placeholder="https://..." value={link}
           onChange={(e) => setLink(e.target.value)}
           className={`w-full bg-background backdrop-blur-md text-foreground placeholder:text-muted-foreground px-3 py-2.5 sm:px-4 sm:py-3 rounded-[1.25rem] sm:rounded-[1.5rem] border border-border/80 ${formState.field === 'link' ? '!border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)] animate-shake' : 'focus:ring-4 focus:ring-primary/10 focus:border-primary/40'} transition-all duration-300 text-base sm:text-base font-medium outline-none shadow-sm`}
         />
         <AnimatePresence mode="popLayout">
           {formState.error && formState.field === "link" && (
             <motion.div 
-              key={`err-link-${shakeKey}`} 
-              initial={{ opacity: 0, height: 0, marginTop: 0 }} 
-              animate={{ opacity: 1, height: "auto", marginTop: 8 }} 
-              exit={{ opacity: 0, height: 0, marginTop: 0 }}
+              key={`err-link-${shakeKey}`} initial={{ opacity: 0, height: 0, marginTop: 0 }} 
+              animate={{ opacity: 1, height: "auto", marginTop: 8 }} exit={{ opacity: 0, height: 0, marginTop: 0 }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-bold shadow-sm overflow-hidden"
             >
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -138,21 +137,15 @@ export function FluxStepCheckoutInputs({
       <div id="field-email" className="mb-3">
         <label className="block text-xs font-bold text-foreground/80 uppercase tracking-wider mb-1 ml-1">Email (для чека)</label>
         <input 
-          ref={emailRef}
-          name="email"
-          type="email" 
-          placeholder="example@mail.com"
-          value={email}
+          ref={emailRef} name="email" type="email" placeholder="example@mail.com" value={email}
           onChange={(e) => setEmail(e.target.value)}
           className={`w-full bg-background backdrop-blur-md text-foreground placeholder:text-muted-foreground px-3 py-2.5 sm:px-4 sm:py-3 rounded-[1.25rem] sm:rounded-[1.5rem] border border-border/80 ${formState.field === 'email' ? '!border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)] animate-shake' : 'focus:ring-4 focus:ring-primary/10 focus:border-primary/40'} transition-all duration-300 text-base sm:text-base font-medium outline-none shadow-sm`}
         />
         <AnimatePresence mode="popLayout">
           {formState.error && formState.field === "email" && (
             <motion.div 
-              key={`err-email-${shakeKey}`} 
-              initial={{ opacity: 0, height: 0, marginTop: 0 }} 
-              animate={{ opacity: 1, height: "auto", marginTop: 8 }} 
-              exit={{ opacity: 0, height: 0, marginTop: 0 }}
+              key={`err-email-${shakeKey}`} initial={{ opacity: 0, height: 0, marginTop: 0 }} 
+              animate={{ opacity: 1, height: "auto", marginTop: 8 }} exit={{ opacity: 0, height: 0, marginTop: 0 }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-bold shadow-sm overflow-hidden"
             >
               <AlertCircle className="w-4 h-4 flex-shrink-0" />

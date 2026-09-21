@@ -9,11 +9,14 @@ import { FluxStepCheckoutHeader } from "./sub/FluxStepCheckoutHeader";
 import { FluxStepCheckoutPaymentMethods } from "./sub/FluxStepCheckoutPaymentMethods";
 import { FluxStepCheckoutDripAndCustom } from "./sub/FluxStepCheckoutDripAndCustom";
 import { FluxStepCheckoutInputs } from "./sub/FluxStepCheckoutInputs";
+import { FluxStepCheckoutPromoCard } from "./sub/FluxStepCheckoutPromoCard";
 
 export type { FluxStepCheckoutProps };
 
 export function FluxStepCheckout({
   selectedService,
+  services,
+  onSelectService,
   activeNetwork,
   activeCategory,
   quantity,
@@ -34,6 +37,17 @@ export function FluxStepCheckout({
   setDripInterval,
   customData,
   setCustomData,
+  showPromo,
+  setShowPromo,
+  promoCode,
+  setPromoCode,
+  appliedPromo,
+  isApplyingPromo,
+  discountPercent,
+  originalServerPriceRub,
+  promoMessage,
+  handleApplyPromo,
+  handleRemovePromo,
   selectedGateway,
   setSelectedGateway,
   availableGateways,
@@ -52,7 +66,13 @@ export function FluxStepCheckout({
 }: FluxStepCheckoutProps) {
   return (
     <div className="bg-card border border-border/80 shadow-xl rounded-[2rem] sm:rounded-[2.5rem] p-4 sm:p-5 md:p-6 w-full mx-auto overflow-hidden relative transform-gpu">
-      <FluxStepCheckoutHeader selectedService={selectedService} />
+      <FluxStepCheckoutHeader 
+        selectedService={selectedService}
+        services={services}
+        onSelectService={onSelectService}
+        activeNetwork={activeNetwork}
+        activeCategory={activeCategory}
+      />
 
       <form action={formAction} noValidate>
         <FluxStepCheckoutInputs
@@ -95,6 +115,18 @@ export function FluxStepCheckout({
           shakeKey={shakeKey}
         />
 
+        <FluxStepCheckoutPromoCard
+          showPromo={showPromo}
+          setShowPromo={setShowPromo}
+          promoCode={promoCode}
+          setPromoCode={setPromoCode}
+          appliedPromo={appliedPromo}
+          isApplyingPromo={isApplyingPromo}
+          promoMessage={promoMessage}
+          handleApplyPromo={handleApplyPromo}
+          handleRemovePromo={handleRemovePromo}
+        />
+
         <FluxStepCheckoutPaymentMethods
           selectedGateway={selectedGateway}
           setSelectedGateway={setSelectedGateway}
@@ -126,11 +158,23 @@ export function FluxStepCheckout({
 
           <div className="w-full flex items-center justify-between mb-4 px-2">
             <span className="text-muted-foreground font-semibold">К оплате:</span>
-            <div className="flex items-baseline gap-1.5 tabular-nums font-mono">
-              <span className="text-2xl font-black text-foreground tracking-tight">
-                {parseFloat(price) < 10 ? "10.00" : price}
-              </span>
-              <span className="text-lg font-bold text-muted-foreground font-sans">₽</span>
+            <div className="flex items-center gap-2">
+              {appliedPromo && originalServerPriceRub && (
+                <div className="flex items-center gap-1.5">
+                  <span className="line-through text-muted-foreground text-xs sm:text-sm font-mono tabular-nums">
+                    {originalServerPriceRub.toFixed(2)} ₽
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded-md text-[10px] sm:text-[11px] font-extrabold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                    -{discountPercent}%
+                  </span>
+                </div>
+              )}
+              <div className="flex items-baseline gap-1.5 tabular-nums font-mono">
+                <span className="text-2xl font-black text-foreground tracking-tight">
+                  {parseFloat(price) < 10 ? "10.00" : price}
+                </span>
+                <span className="text-lg font-bold text-muted-foreground font-sans">₽</span>
+              </div>
             </div>
           </div>
 

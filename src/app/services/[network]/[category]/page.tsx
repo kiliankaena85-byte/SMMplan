@@ -265,7 +265,12 @@ export default async function CategoryServicesPage({
             <div className="flex-1 w-full max-w-screen-2xl mx-auto px-4 pt-4 md:pt-12 pb-8 md:pb-16 flex flex-col items-center relative z-10">
               <FluxOrderClient 
                 initialCatalog={catalog} 
-                initialEmail={userEmail} 
+                initialEmail={userEmail}
+                initialNetworkId={currentNetwork.id}
+                initialCategoryId={currentCategory.id}
+                initialServiceId={initialServiceId}
+                initialServices={services as any}
+                tenantId={tenantId}
               />
             </div>
 

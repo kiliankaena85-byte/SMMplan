@@ -3,6 +3,8 @@ import type { FluxService, FluxNetwork, FluxCategory } from "@/types/flux";
 
 export interface FluxStepCheckoutProps {
   selectedService: FluxService;
+  services?: FluxService[];
+  onSelectService?: (srv: FluxService) => void;
   activeNetwork: FluxNetwork | null;
   activeCategory: FluxCategory | null;
   quantity: number | string;
@@ -23,6 +25,17 @@ export interface FluxStepCheckoutProps {
   setDripInterval: (val: number) => void;
   customData: string;
   setCustomData: (val: string) => void;
+  showPromo: boolean;
+  setShowPromo: (val: boolean) => void;
+  promoCode: string;
+  setPromoCode: (val: string) => void;
+  appliedPromo: string;
+  isApplyingPromo: boolean;
+  discountPercent: number;
+  originalServerPriceRub: number | null;
+  promoMessage: { type: 'success' | 'error'; text: string } | null;
+  handleApplyPromo: () => void;
+  handleRemovePromo: () => void;
   selectedGateway: string;
   setSelectedGateway: (val: string) => void;
   availableGateways: { yookassa: boolean; robokassa: boolean; cryptobot: boolean } | null;

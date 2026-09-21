@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -26,7 +27,7 @@ const PROVIDERS_REGISTRY: ProviderSeedDef[] = [
     name: 'Vexboost',
     apiUrl: 'https://vexboost.ru/api/v2',
     envKeyName: 'VEXBOOST_API_KEY',
-    defaultKey: process.env.VEXBOOST_API_KEY || 'Pp1kBnSehTsGaC5UmER0Kp6PcqIqG7TljnqNSX650Fpis4u5TwiSYXrDjEAh',
+    defaultKey: process.env.VEXBOOST_API_KEY || process.env.PROVIDER_KEY_VEXBOOST || 'NrgY6iwm34j6JwDVwdSqGpCLQ7DzPpdWWP3UQzfRTNhuW42UkvoOZ6GsDCfD',
     isActive: true
   },
   {
@@ -34,40 +35,40 @@ const PROVIDERS_REGISTRY: ProviderSeedDef[] = [
     name: 'SMM Panel US',
     apiUrl: 'https://smmpanelus.com/api/v2',
     envKeyName: 'PROVIDER_KEY_SMMPANELUS',
-    defaultKey: process.env.PROVIDER_KEY_SMMPANELUS || 'PENDING_API_KEY',
-    isActive: false
+    defaultKey: process.env.PROVIDER_KEY_SMMPANELUS || process.env.SMM_PANELUS_API_KEY || '62c587ccc0b54a28f35d3840b93c72b8',
+    isActive: true
   },
   {
     code: 'stream_promotion',
     name: 'Stream Promotion',
     apiUrl: 'https://stream-promotion.ru/api/v2',
     envKeyName: 'PROVIDER_KEY_STREAM_PROMOTION',
-    defaultKey: process.env.PROVIDER_KEY_STREAM_PROMOTION || 'PENDING_API_KEY',
-    isActive: false
+    defaultKey: process.env.PROVIDER_KEY_STREAM_PROMOTION || process.env.STREAM_PROMOTION_API_KEY || 'pB7LK6auFhmsuntExn9gYvgo5myeDmS4',
+    isActive: true
   },
   {
     code: 'soc_rocket',
     name: 'Soc Rocket',
     apiUrl: 'https://soc-rocket.ru/api/v2',
     envKeyName: 'PROVIDER_KEY_SOC_ROCKET',
-    defaultKey: process.env.PROVIDER_KEY_SOC_ROCKET || 'PENDING_API_KEY',
-    isActive: false
+    defaultKey: process.env.PROVIDER_KEY_SOC_ROCKET || process.env.SOC_ROCKET_API_KEY || 'a4rhzjHA6oirPXVDVYth5ENDgERTgoOi',
+    isActive: true
   },
   {
     code: 'smmprime',
     name: 'SMM Prime',
     apiUrl: 'https://smmprime.com/api/v2',
     envKeyName: 'PROVIDER_KEY_SMMPRIME',
-    defaultKey: process.env.PROVIDER_KEY_SMMPRIME || 'PENDING_API_KEY',
-    isActive: false
+    defaultKey: process.env.PROVIDER_KEY_SMMPRIME || process.env.SMMPRIME_API_KEY || 'fdca04c435054be29eb5b487dbd336b7',
+    isActive: true
   },
   {
     code: 'prosmm-shop',
     name: 'ProSMM Shop',
-    apiUrl: 'https://prosmm-shop.ru/api/v2',
+    apiUrl: 'https://prosmm-shop.com/api/v2',
     envKeyName: 'PROVIDER_KEY_PROSMM_SHOP',
-    defaultKey: process.env.PROVIDER_KEY_PROSMM_SHOP || 'PENDING_API_KEY',
-    isActive: false
+    defaultKey: process.env.PROVIDER_KEY_PROSMM_SHOP || process.env.PROSMM_SHOP_API_KEY || '4ecef90f16dea697ef32404efe293ba1',
+    isActive: true
   },
   {
     code: 'karandash',

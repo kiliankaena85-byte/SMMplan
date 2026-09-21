@@ -154,10 +154,14 @@ export class SettingsProvider {
    */
   static async resolveTenantRecordId(tenantSlug: string): Promise<string> {
     const slug = normalizeTenantId(tenantSlug) || 'smmplan';
-    const tenant = await db.tenant.findUnique({ where: { slug } }) 
-      || await db.tenant.findFirst({ where: { slug: 'smmplan' } })
-      || await db.tenant.findFirst();
-    if (tenant) return tenant.id;
+    try {
+      const tenant = await db.tenant.findUnique({ where: { slug } }) 
+        || await db.tenant.findFirst({ where: { slug: 'smmplan' } })
+        || await db.tenant.findFirst();
+      if (tenant) return tenant.id;
+    } catch (dbErr) {
+      console.warn(`[SettingsProvider] Database unreachable in resolveTenantRecordId for ${slug}, using fallback slug.`);
+    }
     return slug;
   }
 

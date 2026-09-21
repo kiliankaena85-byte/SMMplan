@@ -2,7 +2,7 @@
 
 import React, { Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { FluxNetwork } from "@/types/flux";
+import type { FluxNetwork, FluxService } from "@/types/flux";
 import { toast } from "sonner";
 import { CheckoutAuthModal } from "@/components/landing/order-engine/modals/CheckoutAuthModal";
 import { FluxStepLink } from "./flux-steps/FluxStepLink";
@@ -19,6 +19,10 @@ export interface FluxOrderClientProps {
   initialEmail?: string;
   tenantId?: string;
   userBalanceCents?: number;
+  initialNetworkId?: string;
+  initialCategoryId?: string;
+  initialServiceId?: string;
+  initialServices?: FluxService[];
 }
 
 export function FluxOrderClient(props: FluxOrderClientProps) {
@@ -80,17 +84,55 @@ function FluxOrderClientInner(props: FluxOrderClientProps) {
         {s.step === 'checkout' && s.selectedService && (
           <motion.div key="step-checkout" custom={s.direction} variants={slideVariants} initial="enter" animate="center" exit="exit" className="w-full max-w-2xl transform-gpu">
             <FluxStepCheckout
-              selectedService={s.selectedService} activeNetwork={s.activeNetwork} activeCategory={s.activeCategory}
-              quantity={s.quantity} setQuantity={s.setQuantity} numericQuantity={s.numericQuantity} effectiveQuantity={s.effectiveQuantity}
-              link={s.link} setLink={s.setLink} email={s.email} setEmail={s.setEmail}
-              isRequirementsConfirmed={s.isRequirementsConfirmed} setIsRequirementsConfirmed={s.setIsRequirementsConfirmed}
-              isDripFeedEnabled={s.isDripFeedEnabled} setIsDripFeedEnabled={s.setIsDripFeedEnabled}
-              dripRuns={s.dripRuns} setDripRuns={s.setDripRuns} dripInterval={s.dripInterval} setDripInterval={s.setDripInterval}
-              customData={s.customData} setCustomData={s.setCustomData} selectedGateway={s.selectedGateway} setSelectedGateway={s.setSelectedGateway}
-              availableGateways={s.availableGateways} userBalanceCents={userBalanceCents} price={s.price}
-              isTgGuideOpen={s.isTgGuideOpen} setIsTgGuideOpen={s.setIsTgGuideOpen} formAction={s.formAction} isPending={s.isPending}
-              formState={s.formState} showShakeError={s.showShakeError} shakeKey={s.shakeKey}
-              quantityRef={s.quantityRef} emailRef={s.emailRef} linkRef={s.linkRef}
+              selectedService={s.selectedService}
+              services={s.services}
+              onSelectService={s.selectService}
+              activeNetwork={s.activeNetwork}
+              activeCategory={s.activeCategory}
+              quantity={s.quantity}
+              setQuantity={s.setQuantity}
+              numericQuantity={s.numericQuantity}
+              effectiveQuantity={s.effectiveQuantity}
+              link={s.link}
+              setLink={s.setLink}
+              email={s.email}
+              setEmail={s.setEmail}
+              isRequirementsConfirmed={s.isRequirementsConfirmed}
+              setIsRequirementsConfirmed={s.setIsRequirementsConfirmed}
+              isDripFeedEnabled={s.isDripFeedEnabled}
+              setIsDripFeedEnabled={s.setIsDripFeedEnabled}
+              dripRuns={s.dripRuns}
+              setDripRuns={s.setDripRuns}
+              dripInterval={s.dripInterval}
+              setDripInterval={s.setDripInterval}
+              customData={s.customData}
+              setCustomData={s.setCustomData}
+              showPromo={s.showPromo}
+              setShowPromo={s.setShowPromo}
+              promoCode={s.promoCode}
+              setPromoCode={s.setPromoCode}
+              appliedPromo={s.appliedPromo}
+              isApplyingPromo={s.isApplyingPromo}
+              discountPercent={s.discountPercent}
+              originalServerPriceRub={s.originalServerPriceRub}
+              promoMessage={s.promoMessage}
+              handleApplyPromo={s.handleApplyPromo}
+              handleRemovePromo={s.handleRemovePromo}
+              selectedGateway={s.selectedGateway}
+              setSelectedGateway={s.setSelectedGateway}
+              availableGateways={s.availableGateways}
+              userBalanceCents={userBalanceCents}
+              price={s.price}
+              isTgGuideOpen={s.isTgGuideOpen}
+              setIsTgGuideOpen={s.setIsTgGuideOpen}
+              formAction={s.formAction}
+              isPending={s.isPending}
+              formState={s.formState}
+              showShakeError={s.showShakeError}
+              shakeKey={s.shakeKey}
+              quantityRef={s.quantityRef}
+              emailRef={s.emailRef}
+              linkRef={s.linkRef}
             />
           </motion.div>
         )}

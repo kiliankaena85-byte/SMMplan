@@ -63566,6 +63566,8 @@ var init_emergency_email = __esm({
           port,
           secure: port === 465,
           auth: { user, pass },
+          localAddress: process.env.SMTP_LOCAL_ADDRESS || void 0,
+          family: 4,
           connectionTimeout: 5e3,
           socketTimeout: 5e3
         });
@@ -107407,8 +107409,12 @@ var init_settings = __esm({
        */
       static async resolveTenantRecordId(tenantSlug) {
         const slug = normalizeTenantId(tenantSlug) || "smmplan";
-        const tenant = await db.tenant.findUnique({ where: { slug } }) || await db.tenant.findFirst({ where: { slug: "smmplan" } }) || await db.tenant.findFirst();
-        if (tenant) return tenant.id;
+        try {
+          const tenant = await db.tenant.findUnique({ where: { slug } }) || await db.tenant.findFirst({ where: { slug: "smmplan" } }) || await db.tenant.findFirst();
+          if (tenant) return tenant.id;
+        } catch (dbErr) {
+          console.warn(`[SettingsProvider] Database unreachable in resolveTenantRecordId for ${slug}, using fallback slug.`);
+        }
         return slug;
       }
       /**
@@ -124279,12 +124285,14 @@ function resolveCanonicalHost(tenantId, incomingHost) {
     if (hostWithoutPort === "flux.smmplan.pro" || rawHost === "flux.smmplan.pro") return "flux.smmplan.pro";
     if (hostWithoutPort === "smmflux.ru" || rawHost === "smmflux.ru") return "smmflux.ru";
     if (rawHost.includes("localhost") || rawHost.includes("127.0.0.1") || rawHost.endsWith(".ts.net")) return rawHost;
-    return process.env.NODE_ENV === "production" && !process.env.APP_URL?.includes("test.") ? "smmflux.ru" : "flux.smmplan.pro";
+    const isStaging = process.env.APP_ENV === "staging" || Boolean(process.env.APP_URL) && process.env.APP_URL.includes("flux.smmplan.pro");
+    return isStaging ? "flux.smmplan.pro" : "smmflux.ru";
   } else {
     if (hostWithoutPort === "test.smmplan.pro" || rawHost === "test.smmplan.pro") return "test.smmplan.pro";
     if (hostWithoutPort === "smmplan.pro" || rawHost === "smmplan.pro") return "smmplan.pro";
     if (rawHost.includes("localhost") || rawHost.includes("127.0.0.1") || rawHost.endsWith(".ts.net")) return rawHost;
-    return process.env.NODE_ENV === "production" && !process.env.APP_URL?.includes("test.") ? "smmplan.pro" : "test.smmplan.pro";
+    const isStaging = process.env.APP_ENV === "staging" || Boolean(process.env.APP_URL) && process.env.APP_URL.includes("test.");
+    return isStaging ? "test.smmplan.pro" : "smmplan.pro";
   }
 }
 function getTenantHost(tenantId, incomingHost) {
@@ -124387,6 +124395,7 @@ async function verifyDirectSmtpConnection(host = "smtp.yandex.ru", port = 465, t
             host,
             port,
             servername: host,
+            localAddress: process.env.SMTP_LOCAL_ADDRESS || void 0,
             rejectUnauthorized: true,
             timeout: timeoutMs
           },
@@ -124455,6 +124464,7 @@ async function getTransporter(tenantId) {
       user: s.smtpUser,
       pass: s.smtpPassword
     },
+    localAddress: process.env.SMTP_LOCAL_ADDRESS || void 0,
     family: 4
     // Force IPv4 to prevent ENETUNREACH on systems without IPv6 routing
   });
@@ -139226,6 +139236,11 @@ __export2(payment_gateway_service_exports, {
 function invalidateVatThresholdCache(tenantId) {
   if (tenantId) {
     vatThresholdCache.delete(tenantId);
+    for (const key of vatThresholdCache.keys()) {
+      if (key === tenantId || key.startsWith(`${tenantId}:`)) {
+        vatThresholdCache.delete(key);
+      }
+    }
   } else {
     vatThresholdCache.clear();
   }
@@ -161645,13 +161660,19 @@ var CatalogSyncService = class {
     const MIN_PREVIOUS_FOR_SHRINK_CHECK = 20;
     const SHRINK_THRESHOLD = 0.5;
     const previousCount = await db.shadowService.count({ where: { providerId: providerDbRecord.id } });
+    const curatedCount = await db.service.count({
+      where: {
+        providerId: providerDbRecord.id,
+        tenantId: { not: "" }
+      }
+    });
     const fetchedCount = validRawServices.length;
-    if (fetchedCount === 0 && previousCount > 0) {
+    if (fetchedCount === 0 && (previousCount > 0 || curatedCount > 0)) {
       await db.routingAuditLog.create({
         data: {
           serviceId: "SYSTEM",
           action: "PROVIDER_SYNC_ABORTED_EMPTY",
-          reason: `Sync aborted: Provider returned 0 valid services, previous shadow count was ${previousCount}`
+          reason: `Sync aborted: Provider returned 0 valid services (previous shadow: ${previousCount}, curated: ${curatedCount})`
         }
       });
       throw new Error("PROVIDER_RETURNED_EMPTY_CATALOG");
@@ -161691,14 +161712,17 @@ var CatalogSyncService = class {
    * Finds services that were deleted by the provider and marks them inactive.
    * Auto-restores services that reappeared.
    */
-  static async syncProviderCatalog(providerId, admin) {
+  static async syncProviderCatalog(providerId, admin, tenantId) {
     const providerDbRecord = await db.provider.findUnique({ where: { id: providerId } });
     if (!providerDbRecord) throw new Error("\u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D");
     if (providerDbRecord.syncLock) throw new Error("\u0421\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0430\u0446\u0438\u044F \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0430 (syncLock)");
     logger.debug("syncProviderCatalog started", { providerId });
     await this.refreshShadowCatalog(providerId);
     const ourServices = await db.service.findMany({
-      where: { providerId }
+      where: {
+        providerId,
+        ...tenantId && tenantId !== "all" ? { tenantId: { in: [tenantId, "all"] } } : {}
+      }
     });
     logger.debug("ourServices fetched", { count: ourServices.length, ids: ourServices.map((s) => s.id) });
     const activeExternalIds = ourServices.map((s) => s.externalId).filter(Boolean);
@@ -161849,7 +161873,7 @@ var CatalogSyncService = class {
               data: {
                 isQuarantined: true,
                 pendingRate: rawRate,
-                quarantineReason: `\u041F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A \u0438\u0437\u043C\u0435\u043D\u0438\u043B \u0446\u0435\u043D\u0443: ${s.rate} -> ${rawRate} ${providerCurrency} (${relChange > 0 ? "+" : ""}${(relChange * 100).toFixed(1)}%)`,
+                quarantineReason: relChange > 0 ? `Price Spike (+${Math.round(relChange * 100)}%): \u0441\u0435\u0431\u0435\u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u0432\u044B\u0440\u043E\u0441\u043B\u0430 \u0441 ${oldCostRub.toFixed(2)} \u20BD \u0434\u043E ${newCostRub.toFixed(2)} \u20BD/1k` : `\u041F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A \u0438\u0437\u043C\u0435\u043D\u0438\u043B \u0446\u0435\u043D\u0443: ${s.rate} -> ${rawRate} ${providerCurrency} (${(relChange * 100).toFixed(1)}%)`,
                 quarantinedAt: /* @__PURE__ */ new Date()
               }
             });
@@ -161874,7 +161898,10 @@ var CatalogSyncService = class {
     for (let i = 0; i < zombieIds.length; i += ZOMBIE_BATCH_SIZE) {
       const batch = zombieIds.slice(i, i + ZOMBIE_BATCH_SIZE);
       await db.service.updateMany({
-        where: { id: { in: batch } },
+        where: {
+          id: { in: batch },
+          ...tenantId && tenantId !== "all" ? { tenantId: { in: [tenantId, "all"] } } : {}
+        },
         data: {
           isActive: false,
           cooldownReason: "ZOMBIE_AUTO_DISABLED"
@@ -161912,14 +161939,17 @@ var CatalogSyncService = class {
    * Anomaly Detector: checks for price changes after catalog sync.
    * Isolates services with price anomalies (>50% spike or >UPPER_SANITY_LIMIT_RUB) into quarantine.
    */
-  static async detectAnomalies(oldRates, newRates) {
+  static async detectAnomalies(oldRates, newRates, tenantId) {
     const anomalies = [];
     const settings = await SettingsProvider.get();
     const usdToRub = settings.exchangeRateUSD || 95;
     const serviceIds = Array.from(oldRates.keys());
     if (serviceIds.length === 0) return anomalies;
     const services = await db.service.findMany({
-      where: { id: { in: serviceIds } },
+      where: {
+        id: { in: serviceIds },
+        ...tenantId && tenantId !== "all" ? { tenantId: { in: [tenantId, "all"] } } : {}
+      },
       select: { id: true, name: true, rate: true, providerCurrency: true, isQuarantined: true }
     });
     const serviceMap = new Map(services.map((s) => [s.id, s]));
@@ -161986,16 +162016,25 @@ ${anomalies.join("\n")}`,
   /**
    * Price synchronizer for exchange rate movements.
    */
-  static async syncDenormalizedPrices(usdToRub) {
+  static async syncDenormalizedPrices(usdToRub, tenantId) {
     const { CBRRateService: CBRRateService2 } = await Promise.resolve().then(() => (init_cbr_rate_service(), cbr_rate_service_exports));
     const liveCrossRates = await CBRRateService2.getLiveCrossRates();
     const allServices = await db.service.findMany({
+      where: {
+        ...tenantId && tenantId !== "all" ? { tenantId: { in: [tenantId, "all"] } } : {}
+      },
       select: { id: true, name: true, rate: true, markup: true, isActive: true, providerCurrency: true, tenantId: true }
     });
     console.info(`[CatalogSyncService] Syncing prices for ${allServices.length} services with rate ${usdToRub}...`);
     const updatesBatch = [];
     for (const s of allServices) {
+      if (!s.rate || s.rate <= 0) {
+        continue;
+      }
       const costRub = getCostRub(s.rate, s.providerCurrency || "RUB", usdToRub, liveCrossRates);
+      if (costRub <= 0) {
+        continue;
+      }
       const effectiveMarkup = s.markup > 0 ? s.markup : SAFETY_FLOOR_MARKUP;
       const pricePer1kRubRounded = applyBeautifulRounding(costRub * effectiveMarkup);
       const pricePerUnitRub = pricePer1kRubRounded / 1e3;
@@ -162656,8 +162695,8 @@ var AdminCatalogService = class {
   /**
    * Synchronizes services with the provider catalog, discovering zombies and resurrected services.
    */
-  async syncProviderCatalog(providerId, admin) {
-    return CatalogSyncService.syncProviderCatalog(providerId, admin);
+  async syncProviderCatalog(providerId, admin, tenantId) {
+    return CatalogSyncService.syncProviderCatalog(providerId, admin, tenantId);
   }
   /**
    * Imports services from shadow catalog into live curated services.
@@ -162676,8 +162715,8 @@ var AdminCatalogService = class {
   /**
    * Detects anomalies in provider rates.
    */
-  async detectAnomalies(oldRates, newRates) {
-    return CatalogSyncService.detectAnomalies(oldRates, newRates);
+  async detectAnomalies(oldRates, newRates, tenantId) {
+    return CatalogSyncService.detectAnomalies(oldRates, newRates, tenantId);
   }
   /**
    * Returns catalog stats for header and dashboard counters.
@@ -162694,8 +162733,8 @@ var AdminCatalogService = class {
   /**
    * Synchronizes denormalized prices when exchange rates change.
    */
-  async syncDenormalizedPrices(usdToRub) {
-    return CatalogSyncService.syncDenormalizedPrices(usdToRub);
+  async syncDenormalizedPrices(usdToRub, tenantId) {
+    return CatalogSyncService.syncDenormalizedPrices(usdToRub, tenantId);
   }
   /**
    * Returns markup distribution analytics across all services.

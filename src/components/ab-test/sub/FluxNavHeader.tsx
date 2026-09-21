@@ -3,6 +3,7 @@
 import React from "react";
 import { ArrowLeftIcon } from "lucide-react";
 import type { FluxNetwork } from "@/types/flux";
+import { SocialIcon } from "@/components/ui/SocialIcon";
 
 export type FluxStep = 'link' | 'network' | 'category' | 'service' | 'checkout';
 
@@ -19,6 +20,12 @@ export function FluxNavHeader({
   activeNetwork,
   onNavigate,
 }: FluxNavHeaderProps) {
+  const [imgError, setImgError] = React.useState(false);
+
+  React.useEffect(() => {
+    setImgError(false);
+  }, [activeNetwork?.icon]);
+
   if (step === 'link') return null;
 
   const handleBack = () => {
@@ -39,8 +46,19 @@ export function FluxNavHeader({
         <ArrowLeftIcon className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
       </button>
       <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-2">
-        {activeNetwork?.icon && (
-          <img src={activeNetwork.icon} alt="" className="w-4 h-4 object-contain flex-shrink-0" />
+        {activeNetwork && (
+          <div className="w-4 h-4 flex items-center justify-center shrink-0">
+            {activeNetwork.icon && !imgError ? (
+              <img 
+                src={activeNetwork.icon} 
+                alt="" 
+                className="w-4 h-4 object-contain flex-shrink-0" 
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <SocialIcon slug={activeNetwork.slug || activeNetwork.name} size={16} />
+            )}
+          </div>
         )}
         <span className="text-xs sm:text-sm font-semibold text-foreground truncate min-w-0">
           {link || (activeNetwork?.name ? `${activeNetwork.name} (из каталога)` : "Без ссылки")}

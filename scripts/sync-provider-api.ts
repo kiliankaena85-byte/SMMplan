@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient({
@@ -33,7 +34,7 @@ function cleanDescription(rawDesc?: string): string {
 export async function syncProvider(providerNameOrCode: string) {
   console.log(`\n🔄 Syncing provider: ${providerNameOrCode}...`);
 
-  const provider = await prisma.provider.findFirst({
+  let provider = await prisma.provider.findFirst({
     where: {
       OR: [
         { name: { equals: providerNameOrCode, mode: 'insensitive' } },
@@ -41,6 +42,12 @@ export async function syncProvider(providerNameOrCode: string) {
       ]
     }
   });
+
+  if (!provider) {
+    const allProviders = await prisma.provider.findMany();
+    const targetNorm = providerNameOrCode.toLowerCase().replace(/[^a-z0-9]/g, '');
+    provider = allProviders.find(p => p.name.toLowerCase().replace(/[^a-z0-9]/g, '') === targetNorm) || null;
+  }
 
   if (!provider) {
     console.error(`❌ Provider not found: ${providerNameOrCode}`);
@@ -93,15 +100,22 @@ export async function syncProvider(providerNameOrCode: string) {
     for (const dbSvc of dbServices) {
       if (!dbSvc.externalId) continue;
       const apiSvc = serviceMap.get(dbSvc.externalId);
-      if (!apiSvc) {
-        console.warn(`   ⚠️ Service #${dbSvc.externalId} (${dbSvc.name}) not found in live API response.`);
-        continue;
-      }
 
-      const rate = parseFloat(apiSvc.rate) || 0.0;
-      const minQty = parseInt(String(apiSvc.min), 10) || dbSvc.minQty;
-      const maxQty = parseInt(String(apiSvc.max), 10) || dbSvc.maxQty;
-      const desc = apiSvc.description ? cleanDescription(apiSvc.description) : dbSvc.description;
+      let rate = 0.0;
+      let minQty = dbSvc.minQty;
+      let maxQty = dbSvc.maxQty;
+      let desc = dbSvc.description;
+
+      if (apiSvc) {
+        rate = parseFloat(apiSvc.rate) || 0.0;
+        minQty = parseInt(String(apiSvc.min), 10) || dbSvc.minQty;
+        maxQty = parseInt(String(apiSvc.max), 10) || dbSvc.maxQty;
+        desc = apiSvc.description ? cleanDescription(apiSvc.description) : dbSvc.description;
+      } else {
+        rate = (dbSvc.costPer1kRub && dbSvc.costPer1kRub > 0) 
+          ? dbSvc.costPer1kRub 
+          : (dbSvc.rate > 0 ? dbSvc.rate : ((Number(dbSvc.pricePer1000Cents) / 100) * 0.5));
+      }
 
       await prisma.service.update({
         where: { id: dbSvc.id },

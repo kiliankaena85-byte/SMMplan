@@ -1,15 +1,65 @@
 import React from "react";
-import type { FluxService } from "@/types/flux";
+import { ChevronDown } from "lucide-react";
+import type { FluxService, FluxNetwork, FluxCategory } from "@/types/flux";
 import { ServiceIdBadge } from "@/components/ui/service-id-badge";
 import { formatEtaSpeedBadge } from "@/utils/format-eta";
 
 interface FluxStepCheckoutHeaderProps {
   selectedService: FluxService;
+  services?: FluxService[];
+  onSelectService?: (srv: FluxService) => void;
+  activeNetwork?: FluxNetwork | null;
+  activeCategory?: FluxCategory | null;
 }
 
-export function FluxStepCheckoutHeader({ selectedService }: FluxStepCheckoutHeaderProps) {
+export function FluxStepCheckoutHeader({ 
+  selectedService,
+  services = [],
+  onSelectService,
+  activeNetwork,
+  activeCategory,
+}: FluxStepCheckoutHeaderProps) {
+  const availableServices = services.some(s => s.id === selectedService.id)
+    ? services
+    : [selectedService, ...services];
+
   return (
     <>
+      {(activeNetwork || activeCategory) && (
+        <div className="mb-2">
+          <span className="text-[10px] font-bold text-primary uppercase tracking-wider bg-primary/10 px-2.5 py-0.5 rounded-full inline-block">
+            {activeNetwork?.name}{activeCategory?.name ? ` • ${activeCategory.name}` : ''}
+          </span>
+        </div>
+      )}
+
+      {availableServices.length > 1 && onSelectService && (
+        <div className="mb-3.5">
+          <label className="block text-[10px] sm:text-xs font-bold text-foreground/80 uppercase tracking-wider mb-1">
+            Выбор услуги / тарифа
+          </label>
+          <div className="relative">
+            <select
+              value={selectedService.id}
+              onChange={(e) => {
+                const found = availableServices.find(s => s.id === e.target.value);
+                if (found) onSelectService(found);
+              }}
+              className="w-full bg-background dark:bg-zinc-900 text-foreground dark:text-zinc-100 px-3.5 py-2.5 sm:py-3 rounded-[1.25rem] border border-border/80 text-sm sm:text-base font-bold outline-none cursor-pointer focus:ring-2 focus:ring-primary/20 appearance-none pr-10 truncate shadow-sm transition-all"
+            >
+              {availableServices.map((s) => (
+                <option key={s.id} value={s.id} className="bg-background text-foreground dark:bg-zinc-900 dark:text-zinc-100">
+                  {s.numericId ? `#${s.numericId} ` : ''}{s.name} ({s.pricePerUnitRub.toFixed(2)} ₽/шт)
+                </option>
+              ))}
+            </select>
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+              <ChevronDown className="w-4 h-4" />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-4 sm:mb-5 flex justify-between items-start gap-3 sm:gap-4">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -52,3 +102,4 @@ export function FluxStepCheckoutHeader({ selectedService }: FluxStepCheckoutHead
     </>
   );
 }
+
