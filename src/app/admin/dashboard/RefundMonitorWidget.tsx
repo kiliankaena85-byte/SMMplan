@@ -20,11 +20,16 @@ interface RefundStats {
   topFailingServices: FailingService[];
 }
 
+import { adminOrderService } from '@/services/admin/order.service';
+
 interface Props {
-  stats: RefundStats;
+  filterStart?: Date;
+  filterEnd?: Date;
+  tenantFilter?: string;
 }
 
-export function RefundMonitorWidget({ stats }: Props) {
+export async function RefundMonitorWidget({ filterStart, filterEnd, tenantFilter }: Props) {
+  const stats = await adminOrderService.getRefundAndFailureStats(filterStart, filterEnd, tenantFilter);
   const isHealthy = Number(stats.failureRate) < 5;
 
   return (

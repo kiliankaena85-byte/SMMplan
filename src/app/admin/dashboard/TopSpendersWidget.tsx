@@ -15,11 +15,15 @@ interface TopSpender {
   _count: { orders: number };
 }
 
+import { adminUserService } from '@/services/admin/user.service';
+
 interface Props {
-  clients: TopSpender[];
+  tenantFilter?: string;
+  limit?: number;
 }
 
-export function TopSpendersWidget({ clients }: Props) {
+export async function TopSpendersWidget({ tenantFilter, limit = 6 }: Props) {
+  const clients = await adminUserService.getTopSpenders(limit, tenantFilter);
   return (
     <div className="bg-card text-card-foreground rounded-lg p-5 border border-border/70 shadow-sm flex flex-col justify-between space-y-4">
       {/* Header */}

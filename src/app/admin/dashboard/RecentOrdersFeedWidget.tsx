@@ -21,31 +21,35 @@ interface RecentOrder {
   };
 }
 
+import { adminOrderService } from '@/services/admin/order.service';
+
 interface Props {
-  orders: RecentOrder[];
+  tenantFilter?: string;
+  limit?: number;
 }
 
-const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  COMPLETED:        { label: 'Выполнен',  cls: 'bg-success/10 text-success-text border-success/20' },
-  IN_PROGRESS:      { label: 'В работе',  cls: 'bg-primary/10 text-primary border-primary/20' },
-  PENDING:          { label: 'В очереди', cls: 'bg-warning/10 text-warning-text border-warning/20' },
-  AWAITING_PAYMENT: { label: 'Ожидает',   cls: 'bg-muted text-muted-foreground border-border' },
-  PARTIAL:          { label: 'Частично',  cls: 'bg-warning/10 text-warning-text border-warning/20' },
-  CANCELED:         { label: 'Отменён',   cls: 'bg-destructive/10 text-destructive-text border-destructive/20' },
-  ERROR:            { label: 'Ошибка',    cls: 'bg-destructive/10 text-destructive-text border-destructive/20' },
-};
+export async function RecentOrdersFeedWidget({ tenantFilter, limit = 6 }: Props) {
+  const orders = await adminOrderService.getRecentOrders(limit, tenantFilter);
 
-function timeAgo(date: Date): string {
-  const diff = Date.now() - new Date(date).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'только что';
-  if (mins < 60) return `${mins}м назад`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}ч назад`;
-  return `${Math.floor(hours / 24)}д назад`;
-}
+  const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
+    COMPLETED:        { label: 'Выполнен',  cls: 'bg-success/10 text-success-text border-success/20' },
+    IN_PROGRESS:      { label: 'В работе',  cls: 'bg-primary/10 text-primary border-primary/20' },
+    PENDING:          { label: 'В очереди', cls: 'bg-warning/10 text-warning-text border-warning/20' },
+    AWAITING_PAYMENT: { label: 'Ожидает',   cls: 'bg-muted text-muted-foreground border-border' },
+    PARTIAL:          { label: 'Частично',  cls: 'bg-warning/10 text-warning-text border-warning/20' },
+    CANCELED:         { label: 'Отменён',   cls: 'bg-destructive/10 text-destructive-text border-destructive/20' },
+    ERROR:            { label: 'Ошибка',    cls: 'bg-destructive/10 text-destructive-text border-destructive/20' },
+  };
 
-export function RecentOrdersFeedWidget({ orders }: Props) {
+  function timeAgo(date: Date): string {
+    const diff = Date.now() - new Date(date).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'только что';
+    if (mins < 60) return `${mins}м назад`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}ч назад`;
+    return `${Math.floor(hours / 24)}д назад`;
+  }
   return (
     <div className="bg-card text-card-foreground rounded-lg p-5 border border-border/70 shadow-sm flex flex-col justify-between space-y-4">
       {/* Header */}

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Button } from "@heroui/react";
-import { LinkIcon, ArrowRightIcon } from "lucide-react";
+import { LinkIcon, ArrowRightIcon, ArrowDownIcon } from "lucide-react";
 
 export interface FluxStepLinkProps {
   link: string;
@@ -23,54 +23,65 @@ export function FluxStepLink({
 }: FluxStepLinkProps) {
   return (
     <div className="w-full flex flex-col items-center relative z-20">
-      <div className="text-center mb-8 max-w-2xl relative z-30 px-6 py-5 sm:px-10 sm:py-7 rounded-[28px] sm:rounded-[36px] bg-white/75 dark:bg-neutral-950/75 backdrop-blur-xl border border-white/80 dark:border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-foreground mb-3 sm:mb-4">
-          Продвижение соцсетей <br className="hidden sm:inline" />
-          <span className="bg-gradient-to-r from-purple-700 via-fuchsia-600 to-pink-600 dark:from-purple-300 dark:via-fuchsia-200 dark:to-pink-200 bg-clip-text text-transparent drop-shadow-sm">
-            нового поколения
-          </span>
-        </h1>
-        <p className="text-sm sm:text-base text-neutral-700 dark:text-neutral-300 font-semibold max-w-md mx-auto">
-          Вставьте ссылку на ваш профиль, канал или публикацию для автоматического подбора услуг
-        </p>
-      </div>
+      <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tighter text-foreground mb-6 md:mb-8 text-center leading-tight px-2">
+        Что хотите <span className="inline-block px-2 sm:px-3 py-1 bg-foreground text-background rounded-[1rem] sm:rounded-2xl rotate-[-2deg] mx-1 shadow-md">продвигать</span> сегодня?
+      </h1>
 
-      <div className="w-full max-w-xl relative group">
-        <div className="relative flex items-center w-full bg-card rounded-[calc(2rem-1.5px)] p-1.5 sm:p-2 h-14 sm:h-16 md:h-[68px] z-10 shadow-inner border border-border/40">
-          <LinkIcon className="text-muted-foreground w-5 h-5 sm:w-6 sm:h-6 ml-2 sm:ml-3 flex-shrink-0 group-focus-within:text-foreground transition-colors" />
-          <input
-            ref={linkRef}
-            className="flex-1 text-base sm:text-lg py-2 sm:py-3 px-3 sm:px-4 bg-transparent outline-none w-full font-medium text-foreground placeholder:text-muted-foreground/50"
-            placeholder="Вставьте ссылку..."
-            value={link}
-            onChange={(e) => setLink(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && link) onAnalyzeLink(link);
-            }}
-            onPaste={(e) => {
-              const text = e.clipboardData.getData("text");
-              setTimeout(() => onAnalyzeLink(text), 100);
-            }}
+      <div className="relative group w-full max-w-xl px-2 sm:px-0">
+        <div 
+          className={`relative w-full group rounded-[2rem] transition-all duration-500 select-text ${isAnalyzing ? 'p-[3px] scale-[1.01]' : 'p-[2px] scale-100'}`}
+        >
+          {/* Shimmer Border */}
+          <div
+            className="absolute inset-0 rounded-[2rem] transition-opacity duration-500 pointer-events-none google-border-shimmer opacity-100 blur-[1px]"
           />
-          <Button 
-            className="rounded-[1rem] sm:rounded-[1.2rem] bg-foreground text-background shadow-md mr-0.5 sm:mr-1 w-11 h-11 min-w-[44px] min-h-[44px] flex-shrink-0 flex items-center justify-center p-0 hover:bg-foreground/90 transition-all hover:-translate-y-0.5"
-            isPending={isAnalyzing}
-            onPress={() => onAnalyzeLink(link)}
-          >
-            <ArrowRightIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-          </Button>
+          
+          {/* Soft backdrop blur glow */}
+          <div
+            className={`absolute inset-0 rounded-[2rem] transition-all duration-500 pointer-events-none blur-xl ${
+              isAnalyzing
+                ? "google-border-shimmer opacity-60 scale-[1.03]"
+                : "google-border-shimmer opacity-30 group-hover:opacity-50 scale-[1.01]"
+            }`}
+          />
+          
+          <div className="relative flex items-center w-full bg-card rounded-[calc(2rem-1.5px)] p-1.5 sm:p-2 h-14 sm:h-16 md:h-[68px] z-10 shadow-inner border border-border/40">
+            <LinkIcon className="text-muted-foreground w-5 h-5 sm:w-6 sm:h-6 ml-2 sm:ml-3 flex-shrink-0 group-focus-within:text-foreground transition-colors" />
+            <input
+              ref={linkRef}
+              name="link"
+              className="flex-1 text-base sm:text-lg py-2 sm:py-3 px-3 sm:px-4 bg-transparent outline-none w-full font-medium text-foreground placeholder:text-muted-foreground/50"
+              placeholder="Вставьте ссылку..."
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && link) onAnalyzeLink(link);
+              }}
+              onPaste={(e) => {
+                const text = e.clipboardData.getData("text");
+                setTimeout(() => onAnalyzeLink(text), 100);
+              }}
+            />
+            <Button 
+              className="rounded-[1rem] sm:rounded-[1.2rem] bg-foreground text-background shadow-md mr-0.5 sm:mr-1 w-11 h-11 min-w-[44px] min-h-[44px] flex-shrink-0 flex items-center justify-center p-0 hover:bg-foreground/90 transition-all hover:-translate-y-0.5 cursor-pointer"
+              isPending={isAnalyzing}
+              onPress={() => onAnalyzeLink(link)}
+            >
+              <ArrowRightIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="mt-8 flex justify-center w-full">
+      <div className="mt-5 flex justify-center w-full">
         <button
           type="button"
           data-testid="flux-open-catalog-btn"
           onClick={onOpenCatalog}
-          className="group inline-flex items-center gap-2 px-6 py-3 rounded-full bg-card text-foreground border border-border/80 hover:border-purple-500/50 shadow-md text-xs sm:text-sm font-black transition-all hover:scale-105 active:scale-95 cursor-pointer transform-gpu"
+          className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-card/80 hover:bg-card text-foreground/90 hover:text-foreground border border-border/60 hover:border-purple-500/40 shadow-sm hover:shadow-md text-xs sm:text-sm font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer transform-gpu backdrop-blur-md"
         >
           <span>Или выберите платформу из каталога</span>
-          <ArrowRightIcon className="w-4 h-4 text-purple-500 group-hover:translate-x-1 transition-transform" />
+          <ArrowDownIcon className="w-4 h-4 text-purple-500 group-hover:translate-y-0.5 transition-transform" />
         </button>
       </div>
     </div>

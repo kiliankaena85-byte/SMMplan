@@ -1,4 +1,5 @@
 import { accountingService } from '@/services/financial/accounting.service';
+import { Suspense } from 'react';
 import { adminOrderService } from '@/services/admin/order.service';
 import { adminUserService } from '@/services/admin/user.service';
 import { adminTicketService } from '@/services/admin/ticket.service';
@@ -28,9 +29,6 @@ const getCachedHealthData = unstable_cache(
   { revalidate: 60, tags: ['catalog', 'health'] }
 );
 
-const OrdersChart = nextDynamic(() => import('./orders-chart').then(mod => mod.OrdersChart), {
-  loading: () => <div className="h-64 w-full animate-pulse rounded-xl bg-card/50 border border-border flex items-center justify-center text-xs text-muted-foreground">Загрузка графиков...</div>,
-});
 import { 
   Check, 
   Clock, 
@@ -135,13 +133,7 @@ export default async function AdminDashboardPage({
     ticketStats,
     catalogStats,
     recentAudit,
-    timeseries,
-    topSpenders,
-    recentOrders,
-    topServices,
-    gatewayStats,
-    refundStats,
-    stormReport
+    timeseries
   ] = await Promise.all([
     accountingService.getMetrics(filterStart, filterEnd, tenantFilter),
     adminOrderService.getOrderStats(filterStart, filterEnd, tenantFilter),
@@ -154,12 +146,6 @@ export default async function AdminDashboardPage({
       take: 5,
     }),
     adminOrderService.getOrdersTimeseries(startDate, endDate, step, tenantFilter),
-    adminUserService.getTopSpenders(6, tenantFilter),
-    adminOrderService.getRecentOrders(6, tenantFilter),
-    adminOrderService.getTopServices(6, filterStart, filterEnd, tenantFilter),
-    accountingService.getGatewayBreakdown(filterStart, filterEnd, tenantFilter),
-    adminOrderService.getRefundAndFailureStats(filterStart, filterEnd, tenantFilter),
-    stormDetectorService.auditServiceStorms({ windowHours: 72, tenantId: tenantFilter }),
   ]);
 
   const { getRolePermissions } = await import('@/lib/permissions');
@@ -231,7 +217,7 @@ export default async function AdminDashboardPage({
       <CollapsibleWaveChart data={timeseries} step={step} />
 
       {/* ── 2. CRITICAL RADAR: SOCIAL NETWORK STORMS & ALGORITHM WATCHDOG (SHADOW MODE) ── */}
-      <StormRadarWidget report={stormReport} />
+      <Suspense fallback={<div className="h-[280px] w-full animate-pulse bg-card/50 rounded-xl" />}><StormRadarWidget tenantFilter={tenantFilter} /></Suspense>
 
       {/* ── 3. KPI STRIP: 4 BENTO CARDS ── */}
       {canSeeFinancials ? (
@@ -370,12 +356,12 @@ export default async function AdminDashboardPage({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left 6 col: Live Recent Orders Feed */}
         <div className="lg:col-span-6">
-          <RecentOrdersFeedWidget orders={recentOrders} />
+          <Suspense fallback={<div className="h-[400px] w-full animate-pulse bg-card/50 rounded-xl" />}><RecentOrdersFeedWidget tenantFilter={tenantFilter} /></Suspense>
         </div>
 
         {/* Right 6 col: Top Spenders VIP */}
         <div className="lg:col-span-6">
-          <TopSpendersWidget clients={topSpenders} />
+          <Suspense fallback={<div className="h-[400px] w-full animate-pulse bg-card/50 rounded-xl" />}><TopSpendersWidget tenantFilter={tenantFilter} /></Suspense>
         </div>
       </div>
 
@@ -402,12 +388,12 @@ export default async function AdminDashboardPage({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left 6 col: Top Performing Services */}
         <div className="lg:col-span-6">
-          <TopServicesWidget services={topServices} />
+          <Suspense fallback={<div className="h-[400px] w-full animate-pulse bg-card/50 rounded-xl" />}><TopServicesWidget filterStart={filterStart} filterEnd={filterEnd} tenantFilter={tenantFilter} /></Suspense>
         </div>
 
         {/* Right 6 col: Payment Gateways Breakdown */}
         <div className="lg:col-span-6">
-          <PaymentGatewaysWidget gateways={gatewayStats} />
+          <Suspense fallback={<div className="h-[400px] w-full animate-pulse bg-card/50 rounded-xl" />}><PaymentGatewaysWidget filterStart={filterStart} filterEnd={filterEnd} tenantFilter={tenantFilter} /></Suspense>
         </div>
       </div>
 
@@ -483,7 +469,7 @@ export default async function AdminDashboardPage({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left 6 col: Refund & Drop Monitor */}
         <div className="lg:col-span-6">
-          <RefundMonitorWidget stats={refundStats} />
+          <Suspense fallback={<div className="h-[400px] w-full animate-pulse bg-card/50 rounded-xl" />}><RefundMonitorWidget filterStart={filterStart} filterEnd={filterEnd} tenantFilter={tenantFilter} /></Suspense>
         </div>
 
         {/* Right 6 col: Webhook Latency Radar */}

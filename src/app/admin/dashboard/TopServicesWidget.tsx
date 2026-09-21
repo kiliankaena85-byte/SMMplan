@@ -14,11 +14,17 @@ interface TopServiceItem {
   marginPct: number;
 }
 
+import { adminOrderService } from '@/services/admin/order.service';
+
 interface Props {
-  services: TopServiceItem[];
+  filterStart?: Date;
+  filterEnd?: Date;
+  tenantFilter?: string;
+  limit?: number;
 }
 
-export function TopServicesWidget({ services }: Props) {
+export async function TopServicesWidget({ filterStart, filterEnd, tenantFilter, limit = 6 }: Props) {
+  const services = await adminOrderService.getTopServices(limit, filterStart, filterEnd, tenantFilter);
   return (
     <div className="bg-card text-card-foreground rounded-lg p-5 border border-border/70 shadow-sm flex flex-col justify-between space-y-4">
       {/* Header */}

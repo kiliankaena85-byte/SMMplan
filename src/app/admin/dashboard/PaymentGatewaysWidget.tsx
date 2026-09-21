@@ -16,11 +16,16 @@ interface GatewayItem {
   sharePct: number;
 }
 
+import { accountingService } from '@/services/financial/accounting.service';
+
 interface Props {
-  gateways: GatewayItem[];
+  filterStart?: Date;
+  filterEnd?: Date;
+  tenantFilter?: string;
 }
 
-export function PaymentGatewaysWidget({ gateways }: Props) {
+export async function PaymentGatewaysWidget({ filterStart, filterEnd, tenantFilter }: Props) {
+  const gateways = await accountingService.getGatewayBreakdown(filterStart, filterEnd, tenantFilter);
   return (
     <div className="bg-card text-card-foreground rounded-lg p-5 border border-border/70 shadow-sm flex flex-col justify-between space-y-4">
       {/* Header */}

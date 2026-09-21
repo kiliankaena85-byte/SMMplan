@@ -64,55 +64,130 @@ class AccountingService {
     gatewayFees = Math.round(gatewayFees);
 
     // 2. Calculate Refunds (For canceled/partial orders that were actually paid)
-    const refundedOrders = await db.order.findMany({
-      where: {
-        ...dateFilter,
-        status: { in: ['PARTIAL', 'CANCELED'] },
-        ...(isSingleTenant ? { tenantId } : {}),
-        NOT: {
-          status: 'CANCELED',
-          payment: {
-            status: { not: 'SUCCEEDED' }
-          }
-        }
-      },
-      select: {
-        status: true,
-        quantity: true,
-        remains: true,
-        charge: true,
-        error: true,
-        payment: {
-          select: {
-            status: true
-          }
-        }
-      }
-    });
-
     let refunds = 0;
-    for (const order of refundedOrders) {
-      // Guard against unpaid canceled orders (e.g. cart checkout where payment was abandoned/expired)
-      if (order.status === 'CANCELED') {
-        const pStatus = (order as { payment?: { status?: string } | null }).payment?.status;
-        if (pStatus && pStatus !== 'SUCCEEDED') {
-          continue;
-        }
-        const err = (order as { error?: string | null }).error || '';
-        if (
-          err.includes('auto-expire') ||
-          err.includes('Оплата не поступила') ||
-          err.includes('Ожидание оплаты истекло')
-        ) {
-          continue;
-        }
-      }
-
-      if (order.quantity > 0 && order.remains > 0) {
-        refunds += calculatePartialRefund(order);
-      } else if (order.status === 'CANCELED') {
-        refunds += Number(order.charge);
-      }
+    
+    if (startDate && endDate) {
+      const refundsResult = isSingleTenant
+        ? await db.$queryRaw<[{ total: bigint | null }]>`
+            SELECT SUM(
+              CASE
+                WHEN "quantity" > 0 AND "remains" > 0 
+                THEN ROUND(CAST("remains" AS NUMERIC) / "quantity" * "charge")
+                WHEN "status" = 'CANCELED' 
+                THEN "charge"
+                ELSE 0
+              END
+            ) as total
+            FROM "Order"
+            WHERE status IN ('PARTIAL', 'CANCELED')
+              AND "createdAt" >= ${startDate} AND "createdAt" <= ${endDate}
+              AND "tenantId" = ${tenantId}
+              AND (
+                status != 'CANCELED' OR (
+                  "paymentId" IS NULL OR 
+                  EXISTS (SELECT 1 FROM "Payment" WHERE "Payment".id = "Order"."paymentId" AND "Payment".status = 'SUCCEEDED')
+                )
+              )
+              AND (
+                status != 'CANCELED' OR (
+                  "error" IS NULL OR (
+                    "error" NOT ILIKE '%auto-expire%' AND 
+                    "error" NOT ILIKE '%Оплата не поступила%' AND 
+                    "error" NOT ILIKE '%Ожидание оплаты истекло%'
+                  )
+                )
+              )
+          `
+        : await db.$queryRaw<[{ total: bigint | null }]>`
+            SELECT SUM(
+              CASE
+                WHEN "quantity" > 0 AND "remains" > 0 
+                THEN ROUND(CAST("remains" AS NUMERIC) / "quantity" * "charge")
+                WHEN "status" = 'CANCELED' 
+                THEN "charge"
+                ELSE 0
+              END
+            ) as total
+            FROM "Order"
+            WHERE status IN ('PARTIAL', 'CANCELED')
+              AND "createdAt" >= ${startDate} AND "createdAt" <= ${endDate}
+              AND (
+                status != 'CANCELED' OR (
+                  "paymentId" IS NULL OR 
+                  EXISTS (SELECT 1 FROM "Payment" WHERE "Payment".id = "Order"."paymentId" AND "Payment".status = 'SUCCEEDED')
+                )
+              )
+              AND (
+                status != 'CANCELED' OR (
+                  "error" IS NULL OR (
+                    "error" NOT ILIKE '%auto-expire%' AND 
+                    "error" NOT ILIKE '%Оплата не поступила%' AND 
+                    "error" NOT ILIKE '%Ожидание оплаты истекло%'
+                  )
+                )
+              )
+          `;
+      refunds = Number(refundsResult[0]?.total ?? 0);
+    } else {
+      const refundsResult = isSingleTenant
+        ? await db.$queryRaw<[{ total: bigint | null }]>`
+            SELECT SUM(
+              CASE
+                WHEN "quantity" > 0 AND "remains" > 0 
+                THEN ROUND(CAST("remains" AS NUMERIC) / "quantity" * "charge")
+                WHEN "status" = 'CANCELED' 
+                THEN "charge"
+                ELSE 0
+              END
+            ) as total
+            FROM "Order"
+            WHERE status IN ('PARTIAL', 'CANCELED')
+              AND "tenantId" = ${tenantId}
+              AND (
+                status != 'CANCELED' OR (
+                  "paymentId" IS NULL OR 
+                  EXISTS (SELECT 1 FROM "Payment" WHERE "Payment".id = "Order"."paymentId" AND "Payment".status = 'SUCCEEDED')
+                )
+              )
+              AND (
+                status != 'CANCELED' OR (
+                  "error" IS NULL OR (
+                    "error" NOT ILIKE '%auto-expire%' AND 
+                    "error" NOT ILIKE '%Оплата не поступила%' AND 
+                    "error" NOT ILIKE '%Ожидание оплаты истекло%'
+                  )
+                )
+              )
+          `
+        : await db.$queryRaw<[{ total: bigint | null }]>`
+            SELECT SUM(
+              CASE
+                WHEN "quantity" > 0 AND "remains" > 0 
+                THEN ROUND(CAST("remains" AS NUMERIC) / "quantity" * "charge")
+                WHEN "status" = 'CANCELED' 
+                THEN "charge"
+                ELSE 0
+              END
+            ) as total
+            FROM "Order"
+            WHERE status IN ('PARTIAL', 'CANCELED')
+              AND (
+                status != 'CANCELED' OR (
+                  "paymentId" IS NULL OR 
+                  EXISTS (SELECT 1 FROM "Payment" WHERE "Payment".id = "Order"."paymentId" AND "Payment".status = 'SUCCEEDED')
+                )
+              )
+              AND (
+                status != 'CANCELED' OR (
+                  "error" IS NULL OR (
+                    "error" NOT ILIKE '%auto-expire%' AND 
+                    "error" NOT ILIKE '%Оплата не поступила%' AND 
+                    "error" NOT ILIKE '%Ожидание оплаты истекло%'
+                  )
+                )
+              )
+          `;
+      refunds = Number(refundsResult[0]?.total ?? 0);
     }
 
     // 3. Calculate COGS (Provider Costs for confirmed part)
