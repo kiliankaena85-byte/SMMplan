@@ -152,9 +152,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
       {/* Interactive App */}
       <div id="main-content" tabIndex={-1} className="outline-none">
         {tenantId === "flux" ? (
-          <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
+          <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip isolate">
             {/* ── SMMFLUX VIBRANT HERO BACKGROUND (Full Bleed - GPU Optimized Static Layer) ── */}
-            <div className="absolute top-0 inset-x-0 h-[2500px] z-0 pointer-events-none overflow-hidden select-none bg-background transform-gpu contain-paint">
+            <div className="absolute top-0 inset-x-0 h-[2500px] -z-10 pointer-events-none overflow-hidden select-none bg-background transform-gpu contain-paint">
               <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
