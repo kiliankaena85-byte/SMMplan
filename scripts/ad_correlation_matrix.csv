@@ -1,0 +1,7 @@
+Ad_Variable,new_users,completed_orders,completed_revenue,topups_count,topups_amount,tg_completed_orders,vk_completed_orders,tt_completed_orders,yt_completed_orders
+total_pubs,0.014,0.095,0.103,0.085,0.091,0.111,0.011,0.047,0.157
+new_pubs,0.036,0.086,0.098,0.073,0.076,0.098,0.012,0.05,0.15
+retrofit_pubs,-0.033,0.071,0.07,0.072,0.083,0.089,0.004,0.022,0.104
+pubs_7d_sum,0.025,0.138,0.173,0.111,0.145,0.161,0.028,0.042,0.19
+pubs_14d_sum,0.046,0.178,0.206,0.149,0.175,0.204,0.043,0.037,0.22
+pubs_30d_sum,0.093,0.248,0.229,0.21,0.21,0.283,0.08,0.08,0.175
