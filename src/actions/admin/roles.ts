@@ -39,6 +39,38 @@ const deleteRoleSchema = z.object({
   id: z.string().min(1, 'ID роли обязателен'),
 });
 
+function checkPermissionCeiling(
+  creatorRole: { permissions: Array<{ section: string; canView: boolean; canEdit: boolean }> } | null,
+  targetPermissions: Array<{ section: string; canView: boolean; canEdit: boolean }>,
+  actionVerb: 'предоставить' | 'клонировать' = 'предоставить'
+): { allowed: boolean; error?: string } {
+  if (!creatorRole) {
+    return { allowed: false, error: 'Роль создателя не найдена' };
+  }
+  const creatorPermKeys = new Set<string>();
+  for (const p of creatorRole.permissions) {
+    const norm = normalizeRbacSection(p.section);
+    if (p.canView || p.canEdit) {
+      creatorPermKeys.add(`${norm}:view`);
+    }
+    if (p.canEdit) {
+      creatorPermKeys.add(`${norm}:edit`);
+    }
+  }
+
+  const verbPhrase = actionVerb === 'клонировать' ? 'клонировать роль с правом' : 'предоставить право';
+  for (const p of targetPermissions) {
+    const norm = normalizeRbacSection(p.section);
+    if (p.canView && !creatorPermKeys.has(`${norm}:view`) && !creatorPermKeys.has(`${norm}:edit`)) {
+      return { allowed: false, error: `Нельзя ${verbPhrase} ${norm}:view, которым вы не обладаете` };
+    }
+    if (p.canEdit && !creatorPermKeys.has(`${norm}:edit`)) {
+      return { allowed: false, error: `Нельзя ${verbPhrase} ${norm}:edit, которым вы не обладаете` };
+    }
+  }
+  return { allowed: true };
+}
+
 /**
  * List all roles with their granular permissions and assigned users count
  */
@@ -80,19 +112,17 @@ export async function createRoleAction(input: z.input<typeof createRoleSchema>) 
     }
 
     // Privilege escalation prevention: staff cannot grant permissions they do not possess
-    if (staffUser.role !== 'OWNER' && staffUser.staffRoleId) {
+    if (staffUser.role !== 'OWNER' && staffUser.role !== 'ADMIN') {
+      if (!staffUser.staffRoleId) {
+        return { success: false, error: 'У вас недостаточно прав для управления ролями' };
+      }
       const creatorRole = await db.staffRole.findUnique({
         where: { id: staffUser.staffRoleId },
         include: { permissions: true },
       });
-      const creatorPermKeys = new Set(creatorRole?.permissions.map(p => `${p.section}:${p.canEdit ? 'edit' : 'view'}`) || []);
-      for (const p of permissions) {
-        if (p.canView && !creatorPermKeys.has(`${p.section}:view`) && !creatorPermKeys.has(`${p.section}:edit`)) {
-          return { success: false, error: `Нельзя предоставить право ${p.section}:view, которым вы не обладаете` };
-        }
-        if (p.canEdit && !creatorPermKeys.has(`${p.section}:edit`)) {
-          return { success: false, error: `Нельзя предоставить право ${p.section}:edit, которым вы не обладаете` };
-        }
+      const ceilingCheck = checkPermissionCeiling(creatorRole, permissions, 'предоставить');
+      if (!ceilingCheck.allowed) {
+        return { success: false, error: ceilingCheck.error };
       }
     }
 
@@ -178,6 +208,21 @@ export async function updateRoleAction(input: z.input<typeof updateRoleSchema>) 
       const settingsPerm = permissions.find(p => p.section === 'settings');
       if (!settingsPerm || !settingsPerm.canEdit) {
         return { success: false, error: 'Нельзя снять права settings:edit с собственной роли' };
+      }
+    }
+
+    // Privilege escalation prevention: staff cannot grant permissions they do not possess
+    if (staffUser.role !== 'OWNER' && staffUser.role !== 'ADMIN') {
+      if (!staffUser.staffRoleId) {
+        return { success: false, error: 'У вас недостаточно прав для управления ролями' };
+      }
+      const creatorRole = await db.staffRole.findUnique({
+        where: { id: staffUser.staffRoleId },
+        include: { permissions: true },
+      });
+      const ceilingCheck = checkPermissionCeiling(creatorRole, permissions, 'предоставить');
+      if (!ceilingCheck.allowed) {
+        return { success: false, error: ceilingCheck.error };
       }
     }
 
@@ -286,6 +331,21 @@ export async function cloneRoleAction(input: z.infer<typeof cloneRoleSchema>) {
 
     if (existingName) {
       return { success: false, error: 'Роль с таким названием существует' };
+    }
+
+    // Privilege escalation prevention: staff cannot clone a role with permissions they do not possess
+    if (staffUser.role !== 'OWNER' && staffUser.role !== 'ADMIN') {
+      if (!staffUser.staffRoleId) {
+        return { success: false, error: 'У вас недостаточно прав для управления ролями' };
+      }
+      const creatorRole = await db.staffRole.findUnique({
+        where: { id: staffUser.staffRoleId },
+        include: { permissions: true },
+      });
+      const ceilingCheck = checkPermissionCeiling(creatorRole, sourceRole.permissions, 'клонировать');
+      if (!ceilingCheck.allowed) {
+        return { success: false, error: ceilingCheck.error };
+      }
     }
 
     const cloned = await db.$transaction(async (tx) => {

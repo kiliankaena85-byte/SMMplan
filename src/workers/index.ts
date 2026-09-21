@@ -215,6 +215,9 @@ paymentSyncWorker.on('failed', (job, err) => { handleDeadLetter('paymentSyncQueu
 paymentGatewayWorker.on('failed', (job, err) => { handleDeadLetter('paymentGatewayQueue', job, err); });
 refillWorker.on('failed', (job, err) => { handleDeadLetter('refillQueue', job, err); });
 articlePublishWorker.on('failed', (job, err) => { handleDeadLetter('articlePublishQueue', job, err); });
+aiObserverWorker.on('failed', (job, err) => { handleDeadLetter('aiObserverQueue', job, err); });
+aiEconomicOptimizerWorker.on('failed', (job, err) => { handleDeadLetter('aiEconomicOptimizerQueue', job, err); });
+geoAvailabilityWorker.on('failed', (job, err) => { handleDeadLetter('geoAvailabilityQueue', job, err); });
 // WRK-04: alert on consecutive ETA failures
 etaWorker.on('failed', (job, err) => {
   trackEtaFailure(job, err);

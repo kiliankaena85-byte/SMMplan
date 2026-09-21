@@ -9,7 +9,7 @@
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { requireStaffPermission } from '@/lib/server/rbac';
-import { resolveAdminTenantContext } from '@/utils/admin-tenant';
+import { resolveAdminTenantContext, isTenantAllowedForUser } from '@/utils/admin-tenant';
 import { WalletOps } from '@/services/financial/wallet-ops';
 import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { getClientIp } from '@/utils/ip';
@@ -217,7 +217,12 @@ export type PaymentDisputePackDTO = {
 export async function getPaymentDisputePackAction(paymentId: string): Promise<PaymentDisputePackDTO | { success: false, error: string }> {
   return requireStaffPermission('finance', 'view', async (admin): Promise<PaymentDisputePackDTO | { success: false; error: string }> => {
     const payment = await db.payment.findFirst({
-      where: { id: paymentId, tenantId: admin.tenantId ?? 'smmplan' },
+      where: {
+        id: paymentId,
+        ...(admin.role === 'OWNER'
+          ? {}
+          : { tenantId: { in: admin.allowedTenants?.length ? admin.allowedTenants : [admin.tenantId || 'smmplan'] } })
+      },
       include: {
         user: {
           select: {
@@ -350,6 +355,10 @@ export async function manualApprovePaymentAction(input: z.infer<typeof manualApp
 
     if (!payment) {
       return { success: false as const, error: 'Платёж не найден' };
+    }
+
+    if (!isTenantAllowedForUser(admin, payment.tenantId || payment.user?.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: платёж принадлежит другой витрине' };
     }
 
     if (payment.status !== 'PENDING') {

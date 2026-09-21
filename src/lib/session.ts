@@ -103,7 +103,7 @@ export async function createSession(userId: string, canResetPassword: boolean = 
   return { sessionToken, expiresAt };
 }
 
-export async function verifySession(requiredTenantId?: string): Promise<{ userId: string; canResetPassword?: boolean; role?: string; tenantId?: string } | null> {
+export async function verifySession(requiredTenantId?: string): Promise<{ userId: string; canResetPassword?: boolean; role?: string; tenantId?: string; allowedTenants?: string[] } | null> {
   let sessionToken: string | undefined;
   try {
     const cookieStore = await cookies();
@@ -293,7 +293,8 @@ export async function verifySession(requiredTenantId?: string): Promise<{ userId
       userId: user.id,
       canResetPassword: payload.canResetPassword === true,
       role: user.role,
-      tenantId: user.tenantId
+      tenantId: user.tenantId,
+      allowedTenants: user.allowedTenants
     };
   } catch (err) {
     console.warn('[verifySession] JWT verification failed:', err instanceof Error ? err.message : 'Unknown error');
@@ -330,7 +331,7 @@ export async function handleDevAutoLogin() {
         : { role: 'OWNER', isDeleted: false, isActive: true } 
     });
     if (devUser && devUser.role !== 'BANNED') {
-      return { userId: devUser.id, role: devUser.role, tenantId: devUser.tenantId };
+      return { userId: devUser.id, role: devUser.role, tenantId: devUser.tenantId, allowedTenants: devUser.allowedTenants };
     }
   }
   return null;

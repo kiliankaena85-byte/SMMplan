@@ -421,8 +421,10 @@ class OrderService {
         
         // 3. Calculate Refund if status is terminal and non-complete
         // We only refund if transition is TO a terminal state FROM a non-terminal state
-        if (internalStatus === 'PARTIAL' || internalStatus === 'CANCELED') {
-           if (internalStatus === 'CANCELED' && (remains <= 0 || order.quantity <= 0)) {
+        if (internalStatus === 'PARTIAL' || internalStatus === 'CANCELED' || internalStatus === 'ERROR') {
+           if ((internalStatus === 'CANCELED' || internalStatus === 'ERROR') && (remains <= 0 || order.quantity <= 0)) {
+              refundCents = Number(order.charge);
+           } else if (internalStatus === 'ERROR') {
               refundCents = Number(order.charge);
            } else {
               refundCents = calculatePartialRefund({ remains, quantity: order.quantity, charge: order.charge });

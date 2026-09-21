@@ -154,7 +154,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
              const subStatus = String(s.status).toLowerCase();
              if (s.remains) totalRemainsText += parseInt(String(s.remains), 10) || 0;
 
-             if (['canceled', 'cancelled', 'cancel'].includes(subStatus)) {
+             if (['canceled', 'cancelled', 'cancel', 'error', 'failed', 'fail'].includes(subStatus)) {
                anyCanceled = true;
                allCompleted = false;
              } else if (['partial', 'partially completed'].includes(subStatus)) {
@@ -214,7 +214,7 @@ export default async function syncProcessor(job: Job<SyncJobPayload>) {
 
         if (['completed', 'complete', 'success'].includes(normalizedStatus)) {
           targetStatus = 'COMPLETED';
-        } else if (['canceled', 'cancelled', 'cancel'].includes(normalizedStatus)) {
+        } else if (['canceled', 'cancelled', 'cancel', 'error', 'failed', 'fail'].includes(normalizedStatus)) {
           targetStatus = 'CANCELED';
         } else if (['partial', 'partially completed'].includes(normalizedStatus)) {
           targetStatus = 'PARTIAL';

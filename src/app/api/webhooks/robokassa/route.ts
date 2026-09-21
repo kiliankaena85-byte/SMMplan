@@ -10,6 +10,7 @@ import { logger } from '@/lib/logger';
 const MAX_BODY_SIZE = 1024 * 64; // 64KB
 
 export async function POST(req: NextRequest) {
+  let replayKey: string | undefined;
   try {
     const { getClientIp } = await import('@/utils/ip');
     const rawIp = await getClientIp();
@@ -128,7 +129,17 @@ export async function POST(req: NextRequest) {
     }
 
     // --- ANTI-REPLAY GUARD (NIST SP 800-63B / PCI DSS v4.0.1) ---
-    const replayKey = `webhook:robo:event:${shp_paymentId}:${invId || '0'}:${outSum}`;
+    replayKey = `webhook:robo:event:${shp_paymentId}:${invId || '0'}:${outSum}`;
+    const clearReplayKey = async () => {
+      if (replayKey) {
+        try {
+          const { redis } = await import('@/lib/redis');
+          await redis.del(replayKey);
+        } catch {
+          // ignore redis del errors during error handling
+        }
+      }
+    };
     try {
       const { redis } = await import('@/lib/redis');
       const isNew = await redis.set(replayKey, '1', 'EX', 86400, 'NX');
@@ -194,16 +205,24 @@ export async function POST(req: NextRequest) {
           // Robokassa ResultURL expects text "OK" followed by InvId to confirm receipt
           return new NextResponse(`OK${invId || '0'}`, { status: 200, headers: { 'Content-Type': 'text/plain' } });
         } else {
+          await clearReplayKey();
           return NextResponse.json({ error: 'Confirm failed' }, { status: 400 });
         }
       });
 
       return result;
     } catch (lockError) {
+      await clearReplayKey();
       console.error(`[Robokassa Webhook] Failed to acquire lock for payment ${shp_paymentId}:`, lockError);
       return NextResponse.json({ error: 'Concurrent processing lock timeout' }, { status: 429 });
     }
   } catch (error: unknown) {
+    if (replayKey) {
+      try {
+        const { redis } = await import('@/lib/redis');
+        await redis.del(replayKey);
+      } catch {}
+    }
     console.error('[Robokassa Webhook] Error:', (error instanceof Error ? error.message : String(error)));
     return NextResponse.json({ error: 'Webhook execution failed' }, { status: 500 });
   }

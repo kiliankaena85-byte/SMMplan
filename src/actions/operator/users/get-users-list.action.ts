@@ -20,11 +20,12 @@ export async function getUsersListAction(params: {
     throw new Error('Некорректные параметры запроса');
   }
 
-  return requireOperatorPermission('orders', 'view', async () => {
+  return requireOperatorPermission('orders', 'view', async (admin) => {
     return adminUserService.listUsers({
       search: parsed.data.search,
       cursor: parsed.data.cursor,
       pageSize: parsed.data.pageSize || 50,
+      tenantId: admin.role === 'OWNER' ? undefined : (admin.tenantId || 'smmplan'),
     });
   });
 }

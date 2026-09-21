@@ -6,6 +6,7 @@ import { getClientIp } from '@/utils/ip';
 import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { isTenantAllowedForUser } from '@/utils/admin-tenant';
 
 const schema = z.object({
   ticketId: z.string().min(1),
@@ -29,7 +30,7 @@ export async function changeTicketStatusAction(data: {
         where: { id: ticketId },
         select: { status: true, tenantId: true },
       });
-      if (!oldTicket || (admin.tenantId && oldTicket.tenantId && admin.tenantId !== 'smmplan' && oldTicket.tenantId !== admin.tenantId)) {
+      if (!oldTicket || !isTenantAllowedForUser(admin, oldTicket.tenantId)) {
         throw new Error('Обращение не найдено или доступ ограничен');
       }
 

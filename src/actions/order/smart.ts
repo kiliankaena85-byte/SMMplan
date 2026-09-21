@@ -2,6 +2,7 @@
 
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
+import { SmartCampaignStatus } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { getClientIp } from '@/utils/ip';
@@ -64,7 +65,7 @@ export async function getClientCampaigns(page: number = 1, limit: number = 20) {
 export async function toggleClientCampaignStatus(campaignId: string, status: 'RUNNING' | 'PAUSED') {
   const session = await verifySession();
   if (!session || !session.userId) {
-    throw new Error('Необходима авторизация');
+    return { success: false, error: 'Необходима авторизация' };
   }
 
   const campaign = await db.smartCampaign.findUnique({
@@ -72,21 +73,37 @@ export async function toggleClientCampaignStatus(campaignId: string, status: 'RU
   });
 
   if (!campaign) {
-    throw new Error('Кампания не найдена');
+    return { success: false, error: 'Кампания не найдена' };
   }
 
   // IDOR Security Guard
   if (campaign.userId !== session.userId) {
-    throw new Error('Доступ запрещен');
+    return { success: false, error: 'Доступ запрещен' };
   }
 
   if (campaign.status === 'COMPLETED' || campaign.status === 'ERROR') {
-    throw new Error('Нельзя изменить статус завершенной или деактивированной кампании');
+    return { success: false, error: 'Нельзя изменить статус завершенной или деактивированной кампании' };
   }
 
-  const updated = await db.smartCampaign.update({
-    where: { id: campaignId },
-    data: { status }
+  // Atomic state transition guard (TOCTOU prevention)
+  const expectedPreviousStatuses: SmartCampaignStatus[] = status === 'RUNNING' 
+    ? [SmartCampaignStatus.PAUSED, SmartCampaignStatus.PLANNED] 
+    : [SmartCampaignStatus.RUNNING];
+  const updateResult = await db.smartCampaign.updateMany({
+    where: {
+      id: campaignId,
+      userId: session.userId,
+      status: { in: expectedPreviousStatuses },
+    },
+    data: { status: status as SmartCampaignStatus }
+  });
+
+  if (updateResult.count === 0) {
+    return { success: false, error: 'Статус кампании уже был изменен или кампания завершена' };
+  }
+
+  const updated = await db.smartCampaign.findUnique({
+    where: { id: campaignId }
   });
 
   revalidatePath('/dashboard/smart-drip');

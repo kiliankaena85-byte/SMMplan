@@ -69,7 +69,7 @@ export class ReferralValidatorService {
       return { valid: false, riskLevel: 'CRITICAL', reason: 'INVITER_NOT_FOUND' };
     }
 
-    if (context?.inviteeEmail && inviter.email.toLowerCase() === context.inviteeEmail.toLowerCase()) {
+    if (context?.inviteeEmail && inviter.email?.toLowerCase() === context.inviteeEmail.toLowerCase()) {
       return { valid: false, riskLevel: 'CRITICAL', reason: 'SELF_REFERRAL_BY_EMAIL' };
     }
 

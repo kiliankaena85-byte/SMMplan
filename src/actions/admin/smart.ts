@@ -58,16 +58,32 @@ export async function updateCampaignStatus(campaignId: string, status: 'RUNNING'
     });
 
     if (!campaign) {
-      throw new Error('Кампания не найдена');
+      return { success: false, error: 'Кампания не найдена' };
     }
 
     if (campaign.status === 'COMPLETED' || campaign.status === 'ERROR') {
-      throw new Error('Нельзя изменить статус завершенной или ошибочной кампании');
+      return { success: false, error: 'Нельзя изменить статус завершенной или ошибочной кампании' };
     }
 
-    const updated = await db.smartCampaign.update({
+    // Atomic state transition guard (TOCTOU prevention)
+    const expectedPreviousStatuses = status === 'RUNNING'
+      ? ['PAUSED', 'PLANNED']
+      : ['RUNNING'];
+
+    const updateResult = await db.smartCampaign.updateMany({
+      where: {
+        id: campaignId,
+        status: { in: expectedPreviousStatuses as any },
+      },
+      data: { status: status as any },
+    });
+
+    if (updateResult.count === 0) {
+      return { success: false, error: 'Статус кампании уже был изменен или кампания завершена' };
+    }
+
+    const updated = await db.smartCampaign.findUnique({
       where: { id: campaignId },
-      data: { status },
     });
 
     const ipAddress = await getClientIp();

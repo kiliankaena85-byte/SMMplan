@@ -115,6 +115,7 @@ export async function requestMagicLink(prevState: unknown, formData: FormData) {
             role,
             referredById,
             tenantId,
+            allowedTenants: [tenantId],
             tosAcceptedAt: new Date(),
             tosAcceptedIp: consentIp,
           }

@@ -65,6 +65,7 @@ function rubToKopecks(value: unknown): bigint {
 }
 
 export async function POST(req: NextRequest) {
+  let webhookEventId: string | undefined;
   try {
     const { getClientIp } = await import('@/utils/ip');
     const rawIp = await getClientIp(req);
@@ -200,9 +201,20 @@ export async function POST(req: NextRequest) {
 
     // --- ANTI-REPLAY GUARD (NIST SP 800-63B / PCI DSS v4.0.1) ---
     // Executed ONLY after authenticating signature and freshness
-    const webhookEventId = (rawBody as Record<string, unknown>).id as string | undefined || 
+    webhookEventId = (rawBody as Record<string, unknown>).id as string | undefined || 
       (gatewayId ? `yoo:${rawBody.event || 'evt'}:${gatewayId}:${rawBody.object?.status || 'status'}` : undefined);
     
+    const clearReplayKey = async () => {
+      if (webhookEventId) {
+        try {
+          const { redis } = await import('@/lib/redis');
+          await redis.del(`webhook:yoo:event:${webhookEventId}`);
+        } catch {
+          // ignore redis del errors during error handling
+        }
+      }
+    };
+
     if (webhookEventId) {
       try {
         const { redis } = await import('@/lib/redis');
@@ -225,6 +237,7 @@ export async function POST(req: NextRequest) {
     if (rawBody.event === 'payment.canceled' && rawBody.object) {
       const gatewayId = rawBody.object.id;
       if (typeof gatewayId !== 'string' || gatewayId.trim().length === 0) {
+        await clearReplayKey();
         return NextResponse.json({ error: 'Invalid gatewayId' }, { status: 400 });
       }
       try {
@@ -234,6 +247,7 @@ export async function POST(req: NextRequest) {
         });
         return result;
       } catch (lockError) {
+        await clearReplayKey();
         console.error(`[YooKassa Webhook] Failed to acquire lock for payment ${gatewayId}:`, lockError);
         return NextResponse.json({ error: 'Concurrent processing lock timeout' }, { status: 429 });
       }
@@ -243,12 +257,14 @@ export async function POST(req: NextRequest) {
       const gatewayId = rawBody.object.id;
       if (typeof gatewayId !== 'string' || gatewayId.trim().length === 0) {
         console.error('[YooKassa Webhook] Missing or invalid gatewayId');
+        await clearReplayKey();
         return NextResponse.json({ error: 'Invalid gatewayId' }, { status: 400 });
       }
 
       const currency = String(rawBody.object.amount?.currency || '').toUpperCase();
       if (currency !== 'RUB') {
         console.error(`[YooKassa Webhook] Invalid currency: ${currency}`);
+        await clearReplayKey();
         return NextResponse.json({ error: 'Invalid currency' }, { status: 400 });
       }
 
@@ -257,6 +273,7 @@ export async function POST(req: NextRequest) {
         amountCents = rubToKopecks(rawBody.object.amount?.value);
       } catch {
         console.error('[YooKassa Webhook] Failed to parse amount via rubToKopecks');
+        await clearReplayKey();
         return NextResponse.json({ error: 'Invalid amount format' }, { status: 400 });
       }
       
@@ -269,6 +286,7 @@ export async function POST(req: NextRequest) {
         : undefined;
 
       if (!userId) {
+        await clearReplayKey();
         return NextResponse.json({ error: 'Missing userId in metadata' }, { status: 400 });
       }
 
@@ -325,12 +343,14 @@ export async function POST(req: NextRequest) {
             }
             return NextResponse.json({ success: true, status: 'Payment processed strictly' }, { status: 200 });
           } else {
+            await clearReplayKey();
             return NextResponse.json({ error: 'Payment double-check validation failed' }, { status: 400 });
           }
         });
         
         return result;
       } catch (lockError) {
+        await clearReplayKey();
         console.error(`[YooKassa Webhook] Failed to acquire lock for payment ${gatewayId}:`, lockError);
         return NextResponse.json({ error: 'Concurrent processing lock timeout' }, { status: 429 });
       }
@@ -338,6 +358,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ status: 'Ignored unsupported event' }, { status: 200 });
   } catch (error: unknown) {
+    if (webhookEventId) {
+      try {
+        const { redis } = await import('@/lib/redis');
+        await redis.del(`webhook:yoo:event:${webhookEventId}`);
+      } catch {}
+    }
     console.error('Webhook error:', (error instanceof Error ? error.message : String(error)));
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }

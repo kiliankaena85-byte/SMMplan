@@ -19,6 +19,7 @@ import { serializeForClient } from '@/lib/bigint-serializer';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import type { Prisma } from '@prisma/client';
+import { isTenantAllowedForUser } from '@/utils/admin-tenant';
 
 const MAX_DISCOUNT = 50; // Business rule: max personal discount
 
@@ -55,9 +56,13 @@ export async function updateClientDiscountAction(
 
     const user = await db.user.findUnique({
       where: { id: parsed.data.userId },
-      select: { id: true, email: true, personalDiscount: true },
+      select: { id: true, email: true, personalDiscount: true, tenantId: true },
     });
     if (!user) return { success: false as const, error: 'Пользователь не найден' };
+
+    if (!isTenantAllowedForUser(admin, user.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
+    }
 
     await db.user.update({
       where: { id: user.id },
@@ -87,9 +92,18 @@ import { SUPPORT_CREDIT_REASONS, SUPPORT_DEBIT_REASONS } from '@/lib/constants/s
 
 /** Get all historical notes for a client */
 export async function getClientNotesAction(userId: string) {
-  return requireStaffPermission('clients', 'view', async () => {
+  return requireStaffPermission('clients', 'view', async (admin) => {
     if (!userId) {
       return { success: false as const, error: 'Не указан ID клиента' };
+    }
+
+    const targetUser = await db.user.findUnique({
+      where: { id: userId },
+      select: { id: true, tenantId: true }
+    });
+    if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
     }
 
     const notes = await db.userNote.findMany({
@@ -124,6 +138,15 @@ export async function createClientNoteAction(userId: string, content: string) {
     }
     if (trimmed.length > 2000) {
       return { success: false as const, error: 'Заметка слишком длинная (макс 2000 символов)' };
+    }
+
+    const targetUser = await db.user.findUnique({
+      where: { id: userId },
+      select: { id: true, tenantId: true }
+    });
+    if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
     }
 
     const authorExists = admin.id ? await db.user.findUnique({ where: { id: admin.id }, select: { id: true } }) : null;
@@ -322,6 +345,15 @@ export async function clearClientNoteAction(userId: string) {
       return { success: false as const, error: 'Не указан ID клиента' };
     }
 
+    const targetUser = await db.user.findUnique({
+      where: { id: userId },
+      select: { id: true, tenantId: true }
+    });
+    if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
+    }
+
     await db.userNote.deleteMany({
       where: { userId }
     });
@@ -358,6 +390,10 @@ export async function sendPasswordResetEmailAction(userId: string) {
 
     if (!user) {
       return { success: false as const, error: 'Клиент не найден' };
+    }
+
+    if (!isTenantAllowedForUser(admin, user.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
     }
 
     const rawToken = (await import('crypto')).randomBytes(32).toString('hex');
@@ -438,6 +474,10 @@ export async function supportGoodwillCreditAction(formData: FormData) {
 
     if (!targetUser) {
       return { success: false as const, error: 'Клиент не найден' };
+    }
+
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
     }
 
     const amountKopecks = BigInt(Math.round(amountRub * 100));
@@ -579,6 +619,10 @@ export async function getClientLedgerAction(userId: string, filterType = 'ALL') 
     });
     if (!targetUser) {
       return { success: false as const, error: 'Пользователь не найден' };
+    }
+
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
     }
 
     const where: Prisma.LedgerEntryWhereInput = {

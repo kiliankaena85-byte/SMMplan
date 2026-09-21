@@ -207,7 +207,6 @@ describe('Storefront API v1 Routes Suite', () => {
           link: 'https://t.me/crypto_channel',
           quantity: 500,
           email: 'investor_customer@example.com',
-          promoCode: 'SALE10',
           idempotencyKey: 'idemp_key_12345',
         }),
       });
@@ -230,6 +229,37 @@ describe('Storefront API v1 Routes Suite', () => {
           email: 'investor_customer@example.com',
         })
       );
+    });
+
+    it('rejects order creation with retail promoCode (400 Bad Request)', async () => {
+      vi.mocked(resolveStorefrontContext).mockResolvedValueOnce(mockSecretCtx);
+      vi.mocked(RateLimitService.checkCustomKeyDetail).mockResolvedValueOnce({
+        allowed: true,
+        limit: 30,
+        remaining: 29,
+        resetSeconds: 60,
+      });
+
+      const req = new NextRequest('http://localhost/api/storefront/v1/orders', {
+        method: 'POST',
+        headers: {
+          'x-storefront-key': 'sk_live_secret_key_123',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          serviceId: 'srv_tg_101',
+          link: 'https://t.me/crypto_channel',
+          quantity: 500,
+          promoCode: 'SALE10',
+        }),
+      });
+
+      const res = await postOrdersRoute(req);
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.success).toBe(false);
+      expect(body.error).toBe('Promo codes are not supported for Storefront API orders');
+      expect(checkoutAction).not.toHaveBeenCalled();
     });
 
     it('returns 400 with structured fieldErrors when invalid payload is sent to POST /orders', async () => {

@@ -144,11 +144,11 @@ export async function runSmartDripfeedTick() {
       const statusRes = await provider.getOrderStatus(exec.externalOrderId);
 
       if (statusRes && statusRes.status) {
-        const providerStatus = statusRes.status.toUpperCase();
+        const rawStatus = String(statusRes.status).toLowerCase().trim();
         const remains = parseInt(statusRes.remains || '0', 10);
         const delivered = Math.max(0, exec.qtySent - remains);
 
-        if (['COMPLETED'].includes(providerStatus)) {
+        if (['completed', 'complete', 'success'].includes(rawStatus)) {
           await prisma.$transaction([
             prisma.smartExecution.update({
               where: { id: exec.id },
@@ -167,7 +167,7 @@ export async function runSmartDripfeedTick() {
           );
 
           await checkAndCompleteCampaign(campaign.id);
-        } else if (['CANCELED', 'PARTIAL', 'FAILED'].includes(providerStatus)) {
+        } else if (['canceled', 'cancelled', 'cancel', 'failed', 'fail', 'error', 'partial', 'partially completed'].includes(rawStatus)) {
           await prisma.$transaction([
             prisma.smartExecution.update({
               where: { id: exec.id },

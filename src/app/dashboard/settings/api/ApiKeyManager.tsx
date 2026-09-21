@@ -6,6 +6,10 @@ import { generateApiKeyAction, resetApiKeyAction, revokeApiKeyAction } from '@/a
 import { toast } from 'sonner';
 import { ApiKeyActiveDisplay } from './components/ApiKeyActiveDisplay';
 import { ApiKeyActionButtons } from './components/ApiKeyActionButtons';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Key } from 'lucide-react';
 
 export interface ApiKeyManagerProps {
   hasKey: boolean;
@@ -23,19 +27,32 @@ export default function ApiKeyManager({
   const [newKey, setNewKey] = useState<string | null>(null);
   const [confirmRevoke, setConfirmRevoke] = useState(false);
   const [isRevoked, setIsRevoked] = useState(false);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
-  const handleGenerate = () => {
+  const executeGenerate = (pwd?: string) => {
     setError('');
-    setNewKey(null);
+    setPasswordError('');
     if (onKeyGenerated) onKeyGenerated(null);
 
     startTransition(async () => {
-      const res = await (newKey ? resetApiKeyAction() : generateApiKeyAction());
+      const res = await (newKey ? resetApiKeyAction(pwd) : generateApiKeyAction(pwd));
       if (!res.success) {
+        if (res.requiresPassword) {
+          setPasswordModalOpen(true);
+          if (pwd) {
+            setPasswordError(res.error || 'Неверный пароль');
+          }
+          return;
+        }
         const errMsg = res.error || 'Ошибка при генерации ключа';
         setError(errMsg);
         toast.error(errMsg);
       } else {
+        setPasswordModalOpen(false);
+        setPasswordInput('');
+        setPasswordError('');
         setIsRevoked(false);
         setNewKey(res.apiKey || null);
         toast.success('API-ключ успешно сгенерирован!');
@@ -45,6 +62,10 @@ export default function ApiKeyManager({
         router.refresh();
       }
     });
+  };
+
+  const handleGenerate = () => {
+    executeGenerate();
   };
 
   const handleRevoke = () => {
@@ -113,6 +134,70 @@ export default function ApiKeyManager({
       <p className="text-[11px] text-muted-foreground pt-1">
         Никогда не передавайте API-ключ третьим лицам. При компрометации немедленно отзовите его.
       </p>
+
+      <Dialog open={passwordModalOpen} onOpenChange={(open) => {
+        if (!open) {
+          setPasswordModalOpen(false);
+          setPasswordInput('');
+          setPasswordError('');
+        }
+      }}>
+        <DialogContent className="sm:max-w-md rounded-2xl border border-border bg-background shadow-2xl p-6">
+          <DialogHeader className="pb-3 border-b border-border/50">
+            <DialogTitle className="text-foreground font-black text-base flex items-center gap-2">
+              <Key className="w-4 h-4 text-primary" />
+              <span>Подтверждение пароля</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4 space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Для создания или смены API-ключа требуется подтвердить пароль от вашего аккаунта (Sudo-режим).
+            </p>
+            <Input
+              type="password"
+              placeholder="Введите текущий пароль"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && passwordInput.trim() && !isPending) {
+                  executeGenerate(passwordInput);
+                }
+              }}
+              className="rounded-xl text-xs h-10"
+              autoFocus
+            />
+            {passwordError && (
+              <p className="text-xs text-destructive font-medium">{passwordError}</p>
+            )}
+          </div>
+
+          <DialogFooter className="mt-2 pt-3 border-t border-border/50 flex justify-end gap-2">
+            <Button
+              intent="outline"
+              size="sm"
+              onClick={() => {
+                setPasswordModalOpen(false);
+                setPasswordInput('');
+                setPasswordError('');
+              }}
+              disabled={isPending}
+              className="rounded-xl text-xs h-9"
+            >
+              Отмена
+            </Button>
+            <Button
+              intent="primary"
+              size="sm"
+              onClick={() => executeGenerate(passwordInput)}
+              disabled={isPending || !passwordInput.trim()}
+              className="rounded-xl text-xs h-9 font-semibold"
+            >
+              {isPending ? 'Проверка...' : 'Подтвердить'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

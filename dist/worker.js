@@ -110476,6 +110476,19 @@ function isPublicIp(rawIp) {
       }
     }
   }
+  if (ip.startsWith("100.")) {
+    const parts = ip.split(".");
+    if (parts.length >= 2) {
+      const secondOctet = parseInt(parts[1], 10);
+      if (secondOctet >= 64 && secondOctet <= 127) {
+        return false;
+      }
+    }
+  }
+  const firstOctet = parseInt(ip.split(".")[0], 10);
+  if (!isNaN(firstOctet) && firstOctet >= 224) {
+    return false;
+  }
   if (ip === "::1" || ip === "::" || ip.startsWith("fc00:") || ip.startsWith("fd00:") || ip.startsWith("fe80:") || ip === "fd00:ec2::254") {
     return false;
   }
@@ -110542,11 +110555,11 @@ async function resolveShortLink(rawUrl) {
     try {
       const parsed = new import_url3.URL(currentUrl);
       if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        return currentUrl;
+        return rawUrl;
       }
       const isAllowedHost2 = await isPublicHost(parsed.hostname);
       if (!isAllowedHost2) {
-        return currentUrl;
+        return rawUrl;
       }
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5e3);
@@ -124930,7 +124943,7 @@ var init_order_service = __esm({
        */
       async cancelPendingOrderClient(orderId, userId, tenantId) {
         try {
-          return await runSerializableTransaction(async (tx) => {
+          const result = await runSerializableTransaction(async (tx) => {
             const order = await tx.order.findUnique({
               where: { id: orderId }
             });
@@ -124939,6 +124952,9 @@ var init_order_service = __esm({
             }
             if (order.status !== "PENDING" && order.status !== "AWAITING_PAYMENT") {
               return { success: false, error: "\u0417\u0430\u043A\u0430\u0437 \u0443\u0436\u0435 \u0443\u0448\u0435\u043B \u0432 \u0440\u0430\u0431\u043E\u0442\u0443 \u0438\u043B\u0438 \u043E\u0442\u043C\u0435\u043D\u0435\u043D" };
+            }
+            if (order.externalId || order.providerOrderId) {
+              return { success: false, error: "\u0417\u0430\u043A\u0430\u0437 \u0443\u0436\u0435 \u043F\u0435\u0440\u0435\u0434\u0430\u043D \u0432 \u043E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0443 \u0438 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442 \u0431\u044B\u0442\u044C \u043E\u0442\u043C\u0435\u043D\u0451\u043D" };
             }
             const charge = order.charge;
             const wasAwaitingPayment = order.status === "AWAITING_PAYMENT";
@@ -124985,17 +125001,29 @@ var init_order_service = __esm({
                 );
               }
             }
-            Promise.resolve().then(() => (init_smtp(), smtp_exports)).then(({ sendOrderCanceledMail: sendOrderCanceledMail2 }) => {
-              db.user.findUnique({ where: { id: userId }, select: { email: true } }).then((u) => {
-                if (u?.email) {
-                  db.service.findUnique({ where: { id: order.serviceId }, select: { name: true } }).then((s) => {
-                    if (s?.name) sendOrderCanceledMail2(u.email, order.numericId.toString(), s.name, order.tenantId).catch(console.error);
-                  });
-                }
-              });
-            });
-            return { success: true };
+            return {
+              success: true,
+              emailData: {
+                userId,
+                numericId: order.numericId,
+                serviceId: order.serviceId,
+                tenantId: order.tenantId
+              }
+            };
           });
+          if (result.success && result.emailData) {
+            try {
+              const { sendOrderCanceledMail: sendOrderCanceledMail2 } = await Promise.resolve().then(() => (init_smtp(), smtp_exports));
+              const user = await db.user.findUnique({ where: { id: result.emailData.userId }, select: { email: true } });
+              const service = await db.service.findUnique({ where: { id: result.emailData.serviceId }, select: { name: true } });
+              if (user?.email && service?.name) {
+                await sendOrderCanceledMail2(user.email, result.emailData.numericId.toString(), service.name, result.emailData.tenantId);
+              }
+            } catch (emailErr) {
+              console.error("[OrderService] Failed to send cancel email:", emailErr);
+            }
+          }
+          return { success: result.success, error: "error" in result ? result.error : void 0 };
         } catch (e) {
           console.error("[OrderService] cancelPendingOrderClient failed:", e instanceof Error ? e.message : String(e));
           return { success: false, error: "\u0412\u043D\u0443\u0442\u0440\u0435\u043D\u043D\u044F\u044F \u043E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u043E\u0442\u043C\u0435\u043D\u0435 \u0437\u0430\u043A\u0430\u0437\u0430" };
@@ -125043,8 +125071,10 @@ var init_order_service = __esm({
               return { success: true, orderId: order.id, status: order.status };
             }
             let refundCents = 0;
-            if (internalStatus === "PARTIAL" || internalStatus === "CANCELED") {
-              if (internalStatus === "CANCELED" && (remains <= 0 || order.quantity <= 0)) {
+            if (internalStatus === "PARTIAL" || internalStatus === "CANCELED" || internalStatus === "ERROR") {
+              if ((internalStatus === "CANCELED" || internalStatus === "ERROR") && (remains <= 0 || order.quantity <= 0)) {
+                refundCents = Number(order.charge);
+              } else if (internalStatus === "ERROR") {
                 refundCents = Number(order.charge);
               } else {
                 refundCents = calculatePartialRefund({ remains, quantity: order.quantity, charge: order.charge });
@@ -127922,10 +127952,10 @@ async function runSmartDripfeedTick() {
         const provider = await providerService.getWorkerProviderInstance(service.provider);
         const statusRes = await provider.getOrderStatus(exec.externalOrderId);
         if (statusRes && statusRes.status) {
-          const providerStatus = statusRes.status.toUpperCase();
+          const rawStatus = String(statusRes.status).toLowerCase().trim();
           const remains = parseInt(statusRes.remains || "0", 10);
           const delivered = Math.max(0, exec.qtySent - remains);
-          if (["COMPLETED"].includes(providerStatus)) {
+          if (["completed", "complete", "success"].includes(rawStatus)) {
             await db.$transaction([
               db.smartExecution.update({
                 where: { id: exec.id },
@@ -127941,7 +127971,7 @@ async function runSmartDripfeedTick() {
               (err) => log10.error("[Dripfeed] Failed to run silent quality scanner:", { error: err })
             );
             await checkAndCompleteCampaign(campaign.id);
-          } else if (["CANCELED", "PARTIAL", "FAILED"].includes(providerStatus)) {
+          } else if (["canceled", "cancelled", "cancel", "failed", "fail", "error", "partial", "partially completed"].includes(rawStatus)) {
             await db.$transaction([
               db.smartExecution.update({
                 where: { id: exec.id },
@@ -139219,12 +139249,14 @@ function toSafePaymentContextLog(ctx) {
 async function checkVatThreshold(tenantId = "smmplan") {
   const cleanTenant = tenantId || "smmplan";
   const now = Date.now();
-  const cached = vatThresholdCache.get(cleanTenant);
+  const currentYear = (/* @__PURE__ */ new Date()).getFullYear();
+  const cacheKey = `${cleanTenant}:${currentYear}`;
+  const cached = vatThresholdCache.get(cacheKey);
   if (cached && cached.expiresAt > now) {
     return cached.result;
   }
-  const currentYear = (/* @__PURE__ */ new Date()).getFullYear();
   const startOfYear = new Date(currentYear, 0, 1);
+  const endOfYear = new Date(currentYear + 1, 0, 1);
   const grossResult = await db.payment.aggregate({
     _sum: { amount: true },
     where: {
@@ -139238,14 +139270,15 @@ async function checkVatThreshold(tenantId = "smmplan") {
     _sum: { amount: true },
     where: {
       tenantId: cleanTenant,
-      transactionType: "REFUND",
+      transactionType: { in: ["REFUND", "ORDER_CANCEL"] },
       createdAt: { gte: startOfYear }
     }
   }).catch(() => ({ _sum: { amount: BigInt(0) } }));
   const refundKopecks = BigInt(refundResult._sum?.amount || 0);
   const netAnnualRevenueKopecks = grossKopecks > refundKopecks ? grossKopecks - refundKopecks : BigInt(0);
   const isExceeded = netAnnualRevenueKopecks >= VAT_THRESHOLD_KOPECKS;
-  vatThresholdCache.set(cleanTenant, { result: isExceeded, expiresAt: now + 3600 * 1e3 });
+  const expiresAt = Math.min(now + 3600 * 1e3, endOfYear.getTime());
+  vatThresholdCache.set(cacheKey, { result: isExceeded, expiresAt });
   return isExceeded;
 }
 var import_crypto6, VAT_THRESHOLD_KOPECKS, vatThresholdCache, BasePaymentGateway, YooKassaGateway, CryptoBotGateway, BalanceGateway, RobokassaGateway, MockGateway, PaymentGatewayFactory;
@@ -145925,7 +145958,7 @@ function safeRevalidatePath(path3, type) {
   try {
     (0, import_cache2.revalidatePath)(path3, type);
   } catch (err) {
-    const msg = err instanceof Error ? err instanceof Error ? err.message : String(err) : String(err);
+    const msg = err instanceof Error ? err.message : String(err);
     console.warn(`[Cache] revalidatePath failed for ${path3}:`, msg);
   }
 }
@@ -146045,7 +146078,7 @@ var init_payment_service = __esm({
                 console.warn(`[Payment] User mismatch: caller passed ${userId}, payment bound to ${currentPayment.userId}. Using payment.userId.`);
               }
               const updated = await tx.payment.updateMany({
-                where: { id: currentPayment.id, tenantId: currentPayment.tenantId, status: "PENDING" },
+                where: { id: currentPayment.id, tenantId: currentPayment.tenantId, status: { in: ["PENDING", "FRAUD_HOLD"] } },
                 data: { status: "SUCCEEDED", gatewayId, receiptId: receiptId || void 0 }
               });
               if (updated.count === 0) {
@@ -146071,7 +146104,7 @@ var init_payment_service = __esm({
                 where: { id: linkedOrderId },
                 include: { user: { select: { email: true } }, service: { select: { name: true } } }
               });
-              if (order && order.status === "AWAITING_PAYMENT") {
+              if (order && (order.status === "AWAITING_PAYMENT" || order.status === "PENDING_CHECK")) {
                 if (creditAmount < order.charge) {
                   console.error(`[SECURITY] Underpaid order activation blocked: order #${order.numericId} requires ${order.charge} kopecks, but payment credited only ${creditAmount} kopecks.`);
                   void SecurityAlertService.record({
@@ -146122,7 +146155,7 @@ var init_payment_service = __esm({
             const basketOrders = await tx.order.findMany({
               where: {
                 paymentId: processedPaymentId,
-                status: "AWAITING_PAYMENT",
+                status: { in: ["AWAITING_PAYMENT", "PENDING_CHECK"] },
                 ...basketTenantId ? { tenantId: basketTenantId } : {}
               },
               include: { user: { select: { email: true } }, service: { select: { name: true } } }
@@ -146131,7 +146164,7 @@ var init_payment_service = __esm({
               await tx.order.updateMany({
                 where: {
                   paymentId: processedPaymentId,
-                  status: "AWAITING_PAYMENT",
+                  status: { in: ["AWAITING_PAYMENT", "PENDING_CHECK"] },
                   ...basketTenantId ? { tenantId: basketTenantId } : {}
                 },
                 data: { status: "PENDING" }
@@ -159003,27 +159036,60 @@ var RefundPolicyService = class {
       const errMsg = err instanceof Error ? err.message : String(err);
       console.error(`[RefundPolicyService] Failed to process referral commission for order ${order.id}:`, errMsg);
     }
+    let previousRefunds = 0;
+    try {
+      let priorEntries = [];
+      if (typeof txClient.ledgerEntry?.findMany === "function") {
+        priorEntries = await txClient.ledgerEntry.findMany({
+          where: {
+            userId: order.userId,
+            transactionType: { in: ["REFUND", "ORDER_CANCEL"] },
+            OR: [
+              { idempotencyKey: { startsWith: `refund_${order.id}` } },
+              { idempotencyKey: { startsWith: `refund-client-cancel-${order.id}` } },
+              { reason: { contains: `#${order.id}` } }
+            ]
+          },
+          select: { amount: true, idempotencyKey: true }
+        });
+      } else if (typeof txClient.ledgerEntry?.findFirst === "function") {
+        const single = await txClient.ledgerEntry.findFirst({
+          where: {
+            userId: order.userId,
+            transactionType: { in: ["REFUND", "ORDER_CANCEL"] },
+            OR: [
+              { idempotencyKey: { startsWith: `refund_${order.id}` } },
+              { idempotencyKey: { startsWith: `refund-client-cancel-${order.id}` } },
+              { reason: { contains: `#${order.id}` } }
+            ]
+          },
+          select: { amount: true, idempotencyKey: true }
+        });
+        if (single) priorEntries = [single];
+      }
+      for (const entry of priorEntries) {
+        previousRefunds += Math.max(0, Number(entry.amount));
+      }
+    } catch (queryErr) {
+      console.warn(`[RefundPolicyService] Could not query prior refund entries for order ${order.id}:`, queryErr);
+    }
+    const maxAvailableRefund = Math.max(0, order.charge - previousRefunds);
+    if (maxAvailableRefund <= 0) {
+      return null;
+    }
     let refundCents = 0;
     let reason = `\u0412\u043E\u0437\u0432\u0440\u0430\u0442 \u0417\u0430\u043A\u0430\u0437 #${order.id}`;
     if (order.status === "CANCELED" || order.status === "ERROR") {
-      let previousRefunds = 0;
-      const partialRefundLedger = await txClient.ledgerEntry.findFirst({
-        where: {
-          idempotencyKey: `refund_${order.id}_PARTIAL`,
-          ...order.tenantId ? { tenantId: order.tenantId } : {}
-        }
-      });
-      if (partialRefundLedger) {
-        previousRefunds += Number(partialRefundLedger.amount);
-      }
-      refundCents = Math.max(0, order.charge - previousRefunds);
-      reason = `\u041F\u043E\u043B\u043D\u044B\u0439 \u0432\u043E\u0437\u0432\u0440\u0430\u0442 (${order.status}) \u0417\u0430\u043A\u0430\u0437 #${order.id} ${reasonDetail}`.trim();
+      refundCents = maxAvailableRefund;
+      reason = previousRefunds > 0 ? `\u0414\u043E\u0432\u043E\u0437\u0432\u0440\u0430\u0442 \u043E\u0441\u0442\u0430\u0442\u043A\u0430 (${order.status}) \u0417\u0430\u043A\u0430\u0437 #${order.id} ${reasonDetail}`.trim() : `\u041F\u043E\u043B\u043D\u044B\u0439 \u0432\u043E\u0437\u0432\u0440\u0430\u0442 (${order.status}) \u0417\u0430\u043A\u0430\u0437 #${order.id} ${reasonDetail}`.trim();
     } else if (order.status === "PARTIAL") {
-      refundCents = calculatePartialRefund(order);
+      const calculated = calculatePartialRefund(order);
+      const incremental = Math.max(0, calculated - previousRefunds);
+      refundCents = Math.min(incremental, maxAvailableRefund);
       reason = `\u0427\u0430\u0441\u0442\u0438\u0447\u043D\u044B\u0439 \u0432\u043E\u0437\u0432\u0440\u0430\u0442 (Partial, ${order.remains} \u043D\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043E) \u0417\u0430\u043A\u0430\u0437 #${order.id}`.trim();
     }
     if (refundCents > 0) {
-      const idempotencyKey = `refund_${order.id}_${order.status}`;
+      const idempotencyKey = previousRefunds > 0 ? `refund_${order.id}_${order.status}_remainder_${refundCents}` : `refund_${order.id}_${order.status}`;
       if (txClient === db) {
         return await WalletService.refund(order.userId, refundCents, reason, idempotencyKey, void 0, order.tenantId);
       } else {
@@ -159154,7 +159220,7 @@ async function syncProcessor(job) {
               hasAnyStatus = true;
               const subStatus = String(s.status).toLowerCase();
               if (s.remains) totalRemainsText += parseInt(String(s.remains), 10) || 0;
-              if (["canceled", "cancelled", "cancel"].includes(subStatus)) {
+              if (["canceled", "cancelled", "cancel", "error", "failed", "fail"].includes(subStatus)) {
                 anyCanceled = true;
                 allCompleted = false;
               } else if (["partial", "partially completed"].includes(subStatus)) {
@@ -159206,7 +159272,7 @@ async function syncProcessor(job) {
           let targetStatus = null;
           if (["completed", "complete", "success"].includes(normalizedStatus)) {
             targetStatus = "COMPLETED";
-          } else if (["canceled", "cancelled", "cancel"].includes(normalizedStatus)) {
+          } else if (["canceled", "cancelled", "cancel", "error", "failed", "fail"].includes(normalizedStatus)) {
             targetStatus = "CANCELED";
           } else if (["partial", "partially completed"].includes(normalizedStatus)) {
             targetStatus = "PARTIAL";
@@ -159412,15 +159478,48 @@ async function reconcileStalePayments() {
         try {
           const secrets = await SettingsManager.getPaymentSecrets(payment.tenantId).catch(() => null);
           const isTestMode = await SettingsManager.isTestMode(payment.tenantId);
-          const authHeader = secrets?.yookassaShopId && secrets?.yookassaSecretKey ? "Basic " + Buffer.from(`${secrets.yookassaShopId}:${secrets.yookassaSecretKey}`).toString("base64") : "Basic mock_auth";
+          const hasCredentials = Boolean(secrets?.yookassaShopId && secrets?.yookassaSecretKey);
+          if (!hasCredentials) {
+            const isTestEnv = isTestMode || process.env.NODE_ENV === "test";
+            if (!isTestEnv) {
+              report.errors += 1;
+              log15.error(`Missing YooKassa credentials during reconciliation for tenant ${payment.tenantId}, payment ${payment.id}`);
+              sendAdminAlert(
+                `\u{1F6A8} <b>CRITICAL: YooKassa Reconciliation Credentials Missing</b>
+
+\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u043E\u043B\u0443\u0447\u0438\u0442\u044C \u043A\u043B\u044E\u0447\u0438 YooKassa (\u0441\u0431\u043E\u0439 Redis/\u0411\u0414 \u0438\u043B\u0438 \u043A\u043B\u044E\u0447\u0438 \u043D\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u044B) \u0434\u043B\u044F \u043F\u043B\u0430\u0442\u0435\u0436\u0430 <code>${payment.id}</code> (tenant: ${payment.tenantId}). \u0414\u0435\u043D\u044C\u0433\u0438 \u0437\u0430\u0432\u0438\u0441\u0430\u044E\u0442 \u0432 PENDING!`,
+                "CRITICAL",
+                payment.tenantId
+              );
+              continue;
+            }
+          }
+          const authHeader = hasCredentials ? "Basic " + Buffer.from(`${secrets.yookassaShopId}:${secrets.yookassaSecretKey}`).toString("base64") : "Basic mock_auth";
           const res = await safeFetch(`https://api.yookassa.ru/v3/payments/${payment.gatewayId}`, {
             method: "GET",
             headers: { Authorization: authHeader },
             signal: AbortSignal.timeout(1e4)
           });
+          if (res.status === 401 || res.status === 403) {
+            report.errors += 1;
+            log15.error(`YooKassa authorization failed (HTTP ${res.status}) for payment ${payment.id}`);
+            sendAdminAlert(
+              `\u{1F6A8} <b>CRITICAL: YooKassa Auth Failed during Reconciliation</b>
+
+\u041E\u0448\u0438\u0431\u043A\u0430 \u0430\u0432\u0442\u043E\u0440\u0438\u0437\u0430\u0446\u0438\u0438 \u0432 YooKassa (HTTP ${res.status}) \u0434\u043B\u044F \u043F\u043B\u0430\u0442\u0435\u0436\u0430 <code>${payment.id}</code> (gatewayId: <code>${payment.gatewayId}</code>). \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0430\u043A\u0442\u0443\u0430\u043B\u044C\u043D\u043E\u0441\u0442\u044C shopId / secretKey!`,
+              "CRITICAL",
+              payment.tenantId
+            );
+            continue;
+          }
           if (res.status === 404) {
             report.orphans += 1;
             log15.warn(`Payment ${payment.id} (YooKassa: ${payment.gatewayId}) not found on remote gateway`);
+            continue;
+          }
+          if (!res.ok) {
+            report.errors += 1;
+            log15.error(`YooKassa reconciliation request failed for payment ${payment.id} with status ${res.status}`);
             continue;
           }
           if (res.ok) {
@@ -165065,6 +165164,15 @@ refillWorker.on("failed", (job, err) => {
 });
 articlePublishWorker.on("failed", (job, err) => {
   handleDeadLetter("articlePublishQueue", job, err);
+});
+aiObserverWorker.on("failed", (job, err) => {
+  handleDeadLetter("aiObserverQueue", job, err);
+});
+aiEconomicOptimizerWorker.on("failed", (job, err) => {
+  handleDeadLetter("aiEconomicOptimizerQueue", job, err);
+});
+geoAvailabilityWorker.on("failed", (job, err) => {
+  handleDeadLetter("geoAvailabilityQueue", job, err);
 });
 etaWorker.on("failed", (job, err) => {
   trackEtaFailure(job, err);

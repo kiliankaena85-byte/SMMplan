@@ -22,6 +22,7 @@ import { ordersQueue } from '@/lib/queue-manager';
 import { redis } from '@/lib/redis';
 import { SettingsManager } from '@/lib/settings';
 import { CompensationService } from '@/services/financial/compensation.service';
+import { isTenantAllowedForUser } from '@/utils/admin-tenant';
 
 /**
  * MANDATORY INTEGRITY WARNING:
@@ -83,6 +84,14 @@ export async function cancelOrderAction(formData: FormData) {
 export async function syncSingleOrderStatusAction(orderId: string) {
   return requireStaffPermission('orders', 'edit', async (admin) => {
     try {
+      const order = await db.order.findUnique({
+        where: { id: orderId },
+        select: { tenantId: true }
+      });
+      if (!order || !isTenantAllowedForUser(admin, order.tenantId)) {
+        return { success: false as const, error: 'Заказ не найден или доступ ограничен' };
+      }
+
       const result = await adminOrderService.syncOrderStatusWithProvider(orderId, {
         id: admin.id,
         email: admin.email,
@@ -100,6 +109,14 @@ export async function restartOrderAction(formData: FormData) {
     const parsed = orderIdSchema.safeParse(Object.fromEntries(formData.entries()));
     if (!parsed.success) return { success: false as const, error: 'Missing orderId' };
     const { orderId } = parsed.data;
+
+    const order = await db.order.findUnique({
+      where: { id: orderId },
+      select: { tenantId: true }
+    });
+    if (!order || !isTenantAllowedForUser(admin, order.tenantId)) {
+      return { success: false as const, error: 'Заказ не найден или доступ ограничен' };
+    }
 
     await adminOrderService.restartOrder(orderId, {
       id: admin.id,
@@ -137,6 +154,10 @@ export async function setOrderStatusAction(
         where: { id: validatedOrderId },
         include: { user: { select: { id: true, balance: true } } },
       });
+
+      if (!isTenantAllowedForUser(admin, order.tenantId)) {
+        throw new Error('Заказ не найден или доступ ограничен');
+      }
 
       const oldStatus = order.status;
       const newStatus = validatedStatus;
@@ -278,6 +299,10 @@ export async function forceCompleteOrderAction(orderId: string) {
         where: { id: orderId },
       });
 
+      if (!isTenantAllowedForUser(admin, order.tenantId)) {
+        throw new Error('Заказ не найден или доступ ограничен');
+      }
+
       if (['COMPLETED', 'CANCELED', 'ERROR', 'PARTIAL'].includes(order.status)) {
         throw new Error('Order is already in a terminal state');
       }
@@ -346,7 +371,12 @@ export async function bulkCancelOrdersAction(
     const skippedCount = parsed.data.orderIds.length - targetIds.length;
 
     const orders = await db.order.findMany({
-      where: { id: { in: targetIds }, tenantId: admin.tenantId ?? 'smmplan' },
+      where: {
+        id: { in: targetIds },
+        ...(admin.role === 'OWNER'
+          ? {}
+          : { tenantId: { in: admin.allowedTenants?.length ? admin.allowedTenants : [admin.tenantId || 'smmplan'] } })
+      },
       select: { id: true, userId: true, numericId: true, status: true, charge: true, quantity: true, remains: true, providerCost: true }
     });
 
@@ -381,7 +411,12 @@ export async function bulkCancelOrdersAction(
         try {
           await runSerializableTransaction(async (tx) => {
             const safeOrder = await tx.order.findFirst({
-              where: { id: order.id, tenantId: admin.tenantId ?? 'smmplan' }
+              where: {
+                id: order.id,
+                ...(admin.role === 'OWNER'
+                  ? {}
+                  : { tenantId: { in: admin.allowedTenants?.length ? admin.allowedTenants : [admin.tenantId || 'smmplan'] } })
+              }
             });
             
             if (!safeOrder || ['CANCELED'].includes(safeOrder.status)) return; // Allow COMPLETED
@@ -478,7 +513,9 @@ export async function bulkRestartOrdersAction(orderIds: string[]) {
     const orders = await db.order.findMany({
       where: {
         id: { in: targetIds },
-        ...(admin.tenantId ? { tenantId: admin.tenantId } : {})
+        ...(admin.role === 'OWNER'
+          ? {}
+          : { tenantId: { in: admin.allowedTenants?.length ? admin.allowedTenants : [admin.tenantId || 'smmplan'] } })
       }
     });
 
@@ -516,7 +553,12 @@ export async function bulkRestartOrdersAction(orderIds: string[]) {
 export async function getFailoverPreview(orderId: string) {
   return requireStaffPermission('orders', 'edit', async (admin) => {
     const order = await db.order.findFirst({
-      where: { id: orderId, tenantId: admin.tenantId ?? 'smmplan' },
+      where: {
+        id: orderId,
+        ...(admin.role === 'OWNER'
+          ? {}
+          : { tenantId: { in: admin.allowedTenants?.length ? admin.allowedTenants : [admin.tenantId || 'smmplan'] } })
+      },
       include: {
         service: {
           include: {
@@ -601,7 +643,12 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string, ac
   return requireStaffPermission('orders', 'edit', async (admin) => {
     const result = await runSerializableTransaction(async (tx) => {
       const order = await tx.order.findFirst({
-        where: { id: orderId, tenantId: admin.tenantId ?? 'smmplan' },
+        where: {
+          id: orderId,
+          ...(admin.role === 'OWNER'
+            ? {}
+            : { tenantId: { in: admin.allowedTenants?.length ? admin.allowedTenants : [admin.tenantId || 'smmplan'] } })
+        },
         select: { id: true, numericId: true, status: true, charge: true, userId: true, serviceId: true, providerId: true }
       });
 
@@ -710,7 +757,9 @@ export async function getOrderDetailsAction(orderId: string) {
     const order = await db.order.findFirst({
       where: {
         id: orderId,
-        ...(admin.tenantId ? { tenantId: admin.tenantId } : {})
+        ...(admin.role === 'OWNER'
+          ? {}
+          : { tenantId: { in: admin.allowedTenants?.length ? admin.allowedTenants : [admin.tenantId || 'smmplan'] } })
       },
       include: {
         user: { select: { email: true } },
@@ -784,7 +833,9 @@ export async function sendReorderOfferAction(orderId: string, customNote?: strin
     const order = await db.order.findFirst({
       where: {
         id: orderId,
-        ...(admin.tenantId ? { tenantId: admin.tenantId } : {})
+        ...(admin.role === 'OWNER'
+          ? {}
+          : { tenantId: { in: admin.allowedTenants?.length ? admin.allowedTenants : [admin.tenantId || 'smmplan'] } })
       },
       include: {
         user: { select: { id: true, email: true, balance: true } },

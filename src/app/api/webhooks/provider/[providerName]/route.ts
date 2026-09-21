@@ -143,7 +143,7 @@ export async function POST(
     const verifiedStatus = s.status.toUpperCase();
     const parsedRemains = parseInt(s.remains || '0', 10);
 
-    if (['CANCELED', 'CANCELLED'].includes(verifiedStatus)) {
+    if (['CANCELED', 'CANCELLED', 'FAILED', 'FAIL', 'ERROR'].includes(verifiedStatus)) {
       await runSerializableTransaction(async (tx) => {
         const updated = await tx.order.updateMany({
           where: { id: order.id, status: { in: ['PENDING', 'IN_PROGRESS', 'PENDING_CHECK'] } },

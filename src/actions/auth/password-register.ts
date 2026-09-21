@@ -63,6 +63,10 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
       // audit-ignore: expected fallback when invoked outside Next.js request context (e.g. unit tests or background scripts)
     }
 
+    if (!rawTenantId && formData.has('tenantId')) {
+      rawTenantId = formData.get('tenantId') as string;
+    }
+
     const tenantId = normalizeTenantId(rawTenantId) || "smmplan";
     const passwordHash = await hashPassword(password);
 
@@ -124,6 +128,7 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
           isActive: true,
           isEmailVerified: isTestEnv,
           tenantId,
+          allowedTenants: [tenantId],
           tosAcceptedAt: new Date(),
           tosAcceptedIp: clientIp,
         }
@@ -185,4 +190,13 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
     log.error('Password registration action failed', { error: errorMessage, email: cleanEmail });
     return { error: "Ошибка сервера при регистрации. Попробуйте позже.", success: false };
   }
+}
+
+export async function passwordRegisterAction(email: string, password: string, tenantId = 'smmplan', captchaToken = 'test-token') {
+  const fd = new FormData();
+  fd.set('email', email);
+  fd.set('password', password);
+  fd.set('captchaToken', captchaToken);
+  fd.set('tenantId', tenantId);
+  return registerWithPasswordAction(null, fd);
 }

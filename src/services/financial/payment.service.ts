@@ -155,7 +155,7 @@ export class PaymentService {
           }
 
           const updated = await tx.payment.updateMany({
-            where: { id: currentPayment.id, tenantId: currentPayment.tenantId, status: 'PENDING' },
+            where: { id: currentPayment.id, tenantId: currentPayment.tenantId, status: { in: ['PENDING', 'FRAUD_HOLD'] } },
             data: { status: 'SUCCEEDED', gatewayId, receiptId: receiptId || undefined }
           });
           if (updated.count === 0) {
@@ -195,7 +195,7 @@ export class PaymentService {
             where: { id: linkedOrderId },
             include: { user: { select: { email: true } }, service: { select: { name: true } } }
           });
-          if (order && order.status === 'AWAITING_PAYMENT') {
+          if (order && (order.status === 'AWAITING_PAYMENT' || order.status === 'PENDING_CHECK')) {
             // [FIN-P0 Guard] Ensure credited amount is strictly >= order.charge to prevent underpaid activation
             if (creditAmount < order.charge) {
               console.error(`[SECURITY] Underpaid order activation blocked: order #${order.numericId} requires ${order.charge} kopecks, but payment credited only ${creditAmount} kopecks.`);
@@ -244,7 +244,7 @@ export class PaymentService {
         const basketOrders = await tx.order.findMany({ 
           where: { 
             paymentId: processedPaymentId, 
-            status: 'AWAITING_PAYMENT',
+            status: { in: ['AWAITING_PAYMENT', 'PENDING_CHECK'] },
             ...(basketTenantId ? { tenantId: basketTenantId } : {})
           },
           include: { user: { select: { email: true } }, service: { select: { name: true } } }
@@ -253,7 +253,7 @@ export class PaymentService {
            await tx.order.updateMany({
               where: { 
                 paymentId: processedPaymentId, 
-                status: 'AWAITING_PAYMENT',
+                status: { in: ['AWAITING_PAYMENT', 'PENDING_CHECK'] },
                 ...(basketTenantId ? { tenantId: basketTenantId } : {})
               },
               data: { status: 'PENDING' }

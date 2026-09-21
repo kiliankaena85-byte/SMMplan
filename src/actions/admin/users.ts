@@ -18,6 +18,7 @@ import { getEncodedKey, SESSION_COOKIE_NAME } from '@/lib/session';
 import { resolveContourFromHost } from '@/lib/tenant-resolver-edge';
 import { SupportBalancePolicyService } from '@/services/financial/support-balance-policy.service';
 import { sendAdminAlert } from '@/lib/notifications';
+import { isTenantAllowedForUser } from '@/utils/admin-tenant';
 
 export async function updateBalanceAction(formData: FormData) {
   return requireStaffPermission('finance', 'edit', async (admin) => {
@@ -51,9 +52,9 @@ export async function updateBalanceAction(formData: FormData) {
       return { success: false as const, error: 'Только OWNER может изменять баланс других сотрудников' };
     }
 
-    if (admin.role !== 'OWNER' && admin.tenantId && targetUser.tenantId && admin.tenantId !== targetUser.tenantId) {
-      console.warn(`[SECURITY] Cross-tenant balance adjustment blocked: staff ${admin.id} (${admin.tenantId}) -> target ${targetUser.id} (${targetUser.tenantId})`);
-      return { success: false as const, error: 'Доступ запрещен: пользователь принадлежит другому сайту' };
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      console.warn(`[SECURITY] Cross-tenant balance adjustment blocked: staff ${admin.id} -> target ${targetUser.id} (${targetUser.tenantId})`);
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
     }
 
     // Overdraft Protection: prevent debiting more than available balance
@@ -469,8 +470,8 @@ export async function banUserAction(formData: FormData) {
       return { success: false as const, error: 'Только OWNER может заблокировать администратора' };
     }
 
-    if (admin.role !== 'OWNER' && admin.tenantId && targetUser.tenantId && admin.tenantId !== targetUser.tenantId) {
-      return { success: false as const, error: 'Доступ запрещен: пользователь принадлежит другому сайту' };
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
     }
 
     const ipAddress = await getClientIp('unknown');
@@ -511,8 +512,8 @@ export async function unbanUserAction(formData: FormData) {
     const targetUser = await db.user.findUnique({ where: { id: userId }, select: { id: true, role: true, tenantId: true } });
     if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
 
-    if (admin.role !== 'OWNER' && admin.tenantId && targetUser.tenantId && admin.tenantId !== targetUser.tenantId) {
-      return { success: false as const, error: 'Доступ запрещен: пользователь принадлежит другому сайту' };
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
     }
 
     const ipAddress = await getClientIp('unknown');
@@ -561,6 +562,9 @@ export async function loginAsAction(formData: FormData) {
     const targetUser = await db.user.findUniqueOrThrow({ where: { id: userId } });
     if (admin.role !== 'OWNER' && (targetUser.role === 'OWNER' || targetUser.role === 'ADMIN')) {
       return { success: false as const, error: 'Запрещено входить от имени администраторов и владельцев' };
+    }
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
     }
     const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000);
 
@@ -686,8 +690,12 @@ export async function adminChangeUserPasswordAction(userId: string, newPass: str
     const { hashPassword } = await import('@/lib/auth/password');
     const hashed = await hashPassword(newPass);
 
-    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true, role: true } });
+    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true, role: true, tenantId: true } });
     if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
+    }
 
     // Hierarchy Guard: Protecting OWNER & Staff accounts from unauthorized password resets
     if (targetUser.role === 'OWNER' && admin.role !== 'OWNER') {
@@ -752,8 +760,12 @@ export async function adminDeleteUserAction(formData: FormData) {
       return { success: false as const, error: 'Вы не можете удалить собственный профиль' };
     }
 
-    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true, role: true } });
+    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true, role: true, tenantId: true } });
     if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
+    }
 
     // Hierarchy Guard: OWNER cannot be deleted, ADMIN can only be deleted by OWNER
     if (targetUser.role === 'OWNER') {
@@ -836,6 +848,10 @@ export async function adminChangeUserEmailAction(userId: string, newEmail: strin
     });
     if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
 
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
+    }
+
     // Hierarchy Guard: Protecting OWNER & Staff accounts from unauthorized email changes
     if (targetUser.role === 'OWNER' && admin.role !== 'OWNER') {
       return { success: false as const, error: 'Запрещено изменять email Владельца платформы' };
@@ -917,6 +933,10 @@ export async function adminGenerateMagicLinkAction(userId: string) {
       return { success: false as const, error: 'Пользователь не найден или заблокирован' };
     }
 
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
+    }
+
     const crypto = await import('crypto');
     const rawToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
@@ -968,8 +988,12 @@ export async function adminRevokeUserSessionsAction(userId: string) {
   return requireStaffPermission('clients', 'edit', async (admin) => {
     if (!userId) return { success: false as const, error: 'Missing userId' };
 
-    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true } });
+    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { email: true, tenantId: true } });
     if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+
+    if (!isTenantAllowedForUser(admin, targetUser.tenantId || 'smmplan')) {
+      return { success: false as const, error: 'Доступ запрещен: клиент принадлежит другой витрине' };
+    }
 
     await db.$transaction(async (tx) => {
       await tx.session.deleteMany({ where: { userId } });
