@@ -5,9 +5,8 @@ import Link from 'next/link';
 import { replyTicketAction } from '@/actions/operator/tickets/reply-ticket.action';
 import { changeTicketStatusAction } from '@/actions/operator/tickets/change-status.action';
 import { generateTicketCoPilotDraftAction } from '@/actions/operator/tickets/ai-copilot.action';
-import { takeoverTicketAction } from '@/actions/operator/tickets/takeover.action';
 import { Button } from '@/components/ui/button';
-import { FileText, Send, MessageSquare, Check, X, Sparkles, Loader2, ShieldAlert } from 'lucide-react';
+import { FileText, Send, MessageSquare, Check, X, Sparkles, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Message {
@@ -39,11 +38,6 @@ const MSG_SENDER_STYLES: Record<string, { bubble: string; text: string; align: s
     bubble: 'bg-primary text-primary-foreground rounded-2xl rounded-br-sm shadow-sm',
     text: 'text-primary-foreground',
     align: 'justify-end',
-  },
-  AI_AGENT: {
-    bubble: 'bg-indigo-500/10 dark:bg-indigo-950/30 border border-indigo-500/30 text-foreground rounded-2xl rounded-bl-sm shadow-xs',
-    text: 'text-foreground',
-    align: 'justify-start',
   },
   INTERNAL: {
     bubble: 'bg-warning/10 border border-warning/30 text-warning-foreground rounded-2xl py-3 px-5 text-center max-w-lg mx-auto',
@@ -158,17 +152,6 @@ export function TicketChat({ ticket }: TicketChatProps) {
     });
   };
 
-  const handleTakeover = () => {
-    startTransition(async () => {
-      const res = await takeoverTicketAction({ ticketId: ticket.id });
-      if (res.success) {
-        toast.success('🛑 Диалог перехвачен! ИИ-ассистент отключен для этого обращения.');
-      } else {
-        toast.error(res.error || 'Не удалось перехватить диалог');
-      }
-    });
-  };
-
   return (
     <div className="flex flex-col h-full bg-card border border-border/60 rounded-3xl overflow-hidden shadow-sm">
       {/* Ticket Chat Header */}
@@ -188,18 +171,6 @@ export function TicketChat({ ticket }: TicketChatProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            intent="ghost"
-            disabled={isPending}
-            onClick={handleTakeover}
-            className="h-8 text-[11px] border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 rounded-lg flex items-center gap-1 font-bold"
-            title="Отключить ИИ в этом тикете и перевести на ручное управление"
-          >
-            <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
-            Перехватить диалог
-          </Button>
-
           {ticket.status === 'OPEN' || ticket.status === 'PENDING' ? (
             <Button
               size="sm"
@@ -259,13 +230,7 @@ export function TicketChat({ ticket }: TicketChatProps) {
                       title={fullDateTooltip}
                     >
                       <span>
-                        {m.sender === 'USER'
-                          ? 'Клиент'
-                          : m.sender === 'STAFF'
-                          ? 'Служба поддержки'
-                          : m.sender === 'AI_AGENT'
-                          ? '🤖 AI-Ассистент'
-                          : 'Внутренняя заметка'}
+                        {m.sender === 'USER' ? 'Клиент' : m.sender === 'STAFF' ? 'Служба поддержки' : 'Внутренняя заметка'}
                       </span>
                       <span>•</span>
                       <span>{new Date(m.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
