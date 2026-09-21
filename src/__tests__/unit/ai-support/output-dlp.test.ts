@@ -39,6 +39,17 @@ describe('OutputDlpService (Data Loss Prevention & Legal Shield)', () => {
     expect(res.cleanText).not.toContain('признаем вину');
   });
 
+  it('blocks upstream provider/supplier disclosures (white-label integrity)', () => {
+    const raw = 'Заказ отменил наш внешний поставщик из-за сбоя шлюза провайдера.';
+    const res = OutputDlpService.sanitize(raw, 'SMMplan');
+
+    expect(res.blocked).toBe(true);
+    expect(res.violation).toBe('UPSTREAM_PROVIDER_DISCLOSURE');
+    expect(res.cleanText).not.toContain('поставщик');
+    expect(res.cleanText).not.toContain('провайдера');
+    expect(res.cleanText).toContain('проверяются службой контроля качества');
+  });
+
   it('attaches mandatory AI disclaimer to legitimate answers', () => {
     const raw = 'Здравствуйте! Заказ #1643 выполняется в штатном режиме, остаток 150 подписчиков.';
     const res = OutputDlpService.sanitize(raw, 'SMMplan');

@@ -61,6 +61,23 @@ export class DecisionGatewayService {
       };
     }
 
+    // 4. Вопрос о причине отмены заказа (почему отмена, заказ отменен, отменился, canceled)
+    // Политикой сервиса строго запрещено гадать или упоминать сторонние платформы/поставщиков:
+    // задача немедленно направляется оператору на ручную проверку (модерация, приватность, баланс).
+    const cancellationTriggers = [
+      'почему отмен', 'причин отмен', 'зачем отмен', 'почему отменил', 'статус отменен',
+      'заказ отменили', 'заказ отменен', 'почему отмена', 'причина отмены', 'отмена заказа', 'отменился заказ',
+    ];
+    if (cancellationTriggers.some((t) => lower.includes(t))) {
+      return {
+        intent: { category: 'order_status', confidence: 0.98 },
+        sentiment: { level: 1, label: 'IMPATIENT', confidence: 0.9 },
+        escalation: { shouldEscalate: true, probability: 1.0, reason: 'ORDER_CANCELED_OPERATOR_REVIEW' },
+        source: 'TIER_0_REGEX',
+        latencyMs: Date.now() - startMs,
+      };
+    }
+
     // =========================================================================
     // TIER 1: Локальный микросервис Laya ONNX (:8009)
     // =========================================================================
@@ -105,6 +122,12 @@ export class DecisionGatewayService {
 
     if (lower.includes('списал') || lower.includes('отпис') || lower.includes('дроп') || lower.includes('собачк')) {
       category = 'drop_refill';
+    } else if (lower.includes('отмен')) {
+      category = 'order_status';
+      shouldEscalate = true;
+      probability = 1.0;
+      sentimentLevel = 1;
+      sentimentLabel = 'IMPATIENT';
     } else if (lower.includes('где') || lower.includes('статус') || lower.includes('не нача') || lower.includes('завис')) {
       category = 'order_status';
     } else if (lower.includes('оплат') || lower.includes('пополн') || lower.includes('баланс') || lower.includes('деньг')) {
@@ -119,10 +142,19 @@ export class DecisionGatewayService {
       sentimentLabel = 'ANGRY';
     }
 
+    let escalationReason: string | undefined;
+    if (shouldEscalate) {
+      if (lower.includes('отмен')) {
+        escalationReason = 'ORDER_CANCELED_OPERATOR_REVIEW';
+      } else {
+        escalationReason = 'FALLBACK_REFUND_ESCALATION';
+      }
+    }
+
     return {
       intent: { category, confidence: 0.85 },
       sentiment: { level: sentimentLevel, label: sentimentLabel, confidence: 0.85 },
-      escalation: { shouldEscalate, probability, reason: shouldEscalate ? 'FALLBACK_REFUND_ESCALATION' : undefined },
+      escalation: { shouldEscalate, probability, reason: escalationReason },
       source: 'TIER_2_FALLBACK',
       latencyMs,
     };

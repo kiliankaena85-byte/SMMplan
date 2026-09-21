@@ -74,5 +74,5 @@ export interface GroundingCheckResult {
 export interface DlpCheckResult {
   cleanText: string;
   blocked: boolean;
-  violation?: 'DETECTED_TARGET_LINK_LEAK' | 'DETECTED_API_KEY_OR_TOKEN' | 'DETECTED_SYSTEM_PROMPT_LEAK' | 'LEGAL_LIABILITY_ADMISSION';
+  violation?: 'DETECTED_TARGET_LINK_LEAK' | 'DETECTED_API_KEY_OR_TOKEN' | 'DETECTED_SYSTEM_PROMPT_LEAK' | 'LEGAL_LIABILITY_ADMISSION' | 'UPSTREAM_PROVIDER_DISCLOSURE';
 }

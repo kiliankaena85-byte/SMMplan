@@ -36,6 +36,16 @@ describe('DecisionGatewayService (Tier 0 -> Tier 1 -> Tier 2 Cascade)', () => {
     expect(res.escalation.shouldEscalate).toBe(true);
   });
 
+  // 4. Tier 0 Cancellation inquiry escalation
+  it('instantly escalates order cancellation inquiries to human operator review (<1ms)', async () => {
+    const res = await DecisionGatewayService.evaluate('Почему отменился заказ #3390? Объясните причину отмены');
+
+    expect(res.source).toBe('TIER_0_REGEX');
+    expect(res.escalation.shouldEscalate).toBe(true);
+    expect(res.escalation.reason).toBe('ORDER_CANCELED_OPERATOR_REVIEW');
+    expect(res.sentiment.label).toBe('IMPATIENT');
+  });
+
   // 4. Tier 2 Fallback when Laya is unreachable
   it('gracefully falls back to Tier 2 heuristics when Laya microservice is offline', async () => {
     // Global fetch fails or returns error

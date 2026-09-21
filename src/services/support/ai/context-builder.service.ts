@@ -74,7 +74,7 @@ export class ContextBuilderService {
         } else if (errLower.includes('link') || errLower.includes('invalid') || errLower.includes('ссылк')) {
           safeErrorSummary = 'Некорректный формат публичной ссылки';
         } else if (errLower.includes('cancel') || errLower.includes('отмен')) {
-          safeErrorSummary = 'Технический отказ поставщика, средства возвращены на баланс';
+          safeErrorSummary = 'Заказ отменен системой, средства возвращены на баланс. Требуется ручная проверка оператором';
         }
       }
 
