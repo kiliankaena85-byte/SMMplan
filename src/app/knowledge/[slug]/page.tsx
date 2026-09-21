@@ -17,6 +17,7 @@ import { absoluteCanonical, getTenantHost, getTenantSiteName, normalizeTenantId 
 import { pillarPages, glossaryTerms, clusterArticles } from "@/data/seo";
 import { FluxArticleReader } from "@/components/knowledge/flux/FluxArticleReader";
 import { sanitizeArticleHtml } from "@/lib/sanitize";
+import { resolveServiceTargetType } from "@/utils/target-type-mapper";
 
 export const dynamic = "force-dynamic";
 
@@ -207,13 +208,18 @@ export default async function ArticleDetailPage({ params }: PageProps) {
   // Parallel data fetching for conversion recommended services and same category related articles
   const [recommendedServices, relatedResult] = await Promise.all([
     getRecommendedServicesForArticle(article.id),
-    getRelatedArticles(article.id, article.category)
+    getRelatedArticles(article.id, article.category, { includeStatic: true })
   ]);
 
   const relatedArticles = relatedResult.success ? relatedResult.articles : [];
 
-  // Query all active services for this category to pass to the matcher widget
-  const allCategoryServices = await db.service.findMany({
+  // Resolve target network for pillar pages if available
+  const currentPillar = pillarPages.find(p => p.slug === article.slug);
+  const currentCluster = clusterArticles.find(c => c.slug === article.slug);
+  const currentGlossary = glossaryTerms.find(g => g.slug === article.slug || g.slug === `glossary/${article.slug}`);
+
+  // Query active services for this category, falling back to pillar network or active services
+  let allCategoryServices = await db.service.findMany({
     where: {
       isActive: true,
       isQuarantined: false,
@@ -225,9 +231,36 @@ export default async function ArticleDetailPage({ params }: PageProps) {
       }
     },
     include: {
-      category: true
+      category: {
+        include: {
+          network: true
+        }
+      }
     }
   });
+
+  if (allCategoryServices.length === 0) {
+    const targetNetwork = currentPillar?.network || (currentCluster ? pillarPages.find(p => p.slug === currentCluster.parentPillar)?.network : undefined);
+    const networkFilter = targetNetwork && targetNetwork !== 'general'
+      ? { category: { network: { slug: targetNetwork } } }
+      : {};
+
+    allCategoryServices = await db.service.findMany({
+      where: {
+        isActive: true,
+        isQuarantined: false,
+        ...networkFilter
+      },
+      take: 12,
+      include: {
+        category: {
+          include: {
+            network: true
+          }
+        }
+      }
+    });
+  }
 
   const usdToRub = await SettingsProvider.getExchangeRateUSD();
   
@@ -238,9 +271,10 @@ export default async function ArticleDetailPage({ params }: PageProps) {
     return {
       id: s.id,
       name: s.name,
-      targetType: s.targetType,
+      targetType: resolveServiceTargetType(s),
       pricePerUnitRub,
-      categoryName: s.category.name
+      categoryName: s.category.name,
+      minQty: s.minQty
     };
   });
 
@@ -249,11 +283,6 @@ export default async function ArticleDetailPage({ params }: PageProps) {
     month: "long",
     year: "numeric"
   });
-
-  // Find matching pillar, cluster, or glossary term for structured schema extensions
-  const currentPillar = pillarPages.find(p => p.slug === article.slug);
-  const currentCluster = clusterArticles.find(c => c.slug === article.slug);
-  const currentGlossary = glossaryTerms.find(g => g.slug === article.slug || g.slug === `glossary/${article.slug}`);
 
   // Resolve parent pillar for cluster breadcrumbs
   const parentPillarObj = currentCluster ? pillarPages.find(p => p.slug === currentCluster.parentPillar) : null;
@@ -365,21 +394,21 @@ export default async function ArticleDetailPage({ params }: PageProps) {
     return (
       <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
         {/* SMMFLUX RADIANT HERO BACKGROUND (Matching main page) */}
-        <div className="absolute top-0 inset-x-0 h-[1800px] z-0 pointer-events-none overflow-hidden select-none bg-white dark:bg-default-50">
+        <div className="absolute top-0 inset-x-0 h-[1800px] z-0 pointer-events-none overflow-hidden select-none bg-background transform-gpu contain-paint max-w-full" aria-hidden="true">
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
               background:
-                'radial-gradient(65% 55% at 15% 0%, rgba(59, 130, 246, 0.55), transparent 70%), ' +
-                'radial-gradient(55% 55% at 85% 5%, rgba(56, 189, 248, 0.45), transparent 70%), ' +
-                'radial-gradient(65% 55% at 20% 40%, rgba(244, 63, 94, 0.45), transparent 70%), ' +
-                'radial-gradient(55% 55% at 80% 50%, rgba(249, 115, 22, 0.40), transparent 70%), ' +
-                'radial-gradient(70% 70% at 50% 25%, rgba(217, 70, 239, 0.50), transparent 75%)',
+                'radial-gradient(65% 55% at 15% 0%, rgba(59, 130, 246, 0.28), transparent 70%), ' +
+                'radial-gradient(55% 55% at 85% 5%, rgba(56, 189, 248, 0.22), transparent 70%), ' +
+                'radial-gradient(65% 55% at 20% 40%, rgba(244, 63, 94, 0.20), transparent 70%), ' +
+                'radial-gradient(55% 55% at 80% 50%, rgba(249, 115, 22, 0.18), transparent 70%), ' +
+                'radial-gradient(70% 70% at 50% 25%, rgba(217, 70, 239, 0.22), transparent 75%)',
             }}
           />
-          <div className="absolute top-0 left-[2%] w-[700px] h-[700px] rounded-full bg-blue-500/35 blur-[120px] pointer-events-none" />
-          <div className="absolute top-4 left-[25%] w-[650px] h-[650px] rounded-full bg-purple-600/40 blur-[110px] pointer-events-none" />
-          <div className="absolute top-0 right-[5%] w-[700px] h-[700px] rounded-full bg-pink-500/35 blur-[120px] pointer-events-none" />
+          <div className="absolute top-0 left-0 w-[300px] sm:w-[500px] md:w-[700px] h-[300px] sm:h-[500px] md:h-[700px] rounded-full bg-blue-500/20 blur-[90px] sm:blur-[120px] pointer-events-none" />
+          <div className="absolute top-4 left-[15%] w-[280px] sm:w-[450px] md:w-[600px] h-[280px] sm:h-[450px] md:h-[600px] rounded-full bg-purple-600/25 blur-[80px] sm:blur-[110px] pointer-events-none" />
+          <div className="absolute top-0 right-0 w-[300px] sm:w-[500px] md:w-[650px] h-[300px] sm:h-[500px] md:h-[650px] rounded-full bg-pink-500/20 blur-[90px] sm:blur-[120px] pointer-events-none" />
           <div className="absolute bottom-0 inset-x-0 h-[300px] bg-gradient-to-t from-background to-transparent" />
         </div>
 
@@ -393,6 +422,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
         <main className="flex-1 w-full relative z-10">
           <FluxArticleReader
             article={article}
+            sanitizedHtml={article.content.trim().startsWith("<") ? sanitizeArticleHtml(article.content) : undefined}
             renderedMarkdown={renderMarkdown(article.content)}
             relatedArticles={relatedArticles}
             recommendedServices={recommendedServices}
@@ -487,7 +517,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                   <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground font-medium pt-2 border-t border-border/40">
                     <span>{article.authorName}</span>
                     <span>•</span>
-                    <time dateTime={article.createdAt.toISOString()}>{dateStr}</time>
+                    <time dateTime={new Date(article.createdAt).toISOString()}>{dateStr}</time>
                     <span>•</span>
                     <span>👁️ {article.viewCount} просмотров</span>
                   </div>
@@ -619,6 +649,36 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                 >
                   Открыть полный каталог
                 </Link>
+              </div>
+
+              {/* B2B Agency & Corporate Wholesale Banner */}
+              <div className="bg-card rounded-2xl border border-primary/30 p-6 shadow-sm space-y-3.5 bg-gradient-to-b from-primary/5 to-transparent">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-wider text-primary">
+                    B2B Безнал & Агентства
+                  </span>
+                </div>
+                <h3 className="text-sm font-extrabold text-foreground leading-snug">
+                  Оплата с расчетного счета юрлица с НДС 22%
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Единый мультипроектный баланс, закрывающие УПД через ЭДО (Диадок / СБИС) и оптовые тарифы от 1 шт. («₽ / шт»).
+                </p>
+                <div className="pt-2 space-y-2">
+                  <Link
+                    href="/add-funds"
+                    className="min-h-[44px] w-full px-4 py-2 bg-primary text-primary-foreground font-bold rounded-full text-xs flex items-center justify-center hover:opacity-95 transition-opacity text-center shadow-sm"
+                  >
+                    Выставить счет по безналу
+                  </Link>
+                  <Link
+                    href="/knowledge/guide-agencies-beznal-nds22-wholesale"
+                    className="min-h-[44px] w-full border border-border text-foreground font-semibold rounded-full text-xs flex items-center justify-center hover:bg-muted transition-colors text-center"
+                  >
+                    Условия для агентств
+                  </Link>
+                </div>
               </div>
 
               <UrlMatcherWidget services={mappedServicesForWidget} />

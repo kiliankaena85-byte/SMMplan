@@ -98,19 +98,19 @@ export function FluxStepCheckoutPaymentMethods({
               }`}
             >
               <div className={`p-2 rounded-xl shrink-0 border ${m.iconColor}`}>
-                <IconComponent className="w-4 h-4" />
+                <IconComponent className="w-4 h-4 shrink-0" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-foreground leading-tight">
                   {m.name}
                 </p>
-                <p className="text-[11px] text-muted-foreground font-medium mt-0.5 truncate">
+                <p className="text-[11px] text-muted-foreground font-medium mt-0.5 truncate min-w-0">
                   {m.desc}
                 </p>
               </div>
               {isSelected && (
                 <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
-                  <Check className="w-3 h-3 stroke-[3]" />
+                  <Check className="w-3 h-3 stroke-[3] shrink-0" />
                 </div>
               )}
             </button>

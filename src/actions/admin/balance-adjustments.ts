@@ -637,6 +637,7 @@ const getAdjustmentsSchema = z.object({
   reasonCode: z.string().optional(),
   ticketId: z.string().optional(),
   search: z.string().optional(),
+  cursor: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20)
 });
@@ -689,7 +690,7 @@ export async function getBalanceAdjustmentsAction(formData: FormData) {
     const total = await db.manualBalanceAdjustment.count({ where });
     const items = await db.manualBalanceAdjustment.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip: (page - 1) * pageSize,
       take: pageSize,
       include: {

@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { inferTargetTypeFromCategory } from "@/utils/target-type";
+import { isTargetTypeCompatible } from "@/utils/target-type-mapper";
 
 interface MappedService {
   id: string;
@@ -42,13 +42,12 @@ export function UrlMatcherWidget({ services }: UrlMatcherWidgetProps) {
     return detectLinkTargetType(url);
   }, [url]);
 
-  // Filter category services matching the inferred link type (or fallback to category keywords if targetType is undefined/missing)
+  // Filter category services matching the inferred link type using unified compatibility engine
   const matchedServices = React.useMemo(() => {
     if (!inferredLinkType) return [];
 
     return services.filter(s => {
-      const sTargetType = s.targetType || inferTargetTypeFromCategory(s.categoryName);
-      return sTargetType === inferredLinkType;
+      return isTargetTypeCompatible(inferredLinkType, s.targetType);
     });
   }, [services, inferredLinkType]);
 

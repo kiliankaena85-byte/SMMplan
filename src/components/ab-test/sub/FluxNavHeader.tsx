@@ -3,7 +3,7 @@
 import React from "react";
 import { ArrowLeftIcon } from "lucide-react";
 import type { FluxNetwork } from "@/types/flux";
-import { SocialIcon } from "@/components/ui/SocialIcon";
+import { UniversalIcon } from "@/components/ui/UniversalIcon";
 
 export type FluxStep = 'link' | 'network' | 'category' | 'service' | 'checkout';
 
@@ -40,7 +40,7 @@ export function FluxNavHeader({
       <button
         type="button"
         onClick={handleBack}
-        className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors mr-1.5 flex-shrink-0 cursor-pointer"
+        className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors mr-1.5 shrink-0 cursor-pointer"
         title="Назад"
       >
         <ArrowLeftIcon className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
@@ -48,16 +48,19 @@ export function FluxNavHeader({
       <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-2">
         {activeNetwork && (
           <div className="w-4 h-4 flex items-center justify-center shrink-0">
-            {activeNetwork.icon && !imgError ? (
-              <img 
-                src={activeNetwork.icon} 
-                alt="" 
-                className="w-4 h-4 object-contain flex-shrink-0" 
-                onError={() => setImgError(true)}
-              />
-            ) : (
-              <SocialIcon slug={activeNetwork.slug || activeNetwork.name} size={16} />
-            )}
+            <UniversalIcon 
+              icon={activeNetwork.icon || activeNetwork.slug} 
+              name={activeNetwork.slug} 
+              size={16} 
+              fallback={
+                <img 
+                  src={activeNetwork.icon || undefined} 
+                  alt="" 
+                  className="w-4 h-4 object-contain shrink-0" 
+                  loading="lazy"
+                />
+              } 
+            />
           </div>
         )}
         <span className="text-xs sm:text-sm font-semibold text-foreground truncate min-w-0">

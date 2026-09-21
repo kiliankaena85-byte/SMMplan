@@ -20,6 +20,7 @@ type AdminTicketRow = {
 };
 
 type TicketSearchParams = {
+  cursor?: string;
   page?: number;
   status?: string;
   source?: string;
@@ -30,14 +31,23 @@ type TicketSearchParams = {
   allowedTenants?: string[];
 };
 
+export type TicketListResult = {
+  items: AdminTicketRow[];
+  totalPages: number;
+  page: number;
+  totalCount: number;
+  nextCursor?: string;
+  hasMore?: boolean;
+};
+
 // ── Service ──
 
 class AdminTicketService {
 
   /**
-   * Paginated ticket list with filters.
+   * Paginated ticket list with filters and Keyset cursor support.
    */
-  async listTickets(params: TicketSearchParams): Promise<{ items: AdminTicketRow[], totalPages: number, page: number, totalCount: number }> {
+  async listTickets(params: TicketSearchParams): Promise<TicketListResult> {
     const where: Record<string, unknown> = {};
 
     if (params.tenantId && params.tenantId !== 'all') {
@@ -90,17 +100,23 @@ class AdminTicketService {
       where.OR = orConditions;
     }
 
-    const pageSize = params.pageSize || 50;
+    const pageSize = Math.min(Math.max(1, params.pageSize || 50), 100);
     const page = params.page || 1;
-    const skip = (page - 1) * pageSize;
+    const cursor = params.cursor;
 
-    const [totalCount, items] = await Promise.all([
+    // Keyset ordering matching @@index([createdAt(sort: Desc), id(sort: Desc)])
+    const orderBy: Prisma.TicketOrderByWithRelationInput[] = [
+      { createdAt: 'desc' },
+      { id: 'desc' },
+    ];
+
+    const [totalCount, rawItems] = await Promise.all([
       db.ticket.count({ where }),
       db.ticket.findMany({
         where,
-        take: pageSize,
-        skip,
-        orderBy: { updatedAt: 'desc' },
+        take: pageSize + 1,
+        orderBy,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : page > 1 ? { skip: (page - 1) * pageSize } : {}),
         include: {
           user: { 
             select: { 
@@ -117,8 +133,12 @@ class AdminTicketService {
           _count: { select: { messages: true } },
           messages: { orderBy: { createdAt: 'desc' }, take: 1 },
         },
-      })
+      }),
     ]);
+
+    const hasNextPage = rawItems.length > pageSize;
+    const items = hasNextPage ? rawItems.slice(0, pageSize) : rawItems;
+    const nextCursor = hasNextPage && items.length > 0 ? items[items.length - 1].id : undefined;
 
     // Priority API sorting: Float API tickets with prioritySupport flag to the top of the queue
     items.sort((a, b) => {
@@ -127,13 +147,15 @@ class AdminTicketService {
       return bPri - aPri;
     });
 
-    const totalPages = Math.ceil(totalCount / pageSize);
+    const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
     return {
       items: items as unknown as AdminTicketRow[],
       totalPages,
       page,
-      totalCount
+      totalCount,
+      nextCursor,
+      hasMore: hasNextPage,
     };
   }
 

@@ -68,6 +68,8 @@ export async function createProxyDispatcher(proxy: ProxyConfig) {
       connect: connectFn as unknown as NonNullable<ConstructorParameters<typeof Agent>[0]>['connect'],
       connectTimeout: 8000,
       headersTimeout: 15000,
+      keepAliveTimeout: 30000,
+      keepAliveMaxTimeout: 60000,
     });
   }
 
@@ -77,6 +79,8 @@ export async function createProxyDispatcher(proxy: ProxyConfig) {
     uri: proxyUrl,
     connectTimeout: 8000,
     headersTimeout: 15000,
+    keepAliveTimeout: 30000,
+    keepAliveMaxTimeout: 60000,
   });
 }
 

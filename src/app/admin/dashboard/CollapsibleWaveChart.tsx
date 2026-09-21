@@ -2,7 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Activity, BarChart2, Eye, EyeOff } from 'lucide-react';
-import { OrdersChart, type OrdersChartData } from './orders-chart';
+import dynamic from 'next/dynamic';
+import type { OrdersChartData } from './orders-chart';
+
+const OrdersChart = dynamic(
+  () => import('./orders-chart').then((mod) => mod.OrdersChart),
+  {
+    ssr: false,
+    loading: () => <div className="h-64 animate-pulse bg-muted/40 rounded-lg flex items-center justify-center text-xs text-muted-foreground">Загрузка графика...</div>,
+  }
+);
 
 interface Props {
   data: OrdersChartData[];

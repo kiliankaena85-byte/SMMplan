@@ -144,7 +144,7 @@ export function FluxTransactionsView({
           </p>
           {!searchQuery && (
             <Link
-              href="/dashboard/add-funds"
+              href="/dashboard/add-funds?tenant=flux"
               className="inline-flex h-10 px-5 items-center text-xs font-bold bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-all shadow-sm"
             >
               Пополнить баланс

@@ -1,3 +1,5 @@
+import './init-host-env';
+
 import { db } from '../src/lib/db';
 import { UnitEconomicsElasticityHarness } from '../src/services/ai/harnesses/unit-economics-elasticity.harness';
 import { SupplierArbitrageOptimizationHarness } from '../src/services/ai/harnesses/supplier-arbitrage.harness';
@@ -153,21 +155,20 @@ async function main() {
     const snapshot = await db.economicOptimizationSnapshot.create({
       data: {
         tenantId: 'smmplan',
-        status: 'COMPLETED',
-        totalServicesAnalyzed: 1,
-        totalLeakageDetectedRub: 1450.00,
-        projectedMonthlyGainRub: 3200.00,
+        status: 'GENERATED',
+        totalLeakageRub: 1450.00,
+        leakingServicesCount: 1,
+        executiveSummary: 'Automatic margin repair: Demand inelasticity and FX buffer protection',
         recommendations: {
           create: [
             {
               serviceId: testService.id,
               currentPriceRub: currentPrice,
               proposedPriceRub: currentPrice * 1.15,
-              effectiveCogsRub: (testService.rate || 50.00),
-              currentMarginPercent: 20.0,
-              proposedMarginPercent: 32.0,
+              currentMarkup: 0.20,
+              proposedMarkup: 0.32,
               projectedMonthlyGainRub: 3200.00,
-              reason: 'Automatic margin repair: Demand inelasticity and FX buffer protection',
+              confidenceScore: 0.95,
               status: 'PENDING',
             },
           ],
@@ -207,7 +208,19 @@ async function main() {
   console.log(`4.1 SLA Telemetry Percentiles for 'prov_telemetry_test':`);
   console.log(`   - P50 (Median): ${sla.p50Seconds}s, P90: ${sla.p90Seconds}s, P99: ${sla.p99Seconds}s (Sample count: ${sla.sampleCount})`);
 
-  const sampleUser = await db.user.findFirst({ select: { id: true, balance: true, bonusBalance: true, email: true } });
+  // Create isolated test user to verify bonus crediting without polluting production balances
+  const { randomUUID } = await import('crypto');
+  const sampleUser = await db.user.create({
+    data: {
+      email: `cx-apology-test-${randomUUID()}@smmplan.pro`,
+      balance: BigInt(0),
+      bonusBalance: BigInt(0),
+      tenantId: 'smmplan',
+      isActive: false,
+    },
+    select: { id: true, balance: true, bonusBalance: true, email: true },
+  });
+
   if (sampleUser) {
     console.log(`4.2 User Wallet Balances before compensation:`);
     console.log(`   - User ID: ${sampleUser.id} (${sampleUser.email})`);
@@ -226,14 +239,19 @@ async function main() {
     const userAfter = await db.user.findUnique({ where: { id: sampleUser.id }, select: { balance: true, bonusBalance: true } });
     console.log(`   - User Balances After Compensation:`);
     console.log(`     * Real Withdrawable Balance: ${Number(userAfter?.balance) / 100} ₽ (STRICTLY UNCHANGED)`);
-    console.log(`     * Bonus Balance: ${Number(userAfter?.bonusBalance) / 100} ₽ (+50.00 ₽ credited)`);
+    console.log(`     * Bonus Balance: ${Number(userAfter?.bonusBalance) / 100} ₽`);
 
-    // Rollback bonus to restore original state
-    await db.user.update({
-      where: { id: sampleUser.id },
-      data: { bonusBalance: sampleUser.bonusBalance },
-    });
-    console.log(`   - Restored original user bonus balance.`);
+    // Clean up test user
+    try {
+      await db.user.delete({ where: { id: sampleUser.id } });
+      console.log(`   - Cleaned up test user.`);
+    } catch {
+      await db.user.update({
+        where: { id: sampleUser.id },
+        data: { isDeleted: true, isActive: false },
+      });
+      console.log(`   - Deactivated test user.`);
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -281,4 +299,5 @@ main()
   })
   .finally(async () => {
     await db.$disconnect();
+    process.exit(0);
   });

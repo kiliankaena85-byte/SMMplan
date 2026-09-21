@@ -102,6 +102,15 @@ const nextConfig = {
   transpilePackages: ["@base-ui/react"],
 
   experimental: {
+    optimizePackageImports: [
+      'lucide-react',
+      'recharts',
+      '@heroui/react',
+      '@heroui/theme',
+      '@mantine/core',
+      '@mantine/hooks',
+      'react-icons',
+    ],
     serverActions: {
       bodySizeLimit: '2mb',
       allowedOrigins: dynamicOrigins,

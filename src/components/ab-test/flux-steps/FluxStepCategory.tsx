@@ -8,6 +8,8 @@ import { CategoryIcon, cleanCategoryName } from "@/components/ui/CategoryIcon";
 import { matchesSuggestedCategory } from "@/services/analyzer/category-matcher";
 import { SocialIcon } from "@/components/ui/SocialIcon";
 
+import { UniversalIcon } from "@/components/ui/UniversalIcon";
+
 export interface FluxStepCategoryProps {
   activeNetwork: FluxNetwork;
   suggestedCategories: string[];
@@ -42,18 +44,19 @@ export function FluxStepCategory({
       <div className="mb-6 w-full">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-8 h-8 flex items-center justify-center shrink-0">
-            {activeNetwork.icon && !imgError ? (
-              <img 
-                src={activeNetwork.icon} 
-                alt={activeNetwork.name} 
-                className="w-8 h-8 object-contain" 
-                loading="lazy"
-                decoding="async"
-                onError={() => setImgError(true)}
-              />
-            ) : (
-              <SocialIcon slug={activeNetwork.slug || activeNetwork.name} size={28} />
-            )}
+            <UniversalIcon 
+              icon={activeNetwork.icon || activeNetwork.slug} 
+              name={activeNetwork.slug} 
+              size={32}
+              fallback={
+                <img 
+                  src={activeNetwork.icon || undefined} 
+                  alt={activeNetwork.name} 
+                  className="w-8 h-8 object-contain" 
+                  loading="lazy"
+                />
+              } 
+            />
           </div>
           <h2 className="text-2xl font-bold text-foreground tracking-tight">Выберите категорию</h2>
         </div>
@@ -79,7 +82,7 @@ export function FluxStepCategory({
               <div className="w-9 h-9 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                 <CategoryIcon name={cat.name} icon={cat.icon} size={18} />
               </div>
-              <h4 className="font-bold text-zinc-900 dark:text-zinc-100 text-base sm:text-lg truncate">{cleanCategoryName(cat.name)}</h4>
+              <h4 className="font-bold text-zinc-900 dark:text-zinc-100 text-base sm:text-lg truncate min-w-0">{cleanCategoryName(cat.name)}</h4>
             </div>
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/5 group-hover:bg-primary flex items-center justify-center transition-colors shrink-0">
               <ArrowRightIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary group-hover:text-primary-foreground" />

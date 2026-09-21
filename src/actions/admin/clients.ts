@@ -659,7 +659,7 @@ export async function getClientLedgerAction(userId: string, filterType = 'ALL') 
     const [entries, rawSummary] = await Promise.all([
       db.ledgerEntry.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: 50,
         select: {
           id: true,

@@ -68,7 +68,7 @@
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "E:/SMM/src/actions/admin/finance/ledger.ts",
-      "line": 329,
+      "line": 326,
       "snippet": "transactionType: e.transactionType || (Number(e.amount) >= 0 ? 'PAYMENT' : 'DEBIT'),",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
@@ -76,7 +76,7 @@
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "E:/SMM/src/actions/admin/finance/ledger.ts",
-      "line": 343,
+      "line": 340,
       "snippet": "approved: Number(approvedAgg._sum?.amount ?? 0),",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
@@ -84,7 +84,7 @@
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "E:/SMM/src/actions/admin/finance/ledger.ts",
-      "line": 344,
+      "line": 341,
       "snippet": "quarantine: Number(quarantineAgg._sum?.amount ?? 0),",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
@@ -92,7 +92,7 @@
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "E:/SMM/src/actions/admin/finance/ledger.ts",
-      "line": 345,
+      "line": 342,
       "snippet": "refunds: Math.abs(Number(refundsAgg._sum?.amount ?? 0)),",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
@@ -540,7 +540,7 @@
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "E:/SMM/src/actions/support/ticket.ts",
-      "line": 776,
+      "line": 786,
       "snippet": "const order = await tx.order.findUnique({ where: { id: orderId } });",
       "message": "Tenant-scoped model query (order) missing tenantId filter or tenantWhere guard."
     },
@@ -556,7 +556,7 @@
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "E:/SMM/src/actions/support/ticket.ts",
-      "line": 871,
+      "line": 881,
       "snippet": "const amt = Number(entry.amount);",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
@@ -1308,7 +1308,7 @@
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "E:/SMM/src/app/page.tsx",
-      "line": 48,
+      "line": 70,
       "snippet": "const service = await db.service.findUnique({",
       "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
     },
@@ -1692,7 +1692,7 @@
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "E:/SMM/src/lib/smtp.ts",
-      "line": 371,
+      "line": 373,
       "snippet": "const chargedRub = Number(chargedCents) / 100;",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
@@ -1756,7 +1756,7 @@
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "E:/SMM/src/services/admin/catalog/catalog-sync.service.ts",
-      "line": 240,
+      "line": 246,
       "snippet": "const providerDbRecord = await db.provider.findUnique({ where: { id: providerId } });",
       "message": "Master catalog model query (provider) missing tenantId filter in customer-facing path."
     },
@@ -2156,7 +2156,7 @@
       "ruleId": "SC02_UNSTABLE_IDEMPOTENCY_KEY",
       "severity": "HIGH",
       "file": "E:/SMM/src/services/financial/payment-gateway.service.ts",
-      "line": 414,
+      "line": 419,
       "snippet": "'Idempotence-Key': (params.idempotencyKey || `refund_${Date.now()}`).slice(0, 64),",
       "message": "Unstable idempotency key constructor detected using Date.now(), Math.random(), or timestamp."
     },
@@ -2164,7 +2164,7 @@
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "E:/SMM/src/services/financial/payment-gateway.service.ts",
-      "line": 602,
+      "line": 607,
       "snippet": "const order = await tx.order.findUnique({",
       "message": "Tenant-scoped model query (order) missing tenantId filter or tenantWhere guard."
     },
@@ -2172,7 +2172,7 @@
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "E:/SMM/src/services/financial/payment-gateway.service.ts",
-      "line": 771,
+      "line": 776,
       "snippet": "const payment = await db.payment.findUnique({",
       "message": "Tenant-scoped model query (payment) missing tenantId filter or tenantWhere guard."
     },
@@ -2180,7 +2180,7 @@
       "ruleId": "SC09_FLOAT_MONEY",
       "severity": "MEDIUM",
       "file": "E:/SMM/src/services/financial/payment-gateway.service.ts",
-      "line": 446,
+      "line": 451,
       "snippet": "amountRub: parseFloat(data.amount?.value || String(params.amountRub)),",
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     },
@@ -2505,6 +2505,22 @@
       "message": "Master catalog model query (service) missing tenantId filter in customer-facing path."
     },
     {
+      "ruleId": "SC08_UNSAFE_MUTEX_RELEASE",
+      "severity": "HIGH",
+      "file": "E:/SMM/src/services/seo/yandex-feed-cache.service.ts",
+      "line": 35,
+      "snippet": "await redis.del(this.getCacheKey(tenantId));",
+      "message": "Mutex release without ownership token validation or Lua script guard."
+    },
+    {
+      "ruleId": "SC08_UNSAFE_MUTEX_RELEASE",
+      "severity": "HIGH",
+      "file": "E:/SMM/src/services/seo/yandex-feed-cache.service.ts",
+      "line": 37,
+      "snippet": "await redis.del(this.getCacheKey('smmplan'), this.getCacheKey('flux'));",
+      "message": "Mutex release without ownership token validation or Lua script guard."
+    },
+    {
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "E:/SMM/src/services/support/ai-copilot.service.ts",
@@ -2636,7 +2652,7 @@
       "ruleId": "SC03_TENANTLESS_LOOKUP",
       "severity": "CRITICAL",
       "file": "E:/SMM/src/workers/index.ts",
-      "line": 151,
+      "line": 153,
       "snippet": "const currentOrder = await db.order.findUnique({",
       "message": "Tenant-scoped model query (order) missing tenantId filter or tenantWhere guard."
     },
@@ -2825,5 +2841,5 @@
       "message": "Floating point conversion (parseFloat/Number) used for monetary values without integer cents parsing."
     }
   ],
-  "timestamp": "2026-09-21T09:28:27.009Z"
+  "timestamp": "2026-09-21T11:42:10.051Z"
 }

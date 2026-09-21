@@ -74,8 +74,8 @@ export function FluxStepCheckoutDripAndCustom({
                 exit={{ opacity: 0, height: 0, marginTop: 0 }}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-bold shadow-sm overflow-hidden"
               >
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span role="alert">{formState.error}</span>
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span role="alert" className="min-w-0 flex-1">{formState.error}</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -87,7 +87,7 @@ export function FluxStepCheckoutDripAndCustom({
         <div className="mb-3 p-3.5 rounded-[1.25rem] sm:rounded-[1.5rem] bg-muted/40 border border-border/60">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <SparklesIcon className="w-4 h-4 text-primary" />
+              <SparklesIcon className="w-4 h-4 text-primary shrink-0" />
               <span className="text-xs font-bold text-foreground uppercase tracking-wider">Запускать частями (Drip-Feed)</span>
             </div>
             <label className="relative inline-flex items-center cursor-pointer min-w-[44px] min-h-[44px] justify-center">

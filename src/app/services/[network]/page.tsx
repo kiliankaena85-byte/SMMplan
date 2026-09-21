@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { headers } from "next/headers";
 import { absoluteCanonical, getTenantSiteName, normalizeTenantId, getTenantHost } from "@/lib/seo-helpers";
+import { resolveTenantUserBalance } from "@/lib/tenant-user-resolver";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { SettingsProvider } from "@/lib/settings";
 import { verifySession } from "@/lib/session";
@@ -17,6 +18,7 @@ import { FluxReviews } from "@/components/ab-test/FluxReviews";
 import { FluxFAQ } from "@/components/ab-test/FluxFAQ";
 import { ROUTES } from "@/lib/routes";
 import { LandingSeoHub } from "@/components/seo/LandingSeoHub";
+import { SiloLinkingService } from "@/services/seo/silo-linking.service";
 
 export const dynamic = 'force-dynamic';
 
@@ -89,18 +91,9 @@ export default async function NetworkServicesPage({
   const firstCatId = currentNetwork.categories[0]?.id;
   const initialServices = firstCatId ? await getServicesByCategoryAction(firstCatId, tenantId) : [];
 
-  // Resolve user session and email
+  // Resolve user session, email and tenant-isolated balance (ст. 54.1 НК РФ)
   const session = await verifySession();
-  let userEmail: string | undefined = undefined;
-  if (session?.userId) {
-    const user = await db.user.findUnique({
-      where: { id: session.userId },
-      select: { email: true }
-    });
-    if (user) {
-      userEmail = user.email;
-    }
-  }
+  const { userEmail, userBalanceCents } = await resolveTenantUserBalance(session?.userId, tenantId);
 
   // Related networks and categories for Silo cross-linking
   const relatedCategories = currentNetwork.categories.map(c => ({
@@ -171,6 +164,12 @@ export default async function NetworkServicesPage({
     }
   };
 
+  const siloBundle = await SiloLinkingService.getComplementaryForNetwork({
+    networkSlug: currentNetwork.slug,
+    tenantId,
+    limit: 4,
+  });
+
   const seoHub = (
     <LandingSeoHub
       networkName={currentNetwork.name}
@@ -181,6 +180,8 @@ export default async function NetworkServicesPage({
       host={host}
       relatedCategories={relatedCategories}
       relatedNetworks={relatedNetworks}
+      siloBundle={siloBundle}
+      tenantId={tenantId}
     />
   );
 
@@ -192,6 +193,26 @@ export default async function NetworkServicesPage({
       <main id="main-content" tabIndex={-1} className="outline-none">
         {tenantId === "flux" ? (
           <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
+            {/* ── SMMFLUX VIBRANT HERO BACKGROUND (Full Bleed - GPU Optimized Static Layer) ── */}
+            <div className="absolute top-0 inset-x-0 h-[2200px] z-0 pointer-events-none overflow-hidden select-none bg-background transform-gpu contain-paint max-w-full">
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background:
+                    'radial-gradient(65% 55% at 15% 0%, rgba(59, 130, 246, 0.28), transparent 70%), ' +
+                    'radial-gradient(55% 55% at 85% 5%, rgba(56, 189, 248, 0.22), transparent 70%), ' +
+                    'radial-gradient(65% 55% at 20% 40%, rgba(244, 63, 94, 0.20), transparent 70%), ' +
+                    'radial-gradient(55% 55% at 80% 50%, rgba(249, 115, 22, 0.18), transparent 70%), ' +
+                    'radial-gradient(70% 70% at 50% 25%, rgba(217, 70, 239, 0.22), transparent 75%)',
+                }}
+              />
+              <div className="absolute top-0 left-0 w-[300px] sm:w-[500px] md:w-[700px] h-[300px] sm:h-[500px] md:h-[700px] rounded-full bg-blue-500/20 blur-[90px] sm:blur-[120px] pointer-events-none" />
+              <div className="absolute top-4 left-[15%] w-[280px] sm:w-[450px] md:w-[600px] h-[280px] sm:h-[450px] md:h-[600px] rounded-full bg-purple-600/25 blur-[80px] sm:blur-[110px] pointer-events-none" />
+              <div className="absolute top-0 right-0 w-[300px] sm:w-[500px] md:w-[650px] h-[300px] sm:h-[500px] md:h-[650px] rounded-full bg-pink-500/20 blur-[90px] sm:blur-[120px] pointer-events-none" />
+              <div className="absolute top-20 right-[5%] w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] rounded-full bg-orange-400/15 blur-[70px] sm:blur-[90px] pointer-events-none" />
+              <div className="absolute bottom-0 inset-x-0 h-[400px] bg-gradient-to-t from-background via-background/80 to-transparent" />
+            </div>
+
             <div className="relative z-10 w-full">
               <Header initialEmail={userEmail} siteName={siteName} tenantId={tenantId} activePath={ROUTES.HOME} />
             </div>
@@ -199,7 +220,11 @@ export default async function NetworkServicesPage({
             <div className="flex-1 w-full max-w-screen-2xl mx-auto px-4 pt-4 md:pt-12 pb-8 md:pb-16 flex flex-col items-center relative z-10">
               <FluxOrderClient 
                 initialCatalog={catalog} 
-                initialEmail={userEmail} 
+                initialEmail={userEmail}
+                userBalanceCents={userBalanceCents}
+                initialNetworkId={currentNetwork.id}
+                initialServiceId={initialServiceId}
+                tenantId={tenantId}
               />
             </div>
 
@@ -211,7 +236,7 @@ export default async function NetworkServicesPage({
               <FluxTrustBar />
             </div>
 
-            <div className="relative z-10 bg-white dark:bg-content1 mx-2 sm:mx-4 lg:mx-6 rounded-t-[32px] md:rounded-t-[48px] shadow-[0_-8px_30px_rgb(0,0,0,0.04)] pt-12 pb-16">
+            <div className="relative z-10 bg-card mx-2 sm:mx-4 lg:mx-6 rounded-t-[32px] md:rounded-t-[48px] shadow-[0_-8px_30px_rgb(0,0,0,0.04)] border-t border-border/40 pt-12 pb-16">
               <FluxWhyUs companyName={siteName} />
               <FluxReviews />
               <FluxFAQ companyName={siteName} />

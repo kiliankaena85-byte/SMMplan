@@ -7,7 +7,8 @@ import { db } from '@/lib/db';
 import { getTenantDashboardViews } from '@/tenants/factory';
 
 import { headers } from 'next/headers';
-import { resolveTenantFromRequest } from '@/lib/tenant-resolver-edge';
+import { resolveTenantFromRequest, normalizeTenantId } from '@/lib/tenant-resolver-edge';
+import { resolveTenantUser } from '@/lib/tenant-user-resolver';
 
 export const metadata: Metadata = {
   title: 'Новый заказ',
@@ -17,16 +18,14 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   const session = await verifySession();
   const sp = await searchParams;
   const reqHeaders = await headers();
-  const tenantId = resolveTenantFromRequest(reqHeaders);
+  const rawTenantId = (sp?.tenant as string) || reqHeaders.get('x-tenant-id') || session?.tenantId;
+  const tenantId = normalizeTenantId(rawTenantId) || 'smmplan';
 
   let userEmail = "";
   let userBalanceCents = 0;
 
   if (session?.userId) {
-    const user = await db.user.findUnique({
-      where: { id: session.userId },
-      select: { email: true, balance: true }
-    });
+    const user = await resolveTenantUser(session.userId, tenantId, true);
     userEmail = user?.email || "";
     userBalanceCents = user?.balance ? Number(user.balance) : 0;
   }

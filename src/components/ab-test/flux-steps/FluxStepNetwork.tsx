@@ -1,36 +1,15 @@
 'use client';
 
-import React, { useState } from "react";
+import React from "react";
 import { motion, type Variants } from "framer-motion";
 import type { FluxNetwork } from "@/types/flux";
-import { SocialIcon } from "@/components/ui/SocialIcon";
+import { UniversalIcon } from "@/components/ui/UniversalIcon";
 
 export interface FluxStepNetworkProps {
   networks: FluxNetwork[];
   onSelectNetwork: (net: FluxNetwork) => void;
   containerVariants: Variants;
   itemVariants: Variants;
-}
-
-function NetworkIconItem({ network }: { network: FluxNetwork }) {
-  const [error, setError] = useState(false);
-
-  return (
-    <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center shrink-0">
-      {network.icon && !error ? (
-        <img 
-          src={network.icon} 
-          alt={network.name} 
-          className="w-8 h-8 sm:w-10 sm:h-10 object-contain pointer-events-none" 
-          loading="lazy"
-          decoding="async"
-          onError={() => setError(true)}
-        />
-      ) : (
-        <SocialIcon slug={network.slug || network.name} size={32} />
-      )}
-    </div>
-  );
 }
 
 export function FluxStepNetwork({
@@ -57,7 +36,21 @@ export function FluxStepNetwork({
               onClick={() => onSelectNetwork(network)}
               className="flex flex-col items-center justify-center gap-2 sm:gap-3 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-white/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-md hover:shadow-xl hover:border-primary/50 transition-all duration-150 outline-none cursor-pointer transform-gpu hover:scale-[1.02] active:scale-[0.98]"
             >
-              <NetworkIconItem network={network} />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center shrink-0 pointer-events-none">
+                <UniversalIcon 
+                  icon={network.icon || network.slug} 
+                  name={network.slug} 
+                  size={36} 
+                  fallback={
+                    <img 
+                      src={network.icon || undefined} 
+                      alt={network.name} 
+                      className="w-8 h-8 sm:w-10 sm:h-10 object-contain pointer-events-none" 
+                      loading="lazy"
+                    />
+                  } 
+                />
+              </div>
               <span className="font-bold text-zinc-900 dark:text-zinc-100 text-xs sm:text-sm">{network.name}</span>
             </motion.button>
           ))}

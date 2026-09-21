@@ -17,7 +17,7 @@ export function useFluxDashboardWizardState({
   userEmail = '',
   userBalanceCents = 0,
   initialReorderData = null,
-  tenantId = 'smmplan',
+  tenantId = 'flux',
 }: FluxDashboardOrderWizardProps) {
   const [step, setStep] = useState<Step>('network');
   const [direction, setDirection] = useState(1);

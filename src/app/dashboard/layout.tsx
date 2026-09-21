@@ -6,6 +6,7 @@ import { getTenantDashboardViews } from '@/tenants/factory';
 import { TenantErrorBoundary } from '@/tenants/TenantErrorBoundary';
 
 import { resolveTenantFromRequest } from '@/lib/tenant-resolver-edge';
+import { resolveTenantUser } from '@/lib/tenant-user-resolver';
 
 export default async function DashboardLayout({
   children,
@@ -16,13 +17,13 @@ export default async function DashboardLayout({
   if (!session) redirect('/login');
 
   const reqHeaders = await headers();
-  const tenantId = resolveTenantFromRequest(reqHeaders);
+  let tenantId = resolveTenantFromRequest(reqHeaders);
+  if (tenantId === 'smmplan' && session.tenantId && session.tenantId !== 'smmplan') {
+    tenantId = session.tenantId;
+  }
 
   const [user, unreadTicketsCount] = await Promise.all([
-    db.user.findUnique({
-      where: { id: session.userId },
-      select: { email: true, balance: true, tenantId: true },
-    }),
+    resolveTenantUser(session.userId, tenantId, true),
     db.ticket.count({
       where: {
         userId: session.userId,

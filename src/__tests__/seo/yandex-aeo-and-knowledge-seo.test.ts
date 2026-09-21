@@ -317,4 +317,91 @@ describe('Yandex AEO 2026 & Knowledge Search Optimization', () => {
       expect(breadcrumbItems[3].item).toContain(clusterSlug);
     });
   });
+
+  describe('6. Target Inbound Pre-Landers & AEO Optimization (Bloggers, Marketers, Agencies)', () => {
+    it('defines all 3 targeted inbound guides in pillarPages with rich FAQs and AEO direct answers', () => {
+      // 1. Bloggers Guide
+      const bloggerGuide = pillarPages.find(p => p.slug === 'guide-bloggers-telega-in-tgstat');
+      expect(bloggerGuide).toBeDefined();
+      expect(bloggerGuide?.title).toContain('Telega.in');
+      expect(bloggerGuide?.title).toContain('TGStat');
+      expect(bloggerGuide?.category).toBe('Блогерам и Авторам');
+      expect(bloggerGuide?.faq.length).toBeGreaterThanOrEqual(4);
+      expect(bloggerGuide?.contentHtml).toContain('aeo-direct-answer');
+      expect(bloggerGuide?.contentHtml).toContain('Drip-Feed');
+      expect(bloggerGuide?.contentHtml).toContain('Refill 30');
+
+      // 2. Marketers Guide
+      const marketerGuide = pillarPages.find(p => p.slug === 'guide-marketers-kpi-drip-feed-54fz');
+      expect(marketerGuide).toBeDefined();
+      expect(marketerGuide?.title).toContain('KPI');
+      expect(marketerGuide?.title).toContain('54-ФЗ');
+      expect(marketerGuide?.category).toBe('Маркетологам и KPI');
+      expect(marketerGuide?.faq.length).toBeGreaterThanOrEqual(4);
+      expect(marketerGuide?.contentHtml).toContain('aeo-direct-answer');
+      expect(marketerGuide?.contentHtml).toContain('Drip-Feed Floor Invariant');
+      expect(marketerGuide?.contentHtml).toContain('₽ / шт');
+
+      // 3. Agencies Guide
+      const agencyGuide = pillarPages.find(p => p.slug === 'guide-agencies-beznal-nds22-wholesale');
+      expect(agencyGuide).toBeDefined();
+      expect(agencyGuide?.title).toContain('НДС 22%');
+      expect(agencyGuide?.title).toContain('безнал');
+      expect(agencyGuide?.category).toBe('SMM-агентствам и B2B');
+      expect(agencyGuide?.faq.length).toBeGreaterThanOrEqual(4);
+      expect(agencyGuide?.contentHtml).toContain('aeo-direct-answer');
+      expect(agencyGuide?.contentHtml).toContain('Диадок');
+      expect(agencyGuide?.contentHtml).toContain('REST API v2');
+    });
+
+    it('resolves all 3 guides via getArticleBySlug with multi-tenant branding', async () => {
+      const { getArticleBySlug } = await import('@/actions/knowledge');
+
+      const slugs = [
+        'guide-bloggers-telega-in-tgstat',
+        'guide-marketers-kpi-drip-feed-54fz',
+        'guide-agencies-beznal-nds22-wholesale',
+      ];
+
+      for (const slug of slugs) {
+        // SMMplan brand
+        const smmplanRes = await getArticleBySlug(slug, 'smmplan');
+        expect(smmplanRes.success).toBe(true);
+        expect(smmplanRes.article?.slug).toBe(slug);
+        expect(smmplanRes.article?.authorName).toBe('Команда SMMplan');
+
+        // SMMflux brand
+        const fluxRes = await getArticleBySlug(slug, 'flux');
+        expect(fluxRes.success).toBe(true);
+        expect(fluxRes.article?.slug).toBe(slug);
+        expect(fluxRes.article?.authorName).toBe('Команда SMMflux');
+      }
+    });
+
+    it('populates articles and tree structure when includeStatic is enabled', async () => {
+      const { getArticles, getGroupedArticlesForTree } = await import('@/actions/knowledge');
+
+      const articlesRes = await getArticles(undefined, undefined, { includeStatic: true });
+      expect(articlesRes.success).toBe(true);
+      expect(articlesRes.articles.some(a => a.slug === 'guide-bloggers-telega-in-tgstat')).toBe(true);
+      expect(articlesRes.articles.some(a => a.slug === 'guide-marketers-kpi-drip-feed-54fz')).toBe(true);
+      expect(articlesRes.articles.some(a => a.slug === 'guide-agencies-beznal-nds22-wholesale')).toBe(true);
+
+      const treeRes = await getGroupedArticlesForTree({ includeStatic: true });
+      expect(treeRes.success).toBe(true);
+      expect(treeRes.grouped['Блогерам и Авторам']).toBeDefined();
+      expect(treeRes.grouped['Маркетологам и KPI']).toBeDefined();
+      expect(treeRes.grouped['SMM-агентствам и B2B']).toBeDefined();
+    });
+
+    it('successfully enqueues knowledge URLs to IndexNow queue', async () => {
+      const { enqueueKnowledgeUrlsAction } = await import('@/actions/knowledge');
+      const res = await enqueueKnowledgeUrlsAction([
+        'guide-bloggers-telega-in-tgstat',
+        'guide-marketers-kpi-drip-feed-54fz',
+      ]);
+      expect(res.success).toBe(true);
+      expect(res.count).toBe(2);
+    });
+  });
 });

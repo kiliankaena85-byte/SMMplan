@@ -4,10 +4,10 @@ import { AdminPageHeader } from '@/components/admin/page-header';
 import { BarChart as BarChartIcon, Clock, TrendingDown, Download } from 'lucide-react';
 import Link from 'next/link';
 import { enforceSectionAccess } from '@/lib/server/rbac';
-import { LTVCharts } from './ltv-charts';
 import { TopServicesTable, ProfitCategoriesTable, ProfitServicesTable } from './tables';
 import { AiFunnelAdvisor } from './ai-funnel-advisor';
 import type { AiFunnelAnalysisResult } from '@/services/analytics/ai-funnel-analyst.service';
+import { LTVCharts } from './ltv-charts';
 
 export const dynamic = 'force-dynamic';
 

@@ -31,7 +31,7 @@ export function FluxTransactionsHeader({ onPrint }: FluxTransactionsHeaderProps)
         </button>
 
         <Link
-          href="/dashboard/add-funds"
+          href="/dashboard/add-funds?tenant=flux"
           className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-2xl bg-primary text-primary-foreground font-black text-sm shadow-md hover:opacity-90 active:scale-95 transition-all"
         >
           <Wallet className="w-4 h-4 shrink-0" />

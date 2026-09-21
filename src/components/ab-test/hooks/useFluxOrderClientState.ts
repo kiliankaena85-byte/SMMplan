@@ -31,18 +31,18 @@ export function useFluxOrderClientState({
   initialServiceId,
   initialServices = [],
 }: UseFluxOrderClientStateProps) {
-  // Determine initial selection based on props (e.g. for /boost or /services/telegram/busty)
+  // Determine initial selection based on props (by ID or slug)
   const initialNet = (initialNetworkId || initialCategoryId)
-    ? (initialCatalog.find(n => n.id === initialNetworkId || n.categories?.some(c => c.id === initialCategoryId)) || null)
+    ? (initialCatalog.find(n => n.id === initialNetworkId || n.slug === initialNetworkId || n.categories?.some(c => c.id === initialCategoryId || c.slug === initialCategoryId)) || null)
     : null;
   const initialCat = (initialNet && initialCategoryId)
-    ? (initialNet.categories?.find(c => c.id === initialCategoryId) || null)
+    ? (initialNet.categories?.find(c => c.id === initialCategoryId || c.slug === initialCategoryId) || null)
     : null;
   const initialSrv = (initialServices.length > 0)
     ? (initialServices.find(s => s.id === initialServiceId) || (initialCategoryId ? initialServices[0] : null))
     : null;
 
-  const [step, setStep] = useState<FluxStep>(initialSrv ? 'checkout' : initialCat ? 'service' : 'link');
+  const [step, setStep] = useState<FluxStep>(initialSrv ? 'checkout' : initialCat ? 'service' : initialNet ? 'category' : 'link');
   const [direction, setDirection] = useState(1);
   const [link, setLink] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -221,14 +221,6 @@ export function useFluxOrderClientState({
     setServerPriceRub(null);
   };
 
-  const navigateTo = (newStep: FluxStep) => {
-    const order: FluxStep[] = ['link', 'network', 'category', 'service', 'checkout'];
-    const currentIdx = order.indexOf(step);
-    const newIdx = order.indexOf(newStep);
-    setDirection(newIdx > currentIdx ? 1 : -1);
-    setStep(newStep);
-  };
-
   const [formState, formAction, isPending] = useActionState(
     async (_prevState: any, _formData: FormData) => {
       if (!selectedService) return { error: "Выберите услугу", field: "general" };
@@ -358,6 +350,14 @@ export function useFluxOrderClientState({
     }
   };
 
+  const navigateTo = (newStep: FluxStep) => {
+    const order: FluxStep[] = ['link', 'network', 'category', 'service', 'checkout'];
+    const currentIdx = order.indexOf(step);
+    const newIdx = order.indexOf(newStep);
+    setDirection(newIdx > currentIdx ? 1 : -1);
+    setStep(newStep);
+  };
+
   const selectCategory = async (cat: FluxCategory) => {
     setActiveCategory(cat);
     setIsLoadingServices(true);
@@ -398,7 +398,6 @@ export function useFluxOrderClientState({
       navigateTo('checkout');
     }
   };
-
   const numericQuantity = typeof quantity === "string" ? (parseInt(quantity) || 0) : quantity;
   const effectiveQuantity = isDripFeedEnabled ? numericQuantity * dripRuns : numericQuantity;
   const basePrice = selectedService ? (selectedService.pricePerUnitRub * effectiveQuantity) : 0;

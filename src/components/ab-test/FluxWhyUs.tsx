@@ -29,7 +29,7 @@ export function FluxWhyUs({ companyName = "SMMflux" }: { companyName?: string })
           <div className="relative z-10 flex flex-col justify-between md:h-full">
             <div>
               <div className="w-14 h-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:-rotate-3 transition-transform shadow-sm">
-                <Sparkles className="w-7 h-7" strokeWidth={1.5} />
+                <Sparkles className="w-7 h-7 shrink-0" strokeWidth={1.5} />
               </div>
               <h3 className="text-2xl font-bold text-foreground mb-3 tracking-tight">AI-подбор услуг</h3>
               <p className="text-muted-foreground font-medium leading-relaxed max-w-md">
@@ -44,7 +44,7 @@ export function FluxWhyUs({ companyName = "SMMflux" }: { companyName?: string })
         <div className="md:col-span-1 bg-card border border-border rounded-[2.5rem] p-6 md:p-10 relative overflow-hidden group shadow-sm hover:shadow-md transition-all duration-300 min-h-[240px]">
           <div className="relative z-10 flex flex-col md:h-full">
             <div className="w-14 h-14 bg-success/10 text-success rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm">
-              <ShieldCheck className="w-7 h-7" strokeWidth={1.5} />
+              <ShieldCheck className="w-7 h-7 shrink-0" strokeWidth={1.5} />
             </div>
             <h3 className="text-xl font-bold text-foreground mb-3 tracking-tight">Прозрачные условия</h3>
             <p className="text-muted-foreground font-medium leading-relaxed text-sm">
@@ -58,7 +58,7 @@ export function FluxWhyUs({ companyName = "SMMflux" }: { companyName?: string })
           <div className="relative z-10 flex flex-col md:h-full justify-between">
             <div>
               <div className="w-14 h-14 bg-danger/10 text-danger rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm">
-                <Diamond className="w-7 h-7" strokeWidth={1.5} />
+                <Diamond className="w-7 h-7 shrink-0" strokeWidth={1.5} />
               </div>
               <h3 className="text-xl font-bold text-foreground mb-3 tracking-tight">Персональные скидки</h3>
               <p className="text-muted-foreground font-medium leading-relaxed text-sm">
@@ -77,7 +77,7 @@ export function FluxWhyUs({ companyName = "SMMflux" }: { companyName?: string })
             <div>
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 bg-muted rounded-2xl flex items-center justify-center text-foreground backdrop-blur-sm group-hover:scale-110 transition-transform">
-                  <Terminal className="w-6 h-6" strokeWidth={1.5} />
+                  <Terminal className="w-6 h-6 shrink-0" strokeWidth={1.5} />
                 </div>
                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">API & Интеграции</span>
               </div>
@@ -121,7 +121,7 @@ export function FluxWhyUs({ companyName = "SMMflux" }: { companyName?: string })
                 className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition-all text-sm shrink-0 shadow-sm"
               >
                 Получить API-доступ
-                <ArrowUpRight className="w-4 h-4" />
+                <ArrowUpRight className="w-4 h-4 shrink-0" />
               </Link>
             </div>
           </div>

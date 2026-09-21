@@ -5,7 +5,9 @@
  * Compliant with 2026 Yandex Search Engine standards.
  */
 
+import crypto from 'crypto';
 import { logger } from '@/lib/logger';
+import { indexNowQueue } from '@/lib/queue-manager';
 
 export interface IndexNowSubmissionParams {
   host: string;
@@ -33,6 +35,48 @@ export class IndexNowService {
    */
   static getKey(): string {
     return process.env.INDEXNOW_KEY || DEFAULT_INDEXNOW_KEY;
+  }
+
+  /**
+   * Enqueues URLs to BullMQ for resilient, retryable background submission.
+   * Prevents duplicates via deterministic hash-based jobId.
+   */
+  static async enqueueUrls(params: IndexNowSubmissionParams): Promise<{ enqueued: boolean; jobId?: string; error?: string }> {
+    const { host, urls } = params;
+    if (!host || typeof host !== 'string') {
+      return { enqueued: false, error: 'Invalid or missing host.' };
+    }
+    if (!Array.isArray(urls) || urls.length === 0) {
+      return { enqueued: false, error: 'URL list must not be empty.' };
+    }
+    const sanitizedUrls = urls.filter((u) => typeof u === 'string' && u.startsWith('http'));
+    if (sanitizedUrls.length === 0) {
+      return { enqueued: false, error: 'No valid HTTP/HTTPS URLs provided.' };
+    }
+
+    const key = params.key || this.getKey();
+    const hash = crypto.createHash('sha256').update(`${host}:${sanitizedUrls.slice().sort().join(',')}`).digest('hex').slice(0, 16);
+    const jobId = `indexnow-${host}-${hash}`;
+
+    try {
+      await indexNowQueue.add('submit-urls', {
+        host,
+        urls: sanitizedUrls,
+        key,
+        keyLocation: params.keyLocation,
+        submissionId: jobId,
+      }, {
+        jobId,
+        attempts: 5,
+        backoff: { type: 'exponential', delay: 10000 },
+      });
+
+      logger.info('[IndexNow] Enqueued URLs for background indexing', { host, count: sanitizedUrls.length, jobId });
+      return { enqueued: true, jobId };
+    } catch (err: any) {
+      logger.error('[IndexNow] Failed to enqueue URLs to BullMQ', { error: err?.message || err });
+      return { enqueued: false, error: err?.message || 'Failed to enqueue IndexNow job' };
+    }
   }
 
   /**

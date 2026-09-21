@@ -31,7 +31,7 @@ export function FluxWizardSuccessCard({ onReset }: FluxWizardSuccessCardProps) {
           Создать еще один заказ
         </Button>
         <a
-          href="/dashboard/orders"
+          href="/dashboard/orders?tenant=flux"
           className="px-6 py-2.5 bg-muted text-foreground hover:bg-muted/80 font-bold rounded-full transition-colors flex items-center cursor-pointer"
         >
           Перейти к заказам

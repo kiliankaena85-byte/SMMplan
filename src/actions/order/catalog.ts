@@ -293,7 +293,13 @@ export async function getPublicCatalogAction(rawTenantId: string = 'smmplan') {
       : await getCachedNetworks(tenantId);
 
     const catalog: PublicNetwork[] = rawNetworks.map(net => {
-      const icon = `/brands/${net.slug}.svg`;
+      const slugAliasMap: Record<string, string> = {
+        'twitter': 'x',
+        'odnoklassniki': 'ok',
+        'vkontakte': 'vk',
+      };
+      const resolvedSlug = slugAliasMap[net.slug] || net.slug;
+      const icon = `/brands/${resolvedSlug}.svg`;
       let finalIcon = net.icon && (net.icon.startsWith('/') || net.icon.startsWith('http')) ? net.icon : icon;
       if (finalIcon.startsWith('/icons/')) {
         finalIcon = finalIcon.replace('/icons/', '/brands/');
@@ -554,13 +560,23 @@ export async function getServicesByCategoryAction(categoryId: string, rawTenantI
 export async function getServiceBySlugAction(slug: string, tenantId: string = 'smmplan') {
   try {
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
+    const isNumeric = /^\d+$/.test(slug);
     const service = await db.service.findFirst({
       where: {
-        slug,
+        ...(isNumeric
+          ? {
+              AND: [
+                { OR: [{ slug }, { numericId: parseInt(slug, 10) }] },
+                { OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }] },
+              ],
+            }
+          : {
+              slug,
+              OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }],
+            }),
         tenantId: { in: [tenantId, 'all'] },
         isActive: true,
         isQuarantined: false,
-        OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: new Date() } }],
         category: {
           network: { isActive: true }
         }

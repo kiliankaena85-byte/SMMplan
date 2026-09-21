@@ -2,7 +2,7 @@ import 'server-only';
 import { db } from '@/lib/db';
 import { sendAdminAlert } from '@/lib/notifications';
 import { redis } from '@/lib/redis';
-import { type SecurityEvent } from '@prisma/client';
+import { Prisma, type SecurityEvent } from '@prisma/client';
 
 export type SecuritySeverity = 'INFO' | 'WARNING' | 'HIGH' | 'CRITICAL';
 
@@ -162,12 +162,13 @@ export class SecurityAlertService {
   static async getRecentEvents(options?: {
     limit?: number;
     offset?: number;
+    cursor?: string;
     severity?: string;
     event?: string;
     ip?: string;
     tenantId?: string;
-  }): Promise<{ events: SecurityEvent[]; total: number }> {
-    const { limit = 50, offset = 0, severity, event, ip, tenantId } = options || {};
+  }): Promise<{ events: SecurityEvent[]; total: number; nextCursor?: string; hasMore?: boolean }> {
+    const { limit = 50, offset = 0, cursor, severity, event, ip, tenantId } = options || {};
 
     const where: Record<string, unknown> = {};
     if (severity && severity !== 'ALL') where.severity = severity;
@@ -176,17 +177,35 @@ export class SecurityAlertService {
     if (tenantId && tenantId !== 'ALL') where.tenantId = tenantId;
 
     try {
-      const [events, total] = await Promise.all([
-        db.securityEvent.findMany({
-          where,
-          orderBy: { createdAt: 'desc' },
-          take: Math.min(limit, 100),
-          skip: offset,
-        }),
+      const safeLimit = Math.min(Math.max(1, limit), 100);
+      const orderBy: Prisma.SecurityEventOrderByWithRelationInput[] = [
+        { createdAt: 'desc' },
+        { id: 'desc' },
+      ];
+
+      const queryOptions: Prisma.SecurityEventFindManyArgs = {
+        where,
+        orderBy,
+        take: safeLimit + 1,
+      };
+
+      if (cursor) {
+        queryOptions.cursor = { id: cursor };
+        queryOptions.skip = 1;
+      } else if (offset > 0) {
+        queryOptions.skip = offset;
+      }
+
+      const [rawEvents, total] = await Promise.all([
+        db.securityEvent.findMany(queryOptions),
         db.securityEvent.count({ where }),
       ]);
 
-      return { events, total };
+      const hasMore = rawEvents.length > safeLimit;
+      const events = hasMore ? rawEvents.slice(0, safeLimit) : rawEvents;
+      const nextCursor = hasMore && events.length > 0 ? events[events.length - 1].id : undefined;
+
+      return { events, total, nextCursor, hasMore };
     } catch (err) {
       console.error('[SecurityAlertService] Failed to query security events:', err);
       return { events: [], total: 0 };

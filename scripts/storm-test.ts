@@ -1,17 +1,46 @@
 import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
+import fs from 'fs';
 
-const prisma = new PrismaClient();
+function getDatasourceUrl(): string | undefined {
+  let url = process.env.DATABASE_URL;
+  if (!url) {
+    url = 'postgresql://postgres:postgres@127.0.0.1:5435/smmplan_lite?schema=public';
+  }
+  const isInsideDocker = fs.existsSync('/.dockerenv');
+  if (!isInsideDocker && url.includes('@db:')) {
+    url = url.replace('@db:5432', '@127.0.0.1:5435').replace('@db:', '@127.0.0.1:5435');
+  }
+  return url;
+}
+
+const prisma = new PrismaClient({
+  datasources: { db: { url: getDatasourceUrl() } },
+});
 
 async function runFinancialStorm() {
   console.log('--- 🌪 STARTING FINANCIAL STORM (MIXED RACE CONDITIONS) 🌪 ---');
   
-  // 1. Setup a test victim user with 10,000 RUB balance
+  // 1. Setup a test victim user with 10,000 RUB balance and initial ledger entry
   const email = `storm-victim-${randomUUID()}@test.com`;
   const stormVictim = await prisma.user.create({
     data: {
       email,
-      balance: BigInt(1000000) // 10,000 RUB
+      balance: BigInt(1000000), // 10,000 RUB
+      tenantId: 'smmplan',
+      isActive: false,
+    }
+  });
+
+  await prisma.ledgerEntry.create({
+    data: {
+      userId: stormVictim.id,
+      amount: BigInt(1000000),
+      reason: 'Initial test funding for storm test',
+      status: 'APPROVED',
+      transactionType: 'PAYMENT',
+      tenantId: 'smmplan',
+      idempotencyKey: `storm-init-${stormVictim.id}`,
     }
   });
 
@@ -67,17 +96,12 @@ async function runFinancialStorm() {
     ordersToRefund.push(order);
   }
 
-  // 1. Array of 100 Checkout Promises
+  // 1. Array of 100 Checkout Promises (Ledger-First: create LedgerEntry BEFORE updating balance)
   const checkoutPromises = Array.from({ length: 100 }).map(async (_, i) => {
     try {
         await prisma.$transaction(async (tx) => {
             const user = await tx.user.findUnique({ where: { id: stormVictim.id } });
             if (!user || user.balance < BigInt(5000)) throw new Error('Insufficient balance');
-
-            await tx.user.update({
-                where: { id: stormVictim.id },
-                data: { balance: { decrement: BigInt(5000) } }
-            });
 
             const newOrder = await tx.order.create({
                 data: {
@@ -92,12 +116,22 @@ async function runFinancialStorm() {
                 }
             });
 
+            // LEDGER-FIRST: Create journal record before balance mutation
             await tx.ledgerEntry.create({
                 data: {
                     userId: stormVictim.id,
                     amount: BigInt(-5000), // Negative for debit
-                    reason: `Checkout debit ${i}`
+                    reason: `Checkout debit ${i}`,
+                    status: 'APPROVED',
+                    transactionType: 'ORDER_PAYMENT',
+                    tenantId: 'smmplan',
+                    idempotencyKey: `storm-checkout-${i}-${stormVictim.id}`,
                 }
+            });
+
+            await tx.user.update({
+                where: { id: stormVictim.id },
+                data: { balance: { decrement: BigInt(5000) } }
             });
         }, { isolationLevel: 'Serializable' });
         checkoutSuccess++;
@@ -106,20 +140,26 @@ async function runFinancialStorm() {
     }
   });
 
-  // 2. Array of 100 Deposit Promises
+  // 2. Array of 100 Deposit Promises (Ledger-First)
   const depositPromises = Array.from({ length: 100 }).map(async (_, i) => {
     try {
         await prisma.$transaction(async (tx) => {
-            await tx.user.update({
-                where: { id: stormVictim.id },
-                data: { balance: { increment: BigInt(1000) } }
-            });
+            // LEDGER-FIRST: Create journal record before balance mutation
             await tx.ledgerEntry.create({
                 data: {
                     userId: stormVictim.id,
                     amount: BigInt(1000),
-                    reason: `Storm Deposit ${i}`
+                    reason: `Storm Deposit ${i}`,
+                    status: 'APPROVED',
+                    transactionType: 'PAYMENT',
+                    tenantId: 'smmplan',
+                    idempotencyKey: `storm-deposit-${i}-${stormVictim.id}`,
                 }
+            });
+
+            await tx.user.update({
+                where: { id: stormVictim.id },
+                data: { balance: { increment: BigInt(1000) } }
             });
         }, { isolationLevel: 'Serializable' });
         depositSuccess++;
@@ -128,7 +168,7 @@ async function runFinancialStorm() {
     }
   });
 
-  // 3. Array of 100 Refund Promises (Simulating Provider Webhook Cancellations)
+  // 3. Array of 100 Refund Promises (Ledger-First, Simulating Provider Webhook Cancellations)
   const refundPromises = ordersToRefund.map(async (order) => {
     try {
         // Simulating the cancellation logic inside a transaction
@@ -141,17 +181,22 @@ async function runFinancialStorm() {
                 data: { status: 'CANCELED' }
             });
 
-            await tx.user.update({
-                where: { id: stormVictim.id },
-                data: { balance: { increment: currentOrder!.charge } }
-            });
-
+            // LEDGER-FIRST: Create journal record before balance mutation
             await tx.ledgerEntry.create({
                 data: {
                     userId: stormVictim.id,
                     amount: currentOrder!.charge,
-                    reason: `Refund for storm order`
+                    reason: `Refund for storm order ${order.id}`,
+                    status: 'APPROVED',
+                    transactionType: 'REFUND',
+                    tenantId: 'smmplan',
+                    idempotencyKey: `storm-refund-${order.id}`,
                 }
+            });
+
+            await tx.user.update({
+                where: { id: stormVictim.id },
+                data: { balance: { increment: currentOrder!.charge } }
             });
         }, { isolationLevel: 'Serializable' });
         refundSuccess++;
@@ -181,7 +226,7 @@ async function runFinancialStorm() {
     _sum: { amount: true }
   });
 
-  const expectedBalance = BigInt(1000000) + BigInt(allLedger._sum.amount || 0);
+  const expectedBalance = BigInt(allLedger._sum.amount || 0);
   const actualBalance = BigInt(postVictim?.balance || 0);
 
   console.log('--- ⚖️ LEDGER INTEGRITY AUDIT ⚖️ ---');
@@ -199,13 +244,20 @@ async function runFinancialStorm() {
       console.log('✅ PASS: Mathematical integrity is absolute. Zero drift under severe mixed concurrency.');
   }
 
-  // Cleanup
-  await prisma.ledgerEntry.deleteMany({ where: { userId: stormVictim.id } });
-  await prisma.order.deleteMany({ where: { userId: stormVictim.id } });
-  await prisma.user.delete({ where: { id: stormVictim.id } });
-  await prisma.service.delete({ where: { id: service.id } });
-  await prisma.category.delete({ where: { id: category.id } });
-  await prisma.provider.delete({ where: { id: provider.id } });
+  // Cleanup: LedgerEntry is immutable by PostgreSQL trigger (P0001)
+  // We clean up test orders, deactivate user, and delete test service, category, provider.
+  try {
+    await prisma.order.deleteMany({ where: { userId: stormVictim.id } });
+    await prisma.user.update({
+      where: { id: stormVictim.id },
+      data: { isDeleted: true, isActive: false },
+    });
+    await prisma.service.delete({ where: { id: service.id } });
+    await prisma.category.delete({ where: { id: category.id } });
+    await prisma.provider.delete({ where: { id: provider.id } });
+  } catch (cleanErr) {
+    console.warn('[Storm] Notice during cleanup:', (cleanErr as Error).message);
+  }
 }
 
 runFinancialStorm()

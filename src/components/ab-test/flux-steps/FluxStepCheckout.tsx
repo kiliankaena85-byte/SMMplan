@@ -146,10 +146,10 @@ export function FluxStepCheckout({
                 exit={{ opacity: 0, height: 0, marginBottom: 0 }}
                 className="w-full p-4 bg-red-50 border border-red-200 rounded-[1.5rem] flex items-center gap-3 shadow-[0_0_15px_rgba(239,68,68,0.2)] overflow-hidden"
               >
-                <div className="bg-red-100 p-2 rounded-full text-red-600 flex-shrink-0">
-                  <AlertCircle className="w-5 h-5" />
+                <div className="bg-red-100 p-2 rounded-full text-red-600 shrink-0">
+                  <AlertCircle className="w-5 h-5 shrink-0" />
                 </div>
-                <span role="alert" className="text-red-700 font-bold text-sm">
+                <span role="alert" className="text-red-700 font-bold text-sm min-w-0 flex-1">
                   {formState.error}
                 </span>
               </motion.div>

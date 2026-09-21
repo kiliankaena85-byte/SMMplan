@@ -10,31 +10,25 @@ import { getTenantDashboardViews } from '@/tenants/factory';
 
 export const dynamic = 'force-dynamic';
 
-import { resolveTenantFromRequest } from '@/lib/tenant-resolver-edge';
+import { resolveTenantFromRequest, normalizeTenantId } from '@/lib/tenant-resolver-edge';
+import { resolveTenantUser } from '@/lib/tenant-user-resolver';
 
 export default async function DashboardPage(props: { searchParams?: Promise<{ tenant?: string }> }) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const searchParams = await props.searchParams;
   const session = await verifySession();
   if (!session) redirect('/login');
 
   const reqHeaders = await headers();
-  const tenantId = resolveTenantFromRequest(reqHeaders);
+  const rawTenantId = searchParams?.tenant || reqHeaders.get('x-tenant-id') || session.tenantId;
+  const tenantId = normalizeTenantId(rawTenantId) || 'smmplan';
 
-  const [user, orders, referralCount] = await Promise.all([
-    db.user.findUnique({
-      where: { id: session.userId },
-      select: {
-        email: true,
-        balance: true,
-        totalSpent: true,
-        referralCode: true,
-        createdAt: true,
-        tenantId: true,
-      },
-    }),
+  // Resolve user strictly for the active tenant (auto-provisioning staff/owner on sibling tenant if needed)
+  const user = await resolveTenantUser(session.userId, tenantId, true);
+  if (!user) redirect('/login');
+
+  const [orders, referralCount, activeOrders, hasPendingPayments] = await Promise.all([
     db.order.findMany({
-      where: { userId: session.userId },
+      where: { userId: user.id, tenantId },
       orderBy: { createdAt: 'desc' },
       take: 5,
       select: {
@@ -49,21 +43,17 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ te
         service: { select: { name: true, categoryId: true } },
       },
     }),
-    db.user.count({ where: { referredById: session.userId } }),
+    db.user.count({ where: { referredById: user.id } }),
+    db.order.count({
+      where: { userId: user.id, tenantId, status: { in: ['IN_PROGRESS', 'PENDING', 'PROVISIONING'] } },
+    }),
+    db.payment.count({
+      where: { userId: user.id, tenantId, status: 'PENDING', gateway: 'yookassa' }
+    }).then(c => c > 0),
   ]);
-
-  if (!user) redirect('/login');
 
   // P3.4: Use server-side headers() — no hydration mismatch
   const origin = await getBaseUrlAsync();
-
-  const activeOrders = await db.order.count({
-    where: { userId: session.userId, status: { in: ['IN_PROGRESS', 'PENDING', 'PROVISIONING'] } },
-  });
-
-  const hasPendingPayments = await db.payment.count({
-    where: { userId: session.userId, status: 'PENDING', gateway: 'yookassa' }
-  }) > 0;
 
   const { HomeView } = await getTenantDashboardViews(tenantId);
 
