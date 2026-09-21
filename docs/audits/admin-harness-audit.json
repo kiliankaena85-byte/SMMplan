@@ -1,17 +1,17 @@
 {
-  "timestamp": "2026-09-21T06:23:00.878Z",
-  "baseUrl": "http://127.0.0.1:3000",
+  "timestamp": "2026-09-21T07:06:14.125Z",
+  "baseUrl": "http://localhost:3000",
   "totalRoutesAudited": 21,
   "viewportsCount": 4,
-  "passedTests": 43,
-  "failedTests": 41,
+  "passedTests": 84,
+  "failedTests": 0,
   "tenantPersistenceVerified": true,
   "results": [
     {
       "route": "/admin/dashboard",
       "viewport": "Desktop (1280x800)",
       "status": 200,
-      "durationMs": 437,
+      "durationMs": 720,
       "horizontalOverflow": {
         "hasOverflow": false,
         "scrollWidth": 1280,
@@ -31,7 +31,7 @@
       "route": "/admin/dashboard",
       "viewport": "Tablet (768x1024)",
       "status": 200,
-      "durationMs": 434,
+      "durationMs": 482,
       "horizontalOverflow": {
         "hasOverflow": false,
         "scrollWidth": 768,
@@ -51,953 +51,7 @@
       "route": "/admin/dashboard",
       "viewport": "Mobile (375x812)",
       "status": 200,
-      "durationMs": 426,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 375,
-        "delta": 63
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/dashboard",
-      "viewport": "Mobile (390x844)",
-      "status": 200,
-      "durationMs": 413,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 390,
-        "delta": 48
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/orders",
-      "viewport": "Desktop (1280x800)",
-      "status": 200,
-      "durationMs": 463,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 1280,
-        "clientWidth": 1280,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/orders",
-      "viewport": "Tablet (768x1024)",
-      "status": 200,
-      "durationMs": 385,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 768,
-        "clientWidth": 768,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/orders",
-      "viewport": "Mobile (375x812)",
-      "status": 200,
-      "durationMs": 387,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 375,
-        "delta": 63
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/orders",
-      "viewport": "Mobile (390x844)",
-      "status": 200,
-      "durationMs": 400,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 390,
-        "delta": 48
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/orders/cuid_audit_order_0000000000001",
-      "viewport": "Desktop (1280x800)",
-      "status": 200,
-      "durationMs": 445,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 1280,
-        "clientWidth": 1280,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/orders/cuid_audit_order_0000000000001",
-      "viewport": "Tablet (768x1024)",
-      "status": 200,
-      "durationMs": 371,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 768,
-        "clientWidth": 768,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/orders/cuid_audit_order_0000000000001",
-      "viewport": "Mobile (375x812)",
-      "status": 200,
-      "durationMs": 376,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 375,
-        "delta": 63
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/orders/cuid_audit_order_0000000000001",
-      "viewport": "Mobile (390x844)",
-      "status": 200,
-      "durationMs": 380,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 390,
-        "delta": 48
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/clients",
-      "viewport": "Desktop (1280x800)",
-      "status": 200,
-      "durationMs": 451,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 1280,
-        "clientWidth": 1280,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/clients",
-      "viewport": "Tablet (768x1024)",
-      "status": 200,
-      "durationMs": 400,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 768,
-        "clientWidth": 768,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/clients",
-      "viewport": "Mobile (375x812)",
-      "status": 200,
-      "durationMs": 388,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 375,
-        "delta": 63
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/clients",
-      "viewport": "Mobile (390x844)",
-      "status": 200,
-      "durationMs": 402,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 390,
-        "delta": 48
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/clients/cuid_audit_client_user_00000001",
-      "viewport": "Desktop (1280x800)",
-      "status": 200,
-      "durationMs": 428,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 1280,
-        "clientWidth": 1280,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/clients/cuid_audit_client_user_00000001",
-      "viewport": "Tablet (768x1024)",
-      "status": 200,
-      "durationMs": 398,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 768,
-        "clientWidth": 768,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/clients/cuid_audit_client_user_00000001",
-      "viewport": "Mobile (375x812)",
-      "status": 200,
-      "durationMs": 386,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 375,
-        "delta": 63
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/clients/cuid_audit_client_user_00000001",
-      "viewport": "Mobile (390x844)",
-      "status": 200,
-      "durationMs": 383,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 390,
-        "delta": 48
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/providers",
-      "viewport": "Desktop (1280x800)",
-      "status": 200,
-      "durationMs": 449,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 1280,
-        "clientWidth": 1280,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/providers",
-      "viewport": "Tablet (768x1024)",
-      "status": 200,
-      "durationMs": 413,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 768,
-        "clientWidth": 768,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/providers",
-      "viewport": "Mobile (375x812)",
-      "status": 200,
-      "durationMs": 389,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 375,
-        "delta": 63
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/providers",
-      "viewport": "Mobile (390x844)",
-      "status": 200,
-      "durationMs": 412,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 390,
-        "delta": 48
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/providers/cuid_audit_provider_00000000001",
-      "viewport": "Desktop (1280x800)",
-      "status": 200,
-      "durationMs": 454,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 1280,
-        "clientWidth": 1280,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/providers/cuid_audit_provider_00000000001",
-      "viewport": "Tablet (768x1024)",
-      "status": 200,
-      "durationMs": 376,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 768,
-        "clientWidth": 768,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/providers/cuid_audit_provider_00000000001",
-      "viewport": "Mobile (375x812)",
-      "status": 200,
-      "durationMs": 374,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 375,
-        "delta": 63
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/providers/cuid_audit_provider_00000000001",
-      "viewport": "Mobile (390x844)",
-      "status": 200,
-      "durationMs": 365,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 390,
-        "delta": 48
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/catalog",
-      "viewport": "Desktop (1280x800)",
-      "status": 200,
-      "durationMs": 519,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 1280,
-        "clientWidth": 1280,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/catalog",
-      "viewport": "Tablet (768x1024)",
-      "status": 200,
-      "durationMs": 413,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 768,
-        "clientWidth": 768,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/catalog",
-      "viewport": "Mobile (375x812)",
-      "status": 200,
-      "durationMs": 411,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 375,
-        "delta": 63
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/catalog",
-      "viewport": "Mobile (390x844)",
-      "status": 200,
-      "durationMs": 410,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 390,
-        "delta": 48
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/catalog/cuid_audit_service_000000000001",
-      "viewport": "Desktop (1280x800)",
-      "status": 200,
-      "durationMs": 431,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 1280,
-        "clientWidth": 1280,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/catalog/cuid_audit_service_000000000001",
-      "viewport": "Tablet (768x1024)",
-      "status": 200,
-      "durationMs": 388,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 768,
-        "clientWidth": 768,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/catalog/cuid_audit_service_000000000001",
-      "viewport": "Mobile (375x812)",
-      "status": 200,
-      "durationMs": 392,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 375,
-        "delta": 63
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/catalog/cuid_audit_service_000000000001",
-      "viewport": "Mobile (390x844)",
-      "status": 200,
-      "durationMs": 382,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 390,
-        "delta": 48
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/services/cuid_audit_service_000000000001/routing",
-      "viewport": "Desktop (1280x800)",
-      "status": 200,
-      "durationMs": 435,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 1280,
-        "clientWidth": 1280,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/services/cuid_audit_service_000000000001/routing",
-      "viewport": "Tablet (768x1024)",
-      "status": 200,
-      "durationMs": 405,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 768,
-        "clientWidth": 768,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/services/cuid_audit_service_000000000001/routing",
-      "viewport": "Mobile (375x812)",
-      "status": 200,
-      "durationMs": 382,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 375,
-        "delta": 63
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/services/cuid_audit_service_000000000001/routing",
-      "viewport": "Mobile (390x844)",
-      "status": 200,
-      "durationMs": 383,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 390,
-        "delta": 48
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/tickets",
-      "viewport": "Desktop (1280x800)",
-      "status": 200,
-      "durationMs": 439,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 1280,
-        "clientWidth": 1280,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/tickets",
-      "viewport": "Tablet (768x1024)",
-      "status": 200,
-      "durationMs": 388,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 768,
-        "clientWidth": 768,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/tickets",
-      "viewport": "Mobile (375x812)",
-      "status": 200,
-      "durationMs": 394,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 375,
-        "delta": 63
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/tickets",
-      "viewport": "Mobile (390x844)",
-      "status": 200,
-      "durationMs": 385,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 390,
-        "delta": 48
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/tickets/cuid_audit_ticket_000000000001",
-      "viewport": "Desktop (1280x800)",
-      "status": 200,
-      "durationMs": 416,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 1280,
-        "clientWidth": 1280,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/tickets/cuid_audit_ticket_000000000001",
-      "viewport": "Tablet (768x1024)",
-      "status": 200,
-      "durationMs": 380,
-      "horizontalOverflow": {
-        "hasOverflow": false,
-        "scrollWidth": 768,
-        "clientWidth": 768,
-        "delta": 0
-      },
-      "clippedCells": [],
-      "headerIssues": [],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": true
-    },
-    {
-      "route": "/admin/tickets/cuid_audit_ticket_000000000001",
-      "viewport": "Mobile (375x812)",
-      "status": 200,
-      "durationMs": 367,
+      "durationMs": 448,
       "horizontalOverflow": {
         "hasOverflow": false,
         "scrollWidth": 375,
@@ -1014,10 +68,10 @@
       "passed": true
     },
     {
-      "route": "/admin/tickets/cuid_audit_ticket_000000000001",
+      "route": "/admin/dashboard",
       "viewport": "Mobile (390x844)",
       "status": 200,
-      "durationMs": 369,
+      "durationMs": 431,
       "horizontalOverflow": {
         "hasOverflow": false,
         "scrollWidth": 390,
@@ -1034,10 +88,10 @@
       "passed": true
     },
     {
-      "route": "/admin/cms",
+      "route": "/admin/orders",
       "viewport": "Desktop (1280x800)",
       "status": 200,
-      "durationMs": 382,
+      "durationMs": 458,
       "horizontalOverflow": {
         "hasOverflow": false,
         "scrollWidth": 1280,
@@ -1048,18 +102,16 @@
       "headerIssues": [],
       "tabCollisions": [],
       "errorBoundary": null,
-      "consoleErrors": [
-        "Failed to load resource: the server responded with a status of 400 (Bad Request)"
-      ],
+      "consoleErrors": [],
       "hydrationMismatches": [],
       "serverActionErrors": [],
       "passed": true
     },
     {
-      "route": "/admin/cms",
+      "route": "/admin/orders",
       "viewport": "Tablet (768x1024)",
       "status": 200,
-      "durationMs": 377,
+      "durationMs": 404,
       "horizontalOverflow": {
         "hasOverflow": false,
         "scrollWidth": 768,
@@ -1076,152 +128,50 @@
       "passed": true
     },
     {
-      "route": "/admin/cms",
+      "route": "/admin/orders",
       "viewport": "Mobile (375x812)",
       "status": 200,
-      "durationMs": 381,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 375,
-        "delta": 63
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/cms",
-      "viewport": "Mobile (390x844)",
-      "status": 200,
-      "durationMs": 370,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 390,
-        "delta": 48
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/cms/cuid_audit_content_000000000001",
-      "viewport": "Desktop (1280x800)",
-      "status": 200,
-      "durationMs": 431,
+      "durationMs": 403,
       "horizontalOverflow": {
         "hasOverflow": false,
-        "scrollWidth": 1280,
-        "clientWidth": 1280,
+        "scrollWidth": 375,
+        "clientWidth": 375,
         "delta": 0
       },
       "clippedCells": [],
       "headerIssues": [],
       "tabCollisions": [],
       "errorBoundary": null,
-      "consoleErrors": [
-        "Failed to parse initial content for BlockNote TypeError: n.map is not a function\n    at L (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:64561)\n    at http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73624\n    at tC.transact (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:135144)\n    at e.transact (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:145566)\n    at Y.replaceBlocks (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73612)\n    at e.replaceBlocks (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:148378)\n    at http://127.0.0.1:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:367\n    at http://127.0.0.1:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:475\n    at ik (http://127.0.0.1:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:92679)\n    at e (http://127.0.0.1:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:117841)"
-      ],
+      "consoleErrors": [],
       "hydrationMismatches": [],
       "serverActionErrors": [],
       "passed": true
     },
     {
-      "route": "/admin/cms/cuid_audit_content_000000000001",
-      "viewport": "Tablet (768x1024)",
+      "route": "/admin/orders",
+      "viewport": "Mobile (390x844)",
       "status": 200,
-      "durationMs": 427,
+      "durationMs": 403,
       "horizontalOverflow": {
         "hasOverflow": false,
-        "scrollWidth": 768,
-        "clientWidth": 768,
+        "scrollWidth": 390,
+        "clientWidth": 390,
         "delta": 0
       },
       "clippedCells": [],
       "headerIssues": [],
       "tabCollisions": [],
       "errorBoundary": null,
-      "consoleErrors": [
-        "Failed to parse initial content for BlockNote TypeError: n.map is not a function\n    at L (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:64561)\n    at http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73624\n    at tC.transact (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:135144)\n    at e.transact (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:145566)\n    at Y.replaceBlocks (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73612)\n    at e.replaceBlocks (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:148378)\n    at http://127.0.0.1:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:367\n    at http://127.0.0.1:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:475\n    at ik (http://127.0.0.1:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:92679)\n    at e (http://127.0.0.1:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:117841)",
-        "Failed to load resource: the server responded with a status of 400 (Bad Request)"
-      ],
+      "consoleErrors": [],
       "hydrationMismatches": [],
       "serverActionErrors": [],
       "passed": true
     },
     {
-      "route": "/admin/cms/cuid_audit_content_000000000001",
-      "viewport": "Mobile (375x812)",
-      "status": 200,
-      "durationMs": 377,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 375,
-        "delta": 63
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [
-        "Failed to parse initial content for BlockNote TypeError: n.map is not a function\n    at L (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:64561)\n    at http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73624\n    at tC.transact (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:135144)\n    at e.transact (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:145566)\n    at Y.replaceBlocks (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73612)\n    at e.replaceBlocks (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:148378)\n    at http://127.0.0.1:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:367\n    at http://127.0.0.1:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:475\n    at ik (http://127.0.0.1:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:92679)\n    at e (http://127.0.0.1:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:117841)"
-      ],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/cms/cuid_audit_content_000000000001",
-      "viewport": "Mobile (390x844)",
-      "status": 200,
-      "durationMs": 414,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 390,
-        "delta": 48
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [
-        "Failed to parse initial content for BlockNote TypeError: n.map is not a function\n    at L (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:64561)\n    at http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73624\n    at tC.transact (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:135144)\n    at e.transact (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:145566)\n    at Y.replaceBlocks (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73612)\n    at e.replaceBlocks (http://127.0.0.1:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:148378)\n    at http://127.0.0.1:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:367\n    at http://127.0.0.1:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:475\n    at ik (http://127.0.0.1:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:92679)\n    at e (http://127.0.0.1:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:117841)",
-        "Failed to load resource: the server responded with a status of 400 (Bad Request)"
-      ],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/knowledge/cuid_audit_article_000000000001/edit",
+      "route": "/admin/orders/cuid_audit_order_0000000000001",
       "viewport": "Desktop (1280x800)",
       "status": 200,
-      "durationMs": 420,
+      "durationMs": 474,
       "horizontalOverflow": {
         "hasOverflow": false,
         "scrollWidth": 1280,
@@ -1238,10 +188,10 @@
       "passed": true
     },
     {
-      "route": "/admin/knowledge/cuid_audit_article_000000000001/edit",
+      "route": "/admin/orders/cuid_audit_order_0000000000001",
       "viewport": "Tablet (768x1024)",
       "status": 200,
-      "durationMs": 376,
+      "durationMs": 373,
       "horizontalOverflow": {
         "hasOverflow": false,
         "scrollWidth": 768,
@@ -1258,56 +208,50 @@
       "passed": true
     },
     {
-      "route": "/admin/knowledge/cuid_audit_article_000000000001/edit",
+      "route": "/admin/orders/cuid_audit_order_0000000000001",
       "viewport": "Mobile (375x812)",
       "status": 200,
-      "durationMs": 380,
+      "durationMs": 389,
       "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
+        "hasOverflow": false,
+        "scrollWidth": 375,
         "clientWidth": 375,
-        "delta": 63
+        "delta": 0
       },
       "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
+      "headerIssues": [],
       "tabCollisions": [],
       "errorBoundary": null,
       "consoleErrors": [],
       "hydrationMismatches": [],
       "serverActionErrors": [],
-      "passed": false
+      "passed": true
     },
     {
-      "route": "/admin/knowledge/cuid_audit_article_000000000001/edit",
+      "route": "/admin/orders/cuid_audit_order_0000000000001",
       "viewport": "Mobile (390x844)",
       "status": 200,
-      "durationMs": 379,
+      "durationMs": 389,
       "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
+        "hasOverflow": false,
+        "scrollWidth": 390,
         "clientWidth": 390,
-        "delta": 48
+        "delta": 0
       },
       "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
+      "headerIssues": [],
       "tabCollisions": [],
       "errorBoundary": null,
       "consoleErrors": [],
       "hydrationMismatches": [],
       "serverActionErrors": [],
-      "passed": false
+      "passed": true
     },
     {
-      "route": "/admin/finance",
+      "route": "/admin/clients",
       "viewport": "Desktop (1280x800)",
       "status": 200,
-      "durationMs": 475,
+      "durationMs": 471,
       "horizontalOverflow": {
         "hasOverflow": false,
         "scrollWidth": 1280,
@@ -1324,10 +268,10 @@
       "passed": true
     },
     {
-      "route": "/admin/finance",
+      "route": "/admin/clients",
       "viewport": "Tablet (768x1024)",
       "status": 200,
-      "durationMs": 405,
+      "durationMs": 404,
       "horizontalOverflow": {
         "hasOverflow": false,
         "scrollWidth": 768,
@@ -1336,72 +280,58 @@
       },
       "clippedCells": [],
       "headerIssues": [],
-      "tabCollisions": [
-        "Tab trigger \"4. Сверка & Балансы\" overflows TabsList bottom (254px > 237px)"
-      ],
+      "tabCollisions": [],
       "errorBoundary": null,
       "consoleErrors": [],
       "hydrationMismatches": [],
       "serverActionErrors": [],
-      "passed": false
+      "passed": true
     },
     {
-      "route": "/admin/finance",
+      "route": "/admin/clients",
       "viewport": "Mobile (375x812)",
       "status": 200,
-      "durationMs": 393,
+      "durationMs": 397,
       "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
+        "hasOverflow": false,
+        "scrollWidth": 375,
         "clientWidth": 375,
-        "delta": 63
+        "delta": 0
       },
       "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
-      "tabCollisions": [
-        "Tab trigger \"2. Реестр Платежей\" overflows TabsList bottom (289px > 272px)",
-        "Tab trigger overlaps TabsContent by 20px"
-      ],
+      "headerIssues": [],
+      "tabCollisions": [],
       "errorBoundary": null,
       "consoleErrors": [],
       "hydrationMismatches": [],
       "serverActionErrors": [],
-      "passed": false
+      "passed": true
     },
     {
-      "route": "/admin/finance",
+      "route": "/admin/clients",
       "viewport": "Mobile (390x844)",
       "status": 200,
-      "durationMs": 400,
+      "durationMs": 401,
       "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
+        "hasOverflow": false,
+        "scrollWidth": 390,
         "clientWidth": 390,
-        "delta": 48
+        "delta": 0
       },
       "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
-      "tabCollisions": [
-        "Tab trigger \"2. Реестр Платежей\" overflows TabsList bottom (261px > 244px)",
-        "Tab trigger overlaps TabsContent by 20px"
-      ],
+      "headerIssues": [],
+      "tabCollisions": [],
       "errorBoundary": null,
       "consoleErrors": [],
       "hydrationMismatches": [],
       "serverActionErrors": [],
-      "passed": false
+      "passed": true
     },
     {
-      "route": "/admin/marketing",
+      "route": "/admin/clients/cuid_audit_client_user_00000001",
       "viewport": "Desktop (1280x800)",
       "status": 200,
-      "durationMs": 466,
+      "durationMs": 486,
       "horizontalOverflow": {
         "hasOverflow": false,
         "scrollWidth": 1280,
@@ -1418,7 +348,7 @@
       "passed": true
     },
     {
-      "route": "/admin/marketing",
+      "route": "/admin/clients/cuid_audit_client_user_00000001",
       "viewport": "Tablet (768x1024)",
       "status": 200,
       "durationMs": 391,
@@ -1438,53 +368,127 @@
       "passed": true
     },
     {
-      "route": "/admin/marketing",
+      "route": "/admin/clients/cuid_audit_client_user_00000001",
       "viewport": "Mobile (375x812)",
       "status": 200,
-      "durationMs": 406,
+      "durationMs": 389,
       "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
+        "hasOverflow": false,
+        "scrollWidth": 375,
         "clientWidth": 375,
-        "delta": 63
+        "delta": 0
       },
       "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
+      "headerIssues": [],
       "tabCollisions": [],
       "errorBoundary": null,
       "consoleErrors": [],
       "hydrationMismatches": [],
       "serverActionErrors": [],
-      "passed": false
+      "passed": true
     },
     {
-      "route": "/admin/marketing",
+      "route": "/admin/clients/cuid_audit_client_user_00000001",
       "viewport": "Mobile (390x844)",
       "status": 200,
-      "durationMs": 398,
+      "durationMs": 401,
       "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
+        "hasOverflow": false,
+        "scrollWidth": 390,
         "clientWidth": 390,
-        "delta": 48
+        "delta": 0
       },
       "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
+      "headerIssues": [],
       "tabCollisions": [],
       "errorBoundary": null,
       "consoleErrors": [],
       "hydrationMismatches": [],
       "serverActionErrors": [],
-      "passed": false
+      "passed": true
     },
     {
-      "route": "/admin/finance/payments/cuid_audit_payment_000000000001/dispute-pack",
+      "route": "/admin/providers",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 459,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/providers",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 429,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/providers",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 411,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/providers",
+      "viewport": "Mobile (390x844)",
+      "status": 200,
+      "durationMs": 399,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/providers/cuid_audit_provider_00000000001",
       "viewport": "Desktop (1280x800)",
       "status": 200,
       "durationMs": 448,
@@ -1504,10 +508,10 @@
       "passed": true
     },
     {
-      "route": "/admin/finance/payments/cuid_audit_payment_000000000001/dispute-pack",
+      "route": "/admin/providers/cuid_audit_provider_00000000001",
       "viewport": "Tablet (768x1024)",
       "status": 200,
-      "durationMs": 390,
+      "durationMs": 379,
       "horizontalOverflow": {
         "hasOverflow": false,
         "scrollWidth": 768,
@@ -1524,56 +528,50 @@
       "passed": true
     },
     {
-      "route": "/admin/finance/payments/cuid_audit_payment_000000000001/dispute-pack",
+      "route": "/admin/providers/cuid_audit_provider_00000000001",
       "viewport": "Mobile (375x812)",
       "status": 200,
-      "durationMs": 390,
+      "durationMs": 381,
       "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
+        "hasOverflow": false,
+        "scrollWidth": 375,
         "clientWidth": 375,
-        "delta": 63
+        "delta": 0
       },
       "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
+      "headerIssues": [],
       "tabCollisions": [],
       "errorBoundary": null,
       "consoleErrors": [],
       "hydrationMismatches": [],
       "serverActionErrors": [],
-      "passed": false
+      "passed": true
     },
     {
-      "route": "/admin/finance/payments/cuid_audit_payment_000000000001/dispute-pack",
+      "route": "/admin/providers/cuid_audit_provider_00000000001",
       "viewport": "Mobile (390x844)",
       "status": 200,
       "durationMs": 384,
       "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
+        "hasOverflow": false,
+        "scrollWidth": 390,
         "clientWidth": 390,
-        "delta": 48
+        "delta": 0
       },
       "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
+      "headerIssues": [],
       "tabCollisions": [],
       "errorBoundary": null,
       "consoleErrors": [],
       "hydrationMismatches": [],
       "serverActionErrors": [],
-      "passed": false
+      "passed": true
     },
     {
-      "route": "/admin/settings",
+      "route": "/admin/catalog",
       "viewport": "Desktop (1280x800)",
       "status": 200,
-      "durationMs": 439,
+      "durationMs": 541,
       "horizontalOverflow": {
         "hasOverflow": false,
         "scrollWidth": 1280,
@@ -1590,7 +588,327 @@
       "passed": true
     },
     {
-      "route": "/admin/settings",
+      "route": "/admin/catalog",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 491,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/catalog",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 445,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/catalog",
+      "viewport": "Mobile (390x844)",
+      "status": 200,
+      "durationMs": 415,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/catalog/cuid_audit_service_000000000001",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 444,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/catalog/cuid_audit_service_000000000001",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 396,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/catalog/cuid_audit_service_000000000001",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 393,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/catalog/cuid_audit_service_000000000001",
+      "viewport": "Mobile (390x844)",
+      "status": 200,
+      "durationMs": 402,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/services/cuid_audit_service_000000000001/routing",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 438,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/services/cuid_audit_service_000000000001/routing",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 391,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/services/cuid_audit_service_000000000001/routing",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 409,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/services/cuid_audit_service_000000000001/routing",
+      "viewport": "Mobile (390x844)",
+      "status": 200,
+      "durationMs": 401,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/tickets",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 441,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/tickets",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 397,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/tickets",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 391,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/tickets",
+      "viewport": "Mobile (390x844)",
+      "status": 200,
+      "durationMs": 392,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/tickets/cuid_audit_ticket_000000000001",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 442,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/tickets/cuid_audit_ticket_000000000001",
       "viewport": "Tablet (768x1024)",
       "status": 200,
       "durationMs": 386,
@@ -1610,56 +928,50 @@
       "passed": true
     },
     {
-      "route": "/admin/settings",
+      "route": "/admin/tickets/cuid_audit_ticket_000000000001",
       "viewport": "Mobile (375x812)",
       "status": 200,
-      "durationMs": 411,
+      "durationMs": 365,
       "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
+        "hasOverflow": false,
+        "scrollWidth": 375,
         "clientWidth": 375,
-        "delta": 63
+        "delta": 0
       },
       "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
+      "headerIssues": [],
       "tabCollisions": [],
       "errorBoundary": null,
       "consoleErrors": [],
       "hydrationMismatches": [],
       "serverActionErrors": [],
-      "passed": false
+      "passed": true
     },
     {
-      "route": "/admin/settings",
+      "route": "/admin/tickets/cuid_audit_ticket_000000000001",
       "viewport": "Mobile (390x844)",
       "status": 200,
-      "durationMs": 383,
+      "durationMs": 387,
       "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
+        "hasOverflow": false,
+        "scrollWidth": 390,
         "clientWidth": 390,
-        "delta": 48
+        "delta": 0
       },
       "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
+      "headerIssues": [],
       "tabCollisions": [],
       "errorBoundary": null,
       "consoleErrors": [],
       "hydrationMismatches": [],
       "serverActionErrors": [],
-      "passed": false
+      "passed": true
     },
     {
-      "route": "/admin/staff",
+      "route": "/admin/cms",
       "viewport": "Desktop (1280x800)",
       "status": 200,
-      "durationMs": 451,
+      "durationMs": 392,
       "horizontalOverflow": {
         "hasOverflow": false,
         "scrollWidth": 1280,
@@ -1676,14 +988,36 @@
       "passed": true
     },
     {
-      "route": "/admin/staff",
+      "route": "/admin/cms",
       "viewport": "Tablet (768x1024)",
       "status": 200,
-      "durationMs": 401,
+      "durationMs": 372,
       "horizontalOverflow": {
         "hasOverflow": false,
         "scrollWidth": 768,
         "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+      ],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/cms",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 380,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
         "delta": 0
       },
       "clippedCells": [],
@@ -1696,58 +1030,603 @@
       "passed": true
     },
     {
-      "route": "/admin/staff",
-      "viewport": "Mobile (375x812)",
-      "status": 200,
-      "durationMs": 395,
-      "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
-        "clientWidth": 375,
-        "delta": 63
-      },
-      "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
-      "tabCollisions": [],
-      "errorBoundary": null,
-      "consoleErrors": [],
-      "hydrationMismatches": [],
-      "serverActionErrors": [],
-      "passed": false
-    },
-    {
-      "route": "/admin/staff",
+      "route": "/admin/cms",
       "viewport": "Mobile (390x844)",
       "status": 200,
-      "durationMs": 399,
+      "durationMs": 393,
       "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
+        "hasOverflow": false,
+        "scrollWidth": 390,
         "clientWidth": 390,
-        "delta": 48
+        "delta": 0
       },
       "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
+      "headerIssues": [],
       "tabCollisions": [],
       "errorBoundary": null,
       "consoleErrors": [],
       "hydrationMismatches": [],
       "serverActionErrors": [],
-      "passed": false
+      "passed": true
     },
     {
-      "route": "/admin/system/features",
+      "route": "/admin/cms/cuid_audit_content_000000000001",
       "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 449,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [
+        "Failed to parse initial content for BlockNote TypeError: n.map is not a function\n    at L (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:64561)\n    at http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73624\n    at tC.transact (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:135144)\n    at e.transact (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:145566)\n    at Y.replaceBlocks (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73612)\n    at e.replaceBlocks (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:148378)\n    at http://localhost:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:367\n    at http://localhost:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:475\n    at ik (http://localhost:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:92679)\n    at e (http://localhost:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:117841)"
+      ],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/cms/cuid_audit_content_000000000001",
+      "viewport": "Tablet (768x1024)",
       "status": 200,
       "durationMs": 418,
       "horizontalOverflow": {
         "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [
+        "Failed to parse initial content for BlockNote TypeError: n.map is not a function\n    at L (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:64561)\n    at http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73624\n    at tC.transact (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:135144)\n    at e.transact (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:145566)\n    at Y.replaceBlocks (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73612)\n    at e.replaceBlocks (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:148378)\n    at http://localhost:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:367\n    at http://localhost:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:475\n    at ik (http://localhost:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:92679)\n    at e (http://localhost:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:117841)",
+        "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+      ],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/cms/cuid_audit_content_000000000001",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 400,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [
+        "Failed to parse initial content for BlockNote TypeError: n.map is not a function\n    at L (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:64561)\n    at http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73624\n    at tC.transact (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:135144)\n    at e.transact (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:145566)\n    at Y.replaceBlocks (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73612)\n    at e.replaceBlocks (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:148378)\n    at http://localhost:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:367\n    at http://localhost:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:475\n    at ik (http://localhost:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:92679)\n    at e (http://localhost:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:117841)",
+        "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+      ],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/cms/cuid_audit_content_000000000001",
+      "viewport": "Mobile (390x844)",
+      "status": 200,
+      "durationMs": 383,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [
+        "Failed to parse initial content for BlockNote TypeError: n.map is not a function\n    at L (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:64561)\n    at http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73624\n    at tC.transact (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:135144)\n    at e.transact (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:145566)\n    at Y.replaceBlocks (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:73612)\n    at e.replaceBlocks (http://localhost:3000/_next/static/chunks/177.1529775d1ca38fa4.js:1:148378)\n    at http://localhost:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:367\n    at http://localhost:3000/_next/static/chunks/4944.1950a75cc04b348b.js:1:475\n    at ik (http://localhost:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:92679)\n    at e (http://localhost:3000/_next/static/chunks/4bd1b696-e356ca5ba0218e27.js:1:117841)",
+        "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+      ],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/knowledge/cuid_audit_article_000000000001/edit",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 512,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/knowledge/cuid_audit_article_000000000001/edit",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 404,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/knowledge/cuid_audit_article_000000000001/edit",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 385,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/knowledge/cuid_audit_article_000000000001/edit",
+      "viewport": "Mobile (390x844)",
+      "status": 200,
+      "durationMs": 387,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/finance",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 483,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/finance",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 408,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/finance",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 412,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/finance",
+      "viewport": "Mobile (390x844)",
+      "status": 200,
+      "durationMs": 419,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/marketing",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 467,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/marketing",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 407,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/marketing",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 408,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/marketing",
+      "viewport": "Mobile (390x844)",
+      "status": 200,
+      "durationMs": 398,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/finance/payments/cuid_audit_payment_000000000001/dispute-pack",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 459,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/finance/payments/cuid_audit_payment_000000000001/dispute-pack",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 406,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/finance/payments/cuid_audit_payment_000000000001/dispute-pack",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 405,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/finance/payments/cuid_audit_payment_000000000001/dispute-pack",
+      "viewport": "Mobile (390x844)",
+      "status": 200,
+      "durationMs": 392,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/settings",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 477,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/settings",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 387,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/settings",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 409,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/settings",
+      "viewport": "Mobile (390x844)",
+      "status": 200,
+      "durationMs": 388,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/staff",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 479,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/staff",
+      "viewport": "Tablet (768x1024)",
+      "status": 200,
+      "durationMs": 391,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/staff",
+      "viewport": "Mobile (375x812)",
+      "status": 200,
+      "durationMs": 392,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/staff",
+      "viewport": "Mobile (390x844)",
+      "status": 200,
+      "durationMs": 402,
+      "horizontalOverflow": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "delta": 0
+      },
+      "clippedCells": [],
+      "headerIssues": [],
+      "tabCollisions": [],
+      "errorBoundary": null,
+      "consoleErrors": [],
+      "hydrationMismatches": [],
+      "serverActionErrors": [],
+      "passed": true
+    },
+    {
+      "route": "/admin/system/features",
+      "viewport": "Desktop (1280x800)",
+      "status": 200,
+      "durationMs": 444,
+      "horizontalOverflow": {
+        "hasOverflow": false,
         "scrollWidth": 1280,
         "clientWidth": 1280,
         "delta": 0
@@ -1765,7 +1644,7 @@
       "route": "/admin/system/features",
       "viewport": "Tablet (768x1024)",
       "status": 200,
-      "durationMs": 381,
+      "durationMs": 383,
       "horizontalOverflow": {
         "hasOverflow": false,
         "scrollWidth": 768,
@@ -1785,54 +1664,48 @@
       "route": "/admin/system/features",
       "viewport": "Mobile (375x812)",
       "status": 200,
-      "durationMs": 382,
+      "durationMs": 395,
       "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
+        "hasOverflow": false,
+        "scrollWidth": 375,
         "clientWidth": 375,
-        "delta": 63
+        "delta": 0
       },
       "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 63px (438px > 375px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 375px)"
-      ],
+      "headerIssues": [],
       "tabCollisions": [],
       "errorBoundary": null,
       "consoleErrors": [],
       "hydrationMismatches": [],
       "serverActionErrors": [],
-      "passed": false
+      "passed": true
     },
     {
       "route": "/admin/system/features",
       "viewport": "Mobile (390x844)",
       "status": 200,
-      "durationMs": 385,
+      "durationMs": 382,
       "horizontalOverflow": {
-        "hasOverflow": true,
-        "scrollWidth": 438,
+        "hasOverflow": false,
+        "scrollWidth": 390,
         "clientWidth": 390,
-        "delta": 48
+        "delta": 0
       },
       "clippedCells": [],
-      "headerIssues": [
-        "Header scrollWidth exceeds clientWidth by 48px (438px > 390px)",
-        "Button/link \"ADadmin.auditВладелец\" offscreen right (438px > 390px)"
-      ],
+      "headerIssues": [],
       "tabCollisions": [],
       "errorBoundary": null,
       "consoleErrors": [],
       "hydrationMismatches": [],
       "serverActionErrors": [],
-      "passed": false
+      "passed": true
     }
   ],
   "summary": {
-    "horizontalOverflowCount": 40,
+    "horizontalOverflowCount": 0,
     "clippedCellsCount": 0,
-    "headerIssuesCount": 80,
-    "tabCollisionsCount": 5,
+    "headerIssuesCount": 0,
+    "tabCollisionsCount": 0,
     "errorBoundaryCount": 0,
     "hydrationMismatchesCount": 0,
     "serverActionCrashesCount": 0

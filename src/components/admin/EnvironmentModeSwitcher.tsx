@@ -74,12 +74,14 @@ const MODES: ModeConfig[] = [
 
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export function EnvironmentModeSwitcher({
-  initialMode = 'SANDBOX',
+export function EnvironmentModeSwitcher({ 
+  initialMode = 'SANDBOX', 
   readOnly = false,
-}: {
-  initialMode?: EnvironmentMode;
+  className = ''
+}: { 
+  initialMode?: EnvironmentMode; 
   readOnly?: boolean;
+  className?: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -143,13 +145,13 @@ export function EnvironmentModeSwitcher({
   };
 
   return (
-    <div className="relative inline-block text-left" ref={dropdownRef}>
+    <div className={`relative inline-block text-left min-w-0 shrink ${className}`} ref={dropdownRef}>
       {/* Trigger Button */}
       <button
         type="button"
         onClick={() => !readOnly && setIsOpen(!isOpen)}
         disabled={isPending || readOnly}
-        className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 sm:py-1 min-h-[38px] sm:min-h-0 rounded-xl border text-xs font-bold transition-all duration-150 shadow-xs shrink-0 ${activeConfig.badgeClass} ${
+        className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 sm:py-1 min-h-[38px] sm:min-h-0 rounded-xl border text-xs font-bold transition-all duration-150 shadow-xs min-w-0 shrink ${activeConfig.badgeClass} ${
           readOnly ? 'cursor-default opacity-85' : 'hover:opacity-90 active:scale-95 cursor-pointer'
         }`}
         title={

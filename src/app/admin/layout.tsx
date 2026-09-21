@@ -168,20 +168,27 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             <SystemEmergencyBanner />
             {/* Top Sticky Header Bar with Mobile Drawer, Global Site Switcher & Profile Dropdown */}
             <header className="sticky top-0 z-30 mb-2 px-2 sm:px-3 py-1.5 sm:py-2 md:py-2.5 flex items-center justify-between gap-1.5 sm:gap-3 shrink-0 bg-background/95 backdrop-blur-md border-b border-border/70 shadow-xs md:rounded-lg w-full max-w-full">
-              <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 min-w-0 flex-1">
-                <MobileNavDrawer
-                  userEmail={user.email}
-                  roleInfo={roleInfo}
-                  navigation={navigation}
-                />
-                <GlobalSiteSwitcher 
-                  currentTenant={activeTenantId} 
-                  allowedTenants={userAllowedTenants}
-                  isOwner={isOwner}
-                />
-                <EnvironmentModeSwitcher readOnly={!canEditSettings} />
+              <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 min-w-0 flex-1 overflow-hidden">
+                <div className="shrink-0">
+                  <MobileNavDrawer
+                    userEmail={user.email}
+                    roleInfo={roleInfo}
+                    navigation={navigation}
+                  />
+                </div>
+                <div className="min-w-0 shrink flex items-center">
+                  <GlobalSiteSwitcher 
+                    currentTenant={activeTenantId} 
+                    allowedTenants={userAllowedTenants}
+                    isOwner={isOwner}
+                    className="min-w-0 shrink"
+                  />
+                </div>
+                <div className="min-w-0 shrink flex items-center">
+                  <EnvironmentModeSwitcher readOnly={!canEditSettings} className="min-w-0 shrink" />
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink min-w-0">
                 <AdminProfileDropdown
                   userEmail={user.email}
                   role={user.role}

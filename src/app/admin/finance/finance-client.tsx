@@ -99,7 +99,7 @@ export function FinanceClient({
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full">
         {/* Navigation Tabs Header */}
         <div className="border-b border-border/80 pb-3 w-full max-w-full overflow-hidden">
-          <TabsList className="bg-muted/40 p-1 sm:p-1.5 rounded-xl border border-border/70 gap-1.5 flex w-full max-w-full overflow-x-auto scrollbar-none flex-nowrap justify-start shadow-xs">
+          <TabsList className="bg-muted/40 p-1 sm:p-1.5 rounded-xl border border-border/70 gap-1.5 flex w-full max-w-full overflow-x-auto scrollbar-hide flex-nowrap justify-start shadow-xs h-auto min-h-0">
             <TabsTrigger 
               value="overview" 
               className="gap-2 px-3 sm:px-3.5 py-2 text-xs font-bold uppercase tracking-wider rounded-lg shrink-0 whitespace-nowrap data-[state=active]:bg-card data-[state=active]:shadow-xs data-[state=active]:text-primary transition-all duration-200 cursor-pointer"

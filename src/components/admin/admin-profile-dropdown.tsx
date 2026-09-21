@@ -96,11 +96,11 @@ export function AdminProfileDropdown({
   const initials = userEmail.slice(0, 2).toUpperCase();
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative min-w-0 shrink" ref={dropdownRef}>
       {/* Profile Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 sm:gap-2.5 p-1 sm:p-1.5 pr-1.5 sm:pr-2.5 rounded-xl border border-border/60 bg-card/80 hover:bg-muted/80 backdrop-blur-md transition-all duration-200 cursor-pointer shadow-xs group shrink-0"
+        className="flex items-center gap-1.5 sm:gap-2.5 p-1 sm:p-1.5 pr-1.5 sm:pr-2.5 rounded-xl border border-border/60 bg-card/80 hover:bg-muted/80 backdrop-blur-md transition-all duration-200 cursor-pointer shadow-xs group shrink min-w-0"
         aria-label="Профиль администратора и настройки"
       >
         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/10 border border-primary/20 text-primary font-black text-xs flex items-center justify-center shadow-xs shrink-0">

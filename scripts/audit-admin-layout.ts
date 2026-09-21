@@ -112,13 +112,13 @@ export async function detectBaseUrl(): Promise<string> {
 
   const candidatePorts = [3000, 3005, 3001];
   for (const port of candidatePorts) {
-    const testUrl = `http://127.0.0.1:${port}`;
+    const testUrl = `http://localhost:${port}`;
     if (await checkServerReachable(testUrl)) {
       return testUrl;
     }
   }
 
-  return 'http://127.0.0.1:3000';
+  return 'http://localhost:3000';
 }
 
 export const AUDIT_USER_AGENT = 'Playwright-Admin-Audit-Harness/2026';
@@ -348,10 +348,14 @@ export async function runAdminLayoutAudit(options?: {
           const tabCollisions: string[] = [];
 
           // 1. Header scrollWidth and offscreen button/link check
-          const header = document.querySelector('header');
-          if (header) {
-            if (header.scrollWidth > header.clientWidth + 2) {
+          const headers = document.querySelectorAll('header');
+          for (const header of headers) {
+            const hRect = header.getBoundingClientRect();
+            if (header.scrollWidth > header.clientWidth) {
               headerIssues.push(`Header scrollWidth exceeds clientWidth by ${header.scrollWidth - header.clientWidth}px (${header.scrollWidth}px > ${header.clientWidth}px)`);
+              if (window.innerWidth === 375 && window.location.pathname === '/admin/dashboard') {
+                headerIssues.push(`HTML: ${header.outerHTML.substring(0, 1000)}`);
+              }
             }
             const buttons = Array.from(header.querySelectorAll('button, a'));
             for (const b of buttons) {

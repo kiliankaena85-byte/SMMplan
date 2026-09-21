@@ -150,7 +150,7 @@ export function TenantSwitcher({
         onClick={() => canSwitch && setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-haspopup="true"
-        className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3.5 py-1 sm:py-2 min-h-[38px] sm:min-h-[44px] bg-card/90 hover:bg-card border border-border/80 text-foreground font-semibold rounded-xl transition-all duration-200 shadow-sm text-xs sm:text-sm select-none shrink-0 ${
+        className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3.5 py-1 sm:py-2 min-h-[38px] sm:min-h-[44px] bg-card/90 hover:bg-card border border-border/80 text-foreground font-semibold rounded-xl transition-all duration-200 shadow-sm text-xs sm:text-sm select-none min-w-0 shrink ${
           canSwitch ? 'hover:border-primary/50 active:scale-95 cursor-pointer' : 'cursor-default opacity-90'
         }`}
       >
