@@ -75,12 +75,12 @@ export default async function KnowledgePage({ searchParams }: PageProps) {
   const settings = await SettingsProvider.getContactAndLegalSettings();
   const siteName = isFlux ? "SMMflux" : (settings.SITE_NAME || "SMMplan");
 
-  // 1. Fetch articles based on filter and search
-  const result = await getArticles(activeCategory, searchQuery);
+  // 1. Fetch articles based on filter and search with static SEO pillars enabled
+  const result = await getArticles(activeCategory, searchQuery, { includeStatic: true, tenantId });
   const articles = result.success ? result.articles : [];
 
-  // 2. Fetch grouped articles structure for tree navigation
-  const treeResult = await getGroupedArticlesForTree();
+  // 2. Fetch grouped articles structure for tree navigation with static categories enabled
+  const treeResult = await getGroupedArticlesForTree({ includeStatic: true });
   const groupedArticles = treeResult.success ? treeResult.grouped : {};
 
   const pageUrl = absoluteCanonical(tenantId, "/knowledge");

@@ -141,7 +141,7 @@ export async function getPaymentsAction(params: Partial<PaymentsParams>): Promis
 
       const payments = await db.payment.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: pageSize + 1,
         ...(p.cursor ? { cursor: { id: p.cursor }, skip: 1 } : {}),
         include: {

@@ -116,7 +116,7 @@ export function FluxKnowledgeHub({
           {(searchQuery || activeCategory !== "Все") && (
             <Link
               href="/knowledge"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold shadow-[0_4px_20px_rgba(168,85,247,0.3)] hover:opacity-95 transition-opacity"
+              className="min-h-[44px] inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold shadow-[0_4px_20px_rgba(168,85,247,0.3)] hover:opacity-95 transition-opacity"
             >
               Сбросить фильтры
             </Link>
@@ -163,12 +163,12 @@ export function FluxKnowledgeHub({
                 <div className="pt-6 mt-6 border-t border-border/60 flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
                     <Calendar className="w-3 h-3 text-purple-500" />
-                    <time dateTime={article.createdAt.toString()}>{dateStr}</time>
+                    <time dateTime={new Date(article.createdAt).toISOString()}>{dateStr}</time>
                   </div>
 
                   <Link
                     href={`/knowledge/${article.slug}`}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-600 hover:text-pink-600 transition-colors"
+                    className="min-h-[44px] inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-purple-600 hover:text-pink-600 transition-colors"
                   >
                     <span>Читать гайд</span>
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
@@ -195,7 +195,7 @@ export function FluxKnowledgeHub({
           href="/api/support/telegram"
           target="_blank"
           rel="noopener noreferrer"
-          className="px-7 py-3.5 rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white font-bold text-sm shadow-[0_4px_20px_rgba(168,85,247,0.35)] hover:shadow-[0_6px_25px_rgba(236,72,153,0.45)] hover:-translate-y-0.5 transition-all shrink-0 active:scale-95"
+          className="min-h-[44px] px-7 py-3 rounded-full bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white font-bold text-sm shadow-[0_4px_20px_rgba(168,85,247,0.35)] hover:shadow-[0_6px_25px_rgba(236,72,153,0.45)] hover:-translate-y-0.5 transition-all shrink-0 active:scale-95 flex items-center justify-center"
         >
           Написать в Telegram
         </a>

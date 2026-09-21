@@ -3,6 +3,9 @@ import { guideInstagram } from './pillars/guide-instagram';
 import { smmApiGuide } from './pillars/smm-api-guide';
 import { howToChooseSmmPanel } from './pillars/how-to-choose-smm-panel';
 import { guideVk } from './pillars/guide-vk';
+import { guideBloggersTelegaInTgstat } from './pillars/guide-bloggers-telega-in-tgstat';
+import { guideMarketersKpiDripFeed54fz } from './pillars/guide-marketers-kpi-drip-feed-54fz';
+import { guideAgenciesBeznalNds22Wholesale } from './pillars/guide-agencies-beznal-nds22-wholesale';
 import { glossaryTerms, GlossaryTerm } from './glossary';
 
 import { telegramClusters, ClusterArticle } from './clusters/telegram';
@@ -30,6 +33,9 @@ export const pillarPages: PillarPage[] = [
   smmApiGuide,
   howToChooseSmmPanel,
   guideVk,
+  guideBloggersTelegaInTgstat,
+  guideMarketersKpiDripFeed54fz,
+  guideAgenciesBeznalNds22Wholesale,
 ];
 
 export const clusterArticles: ClusterArticle[] = [
@@ -46,6 +52,9 @@ export {
   smmApiGuide,
   howToChooseSmmPanel,
   guideVk,
+  guideBloggersTelegaInTgstat,
+  guideMarketersKpiDripFeed54fz,
+  guideAgenciesBeznalNds22Wholesale,
   glossaryTerms,
   telegramClusters,
   instagramClusters,
@@ -55,3 +64,4 @@ export {
 };
 
 export type { GlossaryTerm, ClusterArticle };
+

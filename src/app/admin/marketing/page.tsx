@@ -4,9 +4,17 @@ import { Gift, TrendingUp, Users, Wallet } from 'lucide-react';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { FINANCE_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { MarketingTabs } from './client-tabs';
-import { ReferralEconomicsChart } from './referral-chart';
+import nextDynamic from 'next/dynamic';
 import { PromoCodeTable } from './promocode-table';
 import { CreatePromoModal } from './create-promo-form';
+
+const ReferralEconomicsChart = nextDynamic(
+  () => import('./referral-chart').then((mod) => mod.ReferralEconomicsChart),
+  {
+    ssr: false,
+    loading: () => <div className="h-64 animate-pulse bg-muted/40 rounded-xl flex items-center justify-center text-xs text-muted-foreground">Загрузка диаграммы...</div>,
+  }
+);
 import { formatRubles } from '@/utils/format-price';
 import { enforceSectionAccess } from '@/lib/server/rbac';
 import { ReferrersTable } from './client-referrers-table';

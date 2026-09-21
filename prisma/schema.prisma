@@ -643,6 +643,8 @@ model Payment {
   @@index([tenantId, userId])
   @@index([tenantId, status, createdAt])
   @@index([tenantId, userId, status, createdAt])
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
+  @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
   @@index([userId, status, createdAt(sort: Desc)])
   @@index([tenantId, createdAt(sort: Desc)])
   @@index([status, createdAt])
@@ -853,6 +855,9 @@ model Ticket {
   @@index([paymentId])
   @@index([status])
   @@index([status, createdAt])
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
+  @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc), id(sort: Desc)])
 }
 
 model TicketFeedback {
@@ -1054,8 +1059,8 @@ model LedgerEntry {
   @@index([tenantId])
   @@index([tenantId, userId, createdAt])
   @@index([tenantId, transactionType, createdAt])
-  @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
   @@index([createdAt(sort: Desc), id(sort: Desc)])
+  @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
   @@index([userId, createdAt(sort: Desc), id(sort: Desc)])
 }
 
@@ -1284,6 +1289,8 @@ model SecurityEvent {
   @@index([event])
   @@index([createdAt])
   @@index([tenantId])
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
+  @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
 }
 
 enum SmartCampaignStatus {
@@ -1585,6 +1592,7 @@ model ManualBalanceAdjustment {
   @@index([status, createdAt])
   @@index([direction, status, createdAt])
   @@index([ticketId])
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
 }
 
 // ── Financial Policy & Audit Engine ──
@@ -1756,6 +1764,7 @@ model PiiAccessLog {
 
   @@index([staffId, createdAt])
   @@index([targetType, targetId])
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
 }
 
 model ProviderServiceBackup {

@@ -250,7 +250,31 @@ export class CatalogSyncService {
     logger.debug('syncProviderCatalog started', { providerId });
 
     // 1. Refresh shadow catalog in database (chunked and memory-safe)
-    await this.refreshShadowCatalog(providerId);
+    const shadowCount = await this.refreshShadowCatalog(providerId);
+
+    // SHA-256 Content-Hash check: if provider catalog hash is unchanged from last completed sync, skip redundant writes
+    const cacheKey = `provider:${providerId}:catalog:hash`;
+    const lastSyncHashKey = `provider:${providerId}:catalog:sync-hash`;
+    const [currentHash, lastSyncedHash] = await Promise.all([
+      redis.get(cacheKey).catch(() => null),
+      redis.get(lastSyncHashKey).catch(() => null),
+    ]);
+
+    if (currentHash && lastSyncedHash && currentHash === lastSyncedHash && shadowCount > 0) {
+      logger.info('Provider catalog unchanged (SHA-256 hash match), skipping redundant DB re-sync', {
+        providerId,
+        hash: currentHash.slice(0, 12),
+        count: shadowCount,
+      });
+      return {
+        zombiesDisabled: 0,
+        resurrected: 0,
+        priceAnomalies: 0,
+        priceUpdatedSilent: 0,
+        marginFloorBreaches: 0,
+        unchanged: true,
+      };
+    }
 
     // 2. Fetch our curated services
     const ourServices = await db.service.findMany({
@@ -488,12 +512,18 @@ export class CatalogSyncService {
       },
     });
 
+    const effectiveHash = currentHash || (await redis.get(cacheKey).catch(() => null));
+    if (effectiveHash) {
+      await redis.set(lastSyncHashKey, effectiveHash, 'EX', 86400).catch(() => {});
+    }
+
     return {
       zombiesDisabled,
       resurrected,
       priceAnomalies,
       priceUpdatedSilent,
       marginFloorBreaches,
+      unchanged: false,
     };
   }
 

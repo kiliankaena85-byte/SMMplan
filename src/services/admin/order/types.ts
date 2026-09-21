@@ -57,18 +57,22 @@ export const ACTIVITY_TYPE_KEYWORDS: Record<string, string[]> = {
 export function resolveOrderOrderBy(
   sortField?: string,
   sortOrder?: 'asc' | 'desc'
-): Record<string, any> {
-  const defaultOrderBy: Record<string, 'asc' | 'desc'> = { createdAt: 'desc' };
+): Record<string, any> | Array<Record<string, any>> {
+  const defaultOrderBy = [{ createdAt: 'desc' }, { id: 'desc' }];
   if (!sortField) return defaultOrderBy;
 
   const dir: 'asc' | 'desc' = sortOrder === 'asc' ? 'asc' : 'desc';
 
-  if (['numericId', 'status', 'quantity', 'remains', 'charge', 'providerCost', 'createdAt', 'updatedAt'].includes(sortField)) {
-    return { [sortField]: dir };
+  if (['numericId', 'status', 'quantity', 'remains', 'charge', 'providerCost', 'updatedAt'].includes(sortField)) {
+    return [{ [sortField]: dir }, { id: dir }];
+  }
+
+  if (sortField === 'createdAt') {
+    return [{ createdAt: dir }, { id: dir }];
   }
 
   if (sortField === 'client' || sortField === 'user' || sortField === 'email') {
-    return { user: { email: dir } };
+    return [{ user: { email: dir } }, { id: dir }];
   }
 
   return defaultOrderBy;

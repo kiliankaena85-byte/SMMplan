@@ -41,10 +41,15 @@ export async function adminSyncProviderCatalog() {
         
         let updatedCount = 0;
         let disabledCount = 0;
+        let unchangedCount = 0;
 
         for (const provider of activeProviders) {
           try {
             const stats = await adminCatalogService.syncProviderCatalog(provider.id, admin);
+            if (stats.unchanged) {
+              unchangedCount++;
+              continue;
+            }
             updatedCount += stats.priceUpdatedSilent;
             disabledCount += stats.priceAnomalies + stats.zombiesDisabled;
           } catch (pErr: unknown) {
@@ -55,11 +60,14 @@ export async function adminSyncProviderCatalog() {
           }
         }
 
-        revalidateQuarantineAndAnomalies();
+        if (updatedCount > 0 || disabledCount > 0) {
+          revalidateQuarantineAndAnomalies();
+        }
+        const unchangedPart = unchangedCount > 0 ? `, ⚡${unchangedCount} без изменений (хэш-паритет)` : '';
         return {
           success: true,
-          message: `Синхронизация Бутика завершена (${activeProviders.length} провайд.): 🔄${updatedCount} цен обновлено, 🧟${disabledCount} мертвых душ отключено.`,
-          stats: { updatedCount, disabledCount, unchangedCount: 0 },
+          message: `Синхронизация Бутика завершена (${activeProviders.length} провайд.): 🔄${updatedCount} цен обновлено, 🧟${disabledCount} мертвых душ отключено${unchangedPart}.`,
+          stats: { updatedCount, disabledCount, unchangedCount },
         };
       } catch (err: unknown) {
         const errMsg = err instanceof Error ? err.message : String(err);

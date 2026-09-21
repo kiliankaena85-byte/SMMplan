@@ -9,6 +9,7 @@ const log = logger.child({ component: 'PiiAuditAction' });
 export interface PiiAccessLogFilter {
   limit?: number;
   offset?: number;
+  cursor?: string;
   staffEmail?: string;
   targetType?: string;
   targetId?: string;
@@ -19,6 +20,7 @@ export async function getPiiAccessLogsAction(filter: PiiAccessLogFilter = {}) {
     try {
       const limit = Math.min(100, Math.max(1, filter.limit || 50));
       const offset = Math.max(0, filter.offset || 0);
+      const cursor = filter.cursor;
 
       const where: Record<string, unknown> = {};
       if (filter.staffEmail) {
@@ -31,17 +33,34 @@ export async function getPiiAccessLogsAction(filter: PiiAccessLogFilter = {}) {
         where.targetId = filter.targetId;
       }
 
-      const [logs, total] = await Promise.all([
-        db.piiAccessLog.findMany({
-          where,
-          orderBy: { createdAt: 'desc' },
-          take: limit,
-          skip: offset,
-        }),
+      const orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] = [
+        { createdAt: 'desc' },
+        { id: 'desc' },
+      ];
+
+      const queryOptions: any = {
+        where,
+        orderBy,
+        take: limit + 1,
+      };
+
+      if (cursor) {
+        queryOptions.cursor = { id: cursor };
+        queryOptions.skip = 1;
+      } else if (offset > 0) {
+        queryOptions.skip = offset;
+      }
+
+      const [rawLogs, total] = await Promise.all([
+        db.piiAccessLog.findMany(queryOptions),
         db.piiAccessLog.count({ where }),
       ]);
 
-      return { success: true, logs, total };
+      const hasMore = rawLogs.length > limit;
+      const logs = hasMore ? rawLogs.slice(0, limit) : rawLogs;
+      const nextCursor = hasMore && logs.length > 0 ? logs[logs.length - 1].id : undefined;
+
+      return { success: true, logs, total, nextCursor, hasMore };
     } catch (err) {
       log.error('Failed to get PII access logs', { error: err });
       return { success: false, logs: [], total: 0, error: 'Ошибка запроса логов' };
