@@ -111,7 +111,7 @@ export class RetryCheckoutService {
 
       if (gateway === 'balance') {
         await WalletOps.charge(tx, sessionUserId, totalChargeCents, `Повторная оплата заказа с баланса`, {
-          idempotencyKey: `retry-balance-${order.id}-${Date.now()}`,
+          idempotencyKey: `retry-balance-${order.id}`,
           tenantId: order.tenantId || 'smmplan'
         });
       }

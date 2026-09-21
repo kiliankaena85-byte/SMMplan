@@ -31,33 +31,74 @@ export class RefundPolicyService {
       console.error(`[RefundPolicyService] Failed to process referral commission for order ${order.id}:`, errMsg);
     }
 
+    // 1. Calculate cumulative previously refunded amount across all prior refund events for this order
+    let previousRefunds = 0;
+    try {
+      let priorEntries: Array<{ amount: bigint | number; idempotencyKey?: string | null }> = [];
+      if (typeof txClient.ledgerEntry?.findMany === 'function') {
+        priorEntries = await txClient.ledgerEntry.findMany({
+          where: {
+            userId: order.userId,
+            transactionType: { in: ['REFUND', 'ORDER_CANCEL'] },
+            OR: [
+              { idempotencyKey: { startsWith: `refund_${order.id}` } },
+              { idempotencyKey: { startsWith: `refund-client-cancel-${order.id}` } },
+              { reason: { contains: `#${order.id}` } },
+            ],
+          },
+          select: { amount: true, idempotencyKey: true },
+        });
+      } else if (typeof txClient.ledgerEntry?.findFirst === 'function') {
+        const single = await txClient.ledgerEntry.findFirst({
+          where: {
+            userId: order.userId,
+            transactionType: { in: ['REFUND', 'ORDER_CANCEL'] },
+            OR: [
+              { idempotencyKey: { startsWith: `refund_${order.id}` } },
+              { idempotencyKey: { startsWith: `refund-client-cancel-${order.id}` } },
+              { reason: { contains: `#${order.id}` } },
+            ],
+          },
+          select: { amount: true, idempotencyKey: true },
+        });
+        if (single) priorEntries = [single];
+      }
+
+      for (const entry of priorEntries) {
+        previousRefunds += Math.max(0, Number(entry.amount));
+      }
+    } catch (queryErr) {
+      console.warn(`[RefundPolicyService] Could not query prior refund entries for order ${order.id}:`, queryErr);
+    }
+
+    const maxAvailableRefund = Math.max(0, order.charge - previousRefunds);
+    if (maxAvailableRefund <= 0) {
+      // Order is already fully refunded across previous lifecycle events. Guard against duplicate / over-refund.
+      return null;
+    }
+
     let refundCents = 0;
     let reason = `Возврат Заказ #${order.id}`;
 
     if (order.status === 'CANCELED' || order.status === 'ERROR') {
-      // 100% Full Refund MINUS any previous partial refunds
-      let previousRefunds = 0;
-      const partialRefundLedger = await txClient.ledgerEntry.findFirst({
-        where: {
-          idempotencyKey: `refund_${order.id}_PARTIAL`,
-          ...(order.tenantId ? { tenantId: order.tenantId } : {})
-        }
-      });
-      if (partialRefundLedger) {
-        previousRefunds += Number(partialRefundLedger.amount);
-      }
-      
-      refundCents = Math.max(0, order.charge - previousRefunds);
-      reason = `Полный возврат (${order.status}) Заказ #${order.id} ${reasonDetail}`.trim();
+      refundCents = maxAvailableRefund;
+      reason = previousRefunds > 0
+        ? `Довозврат остатка (${order.status}) Заказ #${order.id} ${reasonDetail}`.trim()
+        : `Полный возврат (${order.status}) Заказ #${order.id} ${reasonDetail}`.trim();
     } else if (order.status === 'PARTIAL') {
-      // Proportional mathematical partial refund via ARCHITECTURE CONTRACT
-      refundCents = calculatePartialRefund(order);
+      const calculated = calculatePartialRefund(order);
+      const incremental = Math.max(0, calculated - previousRefunds);
+      refundCents = Math.min(incremental, maxAvailableRefund);
       reason = `Частичный возврат (Partial, ${order.remains} не выполнено) Заказ #${order.id}`.trim();
     }
 
     if (refundCents > 0) {
-      // Generates a unique deduplication key for this refund operation
-      const idempotencyKey = `refund_${order.id}_${order.status}`;
+      // Deterministic idempotency key:
+      // If previous refunds exist for this order, mark as remainder so it never collides with initial partial
+      const idempotencyKey = previousRefunds > 0
+        ? `refund_${order.id}_remainder`
+        : `refund_${order.id}_${order.status}`;
+
       if (txClient === db) {
         return await WalletService.refund(order.userId, refundCents, reason, idempotencyKey, undefined, order.tenantId);
       } else {
