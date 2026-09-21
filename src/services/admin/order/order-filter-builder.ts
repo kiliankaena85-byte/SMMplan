@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { OrderSearchParams, ACTIVITY_TYPE_KEYWORDS } from './types';
+import { normalizeCatalogSearch } from '@/utils/search-normalizer';
 
 export function buildOrderWhereClause(params: OrderSearchParams): Prisma.OrderWhereInput {
   const {
@@ -239,9 +240,9 @@ function applyDateFilter(params: OrderSearchParams, where: Prisma.OrderWhereInpu
 }
 
 function applyOmniSearchFilter(q: string, where: Prisma.OrderWhereInput) {
-  const numMatch = q.match(/^#?(\d+)$/);
-  if (numMatch) {
-    const num = parseInt(numMatch[1], 10);
+  const norm = normalizeCatalogSearch(q);
+  if (norm.isPureNumber && norm.numId !== null) {
+    const num = norm.numId;
     where.OR = [
       { numericId: num },
       { externalId: { equals: String(num) } },

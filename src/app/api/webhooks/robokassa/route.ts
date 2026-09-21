@@ -186,7 +186,7 @@ export async function POST(req: NextRequest) {
           isTestMode,
           'robokassa',
           shp_paymentId,
-          (payment.orders && payment.orders.length > 0) ? 'order' : 'deposit'
+          ((payment.orders && payment.orders.length > 0) || Boolean(payment.orderId)) ? 'order' : 'deposit'
         );
 
         if (success) {

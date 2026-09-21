@@ -74,13 +74,15 @@ export function toSafePaymentContextLog(ctx: TenantPaymentContext): Record<strin
 export async function checkVatThreshold(tenantId: string = 'smmplan'): Promise<boolean> {
   const cleanTenant = tenantId || 'smmplan';
   const now = Date.now();
-  const cached = vatThresholdCache.get(cleanTenant);
+  const currentYear = new Date().getFullYear();
+  const cacheKey = `${cleanTenant}:${currentYear}`;
+  const cached = vatThresholdCache.get(cacheKey);
   if (cached && cached.expiresAt > now) {
     return cached.result;
   }
 
-  const currentYear = new Date().getFullYear();
   const startOfYear = new Date(currentYear, 0, 1);
+  const endOfYear = new Date(currentYear + 1, 0, 1);
 
   // 1. Gross revenue
   const grossResult = await db.payment.aggregate({
@@ -93,12 +95,12 @@ export async function checkVatThreshold(tenantId: string = 'smmplan'): Promise<b
   });
   const grossKopecks = BigInt(grossResult._sum?.amount || 0);
 
-  // 2. Deduct refunds from net taxable turnover
+  // 2. Deduct refunds and cancellations from net taxable turnover (54-FZ / 145 NK RF)
   const refundResult = await db.ledgerEntry.aggregate({
     _sum: { amount: true },
     where: {
       tenantId: cleanTenant,
-      transactionType: 'REFUND',
+      transactionType: { in: ['REFUND', 'ORDER_CANCEL'] },
       createdAt: { gte: startOfYear }
     }
   }).catch(() => ({ _sum: { amount: BigInt(0) } }));
@@ -107,7 +109,9 @@ export async function checkVatThreshold(tenantId: string = 'smmplan'): Promise<b
   const netAnnualRevenueKopecks = grossKopecks > refundKopecks ? (grossKopecks - refundKopecks) : BigInt(0);
 
   const isExceeded = netAnnualRevenueKopecks >= VAT_THRESHOLD_KOPECKS;
-  vatThresholdCache.set(cleanTenant, { result: isExceeded, expiresAt: now + 3600 * 1000 });
+  // Expire within 1 hour or when the calendar year ends, whichever comes first
+  const expiresAt = Math.min(now + 3600 * 1000, endOfYear.getTime());
+  vatThresholdCache.set(cacheKey, { result: isExceeded, expiresAt });
   return isExceeded;
 }
 

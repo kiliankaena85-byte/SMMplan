@@ -51,6 +51,11 @@ export async function updateBalanceAction(formData: FormData) {
       return { success: false as const, error: 'Только OWNER может изменять баланс других сотрудников' };
     }
 
+    if (admin.role !== 'OWNER' && admin.tenantId && targetUser.tenantId && admin.tenantId !== targetUser.tenantId) {
+      console.warn(`[SECURITY] Cross-tenant balance adjustment blocked: staff ${admin.id} (${admin.tenantId}) -> target ${targetUser.id} (${targetUser.tenantId})`);
+      return { success: false as const, error: 'Доступ запрещен: пользователь принадлежит другому сайту' };
+    }
+
     // Overdraft Protection: prevent debiting more than available balance
     if (amount < 0 && targetUser.balance < BigInt(Math.abs(amount))) {
       return { 
@@ -453,6 +458,21 @@ export async function banUserAction(formData: FormData) {
     
     const { userId } = parsed.data;
 
+    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { id: true, role: true, tenantId: true } });
+    if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+
+    if (targetUser.id === admin.id) {
+      return { success: false as const, error: 'Запрещено блокировать самого себя' };
+    }
+
+    if (admin.role !== 'OWNER' && (targetUser.role === 'OWNER' || targetUser.role === 'ADMIN')) {
+      return { success: false as const, error: 'Только OWNER может заблокировать администратора' };
+    }
+
+    if (admin.role !== 'OWNER' && admin.tenantId && targetUser.tenantId && admin.tenantId !== targetUser.tenantId) {
+      return { success: false as const, error: 'Доступ запрещен: пользователь принадлежит другому сайту' };
+    }
+
     const ipAddress = await getClientIp('unknown');
 
     await adminUserService.banUser(userId, {
@@ -487,6 +507,13 @@ export async function unbanUserAction(formData: FormData) {
     if (!parsed.success) return { success: false as const, error: 'Missing userId' };
     
     const { userId } = parsed.data;
+
+    const targetUser = await db.user.findUnique({ where: { id: userId }, select: { id: true, role: true, tenantId: true } });
+    if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
+
+    if (admin.role !== 'OWNER' && admin.tenantId && targetUser.tenantId && admin.tenantId !== targetUser.tenantId) {
+      return { success: false as const, error: 'Доступ запрещен: пользователь принадлежит другому сайту' };
+    }
 
     const ipAddress = await getClientIp('unknown');
 

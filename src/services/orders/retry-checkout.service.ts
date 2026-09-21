@@ -89,15 +89,24 @@ export class RetryCheckoutService {
     const isTestMode = await SettingsManager.isTestMode();
 
     const result = await runSerializableTransaction<{ paymentId: string; totalPaymentAmount: number; linkedOrderIds: string[] }>(async (tx) => {
-      const existingPayment = order.payment || await tx.payment.findUnique({ where: { orderId: order.id } });
-      let ordersToProcess = [order];
+      // Concurrency guard: re-fetch fresh order inside transaction to eliminate TOCTOU races
+      const freshOrder = await tx.order.findUnique({
+        where: { id: order.id },
+        include: { service: true, payment: true, user: { select: { email: true } } }
+      });
+      if (!freshOrder || freshOrder.status !== 'AWAITING_PAYMENT') {
+        throw new Error("Этот заказ больше не ожидает оплаты");
+      }
+
+      const existingPayment = freshOrder.payment || await tx.payment.findUnique({ where: { orderId: freshOrder.id } });
+      let ordersToProcess = [freshOrder];
       if (existingPayment) {
         const linkedOrders = await tx.order.findMany({
-          where: { paymentId: existingPayment.id, status: 'AWAITING_PAYMENT', ...(order.tenantId ? { tenantId: order.tenantId } : {}) }
+          where: { paymentId: existingPayment.id, status: 'AWAITING_PAYMENT', ...(freshOrder.tenantId ? { tenantId: freshOrder.tenantId } : {}) }
         });
         if (linkedOrders.length > 0) {
           const orderMap = new Map();
-          orderMap.set(order.id, order);
+          orderMap.set(freshOrder.id, freshOrder);
           for (const lo of linkedOrders) orderMap.set(lo.id, lo);
           ordersToProcess = Array.from(orderMap.values());
         }
@@ -109,19 +118,36 @@ export class RetryCheckoutService {
       let paymentAmount = totalChargeCents;
       if (gateway !== 'balance' && totalChargeCents < 1000) paymentAmount = 1000;
 
+      const orderTenantId = freshOrder.tenantId || 'smmplan';
+
       if (gateway === 'balance') {
         await WalletOps.charge(tx, sessionUserId, totalChargeCents, `Повторная оплата заказа с баланса`, {
-          idempotencyKey: `retry-balance-${order.id}`,
-          tenantId: order.tenantId || 'smmplan'
+          idempotencyKey: `retry-balance-${freshOrder.id}`,
+          tenantId: orderTenantId
         });
+        for (const o of ordersToProcess) {
+          await tx.order.update({
+            where: { id: o.id },
+            data: { status: 'PENDING' }
+          });
+        }
       }
 
       let paymentId = existingPayment?.id;
       if (existingPayment) {
         await tx.payment.update({
           where: { id: existingPayment.id },
-          data: { gateway, amount: paymentAmount, consentIp, consentUserAgent }
+          data: {
+            gateway,
+            amount: paymentAmount,
+            consentIp,
+            consentUserAgent,
+            status: gateway === 'balance' ? 'SUCCEEDED' : existingPayment.status
+          }
         });
+        for (const o of ordersToProcess) {
+          await tx.order.update({ where: { id: o.id }, data: { paymentId: existingPayment.id } });
+        }
       } else {
         const p = await tx.payment.create({
           data: {
@@ -132,7 +158,7 @@ export class RetryCheckoutService {
             gateway,
             consentIp,
             consentUserAgent,
-            tenantId: order.tenantId || 'smmplan'
+            tenantId: orderTenantId
           }
         });
         paymentId = p.id;
@@ -144,10 +170,29 @@ export class RetryCheckoutService {
       return { paymentId: paymentId!, totalPaymentAmount: paymentAmount, linkedOrderIds: ordersToProcess.map(o => o.id) };
     });
 
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+    if (gateway === 'balance') {
+      const { ordersQueue } = await import('@/lib/queue-manager');
+      const { ORDER_COOLING_OFF_MS } = await import('@/config/order-constants');
+      for (const oId of result.linkedOrderIds) {
+        await ordersQueue.add('order-dispatch', { orderId: oId }, { jobId: `dispatch-${oId}`, delay: ORDER_COOLING_OFF_MS });
+      }
+      try {
+        revalidatePath('/dashboard', 'layout');
+      } catch {
+        /* ignore non-HTTP */
+      }
+      return {
+        orderId: order.id,
+        paymentId: result.paymentId,
+        paymentUrl: `${baseUrl}/success?orderId=${order.id}`
+      };
+    }
+
     const isMockPayment = typeof SettingsProvider.isMockPaymentEnabled === 'function' ? await SettingsProvider.isMockPaymentEnabled(order.tenantId || 'smmplan') : false;
     const { PaymentGatewayFactory } = await import('@/services/financial/payment-gateway.service');
     const gatewaySvc = PaymentGatewayFactory.getGateway(gateway || 'yookassa', { isMockPayment });
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const gatewayResult = await gatewaySvc.createPayment({
       paymentId: result.paymentId,
       orderId: order.id,

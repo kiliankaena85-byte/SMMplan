@@ -94,9 +94,9 @@ export class RefundPolicyService {
 
     if (refundCents > 0) {
       // Deterministic idempotency key:
-      // If previous refunds exist for this order, mark as remainder so it never collides with initial partial
+      // If previous refunds exist for this order, include status and delta amount so sequential partial/canceled remainders never collide
       const idempotencyKey = previousRefunds > 0
-        ? `refund_${order.id}_remainder`
+        ? `refund_${order.id}_${order.status}_remainder_${refundCents}`
         : `refund_${order.id}_${order.status}`;
 
       if (txClient === db) {
