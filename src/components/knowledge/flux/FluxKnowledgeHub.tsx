@@ -41,7 +41,7 @@ export function FluxKnowledgeHub({
 
         <div className="relative z-10 max-w-3xl mx-auto text-center space-y-6">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/25 text-purple-700 dark:text-purple-300 text-xs font-black uppercase tracking-widest shadow-sm">
-            <Sparkles className="w-3.5 h-3.5 text-pink-500 animate-spin-slow" />
+            <Sparkles className="w-3.5 h-3.5 text-pink-500 animate-spin-slow shrink-0" />
             <span>FLUX Knowledge Engine & Media Lab</span>
           </div>
 
@@ -73,13 +73,13 @@ export function FluxKnowledgeHub({
               <Link
                 key={cat}
                 href={url}
-                className={`min-h-[44px] px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 transition-all duration-300 border cursor-pointer ${
+                className={`min-h-[44px] px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 transition-all duration-300 border cursor-pointer shrink-0 ${
                   isSelected
                     ? "bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white border-transparent shadow-[0_4px_20px_rgba(168,85,247,0.35)] scale-105"
                     : "bg-card/85 text-foreground border-border/80 hover:border-purple-400 hover:text-purple-600 shadow-sm"
                 }`}
               >
-                {cat === "Все" ? <Layers className="w-3.5 h-3.5" /> : <BookOpen className="w-3.5 h-3.5" />}
+                {cat === "Все" ? <Layers className="w-3.5 h-3.5 shrink-0" /> : <BookOpen className="w-3.5 h-3.5 shrink-0" />}
                 <span>{cat}</span>
               </Link>
             );
@@ -90,7 +90,7 @@ export function FluxKnowledgeHub({
       {/* ── Stats & Status Bar ── */}
       <div className="flex items-center justify-between px-6 py-3.5 rounded-2xl bg-card/80 backdrop-blur-xl border border-border/80 mb-8 shadow-sm">
         <div className="flex items-center gap-2.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
           <span className="text-xs text-muted-foreground font-semibold">Раздел:</span>
           <span className="text-xs font-black uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-500/10 px-3 py-1 rounded-full border border-purple-500/20">
             {activeCategory}
@@ -143,7 +143,7 @@ export function FluxKnowledgeHub({
                       {article.category}
                     </span>
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                      <Eye className="w-3.5 h-3.5" />
+                      <Eye className="w-3.5 h-3.5 shrink-0" />
                       <span>{article.viewCount}</span>
                     </div>
                   </div>
@@ -162,7 +162,7 @@ export function FluxKnowledgeHub({
                 {/* Footer Read Action */}
                 <div className="pt-6 mt-6 border-t border-border/60 flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
-                    <Calendar className="w-3 h-3 text-purple-500" />
+                    <Calendar className="w-3 h-3 text-purple-500 shrink-0" />
                     <time dateTime={new Date(article.createdAt).toISOString()}>{dateStr}</time>
                   </div>
 
@@ -171,7 +171,7 @@ export function FluxKnowledgeHub({
                     className="min-h-[44px] inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-purple-600 hover:text-pink-600 transition-colors"
                   >
                     <span>Читать гайд</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform shrink-0" />
                   </Link>
                 </div>
               </article>
@@ -184,7 +184,7 @@ export function FluxKnowledgeHub({
       <section className="mt-16 p-8 sm:p-10 rounded-[2.5rem] bg-gradient-to-r from-purple-600/10 via-fuchsia-500/10 to-pink-600/10 border border-purple-500/25 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
         <div className="space-y-2 text-center md:text-left">
           <h3 className="text-xl font-black text-foreground flex items-center justify-center md:justify-start gap-2">
-            <Zap className="w-5 h-5 text-purple-600 fill-current" />
+            <Zap className="w-5 h-5 text-purple-600 fill-current shrink-0" />
             Нужна индивидуальная стратегия продвижения?
           </h3>
           <p className="text-sm text-muted-foreground font-medium">

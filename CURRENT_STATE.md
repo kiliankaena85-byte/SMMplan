@@ -1,3 +1,32 @@
+- [x] 🎨 [SMMFLUX-FULL-VISUAL-AND-AST-AUDIT-2026] Комплексный визуальный, функциональный и AST-аудит всех страниц SMMflux (десктоп + мобайл) и устранение всех выявленных дефектов (100% COMPLETE & VERIFIED):
+  * 🗺️ **Детальная карта сайта и покрытие маршрутов SMMflux (`tenantId: 'flux'`):**
+    - Витрина (Шаги 1–5): `/?tenant=flux` (Ввод ссылки -> Сеть -> Категория -> Услуга -> Чекаут с выбором СБП/Банковская карта/USDT/Баланс).
+    - Каталог сетей: `/services?tenant=flux`.
+    - Каталог конкретной сети: `/services/[network]?tenant=flux` (например `/services/telegram`).
+    - Каталог категории: `/services/[network]/[category]?tenant=flux` (например `/services/telegram/subscribers`).
+    - База знаний / Inbound-хаб: `/knowledge?tenant=flux` и чтение статей `/knowledge/[slug]?tenant=flux`.
+    - Вход / Регистрация: `/login?tenant=flux`.
+    - Поддержка: `/support?tenant=flux`.
+    - Юридические страницы: `/terms?tenant=flux`, `/privacy?tenant=flux`, `/refund?tenant=flux`.
+    - Клиентский дашборд: `/dashboard?tenant=flux`.
+  * 📐 **AST-аудит верстки и ликвидация Flex/Layout дефектов:**
+    - Ликвидированы сжатия текста `TRUNCATE_WITHOUT_MIN_W_ZERO`: добавлены `min-w-0` к заголовку категории в `FluxStepCategory.tsx` и описанию метода оплаты в `FluxStepCheckoutPaymentMethods.tsx`.
+    - Внедрен безусловный `shrink-0` ко всем 30+ иконкам и индикаторам во всех шагах чекаута, базе знаний, юридических страницах и блоке преимуществ (`FluxWhyUs`, `FluxArticleReader`, `FluxKnowledgeHub`, `FluxNavHeader`, `FluxStepCheckout*`).
+    - Устранена битая иконка Twitter/X: добавлен алиас файла `public/brands/twitter.svg` и маппинг в `src/actions/order/catalog.ts`.
+    - Приведен тач-таргет кнопки "Назад" в `FluxNavHeader` к стандарту WCAG 2.2 AA (`w-11 h-11 min-w-[44px] min-h-[44px]`).
+  * 🌌 **Устранение оверфлоу и унификация Аврора-фона SMMflux:**
+    - Все страницы SMMflux переведены на единый адаптивный стандарт фона `contain-paint max-w-full overflow-hidden` с адаптивными размерами шаров (`w-[300px] sm:w-[500px] md:w-[700px]`) и оптимизированной прозрачностью (0.20–0.28).
+    - В темной теме устранен паразитный белый фон (`bg-white dark:bg-default-50` заменен на `bg-background`).
+    - Контрастность заголовков повышена до >= 7:1 (WCAG 2.2 AAA).
+  * ⚡ **Сквозная интеграция страниц каталога с визардом оформления:**
+    - `FluxOrderClient` и `useFluxOrderClientState` расширены пропсами `initialNetworkId`, `initialCategoryId`, `initialServiceId`.
+    - При переходе на `/services/telegram?tenant=flux` визард автоматически стартует с шага 3 («Выберите категорию»), а при переходе на категорию (`/services/telegram/subscribers?tenant=flux`) — автоматически подгружает услуги и открывает шаг 4 («Выберите услугу»).
+  * 🧪 **Сквозная автоматизированная верификация:**
+    - E2E Playwright + AST аудит: `npx tsx scripts/scan-flux-audit.ts` -> 0 AST findings, 0 visual bugs detected (`docs/audits/flux-visual-audit-report.json`, 68 скриншотов).
+    - Next.js 16 Webpack SSR Fix: устранены ошибки `ssr: false` в серверных страницах админки аналитики/маркетинга.
+    - Строгая проверка типов: `npx tsc --noEmit` -> 0 ошибок (Strict mode).
+    - Контроль секретов: `node scripts/check-bundle-secrets.mjs` -> 0 утечек.
+    - Vitest unit & ergonomics: 100% PASS (`mobile-checkout-cro-ergonomics.test.ts`, `flux-ab-test-decomposition.test.tsx`, `yandex-feed-redis-cache.test.ts`).
 - [x] 🚀 [SEO-AEO-GROWTH-SUITE-2026] Комплексная SEO/AEO-оптимизация и контентный Inbound-хаб OmniSMM 1.0 (Векторы 1, 2, 3 — Yandex YML Feed Redis Cache + BullMQ IndexNow + Silo Interlinking + Audience Pillar Guides) (100% COMPLETE & LIVE VERIFIED):
   * ⚡ **Вектор 1: Redis Cache-Aside фида `/yandex-feed.xml` и отказоустойчивая очередь IndexNow в BullMQ:**
     - `src/services/seo/yandex-feed-cache.service.ts`: высокопроизводительное кеширование фида в Redis (TTL 3600с) со снижением задержки с 250 мс до <5 мс и защитой Fail-Open при сбоях Redis.

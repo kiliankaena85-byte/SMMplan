@@ -15,19 +15,35 @@ interface UseFluxOrderClientStateProps {
   initialCatalog: FluxNetwork[];
   initialEmail?: string;
   tenantId?: string;
+  initialNetworkId?: string;
+  initialCategoryId?: string;
+  initialServiceId?: string;
 }
 
 export function useFluxOrderClientState({
   initialCatalog = [],
   initialEmail = "",
   tenantId = "flux",
+  initialNetworkId,
+  initialCategoryId,
+  initialServiceId,
 }: UseFluxOrderClientStateProps) {
-  const [step, setStep] = useState<FluxStep>('link');
+  const initialNet = initialNetworkId
+    ? initialCatalog.find(n => n.id === initialNetworkId || n.slug === initialNetworkId) || null
+    : null;
+
+  const initialCat = (initialNet && initialCategoryId)
+    ? initialNet.categories?.find(c => c.id === initialCategoryId || c.slug === initialCategoryId) || null
+    : null;
+
+  const initialStep: FluxStep = initialCat ? 'service' : (initialNet ? 'category' : 'link');
+
+  const [step, setStep] = useState<FluxStep>(initialStep);
   const [direction, setDirection] = useState(1);
   const [link, setLink] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [activeNetwork, setActiveNetwork] = useState<FluxNetwork | null>(null);
-  const [activeCategory, setActiveCategory] = useState<FluxCategory | null>(null);
+  const [activeNetwork, setActiveNetwork] = useState<FluxNetwork | null>(initialNet);
+  const [activeCategory, setActiveCategory] = useState<FluxCategory | null>(initialCat);
   const [services, setServices] = useState<FluxService[]>([]);
   const [selectedService, setSelectedService] = useState<FluxService | null>(null);
   const [isLoadingServices, setIsLoadingServices] = useState(false);
@@ -56,6 +72,48 @@ export function useFluxOrderClientState({
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalEmail, setAuthModalEmail] = useState("");
 
+  const navigateTo = (newStep: FluxStep) => {
+    const order: FluxStep[] = ['link', 'network', 'category', 'service', 'checkout'];
+    const currentIdx = order.indexOf(step);
+    const newIdx = order.indexOf(newStep);
+    setDirection(newIdx > currentIdx ? 1 : -1);
+    setStep(newStep);
+  };
+
+  const selectService = (srv: FluxService) => {
+    setSelectedService(srv);
+    setQuantity(srv.minQty || 100);
+    setIsRequirementsConfirmed(false);
+    setShowShakeError(false);
+    setIsDripFeedEnabled(false);
+    setDripRuns(5);
+    setDripInterval(60);
+    setCustomData("");
+    navigateTo('checkout');
+  };
+
+  const selectCategory = async (cat: FluxCategory) => {
+    setActiveCategory(cat);
+    setIsLoadingServices(true);
+    setServices([]);
+    navigateTo('service');
+    try {
+      const fetched = await getServicesByCategoryAction(cat.id, tenantId);
+      let srvList: FluxService[] = (fetched as any) || [];
+      if (detectedType) {
+        const compatible = srvList.filter(s =>
+          isLinkServiceCompatible(detectedType, s.targetType || inferTargetTypeFromName(s.name))
+        );
+        if (compatible.length > 0) srvList = compatible;
+      }
+      setServices(srvList);
+    } catch {
+      setServices([]);
+    } finally {
+      setIsLoadingServices(false);
+    }
+  };
+
   useEffect(() => {
     getAvailableGatewaysAction().then(res => {
       if (res && typeof res === 'object') {
@@ -68,13 +126,28 @@ export function useFluxOrderClientState({
     }).catch(() => {});
   }, []);
 
-  const navigateTo = (newStep: FluxStep) => {
-    const order: FluxStep[] = ['link', 'network', 'category', 'service', 'checkout'];
-    const currentIdx = order.indexOf(step);
-    const newIdx = order.indexOf(newStep);
-    setDirection(newIdx > currentIdx ? 1 : -1);
-    setStep(newStep);
-  };
+  useEffect(() => {
+    if (initialCat) {
+      setIsLoadingServices(true);
+      getServicesByCategoryAction(initialCat.id, tenantId)
+        .then((fetched) => {
+          const srvList: FluxService[] = (fetched as any) || [];
+          setServices(srvList);
+          if (initialServiceId) {
+            const matchedSrv = srvList.find(s => s.id === initialServiceId);
+            if (matchedSrv) {
+              selectService(matchedSrv);
+            }
+          }
+        })
+        .catch(() => {
+          setServices([]);
+        })
+        .finally(() => {
+          setIsLoadingServices(false);
+        });
+    }
+  }, [initialCat?.id, tenantId, initialServiceId]);
 
   const [formState, formAction, isPending] = useActionState(
     async (_prevState: any, _formData: FormData) => {
@@ -200,40 +273,6 @@ export function useFluxOrderClientState({
     } finally {
       setIsAnalyzing(false);
     }
-  };
-
-  const selectCategory = async (cat: FluxCategory) => {
-    setActiveCategory(cat);
-    setIsLoadingServices(true);
-    setServices([]);
-    navigateTo('service');
-    try {
-      const fetched = await getServicesByCategoryAction(cat.id, tenantId);
-      let srvList: FluxService[] = (fetched as any) || [];
-      if (detectedType) {
-        const compatible = srvList.filter(s =>
-          isLinkServiceCompatible(detectedType, s.targetType || inferTargetTypeFromName(s.name))
-        );
-        if (compatible.length > 0) srvList = compatible;
-      }
-      setServices(srvList);
-    } catch {
-      setServices([]);
-    } finally {
-      setIsLoadingServices(false);
-    }
-  };
-
-  const selectService = (srv: FluxService) => {
-    setSelectedService(srv);
-    setQuantity(srv.minQty || 100);
-    setIsRequirementsConfirmed(false);
-    setShowShakeError(false);
-    setIsDripFeedEnabled(false);
-    setDripRuns(5);
-    setDripInterval(60);
-    setCustomData("");
-    navigateTo('checkout');
   };
 
   const numericQuantity = typeof quantity === "string" ? (parseInt(quantity) || 0) : quantity;

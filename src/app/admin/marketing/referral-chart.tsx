@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { formatRubles } from '@/utils/format-price';
 
@@ -13,6 +14,19 @@ interface ReferralEconomicsChartProps {
 }
 
 export function ReferralEconomicsChart({ data }: ReferralEconomicsChartProps) {
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+      <div className="h-64 animate-pulse bg-muted/40 rounded-xl flex items-center justify-center text-xs text-muted-foreground">
+        Загрузка диаграммы...
+      </div>
+    );
+  }
+
   if (!data || data.length === 0) {
     return (
       <div className="h-[300px] w-full flex items-center justify-center text-muted-foreground text-sm">

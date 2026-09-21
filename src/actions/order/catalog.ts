@@ -293,7 +293,13 @@ export async function getPublicCatalogAction(rawTenantId: string = 'smmplan') {
       : await getCachedNetworks(tenantId);
 
     const catalog: PublicNetwork[] = rawNetworks.map(net => {
-      const icon = `/brands/${net.slug}.svg`;
+      const slugAliasMap: Record<string, string> = {
+        'twitter': 'x',
+        'odnoklassniki': 'ok',
+        'vkontakte': 'vk',
+      };
+      const resolvedSlug = slugAliasMap[net.slug] || net.slug;
+      const icon = `/brands/${resolvedSlug}.svg`;
       let finalIcon = net.icon && (net.icon.startsWith('/') || net.icon.startsWith('http')) ? net.icon : icon;
       if (finalIcon.startsWith('/icons/')) {
         finalIcon = finalIcon.replace('/icons/', '/brands/');

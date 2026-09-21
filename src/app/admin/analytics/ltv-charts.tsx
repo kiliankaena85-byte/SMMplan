@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import {
   BarChart,
   Bar,
@@ -22,6 +23,19 @@ interface LTVChartsProps {
 }
 
 export function LTVCharts({ ltv }: LTVChartsProps) {
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+      <div className="h-64 animate-pulse bg-muted/40 rounded-xl flex items-center justify-center text-xs text-muted-foreground">
+        Загрузка графиков LTV...
+      </div>
+    );
+  }
+
   if (!ltv) return null;
 
   const COLORS = ['#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe', '#e0e7ff', '#f5f3ff'];

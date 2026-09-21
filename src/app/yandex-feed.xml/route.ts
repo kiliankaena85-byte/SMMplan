@@ -10,10 +10,9 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { getPublicCatalogAction, getServicesByCategoryAction } from '@/actions/order/catalog';
 import { normalizeTenantId, getTenantHost, getTenantSiteName } from '@/lib/seo-helpers';
-import { YandexFeedCacheService, invalidateYandexFeedCache } from '@/services/seo/yandex-feed-cache.service';
+import { YandexFeedCacheService } from '@/services/seo/yandex-feed-cache.service';
 
 export const dynamic = 'force-dynamic';
-export { invalidateYandexFeedCache };
 
 function escapeXml(unsafe: string): string {
   return unsafe

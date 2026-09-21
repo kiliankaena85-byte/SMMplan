@@ -4,18 +4,10 @@ import { AdminPageHeader } from '@/components/admin/page-header';
 import { BarChart as BarChartIcon, Clock, TrendingDown, Download } from 'lucide-react';
 import Link from 'next/link';
 import { enforceSectionAccess } from '@/lib/server/rbac';
-import nextDynamic from 'next/dynamic';
 import { TopServicesTable, ProfitCategoriesTable, ProfitServicesTable } from './tables';
 import { AiFunnelAdvisor } from './ai-funnel-advisor';
 import type { AiFunnelAnalysisResult } from '@/services/analytics/ai-funnel-analyst.service';
-
-const LTVCharts = nextDynamic(
-  () => import('./ltv-charts').then((mod) => mod.LTVCharts),
-  {
-    ssr: false,
-    loading: () => <div className="h-64 animate-pulse bg-muted/40 rounded-xl flex items-center justify-center text-xs text-muted-foreground">Загрузка графиков LTV...</div>,
-  }
-);
+import { LTVCharts } from './ltv-charts';
 
 export const dynamic = 'force-dynamic';
 

@@ -78,8 +78,8 @@ export function FluxStepCheckoutInputs({
               exit={{ opacity: 0, height: 0, marginTop: 0 }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-bold shadow-sm overflow-hidden"
             >
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span role="alert">{formState.error}</span>
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span role="alert" className="min-w-0 flex-1">{formState.error}</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -97,7 +97,7 @@ export function FluxStepCheckoutInputs({
               onClick={() => setIsTgGuideOpen(true)}
               className="text-[11px] font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1.5 cursor-pointer bg-purple-500/10 border border-purple-500/20 px-3 py-2 min-h-[44px] rounded-full transition-all"
             >
-              <HelpCircle className="w-3.5 h-3.5" />
+              <HelpCircle className="w-3.5 h-3.5 shrink-0" />
               <span>Как скопировать ссылку?</span>
             </button>
           )}
@@ -127,8 +127,8 @@ export function FluxStepCheckoutInputs({
               exit={{ opacity: 0, height: 0, marginTop: 0 }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-bold shadow-sm overflow-hidden"
             >
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span role="alert">{formState.error}</span>
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span role="alert" className="min-w-0 flex-1">{formState.error}</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -155,8 +155,8 @@ export function FluxStepCheckoutInputs({
               exit={{ opacity: 0, height: 0, marginTop: 0 }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-bold shadow-sm overflow-hidden"
             >
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span role="alert">{formState.error}</span>
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span role="alert" className="min-w-0 flex-1">{formState.error}</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -166,7 +166,7 @@ export function FluxStepCheckoutInputs({
       {(selectedService.clientRequirement || selectedService.clientConfirmation || selectedService.requireWarning) && (
         <div id="field-requirement" className={`mb-4 p-3 rounded-[1.25rem] sm:rounded-[1.5rem] border transition-all duration-300 ${isRequirementsConfirmed ? 'bg-green-50/50 border-green-200' : (showShakeError || formState.field === 'requirement') ? 'bg-red-50 border-red-300 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-shake' : 'bg-amber-50/30 border-amber-200/50'}`}>
           <h4 className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider mb-1 text-foreground flex items-center gap-2">
-            <SparklesIcon className="w-4 h-4 text-amber-500" />
+            <SparklesIcon className="w-4 h-4 text-amber-500 shrink-0" />
             Чек-лист для старта
           </h4>
           <p className="text-sm text-muted-foreground mb-4">

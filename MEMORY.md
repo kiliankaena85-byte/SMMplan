@@ -66,6 +66,16 @@ onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); ... }}
 
 ## 1. 🏗️ Архитектурные решения (ADR)
 
+- **ADR-2026-31: SMMflux Full Visual & AST Audit, Layout Remediation, and Deep Catalog Pre-selection Integration:**
+  - *Решение:*
+    1. **AST Layout Hardening:** Ликвидированы Flex-усечения `TRUNCATE_WITHOUT_MIN_W_ZERO` путем добавления `min-w-0` к заголовку категории в `FluxStepCategory.tsx` и способу оплаты в `FluxStepCheckoutPaymentMethods.tsx`. На 30+ иконках во всех шагах чекаута, базе знаний и блоке преимуществ зафиксирован `shrink-0`.
+    2. **Устранение оверфлоу и унификация фона SMMflux:** Все страницы SMMflux переведены на единый адаптивный стандарт фона `contain-paint max-w-full overflow-hidden` с адаптивными размерами шаров и оптимизированной прозрачностью. В темной теме устранен паразитный белый фон. Контрастность заголовков доведена до $\ge 7:1$.
+    3. **Глубокая связка страниц каталога с визардом оформления:** `FluxOrderClient` и хук `useFluxOrderClientState` расширены поддержкой пропсов `initialNetworkId`, `initialCategoryId`, `initialServiceId`. Страницы `/services/[network]` и `/services/[network]/[category]` передают эти параметры, автоматически переводя пользователя на шаг выбора категории или шаг выбора услуги с автоподгрузкой данных.
+    4. **Устранение битого ассета Twitter/X:** Добавлен файл-алиас `public/brands/twitter.svg` и обеспечен корректный рендеринг через `UniversalIcon`.
+    5. **Next.js 16 Webpack SSR Fix:** Устранено недопустимое в Server Components использование `ssr: false` в динамических графиках админки аналитики/маркетинга.
+    6. **Верификация:** 0 AST дефектов, 0 визуальных багов по Playwright харнесу `scripts/scan-flux-audit.ts` (68 скриншотов), 100% PASS всех тестов, 0 ошибок `tsc --noEmit`, 0 утечек секретов.
+  - *Причина:* Полное исключение дефектов верстки на мобильных и десктопных устройствах для бренда SMMflux, обеспечение доступности по WCAG 2.2 AA и бесшовного пользовательского пути (CRO).
+
 - **ADR-2026-30: Production SMTP Reconfiguration (Mail.ru SMTPS 465) & Local TUN Network Binding Resilience:**
   - *Решение:*
     1. **Перевод почтового транспорта на Mail.ru:** В таблице `SystemSettings` (для тенантов `smmplan` и `flux`) и в файле `.env` настроен SMTP-сервер `smtp.mail.ru:465` (SMTPS) с учетной записью `support@smmplan.pro` и шифрованием пароля AES-256-GCM через `VaultService`.

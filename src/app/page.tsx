@@ -154,23 +154,23 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
         {tenantId === "flux" ? (
           <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
             {/* ── SMMFLUX VIBRANT HERO BACKGROUND (Full Bleed - GPU Optimized Static Layer) ── */}
-            <div className="absolute top-0 inset-x-0 h-[2500px] z-0 pointer-events-none overflow-hidden select-none bg-background transform-gpu contain-paint">
+            <div className="absolute top-0 inset-x-0 h-[2200px] z-0 pointer-events-none overflow-hidden select-none bg-background transform-gpu contain-paint max-w-full">
               <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
                   background:
-                    'radial-gradient(65% 55% at 15% 0%, rgba(59, 130, 246, 0.70), transparent 70%), ' +
-                    'radial-gradient(55% 55% at 85% 5%, rgba(56, 189, 248, 0.60), transparent 70%), ' +
-                    'radial-gradient(65% 55% at 20% 40%, rgba(244, 63, 94, 0.60), transparent 70%), ' +
-                    'radial-gradient(55% 55% at 80% 50%, rgba(249, 115, 22, 0.55), transparent 70%), ' +
-                    'radial-gradient(70% 70% at 50% 25%, rgba(217, 70, 239, 0.65), transparent 75%)',
+                    'radial-gradient(65% 55% at 15% 0%, rgba(59, 130, 246, 0.28), transparent 70%), ' +
+                    'radial-gradient(55% 55% at 85% 5%, rgba(56, 189, 248, 0.22), transparent 70%), ' +
+                    'radial-gradient(65% 55% at 20% 40%, rgba(244, 63, 94, 0.20), transparent 70%), ' +
+                    'radial-gradient(55% 55% at 80% 50%, rgba(249, 115, 22, 0.18), transparent 70%), ' +
+                    'radial-gradient(70% 70% at 50% 25%, rgba(217, 70, 239, 0.22), transparent 75%)',
                 }}
               />
               {/* Saturated Mesh Color Orbs for signature punch & depth */}
-              <div className="absolute top-0 left-[2%] w-[700px] h-[700px] rounded-full bg-blue-500/45 blur-[120px] pointer-events-none" />
-              <div className="absolute top-4 left-[25%] w-[650px] h-[650px] rounded-full bg-purple-600/55 blur-[110px] pointer-events-none" />
-              <div className="absolute top-0 right-[5%] w-[700px] h-[700px] rounded-full bg-pink-500/50 blur-[120px] pointer-events-none" />
-              <div className="absolute top-20 right-[1%] w-[500px] h-[500px] rounded-full bg-orange-400/40 blur-[90px] pointer-events-none" />
+              <div className="absolute top-0 left-0 w-[300px] sm:w-[500px] md:w-[700px] h-[300px] sm:h-[500px] md:h-[700px] rounded-full bg-blue-500/20 blur-[90px] sm:blur-[120px] pointer-events-none" />
+              <div className="absolute top-4 left-[15%] w-[280px] sm:w-[450px] md:w-[600px] h-[280px] sm:h-[450px] md:h-[600px] rounded-full bg-purple-600/25 blur-[80px] sm:blur-[110px] pointer-events-none" />
+              <div className="absolute top-0 right-0 w-[300px] sm:w-[500px] md:w-[650px] h-[300px] sm:h-[500px] md:h-[650px] rounded-full bg-pink-500/20 blur-[90px] sm:blur-[120px] pointer-events-none" />
+              <div className="absolute top-20 right-[5%] w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] rounded-full bg-orange-400/15 blur-[70px] sm:blur-[90px] pointer-events-none" />
 
               <div className="absolute bottom-0 inset-x-0 h-[400px] bg-gradient-to-t from-background via-background/80 to-transparent" />
             </div>
@@ -180,15 +180,23 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
             </div>
 
             <div className="flex-1 w-full max-w-screen-2xl mx-auto px-4 pt-2 md:pt-6 pb-2 md:pb-4 flex flex-col items-center relative z-10">
-              <FluxOrderClient initialCatalog={catalog} initialEmail={userEmail} userBalanceCents={userBalanceCents} tenantId={tenantId} />
+              <FluxOrderClient 
+                initialCatalog={catalog} 
+                initialEmail={userEmail} 
+                userBalanceCents={userBalanceCents} 
+                tenantId={tenantId}
+                initialNetworkId={initialNetworkId}
+                initialCategoryId={initialCategoryId}
+                initialServiceId={initialServiceId}
+              />
             </div>
 
-            <div className="relative z-10 w-full my-2 md:my-4">
+            <div className="relative z-10 w-full mt-4 mb-8 sm:mb-12">
               <FluxTrustBar />
             </div>
 
             {/* Solid Underlay for lower page section */}
-            <div className="relative z-10 bg-card mx-2 sm:mx-4 lg:mx-6 rounded-t-[32px] md:rounded-t-[48px] shadow-[0_-8px_30px_rgb(0,0,0,0.04)] pt-12 pb-16">
+            <div className="relative z-10 bg-card mx-2 sm:mx-4 lg:mx-6 rounded-t-[32px] md:rounded-t-[48px] shadow-[0_-8px_30px_rgb(0,0,0,0.04)] border-t border-border/40 pt-12 pb-16">
               <FluxWhyUs companyName={siteName} />
               <FluxReviews />
               <FluxFAQ companyName={siteName} />

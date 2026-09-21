@@ -93,21 +93,21 @@ export async function LegalPageContent({ slug }: LegalPageContentProps) {
     return (
       <div className="min-h-screen bg-background text-foreground py-12 px-4 sm:px-6 lg:px-8 relative overflow-x-clip font-sans">
         {/* SMMFLUX RADIANT HERO BACKGROUND (Matching main page) */}
-        <div className="absolute top-0 inset-x-0 h-[1800px] z-0 pointer-events-none overflow-hidden select-none bg-background dark:bg-default-50">
+        <div className="absolute top-0 inset-x-0 h-[1800px] z-0 pointer-events-none overflow-hidden select-none bg-background transform-gpu contain-paint max-w-full" aria-hidden="true">
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
               background:
-                'radial-gradient(65% 55% at 15% 0%, rgba(59, 130, 246, 0.55), transparent 70%), ' +
-                'radial-gradient(55% 55% at 85% 5%, rgba(56, 189, 248, 0.45), transparent 70%), ' +
-                'radial-gradient(65% 55% at 20% 40%, rgba(244, 63, 94, 0.45), transparent 70%), ' +
-                'radial-gradient(55% 55% at 80% 50%, rgba(249, 115, 22, 0.40), transparent 70%), ' +
-                'radial-gradient(70% 70% at 50% 25%, rgba(217, 70, 239, 0.50), transparent 75%)',
+                'radial-gradient(65% 55% at 15% 0%, rgba(59, 130, 246, 0.28), transparent 70%), ' +
+                'radial-gradient(55% 55% at 85% 5%, rgba(56, 189, 248, 0.22), transparent 70%), ' +
+                'radial-gradient(65% 55% at 20% 40%, rgba(244, 63, 94, 0.20), transparent 70%), ' +
+                'radial-gradient(55% 55% at 80% 50%, rgba(249, 115, 22, 0.18), transparent 70%), ' +
+                'radial-gradient(70% 70% at 50% 25%, rgba(217, 70, 239, 0.22), transparent 75%)',
             }}
           />
-          <div className="absolute top-0 left-[2%] w-[700px] h-[700px] rounded-full bg-primary/35 blur-[120px] pointer-events-none" />
-          <div className="absolute top-4 left-[25%] w-[650px] h-[650px] rounded-full bg-purple-600/40 blur-[110px] pointer-events-none" />
-          <div className="absolute top-0 right-[5%] w-[700px] h-[700px] rounded-full bg-pink-500/35 blur-[120px] pointer-events-none" />
+          <div className="absolute top-0 left-0 w-[300px] sm:w-[500px] md:w-[700px] h-[300px] sm:h-[500px] md:h-[700px] rounded-full bg-blue-500/20 blur-[90px] sm:blur-[120px] pointer-events-none" />
+          <div className="absolute top-4 left-[15%] w-[280px] sm:w-[450px] md:w-[600px] h-[280px] sm:h-[450px] md:h-[600px] rounded-full bg-purple-600/25 blur-[80px] sm:blur-[110px] pointer-events-none" />
+          <div className="absolute top-0 right-0 w-[300px] sm:w-[500px] md:w-[650px] h-[300px] sm:h-[500px] md:h-[650px] rounded-full bg-pink-500/20 blur-[90px] sm:blur-[120px] pointer-events-none" />
           <div className="absolute bottom-0 inset-x-0 h-[300px] bg-gradient-to-t from-background to-transparent" />
         </div>
 
@@ -117,12 +117,12 @@ export async function LegalPageContent({ slug }: LegalPageContentProps) {
               href="/" 
               className="inline-flex items-center gap-2 text-xs font-bold text-foreground hover:text-purple-600 px-5 py-2.5 rounded-full bg-card/85 backdrop-blur-xl border border-border/80 hover:border-purple-400 shadow-sm transition-all"
             >
-              <ArrowLeft className="w-3.5 h-3.5 text-purple-600" />
+              <ArrowLeft className="w-3.5 h-3.5 text-purple-600 shrink-0" />
               На главную SMMflux
             </Link>
 
             <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/25 text-[11px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-300 shadow-sm">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               <span>152-ФЗ & 54-ФЗ Защита</span>
             </div>
           </div>

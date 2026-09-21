@@ -26,11 +26,11 @@ export function FluxStepLink({
       <div className="text-center mb-8 max-w-2xl">
         <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-foreground mb-4">
           Продвижение соцсетей <br className="hidden sm:inline" />
-          <span className="bg-gradient-to-r from-purple-500 via-indigo-500 to-pink-500 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-indigo-950 via-purple-900 to-indigo-900 dark:from-white dark:via-purple-200 dark:to-pink-200 bg-clip-text text-transparent drop-shadow-sm">
             нового поколения
           </span>
         </h1>
-        <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto">
+        <p className="text-sm sm:text-base text-foreground/80 dark:text-foreground/90 font-medium max-w-md mx-auto">
           Вставьте ссылку на ваш профиль, канал или публикацию для автоматического подбора услуг
         </p>
       </div>

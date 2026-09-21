@@ -19,6 +19,9 @@ export interface FluxOrderClientProps {
   initialEmail?: string;
   tenantId?: string;
   userBalanceCents?: number;
+  initialNetworkId?: string;
+  initialCategoryId?: string;
+  initialServiceId?: string;
 }
 
 export function FluxOrderClient(props: FluxOrderClientProps) {

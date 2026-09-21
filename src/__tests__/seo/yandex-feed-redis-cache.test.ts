@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GET, invalidateYandexFeedCache } from '@/app/yandex-feed.xml/route';
+import { GET } from '@/app/yandex-feed.xml/route';
+import { invalidateYandexFeedCache } from '@/services/seo/yandex-feed-cache.service';
 import { getPublicCatalogAction, getServicesByCategoryAction } from '@/actions/order/catalog';
 import { redis } from '@/lib/redis';
 import { headers } from 'next/headers';
