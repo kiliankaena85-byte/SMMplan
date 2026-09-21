@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ExternalLink, Copy, Check, X } from 'lucide-react';
+import { ExternalLink, Copy, Check, X, Pencil } from 'lucide-react';
 import { OrderModalColumn, STATUS_CONFIG } from './types';
 import { OrderEnvironmentBadge } from '../OrderEnvironmentBadge';
 import { resolveOrderEnvironmentMode } from '@/utils/order-environment';
@@ -11,6 +11,7 @@ interface OrderDetailsHeaderProps {
   copiedId: boolean;
   onCopyId: () => void;
   onClose: () => void;
+  onEditStatusClick?: () => void;
 }
 
 export function OrderDetailsHeader({
@@ -18,6 +19,7 @@ export function OrderDetailsHeader({
   copiedId,
   onCopyId,
   onClose,
+  onEditStatusClick,
 }: OrderDetailsHeaderProps) {
   const statusInfo = STATUS_CONFIG[order.status] || {
     label: order.status,
@@ -58,9 +60,21 @@ export function OrderDetailsHeader({
               size="sm" 
             />
             {/* Status Badge */}
-            <span className={`text-xs px-2.5 py-0.5 rounded-lg font-bold border ${statusInfo.cls} ${statusInfo.borderCls}`}>
-              {statusInfo.label}
-            </span>
+            <div className="flex items-center gap-1">
+              <span className={`text-xs px-2.5 py-0.5 rounded-lg font-bold border ${statusInfo.cls} ${statusInfo.borderCls}`}>
+                {statusInfo.label}
+              </span>
+              {onEditStatusClick && (
+                <button
+                  type="button"
+                  onClick={onEditStatusClick}
+                  className="p-1 rounded-md text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer"
+                  title="Изменить статус вручную"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
           <p className="text-xs font-semibold text-muted-foreground truncate mt-0.5">
             {order.service?.category.network?.name ? `${order.service.category.network.name} · ` : ''}

@@ -50,6 +50,7 @@ export function OrderDetailsModal({
   const [remains, setRemains] = useState(0);
   const [failoverPreview, setFailoverPreview] = useState<FailoverPreviewData | null>(null);
   const [isFailoverOpen, setIsFailoverOpen] = useState(false);
+  const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState<string>('');
   const [acknowledgeBlindReroute, setAcknowledgeBlindReroute] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -156,7 +157,7 @@ export function OrderDetailsModal({
           const refund = r.refundCents > 0 ? ` Возврат клиенту: ${(r.refundCents / 100).toFixed(2)} ₽` : '';
           toast.success(`Статус заказа #${r.numericId} обновлен на "${selectedStatus}".${refund}`);
           if (onSuccess) onSuccess();
-          onClose();
+          setIsEditStatusOpen(false);
         } else {
           toast.error(r.error || 'Ошибка изменения статуса');
         }
@@ -189,7 +190,7 @@ export function OrderDetailsModal({
               }
             }
             if (onSuccess) onSuccess();
-            onClose();
+          setIsEditStatusOpen(false);
           } else {
             toast.error(r.error || 'Ошибка отмены заказа');
           }
@@ -207,7 +208,7 @@ export function OrderDetailsModal({
           if (r.success) {
             toast.success(`Заказ #${currentOrder.numericId} успешно перезапущен у провайдера`);
             if (onSuccess) onSuccess();
-            onClose();
+          setIsEditStatusOpen(false);
           } else {
             toast.error(r.error || 'Ошибка перезапуска');
           }
@@ -225,7 +226,7 @@ export function OrderDetailsModal({
           if (r.success) {
             toast.success(`Заказ #${currentOrder.numericId} принудительно завершен`);
             if (onSuccess) onSuccess();
-            onClose();
+          setIsEditStatusOpen(false);
           } else {
             toast.error(r.error || 'Ошибка завершения');
           }
@@ -247,7 +248,7 @@ export function OrderDetailsModal({
             addOptimisticUpdate({ id: currentOrder.id, status: r.status });
           }
           if (onSuccess) onSuccess();
-          onClose();
+          setIsEditStatusOpen(false);
         } else {
           toast.error(r.error || 'Не удалось сверить статус');
         }
@@ -287,7 +288,7 @@ export function OrderDetailsModal({
           setIsFailoverOpen(false);
           setAcknowledgeBlindReroute(false);
           if (onSuccess) onSuccess();
-          onClose();
+          setIsEditStatusOpen(false);
         } else {
           toast.error(r.error || 'Ошибка перевода заказа');
         }
@@ -300,6 +301,7 @@ export function OrderDetailsModal({
   const classifiedError = currentOrder?.error ? classifyOrderError(currentOrder.error) : null;
 
   return createPortal(
+    <>
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 overflow-hidden">
       {/* Backdrop */}
       <motion.div
@@ -323,6 +325,7 @@ export function OrderDetailsModal({
           copiedId={copiedId}
           onCopyId={handleCopyId}
           onClose={onClose}
+          onEditStatusClick={() => setIsEditStatusOpen(true)}
         />
 
         {/* DIALOG BODY */}
@@ -449,7 +452,70 @@ export function OrderDetailsModal({
             : `Статус заказа будет переведен в "Выполнен".`}
         </p>
       </ConfirmModal>
-    </div>,
+    </div>
+
+      {/* Edit Status Modal */}
+      {isEditStatusOpen && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-card text-card-foreground p-6 rounded-2xl w-full max-w-sm border border-border/80 shadow-2xl"
+          >
+            <h3 className="text-lg font-bold mb-4">Ручное изменение статуса</h3>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground uppercase">Новый статус</label>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="w-full h-10 px-3 rounded-lg border border-border bg-background text-sm font-medium outline-none focus:border-primary"
+                >
+                  <option value="PENDING">PENDING (В очереди)</option>
+                  <option value="IN_PROGRESS">IN_PROGRESS (В работе)</option>
+                  <option value="COMPLETED">COMPLETED (Выполнен)</option>
+                  <option value="PARTIAL">PARTIAL (Частично)</option>
+                  <option value="CANCELED">CANCELED (Отменён)</option>
+                  <option value="ERROR">ERROR (Ошибка)</option>
+                </select>
+              </div>
+              
+              {selectedStatus === 'PARTIAL' && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase">Остаток (Remains)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={remains}
+                    onChange={(e) => setRemains(parseInt(e.target.value) || 0)}
+                    className="w-full h-10 px-3 rounded-lg border border-border bg-background text-sm font-medium outline-none focus:border-primary"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Укажите, сколько единиц не было выполнено.</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setIsEditStatusOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-muted transition-colors"
+                disabled={isPending}
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleSetStatus}
+                disabled={isPending}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-2"
+              >
+                {isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+                Сохранить
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </>,
     document.body
   );
 }
