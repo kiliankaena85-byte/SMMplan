@@ -2,7 +2,7 @@
 
 import { Skeleton } from "@heroui/react";
 import { AdminTabbedHeader } from "@/components/admin/tabbed-header";
-import { FINANCE_TABS, ONBOARDING_CONFIGS } from "@/components/admin/navigation-data";
+import { TRANSACTIONS_TABS, ONBOARDING_CONFIGS } from "@/components/admin/navigation-data";
 import { ArrowLeftRight } from "lucide-react";
 
 export default function TransactionsLoading() {
@@ -14,7 +14,7 @@ export default function TransactionsLoading() {
         icon={ArrowLeftRight}
         title="Транзакции платформы (Ledger)"
         description="Сквозной реестр финансовых операций, пополнений, оплат заказов и возвратов по всем клиентам"
-        tabs={FINANCE_TABS}
+        tabs={TRANSACTIONS_TABS}
         onboardingKey="finance"
         onboarding={ONBOARDING_CONFIGS.finance}
       />

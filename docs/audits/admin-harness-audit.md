@@ -1,6 +1,6 @@
 # 🛡️ Admin Panel E2E Layout & Visual Audit Report
 
-**Date:** 20.09.2026, 19:44:59  
+**Date:** 21.09.2026, 08:23:00  
 **Base URL:** `http://127.0.0.1:3000`  
 **Verdict:** **🔴 DEFECTS DETECTED** (43/84 passed)  
 **Tenant Cookie Persistence:** ✅ Verified (`x_admin_tenant`)
@@ -27,90 +27,90 @@
 
 | Route | Viewport | Status | Time | Horizontal Scroll | Header | Tabs | Error Boundary |
 |---|---|---|---|---|---|---|---|
-| `/admin/dashboard` | Desktop (1280x800) | 200 | 456ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/dashboard` | Tablet (768x1024) | 200 | 430ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/dashboard` | Mobile (375x812) | 200 | 425ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/dashboard` | Mobile (390x844) | 200 | 419ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/orders` | Desktop (1280x800) | 200 | 414ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/orders` | Tablet (768x1024) | 200 | 386ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/orders` | Mobile (375x812) | 200 | 386ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/orders` | Mobile (390x844) | 200 | 386ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/orders/cuid_audit_order_0000000000001` | Desktop (1280x800) | 200 | 464ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/orders/cuid_audit_order_0000000000001` | Tablet (768x1024) | 200 | 374ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/orders/cuid_audit_order_0000000000001` | Mobile (375x812) | 200 | 377ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/orders/cuid_audit_order_0000000000001` | Mobile (390x844) | 200 | 369ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/clients` | Desktop (1280x800) | 200 | 409ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/clients` | Tablet (768x1024) | 200 | 402ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/clients` | Mobile (375x812) | 200 | 393ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/clients` | Mobile (390x844) | 200 | 395ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/clients/cuid_audit_client_user_00000001` | Desktop (1280x800) | 200 | 438ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/clients/cuid_audit_client_user_00000001` | Tablet (768x1024) | 200 | 402ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/clients/cuid_audit_client_user_00000001` | Mobile (375x812) | 200 | 392ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/clients/cuid_audit_client_user_00000001` | Mobile (390x844) | 200 | 399ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/providers` | Desktop (1280x800) | 200 | 420ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/providers` | Tablet (768x1024) | 200 | 414ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/providers` | Mobile (375x812) | 200 | 403ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/providers` | Mobile (390x844) | 200 | 427ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/providers/cuid_audit_provider_00000000001` | Desktop (1280x800) | 200 | 440ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/providers/cuid_audit_provider_00000000001` | Tablet (768x1024) | 200 | 382ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/providers/cuid_audit_provider_00000000001` | Mobile (375x812) | 200 | 386ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/providers/cuid_audit_provider_00000000001` | Mobile (390x844) | 200 | 381ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/catalog` | Desktop (1280x800) | 200 | 475ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/dashboard` | Desktop (1280x800) | 200 | 437ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/dashboard` | Tablet (768x1024) | 200 | 434ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/dashboard` | Mobile (375x812) | 200 | 426ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/dashboard` | Mobile (390x844) | 200 | 413ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/orders` | Desktop (1280x800) | 200 | 463ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/orders` | Tablet (768x1024) | 200 | 385ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/orders` | Mobile (375x812) | 200 | 387ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/orders` | Mobile (390x844) | 200 | 400ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/orders/cuid_audit_order_0000000000001` | Desktop (1280x800) | 200 | 445ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/orders/cuid_audit_order_0000000000001` | Tablet (768x1024) | 200 | 371ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/orders/cuid_audit_order_0000000000001` | Mobile (375x812) | 200 | 376ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/orders/cuid_audit_order_0000000000001` | Mobile (390x844) | 200 | 380ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/clients` | Desktop (1280x800) | 200 | 451ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/clients` | Tablet (768x1024) | 200 | 400ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/clients` | Mobile (375x812) | 200 | 388ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/clients` | Mobile (390x844) | 200 | 402ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/clients/cuid_audit_client_user_00000001` | Desktop (1280x800) | 200 | 428ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/clients/cuid_audit_client_user_00000001` | Tablet (768x1024) | 200 | 398ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/clients/cuid_audit_client_user_00000001` | Mobile (375x812) | 200 | 386ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/clients/cuid_audit_client_user_00000001` | Mobile (390x844) | 200 | 383ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/providers` | Desktop (1280x800) | 200 | 449ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/providers` | Tablet (768x1024) | 200 | 413ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/providers` | Mobile (375x812) | 200 | 389ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/providers` | Mobile (390x844) | 200 | 412ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/providers/cuid_audit_provider_00000000001` | Desktop (1280x800) | 200 | 454ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/providers/cuid_audit_provider_00000000001` | Tablet (768x1024) | 200 | 376ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/providers/cuid_audit_provider_00000000001` | Mobile (375x812) | 200 | 374ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/providers/cuid_audit_provider_00000000001` | Mobile (390x844) | 200 | 365ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/catalog` | Desktop (1280x800) | 200 | 519ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
 | `/admin/catalog` | Tablet (768x1024) | 200 | 413ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/catalog` | Mobile (375x812) | 200 | 424ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/catalog` | Mobile (390x844) | 200 | 402ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/catalog/cuid_audit_service_000000000001` | Desktop (1280x800) | 200 | 434ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/catalog/cuid_audit_service_000000000001` | Tablet (768x1024) | 200 | 392ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/catalog` | Mobile (375x812) | 200 | 411ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/catalog` | Mobile (390x844) | 200 | 410ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/catalog/cuid_audit_service_000000000001` | Desktop (1280x800) | 200 | 431ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/catalog/cuid_audit_service_000000000001` | Tablet (768x1024) | 200 | 388ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
 | `/admin/catalog/cuid_audit_service_000000000001` | Mobile (375x812) | 200 | 392ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/catalog/cuid_audit_service_000000000001` | Mobile (390x844) | 200 | 385ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/services/cuid_audit_service_000000000001/routing` | Desktop (1280x800) | 200 | 421ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/services/cuid_audit_service_000000000001/routing` | Tablet (768x1024) | 200 | 387ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/services/cuid_audit_service_000000000001/routing` | Mobile (375x812) | 200 | 407ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/services/cuid_audit_service_000000000001/routing` | Mobile (390x844) | 200 | 398ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/tickets` | Desktop (1280x800) | 200 | 428ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/tickets` | Tablet (768x1024) | 200 | 393ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/tickets` | Mobile (375x812) | 200 | 383ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/catalog/cuid_audit_service_000000000001` | Mobile (390x844) | 200 | 382ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/services/cuid_audit_service_000000000001/routing` | Desktop (1280x800) | 200 | 435ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/services/cuid_audit_service_000000000001/routing` | Tablet (768x1024) | 200 | 405ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/services/cuid_audit_service_000000000001/routing` | Mobile (375x812) | 200 | 382ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/services/cuid_audit_service_000000000001/routing` | Mobile (390x844) | 200 | 383ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/tickets` | Desktop (1280x800) | 200 | 439ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/tickets` | Tablet (768x1024) | 200 | 388ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/tickets` | Mobile (375x812) | 200 | 394ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
 | `/admin/tickets` | Mobile (390x844) | 200 | 385ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/tickets/cuid_audit_ticket_000000000001` | Desktop (1280x800) | 200 | 394ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/tickets/cuid_audit_ticket_000000000001` | Tablet (768x1024) | 200 | 381ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/tickets/cuid_audit_ticket_000000000001` | Mobile (375x812) | 200 | 369ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/tickets/cuid_audit_ticket_000000000001` | Mobile (390x844) | 200 | 372ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/cms` | Desktop (1280x800) | 200 | 384ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/cms` | Tablet (768x1024) | 200 | 367ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/cms` | Mobile (375x812) | 200 | 366ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/cms` | Mobile (390x844) | 200 | 371ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/cms/cuid_audit_content_000000000001` | Desktop (1280x800) | 200 | 438ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/cms/cuid_audit_content_000000000001` | Tablet (768x1024) | 200 | 369ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/cms/cuid_audit_content_000000000001` | Mobile (375x812) | 200 | 370ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/cms/cuid_audit_content_000000000001` | Mobile (390x844) | 200 | 387ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/knowledge/cuid_audit_article_000000000001/edit` | Desktop (1280x800) | 200 | 419ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/knowledge/cuid_audit_article_000000000001/edit` | Tablet (768x1024) | 200 | 379ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/knowledge/cuid_audit_article_000000000001/edit` | Mobile (375x812) | 200 | 375ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/knowledge/cuid_audit_article_000000000001/edit` | Mobile (390x844) | 200 | 372ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/finance` | Desktop (1280x800) | 200 | 436ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/finance` | Tablet (768x1024) | 200 | 394ms | 🟢 0px | 🟢 OK | 🔴 1 collisions | 🟢 OK |
-| `/admin/finance` | Mobile (375x812) | 200 | 396ms | 🔴 +63px | 🔴 2 issues | 🔴 2 collisions | 🟢 OK |
+| `/admin/tickets/cuid_audit_ticket_000000000001` | Desktop (1280x800) | 200 | 416ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/tickets/cuid_audit_ticket_000000000001` | Tablet (768x1024) | 200 | 380ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/tickets/cuid_audit_ticket_000000000001` | Mobile (375x812) | 200 | 367ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/tickets/cuid_audit_ticket_000000000001` | Mobile (390x844) | 200 | 369ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/cms` | Desktop (1280x800) | 200 | 382ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/cms` | Tablet (768x1024) | 200 | 377ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/cms` | Mobile (375x812) | 200 | 381ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/cms` | Mobile (390x844) | 200 | 370ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/cms/cuid_audit_content_000000000001` | Desktop (1280x800) | 200 | 431ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/cms/cuid_audit_content_000000000001` | Tablet (768x1024) | 200 | 427ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/cms/cuid_audit_content_000000000001` | Mobile (375x812) | 200 | 377ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/cms/cuid_audit_content_000000000001` | Mobile (390x844) | 200 | 414ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/knowledge/cuid_audit_article_000000000001/edit` | Desktop (1280x800) | 200 | 420ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/knowledge/cuid_audit_article_000000000001/edit` | Tablet (768x1024) | 200 | 376ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/knowledge/cuid_audit_article_000000000001/edit` | Mobile (375x812) | 200 | 380ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/knowledge/cuid_audit_article_000000000001/edit` | Mobile (390x844) | 200 | 379ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/finance` | Desktop (1280x800) | 200 | 475ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/finance` | Tablet (768x1024) | 200 | 405ms | 🟢 0px | 🟢 OK | 🔴 1 collisions | 🟢 OK |
+| `/admin/finance` | Mobile (375x812) | 200 | 393ms | 🔴 +63px | 🔴 2 issues | 🔴 2 collisions | 🟢 OK |
 | `/admin/finance` | Mobile (390x844) | 200 | 400ms | 🔴 +48px | 🔴 2 issues | 🔴 2 collisions | 🟢 OK |
-| `/admin/marketing` | Desktop (1280x800) | 200 | 453ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/marketing` | Tablet (768x1024) | 200 | 407ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/marketing` | Mobile (375x812) | 200 | 397ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/marketing` | Mobile (390x844) | 200 | 402ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/finance/payments/cuid_audit_payment_000000000001/dispute-pack` | Desktop (1280x800) | 200 | 441ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/finance/payments/cuid_audit_payment_000000000001/dispute-pack` | Tablet (768x1024) | 200 | 407ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/finance/payments/cuid_audit_payment_000000000001/dispute-pack` | Mobile (375x812) | 200 | 388ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/finance/payments/cuid_audit_payment_000000000001/dispute-pack` | Mobile (390x844) | 200 | 414ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/settings` | Desktop (1280x800) | 200 | 423ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/settings` | Tablet (768x1024) | 200 | 402ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/settings` | Mobile (375x812) | 200 | 401ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/settings` | Mobile (390x844) | 200 | 386ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/staff` | Desktop (1280x800) | 200 | 461ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/staff` | Tablet (768x1024) | 200 | 385ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/staff` | Mobile (375x812) | 200 | 392ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/staff` | Mobile (390x844) | 200 | 385ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/system/features` | Desktop (1280x800) | 200 | 435ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/system/features` | Tablet (768x1024) | 200 | 382ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
-| `/admin/system/features` | Mobile (375x812) | 200 | 388ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
-| `/admin/system/features` | Mobile (390x844) | 200 | 383ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/marketing` | Desktop (1280x800) | 200 | 466ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/marketing` | Tablet (768x1024) | 200 | 391ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/marketing` | Mobile (375x812) | 200 | 406ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/marketing` | Mobile (390x844) | 200 | 398ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/finance/payments/cuid_audit_payment_000000000001/dispute-pack` | Desktop (1280x800) | 200 | 448ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/finance/payments/cuid_audit_payment_000000000001/dispute-pack` | Tablet (768x1024) | 200 | 390ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/finance/payments/cuid_audit_payment_000000000001/dispute-pack` | Mobile (375x812) | 200 | 390ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/finance/payments/cuid_audit_payment_000000000001/dispute-pack` | Mobile (390x844) | 200 | 384ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/settings` | Desktop (1280x800) | 200 | 439ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/settings` | Tablet (768x1024) | 200 | 386ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/settings` | Mobile (375x812) | 200 | 411ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/settings` | Mobile (390x844) | 200 | 383ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/staff` | Desktop (1280x800) | 200 | 451ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/staff` | Tablet (768x1024) | 200 | 401ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/staff` | Mobile (375x812) | 200 | 395ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/staff` | Mobile (390x844) | 200 | 399ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/system/features` | Desktop (1280x800) | 200 | 418ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/system/features` | Tablet (768x1024) | 200 | 381ms | 🟢 0px | 🟢 OK | 🟢 OK | 🟢 OK |
+| `/admin/system/features` | Mobile (375x812) | 200 | 382ms | 🔴 +63px | 🔴 2 issues | 🟢 OK | 🟢 OK |
+| `/admin/system/features` | Mobile (390x844) | 200 | 385ms | 🔴 +48px | 🔴 2 issues | 🟢 OK | 🟢 OK |
 
 ---
 

@@ -1,7 +1,7 @@
 'use client';
 import { Skeleton } from "@heroui/react";
 import { AdminTabbedHeader } from "@/components/admin/tabbed-header";
-import { OPERATIONS_TABS, ONBOARDING_CONFIGS } from "@/components/admin/navigation-data";
+import { ORDERS_TABS, ONBOARDING_CONFIGS } from "@/components/admin/navigation-data";
 import { Package } from "lucide-react";
 
 export default function OrdersLoading() {
@@ -12,7 +12,7 @@ export default function OrdersLoading() {
         icon={Package}
         title="Заказы"
         description="Загрузка списка заказов..."
-        tabs={OPERATIONS_TABS}
+        tabs={ORDERS_TABS}
         onboardingKey="orders"
         onboarding={ONBOARDING_CONFIGS.orders}
       />

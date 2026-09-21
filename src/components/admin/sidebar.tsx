@@ -257,11 +257,14 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
                         )}
                       >
                         <span className={cn(
-                          "transition-transform duration-200 group-hover:scale-110", 
+                          "relative transition-transform duration-200 group-hover:scale-110 flex items-center justify-center", 
                           collapsed ? "" : "mr-3 w-5 text-center flex justify-center",
                           isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
                         )}>
                           <IconComponent className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={isActive ? 2.5 : 2} />
+                          {collapsed && tab.badge !== undefined && tab.badge > 0 && (
+                            <span className="absolute -top-1 -right-1.5 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-card shadow-sm animate-pulse" />
+                          )}
                         </span>
                         {!collapsed && <span className="tracking-wide flex-1 truncate min-w-0">{tab.label}</span>}
                         
@@ -270,9 +273,6 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
                           <span className="ml-auto mr-1.5 px-2 py-0.5 text-[10px] font-black leading-none rounded-full bg-rose-500 text-white shadow-sm shadow-rose-500/30 flex items-center justify-center animate-pulse">
                             {tab.badge > 99 ? '99+' : tab.badge}
                           </span>
-                        )}
-                        {collapsed && tab.badge !== undefined && tab.badge > 0 && (
-                          <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-card shadow-sm animate-pulse" />
                         )}
 
                         {/* Pin / Favorite button on hover */}

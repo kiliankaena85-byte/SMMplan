@@ -1,6 +1,6 @@
 import { MessageSquare } from 'lucide-react';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
-import { OPERATIONS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
+import { TICKETS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 
 export default function TicketsLoading() {
   return (
@@ -9,7 +9,7 @@ export default function TicketsLoading() {
         icon={MessageSquare}
         title="Тикеты поддержки"
         description="Загрузка обращений клиентов..."
-        tabs={OPERATIONS_TABS}
+        tabs={TICKETS_TABS}
         onboardingKey="tickets"
         onboarding={ONBOARDING_CONFIGS.tickets}
       />

@@ -7,7 +7,7 @@ import { cookies, headers } from 'next/headers';
 import { resolveAdminTenantContext } from '@/utils/admin-tenant';
 import { notFound, redirect } from 'next/navigation';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
-import { FINANCE_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
+import { TRANSACTIONS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,7 +82,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
         icon={ArrowLeftRight}
         title="Транзакции платформы (Ledger)"
         description="Сквозной реестр финансовых операций, пополнений, оплат заказов и возвратов по всем клиентам"
-        tabs={FINANCE_TABS}
+        tabs={TRANSACTIONS_TABS}
         onboardingKey="finance"
         onboarding={ONBOARDING_CONFIGS.finance}
       />

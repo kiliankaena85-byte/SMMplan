@@ -3,7 +3,7 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { RefreshCw } from 'lucide-react';
-import { OPERATIONS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
+import { ORDERS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 
 export default function AdminRefillsLoading() {
   return (
@@ -20,7 +20,7 @@ export default function AdminRefillsLoading() {
         icon={RefreshCw}
         title="Гарантийные Докрутки (Refills)"
         description="Загрузка реестра гарантийных докруток..."
-        tabs={OPERATIONS_TABS}
+        tabs={ORDERS_TABS}
         onboardingKey="refills"
         onboarding={ONBOARDING_CONFIGS.refills}
       />

@@ -48,7 +48,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
-import { OPERATIONS_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
+import { DASHBOARD_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { RecentAuditTable } from './recent-audit-table';
 import { ProviderLiquidityWidget } from './ProviderLiquidityWidget';
 import { WebhookLatencyWidget } from './WebhookLatencyWidget';
@@ -224,7 +224,7 @@ export default async function AdminDashboardPage({
             ? 'Оперативный мониторинг потока заказов, контроль очереди тикетов и радар сбоев.'
             : 'Оперативный пульс платформы, динамика потоков заказов и финансовый мониторинг.'
         }
-        tabs={OPERATIONS_TABS}
+        tabs={DASHBOARD_TABS}
         onboardingKey="dashboard"
         onboarding={ONBOARDING_CONFIGS.dashboard}
         currentTenant={tenantFilter}

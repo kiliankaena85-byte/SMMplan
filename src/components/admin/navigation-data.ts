@@ -10,7 +10,6 @@ export const SIDEBAR_DOMAIN_ALIASES: Record<string, string> = {
   // Operations domain
   '/admin/refills':            '/admin/orders',
   '/admin/smart':              '/admin/orders',
-  '/admin/docs':               '/admin/orders',
   // Finance domain
   '/admin/marketing':          '/admin/finance',
   '/admin/fraud-monitor':      '/admin/finance',
@@ -23,8 +22,6 @@ export const SIDEBAR_DOMAIN_ALIASES: Record<string, string> = {
   '/admin/catalog/quarantine': '/admin/catalog',
   '/admin/catalog/drift':      '/admin/catalog',
   '/admin/catalog/sync':       '/admin/catalog',
-  // Обратная совместимость — старый URL Импорта
-  '/admin/providers/import':   '/admin/providers',
   // Analytics domain
   '/admin/economics':          '/admin/analytics',
   // Settings domain
@@ -82,7 +79,9 @@ export function isNavTabActive(
     if (hasAnyQueryVariantInTabs && effectivePathname.includes('?')) return false;
     return true;
   }
-  if (cleanTabPath === '/admin/dashboard' || cleanTabPath === '/admin') return cleanCurrentPath === cleanTabPath;
+  if (cleanTabPath === '/admin/dashboard' || cleanTabPath === '/admin') {
+    return cleanCurrentPath === cleanTabPath || cleanCurrentPath.startsWith(cleanTabPath + '/');
+  }
 
   const isPrefixMatch = cleanCurrentPath.startsWith(cleanTabPath + '/');
   if (!isPrefixMatch) return false;
@@ -99,24 +98,34 @@ export function isNavTabActive(
   return !hasMoreSpecificMatch;
 }
 
-export const OPERATIONS_TABS = [
-  { label: 'Сводка дашборда', href: '/admin/dashboard' },
-  { label: 'Заказы клиентов', href: '/admin/orders' },
+export const DASHBOARD_TABS = [
+  { label: 'Обзор', href: '/admin/dashboard' },
+];
+
+export const ORDERS_TABS = [
+  { label: 'Заказы', href: '/admin/orders' },
   { label: 'Заявки на докрутку', href: '/admin/refills' },
-  { label: 'Умный Dripfeed', href: '/admin/smart' },
-  { label: 'Тикеты поддержки', href: '/admin/tickets' },
+  { label: 'Smart Drip-Feed', href: '/admin/smart' },
 ];
 
 export const CLIENTS_TABS = [
-  { label: 'База клиентов', href: '/admin/clients' },
+  { label: 'Клиенты', href: '/admin/clients' },
+];
+
+export const TICKETS_TABS = [
+  { label: 'Поддержка', href: '/admin/tickets' },
 ];
 
 export const FINANCE_TABS = [
-  { label: 'Финансы & P&L', href: '/admin/finance' },
+  { label: 'Касса & P&L', href: '/admin/finance' },
+  { label: 'Казначейство & Вывод', href: '/admin/finance/treasury' },
+  { label: 'Запросы баланса', href: '/admin/finance/balance-requests' },
+  { label: 'Маркетинг & Промо', href: '/admin/marketing' },
+  { label: 'Fraud Monitor', href: '/admin/fraud-monitor' },
+];
+
+export const TRANSACTIONS_TABS = [
   { label: 'Транзакции (Ledger)', href: '/admin/transactions' },
-  { label: 'Казначейство & Банк', href: '/admin/finance/treasury' },
-  { label: 'Заявки на баланс', href: '/admin/finance/balance-requests' },
-  { label: 'Маркетинг и промокоды', href: '/admin/marketing' },
 ];
 
 export const CATALOG_TABS = [
