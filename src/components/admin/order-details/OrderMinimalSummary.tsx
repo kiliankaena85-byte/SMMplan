@@ -100,22 +100,7 @@ export function OrderMinimalSummary({
               <span className="text-sm font-bold text-foreground">{chargeRub.toFixed(2)} ₽</span>
             </div>
 
-            {canSeeRates && (
-              <div className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <Percent className="w-3.5 h-3.5" />
-                  Экономика
-                </span>
-                <span className="text-sm text-foreground">
-                  Себестоимость: <span className="text-muted-foreground">{costRub.toFixed(2)} ₽</span>
-                  <span className="mx-2 text-border">|</span>
-                  Маржа:{' '}
-                  <span className={isHealthyMargin ? 'text-success font-semibold' : 'text-rose-500 font-semibold'}>
-                    {marginRub > 0 ? '+' : ''}{marginRub.toFixed(2)} ₽ ({marginPercent}%)
-                  </span>
-                </span>
-              </div>
-            )}
+            
           </div>
         </div>
       </div>

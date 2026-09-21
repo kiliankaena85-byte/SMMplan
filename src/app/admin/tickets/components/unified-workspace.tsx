@@ -68,6 +68,8 @@ interface UnifiedTicketsWorkspaceProps {
   currentStatus: string;
   currentSource: string;
   currentIsApi: boolean;
+  userRole: string;
+  canSeeRates: boolean;
   currentSearch: string;
   canSeeRates?: boolean;
   canSeeFinances?: boolean;
