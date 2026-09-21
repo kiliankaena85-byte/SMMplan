@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OmniSMM Architecture Topology (Uncle Bob Pattern)",
-  "generatedAt": "2026-09-21T09:34:17.931Z",
+  "generatedAt": "2026-09-21T10:10:50.503Z",
   "layers": [
     {
       "level": 0,
@@ -2509,7 +2509,7 @@
       "level": 2,
       "layer": "Application",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 423,
+      "linesCount": 425,
       "isClientComponent": false,
       "exportsCount": 3,
       "functionsCount": 14,
@@ -2521,8 +2521,8 @@
       "topRiskFunctions": [
         {
           "name": "updateStaffMemberAction",
-          "startLine": 340,
-          "endLine": 422,
+          "startLine": 342,
+          "endLine": 424,
           "cyclomaticComplexity": 25,
           "coverageRatio": null,
           "crapScore": 650,
@@ -2530,8 +2530,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 341,
-          "endLine": 421,
+          "startLine": 343,
+          "endLine": 423,
           "cyclomaticComplexity": 25,
           "coverageRatio": null,
           "crapScore": 650,
@@ -2540,7 +2540,7 @@
         {
           "name": "getStaffMembersWithMetrics",
           "startLine": 150,
-          "endLine": 286,
+          "endLine": 288,
           "cyclomaticComplexity": 21,
           "coverageRatio": null,
           "crapScore": 462,
@@ -3139,7 +3139,7 @@
       "level": 2,
       "layer": "Application",
       "boundedContext": "MULTI_TENANT_CORE",
-      "linesCount": 379,
+      "linesCount": 380,
       "isClientComponent": false,
       "exportsCount": 7,
       "functionsCount": 16,
@@ -3152,7 +3152,7 @@
         {
           "name": "switchAdminTenantAction",
           "startLine": 299,
-          "endLine": 378,
+          "endLine": 379,
           "cyclomaticComplexity": 12,
           "coverageRatio": null,
           "crapScore": 156,
@@ -3265,7 +3265,7 @@
       "level": 2,
       "layer": "Application",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 1018,
+      "linesCount": 1020,
       "isClientComponent": false,
       "exportsCount": 13,
       "functionsCount": 35,
@@ -18070,7 +18070,7 @@
       "level": 2,
       "layer": "Application",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 106,
+      "linesCount": 107,
       "isClientComponent": false,
       "exportsCount": 1,
       "functionsCount": 5,
@@ -18082,8 +18082,8 @@
       "topRiskFunctions": [
         {
           "name": "POST",
-          "startLine": 18,
-          "endLine": 105,
+          "startLine": 19,
+          "endLine": 106,
           "cyclomaticComplexity": 10,
           "coverageRatio": null,
           "crapScore": 110,
@@ -18091,8 +18091,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 62,
-          "endLine": 88,
+          "startLine": 63,
+          "endLine": 89,
           "cyclomaticComplexity": 3,
           "coverageRatio": null,
           "crapScore": 12,
@@ -18100,8 +18100,8 @@
         },
         {
           "name": "writeSSE",
-          "startLine": 57,
-          "endLine": 59,
+          "startLine": 58,
+          "endLine": 60,
           "cyclomaticComplexity": 1,
           "coverageRatio": null,
           "crapScore": 2,
@@ -18187,7 +18187,7 @@
       "level": 2,
       "layer": "Application",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 103,
+      "linesCount": 106,
       "isClientComponent": false,
       "exportsCount": 1,
       "functionsCount": 1,
@@ -18200,7 +18200,7 @@
         {
           "name": "GET",
           "startLine": 11,
-          "endLine": 102,
+          "endLine": 105,
           "cyclomaticComplexity": 32,
           "coverageRatio": null,
           "crapScore": 1056,
@@ -18938,6 +18938,69 @@
       ]
     },
     {
+      "id": "src/app/api/seo/indexnow/key/route.ts",
+      "label": "route.ts",
+      "level": 2,
+      "layer": "Application",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 22,
+      "isClientComponent": false,
+      "exportsCount": 1,
+      "functionsCount": 1,
+      "maxCyclomaticComplexity": 1,
+      "maxCrapScore": 2,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "GET",
+          "startLine": 11,
+          "endLine": 21,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/app/api/seo/indexnow/route.ts",
+      "label": "route.ts",
+      "level": 2,
+      "layer": "Application",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 85,
+      "isClientComponent": false,
+      "exportsCount": 1,
+      "functionsCount": 2,
+      "maxCyclomaticComplexity": 19,
+      "maxCrapScore": 380,
+      "crapLoad": 350,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "POST",
+          "startLine": 15,
+          "endLine": 84,
+          "cyclomaticComplexity": 19,
+          "coverageRatio": null,
+          "crapScore": 380,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 50,
+          "endLine": 50,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
       "id": "src/app/api/storefront/v1/catalog/route.ts",
       "label": "route.ts",
       "level": 2,
@@ -19555,7 +19618,7 @@
       "level": 2,
       "layer": "Application",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 230,
+      "linesCount": 232,
       "isClientComponent": false,
       "exportsCount": 1,
       "functionsCount": 4,
@@ -19568,7 +19631,7 @@
         {
           "name": "POST",
           "startLine": 12,
-          "endLine": 229,
+          "endLine": 231,
           "cyclomaticComplexity": 53,
           "coverageRatio": null,
           "crapScore": 2862,
@@ -19690,7 +19753,7 @@
       "level": 2,
       "layer": "Application",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 371,
+      "linesCount": 373,
       "isClientComponent": false,
       "exportsCount": 1,
       "functionsCount": 12,
@@ -19703,7 +19766,7 @@
         {
           "name": "POST",
           "startLine": 67,
-          "endLine": 370,
+          "endLine": 372,
           "cyclomaticComplexity": 85,
           "coverageRatio": null,
           "crapScore": 7310,
@@ -21508,20 +21571,20 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 265,
+      "linesCount": 273,
       "isClientComponent": false,
       "exportsCount": 2,
       "functionsCount": 3,
       "maxCyclomaticComplexity": 38,
       "maxCrapScore": 1482,
-      "crapLoad": 1506,
+      "crapLoad": 1706,
       "crappyMethodsCount": 3,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "RootLayout",
-          "startLine": 115,
-          "endLine": 264,
+          "startLine": 123,
+          "endLine": 272,
           "cyclomaticComplexity": 38,
           "coverageRatio": null,
           "crapScore": 1482,
@@ -21530,16 +21593,16 @@
         {
           "name": "generateMetadata",
           "startLine": 12,
-          "endLine": 107,
-          "cyclomaticComplexity": 8,
+          "endLine": 115,
+          "cyclomaticComplexity": 16,
           "coverageRatio": null,
-          "crapScore": 72,
+          "crapScore": 272,
           "isCrappy": true
         },
         {
           "name": "<anonymous>",
-          "startLine": 192,
-          "endLine": 236,
+          "startLine": 200,
+          "endLine": 244,
           "cyclomaticComplexity": 6,
           "coverageRatio": null,
           "crapScore": 42,
@@ -22678,20 +22741,20 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 219,
+      "linesCount": 208,
       "isClientComponent": false,
       "exportsCount": 2,
       "functionsCount": 15,
       "maxCyclomaticComplexity": 43,
       "maxCrapScore": 1892,
-      "crapLoad": 1862,
-      "crappyMethodsCount": 1,
+      "crapLoad": 1874,
+      "crappyMethodsCount": 2,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "Home",
-          "startLine": 41,
-          "endLine": 218,
+          "startLine": 47,
+          "endLine": 207,
           "cyclomaticComplexity": 43,
           "coverageRatio": null,
           "crapScore": 1892,
@@ -22700,11 +22763,11 @@
         {
           "name": "generateMetadata",
           "startLine": 25,
-          "endLine": 39,
-          "cyclomaticComplexity": 4,
+          "endLine": 45,
+          "cyclomaticComplexity": 6,
           "coverageRatio": null,
-          "crapScore": 20,
-          "isCrappy": false
+          "crapScore": 42,
+          "isCrappy": true
         },
         {
           "name": "<anonymous>",
@@ -22831,7 +22894,7 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 35,
+      "linesCount": 52,
       "isClientComponent": false,
       "exportsCount": 1,
       "functionsCount": 1,
@@ -22844,7 +22907,7 @@
         {
           "name": "robots",
           "startLine": 5,
-          "endLine": 34,
+          "endLine": 51,
           "cyclomaticComplexity": 8,
           "coverageRatio": null,
           "crapScore": 72,
@@ -22948,10 +23011,10 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 265,
+      "linesCount": 311,
       "isClientComponent": false,
       "exportsCount": 2,
-      "functionsCount": 4,
+      "functionsCount": 5,
       "maxCyclomaticComplexity": 13,
       "maxCrapScore": 182,
       "crapLoad": 152,
@@ -22960,8 +23023,8 @@
       "topRiskFunctions": [
         {
           "name": "ServicesCatalogPage",
-          "startLine": 41,
-          "endLine": 264,
+          "startLine": 42,
+          "endLine": 310,
           "cyclomaticComplexity": 13,
           "coverageRatio": null,
           "crapScore": 182,
@@ -22969,8 +23032,8 @@
         },
         {
           "name": "generateMetadata",
-          "startLine": 17,
-          "endLine": 39,
+          "startLine": 18,
+          "endLine": 40,
           "cyclomaticComplexity": 1,
           "coverageRatio": null,
           "crapScore": 2,
@@ -22978,8 +23041,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 142,
-          "endLine": 163,
+          "startLine": 95,
+          "endLine": 100,
           "cyclomaticComplexity": 1,
           "coverageRatio": null,
           "crapScore": 2,
@@ -23083,23 +23146,23 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 239,
+      "linesCount": 252,
       "isClientComponent": false,
       "exportsCount": 2,
-      "functionsCount": 3,
-      "maxCyclomaticComplexity": 11,
-      "maxCrapScore": 132,
-      "crapLoad": 102,
+      "functionsCount": 4,
+      "maxCyclomaticComplexity": 14,
+      "maxCrapScore": 210,
+      "crapLoad": 180,
       "crappyMethodsCount": 1,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "ServiceDetailPage",
           "startLine": 56,
-          "endLine": 238,
-          "cyclomaticComplexity": 11,
+          "endLine": 251,
+          "cyclomaticComplexity": 14,
           "coverageRatio": null,
-          "crapScore": 132,
+          "crapScore": 210,
           "isCrappy": true
         },
         {
@@ -23113,8 +23176,8 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 218,
-          "endLine": 227,
+          "startLine": 118,
+          "endLine": 125,
           "cyclomaticComplexity": 1,
           "coverageRatio": null,
           "crapScore": 2,
@@ -23151,6 +23214,33 @@
           "name": "<anonymous>",
           "startLine": 75,
           "endLine": 75,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/app/smmplan-indexnow-2026-key.txt/route.ts",
+      "label": "route.ts",
+      "level": 3,
+      "layer": "Presentation",
+      "boundedContext": "MULTI_TENANT_CORE",
+      "linesCount": 16,
+      "isClientComponent": false,
+      "exportsCount": 1,
+      "functionsCount": 1,
+      "maxCyclomaticComplexity": 1,
+      "maxCrapScore": 2,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "GET",
+          "startLine": 5,
+          "endLine": 15,
           "cyclomaticComplexity": 1,
           "coverageRatio": null,
           "crapScore": 2,
@@ -46744,23 +46834,23 @@
       "level": 1,
       "layer": "Services",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 73,
+      "linesCount": 71,
       "isClientComponent": false,
       "exportsCount": 5,
       "functionsCount": 5,
-      "maxCyclomaticComplexity": 28,
-      "maxCrapScore": 812,
-      "crapLoad": 782,
+      "maxCyclomaticComplexity": 26,
+      "maxCrapScore": 702,
+      "crapLoad": 672,
       "crappyMethodsCount": 1,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "resolveCanonicalHost",
           "startLine": 16,
-          "endLine": 52,
-          "cyclomaticComplexity": 28,
+          "endLine": 50,
+          "cyclomaticComplexity": 26,
           "coverageRatio": null,
-          "crapScore": 812,
+          "crapScore": 702,
           "isCrappy": true
         },
         {
@@ -46774,8 +46864,8 @@
         },
         {
           "name": "getTenantSiteName",
-          "startLine": 58,
-          "endLine": 64,
+          "startLine": 56,
+          "endLine": 62,
           "cyclomaticComplexity": 3,
           "coverageRatio": null,
           "crapScore": 12,
@@ -47643,23 +47733,23 @@
       "level": 1,
       "layer": "Services",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 739,
+      "linesCount": 741,
       "isClientComponent": false,
       "exportsCount": 5,
       "functionsCount": 13,
-      "maxCyclomaticComplexity": 196,
-      "maxCrapScore": 38612,
-      "crapLoad": 39050,
+      "maxCyclomaticComplexity": 198,
+      "maxCrapScore": 39402,
+      "crapLoad": 39840,
       "crappyMethodsCount": 5,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "proxy",
           "startLine": 260,
-          "endLine": 726,
-          "cyclomaticComplexity": 196,
+          "endLine": 728,
+          "cyclomaticComplexity": 198,
           "coverageRatio": null,
-          "crapScore": 38612,
+          "crapScore": 39402,
           "isCrappy": true
         },
         {
@@ -48083,7 +48173,7 @@
       "level": 1,
       "layer": "Services",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 69,
+      "linesCount": 70,
       "isClientComponent": false,
       "exportsCount": 2,
       "functionsCount": 2,
@@ -48096,7 +48186,7 @@
         {
           "name": "loadOfflineDecisions",
           "startLine": 56,
-          "endLine": 68,
+          "endLine": 69,
           "cyclomaticComplexity": 4,
           "coverageRatio": null,
           "crapScore": 20,
@@ -53878,6 +53968,51 @@
           "coverageRatio": null,
           "crapScore": 90,
           "isCrappy": true
+        }
+      ]
+    },
+    {
+      "id": "src/services/seo/indexnow.service.ts",
+      "label": "indexnow.service.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 147,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 5,
+      "maxCyclomaticComplexity": 24,
+      "maxCrapScore": 600,
+      "crapLoad": 570,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "submitUrls",
+          "startLine": 41,
+          "endLine": 145,
+          "cyclomaticComplexity": 24,
+          "coverageRatio": null,
+          "crapScore": 600,
+          "isCrappy": true
+        },
+        {
+          "name": "getKey",
+          "startLine": 34,
+          "endLine": 36,
+          "cyclomaticComplexity": 2,
+          "coverageRatio": null,
+          "crapScore": 6,
+          "isCrappy": false
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 54,
+          "endLine": 54,
+          "cyclomaticComplexity": 2,
+          "coverageRatio": null,
+          "crapScore": 6,
+          "isCrappy": false
         }
       ]
     },
@@ -70073,6 +70208,13 @@
       "isViolating": false
     },
     {
+      "source": "src/app/api/admin/assistant/stream/route.ts",
+      "target": "src/lib/logger.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
       "source": "src/app/api/admin/export/route.ts",
       "target": "src/lib/session.ts",
       "kind": "dependency",
@@ -70558,6 +70700,41 @@
     {
       "source": "src/app/api/security/challenge/route.ts",
       "target": "src/lib/security/ddos-shield/pow-engine.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/api/seo/indexnow/key/route.ts",
+      "target": "src/services/seo/indexnow.service.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/api/seo/indexnow/route.ts",
+      "target": "src/services/seo/indexnow.service.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/api/seo/indexnow/route.ts",
+      "target": "src/lib/session.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/api/seo/indexnow/route.ts",
+      "target": "src/lib/db.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/api/seo/indexnow/route.ts",
+      "target": "src/lib/logger.ts",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
@@ -72937,7 +73114,7 @@
     },
     {
       "source": "src/app/page.tsx",
-      "target": "src/lib/tenant-resolver-edge.ts",
+      "target": "src/lib/seo-helpers.ts",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
@@ -73036,6 +73213,13 @@
     {
       "source": "src/app/services/page.tsx",
       "target": "src/components/services/flux/FluxServicesCatalog.tsx",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/services/page.tsx",
+      "target": "src/components/seo/JsonLd.tsx",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
@@ -73351,6 +73535,13 @@
     {
       "source": "src/app/sitemap.ts",
       "target": "src/lib/seo-helpers.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/smmplan-indexnow-2026-key.txt/route.ts",
+      "target": "src/services/seo/indexnow.service.ts",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
@@ -85438,6 +85629,13 @@
       "isViolating": false
     },
     {
+      "source": "src/services/seo/indexnow.service.ts",
+      "target": "src/lib/logger.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
       "source": "src/services/storefront/storefront-key.service.ts",
       "target": "src/lib/db.ts",
       "kind": "dependency",
@@ -86848,18 +87046,18 @@
   "violations": [],
   "cycles": [],
   "metrics": {
-    "totalFiles": 1496,
-    "totalEdges": 4187,
+    "totalFiles": 1500,
+    "totalEdges": 4196,
     "violationsCount": 0,
     "cyclesCount": 0,
     "blockersCount": 0,
-    "totalFunctions": 9993,
+    "totalFunctions": 10004,
     "highestCrapModule": {
       "id": "src/proxy.ts",
-      "maxCrap": 38612,
-      "maxCC": 196
+      "maxCrap": 39402,
+      "maxCC": 198
     },
-    "totalCrappyFunctions": 2352,
-    "totalCrapLoad": 1334780
+    "totalCrappyFunctions": 2355,
+    "totalCrapLoad": 1336670
   }
 }

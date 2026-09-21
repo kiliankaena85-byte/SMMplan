@@ -160,7 +160,9 @@ export async function getStaffMembersWithMetrics(dateParam?: string, tenantParam
       const { cookies } = await import('next/headers');
       const c = await cookies();
       cookieTenant = c.get('x_admin_tenant')?.value || null;
-    } catch {}
+    } catch (cookieErr) {
+      console.warn('[Staff] Could not read x_admin_tenant cookie in non-request context:', cookieErr);
+    }
 
     const { resolveAdminTenantContext } = await import('@/utils/admin-tenant');
     const resolvedTenant = resolveAdminTenantContext(admin, tenantParam, cookieTenant);

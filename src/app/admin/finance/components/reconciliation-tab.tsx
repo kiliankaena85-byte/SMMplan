@@ -300,7 +300,7 @@ export function ReconciliationTab({ tenantId, initialSummary }: ReconciliationTa
               <PlanTableHeadCell className="text-right w-[14%]">Сумма Ledger</PlanTableHeadCell>
               <PlanTableHeadCell className="text-right w-[14%]">Расхождение</PlanTableHeadCell>
               <PlanTableHeadCell className="text-center w-[75px]">Проводок</PlanTableHeadCell>
-              <PlanTableHeadCell className="w-[100px]">Статус</PlanTableHeadCell>
+              <PlanTableHeadCell className="w-[100px] max-w-full">Статус</PlanTableHeadCell>
               <PlanTableHeadCell className="text-right w-[80px]">Действия</PlanTableHeadCell>
             </tr>
           </PlanTableHeader>

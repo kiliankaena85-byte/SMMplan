@@ -14,21 +14,38 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   const disallowList = [
     '/api/',
     '/admin/',
+    '/dashboard/',
+    '/orders/',
+    '/profile/',
+    '/settings/',
+    '/auth/',
+    '/login',
+    '/checkout',
+    '/payment/',
+    '/*?*token=*',
+    '/*?*session=*',
+    '/*?*signature=*',
   ];
 
   return {
     rules: [
       {
+        userAgent: ['Yandex', 'YandexBot'],
+        allow: ['/', '/services', '/knowledge', '/legal', '/_next/static', '/brands/', '/llms.txt'],
+        disallow: disallowList,
+      },
+      {
+        userAgent: ['GPTBot', 'PerplexityBot', 'ClaudeBot', 'Google-Extended', 'Applebot-Extended'],
+        allow: ['/', '/services', '/knowledge', '/legal', '/llms.txt', '/brands/'],
+        disallow: disallowList,
+      },
+      {
         userAgent: '*',
         allow: ['/', '/services', '/knowledge', '/legal', '/_next/static', '/brands/'],
         disallow: disallowList,
       },
-      {
-        userAgent: ['GPTBot', 'PerplexityBot', 'ClaudeBot', 'Google-Extended', 'Applebot-Extended', 'YandexBot'],
-        allow: ['/', '/services', '/knowledge', '/legal', '/llms.txt', '/brands/'],
-        disallow: disallowList,
-      }
     ],
     sitemap: `${protocol}://${host}/sitemap.xml`,
+    host: host,
   };
 }

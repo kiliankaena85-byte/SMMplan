@@ -100,7 +100,7 @@ export function TicketsSidebar({
 
   return (
     <div 
-      className="w-full lg:w-[300px] xl:w-[340px] shrink-0 border-r border-border flex flex-col h-full overflow-hidden min-h-0 select-none bg-background min-w-0"
+      className="w-full max-w-full lg:w-[300px] xl:w-[340px] shrink-0 border-r border-border flex flex-col h-full overflow-hidden min-h-0 select-none bg-background min-w-0"
     >
       {/* List Header */}
       <div className="p-3.5 border-b border-border space-y-2.5 bg-card text-card-foreground shrink-0">

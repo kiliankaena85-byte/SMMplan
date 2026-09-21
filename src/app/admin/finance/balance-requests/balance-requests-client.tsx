@@ -256,13 +256,13 @@ export function BalanceRequestsClient({
         <PlanTable compact={true} className="w-full table-fixed">
           <PlanTableHeader>
             <tr>
-              <PlanTableHeadCell className="w-[105px]">ID / Дата</PlanTableHeadCell>
+              <PlanTableHeadCell className="w-[105px] max-w-full">ID / Дата</PlanTableHeadCell>
               <PlanTableHeadCell className="w-[20%] min-w-0">Клиент</PlanTableHeadCell>
               <PlanTableHeadCell className="w-[16%] min-w-0">Оператор</PlanTableHeadCell>
               <PlanTableHeadCell className="w-[24%] min-w-0">Тип / Причина</PlanTableHeadCell>
-              <PlanTableHeadCell className="w-[110px] text-right">Сумма</PlanTableHeadCell>
+              <PlanTableHeadCell className="w-[110px] max-w-full text-right">Сумма</PlanTableHeadCell>
               <PlanTableHeadCell className="w-[70px] text-center">Тикет</PlanTableHeadCell>
-              <PlanTableHeadCell className="w-[115px]">Статус</PlanTableHeadCell>
+              <PlanTableHeadCell className="w-[115px] max-w-full">Статус</PlanTableHeadCell>
               <PlanTableHeadCell className="w-[75px] text-right">Действия</PlanTableHeadCell>
             </tr>
           </PlanTableHeader>

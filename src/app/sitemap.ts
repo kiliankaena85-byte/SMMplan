@@ -2,8 +2,8 @@ import { MetadataRoute } from 'next';
 import { getPublicCatalogAction, getServicesByCategoryAction } from '@/actions/order/catalog';
 import { headers } from 'next/headers';
 import { db } from '@/lib/db';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { normalizeTenantId, getTenantHost, absoluteCanonical } from '@/lib/seo-helpers';
+import { pillarPages, clusterArticles } from '@/data/seo';
 
 // sitemap.ts uses headers() -> force-dynamic
 export const dynamic = 'force-dynamic';
@@ -102,9 +102,51 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('[sitemap] Failed to generate catalog routes', error);
   }
 
-  // Knowledge base articles
+  // 1. Static SEO Pillars (Authoritative guides: guide-telegram, guide-vk, etc.)
+  for (const pillar of pillarPages) {
+    routes.push({
+      url: `${baseUrl}/knowledge/${pillar.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    });
+  }
+
+  // 2. Static SEO Cluster Articles (In-depth practical guides)
+  for (const cluster of clusterArticles) {
+    routes.push({
+      url: `${baseUrl}/knowledge/${cluster.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    });
+  }
+
+  // 3. Dynamic Knowledge base articles from db.article
   try {
-    const articles = await db.contentItem.findMany({
+    const publishedArticles = await db.article.findMany({
+      where: { status: 'PUBLISHED' },
+      select: { slug: true, updatedAt: true },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    for (const article of publishedArticles) {
+      if (article.slug) {
+        routes.push({
+          url: `${baseUrl}/knowledge/${article.slug}`,
+          lastModified: article.updatedAt,
+          changeFrequency: 'weekly',
+          priority: 0.7,
+        });
+      }
+    }
+  } catch (error) {
+    console.error('[sitemap] Failed to generate db.article routes', error);
+  }
+
+  // 4. ContentItem articles (fallback/legacy)
+  try {
+    const contentArticles = await db.contentItem.findMany({
       where: {
         isPublished: true,
         type: { in: ['PAGE', 'NEWS_POST'] },
@@ -113,7 +155,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       orderBy: { updatedAt: 'desc' },
     });
 
-    for (const article of articles) {
+    for (const article of contentArticles) {
       if (article.slug) {
         routes.push({
           url: `${baseUrl}/knowledge/${article.slug}`,
@@ -124,7 +166,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
     }
   } catch (error) {
-    console.error('[sitemap] Failed to generate knowledge routes', error);
+    console.error('[sitemap] Failed to generate contentItem routes', error);
   }
 
   // Custom pages (/p/[slug]) — type PAGE that are published
@@ -201,5 +243,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('[sitemap] Failed to generate glossary routes', error);
   }
 
-  return routes;
+  // Deduplicate all generated routes by URL to guarantee 0 duplicates for YandexBot
+  const uniqueRoutesMap = new Map<string, MetadataRoute.Sitemap[number]>();
+  for (const r of routes) {
+    if (!uniqueRoutesMap.has(r.url)) {
+      uniqueRoutesMap.set(r.url, r);
+    }
+  }
+
+  return Array.from(uniqueRoutesMap.values());
 }

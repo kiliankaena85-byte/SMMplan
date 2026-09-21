@@ -66,11 +66,11 @@ const OPENROUTER_KEYS = Array.from(
 const OPENROUTER_API_KEY = OPENROUTER_KEYS[0] || '';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-// Пулы бесплатных моделей пользователя по архитектурным ролям
+// Пулы бесплатных моделей пользователя по архитектурным ролям (100% диверсификация)
 const JUROR_POOLS = {
-  OPENAI: ['nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free', 'nex-agi/nex-n2.5-pro:free'],
-  CLAUDE: ['nvidia/nemotron-3-super-120b-a12b:free', 'nex-agi/nex-n2.5-mini:free', 'google/gemma-4-31b-it:free'],
-  DEEPSEEK: ['nvidia/nemotron-3-ultra-550b-a55b:free', 'poolside/laguna-s-2.1:free', 'thinkingmachines/inkling-small:free'],
+  OPENAI: ['inclusionai/ling-3.0-flash-fin:free', 'nex-agi/nex-n2.5-pro:free'],
+  CLAUDE: ['cohere/north-mini-code:free', 'nex-agi/nex-n2.5-mini:free', 'dots-studio/dots-3-note-preview:free'],
+  DEEPSEEK: ['nvidia/nemotron-3.5-content-safety:free', 'inclusionai/ling-3.0-flash-sante:free'],
 };
 
 /**
@@ -288,7 +288,7 @@ Perform your specialized blind review and output strict JSON.`;
   const poolKey = jurorId === 'JUROR_OPENAI' ? 'OPENAI' : jurorId === 'JUROR_CLAUDE' ? 'CLAUDE' : 'DEEPSEEK';
   const pool = JUROR_POOLS[poolKey];
 
-  let response = await queryOpenRouterWithPool(pool, systemPrompt, userPrompt);
+  let response = await queryOpenRouter(pool, systemPrompt, userPrompt);
   if (!response) {
     response = await queryGeminiFallback(systemPrompt, userPrompt);
   }

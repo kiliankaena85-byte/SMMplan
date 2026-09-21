@@ -371,8 +371,9 @@ export async function switchAdminTenantAction(tenantId: string) {
     invalidateTag(`catalog-${normalized}`, 'default');
     invalidateTag(`services-${normalized}`, 'default');
     invalidateTag('clients', 'default');
-    invalidateTag(`clients-${normalized}`, 'default');
-  } catch {}
+  } catch (tagErr) {
+    console.warn('[Tenants] Tag revalidation warning (non-fatal):', tagErr);
+  }
 
   return { success: true, tenantId: normalized };
 }

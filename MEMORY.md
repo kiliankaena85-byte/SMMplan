@@ -66,6 +66,13 @@ onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); ... }}
 
 ## 1. 🏗️ Архитектурные решения (ADR)
 
+- **ADR-2026-30: Production SMTP Reconfiguration (Mail.ru SMTPS 465) & Local TUN Network Binding Resilience:**
+  - *Решение:*
+    1. **Перевод почтового транспорта на Mail.ru:** В таблице `SystemSettings` (для тенантов `smmplan` и `flux`) и в файле `.env` настроен SMTP-сервер `smtp.mail.ru:465` (SMTPS) с учетной записью `support@smmplan.pro` и шифрованием пароля AES-256-GCM через `VaultService`.
+    2. **Устранение петли перехвата TUN в среде разработки:** Добавлена поддержка `localAddress: process.env.SMTP_LOCAL_ADDRESS || undefined` в `src/lib/smtp.ts` (`verifyDirectSmtpConnection`, `getTransporter`), `src/actions/admin/settings/settings-diagnostics.action.ts` и `src/lib/emergency-email.ts`. Это позволяет при активном VPN/TUN-прокси на Windows связывать исходящие сокеты с физическим адаптером (`Ethernet 2`), исключая сброс TLS со стороны Mail.ru.
+    3. **Верификация:** Подтверждена авторизация IMAP (`imap.mail.ru:993`) и SMTP (`smtp.mail.ru:465`), выполнена реальная доставка писем с кодом `250 OK`. Полный прогон `tsc --noEmit` (0 ошибок), `scripts/verify-production-hardening.ts` (3/3 PASS), `check-bundle-secrets.mjs` (0 утечек).
+  - *Причина:* Обеспечение бесперебойной доставки ссылок авторизации Magic Link, фискальных чеков 54-ФЗ и сервисных уведомлений через отечественный почтовый шлюз Mail.ru.
+
 - **ADR-2026-28: Admin UI Buttons Design System Harmonization & Mobile Scroll Overlay Remediation (OmniSMM 1.0):**
   - *Решение:*
     1. **Ликвидация паразитного градиента:** В `src/components/admin/tabbed-header-client.tsx` полностью удалены статические оверлеи скролла (`bg-gradient-to-r from-card to-transparent`), которые при нулевом смещении скролла накладывались точно поверх первой активной кнопки («Каталог услуг»), размывая синий цвет `bg-primary`.

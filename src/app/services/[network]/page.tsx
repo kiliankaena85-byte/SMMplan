@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: { params: Promise<{ network: 
   
   if (!net) return { title: "Сеть не найдена" };
 
-  const ogUrl = `https://${host}/api/og?network=${encodeURIComponent(net.name)}&title=${encodeURIComponent(`Продвижение ${net.name}`)}&subtitle=${encodeURIComponent('Оптовые тарифы от 1 шт • Автозапуск от 30 сек')}&price=${encodeURIComponent('0.01 ₽ / шт')}`;
+  const ogUrl = `https://${host}/api/og?tenant=${tenantId}&network=${encodeURIComponent(net.name)}&title=${encodeURIComponent(`Продвижение ${net.name}`)}&subtitle=${encodeURIComponent(tenantId === 'flux' ? 'Экспресс-витрина от 1 шт • Автозапуск от 30 сек' : 'Оптовые тарифы от 1 шт • Автозапуск от 30 сек')}&price=${encodeURIComponent('0.01 ₽ / шт')}`;
 
   return {
     title: `Продвижение ${net.name} — купить подписчиков, лайки, просмотры от 1 шт`,

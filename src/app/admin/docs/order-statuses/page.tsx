@@ -339,11 +339,11 @@ export default async function OrderStatusesDocPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-muted/40 border-b border-border/60 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground select-none">
-                <th className="py-3 px-4 w-[160px]">Статус</th>
-                <th className="py-3 px-4 w-[140px]">Кто выставляет</th>
-                <th className="py-3 px-4 w-[130px]">Баланс клиента</th>
-                <th className="py-3 px-4 min-w-[240px]">Техническое описание</th>
-                <th className="py-3 px-4 min-w-[260px]">Что отвечать клиенту</th>
+                <th className="py-3 px-4 w-[160px] max-w-full">Статус</th>
+                <th className="py-3 px-4 w-[140px] max-w-full">Кто выставляет</th>
+                <th className="py-3 px-4 w-[130px] max-w-full">Баланс клиента</th>
+                <th className="py-3 px-4 min-w-[240px] max-w-full">Техническое описание</th>
+                <th className="py-3 px-4 min-w-[260px] max-w-full">Что отвечать клиенту</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40 text-xs">

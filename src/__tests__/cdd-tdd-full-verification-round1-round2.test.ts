@@ -765,7 +765,7 @@ describe('OmniSMM 1.0 — Comprehensive CDD-TDD Verification Suite (Rounds 1 & 2
       formBal.append('reason', 'Cross tenant adjustment');
       const balRes = await updateBalanceAction(formBal);
       expect(balRes.success).toBe(false);
-      expect(balRes.error).toContain('пользователь принадлежит другому сайту');
+      expect(balRes.error).toContain('клиент принадлежит другой витрине');
 
       // Attempt cross-tenant ban
       const { banUserAction } = await import('@/actions/admin/users');
@@ -773,7 +773,7 @@ describe('OmniSMM 1.0 — Comprehensive CDD-TDD Verification Suite (Rounds 1 & 2
       formBan.append('userId', fluxUser.id);
       const banRes = await banUserAction(formBan);
       expect(banRes.success).toBe(false);
-      expect(banRes.error).toContain('пользователь принадлежит другому сайту');
+      expect(banRes.error).toContain('клиент принадлежит другой витрине');
     });
 
     it('FIX-M1 DEEP: VAT turnover deducts ORDER_CANCEL transactions in addition to REFUND', async () => {

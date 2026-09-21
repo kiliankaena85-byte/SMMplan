@@ -332,6 +332,8 @@ export async function proxy(request: NextRequest) {
   const isExcludedFromShield = 
     pathname.startsWith('/api/webhooks/') ||
     pathname.startsWith('/api/storefront/') ||
+    pathname.startsWith('/api/seo/') ||
+    pathname.endsWith('.txt') ||
     pathname.startsWith('/_next/') ||
     pathname === '/favicon.ico' ||
     pathname === '/robots.txt' ||

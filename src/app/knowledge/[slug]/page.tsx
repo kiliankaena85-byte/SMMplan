@@ -26,11 +26,10 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const result = await getArticleBySlug(slug);
-
   const reqHeaders = await headers();
   const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
   const siteName = getTenantSiteName(tenantId);
+  const result = await getArticleBySlug(slug, tenantId);
 
   if (!result.success || !result.article) {
     return { title: `Статья не найдена | ${siteName}` };
@@ -182,7 +181,10 @@ function renderMarkdown(content: string): React.ReactNode[] {
 
 export default async function ArticleDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const result = await getArticleBySlug(slug);
+  const reqHeaders = await headers();
+  const tenantId = normalizeTenantId(reqHeaders.get("x-tenant-id"));
+  const isFlux = tenantId === 'flux';
+  const result = await getArticleBySlug(slug, tenantId);
 
   if (!result.success || !result.article) {
     notFound();
@@ -195,10 +197,6 @@ export default async function ArticleDetailPage({ params }: PageProps) {
   const userEmail = session?.userId 
     ? (await db.user.findUnique({ where: { id: session.userId }, select: { email: true } }))?.email 
     : undefined;
-
-  const reqHeaders = await headers();
-  const tenantId = normalizeTenantId(reqHeaders.get("x-tenant-id"));
-  const isFlux = tenantId === 'flux';
 
   // Resolve settings and siteName
   const settings = await SettingsProvider.getContactAndLegalSettings();
@@ -265,13 +263,13 @@ export default async function ArticleDetailPage({ params }: PageProps) {
       "@type": "ListItem",
       "position": 1,
       "name": "Главная",
-      "item": `https://${host}`
+      "item": absoluteCanonical(tenantId, "/")
     },
     {
       "@type": "ListItem",
       "position": 2,
       "name": "База знаний",
-      "item": `https://${host}/knowledge`
+      "item": absoluteCanonical(tenantId, "/knowledge")
     }
   ];
 
@@ -280,7 +278,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
       "@type": "ListItem",
       "position": 3,
       "name": parentPillarObj.title,
-      "item": `https://${host}/knowledge/${parentPillarObj.slug}`
+      "item": absoluteCanonical(tenantId, `/knowledge/${parentPillarObj.slug}`)
     });
     breadcrumbItems.push({
       "@type": "ListItem",
@@ -298,28 +296,33 @@ export default async function ArticleDetailPage({ params }: PageProps) {
   }
 
   // Schema.org structured data setup
-    const schemas: Record<string, unknown>[] = [
+  const schemas: Record<string, unknown>[] = [
     {
       "@context": "https://schema.org",
       "@type": "Article",
       "headline": article.title,
       "description": article.description,
       "articleBody": article.content,
-      "datePublished": article.createdAt.toISOString(),
-      "dateModified": article.updatedAt.toISOString(),
+      "datePublished": article.createdAt instanceof Date ? article.createdAt.toISOString() : new Date(article.createdAt).toISOString(),
+      "dateModified": article.updatedAt instanceof Date ? article.updatedAt.toISOString() : new Date(article.updatedAt).toISOString(),
       "mainEntityOfPage": {
         "@type": "WebPage",
         "@id": canonical,
       },
       "author": {
-        "@type": "Organization",
+        "@type": "Person",
         "name": article.authorName || siteName,
-        "url": `https://${host}`,
+        "jobTitle": article.authorRole || "Ведущий специалист по продвижению",
+        "url": absoluteCanonical(tenantId, "/knowledge"),
       },
       "publisher": {
         "@type": "Organization",
         "name": siteName,
-        "url": `https://${host}`,
+        "url": absoluteCanonical(tenantId, "/"),
+        "logo": {
+          "@type": "ImageObject",
+          "url": absoluteCanonical(tenantId, "/images/logo.png"),
+        },
       },
     },
     {
@@ -351,7 +354,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
       "@type": "DefinedTerm",
       "name": currentGlossary.term,
       "description": currentGlossary.definition,
-      "inDefinedTermSet": `https://${host}/knowledge`
+      "inDefinedTermSet": absoluteCanonical(tenantId, "/knowledge")
     });
   }
 

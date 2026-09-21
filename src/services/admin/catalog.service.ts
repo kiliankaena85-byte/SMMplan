@@ -85,8 +85,8 @@ export class AdminCatalogService {
   /**
    * Synchronizes services with the provider catalog, discovering zombies and resurrected services.
    */
-  async syncProviderCatalog(providerId: string, admin: { id: string; email: string }) {
-    return CatalogSyncService.syncProviderCatalog(providerId, admin);
+  async syncProviderCatalog(providerId: string, admin: { id: string; email: string }, tenantId?: string) {
+    return CatalogSyncService.syncProviderCatalog(providerId, admin, tenantId);
   }
 
   /**
@@ -117,9 +117,10 @@ export class AdminCatalogService {
    */
   async detectAnomalies(
     oldRates: Map<string, number | { rate: number; currency?: string; costRub?: number }>,
-    newRates: Map<string, number | { rate: number; currency?: string; costRub?: number }>
+    newRates: Map<string, number | { rate: number; currency?: string; costRub?: number }>,
+    tenantId?: string
   ): Promise<string[]> {
-    return CatalogSyncService.detectAnomalies(oldRates, newRates);
+    return CatalogSyncService.detectAnomalies(oldRates, newRates, tenantId);
   }
 
   /**
@@ -143,8 +144,8 @@ export class AdminCatalogService {
   /**
    * Synchronizes denormalized prices when exchange rates change.
    */
-  async syncDenormalizedPrices(usdToRub: number) {
-    return CatalogSyncService.syncDenormalizedPrices(usdToRub);
+  async syncDenormalizedPrices(usdToRub: number, tenantId?: string) {
+    return CatalogSyncService.syncDenormalizedPrices(usdToRub, tenantId);
   }
 
   /**

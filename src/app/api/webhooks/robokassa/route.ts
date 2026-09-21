@@ -221,7 +221,9 @@ export async function POST(req: NextRequest) {
       try {
         const { redis } = await import('@/lib/redis');
         await redis.del(replayKey);
-      } catch {}
+      } catch (delErr) {
+        console.warn('[Robokassa Webhook] Failed to clear replayKey in catch handler:', delErr);
+      }
     }
     console.error('[Robokassa Webhook] Error:', (error instanceof Error ? error.message : String(error)));
     return NextResponse.json({ error: 'Webhook execution failed' }, { status: 500 });

@@ -10,6 +10,7 @@ import { Header } from "@/components/landing/Header";
 import { MegaFooter } from "@/components/landing/MegaFooter";
 import { absoluteCanonical, getTenantSiteName, normalizeTenantId } from "@/lib/seo-helpers";
 import { FluxKnowledgeHub } from "@/components/knowledge/flux/FluxKnowledgeHub";
+import { JsonLd } from "@/components/seo/JsonLd";
 
 export const dynamic = "force-dynamic";
 
@@ -82,6 +83,40 @@ export default async function KnowledgePage({ searchParams }: PageProps) {
   const treeResult = await getGroupedArticlesForTree();
   const groupedArticles = treeResult.success ? treeResult.grouped : {};
 
+  const pageUrl = absoluteCanonical(tenantId, "/knowledge");
+  const knowledgeJsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Главная",
+          "item": absoluteCanonical(tenantId, "/")
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "База знаний",
+          "item": pageUrl
+        }
+      ]
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "name": `База знаний & Блог | ${siteName}`,
+      "description": `Полезные статьи, руководства по продвижению в социальных сетях, лайфхаки и обновления ${siteName}.`,
+      "url": pageUrl,
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": siteName,
+        "url": absoluteCanonical(tenantId, "/")
+      }
+    }
+  ];
+
   // Custom UI for SMMflux: Dedicated Light Cyber Aurora Knowledge Hub
   if (isFlux) {
     return (
@@ -106,6 +141,7 @@ export default async function KnowledgePage({ searchParams }: PageProps) {
         </div>
 
         <Header initialEmail={userEmail} siteName={siteName} tenantId={tenantId} activePath="/knowledge" />
+        <JsonLd data={knowledgeJsonLd} />
         <main className="flex-1 w-full relative z-10">
           <FluxKnowledgeHub
             articles={articles}
@@ -126,6 +162,7 @@ export default async function KnowledgePage({ searchParams }: PageProps) {
       <div className="absolute top-0 inset-x-0 h-[600px] z-[-1] pointer-events-none overflow-hidden bg-gradient-to-b from-primary/5 to-background" />
 
       <Header initialEmail={userEmail} siteName={siteName} tenantId={tenantId} activePath="/knowledge" />
+      <JsonLd data={knowledgeJsonLd} />
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-12 relative z-10 flex flex-col items-center">
         <div className="w-full max-w-6xl">

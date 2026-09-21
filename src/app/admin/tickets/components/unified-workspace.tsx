@@ -560,7 +560,7 @@ export function UnifiedTicketsWorkspace({
 
               {/* ── RIGHT PANEL: Collapsible Client Profile (Desktop side display) ── */}
               {!isMobile && showProfile && (
-                <div className="w-[280px] xl:w-[320px] shrink-0 border-l border-border/50 h-full min-h-0 bg-card/60 backdrop-blur-md overflow-hidden animate-in slide-in-from-right duration-300 min-w-0">
+                <div className="w-[280px] max-w-full xl:w-[320px] shrink-0 border-l border-border/50 h-full min-h-0 bg-card/60 backdrop-blur-md overflow-hidden animate-in slide-in-from-right duration-300 min-w-0">
                   <ClientProfileSidebar 
                     ticketId={activeTicket.id}
                     supportLimitCents={supportLimitCents}

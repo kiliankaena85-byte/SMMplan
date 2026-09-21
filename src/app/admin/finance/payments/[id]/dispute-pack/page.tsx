@@ -323,7 +323,7 @@ export default async function PaymentDisputePackPage({ params }: Props) {
       </div>
 
       {/* RIGHT: Modern Sidebar Action Control Center (Slate aesthetic, responsive) */}
-      <div className="w-full lg:w-[400px] bg-slate-900 border-t lg:border-t-0 lg:border-l border-border/60 p-8 flex flex-col justify-between shrink-0 no-print z-20">
+      <div className="w-full max-w-full lg:w-[400px] bg-slate-900 border-t lg:border-t-0 lg:border-l border-border/60 p-8 flex flex-col justify-between shrink-0 no-print z-20">
         <div className="space-y-8">
           
           {/* Back button */}

@@ -236,7 +236,7 @@ export class CatalogSyncService {
    * Finds services that were deleted by the provider and marks them inactive.
    * Auto-restores services that reappeared.
    */
-  static async syncProviderCatalog(providerId: string, admin: { id: string; email: string }) {
+  static async syncProviderCatalog(providerId: string, admin: { id: string; email: string }, tenantId?: string) {
     const providerDbRecord = await db.provider.findUnique({ where: { id: providerId } });
     if (!providerDbRecord) throw new Error('Провайдер не найден');
     if (providerDbRecord.syncLock) throw new Error('Синхронизация отключена (syncLock)');
@@ -248,7 +248,10 @@ export class CatalogSyncService {
 
     // 2. Fetch our curated services
     const ourServices = await db.service.findMany({
-      where: { providerId }
+      where: {
+        providerId,
+        ...(tenantId && tenantId !== 'all' ? { tenantId: { in: [tenantId, 'all'] } } : {}),
+      }
     });
     logger.debug('ourServices fetched', { count: ourServices.length, ids: ourServices.map(s => s.id) });
 
@@ -386,6 +389,8 @@ export class CatalogSyncService {
           const oldCostRub = s.rate * (s.providerCurrency === 'RUB' ? 1.0 : usdToRub);
           const newCostRub = rawRate * exchangeRate;
           const relChange = oldCostRub > 0 ? (newCostRub - oldCostRub) / oldCostRub : 0;
+          console.log('[DEBUG PRICE SPIKE]', { id: s.id, extId: s.externalId, oldRate: s.rate, rawRate, oldCostRub, newCostRub, relChange, QUARANTINE_THRESHOLD, ANOMALY_PRICE_SPIKE_THRESHOLD });
+
 
           if (newCostRub > UPPER_SANITY_LIMIT_RUB) {
             await db.service.update({
@@ -444,7 +449,10 @@ export class CatalogSyncService {
     for (let i = 0; i < zombieIds.length; i += ZOMBIE_BATCH_SIZE) {
       const batch = zombieIds.slice(i, i + ZOMBIE_BATCH_SIZE);
       await db.service.updateMany({
-        where: { id: { in: batch } },
+        where: {
+          id: { in: batch },
+          ...(tenantId && tenantId !== 'all' ? { tenantId: { in: [tenantId, 'all'] } } : {}),
+        },
         data: {
           isActive: false,
           cooldownReason: 'ZOMBIE_AUTO_DISABLED',
@@ -488,7 +496,8 @@ export class CatalogSyncService {
    */
   static async detectAnomalies(
     oldRates: Map<string, number | { rate: number; currency?: string; costRub?: number }>,
-    newRates: Map<string, number | { rate: number; currency?: string; costRub?: number }>
+    newRates: Map<string, number | { rate: number; currency?: string; costRub?: number }>,
+    tenantId?: string
   ): Promise<string[]> {
     const anomalies: string[] = [];
     const settings = await SettingsProvider.get();
@@ -498,7 +507,10 @@ export class CatalogSyncService {
     if (serviceIds.length === 0) return anomalies;
 
     const services = await db.service.findMany({
-      where: { id: { in: serviceIds } },
+      where: {
+        id: { in: serviceIds },
+        ...(tenantId && tenantId !== 'all' ? { tenantId: { in: [tenantId, 'all'] } } : {}),
+      },
       select: { id: true, name: true, rate: true, providerCurrency: true, isQuarantined: true }
     });
     const serviceMap = new Map(services.map(s => [s.id, s]));
@@ -579,11 +591,14 @@ export class CatalogSyncService {
   /**
    * Price synchronizer for exchange rate movements.
    */
-  static async syncDenormalizedPrices(usdToRub: number) {
+  static async syncDenormalizedPrices(usdToRub: number, tenantId?: string) {
     const { CBRRateService } = await import('@/services/system/cbr-rate.service');
     const liveCrossRates = await CBRRateService.getLiveCrossRates();
 
     const allServices = await db.service.findMany({
+      where: {
+        ...(tenantId && tenantId !== 'all' ? { tenantId: { in: [tenantId, 'all'] } } : {}),
+      },
       select: { id: true, name: true, rate: true, markup: true, isActive: true, providerCurrency: true, tenantId: true }
     });
 

@@ -18,22 +18,44 @@ import { TENANTS } from "@/config/tenants";
 import { verifySession } from "@/lib/session";
 import { db } from "@/lib/db";
 import { headers, cookies } from "next/headers";
-import { normalizeTenantId } from "@/lib/tenant-resolver-edge";
+import { absoluteCanonical, getTenantSiteName, normalizeTenantId } from "@/lib/seo-helpers";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
+  const reqHeaders = await headers();
+  const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id')) || 'smmplan';
   const settings = await SettingsProvider.getContactAndLegalSettings();
-  const siteName = settings.SITE_NAME || "SMMplan";
+  const siteName = getTenantSiteName(tenantId) || settings.SITE_NAME || "SMMplan";
+  const canonical = absoluteCanonical(tenantId, '/');
+  
+  const ogUrl = `${canonical.replace(/\/$/, '')}/api/og?tenant=${tenantId}&title=${encodeURIComponent(siteName + ' — Продвижение в соцсетях')}&subtitle=${encodeURIComponent(tenantId === 'flux' ? 'Экспресс-витрина от 1 шт • Без паролей • Мгновенный старт' : 'Оптовая API платформа от 1 шт • REST API v2 • Моментальный запуск')}&price=${encodeURIComponent('0.01 ₽ / шт')}`;
   
   return {
     title: `Продвижение подписчиков и просмотров в Telegram, Instagram, VK | ${siteName}`,
     description: settings.SITE_DESCRIPTION || "Оптовая платформа продвижения в соцсетях. Надежно и конфиденциально. Мгновенный старт.",
-    alternates: { canonical: '/' },
+    alternates: { canonical },
     openGraph: {
       title: `${siteName} — Продвижение в соцсетях`,
-      description: settings.SITE_DESCRIPTION || "Профессиональная продвижение подписчиков, просмотров, лайков для бизнеса.",
+      description: settings.SITE_DESCRIPTION || "Профессиональное продвижение подписчиков, просмотров, лайков для бизнеса.",
+      url: canonical,
+      siteName,
       type: "website",
+      locale: "ru_RU",
+      images: [
+        {
+          url: ogUrl,
+          width: 1200,
+          height: 630,
+          alt: `${siteName} — Продвижение в соцсетях`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${siteName} — Продвижение в соцсетях`,
+      description: settings.SITE_DESCRIPTION || "Профессиональное продвижение подписчиков, просмотров, лайков для бизнеса.",
+      images: [ogUrl],
     },
   };
 }
@@ -112,23 +134,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ [
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebSite",
-            name: siteName,
-            url: baseUrl,
-            potentialAction: {
-              "@type": "SearchAction",
-              target: `${baseUrl}/?q={search_term_string}`,
-              "query-input": "required name=search_term_string",
-            },
-          }),
-        }}
-      />
-      
       {/* Static SEO block visible only to search engines */}
       <section id="services-catalog" className="sr-only">
         <h1>Продвижение подписчиков и просмотров в соцсетях</h1>

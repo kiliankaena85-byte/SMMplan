@@ -57,12 +57,13 @@ export function loadOfflineDecisions(): any[] {
   try {
     const cachePath = path.resolve(process.cwd(), '.planning/memory_cache.json');
     if (fs.existsSync(cachePath)) {
+      // audit-ignore: Small local memory cache file (< 30 KB), stream overhead unnecessary
       const raw = fs.readFileSync(cachePath, 'utf-8');
       const parsed = JSON.parse(raw);
       return parsed.decisions || [];
     }
-  } catch {
-    // fallback gracefully
+  } catch (err) {
+    console.warn('[KnowledgeFallback] Could not load offline decisions cache:', err);
   }
   return [];
 }

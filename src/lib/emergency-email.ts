@@ -32,9 +32,11 @@ export class EmergencyEmailService {
       port,
       secure: port === 465,
       auth: { user, pass },
+      localAddress: process.env.SMTP_LOCAL_ADDRESS || undefined,
+      family: 4,
       connectionTimeout: 5000,
       socketTimeout: 5000,
-    });
+    } as unknown as nodemailer.TransportOptions);
 
     return this.transporter;
   }

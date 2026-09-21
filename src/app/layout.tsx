@@ -57,6 +57,10 @@ export async function generateMetadata(): Promise<Metadata> {
           'max-snippet': -1,
         },
       },
+      verification: {
+        yandex: process.env.YANDEX_VERIFICATION_FLUX || process.env.YANDEX_VERIFICATION || undefined,
+        google: process.env.GOOGLE_VERIFICATION_FLUX || process.env.GOOGLE_VERIFICATION || undefined,
+      },
       metadataBase,
     };
   }
@@ -101,6 +105,10 @@ export async function generateMetadata(): Promise<Metadata> {
         'max-image-preview': 'large',
         'max-snippet': -1,
       },
+    },
+    verification: {
+      yandex: process.env.YANDEX_VERIFICATION_SMMPLAN || process.env.YANDEX_VERIFICATION || undefined,
+      google: process.env.GOOGLE_VERIFICATION_SMMPLAN || process.env.GOOGLE_VERIFICATION || undefined,
     },
     metadataBase,
   };

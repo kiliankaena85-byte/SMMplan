@@ -341,7 +341,7 @@ export function StaffClient({
                       </td>
 
                       {/* 2. 24h Activity Timeline Bar */}
-                      <td className="px-4 py-3.5 align-middle min-w-[240px]">
+                      <td className="px-4 py-3.5 align-middle min-w-[240px] max-w-full">
                         <div className="space-y-1">
                           <div className="flex items-end gap-[2px] h-6 bg-muted/20 p-1 rounded-md border border-border/40">
                             {staff.activityHours.map((hourObj) => {
@@ -677,8 +677,8 @@ export function StaffClient({
                             {isFlux ? <Sparkles className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />}
                           </div>
                           <div className="flex flex-col min-w-0">
-                            <span className="text-xs font-bold truncate">{tenant.name}</span>
-                            <span className="text-[10px] text-muted-foreground font-mono truncate">{tenant.domain}</span>
+                            <span className="text-xs font-bold truncate min-w-0">{tenant.name}</span>
+                            <span className="text-[10px] text-muted-foreground font-mono truncate min-w-0">{tenant.domain}</span>
                           </div>
                         </div>
 

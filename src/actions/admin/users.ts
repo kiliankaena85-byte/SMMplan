@@ -582,7 +582,9 @@ export async function loginAsAction(formData: FormData) {
     try {
       const reqHeaders = await headers();
       host = reqHeaders.get('host') || reqHeaders.get('x-forwarded-host') || '';
-    } catch {}
+    } catch (headerErr) {
+      console.warn('[Users] Could not inspect headers for impersonation session contour:', headerErr);
+    }
 
     const contour = resolveContourFromHost(host);
     const tenantId = targetUser.tenantId || 'smmplan';

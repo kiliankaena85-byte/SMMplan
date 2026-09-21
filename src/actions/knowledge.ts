@@ -9,6 +9,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { pillarPages, glossaryTerms, clusterArticles } from "@/data/seo";
+import { IndexNowService } from "@/services/seo/indexnow.service";
+import { absoluteCanonical } from "@/lib/seo-helpers";
 
 // Zod Schema for Article validation at runtime
 const articleSchema = z.object({
@@ -108,11 +110,15 @@ export async function getArticles(categoryFilter?: string, searchQuery?: string)
 /**
  * @public Fetch article details by slug and increment view count.
  */
-export async function getArticleBySlug(slug: string) {
+export async function getArticleBySlug(slug: string, tenantId?: string) {
   try {
     const article = await prisma.article.findUnique({
       where: { slug }
     });
+
+    const isFlux = tenantId === 'flux' || tenantId === 'smmflux';
+    const fallbackAuthorName = isFlux ? "Команда SMMflux" : "Команда SMMplan";
+    const fallbackAuthorRole = isFlux ? "Экспертная редакция SMMflux" : "Экспертная редакция SMMplan";
 
     if (!article) {
       // Fallback: check static SEO pillars and glossary
@@ -131,8 +137,8 @@ export async function getArticleBySlug(slug: string) {
             viewCount: 154,
             createdAt: new Date(),
             updatedAt: new Date(),
-            authorName: "Команда SMMplan",
-            authorRole: "Редакция SMMplan",
+            authorName: fallbackAuthorName,
+            authorRole: fallbackAuthorRole,
             priority: 10,
           }
         };
@@ -153,8 +159,8 @@ export async function getArticleBySlug(slug: string) {
             viewCount: 112,
             createdAt: new Date(),
             updatedAt: new Date(),
-            authorName: "Команда SMMplan",
-            authorRole: "Редакция SMMplan",
+            authorName: fallbackAuthorName,
+            authorRole: fallbackAuthorRole,
             priority: 5,
           }
         };
@@ -396,6 +402,25 @@ export async function createArticle(data: {
       revalidatePath(`/knowledge/${article.slug}`);
       revalidatePath("/admin/knowledge");
 
+      if (article.status === 'PUBLISHED') {
+        const smmplanUrl = absoluteCanonical('smmplan', `/knowledge/${article.slug}`);
+        const smmfluxUrl = absoluteCanonical('flux', `/knowledge/${article.slug}`);
+
+        IndexNowService.submitUrls({
+          host: 'smmplan.pro',
+          urls: [smmplanUrl],
+        }).catch((err) => {
+          console.warn('[IndexNow] Background notification failed for smmplan.pro', err);
+        });
+
+        IndexNowService.submitUrls({
+          host: 'smmflux.ru',
+          urls: [smmfluxUrl],
+        }).catch((err) => {
+          console.warn('[IndexNow] Background notification failed for smmflux.ru', err);
+        });
+      }
+
       return { success: true, article };
     } catch (error: unknown) {
       console.error("Failed to create article:", error);
@@ -448,6 +473,25 @@ export async function updateArticle(id: string, data: {
         revalidatePath(`/knowledge/${oldArticle.slug}`);
       }
       revalidatePath("/admin/knowledge");
+
+      if (article.status === 'PUBLISHED') {
+        const smmplanUrl = absoluteCanonical('smmplan', `/knowledge/${article.slug}`);
+        const smmfluxUrl = absoluteCanonical('flux', `/knowledge/${article.slug}`);
+
+        IndexNowService.submitUrls({
+          host: 'smmplan.pro',
+          urls: [smmplanUrl],
+        }).catch((err) => {
+          console.warn('[IndexNow] Background notification failed for smmplan.pro', err);
+        });
+
+        IndexNowService.submitUrls({
+          host: 'smmflux.ru',
+          urls: [smmfluxUrl],
+        }).catch((err) => {
+          console.warn('[IndexNow] Background notification failed for smmflux.ru', err);
+        });
+      }
 
       return { success: true, article };
     } catch (error: unknown) {

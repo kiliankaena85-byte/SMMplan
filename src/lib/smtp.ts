@@ -61,11 +61,12 @@ export async function verifyDirectSmtpConnection(
 
     try {
       if (isTls) {
-        const socket = tls.connect(
+        const socket = (tls.connect as any)(
           {
             host,
             port,
             servername: host,
+            localAddress: process.env.SMTP_LOCAL_ADDRESS || undefined,
             rejectUnauthorized: true,
             timeout: timeoutMs,
           },
@@ -76,7 +77,7 @@ export async function verifyDirectSmtpConnection(
           }
         );
 
-        socket.on('error', (err) => {
+        socket.on('error', (err: Error) => {
           clearTimeout(timer);
           onFinish(false, err.message);
         });
@@ -155,6 +156,7 @@ async function getTransporter(tenantId?: string): Promise<TransporterResult | nu
       user: s.smtpUser,
       pass: s.smtpPassword,
     },
+    localAddress: process.env.SMTP_LOCAL_ADDRESS || undefined,
     family: 4, // Force IPv4 to prevent ENETUNREACH on systems without IPv6 routing
   } as any);
 

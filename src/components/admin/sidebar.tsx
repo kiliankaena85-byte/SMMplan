@@ -117,7 +117,7 @@ export function AdminSidebar({ userEmail, roleInfo, navigation }: SidebarProps) 
       className={cn(
         "relative z-20 h-screen flex-shrink-0 transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] group hidden md:flex flex-col",
         "bg-background/40 backdrop-blur-xl border-r border-border/40 shadow-[4px_0_24px_rgba(0,0,0,0.02)] dark:shadow-[4px_0_24px_rgba(0,0,0,0.1)]",
-        collapsed ? "w-16" : "w-[280px]"
+        collapsed ? "w-16" : "w-[280px] max-w-full"
       )}
     >
       {/* Collapse Toggle */}

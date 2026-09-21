@@ -362,7 +362,9 @@ export async function POST(req: NextRequest) {
       try {
         const { redis } = await import('@/lib/redis');
         await redis.del(`webhook:yoo:event:${webhookEventId}`);
-      } catch {}
+      } catch (delErr) {
+        console.warn('[YooKassa Webhook] Failed to clear webhook event key in catch handler:', delErr);
+      }
     }
     console.error('Webhook error:', (error instanceof Error ? error.message : String(error)));
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });

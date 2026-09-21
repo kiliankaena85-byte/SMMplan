@@ -9,6 +9,7 @@ import { db } from '@/lib/db';
 import { AdminAssistantQuerySchema } from '@/types/admin-ai-manual';
 import { AdminAiAssistantService } from '@/services/admin/ai-manual/admin-ai-assistant.service';
 import { KnowledgeRetrieverService } from '@/services/admin/ai-manual/knowledge-retriever.service';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,7 +17,7 @@ export const dynamic = 'force-dynamic';
 const ALLOWED_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'];
 
 export async function POST(req: NextRequest) {
-  console.log('>>> [SSE ROUTE] POST /api/admin/assistant/stream CALLED <<<');
+  logger.info('[SSE ROUTE] POST /api/admin/assistant/stream called');
   try {
     // 1. Authenticate Staff User
     const session = await verifySession();

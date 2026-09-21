@@ -43,7 +43,7 @@ export async function generateMetadata({ params }: { params: Promise<{ network: 
   const canonical = absoluteCanonical(tenantId, `/services/${net.slug}/${cat.slug}`);
   const title = `Купить ${cleanCatName} в ${net.name} — от 0.01 ₽`;
   const description = `Быстрое и надежное продвижение ${cleanCatName} в ${net.name} от ${siteName}. Без посредников, заказ от 1 шт., гарантия от списаний и автостарт.`;
-  const ogUrl = `https://${host}/api/og?network=${encodeURIComponent(net.name)}&title=${encodeURIComponent(`${cleanCatName} в ${net.name}`)}&subtitle=${encodeURIComponent('Оптовые тарифы • Без пароля • Гарантия Refill')}&price=${encodeURIComponent('0.01 ₽ / шт')}`;
+  const ogUrl = `https://${host}/api/og?tenant=${tenantId}&network=${encodeURIComponent(net.name)}&title=${encodeURIComponent(`${cleanCatName} в ${net.name}`)}&subtitle=${encodeURIComponent(tenantId === 'flux' ? 'Экспресс-витрина • Без пароля • Гарантия Refill' : 'Оптовые тарифы • Без пароля • Гарантия Refill')}&price=${encodeURIComponent('0.01 ₽ / шт')}`;
 
   return {
     title,
@@ -126,7 +126,7 @@ export default async function CategoryServicesPage({
   const services = await getServicesByCategoryAction(currentCategory.id, tenantId);
   const minPrice = services.length > 0 ? Math.min(...services.map(s => s.pricePerUnitRub)) : 0.01;
   const maxPrice = services.length > 0 ? Math.max(...services.map(s => s.pricePerUnitRub)) : 10.0;
-  const pageUrl = `https://${host}/services/${currentNetwork.slug}/${currentCategory.slug}`;
+  const pageUrl = absoluteCanonical(tenantId, `/services/${currentNetwork.slug}/${currentCategory.slug}`);
 
   // Related networks and sibling categories for Silo cross-linking
   const relatedCategories = currentNetwork.categories
@@ -155,19 +155,19 @@ export default async function CategoryServicesPage({
         "@type": "ListItem",
         "position": 1,
         "name": "Главная",
-        "item": `https://${host}/`,
+        "item": absoluteCanonical(tenantId, "/"),
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Услуги",
-        "item": `https://${host}/services`,
+        "item": absoluteCanonical(tenantId, "/services"),
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": currentNetwork.name,
-        "item": `https://${host}/services/${currentNetwork.slug}`,
+        "item": absoluteCanonical(tenantId, `/services/${currentNetwork.slug}`),
       },
       {
         "@type": "ListItem",

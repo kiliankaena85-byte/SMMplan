@@ -125,6 +125,8 @@ pin.html
 *.html
 *.png
 *.txt
+!src/app/*.txt/
+!src/app/*.txt/**
 
 # ── Harness artifacts & reports ──
 .antigravity/reports/

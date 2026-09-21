@@ -11,6 +11,7 @@ import { db } from "@/lib/db";
 import { Header } from "@/components/landing/Header";
 import { MegaFooter } from "@/components/landing/MegaFooter";
 import { FluxServicesCatalog } from "@/components/services/flux/FluxServicesCatalog";
+import { JsonLd } from "@/components/seo/JsonLd";
 
 export const dynamic = 'force-dynamic';
 
@@ -63,10 +64,50 @@ export default async function ServicesCatalogPage() {
     ? articlesResult.articles.slice(0, 3) 
     : [];
 
+  const breadcrumbData = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Главная",
+        "item": absoluteCanonical(tenantId, "/"),
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Услуги",
+        "item": absoluteCanonical(tenantId, "/services"),
+      },
+    ],
+  };
+
+  const collectionData = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": `Каталог услуг для социальных сетей | ${siteName}`,
+    "description": `Все доступные услуги для продвижения в социальных сетях на платформе ${siteName}.`,
+    "url": absoluteCanonical(tenantId, "/services"),
+    "mainEntity": {
+      "@type": "ItemList",
+      "numberOfItems": networks.length,
+      "itemListElement": networks.map((net, idx) => ({
+        "@type": "ListItem",
+        "position": idx + 1,
+        "name": net.name,
+        "url": absoluteCanonical(tenantId, `/services/${net.slug}`),
+      })),
+    },
+  };
+
   // Dedicated UI for SMMflux
   if (isFlux) {
     return (
-      <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
+      <>
+        <JsonLd data={breadcrumbData} />
+        <JsonLd data={collectionData} />
+        <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
         {/* SMMFLUX RADIANT HERO BACKGROUND (Matching main page) */}
         <div className="absolute top-0 inset-x-0 h-[1800px] z-0 pointer-events-none overflow-hidden select-none bg-white dark:bg-default-50">
           <div
@@ -92,12 +133,16 @@ export default async function ServicesCatalogPage() {
         </main>
         <MegaFooter contactSettings={settings} tenantId={tenantId} />
       </div>
+      </>
     );
   }
 
   // Classic API Blueprint UI for SMMplan
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
+    <>
+      <JsonLd data={breadcrumbData} />
+      <JsonLd data={collectionData} />
+      <div className="min-h-screen bg-background text-foreground font-sans flex flex-col relative overflow-x-clip">
       <Header initialEmail={userEmail} siteName={siteName} tenantId={tenantId} activePath={undefined} />
       
       <main className="flex-1 w-full py-12 px-4 sm:px-6 lg:px-8">
@@ -260,5 +305,6 @@ export default async function ServicesCatalogPage() {
 
       <MegaFooter contactSettings={settings} tenantId={tenantId} />
     </div>
+    </>
   );
 }

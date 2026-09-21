@@ -203,9 +203,9 @@ export default function BalancePoliciesPage() {
         <PlanTable compact={true} className="w-full table-fixed">
           <PlanTableHeader>
             <tr>
-              <PlanTableHeadCell className="w-[110px]">Область</PlanTableHeadCell>
+              <PlanTableHeadCell className="w-[110px] max-w-full">Область</PlanTableHeadCell>
               <PlanTableHeadCell className="w-[95px]">Статус</PlanTableHeadCell>
-              <PlanTableHeadCell className="w-[140px]">Права</PlanTableHeadCell>
+              <PlanTableHeadCell className="w-[140px] max-w-full">Права</PlanTableHeadCell>
               <PlanTableHeadCell className="text-right w-[18%]">Лимит заявки (+/-)</PlanTableHeadCell>
               <PlanTableHeadCell className="text-right w-[18%]">Дневной лимит (+/-)</PlanTableHeadCell>
               <PlanTableHeadCell className="text-right w-[18%]">Лимит утверждения</PlanTableHeadCell>
