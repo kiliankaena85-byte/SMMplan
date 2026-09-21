@@ -29,14 +29,20 @@ import { TenantLogo } from '@/components/ui/TenantLogo';
 export function SidebarNav({
   email,
   balanceRub,
+  tenantId = 'smmplan',
   initialUnreadCount = 0,
 }: {
   email: string;
   balanceRub: string;
+  tenantId?: string;
   initialUnreadCount?: number;
 }) {
   const pathname = usePathname();
   const unreadCount = useUnreadSupport(initialUnreadCount);
+  const isFlux = tenantId === 'flux';
+  const brandTenant = isFlux ? 'flux' : 'smmplan';
+  const brandName = isFlux ? 'SMMflux' : 'SMMplan';
+  const homeHref = isFlux ? '/?tenant=flux' : '/';
 
   const isActive = (href: string) =>
     href === '/dashboard'
@@ -47,12 +53,12 @@ export function SidebarNav({
     <aside className="hidden md:flex w-[280px] h-screen sticky top-0 flex-col shrink-0 border-r border-border/80 bg-card/90 backdrop-blur-2xl">
       {/* Logo Header */}
       <div className="p-4 border-b border-border/70 flex items-center justify-between gap-2">
-        <Link href="/" className="flex items-center gap-2.5 group shrink-0" aria-label="Перейти на главную страницу">
-          <TenantLogo tenantId="smmplan" className="w-8 h-8 group-hover:scale-105 transition-transform shrink-0" iconClassName="text-sm" />
-          <span className="font-black text-foreground text-lg tracking-tight leading-none shrink-0">SMMplan</span>
+        <Link href={homeHref} className="flex items-center gap-2.5 group shrink-0" aria-label="Перейти на главную страницу">
+          <TenantLogo tenantId={brandTenant} className="w-8 h-8 group-hover:scale-105 transition-transform shrink-0" iconClassName="text-sm" />
+          <span className="font-black text-foreground text-lg tracking-tight leading-none shrink-0">{brandName}</span>
         </Link>
         <Link
-          href="/"
+          href={homeHref}
           className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-bold text-muted-foreground hover:text-foreground bg-secondary/60 hover:bg-secondary border border-border/60 transition-all hover:scale-105 active:scale-95 shrink-0"
           title="Перейти на главную страницу (Витрина услуг)"
           aria-label="На главную"

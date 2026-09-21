@@ -1,14 +1,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { Sparkles, Zap, ShieldCheck } from 'lucide-react';
+import { TenantLogo } from '@/components/ui/TenantLogo';
 
 export const FluxLoginHero: React.FC = () => {
   return (
     <div className="hidden lg:flex flex-col space-y-8 p-8">
       <Link href="/?tenant=flux" className="flex items-center gap-3 group select-none" aria-label="SMMflux — На главную">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-pink-600 text-white flex items-center justify-center font-black text-2xl shadow-xl shadow-purple-500/30 group-hover:scale-105 transition-transform duration-200">
-          <Sparkles className="w-6 h-6 animate-pulse shrink-0" />
-        </div>
+        <TenantLogo tenantId="flux" className="w-12 h-12 group-hover:scale-105 transition-transform duration-200" iconClassName="w-6 h-6" />
         <span className="font-black text-3xl tracking-tight text-foreground">SMMflux</span>
       </Link>
 

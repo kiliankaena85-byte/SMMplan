@@ -11,10 +11,14 @@ export function ClassicDashboardShell({
   user,
   children,
 }: {
-  user: { email: string; balanceCents: number; unreadTicketsCount?: number; tenantId?: string };
+  user: { email: string; balanceCents: number; tenantId?: string; unreadTicketsCount?: number };
   children: React.ReactNode;
 }) {
   const balanceRub = formatBalance(user.balanceCents);
+  const isFlux = user.tenantId === 'flux';
+  const brandTenant = isFlux ? 'flux' : 'smmplan';
+  const brandName = isFlux ? 'SMMflux' : 'SMMplan';
+  const homeHref = isFlux ? '/?tenant=flux' : '/';
 
   return (
     <div className="min-h-screen bg-background text-foreground flex relative selection:bg-primary/20 selection:text-primary">
@@ -26,19 +30,19 @@ export function ClassicDashboardShell({
 
       {/* ── Sidebar (desktop, client — for active highlight) ── */}
       <div className="relative z-20 shrink-0">
-        <SidebarNav email={user.email} balanceRub={balanceRub} initialUnreadCount={user.unreadTicketsCount} />
+        <SidebarNav email={user.email} balanceRub={balanceRub} tenantId={brandTenant} initialUnreadCount={user.unreadTicketsCount} />
       </div>
 
       {/* ── Mobile top bar ── */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-card/85 backdrop-blur-2xl border-b border-border/80 px-2.5 sm:px-4 py-2 flex items-center justify-between min-h-[56px] shadow-sm gap-1.5 sm:gap-2">
         <Link
-          href="/"
+          href={homeHref}
           className="flex items-center gap-1.5 sm:gap-2 font-black text-foreground shrink-0 min-h-[44px] hover:opacity-90 active:scale-95 transition-all min-w-0"
           title="Перейти на главную страницу (Витрина)"
           aria-label="На главную"
         >
-          <TenantLogo tenantId="smmplan" className="w-7 h-7 shrink-0" iconClassName="w-3.5 h-3.5" />
-          <span className="truncate tracking-tight font-bold text-sm sm:text-base min-w-0">SMMplan</span>
+          <TenantLogo tenantId={brandTenant} className="w-7 h-7 shrink-0" iconClassName="w-3.5 h-3.5" />
+          <span className="truncate tracking-tight font-bold text-sm sm:text-base min-w-0">{brandName}</span>
           <span className="hidden sm:inline-block text-[10px] font-semibold text-muted-foreground bg-secondary/80 px-1.5 py-0.5 rounded border border-border/60">
             На главную
           </span>

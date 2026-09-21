@@ -211,6 +211,7 @@ model Network {
   updatedAt   DateTime     @updatedAt
 
   @@index([tenantId])
+  @@index([tenantId, isActive, sort])
 }
 
 // URL patterns for link detection (two-level: network + content type)
@@ -246,6 +247,7 @@ model Category {
   @@index([networkId])
   @@index([tenantId])
   @@index([activityType])
+  @@index([tenantId, networkId, sort])
 }
 
 model Service {
@@ -344,6 +346,7 @@ model Service {
   @@index([providerId, externalId])
   @@index([tenantId, categoryId, isActive, sortOrder])
   @@index([tenantId, categoryId, isActive])
+  @@index([tenantId, categoryId, isActive, isQuarantined, rate])
   @@index([tenantId, providerId, isActive])
   @@index([tenantId, isActive, qualityTier])
   @@index([isQuarantined])
@@ -1032,6 +1035,7 @@ model AdminAuditLog {
   @@index([createdAt])
   @@index([targetType])
   @@index([tenantId])
+  @@index([tenantId, createdAt(sort: Desc)])
 }
 
 model LedgerEntry {

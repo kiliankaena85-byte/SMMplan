@@ -251,7 +251,7 @@ export class EscrowService {
 
     // Atomic check-and-update: only proceed if status is still QUARANTINE.
     // This prevents the race condition where two Owners click Approve simultaneously.
-    await runSerializableTransaction(async (tx) => {
+    const auditData = await runSerializableTransaction(async (tx) => {
       // Step 1: LEDGER-FIRST — update the original entry status BEFORE touching balances.
       // We use $executeRaw because the Prisma Extension guard in db.ts blocks ledgerEntry.updateMany()
       // to protect the audit trail. The PostgreSQL trigger block_ledger_mutation() permits status-only
@@ -288,29 +288,30 @@ export class EscrowService {
       }
       // REJECT: no balance change — funds simply vanish from quarantine (chargeback/fraud case).
 
-      await tx.adminAuditLog.create({
-        data: {
-          adminId: owner.id,
-          adminEmail: owner.email,
-          action: `QUARANTINE_${resolution}`,
-          target: entry.id,
-          targetType: 'LEDGER',
-          oldValue: JSON.stringify({
-            status: 'QUARANTINE',
-            userQuarantine: user.quarantineBalance.toString(),
-            userBalance: user.balance.toString(),
-          }),
-          newValue: JSON.stringify({
-            status: resolution === 'APPROVE' ? 'APPROVED' : 'REJECTED',
-            userQuarantine: (user.quarantineBalance - absAmount).toString(),
-            userBalance: resolution === 'APPROVE'
-              ? (user.balance + entry.amount).toString()
-              : user.balance.toString(),
-          }),
-          ipAddress: ip,
-        },
-      });
+      return {
+        adminId: owner.id,
+        adminEmail: owner.email,
+        action: `QUARANTINE_${resolution}`,
+        target: entry.id,
+        targetType: 'LEDGER',
+        oldValue: JSON.stringify({
+          status: 'QUARANTINE',
+          userQuarantine: user.quarantineBalance.toString(),
+          userBalance: user.balance.toString(),
+        }),
+        newValue: JSON.stringify({
+          status: resolution === 'APPROVE' ? 'APPROVED' : 'REJECTED',
+          userQuarantine: (user.quarantineBalance - absAmount).toString(),
+          userBalance: resolution === 'APPROVE'
+            ? (user.balance + entry.amount).toString()
+            : user.balance.toString(),
+        }),
+        ipAddress: ip,
+        tenantId: entry.tenantId || user.tenantId || 'smmplan',
+      };
     });
+
+    await auditAdminAwaitable(auditData);
   }
 }
 

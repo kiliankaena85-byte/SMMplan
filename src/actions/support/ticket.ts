@@ -383,29 +383,25 @@ export async function editTicketMessage(formData: FormData) {
     }
 
     const ipAddress = await getClientIp('unknown');
-    // Transaction for updating text and auditing
-    await db.$transaction(async (tx) => {
-      await tx.ticketMessage.update({
-        where: { id: messageId },
-        data: { 
-          text: newText.trim(),
-          isEdited: true,
-          originalText: msg.isEdited ? undefined : msg.text
-        }
-      });
+    await db.ticketMessage.update({
+      where: { id: messageId },
+      data: { 
+        text: newText.trim(),
+        isEdited: true,
+        originalText: msg.isEdited ? undefined : msg.text
+      }
+    });
 
-      await tx.adminAuditLog.create({
-        data: {
-          adminId: user.id,
-          adminEmail: user.email,
-          action: 'TICKET_MESSAGE_EDITED',
-          target: msg.id,
-          targetType: 'TICKET_MESSAGE',
-          oldValue: msg.text,
-          newValue: newText.trim(),
-          ipAddress
-        }
-      });
+    auditAdmin({
+      adminId: user.id,
+      adminEmail: user.email,
+      action: 'TICKET_MESSAGE_EDITED',
+      target: msg.id,
+      targetType: 'TICKET_MESSAGE',
+      oldValue: msg.text,
+      newValue: newText.trim(),
+      ipAddress,
+      tenantId: msg.ticket?.tenantId || 'smmplan',
     });
 
     // Sync to Telegram if applicable
@@ -452,27 +448,24 @@ export async function deleteTicketMessage(formData: FormData) {
 
     const ipAddress = await getClientIp('unknown');
 
-    await db.$transaction(async (tx) => {
-      await tx.ticketMessage.update({
-        where: { id: messageId },
-        data: { 
-          isDeleted: true,
-          text: '[Сообщение удалено оператором]'
-        }
-      });
+    await db.ticketMessage.update({
+      where: { id: messageId },
+      data: { 
+        isDeleted: true,
+        text: '[Сообщение удалено оператором]'
+      }
+    });
 
-      await tx.adminAuditLog.create({
-        data: {
-          adminId: admin.id,
-          adminEmail: admin.email,
-          action: 'DELETE_TICKET_MESSAGE',
-          target: messageId,
-          targetType: 'TICKET',
-          oldValue: msg.text,
-          newValue: '[DELETED]',
-          ipAddress
-        }
-      });
+    auditAdmin({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'DELETE_TICKET_MESSAGE',
+      target: messageId,
+      targetType: 'TICKET',
+      oldValue: msg.text,
+      newValue: '[DELETED]',
+      ipAddress,
+      tenantId: msg.ticket?.tenantId || 'smmplan',
     });
 
     // Sync deletion to Telegram if applicable
@@ -631,20 +624,18 @@ export async function adminManualTelegramBind(formData: FormData) {
           where: { id: webUser.id },
           data: { telegramId: tempUser.telegramId }
         });
+      });
 
-        // 4. Audit Log
-        await tx.adminAuditLog.create({
-          data: {
-            adminId: admin.id,
-            adminEmail: admin.email,
-            action: 'MANUAL_TELEGRAM_BIND',
-            target: webUser.id,
-            targetType: 'USER',
-            oldValue: tempUser.email,
-            newValue: webUser.email,
-            ipAddress
-          }
-        });
+      auditAdmin({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: 'MANUAL_TELEGRAM_BIND',
+        target: webUser.id,
+        targetType: 'USER',
+        oldValue: tempUser.email,
+        newValue: webUser.email,
+        ipAddress,
+        tenantId: webUser.tenantId || 'smmplan',
       });
 
       revalidatePath(`/admin/tickets`);

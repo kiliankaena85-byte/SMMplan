@@ -104,9 +104,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
                 className="lg:hidden inline-flex items-center justify-center gap-2 mb-6 group cursor-pointer"
                 aria-label="SMMflux — На главную"
               >
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-600 to-pink-600 text-white flex items-center justify-center font-black text-lg shadow-lg group-hover:scale-105 transition-transform">
-                  <Sparkles className="w-5 h-5" />
-                </div>
+                <TenantLogo tenantId="flux" className="w-10 h-10 group-hover:scale-105 transition-transform" iconClassName="w-5 h-5" />
                 <span className="font-black text-2xl tracking-tight text-foreground">SMMflux</span>
               </Link>
               <h2 className="text-2xl font-black text-foreground tracking-tight">Вход в SMMflux</h2>

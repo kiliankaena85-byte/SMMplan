@@ -6,6 +6,7 @@
 import { db } from '@/lib/db';
 import { runSerializableTransaction } from '@/lib/transactions';
 import { WalletOps } from '@/services/financial/wallet-ops';
+import { auditAdminAwaitable } from '@/lib/admin-audit';
 
 export class VestingManagerService {
   /**
@@ -90,7 +91,7 @@ export class VestingManagerService {
       throw new Error('Bonus log not found or already processed');
     }
 
-    return await runSerializableTransaction(async (tx) => {
+    const result = await runSerializableTransaction(async (tx) => {
       await tx.bonusRedemptionLog.update({
         where: { id: bonusLogId },
         data: { status: 'CONFISCATED', reason: `Конфисковано: ${reason}` },
@@ -102,21 +103,21 @@ export class VestingManagerService {
         data: { quarantineBalance: { decrement: log.amountCents } },
       });
 
-      await tx.adminAuditLog.create({
-        data: {
-          tenantId: log.tenantId || 'smmplan',
-          adminId: adminId || 'SYSTEM',
-          adminEmail: 'admin@smmplan.pro',
-          action: 'BONUS_CONFISCATED',
-          target: log.userId,
-          targetType: 'USER',
-          oldValue: null,
-          newValue: JSON.stringify({ bonusLogId, amountCents: log.amountCents.toString(), reason }),
-          ipAddress: '127.0.0.1',
-        },
-      });
-
       return { success: true };
     });
+
+    await auditAdminAwaitable({
+      tenantId: log.tenantId || 'smmplan',
+      adminId: adminId || 'SYSTEM',
+      adminEmail: 'admin@smmplan.pro',
+      action: 'BONUS_CONFISCATED',
+      target: log.userId,
+      targetType: 'USER',
+      oldValue: null,
+      newValue: JSON.stringify({ bonusLogId, amountCents: log.amountCents.toString(), reason }),
+      ipAddress: '127.0.0.1',
+    });
+
+    return result;
   }
 }

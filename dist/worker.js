@@ -47150,6 +47150,54 @@ function createTenantEnforcerExtension(options = {}) {
         }
         return query(args);
       },
+      // [P0-FIX] groupBy был неперехвачен — добавлен фильтр tenantId
+      async groupBy({ args, query }) {
+        if (isTenantBypassActive()) {
+          return query(args);
+        }
+        const tenantId = await resolveActiveTenantId();
+        if (tenantId) {
+          args.where = args.where || {};
+          applyTenantWhereClause(args.where, tenantId, model);
+        }
+        return query(args);
+      },
+      // [P0-FIX] aggregate был неперехвачен — добавлен фильтр tenantId
+      async aggregate({ args, query }) {
+        if (isTenantBypassActive()) {
+          return query(args);
+        }
+        const tenantId = await resolveActiveTenantId();
+        if (tenantId) {
+          args.where = args.where || {};
+          applyTenantWhereClause(args.where, tenantId, model);
+        }
+        return query(args);
+      },
+      // [P0-FIX] findFirstOrThrow был неперехвачен — добавлен фильтр tenantId
+      async findFirstOrThrow({ args, query }) {
+        if (isTenantBypassActive()) {
+          return query(args);
+        }
+        const tenantId = await resolveActiveTenantId();
+        if (tenantId) {
+          args.where = args.where || {};
+          applyTenantWhereClause(args.where, tenantId, model);
+        }
+        return query(args);
+      },
+      // [P0-FIX] findUniqueOrThrow был неперехвачен — добавлен фильтр tenantId
+      async findUniqueOrThrow({ args, query }) {
+        if (isTenantBypassActive()) {
+          return query(args);
+        }
+        const tenantId = await resolveActiveTenantId();
+        if (!tenantId) {
+          return query(args);
+        }
+        const scopedWhere = model === "category" || model === "service" ? { ...args.where, tenantId: { in: [tenantId, "all"] } } : { ...args.where, tenantId };
+        return query({ ...args, where: scopedWhere });
+      },
       async create({ args, query }) {
         if (isTenantBypassActive()) {
           return query(args);
@@ -47239,6 +47287,7 @@ var init_prisma_tenant_enforcer = __esm({
     "use strict";
     init_tenant_context();
     TENANT_SCOPED_MODELS = [
+      // Core business models (original 9)
       "order",
       "payment",
       "ticket",
@@ -47247,7 +47296,38 @@ var init_prisma_tenant_enforcer = __esm({
       "category",
       "customerGroup",
       "ticketFeedback",
-      "ledgerEntry"
+      "ledgerEntry",
+      // Auth & Security models (P0-FIX: previously unprotected)
+      "authToken",
+      "loginLog",
+      "securityEvent",
+      // Staff & Access Control models (P0-FIX)
+      "staffRole",
+      "staffPermission",
+      "adminAuditLog",
+      // Support operational models (P0-FIX)
+      "supportLimitUsage",
+      "supportHourlyUsage",
+      "supportFinancialAction",
+      // Legal & HR models (P0-FIX)
+      "legalDocumentVersion",
+      "employeeResponsibilityConsent",
+      // Telegram bot models (P0-FIX)
+      "telegramBotInstance",
+      "telegramButton",
+      "telegramTemplate",
+      "telegramProxy",
+      "telegramErrorLog",
+      "telegramDailyStat",
+      // Catalog & Commerce models (P0-FIX)
+      "network",
+      "shadowService",
+      "storefrontKey",
+      "serviceDraft",
+      // Analytics & Bonus models (P0-FIX)
+      "bonusRedemptionLog",
+      "economicOptimizationSnapshot",
+      "preLaunchLead"
     ];
   }
 });
@@ -47354,7 +47434,7 @@ var init_db = __esm({
     init_prisma_tenant_enforcer();
     globalForPrisma = globalThis;
     db = globalForPrisma.prisma ?? createPrismaClient();
-    if (process.env.NODE_ENV !== "production" && process.env.NEXT_RUNTIME !== "edge") {
+    if (process.env.NEXT_RUNTIME !== "edge") {
       globalForPrisma.prisma = db;
     }
   }
@@ -107404,17 +107484,25 @@ var init_settings = __esm({
         if (settings) return settings;
         return this.get(activeTenantId);
       }
+      static tenantRecordIdCache = /* @__PURE__ */ new Map();
       /**
        * Helper to resolve the Tenant model ID from a tenant slug.
+       * Cached in-memory to eliminate redundant db.tenant.findUnique queries on every request.
        */
       static async resolveTenantRecordId(tenantSlug) {
         const slug = normalizeTenantId(tenantSlug) || "smmplan";
+        const cached = this.tenantRecordIdCache.get(slug);
+        if (cached) return cached;
         try {
           const tenant = await db.tenant.findUnique({ where: { slug } }) || await db.tenant.findFirst({ where: { slug: "smmplan" } }) || await db.tenant.findFirst();
-          if (tenant) return tenant.id;
+          if (tenant) {
+            this.tenantRecordIdCache.set(slug, tenant.id);
+            return tenant.id;
+          }
         } catch (dbErr) {
           console.warn(`[SettingsProvider] Database unreachable in resolveTenantRecordId for ${slug}, using fallback slug.`);
         }
+        this.tenantRecordIdCache.set(slug, slug);
         return slug;
       }
       /**
@@ -108260,12 +108348,31 @@ var init_wallet_ops = __esm({
             transactionType: txTypeOverride ?? "ADJUSTMENT"
           }
         });
-        const updatedUser = await tx.user.update({
-          where: { id: userId },
-          data: { balance: { increment: rawCents } },
-          select: { balance: true }
-        });
-        return { success: true, balance: updatedUser.balance, cached: false, entry };
+        let finalBalance;
+        if (rawCents < BigInt(0)) {
+          const absCents = -rawCents;
+          const updated = await tx.user.updateMany({
+            where: {
+              id: userId,
+              balance: { gte: absCents },
+              tenantId: resolvedTenantId
+            },
+            data: { balance: { decrement: absCents } }
+          });
+          if (updated.count === 0) {
+            throw new WalletInsufficientFundsError(absCents, BigInt(0));
+          }
+          const afterUser = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { balance: true } });
+          finalBalance = afterUser.balance;
+        } else {
+          const updatedUser = await tx.user.update({
+            where: { id: userId },
+            data: { balance: { increment: rawCents } },
+            select: { balance: true }
+          });
+          finalBalance = updatedUser.balance;
+        }
+        return { success: true, balance: finalBalance, cached: false, entry };
       },
       /**
        * Refund user balance: increments balance, decrements totalSpent, creates ledger entry.
@@ -110939,10 +111046,20 @@ var init_loyalty_service = __esm({
             data: { status: "REVERSED" }
           });
           if (wasConfirmed) {
-            await tx.user.update({
-              where: { id: comm.referrerId },
-              data: { referralBalance: { decrement: Number(comm.amount) } }
+            const commAmount = Math.round(Number(comm.amount));
+            const reversed = await tx.user.updateMany({
+              where: { id: comm.referrerId, referralBalance: { gte: commAmount } },
+              data: { referralBalance: { decrement: commAmount } }
             });
+            if (reversed.count === 0) {
+              await tx.auditLog.create({
+                data: {
+                  userId: comm.referrerId,
+                  action: "REFERRAL_REVERSAL_INSUFFICIENT_BALANCE",
+                  details: `\u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044C\u043D\u044B\u0439 \u0431\u0430\u043B\u0430\u043D\u0441 \u0443\u0436\u0435 \u0438\u0441\u0447\u0435\u0440\u043F\u0430\u043D \u043F\u0440\u0438 \u043E\u0442\u0437\u044B\u0432\u0435 \u043A\u043E\u043C\u0438\u0441\u0441\u0438\u0438 orderId=${orderId}. \u041A\u043E\u0440\u0440\u0435\u043A\u0442\u0438\u0440\u043E\u0432\u043A\u0430 \u043F\u0440\u043E\u043F\u0443\u0449\u0435\u043D\u0430.`
+                }
+              });
+            }
           }
           await tx.auditLog.create({
             data: {
@@ -125491,22 +125608,27 @@ var init_quarantine_service = __esm({
             },
             _count: { id: true }
           });
-          for (const group of stuckOrders) {
-            if (group._count.id >= 5) {
-              const service = await db.service.findUnique({ where: { id: group.serviceId }, select: { id: true, name: true } });
-              if (service) {
-                const { redis: redis2 } = await Promise.resolve().then(() => (init_redis(), redis_exports));
-                if (redis2) {
-                  const alertKey = `alert:stuck_orders:${service.id}`;
-                  const alreadyAlerted = await redis2.get(alertKey);
-                  if (alreadyAlerted) continue;
-                  await redis2.set(alertKey, "1", "EX", 12 * 60 * 60);
-                }
-                console.warn(`[ElasticQuarantine] Trigger C fired for Service ${service.id}. Stuck orders: ${group._count.id}. (ALERT ONLY)`);
-                await sendAdminAlert(`\u{1F7E8} [\u041E\u0447\u0435\u0440\u0435\u0434\u044C] \u0423\u0441\u043B\u0443\u0433\u0430 ${service.id} (${service.name}) \u0437\u0430\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442\u0441\u044F.
+          const alertCandidates = stuckOrders.filter((g) => g._count.id >= 5 && g.serviceId);
+          const serviceIds = alertCandidates.map((g) => g.serviceId);
+          const services = serviceIds.length > 0 ? await db.service.findMany({
+            where: { id: { in: serviceIds } },
+            select: { id: true, name: true }
+          }) : [];
+          const serviceMap = new Map(services.map((s) => [s.id, s]));
+          for (const group of alertCandidates) {
+            const service = serviceMap.get(group.serviceId);
+            if (service) {
+              const { redis: redis2 } = await Promise.resolve().then(() => (init_redis(), redis_exports));
+              if (redis2) {
+                const alertKey = `alert:stuck_orders:${service.id}`;
+                const alreadyAlerted = await redis2.get(alertKey);
+                if (alreadyAlerted) continue;
+                await redis2.set(alertKey, "1", "EX", 12 * 60 * 60);
+              }
+              console.warn(`[ElasticQuarantine] Trigger C fired for Service ${service.id}. Stuck orders: ${group._count.id}. (ALERT ONLY)`);
+              await sendAdminAlert(`\u{1F7E8} [\u041E\u0447\u0435\u0440\u0435\u0434\u044C] \u0423\u0441\u043B\u0443\u0433\u0430 ${service.id} (${service.name}) \u0437\u0430\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442\u0441\u044F.
 \u0412 \u043E\u0447\u0435\u0440\u0435\u0434\u0438 \u0432\u0438\u0441\u044F\u0442 ${group._count.id} \u0437\u0430\u043A\u0430\u0437\u043E\u0432 \u0431\u043E\u043B\u0435\u0435 24 \u0447\u0430\u0441\u043E\u0432.
 \u0412\u043E\u0437\u043C\u043E\u0436\u043D\u043E, \u0443 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 \u043E\u0447\u0435\u0440\u0435\u0434\u044C. \u0410\u0432\u0442\u043E\u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435 \u041D\u0415 \u043F\u0440\u0438\u043C\u0435\u043D\u044F\u043B\u043E\u0441\u044C.`);
-              }
             }
           }
         } catch (error) {
@@ -142435,41 +142557,49 @@ var init_balance_verifier = __esm({
       static async verifyAllBalances() {
         const results = [];
         try {
-          const users = await db.user.findMany({
-            where: {
-              isActive: true,
-              isDeleted: false
-            },
-            select: {
-              id: true,
-              email: true,
-              balance: true,
-              isActive: true,
-              adminNote: true
+          const rows = await db.$queryRaw`
+        SELECT 
+          u.id, 
+          u.email, 
+          u.balance,
+          COALESCE(SUM(l.amount) FILTER (WHERE l.status = 'APPROVED'), 0)::BIGINT AS ledger_sum
+        FROM "User" u
+        LEFT JOIN "LedgerEntry" l ON l."userId" = u.id
+        WHERE u."isActive" = true AND u."isDeleted" = false
+        GROUP BY u.id, u.email, u.balance
+      `;
+          for (const row of rows) {
+            const userBalance = BigInt(row.balance);
+            const ledgerSum = BigInt(row.ledger_sum);
+            const initialDiscrepancy = userBalance - ledgerSum;
+            if (initialDiscrepancy === BigInt(0)) {
+              results.push({
+                userId: row.id,
+                email: row.email,
+                userBalance,
+                ledgerSum,
+                discrepancy: BigInt(0),
+                isDiscrepancy: false,
+                lockedSuccessfully: false
+              });
+              continue;
             }
-          });
-          for (const user of users) {
             try {
               const res = await db.$transaction(async (tx) => {
                 const freshUser2 = await tx.user.findUniqueOrThrow({
-                  where: { id: user.id },
+                  where: { id: row.id },
                   select: { id: true, email: true, balance: true, isActive: true, adminNote: true }
                 });
                 const aggregateResult = await tx.ledgerEntry.aggregate({
-                  _sum: {
-                    amount: true
-                  },
-                  where: {
-                    userId: freshUser2.id,
-                    status: "APPROVED"
-                  }
+                  _sum: { amount: true },
+                  where: { userId: freshUser2.id, status: "APPROVED" }
                 });
-                const ledgerSum2 = aggregateResult._sum.amount ?? BigInt(0);
-                const discrepancy2 = freshUser2.balance - ledgerSum2;
+                const confirmedLedgerSum = aggregateResult._sum.amount ?? BigInt(0);
+                const discrepancy2 = freshUser2.balance - confirmedLedgerSum;
                 const isDiscrepancy2 = discrepancy2 !== BigInt(0);
                 let lockedSuccessfully2 = false;
                 if (isDiscrepancy2) {
-                  const adminNoteText = `[CRITICAL DISCREPANCY] \u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0430\u044F \u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u043A\u0430: \u0431\u0430\u043B\u0430\u043D\u0441 (${freshUser2.balance.toString()}) \u043D\u0435 \u0441\u0445\u043E\u0434\u0438\u0442\u0441\u044F \u0441 \u0440\u0435\u0435\u0441\u0442\u0440\u043E\u043C (${ledgerSum2.toString()}). \u0420\u0430\u0437\u043D\u0438\u0446\u0430: ${discrepancy2.toString()} \u0446\u0435\u043D\u0442\u043E\u0432.`;
+                  const adminNoteText = `[CRITICAL DISCREPANCY] \u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0430\u044F \u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u043A\u0430: \u0431\u0430\u043B\u0430\u043D\u0441 (${freshUser2.balance.toString()}) \u043D\u0435 \u0441\u0445\u043E\u0434\u0438\u0442\u0441\u044F \u0441 \u0440\u0435\u0435\u0441\u0442\u0440\u043E\u043C (${confirmedLedgerSum.toString()}). \u0420\u0430\u0437\u043D\u0438\u0446\u0430: ${discrepancy2.toString()} \u0446\u0435\u043D\u0442\u043E\u0432.`;
                   await tx.user.update({
                     where: { id: freshUser2.id },
                     data: {
@@ -142499,18 +142629,18 @@ var init_balance_verifier = __esm({
                 }
                 return {
                   freshUser: freshUser2,
-                  ledgerSum: ledgerSum2,
+                  ledgerSum: confirmedLedgerSum,
                   discrepancy: discrepancy2,
                   isDiscrepancy: isDiscrepancy2,
                   lockedSuccessfully: lockedSuccessfully2
                 };
               }, { isolationLevel: "Serializable" });
-              const { freshUser, ledgerSum, discrepancy, isDiscrepancy, lockedSuccessfully } = res;
+              const { freshUser, ledgerSum: finalLedgerSum, discrepancy, isDiscrepancy, lockedSuccessfully } = res;
               if (isDiscrepancy) {
                 const alertMessage = `\u{1F6A8} [CRITICAL BALANCE DISCREPANCY]
 User: ${freshUser.email} (ID: ${freshUser.id})
 User Balance: ${freshUser.balance.toString()} cents (${(Number(freshUser.balance) / 100).toFixed(2)} \u20BD)
-Ledger Sum: ${ledgerSum.toString()} cents (${(Number(ledgerSum) / 100).toFixed(2)} \u20BD)
+Ledger Sum: ${finalLedgerSum.toString()} cents (${(Number(finalLedgerSum) / 100).toFixed(2)} \u20BD)
 Discrepancy: ${discrepancy.toString()} cents (${(Number(discrepancy) / 100).toFixed(2)} \u20BD)
 Action: Account LOCKED, logged in AdminAuditLog.`;
                 sendAdminAlert(alertMessage, "CRITICAL");
@@ -142519,20 +142649,20 @@ Action: Account LOCKED, logged in AdminAuditLog.`;
                 userId: freshUser.id,
                 email: freshUser.email,
                 userBalance: freshUser.balance,
-                ledgerSum,
+                ledgerSum: finalLedgerSum,
                 discrepancy,
                 isDiscrepancy,
                 lockedSuccessfully
               });
             } catch (err) {
               const errMsg = err instanceof Error ? err.message : String(err);
-              console.error(`[BalanceVerifier] Error processing user ${user.email}:`, err);
+              console.error(`[BalanceVerifier] Error processing user ${row.email}:`, err);
               results.push({
-                userId: user.id,
-                email: user.email,
-                userBalance: user.balance,
-                ledgerSum: BigInt(0),
-                discrepancy: BigInt(0),
+                userId: row.id,
+                email: row.email,
+                userBalance,
+                ledgerSum,
+                discrepancy: initialDiscrepancy,
                 isDiscrepancy: true,
                 lockedSuccessfully: false,
                 error: errMsg
@@ -160652,6 +160782,16 @@ init_settings();
 init_financial_constants();
 init_tenant_scope();
 init_currency_invariant();
+var statsCache = /* @__PURE__ */ new Map();
+var healthCache = /* @__PURE__ */ new Map();
+var markupAnalyticsCache = /* @__PURE__ */ new Map();
+var categoriesListCache = /* @__PURE__ */ new Map();
+function invalidateCatalogAdminCache() {
+  statsCache.clear();
+  healthCache.clear();
+  markupAnalyticsCache.clear();
+  categoriesListCache.clear();
+}
 var CatalogManagementService = class {
   /**
    * Paginated service list with category, markup, and order count.
@@ -160811,6 +160951,7 @@ var CatalogManagementService = class {
         cooldownReason: isActive ? null : "MANUAL_DEACTIVATED"
       }
     });
+    invalidateCatalogAdminCache();
     auditAdmin({
       adminId: admin.id,
       adminEmail: admin.email,
@@ -160835,6 +160976,7 @@ var CatalogManagementService = class {
         name: service.name.startsWith("[ARCHIVED] ") ? service.name : `[ARCHIVED] ${service.name}`
       }
     });
+    invalidateCatalogAdminCache();
     auditAdmin({
       adminId: admin.id,
       adminEmail: admin.email,
@@ -160846,9 +160988,18 @@ var CatalogManagementService = class {
     });
   }
   /**
-   * Catalog stats for the header and dashboard.
+   * Catalog stats for the header and dashboard (cached for 20s per tenant).
    */
   static async getCatalogStats(tenantId, _startDate, _endDate) {
+    const isTest = process.env.APP_ENV === "test" || process.env.NODE_ENV === "test";
+    const key = tenantId || "all";
+    if (!isTest) {
+      const cached = statsCache.get(key);
+      const now = Date.now();
+      if (cached && cached.expiresAt > now) {
+        return cached.data;
+      }
+    }
     const where = {};
     if (tenantId && tenantId !== "all") where.tenantId = { in: [tenantId, "all"] };
     const categoryWhere = {};
@@ -160858,7 +161009,11 @@ var CatalogManagementService = class {
       db.service.count({ where: { ...where, isActive: true } }),
       db.category.count({ where: categoryWhere })
     ]);
-    return { totalServices, activeServices, categories };
+    const result = { totalServices, activeServices, categories };
+    if (!isTest) {
+      statsCache.set(key, { data: result, expiresAt: Date.now() + 2e4 });
+    }
+    return result;
   }
   /**
    * Bulk updates markup for multiple services matching filter.
@@ -160895,6 +161050,7 @@ var CatalogManagementService = class {
     for (let i = 0; i < updates.length; i += 50) {
       await db.$transaction(updates.slice(i, i + 50));
     }
+    invalidateCatalogAdminCache();
     auditAdmin({
       adminId: admin.id,
       adminEmail: admin.email,
@@ -160906,9 +161062,18 @@ var CatalogManagementService = class {
     return { updatedCount: services.length };
   }
   /**
-   * Markup Analytics: returns distribution of markups across all services.
+   * Markup Analytics: returns distribution of markups across all services (cached 30s per tenant).
    */
   static async getMarkupAnalytics(tenantId) {
+    const isTest = process.env.APP_ENV === "test" || process.env.NODE_ENV === "test";
+    const key = tenantId || "all";
+    if (!isTest) {
+      const cached = markupAnalyticsCache.get(key);
+      const now = Date.now();
+      if (cached && cached.expiresAt > now) {
+        return cached.data;
+      }
+    }
     const where = {
       isActive: true,
       ...tenantId && tenantId !== "all" ? { tenantId: { in: [tenantId, "all"] } } : {}
@@ -160918,12 +161083,16 @@ var CatalogManagementService = class {
       select: { markup: true }
     });
     if (services.length === 0) {
-      return {
+      const emptyResult = {
         averageMarkup: 0,
         distribution: [],
         autoMarkupCount: 0,
         manualMarkupCount: 0
       };
+      if (!isTest) {
+        markupAnalyticsCache.set(key, { data: emptyResult, expiresAt: Date.now() + 3e4 });
+      }
+      return emptyResult;
     }
     const brackets = [
       { min: 1, max: 1.5, label: "1.0x - 1.5x (\u041D\u0438\u0437\u043A\u0430\u044F)", count: 0 },
@@ -160943,7 +161112,7 @@ var CatalogManagementService = class {
       }
     }
     const total = services.length;
-    return {
+    const result = {
       averageMarkup: Math.round(totalMarkup / total * 100) / 100,
       distribution: brackets.map((b) => ({
         label: b.label,
@@ -160953,11 +161122,24 @@ var CatalogManagementService = class {
       autoMarkupCount: 0,
       manualMarkupCount: total
     };
+    if (!isTest) {
+      markupAnalyticsCache.set(key, { data: result, expiresAt: Date.now() + 3e4 });
+    }
+    return result;
   }
   /**
-   * Category list for catalog filter dropdowns.
+   * Category list for catalog filter dropdowns (cached 60s per tenant).
    */
   static async listCategories(tenantId) {
+    const isTest = process.env.APP_ENV === "test" || process.env.NODE_ENV === "test";
+    const key = tenantId || "all";
+    if (!isTest) {
+      const cached = categoriesListCache.get(key);
+      const now = Date.now();
+      if (cached && cached.expiresAt > now) {
+        return cached.data;
+      }
+    }
     const tenantFilter = tenantId && tenantId !== "all" ? { in: [tenantId, "all"] } : void 0;
     const rows = await db.category.findMany({
       where: tenantId && tenantId !== "all" ? { tenantId: tenantVisibilityFilter(tenantId) } : void 0,
@@ -160981,7 +161163,7 @@ var CatalogManagementService = class {
       },
       orderBy: { name: "asc" }
     });
-    return rows.map((c) => ({
+    const result = rows.map((c) => ({
       id: c.id,
       name: c.name,
       network: c.network ? {
@@ -160991,6 +161173,10 @@ var CatalogManagementService = class {
       } : null,
       serviceCount: c._count.services
     }));
+    if (!isTest) {
+      categoriesListCache.set(key, { data: result, expiresAt: Date.now() + 6e4 });
+    }
+    return result;
   }
   /**
    * Total count of quarantined services.
@@ -161005,10 +161191,19 @@ var CatalogManagementService = class {
     });
   }
   /**
-   * Quick counts of catalog health for the notification badge.
+   * Quick counts of catalog health for the notification badge (cached 20s per tenant).
    */
   static async getCatalogHealthCounts(tenantId) {
-    const now = /* @__PURE__ */ new Date();
+    const isTest = process.env.APP_ENV === "test" || process.env.NODE_ENV === "test";
+    const key = tenantId || "all";
+    if (!isTest) {
+      const cached = healthCache.get(key);
+      const now = Date.now();
+      if (cached && cached.expiresAt > now) {
+        return cached.data;
+      }
+    }
+    const nowDate = /* @__PURE__ */ new Date();
     const tenantWhere = tenantId && tenantId !== "all" ? { in: [tenantId, "all"] } : void 0;
     const [quarantine, zombies, cooldown] = await Promise.all([
       db.service.count({
@@ -161026,13 +161221,17 @@ var CatalogManagementService = class {
       db.service.count({
         where: {
           isActive: true,
-          cooldownUntil: { gt: now },
+          cooldownUntil: { gt: nowDate },
           cooldownReason: { notIn: ["ZOMBIE_AUTO_DISABLED", "ZOMBIE_ARCHIVED"] },
           ...tenantWhere ? { tenantId: tenantWhere } : {}
         }
       })
     ]);
-    return { quarantine, zombies, cooldown };
+    const result = { quarantine, zombies, cooldown };
+    if (!isTest) {
+      healthCache.set(key, { data: result, expiresAt: Date.now() + 2e4 });
+    }
+    return result;
   }
 };
 
