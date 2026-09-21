@@ -334,14 +334,14 @@ const updateStaffSchema = z.object({
   role: z.enum(['SUPPORT', 'OPERATOR', 'MANAGER', 'ADMIN', 'OWNER', 'USER', 'BANNED']),
   staffRoleId: z.string().nullable().optional(),
   supportLimitRubles: z.number().min(0).max(100000),
-  allowedTenants: z.array(z.string()).optional(),
+  allowedTenants: z.array(z.string()).min(1, 'Сотрудник должен иметь доступ хотя бы к одной витрине').optional(),
 });
 
 export async function updateStaffMemberAction(input: z.infer<typeof updateStaffSchema>) {
   return requireStaffPermission('settings', 'edit', async (admin) => {
     const parsed = updateStaffSchema.safeParse(input);
     if (!parsed.success) {
-      return { success: false as const, error: 'Некорректные параметры' };
+      return { success: false as const, error: parsed.error.issues[0]?.message || 'Некорректные параметры' };
     }
 
     // H-03 FIX 1: Prevent self-modification of role or limits
@@ -364,8 +364,8 @@ export async function updateStaffMemberAction(input: z.infer<typeof updateStaffS
     if (targetUser.role === 'ADMIN' && admin.role !== 'OWNER') {
       return { success: false as const, error: 'Только Владелец может изменять профили Администраторов' };
     }
-    // Staff roles (SUPPORT, MANAGER, OPERATOR) cannot modify other staff members
-    if (['SUPPORT', 'MANAGER', 'OPERATOR'].includes(admin.role)) {
+    // Staff roles (SUPPORT, MANAGER, OPERATOR, USER) cannot modify other staff members
+    if (admin.role !== 'OWNER' && admin.role !== 'ADMIN') {
       return { success: false as const, error: 'У вас недостаточно прав для управления профилями сотрудников' };
     }
 

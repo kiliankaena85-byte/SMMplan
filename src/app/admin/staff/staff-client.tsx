@@ -12,9 +12,10 @@ import {
   Users, ShieldCheck, Clock, Moon, MessageSquare, 
   Activity, AlertCircle, Coffee, Search, RefreshCw,
   X, Check, Lock, ChevronRight, UserCheck, Shield,
-  Calendar, DollarSign
+  Calendar, DollarSign, Globe, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { TENANTS, TenantId } from '@/config/tenants';
 import { StaffScheduleTab } from './components/staff-schedule-tab';
 import { StaffPayrollTab } from './components/staff-payroll-tab';
 
@@ -52,6 +53,7 @@ export function StaffClient({
   const [editRole, setEditRole] = useState('SUPPORT');
   const [editStaffRoleId, setEditStaffRoleId] = useState<string | null>(null);
   const [editLimitRubles, setEditLimitRubles] = useState(5000);
+  const [editAllowedTenants, setEditAllowedTenants] = useState<string[]>(['smmplan']);
   const [isPending, startTransition] = useTransition();
 
   // Open personal logs drawer
@@ -77,11 +79,19 @@ export function StaffClient({
     setEditRole(staff.role);
     setEditStaffRoleId(staff.staffRoleId);
     setEditLimitRubles((staff.supportLimitCents || 0) / 100);
+    const initialTenants = staff.allowedTenants && staff.allowedTenants.length > 0 
+      ? [...staff.allowedTenants] 
+      : ['smmplan'];
+    setEditAllowedTenants(initialTenants);
   }
 
   // Save Role and Limits
   function handleSaveStaffRole() {
     if (!editingStaff) return;
+    if (editAllowedTenants.length === 0) {
+      toast.error('Сотрудник должен иметь доступ хотя бы к одной витрине');
+      return;
+    }
     startTransition(async () => {
       try {
         const res = await updateStaffMemberAction({
@@ -89,10 +99,11 @@ export function StaffClient({
           role: editRole as 'SUPPORT' | 'OPERATOR' | 'MANAGER' | 'ADMIN' | 'OWNER' | 'USER' | 'BANNED',
           staffRoleId: editStaffRoleId,
           supportLimitRubles: editLimitRubles,
+          allowedTenants: editAllowedTenants,
         });
 
         if (res.success) {
-          toast.success('Права и лимиты сотрудника обновлены');
+          toast.success('Права и доступные витрины сотрудника обновлены');
           setStaffList((prev) =>
             prev.map((s) =>
               s.id === editingStaff.id
@@ -101,6 +112,7 @@ export function StaffClient({
                     role: editRole,
                     staffRoleId: editStaffRoleId,
                     supportLimitCents: Math.round(editLimitRubles * 100),
+                    allowedTenants: [...editAllowedTenants],
                   }
                 : s
             )
@@ -296,7 +308,7 @@ export function StaffClient({
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-1.5 mt-0.5">
+                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                               <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold rounded-md border ${roleBadge.bg} ${roleBadge.text} ${roleBadge.border}`}>
                                 {roleBadge.label}
                               </span>
@@ -305,6 +317,24 @@ export function StaffClient({
                                   {staff.staffRoleName}
                                 </span>
                               )}
+                              {(staff.allowedTenants && staff.allowedTenants.length > 0 ? staff.allowedTenants : ['smmplan']).map((tId) => {
+                                const tConfig = TENANTS.find((t) => t.id === tId);
+                                const isFlux = tId === 'flux';
+                                return (
+                                  <span
+                                    key={tId}
+                                    title={`Доступ к сайту: ${tConfig?.domain || tId}`}
+                                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-bold rounded-md border ${
+                                      isFlux
+                                        ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
+                                        : 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20'
+                                    }`}
+                                  >
+                                    {isFlux ? <Sparkles className="w-2.5 h-2.5 shrink-0" /> : <Globe className="w-2.5 h-2.5 shrink-0" />}
+                                    {tConfig?.name || tId}
+                                  </span>
+                                );
+                              })}
                             </div>
                           </div>
                         </div>
@@ -591,6 +621,86 @@ export function StaffClient({
                   </select>
                 </div>
               )}
+
+              {/* Multi-Tenant / Allowed Sites Selector */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5 text-primary" />
+                    Доступные сайты (Мульти-тенантность)
+                  </label>
+                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                    {editAllowedTenants.length} {editAllowedTenants.length === 1 ? 'сайт' : 'сайта'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {TENANTS.map((tenant) => {
+                    const isChecked = editAllowedTenants.includes(tenant.id);
+                    const isFlux = tenant.id === 'flux';
+
+                    const toggleTenant = () => {
+                      if (isChecked) {
+                        if (editAllowedTenants.length <= 1) {
+                          toast.error('Сотрудник должен иметь доступ хотя бы к одной витрине');
+                          return;
+                        }
+                        setEditAllowedTenants(editAllowedTenants.filter((id) => id !== tenant.id));
+                      } else {
+                        setEditAllowedTenants([...editAllowedTenants, tenant.id]);
+                      }
+                    };
+
+                    return (
+                      <button
+                        key={tenant.id}
+                        type="button"
+                        onClick={toggleTenant}
+                        className={`flex items-center justify-between p-2.5 min-h-[46px] rounded-xl border text-left transition-all duration-150 cursor-pointer ${
+                          isChecked
+                            ? isFlux
+                              ? 'bg-purple-500/10 border-purple-500/40 text-foreground ring-1 ring-purple-500/20'
+                              : 'bg-primary/10 border-primary/40 text-foreground ring-1 ring-primary/20'
+                            : 'bg-muted/20 border-border/60 text-muted-foreground hover:bg-muted/40 hover:text-foreground'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs shrink-0 ${
+                              isChecked
+                                ? isFlux
+                                  ? 'bg-purple-500 text-white shadow-xs'
+                                  : 'bg-primary text-primary-foreground shadow-xs'
+                                : 'bg-muted text-muted-foreground'
+                            }`}
+                          >
+                            {isFlux ? <Sparkles className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />}
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-bold truncate">{tenant.name}</span>
+                            <span className="text-[10px] text-muted-foreground font-mono truncate">{tenant.domain}</span>
+                          </div>
+                        </div>
+
+                        <div
+                          className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors shrink-0 ${
+                            isChecked
+                              ? isFlux
+                                ? 'bg-purple-500 border-purple-500 text-white'
+                                : 'bg-primary border-primary text-primary-foreground'
+                              : 'border-border bg-background'
+                          }`}
+                        >
+                          {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Сотрудник сможет переключаться между выбранными сайтами в шапке панели.
+                </p>
+              </div>
 
               {/* Support Daily Limit in Rubles */}
               <div className="space-y-1.5">
