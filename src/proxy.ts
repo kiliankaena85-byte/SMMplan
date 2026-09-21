@@ -328,16 +328,24 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // IndexNow Key Route Rewrite: dynamically serve key for domain verification
+  if (pathname.endsWith('.txt') && (pathname.includes('indexnow') || pathname === `/${process.env.INDEXNOW_KEY || 'smmplan-indexnow-2026-key'}.txt`)) {
+    return NextResponse.rewrite(new URL('/api/seo/indexnow/key', request.url));
+  }
+
   // 0.5. Echelon DDoS Shield & Anomaly Inspection (SPEC-2026-09-11)
   const isExcludedFromShield = 
     pathname.startsWith('/api/webhooks/') ||
     pathname.startsWith('/api/storefront/') ||
     pathname.startsWith('/api/seo/') ||
     pathname.endsWith('.txt') ||
+    pathname.endsWith('.xml') ||
     pathname.startsWith('/_next/') ||
     pathname === '/favicon.ico' ||
     pathname === '/robots.txt' ||
     pathname === '/sitemap.xml' ||
+    pathname === '/yandex-feed.xml' ||
+    pathname === '/opensearch.xml' ||
     pathname === '/api/v1/internal-sync' || // honeypot itself
     pathname === '/api/security/challenge';
 

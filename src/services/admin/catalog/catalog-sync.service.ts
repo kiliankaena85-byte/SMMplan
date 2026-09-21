@@ -389,7 +389,6 @@ export class CatalogSyncService {
           const oldCostRub = s.rate * (s.providerCurrency === 'RUB' ? 1.0 : usdToRub);
           const newCostRub = rawRate * exchangeRate;
           const relChange = oldCostRub > 0 ? (newCostRub - oldCostRub) / oldCostRub : 0;
-          console.log('[DEBUG PRICE SPIKE]', { id: s.id, extId: s.externalId, oldRate: s.rate, rawRate, oldCostRub, newCostRub, relChange, QUARANTINE_THRESHOLD, ANOMALY_PRICE_SPIKE_THRESHOLD });
 
 
           if (newCostRub > UPPER_SANITY_LIMIT_RUB) {
