@@ -26,7 +26,6 @@ import { AuditLogsTab } from '@/components/admin/settings/audit-logs-tab';
 import Link from 'next/link';
 import { enforceSectionAccess } from '@/lib/server/rbac';
 import { SettingsProvider } from '@/lib/settings';
-import { SystemHealthOverview } from '@/components/admin/settings/system-health-overview';
 import { OnboardingReadinessBar } from '@/components/admin/settings/onboarding-readiness-bar';
 import { SettingsSearchCommand } from '@/components/admin/settings/settings-search-command';
 import { SettingsClusterTabs } from '@/components/admin/settings/settings-cluster-tabs';
@@ -173,8 +172,7 @@ export default async function AdminSettingsPage({
       {/* ── Onboarding Readiness & Goal-Gradient Bar ── */}
       <OnboardingReadinessBar settings={sanitizedSettings} />
 
-      {/* ── Dynamic System Health Pulse & Quick Actions ── */}
-      <SystemHealthOverview settings={sanitizedSettings} />
+      
 
       {/* ── Level 1 & Level 2 Master Cluster Navigation ── */}
       <SettingsClusterTabs activeTab={activeTab} />
