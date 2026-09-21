@@ -24,10 +24,10 @@ vi.mock('sonner', () => ({
 }));
 
 const mockSettings = {
-  id: 1,
+  id: '1',
   maintenanceMode: false,
   siteName: 'TestSite',
-} as SystemSettings;
+} as unknown as SystemSettings;
 
 describe('General Settings Unit Tests', () => {
   it('renders GeneralMaintenanceSection correctly', () => {

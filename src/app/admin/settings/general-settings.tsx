@@ -164,11 +164,12 @@ export function GeneralSettings({ settings, tenantId = 'smmplan' }: GeneralSetti
         onToggleMaintenance={handleToggleMaintenance}
       />
 
-      {/* Tabs for Branding vs Legal to make it compact */}
+      {/* Tabs for Branding, Legal, Fiscal */}
       <Tabs defaultValue="branding" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="branding">Брендинг сайта</TabsTrigger>
-          <TabsTrigger value="legal">Юр. Лицо и Финансы</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 max-w-2xl">
+          <TabsTrigger value="branding">Брендинг</TabsTrigger>
+          <TabsTrigger value="legal">Реквизиты</TabsTrigger>
+          <TabsTrigger value="fiscal">Финансы и Налоги</TabsTrigger>
         </TabsList>
         <div className="mt-4">
           <TabsContent value="branding" className="mt-0">
@@ -193,8 +194,40 @@ export function GeneralSettings({ settings, tenantId = 'smmplan' }: GeneralSetti
               }}
             />
           </TabsContent>
+
           <TabsContent value="legal" className="mt-0">
             <GeneralLegalFiscalSection
+              tabMode="legal"
+              defaultEmail={defaultEmail}
+              defaultPrivacyEmail={defaultPrivacyEmail}
+              defaultSiteName={defaultSiteName}
+              supportEmail={supportEmail}
+              setSupportEmail={setSupportEmail}
+              privacyEmail={privacyEmail}
+              setPrivacyEmail={setPrivacyEmail}
+              telegramChannelDefault={settings.contactTelegramChannel || (tenantId === 'flux' ? 'smmflux_news' : 'smmplan_news')}
+              companyName={companyName}
+              setCompanyName={setCompanyName}
+              companyInn={companyInn}
+              setCompanyInn={setCompanyInn}
+              companyOgrnip={companyOgrnip}
+              setCompanyOgrnip={setCompanyOgrnip}
+              companyAddress={companyAddress}
+              setCompanyAddress={setCompanyAddress}
+              usnScheme={usnScheme}
+              handleUsnChange={handleUsnChange}
+              taxRate={taxRate}
+              setTaxRate={setTaxRate}
+              opexMonthly={opexMonthly}
+              setOpexMonthly={setOpexMonthly}
+              siteName={siteName}
+              formState={formState}
+            />
+          </TabsContent>
+          
+          <TabsContent value="fiscal" className="mt-0">
+            <GeneralLegalFiscalSection
+              tabMode="fiscal"
               defaultEmail={defaultEmail}
               defaultPrivacyEmail={defaultPrivacyEmail}
               defaultSiteName={defaultSiteName}
