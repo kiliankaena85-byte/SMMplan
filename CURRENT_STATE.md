@@ -1,3 +1,29 @@
+- [x] ⚡ [FULL-SPECTRUM-SPEED-WAVE-OPTIMIZATION-2026] Комплексная 3-волновая оптимизация производительности платформы OmniSMM 1.0 (ЛК, Админка, Каталог, Индексы PostgreSQL, Docker Web Pool) (100% COMPLETE & LIVE VERIFIED):
+  * 🌊 **Волна 1: Quick Wins (RSC Payload, RBAC Cache, Dynamic Imports, Keyset Pagination):**
+    - `src/app/dashboard/page.tsx`: исключена выборка и сериализация дерева каталога для SMMplan (`tenantId !== 'flux'`). Каталог сохраняется только для SMMflux, где он требуется для виджета заказа в шапке. Это сняло 200–300 КБ неиспользуемого JSON из каждого HTML-документа ЛК.
+    - `src/lib/server/rbac.ts`: создана серверная функция `getCachedStaffUserWithPermissions = cache(...)`, использующая React `cache()` для мемоизации запроса сотрудника и его прав на время жизненного цикла одного HTTP-запроса.
+    - `src/app/admin/layout.tsx`, `src/app/admin/dashboard/page.tsx`, `src/app/admin/catalog/page.tsx`, `src/app/admin/orders/page.tsx`, `src/app/admin/clients/page.tsx`, `src/app/admin/tickets/page.tsx`, `src/app/admin/transactions/page.tsx`: ликвидированы дублирующие запросы `db.user.findUnique`. Тройной SQL-запрос на каждой странице схлопнут в **1 запрос**.
+    - `src/lib/pagination.ts`: добавлен флаг `skipCount?: boolean`. При курсорной пагинации (`cursor`) или явном `skipCount: true` тяжелый `model.count({ where })` исключается, сохраняя при этом 100% обратную совместимость.
+    - `src/app/services/[network]/[category]/page.tsx` и `[network]/page.tsx`: компоненты витрины (`SmartLinkLanding`, `FluxOrderClient`, `FluxTrustBar`, `FluxWhyUs`, `FluxReviews`, `FluxFAQ`) переведены на `next/dynamic`, исключая загрузку неиспользуемого движка чужого бренда.
+  * 🌊 **Волна 2: База данных и индексы (Data Layer):**
+    - `prisma/schema.prisma`: добавлены составные индексы в PostgreSQL:
+      - `Order`: `@@index([environmentMode, isTest, createdAt(sort: Desc)])` и `@@index([tenantId, environmentMode, isTest, createdAt(sort: Desc)])`.
+      - `User`: `@@index([role, totalSpent(sort: Desc)])` и `@@index([tenantId, role, totalSpent(sort: Desc)])`.
+      - Схема синхронизирована через `prisma db push`, Prisma Client сгенерирован.
+    - `src/app/dashboard/finance/page.tsx`: запрос `db.ledgerEntry.findMany` ограничен `take: 100` с сортировкой `createdAt: 'desc'` по существующему составному индексу. Алгоритм вычисления `runningBalance` переведен на обратное отслеживание от фактического `user.balance`, исключая чтение тысяч исторических строк в JS.
+    - `src/services/admin/storm-detector.service.ts`: TTL кэша отчета детектора штормов в Redis увеличен с 60 с до 300 с (`EX 300`), снижая нагрузку от глубоких объединений 1000 заказов со связями на 80%.
+  * 🌊 **Волна 3: Инфраструктурный тюнинг Docker & Standalone сборка:**
+    - `docker-compose.yml`:
+      - `smmplan_web`: лимит пула соединений в `DATABASE_URL` увеличен с 15 до 25 (`connection_limit=25&pool_timeout=30`).
+      - `smmplan_lite_db`: удалены параметры `log_connections=on` и `log_disconnections=on`, создававшие постоянный оверхед дискового I/O на каждое подключение/отключение из пула.
+    - `npm run build`: standalone сборка Next.js 16 Webpack + worker + bot успешно собрана на хосте.
+    - Контейнеры `smmplan_web` и `smmplan_lite_db` пересозданы и запущены.
+  * 🧪 **Верификация и бенчмарки:**
+    - `npx tsc --noEmit`: 0 ошибок strict TypeScript.
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+    - Unit-тесты `keyset-pagination.test.ts`: 4/4 PASS.
+    - Live Smoke-тест контейнера: **15/15 PASS** (100% стабильность).
+    - Замеры TTFB на живом контейнере: Главная витрина (`/`) — **167.6 мс**, Login — **106.6 мс**, Health — **30.0 мс**, Dashboard auth — **11.1 мс**!
 - [x] ⚡ [FIX-PLATFORM-MODE-AND-TENANT-SWITCHERS-2026] Устранение дефекта переключения режимов платформы (Песочница/Гибрид/Эквайринг/Production) и тенантов (SMMplan / SMMflux) для роли OWNER в OmniSMM 1.0 (100% COMPLETE & TEST VERIFIED):
   * 🎯 **P0 — Ликвидация гонки размонтирования React Portal на событии `mousedown`:**
     - `src/components/admin/EnvironmentModeSwitcher.tsx`: внедрен `menuRef = React.useRef<HTMLDivElement>(null)` на портал выпадающего меню. Обработчик `handleOutside` расширен проверкой `menuRef.current.contains(target)`, добавлены поддержка `touchstart` и закрытие по `Escape`. Клик по пунктам («Песочница», «Гибридный тест», «Тест эквайринга», «Боевой режим») больше не перехватывается и не размонтирует меню до события `click`.
