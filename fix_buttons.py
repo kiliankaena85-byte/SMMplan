@@ -1,4 +1,10 @@
-'use client';
+import re
+
+with open('src/components/admin/order-details/OrderBottomActions.tsx', 'r', encoding='utf-8') as f:
+    content = f.read()
+
+# Replace the entire component with the smarter logic
+new_content = """'use client';
 
 import * as React from 'react';
 import { RefreshCw, Zap, RotateCcw, CheckCircle, XCircle } from 'lucide-react';
@@ -132,3 +138,8 @@ export function OrderBottomActions({
     </div>
   );
 }
+"""
+
+with open('src/components/admin/order-details/OrderBottomActions.tsx', 'w', encoding='utf-8') as f:
+    f.write(new_content)
+print("Updated OrderBottomActions")
