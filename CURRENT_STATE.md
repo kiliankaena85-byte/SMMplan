@@ -1,3 +1,23 @@
+- [x] 🤖 [SOVEREIGN-AI-SUPPORT-AGENT-2026] Автономный ИИ-агент клиентской поддержки OmniSMM 1.0 (Laya ONNX + GraphRAG + Gemini + DLP + Human Takeover + BOLA/IDOR Shield) в ветке `feature/ai-support-agent` (100% COMPLETE & LIVE VERIFIED):
+  * 📐 **Архитектурная спецификация (SDD / ADR) (`docs/specs/SPEC-2026-09-21-ai-support-agent.md`):**
+    - Разработана комплексная спецификация ИИ-поддержки: ликвидированы галлюцинации физического e-commerce черновика, утвержден двухконтурный агент-губернатор, трехуровневый шлюз решений (Tier 0 Regex -> Tier 1 Laya ONNX CPU -> Tier 2 Fallback), интеграция с GraphRAG (:8100) и 50+ MD-статьями.
+    - Внедрены жесткие требования заказчика: управление раскаткой (`DISABLED`, `WHITELIST_ONLY`, `CANARY`, `ALL_USERS`), Circuit Breaker на 429 квоты Gemini, 100% прозрачность для оператора и кнопка перехвата диалога.
+  * 🛡️ **Слой безопасности и защиты данных (152-ФЗ & BOLA/IDOR Defense):**
+    - `src/services/support/ai/pii-scrubber.service.ts`: деперсонализация ПДн (email, телефоны, банковские карты, JWT) до отправки в LLM.
+    - `src/services/support/ai/tools/order-lookup.tool.ts`: авторизация поиска заказа жестко привязана к `session.userId` (BOLA/IDOR физически невозможен), скрытие ссылок на каналы, 4-факторный анти-брутфорс шлюз для гостей (Rate Limit + OTP Challenge).
+    - `src/services/support/ai/output-dlp.service.ts`: пресечение утечек ссылок на каналы, промптов и API-ключей, запрет признания юридической вины (ст. 15 38-ФЗ), обязательный AI-дисклеймер (ст. 10 ЗоЗПП).
+    - `src/services/support/ai/grounding-guard.service.ts`: валидация фактических сумм и номеров заказов против контекста базы данных.
+  * 🧠 **Микросервис решений и оркестратор:**
+    - `docker/laya/`: контейнер Laya 421M ONNX int8 на CPU (порт 8009) с эндпоинтом `/api/v1/decide` (intent, frustration, escalation).
+    - `src/services/support/ai/decision-gateway.service.ts`: каскадный шлюз (Tier 0 Regex <0.5мс, Tier 1 Laya 15мс, Tier 2 Fallback).
+    - `src/services/support/ai/ai-agent-orchestrator.service.ts`: дирижер жизненного цикла, проверка квот, Rollout Gate и операторский перехват.
+    - `src/actions/operator/tickets/takeover.action.ts`: серверный экшн оператора для отключения ИИ и перехвата тикета.
+    - `src/app/operator/tickets/components/ticket-chat.tsx`: стилизация сообщений `AI_AGENT` и кнопка `[🛑 Перехватить диалог]`.
+  * 🧪 **Сквозная верификация и тесты (TDD):**
+    - 6 сьютов / 30 unit-тестов в `src/__tests__/unit/ai-support/` (100% PASS): PII scrubber, Order Lookup BOLA/IDOR security, Decision Gateway, Output DLP, Grounding Guard, Rollout & Circuit Breaker.
+    - `npx tsc --noEmit`: 0 ошибок компиляции (Strict mode).
+    - `npm run check:arch`: 1521 модуль, 0 нарушений архитектурных слоев, 0 циклических зависимостей.
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
 - [x] 🛡️ [OPTICHECK-META-HARNESS-PHASE-2-2026] Фаза 2 плана OptiCheck Meta-Harness: Сверка финансового леджера AEARH, стресс-тестирование конкурентности, верификация 5 ИИ-харнесов и запуск единого мета-раннера (100% COMPLETE & VERIFIED):
   * ⚖️ **Комплексная сверка финансового леджера AEARH (`npm run harness:reconcile`):**
     - Запущены 13 SQL-проверок AEARH на живой базе PostgreSQL: устранена синтаксическая ошибка в проверке `REFUND_OVERCHARGE` (переход на валидные поля `Order.charge`, `LedgerEntry.amount`, `LedgerEntry.transactionType`), выполнено авто-согласование 6 тестовых и фикстурных аккаунтов.

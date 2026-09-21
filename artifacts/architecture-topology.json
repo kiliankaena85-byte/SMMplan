@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OmniSMM Architecture Topology (Uncle Bob Pattern)",
-  "generatedAt": "2026-09-21T12:12:29.179Z",
+  "generatedAt": "2026-09-21T12:18:11.635Z",
   "layers": [
     {
       "level": 0,
@@ -3949,6 +3949,42 @@
           "coverageRatio": null,
           "crapScore": 72,
           "isCrappy": true
+        }
+      ]
+    },
+    {
+      "id": "src/actions/operator/tickets/takeover.action.ts",
+      "label": "takeover.action.ts",
+      "level": 2,
+      "layer": "Application",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 37,
+      "isClientComponent": false,
+      "exportsCount": 1,
+      "functionsCount": 2,
+      "maxCyclomaticComplexity": 5,
+      "maxCrapScore": 30,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "takeoverTicketAction",
+          "startLine": 8,
+          "endLine": 36,
+          "cyclomaticComplexity": 5,
+          "coverageRatio": null,
+          "crapScore": 30,
+          "isCrappy": false
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 11,
+          "endLine": 35,
+          "cyclomaticComplexity": 5,
+          "coverageRatio": null,
+          "crapScore": 30,
+          "isCrappy": false
         }
       ]
     },
@@ -22273,29 +22309,29 @@
       "level": 3,
       "layer": "Presentation",
       "boundedContext": "CORE_FRAMEWORK",
-      "linesCount": 325,
+      "linesCount": 360,
       "isClientComponent": true,
       "exportsCount": 1,
-      "functionsCount": 16,
-      "maxCyclomaticComplexity": 33,
-      "maxCrapScore": 1122,
-      "crapLoad": 1160,
+      "functionsCount": 18,
+      "maxCyclomaticComplexity": 36,
+      "maxCrapScore": 1332,
+      "crapLoad": 1386,
       "crappyMethodsCount": 3,
       "coverageStatus": "UNMEASURED",
       "topRiskFunctions": [
         {
           "name": "TicketChat",
-          "startLine": 77,
-          "endLine": 324,
-          "cyclomaticComplexity": 33,
+          "startLine": 83,
+          "endLine": 359,
+          "cyclomaticComplexity": 36,
           "coverageRatio": null,
-          "crapScore": 1122,
+          "crapScore": 1332,
           "isCrappy": true
         },
         {
           "name": "handleGenerateCoPilot",
-          "startLine": 84,
-          "endLine": 106,
+          "startLine": 90,
+          "endLine": 112,
           "cyclomaticComplexity": 8,
           "coverageRatio": null,
           "crapScore": 72,
@@ -22303,11 +22339,11 @@
         },
         {
           "name": "<anonymous>",
-          "startLine": 203,
-          "endLine": 242,
-          "cyclomaticComplexity": 7,
+          "startLine": 232,
+          "endLine": 277,
+          "cyclomaticComplexity": 8,
           "coverageRatio": null,
-          "crapScore": 56,
+          "crapScore": 72,
           "isCrappy": true
         }
       ]
@@ -54467,6 +54503,267 @@
       ]
     },
     {
+      "id": "src/services/support/ai/ai-agent-orchestrator.service.ts",
+      "label": "ai-agent-orchestrator.service.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 266,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 7,
+      "maxCyclomaticComplexity": 27,
+      "maxCrapScore": 756,
+      "crapLoad": 738,
+      "crappyMethodsCount": 2,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "processTicketMessage",
+          "startLine": 66,
+          "endLine": 209,
+          "cyclomaticComplexity": 27,
+          "coverageRatio": null,
+          "crapScore": 756,
+          "isCrappy": true
+        },
+        {
+          "name": "checkRolloutAccess",
+          "startLine": 37,
+          "endLine": 61,
+          "cyclomaticComplexity": 6,
+          "coverageRatio": null,
+          "crapScore": 42,
+          "isCrappy": true
+        },
+        {
+          "name": "isCanaryAllowed",
+          "startLine": 23,
+          "endLine": 32,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/services/support/ai/context-builder.service.ts",
+      "label": "context-builder.service.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 130,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 4,
+      "maxCyclomaticComplexity": 32,
+      "maxCrapScore": 1056,
+      "crapLoad": 1268,
+      "crappyMethodsCount": 2,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "build",
+          "startLine": 9,
+          "endLine": 128,
+          "cyclomaticComplexity": 32,
+          "coverageRatio": null,
+          "crapScore": 1056,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 68,
+          "endLine": 93,
+          "cyclomaticComplexity": 16,
+          "coverageRatio": null,
+          "crapScore": 272,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 95,
+          "endLine": 100,
+          "cyclomaticComplexity": 2,
+          "coverageRatio": null,
+          "crapScore": 6,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/services/support/ai/decision-gateway.service.ts",
+      "label": "decision-gateway.service.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 131,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 6,
+      "maxCyclomaticComplexity": 21,
+      "maxCrapScore": 462,
+      "crapLoad": 492,
+      "crappyMethodsCount": 2,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "calculateFallback",
+          "startLine": 99,
+          "endLine": 129,
+          "cyclomaticComplexity": 21,
+          "coverageRatio": null,
+          "crapScore": 462,
+          "isCrappy": true
+        },
+        {
+          "name": "evaluate",
+          "startLine": 10,
+          "endLine": 97,
+          "cyclomaticComplexity": 9,
+          "coverageRatio": null,
+          "crapScore": 90,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 24,
+          "endLine": 24,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/services/support/ai/grounding-guard.service.ts",
+      "label": "grounding-guard.service.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 65,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 1,
+      "maxCyclomaticComplexity": 13,
+      "maxCrapScore": 182,
+      "crapLoad": 152,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "verifyClaims",
+          "startLine": 17,
+          "endLine": 63,
+          "cyclomaticComplexity": 13,
+          "coverageRatio": null,
+          "crapScore": 182,
+          "isCrappy": true
+        }
+      ]
+    },
+    {
+      "id": "src/services/support/ai/output-dlp.service.ts",
+      "label": "output-dlp.service.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 74,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 1,
+      "maxCyclomaticComplexity": 8,
+      "maxCrapScore": 72,
+      "crapLoad": 42,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "sanitize",
+          "startLine": 14,
+          "endLine": 72,
+          "cyclomaticComplexity": 8,
+          "coverageRatio": null,
+          "crapScore": 72,
+          "isCrappy": true
+        }
+      ]
+    },
+    {
+      "id": "src/services/support/ai/pii-scrubber.service.ts",
+      "label": "pii-scrubber.service.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 74,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 3,
+      "maxCyclomaticComplexity": 12,
+      "maxCrapScore": 156,
+      "crapLoad": 126,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "scrub",
+          "startLine": 8,
+          "endLine": 72,
+          "cyclomaticComplexity": 12,
+          "coverageRatio": null,
+          "crapScore": 156,
+          "isCrappy": true
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 43,
+          "endLine": 50,
+          "cyclomaticComplexity": 3,
+          "coverageRatio": null,
+          "crapScore": 12,
+          "isCrappy": false
+        },
+        {
+          "name": "<anonymous>",
+          "startLine": 32,
+          "endLine": 36,
+          "cyclomaticComplexity": 1,
+          "coverageRatio": null,
+          "crapScore": 2,
+          "isCrappy": false
+        }
+      ]
+    },
+    {
+      "id": "src/services/support/ai/tools/order-lookup.tool.ts",
+      "label": "order-lookup.tool.ts",
+      "level": 1,
+      "layer": "Services",
+      "boundedContext": "ORDERS_CHECKOUT",
+      "linesCount": 238,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 1,
+      "maxCyclomaticComplexity": 31,
+      "maxCrapScore": 992,
+      "crapLoad": 962,
+      "crappyMethodsCount": 1,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": [
+        {
+          "name": "execute",
+          "startLine": 29,
+          "endLine": 236,
+          "cyclomaticComplexity": 31,
+          "coverageRatio": null,
+          "crapScore": 992,
+          "isCrappy": true
+        }
+      ]
+    },
+    {
       "id": "src/services/support/ai-copilot.service.ts",
       "label": "ai-copilot.service.ts",
       "level": 1,
@@ -55406,6 +55703,23 @@
       "layer": "Domain",
       "boundedContext": "CORE_FRAMEWORK",
       "linesCount": 107,
+      "isClientComponent": false,
+      "exportsCount": 0,
+      "functionsCount": 0,
+      "maxCyclomaticComplexity": 1,
+      "maxCrapScore": 1,
+      "crapLoad": 0,
+      "crappyMethodsCount": 0,
+      "coverageStatus": "UNMEASURED",
+      "topRiskFunctions": []
+    },
+    {
+      "id": "src/types/ai-support.ts",
+      "label": "ai-support.ts",
+      "level": 0,
+      "layer": "Domain",
+      "boundedContext": "CORE_FRAMEWORK",
+      "linesCount": 79,
       "isClientComponent": false,
       "exportsCount": 0,
       "functionsCount": 0,
@@ -61412,6 +61726,27 @@
     {
       "source": "src/actions/operator/tickets/reply-ticket.action.ts",
       "target": "src/utils/admin-tenant.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/actions/operator/tickets/takeover.action.ts",
+      "target": "src/lib/server/rbac.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/actions/operator/tickets/takeover.action.ts",
+      "target": "src/services/support/ai/ai-agent-orchestrator.service.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/actions/operator/tickets/takeover.action.ts",
+      "target": "src/lib/admin-audit.ts",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
@@ -73284,6 +73619,13 @@
     {
       "source": "src/app/operator/tickets/components/ticket-chat.tsx",
       "target": "src/actions/operator/tickets/ai-copilot.action.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/app/operator/tickets/components/ticket-chat.tsx",
+      "target": "src/actions/operator/tickets/takeover.action.ts",
       "kind": "dependency",
       "isTypeOnly": false,
       "isViolating": false
@@ -86365,6 +86707,146 @@
       "isViolating": false
     },
     {
+      "source": "src/services/support/ai/ai-agent-orchestrator.service.ts",
+      "target": "src/lib/db.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/support/ai/ai-agent-orchestrator.service.ts",
+      "target": "src/lib/redis.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/support/ai/ai-agent-orchestrator.service.ts",
+      "target": "src/services/ai/gemini-client.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/support/ai/ai-agent-orchestrator.service.ts",
+      "target": "src/lib/seo-helpers.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/support/ai/ai-agent-orchestrator.service.ts",
+      "target": "src/services/support/ai/decision-gateway.service.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/support/ai/ai-agent-orchestrator.service.ts",
+      "target": "src/services/support/ai/context-builder.service.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/support/ai/ai-agent-orchestrator.service.ts",
+      "target": "src/services/support/ai/pii-scrubber.service.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/support/ai/ai-agent-orchestrator.service.ts",
+      "target": "src/services/support/ai/grounding-guard.service.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/support/ai/ai-agent-orchestrator.service.ts",
+      "target": "src/services/support/ai/output-dlp.service.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/support/ai/ai-agent-orchestrator.service.ts",
+      "target": "src/types/ai-support.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/support/ai/context-builder.service.ts",
+      "target": "src/lib/db.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/support/ai/context-builder.service.ts",
+      "target": "src/services/admin/ai-knowledge-retriever.service.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/support/ai/context-builder.service.ts",
+      "target": "src/types/ai-support.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/support/ai/decision-gateway.service.ts",
+      "target": "src/types/ai-support.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/support/ai/grounding-guard.service.ts",
+      "target": "src/types/ai-support.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/support/ai/output-dlp.service.ts",
+      "target": "src/types/ai-support.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/support/ai/pii-scrubber.service.ts",
+      "target": "src/types/ai-support.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/support/ai/tools/order-lookup.tool.ts",
+      "target": "src/lib/db.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/support/ai/tools/order-lookup.tool.ts",
+      "target": "src/lib/redis.ts",
+      "kind": "dependency",
+      "isTypeOnly": false,
+      "isViolating": false
+    },
+    {
+      "source": "src/services/support/ai/tools/order-lookup.tool.ts",
+      "target": "src/types/ai-support.ts",
+      "kind": "association",
+      "isTypeOnly": true,
+      "isViolating": false
+    },
+    {
       "source": "src/services/support/ai-copilot.service.ts",
       "target": "src/lib/db.ts",
       "kind": "dependency",
@@ -87789,18 +88271,18 @@
   "violations": [],
   "cycles": [],
   "metrics": {
-    "totalFiles": 1512,
-    "totalEdges": 4238,
+    "totalFiles": 1521,
+    "totalEdges": 4262,
     "violationsCount": 0,
     "cyclesCount": 0,
     "blockersCount": 0,
-    "totalFunctions": 10070,
+    "totalFunctions": 10097,
     "highestCrapModule": {
       "id": "src/proxy.ts",
       "maxCrap": 42230,
       "maxCC": 205
     },
-    "totalCrappyFunctions": 2377,
-    "totalCrapLoad": 1343928
+    "totalCrappyFunctions": 2387,
+    "totalCrapLoad": 1347934
   }
 }
