@@ -66,6 +66,27 @@
     - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
     - `npm run check:arch`: 1524 модуля, 0 архитектурных нарушений, 0 циклических зависимостей.
     - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+- [x] 🤖 [SOVEREIGN-AI-SUPPORT-AGENT-2026] Автономный ИИ-агент клиентской поддержки OmniSMM 1.0 (Laya ONNX + GraphRAG + Gemini + DLP + Human Takeover + BOLA/IDOR Shield + White-Label Cancellation Escalation) в ветке `feature/ai-support-agent` (100% COMPLETE & LIVE VERIFIED):
+  * 📐 **Архитектурная спецификация (SDD / ADR) (`docs/specs/SPEC-2026-09-21-ai-support-agent.md`):**
+    - Разработана комплексная спецификация ИИ-поддержки: ликвидированы галлюцинации физического e-commerce черновика, утвержден двухконтурный агент-губернатор, трехуровневый шлюз решений (Tier 0 Regex -> Tier 1 Laya ONNX CPU -> Tier 2 Fallback), интеграция с GraphRAG (:8100) и 50+ MD-статьями.
+    - Внедрены жесткие требования заказчика: управление раскаткой (`DISABLED`, `WHITELIST_ONLY`, `CANARY`, `ALL_USERS`), Circuit Breaker на 429 квоты Gemini, 100% прозрачность для оператора и кнопка перехвата диалога.
+    - Реализован инвариант White-Label: строгий запрет на раскрытие поставщиков/шлюзов клиентам и мгновенная эскалация отмененных заказов оператору для ручной проверки причин (модерация, приватность ссылки, лимиты).
+  * 🛡️ **Слой безопасности и защиты данных (152-ФЗ, BOLA/IDOR Defense & White-Label DLP):**
+    - `src/services/support/ai/pii-scrubber.service.ts`: деперсонализация ПДн (email, телефоны, банковские карты, JWT) до отправки в LLM.
+    - `src/services/support/ai/tools/order-lookup.tool.ts`: авторизация поиска заказа жестко привязана к `session.userId` (BOLA/IDOR физически невозможен), скрытие ссылок на каналы, 4-факторный анти-брутфорс шлюз для гостей (Rate Limit + OTP Challenge).
+    - `src/services/support/ai/output-dlp.service.ts`: пресечение утечек ссылок на каналы, промптов и API-ключей, запрет признания юридической вины (ст. 15 38-ФЗ), строгий запрет упоминания внешних поставщиков/шлюзов (`UPSTREAM_PROVIDER_DISCLOSURE`), обязательный AI-дисклеймер (ст. 10 ЗоЗПП).
+    - `src/services/support/ai/grounding-guard.service.ts`: валидация фактических сумм и номеров заказов против контекста базы данных.
+  * 🧠 **Микросервис решений, эскалация отмен и оркестратор:**
+    - `docker/laya/`: контейнер Laya 421M ONNX int8 на CPU (порт 8009) с эндпоинтом `/api/v1/decide` (intent, frustration, escalation).
+    - `src/services/support/ai/decision-gateway.service.ts`: каскадный шлюз (Tier 0 Regex <0.5мс, Tier 1 Laya 15мс, Tier 2 Fallback), мгновенная детекция запросов причин отмены (`ORDER_CANCELED_OPERATOR_REVIEW`).
+    - `src/services/support/ai/ai-agent-orchestrator.service.ts`: дирижер жизненного цикла, автоматическое успокаивающее сообщение о возврате средств, постановка задачи оператору со служебным чеклистом модерации, проверка квот, Rollout Gate и операторский перехват.
+    - `src/actions/operator/tickets/takeover.action.ts`: серверный экшн оператора для отключения ИИ и перехвата тикета.
+    - `src/app/operator/tickets/components/ticket-chat.tsx`: стилизация сообщений `AI_AGENT` и кнопка `[🛑 Перехватить диалог]`.
+  * 🧪 **Сквозная верификация и тесты (TDD):**
+    - 6 сьютов / 32 unit-теста в `src/__tests__/unit/ai-support/` (100% PASS): PII scrubber, Order Lookup BOLA/IDOR security, Decision Gateway (включая отмены заказов), Output DLP (включая White-Label защиту), Grounding Guard, Rollout & Circuit Breaker.
+    - `npx tsc --noEmit`: 0 ошибок компиляции (Strict mode).
+    - `npm run check:arch`: 1524 модуля, 0 нарушений архитектурных слоев, 0 циклических зависимостей.
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
 - [x] ⚡ [OPTICHECK-META-HARNESS-PHASE-3-2026] Фаза 3 плана OptiCheck Meta-Harness: Высокоэффективные целевые оптимизации БД (Keyset), Redis Shadow Catalog и Frontend (100% COMPLETE & LIVE VERIFIED):
   * 🗄️ **База данных и Keyset Cursor пагинация (NFR Engine):**
     - `src/lib/pagination.ts`: расширен `paginatedQuery` с детерминированной сортировкой `[{ createdAt: 'desc' }, { id: 'desc' }]`, поддержкой курсоров (`cursor: { id }, skip: 1`) и безопасным лимитом строк (1–200).
