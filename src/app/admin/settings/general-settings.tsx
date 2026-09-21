@@ -1,20 +1,19 @@
 'use client';
 
 import * as React from 'react';
-import { useActionState, useEffect, useState, useTransition } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { updateGlobalSettings, disconnectTelegramBotAction } from '@/actions/admin/settings';
+import { updateGlobalSettings } from '@/actions/admin/settings';
 import { toggleTenantMaintenanceAction } from '@/actions/admin/tenants';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import type { SystemSettings } from '@prisma/client';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   GeneralMaintenanceSection,
   GeneralBrandingSection,
-  GeneralTelegramBotSection,
   GeneralLegalFiscalSection,
   type GeneralFormState,
-  type BotTestResult,
 } from './components/general';
 
 interface GeneralSettingsProps {
@@ -25,11 +24,8 @@ interface GeneralSettingsProps {
 export function GeneralSettings({ settings, tenantId = 'smmplan' }: GeneralSettingsProps) {
   const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
   const [isTogglingMaintenance, setIsTogglingMaintenance] = useState(false);
-  const [isDisconnectBotModalOpen, setIsDisconnectBotModalOpen] = useState(false);
-  const [isDisconnectingBot, startDisconnectBotTransition] = useTransition();
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  // Live Preview States (Tenant-Aware Defaults)
   const defaultSiteName = tenantId === 'flux' ? 'SMMflux' : 'SMMplan';
   const defaultEmail = tenantId === 'flux' ? 'support@smmflux.ru' : 'support@smmplan.pro';
   const defaultPrivacyEmail = tenantId === 'flux' ? 'privacy@smmflux.ru' : 'privacy@smmplan.pro';
@@ -39,115 +35,47 @@ export function GeneralSettings({ settings, tenantId = 'smmplan' }: GeneralSetti
   const [siteDescription, setSiteDescription] = useState<string>(settings.siteDescription || '');
   const [supportEmail, setSupportEmail] = useState<string>(settings.contactSupportEmail || defaultEmail);
   const [privacyEmail, setPrivacyEmail] = useState<string>(settings.contactPrivacyEmail || defaultPrivacyEmail);
-  const [telegramBot, setTelegramBot] = useState<string>(settings.contactTelegramBot || '');
-  const [telegramBotToken, setTelegramBotToken] = useState<string>('');
-  const [telegramChannel, setTelegramChannel] = useState<string>(settings.contactTelegramChannel || '');
+  
   const [companyName, setCompanyName] = useState<string>(settings.legalCompanyName || defaultSiteName);
   const [companyInn, setCompanyInn] = useState<string>(settings.legalCompanyInn || '');
   const [companyOgrnip, setCompanyOgrnip] = useState<string>(settings.legalCompanyOgrnip || '');
   const [companyAddress, setCompanyAddress] = useState<string>(settings.legalCompanyAddress || '');
 
-  // Tax and USN Scheme reactivity (54-ФЗ / 152-ФЗ)
-  const [usnScheme, setUsnScheme] = useState<string>(settings.usnScheme || 'INCOME_EXPENSES');
-  const [taxRate, setTaxRate] = useState<number>(settings.taxRate ?? (settings.usnScheme === 'INCOME' ? 6 : 15));
-  const [opexMonthly, setOpexMonthly] = useState<number>(settings.opexMonthly ? Math.round(settings.opexMonthly / 100) : 0);
+  const [usnScheme, setUsnScheme] = useState<string>(settings.usnScheme || 'INCOME');
+  const [taxRate, setTaxRate] = useState<number>(settings.taxRate ?? 6);
+  const [opexMonthly, setOpexMonthly] = useState<number>((settings.opexMonthly || 0) / 100);
 
-  // Branding Upload states
   const [logoUrl, setLogoUrl] = useState<string | null>(settings.siteLogoUrl);
   const [faviconUrl, setFaviconUrl] = useState<string | null>(settings.siteFaviconUrl);
   const [logoUploading, setLogoUploading] = useState(false);
   const [faviconUploading, setFaviconUploading] = useState(false);
 
-  // Bot test states
-  const [isTestingBot, setIsTestingBot] = useState(false);
-  const [botTestResult, setBotTestResult] = useState<BotTestResult | null>(null);
-
-  useEffect(() => {
-    setMaintenance(Boolean(settings.maintenanceMode));
-    setSiteName(settings.siteName || (tenantId === 'flux' ? 'SMMflux' : 'SMMplan'));
-    setSiteDescription(settings.siteDescription || '');
-    setSupportEmail(settings.contactSupportEmail || (tenantId === 'flux' ? 'support@smmflux.ru' : 'support@smmplan.pro'));
-    setPrivacyEmail(settings.contactPrivacyEmail || (tenantId === 'flux' ? 'privacy@smmflux.ru' : 'privacy@smmplan.pro'));
-    setTelegramBot(settings.contactTelegramBot || '');
-    setTelegramBotToken('');
-    setTelegramChannel(settings.contactTelegramChannel || '');
-    setCompanyName(settings.legalCompanyName || (tenantId === 'flux' ? 'SMMflux' : 'SMMplan'));
-    setCompanyInn(settings.legalCompanyInn || '');
-    setCompanyOgrnip(settings.legalCompanyOgrnip || '');
-    setCompanyAddress(settings.legalCompanyAddress || '');
-    setUsnScheme(settings.usnScheme || 'INCOME_EXPENSES');
-    setTaxRate(settings.taxRate ?? (settings.usnScheme === 'INCOME' ? 6 : 15));
-    setOpexMonthly(settings.opexMonthly ? Math.round(settings.opexMonthly / 100) : 0);
-  }, [settings, tenantId]);
-
-  const handleToggleMaintenance = async (enable: boolean) => {
-    setIsTogglingMaintenance(true);
+  const copyToClipboard = async (text: string, fieldId: string) => {
     try {
-      const res = await toggleTenantMaintenanceAction(tenantId, enable);
-      if (res && res.success) {
-        setMaintenance(enable);
-        setIsMaintenanceModalOpen(false);
-        if (enable) {
-          toast.success('🔴 Режим техработ активирован! Витрина закрыта для посетителей.');
-        } else {
-          toast.success('🟢 Режим техработ отключен! Витрина переведена в штатный режим.');
-        }
-      } else {
-        toast.error((res && 'error' in res && res.error) ? res.error : 'Ошибка переключения режима техработ');
-      }
-    } catch {
-      toast.error('Сетевой сбой при переключении режима техработ');
-    } finally {
-      setIsTogglingMaintenance(false);
+      await navigator.clipboard.writeText(text);
+      setCopiedField(fieldId);
+      toast.success('Скопировано в буфер обмена');
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch (err) {
+      toast.error('Не удалось скопировать');
     }
   };
 
-  const copyToClipboard = (text: string, fieldName: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(fieldName);
-    toast.success(`Скопировано: ${text}`);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
-
-  const handleDisconnectBot = () => {
-    setIsDisconnectBotModalOpen(false);
-    startDisconnectBotTransition(async () => {
-      try {
-        const res = await disconnectTelegramBotAction(tenantId);
-        if (res.success) {
-          toast.success(res.message);
-          setTelegramBot('');
-          setTelegramBotToken('');
-        } else {
-          toast.error('error' in res ? res.error : 'Ошибка отвязки бота');
-        }
-      } catch (err) {
-        toast.error(String(err));
-      }
-    });
-  };
-
-  const handleTestBot = async () => {
-    setIsTestingBot(true);
-    setBotTestResult(null);
+  const handleToggleMaintenance = async () => {
+    setIsTogglingMaintenance(true);
     try {
-      const url = new URL('/api/admin/test-telegram-bot', window.location.origin);
-      url.searchParams.set('tenant', tenantId);
-      if (telegramBotToken && telegramBotToken.trim().length > 10 && !telegramBotToken.includes('•••')) {
-        url.searchParams.set('token', telegramBotToken.trim());
-      }
-      const res = await fetch(url.toString(), { cache: 'no-store' });
-      const data = await res.json();
-      setBotTestResult(data);
-      if (data.success) {
-        toast.success(`Бот @${data.username} успешно отвечает (Ping: ${data.pingMs}ms)`);
+      const res = await toggleTenantMaintenanceAction(tenantId, !maintenance);
+      if (res.success) {
+        setMaintenance(!maintenance);
+        toast.success('Режим тех. работ изменен');
       } else {
-        toast.error(`Ошибка связи: ${data.error}`);
+        toast.error('error' in res ? res.error : 'Ошибка');
       }
     } catch (err) {
       toast.error(String(err));
     } finally {
-      setIsTestingBot(false);
+      setIsTogglingMaintenance(false);
+      setIsMaintenanceModalOpen(false);
     }
   };
 
@@ -167,13 +95,7 @@ export function GeneralSettings({ settings, tenantId = 'smmplan' }: GeneralSetti
 
     const maxSize = type === 'logo' ? 2 * 1024 * 1024 : 500 * 1024;
     if (file.size > maxSize) {
-      toast.error(`Файл слишком большой. Максимальный размер: ${type === 'logo' ? '2 МБ' : '500 КБ'}`);
-      return;
-    }
-
-    const allowedMime = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'image/x-icon', 'image/vnd.microsoft.icon'];
-    if (!allowedMime.includes(file.type)) {
-      toast.error('Неподдерживаемый формат. Разрешены PNG, JPG, WEBP, SVG, ICO.');
+      toast.error(`Файл слишком большой.`);
       return;
     }
 
@@ -186,21 +108,16 @@ export function GeneralSettings({ settings, tenantId = 'smmplan' }: GeneralSetti
     formData.append('type', type);
 
     try {
-      const res = await fetch('/api/admin/upload-branding', {
-        method: 'POST',
-        body: formData,
-      });
-
+      const res = await fetch('/api/admin/upload-branding', { method: 'POST', body: formData });
       const data = await res.json();
       if (data.success && data.url) {
         setUrl(data.url);
-        toast.success(`${type === 'logo' ? 'Логотип' : 'Фавикон'} успешно загружен`);
+        toast.success(`Файл успешно загружен`);
       } else {
         throw new Error(data.error || 'Ошибка загрузки');
       }
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      toast.error(errorMsg);
+      toast.error(String(err));
     } finally {
       setUploading(false);
     }
@@ -215,8 +132,7 @@ export function GeneralSettings({ settings, tenantId = 'smmplan' }: GeneralSetti
         }
         return { success: true };
       } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : String(err);
-        return { success: false, error: errorMsg || 'Ошибка при обновлении настроек' };
+        return { success: false, error: String(err) };
       }
     },
     null
@@ -226,30 +142,20 @@ export function GeneralSettings({ settings, tenantId = 'smmplan' }: GeneralSetti
 
   useEffect(() => {
     if (formState?.success) {
-      toast.success('Настройки системы успешно сохранены');
+      toast.success('Настройки успешно сохранены');
     } else if (formState?.error) {
       toast.error(formState.error);
-    } else if (formState?.errors) {
-      toast.error('Ошибка валидации данных. Проверьте заполненные поля.');
-      const firstErrorField = Object.keys(formState.errors)[0];
-      if (firstErrorField) {
-        const element = document.getElementsByName(firstErrorField)[0];
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          (element as HTMLElement).focus();
-        }
-      }
     }
   }, [formState]);
 
   return (
-    <form key={settings.updatedAt?.toString() || 'general'} action={formAction} className="space-y-6">
+    <form key={settings.updatedAt?.toString() || 'general'} action={formAction} className="space-y-6 relative pb-24">
       <input type="hidden" name="tenantId" value={tenantId} />
       <input type="hidden" name="_isGeneralSettings" value="1" />
       <input type="hidden" name="siteLogoUrl" value={logoUrl || ''} />
       <input type="hidden" name="siteFaviconUrl" value={faviconUrl || ''} />
 
-      {/* 1. Platform Core Status (Maintenance Kill-Switch) */}
+      {/* 1. Maintenance Kill-Switch is always visible at the top */}
       <GeneralMaintenanceSection
         maintenance={maintenance}
         isTogglingMaintenance={isTogglingMaintenance}
@@ -258,78 +164,76 @@ export function GeneralSettings({ settings, tenantId = 'smmplan' }: GeneralSetti
         onToggleMaintenance={handleToggleMaintenance}
       />
 
-      {/* 2. Branding & Site Identity */}
-      <GeneralBrandingSection
-        siteName={siteName}
-        setSiteName={setSiteName}
-        siteDescription={siteDescription}
-        setSiteDescription={setSiteDescription}
-        logoUrl={logoUrl}
-        setLogoUrl={setLogoUrl}
-        faviconUrl={faviconUrl}
-        setFaviconUrl={setFaviconUrl}
-        logoUploading={logoUploading}
-        faviconUploading={faviconUploading}
-        handleBrandingUpload={handleBrandingUpload}
-        copyToClipboard={copyToClipboard}
-        copiedField={copiedField}
-        formState={formState}
-        onRemoveBranding={(type) => {
-          if (type === 'logo') {
-            setLogoUrl(null);
-            toast.info('Логотип удален (нажмите Сохранить для подтверждения)');
-          } else {
-            setFaviconUrl(null);
-            toast.info('Фавикон удален (нажмите Сохранить для подтверждения)');
-          }
-        }}
-      />
-
-      
-
-      {/* 4. Contacts & Legal Requisites */}
-      <GeneralLegalFiscalSection
-        defaultEmail={defaultEmail}
-        defaultPrivacyEmail={defaultPrivacyEmail}
-        defaultSiteName={defaultSiteName}
-        supportEmail={supportEmail}
-        setSupportEmail={setSupportEmail}
-        privacyEmail={privacyEmail}
-        setPrivacyEmail={setPrivacyEmail}
-        telegramChannelDefault={settings.contactTelegramChannel || (tenantId === 'flux' ? 'smmflux_news' : 'smmplan_news')}
-        companyName={companyName}
-        setCompanyName={setCompanyName}
-        companyInn={companyInn}
-        setCompanyInn={setCompanyInn}
-        companyOgrnip={companyOgrnip}
-        setCompanyOgrnip={setCompanyOgrnip}
-        companyAddress={companyAddress}
-        setCompanyAddress={setCompanyAddress}
-        usnScheme={usnScheme}
-        handleUsnChange={handleUsnChange}
-        taxRate={taxRate}
-        setTaxRate={setTaxRate}
-        opexMonthly={opexMonthly}
-        setOpexMonthly={setOpexMonthly}
-        siteName={siteName}
-        formState={formState}
-      />
+      {/* Tabs for Branding vs Legal to make it compact */}
+      <Tabs defaultValue="branding" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="branding">Брендинг сайта</TabsTrigger>
+          <TabsTrigger value="legal">Юр. Лицо и Финансы</TabsTrigger>
+        </TabsList>
+        <div className="mt-4">
+          <TabsContent value="branding" className="mt-0">
+            <GeneralBrandingSection
+              siteName={siteName}
+              setSiteName={setSiteName}
+              siteDescription={siteDescription}
+              setSiteDescription={setSiteDescription}
+              logoUrl={logoUrl}
+              setLogoUrl={setLogoUrl}
+              faviconUrl={faviconUrl}
+              setFaviconUrl={setFaviconUrl}
+              logoUploading={logoUploading}
+              faviconUploading={faviconUploading}
+              handleBrandingUpload={handleBrandingUpload}
+              copyToClipboard={copyToClipboard}
+              copiedField={copiedField}
+              formState={formState}
+              onRemoveBranding={(type) => {
+                if (type === 'logo') setLogoUrl(null);
+                else setFaviconUrl(null);
+              }}
+            />
+          </TabsContent>
+          <TabsContent value="legal" className="mt-0">
+            <GeneralLegalFiscalSection
+              defaultEmail={defaultEmail}
+              defaultPrivacyEmail={defaultPrivacyEmail}
+              defaultSiteName={defaultSiteName}
+              supportEmail={supportEmail}
+              setSupportEmail={setSupportEmail}
+              privacyEmail={privacyEmail}
+              setPrivacyEmail={setPrivacyEmail}
+              telegramChannelDefault={settings.contactTelegramChannel || (tenantId === 'flux' ? 'smmflux_news' : 'smmplan_news')}
+              companyName={companyName}
+              setCompanyName={setCompanyName}
+              companyInn={companyInn}
+              setCompanyInn={setCompanyInn}
+              companyOgrnip={companyOgrnip}
+              setCompanyOgrnip={setCompanyOgrnip}
+              companyAddress={companyAddress}
+              setCompanyAddress={setCompanyAddress}
+              usnScheme={usnScheme}
+              handleUsnChange={handleUsnChange}
+              taxRate={taxRate}
+              setTaxRate={setTaxRate}
+              opexMonthly={opexMonthly}
+              setOpexMonthly={setOpexMonthly}
+              siteName={siteName}
+              formState={formState}
+            />
+          </TabsContent>
+        </div>
+      </Tabs>
 
       {/* Sticky Bottom Action Bar */}
-      <div className="sticky bottom-4 z-20 flex items-center justify-between gap-4 p-4 rounded-2xl bg-card/95 backdrop-blur-md border border-border shadow-lg">
-        <div className="text-xs text-muted-foreground hidden sm:block">
-          Не забудьте сохранить изменения перед переходом в другие разделы
-        </div>
-        <div className="flex items-center gap-3 ml-auto">
-          <Button
-            disabled={isPending}
-            type="submit"
-            className="font-bold uppercase tracking-widest text-xs h-11 px-8 shadow-md cursor-pointer"
-          >
-            {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Сохранить все настройки
-          </Button>
-        </div>
+      <div className="fixed bottom-6 right-6 left-[300px] z-50 flex items-center justify-end gap-4 p-4 rounded-2xl bg-card/95 backdrop-blur-md border border-border shadow-lg transition-all">
+        <Button
+          disabled={isPending}
+          type="submit"
+          className="font-bold uppercase tracking-widest text-xs h-11 px-8 shadow-md cursor-pointer"
+        >
+          {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+          Сохранить изменения
+        </Button>
       </div>
     </form>
   );
