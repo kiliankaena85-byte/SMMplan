@@ -285,24 +285,7 @@ export function GeneralSettings({ settings, tenantId = 'smmplan' }: GeneralSetti
         }}
       />
 
-      {/* 3. Telegram Support Bot Configuration & Live Diagnostics */}
-      <GeneralTelegramBotSection
-        tenantId={tenantId}
-        telegramBot={telegramBot}
-        setTelegramBot={setTelegramBot}
-        telegramBotToken={telegramBotToken}
-        setTelegramBotToken={setTelegramBotToken}
-        telegramChannel={telegramChannel}
-        setTelegramChannel={setTelegramChannel}
-        hasExistingToken={Boolean(settings.telegramBotToken)}
-        isDisconnectBotModalOpen={isDisconnectBotModalOpen}
-        setIsDisconnectBotModalOpen={setIsDisconnectBotModalOpen}
-        isDisconnectingBot={isDisconnectingBot}
-        handleDisconnectBot={handleDisconnectBot}
-        isTestingBot={isTestingBot}
-        botTestResult={botTestResult}
-        handleTestBot={handleTestBot}
-      />
+      
 
       {/* 4. Contacts & Legal Requisites */}
       <GeneralLegalFiscalSection
