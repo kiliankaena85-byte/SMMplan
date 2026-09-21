@@ -34,6 +34,11 @@ const vatThresholdCache: Map<string, { result: boolean; expiresAt: number }> = n
 export function invalidateVatThresholdCache(tenantId?: string): void {
   if (tenantId) {
     vatThresholdCache.delete(tenantId);
+    for (const key of vatThresholdCache.keys()) {
+      if (key === tenantId || key.startsWith(`${tenantId}:`)) {
+        vatThresholdCache.delete(key);
+      }
+    }
   } else {
     vatThresholdCache.clear();
   }

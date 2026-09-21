@@ -1,12 +1,12 @@
-# BRIEFING — 2026-09-20T17:46:18Z
+# BRIEFING — 2026-09-21T11:08:03Z
 
 ## Mission
-Collect and structure comprehensive intelligence and benchmark data on frontier AI software development and code auditing agents (September 2026) across proprietary and open-source ecosystems, deliver a comparative benchmark report, and provide an integration roadmap for OmniSMM 1.0.
+Conduct comprehensive multi-pass competitive audit of SMM panels (RuNet & Global), reverse-engineer search/advertising traffic strategies, pricing models, semantics, and sales funnels, and verify/strengthen SMMplan & SMMflux architectural, SEO, and ad strategy via self-loop improving.
 
 ## 🔒 My Identity
 - Archetype: sentinel
 - Working directory: e:\SMM\.agents\sentinel
-- Orchestrator: blocked (platform excluded subagents from context budget)
+- Orchestrator: blocked (platform harness excluded subagents from context budget)
 - Victory Auditor: to be spawned on victory claim
 
 ## 🔒 Key Constraints
@@ -16,16 +16,16 @@ Collect and structure comprehensive intelligence and benchmark data on frontier 
 - Ultra-light context, no coding or problem analysis
 
 ## User Context
-- **Last user request**: Deep technical dossiers on proprietary (Codex CLI + Astra, Claude Code, Devin) and open-source agents (OpenHands, Aider, SWE-agent, Goose, Roo Code, AutoCodeRover, Plandex, MetaGPT), benchmark matrix (SWE-bench, security, OpenRouter, cost/overhead), and OmniSMM audit integration roadmap.
+- **Last user request**: Deep multi-pass competitive audit of SMM panels (Bosslike, Soc-service, Taplike, Doctorsmm, SMMPrime, EasyLiker, PrSkill, SMMLaba, JustAnotherPanel), White-Hat Ad Playbook (Yandex Direct, TG Ads, VK Ads, 38-FZ/ORD compliance), 2026 Semantic Matrix & LSI graph (B2B SMMplan vs B2C SMMflux + AEO Yandex Neuro), and Self-Loop Improving Roadmap.
 - **Pending clarifications**: none
-- **Delivered results**: Target directories initialized, requests persisted to ORIGINAL_REQUEST.md.
+- **Delivered results**: Request recorded verbatim in ORIGINAL_REQUEST.md files, routing determined.
 
 ## Project Status
 - **Phase**: blocked / escalated
 - **Route**: General -> teamwork_preview_orchestrator
-- **Working Directory**: C:\Users\ZVER\teamwork_projects\frontier_agents_intel_2026
+- **Working Directory**: e:/SMM
 - **Dispatch Status**: Attempted `invoke_subagent` for `teamwork_preview_orchestrator`. Failed with `subagent "teamwork_preview_orchestrator" not found or not allowed to be invoked` due to platform context budget exclusion.
-- **Escalation**: Reporting status to caller agent `parent` (id: 367fdca1-adce-4fc1-9619-bb902f385b84).
+- **Escalation**: Reporting status to caller agent `parent` (id: e592d99f-9d53-44c5-bd96-a33519834f4b).
 
 ## Victory Audit Status
 - **Triggered**: no
@@ -35,6 +35,5 @@ Collect and structure comprehensive intelligence and benchmark data on frontier 
 ## Artifact Index
 - e:\SMM\.agents\ORIGINAL_REQUEST.md — Authoritative record of user requests in root workspace
 - e:\SMM\.agents\sentinel\ORIGINAL_REQUEST.md — Sentinel request log
-- C:\Users\ZVER\teamwork_projects\frontier_agents_intel_2026\ORIGINAL_REQUEST.md — Authoritative record in target project workspace
 - e:\SMM\.agents\sentinel\BRIEFING.md — Sentinel persistent memory
 - e:\SMM\.agents\sentinel\handoff.md — Sentinel handoff and escalation report

@@ -9,7 +9,7 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { getPublicCatalogAction, getServicesByCategoryAction } from '@/actions/order/catalog';
-import { normalizeTenantId, getTenantHost, getTenantSiteName, absoluteCanonical } from '@/lib/seo-helpers';
+import { normalizeTenantId, getTenantHost, getTenantSiteName } from '@/lib/seo-helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,34 +40,53 @@ export async function GET() {
   const catalogResult = await getPublicCatalogAction(tenantId);
   const networks = catalogResult.success && catalogResult.data ? catalogResult.data : [];
 
+  // Parallel fetch all category services across all networks to eliminate N+1 latency
+  const allCategoryEntries = networks.flatMap((net) =>
+    net.categories.map((cat) => ({ net, cat }))
+  );
+
+  const categoryServicesResults = await Promise.all(
+    allCategoryEntries.map(async ({ net, cat }) => {
+      try {
+        const services = await getServicesByCategoryAction(cat.id, tenantId);
+        const activeServices = services.filter((s) => s.pricePerUnitRub > 0);
+        return { net, cat, activeServices };
+      } catch {
+        return { net, cat, activeServices: [] };
+      }
+    })
+  );
+
   let categoryIdCounter = 1;
   const categoryXmlList: string[] = [];
   const offerXmlList: string[] = [];
+  const networkIdMap = new Map<string, number>();
 
+  // 1. Build parent network categories
   for (const net of networks) {
     const parentCatId = categoryIdCounter++;
+    networkIdMap.set(net.slug, parentCatId);
     categoryXmlList.push(`<category id="${parentCatId}">${escapeXml(cleanEmoji(net.name))}</category>`);
+  }
 
-    for (const cat of net.categories) {
-      // Quality Gate: Only categories with >= 3 active services and positive price
-      const services = await getServicesByCategoryAction(cat.id, tenantId);
-      const activeServices = services.filter((s) => s.pricePerUnitRub > 0);
+  // 2. Build sub-categories and offers filtered by Quality Gate (>= 3 active services)
+  for (const entry of categoryServicesResults) {
+    if (entry.activeServices.length >= 3) {
+      const parentCatId = networkIdMap.get(entry.net.slug);
+      const catId = categoryIdCounter++;
+      categoryXmlList.push(
+        `<category id="${catId}"${parentCatId ? ` parentId="${parentCatId}"` : ''}>${escapeXml(cleanEmoji(entry.cat.name))}</category>`
+      );
 
-      if (activeServices.length >= 3) {
-        const catId = categoryIdCounter++;
-        categoryXmlList.push(
-          `<category id="${catId}" parentId="${parentCatId}">${escapeXml(cleanEmoji(cat.name))}</category>`
-        );
+      for (const s of entry.activeServices) {
+        if (!s.slug) continue;
+        const offerUrl = `${baseUrl}/services/${entry.net.slug}/${entry.cat.slug}/${s.slug}`;
+        const offerPrice = s.pricePerUnitRub.toFixed(4);
+        const rawDescription = s.description
+          ? `${cleanEmoji(s.description.slice(0, 300))}`
+          : `Быстрый и безопасный заказ ${cleanEmoji(s.name)} на платформе ${siteName}. Без паролей, автостарт, гарантия 30 дней.`;
 
-        for (const s of activeServices) {
-          if (!s.slug) continue;
-          const offerUrl = `${baseUrl}/services/${net.slug}/${cat.slug}/${s.slug}`;
-          const offerPrice = s.pricePerUnitRub.toFixed(4);
-          const rawDescription = s.description
-            ? `${cleanEmoji(s.description.slice(0, 300))}`
-            : `Быстрый и безопасный заказ ${cleanEmoji(s.name)} на платформе ${siteName}. Без паролей, автостарт, гарантия 30 дней.`;
-
-          offerXmlList.push(`
+        offerXmlList.push(`
       <offer id="${escapeXml(String(s.numericId || s.id))}" available="true">
         <url>${escapeXml(offerUrl)}</url>
         <price>${offerPrice}</price>
@@ -83,7 +102,6 @@ export async function GET() {
         <param name="Капельная подача">Drip-Feed</param>
         <param name="Фискализация">Чек 54-ФЗ НДС 22%</param>
       </offer>`);
-        }
       }
     }
   }

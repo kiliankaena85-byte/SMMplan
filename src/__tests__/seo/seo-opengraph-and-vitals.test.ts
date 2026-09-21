@@ -112,5 +112,36 @@ describe('🔍 SEO, OpenGraph & Core Web Vitals Master Suite', () => {
       expect(disallowList).toContain('/payment-redirect');
       expect(disallowList).toContain('/support/payment-error');
     });
+
+    it('verifies that robots allows all essential SEO assets', async () => {
+      const robotsModule = await import('@/app/robots');
+      const robotsData = await robotsModule.default();
+
+      expect(robotsData.rules).toBeDefined();
+      const rules = Array.isArray(robotsData.rules) ? robotsData.rules : [robotsData.rules];
+
+      for (const rule of rules) {
+        if (rule.allow) {
+          const allowList = Array.isArray(rule.allow) ? rule.allow : [rule.allow];
+          expect(allowList).toContain('/llms.txt');
+          expect(allowList).toContain('/llms-full.txt');
+        }
+      }
+    });
+
+    it('generates distinct OpenGraph image configurations for SMMplan and SMMflux (Anti-Mimicry)', async () => {
+      const { NextRequest } = await import('next/server');
+      const { GET } = await import('@/app/api/og/route');
+
+      // 1. SMMplan OG Request
+      const smmplanReq = new NextRequest('https://smmplan.pro/api/og?tenant=smmplan&network=Telegram');
+      const smmplanRes = await GET(smmplanReq);
+      expect(smmplanRes.status).toBe(200);
+
+      // 2. SMMflux OG Request
+      const fluxReq = new NextRequest('https://smmflux.ru/api/og?tenant=flux&network=Telegram');
+      const fluxRes = await GET(fluxReq);
+      expect(fluxRes.status).toBe(200);
+    });
   });
 });

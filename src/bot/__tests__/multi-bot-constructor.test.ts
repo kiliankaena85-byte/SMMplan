@@ -196,7 +196,7 @@ describe('OmniSMM Telegram Bot Constructor & Multi-Bot Platform Suite', () => {
 
   describe('4. Server Actions Management', () => {
     it('4.1 should auto-seed existing primary bot into constructor on first list call', async () => {
-      process.env.TELEGRAM_BOT_TOKEN = '7123456789:AAH_test_valid_token_string';
+      process.env.TELEGRAM_BOT_TOKEN = '7123456789:AAH_test_valid_token_string_1234567';
 
       const res = await listTelegramBotsAction('smmplan');
       expect(res.success).toBe(true);

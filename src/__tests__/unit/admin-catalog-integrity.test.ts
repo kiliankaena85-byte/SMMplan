@@ -53,9 +53,12 @@ describe('Admin Catalog Integrity & Contracts Suite (SIL-2026 Step 3)', () => {
     it('contains all canonical catalog tabs in CATALOG_TABS (strictly catalog scoped)', () => {
       const expectedHrefs = [
         '/admin/catalog',
+        '/admin/catalog/import',
         '/admin/catalog/categories',
+        '/admin/catalog/networks',
         '/admin/catalog/patterns',
         '/admin/catalog/quarantine',
+        '/admin/catalog/sync',
       ];
 
       const tabHrefs = CATALOG_TABS.map(t => t.href);

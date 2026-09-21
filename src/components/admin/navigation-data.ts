@@ -113,7 +113,7 @@ export const CLIENTS_TABS = [
 ];
 
 export const TICKETS_TABS = [
-  { label: 'Поддержка', href: '/admin/tickets' },
+  { label: 'Тикеты поддержки', href: '/admin/tickets' },
 ];
 
 export const FINANCE_TABS = [

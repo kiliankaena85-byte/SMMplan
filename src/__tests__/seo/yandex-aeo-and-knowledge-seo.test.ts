@@ -1,16 +1,18 @@
 /**
  * (c) 2024-2026 SMMplan / OmniSMM. All rights reserved.
  * 
- * Master Test Suite for Yandex AEO 2026, llms.txt & Knowledge SEO.
+ * Master Test Suite for Yandex AEO 2026, llms.txt, llms-full.txt,
+ * Yandex Market Language (YML) Feed, OpenSearch, and Knowledge SEO.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { pillarPages, clusterArticles } from '@/data/seo';
+import { describe, it, expect, vi } from 'vitest';
+import { pillarPages, clusterArticles, glossaryTerms } from '@/data/seo';
 import { absoluteCanonical, normalizeTenantId, getTenantHost, getTenantSiteName } from '@/lib/seo-helpers';
+import * as catalogActions from '@/actions/order/catalog';
 
 describe('Yandex AEO 2026 & Knowledge Search Optimization', () => {
-  describe('1. llms.txt Route (AI Agent & Neuro-Search Standard 2026)', () => {
-    it('returns HTTP 200 with text/plain content-type and cache headers', async () => {
+  describe('1. llms.txt & llms-full.txt Routes (AI Agent & Neuro-Search Standards)', () => {
+    it('returns HTTP 200 with text/plain content-type and cache headers for /llms.txt', async () => {
       const { GET } = await import('@/app/llms.txt/route');
       const response = await GET();
 
@@ -19,7 +21,7 @@ describe('Yandex AEO 2026 & Knowledge Search Optimization', () => {
       expect(response.headers.get('Cache-Control')).toContain('public');
     });
 
-    it('contains platform description, 1-unit pricing notice, and legal compliance', async () => {
+    it('contains platform description, 1-unit pricing notice, and legal compliance in /llms.txt', async () => {
       const { GET } = await import('@/app/llms.txt/route');
       const response = await GET();
       const text = await response.text();
@@ -37,14 +39,129 @@ describe('Yandex AEO 2026 & Knowledge Search Optimization', () => {
       expect(text).toContain('152-ФЗ');
       expect(text).toContain('НДС 22%');
 
-      // Markdown links to key sections
+      // Links to key sections & deep specs
       expect(text).toContain('/services');
       expect(text).toContain('/knowledge');
-      expect(text).toContain('/legal/privacy');
+      expect(text).toContain('/llms-full.txt');
+      expect(text).toContain('/yandex-feed.xml');
+    });
+
+    it('returns HTTP 200 with complete knowledge base & API v2 spec in /llms-full.txt', async () => {
+      const { GET } = await import('@/app/llms-full.txt/route');
+      const response = await GET();
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toContain('text/plain');
+
+      const text = await response.text();
+
+      // Invariant: all 5 pillar guides must be present in full context
+      for (const pillar of pillarPages) {
+        expect(text).toContain(pillar.title);
+      }
+
+      // Invariant: API v2 endpoints must be documented
+      expect(text).toContain('/api/v2/order');
+      expect(text).toContain('/api/v2/status');
+      expect(text).toContain('Idempotency-Key');
+
+      // Invariant: Drip-Feed Floor Invariant must be explained
+      expect(text).toContain('Drip-Feed Invariant');
+      expect(text).toContain('Refill 30');
     });
   });
 
-  describe('2. Sitemap Coverage & Knowledge Indexing', () => {
+  describe('2. Yandex Market Language (YML) Product Feed (/yandex-feed.xml)', () => {
+    it('returns valid YML XML with RUR currency, shop details, and Quality Gate offers', async () => {
+      vi.spyOn(catalogActions, 'getPublicCatalogAction').mockResolvedValueOnce({
+        success: true,
+        data: [
+          {
+            id: 'net-1',
+            name: 'Telegram',
+            slug: 'telegram',
+            categories: [
+              { id: 'cat-1', name: 'Подписчики', slug: 'subscribers' },
+            ],
+          },
+        ] as any,
+      });
+
+      vi.spyOn(catalogActions, 'getServicesByCategoryAction').mockResolvedValueOnce([
+        {
+          id: 's1',
+          numericId: 101,
+          name: 'Подписчики быстрые',
+          slug: 'subscribers-fast',
+          pricePerUnitRub: 0.15,
+          minQty: 10,
+          maxQty: 10000,
+          description: 'Быстрые подписчики в Telegram',
+        },
+        {
+          id: 's2',
+          numericId: 102,
+          name: 'Подписчики премиум',
+          slug: 'subscribers-premium',
+          pricePerUnitRub: 0.25,
+          minQty: 10,
+          maxQty: 5000,
+          description: 'Премиум подписчики в Telegram',
+        },
+        {
+          id: 's3',
+          numericId: 103,
+          name: 'Подписчики СНГ',
+          slug: 'subscribers-cis',
+          pricePerUnitRub: 0.3,
+          minQty: 10,
+          maxQty: 20000,
+          description: 'СНГ подписчики в Telegram',
+        },
+      ] as any);
+
+      const { GET } = await import('@/app/yandex-feed.xml/route');
+      const response = await GET();
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toContain('application/xml');
+
+      const xml = await response.text();
+
+      // Must be valid YML syntax
+      expect(xml).toContain('<?xml version="1.0" encoding="UTF-8"?>');
+      expect(xml).toContain('<yml_catalog');
+      expect(xml).toContain('<shop>');
+      expect(xml).toContain('<currencies>');
+      expect(xml).toContain('<currency id="RUR" rate="1"/>');
+      expect(xml).toContain('<categories>');
+      expect(xml).toContain('<offers>');
+
+      // Verify essential offer parameters
+      expect(xml).toContain('<currencyId>RUR</currencyId>');
+      expect(xml).toContain('Чек 54-ФЗ НДС 22%');
+      expect(xml).toContain('Подписчики быстрые');
+      expect(xml).toContain('0.1500');
+    });
+  });
+
+  describe('3. OpenSearch 1.1 Route (/opensearch.xml)', () => {
+    it('returns valid OpenSearch description with search URL template', async () => {
+      const { GET } = await import('@/app/opensearch.xml/route');
+      const response = await GET();
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toContain('application/opensearchdescription+xml');
+
+      const xml = await response.text();
+      expect(xml).toContain('OpenSearchDescription');
+      expect(xml).toContain('<ShortName>');
+      expect(xml).toContain('template="');
+      expect(xml).toContain('/services?q={searchTerms}');
+    });
+  });
+
+  describe('4. Sitemap Coverage & Knowledge Indexing', () => {
     it('ensures all static SEO pillars are defined with valid slugs and FAQs', () => {
       expect(pillarPages.length).toBeGreaterThanOrEqual(5);
 
@@ -90,7 +207,21 @@ describe('Yandex AEO 2026 & Knowledge Search Optimization', () => {
     });
   });
 
-  describe('3. Knowledge Article & Hub JSON-LD Rich Snippets', () => {
+  describe('5. Knowledge Article & Hub JSON-LD Rich Snippets', () => {
+    it('isolates article author branding per tenant (Anti-Mimicry Invariant)', async () => {
+      const { getArticleBySlug } = await import('@/actions/knowledge');
+
+      const smmplanArticle = await getArticleBySlug('guide-telegram', 'smmplan');
+      expect(smmplanArticle.success).toBe(true);
+      expect(smmplanArticle.article?.authorName).toBe('Команда SMMplan');
+      expect(smmplanArticle.article?.authorRole).toBe('Экспертная редакция SMMplan');
+
+      const fluxArticle = await getArticleBySlug('guide-telegram', 'flux');
+      expect(fluxArticle.success).toBe(true);
+      expect(fluxArticle.article?.authorName).toBe('Команда SMMflux');
+      expect(fluxArticle.article?.authorRole).toBe('Экспертная редакция SMMflux');
+    });
+
     it('constructs complete Article Schema with Person author and Organization publisher', () => {
       const mockArticle = {
         title: 'Продвижение в Telegram: полный гайд 2026',

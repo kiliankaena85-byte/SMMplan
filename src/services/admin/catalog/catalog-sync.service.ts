@@ -183,14 +183,20 @@ export class CatalogSyncService {
     const SHRINK_THRESHOLD = 0.5;
 
     const previousCount = await db.shadowService.count({ where: { providerId: providerDbRecord.id } });
+    const curatedCount = await db.service.count({
+      where: {
+        providerId: providerDbRecord.id,
+        tenantId: { not: '' }
+      }
+    });
     const fetchedCount = validRawServices.length;
 
-    if (fetchedCount === 0 && previousCount > 0) {
+    if (fetchedCount === 0 && (previousCount > 0 || curatedCount > 0)) {
       await db.routingAuditLog.create({
         data: {
           serviceId: 'SYSTEM',
           action: 'PROVIDER_SYNC_ABORTED_EMPTY',
-          reason: `Sync aborted: Provider returned 0 valid services, previous shadow count was ${previousCount}`
+          reason: `Sync aborted: Provider returned 0 valid services (previous shadow: ${previousCount}, curated: ${curatedCount})`
         }
       });
       throw new Error('PROVIDER_RETURNED_EMPTY_CATALOG');
@@ -422,7 +428,9 @@ export class CatalogSyncService {
               data: {
                 isQuarantined: true,
                 pendingRate: rawRate,
-                quarantineReason: `Поставщик изменил цену: ${s.rate} -> ${rawRate} ${providerCurrency} (${relChange > 0 ? '+' : ''}${(relChange * 100).toFixed(1)}%)`,
+                quarantineReason: relChange > 0
+                  ? `Price Spike (+${Math.round(relChange * 100)}%): себестоимость выросла с ${oldCostRub.toFixed(2)} ₽ до ${newCostRub.toFixed(2)} ₽/1k`
+                  : `Поставщик изменил цену: ${s.rate} -> ${rawRate} ${providerCurrency} (${(relChange * 100).toFixed(1)}%)`,
                 quarantinedAt: new Date(),
               }
             });
@@ -605,7 +613,13 @@ export class CatalogSyncService {
 
     const updatesBatch: Prisma.PrismaPromise<unknown>[] = [];
     for (const s of allServices) {
+      if (!s.rate || s.rate <= 0) {
+        continue;
+      }
       const costRub = getCostRub(s.rate, s.providerCurrency || 'RUB', usdToRub, liveCrossRates);
+      if (costRub <= 0) {
+        continue;
+      }
       const effectiveMarkup = s.markup > 0 ? s.markup : SAFETY_FLOOR_MARKUP;
       const pricePer1kRubRounded = applyBeautifulRounding(costRub * effectiveMarkup);
       const pricePerUnitRub = pricePer1kRubRounded / 1000;

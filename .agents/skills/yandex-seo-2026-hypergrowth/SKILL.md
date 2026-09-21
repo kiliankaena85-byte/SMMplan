@@ -116,13 +116,28 @@ return {
 2. `BreadcrumbList`: 4-уровневые цепочки (`Главная` → `База знаний` → `Пиллар-гайд` → `Кластерная статья`).
 3. `FAQPage`: интеграция структурированных ответов для нейро-выдачи Яндекса.
 
-### 4.4. Стандарт Обучения и Цитат AI-Агентов (llms.txt Specification)
-- Реализован корневой эндпоинт `/llms.txt` согласно мировому стандарту llmstxt.org.
+### 4.4. Стандарт Обучения и Цитат AI-Агентов (llms.txt & llms-full.txt Specification)
+- Реализованы корневые эндпоинты `/llms.txt` (краткий) и `/llms-full.txt` (исчерпывающий) согласно мировому стандарту llmstxt.org.
 - Форматирует структурированный контекст для `YandexBot`, `GPTBot`, `PerplexityBot`, `ClaudeBot`:
   - Четкая изоляция брендов SMMplan (B2B/API) и SMMflux (B2C Express).
   - Прозрачные правила тарификации (строго за 1 единицу в RUB).
   - Инварианты безопасности (Drip-Feed, Refill 30 дней, 54-ФЗ НДС 22%, 152-ФЗ).
-  - Прямые Markdown-ссылки на канонические разделы каталога и пиллар-статьи.
+  - Полный перечень пиллар-статей, кластеров, глоссария и REST API v2 спецификации.
+
+### 4.5. Товарный YML-фид (Yandex Market Language) под «Товары и предложения»
+- Эндпоинт `/yandex-feed.xml` генерирует стандартизированный XML-каталог формата YML.
+- Обеспечивает интеграцию в «Товары и предложения» Яндекс Вебмастера, отображение товарных карточек и цен в сниппетах Яндекса и товарной галерее над органической выдачей.
+- Фильтрует услуги через Quality Gate (только категории с $\ge 3$ активными услугами с ценой $> 0$).
+
+### 4.6. Интеграция Поиска OpenSearch 1.1 (/opensearch.xml)
+- Корневой манифест `/opensearch.xml` позволяет Яндекс Браузеру и поисковым агрегаторам интегрировать поисковую строку платформы прямо в адресную строку.
+- Связан в `<head>` корневого макета через `<link rel="search" type="application/opensearchdescription+xml" ... />`.
+
+### 4.7. Мульти-тенантный Генератор OpenGraph (Anti-Mimicry OG Engine)
+- Эндпоинт `/api/og` генерирует динамические карточки с учетом `tenant`:
+  - **SMMplan**: темно-синяя тема, логотип `S`, бейдж «Оптовые тарифы», акцент на API v2.
+  - **SMMflux**: глубокая кибер-аврора, логотип `F`, бейдж «Экспресс-витрина», акцент на мгновенный запуск.
+  - Защищает от аффилиат-фильтра и фильтра «Мимикрия» в Яндексе.
 
 ---
 
@@ -137,24 +152,26 @@ return {
   - `https://yandex.com/indexnow`
   - `https://api.indexnow.org/indexnow`
 
-### 5.2. Автоматический Realtime-триггер
-- При создании (`createArticle`) или редактировании (`updateArticle`) контента со статусом `PUBLISHED` срабатывает фоновая отправка URL в IndexNow без блокировки пользовательского интерфейса.
+### 5.2. Автоматический Realtime-триггер (Multi-Tenant Broadcast)
+- При создании (`createArticle`) или редактировании (`updateArticle`) контента со статусом `PUBLISHED` срабатывает параллельная отправка URL в IndexNow для **ОБОИХ** обслуживаемых доменов: `smmplan.pro` и `smmflux.ru`.
 
-### 5.3. Верификация владения доменом
-- Текстовый файл ключа в корне: `https://<host>/smmplan-indexnow-2026-key.txt` (возвращает HTTP 200 с чистым ключом).
+### 5.3. Верификация владения доменом & Прозрачный Рерайт
 - Динамический эндпоинт `https://<host>/api/seo/indexnow/key`.
-- Эндпоинты защищены от перехвата DDoS-экраном (добавлены в белый список исключений в `src/proxy.ts`).
+- В `src/proxy.ts` запросы вида `/[key].txt` и `/*-indexnow*.txt` автоматически перенаправляются на внутренний обработчик ключа с возвратом HTTP 200 `text/plain`.
+- Все SEO-эндпоинты (`.xml`, `.txt`, `/yandex-feed.xml`, `/opensearch.xml`) внесены в белый список DDoS-экрана.
 
 ---
 
 ## 6. Чеклист Верификации SEO 2026 (Verification Gate)
 
 Перед выкаткой любых правок агент ОБЯЗАН проверить:
-- [ ] `curl -I https://smmplan.pro/robots.txt` — содержит корректный `Sitemap` и `Host`, не блокирует `utm_*` в `Disallow`.
+- [ ] `curl -I https://smmplan.pro/robots.txt` — содержит корректный `Sitemap` и `Host`, разрешает `/llms.txt`, `/llms-full.txt`, `/yandex-feed.xml`.
 - [ ] `curl -s https://smmplan.pro/sitemap.xml` — все URL принадлежат домену запроса (`smmplan.pro`), содержит пиллары, кластеры и не содержит дубликатов.
-- [ ] `curl -s https://smmplan.pro/llms.txt` — отдает Markdown с HTTP 200 `text/plain`, содержит цены за 1 шт. и ссылки на разделы.
+- [ ] `curl -s https://smmplan.pro/yandex-feed.xml` — отдает валидный YML XML с валютой RUR и ценами за 1 единицу.
+- [ ] `curl -s https://smmplan.pro/llms.txt` — отдает Markdown с HTTP 200 `text/plain`, содержит ссылки на разделы и `llms-full.txt`.
+- [ ] `curl -s https://smmplan.pro/llms-full.txt` — отдает полный дамп базы знаний и API v2 спецификацию.
+- [ ] `curl -s https://smmplan.pro/opensearch.xml` — отдает валидный OpenSearch XML.
+- [ ] `curl -s https://smmplan.pro/api/og?tenant=flux` vs `tenant=smmplan` — отдает различные брендированные карточки (Anti-Mimicry).
 - [ ] `curl -s https://smmplan.pro/smmplan-indexnow-2026-key.txt` — отдает ключ с HTTP 200 `text/plain`.
-- [ ] `curl -s https://smmplan.pro/` — тег `<link rel="canonical" href="https://smmplan.pro/">` абсолютный.
-- [ ] `curl -s https://smmflux.ru/` — тег `<link rel="canonical" href="https://smmflux.ru/">` указывает на `smmflux.ru`.
-- [ ] Микроразметка JSON-LD содержит `FAQPage`, `BreadcrumbList`, `Article` с автором `Person` и цены за 1 единицу в рублях.
-- [ ] Тесты `npx dotenv -e .env.test -- vitest run src/__tests__/seo/` завершаются с результатом **100% PASS (32/32)**.
+- [ ] Тесты `npx dotenv -e .env.test -- vitest run src/__tests__/seo/` завершаются с результатом **100% PASS**.
+

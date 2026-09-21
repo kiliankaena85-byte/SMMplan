@@ -260,4 +260,63 @@ describe.sequential('Zombie Eraser & Pricing Auto-recalculation / Quarantine Tes
     expect(serviceADb?.pricePer1000Cents).toBe(3000);
     expect(serviceADb?.markup).toBe(2.0);
   });
+
+  it('should abort sync and protect active services from being marked as zombies when provider returns empty catalog or invalid services', async () => {
+    // Ensure shadowService table is empty for this provider
+    await db.shadowService.deleteMany({ where: { providerId: provider.id } });
+
+    // Verify serviceA is active
+    expect(serviceA.isActive).toBe(true);
+
+    // Case 1: Provider returns empty services array
+    mockGetServices.mockResolvedValue([]);
+
+    // Sync must abort with protection error
+    await expect(
+      adminCatalogService.syncProviderCatalog(provider.id, adminUser)
+    ).rejects.toThrow('API провайдера вернуло пустой список или ошибку');
+
+    // Service A must remain active and NOT be marked as zombie
+    let serviceADb = await db.service.findUnique({ where: { id: serviceA.id } });
+    expect(serviceADb?.isActive).toBe(true);
+    expect(serviceADb?.cooldownReason).toBeNull();
+
+    // Case 2: Provider returns array with 0 valid services (all malformed)
+    mockGetServices.mockResolvedValue([
+      { bogusKey: 'not a service' } as any
+    ]);
+
+    await expect(
+      adminCatalogService.syncProviderCatalog(provider.id, adminUser)
+    ).rejects.toThrow('PROVIDER_RETURNED_EMPTY_CATALOG');
+
+    serviceADb = await db.service.findUnique({ where: { id: serviceA.id } });
+    expect(serviceADb?.isActive).toBe(true);
+    expect(serviceADb?.cooldownReason).toBeNull();
+  });
+
+  it('should skip zero-rated services during syncDenormalizedPrices and protect retail price from being set to 0', async () => {
+    // Create or update a test service with rate = 0
+    const zeroRateService = await db.service.create({
+      data: {
+        name: `Zero Rate Service ${Date.now()}`,
+        categoryId: category.id,
+        providerId: provider.id,
+        rate: 0,
+        markup: 2.0,
+        pricePer1000Cents: 5000, // 50 RUB
+        minQty: 10,
+        maxQty: 1000,
+        isActive: true,
+      }
+    });
+
+    // Run syncDenormalizedPrices
+    await adminCatalogService.syncDenormalizedPrices(100.0);
+
+    // Verify service price was NOT reset to 0 cents
+    const checkService = await db.service.findUnique({ where: { id: zeroRateService.id } });
+    expect(checkService?.pricePer1000Cents).toBe(5000);
+  });
 });
+
