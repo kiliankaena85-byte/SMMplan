@@ -1,3 +1,83 @@
+- [x] ⚡ [FIX-PLATFORM-MODE-AND-TENANT-SWITCHERS-2026] Устранение дефекта переключения режимов платформы (Песочница/Гибрид/Эквайринг/Production) и тенантов (SMMplan / SMMflux) для роли OWNER в OmniSMM 1.0 (100% COMPLETE & TEST VERIFIED):
+  * 🎯 **P0 — Ликвидация гонки размонтирования React Portal на событии `mousedown`:**
+    - `src/components/admin/EnvironmentModeSwitcher.tsx`: внедрен `menuRef = React.useRef<HTMLDivElement>(null)` на портал выпадающего меню. Обработчик `handleOutside` расширен проверкой `menuRef.current.contains(target)`, добавлены поддержка `touchstart` и закрытие по `Escape`. Клик по пунктам («Песочница», «Гибридный тест», «Тест эквайринга», «Боевой режим») больше не перехватывается и не размонтирует меню до события `click`.
+    - `src/components/admin/tenant-switcher.tsx`: внедрен `menuRef` на портал выпадающего списка сайтов, обновлен `handleClickOutside` с поддержкой `touchstart` и закрытием по `Escape`. Переключение на `smmflux.ru` и возврат на `smmplan.pro` выполняются мгновенно и безотказно.
+    - `src/components/admin/admin-profile-dropdown.tsx`: устранен аналогичный дефект размонтирования портала профиля. Переключатели звука, темы, компактности и ссылки работают стабильно.
+    - `src/app/admin/orders/components/filter-dropdown.tsx`: добавлен `menuRef` и защита портала фильтров заказов от сброса на `mousedown`.
+  * ⚡ **P1 — Передача SSR-состояния в `AdminLayout` (`src/app/admin/layout.tsx`):**
+    - В серверном компоненте вычисляется `initialEnvironmentMode = await SettingsManager.getEnvironmentMode(activeTenantId)` и передается пропсом в `<EnvironmentModeSwitcher initialMode={initialEnvironmentMode} />`. Ликвидировано клиентское мерцание и задержка гидратации бейджа режима в шапке.
+  * 🧪 **Автотесты и верификация (100% PASS):**
+    - `src/__tests__/unit/admin-switchers-portal-interaction.test.tsx`: 6/6 тестов PASS (проверка кликов по пунктам меню в портале, отсутствие преждевременного размонтирования на `mousedown`, закрытие по клику вне меню и по `Escape`).
+    - `src/__tests__/admin-switchers-security.test.ts`: 6/6 тестов PASS (RBAC-безопасность, привилегии OWNER, сохранение cookie `x_admin_tenant`, нормализация тенантов).
+    - `npx tsc --noEmit`: 0 ошибок strict TypeScript.
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+- [x] 🚀 [ADMIN-SPEED-OPTIMIZATION-AND-AI-DECOUPLING-2026] Комплексная ликвидация лагов и долгой загрузки админ-панели OmniSMM 1.0 (Аналитика, Рентабельность, Транзакции, Дашборд) (100% COMPLETE & LIVE VERIFIED):
+  * 🧠 **P0 — Декуплинг Google Gemini AI на странице Аналитики (`/admin/analytics`):**
+    - Из серверного компонента `AnalyticsPage` (`src/app/admin/analytics/page.tsx`) убран блокирующий SSR-вызов `getAiFunnelAnalysisAction(period)`, вызывавший зависание страницы в `loading.tsx` со скелетонами на 15–45 секунд при перегрузке Gemini API (HTTP 503/429).
+    - Компонент `AiFunnelAdvisor` (`src/app/admin/analytics/ai-funnel-advisor.tsx`) переведен на неблокирующую фоновую клиентскую гидратацию (`initialAnalysis?: null`) с локальным скелетоном. Страница отдается браузеру мгновенно, а выводы нейросети подгружаются асинхронно.
+  * 📊 **P0 — Оптимизация расчетных запросов аналитики и сброса буфера (`src/services/admin/analytics.service.ts`):**
+    - Добавлен метод `aggregateCategoryProfitability()`, который рассчитывает маржинальность и оборот категорий in-memory из уже выбранных услуг без повторного прогона `findMany` по заказам в БД.
+    - В `src/actions/admin/analytics.action.ts` вызов `AnalyticsBufferService.flush(2000)` переведен в неблокирующий `void AnalyticsBufferService.flush().catch(...)` без задержки рендеринга страницы.
+    - Время полного расчета всех метрик воронки и рентабельности на сервере снижено до **1.1 с**.
+  * 💳 **P1 — Оптимизация реестра транзакций Ledger (`src/actions/admin/finance/ledger.ts`):**
+    - Устранено неиндексированное составное условие `OR: [{ tenantId }, { user: { tenantId } }]`, вызывавшее тяжелый `LEFT JOIN User` на каждом из 3 агрегатов сумм, общем `count` и постраничном `findMany`.
+    - Заменено на прямое индексное условие `{ tenantId: activeTenantId }`, активирующее чистый Index-Only Scan по составному индексу `LedgerEntry_tenantId_createdAt_id_idx`.
+    - Время выборки транзакций в БД снижено с 482.9 мс до **98.0 мс** (ускорение в 5 раз).
+  * 🌐 **P1 — Ликвидация таймаутов Vector Memory (`src/services/admin/ai-manual/knowledge-retriever.service.ts`):**
+    - Внедрен 30-секундный in-memory кэш статуса внешней векторной памяти `cachedStatus`, устраняющий повторные проверки доступности на каждом переходе.
+    - Сетевой таймаут `AbortSignal.timeout` снижен с 1500 мс до 400 мс.
+  * 🐳 **P2 — Оптимизация Docker-инфраструктуры (`docker-compose.yml`):**
+    - `smmplan_lite_db`: `mem_limit` увеличен со 128m до 256m (устранен дефицит памяти при параллельных подключениях).
+    - `smmplan_web`: лимит подключений в `DATABASE_URL` увеличен с `connection_limit=5` до `connection_limit=15` (ликвидированы задержки ожидания свободного коннекта `pool_timeout`); проброшена переменная `VECTOR_MEMORY_URL=http://remote-graphrag-api:8100`.
+  * 🧪 **Верификация и бенчмарки:**
+    - `npx tsc --noEmit` — 0 ошибок strict TypeScript.
+    - Live Smoke-тест контейнера: **15/15 PASS** (включая `/admin/analytics`, `/admin/transactions`, `/admin/orders`, `/dashboard`).
+    - Логи контейнера `smmplan_web`: чистые, шторм ошибок Gemini 503/429 полностью прекращен.
+- [x] 🛡️ [SECURITY-TENANT-MISMATCH-CHECKOUT-FIX-2026] Устранение сбоя React Error Boundary (3710024209) и SECURITY_TENANT_MISMATCH после оплаты на SMMplan / SMMflux (100% COMPLETE & LIVE VERIFIED):
+  * 🔍 **Ликвидация блокировки составного ключа (`src/lib/prisma-tenant-enforcer.ts`):**
+    - В методе `findUnique` расширено условие пропуска: `model === 'user' && args.where && (args.where.id || args.where.email_tenantId)`. Запрос по уникальному составному индексу `@@unique([email, tenantId])` больше не переводится в `findFirst` и не загрязняется дублирующим условием `where.tenantId = activeTenantId`.
+  * 🌐 **Системный шлюз кросс-тенантного резолвера (`src/lib/tenant-user-resolver.ts`):**
+    - Функции `resolveTenantUser` и `resolveTenantUserBalance` обернуты в `runWithTenantBypass('Multi-Tenant Cross-Tenant User Resolution', ...)`. Автопровижининг профилей и поиск балансов между брендами OmniSMM 1.0 (ст. 54.1 НК РФ) защищены от ложных блокировок энфорсера.
+  * ⚡ **Гармонизация контекста и изоляция дашборда (`src/app/dashboard/`):**
+    - `layout.tsx`: `effectiveTenantId` синхронизирован с решением Middleware (`resolveTenantFromRequest(reqHeaders)`). Выполнение лейаута и подсчет тикетов обернуты в `runWithTenant(effectiveTenantId, ...)`.
+    - `orders/page.tsx`, `page.tsx`, `finance/page.tsx`: выборка заказов, метрик и выписки леджера обернуты в `runWithTenant(tenantId, ...)`, гарантируя точный возврат `activeTenantId` через AsyncLocalStorage без рассинхрона с HTTP-заголовками.
+  * 🧪 **Автотесты и Live-верификация (SDD-TDD Red/Green):**
+    - В сьют `src/__tests__/architecture/automatic-prisma-tenant-enforcer.test.ts` добавлен тест для `email_tenantId`: зафиксирована Red Phase (AssertionError) и последующий 100% переход в Green Phase (12/12 PASS).
+    - `multi-tenant-balance-isolation.test.ts`: 4/4 PASS.
+    - `checkout-decomposition.test.ts`: 4/4 PASS.
+    - `npx tsc --noEmit`: 0 ошибок strict TypeScript.
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+    - `npm run build`: чистая сборка Webpack Next.js + worker + bot.
+    - Контейнер `smmplan_web` пересобран и перезапущен: Live Smoke-тест под авторизованной сессией на `/dashboard/orders?success=1`, `/dashboard/orders?tenant=flux`, `/dashboard`, `/dashboard/finance` — **HTTP 200 OK (0 ошибок в docker logs)**!
+- [x] ⚡ [HIGHLOAD-DB-LOCKS-INDEXES-AND-REDIS-BUFFER-2026] Комплексная Highload-оптимизация PostgreSQL, декуплинг транзакций и буферизация клик-стрима (100% COMPLETE & BENCHMARK VERIFIED):
+  * 🔓 **P0 — Ликвидация транзакционных блокировок и ошибок сериализации (40001):**
+    - `src/services/bonus/vesting-manager.service.ts`: вызов `adminAuditLog.create` вынесен наружу из `runSerializableTransaction`. Ошибки `40001: could not serialize access` полностью ликвидированы.
+    - `src/services/admin/escrow.service.ts`: финансовый аудит `await auditAdminAwaitable(...)` вынесен сразу ПОСЛЕ коммита транзакции, устраняя удержание блокировок строк `User` и `LedgerEntry`, строго сохраняя при этом финансовый аудит по контракту AGENTS.md.
+    - `src/actions/support/ticket.ts`: создание записей аудита при редактировании/удалении сообщений тикетов вынесено за пределы интерактивных транзакций в неблокирующий `auditAdmin(...)`.
+  * 🗄️ **P1 — Индексное покрытие Index-Only Scans (`prisma/schema.prisma`):**
+    - Созданы 4 высоконагруженных составных индекса:
+      1. `Service`: `@@index([tenantId, categoryId, isActive, isQuarantined, rate])` — устраняет CPU-сортировку в `work_mem`.
+      2. `Category`: `@@index([tenantId, networkId, sort])` — мгновенное дерево витрины.
+      3. `Network`: `@@index([tenantId, isActive, sort])` — фильтрация и сортировка сетей.
+      4. `AdminAuditLog`: `@@index([tenantId, createdAt(sort: Desc)])` — мгновенная лента последних действий в админке.
+    - Схема PostgreSQL синхронизирована (`prisma db push`), Prisma Client сгенерирован.
+  * 🚀 **P2 — Буферизация клик-стрима через Redis с гарантией Zero Telemetry Loss:**
+    - Разработан сервис `AnalyticsBufferService` (`src/services/analytics/analytics-buffer.service.ts`):
+      - Эндпоинт `/api/analytics` сохраняет события в Redis-очередь `buffer:analytics_events` за < 1 мс с 1.5s таймаут-гардом и fail-open откатом к прямому `db.create`.
+      - Сброс в PostgreSQL выполняется пачками по 500 записей каждые 10 минут (`runOrphanSweep`), раз в сутки (`runCleanup`) и on-demand при открытии воронки в админке (`getFunnelAnalyticsAction`).
+      - При ошибке базы данных извлеченные события возвращаются в начало очереди Redis (`redis.lpush`), гарантируя нулевую потерю телеметрии.
+  * 🧠 **P2 — Оптимизация кэширования витрины и настроек:**
+    - `src/lib/settings.ts`: добавлен in-memory кэш `tenantRecordIdCache`, устраняющий 100% повторных `findUnique` запросов к таблице `Tenant` на каждый HTTP-запрос.
+    - `src/actions/order/catalog.ts`: готовый DTO витрины `PublicNetwork[]` кэшируется в `unstable_cache` (`getCachedPublicCatalog`), исключая тяжелый JS-маппинг сотен услуг на каждый запрос.
+    - `src/actions/order/catalog.ts`: поиск по слагу `getServiceBySlugAction` обернут в `React.cache()`, устраняя двойные запросы между `generateMetadata` и страницей при SSR.
+  * 📊 **Итоговый бенчмарк времени отклика:**
+    - `http://127.0.0.1:3000/` (Главная страница): **236.8 мс** (сокращение с 5274.9 мс — **ускорение в 22 раза!**)
+    - `http://127.0.0.1:3000/login`: **238.0 мс** (сокращение с 2798.2 мс — **ускорение в 12 раз!**)
+    - `http://127.0.0.1:3000/api/health`: **42.6 мс**
+    - `http://127.0.0.1:3000/dashboard`: **214.7 мс**
+  * 🧪 **Верификация тестами:**
+    - `npx tsc --noEmit` — 0 ошибок strict TypeScript.
+    - 39 тестов в 5 сьютах (финансовые, архитектурные, буфер аналитики, escrow карантин, cleanup воркер) — **100% PASS**.
 - [x] 💳 [MULTI-TENANT-BALANCE-ISOLATION-2026] Строгая изоляция балансов между тенантами (SMMplan & SMMflux) и исключение кросс-тенантных утечек (ст. 54.1 НК РФ, multi-tenant-isolation-arch) (100% COMPLETE & LIVE VERIFIED):
   * 🛡️ **Архитектурный инвариант разделения балансов (ст. 54.1 НК РФ):**
     - `src/lib/tenant-user-resolver.ts`: разработаны безопасные хелперы `resolveTenantUser` и `resolveTenantUserBalance`, предотвращающие отображение и списание баланса чужого тенанта при кросс-тенантной сессии.

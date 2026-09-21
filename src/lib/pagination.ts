@@ -5,6 +5,7 @@ export interface PaginationParams {
   where?: Record<string, unknown>;
   orderBy?: Record<string, unknown> | Array<Record<string, unknown>>;
   include?: Record<string, unknown>;
+  skipCount?: boolean;
 }
 
 export interface PaginatedResult<T> {
@@ -24,7 +25,7 @@ export async function paginatedQuery<T>(
   },
   params: PaginationParams
 ): Promise<PaginatedResult<T>> {
-  const { cursor, page, pageSize = 50, where = {}, orderBy = [{ createdAt: 'desc' }, { id: 'desc' }], include } = params;
+  const { cursor, page, pageSize = 50, where = {}, orderBy = [{ createdAt: 'desc' }, { id: 'desc' }], include, skipCount = false } = params;
   const safePageSize = Math.min(Math.max(1, pageSize), 200);
 
   // Offset-based pagination when page is explicitly provided or cursor is not used
@@ -41,13 +42,21 @@ export async function paginatedQuery<T>(
       queryOptions.include = include;
     }
 
-    const [items, totalCount] = await Promise.all([
-      (model.findMany as (opts: unknown) => Promise<T[]>)(queryOptions),
-      (model.count as (opts: unknown) => Promise<number>)({ where }),
-    ]);
+    let items: T[];
+    let totalCount: number;
 
-    const totalPages = Math.max(1, Math.ceil(totalCount / safePageSize));
-    const hasMore = currentPage < totalPages;
+    if (skipCount) {
+      items = await (model.findMany as (opts: unknown) => Promise<T[]>)(queryOptions);
+      totalCount = -1;
+    } else {
+      [items, totalCount] = await Promise.all([
+        (model.findMany as (opts: unknown) => Promise<T[]>)(queryOptions),
+        (model.count as (opts: unknown) => Promise<number>)({ where }),
+      ]);
+    }
+
+    const totalPages = totalCount >= 0 ? Math.max(1, Math.ceil(totalCount / safePageSize)) : -1;
+    const hasMore = totalCount >= 0 ? currentPage < totalPages : items.length === safePageSize;
     const nextCursor = items.length > 0
       ? (items[items.length - 1] as unknown as { id: string })?.id
       : undefined;
@@ -84,11 +93,19 @@ export async function paginatedQuery<T>(
   let items: T[];
   let totalCount: number;
 
-  try {
-    [items, totalCount] = await Promise.all([
+  const fetchItemsAndCount = async (): Promise<[T[], number]> => {
+    if (skipCount) {
+      const itms = await (model.findMany as (opts: unknown) => Promise<T[]>)(queryOptions);
+      return [itms, -1];
+    }
+    return Promise.all([
       (model.findMany as (opts: unknown) => Promise<T[]>)(queryOptions),
       (model.count as (opts: unknown) => Promise<number>)({ where }),
     ]);
+  };
+
+  try {
+    [items, totalCount] = await fetchItemsAndCount();
   } catch (err: unknown) {
     // If cursor was deleted or not found (Prisma P2025), gracefully fall back to first page without cursor
     const isRecordNotFound =
@@ -98,10 +115,7 @@ export async function paginatedQuery<T>(
     if (cursor && isRecordNotFound) {
       delete queryOptions.cursor;
       delete queryOptions.skip;
-      [items, totalCount] = await Promise.all([
-        (model.findMany as (opts: unknown) => Promise<T[]>)(queryOptions),
-        (model.count as (opts: unknown) => Promise<number>)({ where }),
-      ]);
+      [items, totalCount] = await fetchItemsAndCount();
     } else {
       throw err;
     }
@@ -113,7 +127,7 @@ export async function paginatedQuery<T>(
     ? (paginatedItems[paginatedItems.length - 1] as unknown as { id: string })?.id
     : undefined;
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / safePageSize));
+  const totalPages = totalCount >= 0 ? Math.max(1, Math.ceil(totalCount / safePageSize)) : -1;
 
   return {
     items: paginatedItems,

@@ -1,11 +1,12 @@
 import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
-import { headers, cookies } from 'next/headers';
+import { headers } from 'next/headers';
 import { getTenantDashboardViews } from '@/tenants/factory';
 import { TenantErrorBoundary } from '@/tenants/TenantErrorBoundary';
 import { resolveTenantFromRequest, normalizeTenantId } from '@/lib/tenant-resolver-edge';
 import { resolveTenantUser } from '@/lib/tenant-user-resolver';
+import { runWithTenant } from '@/lib/tenant-context';
 
 export default async function DashboardLayout({
   children,
@@ -16,38 +17,35 @@ export default async function DashboardLayout({
   if (!session) redirect('/login');
 
   const reqHeaders = await headers();
-  const reqCookies = await cookies();
-  const reqTenantId = normalizeTenantId(resolveTenantFromRequest(reqHeaders));
-  const cookieTenant = normalizeTenantId(reqCookies.get('x_tenant')?.value);
+  const reqTenantId = normalizeTenantId(resolveTenantFromRequest(reqHeaders)) || 'smmplan';
+  const effectiveTenantId = reqTenantId;
 
-  // Multi-tenant resolution: If request, cookie or user session indicates 'flux', select flux shell
-  const isFlux = reqTenantId === 'flux' || cookieTenant === 'flux' || session.tenantId === 'flux';
-  const effectiveTenantId = isFlux ? 'flux' : 'smmplan';
+  return runWithTenant(effectiveTenantId, async () => {
+    const [user, unreadTicketsCount] = await Promise.all([
+      resolveTenantUser(session.userId, effectiveTenantId, true),
+      db.ticket.count({
+        where: {
+          userId: session.userId,
+          status: 'PENDING',
+        },
+      }),
+    ]);
 
-  const [user, unreadTicketsCount] = await Promise.all([
-    resolveTenantUser(session.userId, effectiveTenantId, true),
-    db.ticket.count({
-      where: {
-        userId: session.userId,
-        status: 'PENDING',
-      },
-    }),
-  ]);
+    if (!user) redirect('/login');
 
-  if (!user) redirect('/login');
+    const userForClient = {
+      email: user.email,
+      tenantId: effectiveTenantId,
+      balanceCents: Number(user.balance),
+      unreadTicketsCount,
+    };
 
-  const userForClient = {
-    email: user.email,
-    tenantId: effectiveTenantId,
-    balanceCents: Number(user.balance),
-    unreadTicketsCount,
-  };
+    const { ShellLayout } = await getTenantDashboardViews(effectiveTenantId);
 
-  const { ShellLayout } = await getTenantDashboardViews(effectiveTenantId);
-
-  return (
-    <TenantErrorBoundary tenantId={effectiveTenantId}>
-      <ShellLayout user={userForClient}>{children}</ShellLayout>
-    </TenantErrorBoundary>
-  );
+    return (
+      <TenantErrorBoundary tenantId={effectiveTenantId}>
+        <ShellLayout user={userForClient}>{children}</ShellLayout>
+      </TenantErrorBoundary>
+    );
+  });
 }

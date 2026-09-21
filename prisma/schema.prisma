@@ -123,6 +123,8 @@ model User {
   @@index([customerGroupId])
   @@index([createdAt(sort: Desc), id(sort: Desc)])
   @@index([tenantId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([role, totalSpent(sort: Desc)])
+  @@index([tenantId, role, totalSpent(sort: Desc)])
 }
 
 model ApiConfig {
@@ -584,6 +586,8 @@ model Order {
   @@index([tenantId, createdAt(sort: Desc)]) // Brand admin sorted
   @@index([tenantId, userId, status, createdAt])
   @@index([paymentId]) // Fast lookup for orders by payment (Order.paymentId foreign key)
+  @@index([environmentMode, isTest, createdAt(sort: Desc)])
+  @@index([tenantId, environmentMode, isTest, createdAt(sort: Desc)])
   userNotes UserNote[]
   orderRecoveryIncidents OrderRecoveryIncident[]
   cxCompensations        CxApologyCompensation[]
@@ -965,6 +969,9 @@ model Commission {
 
   @@unique([orderId, referrerId])
   @@index([referrerId])
+  @@index([status])
+  @@index([referrerId, status])
+  @@index([status, updatedAt])
 }
 
 // ── Anti-Fraud & Bonus Security Models ──
@@ -1056,6 +1063,7 @@ model LedgerEntry {
   updatedAt       DateTime @updatedAt
 
   @@unique([idempotencyKey])
+  @@index([idempotencyKey, tenantId])
   @@index([userId])
   @@index([status])
   @@index([adminId])

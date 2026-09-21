@@ -35,6 +35,24 @@ const log = logger.child({ component: 'CleanupProcessor' });
 const ANALYTICS_RETENTION_DAYS = 90;
 const LOGIN_LOG_RETENTION_DAYS = 180;
 
+/**
+ * Flushes buffered analytics events from Redis to Postgres in batches.
+ * Restores unpersisted items to Redis on DB error to guarantee zero telemetry loss.
+ */
+export async function flushAnalyticsBuffer(maxTotal: number = 5000): Promise<number> {
+  try {
+    const { AnalyticsBufferService } = await import('@/services/analytics/analytics-buffer.service');
+    const flushed = await AnalyticsBufferService.flush(maxTotal);
+    if (flushed > 0) {
+      log.info(`[Cleanup] Flushed ${flushed} buffered analytics events from Redis to DB`);
+    }
+    return flushed;
+  } catch (err) {
+    log.error('Failed to flush analytics buffer from Redis', { error: err });
+    return 0;
+  }
+}
+
 export async function runCleanup(): Promise<void> {
   const startedAt = Date.now();
   log.info('Daily cleanup started');
@@ -53,6 +71,9 @@ export async function runCleanup(): Promise<void> {
     deleted: analyticsResult.count,
     olderThan: analyticsThreshold.toISOString(),
   });
+
+  // ── 1.5. AnalyticsEvent: Flush buffered events from Redis to DB ───────────
+  await flushAnalyticsBuffer(10000);
 
   // ── 2. RateLimit: expired records ─────────────────────────────────────────
   const rateLimitResult = await db.rateLimit.deleteMany({
@@ -489,6 +510,9 @@ export async function runOrphanSweep(): Promise<void> {
       );
     }
   }
+
+  // Periodic flush of clickstream analytics buffer from Redis to Postgres (every 10 minutes)
+  await flushAnalyticsBuffer(1000);
 }
 
 interface StuckOrderSweepItem {

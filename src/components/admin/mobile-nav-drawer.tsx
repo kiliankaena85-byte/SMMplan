@@ -84,7 +84,7 @@ export function MobileNavDrawer({ userEmail, roleInfo, navigation }: MobileNavDr
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger
-        className="md:hidden flex items-center justify-center h-10 w-10 sm:h-11 sm:w-11 min-h-[40px] min-w-[40px] rounded-xl border border-border/50 text-foreground hover:bg-muted/80 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none transition-all cursor-pointer shrink-0"
+        className="md:hidden flex items-center justify-center h-11 w-11 min-h-[44px] min-w-[44px] rounded-xl border border-border/50 text-foreground hover:bg-muted/80 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none transition-all cursor-pointer shrink-0"
         aria-label="Открыть меню навигации"
       >
         <Menu className="h-5 w-5 shrink-0" />

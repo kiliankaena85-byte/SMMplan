@@ -17,6 +17,9 @@ export interface RetrievedChunk {
 }
 
 export class KnowledgeRetrieverService {
+  private static cachedStatus: { status: DockerMemoryStatus; timestamp: number } | null = null;
+  private static readonly STATUS_CACHE_TTL_MS = 30_000; // 30 seconds
+
   private static getApiBaseUrl(): string {
     return process.env.VECTOR_MEMORY_URL || process.env.GRAPHRAG_API_URL || 'http://localhost:8100';
   }
@@ -37,12 +40,17 @@ export class KnowledgeRetrieverService {
    * Checks the health and status of the Docker Vector Memory container
    */
   static async getMemoryStatus(): Promise<DockerMemoryStatus> {
+    const now = Date.now();
+    if (this.cachedStatus && (now - this.cachedStatus.timestamp) < this.STATUS_CACHE_TTL_MS) {
+      return this.cachedStatus.status;
+    }
+
     const baseUrl = this.getApiBaseUrl();
     try {
       const res = await fetch(`${baseUrl}/health`, {
         method: 'GET',
         headers: this.getAuthHeaders(),
-        signal: AbortSignal.timeout(1500),
+        signal: AbortSignal.timeout(400),
       });
 
       if (res.ok) {
@@ -50,7 +58,7 @@ export class KnowledgeRetrieverService {
         try {
           const statsRes = await fetch(`${baseUrl}/api/stats`, {
             headers: this.getAuthHeaders(),
-            signal: AbortSignal.timeout(1500),
+            signal: AbortSignal.timeout(400),
           });
           if (statsRes.ok) {
             const stats = await statsRes.json();
@@ -62,13 +70,15 @@ export class KnowledgeRetrieverService {
           // stats error fallback
         }
 
-        return {
+        const liveStatus: DockerMemoryStatus = {
           isAvailable: true,
           qdrantPointsCount: pointsCount,
           indexedFilesCount: Math.round(pointsCount / 5),
           mode: 'LIVE_DOCKER',
           vectorModel: 'paraphrase-multilingual-MiniLM-L12-v2',
         };
+        this.cachedStatus = { status: liveStatus, timestamp: now };
+        return liveStatus;
       }
     } catch {
       // Docker container offline
@@ -76,13 +86,15 @@ export class KnowledgeRetrieverService {
 
     // Offline cache stats
     const offlineDecisions = loadOfflineDecisions();
-    return {
+    const offlineStatus: DockerMemoryStatus = {
       isAvailable: false,
       qdrantPointsCount: offlineDecisions.length,
       indexedFilesCount: offlineDecisions.length,
       mode: 'OFFLINE_CACHE',
       vectorModel: 'local-lexical-matcher',
     };
+    this.cachedStatus = { status: offlineStatus, timestamp: now };
+    return offlineStatus;
   }
 
   /**

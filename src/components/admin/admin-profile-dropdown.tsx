@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { 
   User, 
@@ -39,10 +40,14 @@ export function AdminProfileDropdown({
 }: AdminProfileDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const { theme, resolvedTheme, setTheme } = useTheme();
   const { setIsHelpOpen } = useShortcuts();
   const { isCompact, toggleDensity } = useDensity();
   const [mounted, setMounted] = useState(false);
+
 
   // Workspace Settings
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -82,16 +87,34 @@ export function AdminProfileDropdown({
     toast.success(isDark ? 'Включена светлая тема' : 'Включена тёмная тема');
   };
 
-  // Close dropdown on click outside
+  // Close dropdown on click outside the trigger button or menu
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+    if (!isOpen) return;
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (
+        triggerRef.current &&
+        !triggerRef.current.contains(target) &&
+        menuRef.current &&
+        !menuRef.current.contains(target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
         setIsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('touchstart', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
 
   const initials = userEmail.slice(0, 2).toUpperCase();
 
@@ -99,7 +122,19 @@ export function AdminProfileDropdown({
     <div className="relative min-w-0 shrink" ref={dropdownRef}>
       {/* Profile Trigger Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={triggerRef}
+        onClick={() => {
+          if (!isOpen && triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            setDropdownStyle({
+              position: 'fixed',
+              top: rect.bottom + 8,
+              right: window.innerWidth - rect.right,
+              width: 288,
+            });
+          }
+          setIsOpen(!isOpen);
+        }}
         className="flex items-center gap-1.5 sm:gap-2.5 p-1 sm:p-1.5 pr-1.5 sm:pr-2.5 rounded-xl border border-border/60 bg-card/80 hover:bg-muted/80 backdrop-blur-md transition-all duration-200 cursor-pointer shadow-xs group shrink min-w-0"
         aria-label="Профиль администратора и настройки"
       >
@@ -117,10 +152,15 @@ export function AdminProfileDropdown({
         <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {/* Dropdown Menu */}
-      {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-72 bg-card/95 backdrop-blur-xl border border-border/80 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150 divide-y divide-border/40">
+      {/* Dropdown Menu — portalled to document.body to escape overflow-y-auto clipping */}
+      {isOpen && mounted && createPortal(
+        <div
+          ref={menuRef}
+          style={dropdownStyle}
+          className="bg-card/95 backdrop-blur-xl border border-border/80 rounded-2xl shadow-2xl p-2 z-[200] animate-in fade-in zoom-in-95 duration-150 divide-y divide-border/40"
+        >
           {/* User Header */}
+
           <div className="p-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary font-black text-sm flex items-center justify-center">
@@ -258,7 +298,8 @@ export function AdminProfileDropdown({
               Выйти из системы
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

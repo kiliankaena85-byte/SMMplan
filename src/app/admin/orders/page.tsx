@@ -86,12 +86,7 @@ const getCachedProviders = unstable_cache(
 );
 
 export default async function AdminOrdersPage({ searchParams }: Props) {
-  await enforceSectionAccess('orders');
-  const session = await verifySession();
-  const user = session ? await db.user.findUnique({ 
-    where: { id: session.userId },
-    include: { staffRole: { include: { permissions: true } } }
-  }) : null;
+  const user = await enforceSectionAccess('orders');
 
   const isSuperAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
   // Table-level cost/margin visibility is strictly reserved for OWNER and ADMIN.
@@ -249,7 +244,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
       />
 
       {/* Search + Filters & Orders Table Container */}
-      <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl shadow-sm ring-1 ring-border/5 overflow-hidden flex flex-col">
+      <div className="bg-card/60 backdrop-blur-md border border-border/50 rounded-xl shadow-sm ring-1 ring-border/5 flex flex-col">
         {/* Top Ultra-Compact Filters Section */}
         <div className="p-3 sm:p-4 border-b border-border/40 bg-muted/10">
           <OrdersFilterForm networks={networks} providers={providers} />

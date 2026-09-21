@@ -142,12 +142,7 @@ export async function getLedgerAction(params: Partial<LedgerParams>): Promise<Le
         });
       }
       if (activeTenantId && activeTenantId !== 'all') {
-        andConditions.push({
-          OR: [
-            { tenantId: activeTenantId },
-            { user: { tenantId: activeTenantId } },
-          ],
-        });
+        andConditions.push({ tenantId: activeTenantId });
       }
 
       if (p.type === 'TOPUP') {

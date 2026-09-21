@@ -5,18 +5,29 @@ export const adminMarketingService = {
   // ── PromoCodes ──
   async listPromoCodes(_tenantId?: string) {
     const promoCodes = await db.promoCode.findMany({
-      include: { usages: true },
       orderBy: { createdAt: 'desc' },
+      take: 200,
+      select: {
+        id: true,
+        code: true,
+        type: true,
+        discountPercent: true,
+        amount: true,
+        maxUses: true,
+        uses: true,
+        isActive: true,
+        expiresAt: true,
+        createdAt: true,
+        description: true,
+        utmSource: true,
+        utmMedium: true,
+        utmCampaign: true,
+        budgetCents: true,
+        isSuspicious: true,
+        _count: { select: { usages: true } },
+      },
     });
-    return promoCodes.map(promo => ({
-      ...promo,
-      usages: promo.usages.map(usage => ({
-        ...usage,
-        discountCents: Number(usage.discountCents),
-        revenueCents: Number(usage.revenueCents),
-        profitCents: Number(usage.profitCents),
-      }))
-    }));
+    return promoCodes;
   },
 
   async createPromoCode(data: {
@@ -144,6 +155,7 @@ export const adminMarketingService = {
 
   async processPayout(userId: string, adminId: string, amountToPayCents: number) {
     // Transaction to move referral balance to main balance
+    // SERIALIZABLE: prevents TOCTOU race when two concurrent payouts are initiated
     return db.$transaction(async (tx) => {
       const user = await tx.user.findUnique({ where: { id: userId } });
       if (!user) throw new Error('User not found');
@@ -197,6 +209,10 @@ export const adminMarketingService = {
       });
 
       return { ...user, balance: creditResult.balance };
+    }, {
+      isolationLevel: 'Serializable',
+      maxWait: 5000,
+      timeout: 10000,
     });
   },
 };

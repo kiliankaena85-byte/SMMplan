@@ -12,6 +12,7 @@ export const dynamic = 'force-dynamic';
 
 import { resolveTenantFromRequest, normalizeTenantId } from '@/lib/tenant-resolver-edge';
 import { resolveTenantUser } from '@/lib/tenant-user-resolver';
+import { runWithTenant } from '@/lib/tenant-context';
 
 export default async function DashboardPage(props: { searchParams?: Promise<{ tenant?: string }> }) {
   const searchParams = await props.searchParams;
@@ -22,12 +23,13 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ te
   const rawTenantId = searchParams?.tenant || reqHeaders.get('x-tenant-id') || session.tenantId;
   const tenantId = normalizeTenantId(rawTenantId) || 'smmplan';
 
-  // Resolve user strictly for the active tenant (auto-provisioning staff/owner on sibling tenant if needed)
-  const user = await resolveTenantUser(session.userId, tenantId, true);
-  if (!user) redirect('/login');
+  return runWithTenant(tenantId, async () => {
+    // Resolve user strictly for the active tenant (auto-provisioning staff/owner on sibling tenant if needed)
+    const user = await resolveTenantUser(session.userId, tenantId, true);
+    if (!user) redirect('/login');
 
-  const [orders, referralCount, activeOrders, hasPendingPayments] = await Promise.all([
-    db.order.findMany({
+    const [orders, referralCount, activeOrders, hasPendingPayments] = await Promise.all([
+      db.order.findMany({
       where: { userId: user.id, tenantId },
       orderBy: { createdAt: 'desc' },
       take: 5,
@@ -57,8 +59,13 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ te
 
   const { HomeView } = await getTenantDashboardViews(tenantId);
 
-  const catalogResult = await getPublicCatalogAction(tenantId);
-  const catalog = catalogResult.success && catalogResult.data ? catalogResult.data : [];
+  // FIX(PERF): Fetch public catalog only for tenants whose dashboard home renders an order wizard (e.g. SMMflux).
+  // On classic SMMplan dashboard, initialCatalog is unused, saving ~200-300 KB of RSC payload and DB load.
+  let catalog: any[] = [];
+  if (tenantId === 'flux') {
+    const catalogResult = await getPublicCatalogAction(tenantId);
+    catalog = catalogResult.success && catalogResult.data ? catalogResult.data : [];
+  }
 
   const userForClient = {
     email: user.email,
@@ -84,15 +91,16 @@ export default async function DashboardPage(props: { searchParams?: Promise<{ te
     link: order.link,
   }));
 
-  return (
-    <HomeView
-      user={userForClient}
-      orders={serializedOrders}
-      referralCount={referralCount}
-      activeOrders={activeOrders}
-      hasPendingPayments={hasPendingPayments}
-      origin={origin}
-      initialCatalog={catalog}
-    />
-  );
+    return (
+      <HomeView
+        user={userForClient}
+        orders={serializedOrders}
+        referralCount={referralCount}
+        activeOrders={activeOrders}
+        hasPendingPayments={hasPendingPayments}
+        origin={origin}
+        initialCatalog={catalog}
+      />
+    );
+  });
 }

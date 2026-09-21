@@ -17,6 +17,7 @@ import {
 } from '@/lib/financial-constants';
 import type { CatalogServiceDTO } from '@/types/catalog.dto';
 import { verifySession } from '@/lib/session';
+import { getCachedStaffUserWithPermissions } from '@/lib/server/rbac';
 import { db } from '@/lib/db';
 
 import { headers, cookies } from 'next/headers';
@@ -51,10 +52,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
   const reqHeaders = await headers();
   const cookieStore = await cookies();
   const session = await verifySession();
-  const user = session ? await db.user.findUnique({ 
-    where: { id: session.userId },
-    include: { staffRole: { include: { permissions: true } } }
-  }) : null;
+  const user = session ? await getCachedStaffUserWithPermissions(session.userId) : null;
 
   const isSuperAdmin = user?.role === 'OWNER' || user?.role === 'ADMIN';
   const permissions = user?.staffRole?.permissions || [];

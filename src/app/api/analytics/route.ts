@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { redis } from '@/lib/redis';
 import { Prisma } from '@prisma/client';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import sanitizeHtml from 'sanitize-html';
@@ -153,13 +154,29 @@ export async function POST(req: Request) {
       safeMetadata = sanitizedMeta;
     }
 
-    await db.analyticsEvent.create({
-      data: {
-        event: safeEvent,
-        metadata: (safeMetadata || undefined) as Prisma.InputJsonValue,
-        sessionId: safeSessionId || undefined,
-      },
-    });
+    const eventPayload = {
+      event: safeEvent,
+      metadata: safeMetadata ?? null,
+      sessionId: safeSessionId ?? null,
+      createdAt: new Date().toISOString(),
+    };
+
+    try {
+      const pushPromise = redis.rpush('buffer:analytics_events', JSON.stringify(eventPayload));
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Redis push timeout')), 1500)
+      );
+      await Promise.race([pushPromise, timeoutPromise]);
+    } catch (redisErr) {
+      console.warn('[AnalyticsRoute] Redis buffer push failed, falling back to direct db.create:', redisErr);
+      await db.analyticsEvent.create({
+        data: {
+          event: safeEvent,
+          metadata: (safeMetadata || undefined) as Prisma.InputJsonValue,
+          sessionId: safeSessionId || undefined,
+        },
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

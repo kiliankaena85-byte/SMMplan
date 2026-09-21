@@ -14,6 +14,7 @@ import { DensityProvider } from '@/components/admin/density-provider';
 import { AdminProfileDropdown } from '@/components/admin/admin-profile-dropdown';
 import { GlobalSiteSwitcher } from '@/components/admin/tenant-switcher';
 import { EnvironmentModeSwitcher } from '@/components/admin/EnvironmentModeSwitcher';
+import { SettingsManager } from '@/lib/settings';
 import { SystemEmergencyBanner } from '@/components/admin/system-emergency-banner';
 import { AdminAiManualWidget } from '@/components/admin/ai-manual/AdminAiManualWidget';
 import { unstable_cache } from 'next/cache';
@@ -72,6 +73,8 @@ const ADMIN_NAVIGATION = [
   }
 ];
 
+import { getCachedStaffUserWithPermissions } from '@/lib/server/rbac';
+
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   OWNER:    { label: 'Владелец',  color: 'bg-primary/10 text-primary border-primary/20 font-bold' },
   ADMIN:    { label: 'Админ',     color: 'bg-info/10 text-info border-info/20 font-bold' },
@@ -87,10 +90,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     redirect('/login');
   }
 
-  const user = await db.user.findUnique({ 
-    where: { id: session.userId },
-    include: { staffRole: { include: { permissions: true } } }
-  });
+  const user = await getCachedStaffUserWithPermissions(session.userId);
 
   if (!user || !ADMIN_ROLES.includes(user.role)) {
     redirect('/dashboard/new-order');
@@ -150,6 +150,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     user.staffRole?.permissions?.some((p: { section: string; canEdit: boolean }) => p.section.toUpperCase() === 'SETTINGS' && p.canEdit)
   );
 
+  const initialEnvironmentMode = await SettingsManager.getEnvironmentMode(activeTenantId);
+
   return (
     <DensityProvider>
       <ShortcutsProvider>
@@ -168,7 +170,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             <SystemEmergencyBanner />
             {/* Top Sticky Header Bar with Mobile Drawer, Global Site Switcher & Profile Dropdown */}
             <header className="sticky top-0 z-30 mb-2 px-2 sm:px-3 py-1.5 sm:py-2 md:py-2.5 flex items-center justify-between gap-1.5 sm:gap-3 shrink-0 bg-background/95 backdrop-blur-md border-b border-border/70 shadow-xs md:rounded-lg w-full max-w-full">
-              <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 min-w-0 flex-1 overflow-hidden">
+              <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 min-w-0 flex-1">
                 <div className="shrink-0">
                   <MobileNavDrawer
                     userEmail={user.email}
@@ -185,7 +187,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                   />
                 </div>
                 <div className="min-w-0 shrink flex items-center">
-                  <EnvironmentModeSwitcher readOnly={!canEditSettings} className="min-w-0 shrink" />
+                  <EnvironmentModeSwitcher 
+                    initialMode={initialEnvironmentMode}
+                    readOnly={!canEditSettings} 
+                    className="min-w-0 shrink" 
+                  />
                 </div>
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2 shrink min-w-0">

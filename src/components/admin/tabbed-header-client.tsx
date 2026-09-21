@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Info, ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
+import { Info, ChevronDown, ChevronUp, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface OnboardingFaq {
@@ -123,12 +123,47 @@ function AdminTabsInner({ tabs }: { tabs: TabItem[] }) {
   const allHrefs = React.useMemo(() => tabs.map((t) => t.href), [tabs]);
   const activeTabRef = React.useRef<HTMLAnchorElement>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = React.useState(false);
+  const [canScrollRight, setCanScrollRight] = React.useState(false);
 
   // Build full path including ?query for correct query-param tab matching
   const fullPath = React.useMemo(() => {
     const qs = searchParams.toString();
     return qs ? `${pathname}?${qs}` : pathname;
   }, [pathname, searchParams]);
+
+  const checkScroll = React.useCallback(() => {
+    const el = containerRef.current;
+    if (el) {
+      setCanScrollLeft(el.scrollLeft > 6);
+      setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 6);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    checkScroll();
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', checkScroll, { passive: true });
+    window.addEventListener('resize', checkScroll);
+    return () => {
+      el.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('resize', checkScroll);
+    };
+  }, [checkScroll, tabs]);
+
+  const handleScroll = (direction: 'left' | 'right') => {
+    if (containerRef.current) {
+      const offset = direction === 'left' ? -260 : 260;
+      containerRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (e.deltaY !== 0 && containerRef.current) {
+      containerRef.current.scrollLeft += e.deltaY;
+    }
+  };
 
   // Auto-scroll active tab into center on mobile
   React.useEffect(() => {
@@ -142,10 +177,23 @@ function AdminTabsInner({ tabs }: { tabs: TabItem[] }) {
   }, [fullPath]);
 
   return (
-    <div className="relative w-full max-w-full group pt-2 sm:pt-3 border-t border-border/30 overflow-hidden">
+    <div className="relative w-full max-w-full group pt-2 sm:pt-3 border-t border-border/30">
+      {/* Scroll Left Button (Desktop) */}
+      {canScrollLeft && (
+        <button
+          type="button"
+          onClick={() => handleScroll('left')}
+          className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 items-center justify-center rounded-full bg-card/95 border border-border shadow-md text-foreground hover:bg-muted transition-all cursor-pointer"
+          aria-label="Прокрутить вкладки влево"
+        >
+          <ChevronLeft className="w-4 h-4 shrink-0" />
+        </button>
+      )}
+
       {/* Tabs list container */}
       <div
         ref={containerRef}
+        onWheel={handleWheel}
         className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1 px-1 sm:px-0 w-full max-w-full scroll-smooth flex-nowrap"
       >
         {tabs.map((tab, idx) => {
@@ -167,6 +215,18 @@ function AdminTabsInner({ tabs }: { tabs: TabItem[] }) {
           );
         })}
       </div>
+
+      {/* Scroll Right Button (Desktop) */}
+      {canScrollRight && (
+        <button
+          type="button"
+          onClick={() => handleScroll('right')}
+          className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 items-center justify-center rounded-full bg-card/95 border border-border shadow-md text-foreground hover:bg-muted transition-all cursor-pointer"
+          aria-label="Прокрутить вкладки вправо"
+        >
+          <ChevronRight className="w-4 h-4 shrink-0" />
+        </button>
+      )}
     </div>
   );
 }

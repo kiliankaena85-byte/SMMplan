@@ -25,11 +25,13 @@ const Modal = Object.assign(HeroUIModal, {
 };
 
 export type PromoCodeWithUsages = PromoCode & {
-  usages: Array<Omit<PromoCodeUsage, 'discountCents' | 'revenueCents' | 'profitCents'> & {
+  /** @deprecated — replaced by _count.usages for performance. Use _count?.usages for display. */
+  usages?: Array<Omit<PromoCodeUsage, 'discountCents' | 'revenueCents' | 'profitCents'> & {
     discountCents: number;
     revenueCents: number;
     profitCents: number;
   }>;
+  _count?: { usages: number };
 };
 
 // Isolated Status Toggle Client Component

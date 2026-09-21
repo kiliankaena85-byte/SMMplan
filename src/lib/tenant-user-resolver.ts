@@ -6,6 +6,7 @@
 
 import { db } from '@/lib/db';
 import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
+import { runWithTenantBypass } from '@/lib/tenant-context';
 
 export interface ResolvedTenantBalance {
   userEmail: string | undefined;
@@ -38,63 +39,38 @@ export async function resolveTenantUser(
 ): Promise<TenantUserRecord | null> {
   if (!sessionUserId) return null;
 
-  const targetTenantId = normalizeTenantId(rawTargetTenantId) || 'smmplan';
+  return runWithTenantBypass('Multi-Tenant Cross-Tenant User Resolution', async () => {
+    const targetTenantId = normalizeTenantId(rawTargetTenantId) || 'smmplan';
 
-  const sessionUser = await db.user.findUnique({
-    where: { id: sessionUserId },
-    select: {
-      id: true,
-      email: true,
-      role: true,
-      balance: true,
-      totalSpent: true,
-      referralCode: true,
-      createdAt: true,
-      tenantId: true,
-      allowedTenants: true,
-    },
-  });
-
-  if (!sessionUser) return null;
-
-  // 1. Direct match: user belongs to the requested tenant
-  if (sessionUser.tenantId === targetTenantId) {
-    return sessionUser;
-  }
-
-  // 2. Cross-tenant lookup: query the user account created for targetTenantId
-  let tenantUser = await db.user.findUnique({
-    where: {
-      email_tenantId: {
-        email: sessionUser.email.toLowerCase(),
-        tenantId: targetTenantId,
+    const sessionUser = await db.user.findUnique({
+      where: { id: sessionUserId },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        balance: true,
+        totalSpent: true,
+        referralCode: true,
+        createdAt: true,
+        tenantId: true,
+        allowedTenants: true,
       },
-    },
-    select: {
-      id: true,
-      email: true,
-      role: true,
-      balance: true,
-      totalSpent: true,
-      referralCode: true,
-      createdAt: true,
-      tenantId: true,
-      allowedTenants: true,
-    },
-  });
+    });
 
-  // 3. Optional auto-provisioning for authenticated users across sibling tenants
-  if (!tenantUser && autoProvision) {
-    const isStaff = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'].includes(sessionUser.role);
-    const newRole = sessionUser.role === 'OWNER' ? 'OWNER' : 'USER';
-    tenantUser = await db.user.create({
-      data: {
-        email: sessionUser.email.toLowerCase(),
-        tenantId: targetTenantId,
-        role: newRole,
-        allowedTenants: isStaff ? ['smmplan', 'flux'] : [targetTenantId],
-        balance: BigInt(0),
-        tosAcceptedAt: new Date(),
+    if (!sessionUser) return null;
+
+    // 1. Direct match: user belongs to the requested tenant
+    if (sessionUser.tenantId === targetTenantId) {
+      return sessionUser;
+    }
+
+    // 2. Cross-tenant lookup: query the user account created for targetTenantId
+    let tenantUser = await db.user.findUnique({
+      where: {
+        email_tenantId: {
+          email: sessionUser.email.toLowerCase(),
+          tenantId: targetTenantId,
+        },
       },
       select: {
         id: true,
@@ -108,9 +84,36 @@ export async function resolveTenantUser(
         allowedTenants: true,
       },
     });
-  }
 
-  return tenantUser;
+    // 3. Optional auto-provisioning for authenticated users across sibling tenants
+    if (!tenantUser && autoProvision) {
+      const isStaff = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'].includes(sessionUser.role);
+      const newRole = sessionUser.role === 'OWNER' ? 'OWNER' : 'USER';
+      tenantUser = await db.user.create({
+        data: {
+          email: sessionUser.email.toLowerCase(),
+          tenantId: targetTenantId,
+          role: newRole,
+          allowedTenants: isStaff ? ['smmplan', 'flux'] : [targetTenantId],
+          balance: BigInt(0),
+          tosAcceptedAt: new Date(),
+        },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          balance: true,
+          totalSpent: true,
+          referralCode: true,
+          createdAt: true,
+          tenantId: true,
+          allowedTenants: true,
+        },
+      });
+    }
+
+    return tenantUser;
+  });
 }
 
 /**
@@ -125,55 +128,57 @@ export async function resolveTenantUserBalance(
     return { userEmail: undefined, userBalanceCents: 0 };
   }
 
-  const targetTenantId = normalizeTenantId(rawTargetTenantId) || 'smmplan';
+  return runWithTenantBypass('Multi-Tenant Cross-Tenant User Balance Resolution', async () => {
+    const targetTenantId = normalizeTenantId(rawTargetTenantId) || 'smmplan';
 
-  // Read the authenticated session user to obtain their verified email and role
-  const sessionUser = await db.user.findUnique({
-    where: { id: sessionUserId },
-    select: {
-      id: true,
-      email: true,
-      role: true,
-      balance: true,
-      tenantId: true,
-    },
-  });
+    // Read the authenticated session user to obtain their verified email and role
+    const sessionUser = await db.user.findUnique({
+      where: { id: sessionUserId },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        balance: true,
+        tenantId: true,
+      },
+    });
 
-  if (!sessionUser) {
-    return { userEmail: undefined, userBalanceCents: 0 };
-  }
+    if (!sessionUser) {
+      return { userEmail: undefined, userBalanceCents: 0 };
+    }
 
-  const isOwner = sessionUser.role === 'OWNER';
+    const isOwner = sessionUser.role === 'OWNER';
 
-  // If user is on their own tenant, return their native balance
-  if (sessionUser.tenantId === targetTenantId) {
+    // If user is on their own tenant, return their native balance
+    if (sessionUser.tenantId === targetTenantId) {
+      return {
+        userEmail: sessionUser.email,
+        userBalanceCents: Number(sessionUser.balance),
+        tenantUserId: sessionUser.id,
+        isOwner,
+      };
+    }
+
+    // Strict isolation: Look up account on target tenant
+    const targetUser = await db.user.findUnique({
+      where: {
+        email_tenantId: {
+          email: sessionUser.email.toLowerCase(),
+          tenantId: targetTenantId,
+        },
+      },
+      select: {
+        id: true,
+        balance: true,
+        role: true,
+      },
+    });
+
     return {
       userEmail: sessionUser.email,
-      userBalanceCents: Number(sessionUser.balance),
-      tenantUserId: sessionUser.id,
-      isOwner,
+      userBalanceCents: targetUser ? Number(targetUser.balance) : 0,
+      tenantUserId: targetUser?.id,
+      isOwner: isOwner || targetUser?.role === 'OWNER',
     };
-  }
-
-  // Strict isolation: Look up account on target tenant
-  const targetUser = await db.user.findUnique({
-    where: {
-      email_tenantId: {
-        email: sessionUser.email.toLowerCase(),
-        tenantId: targetTenantId,
-      },
-    },
-    select: {
-      id: true,
-      balance: true,
-      role: true,
-    },
   });
-
-  return {
-    userEmail: sessionUser.email,
-    userBalanceCents: targetUser ? Number(targetUser.balance) : 0,
-    tenantUserId: targetUser?.id,
-    isOwner: isOwner || targetUser?.role === 'OWNER',
-  };
 }

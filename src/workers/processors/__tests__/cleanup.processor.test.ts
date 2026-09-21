@@ -5,15 +5,25 @@ import { db } from '../../../lib/db';
 vi.mock('../../../lib/db', () => ({
   db: {
     authToken: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }), findMany: vi.fn().mockResolvedValue([]) },
-    analyticsEvent: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+    analyticsEvent: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }), createMany: vi.fn().mockResolvedValue({ count: 0 }) },
     rateLimit: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     loginLog: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     providerProxyLog: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     securityEvent: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     payment: { findMany: vi.fn().mockResolvedValue([]) },
     order: { findMany: vi.fn().mockResolvedValue([]), updateMany: vi.fn().mockResolvedValue({ count: 0 }), update: vi.fn(), findUnique: vi.fn() },
+    promoCode: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+    smartCampaign: { findMany: vi.fn().mockResolvedValue([]), updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+    smartTask: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
     ledgerEntry: { findFirst: vi.fn().mockResolvedValue(null) },
     $transaction: vi.fn(async (cb: any) => cb(db))
+  }
+}));
+
+vi.mock('@/lib/redis', () => ({
+  redis: {
+    lpop: vi.fn().mockResolvedValue(null),
+    rpush: vi.fn().mockResolvedValue(1),
   }
 }));
 

@@ -2,6 +2,7 @@ import { getLedgerAction } from '@/actions/admin/finance/ledger';
 import { TransactionsClient } from './transactions-client';
 import { ArrowLeftRight, CreditCard } from 'lucide-react';
 import { verifySession } from '@/lib/session';
+import { getCachedStaffUserWithPermissions } from '@/lib/server/rbac';
 import { db } from '@/lib/db';
 import { cookies, headers } from 'next/headers';
 import { resolveAdminTenantContext } from '@/utils/admin-tenant';
@@ -31,10 +32,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
   const session = await verifySession();
   if (!session) redirect('/login');
 
-  const user = await db.user.findUnique({
-    where: { id: session.userId },
-    include: { staffRole: { include: { permissions: true } } }
-  });
+  const user = await getCachedStaffUserWithPermissions(session.userId);
 
   const ALLOWED_ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'SUPPORT'];
   if (!user || !ALLOWED_ROLES.includes(user.role)) {

@@ -15080,7 +15080,7 @@ function createTenantEnforcerExtension(options = {}) {
         if (!tenantId) {
           return query(args);
         }
-        if (model === "user" && args.where && args.where.id) {
+        if (model === "user" && args.where && (args.where.id || args.where.email_tenantId)) {
           return query(args);
         }
         const scopedWhere = model === "category" || model === "service" ? { ...args.where, tenantId: { in: [tenantId, "all"] } } : { ...args.where, tenantId };
@@ -15103,54 +15103,6 @@ function createTenantEnforcerExtension(options = {}) {
           applyTenantWhereClause(args.where, tenantId, model);
         }
         return query(args);
-      },
-      // [P0-FIX] groupBy был неперехвачен — добавлен фильтр tenantId
-      async groupBy({ args, query }) {
-        if (isTenantBypassActive()) {
-          return query(args);
-        }
-        const tenantId = await resolveActiveTenantId();
-        if (tenantId) {
-          args.where = args.where || {};
-          applyTenantWhereClause(args.where, tenantId, model);
-        }
-        return query(args);
-      },
-      // [P0-FIX] aggregate был неперехвачен — добавлен фильтр tenantId
-      async aggregate({ args, query }) {
-        if (isTenantBypassActive()) {
-          return query(args);
-        }
-        const tenantId = await resolveActiveTenantId();
-        if (tenantId) {
-          args.where = args.where || {};
-          applyTenantWhereClause(args.where, tenantId, model);
-        }
-        return query(args);
-      },
-      // [P0-FIX] findFirstOrThrow был неперехвачен — добавлен фильтр tenantId
-      async findFirstOrThrow({ args, query }) {
-        if (isTenantBypassActive()) {
-          return query(args);
-        }
-        const tenantId = await resolveActiveTenantId();
-        if (tenantId) {
-          args.where = args.where || {};
-          applyTenantWhereClause(args.where, tenantId, model);
-        }
-        return query(args);
-      },
-      // [P0-FIX] findUniqueOrThrow был неперехвачен — добавлен фильтр tenantId
-      async findUniqueOrThrow({ args, query }) {
-        if (isTenantBypassActive()) {
-          return query(args);
-        }
-        const tenantId = await resolveActiveTenantId();
-        if (!tenantId) {
-          return query(args);
-        }
-        const scopedWhere = model === "category" || model === "service" ? { ...args.where, tenantId: { in: [tenantId, "all"] } } : { ...args.where, tenantId };
-        return query({ ...args, where: scopedWhere });
       },
       async create({ args, query }) {
         if (isTenantBypassActive()) {
@@ -15241,7 +15193,6 @@ var init_prisma_tenant_enforcer = __esm({
     "use strict";
     init_tenant_context();
     TENANT_SCOPED_MODELS = [
-      // Core business models (original 9)
       "order",
       "payment",
       "ticket",
@@ -15250,38 +15201,7 @@ var init_prisma_tenant_enforcer = __esm({
       "category",
       "customerGroup",
       "ticketFeedback",
-      "ledgerEntry",
-      // Auth & Security models (P0-FIX: previously unprotected)
-      "authToken",
-      "loginLog",
-      "securityEvent",
-      // Staff & Access Control models (P0-FIX)
-      "staffRole",
-      "staffPermission",
-      "adminAuditLog",
-      // Support operational models (P0-FIX)
-      "supportLimitUsage",
-      "supportHourlyUsage",
-      "supportFinancialAction",
-      // Legal & HR models (P0-FIX)
-      "legalDocumentVersion",
-      "employeeResponsibilityConsent",
-      // Telegram bot models (P0-FIX)
-      "telegramBotInstance",
-      "telegramButton",
-      "telegramTemplate",
-      "telegramProxy",
-      "telegramErrorLog",
-      "telegramDailyStat",
-      // Catalog & Commerce models (P0-FIX)
-      "network",
-      "shadowService",
-      "storefrontKey",
-      "serviceDraft",
-      // Analytics & Bonus models (P0-FIX)
-      "bonusRedemptionLog",
-      "economicOptimizationSnapshot",
-      "preLaunchLead"
+      "ledgerEntry"
     ];
   }
 });
@@ -15301,6 +15221,15 @@ function getDatasourceUrl() {
   let url = process.env.DATABASE_URL || process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL;
   if (url && url.startsWith("prisma://")) {
     url = process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL_UNPOOLED || process.env.DIRECT_URL || url.replace(/^prisma:\/\//, "postgresql://");
+  }
+  if (url && typeof window === "undefined") {
+    try {
+      const fs3 = require("fs");
+      if (!fs3.existsSync("/.dockerenv") && url.includes("@db:")) {
+        url = url.replace("@db:5432", "@127.0.0.1:5435").replace("@db:", "@127.0.0.1:5435");
+      }
+    } catch {
+    }
   }
   return url;
 }
@@ -15388,7 +15317,7 @@ var init_db = __esm({
     init_prisma_tenant_enforcer();
     globalForPrisma = globalThis;
     db = globalForPrisma.prisma ?? createPrismaClient();
-    if (process.env.NEXT_RUNTIME !== "edge") {
+    if (process.env.NODE_ENV !== "production" && process.env.NEXT_RUNTIME !== "edge") {
       globalForPrisma.prisma = db;
     }
   }
@@ -15780,31 +15709,12 @@ var init_wallet_ops = __esm({
             transactionType: txTypeOverride ?? "ADJUSTMENT"
           }
         });
-        let finalBalance;
-        if (rawCents < BigInt(0)) {
-          const absCents = -rawCents;
-          const updated = await tx.user.updateMany({
-            where: {
-              id: userId,
-              balance: { gte: absCents },
-              tenantId: resolvedTenantId
-            },
-            data: { balance: { decrement: absCents } }
-          });
-          if (updated.count === 0) {
-            throw new WalletInsufficientFundsError(absCents, BigInt(0));
-          }
-          const afterUser = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { balance: true } });
-          finalBalance = afterUser.balance;
-        } else {
-          const updatedUser = await tx.user.update({
-            where: { id: userId },
-            data: { balance: { increment: rawCents } },
-            select: { balance: true }
-          });
-          finalBalance = updatedUser.balance;
-        }
-        return { success: true, balance: finalBalance, cached: false, entry };
+        const updatedUser = await tx.user.update({
+          where: { id: userId },
+          data: { balance: { increment: rawCents } },
+          select: { balance: true }
+        });
+        return { success: true, balance: updatedUser.balance, cached: false, entry };
       },
       /**
        * Refund user balance: increments balance, decrements totalSpent, creates ledger entry.
@@ -15975,6 +15885,7 @@ async function auditAdminAwaitable(params) {
   const client = params.tx || db;
   return client.adminAuditLog.create({
     data: {
+      tenantId: params.tenantId || "smmplan",
       adminId: params.adminId,
       adminEmail: params.adminEmail,
       action: params.action,
@@ -33834,6 +33745,23 @@ __export2(redis_exports, {
   redis: () => redis,
   validateRedisUrl: () => validateRedisUrl
 });
+function getRedisUrl() {
+  let url = process.env.REDIS_URL || "redis://localhost:6379";
+  if (typeof window === "undefined") {
+    try {
+      const fs3 = require("fs");
+      if (!fs3.existsSync("/.dockerenv")) {
+        if (url.includes("@redis:")) {
+          url = url.replace("@redis:", "@127.0.0.1:");
+        } else if (url.includes("//redis:")) {
+          url = url.replace("//redis:", "//127.0.0.1:");
+        }
+      }
+    } catch {
+    }
+  }
+  return url;
+}
 function validateRedisUrl(url, env = process.env.NODE_ENV || "development", explicitPassword) {
   if (env === "production") {
     const hasAuth = url.includes("@") || Boolean(explicitPassword || process.env.REDIS_PASSWORD);
@@ -33866,7 +33794,7 @@ var init_redis = __esm({
     import_ioredis = __toESM(require_built3());
     init_sensitive_data_filter();
     globalForRedis = global;
-    redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
+    redisUrl = getRedisUrl();
     redisCheck = validateRedisUrl(redisUrl, process.env.NODE_ENV);
     if (!redisCheck.valid) {
       throw new Error(redisCheck.error);
@@ -33991,25 +33919,17 @@ var init_settings = __esm({
         if (settings) return settings;
         return this.get(activeTenantId);
       }
-      static tenantRecordIdCache = /* @__PURE__ */ new Map();
       /**
        * Helper to resolve the Tenant model ID from a tenant slug.
-       * Cached in-memory to eliminate redundant db.tenant.findUnique queries on every request.
        */
       static async resolveTenantRecordId(tenantSlug) {
         const slug = normalizeTenantId(tenantSlug) || "smmplan";
-        const cached = this.tenantRecordIdCache.get(slug);
-        if (cached) return cached;
         try {
           const tenant = await db.tenant.findUnique({ where: { slug } }) || await db.tenant.findFirst({ where: { slug: "smmplan" } }) || await db.tenant.findFirst();
-          if (tenant) {
-            this.tenantRecordIdCache.set(slug, tenant.id);
-            return tenant.id;
-          }
+          if (tenant) return tenant.id;
         } catch (dbErr) {
           console.warn(`[SettingsProvider] Database unreachable in resolveTenantRecordId for ${slug}, using fallback slug.`);
         }
-        this.tenantRecordIdCache.set(slug, slug);
         return slug;
       }
       /**
@@ -70418,6 +70338,7 @@ __export2(queue_manager_exports, {
   geoAvailabilityQueue: () => geoAvailabilityQueue,
   getQueuePrefix: () => getQueuePrefix,
   getRedisConnection: () => getRedisConnection,
+  indexNowQueue: () => indexNowQueue,
   jitteredBackoff: () => jitteredBackoff,
   ordersQueue: () => ordersQueue,
   paymentGatewayQueue: () => paymentGatewayQueue,
@@ -70612,7 +70533,7 @@ async function ensureGeoAvailabilityCron() {
     }
   );
 }
-var import_bullmq, import_ioredis2, redisConnection, getQueuePrefix, getRedisConnection, jitteredBackoff, createQueue, ordersQueue, syncQueue, catalogQueue, dlqQueue, cleanupQueue, telegramQueue, etaQueue, paymentSyncQueue, refillQueue, criticalQueue, defaultQueue, bulkQueue, queuePayment, queueOrder, queueSync, paymentGatewayQueue, articlePublishQueue, aiObserverQueue, aiEconomicOptimizerQueue, geoAvailabilityQueue, closeQueues;
+var import_bullmq, import_ioredis2, redisConnection, getQueuePrefix, getRedisConnection, jitteredBackoff, createQueue, ordersQueue, syncQueue, catalogQueue, dlqQueue, cleanupQueue, telegramQueue, etaQueue, paymentSyncQueue, refillQueue, criticalQueue, defaultQueue, bulkQueue, queuePayment, queueOrder, queueSync, paymentGatewayQueue, indexNowQueue, articlePublishQueue, aiObserverQueue, aiEconomicOptimizerQueue, geoAvailabilityQueue, closeQueues;
 var init_queue_manager = __esm({
   "src/lib/queue-manager.ts"() {
     "use strict";
@@ -70629,7 +70550,20 @@ var init_queue_manager = __esm({
     };
     getRedisConnection = () => {
       if (redisConnection) return redisConnection;
-      const redisUrl2 = process.env.CONTOUR === "test" && process.env.REDIS_URL_TEST ? process.env.REDIS_URL_TEST : process.env.REDIS_URL || "redis://127.0.0.1:6379";
+      let redisUrl2 = process.env.CONTOUR === "test" && process.env.REDIS_URL_TEST ? process.env.REDIS_URL_TEST : process.env.REDIS_URL || "redis://127.0.0.1:6379";
+      if (typeof window === "undefined") {
+        try {
+          const fs3 = require("fs");
+          if (!fs3.existsSync("/.dockerenv")) {
+            if (redisUrl2.includes("@redis:")) {
+              redisUrl2 = redisUrl2.replace("@redis:", "@127.0.0.1:");
+            } else if (redisUrl2.includes("//redis:")) {
+              redisUrl2 = redisUrl2.replace("//redis:", "//127.0.0.1:");
+            }
+          }
+        } catch {
+        }
+      }
       const redisPassword = process.env.REDIS_PASSWORD || void 0;
       const dbIndex = process.env.REDIS_DB_INDEX ? parseInt(process.env.REDIS_DB_INDEX, 10) : process.env.CONTOUR === "test" ? 1 : 0;
       const check = validateRedisUrl(redisUrl2, process.env.NODE_ENV, redisPassword);
@@ -70745,6 +70679,10 @@ var init_queue_manager = __esm({
     paymentGatewayQueue = createQueue("paymentGatewayQueue", {
       attempts: 3,
       backoff: { type: "exponential", delay: 2e3 }
+    });
+    indexNowQueue = createQueue("indexnow-queue", {
+      attempts: 5,
+      backoff: { type: "exponential", delay: 1e4 }
     });
     articlePublishQueue = createQueue("articlePublishQueue");
     aiObserverQueue = createQueue("aiObserverQueue", {
@@ -72498,20 +72436,10 @@ var init_loyalty_service = __esm({
             data: { status: "REVERSED" }
           });
           if (wasConfirmed) {
-            const commAmount = Math.round(Number(comm.amount));
-            const reversed = await tx.user.updateMany({
-              where: { id: comm.referrerId, referralBalance: { gte: commAmount } },
-              data: { referralBalance: { decrement: commAmount } }
+            await tx.user.update({
+              where: { id: comm.referrerId },
+              data: { referralBalance: { decrement: Number(comm.amount) } }
             });
-            if (reversed.count === 0) {
-              await tx.auditLog.create({
-                data: {
-                  userId: comm.referrerId,
-                  action: "REFERRAL_REVERSAL_INSUFFICIENT_BALANCE",
-                  details: `\u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044C\u043D\u044B\u0439 \u0431\u0430\u043B\u0430\u043D\u0441 \u0443\u0436\u0435 \u0438\u0441\u0447\u0435\u0440\u043F\u0430\u043D \u043F\u0440\u0438 \u043E\u0442\u0437\u044B\u0432\u0435 \u043A\u043E\u043C\u0438\u0441\u0441\u0438\u0438 orderId=${orderId}. \u041A\u043E\u0440\u0440\u0435\u043A\u0442\u0438\u0440\u043E\u0432\u043A\u0430 \u043F\u0440\u043E\u043F\u0443\u0449\u0435\u043D\u0430.`
-                }
-              });
-            }
           }
           await tx.auditLog.create({
             data: {
@@ -130730,14 +130658,18 @@ async function createProxyDispatcher(proxy) {
     return new Agent5({
       connect: connectFn,
       connectTimeout: 8e3,
-      headersTimeout: 15e3
+      headersTimeout: 15e3,
+      keepAliveTimeout: 3e4,
+      keepAliveMaxTimeout: 6e4
     });
   }
   const proxyUrl = `${proxy.protocol}://${auth}${proxy.host}:${proxy.port}`;
   return new ProxyAgent2({
     uri: proxyUrl,
     connectTimeout: 8e3,
-    headersTimeout: 15e3
+    headersTimeout: 15e3,
+    keepAliveTimeout: 3e4,
+    keepAliveMaxTimeout: 6e4
   });
 }
 async function proxiedFetch(url, init) {
@@ -131081,23 +131013,37 @@ var init_security_alert_service = __esm({
        * Fetches paginated security events for the admin panel.
        */
       static async getRecentEvents(options) {
-        const { limit = 50, offset = 0, severity, event, ip, tenantId } = options || {};
+        const { limit = 50, offset = 0, cursor, severity, event, ip, tenantId } = options || {};
         const where = {};
         if (severity && severity !== "ALL") where.severity = severity;
         if (event && event !== "ALL") where.event = event;
         if (ip) where.ip = { contains: ip };
         if (tenantId && tenantId !== "ALL") where.tenantId = tenantId;
         try {
-          const [events, total] = await Promise.all([
-            db.securityEvent.findMany({
-              where,
-              orderBy: { createdAt: "desc" },
-              take: Math.min(limit, 100),
-              skip: offset
-            }),
+          const safeLimit = Math.min(Math.max(1, limit), 100);
+          const orderBy = [
+            { createdAt: "desc" },
+            { id: "desc" }
+          ];
+          const queryOptions = {
+            where,
+            orderBy,
+            take: safeLimit + 1
+          };
+          if (cursor) {
+            queryOptions.cursor = { id: cursor };
+            queryOptions.skip = 1;
+          } else if (offset > 0) {
+            queryOptions.skip = offset;
+          }
+          const [rawEvents, total] = await Promise.all([
+            db.securityEvent.findMany(queryOptions),
             db.securityEvent.count({ where })
           ]);
-          return { events, total };
+          const hasMore = rawEvents.length > safeLimit;
+          const events = hasMore ? rawEvents.slice(0, safeLimit) : rawEvents;
+          const nextCursor = hasMore && events.length > 0 ? events[events.length - 1].id : void 0;
+          return { events, total, nextCursor, hasMore };
         } catch (err) {
           console.error("[SecurityAlertService] Failed to query security events:", err);
           return { events: [], total: 0 };
@@ -131346,7 +131292,7 @@ var init_network_router = __esm({
         }
       ]
     };
-    UniversalNetworkRouter = class {
+    UniversalNetworkRouter = class _UniversalNetworkRouter {
       static cachedConfig = null;
       static lastConfigFetch = 0;
       static CONFIG_CACHE_TTL_MS = 3e4;
@@ -131570,6 +131516,21 @@ var init_network_router = __esm({
         }
         return null;
       }
+      static directKeepAliveAgent = null;
+      static async getDirectKeepAliveAgent() {
+        if (!_UniversalNetworkRouter.directKeepAliveAgent) {
+          const { Agent: Agent5 } = await Promise.resolve().then(() => __toESM(require_undici()));
+          _UniversalNetworkRouter.directKeepAliveAgent = new Agent5({
+            keepAliveTimeout: 3e4,
+            keepAliveMaxTimeout: 6e4,
+            connections: 50,
+            pipelining: 1,
+            connectTimeout: 8e3,
+            headersTimeout: 15e3
+          });
+        }
+        return _UniversalNetworkRouter.directKeepAliveAgent;
+      }
       /**
        * Universal fetch drop-in replacement with Clash-style routing dispatch & Multi-Proxy Failover
        */
@@ -131583,7 +131544,26 @@ var init_network_router = __esm({
           throw new Error(`[NetworkRouter] Connection blocked by policy (REJECT): ${url}`);
         }
         if (route.target === "DIRECT" || !route.proxyConfig) {
-          return fetch(url, init);
+          let undiciFetchFn = null;
+          let agent2 = null;
+          try {
+            const undici = await Promise.resolve().then(() => __toESM(require_undici()));
+            undiciFetchFn = undici.fetch;
+            agent2 = await this.getDirectKeepAliveAgent();
+          } catch {
+          }
+          const signal = init?.signal || AbortSignal.timeout(15e3);
+          if (undiciFetchFn && agent2) {
+            return await undiciFetchFn(url, {
+              ...init,
+              signal,
+              dispatcher: agent2
+            });
+          }
+          return fetch(url, {
+            ...init,
+            signal
+          });
         }
         try {
           const dispatcher = await createProxyDispatcher(route.proxyConfig);
@@ -138696,49 +138676,41 @@ var init_balance_verifier = __esm({
       static async verifyAllBalances() {
         const results = [];
         try {
-          const rows = await db.$queryRaw`
-        SELECT 
-          u.id, 
-          u.email, 
-          u.balance,
-          COALESCE(SUM(l.amount) FILTER (WHERE l.status = 'APPROVED'), 0)::BIGINT AS ledger_sum
-        FROM "User" u
-        LEFT JOIN "LedgerEntry" l ON l."userId" = u.id
-        WHERE u."isActive" = true AND u."isDeleted" = false
-        GROUP BY u.id, u.email, u.balance
-      `;
-          for (const row of rows) {
-            const userBalance = BigInt(row.balance);
-            const ledgerSum = BigInt(row.ledger_sum);
-            const initialDiscrepancy = userBalance - ledgerSum;
-            if (initialDiscrepancy === BigInt(0)) {
-              results.push({
-                userId: row.id,
-                email: row.email,
-                userBalance,
-                ledgerSum,
-                discrepancy: BigInt(0),
-                isDiscrepancy: false,
-                lockedSuccessfully: false
-              });
-              continue;
+          const users = await db.user.findMany({
+            where: {
+              isActive: true,
+              isDeleted: false
+            },
+            select: {
+              id: true,
+              email: true,
+              balance: true,
+              isActive: true,
+              adminNote: true
             }
+          });
+          for (const user of users) {
             try {
               const res = await db.$transaction(async (tx) => {
                 const freshUser2 = await tx.user.findUniqueOrThrow({
-                  where: { id: row.id },
+                  where: { id: user.id },
                   select: { id: true, email: true, balance: true, isActive: true, adminNote: true }
                 });
                 const aggregateResult = await tx.ledgerEntry.aggregate({
-                  _sum: { amount: true },
-                  where: { userId: freshUser2.id, status: "APPROVED" }
+                  _sum: {
+                    amount: true
+                  },
+                  where: {
+                    userId: freshUser2.id,
+                    status: "APPROVED"
+                  }
                 });
-                const confirmedLedgerSum = aggregateResult._sum.amount ?? BigInt(0);
-                const discrepancy2 = freshUser2.balance - confirmedLedgerSum;
+                const ledgerSum2 = aggregateResult._sum.amount ?? BigInt(0);
+                const discrepancy2 = freshUser2.balance - ledgerSum2;
                 const isDiscrepancy2 = discrepancy2 !== BigInt(0);
                 let lockedSuccessfully2 = false;
                 if (isDiscrepancy2) {
-                  const adminNoteText = `[CRITICAL DISCREPANCY] \u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0430\u044F \u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u043A\u0430: \u0431\u0430\u043B\u0430\u043D\u0441 (${freshUser2.balance.toString()}) \u043D\u0435 \u0441\u0445\u043E\u0434\u0438\u0442\u0441\u044F \u0441 \u0440\u0435\u0435\u0441\u0442\u0440\u043E\u043C (${confirmedLedgerSum.toString()}). \u0420\u0430\u0437\u043D\u0438\u0446\u0430: ${discrepancy2.toString()} \u0446\u0435\u043D\u0442\u043E\u0432.`;
+                  const adminNoteText = `[CRITICAL DISCREPANCY] \u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0430\u044F \u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u043A\u0430: \u0431\u0430\u043B\u0430\u043D\u0441 (${freshUser2.balance.toString()}) \u043D\u0435 \u0441\u0445\u043E\u0434\u0438\u0442\u0441\u044F \u0441 \u0440\u0435\u0435\u0441\u0442\u0440\u043E\u043C (${ledgerSum2.toString()}). \u0420\u0430\u0437\u043D\u0438\u0446\u0430: ${discrepancy2.toString()} \u0446\u0435\u043D\u0442\u043E\u0432.`;
                   await tx.user.update({
                     where: { id: freshUser2.id },
                     data: {
@@ -138768,18 +138740,18 @@ var init_balance_verifier = __esm({
                 }
                 return {
                   freshUser: freshUser2,
-                  ledgerSum: confirmedLedgerSum,
+                  ledgerSum: ledgerSum2,
                   discrepancy: discrepancy2,
                   isDiscrepancy: isDiscrepancy2,
                   lockedSuccessfully: lockedSuccessfully2
                 };
               }, { isolationLevel: "Serializable" });
-              const { freshUser, ledgerSum: finalLedgerSum, discrepancy, isDiscrepancy, lockedSuccessfully } = res;
+              const { freshUser, ledgerSum, discrepancy, isDiscrepancy, lockedSuccessfully } = res;
               if (isDiscrepancy) {
                 const alertMessage = `\u{1F6A8} [CRITICAL BALANCE DISCREPANCY]
 User: ${freshUser.email} (ID: ${freshUser.id})
 User Balance: ${freshUser.balance.toString()} cents (${(Number(freshUser.balance) / 100).toFixed(2)} \u20BD)
-Ledger Sum: ${finalLedgerSum.toString()} cents (${(Number(finalLedgerSum) / 100).toFixed(2)} \u20BD)
+Ledger Sum: ${ledgerSum.toString()} cents (${(Number(ledgerSum) / 100).toFixed(2)} \u20BD)
 Discrepancy: ${discrepancy.toString()} cents (${(Number(discrepancy) / 100).toFixed(2)} \u20BD)
 Action: Account LOCKED, logged in AdminAuditLog.`;
                 sendAdminAlert(alertMessage, "CRITICAL");
@@ -138788,20 +138760,20 @@ Action: Account LOCKED, logged in AdminAuditLog.`;
                 userId: freshUser.id,
                 email: freshUser.email,
                 userBalance: freshUser.balance,
-                ledgerSum: finalLedgerSum,
+                ledgerSum,
                 discrepancy,
                 isDiscrepancy,
                 lockedSuccessfully
               });
             } catch (err) {
               const errMsg = err instanceof Error ? err.message : String(err);
-              console.error(`[BalanceVerifier] Error processing user ${row.email}:`, err);
+              console.error(`[BalanceVerifier] Error processing user ${user.email}:`, err);
               results.push({
-                userId: row.id,
-                email: row.email,
-                userBalance,
-                ledgerSum,
-                discrepancy: initialDiscrepancy,
+                userId: user.id,
+                email: user.email,
+                userBalance: user.balance,
+                ledgerSum: BigInt(0),
+                discrepancy: BigInt(0),
                 isDiscrepancy: true,
                 lockedSuccessfully: false,
                 error: errMsg

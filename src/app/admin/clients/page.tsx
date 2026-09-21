@@ -28,12 +28,7 @@ type Props = {
 };
 
 export default async function AdminClientsPage({ searchParams }: Props) {
-  await enforceSectionAccess('clients');
-  const session = await verifySession();
-  const user = session ? await db.user.findUnique({ 
-    where: { id: session.userId },
-    include: { staffRole: { include: { permissions: true } } }
-  }) : null;
+  const user = await enforceSectionAccess('clients');
 
   const isOwner = user?.role === 'OWNER';
   // SUPPORT can see client finances for effective client assistance
@@ -119,7 +114,7 @@ export default async function AdminClientsPage({ searchParams }: Props) {
       />
 
       {/* Filter Tabs & Search / Sort Bar */}
-      <div className="bg-card/60 backdrop-blur-md border border-border/70 shadow-xs rounded-lg p-4 sm:p-5 ring-1 ring-border/5 space-y-4 w-full max-w-full overflow-hidden">
+      <div className="bg-card/60 backdrop-blur-md border border-border/70 shadow-xs rounded-lg p-4 sm:p-5 ring-1 ring-border/5 space-y-4 w-full max-w-full">
         {/* Fast Filter Pills */}
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 w-full max-w-full flex-nowrap">
           {filterTabs.map((f) => {

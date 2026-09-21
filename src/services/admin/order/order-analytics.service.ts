@@ -96,7 +96,9 @@ export class OrderAnalyticsService {
   }
 
   /**
-   * Get top services by volume and revenue for analytics
+   * Get top services by volume and revenue for analytics.
+   * FIX C-01b: replaced findMany + JS aggregation (OOM risk) with SQL groupBy.
+   * Complexity: O(1 groupBy query) + O(limit service metadata) instead of O(all orders).
    */
   static async getTopServices(limit = 6, startDate?: Date, endDate?: Date, tenantId?: string) {
     const isSingleTenant = tenantId && tenantId !== 'all';
@@ -104,65 +106,57 @@ export class OrderAnalyticsService {
     if (startDate && endDate) where.createdAt = { gte: startDate, lte: endDate };
     if (isSingleTenant) where.tenantId = tenantId;
 
-    const orders = await db.order.findMany({
+    // Step 1: SQL GROUP BY — aggregate sums in the database
+    const grouped = await db.order.groupBy({
+      by: ['serviceId'],
       where,
+      _sum: { charge: true, providerCost: true },
+      _count: { id: true },
+      orderBy: { _sum: { charge: 'desc' } },
+      take: limit,
+    });
+
+    if (grouped.length === 0) return [];
+
+    // Step 2: Fetch service metadata in one query
+    const serviceIds = grouped.map(g => g.serviceId);
+    const services = await db.service.findMany({
+      where: { id: { in: serviceIds } },
       select: {
-        charge: true,
-        providerCost: true,
-        service: {
-          select: {
-            id: true,
-            name: true,
-            category: { select: { name: true, network: { select: { name: true } } } },
-          },
-        },
+        id: true,
+        name: true,
+        category: { select: { name: true, network: { select: { name: true } } } },
       },
     });
 
-    const map = new Map<
-      string,
-      {
-        id: string;
-        name: string;
-        networkName: string;
-        categoryName: string;
-        ordersCount: number;
-        revenueKopecks: bigint;
-        costKopecks: bigint;
-        profitKopecks: bigint;
-      }
-    >();
+    const serviceMap = new Map(services.map(s => [s.id, s]));
 
-    for (const o of orders) {
-      const s = o.service;
-      if (!s) continue;
-      const existing = map.get(s.id) || {
-        id: s.id,
-        name: s.name,
-        networkName: s.category?.network?.name || '—',
-        categoryName: s.category?.name || '—',
-        ordersCount: 0,
-        revenueKopecks: BigInt(0),
-        costKopecks: BigInt(0),
-        profitKopecks: BigInt(0),
-      };
+    // Step 3: Combine and sort by revenue
+    return grouped
+      .map(g => {
+        const svc = serviceMap.get(g.serviceId);
+        if (!svc) return null;
 
-      existing.ordersCount += 1;
-      existing.revenueKopecks += BigInt(o.charge);
-      existing.costKopecks += BigInt(o.providerCost || 0);
-      existing.profitKopecks = existing.revenueKopecks - existing.costKopecks;
-      map.set(s.id, existing);
-    }
+        const revenueKopecks = BigInt(g._sum.charge ?? 0);
+        const costKopecks = BigInt(g._sum.providerCost ?? 0);
+        const profitKopecks = revenueKopecks - costKopecks;
+        const rev = Number(revenueKopecks);
+        const profit = Number(profitKopecks);
+        const marginPct = rev > 0 ? Math.round((profit / rev) * 100) : 0;
 
-    const list = Array.from(map.values()).map((item) => {
-      const rev = Number(item.revenueKopecks);
-      const profit = Number(item.profitKopecks);
-      const marginPct = rev > 0 ? Math.round((profit / rev) * 100) : 0;
-      return { ...item, marginPct };
-    });
-
-    list.sort((a, b) => Number(b.revenueKopecks - a.revenueKopecks));
-    return list.slice(0, limit);
+        return {
+          id: g.serviceId,
+          name: svc.name,
+          networkName: svc.category?.network?.name ?? '—',
+          categoryName: svc.category?.name ?? '—',
+          ordersCount: g._count.id,
+          revenueKopecks,
+          costKopecks,
+          profitKopecks,
+          marginPct,
+        };
+      })
+      .filter(<T>(x: T | null): x is T => x !== null);
   }
 
   /**

@@ -35,6 +35,7 @@ class SettingsService {
         ...(tenantId ? { tenantId } : {})
       },
       orderBy: { createdAt: 'desc' },
+      take: 200,
       select: {
         id: true,
         email: true,
@@ -72,7 +73,7 @@ class SettingsService {
 
   // ── Provider Management ──
   async listProviders() {
-    return db.provider.findMany({ orderBy: { createdAt: 'desc' } });
+    return db.provider.findMany({ orderBy: { createdAt: 'desc' }, take: 100 });
   }
 
   async upsertProvider(data: { id?: string; name: string; apiUrl: string; apiKey: string; isActive: boolean }) {

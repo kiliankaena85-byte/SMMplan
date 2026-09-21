@@ -5426,7 +5426,7 @@ var require_node = __commonJS({
     var tty = require("tty");
     var util2 = require("util");
     exports2.init = init;
-    exports2.log = log33;
+    exports2.log = log34;
     exports2.formatArgs = formatArgs;
     exports2.save = save;
     exports2.load = load;
@@ -5561,7 +5561,7 @@ var require_node = __commonJS({
       }
       return (/* @__PURE__ */ new Date()).toISOString() + " ";
     }
-    function log33(...args) {
+    function log34(...args) {
       return process.stderr.write(util2.formatWithOptions(exports2.inspectOpts, ...args) + "\n");
     }
     function save(namespaces) {
@@ -41889,6 +41889,23 @@ __export2(redis_exports, {
   redis: () => redis,
   validateRedisUrl: () => validateRedisUrl
 });
+function getRedisUrl() {
+  let url = process.env.REDIS_URL || "redis://localhost:6379";
+  if (typeof window === "undefined") {
+    try {
+      const fs3 = require("fs");
+      if (!fs3.existsSync("/.dockerenv")) {
+        if (url.includes("@redis:")) {
+          url = url.replace("@redis:", "@127.0.0.1:");
+        } else if (url.includes("//redis:")) {
+          url = url.replace("//redis:", "//127.0.0.1:");
+        }
+      }
+    } catch {
+    }
+  }
+  return url;
+}
 function validateRedisUrl(url, env = process.env.NODE_ENV || "development", explicitPassword) {
   if (env === "production") {
     const hasAuth = url.includes("@") || Boolean(explicitPassword || process.env.REDIS_PASSWORD);
@@ -41921,7 +41938,7 @@ var init_redis = __esm({
     import_ioredis = __toESM(require_built3());
     init_sensitive_data_filter();
     globalForRedis = global;
-    redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
+    redisUrl = getRedisUrl();
     redisCheck = validateRedisUrl(redisUrl, process.env.NODE_ENV);
     if (!redisCheck.valid) {
       throw new Error(redisCheck.error);
@@ -41974,6 +41991,7 @@ __export2(queue_manager_exports, {
   geoAvailabilityQueue: () => geoAvailabilityQueue,
   getQueuePrefix: () => getQueuePrefix,
   getRedisConnection: () => getRedisConnection,
+  indexNowQueue: () => indexNowQueue,
   jitteredBackoff: () => jitteredBackoff,
   ordersQueue: () => ordersQueue,
   paymentGatewayQueue: () => paymentGatewayQueue,
@@ -42168,7 +42186,7 @@ async function ensureGeoAvailabilityCron() {
     }
   );
 }
-var import_bullmq, import_ioredis2, redisConnection, getQueuePrefix, getRedisConnection, jitteredBackoff, createQueue, ordersQueue, syncQueue, catalogQueue, dlqQueue, cleanupQueue, telegramQueue, etaQueue, paymentSyncQueue, refillQueue, criticalQueue, defaultQueue, bulkQueue, queuePayment, queueOrder, queueSync, paymentGatewayQueue, articlePublishQueue, aiObserverQueue, aiEconomicOptimizerQueue, geoAvailabilityQueue, closeQueues;
+var import_bullmq, import_ioredis2, redisConnection, getQueuePrefix, getRedisConnection, jitteredBackoff, createQueue, ordersQueue, syncQueue, catalogQueue, dlqQueue, cleanupQueue, telegramQueue, etaQueue, paymentSyncQueue, refillQueue, criticalQueue, defaultQueue, bulkQueue, queuePayment, queueOrder, queueSync, paymentGatewayQueue, indexNowQueue, articlePublishQueue, aiObserverQueue, aiEconomicOptimizerQueue, geoAvailabilityQueue, closeQueues;
 var init_queue_manager = __esm({
   "src/lib/queue-manager.ts"() {
     "use strict";
@@ -42185,7 +42203,20 @@ var init_queue_manager = __esm({
     };
     getRedisConnection = () => {
       if (redisConnection) return redisConnection;
-      const redisUrl2 = process.env.CONTOUR === "test" && process.env.REDIS_URL_TEST ? process.env.REDIS_URL_TEST : process.env.REDIS_URL || "redis://127.0.0.1:6379";
+      let redisUrl2 = process.env.CONTOUR === "test" && process.env.REDIS_URL_TEST ? process.env.REDIS_URL_TEST : process.env.REDIS_URL || "redis://127.0.0.1:6379";
+      if (typeof window === "undefined") {
+        try {
+          const fs3 = require("fs");
+          if (!fs3.existsSync("/.dockerenv")) {
+            if (redisUrl2.includes("@redis:")) {
+              redisUrl2 = redisUrl2.replace("@redis:", "@127.0.0.1:");
+            } else if (redisUrl2.includes("//redis:")) {
+              redisUrl2 = redisUrl2.replace("//redis:", "//127.0.0.1:");
+            }
+          }
+        } catch {
+        }
+      }
       const redisPassword = process.env.REDIS_PASSWORD || void 0;
       const dbIndex = process.env.REDIS_DB_INDEX ? parseInt(process.env.REDIS_DB_INDEX, 10) : process.env.CONTOUR === "test" ? 1 : 0;
       const check = validateRedisUrl(redisUrl2, process.env.NODE_ENV, redisPassword);
@@ -42301,6 +42332,10 @@ var init_queue_manager = __esm({
     paymentGatewayQueue = createQueue("paymentGatewayQueue", {
       attempts: 3,
       backoff: { type: "exponential", delay: 2e3 }
+    });
+    indexNowQueue = createQueue("indexnow-queue", {
+      attempts: 5,
+      backoff: { type: "exponential", delay: 1e4 }
     });
     articlePublishQueue = createQueue("articlePublishQueue");
     aiObserverQueue = createQueue("aiObserverQueue", {
@@ -47126,7 +47161,7 @@ function createTenantEnforcerExtension(options = {}) {
         if (!tenantId) {
           return query(args);
         }
-        if (model === "user" && args.where && args.where.id) {
+        if (model === "user" && args.where && (args.where.id || args.where.email_tenantId)) {
           return query(args);
         }
         const scopedWhere = model === "category" || model === "service" ? { ...args.where, tenantId: { in: [tenantId, "all"] } } : { ...args.where, tenantId };
@@ -47149,54 +47184,6 @@ function createTenantEnforcerExtension(options = {}) {
           applyTenantWhereClause(args.where, tenantId, model);
         }
         return query(args);
-      },
-      // [P0-FIX] groupBy был неперехвачен — добавлен фильтр tenantId
-      async groupBy({ args, query }) {
-        if (isTenantBypassActive()) {
-          return query(args);
-        }
-        const tenantId = await resolveActiveTenantId();
-        if (tenantId) {
-          args.where = args.where || {};
-          applyTenantWhereClause(args.where, tenantId, model);
-        }
-        return query(args);
-      },
-      // [P0-FIX] aggregate был неперехвачен — добавлен фильтр tenantId
-      async aggregate({ args, query }) {
-        if (isTenantBypassActive()) {
-          return query(args);
-        }
-        const tenantId = await resolveActiveTenantId();
-        if (tenantId) {
-          args.where = args.where || {};
-          applyTenantWhereClause(args.where, tenantId, model);
-        }
-        return query(args);
-      },
-      // [P0-FIX] findFirstOrThrow был неперехвачен — добавлен фильтр tenantId
-      async findFirstOrThrow({ args, query }) {
-        if (isTenantBypassActive()) {
-          return query(args);
-        }
-        const tenantId = await resolveActiveTenantId();
-        if (tenantId) {
-          args.where = args.where || {};
-          applyTenantWhereClause(args.where, tenantId, model);
-        }
-        return query(args);
-      },
-      // [P0-FIX] findUniqueOrThrow был неперехвачен — добавлен фильтр tenantId
-      async findUniqueOrThrow({ args, query }) {
-        if (isTenantBypassActive()) {
-          return query(args);
-        }
-        const tenantId = await resolveActiveTenantId();
-        if (!tenantId) {
-          return query(args);
-        }
-        const scopedWhere = model === "category" || model === "service" ? { ...args.where, tenantId: { in: [tenantId, "all"] } } : { ...args.where, tenantId };
-        return query({ ...args, where: scopedWhere });
       },
       async create({ args, query }) {
         if (isTenantBypassActive()) {
@@ -47287,7 +47274,6 @@ var init_prisma_tenant_enforcer = __esm({
     "use strict";
     init_tenant_context();
     TENANT_SCOPED_MODELS = [
-      // Core business models (original 9)
       "order",
       "payment",
       "ticket",
@@ -47296,38 +47282,7 @@ var init_prisma_tenant_enforcer = __esm({
       "category",
       "customerGroup",
       "ticketFeedback",
-      "ledgerEntry",
-      // Auth & Security models (P0-FIX: previously unprotected)
-      "authToken",
-      "loginLog",
-      "securityEvent",
-      // Staff & Access Control models (P0-FIX)
-      "staffRole",
-      "staffPermission",
-      "adminAuditLog",
-      // Support operational models (P0-FIX)
-      "supportLimitUsage",
-      "supportHourlyUsage",
-      "supportFinancialAction",
-      // Legal & HR models (P0-FIX)
-      "legalDocumentVersion",
-      "employeeResponsibilityConsent",
-      // Telegram bot models (P0-FIX)
-      "telegramBotInstance",
-      "telegramButton",
-      "telegramTemplate",
-      "telegramProxy",
-      "telegramErrorLog",
-      "telegramDailyStat",
-      // Catalog & Commerce models (P0-FIX)
-      "network",
-      "shadowService",
-      "storefrontKey",
-      "serviceDraft",
-      // Analytics & Bonus models (P0-FIX)
-      "bonusRedemptionLog",
-      "economicOptimizationSnapshot",
-      "preLaunchLead"
+      "ledgerEntry"
     ];
   }
 });
@@ -47347,6 +47302,15 @@ function getDatasourceUrl() {
   let url = process.env.DATABASE_URL || process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL;
   if (url && url.startsWith("prisma://")) {
     url = process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL_UNPOOLED || process.env.DIRECT_URL || url.replace(/^prisma:\/\//, "postgresql://");
+  }
+  if (url && typeof window === "undefined") {
+    try {
+      const fs3 = require("fs");
+      if (!fs3.existsSync("/.dockerenv") && url.includes("@db:")) {
+        url = url.replace("@db:5432", "@127.0.0.1:5435").replace("@db:", "@127.0.0.1:5435");
+      }
+    } catch {
+    }
   }
   return url;
 }
@@ -47434,7 +47398,7 @@ var init_db = __esm({
     init_prisma_tenant_enforcer();
     globalForPrisma = globalThis;
     db = globalForPrisma.prisma ?? createPrismaClient();
-    if (process.env.NEXT_RUNTIME !== "edge") {
+    if (process.env.NODE_ENV !== "production" && process.env.NEXT_RUNTIME !== "edge") {
       globalForPrisma.prisma = db;
     }
   }
@@ -50364,11 +50328,11 @@ var require_tools = __commonJS({
         }
       }
     }
-    function buildFormatters(level, bindings, log33) {
+    function buildFormatters(level, bindings, log34) {
       return {
         level,
         bindings,
-        log: log33
+        log: log34
       };
     }
     function normalizeDestFileDescriptor(destination) {
@@ -50749,11 +50713,11 @@ var require_proto = __commonJS({
         }
       } else instance[serializersSym] = serializers;
       if (options.hasOwnProperty("formatters")) {
-        const { level, bindings: chindings, log: log33 } = options.formatters;
+        const { level, bindings: chindings, log: log34 } = options.formatters;
         instance[formattersSym] = buildFormatters(
           level || formatters.level,
           chindings || resetChildingsFormatter,
-          log33 || formatters.log
+          log34 || formatters.log
         );
       } else {
         instance[formattersSym] = buildFormatters(
@@ -51824,7 +51788,7 @@ var require_pino = __commonJS({
 
 // src/lib/logger.ts
 function createLoggerFromBase(pinoInstance) {
-  const log33 = (level) => (message, context) => {
+  const log34 = (level) => (message, context) => {
     const store = logContextStorage.getStore();
     const extra = typeof context === "object" && context !== null && !Array.isArray(context) ? context : context !== void 0 ? { detail: context } : {};
     const merged = {
@@ -51838,10 +51802,10 @@ function createLoggerFromBase(pinoInstance) {
     pinoInstance[level](safeContext, safeMessage);
   };
   return {
-    info: log33("info"),
-    warn: log33("warn"),
-    error: log33("error"),
-    debug: log33("debug"),
+    info: log34("info"),
+    warn: log34("warn"),
+    error: log34("error"),
+    debug: log34("debug"),
     child: (bindings) => createLoggerFromBase(pinoInstance.child(bindings))
   };
 }
@@ -56555,7 +56519,7 @@ var require_le_unix = __commonJS({
 var require_mime_node = __commonJS({
   "node_modules/nodemailer/lib/mime-node/index.js"(exports2, module2) {
     "use strict";
-    var crypto9 = require("crypto");
+    var crypto10 = require("crypto");
     var fs3 = require("fs");
     var punycode = require_punycode();
     var { PassThrough } = require("stream");
@@ -56574,7 +56538,7 @@ var require_mime_node = __commonJS({
       constructor(contentType, options) {
         this.nodeCounter = 0;
         options = options || {};
-        this.baseBoundary = options.baseBoundary || crypto9.randomBytes(8).toString("hex");
+        this.baseBoundary = options.baseBoundary || crypto10.randomBytes(8).toString("hex");
         this.boundaryPrefix = options.boundaryPrefix || "--_NmP";
         this.disableFileAccess = !!options.disableFileAccess;
         this.disableUrlAccess = !!options.disableUrlAccess;
@@ -57533,8 +57497,8 @@ var require_mime_node = __commonJS({
       _generateMessageId() {
         return "<" + [2, 2, 2, 6].reduce(
           // crux to generate UUID-like random strings
-          (prev, len) => prev + "-" + crypto9.randomBytes(len).toString("hex"),
-          crypto9.randomBytes(4).toString("hex")
+          (prev, len) => prev + "-" + crypto10.randomBytes(len).toString("hex"),
+          crypto10.randomBytes(4).toString("hex")
         ) + "@" + // try to use the domain of the FROM address or fallback to server hostname
         (this.getEnvelope().from || this.hostname || "localhost").split("@").pop() + ">";
       }
@@ -58164,14 +58128,14 @@ var require_relaxed_body = __commonJS({
   "node_modules/nodemailer/lib/dkim/relaxed-body.js"(exports2, module2) {
     "use strict";
     var { Transform } = require("stream");
-    var crypto9 = require("crypto");
+    var crypto10 = require("crypto");
     var RelaxedBody = class extends Transform {
       constructor(options) {
         super();
         options = options || {};
         this.chunkBuffer = [];
         this.chunkBufferLen = 0;
-        this.bodyHash = crypto9.createHash(options.hashAlgo || "sha1");
+        this.bodyHash = crypto10.createHash(options.hashAlgo || "sha1");
         this.remainder = "";
         this.byteLength = 0;
         this.debug = options.debug;
@@ -58274,7 +58238,7 @@ var require_sign = __commonJS({
     "use strict";
     var punycode = require_punycode();
     var mimeFuncs = require_mime_funcs();
-    var crypto9 = require("crypto");
+    var crypto10 = require("crypto");
     module2.exports = (headers2, hashAlgo, bodyHash, options) => {
       options = options || {};
       const defaultFieldNames = "From:Sender:Reply-To:Subject:Date:Message-ID:To:Cc:MIME-Version:Content-Type:Content-Transfer-Encoding:Content-ID:Content-Description:Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:In-Reply-To:References:List-Id:List-Help:List-Unsubscribe:List-Subscribe:List-Post:List-Owner:List-Archive";
@@ -58282,7 +58246,7 @@ var require_sign = __commonJS({
       const canonicalizedHeaderData = relaxedHeaders(headers2, fieldNames, options.skipFields);
       const dkimHeader = generateDKIMHeader(options.domainName, options.keySelector, canonicalizedHeaderData.fieldNames, hashAlgo, bodyHash);
       canonicalizedHeaderData.headers += "dkim-signature:" + relaxedHeaderLine(dkimHeader);
-      const signer = crypto9.createSign(("rsa-" + hashAlgo).toUpperCase());
+      const signer = crypto10.createSign(("rsa-" + hashAlgo).toUpperCase());
       signer.update(canonicalizedHeaderData.headers);
       let signature;
       try {
@@ -58351,7 +58315,7 @@ var require_dkim = __commonJS({
     var { PassThrough } = require("stream");
     var fs3 = require("fs");
     var path3 = require("path");
-    var crypto9 = require("crypto");
+    var crypto10 = require("crypto");
     var DKIM_ALGO = "sha256";
     var MAX_MESSAGE_SIZE = 2 * 1024 * 1024;
     var DKIMSigner = class {
@@ -58364,7 +58328,7 @@ var require_dkim = __commonJS({
         this.chunks = [];
         this.chunklen = 0;
         this.readPos = 0;
-        this.cachePath = this.cacheDir ? path3.join(this.cacheDir, "message." + Date.now() + "-" + crypto9.randomBytes(14).toString("hex")) : false;
+        this.cachePath = this.cacheDir ? path3.join(this.cacheDir, "message." + Date.now() + "-" + crypto10.randomBytes(14).toString("hex")) : false;
         this.cache = false;
         this.headers = false;
         this.bodyHash = false;
@@ -58920,7 +58884,7 @@ var require_mailer = __commonJS({
     var MailMessage = require_mail_message();
     var net7 = require("net");
     var dns4 = require("dns");
-    var crypto9 = require("crypto");
+    var crypto10 = require("crypto");
     var Mail = class extends EventEmitter {
       constructor(transporter, options, defaults) {
         super();
@@ -58949,14 +58913,14 @@ var require_mailer = __commonJS({
           this.getVersionString()
         );
         if (typeof this.transporter.on === "function") {
-          this.transporter.on("log", (log33) => {
+          this.transporter.on("log", (log34) => {
             this.logger.debug(
               {
                 tnx: "transport"
               },
               "%s: %s",
-              log33.type,
-              log33.message
+              log34.type,
+              log34.message
             );
           });
           this.transporter.on("error", (err) => {
@@ -59263,7 +59227,7 @@ var require_mailer = __commonJS({
             html = (html || "").toString().replace(
               /(<img\b[^<>]{0,1024} src\s{0,20}=[\s"']{0,20})(data:([^;]+);[^"'>\s]+)/gi,
               (match, prefix, dataUri, mimeType) => {
-                const cid = crypto9.randomBytes(10).toString("hex") + "@localhost";
+                const cid = crypto10.randomBytes(10).toString("hex") + "@localhost";
                 if (!mail.data.attachments) {
                   mail.data.attachments = [];
                 }
@@ -59390,7 +59354,7 @@ var require_smtp_connection = __commonJS({
     var net7 = require("net");
     var tls4 = require("tls");
     var os3 = require("os");
-    var crypto9 = require("crypto");
+    var crypto10 = require("crypto");
     var DataStream = require_data_stream();
     var { PassThrough } = require("stream");
     var shared = require_shared();
@@ -59410,7 +59374,7 @@ var require_smtp_connection = __commonJS({
     var SMTPConnection = class extends EventEmitter {
       constructor(options) {
         super(options);
-        this.id = crypto9.randomBytes(8).toString("base64").replace(/\W/g, "");
+        this.id = crypto10.randomBytes(8).toString("base64").replace(/\W/g, "");
         this.stage = "init";
         this.options = options || {};
         this.secureConnection = !!this.options.secure;
@@ -60570,7 +60534,7 @@ var require_smtp_connection = __commonJS({
           );
         }
         const base64decoded = Buffer.from(challengeMatch[1], "base64").toString("ascii");
-        const hmacMD5 = crypto9.createHmac("md5", this._auth.credentials.pass);
+        const hmacMD5 = crypto10.createHmac("md5", this._auth.credentials.pass);
         hmacMD5.update(base64decoded);
         const prepended = this._auth.credentials.user + " " + hmacMD5.digest("hex");
         this._responseActions.push((str2) => {
@@ -60863,7 +60827,7 @@ var require_xoauth2 = __commonJS({
     "use strict";
     var { Stream } = require("stream");
     var nmfetch = require_fetch();
-    var crypto9 = require("crypto");
+    var crypto10 = require("crypto");
     var shared = require_shared();
     var errors = require_errors3();
     var XOAuth2 = class extends Stream {
@@ -61209,7 +61173,7 @@ var require_xoauth2 = __commonJS({
        */
       jwtSignRS256(payload) {
         payload = ['{"alg":"RS256","typ":"JWT"}', JSON.stringify(payload)].map((val) => this.toBase64URL(val)).join(".");
-        const signature = crypto9.createSign("RSA-SHA256").update(payload).sign(this.options.privateKey);
+        const signature = crypto10.createSign("RSA-SHA256").update(payload).sign(this.options.privateKey);
         return payload + "." + this.toBase64URL(signature);
       }
     };
@@ -82147,13 +82111,13 @@ var require_mock_call_history = __commonJS({
     function makeFilterCalls(parameterName) {
       return (parameterValue, logs) => {
         if (typeof parameterValue === "string" || parameterValue == null) {
-          return logs.filter((log33) => {
-            return log33[parameterName] === parameterValue;
+          return logs.filter((log34) => {
+            return log34[parameterName] === parameterValue;
           });
         }
         if (parameterValue instanceof RegExp) {
-          return logs.filter((log33) => {
-            return parameterValue.test(log33[parameterName]);
+          return logs.filter((log34) => {
+            return parameterValue.test(log34[parameterName]);
           });
         }
         throw new InvalidArgumentError(`${parameterName} parameter should be one of string, regexp, undefined or null`);
@@ -82248,8 +82212,8 @@ var require_mock_call_history = __commonJS({
           return this.logs.filter(criteria);
         }
         if (criteria instanceof RegExp) {
-          return this.logs.filter((log33) => {
-            return criteria.test(log33.toString());
+          return this.logs.filter((log34) => {
+            return criteria.test(log34.toString());
           });
         }
         if (typeof criteria === "object" && criteria !== null) {
@@ -82299,13 +82263,13 @@ var require_mock_call_history = __commonJS({
         this.logs = [];
       }
       [kMockCallHistoryAddLog](requestInit) {
-        const log33 = new MockCallHistoryLog(requestInit);
-        this.logs.push(log33);
-        return log33;
+        const log34 = new MockCallHistoryLog(requestInit);
+        this.logs.push(log34);
+        return log34;
       }
       *[Symbol.iterator]() {
-        for (const log33 of this.calls()) {
-          yield log33;
+        for (const log34 of this.calls()) {
+          yield log34;
         }
       }
     };
@@ -82614,8 +82578,8 @@ var require_snapshot_utils = __commonJS({
         match: new Set(matchHeaders.map((header) => caseSensitive ? header : header.toLowerCase()))
       };
     }
-    var crypto9 = runtimeFeatures.has("crypto") ? require("node:crypto") : null;
-    var hashId = crypto9?.hash ? (value) => crypto9.hash("sha256", value, "base64url") : (value) => Buffer.from(value).toString("base64url");
+    var crypto10 = runtimeFeatures.has("crypto") ? require("node:crypto") : null;
+    var hashId = crypto10?.hash ? (value) => crypto10.hash("sha256", value, "base64url") : (value) => Buffer.from(value).toString("base64url");
     function isUndiciHeaders(headers2) {
       return Array.isArray(headers2) && (headers2.length & 1) === 0;
     }
@@ -89257,10 +89221,10 @@ var require_subresource_integrity = __commonJS({
     var assert2 = require("node:assert");
     var { runtimeFeatures } = require_runtime_features();
     var validSRIHashAlgorithmTokenSet = /* @__PURE__ */ new Map([["sha256", 0], ["sha384", 1], ["sha512", 2]]);
-    var crypto9;
+    var crypto10;
     if (runtimeFeatures.has("crypto")) {
-      crypto9 = require("node:crypto");
-      const cryptoHashes = crypto9.getHashes();
+      crypto10 = require("node:crypto");
+      const cryptoHashes = crypto10.getHashes();
       if (cryptoHashes.length === 0) {
         validSRIHashAlgorithmTokenSet.clear();
       }
@@ -89350,7 +89314,7 @@ var require_subresource_integrity = __commonJS({
       return result;
     }
     var applyAlgorithmToBytes = (algorithm, bytes) => {
-      return crypto9.hash(algorithm, bytes, "base64");
+      return crypto10.hash(algorithm, bytes, "base64");
     };
     function caseSensitiveMatch(actualValue, expectedValue) {
       let actualValueLength = actualValue.length;
@@ -92333,7 +92297,7 @@ var require_connection2 = __commonJS({
     var { WebsocketFrameSend } = require_frame();
     var assert2 = require("node:assert");
     var { runtimeFeatures } = require_runtime_features();
-    var crypto9 = runtimeFeatures.has("crypto") ? require("node:crypto") : null;
+    var crypto10 = runtimeFeatures.has("crypto") ? require("node:crypto") : null;
     var warningEmitted = false;
     function establishWebSocketConnection(url, protocols, client, handler, options) {
       const requestURL = url;
@@ -92353,7 +92317,7 @@ var require_connection2 = __commonJS({
         const headersList = getHeadersList(new Headers2(options.headers));
         request.headersList = headersList;
       }
-      const keyValue = crypto9.randomBytes(16).toString("base64");
+      const keyValue = crypto10.randomBytes(16).toString("base64");
       request.headersList.append("sec-websocket-key", keyValue, true);
       request.headersList.append("sec-websocket-version", "13", true);
       for (const protocol of protocols) {
@@ -92393,7 +92357,7 @@ var require_connection2 = __commonJS({
             return;
           }
           const secWSAccept = response.headersList.get("Sec-WebSocket-Accept");
-          const digest = crypto9.hash("sha1", keyValue + uid, "base64");
+          const digest = crypto10.hash("sha1", keyValue + uid, "base64");
           if (secWSAccept !== digest) {
             failWebsocketConnection(handler, 1002, "Incorrect hash received in Sec-WebSocket-Accept header.");
             return;
@@ -107484,25 +107448,17 @@ var init_settings = __esm({
         if (settings) return settings;
         return this.get(activeTenantId);
       }
-      static tenantRecordIdCache = /* @__PURE__ */ new Map();
       /**
        * Helper to resolve the Tenant model ID from a tenant slug.
-       * Cached in-memory to eliminate redundant db.tenant.findUnique queries on every request.
        */
       static async resolveTenantRecordId(tenantSlug) {
         const slug = normalizeTenantId(tenantSlug) || "smmplan";
-        const cached = this.tenantRecordIdCache.get(slug);
-        if (cached) return cached;
         try {
           const tenant = await db.tenant.findUnique({ where: { slug } }) || await db.tenant.findFirst({ where: { slug: "smmplan" } }) || await db.tenant.findFirst();
-          if (tenant) {
-            this.tenantRecordIdCache.set(slug, tenant.id);
-            return tenant.id;
-          }
+          if (tenant) return tenant.id;
         } catch (dbErr) {
           console.warn(`[SettingsProvider] Database unreachable in resolveTenantRecordId for ${slug}, using fallback slug.`);
         }
-        this.tenantRecordIdCache.set(slug, slug);
         return slug;
       }
       /**
@@ -108348,31 +108304,12 @@ var init_wallet_ops = __esm({
             transactionType: txTypeOverride ?? "ADJUSTMENT"
           }
         });
-        let finalBalance;
-        if (rawCents < BigInt(0)) {
-          const absCents = -rawCents;
-          const updated = await tx.user.updateMany({
-            where: {
-              id: userId,
-              balance: { gte: absCents },
-              tenantId: resolvedTenantId
-            },
-            data: { balance: { decrement: absCents } }
-          });
-          if (updated.count === 0) {
-            throw new WalletInsufficientFundsError(absCents, BigInt(0));
-          }
-          const afterUser = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { balance: true } });
-          finalBalance = afterUser.balance;
-        } else {
-          const updatedUser = await tx.user.update({
-            where: { id: userId },
-            data: { balance: { increment: rawCents } },
-            select: { balance: true }
-          });
-          finalBalance = updatedUser.balance;
-        }
-        return { success: true, balance: finalBalance, cached: false, entry };
+        const updatedUser = await tx.user.update({
+          where: { id: userId },
+          data: { balance: { increment: rawCents } },
+          select: { balance: true }
+        });
+        return { success: true, balance: updatedUser.balance, cached: false, entry };
       },
       /**
        * Refund user balance: increments balance, decrements totalSpent, creates ledger entry.
@@ -111046,20 +110983,10 @@ var init_loyalty_service = __esm({
             data: { status: "REVERSED" }
           });
           if (wasConfirmed) {
-            const commAmount = Math.round(Number(comm.amount));
-            const reversed = await tx.user.updateMany({
-              where: { id: comm.referrerId, referralBalance: { gte: commAmount } },
-              data: { referralBalance: { decrement: commAmount } }
+            await tx.user.update({
+              where: { id: comm.referrerId },
+              data: { referralBalance: { decrement: Number(comm.amount) } }
             });
-            if (reversed.count === 0) {
-              await tx.auditLog.create({
-                data: {
-                  userId: comm.referrerId,
-                  action: "REFERRAL_REVERSAL_INSUFFICIENT_BALANCE",
-                  details: `\u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044C\u043D\u044B\u0439 \u0431\u0430\u043B\u0430\u043D\u0441 \u0443\u0436\u0435 \u0438\u0441\u0447\u0435\u0440\u043F\u0430\u043D \u043F\u0440\u0438 \u043E\u0442\u0437\u044B\u0432\u0435 \u043A\u043E\u043C\u0438\u0441\u0441\u0438\u0438 orderId=${orderId}. \u041A\u043E\u0440\u0440\u0435\u043A\u0442\u0438\u0440\u043E\u0432\u043A\u0430 \u043F\u0440\u043E\u043F\u0443\u0449\u0435\u043D\u0430.`
-                }
-              });
-            }
           }
           await tx.auditLog.create({
             data: {
@@ -126480,23 +126407,37 @@ var init_security_alert_service = __esm({
        * Fetches paginated security events for the admin panel.
        */
       static async getRecentEvents(options) {
-        const { limit = 50, offset = 0, severity, event, ip, tenantId } = options || {};
+        const { limit = 50, offset = 0, cursor, severity, event, ip, tenantId } = options || {};
         const where = {};
         if (severity && severity !== "ALL") where.severity = severity;
         if (event && event !== "ALL") where.event = event;
         if (ip) where.ip = { contains: ip };
         if (tenantId && tenantId !== "ALL") where.tenantId = tenantId;
         try {
-          const [events, total] = await Promise.all([
-            db.securityEvent.findMany({
-              where,
-              orderBy: { createdAt: "desc" },
-              take: Math.min(limit, 100),
-              skip: offset
-            }),
+          const safeLimit = Math.min(Math.max(1, limit), 100);
+          const orderBy = [
+            { createdAt: "desc" },
+            { id: "desc" }
+          ];
+          const queryOptions = {
+            where,
+            orderBy,
+            take: safeLimit + 1
+          };
+          if (cursor) {
+            queryOptions.cursor = { id: cursor };
+            queryOptions.skip = 1;
+          } else if (offset > 0) {
+            queryOptions.skip = offset;
+          }
+          const [rawEvents, total] = await Promise.all([
+            db.securityEvent.findMany(queryOptions),
             db.securityEvent.count({ where })
           ]);
-          return { events, total };
+          const hasMore = rawEvents.length > safeLimit;
+          const events = hasMore ? rawEvents.slice(0, safeLimit) : rawEvents;
+          const nextCursor = hasMore && events.length > 0 ? events[events.length - 1].id : void 0;
+          return { events, total, nextCursor, hasMore };
         } catch (err) {
           console.error("[SecurityAlertService] Failed to query security events:", err);
           return { events: [], total: 0 };
@@ -126745,7 +126686,7 @@ var init_network_router = __esm({
         }
       ]
     };
-    UniversalNetworkRouter = class {
+    UniversalNetworkRouter = class _UniversalNetworkRouter {
       static cachedConfig = null;
       static lastConfigFetch = 0;
       static CONFIG_CACHE_TTL_MS = 3e4;
@@ -126969,6 +126910,21 @@ var init_network_router = __esm({
         }
         return null;
       }
+      static directKeepAliveAgent = null;
+      static async getDirectKeepAliveAgent() {
+        if (!_UniversalNetworkRouter.directKeepAliveAgent) {
+          const { Agent: Agent5 } = await Promise.resolve().then(() => __toESM(require_undici()));
+          _UniversalNetworkRouter.directKeepAliveAgent = new Agent5({
+            keepAliveTimeout: 3e4,
+            keepAliveMaxTimeout: 6e4,
+            connections: 50,
+            pipelining: 1,
+            connectTimeout: 8e3,
+            headersTimeout: 15e3
+          });
+        }
+        return _UniversalNetworkRouter.directKeepAliveAgent;
+      }
       /**
        * Universal fetch drop-in replacement with Clash-style routing dispatch & Multi-Proxy Failover
        */
@@ -126982,7 +126938,26 @@ var init_network_router = __esm({
           throw new Error(`[NetworkRouter] Connection blocked by policy (REJECT): ${url}`);
         }
         if (route.target === "DIRECT" || !route.proxyConfig) {
-          return fetch(url, init);
+          let undiciFetchFn = null;
+          let agent2 = null;
+          try {
+            const undici = await Promise.resolve().then(() => __toESM(require_undici()));
+            undiciFetchFn = undici.fetch;
+            agent2 = await this.getDirectKeepAliveAgent();
+          } catch {
+          }
+          const signal = init?.signal || AbortSignal.timeout(15e3);
+          if (undiciFetchFn && agent2) {
+            return await undiciFetchFn(url, {
+              ...init,
+              signal,
+              dispatcher: agent2
+            });
+          }
+          return fetch(url, {
+            ...init,
+            signal
+          });
         }
         try {
           const dispatcher = await createProxyDispatcher(route.proxyConfig);
@@ -127117,14 +127092,18 @@ async function createProxyDispatcher(proxy) {
     return new Agent5({
       connect: connectFn,
       connectTimeout: 8e3,
-      headersTimeout: 15e3
+      headersTimeout: 15e3,
+      keepAliveTimeout: 3e4,
+      keepAliveMaxTimeout: 6e4
     });
   }
   const proxyUrl = `${proxy.protocol}://${auth}${proxy.host}:${proxy.port}`;
   return new ProxyAgent3({
     uri: proxyUrl,
     connectTimeout: 8e3,
-    headersTimeout: 15e3
+    headersTimeout: 15e3,
+    keepAliveTimeout: 3e4,
+    keepAliveMaxTimeout: 6e4
   });
 }
 async function proxiedFetch(url, init) {
@@ -128136,31 +128115,70 @@ async function runSmartDripfeedTick() {
         );
       }
     }
-    const plannedTasks = await db.smartTask.findMany({
-      where: {
-        status: import_client3.SmartTaskStatus.PLANNED,
-        runAt: { lte: /* @__PURE__ */ new Date() },
-        campaign: {
-          status: import_client3.SmartCampaignStatus.RUNNING
-        }
-      },
-      include: {
-        campaign: {
-          include: {
-            service: { include: { provider: true } }
-          }
-        }
-      }
-    });
-    for (const task of plannedTasks) {
-      try {
-        const affected = await db.smartTask.updateMany({
-          where: { id: task.id, status: import_client3.SmartTaskStatus.PLANNED },
+    let plannedTasks = [];
+    try {
+      const claimedTaskIds = await db.$transaction(async (tx) => {
+        const rows = await tx.$queryRaw`
+        SELECT t.id 
+        FROM "SmartTask" t
+        JOIN "SmartCampaign" c ON t."campaignId" = c.id
+        WHERE t.status = 'PLANNED'::"SmartTaskStatus"
+          AND t."runAt" <= NOW()
+          AND c.status = 'RUNNING'::"SmartCampaignStatus"
+        ORDER BY t."runAt" ASC
+        LIMIT 50
+        FOR UPDATE OF t SKIP LOCKED
+      `;
+        if (!rows || rows.length === 0) return [];
+        const ids = rows.map((r) => r.id);
+        await tx.smartTask.updateMany({
+          where: { id: { in: ids }, status: import_client3.SmartTaskStatus.PLANNED },
           data: { status: import_client3.SmartTaskStatus.SENT }
         });
-        if (affected.count === 0) {
-          log10.warn(`[Dripfeed Worker] \u0417\u0430\u0434\u0430\u0447\u0430 ${task.id} \u0443\u0436\u0435 \u0437\u0430\u043F\u0443\u0449\u0435\u043D\u0430 \u0434\u0440\u0443\u0433\u0438\u043C \u0438\u043D\u0441\u0442\u0430\u043D\u0441\u043E\u043C \u0432\u043E\u0440\u043A\u0435\u0440\u0430. \u041F\u0440\u043E\u043F\u0443\u0441\u043A\u0430\u0435\u043C.`);
-          continue;
+        return ids;
+      });
+      if (claimedTaskIds.length > 0) {
+        plannedTasks = await db.smartTask.findMany({
+          where: { id: { in: claimedTaskIds } },
+          include: {
+            campaign: {
+              include: {
+                service: { include: { provider: true } }
+              }
+            }
+          }
+        });
+      }
+    } catch {
+      plannedTasks = await db.smartTask.findMany({
+        where: {
+          status: import_client3.SmartTaskStatus.PLANNED,
+          runAt: { lte: /* @__PURE__ */ new Date() },
+          campaign: {
+            status: import_client3.SmartCampaignStatus.RUNNING
+          }
+        },
+        include: {
+          campaign: {
+            include: {
+              service: { include: { provider: true } }
+            }
+          }
+        },
+        take: 50
+      });
+    }
+    for (const task of plannedTasks) {
+      try {
+        if (task.status === import_client3.SmartTaskStatus.PLANNED) {
+          const affected = await db.smartTask.updateMany({
+            where: { id: task.id, status: import_client3.SmartTaskStatus.PLANNED },
+            data: { status: import_client3.SmartTaskStatus.SENT }
+          });
+          if (affected.count === 0) {
+            log10.warn(`[Dripfeed Worker] \u0417\u0430\u0434\u0430\u0447\u0430 ${task.id} \u0443\u0436\u0435 \u0437\u0430\u043F\u0443\u0449\u0435\u043D\u0430 \u0434\u0440\u0443\u0433\u0438\u043C \u0438\u043D\u0441\u0442\u0430\u043D\u0441\u043E\u043C \u0432\u043E\u0440\u043A\u0435\u0440\u0430. \u041F\u0440\u043E\u043F\u0443\u0441\u043A\u0430\u0435\u043C.`);
+            continue;
+          }
         }
         const campaign = task.campaign;
         const service = campaign.service;
@@ -128835,6 +128853,7 @@ function safeSerialize(value) {
 function auditAdmin(params) {
   void db.adminAuditLog.create({
     data: {
+      tenantId: params.tenantId || "smmplan",
       adminId: params.adminId,
       adminEmail: params.adminEmail,
       action: params.action,
@@ -128852,6 +128871,7 @@ async function auditAdminAwaitable(params) {
   const client = params.tx || db;
   return client.adminAuditLog.create({
     data: {
+      tenantId: params.tenantId || "smmplan",
       adminId: params.adminId,
       adminEmail: params.adminEmail,
       action: params.action,
@@ -129278,7 +129298,7 @@ var require_main = __commonJS({
     var fs3 = require("fs");
     var path3 = require("path");
     var os3 = require("os");
-    var crypto9 = require("crypto");
+    var crypto10 = require("crypto");
     var TIPS = [
       "\u25C8 encrypted .env [www.dotenvx.com]",
       "\u25C8 secrets for agents [www.dotenvx.com]",
@@ -129522,7 +129542,7 @@ var require_main = __commonJS({
       const authTag = ciphertext.subarray(-16);
       ciphertext = ciphertext.subarray(12, -16);
       try {
-        const aesgcm = crypto9.createDecipheriv("aes-256-gcm", key, nonce);
+        const aesgcm = crypto10.createDecipheriv("aes-256-gcm", key, nonce);
         aesgcm.setAuthTag(authTag);
         return `${aesgcm.update(ciphertext)}${aesgcm.final()}`;
       } catch (error) {
@@ -135859,7 +135879,7 @@ var require_client2 = __commonJS({
       return mod && mod.__esModule ? mod : { "default": mod };
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
-    var crypto9 = __importStar(require("crypto"));
+    var crypto10 = __importStar(require("crypto"));
     var fs3 = __importStar(require("fs"));
     var promises_1 = require("fs/promises");
     var https = __importStar(require("https"));
@@ -135935,7 +135955,7 @@ var require_client2 = __commonJS({
           payload[field] = JSON.stringify(payload[field]);
         }
       }
-      const boundary = crypto9.randomBytes(32).toString("hex");
+      const boundary = crypto10.randomBytes(32).toString("hex");
       const formData = new multipart_stream_1.default(boundary);
       await Promise.all(Object.keys(payload).map((key) => (
         // @ts-expect-error payload[key] can obviously index payload, but TS doesn't trust us
@@ -135963,7 +135983,7 @@ var require_client2 = __commonJS({
         return;
       }
       if (id === "thumb" || id === "thumbnail") {
-        const attachmentId = crypto9.randomBytes(16).toString("hex");
+        const attachmentId = crypto10.randomBytes(16).toString("hex");
         await attachFormMedia(form, value, attachmentId, agent2);
         return form.addPart({
           headers: { "content-disposition": `form-data; name="${id}"` },
@@ -135976,11 +135996,11 @@ var require_client2 = __commonJS({
           if (typeof item.media !== "object") {
             return await Promise.resolve(item);
           }
-          const attachmentId = crypto9.randomBytes(16).toString("hex");
+          const attachmentId = crypto10.randomBytes(16).toString("hex");
           await attachFormMedia(form, item.media, attachmentId, agent2);
           const thumb = (_a = item.thumb) !== null && _a !== void 0 ? _a : item.thumbnail;
           if (typeof thumb === "object") {
-            const thumbAttachmentId = crypto9.randomBytes(16).toString("hex");
+            const thumbAttachmentId = crypto10.randomBytes(16).toString("hex");
             await attachFormMedia(form, thumb, thumbAttachmentId, agent2);
             return {
               ...item,
@@ -135996,7 +136016,7 @@ var require_client2 = __commonJS({
         });
       }
       if (value && typeof value === "object" && (0, check_1.hasProp)(value, "media") && (0, check_1.hasProp)(value, "type") && typeof value.media !== "undefined" && typeof value.type !== "undefined") {
-        const attachmentId = crypto9.randomBytes(16).toString("hex");
+        const attachmentId = crypto10.randomBytes(16).toString("hex");
         await attachFormMedia(form, value.media, attachmentId, agent2);
         return form.addPart({
           headers: { "content-disposition": `form-data; name="${id}"` },
@@ -137637,7 +137657,7 @@ var require_buffer_alloc = __commonJS({
 var require_safe_compare = __commonJS({
   "node_modules/safe-compare/index.js"(exports2, module2) {
     "use strict";
-    var crypto9 = require("crypto");
+    var crypto10 = require("crypto");
     var bufferAlloc = require_buffer_alloc();
     var safeCompare = function safeCompare2(a, b) {
       var strA = String(a);
@@ -137662,9 +137682,9 @@ var require_safe_compare = __commonJS({
       bufA.write(strA);
       var bufB = bufferAlloc(aLen, 0, "utf8");
       bufB.write(strB);
-      return crypto9.timingSafeEqual(bufA, bufB) && aLen === bLen;
+      return crypto10.timingSafeEqual(bufA, bufB) && aLen === bLen;
     };
-    module2.exports = typeof crypto9.timingSafeEqual !== "undefined" ? nativeTimingSafeEqual : safeCompare;
+    module2.exports = typeof crypto10.timingSafeEqual !== "undefined" ? nativeTimingSafeEqual : safeCompare;
   }
 });
 
@@ -137704,7 +137724,7 @@ var require_telegraf = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.Telegraf = void 0;
-    var crypto9 = __importStar(require("crypto"));
+    var crypto10 = __importStar(require("crypto"));
     var http3 = __importStar(require("http"));
     var https = __importStar(require("https"));
     var composer_1 = require_composer();
@@ -137828,7 +137848,7 @@ var require_telegraf = __commonJS({
         return this;
       }
       secretPathComponent() {
-        return crypto9.createHash("sha3-256").update(this.token).update(process.version).digest("hex");
+        return crypto10.createHash("sha3-256").update(this.token).update(process.version).digest("hex");
       }
       /**
        * @see https://github.com/telegraf/telegraf/discussions/1344#discussioncomment-335700
@@ -142557,49 +142577,41 @@ var init_balance_verifier = __esm({
       static async verifyAllBalances() {
         const results = [];
         try {
-          const rows = await db.$queryRaw`
-        SELECT 
-          u.id, 
-          u.email, 
-          u.balance,
-          COALESCE(SUM(l.amount) FILTER (WHERE l.status = 'APPROVED'), 0)::BIGINT AS ledger_sum
-        FROM "User" u
-        LEFT JOIN "LedgerEntry" l ON l."userId" = u.id
-        WHERE u."isActive" = true AND u."isDeleted" = false
-        GROUP BY u.id, u.email, u.balance
-      `;
-          for (const row of rows) {
-            const userBalance = BigInt(row.balance);
-            const ledgerSum = BigInt(row.ledger_sum);
-            const initialDiscrepancy = userBalance - ledgerSum;
-            if (initialDiscrepancy === BigInt(0)) {
-              results.push({
-                userId: row.id,
-                email: row.email,
-                userBalance,
-                ledgerSum,
-                discrepancy: BigInt(0),
-                isDiscrepancy: false,
-                lockedSuccessfully: false
-              });
-              continue;
+          const users = await db.user.findMany({
+            where: {
+              isActive: true,
+              isDeleted: false
+            },
+            select: {
+              id: true,
+              email: true,
+              balance: true,
+              isActive: true,
+              adminNote: true
             }
+          });
+          for (const user of users) {
             try {
               const res = await db.$transaction(async (tx) => {
                 const freshUser2 = await tx.user.findUniqueOrThrow({
-                  where: { id: row.id },
+                  where: { id: user.id },
                   select: { id: true, email: true, balance: true, isActive: true, adminNote: true }
                 });
                 const aggregateResult = await tx.ledgerEntry.aggregate({
-                  _sum: { amount: true },
-                  where: { userId: freshUser2.id, status: "APPROVED" }
+                  _sum: {
+                    amount: true
+                  },
+                  where: {
+                    userId: freshUser2.id,
+                    status: "APPROVED"
+                  }
                 });
-                const confirmedLedgerSum = aggregateResult._sum.amount ?? BigInt(0);
-                const discrepancy2 = freshUser2.balance - confirmedLedgerSum;
+                const ledgerSum2 = aggregateResult._sum.amount ?? BigInt(0);
+                const discrepancy2 = freshUser2.balance - ledgerSum2;
                 const isDiscrepancy2 = discrepancy2 !== BigInt(0);
                 let lockedSuccessfully2 = false;
                 if (isDiscrepancy2) {
-                  const adminNoteText = `[CRITICAL DISCREPANCY] \u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0430\u044F \u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u043A\u0430: \u0431\u0430\u043B\u0430\u043D\u0441 (${freshUser2.balance.toString()}) \u043D\u0435 \u0441\u0445\u043E\u0434\u0438\u0442\u0441\u044F \u0441 \u0440\u0435\u0435\u0441\u0442\u0440\u043E\u043C (${confirmedLedgerSum.toString()}). \u0420\u0430\u0437\u043D\u0438\u0446\u0430: ${discrepancy2.toString()} \u0446\u0435\u043D\u0442\u043E\u0432.`;
+                  const adminNoteText = `[CRITICAL DISCREPANCY] \u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0430\u044F \u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u043A\u0430: \u0431\u0430\u043B\u0430\u043D\u0441 (${freshUser2.balance.toString()}) \u043D\u0435 \u0441\u0445\u043E\u0434\u0438\u0442\u0441\u044F \u0441 \u0440\u0435\u0435\u0441\u0442\u0440\u043E\u043C (${ledgerSum2.toString()}). \u0420\u0430\u0437\u043D\u0438\u0446\u0430: ${discrepancy2.toString()} \u0446\u0435\u043D\u0442\u043E\u0432.`;
                   await tx.user.update({
                     where: { id: freshUser2.id },
                     data: {
@@ -142629,18 +142641,18 @@ var init_balance_verifier = __esm({
                 }
                 return {
                   freshUser: freshUser2,
-                  ledgerSum: confirmedLedgerSum,
+                  ledgerSum: ledgerSum2,
                   discrepancy: discrepancy2,
                   isDiscrepancy: isDiscrepancy2,
                   lockedSuccessfully: lockedSuccessfully2
                 };
               }, { isolationLevel: "Serializable" });
-              const { freshUser, ledgerSum: finalLedgerSum, discrepancy, isDiscrepancy, lockedSuccessfully } = res;
+              const { freshUser, ledgerSum, discrepancy, isDiscrepancy, lockedSuccessfully } = res;
               if (isDiscrepancy) {
                 const alertMessage = `\u{1F6A8} [CRITICAL BALANCE DISCREPANCY]
 User: ${freshUser.email} (ID: ${freshUser.id})
 User Balance: ${freshUser.balance.toString()} cents (${(Number(freshUser.balance) / 100).toFixed(2)} \u20BD)
-Ledger Sum: ${finalLedgerSum.toString()} cents (${(Number(finalLedgerSum) / 100).toFixed(2)} \u20BD)
+Ledger Sum: ${ledgerSum.toString()} cents (${(Number(ledgerSum) / 100).toFixed(2)} \u20BD)
 Discrepancy: ${discrepancy.toString()} cents (${(Number(discrepancy) / 100).toFixed(2)} \u20BD)
 Action: Account LOCKED, logged in AdminAuditLog.`;
                 sendAdminAlert(alertMessage, "CRITICAL");
@@ -142649,20 +142661,20 @@ Action: Account LOCKED, logged in AdminAuditLog.`;
                 userId: freshUser.id,
                 email: freshUser.email,
                 userBalance: freshUser.balance,
-                ledgerSum: finalLedgerSum,
+                ledgerSum,
                 discrepancy,
                 isDiscrepancy,
                 lockedSuccessfully
               });
             } catch (err) {
               const errMsg = err instanceof Error ? err.message : String(err);
-              console.error(`[BalanceVerifier] Error processing user ${row.email}:`, err);
+              console.error(`[BalanceVerifier] Error processing user ${user.email}:`, err);
               results.push({
-                userId: row.id,
-                email: row.email,
-                userBalance,
-                ledgerSum,
-                discrepancy: initialDiscrepancy,
+                userId: user.id,
+                email: user.email,
+                userBalance: user.balance,
+                ledgerSum: BigInt(0),
+                discrepancy: BigInt(0),
                 isDiscrepancy: true,
                 lockedSuccessfully: false,
                 error: errMsg
@@ -146596,6 +146608,98 @@ var init_payment_service = __esm({
       }
     };
     paymentService = new PaymentService();
+  }
+});
+
+// src/services/analytics/analytics-buffer.service.ts
+var analytics_buffer_service_exports = {};
+__export2(analytics_buffer_service_exports, {
+  ANALYTICS_BUFFER_KEY: () => ANALYTICS_BUFFER_KEY,
+  AnalyticsBufferService: () => AnalyticsBufferService
+});
+var ANALYTICS_BUFFER_KEY, AnalyticsBufferService;
+var init_analytics_buffer_service = __esm({
+  "src/services/analytics/analytics-buffer.service.ts"() {
+    "use strict";
+    init_db();
+    init_redis();
+    ANALYTICS_BUFFER_KEY = "buffer:analytics_events";
+    AnalyticsBufferService = class {
+      /**
+       * Pushes an event to the Redis buffer with a 1.5s timeout.
+       * If Redis fails or times out, falls back directly to db.analyticsEvent.create (fail-open).
+       */
+      static async pushEvent(payload) {
+        const serialized = JSON.stringify({
+          event: payload.event,
+          metadata: payload.metadata ?? null,
+          sessionId: payload.sessionId ?? null,
+          createdAt: typeof payload.createdAt === "string" ? payload.createdAt : payload.createdAt?.toISOString() ?? (/* @__PURE__ */ new Date()).toISOString()
+        });
+        try {
+          const pushPromise = redis.rpush(ANALYTICS_BUFFER_KEY, serialized);
+          const timeoutPromise = new Promise(
+            (_, reject) => setTimeout(() => reject(new Error("Redis push timeout")), 1500)
+          );
+          await Promise.race([pushPromise, timeoutPromise]);
+        } catch (redisErr) {
+          console.warn("[AnalyticsBuffer] Redis buffer push failed, falling back to direct db.create:", redisErr);
+          await db.analyticsEvent.create({
+            data: {
+              event: payload.event,
+              metadata: payload.metadata || void 0,
+              sessionId: payload.sessionId || void 0
+            }
+          });
+        }
+      }
+      /**
+       * Flushes buffered events from Redis to PostgreSQL in chunks of up to 500 items.
+       * Restores unpersisted items to Redis on failure to ensure zero data loss.
+       */
+      static async flush(maxTotal = 5e3) {
+        let totalFlushed = 0;
+        const CHUNK_SIZE = 500;
+        while (totalFlushed < maxTotal) {
+          const rawBatch = [];
+          for (let i = 0; i < CHUNK_SIZE; i++) {
+            const item = await redis.lpop(ANALYTICS_BUFFER_KEY);
+            if (!item) break;
+            rawBatch.push(item);
+          }
+          if (rawBatch.length === 0) break;
+          const batch = [];
+          for (const raw of rawBatch) {
+            try {
+              const parsed = JSON.parse(raw);
+              batch.push({
+                event: parsed.event,
+                metadata: parsed.metadata ?? void 0,
+                sessionId: parsed.sessionId ?? void 0,
+                createdAt: parsed.createdAt ? new Date(parsed.createdAt) : /* @__PURE__ */ new Date()
+              });
+            } catch {
+            }
+          }
+          if (batch.length > 0) {
+            try {
+              await db.analyticsEvent.createMany({ data: batch });
+              totalFlushed += batch.length;
+            } catch (dbErr) {
+              console.error("[AnalyticsBuffer] Failed to persist analytics batch to DB, restoring items to Redis:", dbErr);
+              try {
+                await redis.lpush(ANALYTICS_BUFFER_KEY, ...rawBatch.reverse());
+              } catch (restoreErr) {
+                console.error("[AnalyticsBuffer] Failed to restore batch to Redis:", restoreErr);
+              }
+              throw dbErr;
+            }
+          }
+          if (rawBatch.length < CHUNK_SIZE) break;
+        }
+        return totalFlushed;
+      }
+    };
   }
 });
 
@@ -159863,6 +159967,19 @@ Email: <code>${email}</code>
 var log18 = logger.child({ component: "CleanupProcessor" });
 var ANALYTICS_RETENTION_DAYS = 90;
 var LOGIN_LOG_RETENTION_DAYS = 180;
+async function flushAnalyticsBuffer(maxTotal = 5e3) {
+  try {
+    const { AnalyticsBufferService: AnalyticsBufferService2 } = await Promise.resolve().then(() => (init_analytics_buffer_service(), analytics_buffer_service_exports));
+    const flushed = await AnalyticsBufferService2.flush(maxTotal);
+    if (flushed > 0) {
+      log18.info(`[Cleanup] Flushed ${flushed} buffered analytics events from Redis to DB`);
+    }
+    return flushed;
+  } catch (err) {
+    log18.error("Failed to flush analytics buffer from Redis", { error: err });
+    return 0;
+  }
+}
 async function runCleanup() {
   const startedAt = Date.now();
   log18.info("Daily cleanup started");
@@ -159876,6 +159993,7 @@ async function runCleanup() {
     deleted: analyticsResult.count,
     olderThan: analyticsThreshold.toISOString()
   });
+  await flushAnalyticsBuffer(1e4);
   const rateLimitResult = await db.rateLimit.deleteMany({
     where: { expiresAt: { lte: now } }
   });
@@ -160231,6 +160349,7 @@ ${criticalAlerts.join("\n\n")}`,
       );
     }
   }
+  await flushAnalyticsBuffer(1e3);
 }
 async function runInProgressTTLSweep() {
   const startedAt = Date.now();
@@ -160717,34 +160836,44 @@ init_db();
 
 // src/lib/pagination.ts
 async function paginatedQuery(model, params) {
-  const { cursor, page, pageSize = 50, where = {}, orderBy = { id: "desc" }, include } = params;
+  const { cursor, page, pageSize = 50, where = {}, orderBy = [{ createdAt: "desc" }, { id: "desc" }], include, skipCount = false } = params;
+  const safePageSize = Math.min(Math.max(1, pageSize), 200);
   if (page !== void 0 && !cursor) {
     const currentPage = Math.max(1, page);
     const queryOptions2 = {
-      take: pageSize,
-      skip: (currentPage - 1) * pageSize,
+      take: safePageSize,
+      skip: (currentPage - 1) * safePageSize,
       where,
       orderBy
     };
     if (include) {
       queryOptions2.include = include;
     }
-    const [items2, totalCount2] = await Promise.all([
-      model.findMany(queryOptions2),
-      model.count({ where })
-    ]);
-    const totalPages2 = Math.max(1, Math.ceil(totalCount2 / pageSize));
-    const hasMore = currentPage < totalPages2;
+    let items2;
+    let totalCount2;
+    if (skipCount) {
+      items2 = await model.findMany(queryOptions2);
+      totalCount2 = -1;
+    } else {
+      [items2, totalCount2] = await Promise.all([
+        model.findMany(queryOptions2),
+        model.count({ where })
+      ]);
+    }
+    const totalPages2 = totalCount2 >= 0 ? Math.max(1, Math.ceil(totalCount2 / safePageSize)) : -1;
+    const hasMore = totalCount2 >= 0 ? currentPage < totalPages2 : items2.length === safePageSize;
+    const nextCursor2 = items2.length > 0 ? items2[items2.length - 1]?.id : void 0;
     return {
       items: items2,
+      nextCursor: nextCursor2,
       totalCount: totalCount2,
       totalPages: totalPages2,
       currentPage,
-      pageSize,
+      pageSize: safePageSize,
       hasMore
     };
   }
-  const take = pageSize + 1;
+  const take = safePageSize + 1;
   const queryOptions = {
     take,
     where,
@@ -160757,22 +160886,42 @@ async function paginatedQuery(model, params) {
   if (include) {
     queryOptions.include = include;
   }
-  const [items, totalCount] = await Promise.all([
-    model.findMany(queryOptions),
-    model.count({ where })
-  ]);
-  const hasNextPage = items.length > pageSize;
-  const paginatedItems = hasNextPage ? items.slice(0, pageSize) : items;
+  let items;
+  let totalCount;
+  const fetchItemsAndCount = async () => {
+    if (skipCount) {
+      const itms = await model.findMany(queryOptions);
+      return [itms, -1];
+    }
+    return Promise.all([
+      model.findMany(queryOptions),
+      model.count({ where })
+    ]);
+  };
+  try {
+    [items, totalCount] = await fetchItemsAndCount();
+  } catch (err) {
+    const isRecordNotFound = err && typeof err === "object" && "code" in err && err.code === "P2025" || err instanceof Error && err.message.includes("Record to use for the cursor was not found");
+    if (cursor && isRecordNotFound) {
+      delete queryOptions.cursor;
+      delete queryOptions.skip;
+      [items, totalCount] = await fetchItemsAndCount();
+    } else {
+      throw err;
+    }
+  }
+  const hasNextPage = items.length > safePageSize;
+  const paginatedItems = hasNextPage ? items.slice(0, safePageSize) : items;
   const nextCursor = hasNextPage && paginatedItems.length > 0 ? paginatedItems[paginatedItems.length - 1]?.id : void 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const totalPages = totalCount >= 0 ? Math.max(1, Math.ceil(totalCount / safePageSize)) : -1;
   return {
     items: paginatedItems,
     nextCursor,
     hasMore: hasNextPage,
     totalCount,
     totalPages,
-    currentPage: 1,
-    pageSize
+    currentPage: page || 1,
+    pageSize: safePageSize
   };
 }
 
@@ -160782,16 +160931,6 @@ init_settings();
 init_financial_constants();
 init_tenant_scope();
 init_currency_invariant();
-var statsCache = /* @__PURE__ */ new Map();
-var healthCache = /* @__PURE__ */ new Map();
-var markupAnalyticsCache = /* @__PURE__ */ new Map();
-var categoriesListCache = /* @__PURE__ */ new Map();
-function invalidateCatalogAdminCache() {
-  statsCache.clear();
-  healthCache.clear();
-  markupAnalyticsCache.clear();
-  categoriesListCache.clear();
-}
 var CatalogManagementService = class {
   /**
    * Paginated service list with category, markup, and order count.
@@ -160951,7 +161090,6 @@ var CatalogManagementService = class {
         cooldownReason: isActive ? null : "MANUAL_DEACTIVATED"
       }
     });
-    invalidateCatalogAdminCache();
     auditAdmin({
       adminId: admin.id,
       adminEmail: admin.email,
@@ -160976,7 +161114,6 @@ var CatalogManagementService = class {
         name: service.name.startsWith("[ARCHIVED] ") ? service.name : `[ARCHIVED] ${service.name}`
       }
     });
-    invalidateCatalogAdminCache();
     auditAdmin({
       adminId: admin.id,
       adminEmail: admin.email,
@@ -160988,18 +161125,9 @@ var CatalogManagementService = class {
     });
   }
   /**
-   * Catalog stats for the header and dashboard (cached for 20s per tenant).
+   * Catalog stats for the header and dashboard.
    */
   static async getCatalogStats(tenantId, _startDate, _endDate) {
-    const isTest = process.env.APP_ENV === "test" || process.env.NODE_ENV === "test";
-    const key = tenantId || "all";
-    if (!isTest) {
-      const cached = statsCache.get(key);
-      const now = Date.now();
-      if (cached && cached.expiresAt > now) {
-        return cached.data;
-      }
-    }
     const where = {};
     if (tenantId && tenantId !== "all") where.tenantId = { in: [tenantId, "all"] };
     const categoryWhere = {};
@@ -161009,11 +161137,7 @@ var CatalogManagementService = class {
       db.service.count({ where: { ...where, isActive: true } }),
       db.category.count({ where: categoryWhere })
     ]);
-    const result = { totalServices, activeServices, categories };
-    if (!isTest) {
-      statsCache.set(key, { data: result, expiresAt: Date.now() + 2e4 });
-    }
-    return result;
+    return { totalServices, activeServices, categories };
   }
   /**
    * Bulk updates markup for multiple services matching filter.
@@ -161050,7 +161174,6 @@ var CatalogManagementService = class {
     for (let i = 0; i < updates.length; i += 50) {
       await db.$transaction(updates.slice(i, i + 50));
     }
-    invalidateCatalogAdminCache();
     auditAdmin({
       adminId: admin.id,
       adminEmail: admin.email,
@@ -161062,18 +161185,9 @@ var CatalogManagementService = class {
     return { updatedCount: services.length };
   }
   /**
-   * Markup Analytics: returns distribution of markups across all services (cached 30s per tenant).
+   * Markup Analytics: returns distribution of markups across all services.
    */
   static async getMarkupAnalytics(tenantId) {
-    const isTest = process.env.APP_ENV === "test" || process.env.NODE_ENV === "test";
-    const key = tenantId || "all";
-    if (!isTest) {
-      const cached = markupAnalyticsCache.get(key);
-      const now = Date.now();
-      if (cached && cached.expiresAt > now) {
-        return cached.data;
-      }
-    }
     const where = {
       isActive: true,
       ...tenantId && tenantId !== "all" ? { tenantId: { in: [tenantId, "all"] } } : {}
@@ -161083,16 +161197,12 @@ var CatalogManagementService = class {
       select: { markup: true }
     });
     if (services.length === 0) {
-      const emptyResult = {
+      return {
         averageMarkup: 0,
         distribution: [],
         autoMarkupCount: 0,
         manualMarkupCount: 0
       };
-      if (!isTest) {
-        markupAnalyticsCache.set(key, { data: emptyResult, expiresAt: Date.now() + 3e4 });
-      }
-      return emptyResult;
     }
     const brackets = [
       { min: 1, max: 1.5, label: "1.0x - 1.5x (\u041D\u0438\u0437\u043A\u0430\u044F)", count: 0 },
@@ -161112,7 +161222,7 @@ var CatalogManagementService = class {
       }
     }
     const total = services.length;
-    const result = {
+    return {
       averageMarkup: Math.round(totalMarkup / total * 100) / 100,
       distribution: brackets.map((b) => ({
         label: b.label,
@@ -161122,24 +161232,11 @@ var CatalogManagementService = class {
       autoMarkupCount: 0,
       manualMarkupCount: total
     };
-    if (!isTest) {
-      markupAnalyticsCache.set(key, { data: result, expiresAt: Date.now() + 3e4 });
-    }
-    return result;
   }
   /**
-   * Category list for catalog filter dropdowns (cached 60s per tenant).
+   * Category list for catalog filter dropdowns.
    */
   static async listCategories(tenantId) {
-    const isTest = process.env.APP_ENV === "test" || process.env.NODE_ENV === "test";
-    const key = tenantId || "all";
-    if (!isTest) {
-      const cached = categoriesListCache.get(key);
-      const now = Date.now();
-      if (cached && cached.expiresAt > now) {
-        return cached.data;
-      }
-    }
     const tenantFilter = tenantId && tenantId !== "all" ? { in: [tenantId, "all"] } : void 0;
     const rows = await db.category.findMany({
       where: tenantId && tenantId !== "all" ? { tenantId: tenantVisibilityFilter(tenantId) } : void 0,
@@ -161163,7 +161260,7 @@ var CatalogManagementService = class {
       },
       orderBy: { name: "asc" }
     });
-    const result = rows.map((c) => ({
+    return rows.map((c) => ({
       id: c.id,
       name: c.name,
       network: c.network ? {
@@ -161173,10 +161270,6 @@ var CatalogManagementService = class {
       } : null,
       serviceCount: c._count.services
     }));
-    if (!isTest) {
-      categoriesListCache.set(key, { data: result, expiresAt: Date.now() + 6e4 });
-    }
-    return result;
   }
   /**
    * Total count of quarantined services.
@@ -161191,19 +161284,10 @@ var CatalogManagementService = class {
     });
   }
   /**
-   * Quick counts of catalog health for the notification badge (cached 20s per tenant).
+   * Quick counts of catalog health for the notification badge.
    */
   static async getCatalogHealthCounts(tenantId) {
-    const isTest = process.env.APP_ENV === "test" || process.env.NODE_ENV === "test";
-    const key = tenantId || "all";
-    if (!isTest) {
-      const cached = healthCache.get(key);
-      const now = Date.now();
-      if (cached && cached.expiresAt > now) {
-        return cached.data;
-      }
-    }
-    const nowDate = /* @__PURE__ */ new Date();
+    const now = /* @__PURE__ */ new Date();
     const tenantWhere = tenantId && tenantId !== "all" ? { in: [tenantId, "all"] } : void 0;
     const [quarantine, zombies, cooldown] = await Promise.all([
       db.service.count({
@@ -161221,17 +161305,13 @@ var CatalogManagementService = class {
       db.service.count({
         where: {
           isActive: true,
-          cooldownUntil: { gt: nowDate },
+          cooldownUntil: { gt: now },
           cooldownReason: { notIn: ["ZOMBIE_AUTO_DISABLED", "ZOMBIE_ARCHIVED"] },
           ...tenantWhere ? { tenantId: tenantWhere } : {}
         }
       })
     ]);
-    const result = { quarantine, zombies, cooldown };
-    if (!isTest) {
-      healthCache.set(key, { data: result, expiresAt: Date.now() + 2e4 });
-    }
-    return result;
+    return { quarantine, zombies, cooldown };
   }
 };
 
@@ -161916,7 +161996,28 @@ var CatalogSyncService = class {
     if (!providerDbRecord) throw new Error("\u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D");
     if (providerDbRecord.syncLock) throw new Error("\u0421\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0430\u0446\u0438\u044F \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0430 (syncLock)");
     logger.debug("syncProviderCatalog started", { providerId });
-    await this.refreshShadowCatalog(providerId);
+    const shadowCount = await this.refreshShadowCatalog(providerId);
+    const cacheKey = `provider:${providerId}:catalog:hash`;
+    const lastSyncHashKey = `provider:${providerId}:catalog:sync-hash`;
+    const [currentHash, lastSyncedHash] = await Promise.all([
+      redis.get(cacheKey).catch(() => null),
+      redis.get(lastSyncHashKey).catch(() => null)
+    ]);
+    if (currentHash && lastSyncedHash && currentHash === lastSyncedHash && shadowCount > 0) {
+      logger.info("Provider catalog unchanged (SHA-256 hash match), skipping redundant DB re-sync", {
+        providerId,
+        hash: currentHash.slice(0, 12),
+        count: shadowCount
+      });
+      return {
+        zombiesDisabled: 0,
+        resurrected: 0,
+        priceAnomalies: 0,
+        priceUpdatedSilent: 0,
+        marginFloorBreaches: 0,
+        unchanged: true
+      };
+    }
     const ourServices = await db.service.findMany({
       where: {
         providerId,
@@ -162126,12 +162227,18 @@ var CatalogSyncService = class {
         marginFloorBreaches
       }
     });
+    const effectiveHash = currentHash || await redis.get(cacheKey).catch(() => null);
+    if (effectiveHash) {
+      await redis.set(lastSyncHashKey, effectiveHash, "EX", 86400).catch(() => {
+      });
+    }
     return {
       zombiesDisabled,
       resurrected,
       priceAnomalies,
       priceUpdatedSilent,
-      marginFloorBreaches
+      marginFloorBreaches,
+      unchanged: false
     };
   }
   /**
@@ -164491,7 +164598,7 @@ var StormDetectorService = class {
       alerts
     };
     try {
-      await redis.set(cacheKey, JSON.stringify(report), "EX", 60);
+      await redis.set(cacheKey, JSON.stringify(report), "EX", 300);
     } catch {
     }
     return report;
@@ -165202,13 +165309,188 @@ async function processGeoAvailabilityCheck(job) {
 }
 var geo_availability_processor_default = processGeoAvailabilityCheck;
 
+// src/workers/processors/indexnow.processor.ts
+init_logger();
+
+// src/services/seo/indexnow.service.ts
+var import_crypto9 = __toESM(require("crypto"));
+init_logger();
+init_queue_manager();
+var DEFAULT_INDEXNOW_KEY = process.env.INDEXNOW_KEY || "smmplan-indexnow-2026-key";
+var IndexNowService = class {
+  static YANDEX_ENDPOINT = "https://yandex.com/indexnow";
+  static INDEXNOW_ORG_ENDPOINT = "https://api.indexnow.org/indexnow";
+  /**
+   * Returns the active IndexNow API key.
+   */
+  static getKey() {
+    return process.env.INDEXNOW_KEY || DEFAULT_INDEXNOW_KEY;
+  }
+  /**
+   * Enqueues URLs to BullMQ for resilient, retryable background submission.
+   * Prevents duplicates via deterministic hash-based jobId.
+   */
+  static async enqueueUrls(params) {
+    const { host, urls } = params;
+    if (!host || typeof host !== "string") {
+      return { enqueued: false, error: "Invalid or missing host." };
+    }
+    if (!Array.isArray(urls) || urls.length === 0) {
+      return { enqueued: false, error: "URL list must not be empty." };
+    }
+    const sanitizedUrls = urls.filter((u) => typeof u === "string" && u.startsWith("http"));
+    if (sanitizedUrls.length === 0) {
+      return { enqueued: false, error: "No valid HTTP/HTTPS URLs provided." };
+    }
+    const key = params.key || this.getKey();
+    const hash = import_crypto9.default.createHash("sha256").update(`${host}:${sanitizedUrls.slice().sort().join(",")}`).digest("hex").slice(0, 16);
+    const jobId = `indexnow-${host}-${hash}`;
+    try {
+      await indexNowQueue.add("submit-urls", {
+        host,
+        urls: sanitizedUrls,
+        key,
+        keyLocation: params.keyLocation,
+        submissionId: jobId
+      }, {
+        jobId,
+        attempts: 5,
+        backoff: { type: "exponential", delay: 1e4 }
+      });
+      logger.info("[IndexNow] Enqueued URLs for background indexing", { host, count: sanitizedUrls.length, jobId });
+      return { enqueued: true, jobId };
+    } catch (err) {
+      logger.error("[IndexNow] Failed to enqueue URLs to BullMQ", { error: err?.message || err });
+      return { enqueued: false, error: err?.message || "Failed to enqueue IndexNow job" };
+    }
+  }
+  /**
+   * Submits URLs to Yandex IndexNow for instantaneous crawling and indexation.
+   */
+  static async submitUrls(params) {
+    const { host, urls } = params;
+    const key = params.key || this.getKey();
+    if (!host || typeof host !== "string") {
+      return { success: false, submittedCount: 0, error: "Invalid or missing host." };
+    }
+    if (!Array.isArray(urls) || urls.length === 0) {
+      return { success: false, submittedCount: 0, error: "URL list must not be empty." };
+    }
+    const sanitizedUrls = urls.filter((u) => typeof u === "string" && u.startsWith("http"));
+    if (sanitizedUrls.length === 0) {
+      return { success: false, submittedCount: 0, error: "No valid HTTP/HTTPS URLs provided." };
+    }
+    const keyLocation = params.keyLocation || `https://${host}/api/seo/indexnow/key`;
+    const BATCH_SIZE = 1e4;
+    let totalSubmitted = 0;
+    let lastYandexStatus = void 0;
+    let lastIndexNowStatus = void 0;
+    let anySuccess = false;
+    try {
+      for (let i = 0; i < sanitizedUrls.length; i += BATCH_SIZE) {
+        const batch = sanitizedUrls.slice(i, i + BATCH_SIZE);
+        const payload = {
+          host,
+          key,
+          keyLocation,
+          urlList: batch
+        };
+        const yandexResponse = await fetch(this.YANDEX_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            "User-Agent": "OmniSMM-IndexNow-Agent/2026"
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(1e4)
+        }).catch((err) => {
+          logger.warn("[IndexNow] Yandex endpoint network error", { error: String(err) });
+          return null;
+        });
+        if (yandexResponse) {
+          lastYandexStatus = yandexResponse.status;
+        }
+        const indexNowResponse = await fetch(this.INDEXNOW_ORG_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            "User-Agent": "OmniSMM-IndexNow-Agent/2026"
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(1e4)
+        }).catch((err) => {
+          logger.warn("[IndexNow] IndexNow.org endpoint network error", { error: String(err) });
+          return null;
+        });
+        if (indexNowResponse) {
+          lastIndexNowStatus = indexNowResponse.status;
+        }
+        const isBatchSuccess = lastYandexStatus && (lastYandexStatus === 200 || lastYandexStatus === 202) || lastIndexNowStatus && (lastIndexNowStatus === 200 || lastIndexNowStatus === 202) || false;
+        if (isBatchSuccess) {
+          anySuccess = true;
+          totalSubmitted += batch.length;
+        }
+      }
+      logger.info("[IndexNow] Submitted URLs for rapid indexing", {
+        host,
+        count: totalSubmitted,
+        yandexStatus: lastYandexStatus,
+        indexNowStatus: lastIndexNowStatus
+      });
+      return {
+        success: anySuccess,
+        submittedCount: totalSubmitted,
+        yandexStatus: lastYandexStatus,
+        indexNowStatus: lastIndexNowStatus
+      };
+    } catch (error) {
+      logger.error("[IndexNow] Failed to submit to IndexNow", { error: error?.message || error });
+      return {
+        success: false,
+        submittedCount: 0,
+        error: error?.message || "Failed to submit URLs to IndexNow"
+      };
+    }
+  }
+};
+
+// src/workers/processors/indexnow.processor.ts
+var log31 = logger.child({ component: "IndexNowWorker" });
+async function indexNowProcessor(job) {
+  const { host, urls, key, keyLocation } = job.data;
+  log31.info(`[${job.id}] Processing IndexNow submission for ${host} (${urls?.length || 0} URLs)...`);
+  try {
+    const result = await IndexNowService.submitUrls({
+      host,
+      urls,
+      key,
+      keyLocation
+    });
+    if (!result.success) {
+      const errorMsg = result.error || `IndexNow submission returned failure (yandex: ${result.yandexStatus}, indexNow: ${result.indexNowStatus})`;
+      log31.warn(`[${job.id}] IndexNow submission failed, triggering BullMQ retry: ${errorMsg}`);
+      throw new Error(errorMsg);
+    }
+    log31.info(`[${job.id}] Successfully submitted ${result.submittedCount} URLs to IndexNow (host: ${host})`);
+    return {
+      success: true,
+      submittedCount: result.submittedCount,
+      yandexStatus: result.yandexStatus,
+      indexNowStatus: result.indexNowStatus
+    };
+  } catch (error) {
+    log31.error(`[${job.id}] Error in IndexNow processing: ${error?.message || error}`);
+    throw error;
+  }
+}
+
 // src/workers/index.ts
 init_order_service();
 
 // src/workers/eta-alerts.ts
 init_notifications();
 init_logger();
-var log31 = logger.child({ component: "ETAAlerts" });
+var log32 = logger.child({ component: "ETAAlerts" });
 var ETA_ALERT_THRESHOLD = 5;
 var etaFailureStreak = 0;
 function resetEtaFailureStreak() {
@@ -165216,7 +165498,7 @@ function resetEtaFailureStreak() {
 }
 function trackEtaFailure(job, err) {
   etaFailureStreak++;
-  log31.error("[etaWorker] Job failed", {
+  log32.error("[etaWorker] Job failed", {
     jobId: job?.id,
     jobName: job?.name,
     error: err?.message,
@@ -165233,8 +165515,8 @@ function trackEtaFailure(job, err) {
 
 // src/workers/index.ts
 init_queue_manager();
-var log32 = logger.child({ component: "WorkerManager" });
-log32.info("\u{1F680} Starting BullMQ workers...");
+var log33 = logger.child({ component: "WorkerManager" });
+log33.info("\u{1F680} Starting BullMQ workers...");
 var connection = getRedisConnection();
 var workerConfig = {
   connection,
@@ -165289,11 +165571,12 @@ var articlePublishWorker = new import_bullmq7.Worker("articlePublishQueue", arti
 var aiObserverWorker = new import_bullmq7.Worker("aiObserverQueue", aiObserverProcessor, workerConfig);
 var aiEconomicOptimizerWorker = new import_bullmq7.Worker("aiEconomicOptimizerQueue", aiEconomicOptimizerProcessor, workerConfig);
 var geoAvailabilityWorker = new import_bullmq7.Worker("geoAvailabilityQueue", geo_availability_processor_default, workerConfig);
+var indexNowWorker = new import_bullmq7.Worker("indexnow-queue", indexNowProcessor, workerConfig);
 var MAX_ATTEMPTS = 3;
 async function handleDeadLetter(queueName, job, err) {
   if (!job) return;
   const maxAttempts = job.opts?.attempts ?? MAX_ATTEMPTS;
-  log32.error(`Job failed`, {
+  log33.error(`Job failed`, {
     queue: queueName,
     jobId: job.id,
     attemptsMade: job.attemptsMade,
@@ -165322,11 +165605,11 @@ async function handleDeadLetter(queueName, job, err) {
             select: { status: true, numericId: true }
           });
           if (currentOrder && (currentOrder.status === "PENDING_CHECK" || currentOrder.status === "IN_PROGRESS")) {
-            log32.info(`[WORKER] Order #${currentOrder.numericId} (${payload.orderId}) is in '${currentOrder.status}'. Skipping auto-fail to allow operator triage / balance autoflush.`);
+            log33.info(`[WORKER] Order #${currentOrder.numericId} (${payload.orderId}) is in '${currentOrder.status}'. Skipping auto-fail to allow operator triage / balance autoflush.`);
             isParkedForTriage = true;
           } else {
             await orderService.failOrderTerminal(payload.orderId, err.message);
-            log32.info(`Auto-refunded dead-letter order ${payload.orderId}`);
+            log33.info(`Auto-refunded dead-letter order ${payload.orderId}`);
           }
         }
       }
@@ -165337,7 +165620,7 @@ async function handleDeadLetter(queueName, job, err) {
             where: { id: payload.refillId },
             data: { status: "ERROR" }
           });
-          log32.info(`Marked dead-letter refill ${payload.refillId} as ERROR`);
+          log33.info(`Marked dead-letter refill ${payload.refillId} as ERROR`);
         }
       }
       const isFinancialQueue = ["ordersQueue", "paymentSyncQueue", "paymentGatewayQueue"].includes(queueName);
@@ -165367,12 +165650,12 @@ Job ID: \`${job.id}\`
             "WARNING"
           );
         } else {
-          log32.info(`Suppressed duplicate DLQ alert for ${queueName} (${occurrences} occurrences in window)`);
+          log33.info(`Suppressed duplicate DLQ alert for ${queueName} (${occurrences} occurrences in window)`);
         }
       }
-      log32.error("Job dead-lettered", { queue: queueName, jobId: job.id });
+      log33.error("Job dead-lettered", { queue: queueName, jobId: job.id });
     } catch (dlqErr) {
-      log32.error("Failed to write to DLQ", { error: dlqErr.message });
+      log33.error("Failed to write to DLQ", { error: dlqErr.message });
     }
   }
 }
@@ -165386,10 +165669,10 @@ catalogWorker.on("failed", (job, err) => {
   handleDeadLetter("catalogQueue", job, err);
 });
 cleanupWorker.on("failed", (job, err) => {
-  log32.error("Cleanup job failed", { error: err.message });
+  log33.error("Cleanup job failed", { error: err.message });
 });
 telegramWorker.on("failed", (job, err) => {
-  log32.error("Telegram notification failed", { error: err.message });
+  log33.error("Telegram notification failed", { error: err.message });
 });
 paymentSyncWorker.on("failed", (job, err) => {
   handleDeadLetter("paymentSyncQueue", job, err);
@@ -165412,6 +165695,9 @@ aiEconomicOptimizerWorker.on("failed", (job, err) => {
 geoAvailabilityWorker.on("failed", (job, err) => {
   handleDeadLetter("geoAvailabilityQueue", job, err);
 });
+indexNowWorker.on("failed", (job, err) => {
+  handleDeadLetter("indexnow-queue", job, err);
+});
 etaWorker.on("failed", (job, err) => {
   trackEtaFailure(job, err);
 });
@@ -165424,28 +165710,28 @@ async function updateHeartbeat() {
   try {
     await connection.set(HEARTBEAT_KEY, Date.now().toString(), "EX", HEARTBEAT_TTL);
   } catch {
-    log32.warn("Heartbeat update failed (Redis connection issue)");
+    log33.warn("Heartbeat update failed (Redis connection issue)");
   }
 }
 updateHeartbeat();
 var heartbeatInterval = setInterval(updateHeartbeat, 6e4);
-ensureSyncCron().catch((e) => log32.error("Failed to setup Sync Cron", { error: e.message }));
-ensureCleanupCron().catch((e) => log32.error("Failed to setup Cleanup Cron", { error: e.message }));
-ensureETACron().catch((e) => log32.error("Failed to setup ETA Cron", { error: e.message }));
-ensureCatalogSyncCron().catch((e) => log32.error("Failed to setup Catalog Sync Cron", { error: e.message }));
-ensureOrphanSweepCron().catch((e) => log32.error("Failed to setup Orphan Sweep Cron", { error: e.message }));
-ensurePaymentSyncCron().catch((e) => log32.error("Failed to setup Payment Sync Cron", { error: e.message }));
-ensureDripfeedCron().catch((e) => log32.error("Failed to setup Dripfeed Cron", { error: e.message }));
-ensureArticlePublishCron().catch((e) => log32.error("Failed to setup Article Publish Cron", { error: e.message }));
-ensurePendingCheckCron().catch((e) => log32.error("Failed to setup PendingCheck Cron", { error: e.message }));
-ensureAiObserverCron().catch((e) => log32.error("Failed to setup AI Observer Cron", { error: e.message }));
-ensureAiEconomicOptimizerCron().catch((e) => log32.error("Failed to setup AI Economic Optimizer Cron", { error: e.message }));
-ensureGeoAvailabilityCron().catch((e) => log32.error("Failed to setup Geo Availability Cron", { error: e.message }));
-ensureCBRSyncCron().catch((e) => log32.error("Failed to setup CBR Rate Sync Cron", { error: e.message }));
-ensureProxySubscriptionSyncCron().catch((e) => log32.error("Failed to setup Proxy Subscription Sync Cron", { error: e.message }));
-log32.info("All workers started", { queues: ["ordersQueue", "refillQueue", "syncQueue", "catalogQueue", "cleanup", "paymentSyncQueue", "articlePublishQueue", "aiObserverQueue", "aiEconomicOptimizerQueue", "geoAvailabilityQueue"] });
+ensureSyncCron().catch((e) => log33.error("Failed to setup Sync Cron", { error: e.message }));
+ensureCleanupCron().catch((e) => log33.error("Failed to setup Cleanup Cron", { error: e.message }));
+ensureETACron().catch((e) => log33.error("Failed to setup ETA Cron", { error: e.message }));
+ensureCatalogSyncCron().catch((e) => log33.error("Failed to setup Catalog Sync Cron", { error: e.message }));
+ensureOrphanSweepCron().catch((e) => log33.error("Failed to setup Orphan Sweep Cron", { error: e.message }));
+ensurePaymentSyncCron().catch((e) => log33.error("Failed to setup Payment Sync Cron", { error: e.message }));
+ensureDripfeedCron().catch((e) => log33.error("Failed to setup Dripfeed Cron", { error: e.message }));
+ensureArticlePublishCron().catch((e) => log33.error("Failed to setup Article Publish Cron", { error: e.message }));
+ensurePendingCheckCron().catch((e) => log33.error("Failed to setup PendingCheck Cron", { error: e.message }));
+ensureAiObserverCron().catch((e) => log33.error("Failed to setup AI Observer Cron", { error: e.message }));
+ensureAiEconomicOptimizerCron().catch((e) => log33.error("Failed to setup AI Economic Optimizer Cron", { error: e.message }));
+ensureGeoAvailabilityCron().catch((e) => log33.error("Failed to setup Geo Availability Cron", { error: e.message }));
+ensureCBRSyncCron().catch((e) => log33.error("Failed to setup CBR Rate Sync Cron", { error: e.message }));
+ensureProxySubscriptionSyncCron().catch((e) => log33.error("Failed to setup Proxy Subscription Sync Cron", { error: e.message }));
+log33.info("All workers started", { queues: ["ordersQueue", "refillQueue", "syncQueue", "catalogQueue", "cleanup", "paymentSyncQueue", "articlePublishQueue", "aiObserverQueue", "aiEconomicOptimizerQueue", "geoAvailabilityQueue"] });
 var shutdown = async () => {
-  log32.info("Gracefully shutting down workers...");
+  log33.info("Gracefully shutting down workers...");
   clearInterval(heartbeatInterval);
   await connection.del(HEARTBEAT_KEY);
   await Promise.all([
@@ -165461,18 +165747,19 @@ var shutdown = async () => {
     articlePublishWorker.close(),
     aiObserverWorker.close(),
     aiEconomicOptimizerWorker.close(),
-    geoAvailabilityWorker.close()
+    geoAvailabilityWorker.close(),
+    indexNowWorker.close()
   ]);
   await db.$disconnect();
   if (connection) await connection.quit();
-  log32.info("Workers stopped successfully");
+  log33.info("Workers stopped successfully");
   process.exit(0);
 };
 process.on("unhandledRejection", (reason, promise) => {
-  log32.error("Unhandled Rejection in Worker process:", { reason, promise });
+  log33.error("Unhandled Rejection in Worker process:", { reason, promise });
 });
 process.on("uncaughtException", (error) => {
-  log32.error("Uncaught Exception in Worker process:", { error: error.message, stack: error.stack });
+  log33.error("Uncaught Exception in Worker process:", { error: error.message, stack: error.stack });
 });
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);

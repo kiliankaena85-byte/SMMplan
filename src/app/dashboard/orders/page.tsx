@@ -13,6 +13,7 @@ import { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { resolveTenantFromRequest, normalizeTenantId } from '@/lib/tenant-resolver-edge';
 import { resolveTenantUser } from '@/lib/tenant-user-resolver';
+import { runWithTenant } from '@/lib/tenant-context';
 
 export async function generateMetadata({ searchParams }: OrdersPageProps): Promise<Metadata> {
   const params = await searchParams;
@@ -48,16 +49,17 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const rawTenantId = params.tenant || reqHeaders.get('x-tenant-id') || session.tenantId;
   const tenantId = normalizeTenantId(rawTenantId) || 'smmplan';
 
-  const currentPage = parseInt(params.page || '1', 10);
-  const limit = 15; // 15 records per page matches SaaS data density standards
-  const skip = (currentPage - 1) * limit;
+  return runWithTenant(tenantId, async () => {
+    const currentPage = parseInt(params.page || '1', 10);
+    const limit = 15; // 15 records per page matches SaaS data density standards
+    const skip = (currentPage - 1) * limit;
 
-  const search = params.search || '';
-  const status = params.status || '';
-  const network = params.network || '';
+    const search = params.search || '';
+    const status = params.status || '';
+    const network = params.network || '';
 
-  const user = await resolveTenantUser(session.userId, tenantId, true);
-  if (!user) redirect('/login');
+    const user = await resolveTenantUser(session.userId, tenantId, true);
+    if (!user) redirect('/login');
 
   // Build the DB where filter dynamically
   const where: Prisma.OrderWhereInput = {
@@ -253,5 +255,6 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         />
       )}
     </div>
-  );
+    );
+  });
 }

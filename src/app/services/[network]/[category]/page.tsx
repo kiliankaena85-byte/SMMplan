@@ -8,14 +8,34 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { SettingsProvider } from "@/lib/settings";
 import { verifySession } from "@/lib/session";
 import { db } from "@/lib/db";
-import { SmartLinkLanding } from "@/components/landing/SmartLinkLanding";
-import { FluxOrderClient } from "@/components/ab-test/FluxOrderClient";
+import nextDynamic from "next/dynamic";
+
+const SmartLinkLanding = nextDynamic(
+  () => import("@/components/landing/SmartLinkLanding").then((m) => m.SmartLinkLanding),
+  { ssr: true }
+);
+const FluxOrderClient = nextDynamic(
+  () => import("@/components/ab-test/FluxOrderClient").then((m) => m.FluxOrderClient),
+  { ssr: true }
+);
+const FluxTrustBar = nextDynamic(
+  () => import("@/components/ab-test/FluxTrustBar").then((m) => m.FluxTrustBar),
+  { ssr: true }
+);
+const FluxWhyUs = nextDynamic(
+  () => import("@/components/ab-test/FluxWhyUs").then((m) => m.FluxWhyUs),
+  { ssr: true }
+);
+const FluxReviews = nextDynamic(
+  () => import("@/components/ab-test/FluxReviews").then((m) => m.FluxReviews),
+  { ssr: true }
+);
+const FluxFAQ = nextDynamic(
+  () => import("@/components/ab-test/FluxFAQ").then((m) => m.FluxFAQ),
+  { ssr: true }
+);
 import { Header } from "@/components/landing/Header";
 import { MegaFooter } from "@/components/landing/MegaFooter";
-import { FluxTrustBar } from "@/components/ab-test/FluxTrustBar";
-import { FluxWhyUs } from "@/components/ab-test/FluxWhyUs";
-import { FluxReviews } from "@/components/ab-test/FluxReviews";
-import { FluxFAQ } from "@/components/ab-test/FluxFAQ";
 import { ROUTES } from "@/lib/routes";
 import { getFaqForCategory } from "@/data/seo/faq-templates";
 import { LandingSeoHub } from "@/components/seo/LandingSeoHub";

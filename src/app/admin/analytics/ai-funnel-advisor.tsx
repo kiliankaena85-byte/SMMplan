@@ -17,13 +17,28 @@ import { getAiFunnelAnalysisAction } from '@/actions/admin/analytics.action';
 import type { AiFunnelAnalysisResult } from '@/services/analytics/ai-funnel-analyst.service';
 
 interface AiFunnelAdvisorProps {
-  initialAnalysis: AiFunnelAnalysisResult;
+  initialAnalysis?: AiFunnelAnalysisResult | null;
   period: number;
 }
 
 export function AiFunnelAdvisor({ initialAnalysis, period }: AiFunnelAdvisorProps) {
-  const [analysis, setAnalysis] = useState<AiFunnelAnalysisResult>(initialAnalysis);
+  const [analysis, setAnalysis] = useState<AiFunnelAnalysisResult | null>(initialAnalysis || null);
   const [isPending, startTransition] = useTransition();
+
+  React.useEffect(() => {
+    if (!initialAnalysis) {
+      startTransition(async () => {
+        try {
+          const res = await getAiFunnelAnalysisAction(period, false);
+          if (res && 'healthScore' in res) {
+            setAnalysis(res as AiFunnelAnalysisResult);
+          }
+        } catch (err) {
+          console.error('Failed to fetch background AI analysis:', err);
+        }
+      });
+    }
+  }, [period, initialAnalysis]);
 
   const handleRefresh = () => {
     startTransition(async () => {
@@ -74,6 +89,39 @@ export function AiFunnelAdvisor({ initialAnalysis, period }: AiFunnelAdvisorProp
     }
     return <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 border border-blue-500/20">Средний эффект</span>;
   };
+
+  if (!analysis) {
+    return (
+      <Card className="border-border/60 shadow-md rounded-2xl overflow-hidden bg-gradient-to-br from-card via-card to-primary/5">
+        <CardHeader className="pb-3 border-b border-border/40 flex flex-row items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+              <Sparkles className="w-4 h-4 shrink-0 animate-pulse" />
+            </div>
+            <div>
+              <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                ИИ-Аналитик воронки & CRO Advisor
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Формирование рекомендаций по конверсии воронки...
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium bg-background px-3 py-1.5 rounded-lg border border-border/60">
+            <RefreshCw className="w-3.5 h-3.5 animate-spin text-primary" />
+            <span>Анализ...</span>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-4 space-y-3">
+          <div className="h-10 w-full bg-muted/30 animate-pulse rounded-xl" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="h-20 bg-muted/20 animate-pulse rounded-xl" />
+            <div className="h-20 bg-muted/20 animate-pulse rounded-xl" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="border-border/60 shadow-md rounded-2xl overflow-hidden bg-gradient-to-br from-card via-card to-primary/5">

@@ -1,4 +1,4 @@
-import { getFunnelAnalyticsAction, getAiFunnelAnalysisAction } from '@/actions/admin/analytics.action';
+import { getFunnelAnalyticsAction } from '@/actions/admin/analytics.action';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AdminPageHeader } from '@/components/admin/page-header';
 import { BarChart as BarChartIcon, Clock, TrendingDown, Download } from 'lucide-react';
@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { enforceSectionAccess } from '@/lib/server/rbac';
 import { TopServicesTable, ProfitCategoriesTable, ProfitServicesTable } from './tables';
 import { AiFunnelAdvisor } from './ai-funnel-advisor';
-import type { AiFunnelAnalysisResult } from '@/services/analytics/ai-funnel-analyst.service';
 import { LTVCharts } from './ltv-charts';
 
 export const dynamic = 'force-dynamic';
@@ -16,10 +15,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
   const params = await searchParams;
   const period = params.p === '1' ? 1 : 7;
   
-  const [analyticsData, aiAnalysis] = await Promise.all([
-    getFunnelAnalyticsAction(period),
-    getAiFunnelAnalysisAction(period),
-  ]);
+  const analyticsData = await getFunnelAnalyticsAction(period);
 
   if ('error' in analyticsData) {
     return (
@@ -97,10 +93,8 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         </div>
       </div>
 
-      {/* AI CRO Advisor Widget */}
-      {aiAnalysis && !('error' in aiAnalysis) && (
-        <AiFunnelAdvisor initialAnalysis={aiAnalysis as AiFunnelAnalysisResult} period={period} />
-      )}
+      {/* AI CRO Advisor Widget (Asynchronous Background Hydration) */}
+      <AiFunnelAdvisor period={period} />
 
       {/* LTV & Whale Analysis */}
       <LTVCharts ltv={ltv} />

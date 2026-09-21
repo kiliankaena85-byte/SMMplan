@@ -87,7 +87,7 @@ export function MobileBottomNav({ anomalyCount = 0, openTicketCount = 0 }: Mobil
                 {item.label}
               </span>
               {item.isActive && (
-                <span className="absolute top-0 w-8 h-0.5 bg-primary rounded-full" />
+                <span className="absolute top-0 w-8 h-0.5 bg-primary rounded-full z-10" />
               )}
             </Link>
           );

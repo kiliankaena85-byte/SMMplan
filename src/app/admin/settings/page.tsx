@@ -160,19 +160,15 @@ export default async function AdminSettingsPage({
 
   return (
     <div className="space-y-6 w-full max-w-full min-w-0 animate-in fade-in duration-300 ease-out px-2 sm:px-6 min-h-full pb-16">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-1">
-        <AdminTabbedHeader
-          icon={Settings}
-          title="Настройки системы"
-          description="Глобальная конфигурация платформы, безопасность и персонал."
-          tabs={SYSTEM_TABS}
-          onboardingKey="settings"
-          onboarding={ONBOARDING_CONFIGS.settings}
-        />
-        <div className="shrink-0 self-start lg:self-center w-full sm:w-auto">
-          <SettingsSearchCommand />
-        </div>
-      </div>
+      <AdminTabbedHeader
+        icon={Settings}
+        title="Настройки системы"
+        description="Глобальная конфигурация платформы, безопасность и персонал."
+        action={<SettingsSearchCommand />}
+        tabs={SYSTEM_TABS}
+        onboardingKey="settings"
+        onboarding={ONBOARDING_CONFIGS.settings}
+      />
 
       {/* ── Onboarding Readiness & Goal-Gradient Bar ── */}
       <OnboardingReadinessBar settings={sanitizedSettings} />
@@ -250,6 +246,15 @@ export default async function AdminSettingsPage({
         {/* ── TAB 4: AUDIT ── */}
         {activeTab === 'audit' && (
           <AuditLogsTab logs={recentLogs} />
+        )}
+
+        {/* ── CATCH-ALL: Unknown tab ── */}
+        {!['system','catalog','integrations','telegram','proxy','storefront','team','templates','audit'].includes(activeTab) && (
+          <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground gap-3">
+            <Settings className="w-10 h-10 opacity-20" />
+            <p className="font-semibold text-sm">Раздел не найден</p>
+            <p className="text-xs">Выберите раздел из списка вкладок выше</p>
+          </div>
         )}
       </div>
     </div>

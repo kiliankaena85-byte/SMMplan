@@ -4,6 +4,7 @@ import { adminUserService } from '@/services/admin/user.service';
 import { adminTicketService } from '@/services/admin/ticket.service';
 import { adminCatalogService } from '@/services/admin/catalog.service';
 import { verifySession } from '@/lib/session';
+import { getCachedStaffUserWithPermissions } from '@/lib/server/rbac';
 import { db } from '@/lib/db';
 import { cookies, headers } from 'next/headers';
 import { unstable_cache } from 'next/cache';
@@ -74,14 +75,7 @@ export default async function AdminDashboardPage({
   searchParams: Promise<{ period?: string; tenant?: string }>;
 }) {
   const session = await verifySession();
-  const user = session ? await db.user.findUnique({
-    where: { id: session.userId },
-    include: {
-      staffRole: {
-        include: { permissions: true }
-      }
-    }
-  }) : null;
+  const user = session ? await getCachedStaffUserWithPermissions(session.userId) : null;
 
   const resolvedSearchParams = await searchParams;
   const period = resolvedSearchParams.period || 'all';

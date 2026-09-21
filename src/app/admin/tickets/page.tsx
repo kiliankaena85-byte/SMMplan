@@ -24,7 +24,8 @@ import { enforceSectionAccess } from '@/lib/server/rbac';
 import { getMSKMidnightUTC } from '@/services/admin/escrow.service';
 
 export default async function AdminTicketsPage({ searchParams }: Props) {
-  await enforceSectionAccess('tickets');
+  const user = await enforceSectionAccess('tickets');
+  const session = await verifySession();
   const params = await searchParams;
   const search = params.q || '';
   const statusFilter = params.status || 'ALL';
@@ -32,12 +33,6 @@ export default async function AdminTicketsPage({ searchParams }: Props) {
   const isApiEnabledFilter = params.isApiEnabled === 'true';
   const currentPage = Math.max(1, parseInt(params.page || '1', 10));
   const activeTicketId = params.ticketId || null;
-
-  const session = await verifySession();
-  const user = session ? await db.user.findUnique({
-    where: { id: session.userId },
-    include: { staffRole: { include: { permissions: true } } }
-  }) : null;
 
   const isOwner = user?.role === 'OWNER';
   const cookieStore = await cookies();

@@ -1,9 +1,23 @@
+import { cache } from "react";
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/session";
 import { runWithTenantBypass } from "@/lib/tenant-context";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { User, StaffRole, StaffPermission } from "@prisma/client";
 import { handleServerError } from "@/utils/error-handler";
+
+export const getCachedStaffUserWithPermissions = cache(async (userId: string) => {
+  return runWithTenantBypass('RBAC cached staff lookup', async () => {
+    return db.user.findUnique({
+      where: { id: userId },
+      include: {
+        staffRole: {
+          include: { permissions: true }
+        }
+      }
+    });
+  });
+});
 
 async function getSessionUserId(): Promise<string | null> {
   const sessionUser = await verifySession();
@@ -299,16 +313,7 @@ export async function enforceSectionAccess(section: string) {
     redirect('/login');
   }
 
-  const user = await runWithTenantBypass('RBAC enforceSectionAccess staff lookup', async () => {
-    return db.user.findUnique({
-      where: { id: userId },
-      include: {
-        staffRole: {
-          include: { permissions: true }
-        }
-      }
-    });
-  });
+  const user = await getCachedStaffUserWithPermissions(userId);
 
   if (!user || user.role === 'BANNED' || user.role === 'USER' || user.isDeleted || !user.isActive) {
     redirect('/login');
