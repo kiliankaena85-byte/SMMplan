@@ -20,6 +20,13 @@ export const TENANT_SCOPED_MODELS = [
   'customerGroup',
   'ticketFeedback',
   'ledgerEntry',
+  'page',
+  'article',
+  'promoCode',
+  'featureFlag',
+  'supportTemplate',
+  'contentCategory',
+  'contentItem',
 ] as const;
 
 export type TenantScopedModel = (typeof TENANT_SCOPED_MODELS)[number];
@@ -235,3 +242,4 @@ export function createTenantEnforcerExtension(options: TenantEnforcerOptions = {
     query: queryExtensions,
   };
 }
+
