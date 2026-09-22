@@ -24,7 +24,7 @@ export enum TargetTypeEnum {
   BOT_STARTS = 'BOT',
 }
 
-
+export const LinkType = TargetTypeEnum;
 export type LinkType = TargetTypeEnum;
 
 export type ServiceTargetType =
@@ -358,7 +358,7 @@ export function isTargetTypeCompatible(
 /**
  * Alias for 100% backward compatibility with Engine 1 imports
  */
-
+export const isLinkServiceCompatible = isTargetTypeCompatible;
 
 /**
  * Human-readable, educational error messages for incompatible combinations.

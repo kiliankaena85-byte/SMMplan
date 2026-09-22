@@ -23,7 +23,7 @@ export interface GeoMonitorState {
   lastAlertTime: number;
 }
 
-async function processGeoAvailabilityCheck(job?: Job<GeoAvailabilityJobData>): Promise<{
+export async function processGeoAvailabilityCheck(job?: Job<GeoAvailabilityJobData>): Promise<{
   status: string;
   ruRate: number;
   alertSent: boolean;
