@@ -39,7 +39,7 @@ export async function listStorefrontKeysAction(tenantId: string) {
           createdAt: k.createdAt.toISOString(),
         })),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[StorefrontKeysAction] Failed to list keys:', error);
       return { success: false, error: 'Не удалось загрузить список ключей витрин' };
     }
@@ -94,7 +94,7 @@ export async function generateStorefrontKeyAction(input: z.infer<typeof Generate
           },
         },
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[StorefrontKeysAction] Failed to generate key:', error);
       return { success: false, error: 'Ошибка генерации ключа витрины' };
     }
@@ -146,7 +146,7 @@ export async function revokeStorefrontKeyAction(input: z.infer<typeof RevokeKeyS
       }
 
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[StorefrontKeysAction] Failed to revoke key:', error);
       return { success: false, error: 'Не удалось отозвать ключ витрины' };
     }

@@ -56,7 +56,7 @@ export function ProviderProxyManager({ providers = [] }: { providers?: Provider[
                 <Button type="button" variant="secondary" size="sm" onClick={() => { m.setShowCreate(true); m.setForm(EMPTY_FORM); }} className="text-xs h-8 gap-1.5 font-bold">
                   <Plus className="w-3.5 h-3.5" /> Вручную
                 </Button>
-                <button type="button" onClick={m.loadData} className="p-2 rounded-lg hover:bg-muted" title="Обновить">
+                <button type="button" onClick={m.loadData} className="p-2 rounded-lg hover:bg-muted min-h-[36px] min-w-[36px] inline-flex items-center justify-center cursor-pointer" title="Обновить" aria-label="Обновить данные">
                   <RefreshCw className={`w-4 h-4 text-muted-foreground ${m.loading ? 'animate-spin' : ''}`} />
                 </button>
               </div>
@@ -69,7 +69,7 @@ export function ProviderProxyManager({ providers = [] }: { providers?: Provider[
                 { id: 'FREE_PUBLIC', label: `🌿 Бесплатные (${m.proxies.filter(p => p.category === 'FREE_PUBLIC').length})` },
                 { id: 'BACKUP_RESERVE', label: `🛡️ Резерв (${m.proxies.filter(p => p.category === 'BACKUP_RESERVE').length})` },
               ].map((cat) => (
-                <button key={cat.id} type="button" onClick={() => m.setFilterCategory(cat.id)} className={`text-xs font-bold px-3 py-1.5 rounded-xl border ${m.filterCategory === cat.id ? 'bg-primary/10 text-primary border-primary/30' : 'border-border/60 text-muted-foreground'}`}>
+                <button key={cat.id} type="button" onClick={() => m.setFilterCategory(cat.id)} className={`text-xs font-bold px-3 py-2 min-h-[36px] inline-flex items-center rounded-xl border transition-colors cursor-pointer ${m.filterCategory === cat.id ? 'bg-primary/10 text-primary border-primary/30' : 'border-border/60 text-muted-foreground hover:bg-muted/40'}`}>
                   {cat.label}
                 </button>
               ))}
@@ -82,7 +82,7 @@ export function ProviderProxyManager({ providers = [] }: { providers?: Provider[
               </div>
               <div className="flex gap-1.5 flex-wrap">
                 {['', 'socks5', 'http', 'https'].map((p) => (
-                  <button key={p} type="button" onClick={() => m.setFilterProtocol(p)} className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border ${m.filterProtocol === p ? 'bg-primary/10 text-primary border-primary/30' : 'border-border text-muted-foreground'}`}>
+                  <button key={p} type="button" onClick={() => m.setFilterProtocol(p)} className={`text-xs font-bold px-3 py-2 min-h-[36px] inline-flex items-center rounded-lg border transition-colors cursor-pointer ${m.filterProtocol === p ? 'bg-primary/10 text-primary border-primary/30' : 'border-border text-muted-foreground hover:bg-muted/40'}`}>
                     {p ? PROXY_PROTOCOL_LABELS[p as ProxyProtocol] : 'Все'}
                   </button>
                 ))}

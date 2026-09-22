@@ -12,12 +12,14 @@ describe('Wave 17: SMMplan Auth Modal & StepWizard Decomposition (CDD-TDD)', () 
       'src/components/landing/order-engine/modals/auth/AuthPasswordTab.tsx',
       'src/components/landing/order-engine/modals/auth/AuthMagicLinkTab.tsx',
       'src/components/landing/order-engine/modals/CheckoutAuthModal.tsx',
-      'src/components/landing/order-engine/variants/step-wizard/StepWizardHeader.tsx',
-      'src/components/landing/order-engine/variants/step-wizard/StepWizardStepper.tsx',
-      'src/components/landing/order-engine/variants/step-wizard/StepWizardParamsStep.tsx',
-      'src/components/landing/order-engine/variants/step-wizard/StepWizardPaymentStep.tsx',
-      'src/components/landing/order-engine/variants/step-wizard/StepWizardFooter.tsx',
-      'src/components/landing/order-engine/variants/StepWizardCheckout.tsx',
+      'src/components/landing/order-engine/variants/PlanCheckoutHeader.tsx',
+      'src/components/landing/order-engine/variants/PlanCheckoutInputs.tsx',
+      'src/components/landing/order-engine/variants/PlanCheckoutLink.tsx',
+      'src/components/landing/order-engine/variants/PlanCheckoutQuantity.tsx',
+      'src/components/landing/order-engine/variants/PlanCheckoutPromo.tsx',
+      'src/components/landing/order-engine/variants/PlanCheckoutGateways.tsx',
+      'src/components/landing/order-engine/variants/PlanCheckoutSummary.tsx',
+      'src/components/landing/order-engine/variants/PlanCheckoutCustomData.tsx',
     ];
 
     for (const relPath of filesToCheck) {

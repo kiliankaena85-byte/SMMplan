@@ -2,24 +2,6 @@ import React from 'react';
 import Link from 'next/link';
 import { AlertOctagon, ArrowRight, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { formatKopecks } from '@/utils/format-kopecks';
-
-interface FailingService {
-  name: string;
-  network: string;
-  count: number;
-}
-
-interface RefundStats {
-  totalOrders: number;
-  canceledOrders: number;
-  partialOrders: number;
-  errorOrders: number;
-  problematicCount: number;
-  failureRate: string;
-  totalRefundsKopecks: bigint;
-  topFailingServices: FailingService[];
-}
-
 import { adminOrderService } from '@/services/admin/order.service';
 
 interface Props {

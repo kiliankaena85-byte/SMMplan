@@ -309,13 +309,35 @@ export const WalletOps = {
       }
     });
 
-    const updatedUser = await tx.user.update({
-      where: { id: userId },
-      data: { balance: { increment: rawCents } },
-      select: { balance: true }
-    });
+    let updatedBalance: bigint;
+    if (rawCents < BigInt(0)) {
+      const absCents = -rawCents;
+      const updatedUserBatch = await tx.user.updateMany({
+        where: { id: userId, balance: { gte: absCents } },
+        data: { balance: { increment: rawCents } },
+      });
+      if (updatedUserBatch.count === 0) {
+        const current = await tx.user.findUnique({
+          where: { id: userId },
+          select: { balance: true }
+        });
+        throw new WalletInsufficientFundsError(absCents, current?.balance ?? BigInt(0));
+      }
+      const updatedUser = await tx.user.findUnique({
+        where: { id: userId },
+        select: { balance: true }
+      });
+      updatedBalance = updatedUser!.balance;
+    } else {
+      const updatedUser = await tx.user.update({
+        where: { id: userId },
+        data: { balance: { increment: rawCents } },
+        select: { balance: true }
+      });
+      updatedBalance = updatedUser.balance;
+    }
 
-    return { success: true, balance: updatedUser.balance, cached: false, entry };
+    return { success: true, balance: updatedBalance, cached: false, entry };
   },
 
   /**
@@ -403,26 +425,21 @@ export const WalletOps = {
     const rawCents = typeof amountCents === 'bigint' ? amountCents : BigInt(amountCents);
     const absAmount = rawCents < BigInt(0) ? -rawCents : rawCents;
 
-    if (tenantId) {
-      const user = await tx.user.findUnique({
-        where: { id: userId },
-        select: { id: true, tenantId: true }
-      });
-      if (!user || user.tenantId !== tenantId) {
-        throw new WalletUserNotFoundError(userId);
-      }
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { id: true, tenantId: true }
+    });
+    if (!user || (tenantId && user.tenantId !== tenantId)) {
+      throw new WalletUserNotFoundError(userId);
     }
 
-    const user = await tx.user.update({
-      where: { id: userId },
-      data: { quarantineBalance: { increment: absAmount } },
-      select: { tenantId: true }
-    });
+    const resolvedTenantId = tenantId || user.tenantId || 'smmplan';
 
-    return await tx.ledgerEntry.create({
+    // 1. Ledger-First: create audit entry BEFORE mutating balance
+    const entry = await tx.ledgerEntry.create({
       data: {
         userId,
-        tenantId: tenantId || user.tenantId || 'smmplan',
+        tenantId: resolvedTenantId,
         adminId,
         amount: rawCents,
         reason,
@@ -431,6 +448,14 @@ export const WalletOps = {
         transactionType: 'COMPENSATION'
       }
     });
+
+    // 2. Mutate user quarantine balance
+    await tx.user.update({
+      where: { id: userId },
+      data: { quarantineBalance: { increment: absAmount } },
+    });
+
+    return entry;
   },
 
   /**

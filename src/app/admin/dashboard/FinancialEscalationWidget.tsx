@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ShieldCheck, AlertTriangle, ArrowRight, RotateCcw, MessageSquare } from 'lucide-react';
+import { ShieldCheck, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 interface FinancialEscalationWidgetProps {

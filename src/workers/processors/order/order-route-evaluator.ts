@@ -84,6 +84,18 @@ export class OrderRouteEvaluator {
       };
     }
 
+    // Protection against dispatching real live production orders to Mock Provider
+    const isMockRoute = route.provider?.apiUrl?.includes('mock') ||
+      route.provider?.name?.toLowerCase().includes('mock') ||
+      route.provider?.name?.toLowerCase().includes('песочниц');
+
+    if (isMockRoute && !order.isTest && order.environmentMode !== 'SANDBOX' && order.environmentMode !== 'ACQUIRING_TEST') {
+      return {
+        isCompatible: false,
+        reason: `Защитный барьер: боевой заказ #${order.numericId} не может быть отправлен в тестовую песочницу (Mock Provider)`
+      };
+    }
+
     let shadowSvc = null;
     try {
       if (db.shadowService) {

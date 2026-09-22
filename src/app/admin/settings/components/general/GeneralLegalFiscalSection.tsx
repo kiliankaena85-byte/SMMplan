@@ -80,8 +80,9 @@ export function GeneralLegalFiscalSection({
     
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email Поддержки</Label>
+              <Label htmlFor="supportEmail" className="text-xs font-bold uppercase tracking-wider text-muted-foreground cursor-pointer">Email Поддержки</Label>
               <Input
+                id="supportEmail"
                 name="contactSupportEmail"
                 value={supportEmail}
                 onChange={(e) => setSupportEmail(e.target.value)}
@@ -90,10 +91,11 @@ export function GeneralLegalFiscalSection({
             </div>
     
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <Label htmlFor="privacyEmail" className="text-xs font-bold uppercase tracking-wider text-muted-foreground cursor-pointer">
                 Email для Data Privacy (DPO)
               </Label>
               <Input
+                id="privacyEmail"
                 name="contactPrivacyEmail"
                 value={privacyEmail}
                 onChange={(e) => setPrivacyEmail(e.target.value)}
@@ -102,10 +104,11 @@ export function GeneralLegalFiscalSection({
             </div>
     
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <Label htmlFor="contactTelegramChannel" className="text-xs font-bold uppercase tracking-wider text-muted-foreground cursor-pointer">
                 Telegram Новостной Канал (@канал)
               </Label>
               <Input
+                id="contactTelegramChannel"
                 name="contactTelegramChannel"
                 defaultValue={telegramChannelDefault}
                 placeholder={telegramChannelDefault}
@@ -113,8 +116,9 @@ export function GeneralLegalFiscalSection({
             </div>
     
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Юр. Лицо ИП / ООО</Label>
+              <Label htmlFor="companyName" className="text-xs font-bold uppercase tracking-wider text-muted-foreground cursor-pointer">Юр. Лицо ИП / ООО</Label>
               <Input
+                id="companyName"
                 name="legalCompanyName"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
@@ -123,8 +127,9 @@ export function GeneralLegalFiscalSection({
             </div>
     
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">ИНН (10 или 12 цифр)</Label>
+              <Label htmlFor="companyInn" className="text-xs font-bold uppercase tracking-wider text-muted-foreground cursor-pointer">ИНН (10 или 12 цифр)</Label>
               <Input
+                id="companyInn"
                 name="legalCompanyInn"
                 value={companyInn}
                 onChange={(e) => setCompanyInn(e.target.value)}
@@ -137,8 +142,9 @@ export function GeneralLegalFiscalSection({
             </div>
     
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">ОГРН / ОГРНИП</Label>
+              <Label htmlFor="companyOgrnip" className="text-xs font-bold uppercase tracking-wider text-muted-foreground cursor-pointer">ОГРН / ОГРНИП</Label>
               <Input
+                id="companyOgrnip"
                 name="legalCompanyOgrnip"
                 value={companyOgrnip}
                 onChange={(e) => setCompanyOgrnip(e.target.value)}
@@ -148,11 +154,12 @@ export function GeneralLegalFiscalSection({
             </div>
     
             <div className="space-y-2 md:col-span-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+              <Label htmlFor="companyAddress" className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between cursor-pointer">
                 <span>Юридический адрес / Город</span>
                 <span className="text-[10px] text-muted-foreground font-normal lowercase">(обязательно для работы по 152-ФЗ)</span>
               </Label>
               <Input
+                id="companyAddress"
                 name="legalCompanyAddress"
                 value={companyAddress}
                 onChange={(e) => setCompanyAddress(e.target.value)}
@@ -182,10 +189,11 @@ export function GeneralLegalFiscalSection({
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <Label htmlFor="usnScheme" className="text-xs font-bold uppercase tracking-wider text-muted-foreground cursor-pointer">
                 СНО (Схема налогообложения)
               </Label>
               <select
+                id="usnScheme"
                 name="usnScheme"
                 value={usnScheme}
                 onChange={handleUsnChange}
@@ -200,10 +208,11 @@ export function GeneralLegalFiscalSection({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <Label htmlFor="taxRate" className="text-xs font-bold uppercase tracking-wider text-muted-foreground cursor-pointer">
                 Ставка Налога (%)
               </Label>
               <Input
+                id="taxRate"
                 name="taxRate"
                 type="number"
                 step="0.1"
@@ -219,10 +228,11 @@ export function GeneralLegalFiscalSection({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <Label htmlFor="opexMonthly" className="text-xs font-bold uppercase tracking-wider text-muted-foreground cursor-pointer">
                 OPEX в Месяц (₽)
               </Label>
               <Input
+                id="opexMonthly"
                 name="opexMonthly"
                 type="number"
                 step="1000"

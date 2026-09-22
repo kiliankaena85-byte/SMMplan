@@ -7,6 +7,7 @@ import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { getClientIp } from '@/utils/ip';
 import { sendTestAlertSchema, sanitizeTelegramHtml } from '@/schemas/telegram';
 import type { TelegramBotDiagnostics, TelegramActionResponse } from '@/types/telegram';
+import type { Prisma } from '@prisma/client';
 import { getTenantId, getBotToken, safeTelegramFetch } from './helpers';
 
 export async function getTelegramBotDiagnosticsAction(targetTenantId?: string): Promise<TelegramBotDiagnostics> {
@@ -216,7 +217,7 @@ export async function updateTelegramBotSettingsAction(formData: FormData) {
       try {
         const { bot } = await import('@/bot/index');
         try { bot.stop('Hot-Reload'); } catch { /* ignore */ }
-        (bot.telegram as any).token = token;
+        (bot.telegram as unknown as { token: string }).token = token;
         await new Promise((resolve) => setTimeout(resolve, 500));
         bot.launch({ dropPendingUpdates: true }).catch((err) => console.error('[Bot Hot-Reload] Failed to launch:', err));
       } catch (err) {
@@ -224,7 +225,7 @@ export async function updateTelegramBotSettingsAction(formData: FormData) {
       }
     }
 
-    const dataToUpdate: any = {
+    const dataToUpdate: Prisma.SystemSettingsUpdateInput = {
       contactTelegramBot: botUsername.trim() || null,
       contactTelegramChannel: botChannel.trim() || null,
       telegramBotMode,

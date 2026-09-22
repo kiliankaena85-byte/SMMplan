@@ -259,7 +259,7 @@ export function GeneralSettings({ settings, tenantId = 'smmplan' }: GeneralSetti
       </Tabs>
 
       {/* Sticky Bottom Action Bar */}
-      <div className="fixed bottom-6 right-6 left-[300px] z-50 flex items-center justify-end gap-4 p-4 rounded-2xl bg-card/95 backdrop-blur-md border border-border shadow-lg transition-all">
+      <div className="sticky bottom-4 z-20 flex items-center justify-end gap-4 p-4 rounded-2xl bg-card/95 backdrop-blur-md border border-border shadow-lg">
         <Button
           disabled={isPending}
           type="submit"

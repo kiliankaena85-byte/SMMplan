@@ -104,12 +104,12 @@ export function StaffLogsDrawer({ user, onClose }: StaffLogsDrawerProps) {
         <div className="flex-1 overflow-y-auto pr-1 py-3 space-y-2.5 min-h-[300px]">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
-              <RefreshCw className="w-6 h-6 animate-spin text-primary" />
+              <RefreshCw className="w-6 h-6 animate-spin text-primary shrink-0" />
               <p className="text-xs font-medium">Загрузка журнала аудита...</p>
             </div>
           ) : logs.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
-              <History className="w-8 h-8 opacity-20" />
+              <History className="w-8 h-8 opacity-20 shrink-0" />
               <p className="text-xs font-medium">Действий сотрудника пока не зафиксировано</p>
             </div>
           ) : (
@@ -139,7 +139,7 @@ export function StaffLogsDrawer({ user, onClose }: StaffLogsDrawerProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="font-bold text-foreground text-xs truncate">
+                      <p className="font-bold text-foreground text-xs truncate min-w-0">
                         {log.actionTitle}
                       </p>
                       <div className="flex items-center gap-1.5 shrink-0 text-[10px] text-muted-foreground font-mono">

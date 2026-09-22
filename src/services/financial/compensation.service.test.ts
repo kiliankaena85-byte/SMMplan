@@ -7,7 +7,7 @@ vi.mock('@/lib/db', () => ({
   db: {
     order: {
       findUnique: vi.fn(),
-      update: vi.fn(),
+      updateMany: vi.fn(),
     },
     ledgerEntry: {
       findMany: vi.fn(),
@@ -32,10 +32,10 @@ describe('CompensationService', () => {
     await CompensationService.trackCompensation('missing-id');
 
     expect(db.order.findUnique).toHaveBeenCalledWith({
-      where: { id: 'missing-id' },
+      where: { id: 'missing-id', tenantId: undefined },
       include: { service: true },
     });
-    expect(db.order.update).not.toHaveBeenCalled();
+    expect(db.order.updateMany).not.toHaveBeenCalled();
   });
 
   it('should set actualProviderCost to 0 and calculate realMarginDelta for CANCELED status', async () => {
@@ -58,8 +58,8 @@ describe('CompensationService', () => {
 
     await CompensationService.trackCompensation('order-1');
 
-    expect(db.order.update).toHaveBeenCalledWith({
-      where: { id: 'order-1' },
+    expect(db.order.updateMany).toHaveBeenCalledWith({
+      where: { id: 'order-1', tenantId: undefined },
       data: {
         actualProviderCost: BigInt(0),
         realMarginDelta: BigInt(0), // 500 - 500 - 0 = 0
@@ -87,8 +87,8 @@ describe('CompensationService', () => {
     await CompensationService.trackCompensation('order-2', '0.04');
 
     const expectedCost = Math.round(0.04 * 95 * 100); // 380 cents
-    expect(db.order.update).toHaveBeenCalledWith({
-      where: { id: 'order-2' },
+    expect(db.order.updateMany).toHaveBeenCalledWith({
+      where: { id: 'order-2', tenantId: undefined },
       data: {
         actualProviderCost: BigInt(expectedCost),
         realMarginDelta: BigInt(400 - expectedCost), // 400 - 0 - 380 = 20
@@ -118,8 +118,8 @@ describe('CompensationService', () => {
     const expectedCost = Math.round(0.04 * 88.5 * 100); // 354 cents (using 88.5 instead of 95)
 
     expect(SettingsProvider.getExchangeRateUSD).not.toHaveBeenCalled();
-    expect(db.order.update).toHaveBeenCalledWith({
-      where: { id: 'order-2-historical' },
+    expect(db.order.updateMany).toHaveBeenCalledWith({
+      where: { id: 'order-2-historical', tenantId: undefined },
       data: {
         actualProviderCost: BigInt(expectedCost),
         realMarginDelta: BigInt(400 - expectedCost),
@@ -146,8 +146,8 @@ describe('CompensationService', () => {
     // Provider charged 3.50 RUB
     await CompensationService.trackCompensation('order-3', '3.50');
 
-    expect(db.order.update).toHaveBeenCalledWith({
-      where: { id: 'order-3' },
+    expect(db.order.updateMany).toHaveBeenCalledWith({
+      where: { id: 'order-3', tenantId: undefined },
       data: {
         actualProviderCost: BigInt(350),
         realMarginDelta: BigInt(400 - 350), // 400 - 0 - 350 = 50
@@ -177,8 +177,8 @@ describe('CompensationService', () => {
 
     const expectedCost = Math.round(1000 * 700 / 1000); // 700 cents
 
-    expect(db.order.update).toHaveBeenCalledWith({
-      where: { id: 'order-4' },
+    expect(db.order.updateMany).toHaveBeenCalledWith({
+      where: { id: 'order-4', tenantId: undefined },
       data: {
         actualProviderCost: BigInt(expectedCost),
         realMarginDelta: BigInt(1000 - 300 - expectedCost), // 1000 - 300 - 700 = 0
@@ -204,8 +204,8 @@ describe('CompensationService', () => {
     // Charge is missing
     await CompensationService.trackCompensation('order-5', undefined);
 
-    expect(db.order.update).toHaveBeenCalledWith({
-      where: { id: 'order-5' },
+    expect(db.order.updateMany).toHaveBeenCalledWith({
+      where: { id: 'order-5', tenantId: undefined },
       data: {
         actualProviderCost: BigInt(450),
         realMarginDelta: BigInt(0), // 450 - 0 - 450 = 0

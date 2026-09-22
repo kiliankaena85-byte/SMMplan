@@ -134,12 +134,19 @@ describe('Staff Management Actions Unit Tests', () => {
       expect(result.success).toBe(true);
       if (!result.success) throw new Error('Expected success');
       expect(result.userId).toBe('new-staff-123');
+      expect(db.user.findFirst).toHaveBeenCalledWith({
+        where: {
+          email: 'agent@smmplan.pro',
+          tenantId: 'smmplan',
+        },
+      });
       expect(db.user.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           email: 'agent@smmplan.pro',
           role: 'SUPPORT',
           supportLimitCents: 100000,
           allowedTenants: ['smmplan', 'flux'],
+          tenantId: 'smmplan',
           passwordHash: 'hashed_securePassword123!',
           isActive: true,
         }),
@@ -164,6 +171,12 @@ describe('Staff Management Actions Unit Tests', () => {
       expect(result.success).toBe(true);
       if (!result.success) throw new Error('Expected success');
       expect(result.userId).toBe('existing-user-456');
+      expect(db.user.findFirst).toHaveBeenCalledWith({
+        where: {
+          email: 'client@smmplan.pro',
+          tenantId: 'smmplan',
+        },
+      });
       expect(db.user.update).toHaveBeenCalledWith({
         where: { id: 'existing-user-456' },
         data: expect.objectContaining({
@@ -173,6 +186,38 @@ describe('Staff Management Actions Unit Tests', () => {
           isActive: true,
         }),
       });
+    });
+
+    it('isolates user lookup by target tenantId to prevent cross-tenant collision', async () => {
+      vi.mocked(db.user.findFirst).mockResolvedValueOnce(null);
+      vi.mocked(db.user.create).mockResolvedValueOnce({
+        id: 'flux-staff-789',
+        email: 'flux-agent@smmplan.pro',
+        role: 'SUPPORT',
+      } as any);
+
+      const result = await createStaffMemberAction({
+        email: 'flux-agent@smmplan.pro',
+        role: 'SUPPORT',
+        supportLimitRubles: 500,
+        allowedTenants: ['flux'],
+        tenantId: 'flux',
+      });
+
+      expect(result.success).toBe(true);
+      expect(db.user.findFirst).toHaveBeenCalledWith({
+        where: {
+          email: 'flux-agent@smmplan.pro',
+          tenantId: 'flux',
+        },
+      });
+      expect(db.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            tenantId: 'flux',
+          }),
+        })
+      );
     });
   });
 

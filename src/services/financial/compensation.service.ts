@@ -99,7 +99,7 @@ export class CompensationService {
       await db.order.updateMany({
         where: {
           id: order.id,
-          tenantId: order.tenantId || 'smmplan'
+          tenantId: order.tenantId
         },
         data: {
           actualProviderCost,

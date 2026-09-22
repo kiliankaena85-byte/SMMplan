@@ -8,6 +8,7 @@ import { getClientIp } from '@/utils/ip';
 import { z } from 'zod';
 import { createProxySchema, updateProxySchema } from '@/schemas/telegram';
 import type { TelegramProxy, TelegramActionResponse, ProxyTestResult } from '@/types/telegram';
+import type { Prisma } from '@prisma/client';
 import { getTenantId, getBotToken, safeTelegramFetch, generateCuid2 } from './helpers';
 
 export async function listTelegramProxiesAction(): Promise<TelegramProxy[] | TelegramActionResponse> {
@@ -52,7 +53,7 @@ export async function createTelegramProxyAction(
         tenantId, label: data.label, protocol: data.protocol,
         host: data.host, port: data.port, username: data.username,
         passwordEncrypted,
-      } as any,
+      } as Prisma.TelegramProxyUncheckedCreateInput,
     });
 
     const ipAddress = await getClientIp();
@@ -92,7 +93,7 @@ export async function updateTelegramProxyAction(
 
     await db.telegramProxy.update({
       where: { id },
-      data: { ...data, ...(passwordEncrypted !== undefined && { passwordEncrypted: passwordEncrypted ?? null }) } as any,
+      data: { ...data, ...(passwordEncrypted !== undefined && { passwordEncrypted: passwordEncrypted ?? null }) } as Prisma.TelegramProxyUpdateInput,
     });
 
     const ipAddress = await getClientIp();

@@ -21,7 +21,7 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
           <div className="flex items-center justify-between">
              <h2 className="text-lg font-bold text-foreground">Платежные шлюзы</h2>
              <Select value={activePaymentGateway} onValueChange={(val) => { if (val) setActivePaymentGateway(val); }}>
-               <SelectTrigger className="w-[180px]">
+               <SelectTrigger className="w-[180px] max-w-full">
                  <SelectValue placeholder="Выберите шлюз" />
                </SelectTrigger>
                <SelectContent>

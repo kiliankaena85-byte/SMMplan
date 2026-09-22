@@ -108335,12 +108335,34 @@ var init_wallet_ops = __esm({
             transactionType: txTypeOverride ?? "ADJUSTMENT"
           }
         });
-        const updatedUser = await tx.user.update({
-          where: { id: userId },
-          data: { balance: { increment: rawCents } },
-          select: { balance: true }
-        });
-        return { success: true, balance: updatedUser.balance, cached: false, entry };
+        let updatedBalance;
+        if (rawCents < BigInt(0)) {
+          const absCents = -rawCents;
+          const updatedUserBatch = await tx.user.updateMany({
+            where: { id: userId, balance: { gte: absCents } },
+            data: { balance: { increment: rawCents } }
+          });
+          if (updatedUserBatch.count === 0) {
+            const current = await tx.user.findUnique({
+              where: { id: userId },
+              select: { balance: true }
+            });
+            throw new WalletInsufficientFundsError(absCents, current?.balance ?? BigInt(0));
+          }
+          const updatedUser = await tx.user.findUnique({
+            where: { id: userId },
+            select: { balance: true }
+          });
+          updatedBalance = updatedUser.balance;
+        } else {
+          const updatedUser = await tx.user.update({
+            where: { id: userId },
+            data: { balance: { increment: rawCents } },
+            select: { balance: true }
+          });
+          updatedBalance = updatedUser.balance;
+        }
+        return { success: true, balance: updatedBalance, cached: false, entry };
       },
       /**
        * Refund user balance: increments balance, decrements totalSpent, creates ledger entry.
@@ -108400,24 +108422,18 @@ var init_wallet_ops = __esm({
         const { idempotencyKey, adminId, tenantId } = opts || {};
         const rawCents = typeof amountCents === "bigint" ? amountCents : BigInt(amountCents);
         const absAmount = rawCents < BigInt(0) ? -rawCents : rawCents;
-        if (tenantId) {
-          const user2 = await tx.user.findUnique({
-            where: { id: userId },
-            select: { id: true, tenantId: true }
-          });
-          if (!user2 || user2.tenantId !== tenantId) {
-            throw new WalletUserNotFoundError(userId);
-          }
-        }
-        const user = await tx.user.update({
+        const user = await tx.user.findUnique({
           where: { id: userId },
-          data: { quarantineBalance: { increment: absAmount } },
-          select: { tenantId: true }
+          select: { id: true, tenantId: true }
         });
-        return await tx.ledgerEntry.create({
+        if (!user || tenantId && user.tenantId !== tenantId) {
+          throw new WalletUserNotFoundError(userId);
+        }
+        const resolvedTenantId = tenantId || user.tenantId || "smmplan";
+        const entry = await tx.ledgerEntry.create({
           data: {
             userId,
-            tenantId: tenantId || user.tenantId || "smmplan",
+            tenantId: resolvedTenantId,
             adminId,
             amount: rawCents,
             reason,
@@ -108426,6 +108442,11 @@ var init_wallet_ops = __esm({
             transactionType: "COMPENSATION"
           }
         });
+        await tx.user.update({
+          where: { id: userId },
+          data: { quarantineBalance: { increment: absAmount } }
+        });
+        return entry;
       },
       /**
        * Release or clear quarantine balance for a user.
@@ -108554,7 +108575,7 @@ var init_compensation_service = __esm({
           await db.order.updateMany({
             where: {
               id: order.id,
-              tenantId: order.tenantId || "smmplan"
+              tenantId: order.tenantId
             },
             data: {
               actualProviderCost,
@@ -159263,6 +159284,13 @@ var OrderRouteEvaluator = class {
         reason: `\u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 ${route.provider?.name || route.providerId} \u043D\u0435 \u0438\u043C\u0435\u0435\u0442 \u0432\u0430\u043B\u0438\u0434\u043D\u043E\u0433\u043E API URL \u0438\u043B\u0438 \u043A\u043B\u044E\u0447\u0430`
       };
     }
+    const isMockRoute = route.provider?.apiUrl?.includes("mock") || route.provider?.name?.toLowerCase().includes("mock") || route.provider?.name?.toLowerCase().includes("\u043F\u0435\u0441\u043E\u0447\u043D\u0438\u0446");
+    if (isMockRoute && !order.isTest && order.environmentMode !== "SANDBOX" && order.environmentMode !== "ACQUIRING_TEST") {
+      return {
+        isCompatible: false,
+        reason: `\u0417\u0430\u0449\u0438\u0442\u043D\u044B\u0439 \u0431\u0430\u0440\u044C\u0435\u0440: \u0431\u043E\u0435\u0432\u043E\u0439 \u0437\u0430\u043A\u0430\u0437 #${order.numericId} \u043D\u0435 \u043C\u043E\u0436\u0435\u0442 \u0431\u044B\u0442\u044C \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u0435\u043D \u0432 \u0442\u0435\u0441\u0442\u043E\u0432\u0443\u044E \u043F\u0435\u0441\u043E\u0447\u043D\u0438\u0446\u0443 (Mock Provider)`
+      };
+    }
     let shadowSvc = null;
     try {
       if (db.shadowService) {
@@ -159596,6 +159624,7 @@ var RefundPolicyService = class {
     if (["COMPLETED", "PENDING", "IN_PROGRESS", "AWAITING_PAYMENT"].includes(order.status)) {
       return null;
     }
+    const rawCharge = typeof order.charge === "bigint" ? order.charge : BigInt(Math.max(0, Math.floor(Number(order.charge) || 0)));
     try {
       if (order.status === "CANCELED" || order.status === "ERROR") {
         await LoyaltyService.reverseCommission(txClient, order.id);
@@ -159606,7 +159635,7 @@ var RefundPolicyService = class {
       const errMsg = err instanceof Error ? err.message : String(err);
       console.error(`[RefundPolicyService] Failed to process referral commission for order ${order.id}:`, errMsg);
     }
-    let previousRefunds = 0;
+    let previousRefunds = BigInt(0);
     try {
       let priorEntries = [];
       if (typeof txClient.ledgerEntry?.findMany === "function") {
@@ -159638,28 +159667,35 @@ var RefundPolicyService = class {
         if (single) priorEntries = [single];
       }
       for (const entry of priorEntries) {
-        previousRefunds += Math.max(0, Number(entry.amount));
+        const amt = typeof entry.amount === "bigint" ? entry.amount : BigInt(Math.max(0, Math.floor(Number(entry.amount) || 0)));
+        if (amt > BigInt(0)) {
+          previousRefunds += amt;
+        }
       }
     } catch (queryErr) {
       console.warn(`[RefundPolicyService] Could not query prior refund entries for order ${order.id}:`, queryErr);
     }
-    const maxAvailableRefund = Math.max(0, order.charge - previousRefunds);
-    if (maxAvailableRefund <= 0) {
+    const maxAvailableRefund = rawCharge > previousRefunds ? rawCharge - previousRefunds : BigInt(0);
+    if (maxAvailableRefund <= BigInt(0)) {
       return null;
     }
-    let refundCents = 0;
+    let refundCents = BigInt(0);
     let reason = `\u0412\u043E\u0437\u0432\u0440\u0430\u0442 \u0417\u0430\u043A\u0430\u0437 #${order.id}`;
     if (order.status === "CANCELED" || order.status === "ERROR") {
       refundCents = maxAvailableRefund;
-      reason = previousRefunds > 0 ? `\u0414\u043E\u0432\u043E\u0437\u0432\u0440\u0430\u0442 \u043E\u0441\u0442\u0430\u0442\u043A\u0430 (${order.status}) \u0417\u0430\u043A\u0430\u0437 #${order.id} ${reasonDetail}`.trim() : `\u041F\u043E\u043B\u043D\u044B\u0439 \u0432\u043E\u0437\u0432\u0440\u0430\u0442 (${order.status}) \u0417\u0430\u043A\u0430\u0437 #${order.id} ${reasonDetail}`.trim();
+      reason = previousRefunds > BigInt(0) ? `\u0414\u043E\u0432\u043E\u0437\u0432\u0440\u0430\u0442 \u043E\u0441\u0442\u0430\u0442\u043A\u0430 (${order.status}) \u0417\u0430\u043A\u0430\u0437 #${order.id} ${reasonDetail}`.trim() : `\u041F\u043E\u043B\u043D\u044B\u0439 \u0432\u043E\u0437\u0432\u0440\u0430\u0442 (${order.status}) \u0417\u0430\u043A\u0430\u0437 #${order.id} ${reasonDetail}`.trim();
     } else if (order.status === "PARTIAL") {
-      const calculated = calculatePartialRefund(order);
-      const incremental = Math.max(0, calculated - previousRefunds);
-      refundCents = Math.min(incremental, maxAvailableRefund);
+      const calculated = BigInt(calculatePartialRefund({
+        charge: rawCharge,
+        quantity: order.quantity,
+        remains: order.remains
+      }));
+      const incremental = calculated > previousRefunds ? calculated - previousRefunds : BigInt(0);
+      refundCents = incremental < maxAvailableRefund ? incremental : maxAvailableRefund;
       reason = `\u0427\u0430\u0441\u0442\u0438\u0447\u043D\u044B\u0439 \u0432\u043E\u0437\u0432\u0440\u0430\u0442 (Partial, ${order.remains} \u043D\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u043E) \u0417\u0430\u043A\u0430\u0437 #${order.id}`.trim();
     }
-    if (refundCents > 0) {
-      const idempotencyKey = previousRefunds > 0 ? `refund_${order.id}_${order.status}_remainder_${refundCents}` : `refund_${order.id}_${order.status}`;
+    if (refundCents > BigInt(0)) {
+      const idempotencyKey = previousRefunds > BigInt(0) ? `refund_${order.id}_${order.status}_remainder_${refundCents.toString()}` : `refund_${order.id}_${order.status}`;
       if (txClient === db) {
         return await WalletService.refund(order.userId, refundCents, reason, idempotencyKey, void 0, order.tenantId);
       } else {

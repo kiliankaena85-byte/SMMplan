@@ -1,6 +1,5 @@
 'use server';
 
-import { z } from 'zod';
 import { db } from '@/lib/db';
 import { verifyPassword } from '@/lib/auth/password';
 import { createSession } from '@/lib/session';

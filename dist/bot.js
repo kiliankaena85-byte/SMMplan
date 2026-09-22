@@ -15740,12 +15740,34 @@ var init_wallet_ops = __esm({
             transactionType: txTypeOverride ?? "ADJUSTMENT"
           }
         });
-        const updatedUser = await tx.user.update({
-          where: { id: userId },
-          data: { balance: { increment: rawCents } },
-          select: { balance: true }
-        });
-        return { success: true, balance: updatedUser.balance, cached: false, entry };
+        let updatedBalance;
+        if (rawCents < BigInt(0)) {
+          const absCents = -rawCents;
+          const updatedUserBatch = await tx.user.updateMany({
+            where: { id: userId, balance: { gte: absCents } },
+            data: { balance: { increment: rawCents } }
+          });
+          if (updatedUserBatch.count === 0) {
+            const current = await tx.user.findUnique({
+              where: { id: userId },
+              select: { balance: true }
+            });
+            throw new WalletInsufficientFundsError(absCents, current?.balance ?? BigInt(0));
+          }
+          const updatedUser = await tx.user.findUnique({
+            where: { id: userId },
+            select: { balance: true }
+          });
+          updatedBalance = updatedUser.balance;
+        } else {
+          const updatedUser = await tx.user.update({
+            where: { id: userId },
+            data: { balance: { increment: rawCents } },
+            select: { balance: true }
+          });
+          updatedBalance = updatedUser.balance;
+        }
+        return { success: true, balance: updatedBalance, cached: false, entry };
       },
       /**
        * Refund user balance: increments balance, decrements totalSpent, creates ledger entry.
@@ -15805,24 +15827,18 @@ var init_wallet_ops = __esm({
         const { idempotencyKey, adminId, tenantId } = opts || {};
         const rawCents = typeof amountCents === "bigint" ? amountCents : BigInt(amountCents);
         const absAmount = rawCents < BigInt(0) ? -rawCents : rawCents;
-        if (tenantId) {
-          const user2 = await tx.user.findUnique({
-            where: { id: userId },
-            select: { id: true, tenantId: true }
-          });
-          if (!user2 || user2.tenantId !== tenantId) {
-            throw new WalletUserNotFoundError(userId);
-          }
-        }
-        const user = await tx.user.update({
+        const user = await tx.user.findUnique({
           where: { id: userId },
-          data: { quarantineBalance: { increment: absAmount } },
-          select: { tenantId: true }
+          select: { id: true, tenantId: true }
         });
-        return await tx.ledgerEntry.create({
+        if (!user || tenantId && user.tenantId !== tenantId) {
+          throw new WalletUserNotFoundError(userId);
+        }
+        const resolvedTenantId = tenantId || user.tenantId || "smmplan";
+        const entry = await tx.ledgerEntry.create({
           data: {
             userId,
-            tenantId: tenantId || user.tenantId || "smmplan",
+            tenantId: resolvedTenantId,
             adminId,
             amount: rawCents,
             reason,
@@ -15831,6 +15847,11 @@ var init_wallet_ops = __esm({
             transactionType: "COMPENSATION"
           }
         });
+        await tx.user.update({
+          where: { id: userId },
+          data: { quarantineBalance: { increment: absAmount } }
+        });
+        return entry;
       },
       /**
        * Release or clear quarantine balance for a user.
@@ -38919,7 +38940,7 @@ var init_compensation_service = __esm({
           await db.order.updateMany({
             where: {
               id: order.id,
-              tenantId: order.tenantId || "smmplan"
+              tenantId: order.tenantId
             },
             data: {
               actualProviderCost,

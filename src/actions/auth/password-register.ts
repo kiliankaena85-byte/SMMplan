@@ -1,6 +1,5 @@
 'use server';
 
-import { z } from 'zod';
 import { db } from '@/lib/db';
 import { hashPassword } from '@/lib/auth/password';
 import { RateLimitService } from '@/services/core/rate-limit.service';
@@ -11,7 +10,6 @@ import { sendMagicLink } from '@/lib/smtp';
 import { getClientIp } from '@/utils/ip';
 import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
-import { passwordPolicySchema } from '@/validators/password-policy';
 import { runSerializableTransaction } from '@/lib/transactions';
 
 const log = logger.child({ component: 'PasswordRegister' });

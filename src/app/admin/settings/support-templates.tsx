@@ -180,7 +180,7 @@ export function SupportTemplatesSettings({ initialTemplates, tenantId = 'smmplan
               type="button"
               size="sm"
               onClick={confirmDelete}
-              className="font-bold bg-rose-600 hover:bg-rose-700 text-white gap-1.5"
+              className="font-bold bg-rose-600 hover:bg-rose-700 text-destructive-foreground gap-1.5"
             >
               Удалить шаблон
             </Button>

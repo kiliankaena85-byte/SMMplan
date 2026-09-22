@@ -1,19 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { Flame, ArrowRight, TrendingUp } from 'lucide-react';
+import { Flame, ArrowRight } from 'lucide-react';
 import { formatKopecks } from '@/utils/format-kopecks';
-
-interface TopServiceItem {
-  id: string;
-  name: string;
-  networkName: string;
-  categoryName: string;
-  ordersCount: number;
-  revenueKopecks: bigint;
-  profitKopecks: bigint;
-  marginPct: number;
-}
-
 import { adminOrderService } from '@/services/admin/order.service';
 
 interface Props {

@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 export const dynamic = "force-dynamic";
-import Link from 'next/link';
 import { Toaster } from '@/components/ui/sonner';
 import { AdminSidebar } from '@/components/admin/sidebar';
 import { MobileNavDrawer } from '@/components/admin/mobile-nav-drawer';
@@ -74,7 +73,7 @@ const ADMIN_NAVIGATION = [
   }
 ];
 
-import { getCachedStaffUserWithPermissions } from '@/lib/server/rbac';
+import { getCachedStaffUserWithPermissions, BUILTIN_ROLE_PERMISSIONS } from '@/lib/server/rbac';
 
 const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   OWNER:    { label: 'Владелец',  color: 'bg-primary/10 text-primary border-primary/20 font-bold' },
@@ -105,7 +104,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   try {
     const { redis } = await import('@/lib/redis');
     serverSessionTenant = await redis.get(`staff:${user.id}:active_tenant`);
-  } catch {}
+  } catch (redisError) {
+    console.warn('[AdminLayout] Redis active_tenant resolution fallback:', redisError);
+  }
 
   const isOwner = user.role === 'OWNER';
   const userAllowedTenants = isOwner
@@ -135,7 +136,6 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       if (user.role === 'OWNER' || user.role === 'ADMIN') return true;
       if (item.section === 'dashboard') return true;
       const normalizedSection = item.section.toUpperCase();
-      const { BUILTIN_ROLE_PERMISSIONS } = require('@/lib/server/rbac');
       const builtin = BUILTIN_ROLE_PERMISSIONS[user.role]?.[normalizedSection];
       const explicit = user.staffRole?.permissions?.find(
         (p: { section: string; canView: boolean; canEdit: boolean }) =>

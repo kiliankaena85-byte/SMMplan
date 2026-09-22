@@ -1,8 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { CreditCard, CheckCircle2, Clock, AlertTriangle, RefreshCw } from 'lucide-react';
-import Link from 'next/link';
+import { CreditCard } from 'lucide-react';
 
 interface GatewayStatus {
   name: string;

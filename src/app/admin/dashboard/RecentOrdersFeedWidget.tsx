@@ -1,26 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { Package, ArrowRight, Clock } from 'lucide-react';
+import { Package, ArrowRight } from 'lucide-react';
 import { formatKopecks } from '@/utils/format-kopecks';
-import { TenantBrandBadge } from '@/app/admin/orders/components/columns';
-
-interface RecentOrder {
-  id: string;
-  numericId: number;
-  charge: bigint;
-  status: string;
-  createdAt: Date;
-  tenantId: string;
-  user: { email: string };
-  service: {
-    name: string;
-    category: {
-      name: string;
-      network: { name: string; slug: string } | null;
-    } | null;
-  };
-}
-
 import { adminOrderService } from '@/services/admin/order.service';
 
 interface Props {

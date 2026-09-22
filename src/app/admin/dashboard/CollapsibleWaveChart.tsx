@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Activity, BarChart2, Eye, EyeOff } from 'lucide-react';
+import { ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import type { OrdersChartData } from './orders-chart';
 
@@ -20,7 +20,6 @@ interface Props {
 
 export function CollapsibleWaveChart({ data, step }: Props) {
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
-  const [isLoaded, setIsLoaded] = useState<boolean>(false);
 
   useEffect(() => {
     try {
@@ -31,7 +30,6 @@ export function CollapsibleWaveChart({ data, step }: Props) {
     } catch {
       // ignore storage errors
     }
-    setIsLoaded(true);
   }, []);
 
   const toggleCollapse = () => {

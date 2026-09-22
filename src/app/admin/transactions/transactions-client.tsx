@@ -3,18 +3,16 @@
 import React, { useState, useEffect, useTransition, useCallback } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { getLedgerAction, type LedgerPageResult, type LedgerEntryDTO } from '@/actions/admin/finance/ledger';
+import { getLedgerAction, type LedgerPageResult, type LedgerParams } from '@/actions/admin/finance/ledger';
 import { ClientDate } from '@/components/ui/client-date';
 import { NumberedPagination } from '@/components/admin/ui/numbered-pagination';
 import { 
   ArrowLeftRight, 
   CreditCard, 
-  ShoppingCart, 
   RotateCcw, 
   Search, 
   Download, 
   RefreshCw, 
-  Wallet,
   SlidersHorizontal,
   ExternalLink,
   Copy,
@@ -22,8 +20,7 @@ import {
   CheckCircle2,
   Clock,
   Ban,
-  Shield,
-  User
+  Shield
 } from 'lucide-react';
 import { TenantBrandBadge } from '@/app/admin/orders/components/columns';
 import { resolveLedgerTypeForDisplay, LEDGER_TYPE_CONFIG } from '@/lib/financial/ledger-types';
@@ -39,21 +36,21 @@ interface TransactionsClientProps {
   canExport?: boolean;
 }
 
-const PERIOD_OPTIONS = [
+const PERIOD_OPTIONS: { id: LedgerParams['period']; label: string }[] = [
   { id: 'today', label: 'Сегодня' },
   { id: 'week', label: '7 дней' },
   { id: 'month', label: '30 дней' },
   { id: 'all', label: 'Все время' },
 ];
 
-const STATUS_OPTIONS = [
+const STATUS_OPTIONS: { id: LedgerParams['status']; label: string }[] = [
   { id: 'ALL', label: 'Все статусы' },
   { id: 'APPROVED', label: 'Одобрено' },
   { id: 'QUARANTINE', label: 'Карантин' },
   { id: 'REJECTED', label: 'Отклонено' },
 ];
 
-const TYPE_OPTIONS = [
+const TYPE_OPTIONS: { id: LedgerParams['type']; label: string }[] = [
   { id: 'ALL', label: 'Все типы' },
   { id: 'TOPUP', label: '💳 Пополнения' },
   { id: 'ORDER_CHARGE', label: '🛒 Оплата заказов' },
@@ -107,9 +104,9 @@ export function TransactionsClient({
 }: TransactionsClientProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [data, setData] = useState<LedgerPageResult>(initial);
-  const [period, setPeriod] = useState<string>(initialPeriod);
-  const [status, setStatus] = useState<string>('ALL');
-  const [type, setType] = useState<string>('ALL');
+  const [period, setPeriod] = useState<LedgerParams['period']>((initialPeriod as LedgerParams['period']) || 'month');
+  const [status, setStatus] = useState<LedgerParams['status']>('ALL');
+  const [type, setType] = useState<LedgerParams['type']>('ALL');
   const [search, setSearch] = useState<string>('');
   const [minAmount, setMinAmount] = useState<string>(initialMinAmount);
   const [maxAmount, setMaxAmount] = useState<string>(initialMaxAmount);
@@ -125,9 +122,9 @@ export function TransactionsClient({
   }, []);
 
   const loadData = useCallback((
-    newPeriod = period,
-    newStatus = status,
-    newType = type,
+    newPeriod: LedgerParams['period'] = period,
+    newStatus: LedgerParams['status'] = status,
+    newType: LedgerParams['type'] = type,
     newSearch = search,
     newMinAmount = minAmount,
     newMaxAmount = maxAmount,
@@ -141,9 +138,9 @@ export function TransactionsClient({
       const parsedMax = newMaxAmount !== '' ? parseFloat(newMaxAmount.replace(',', '.')) : undefined;
 
       const res = await getLedgerAction({
-        period: newPeriod as any,
-        status: newStatus as any,
-        type: newType as any,
+        period: newPeriod,
+        status: newStatus,
+        type: newType,
         search: newSearch.trim() || undefined,
         minAmount: !isNaN(parsedMin as number) ? parsedMin : undefined,
         maxAmount: !isNaN(parsedMax as number) ? parsedMax : undefined,
@@ -162,19 +159,19 @@ export function TransactionsClient({
     });
   }, [period, status, type, search, minAmount, maxAmount, dateFrom, dateTo, data.currentPage, data.pageSize, tenantId]);
 
-  const handlePeriodChange = (newPeriod: string) => {
+  const handlePeriodChange = (newPeriod: LedgerParams['period']) => {
     setPeriod(newPeriod);
     setDateFrom('');
     setDateTo('');
     loadData(newPeriod, status, type, search, minAmount, maxAmount, '', '', 1);
   };
 
-  const handleStatusChange = (newStatus: string) => {
+  const handleStatusChange = (newStatus: LedgerParams['status']) => {
     setStatus(newStatus);
     loadData(period, newStatus, type, search, minAmount, maxAmount, dateFrom, dateTo, 1);
   };
 
-  const handleTypeChange = (newType: string) => {
+  const handleTypeChange = (newType: LedgerParams['type']) => {
     setType(newType);
     loadData(period, status, newType, search, minAmount, maxAmount, dateFrom, dateTo, 1);
   };
@@ -361,7 +358,7 @@ export function TransactionsClient({
           {/* Status Select */}
           <select
             value={status}
-            onChange={(e) => handleStatusChange(e.target.value)}
+            onChange={(e) => handleStatusChange(e.target.value as LedgerParams['status'])}
             aria-label="Фильтр по статусу"
             className="h-8 px-2.5 text-xs font-semibold bg-background border border-border/70 rounded-lg text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all cursor-pointer shrink-0 shadow-xs"
           >
@@ -592,14 +589,14 @@ export function TransactionsClient({
           <table className="w-full text-xs text-left border-collapse table-auto">
             <thead>
               <tr className="border-b border-border/70 bg-muted/30 text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-                <th className="px-3 py-2.5 w-[180px] lg:w-[220px]">Клиент</th>
-                <th className="px-2.5 py-2.5 w-[130px] lg:w-[150px]">UUID / Шлюз ID</th>
-                <th className="px-2.5 py-2.5 w-[115px] lg:w-[130px]">Дата / Время</th>
-                <th className="px-2.5 py-2.5 w-[140px] lg:w-[160px]">Тип</th>
-                <th className="px-2.5 py-2.5 text-right w-[110px] lg:w-[130px]">Сумма</th>
+                <th className="px-3 py-2.5 w-[180px] lg:w-[220px] max-w-full">Клиент</th>
+                <th className="px-2.5 py-2.5 w-[130px] lg:w-[150px] max-w-full">UUID / Шлюз ID</th>
+                <th className="px-2.5 py-2.5 w-[115px] lg:w-[130px] max-w-full">Дата / Время</th>
+                <th className="px-2.5 py-2.5 w-[140px] lg:w-[160px] max-w-full">Тип</th>
+                <th className="px-2.5 py-2.5 text-right w-[110px] lg:w-[130px] max-w-full">Сумма</th>
                 <th className="px-3 py-2.5">Основание</th>
-                <th className="px-2 py-2.5 text-center w-[95px] lg:w-[110px]">Инициатор</th>
-                <th className="px-2.5 py-2.5 text-center w-[105px] lg:w-[120px]">Статус</th>
+                <th className="px-2 py-2.5 text-center w-[95px] lg:w-[110px] max-w-full">Инициатор</th>
+                <th className="px-2.5 py-2.5 text-center w-[105px] lg:w-[120px] max-w-full">Статус</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40 font-medium">

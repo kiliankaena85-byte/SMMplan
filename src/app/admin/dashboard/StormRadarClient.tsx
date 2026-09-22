@@ -5,14 +5,9 @@ import Link from 'next/link';
 import { 
   Zap, 
   ShieldCheck, 
-  AlertTriangle, 
   Copy, 
   Check, 
-  ExternalLink, 
-  Activity, 
-  MessageSquare, 
-  ArrowRight,
-  ShieldAlert
+  ExternalLink 
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { StormRadarReport, StormServiceAlert } from '@/services/admin/storm-detector.service';
@@ -35,7 +30,6 @@ export function StormRadarClient({ report }: Props) {
   };
 
   const hasCritical = report.criticalCount > 0;
-  const hasWarning = report.warningCount > 0;
 
   return (
     <div className={`bg-card text-card-foreground rounded-lg p-5 border shadow-sm space-y-4 ${

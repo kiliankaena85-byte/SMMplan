@@ -30,7 +30,6 @@ import {
   Sparkles,
   Link as LinkIcon,
   History,
-  ShieldAlert,
 } from 'lucide-react';
 import type { StaffRole, StaffPermission } from '@prisma/client';
 import type { StaffUser } from '../types';
@@ -301,7 +300,7 @@ export function EditStaffModal({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                <Lock className="w-3 h-3" />
+                <Lock className="w-3 h-3 shrink-0" />
                 Сменить пароль (опционально)
               </label>
               <button
@@ -390,9 +389,9 @@ export function EditStaffModal({
             size="sm"
             onClick={onSave}
             disabled={isSavingEdit}
-            className="font-bold gap-1.5 min-w-[110px] text-xs"
+            className="font-bold gap-1.5 min-w-[110px] max-w-full text-xs"
           >
-            {isSavingEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+            {isSavingEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" /> : <Check className="w-3.5 h-3.5 shrink-0" />}
             Сохранить
           </Button>
         </DialogFooter>

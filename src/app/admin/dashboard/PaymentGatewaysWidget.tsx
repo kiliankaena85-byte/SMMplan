@@ -1,21 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { CreditCard, ArrowRight, CheckCircle, Percent } from 'lucide-react';
+import { CreditCard, ArrowRight } from 'lucide-react';
 import { formatKopecks } from '@/utils/format-kopecks';
-
-interface GatewayItem {
-  gateway: string;
-  label: string;
-  icon: string;
-  amountKopecks: bigint;
-  feeKopecks: bigint;
-  feePct: number;
-  successCount: number;
-  totalCount: number;
-  successRate: number;
-  sharePct: number;
-}
-
 import { accountingService } from '@/services/financial/accounting.service';
 
 interface Props {

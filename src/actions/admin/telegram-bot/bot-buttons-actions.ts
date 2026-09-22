@@ -12,6 +12,7 @@ import {
   reorderButtonsSchema,
 } from '@/schemas/telegram';
 import type { TelegramButton, TelegramActionResponse } from '@/types/telegram';
+import type { Prisma } from '@prisma/client';
 import { getTenantId, generateCuid2 } from './helpers';
 
 export async function listTelegramButtonsAction(): Promise<TelegramButton[] | TelegramActionResponse> {
@@ -47,7 +48,7 @@ export async function createTelegramButtonAction(
 
     const id = generateCuid2();
     const button = await db.telegramButton.create({
-      data: { tenantId, ...data } as unknown as any,
+      data: { tenantId, ...data } as Prisma.TelegramButtonUncheckedCreateInput,
     });
 
     const ipAddress = await getClientIp();
@@ -88,7 +89,10 @@ export async function updateTelegramButtonAction(
       }
     }
 
-    const updated = await db.telegramButton.update({ where: { id }, data: data as any });
+    const updated = await db.telegramButton.update({
+      where: { id },
+      data: data as Prisma.TelegramButtonUpdateInput,
+    });
 
     const ipAddress = await getClientIp();
     await auditAdminAwaitable({

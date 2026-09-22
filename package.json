@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build --webpack && npm run build:bot && npm run build:worker && node scripts/check-bundle-secrets.mjs && tsx scripts/ci/check-api-docs-domains.ts",
+    "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next build --webpack && npm run build:bot && npm run build:worker && node scripts/check-bundle-secrets.mjs && tsx scripts/ci/check-api-docs-domains.ts",
     "build:lean": "powershell -ExecutionPolicy Bypass -File scripts/lean-docker-build.ps1",
     "docker:clean": "powershell -ExecutionPolicy Bypass -File scripts/docker-clean-bloat.ps1",
     "docker:up:lean": "tsx scripts/preflight-container-sizing.ts",
@@ -154,6 +154,7 @@
     "@types/sanitize-html": "^2.16.1",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.4",
+    "cross-env": "^10.1.0",
     "decimal.js": "^10.6.0",
     "docx": "^9.7.1",
     "dotenv-cli": "^11.0.0",

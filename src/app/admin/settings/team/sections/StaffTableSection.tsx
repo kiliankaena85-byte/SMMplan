@@ -15,11 +15,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  ShieldAlert,
   Search,
   Settings2,
   UserMinus,
-  Package,
   Users,
   UserPlus,
   Calendar,
@@ -28,7 +26,6 @@ import {
   History,
   CheckCircle2,
   XCircle,
-  Globe,
 } from 'lucide-react';
 import type { StaffRole, StaffPermission } from '@prisma/client';
 import type { StaffUser } from '../types';
@@ -174,7 +171,7 @@ export function StaffTableSection({
             <select
               value={filterStatus}
               onChange={(e) => {
-                setFilterStatus(e.target.value as any);
+                setFilterStatus(e.target.value as 'ALL' | 'ACTIVE' | 'SUSPENDED');
                 setCurrentPage(1);
               }}
               className="h-8 bg-background border border-border rounded-lg px-2.5 text-xs font-medium focus:ring-1 focus:ring-primary focus:outline-none w-36"
@@ -250,7 +247,7 @@ export function StaffTableSection({
                         <div className="flex items-center gap-2 min-w-0">
                           <EmailAvatar email={u.email} />
                           <div className="min-w-0 flex-1">
-                            <p className="font-mono text-xs text-foreground truncate" title={u.email}>
+                            <p className="font-mono text-xs text-foreground truncate min-w-0" title={u.email}>
                               {u.email}
                             </p>
                             <p className="text-[10px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
@@ -269,7 +266,7 @@ export function StaffTableSection({
                       <TableCell className="px-2.5 py-2.5">
                         {u.staffRole ? (
                           <span
-                            className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 truncate max-w-full"
+                            className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 truncate max-w-full min-w-0"
                             title={u.staffRole.name}
                           >
                             {u.staffRole.name}

@@ -5,7 +5,6 @@ import { db } from "@/lib/db";
 import { requireStaffPermission } from "@/lib/server/rbac";
 import { VaultService } from "@/lib/vault";
 import { auditAdminAwaitable } from "@/lib/admin-audit";
-import { providerService } from "@/services/providers/provider.service";
 import { providerBalanceService } from "@/services/admin/provider-balance.service";
 import { getBaseUrlAsync } from "@/utils/get-base-url";
 import { Prisma } from "@prisma/client";

@@ -1,20 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { Users, ArrowRight, ExternalLink, Award } from 'lucide-react';
+import { ArrowRight, Award } from 'lucide-react';
 import { formatKopecks } from '@/utils/format-kopecks';
-import { TenantBrandBadge } from '@/app/admin/orders/components/columns';
-
-interface TopSpender {
-  id: string;
-  email: string;
-  role: string;
-  balance: bigint | number;
-  totalSpent: bigint | number;
-  tenantId: string;
-  createdAt: Date;
-  _count: { orders: number };
-}
-
 import { adminUserService } from '@/services/admin/user.service';
 
 interface Props {

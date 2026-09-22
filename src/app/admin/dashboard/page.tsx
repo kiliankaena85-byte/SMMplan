@@ -9,7 +9,6 @@ import { getCachedStaffUserWithPermissions } from '@/lib/server/rbac';
 import { db } from '@/lib/db';
 import { cookies, headers } from 'next/headers';
 import { unstable_cache } from 'next/cache';
-import nextDynamic from 'next/dynamic';
 
 const getCachedHealthData = (tenantId?: string) => unstable_cache(
   async () => {
@@ -31,19 +30,8 @@ const getCachedHealthData = (tenantId?: string) => unstable_cache(
 )();
 
 import {
-  Check, 
-  Clock, 
-  ChevronDown, 
-  Bell, 
-  Settings, 
   Home, 
   AlertTriangle, 
-  TrendingUp, 
-  DollarSign, 
-  Package, 
-  Users, 
-  Layers, 
-  ShieldCheck, 
   ArrowRight 
 } from 'lucide-react';
 import Link from 'next/link';
@@ -59,11 +47,9 @@ import { TopServicesWidget } from './TopServicesWidget';
 import { PaymentGatewaysWidget } from './PaymentGatewaysWidget';
 import { RefundMonitorWidget } from './RefundMonitorWidget';
 import { StormRadarWidget } from './StormRadarWidget';
-import { stormDetectorService } from '@/services/admin/storm-detector.service';
 import { CollapsibleWaveChart } from './CollapsibleWaveChart';
 import { PeriodSelector } from './PeriodSelector';
 import { ExecutiveAiDigestCard } from '@/components/admin/dashboard/executive-ai-digest-card';
-import { formatEta } from '@/utils/format-eta';
 import { formatKopecks } from '@/utils/format-kopecks';
 
 export const dynamic = 'force-dynamic';
@@ -163,17 +149,12 @@ export default async function AdminDashboardPage({
 
   const revenueGross = metrics.revenueGross;
   const profitNet = metrics.profitNet;
-  let marginPercentage = metrics.marginPercentage;
   const totalLiability = userStats.totalLiability;
   
   const oStats = { ...orderStats };
   const uStats = { ...userStats };
   const cStats = { ...catalogStats };
   const tStats = { ...ticketStats };
-
-  if (isNaN(marginPercentage) || !isFinite(marginPercentage)) {
-    marginPercentage = 0;
-  }
 
   const netPositionBigInt = BigInt(revenueGross) - BigInt(totalLiability);
   const netPositionStr = formatKopecks(netPositionBigInt);

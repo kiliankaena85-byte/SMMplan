@@ -13,6 +13,7 @@ import {
   extractTemplateVariables,
 } from '@/schemas/telegram';
 import type { TelegramTemplate, TelegramActionResponse } from '@/types/telegram';
+import type { Prisma } from '@prisma/client';
 import { getTenantId, generateCuid2 } from './helpers';
 
 export async function listTelegramTemplatesAction(
@@ -24,7 +25,7 @@ export async function listTelegramTemplatesAction(
       where: { tenantId, ...(category && category !== 'all' ? { category } : {}) },
       orderBy: { createdAt: 'desc' },
     });
-    return rows.map((r: any) => ({
+    return rows.map((r) => ({
       ...r,
       variables: typeof r.variables === 'string' ? JSON.parse(r.variables) : r.variables,
     })) as unknown as TelegramTemplate[];
@@ -75,7 +76,7 @@ export async function createTelegramTemplateAction(
         ...data,
         body: sanitizedBody,
         variables: JSON.stringify(variables),
-      } as any,
+      } as Prisma.TelegramTemplateUncheckedCreateInput,
     });
 
     const ipAddress = await getClientIp();
@@ -128,7 +129,7 @@ export async function updateTelegramTemplateAction(
         ...(sanitizedBody !== undefined && { body: sanitizedBody }),
         ...(variables !== undefined && { variables: JSON.stringify(variables) }),
         version: { increment: 1 },
-      }) as any,
+      }) as Prisma.TelegramTemplateUpdateInput,
     });
 
     const ipAddress = await getClientIp();

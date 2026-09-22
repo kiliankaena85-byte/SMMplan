@@ -526,7 +526,7 @@ export function TelegramBotSettings({ settings, tenantId = 'smmplan' }: Telegram
               type="button"
               size="sm"
               onClick={executeResetWebhook}
-              className="font-bold bg-amber-600 hover:bg-amber-700 text-white gap-1.5"
+              className="font-bold bg-amber-600 hover:bg-amber-700 text-primary-foreground gap-1.5"
             >
               Сбросить очередь
             </Button>

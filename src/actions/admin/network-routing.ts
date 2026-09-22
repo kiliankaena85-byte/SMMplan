@@ -97,13 +97,8 @@ export async function updateServiceToggleAction(
     const currentConfig = await UniversalNetworkRouter.getConfig();
     const updatedToggles: ServiceTogglesConfig = {
       ...currentConfig.serviceToggles,
-      [service]: target as any,
+      [service]: target as RoutingTargetType,
       [`${String(service)}ProxyId`]: proxyId || null
-    };
-
-    const newConfig: NetworkRoutingConfig = {
-      ...currentConfig,
-      serviceToggles: updatedToggles
     };
 
     UniversalNetworkRouter.invalidateCache();

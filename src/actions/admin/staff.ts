@@ -433,6 +433,7 @@ const createStaffSchema = z.object({
   password: z.string().min(8, 'Пароль должен содержать минимум 8 символов').optional().or(z.literal('')),
   supportLimitRubles: z.number().min(0).max(100000).default(500),
   allowedTenants: z.array(z.string()).min(1, 'Выберите хотя бы один бренд').default(['smmplan', 'flux']),
+  tenantId: z.string().optional(),
 });
 
 export async function createStaffMemberAction(input: z.infer<typeof createStaffSchema>) {
@@ -462,10 +463,14 @@ export async function createStaffMemberAction(input: z.infer<typeof createStaffS
 
     const limitCents = Math.round(parsed.data.supportLimitRubles * 100);
     const passwordHash = parsed.data.password ? await hashPassword(parsed.data.password) : null;
+    const targetTenant = parsed.data.tenantId || parsed.data.allowedTenants[0] || admin.tenantId || 'smmplan';
 
-    // Check if user already exists
+    // Check if user already exists in target tenant (Multi-tenant invariant)
     const existing = await db.user.findFirst({
-      where: { email: cleanEmail },
+      where: {
+        email: cleanEmail,
+        tenantId: targetTenant,
+      },
     });
 
     let userId: string;
@@ -496,7 +501,7 @@ export async function createStaffMemberAction(input: z.infer<typeof createStaffS
           staffRoleId: parsed.data.staffRoleId || null,
           supportLimitCents: limitCents,
           allowedTenants: parsed.data.allowedTenants,
-          tenantId: parsed.data.allowedTenants[0] || 'smmplan',
+          tenantId: targetTenant,
           passwordHash,
           isActive: true,
           isDeleted: false,

@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
+import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireStaffPermission } from '@/lib/server/rbac';

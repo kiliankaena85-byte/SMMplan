@@ -1,20 +1,14 @@
 import { adminCatalogService } from '@/services/admin/catalog.service';
 import { adminProviderService } from '@/services/admin/provider.service';
-import { bulkUpdateMarkupAction } from '@/actions/admin/catalog';
-import { ShoppingCart, AlertTriangle } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { SettingsProvider } from '@/lib/settings';
 import Link from 'next/link';
-import { SubmitButton } from '@/components/admin/submit-button';
 import { Button } from '@/components/ui/button';
 import { AdminTabbedHeader } from '@/components/admin/tabbed-header';
 import { CATALOG_TABS, ONBOARDING_CONFIGS } from '@/components/admin/navigation-data';
 import { CatalogTable } from '@/components/admin/catalog-table-v2';
 import { CatalogPagination } from '@/components/admin/catalog/catalog-pagination';
 
-import {
-  TOTAL_MANDATORY_DEDUCTIONS,
-  SAFETY_FLOOR_MARKUP,
-} from '@/lib/financial-constants';
 import type { CatalogServiceDTO } from '@/types/catalog.dto';
 import { verifySession } from '@/lib/session';
 import { getCachedStaffUserWithPermissions } from '@/lib/server/rbac';
@@ -22,12 +16,8 @@ import { db } from '@/lib/db';
 
 import { headers, cookies } from 'next/headers';
 import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
-import { TenantSwitcher } from '@/components/admin/tenant-switcher';
 
 export const dynamic = 'force-dynamic';
-
-// Safety floor multiplier: minimum markup that covers taxes + gateway + 100% margin
-const SAFETY_MULTIPLIER = (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
 
 type Props = {
   searchParams: Promise<{
@@ -90,7 +80,7 @@ export default async function AdminCatalogPage({ searchParams }: Props) {
   const platform = (params.platform && params.platform !== 'ALL' && params.platform !== 'all') ? params.platform : undefined;
 
   const [
-    { items: rawServices, nextCursor, hasMore, totalCount: filteredTotalCount, totalPages, currentPage },
+    { items: rawServices, totalCount: filteredTotalCount, totalPages, currentPage },
     usdToRub,
     categories,
     catalogHealth,

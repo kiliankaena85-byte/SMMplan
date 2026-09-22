@@ -75,8 +75,8 @@ export async function cancelOrderAction(formData: FormData) {
           ? 'Запрос на отмену отправлен провайдеру. Средства удерживаются в эскроу до подтверждения.'
           : 'Заказ отменен, средства возвращены клиенту.',
       };
-    } catch (err: any) {
-      return { success: false as const, error: err?.message || 'Ошибка отмены заказа' };
+    } catch (err: unknown) {
+      return { success: false as const, error: err instanceof Error ? err.message : 'Ошибка отмены заказа' };
     }
   });
 }
@@ -98,8 +98,8 @@ export async function syncSingleOrderStatusAction(orderId: string) {
       });
       revalidatePath('/admin/orders');
       return { success: true as const, ...result };
-    } catch (err: any) {
-      return { success: false as const, error: err?.message || 'Ошибка сверки статуса с провайдером' };
+    } catch (err: unknown) {
+      return { success: false as const, error: err instanceof Error ? err.message : 'Ошибка сверки статуса с провайдером' };
     }
   });
 }

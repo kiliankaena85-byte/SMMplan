@@ -1,3 +1,67 @@
+- [x] 🛡️ [STAFF-TENANT-ISOLATION-&-LAYOUT-PERFECTION-2026] Устранение утечки tenantId в staff.ts, исправление 18 дефектов верстки и обновление тестов декомпозиции (100% COMPLETE & VERIFIED):
+  * 🏢 **[Multi-Tenant Guard & Staff Creation (`src/actions/admin/staff.ts:467`)]:**
+    - Устранено отсутствие `tenantId` в `where` вызова `db.user.findFirst`. Добавлен целевой `tenantId: targetTenant` (разрешается через `parsed.data.tenantId || parsed.data.allowedTenants[0] || admin.tenantId || 'smmplan'`).
+    - Исключена коллизия и случайная модификация профилей пользователей других брендов при одинаковом email в OmniSMM.
+    - В `src/__tests__/unit/staff-actions-management.test.ts` добавлены строгие проверки на вызов `findFirst` с `tenantId` и новый тест на кросс-тенантную изоляцию.
+  * 📐 **[Layout Overflow Sentry (18/18 Resolved — 0 Defects Remaining)]:**
+    - `src/components/admin/order-details/OrderMinimalSummary.tsx`: добавлены `shrink-0` к иконкам, `min-w-0` к контейнерам, устранен дубликат блока даты и неиспользуемые переменные.
+    - `src/components/admin/settings/settings-sidebar.tsx`: добавлены `min-w-0` к текстовым контейнерам, убран неиспользуемый импорт `Settings`.
+    - `src/app/admin/settings/integrations-settings.tsx`: добавлен `max-w-full` к триггеру селектора.
+    - `src/app/admin/settings/team/modals/EditStaffModal.tsx`: добавлен `shrink-0` к `<Lock>`, `max-w-full` и `shrink-0` к кнопке сохранения.
+    - `src/app/admin/settings/team/modals/StaffLogsDrawer.tsx`: добавлены `shrink-0` к иконкам, `min-w-0` к описанию действия.
+    - `src/app/admin/settings/team/sections/StaffTableSection.tsx`: добавлены `min-w-0` к email и бейджу роли, устранен `any` в `filterStatus`.
+    - `src/app/admin/transactions/transactions-client.tsx`: добавлены `max-w-full` к заголовкам таблицы, строгая типизация `LedgerParams` без `any`.
+    - `scripts/ui/layout-sentry.ts`: результат сканирования — 🟢 CLEAN (0 High, 0 Medium дефектов).
+  * 🧪 **[Unit Test Remediation]:**
+    - `src/__tests__/unit/checkout-auth-wizard-decomposition.test.tsx`: обновлен под актуальную компонентную архитектуру `PlanCheckout*` (все файлы <= 200 строк).
+  * 🚀 **Контроль качества & Тестирование:**
+    - `npx eslint`: 0 ошибок, 0 предупреждений (PASS).
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов (PASS).
+    - `vitest run`: все тесты пройдены успешно (PASS).
+    - `npm run build`: 100% SUCCESS (Next.js standalone webpack, bot/worker esbuild, bundle audit).
+- [x] 🛠️ [POST-REFACTOR-INTEGRITY-HARDENING-2026] Устранение критических ошибок после рефакторинга платформы OmniSMM 1.0 (P0, P1, P2) (100% COMPLETE & VERIFIED):
+  * 🧱 **[P0 Build Blockers]:**
+    - `src/app/admin/layout.tsx`: Устранен динамический `require('@/lib/server/rbac')`, заменен на статический импорт `getCachedStaffUserWithPermissions` и `BUILTIN_ROLE_PERMISSIONS`.
+    - `package.json`: Добавлен `cross-env` в `devDependencies` и обновлен build-скрипт с лимитом V8: `cross-env NODE_OPTIONS=--max-old-space-size=4096 next build --webpack ...`.
+    - `test/unit/smart-order-form.test.tsx` и `test/integration/premortem.provider.test.ts`: Верифицирована полная совместимость и изоляция тестов при исполнении через `.env.test`.
+  * 🛡️ **[P1 Security & Tenant Invariants]:**
+    - `src/app/admin/settings/`: Верифицировано наличие `<input type="hidden" name="tenantId" />` во всех 7 интеграциях (ЮKassa, Альфа, Robokassa, CryptoBot, SMTP, Gemini, Webhook), а также изоляция в `security-panel.tsx` и `settings-audit-logger.ts`.
+    - `src/app/admin/layout.tsx`: Заменен пустой catch при определении Redis session tenant на информативный лог `console.warn`.
+    - `src/actions/admin/team.ts`: Удален неиспользуемый импорт `auditAdmin`.
+    - `src/actions/admin/orders.ts`, `src/actions/admin/smart.ts`, `src/actions/admin/storefront-keys.ts`, `src/actions/admin/network-routing.ts`, `src/actions/admin/telegram-bot/*`: Ликвидированы все типы `any` в сигнатурах, Prisma мутациях и catch-блоках (`unknown`, `Prisma.Telegram*Input`, `RoutingTargetType`).
+  * 🧹 **[P2 Dead Code & ESLint Eradication]:**
+    - Очищены все неиспользуемые импорты, переменные и интерфейсы в `src/app/admin/dashboard/page.tsx` и всех 9 виджетах (`StormRadarClient`, `CollapsibleWaveChart`, `WebhookLatencyWidget`, `TopSpendersWidget`, `RecentOrdersFeedWidget`, `TopServicesWidget`, `PaymentGatewaysWidget`, `RefundMonitorWidget`, `FinancialEscalationWidget`).
+    - Очищены неиспользуемые импорты в `src/actions/auth/password-login.ts`, `password-register.ts`, `src/actions/admin/providers/crud.ts`, `src/app/admin/catalog/page.tsx`.
+  * 🧪 **Контроль качества & Тестирование:**
+    - `npx eslint` (24 файла): 0 ошибок, 0 предупреждений (PASS).
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов (PASS).
+    - `npx dotenv -e .env.test -- vitest run`: 47 tests PASS (0 failures).
+    - `npm run build`: 100% SUCCESS (Next.js standalone webpack build, bot/worker esbuild, bundle audit).
+- [x] 🏆 [IMPECCABLE-AUDIT-SETTINGS-2026] Комплексное устранение замечаний аудита Impeccable (Audit Health Score 12/20 -> 19/20+) во вкладке «Настройки» (/admin/settings) (100% COMPLETE & VERIFIED):
+  * 📐 **[P1 Responsive] Адаптивная панель сохранения (`general-settings.tsx`):**
+    - Заменен жесткий класс `fixed bottom-6 right-6 left-[300px] z-50` на `sticky bottom-4 z-20 flex items-center justify-end gap-4 p-4 rounded-2xl bg-card/95 backdrop-blur-md border border-border shadow-lg` (по стандарту `catalog-settings.tsx`).
+    - Панель адаптируется под 100% ширины контентной зоны без сплющивания до 75px на мобильных устройствах (< 1024px).
+  * 🧭 **[P1 Navigation & Integrity] Устранение дублирования шапки и сиротских маршрутов:**
+    - В `src/app/admin/settings/roles/page.tsx` удален компонент `AdminTabbedHeader` и массив `SYSTEM_TABS`; внедрен чистый заголовок с `AdminBreadcrumbs` и иконкой `ShieldCheck`.
+    - Создан компонент `src/components/admin/settings/settings-sidebar.tsx` с группами навигации: «Проект» («Матрица ролей» `/admin/settings/roles`), «Бизнес-логика» («Политики баланса» `/admin/settings/balance-policies`), «Интеграции & Каналы», «Команда & Аудит».
+    - В `src/components/admin/settings/settings-search-command.tsx` добавлены поисковые индексы для «Матрица ролей и прав доступа» (`roles-matrix`) и «Политики корректировки баланса» (`balance-policies`).
+  * ♿ **[P1 Accessibility] Связка инпутов с лейблами по WCAG 1.3.1 / 4.1.2:**
+    - В `GeneralBrandingSection.tsx`: добавлены уникальные `id` для `siteName` и `siteDescription`, сопоставленные с `htmlFor` на тегах `<Label>`.
+    - В `GeneralLegalFiscalSection.tsx`: добавлены уникальные `id` для `supportEmail`, `privacyEmail`, `contactTelegramChannel`, `companyName`, `companyInn`, `companyOgrnip`, `companyAddress`, `usnScheme`, `taxRate`, `opexMonthly`, сопоставленные с `htmlFor` на тегах `<Label>`.
+  * 🎯 **[P2 Touch Targets] Увеличение кликабельных зон (`provider-proxy-manager.tsx`):**
+    - Кнопки фильтров категорий и протоколов увеличены до `min-h-[36px]` (`py-2`), обеспечивая соответствие стандарту WCAG 2.2 AA (Target Size).
+    - Кнопка обновления пула прокси получила явный атрибут `aria-label="Обновить данные"`.
+  * 🎨 **[P3 Theming] Очистка несемантических цветов:**
+    - В `telegram-bot-settings.tsx` кнопка сброса вебхука переведена с `text-white` на `text-primary-foreground`.
+    - В `support-templates.tsx` кнопка удаления шаблона переведена с `text-white` на `text-destructive-foreground`.
+    - В `telegram/bot-constructor-tab.tsx` бэкдропы модальных окон (строки 400 и 538) переведены с `bg-black/60` на семантический системный `bg-background/80 backdrop-blur-sm`.
+  * 🧪 **Контроль качества & Тестирование:**
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+    - `npx dotenv -e .env.test -- vitest run src/__tests__/unit/general-settings-decomposition.test.tsx`: 2/2 PASS.
+    - `npx dotenv -e .env.test -- vitest run src/__tests__/settings/admin-settings-tenant-isolation.test.ts`: 34/34 PASS.
 - [x] 🚀 [TELEGRAM-BOOST-MOCK-PROVIDER-2026] Замена реального Vexboost на безопасный тест-провайдер для /boost (#2203, #2204, #2205) (100% COMPLETE & VERIFIED):
   * 🧪 **Безопасный MockProvider (`mock.provider.ts` & `universal.provider.ts`):**
     - Реализован `MockProvider` без внешних HTTP-запросов и списания депозитного баланса (эмулирует баланс 999 999 ₽).
@@ -17,6 +81,27 @@
     - `src/actions/admin/__tests__/routing-comparison.test.ts`: 4/4 PASS.
     - `npx tsc --noEmit`: 0 ошибок TypeScript (Strict mode).
     - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+- [x] 🛡️ [MODULAR-AUDIT-AND-SECURITY-HARDENING-2026] Комплексный аудит финансов и безопасности + устранение уязвимостей (100% COMPLETE & VERIFIED):
+  * 📋 **Реестр 10 модулей платформы (OmniSMM 1.0):**
+    1. FinOps & Ledger Core (аудит леджера, ExactMath, WalletOps).
+    2. Telegram Boost (/boost) & Провайдеры (Vexboost, MockProvider, маршрутизация).
+    3. Эквайринг & Фискализация (ЮKassa, Robokassa, CryptoBot, 54-ФЗ, НДС 2026).
+    4. SMM Panel API v2 (/api/v2, RFC 9331 RateLimit, защита от перебора ключей).
+    5. Auth & RBAC (Fail-Closed dev-login 404, QA-Auth, SmartCaptcha, соль scrypt).
+    6. Multi-Tenant Isolation (SMMplan / SMMflux, Edge Resolver, x_admin_tenant).
+    7. Order Lifecycle & Drip-Feed (Drip-Feed Floor Invariant, Serializable cooling-off).
+    8. Сетевой роутер & SSRF (блокировка зарубежных прокси для РФ-шлюзов).
+    9. Maker-Checker & Саппорт (запрет самосогласования, подтверждение возвратов).
+    10. Рефералы & Возвраты (Serializable перевод рефералов, расчет невыполненных остатков).
+  * 🔒 **Устранение критических уязвимостей и инвариантов:**
+    - `WalletOps.adminAdjust()`: ликвидирована TOCTOU-гонка при отрицательных корректировках баланса (внедрен атомарный `tx.user.updateMany` с предикатом `balance: { gte: absCents }`).
+    - `WalletOps.quarantineAdd()`: восстановлен Ledger-First инвариант (создание `tx.ledgerEntry.create` строго ДО мутации `tx.user.update`).
+    - `order-route-evaluator.ts`: внедрен защитный барьер, блокирующий отправку боевых заказов реальных пользователей (`!order.isTest`) в тестовую песочницу `MockProvider`.
+    - `RefundPolicyService.processRefund()`: переведен на чистый `BigInt` (копейки) для поля `order.charge` и суммирования предыдущих возвратов.
+  * 🧪 **Контроль качества & Тестирование:**
+    - Новый тестовый сьют `src/__tests__/unit/audit-hardening-invariants.test.ts`: **7/7 PASS (100%)**.
+    - `npx tsc --noEmit`: **0 ошибок** (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: **0 утечек секретов**.
 - [x] ⚡ [PROVIDERS-LIVE-UPDATE-OPTIMISTIC-FIX-2026] Исправление race condition live-обновления и статусов провайдеров (/admin/providers) (100% COMPLETE & VERIFIED):
   * 🔄 **Устранение сброса оптимистичного состояния (`client-table.tsx`):**
     - Исправлен `useEffect` синхронизации `localProviders`: убрана зависимость от `pendingIds`, ссылка переведена на `pendingIdsRef.current`.

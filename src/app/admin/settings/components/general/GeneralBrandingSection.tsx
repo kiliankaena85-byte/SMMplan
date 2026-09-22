@@ -57,13 +57,14 @@ export function GeneralBrandingSection({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+          <Label htmlFor="siteName" className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 cursor-pointer">
             Название сайта (Brand)
             <span title="Публичное название платформы. Используется в шапке, OpenGraph, title и email-уведомлениях.">
               <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
             </span>
           </Label>
           <Input
+            id="siteName"
             name="siteName"
             value={siteName}
             onChange={(e) => setSiteName(e.target.value)}
@@ -76,13 +77,14 @@ export function GeneralBrandingSection({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+          <Label htmlFor="siteDescription" className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 cursor-pointer">
             SEO Описание (Meta Description)
             <span title="Meta description для поисковых систем (120–160 символов). Отображается в выдаче Яндекса/Google и превью мессенджеров.">
               <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
             </span>
           </Label>
           <Input
+            id="siteDescription"
             name="siteDescription"
             value={siteDescription}
             onChange={(e) => setSiteDescription(e.target.value)}

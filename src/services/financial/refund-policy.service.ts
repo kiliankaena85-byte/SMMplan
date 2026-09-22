@@ -11,13 +11,17 @@ export class RefundPolicyService {
    * Supports PARTIAL, CANCELED, and ERROR statuses.
    */
   static async processRefund(
-    order: { id: string, userId: string, charge: number, quantity: number, remains: number, status: string, tenantId?: string },
+    order: { id: string, userId: string, charge: number | bigint, quantity: number, remains: number, status: string, tenantId?: string },
     reasonDetail: string = '',
     txClient: Prisma.TransactionClient = db
   ) {
     if (['COMPLETED', 'PENDING', 'IN_PROGRESS', 'AWAITING_PAYMENT'].includes(order.status)) {
       return null;
     }
+
+    const rawCharge = typeof order.charge === 'bigint'
+      ? order.charge
+      : BigInt(Math.max(0, Math.floor(Number(order.charge) || 0)));
 
     // Process referral commission adjustments
     try {
@@ -32,7 +36,7 @@ export class RefundPolicyService {
     }
 
     // 1. Calculate cumulative previously refunded amount across all prior refund events for this order
-    let previousRefunds = 0;
+    let previousRefunds = BigInt(0);
     try {
       let priorEntries: Array<{ amount: bigint | number; idempotencyKey?: string | null }> = [];
       if (typeof txClient.ledgerEntry?.findMany === 'function') {
@@ -65,38 +69,45 @@ export class RefundPolicyService {
       }
 
       for (const entry of priorEntries) {
-        previousRefunds += Math.max(0, Number(entry.amount));
+        const amt = typeof entry.amount === 'bigint' ? entry.amount : BigInt(Math.max(0, Math.floor(Number(entry.amount) || 0)));
+        if (amt > BigInt(0)) {
+          previousRefunds += amt;
+        }
       }
     } catch (queryErr) {
       console.warn(`[RefundPolicyService] Could not query prior refund entries for order ${order.id}:`, queryErr);
     }
 
-    const maxAvailableRefund = Math.max(0, order.charge - previousRefunds);
-    if (maxAvailableRefund <= 0) {
+    const maxAvailableRefund = rawCharge > previousRefunds ? rawCharge - previousRefunds : BigInt(0);
+    if (maxAvailableRefund <= BigInt(0)) {
       // Order is already fully refunded across previous lifecycle events. Guard against duplicate / over-refund.
       return null;
     }
 
-    let refundCents = 0;
+    let refundCents = BigInt(0);
     let reason = `Возврат Заказ #${order.id}`;
 
     if (order.status === 'CANCELED' || order.status === 'ERROR') {
       refundCents = maxAvailableRefund;
-      reason = previousRefunds > 0
+      reason = previousRefunds > BigInt(0)
         ? `Довозврат остатка (${order.status}) Заказ #${order.id} ${reasonDetail}`.trim()
         : `Полный возврат (${order.status}) Заказ #${order.id} ${reasonDetail}`.trim();
     } else if (order.status === 'PARTIAL') {
-      const calculated = calculatePartialRefund(order);
-      const incremental = Math.max(0, calculated - previousRefunds);
-      refundCents = Math.min(incremental, maxAvailableRefund);
+      const calculated = BigInt(calculatePartialRefund({
+        charge: rawCharge,
+        quantity: order.quantity,
+        remains: order.remains,
+      }));
+      const incremental = calculated > previousRefunds ? calculated - previousRefunds : BigInt(0);
+      refundCents = incremental < maxAvailableRefund ? incremental : maxAvailableRefund;
       reason = `Частичный возврат (Partial, ${order.remains} не выполнено) Заказ #${order.id}`.trim();
     }
 
-    if (refundCents > 0) {
+    if (refundCents > BigInt(0)) {
       // Deterministic idempotency key:
       // If previous refunds exist for this order, include status and delta amount so sequential partial/canceled remainders never collide
-      const idempotencyKey = previousRefunds > 0
-        ? `refund_${order.id}_${order.status}_remainder_${refundCents}`
+      const idempotencyKey = previousRefunds > BigInt(0)
+        ? `refund_${order.id}_${order.status}_remainder_${refundCents.toString()}`
         : `refund_${order.id}_${order.status}`;
 
       if (txClient === db) {

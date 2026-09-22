@@ -16,7 +16,8 @@ import {
   ShieldCheck, 
   Zap, 
   ArrowRight,
-  X 
+  X,
+  Sliders 
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -189,6 +190,24 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchItem[] = [
     tabHref: '?tab=audit',
     tags: ['аудит', 'логи', 'журнал', 'история', 'кто изменил', 'безопасность', 'logs'],
     icon: History,
+  },
+  {
+    id: 'roles-matrix',
+    title: 'Матрица ролей и прав доступа',
+    category: 'Безопасность',
+    description: 'Управление ролями сотрудников, гранулярными правами доступа и защитой от несанкционированных действий',
+    tabHref: '/admin/settings/roles',
+    tags: ['роли', 'матрица', 'права', 'доступ', 'permissions', 'rbac', 'безопасность', 'roles'],
+    icon: ShieldCheck,
+  },
+  {
+    id: 'balance-policies',
+    title: 'Политики корректировки баланса',
+    category: 'Финансы',
+    description: 'Глобальные лимиты, роли и персональные переопределения заявок на баланс',
+    tabHref: '/admin/settings/balance-policies',
+    tags: ['политики', 'баланс', 'лимиты', 'корректировка', 'заявки', 'правила', 'согласование'],
+    icon: Sliders,
   },
 ];
 

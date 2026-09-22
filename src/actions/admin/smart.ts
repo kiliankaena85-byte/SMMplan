@@ -7,6 +7,7 @@ import { auditAdmin } from '@/lib/admin-audit';
 import { getClientIp } from '@/utils/ip';
 import { redis } from '@/lib/redis';
 import { z } from 'zod';
+import type { SmartCampaignStatus } from '@prisma/client';
 
 export async function getSmartCampaigns(page: number = 1, limit: number = 20) {
   return requireStaffPermission('orders', 'view', async () => {
@@ -66,16 +67,16 @@ export async function updateCampaignStatus(campaignId: string, status: 'RUNNING'
     }
 
     // Atomic state transition guard (TOCTOU prevention)
-    const expectedPreviousStatuses = status === 'RUNNING'
+    const expectedPreviousStatuses: SmartCampaignStatus[] = status === 'RUNNING'
       ? ['PAUSED', 'PLANNED']
       : ['RUNNING'];
 
     const updateResult = await db.smartCampaign.updateMany({
       where: {
         id: campaignId,
-        status: { in: expectedPreviousStatuses as any },
+        status: { in: expectedPreviousStatuses },
       },
-      data: { status: status as any },
+      data: { status: status as SmartCampaignStatus },
     });
 
     if (updateResult.count === 0) {
@@ -165,25 +166,25 @@ export async function updateServiceConfig(
     const updatedConfig = await db.serviceSmartConfig.upsert({
       where: { serviceId },
       update: {
-        isEnabled: data.isEnabled,
-        isTestMode: data.isTestMode,
-        minChunk: data.minChunk,
-        maxChunk: data.maxChunk,
-        markup: data.markup,
-        useInviteBuffer: data.useInviteBuffer ?? false,
-        autoCompensate: data.autoCompensate ?? true,
-        checkIntervalMins: data.checkIntervalMins ?? 120,
+        isEnabled: validatedData.isEnabled,
+        isTestMode: validatedData.isTestMode,
+        minChunk: validatedData.minChunk,
+        maxChunk: validatedData.maxChunk,
+        markup: validatedData.markup,
+        useInviteBuffer: validatedData.useInviteBuffer ?? false,
+        autoCompensate: validatedData.autoCompensate ?? true,
+        checkIntervalMins: validatedData.checkIntervalMins ?? 120,
       },
       create: {
         serviceId,
-        isEnabled: data.isEnabled,
-        isTestMode: data.isTestMode,
-        minChunk: data.minChunk,
-        maxChunk: data.maxChunk,
-        markup: data.markup,
-        useInviteBuffer: data.useInviteBuffer ?? false,
-        autoCompensate: data.autoCompensate ?? true,
-        checkIntervalMins: data.checkIntervalMins ?? 120,
+        isEnabled: validatedData.isEnabled,
+        isTestMode: validatedData.isTestMode,
+        minChunk: validatedData.minChunk,
+        maxChunk: validatedData.maxChunk,
+        markup: validatedData.markup,
+        useInviteBuffer: validatedData.useInviteBuffer ?? false,
+        autoCompensate: validatedData.autoCompensate ?? true,
+        checkIntervalMins: validatedData.checkIntervalMins ?? 120,
       },
     });
 
