@@ -44,6 +44,19 @@ export async function updateGlobalSettings(
     const headerTenant = await SettingsProvider.getTenantId();
     const activeTenantId = normalizeTenantId(formTenant || headerTenant || 'smmplan') || 'smmplan';
 
+    // Anti-spoofing: Non-OWNER staff can only modify settings for their allowedTenants
+    if (user.role !== 'OWNER') {
+      const allowed = (user.allowedTenants && user.allowedTenants.length > 0)
+        ? user.allowedTenants
+        : [user.tenantId || 'smmplan'];
+      if (!allowed.includes(activeTenantId)) {
+        return {
+          success: false as const,
+          errors: { _form: ['Запрещено изменять настройки витрины вне ваших полномочий'] },
+        };
+      }
+    }
+
     // 1. Security & RBAC Guard
     const securityCheck = await validateSettingsSecurity(parsed.data, formData, user.role);
     if (!securityCheck.success) {

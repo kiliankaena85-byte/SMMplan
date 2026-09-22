@@ -21,17 +21,16 @@ export default async function DashboardLayout({
   const effectiveTenantId = reqTenantId;
 
   return runWithTenant(effectiveTenantId, async () => {
-    const [user, unreadTicketsCount] = await Promise.all([
-      resolveTenantUser(session.userId, effectiveTenantId, true),
-      db.ticket.count({
-        where: {
-          userId: session.userId,
-          status: 'PENDING',
-        },
-      }),
-    ]);
-
+    const user = await resolveTenantUser(session.userId, effectiveTenantId, true);
     if (!user) redirect('/login');
+
+    const unreadTicketsCount = await db.ticket.count({
+      where: {
+        userId: user.id,
+        tenantId: effectiveTenantId,
+        status: 'PENDING',
+      },
+    });
 
     const userForClient = {
       email: user.email,

@@ -31,7 +31,7 @@ export function FluxDashboardHome({
   initialCatalog?: FluxNetwork[];
 }) {
   const [copied, setCopied] = React.useState(false);
-  const { balance: liveBalance } = useUserBalance(user.balanceCents);
+  const { balance: liveBalance } = useUserBalance(user.balanceCents, 'flux');
   const refCode = user.referralCode ?? '';
   const refLink = refCode ? `${origin}?ref=${encodeURIComponent(refCode)}` : origin;
   const isRefLinkAvailable = Boolean(refCode);

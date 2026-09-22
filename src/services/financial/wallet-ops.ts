@@ -313,7 +313,7 @@ export const WalletOps = {
     if (rawCents < BigInt(0)) {
       const absCents = -rawCents;
       const updatedUserBatch = await tx.user.updateMany({
-        where: { id: userId, balance: { gte: absCents } },
+        where: { id: userId, tenantId: resolvedTenantId, balance: { gte: absCents } },
         data: { balance: { increment: rawCents } },
       });
       if (updatedUserBatch.count === 0) {

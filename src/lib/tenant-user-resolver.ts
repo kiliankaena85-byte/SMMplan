@@ -25,6 +25,9 @@ export interface TenantUserRecord {
   createdAt: Date;
   tenantId: string;
   allowedTenants: string[];
+  isActive: boolean;
+  isDeleted: boolean;
+  telegramId?: string | null;
 }
 
 /**
@@ -54,6 +57,9 @@ export async function resolveTenantUser(
         createdAt: true,
         tenantId: true,
         allowedTenants: true,
+        isActive: true,
+        isDeleted: true,
+        telegramId: true,
       },
     });
 
@@ -82,6 +88,9 @@ export async function resolveTenantUser(
         createdAt: true,
         tenantId: true,
         allowedTenants: true,
+        isActive: true,
+        isDeleted: true,
+        telegramId: true,
       },
     });
 
@@ -108,6 +117,9 @@ export async function resolveTenantUser(
           createdAt: true,
           tenantId: true,
           allowedTenants: true,
+          isActive: true,
+          isDeleted: true,
+          telegramId: true,
         },
       });
     }

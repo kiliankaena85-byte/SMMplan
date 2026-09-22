@@ -341,6 +341,20 @@ const updateStaffSchema = z.object({
   allowedTenants: z.array(z.string()).min(1, 'Сотрудник должен иметь доступ хотя бы к одной витрине').optional(),
 });
 
+function assertStaffTenantAccess(
+  admin: { role: string; allowedTenants?: string[]; tenantId?: string | null },
+  targetTenantId?: string | null
+): { allowed: boolean; error?: string } {
+  if (admin.role === 'OWNER') return { allowed: true };
+  const adminAllowed = (admin.allowedTenants && admin.allowedTenants.length > 0)
+    ? admin.allowedTenants
+    : [admin.tenantId || 'smmplan'];
+  if (targetTenantId && !adminAllowed.includes(targetTenantId)) {
+    return { allowed: false, error: 'Запрещено управлять сотрудниками другого бренда' };
+  }
+  return { allowed: true };
+}
+
 export async function updateStaffMemberAction(input: z.infer<typeof updateStaffSchema>) {
   return requireStaffPermission('settings', 'edit', async (admin) => {
     const parsed = updateStaffSchema.safeParse(input);
@@ -356,6 +370,11 @@ export async function updateStaffMemberAction(input: z.infer<typeof updateStaffS
     const targetUser = await db.user.findUnique({ where: { id: input.userId } });
     if (!targetUser) {
       return { success: false as const, error: 'Сотрудник не найден' };
+    }
+
+    const tenantAccess = assertStaffTenantAccess(admin, targetUser.tenantId);
+    if (!tenantAccess.allowed) {
+      return { success: false as const, error: tenantAccess.error || 'Доступ запрещен' };
     }
 
     // H-03 FIX 2: Absolute protection for OWNER (cannot be demoted by anyone) and hierarchy guards
@@ -552,6 +571,11 @@ export async function toggleStaffActiveStatusAction(input: z.infer<typeof toggle
       return { success: false as const, error: 'Сотрудник не найден' };
     }
 
+    const tenantAccess = assertStaffTenantAccess(admin, target.tenantId);
+    if (!tenantAccess.allowed) {
+      return { success: false as const, error: tenantAccess.error || 'Доступ запрещен' };
+    }
+
     if (target.role === 'OWNER') {
       return { success: false as const, error: 'Запрещено изменять статус Владельца платформы' };
     }
@@ -599,6 +623,11 @@ export async function generateStaffMagicLinkAction(input: z.infer<typeof staffMa
     const target = await db.user.findUnique({ where: { id: parsed.data.userId } });
     if (!target) {
       return { success: false as const, error: 'Сотрудник не найден' };
+    }
+
+    const tenantAccess = assertStaffTenantAccess(admin, target.tenantId);
+    if (!tenantAccess.allowed) {
+      return { success: false as const, error: tenantAccess.error || 'Доступ запрещен' };
     }
 
     if (target.role === 'OWNER' && admin.role !== 'OWNER') {
@@ -650,6 +679,11 @@ export async function resetStaffPasswordAction(input: z.infer<typeof resetPasswo
     const target = await db.user.findUnique({ where: { id: parsed.data.userId } });
     if (!target) {
       return { success: false as const, error: 'Сотрудник не найден' };
+    }
+
+    const resetTenantAccess = assertStaffTenantAccess(admin, target.tenantId);
+    if (!resetTenantAccess.allowed) {
+      return { success: false as const, error: resetTenantAccess.error || 'Доступ запрещен' };
     }
 
     if (target.role === 'OWNER' && admin.role !== 'OWNER') {

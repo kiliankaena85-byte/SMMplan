@@ -65,6 +65,21 @@ describe('Zero-Hardcode Dynamic Tunnel & Server Actions Security Suite', () => {
       expect(res.headers.get('x-build-id')).toBeNull();
     });
 
+    it('respects x_tenant cookie on Tailscale tunnel requests', async () => {
+      const req = new NextRequest('http://127.0.0.1:3000/services', {
+        headers: {
+          host: '127.0.0.1:3000',
+          'x-forwarded-host': 'desktop-25m6el7.tailbb9d28.ts.net',
+          'x-forwarded-proto': 'https',
+          cookie: 'x_tenant=flux',
+        },
+      });
+
+      const res = await proxy(req);
+      expect(res.status).toBe(200);
+      expect(res.headers.get('x-tenant-id')).toBe('flux');
+    });
+
     it('rejects malicious external Host header with HTTP 403', async () => {
       const req = new NextRequest('https://evil-phishing.com/services', {
         headers: {

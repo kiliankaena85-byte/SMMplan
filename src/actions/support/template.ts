@@ -56,6 +56,15 @@ export async function upsertTemplate(formData: FormData) {
       const formTenant = formData.get('tenantId') as string | null;
       const activeTenantId = normalizeTenantId(formTenant || admin.tenantId || 'smmplan') || 'smmplan';
 
+      if (admin.role !== 'OWNER') {
+        const allowed = (admin.allowedTenants && admin.allowedTenants.length > 0)
+          ? admin.allowedTenants
+          : [admin.tenantId || 'smmplan'];
+        if (!allowed.includes(activeTenantId)) {
+          return { success: false, error: 'Запрещено управлять шаблонами другого бренда' };
+        }
+      }
+
       const parsed = templateSchema.safeParse({
         id: formData.get('id') || undefined,
         tenantId: activeTenantId,
@@ -173,8 +182,13 @@ export async function deleteTemplate(formData: FormData) {
       const formTenant = formData.get('tenantId') as string | null;
       const activeTenantId = normalizeTenantId(formTenant || admin.tenantId || 'smmplan') || 'smmplan';
 
-      if (oldTemplate.tenantId !== activeTenantId && admin.role !== 'OWNER') {
-        return { success: false, error: 'Запрещено удалять шаблон другого бренда' };
+      if (admin.role !== 'OWNER') {
+        const allowed = (admin.allowedTenants && admin.allowedTenants.length > 0)
+          ? admin.allowedTenants
+          : [admin.tenantId || 'smmplan'];
+        if (oldTemplate.tenantId !== activeTenantId || !allowed.includes(oldTemplate.tenantId)) {
+          return { success: false, error: 'Запрещено удалять шаблон другого бренда' };
+        }
       }
 
       await db.supportTemplate.delete({

@@ -8,10 +8,11 @@ import { useUserBalance } from '@/hooks/use-user-balance';
 interface BalanceDisplayProps {
   initialBalance: string;
   variant: 'sidebar' | 'mobile-header';
+  tenantId?: string;
 }
 
-export function BalanceDisplay({ initialBalance, variant }: BalanceDisplayProps) {
-  const { balance, isRefreshing, refreshBalance } = useUserBalance(initialBalance);
+export function BalanceDisplay({ initialBalance, variant, tenantId }: BalanceDisplayProps) {
+  const { balance, isRefreshing, refreshBalance } = useUserBalance(initialBalance, tenantId);
   const [pollCount, setPollCount] = useState(0);
 
   // Set up short-term polling if user manually refreshes, to catch delayed payment webhooks

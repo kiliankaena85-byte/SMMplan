@@ -10,7 +10,7 @@ import { createSession } from '@/lib/session';
 import { sendOrderBalanceDebitMail } from '@/lib/smtp';
 import { ORDER_COOLING_OFF_MS } from '@/config/order-constants';
 import { generateGuestOrderToken } from '@/lib/order-token';
-import { getBaseUrlSync } from "@/utils/get-base-url";
+import { absoluteCanonical } from '@/lib/seo-helpers';
 import type { User } from '@prisma/client';
 import type { DbServiceWithCategory } from './checkout-preflight-guard.service';
 
@@ -45,9 +45,7 @@ export class CheckoutPaymentService {
       isLinkOverridden, link, tenantId, currentSessionUserId
     } = input;
 
-    let paymentUrl: string | null = null;
-    const baseUrl = getBaseUrlSync();
-    const successUrl = `${baseUrl}/success?orderId=${result.orderId}`;
+    const successUrl = absoluteCanonical(tenantId, `/success?orderId=${result.orderId}`);
 
     if (gateway === 'balance') {
       const { ordersQueue } = await import('@/lib/queue-manager');
@@ -102,6 +100,7 @@ export class CheckoutPaymentService {
       };
     }
 
+    let paymentUrl: string | null;
     try {
       const isMockPayment = typeof SettingsProvider.isMockPaymentEnabled === 'function' ? await SettingsProvider.isMockPaymentEnabled(tenantId) : false;
       const { PaymentGatewayFactory } = await import('@/services/financial/payment-gateway.service');

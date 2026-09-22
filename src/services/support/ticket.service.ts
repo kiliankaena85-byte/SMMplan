@@ -5,6 +5,7 @@ import { publishMessageSSE } from './sse.service';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { TicketSource, TicketStatus, MessageSender } from '@prisma/client';
 import { getMimeType } from '@/lib/mime';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 interface AddMessageOptions {
   ticketId: string;
@@ -50,9 +51,7 @@ class TicketService {
     if (!resolvedTenant && params.toEmail) {
       resolvedTenant = params.toEmail.toLowerCase().includes('flux') ? 'flux' : 'smmplan';
     }
-    if (!resolvedTenant) {
-      resolvedTenant = 'smmplan';
-    }
+    resolvedTenant = (normalizeTenantId(resolvedTenant) as string) || 'smmplan';
 
     // Find or create customer
     let user = await db.user.findFirst({
@@ -137,7 +136,7 @@ class TicketService {
         where: { id: userId },
         select: { tenantId: true }
       });
-      const resolvedTenant = tenantId || user.tenantId || 'smmplan';
+      const resolvedTenant = (normalizeTenantId(tenantId || user.tenantId) as string) || 'smmplan';
 
       const existing = await tx.ticket.findFirst({
         where: { userId, tenantId: resolvedTenant, status: { not: 'CLOSED' } },
@@ -226,8 +225,8 @@ class TicketService {
     const resolvedMediaUrl = mediaUrl || attachmentsToCreate[0]?.url || null;
     const resolvedMediaType = mediaType || attachmentsToCreate[0]?.type || null;
 
-    let telegramError: string | null = null;
     if (sender === 'STAFF' && ticketToUpdate.user.telegramId) {
+      let telegramError: string;
       try {
         const { supportBotService } = await import('@/services/support/support-bot.service');
         
@@ -246,7 +245,7 @@ class TicketService {
           replyToTgMsgId,
           resolvedMediaUrl || undefined,
           resolvedMediaType || undefined,
-          ticketToUpdate.tenantId || 'smmplan'
+          (normalizeTenantId(ticketToUpdate.tenantId) as string) || 'smmplan'
         );
         if (tgId) {
           telegramMsgId = tgId;
@@ -298,7 +297,7 @@ class TicketService {
     });
 
     // Notify user if STAFF replied via Email (Omnichannel notification)
-    if (sender === 'STAFF' && message.ticket.user.email && !message.ticket.user.telegramId) {
+    if (sender === 'STAFF' && ticketToUpdate.user?.email && !ticketToUpdate.user?.telegramId) {
       const actionText = `
         <p style="color: #4f46e5; font-size: 14px; font-weight: bold; margin-top: 20px;">
           ✍️ Вы можете ответить на это сообщение прямо через почту — просто напишите ответное письмо.
@@ -308,9 +307,10 @@ class TicketService {
         </p>
       `;
 
-      const supportDomain = await SettingsProvider.getSupportEmailDomain();
-      const settings = await SettingsProvider.getContactAndLegalSettings();
-      const companyName = settings.COMPANY_NAME || "SMMplan";
+      const ticketTenant = (normalizeTenantId(ticketToUpdate.tenantId) as string) || 'smmplan';
+      const supportDomain = await SettingsProvider.getSupportEmailDomain(ticketTenant);
+      const settings = await SettingsProvider.getContactAndLegalSettings(ticketTenant);
+      const companyName = settings.COMPANY_NAME || (ticketTenant === 'flux' ? 'SMMflux' : 'SMMplan');
       const replyToAddress = `support+${message.ticket.id}@${supportDomain}`;
       
       const escapeHtml = (unsafe?: string | null) => (unsafe ?? '')

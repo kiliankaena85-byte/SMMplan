@@ -118,7 +118,7 @@ export function FluxDashboardShell({
 
         <div className="flex items-center gap-1.5 sm:gap-4 shrink-0">
           <ThemeSwitcher variant="toggle" className="hidden min-[400px]:flex w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-border/70 bg-card/60 shrink-0" />
-          <BalanceDisplay initialBalance={balanceRub} variant="mobile-header" />
+          <BalanceDisplay initialBalance={balanceRub} variant="mobile-header" tenantId={user.tenantId || 'flux'} />
           <Link
             href={withTenant('/dashboard/finance')}
             className="px-2 sm:px-4 py-1.5 sm:py-2 min-h-[34px] sm:min-h-[40px] text-xs sm:text-sm font-bold bg-primary text-primary-foreground rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-md flex items-center justify-center gap-1 sm:gap-1.5 shrink-0"

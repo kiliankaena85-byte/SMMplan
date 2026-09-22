@@ -7,6 +7,7 @@ import { SettingsManager } from '@/lib/settings';
 import { RateLimitService } from '@/services/core/rate-limit.service';
 import { getClientIp } from '@/utils/ip';
 import { verifyGuestOrderToken } from '@/lib/order-token';
+import { resolveTenantFromHostEdge, normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 /**
  * GET /api/order-status?orderId=xxx
@@ -68,6 +69,12 @@ export async function GET(req: NextRequest) {
       }
 
       if (!order) {
+        return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      }
+
+      const host = req.headers.get('host') || '';
+      const requestTenant = normalizeTenantId(req.headers.get('x-tenant-id')) || resolveTenantFromHostEdge(host);
+      if (order.tenantId && order.tenantId !== requestTenant) {
         return NextResponse.json({ error: 'Not found' }, { status: 404 });
       }
 
@@ -159,6 +166,12 @@ export async function GET(req: NextRequest) {
       }
 
       if (!payment) {
+        return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      }
+
+      const host = req.headers.get('host') || '';
+      const requestTenant = normalizeTenantId(req.headers.get('x-tenant-id')) || resolveTenantFromHostEdge(host);
+      if (payment.tenantId && payment.tenantId !== requestTenant) {
         return NextResponse.json({ error: 'Not found' }, { status: 404 });
       }
 

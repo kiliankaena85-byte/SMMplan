@@ -85,6 +85,7 @@ const KNOWN_ROOT_DOMAINS = [
 // Dynamic Tunnel & Testing Suffixes
 const ALLOWED_TUNNEL_SUFFIXES = [
   '.ts.net',
+  '.trycloudflare.com',
   '.loca.lt',
   '.ngrok-free.app',
   '.ngrok.app',
@@ -410,13 +411,20 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  let host = (fwdHost && !isInternalHost(fwdHost))
+  const isTailscaleHostHelper = (h: string | null | undefined): boolean => {
+    if (!h) return false;
+    const clean = h.split(',')[0].trim().toLowerCase().split(':')[0];
+    return clean.endsWith('.ts.net') || clean.includes('tailscale');
+  };
+
+  let host = (fwdHost && (!isInternalHost(fwdHost) || isTailscaleHostHelper(fwdHost)))
     ? fwdHost
     : (hostHeader?.split(',')[0]?.trim() || '');
 
   const isLocalhost = isPureLocalhost(host);
+  const isTailscale = isTailscaleHostHelper(host);
 
-  if (!isLocalhost && (isInternalHost(host) || !host)) {
+  if (!isLocalhost && !isTailscale && (isInternalHost(host) || !host)) {
     host = process.env.APP_URL ? new URL(process.env.APP_URL).host : 'test.smmplan.pro';
   }
   if (host.includes('0.0.0.0')) {

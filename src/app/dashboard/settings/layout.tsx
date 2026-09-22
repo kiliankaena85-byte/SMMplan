@@ -1,16 +1,24 @@
 export const dynamic = 'force-dynamic';
 
 import React from 'react';
+import { headers } from 'next/headers';
 import { verifySession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { redirect } from 'next/navigation';
 import { SettingsBreadcrumbs } from '@/components/dashboard/settings/SettingsBreadcrumbs';
 import { ProfileSummaryCard } from '@/components/dashboard/settings/ProfileSummaryCard';
 import { SettingsSubNav } from '@/components/dashboard/settings/SettingsSubNav';
+import { resolveTenantFromRequest, normalizeTenantId } from '@/lib/tenant-resolver-edge';
+import { resolveTenantUser } from '@/lib/tenant-user-resolver';
 
-export const metadata = {
-  title: 'Профиль и Настройки | SMMplan',
-};
+export async function generateMetadata() {
+  const reqHeaders = await headers();
+  const currentTenant = normalizeTenantId(resolveTenantFromRequest(reqHeaders)) || 'smmplan';
+  const brandName = currentTenant === 'flux' ? 'SMMflux' : 'SMMplan';
+  return {
+    title: `Профиль и Настройки | ${brandName}`,
+  };
+}
 
 export default async function SettingsLayout({
   children,
@@ -20,35 +28,38 @@ export default async function SettingsLayout({
   const session = await verifySession();
   if (!session) redirect('/login');
 
-  const user = await db.user.findUnique({
-    where: { id: session.userId },
-    select: {
-      email: true,
-      balance: true,
-      totalSpent: true,
-      createdAt: true,
-      _count: {
-        select: {
-          orders: true,
-          referrals: true,
-        },
-      },
-    },
-  });
+  const reqHeaders = await headers();
+  const currentTenant = normalizeTenantId(resolveTenantFromRequest(reqHeaders)) || 'smmplan';
 
-  if (!user) redirect('/login');
+  const tenantUser = await resolveTenantUser(session.userId, currentTenant, true);
+  if (!tenantUser) redirect('/login');
+
+  const [orderCount, referralCount] = await Promise.all([
+    db.order.count({
+      where: {
+        userId: tenantUser.id,
+        tenantId: currentTenant,
+      },
+    }),
+    db.user.count({
+      where: {
+        referredById: tenantUser.id,
+        tenantId: currentTenant,
+      },
+    }),
+  ]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <SettingsBreadcrumbs />
 
       <ProfileSummaryCard
-        email={user.email}
-        balance={user.balance}
-        totalSpent={user.totalSpent}
-        createdAt={user.createdAt}
-        orderCount={user._count.orders}
-        referralCount={user._count.referrals}
+        email={tenantUser.email}
+        balance={tenantUser.balance}
+        totalSpent={tenantUser.totalSpent}
+        createdAt={tenantUser.createdAt}
+        orderCount={orderCount}
+        referralCount={referralCount}
       />
 
       <SettingsSubNav />

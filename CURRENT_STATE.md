@@ -1,3 +1,67 @@
+- [x] 🛡️ [MULTI-TENANT-PACKAGE-1-P0-GATEWAYS-&-SUPPORT-2026] Устранение утечек возврата шлюзов оплаты и изоляция тикетов поддержки (100% COMPLETE & VERIFIED):
+  * 💳 **[VULN-01: Payment Gateway Return URLs (`src/services/orders/checkout-payment.service.ts`)]:**
+    - Устранен вызов `getBaseUrlSync()` без передачи `tenantId`.
+    - Генерация `successUrl` переведена на `absoluteCanonical(tenantId, `/success?orderId=${result.orderId}`)`: шлюзы возвращают плательщика строго на целевой бренд (`https://smmflux.ru/success?orderId=...` для `flux` и `https://smmplan.pro/success?orderId=...` для `smmplan`). Исключен 404 Lockout на `/api/order-status`.
+    - Создан модульный тест `src/__tests__/unit/checkout-payment-dispatch-tenant.test.ts` (3/3 PASS).
+  * 🎧 **[VULN-02: Support Tickets & Chat Isolation (`src/app/dashboard/tickets/`)]:**
+    - `src/app/dashboard/tickets/page.tsx`: извлечение `tenantId` из заголовков запроса через `resolveTenantFromHeaders(await headers())` и передача в `ticketService.getOrCreateTicket(session.userId, 'Чат с поддержкой', 'WEB', tenantId)`.
+    - `src/app/dashboard/tickets/[id]/page.tsx`: внедрена проверка `if (ticket.tenantId !== currentTenantId) redirect('/dashboard/tickets');`, выборка `historicalTickets` строго фильтрует `tenantId: currentTenantId`.
+    - Декомпозирован `src/components/support/TicketChatHeader.tsx` (89 строк), сократив `page.tsx` до 163 строк (строго <= 200 строк по контракту AGENTS.md).
+    - `src/services/support/ticket.service.ts`: передача `ticketTenant` в `SettingsProvider.getSupportEmailDomain` и `SettingsProvider.getContactAndLegalSettings` для омниканальных email-уведомлений с брендингом нужного сайта.
+    - Создан тест `src/__tests__/unit/support-tickets-tenant-isolation.test.ts` (6/6 PASS).
+  * 🧪 **Контроль качества & Тестирование:**
+    - `npx eslint`: 0 ошибок, 0 предупреждений (PASS).
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+    - `vitest run` (Package 1 + Multi-tenant regression): 25/25 PASS (100%).
+- [x] 🛡️ [MULTI-TENANT-BALANCE-&-BRAND-ISOLATION-2026] Устранение утечки баланса и брендинга между витринами SMMplan и SMMflux (OmniSMM 1.0 Incident Fix) (100% COMPLETE & VERIFIED):
+  * 💰 **[Isolated Balance Resolution (`src/actions/auth/refresh-balance.ts` & `src/hooks/use-user-balance.ts`)]:**
+    - `refreshBalanceAction`: Добавлено определение целевого тенанта сессии через `headers()` (`resolveTenantFromRequest`) и опциональный `explicitTenantId`. Баланс запрашивается строго через `resolveTenantUser(session.userId, resolvedTenant, true)` вместо слепого `db.user.findUnique`.
+    - `use-user-balance.ts`: Добавлен `explicitTenantId` в хук, вызов `refreshBalanceAction(explicitTenantId)`, тенантная фильтрация событий `smmplan:balance_updated` для исключения кросс-тенантных коллизий между параллельными вкладками браузера.
+    - `BalanceDisplay.tsx`, `FluxDashboardShell.tsx`, `FluxDashboardHome.tsx`, `ClassicDashboardShell.tsx`, `SidebarNav.tsx`: Все компоненты явно передают свой активный `tenantId` в отображение баланса.
+  * 🌐 **[Tailscale Tunnel Header & Cookie Preservation (`src/proxy.ts`)]:**
+    - Исправлена критическая ошибка перезаписи Tailscale-хостов (`.ts.net`) в `test.smmplan.pro` из-за `isInternalHost(host)`.
+    - Внедрен хелпер `isTailscaleHostHelper`: Tailscale-запросы не перезаписывают `host`, кука `x_tenant` и параметр `?tenant=...` разрешают тенант корректно (`flux` для SMMflux).
+    - В `ALLOWED_TUNNEL_SUFFIXES` добавлен `.trycloudflare.com` в соответствии со стандартом `get-base-url.ts`.
+  * 💳 **[Deposit / Top-up Multi-Tenant Guard (`src/actions/user/top-up.action.ts`)]:**
+    - Использован `resolveTenantFromRequest(reqHeaders)` и `resolveTenantUser(session.userId, currentTenant, true)`. Платежи `db.payment.create` и обращения к шлюзам создаются строго с `userId: tenantUser.id` и `tenantId: currentTenant`. Баланс зачисляется на целевой сайт.
+  * 🔑 **[Auth Magic Link Cookie Resolution (`src/app/api/auth/verify/route.ts`)]:**
+    - Исправлена принудительная перезапись куки `x_tenant` на `user.tenantId`. Теперь кука выставляется по `effectiveTenant = normalizeTenantId(tenant || user.tenantId || 'smmplan')`.
+  * ⚙️ **[Dashboard & Settings Layout Isolation (`src/app/dashboard/settings/layout.tsx` & `src/app/dashboard/layout.tsx`)]:**
+    - `settings/layout.tsx`: Динамический `generateMetadata()` с брендом (`SMMflux` / `SMMplan`). Данные пользователя, счетчики заказов и рефералов берутся для `tenantUser.id` и `tenantId: currentTenant`.
+    - `dashboard/layout.tsx`: Подсчет тикетов строго по `user.id` и `tenantId: effectiveTenantId`.
+  * 🧪 **Контроль качества & Тестирование (DoD 100% PASS):**
+    - `src/__tests__/unit/multi-tenant-balance-isolation.test.ts`: **7/7 PASS** (включая новые тесты на изоляцию `refreshBalanceAction`).
+    - `src/__tests__/dynamic-tunnel-and-server-actions-proxy.test.ts`: **9/9 PASS** (включая проверку резолва `x_tenant=flux` на Tailscale туннеле).
+    - `src/__tests__/integration/multi-tenant-isolation.test.ts`: **3/3 PASS**.
+    - `src/__tests__/settings/admin-settings-tenant-isolation.test.ts`: **34/34 PASS**.
+    - `npm run lint:tenant`: **0 BLOCKER**, **0 MAJOR (PASS)**.
+    - `node scripts/check-bundle-secrets.mjs`: **0 утечек секретов (PASS)**.
+    - `npx tsc --noEmit`: **0 ошибок компиляции TypeScript (Strict mode)**.
+- [x] 🛡️ [MULTI-TENANT-HARDENING-2026] Сквозной аудит и устранение утечек изоляции по `tenantId` (OmniSMM 1.0) (100% COMPLETE & VERIFIED):
+  * 🧱 **[AST Linter & Financial Invariants (`src/services/financial/wallet-ops.ts` & `src/services/admin/user.service.ts`)]:**
+    - `wallet-ops.ts:315`: Добавлен `tenantId: resolvedTenantId` в `tx.user.updateMany` списания баланса. Полностью ликвидирован последний `[BLOCKER]` линтера изоляции.
+    - `user.service.ts:331, 383`: Инлайнинг массива ключей `unstable_cache` с `tenantId` и внедрение тенант-специфичных тегов ревалидации (`user_stats_${cleanTenant}`, `top_spenders_${cleanTenant}`). Устранены 2 `[MAJOR]` предупреждения.
+    - `npm run lint:tenant`: **0 BLOCKER**, **0 MAJOR**, результат — **PASS (exit code 0)**.
+  * 🛡️ **[BOLA/IDOR Hardening в Staff & Settings Actions]:**
+    - `src/actions/admin/staff.ts`: Внедрен хелпер `assertStaffTenantAccess` в `updateStaffMemberAction`, `toggleStaffActiveAction`, `generateStaffMagicLinkAction`, `resetStaffPasswordAction`. Не-OWNER операторы не могут управлять профилями, менять роли, блокировать, сбрасывать пароли или генерировать Magic Link сотрудникам других сайтов.
+    - `src/actions/admin/settings/settings-update.action.ts`: Внедрен антиспуфинг `activeTenantId` против `user.allowedTenants` для не-OWNER пользователей.
+    - `src/actions/support/template.ts`: В `upsertTemplate` и `deleteTemplate` добавлена строгая проверка `allowedTenants` и принадлежности шаблона к активному тенанту.
+  * 🌐 **[API Routes & Media Domain Isolation]:**
+    - `src/app/api/order-status/route.ts`: Запрещена отдача статусов заказов и платежей, если хост/тенант запроса не совпадает с `order.tenantId` / `payment.tenantId` (отдает 404).
+    - `src/app/api/orders/[id]/events/route.ts`: Запрещено подключение к SSE-каналу событий заказа, если домен запроса не совпадает с `order.tenantId` (отдает 404 для не-OWNER).
+    - `src/app/api/media/[...path]/route.ts`: Защищены тикет-вложения и аватары пользователей от кросс-доменного и кросс-тенантного чтения.
+  * ⚡ **[Redis Rate Limit Isolation (`src/services/core/rate-limit.service.ts`)]:**
+    - Внедрен тенант-префикс в генерацию ключей Redis: `ratelimit:${cleanTenant}:${endpoint}:${ip}` и Postgres fallback. Исчерпание лимитов на одной витрине не блокирует пользователя на другой.
+  * 🧪 **Контроль качества & Тестирование (DoD 100% PASS):**
+    - `npm run lint:tenant`: **0 БЛОКЕРОВ** (PASS).
+    - `npx dotenv -e .env.test -- npx vitest run src/__tests__/integration/multi-tenant-isolation.test.ts`: **3/3 PASS**.
+    - `npx dotenv -e .env.test -- npx vitest run src/__tests__/settings/admin-settings-tenant-isolation.test.ts`: **34/34 PASS**.
+    - `npx dotenv -e .env.test -- npx vitest run src/__tests__/multitenant-isolation.test.ts`: **4/4 PASS**.
+    - `npx dotenv -e .env.test -- npx vitest run src/__tests__/architecture/tenant-isolation-ast.test.ts`: **8/8 PASS**.
+    - `npx dotenv -e .env.test -- npx vitest run src/__tests__/multitenant-staff-isolation.test.ts`: **15/15 PASS**.
+    - `node scripts/check-bundle-secrets.mjs`: **0 утечек секретов (PASS)**.
+    - `npx tsc --noEmit`: **0 ошибок компиляции TypeScript (Strict mode)**.
 - [x] 🛡️ [STAFF-TENANT-ISOLATION-&-LAYOUT-PERFECTION-2026] Устранение утечки tenantId в staff.ts, исправление 18 дефектов верстки и обновление тестов декомпозиции (100% COMPLETE & VERIFIED):
   * 🏢 **[Multi-Tenant Guard & Staff Creation (`src/actions/admin/staff.ts:467`)]:**
     - Устранено отсутствие `tenantId` в `where` вызова `db.user.findFirst`. Добавлен целевой `tenantId: targetTenant` (разрешается через `parsed.data.tenantId || parsed.data.allowedTenants[0] || admin.tenantId || 'smmplan'`).

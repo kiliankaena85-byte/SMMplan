@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { unstable_cache } from 'next/cache';
 import { db } from '@/lib/db';
 import { paginatedQuery, type PaginatedResult } from '@/lib/pagination';
 import { auditAdmin } from '@/lib/admin-audit';
@@ -326,8 +327,7 @@ class AdminUserService {
    * Get aggregate user stats for the header.
    */
   async getUserStats(startDate?: Date, endDate?: Date, tenantId?: string) {
-    const { unstable_cache } = await import('next/cache');
-    const key = ['admin_user_stats', startDate?.toISOString() || 'all', endDate?.toISOString() || 'all', tenantId || 'all'];
+    const cleanTenant = tenantId || 'all';
     return unstable_cache(
       async () => {
         const where: Prisma.UserWhereInput = { isDeleted: false };
@@ -368,8 +368,8 @@ class AdminUserService {
           totalLiability: Number(totalBalance._sum.balance || 0),
         };
       },
-      key,
-      { revalidate: 60, tags: ['user_stats'] }
+      ['admin_user_stats', startDate?.toISOString() || 'all', endDate?.toISOString() || 'all', cleanTenant],
+      { revalidate: 60, tags: ['user_stats', `user_stats_${cleanTenant}`] }
     )();
   }
 
@@ -377,9 +377,8 @@ class AdminUserService {
    * Get Top VIP Spenders
    */
   async getTopSpenders(limit = 6, tenantId?: string) {
-    const { unstable_cache } = await import('next/cache');
     const isSingleTenant = tenantId && tenantId !== 'all';
-    const key = ['admin_top_spenders', String(limit), tenantId || 'all'];
+    const cleanTenant = tenantId || 'all';
     return unstable_cache(
       async () => {
         const where: Prisma.UserWhereInput = { role: { not: 'BANNED' }, isDeleted: false };
@@ -409,8 +408,8 @@ class AdminUserService {
           totalSpent: Number(u.totalSpent)
         }));
       },
-      key,
-      { revalidate: 60, tags: ['top_spenders'] }
+      ['admin_top_spenders', String(limit), cleanTenant],
+      { revalidate: 60, tags: ['top_spenders', `top_spenders_${cleanTenant}`] }
     )();
   }
 }

@@ -7,6 +7,7 @@ import fs from 'fs/promises';
 
 import { getEncodedKey, readSessionTokenFromCookies } from '@/lib/session';
 import { getMimeType } from '@/lib/mime';
+import { resolveTenantFromHostEdge, normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 export async function GET(
   req: NextRequest,
@@ -46,6 +47,23 @@ export async function GET(
       const isSameTenantStaff = isStaff && (isOwner || ticket.tenantId === (user.tenantId || 'smmplan'));
 
       if (ticket.userId !== userId && !isSameTenantStaff) {
+        return new NextResponse('Forbidden', { status: 403 });
+      }
+
+      // Multi-tenant domain isolation: ticket tenant must match request domain / session user
+      const host = req.headers.get('host') || '';
+      const requestTenant = normalizeTenantId(req.headers.get('x-tenant-id')) || resolveTenantFromHostEdge(host);
+      if (ticket.tenantId !== requestTenant && !isOwner) {
+        return new NextResponse('Forbidden', { status: 403 });
+      }
+    }
+
+    // Access control: if path starts with "avatars/{userId}/", verify user matches or is owner
+    const avatarMatch = relativePath.match(/^avatars\/([^/]+)\//);
+    if (avatarMatch) {
+      const targetUserId = avatarMatch[1];
+      const isOwner = user.role === 'OWNER';
+      if (targetUserId !== userId && !isOwner) {
         return new NextResponse('Forbidden', { status: 403 });
       }
     }

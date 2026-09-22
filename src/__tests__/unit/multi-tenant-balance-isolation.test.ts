@@ -7,14 +7,26 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { resolveTenantUserBalance, resolveTenantUser } from '@/lib/tenant-user-resolver';
 import { db } from '@/lib/db';
+import { refreshBalanceAction } from '@/actions/auth/refresh-balance';
+import { verifySession } from '@/lib/session';
+import { headers } from 'next/headers';
 
 vi.mock('@/lib/db', () => ({
   db: {
     user: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
+      create: vi.fn(),
     },
   },
+}));
+
+vi.mock('@/lib/session', () => ({
+  verifySession: vi.fn(),
+}));
+
+vi.mock('next/headers', () => ({
+  headers: vi.fn(),
 }));
 
 describe('Multi-Tenant Balance Isolation (SPEC-2026-09-21)', () => {
@@ -98,3 +110,93 @@ describe('Multi-Tenant Balance Isolation (SPEC-2026-09-21)', () => {
     expect(db.user.findUnique).not.toHaveBeenCalled();
   });
 });
+
+describe('refreshBalanceAction Server Action Tenant Isolation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('1. Returns Unauthorized if session is missing', async () => {
+    vi.mocked(verifySession).mockResolvedValueOnce(null);
+
+    const res = await refreshBalanceAction('flux');
+
+    expect(res.success).toBe(false);
+    expect(res.error).toBe('Unauthorized');
+  });
+
+  it('2. Returns isolated balance for explicitly requested tenantId (flux)', async () => {
+    vi.mocked(verifySession).mockResolvedValueOnce({
+      userId: 'user-smmplan-1',
+      role: 'USER',
+    } as any);
+
+    vi.mocked(headers).mockResolvedValueOnce(new Headers() as any);
+
+    // Initial user on smmplan
+    vi.mocked(db.user.findUnique)
+      .mockResolvedValueOnce({
+        id: 'user-smmplan-1',
+        email: 'alex@example.com',
+        role: 'USER',
+        balance: BigInt(1000), // 10.00 RUB on smmplan
+        tenantId: 'smmplan',
+        allowedTenants: ['smmplan', 'flux'],
+      } as any)
+      // Matching user on flux
+      .mockResolvedValueOnce({
+        id: 'user-flux-1',
+        email: 'alex@example.com',
+        role: 'USER',
+        balance: BigInt(7550), // 75.50 RUB on flux
+        tenantId: 'flux',
+        allowedTenants: ['smmplan', 'flux'],
+      } as any);
+
+    const res = await refreshBalanceAction('flux');
+
+    expect(res.success).toBe(true);
+    expect(res.tenantId).toBe('flux');
+    expect(res.balanceRub).toBe('75.50 ₽');
+    expect(res.balanceCents).toBe(7550);
+  });
+
+  it('3. Returns isolated balance based on request header x-tenant-id when parameter is omitted', async () => {
+    vi.mocked(verifySession).mockResolvedValueOnce({
+      userId: 'user-smmplan-1',
+      role: 'USER',
+    } as any);
+
+    const mockHeaders = new Headers();
+    mockHeaders.set('x-tenant-id', 'flux');
+    vi.mocked(headers).mockResolvedValueOnce(mockHeaders as any);
+
+    // Initial user on smmplan
+    vi.mocked(db.user.findUnique)
+      .mockResolvedValueOnce({
+        id: 'user-smmplan-1',
+        email: 'alex@example.com',
+        role: 'USER',
+        balance: BigInt(1000),
+        tenantId: 'smmplan',
+        allowedTenants: ['smmplan', 'flux'],
+      } as any)
+      // Matching user on flux
+      .mockResolvedValueOnce({
+        id: 'user-flux-1',
+        email: 'alex@example.com',
+        role: 'USER',
+        balance: BigInt(25000), // 250.00 RUB on flux
+        tenantId: 'flux',
+        allowedTenants: ['smmplan', 'flux'],
+      } as any);
+
+    const res = await refreshBalanceAction();
+
+    expect(res.success).toBe(true);
+    expect(res.tenantId).toBe('flux');
+    expect(res.balanceRub).toBe('250.00 ₽');
+    expect(res.balanceCents).toBe(25000);
+  });
+});
+

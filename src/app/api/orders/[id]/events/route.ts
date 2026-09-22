@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { verifySession } from '@/lib/session';
 import { memoryOrderEmitter, OrderStatusPayload } from '@/lib/orders/realtime-status';
+import { resolveTenantFromHostEdge, normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,6 +41,16 @@ export async function GET(
   if (!isOrderOwner && !isSameTenantStaff) {
     return new Response(JSON.stringify({ error: 'Forbidden' }), {
       status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Cross-tenant domain isolation: deny event stream if request domain does not match order tenant
+  const host = req.headers.get('host') || '';
+  const requestTenant = normalizeTenantId(req.headers.get('x-tenant-id')) || resolveTenantFromHostEdge(host);
+  if (order.tenantId && order.tenantId !== requestTenant && !isSuperOwner) {
+    return new Response(JSON.stringify({ error: 'Order not found' }), {
+      status: 404,
       headers: { 'Content-Type': 'application/json' },
     });
   }

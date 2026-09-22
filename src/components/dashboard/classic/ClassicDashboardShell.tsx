@@ -49,7 +49,7 @@ export function ClassicDashboardShell({
         </Link>
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <ThemeSwitcher variant="toggle" className="hidden min-[400px]:flex w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-border/70 bg-card/60 shrink-0" />
-          <BalanceDisplay initialBalance={formatBalance(user.balanceCents)} variant="mobile-header" />
+          <BalanceDisplay initialBalance={formatBalance(user.balanceCents)} variant="mobile-header" tenantId={user.tenantId || 'smmplan'} />
           <Link
             href="/dashboard/finance"
             className="px-2 sm:px-3 py-1.5 sm:py-2 min-h-[34px] sm:min-h-[40px] flex items-center justify-center gap-1 text-xs font-bold bg-primary text-primary-foreground rounded-xl shadow-sm shadow-primary/20 hover:scale-105 active:scale-95 transition-all shrink-0"

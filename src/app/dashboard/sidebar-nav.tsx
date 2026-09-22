@@ -70,7 +70,7 @@ export function SidebarNav({
 
       {/* Balance display client component */}
       <div className="px-3 pt-3 pb-1 space-y-2.5">
-        <BalanceDisplay initialBalance={balanceRub} variant="sidebar" />
+        <BalanceDisplay initialBalance={balanceRub} variant="sidebar" tenantId={brandTenant} />
         <UserCommandMenu />
       </div>
 
