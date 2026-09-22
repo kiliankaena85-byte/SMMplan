@@ -178,4 +178,4 @@ export class AdminCatalogService {
 }
 
 export const adminCatalogService = new AdminCatalogService();
-export const catalogService = adminCatalogService;
+

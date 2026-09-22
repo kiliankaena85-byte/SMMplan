@@ -213,9 +213,9 @@ export const bulkQueue = createQueue<Record<string, unknown>>('bulk-queue', {
 });
 
 // Explicit named queues for payment, order, and sync operations
-export const queuePayment = criticalQueue;
-export const queueOrder = defaultQueue;
-export const queueSync = bulkQueue;
+
+
+
 
 // Payment Gateway async generation queue payload
 export interface PaymentGatewayJobPayload {

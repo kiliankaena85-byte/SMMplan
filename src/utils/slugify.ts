@@ -18,4 +18,4 @@ export function cyrillicToSlug(text: string): string {
     .replace(/^-|-$/g, '');
 }
 
-export const slugify = cyrillicToSlug;
+
