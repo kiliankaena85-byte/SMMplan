@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { processGeoAvailabilityCheck } from '../geo-availability.processor';
+import processGeoAvailabilityCheck from '../geo-availability.processor';
 import { GeoAvailabilityService, GeoAvailabilityReport } from '@/services/telemetry/geo-availability.service';
 import * as notifications from '@/lib/notifications';
 import { redis } from '@/lib/redis';
