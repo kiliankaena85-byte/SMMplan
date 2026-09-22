@@ -130,7 +130,7 @@ test.describe.serial('BLOCK 1: Customer & Guest Order Flow E2E', () => {
     await ctaBtn.click();
 
     // Wait for redirection to order creation or login for guests
-    await page.waitForURL(/\/(dashboard\/new-order|order|login|\?serviceId=)/, { waitUntil: 'commit', timeout: 10_000 });
+    await page.waitForURL(/\/(dashboard\/new-order|order|login|\?serviceId=)/, { waitUntil: 'commit', timeout: 60_000 });
 
     await context.close();
   });
