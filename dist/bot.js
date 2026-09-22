@@ -15744,7 +15744,7 @@ var init_wallet_ops = __esm({
         if (rawCents < BigInt(0)) {
           const absCents = -rawCents;
           const updatedUserBatch = await tx.user.updateMany({
-            where: { id: userId, balance: { gte: absCents } },
+            where: { id: userId, tenantId: resolvedTenantId, balance: { gte: absCents } },
             data: { balance: { increment: rawCents } }
           });
           if (updatedUserBatch.count === 0) {
@@ -15953,6 +15953,24 @@ var init_admin_audit = __esm({
   "src/lib/admin-audit.ts"() {
     "use strict";
     init_db();
+  }
+});
+
+// src/lib/tenant-resolver-edge.ts
+function normalizeTenantId(tenantId) {
+  if (!tenantId) return tenantId;
+  const clean = tenantId.trim().toLowerCase();
+  const normalized = clean === "lovable" || clean === "smmflux" ? "flux" : clean;
+  if (!VALID_TENANTS.has(normalized)) {
+    return "smmplan";
+  }
+  return normalized;
+}
+var VALID_TENANTS;
+var init_tenant_resolver_edge = __esm({
+  "src/lib/tenant-resolver-edge.ts"() {
+    "use strict";
+    VALID_TENANTS = /* @__PURE__ */ new Set(["smmplan", "flux"]);
   }
 });
 
@@ -24084,24 +24102,6 @@ var require_cache = __commonJS({
     exports2.cacheTag = cacheExports.cacheTag;
     exports2.unstable_cacheTag = cacheExports.unstable_cacheTag;
     exports2.refresh = cacheExports.refresh;
-  }
-});
-
-// src/lib/tenant-resolver-edge.ts
-function normalizeTenantId(tenantId) {
-  if (!tenantId) return tenantId;
-  const clean = tenantId.trim().toLowerCase();
-  const normalized = clean === "lovable" || clean === "smmflux" ? "flux" : clean;
-  if (!VALID_TENANTS.has(normalized)) {
-    return "smmplan";
-  }
-  return normalized;
-}
-var VALID_TENANTS;
-var init_tenant_resolver_edge = __esm({
-  "src/lib/tenant-resolver-edge.ts"() {
-    "use strict";
-    VALID_TENANTS = /* @__PURE__ */ new Set(["smmplan", "flux"]);
   }
 });
 
@@ -70647,6 +70647,7 @@ var init_queue_manager = __esm({
       const isBuildOrTest = process.env.NEXT_PHASE === "phase-production-build" || !!process.env.CI || process.env.NODE_ENV === "test";
       if (isBuildOrTest) {
         const targetObj = {
+          name,
           add: async (jobName, data, opts) => ({ id: opts?.jobId || "mock-id", name: jobName, data }),
           close: async () => {
           },
@@ -70657,7 +70658,8 @@ var init_queue_manager = __esm({
           count: async () => 0,
           defaultJobOptions: {
             attempts: 3,
-            backoff: { type: "exponential", delay: 5e3 }
+            backoff: { type: "exponential", delay: 5e3 },
+            ...defaultOptions
           }
         };
         return new Proxy(targetObj, {
@@ -132664,9 +132666,10 @@ var init_deposit_wizard = __esm({
     import_telegraf = __toESM(require_lib3());
     init_db();
     init_unified_payment_service();
+    init_tenant_resolver_edge();
     init_menu_navigation();
     DEPOSIT_WIZARD = "deposit-wizard";
-    botTenantId = process.env.BOT_TENANT_ID || "smmplan";
+    botTenantId = normalizeTenantId(process.env.BOT_TENANT_ID) || "smmplan";
     depositWizard = new import_telegraf.Scenes.WizardScene(
       DEPOSIT_WIZARD,
       // ШАГ 1: Запрос суммы
@@ -132767,7 +132770,7 @@ var init_deposit_wizard = __esm({
           return ctx.scene.leave();
         }
         await ctx.editMessageText("\u{1F504} \u0421\u043E\u0437\u0434\u0430\u044E \u043F\u043B\u0430\u0442\u0435\u0436, \u043F\u043E\u0434\u043E\u0436\u0434\u0438\u0442\u0435...");
-        const siteName = botTenantId === "flux" || botTenantId === "lovable" ? "SMMflux" : "SMMplan";
+        const siteName = botTenantId === "flux" ? "SMMflux" : "SMMplan";
         const res = await UnifiedPaymentService.createPayment(
           void 0,
           user.id,
@@ -132908,9 +132911,10 @@ var init_referral_wizard = __esm({
     "use strict";
     import_telegraf2 = __toESM(require_lib3());
     init_get_base_url();
+    init_tenant_resolver_edge();
     init_db();
     REFERRAL_WIZARD = "referral-wizard";
-    botTenantId2 = process.env.BOT_TENANT_ID || "smmplan";
+    botTenantId2 = normalizeTenantId(process.env.BOT_TENANT_ID) || "smmplan";
     referralWizard = new import_telegraf2.Scenes.WizardScene(
       REFERRAL_WIZARD,
       // ШАГ 1: Показать статистику и ссылку
@@ -132936,7 +132940,7 @@ var init_referral_wizard = __esm({
             });
             user.referralCode = newCode;
           }
-          const host = botTenantId2 === "flux" || botTenantId2 === "lovable" ? process.env.FLUX_APP_URL || "https://smmflux.ru" : getBaseUrlSync();
+          const host = botTenantId2 === "flux" ? process.env.FLUX_APP_URL || "https://smmflux.ru" : getBaseUrlSync();
           const link = `${host}/?ref=${user.referralCode}`;
           const earned = (user.referralBalance ?? 0) / 100;
           const refsCount = user._count?.referrals ?? 0;
@@ -132968,7 +132972,7 @@ var init_referral_wizard = __esm({
           return ctx.scene.leave();
         }
       },
-      async (ctx) => {
+      async () => {
         return;
       }
     );
@@ -140245,16 +140249,18 @@ var init_geo_availability_service = __esm({
 });
 
 // src/bot/scenes/owner-hub.wizard.ts
-async function isOwnerOrAdmin(tgId) {
+async function isOwnerOrAdmin(tgId, specificTenantId) {
   const strId = String(tgId);
   const adminChatId = process.env.ADMIN_ALERT_CHAT_ID;
   if (adminChatId && strId === String(adminChatId)) {
     return true;
   }
+  const tenantToUse = specificTenantId || normalizeTenantId(process.env.BOT_TENANT_ID) || "smmplan";
   try {
     const user = await db.user.findFirst({
       where: {
         telegramId: strId,
+        tenantId: tenantToUse,
         role: { in: ["OWNER", "ADMIN", "SUPER_ADMIN", "DEVELOPER"] }
       },
       select: { role: true }
@@ -140322,6 +140328,7 @@ var init_owner_hub_wizard = __esm({
     init_p0_threat_sensor_service();
     init_geo_availability_service();
     init_provider_service();
+    init_tenant_resolver_edge();
     ownerHubWizard = new import_telegraf4.Scenes.WizardScene(
       "owner-hub",
       async (ctx) => {
@@ -141647,6 +141654,7 @@ var init_ticket_service = __esm({
     init_settings();
     init_sse_service();
     init_mime();
+    init_tenant_resolver_edge();
     TicketService = class {
       /**
        * Create a new ticket from an incoming customer email.
@@ -141658,9 +141666,7 @@ var init_ticket_service = __esm({
         if (!resolvedTenant && params.toEmail) {
           resolvedTenant = params.toEmail.toLowerCase().includes("flux") ? "flux" : "smmplan";
         }
-        if (!resolvedTenant) {
-          resolvedTenant = "smmplan";
-        }
+        resolvedTenant = normalizeTenantId(resolvedTenant) || "smmplan";
         let user = await db.user.findFirst({
           where: {
             email: { equals: normalizedEmail, mode: "insensitive" },
@@ -141734,7 +141740,7 @@ var init_ticket_service = __esm({
             where: { id: userId },
             select: { tenantId: true }
           });
-          const resolvedTenant = tenantId || user.tenantId || "smmplan";
+          const resolvedTenant = normalizeTenantId(tenantId || user.tenantId) || "smmplan";
           const existing = await tx.ticket.findFirst({
             where: { userId, tenantId: resolvedTenant, status: { not: "CLOSED" } },
             orderBy: { updatedAt: "desc" }
@@ -141800,8 +141806,8 @@ var init_ticket_service = __esm({
         }
         const resolvedMediaUrl = mediaUrl || attachmentsToCreate[0]?.url || null;
         const resolvedMediaType = mediaType || attachmentsToCreate[0]?.type || null;
-        let telegramError = null;
         if (sender === "STAFF" && ticketToUpdate.user.telegramId) {
+          let telegramError;
           try {
             const { supportBotService: supportBotService2 } = await Promise.resolve().then(() => (init_support_bot_service(), support_bot_service_exports));
             let replyToTgMsgId = void 0;
@@ -141817,7 +141823,7 @@ var init_ticket_service = __esm({
               replyToTgMsgId,
               resolvedMediaUrl || void 0,
               resolvedMediaType || void 0,
-              ticketToUpdate.tenantId || "smmplan"
+              normalizeTenantId(ticketToUpdate.tenantId) || "smmplan"
             );
             if (tgId) {
               telegramMsgId = tgId;
@@ -141865,7 +141871,7 @@ var init_ticket_service = __esm({
             ...sender === "STAFF" && !ticketToUpdate.firstRespondedAt ? { firstRespondedAt: /* @__PURE__ */ new Date() } : {}
           }
         });
-        if (sender === "STAFF" && message.ticket.user.email && !message.ticket.user.telegramId) {
+        if (sender === "STAFF" && ticketToUpdate.user?.email && !ticketToUpdate.user?.telegramId) {
           const actionText = `
         <p style="color: #4f46e5; font-size: 14px; font-weight: bold; margin-top: 20px;">
           \u270D\uFE0F \u0412\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u043E\u0442\u0432\u0435\u0442\u0438\u0442\u044C \u043D\u0430 \u044D\u0442\u043E \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u043F\u0440\u044F\u043C\u043E \u0447\u0435\u0440\u0435\u0437 \u043F\u043E\u0447\u0442\u0443 \u2014 \u043F\u0440\u043E\u0441\u0442\u043E \u043D\u0430\u043F\u0438\u0448\u0438\u0442\u0435 \u043E\u0442\u0432\u0435\u0442\u043D\u043E\u0435 \u043F\u0438\u0441\u044C\u043C\u043E.
@@ -141874,9 +141880,10 @@ var init_ticket_service = __esm({
           \u0418\u043B\u0438 \u0432\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u0432\u043E\u0439\u0442\u0438 \u0432 \u043F\u0430\u043D\u0435\u043B\u044C \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F (Dashboard) \u0434\u043B\u044F \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u0430 \u0432\u0441\u0435\u0439 \u043F\u0435\u0440\u0435\u043F\u0438\u0441\u043A\u0438.
         </p>
       `;
-          const supportDomain = await SettingsProvider.getSupportEmailDomain();
-          const settings = await SettingsProvider.getContactAndLegalSettings();
-          const companyName = settings.COMPANY_NAME || "SMMplan";
+          const ticketTenant = normalizeTenantId(ticketToUpdate.tenantId) || "smmplan";
+          const supportDomain = await SettingsProvider.getSupportEmailDomain(ticketTenant);
+          const settings = await SettingsProvider.getContactAndLegalSettings(ticketTenant);
+          const companyName = settings.COMPANY_NAME || (ticketTenant === "flux" ? "SMMflux" : "SMMplan");
           const replyToAddress = `support+${message.ticket.id}@${supportDomain}`;
           const escapeHtml4 = (unsafe) => (unsafe ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\n/g, "<br>");
           const previousMessages = await db.ticketMessage.findMany({
@@ -142351,7 +142358,7 @@ async function sendMainMenu(ctx, isEdit = false) {
   });
 }
 async function getDynamicInlineKeyboard(tgId) {
-  const isOwner = tgId ? await isOwnerOrAdmin(tgId) : false;
+  const isOwner = tgId ? await isOwnerOrAdmin(tgId, botTenantId4) : false;
   let baseRows = [
     [import_telegraf5.Markup.button.callback("\u{1F680} \u0411\u044B\u0441\u0442\u0440\u044B\u0439 \u0437\u0430\u043A\u0430\u0437 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435", "start_fast_order")],
     [import_telegraf5.Markup.button.callback("\u{1F6CD} \u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0443\u0441\u043B\u0443\u0433", "shop"), import_telegraf5.Markup.button.callback("\u{1F4B0} \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u0431\u0430\u043B\u0430\u043D\u0441", "deposit")],
@@ -142540,7 +142547,7 @@ async function sendUserProfile(ctx) {
 \u{1F465} \u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044C\u043D\u044B\u0439 \u043A\u043E\u0434: <code>${user.referralCode || "\u2014"}</code>
 
 <i>\u0423\u043F\u0440\u0430\u0432\u043B\u044F\u0439\u0442\u0435 \u0431\u0430\u043B\u0430\u043D\u0441\u043E\u043C, \u0437\u0430\u043A\u0430\u0437\u0430\u043C\u0438 \u0438 \u0440\u0435\u0444\u0435\u0440\u0430\u043B\u0430\u043C\u0438:</i>`;
-  const isOwner = await isOwnerOrAdmin(tgId);
+  const isOwner = await isOwnerOrAdmin(tgId, botTenantId4);
   const profileRows = [
     [import_telegraf5.Markup.button.callback("\u{1F4B0} \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u0431\u0430\u043B\u0430\u043D\u0441", "deposit"), import_telegraf5.Markup.button.callback("\u{1F4E6} \u041C\u043E\u0438 \u0437\u0430\u043A\u0430\u0437\u044B", "my_orders")],
     [import_telegraf5.Markup.button.callback("\u{1F4DC} \u0418\u0441\u0442\u043E\u0440\u0438\u044F \u043E\u043F\u0435\u0440\u0430\u0446\u0438\u0439", "my_tx"), import_telegraf5.Markup.button.callback("\u{1F465} \u0420\u0435\u0444\u0435\u0440\u0430\u043B\u044B", "referral")],
@@ -142582,7 +142589,7 @@ async function sendUserTransactions(ctx) {
   await ctx.reply(text, { parse_mode: "HTML" });
 }
 async function sendBindInstructions(ctx) {
-  const host = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (botTenantId4 === "flux" || botTenantId4 === "lovable" ? "https://smmflux.ru" : "https://test.smmplan.pro");
+  const host = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (botTenantId4 === "flux" ? "https://smmflux.ru" : "https://test.smmplan.pro");
   await ctx.reply(
     `\u{1F517} <b>\u0421\u0432\u044F\u0437\u044B\u0432\u0430\u043D\u0438\u0435 \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430 ${botSiteName}</b>
 
@@ -142933,6 +142940,7 @@ var init_index = __esm({
     init_db();
     init_wallet_ops();
     init_admin_audit();
+    init_tenant_resolver_edge();
     init_order_wizard();
     init_deposit_wizard();
     init_referral_wizard();
@@ -142962,8 +142970,8 @@ var init_index = __esm({
         agent
       }
     });
-    botTenantId4 = process.env.BOT_TENANT_ID || "smmplan";
-    botSiteName = botTenantId4 === "flux" || botTenantId4 === "lovable" ? "SMMflux" : "SMMplan";
+    botTenantId4 = normalizeTenantId(process.env.BOT_TENANT_ID) || "smmplan";
+    botSiteName = botTenantId4 === "flux" ? "SMMflux" : "SMMplan";
     stage = new import_telegraf5.Scenes.Stage([
       orderWizard,
       depositWizard,
@@ -142974,7 +142982,7 @@ var init_index = __esm({
     bot.use(stage.middleware());
     bot.use(async (ctx, next) => {
       if (!ctx.from) return next();
-      const isOwner = await isOwnerOrAdmin(ctx.from.id);
+      const isOwner = await isOwnerOrAdmin(ctx.from.id, botTenantId4);
       if (!isOwner) {
         const isMaint = await BotSettingsService.isMaintenanceActive(botTenantId4);
         if (isMaint) {
@@ -143071,6 +143079,19 @@ var init_index = __esm({
                 throw new Error("\u0422\u043E\u043A\u0435\u043D \u043F\u0440\u0438\u0432\u044F\u0437\u043A\u0438 \u0443\u0436\u0435 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D");
               }
               const tempUser = await tx.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId4 } });
+              const webUser = await tx.user.findUnique({ where: { id: webUserId } });
+              if (!webUser) {
+                throw new Error("\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C \u0432\u0435\u0431-\u043A\u0430\u0431\u0438\u043D\u0435\u0442\u0430 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D");
+              }
+              if (tempUser && tempUser.role && tempUser.role !== "USER") {
+                throw new Error("\u0417\u0430\u043F\u0440\u0435\u0449\u0435\u043D\u043E \u043E\u0431\u044A\u0435\u0434\u0438\u043D\u044F\u0442\u044C \u0441\u043B\u0443\u0436\u0435\u0431\u043D\u044B\u0435 \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u044B \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u0430");
+              }
+              if (tempUser && tempUser.tenantId !== webUser.tenantId) {
+                throw new Error("\u041D\u0435\u043B\u044C\u0437\u044F \u043E\u0431\u044A\u0435\u0434\u0438\u043D\u044F\u0442\u044C \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u044B \u0440\u0430\u0437\u043D\u044B\u0445 \u0431\u0440\u0435\u043D\u0434\u043E\u0432. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 \u0431\u043E\u0442\u0430, \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u044E\u0449\u0435\u0433\u043E \u0441\u0430\u0439\u0442\u0443.");
+              }
+              if (webUser.tenantId !== botTenantId4) {
+                throw new Error("\u042D\u0442\u043E\u0442 \u0442\u043E\u043A\u0435\u043D \u0432\u044B\u043F\u0443\u0449\u0435\u043D \u0434\u043B\u044F \u0434\u0440\u0443\u0433\u043E\u0433\u043E \u0431\u0440\u0435\u043D\u0434\u0430. \u041F\u043E\u0436\u0430\u043B\u0443\u0439\u0441\u0442\u0430, \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u044E\u0449\u0435\u0433\u043E \u0431\u043E\u0442\u0430.");
+              }
               if (tempUser && tempUser.id !== webUserId) {
                 await tx.ticket.updateMany({
                   where: { userId: tempUser.id },
@@ -143081,7 +143102,7 @@ var init_index = __esm({
                 await tx.invoice.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
                 await tx.auditLog.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
                 if (tempUser.balance > BigInt(0)) {
-                  const amount = Number(tempUser.balance);
+                  const amount = tempUser.balance;
                   const reasonDebit = `\u0421\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 \u043F\u0440\u0438 \u0430\u0432\u0442\u043E-\u0441\u043B\u0438\u044F\u043D\u0438\u0438 Telegram ${tempUser.email} \u0441 ${webUserId}`;
                   const reasonCredit = `\u041F\u0435\u0440\u0435\u043D\u043E\u0441 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 \u0441\u043E \u0441\u0442\u0430\u0440\u043E\u0433\u043E \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430 Telegram ${tempUser.email}`;
                   await WalletOps.charge(tx, tempUser.id, amount, reasonDebit, {
@@ -143363,7 +143384,7 @@ var init_index = __esm({
       const tgId = String(ctx.from.id);
       const user = await db.user.findFirst({ where: { telegramId: tgId } });
       const role = user?.role || "\u0413\u043E\u0441\u0442\u044C (\u043D\u0435 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D)";
-      const isOwner = await isOwnerOrAdmin(ctx.from.id);
+      const isOwner = await isOwnerOrAdmin(ctx.from.id, botTenantId4);
       await ctx.reply(
         `\u{1F194} <b>\u0412\u0430\u0448 Telegram ID:</b> <code>${tgId}</code>
 \u{1F464} <b>\u041F\u0440\u0438\u0432\u044F\u0437\u0430\u043D\u043D\u044B\u0439 \u0430\u043A\u043A\u0430\u0443\u043D\u0442:</b> ${user?.email || "\u041D\u0435 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D"}
@@ -143377,7 +143398,7 @@ var init_index = __esm({
       const tgId = String(ctx.from.id);
       const user = await db.user.findFirst({ where: { telegramId: tgId } });
       const role = user?.role || "\u0413\u043E\u0441\u0442\u044C (\u043D\u0435 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D)";
-      const isOwner = await isOwnerOrAdmin(ctx.from.id);
+      const isOwner = await isOwnerOrAdmin(ctx.from.id, botTenantId4);
       await ctx.reply(
         `\u{1F194} <b>\u0412\u0430\u0448 Telegram ID:</b> <code>${tgId}</code>
 \u{1F464} <b>Email:</b> ${user?.email || "\u041D\u0435 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D"}

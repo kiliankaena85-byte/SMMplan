@@ -1,3 +1,8 @@
+- [x] 🚀 [DEPLOYMENT-CUTOVER-2026] Успешное бесшовное переключение боевых контейнеров OmniSMM 1.0 (BGS-2026):
+  * 📦 Обновлены боевые образы: `smm-web:latest`, `smm-worker:latest`, `smm-bot:latest`.
+  * 🌐 Контейнеры `smmplan_web` (:3000), `smmplan_lite_worker`, `smmplan_bot` перезапущены и переведены в статус **Healthy**.
+  * 🛡️ Предыдущий рабочий образ сохранен как `smmplan_backup:latest` (гарантия отката за 5 сек).
+  * 🧪 Пройден визуальный аудит в браузере (6/6 PASS) и дымовые тесты на порту 3000 (HTTP 200 OK).
 - [x] 🧹 [CLEANUP-LOVABLE-SMMFLUX-2026] Полная зачистка остаточных упоминаний фантомного бренда Lovable и консолидация на SMMflux (100% COMPLETE & VERIFIED):
   * 🌐 **[BRAND-01: Дебрандинг и роутинг (`next.config.mjs`, `src/app/ab-lovable`)]:**
     - Удалена устаревшая страница-дубликат `src/app/ab-lovable/page.tsx`.
