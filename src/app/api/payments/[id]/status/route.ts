@@ -4,6 +4,8 @@ import { verifySession } from '@/lib/session';
 import { YooKassaStatusChecker } from '@/services/financial/yookassa-status-checker';
 import { paymentService } from '@/services/financial/payment.service';
 import { logger } from '@/lib/logger';
+import { isTenantAllowedForUser, UserWithAllowedTenants } from '@/utils/admin-tenant';
+import { resolveTenantUser } from '@/lib/tenant-user-resolver';
 
 const log = logger.child({ component: 'PaymentStatusAPI' });
 
@@ -20,22 +22,41 @@ export async function GET(
 
     const { id: paymentId } = await params;
 
-    // 2. Fetch the payment
+    // 2. Fetch the payment with user details
     const payment = await db.payment.findUnique({
-      where: { id: paymentId }
+      where: { id: paymentId },
+      include: {
+        user: {
+          select: { id: true, email: true, tenantId: true }
+        }
+      }
     });
 
     if (!payment) {
       return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
     }
 
-    // 3. Guest-Proof IDOR Check: If payment belongs to a user, strictly require matching session or staff of the same tenant
+    // 3. Guest-Proof IDOR Check: If payment belongs to a user, strictly require matching session or staff with tenant access
     const isOwner = session?.role === 'OWNER';
     const isStaff = Boolean(session?.role && ['ADMIN', 'OWNER', 'MANAGER', 'SUPPORT'].includes(session.role));
-    const isSameTenantStaff = isStaff && (isOwner || payment.tenantId === ((session as any)?.tenantId || 'smmplan'));
+    const isAllowedStaff = isStaff && (isOwner || isTenantAllowedForUser(session as UserWithAllowedTenants, payment.tenantId));
 
-    if (payment.userId && (!session || payment.userId !== session.userId) && !isSameTenantStaff) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (payment.userId) {
+      if (!session) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
+      let isAuthorizedUser = payment.userId === session.userId;
+      if (!isAuthorizedUser) {
+        const tenantUser = await resolveTenantUser(session.userId, payment.tenantId || 'smmplan');
+        if (tenantUser && tenantUser.id === payment.userId) {
+          isAuthorizedUser = true;
+        }
+      }
+
+      if (!isAuthorizedUser && !isAllowedStaff) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
 
     // 4. If payment is still PENDING and old enough, attempt Active Pull from YooKassa
@@ -46,7 +67,7 @@ export async function GET(
           payment.amount,
           payment.userId,
           true,
-          (payment.gateway || 'yookassa') as any,
+          (payment.gateway || 'yookassa') as 'yookassa' | 'cryptobot' | 'robokassa' | 'sbp',
           payment.id
         );
         return NextResponse.json({

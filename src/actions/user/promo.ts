@@ -1,5 +1,7 @@
 'use server';
-import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
+import { headers } from 'next/headers';
+import { normalizeTenantId, resolveTenantFromRequest } from '@/lib/tenant-resolver-edge';
+import { resolveTenantUser } from '@/lib/tenant-user-resolver';
 import { Prisma } from '@prisma/client';
 
 import { db } from "@/lib/db";
@@ -29,13 +31,18 @@ export async function activatePromoCodeAction(code: string): Promise<{ success: 
       return { success: false, error: "Слишком много попыток. Пожалуйста, подождите минуту." };
     }
 
+    const reqHeaders = await headers();
+    const activeTenant = normalizeTenantId(resolveTenantFromRequest(reqHeaders)) || 'smmplan';
+    const tenantUser = await resolveTenantUser(session.userId, activeTenant, true);
+    if (!tenantUser) {
+      return { success: false, error: "Пользователь не найден" };
+    }
+
     // Bounded retry loop for Serialization Failures (P2034)
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const result = await db.$transaction(async (tx) => {
-          const user = await tx.user.findUnique({ where: { id: session.userId } });
-          const tenantId = normalizeTenantId(user?.tenantId) || 'smmplan';
-          const promo = await tx.promoCode.findFirst({ where: { code: cleanCode, tenantId } });
+          const promo = await tx.promoCode.findFirst({ where: { code: cleanCode, tenantId: activeTenant } });
 
           if (!promo || !promo.isActive) {
             return { success: false, error: "Промокод недействителен или не существует" };
@@ -54,11 +61,11 @@ export async function activatePromoCodeAction(code: string): Promise<{ success: 
           }
 
           // Check if user already used this promo code (using DB-level idempotency key)
-          const idempotencyKey = `promo-${cleanCode}-${session.userId}`;
+          const idempotencyKey = `promo-${cleanCode}-${tenantUser.id}`;
           const alreadyUsed = await tx.ledgerEntry.findFirst({
             where: {
               idempotencyKey,
-              tenantId
+              tenantId: activeTenant
             }
           });
 
@@ -79,9 +86,9 @@ export async function activatePromoCodeAction(code: string): Promise<{ success: 
             return { success: false, error: "Лимит использований промокода исчерпан" };
           }
 
-          // Activate voucher -> Add to balance via WalletOps
+          // Activate voucher -> Add to balance via WalletOps for target tenant user
           const reason = `Активация ваучера: ${cleanCode}`;
-          await WalletOps.credit(tx, session.userId, promo.amount, reason, { idempotencyKey, tenantId });
+          await WalletOps.credit(tx, tenantUser.id, promo.amount, reason, { idempotencyKey, tenantId: activeTenant });
 
           return { success: true, amount: promo.amount };
         }, { isolationLevel: 'Serializable' });

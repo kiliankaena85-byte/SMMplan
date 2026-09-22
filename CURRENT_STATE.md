@@ -1,3 +1,33 @@
+- [x] 🛡️ [MULTI-TENANT-PACKAGE-3-BLIND-SPOTS-2026] Устранение 8 слепых зон межтенантной изоляции (100% COMPLETE & VERIFIED):
+  * 💳 **[PAY-01: Payment Status Polling IDOR & Identity (`src/app/api/payments/[id]/status/route.ts`)]:**
+    - `findUnique` обогащен связью `user: { select: { id, email, tenantId } }`.
+    - Проверка владения поддерживает сопоставление через `resolveTenantUser(session.userId, payment.tenantId)`, гарантируя успешный опрос статуса платежей для пользователей с кросс-тенантной сессией, сохраняя строгую защиту от IDOR и доступ персонала через `isTenantAllowedForUser`.
+  * 🔄 **[PAY-02: Retry Checkout Service Tenant Isolation (`src/services/orders/retry-checkout.service.ts`)]:**
+    - Устранено падение `where: { id, userId: sessionUserId }` при оплате на дочернем тенанте. Владелец определяется через `sessionUserId`, email match и `resolveTenantUser`.
+    - `WalletOps.charge` и `payment.create` теперь используют `freshOrder.userId` (аккаунт фактического тенанта), а не `sessionUserId`.
+    - `successUrl` и `paymentUrl` переведены на `absoluteCanonical(orderTenantId, ...)`, устраняя редиректы на дефолтный хост.
+  * 💰 **[PAY-03: Deposit Return URL Isolation (`src/actions/user/top-up.action.ts`)]:**
+    - Вызов `getBaseUrlAsync()` заменен на `absoluteCanonical(targetTenantId, '/dashboard/add-funds?success=1', incomingHost)`, исключая междоменную утечку пользователя при пополнении баланса.
+  * 🎟️ **[BAL-01: Promo Code Active Tenant Isolation (`src/actions/user/promo.ts`)]:**
+    - Активный тенант разрешается из заголовков запроса (`resolveTenantFromRequest`). Аккаунт для зачисления разрешается через `resolveTenantUser(session.userId, activeTenant, true)`.
+    - Промокоды строго изолированы по `tenantId: activeTenant`. Ваучеры зачисляются на баланс целевого тенанта через `WalletOps.credit` с tenant-scoped `idempotencyKey`.
+  * 💬 **[SUP-01: Ticket Message Dispatch (`src/actions/support/ticket.ts`)]:**
+    - `addTicketMessage` и `createTicket` определяют активный тенант из заголовков (`resolveTenantFromHeaders`).
+    - Авторизация клиента в тикете проверяет `ticket.userId === session.userId` или `resolveTenantUser(session.userId, ticket.tenantId).id === ticket.userId`.
+    - Привязка заказа валидируется строго в контексте `ticketTenant`.
+  * 📎 **[SUP-02: Ticket Attachment Upload (`src/app/api/support/upload/route.ts`)]:**
+    - Устранена блокировка загрузки в тикеты дочернего тенанта (`user.tenantId`). Права проверяются по `allowedTenants` для персонала и через `resolveTenantUser` для клиентов.
+  * 🖼️ **[SUP-03: Ticket Media Attachment Viewing (`src/app/api/media/[...path]/route.ts`)]:**
+    - Доступ персонала валидируется через `isTenantAllowedForUser(user, ticket.tenantId)`. Доступ клиента проверяется через `resolveTenantUser`. Междоменная изоляция проверена.
+  * 📋 **[SUP-04: Ticket Detail Page Orders Dropdown (`src/app/dashboard/tickets/[id]/page.tsx`)]:**
+    - Формируется `allowedUserIds = [session.userId, tenantUser?.id]`. Выборка `initialOrders` и `historicalTickets` фильтруется по `userId: { in: allowedUserIds }` строго в пределах `currentTenantId`.
+  * 🧪 **Контроль качества & Тестирование (DoD 100% PASS):**
+    - Создана спецификация: `docs/specs/SPEC-2026-09-22-multi-tenant-blind-spots-package-3.md`.
+    - Создан сьют тестов: `src/__tests__/unit/multi-tenant-blind-spots-package-3.test.ts` (**12/12 PASS**).
+    - Суммарный регрессионный сьют: **31/31 PASS (100%)**.
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+    - `npx eslint`: 0 ошибок / 0 ворнингов на всех файлах.
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
 - [x] 🛡️ [MULTI-TENANT-PACKAGE-2-P1-FINANCIAL-ISOLATION-2026] Комплексная финансовая изоляция P1: Telegram Smart Bind, Escrow-карантин, ManualBalanceAdjustment (100% COMPLETE & VERIFIED):
   * 🤖 **[VULN-03: Telegram Smart Bind Cross-Tenant Merge Protection (`src/actions/user/settings/telegram.action.ts` & `src/bot/constructors/role-handlers.ts`)]:**
     - `telegram.action.ts`: `db.authToken.create` явно сохраняет `tenantId: tenantId`.

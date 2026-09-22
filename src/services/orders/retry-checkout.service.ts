@@ -7,6 +7,8 @@ import { db } from '@/lib/db';
 import { SettingsManager, SettingsProvider } from '@/lib/settings';
 import { runSerializableTransaction } from '@/lib/transactions';
 import { WalletOps } from '@/services/financial/wallet-ops';
+import { normalizeTenantId, absoluteCanonical } from '@/lib/seo-helpers';
+import { resolveTenantUser } from '@/lib/tenant-user-resolver';
 
 export async function checkYookassaStatusSync(gatewayId: string, tenantId: string = 'smmplan'): Promise<boolean> {
   try {
@@ -45,26 +47,59 @@ export class RetryCheckoutService {
   static async execute(input: RetryCheckoutInput) {
     const { orderId, gateway, sessionUserId, currentTenantId, consentIp, consentUserAgent, reqHeaders } = input;
 
+    const normalizedCurrentTenant = normalizeTenantId(currentTenantId) || 'smmplan';
+
+    const sessionUser = await db.user.findUnique({
+      where: { id: sessionUserId },
+      select: { id: true, email: true, role: true, tenantId: true }
+    });
+    if (!sessionUser) throw new Error("Пользователь не найден");
+
     const order = await db.order.findUnique({
-      where: { id: orderId, userId: sessionUserId },
+      where: { id: orderId },
       include: { user: true, payment: true, service: true }
     });
 
     if (!order) throw new Error("Заказ не найден");
-    if (order.tenantId && order.tenantId !== currentTenantId) {
+
+    const orderTenantId = normalizeTenantId(order.tenantId) || 'smmplan';
+
+    // Tenant boundary check: Order must belong to current storefront (unless platform OWNER)
+    const isOwner = sessionUser.role === 'OWNER';
+    if (orderTenantId !== normalizedCurrentTenant && !isOwner) {
       throw new Error("Заказ недоступен для текущей площадки");
     }
+
+    // Ownership check: sessionUser direct, email match, tenantUser match, or staff
+    const isStaff = ['ADMIN', 'MANAGER', 'SUPPORT'].includes(sessionUser.role);
+    let isAuthorized = order.userId === sessionUserId;
+    if (!isAuthorized && order.user?.email && sessionUser.email) {
+      isAuthorized = order.user.email.toLowerCase() === sessionUser.email.toLowerCase();
+    }
+    if (!isAuthorized) {
+      const tenantUser = await resolveTenantUser(sessionUserId, orderTenantId);
+      if (tenantUser && tenantUser.id === order.userId) {
+        isAuthorized = true;
+      }
+    }
+    if (!isAuthorized && !isStaff && !isOwner) {
+      throw new Error("Заказ не найден");
+    }
+
     if (order.user.isDeleted === true || order.user.isActive === false) {
       throw new Error("Ваш аккаунт заблокирован или удален");
     }
     if (order.status !== 'AWAITING_PAYMENT') throw new Error("Этот заказ больше не ожидает оплаты");
 
+    const incomingHost = reqHeaders.get("x-forwarded-host") || reqHeaders.get("host");
+    const tenantSuccessUrl = absoluteCanonical(orderTenantId, `/success?orderId=${order.id}`, incomingHost);
+
     // YooKassa status sync guard
     if (order.payment?.gateway === 'yookassa' && order.payment.gatewayId) {
-      const isActuallyPaid = await checkYookassaStatusSync(order.payment.gatewayId, currentTenantId);
+      const isActuallyPaid = await checkYookassaStatusSync(order.payment.gatewayId, orderTenantId);
       if (isActuallyPaid) {
         const { paymentService } = await import('@/services/financial/payment.service');
-        const isTestMode = await SettingsManager.isTestMode(currentTenantId);
+        const isTestMode = await SettingsManager.isTestMode(orderTenantId);
         await paymentService.confirmPayment(
           order.payment.gatewayId,
           Number(order.payment.amount),
@@ -74,15 +109,7 @@ export class RetryCheckoutService {
           order.payment.id,
           'order'
         );
-        
-        const fwdHost = reqHeaders.get("x-forwarded-host");
-        const hostHeader = reqHeaders.get("host");
-        let host = fwdHost || hostHeader || "localhost:3000";
-        if (host.includes("0.0.0.0") || host.includes("host.docker.internal")) {
-          host = process.env.NODE_ENV === "production" ? "test.smmplan.pro" : "localhost:3000";
-        }
-        const protocol = reqHeaders.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
-        return { orderId: order.id, paymentId: order.payment.id, paymentUrl: `${protocol}://${host}/success` };
+        return { orderId: order.id, paymentId: order.payment.id, paymentUrl: tenantSuccessUrl };
       }
     }
 
@@ -121,7 +148,7 @@ export class RetryCheckoutService {
       const orderTenantId = freshOrder.tenantId || 'smmplan';
 
       if (gateway === 'balance') {
-        await WalletOps.charge(tx, sessionUserId, totalChargeCents, `Повторная оплата заказа с баланса`, {
+        await WalletOps.charge(tx, freshOrder.userId, totalChargeCents, `Повторная оплата заказа с баланса`, {
           idempotencyKey: `retry-balance-${freshOrder.id}`,
           tenantId: orderTenantId
         });
@@ -151,7 +178,7 @@ export class RetryCheckoutService {
       } else {
         const p = await tx.payment.create({
           data: {
-            userId: sessionUserId,
+            userId: freshOrder.userId,
             amount: paymentAmount,
             currency: 'RUB',
             status: gateway === 'balance' ? 'SUCCEEDED' : 'PENDING',
@@ -170,8 +197,6 @@ export class RetryCheckoutService {
       return { paymentId: paymentId!, totalPaymentAmount: paymentAmount, linkedOrderIds: ordersToProcess.map(o => o.id) };
     });
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
     if (gateway === 'balance') {
       const { ordersQueue } = await import('@/lib/queue-manager');
       const { ORDER_COOLING_OFF_MS } = await import('@/config/order-constants');
@@ -186,7 +211,7 @@ export class RetryCheckoutService {
       return {
         orderId: order.id,
         paymentId: result.paymentId,
-        paymentUrl: `${baseUrl}/success?orderId=${order.id}`
+        paymentUrl: tenantSuccessUrl
       };
     }
 
@@ -196,11 +221,11 @@ export class RetryCheckoutService {
     const gatewayResult = await gatewaySvc.createPayment({
       paymentId: result.paymentId,
       orderId: order.id,
-      userId: sessionUserId,
+      userId: order.userId,
       tenantId: order.tenantId || 'smmplan',
       amountRub: result.totalPaymentAmount / 100,
       email: order.user.email,
-      successUrl: `${baseUrl}/success?orderId=${order.id}`,
+      successUrl: tenantSuccessUrl,
       description: `Повторная оплата заказа #${order.numericId}`,
       isTestMode,
       metadata: { type: 'checkout', tenantId: order.tenantId }

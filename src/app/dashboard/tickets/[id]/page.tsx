@@ -3,6 +3,7 @@ import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { resolveTenantFromHeaders } from '@/lib/tenant-resolver-edge';
+import { resolveTenantUser } from '@/lib/tenant-user-resolver';
 import { addTicketMessage } from '@/actions/support/ticket';
 import ChatWindow from '@/components/support/ChatWindow';
 import { getSupportSlaInfo } from '@/utils/support-sla';
@@ -27,6 +28,8 @@ export default async function ClientTicketChatPage({
   const { id } = await params;
   const reqHeaders = await headers();
   const currentTenantId = resolveTenantFromHeaders(reqHeaders);
+  const tenantUser = await resolveTenantUser(session.userId, currentTenantId);
+  const allowedUserIds = Array.from(new Set([session.userId, tenantUser?.id].filter(Boolean) as string[]));
 
   const ticket = await db.ticket.findUnique({
     where: { id },
@@ -55,14 +58,16 @@ export default async function ClientTicketChatPage({
     },
   });
 
-  if (!ticket || ticket.userId !== session.userId || ticket.tenantId !== currentTenantId) {
+  const isTicketOwner = Boolean(ticket && allowedUserIds.includes(ticket.userId));
+
+  if (!ticket || !isTicketOwner || ticket.tenantId !== currentTenantId) {
     redirect('/dashboard/tickets');
   }
 
   // 1. Fetch user's 3 most recent CLOSED tickets strictly for current tenant
   const historicalTickets = await db.ticket.findMany({
     where: {
-      userId: session.userId,
+      userId: { in: allowedUserIds },
       tenantId: currentTenantId,
       status: 'CLOSED',
       id: { not: id },
@@ -121,7 +126,7 @@ export default async function ClientTicketChatPage({
 
   // 3. Fetch client's 5 most recent orders for context mapping dropdown within current tenant
   const initialOrders = await db.order.findMany({
-    where: { userId: session.userId, tenantId: currentTenantId },
+    where: { userId: { in: allowedUserIds }, tenantId: currentTenantId },
     take: 5,
     orderBy: { createdAt: 'desc' },
     select: {

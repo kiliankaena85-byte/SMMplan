@@ -3,7 +3,7 @@
 import { db } from "@/lib/db";
 import { verifySession } from "@/lib/session";
 import { headers } from "next/headers";
-import { getBaseUrlAsync } from "@/utils/get-base-url";
+import { absoluteCanonical } from "@/lib/seo-helpers";
 import { getClientIp } from "@/utils/ip";
 import { RateLimitService } from "@/services/core/rate-limit.service";
 import { ExactMath } from "@/lib/financial/exact-math";
@@ -115,7 +115,8 @@ export async function createTopUpPaymentAction(
 
     const { PaymentGatewayFactory } = await import('@/services/financial/payment-gateway.service');
     const gatewaySvc = PaymentGatewayFactory.getGateway(gateway);
-    const successUrl = `${await getBaseUrlAsync()}/dashboard/add-funds?success=1`;
+    const incomingHost = reqHeaders.get("x-forwarded-host") || reqHeaders.get("host");
+    const successUrl = absoluteCanonical(targetTenantId, '/dashboard/add-funds?success=1', incomingHost);
     const description = gateway === 'yookassa'
       ? `Оплата услуг IT-агентства (Digital Consulting, Счёт: ${payment.id})`
       : `Пополнение баланса (Счёт: ${payment.id})`;

@@ -14,6 +14,9 @@ import { getClientIp } from '@/utils/ip';
 import { auditAdmin } from '@/lib/admin-audit';
 import { WalletOps } from '@/services/financial/wallet-ops';
 import { CompensationService } from '@/services/financial/compensation.service';
+import { headers } from 'next/headers';
+import { resolveTenantFromHeaders, normalizeTenantId } from '@/lib/tenant-resolver-edge';
+import { resolveTenantUser } from '@/lib/tenant-user-resolver';
 import { isTenantAllowedForUser } from '@/utils/admin-tenant';
 
 /**
@@ -119,7 +122,9 @@ export async function createTicket(formData: FormData) {
   if (!parsed.success) throw new Error('Данные тикета заполнены неверно');
   const { subject, message } = parsed.data;
 
-  const ticket = await ticketService.getOrCreateTicket(session.userId, subject, 'WEB', session.tenantId);
+  const reqHeaders = await headers();
+  const currentTenant = normalizeTenantId(resolveTenantFromHeaders(reqHeaders) || session.tenantId) || 'smmplan';
+  const ticket = await ticketService.getOrCreateTicket(session.userId, subject, 'WEB', currentTenant);
   await ticketService.addMessage(ticket.id, 'USER', message);
 
   revalidatePath('/dashboard/tickets');
@@ -131,8 +136,11 @@ export async function addTicketMessage(formData: FormData) {
   const session = await verifySession();
   if (!session) throw new Error('Unauthorized');
 
+  const reqHeaders = await headers();
+  const currentTenant = normalizeTenantId(resolveTenantFromHeaders(reqHeaders) || session.tenantId) || 'smmplan';
+
   // Rate Limit: Prevent message flooding (max 60 messages per 1 minute)
-  const isAllowedUser = await RateLimitService.checkCustomKey(`add_message_user:${session.tenantId || 'smmplan'}:${session.userId}`, 60, 60);
+  const isAllowedUser = await RateLimitService.checkCustomKey(`add_message_user:${currentTenant}:${session.userId}`, 60, 60);
   const isAllowedIp = await RateLimitService.check('add_message_ip', 100, 60);
   if (!isAllowedUser || !isAllowedIp) {
     throw new Error('Слишком много сообщений. Пожалуйста, подождите перед следующим ответом.');
@@ -143,21 +151,50 @@ export async function addTicketMessage(formData: FormData) {
   const { ticketId, message, mediaUrl, mediaType, replyToId, orderId } = parsed.data;
 
   const isStaff = session.role ? ['OWNER', 'ADMIN', 'SUPPORT'].includes(session.role) : false;
-  const ticket = isStaff
-    ? await db.ticket.findUnique({ where: { id: ticketId } })
-    : await db.ticket.findFirst({
-        where: { id: ticketId, userId: session.userId, tenantId: session.tenantId }
-      });
+  const ticket = await db.ticket.findUnique({
+    where: { id: ticketId },
+    include: {
+      user: {
+        select: { id: true, email: true, tenantId: true }
+      }
+    }
+  });
+
   if (!ticket) throw new Error('Ticket not found or access denied');
-  if (isStaff && !isTenantAllowedForUser(session, ticket.tenantId)) {
-    throw new Error('Ticket not found or access denied');
+
+  let tenantUser: Awaited<ReturnType<typeof resolveTenantUser>> = null;
+  if (isStaff) {
+    if (!isTenantAllowedForUser(session, ticket.tenantId)) {
+      throw new Error('Ticket not found or access denied');
+    }
+  } else {
+    // Non-staff client check:
+    tenantUser = await resolveTenantUser(session.userId, ticket.tenantId || 'smmplan');
+    const isAuthorizedClient = ticket.userId === session.userId || (tenantUser && tenantUser.id === ticket.userId);
+    if (!isAuthorizedClient) {
+      throw new Error('Ticket not found or access denied');
+    }
+    if (ticket.tenantId && ticket.tenantId !== currentTenant) {
+      throw new Error('Ticket not found or access denied');
+    }
   }
+
+  const ticketTenant = ticket.tenantId || currentTenant;
 
   let verifiedOrderId: string | undefined = undefined;
   if (orderId) {
     // Security check: verify user owns the SMM order
     const order = await db.order.findFirst({
-      where: { id: orderId, ...(isStaff ? {} : { userId: session.userId }), tenantId: isStaff ? (ticket.tenantId || session.tenantId) : session.tenantId }
+      where: {
+        id: orderId,
+        ...(isStaff ? {} : {
+          OR: [
+            { userId: session.userId },
+            ...(ticket.userId ? [{ userId: ticket.userId }] : [])
+          ]
+        }),
+        tenantId: ticketTenant
+      }
     });
     if (order) {
       verifiedOrderId = order.id;
@@ -172,8 +209,13 @@ export async function addTicketMessage(formData: FormData) {
     if (extractedIds.length > 0) {
       const order = await db.order.findFirst({
         where: {
-          ...(isStaff ? {} : { userId: session.userId }),
-          tenantId: isStaff ? (ticket.tenantId || session.tenantId) : session.tenantId,
+          ...(isStaff ? {} : {
+            OR: [
+              { userId: session.userId },
+              ...(ticket.userId ? [{ userId: ticket.userId }] : [])
+            ]
+          }),
+          tenantId: ticketTenant,
           OR: [
             { id: { in: extractedIds } },
             { numericId: { in: extractedIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id)) } }
@@ -193,7 +235,7 @@ export async function addTicketMessage(formData: FormData) {
   }
 
   // If the user is writing in their own ticket (even if they have Admin/Owner role), they are acting as the client (USER).
-  const isOwner = ticket.userId === session.userId;
+  const isOwner = ticket.userId === session.userId || (tenantUser && tenantUser.id === ticket.userId);
   const sender = isOwner ? 'USER' : (isStaff ? 'STAFF' : 'USER');
   const savedMsg = await ticketService.addMessage(ticketId, sender, message || '', mediaUrl, mediaType, replyToId, undefined, undefined, verifiedOrderId);
   if (savedMsg?.id) {
