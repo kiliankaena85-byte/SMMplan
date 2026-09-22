@@ -1,9 +1,9 @@
 # Mutation Testing & Adversarial Red Teaming Report
 
-**Timestamp:** 2026-09-13T09:25:28.755Z  
+**Timestamp:** 2026-09-22T13:40:07.181Z  
 **Overall Verdict:** `APPROVED`  
 **Mutation Score:** `100%` (Required threshold: $\ge 85.0\%$)  
-**Killed Mutants:** 7 / 7  
+**Killed Mutants:** 11 / 11  
 **Survived Mutants (Test Blindspots):** 0  
 
 ---
@@ -12,7 +12,7 @@
 | Метрика | Значение | Норматив | Статус |
 | :--- | :--- | :--- | :--- |
 | **Mutation Score ($MS$)** | **100%** | $\ge 85.0\%$ | 🟢 PASS |
-| **Убитые мутанты (Killed)** | 7 | Максимум | 💀 Успешно |
+| **Убитые мутанты (Killed)** | 11 | Максимум | 💀 Успешно |
 | **Выжившие мутанты (Survived)** | 0 | 0 | 🟢 0 Дыр |
 
 ---
@@ -23,7 +23,7 @@
 - **Описание:** Искажение банковского округления: замена строгого неравенства остатка (нарушение Half-Even)
 - **Целевой файл:** `src/lib/financial/exact-math.ts`
 - **Тестовый сьют:** `src/__tests__/financial/exact-math.test.ts`
-- **Время реакции тестов:** 2.54s
+- **Время реакции тестов:** 7.91s
 - **Статус:** `KILLED`
 
 ---
@@ -32,7 +32,7 @@
 - **Описание:** Удаление базисных пунктов наценки (заказ продается по себестоимости провайдера без маржи)
 - **Целевой файл:** `src/lib/financial/exact-math.ts`
 - **Тестовый сьют:** `src/__tests__/financial/exact-math.test.ts`
-- **Время реакции тестов:** 2.29s
+- **Время реакции тестов:** 7.17s
 - **Статус:** `KILLED`
 
 ---
@@ -41,7 +41,7 @@
 - **Описание:** Разрешение бесплатного/нулевого заказа (отключение защиты min 1 коп floor)
 - **Целевой файл:** `src/lib/financial/exact-math.ts`
 - **Тестовый сьют:** `src/__tests__/financial/exact-math.test.ts`
-- **Время реакции тестов:** 2.32s
+- **Время реакции тестов:** 8.21s
 - **Статус:** `KILLED`
 
 ---
@@ -50,7 +50,7 @@
 - **Описание:** Подмена полного возврата при невыполненном заказе на нулевой возврат
 - **Целевой файл:** `src/lib/financial/exact-math.ts`
 - **Тестовый сьют:** `src/__tests__/financial/exact-math.test.ts`
-- **Время реакции тестов:** 2.58s
+- **Время реакции тестов:** 6.48s
 - **Статус:** `KILLED`
 
 ---
@@ -59,7 +59,7 @@
 - **Описание:** Отключение исправления сплющивания: пропуск добавления shrink-0 в SVG/Lucide
 - **Целевой файл:** `scripts/ui/layout-healer.ts`
 - **Тестовый сьют:** `src/__tests__/skills/layout-overflow-sentry.test.ts`
-- **Время реакции тестов:** 3.01s
+- **Время реакции тестов:** 34.52s
 - **Статус:** `KILLED`
 
 ---
@@ -68,7 +68,7 @@
 - **Описание:** Отключение устранения горизонтального скролла: сохранение w-screen вместо w-full max-w-full
 - **Целевой файл:** `scripts/ui/layout-healer.ts`
 - **Тестовый сьют:** `src/__tests__/skills/layout-overflow-sentry.test.ts`
-- **Время реакции тестов:** 2.27s
+- **Время реакции тестов:** 33.41s
 - **Статус:** `KILLED`
 
 ---
@@ -77,7 +77,43 @@
 - **Описание:** Отключение защиты от авто-зума на iPhone: сохранение мелкого шрифта text-xs в инпутах
 - **Целевой файл:** `scripts/ui/layout-healer.ts`
 - **Тестовый сьют:** `src/__tests__/skills/layout-overflow-sentry.test.ts`
-- **Время реакции тестов:** 2.25s
+- **Время реакции тестов:** 34.50s
+- **Статус:** `KILLED`
+
+---
+
+### 8. [💀 KILLED] MUT-TEN-01 (TENANT_ISOLATION)
+- **Описание:** Устранение изоляции тенанта из поиска промокода в activatePromoCodeAction
+- **Целевой файл:** `src/actions/user/promo.ts`
+- **Тестовый сьют:** `src/__tests__/unit/multi-tenant-blind-spots-package-3.test.ts`
+- **Время реакции тестов:** 13.24s
+- **Статус:** `KILLED`
+
+---
+
+### 9. [💀 KILLED] MUT-TEN-02 (TENANT_ISOLATION)
+- **Описание:** Подмена списания с баланса фактического владельца заказа (freshOrder.userId) на сессионного пользователя
+- **Целевой файл:** `src/services/orders/retry-checkout.service.ts`
+- **Тестовый сьют:** `src/__tests__/unit/multi-tenant-blind-spots-package-3.test.ts`
+- **Время реакции тестов:** 10.29s
+- **Статус:** `KILLED`
+
+---
+
+### 10. [💀 KILLED] MUT-TEN-03 (TENANT_ISOLATION)
+- **Описание:** Отключение проверки совпадения витрины тикета с текущей витриной клиента в addTicketMessage
+- **Целевой файл:** `src/actions/support/ticket.ts`
+- **Тестовый сьют:** `src/__tests__/unit/multi-tenant-blind-spots-package-3.test.ts`
+- **Время реакции тестов:** 9.73s
+- **Статус:** `KILLED`
+
+---
+
+### 11. [💀 KILLED] MUT-TEN-04 (TENANT_ISOLATION)
+- **Описание:** Хардкод tenantId: "smmplan" при создании токена привязки Telegram в getTelegramBindDetailsAction
+- **Целевой файл:** `src/actions/user/settings/telegram.action.ts`
+- **Тестовый сьют:** `src/__tests__/unit/financial-isolation-package-2.test.ts`
+- **Время реакции тестов:** 9.92s
 - **Статус:** `KILLED`
 
 

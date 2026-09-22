@@ -23,8 +23,9 @@
     - Формируется `allowedUserIds = [session.userId, tenantUser?.id]`. Выборка `initialOrders` и `historicalTickets` фильтруется по `userId: { in: allowedUserIds }` строго в пределах `currentTenantId`.
   * 🧪 **Контроль качества & Тестирование (DoD 100% PASS):**
     - Создана спецификация: `docs/specs/SPEC-2026-09-22-multi-tenant-blind-spots-package-3.md`.
-    - Создан сьют тестов: `src/__tests__/unit/multi-tenant-blind-spots-package-3.test.ts` (**12/12 PASS**).
-    - Суммарный регрессионный сьют: **31/31 PASS (100%)**.
+    - Создан сьют тестов: `src/__tests__/unit/multi-tenant-blind-spots-package-3.test.ts` (**13/13 PASS**).
+    - Суммарный регрессионный сьют: **35/35 PASS (100%)**.
+    - **AST Мутационное тестирование (`npm run test:mutation`): 100.0% Mutation Score (11/11 KILLED, 0 Survived)** — подтверждена стойкость тестов ко всем искажениям финансовой математики, адаптивной верстки и межтенантной изоляции.
     - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
     - `npx eslint`: 0 ошибок / 0 ворнингов на всех файлах.
     - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.

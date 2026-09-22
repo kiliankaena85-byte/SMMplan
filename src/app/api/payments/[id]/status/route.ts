@@ -62,12 +62,13 @@ export async function GET(
     // 4. If payment is still PENDING and old enough, attempt Active Pull from YooKassa
     if (payment.status === 'PENDING' && payment.gatewayId) {
       if (payment.gatewayId.startsWith('yoo_test_mock_') || payment.gatewayId.startsWith('mock_') || payment.gatewayId.startsWith('crypto_test_mock_') || payment.gatewayId.startsWith('robo_test_mock_')) {
+        const gwType = payment.gateway === 'cryptobot' || payment.gateway === 'robokassa' ? payment.gateway : 'yookassa';
         await paymentService.confirmPayment(
           payment.gatewayId,
           payment.amount,
           payment.userId,
           true,
-          (payment.gateway || 'yookassa') as 'yookassa' | 'cryptobot' | 'robokassa' | 'sbp',
+          gwType,
           payment.id
         );
         return NextResponse.json({

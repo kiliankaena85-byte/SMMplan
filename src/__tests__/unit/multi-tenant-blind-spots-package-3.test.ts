@@ -652,6 +652,34 @@ describe('Multi-Tenant Blind Spots (Package 3 SDD-TDD 2026 Suite)', () => {
       const { addTicketMessage } = await import('@/actions/support/ticket');
       await expect(addTicketMessage(formData)).rejects.toThrow('Ticket not found or access denied');
     });
+
+    it('should reject client message when active storefront does not match ticket tenant', async () => {
+      const ticketId = 'tkt_flux_mismatch';
+      ticketsStore.set(ticketId, {
+        id: ticketId,
+        userId: 'usr_flux_1',
+        tenantId: 'flux',
+        status: 'OPEN',
+        user: { id: 'usr_flux_1', email: 'client@example.com', tenantId: 'flux' },
+      });
+
+      sessionState.current = {
+        userId: 'usr_smmplan_1',
+        email: 'client@example.com',
+        role: 'USER',
+        tenantId: 'smmplan',
+      };
+      // Client is on smmplan storefront attempting to send message into a flux ticket
+      headersState.current.set('host', 'smmplan.pro');
+      headersState.current.set('x-tenant-id', 'smmplan');
+
+      const formData = new FormData();
+      formData.set('ticketId', ticketId);
+      formData.set('message', 'Cross storefront message attempt');
+
+      const { addTicketMessage } = await import('@/actions/support/ticket');
+      await expect(addTicketMessage(formData)).rejects.toThrow('Ticket not found or access denied');
+    });
   });
 
   describe('6. [SUP-04] Ticket Detail Page Orders Dropdown Allowed User IDs', () => {
