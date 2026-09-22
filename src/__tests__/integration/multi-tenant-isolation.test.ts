@@ -29,6 +29,7 @@ describe('Multi-Tenant Data Isolation (Integration)', () => {
                 minQty: 100,
                 maxQty: 1000,
                 pricePerUnitRub: 1.5,
+                rate: 1.5,
                 providerId: 'provider-1',
                 providerServiceId: '1',
                 tenantId: 'smmplan'
@@ -59,6 +60,7 @@ describe('Multi-Tenant Data Isolation (Integration)', () => {
                 minQty: 50,
                 maxQty: 500,
                 pricePerUnitRub: 2.0,
+                rate: 2.0,
                 providerId: 'provider-1',
                 providerServiceId: '2',
                 tenantId: 'flux'
