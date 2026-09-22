@@ -24,6 +24,7 @@ const StorefrontKeysSettings = dynamicImport(() => import('./storefront-keys/sto
 });
 import { AuditLogsTab } from '@/components/admin/settings/audit-logs-tab';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { enforceSectionAccess } from '@/lib/server/rbac';
 import { SettingsProvider } from '@/lib/settings';
 import { OnboardingReadinessBar } from '@/components/admin/settings/onboarding-readiness-bar';
@@ -59,103 +60,28 @@ export default async function AdminSettingsPage({
 
   // 2. Tab-Scoped Optimized Queries: Fetch settings + conditionally only the active tab data
   let settings: SystemSettings;
-  let staffUsers: Awaited<ReturnType<typeof settingsService.listStaffUsers>> = [];
-  let users: Awaited<ReturnType<typeof settingsService.listUsers>> = [];
-  let recentLogs: AdminAuditLog[] = [];
-  let staffRoles: (StaffRole & { permissions: StaffPermission[] })[] = [];
-  let templates: SupportTemplate[] = [];
-  let providers: Provider[] = [];
-  let storefrontKeys: Array<{
-    id: string;
-    tenantId: string;
-    type: 'PUBLISHABLE' | 'SECRET';
-    keyPrefix: string;
-    name: string | null;
-    isActive: boolean;
-    lastUsedAt: string | null;
-    createdAt: string;
-  }> = [];
-
   try {
-    const settingsPromise = settingsService.getSystemSettings(activeTenantId);
-
-    if (activeTab === 'team') {
-      const [s, stUsers, uList, roles] = await Promise.all([
-        settingsPromise,
-        settingsService.listStaffUsers(),
-        searchQuery ? settingsService.listUsers(searchQuery) : Promise.resolve([]),
-        db.staffRole.findMany({ include: { permissions: true }, orderBy: { name: 'asc' } }),
-      ]);
-      settings = s;
-      staffUsers = stUsers;
-      users = uList;
-      staffRoles = roles;
-    } else if (activeTab === 'proxy') {
-      const [s, pList] = await Promise.all([
-        settingsPromise,
-        db.provider.findMany({ orderBy: { name: 'asc' } }),
-      ]);
-      settings = s;
-      providers = pList;
-    } else if (activeTab === 'storefront') {
-      const [s, kList] = await Promise.all([
-        settingsPromise,
-        db.storefrontKey.findMany({
-          where: { tenantId: activeTenantId },
-          orderBy: { createdAt: 'desc' },
-        }),
-      ]);
-      settings = s;
-      storefrontKeys = kList.map((k: StorefrontKey) => ({
-        id: k.id,
-        tenantId: k.tenantId,
-        type: k.type as 'PUBLISHABLE' | 'SECRET',
-        keyPrefix: k.keyPrefix,
-        name: k.name,
-        isActive: k.isActive,
-        lastUsedAt: k.lastUsedAt ? k.lastUsedAt.toISOString() : null,
-        createdAt: k.createdAt.toISOString(),
-      }));
-    } else if (activeTab === 'templates') {
-      const [s, tList] = await Promise.all([
-        settingsPromise,
-        db.supportTemplate.findMany({ orderBy: { sort: 'asc' } }),
-      ]);
-      settings = s;
-      templates = tList;
-    } else if (activeTab === 'audit') {
-      const [s, logs] = await Promise.all([
-        settingsPromise,
-        db.adminAuditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 50 }),
-      ]);
-      settings = s;
-      recentLogs = logs;
-    } else {
-      // Default tabs: 'system', 'catalog', 'integrations', 'telegram' only need settings
-      settings = await settingsPromise;
-    }
+    settings = await settingsService.getSystemSettings(activeTenantId);
   } catch (error) {
-    console.error('[AdminSettingsPage] Failed to load settings data:', error);
-    throw new Error('Не удалось загрузить данные настроек. Попробуйте обновить страницу.');
+    console.error('[AdminSettingsPage] Failed to load system settings:', error);
+    throw new Error('Не удалось загрузить настройки. Попробуйте обновить страницу.');
   }
 
-  // 3. Security Sanitize: Mask all 11 critical secrets before passing to client components
+  // 3. Security Sanitize: Mask all critical secrets before passing to client components
   const sanitizedSettings = {
     ...settings,
-    telegramBotToken: settings.telegramBotToken ? '••••••••••••••••' : null,
-    yookassaSecretKey: settings.yookassaSecretKey ? '••••••••••••••••' : null,
-    yookassaWebhookSecret: settings.yookassaWebhookSecret ? '••••••••••••••••' : null,
-    yookassaTestSecretKey: settings.yookassaTestSecretKey ? '••••••••••••••••' : null,
-    cryptoBotToken: settings.cryptoBotToken ? '••••••••••••••••' : null,
-    resendApiKey: settings.resendApiKey ? '••••••••••••••••' : null,
-    smtpPassword: settings.smtpPassword ? '••••••••••••••••' : null,
-    inboundEmailWebhookSecret: settings.inboundEmailWebhookSecret ? '••••••••••••••••' : null,
-    robokassaPassword: settings.robokassaPassword ? '••••••••••••••••' : null,
-    robokassaWebhookPassword: settings.robokassaWebhookPassword ? '••••••••••••••••' : null,
-    geminiApiKeys: settings.geminiApiKeys ? '••••••••••••••••' : null,
+    telegramBotToken: settings.telegramBotToken ? '                ' : null,
+    yookassaSecretKey: settings.yookassaSecretKey ? '                ' : null,
+    yookassaWebhookSecret: settings.yookassaWebhookSecret ? '                ' : null,
+    yookassaTestSecretKey: settings.yookassaTestSecretKey ? '                ' : null,
+    cryptoBotToken: settings.cryptoBotToken ? '                ' : null,
+    resendApiKey: settings.resendApiKey ? '                ' : null,
+    smtpPassword: settings.smtpPassword ? '                ' : null,
+    inboundEmailWebhookSecret: settings.inboundEmailWebhookSecret ? '                ' : null,
+    robokassaPassword: settings.robokassaPassword ? '                ' : null,
+    robokassaWebhookPassword: settings.robokassaWebhookPassword ? '                ' : null,
+    geminiApiKeys: settings.geminiApiKeys ? '                ' : null,
   };
-
-  const regularUsers = users.filter((u) => u.id !== admin.id);
 
   return (
     <div className="space-y-6 w-full max-w-full min-w-0 animate-in fade-in duration-300 ease-out px-2 sm:px-6 min-h-full pb-16">
@@ -210,40 +136,44 @@ export default async function AdminSettingsPage({
         {/* ── TAB 2.8: PROVIDER PROXIES ── */}
         {activeTab === 'proxy' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
-            <ProviderProxyManager providers={providers} />
+            <Suspense fallback={<TabSkeleton />}>
+              <ProxyTabWrapper />
+            </Suspense>
           </div>
         )}
 
         {/* ── TAB 2.9: STOREFRONT KEYS ── */}
         {activeTab === 'storefront' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
-            <StorefrontKeysSettings initialKeys={storefrontKeys} tenantId={activeTenantId} />
+            <Suspense fallback={<TabSkeleton />}>
+              <StorefrontTabWrapper activeTenantId={activeTenantId} />
+            </Suspense>
           </div>
         )}
 
         {/* ── TAB 3: TEAM ── */}
         {activeTab === 'team' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
-            <TeamManagement key={activeTenantId} 
-              staffUsers={staffUsers} 
-              regularUsers={regularUsers} 
-              searchQuery={searchQuery} 
-              currentAdminRole={admin.role}
-              staffRoles={staffRoles}
-            />
+            <Suspense fallback={<TabSkeleton />}>
+              <TeamTabWrapper activeTenantId={activeTenantId} searchQuery={searchQuery} admin={admin} />
+            </Suspense>
           </div>
         )}
 
         {/* ── TAB 3.7: SUPPORT TEMPLATES ── */}
         {activeTab === 'templates' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
-            <SupportTemplatesSettings initialTemplates={templates} />
+            <Suspense fallback={<TabSkeleton />}>
+              <TemplatesTabWrapper />
+            </Suspense>
           </div>
         )}
 
         {/* ── TAB 4: AUDIT ── */}
         {activeTab === 'audit' && (
-          <AuditLogsTab logs={recentLogs} />
+          <Suspense fallback={<TabSkeleton />}>
+            <AuditTabWrapper />
+          </Suspense>
         )}
 
         {/* ── CATCH-ALL: Unknown tab ── */}
@@ -260,3 +190,67 @@ export default async function AdminSettingsPage({
 }
 
 
+
+
+// --- Async Wrapper Components for Suspense Data Fetching ---
+
+function TabSkeleton() {
+  return (
+    <div className="w-full h-[400px] bg-muted/20 border border-border/50 rounded-xl animate-pulse flex items-center justify-center">
+      <p className="text-sm text-muted-foreground font-medium">Загрузка данных вкладки...</p>
+    </div>
+  );
+}
+
+async function ProxyTabWrapper() {
+  const providers = await db.provider.findMany({ orderBy: { name: 'asc' } });
+  return <ProviderProxyManager providers={providers} />;
+}
+
+async function StorefrontTabWrapper({ activeTenantId }: { activeTenantId: string }) {
+  const kList = await db.storefrontKey.findMany({
+    where: { tenantId: activeTenantId },
+    orderBy: { createdAt: 'desc' },
+  });
+  const storefrontKeys = kList.map((k: StorefrontKey) => ({
+    id: k.id,
+    tenantId: k.tenantId,
+    type: k.type as 'PUBLISHABLE' | 'SECRET',
+    keyPrefix: k.keyPrefix,
+    name: k.name,
+    isActive: k.isActive,
+    lastUsedAt: k.lastUsedAt ? k.lastUsedAt.toISOString() : null,
+    createdAt: k.createdAt.toISOString(),
+  }));
+  return <StorefrontKeysSettings initialKeys={storefrontKeys} tenantId={activeTenantId} />;
+}
+
+async function TeamTabWrapper({ activeTenantId, searchQuery, admin }: { activeTenantId: string, searchQuery: string, admin: any }) {
+  const [staffUsers, users, staffRoles] = await Promise.all([
+    settingsService.listStaffUsers(),
+    searchQuery ? settingsService.listUsers(searchQuery) : Promise.resolve([]),
+    db.staffRole.findMany({ include: { permissions: true }, orderBy: { name: 'asc' } }),
+  ]);
+  const regularUsers = users.filter((u: any) => u.id !== admin.id);
+  
+  return (
+    <TeamManagement 
+      key={activeTenantId}
+      staffUsers={staffUsers} 
+      regularUsers={regularUsers} 
+      searchQuery={searchQuery} 
+      currentAdminRole={admin.role}
+      staffRoles={staffRoles}
+    />
+  );
+}
+
+async function TemplatesTabWrapper() {
+  const templates = await db.supportTemplate.findMany({ orderBy: { sort: 'asc' } });
+  return <SupportTemplatesSettings initialTemplates={templates} />;
+}
+
+async function AuditTabWrapper() {
+  const recentLogs = await db.adminAuditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 50 });
+  return <AuditLogsTab logs={recentLogs} />;
+}
