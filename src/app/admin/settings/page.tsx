@@ -229,13 +229,21 @@ async function StorefrontTabWrapper({ activeTenantId }: { activeTenantId: string
   return <StorefrontKeysSettings initialKeys={storefrontKeys} tenantId={activeTenantId} />;
 }
 
-async function TeamTabWrapper({ activeTenantId, searchQuery, admin }: { activeTenantId: string, searchQuery: string, admin: any }) {
+async function TeamTabWrapper({ 
+  activeTenantId, 
+  searchQuery, 
+  admin 
+}: { 
+  activeTenantId: string; 
+  searchQuery: string; 
+  admin: { id: string; role: string }; 
+}) {
   const [staffUsers, users, staffRoles] = await Promise.all([
     settingsService.listStaffUsers(),
     searchQuery ? settingsService.listUsers(searchQuery) : Promise.resolve([]),
     db.staffRole.findMany({ include: { permissions: true }, orderBy: { name: 'asc' } }),
   ]);
-  const regularUsers = users.filter((u: any) => u.id !== admin.id);
+  const regularUsers = users.filter((u) => u.id !== admin.id);
   
   return (
     <TeamManagement 

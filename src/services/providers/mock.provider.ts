@@ -15,10 +15,27 @@ import {
  * Guarantees zero real balance deductions and zero external network calls.
  */
 export class MockProvider implements BaseProvider {
-  private readonly name: string;
+  public readonly name: string;
+  public readonly apiUrl: string;
+  public readonly apiKey: string;
 
-  constructor(name: string = 'Mock Provider (Песочница API)') {
+  private static orderStore = new Map<string, ProviderOrderStatusDto>();
+
+  constructor(
+    name: string = 'Mock Provider (Песочница API)',
+    apiUrl: string = 'https://mock-provider.internal/api/v2',
+    apiKey: string = 'dev_mock_provider_secret_key_2026'
+  ) {
     this.name = name;
+    this.apiUrl = apiUrl;
+    this.apiKey = apiKey;
+  }
+
+  /**
+   * Clears in-memory mock order storage (for test teardowns)
+   */
+  static resetOrderStore(): void {
+    MockProvider.orderStore.clear();
   }
 
   async getBalance(): Promise<ProviderBalanceDto> {
@@ -36,10 +53,12 @@ export class MockProvider implements BaseProvider {
         category: 'Бусты для каналов',
         rate: '1.00',
         min: '1',
-        max: '1000',
+        max: '100000',
         type: 'Default',
         desc: 'Безопасный тестовый буст на 7 дней для проверки витрины и чекаута.',
         dripfeed: true,
+        cancel: true,
+        refill: false,
       },
       {
         service: 'mock_boost_14d',
@@ -47,10 +66,12 @@ export class MockProvider implements BaseProvider {
         category: 'Бусты для каналов',
         rate: '1.00',
         min: '1',
-        max: '1000',
+        max: '100000',
         type: 'Default',
         desc: 'Безопасный тестовый буст на 14 дней для проверки витрины и чекаута.',
         dripfeed: true,
+        cancel: true,
+        refill: false,
       },
       {
         service: 'mock_boost_30d',
@@ -58,10 +79,12 @@ export class MockProvider implements BaseProvider {
         category: 'Бусты для каналов',
         rate: '1.00',
         min: '1',
-        max: '1000',
+        max: '100000',
         type: 'Default',
         desc: 'Безопасный тестовый буст на 30 дней для проверки витрины и чекаута.',
         dripfeed: true,
+        cancel: true,
+        refill: false,
       },
       {
         service: 'mock_subscribers_std',
@@ -73,6 +96,8 @@ export class MockProvider implements BaseProvider {
         type: 'Default',
         desc: 'Тестовые подписчики для проверки оформления заказа.',
         dripfeed: true,
+        cancel: true,
+        refill: false,
       },
     ];
   }
@@ -89,6 +114,16 @@ export class MockProvider implements BaseProvider {
     }
 
     const externalOrderId = `mock_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+
+    const initialStatus: ProviderOrderStatusDto = {
+      order: externalOrderId,
+      status: 'Completed',
+      charge: '1.00',
+      start_count: '100',
+      remains: '0',
+    };
+    MockProvider.orderStore.set(externalOrderId, initialStatus);
+
     return {
       order: externalOrderId,
       status: 'pending',
@@ -97,6 +132,10 @@ export class MockProvider implements BaseProvider {
 
   async getOrderStatus(orderId: string | number): Promise<ProviderOrderStatusDto> {
     const idStr = String(orderId);
+    const existing = MockProvider.orderStore.get(idStr);
+    if (existing) {
+      return existing;
+    }
     return {
       order: idStr,
       status: 'Completed',
@@ -110,7 +149,8 @@ export class MockProvider implements BaseProvider {
     const result: ProviderMultiStatusResponse = {};
     for (const id of orderIds) {
       const idStr = String(id);
-      result[idStr] = {
+      const existing = MockProvider.orderStore.get(idStr);
+      result[idStr] = existing || {
         order: idStr,
         status: 'Completed',
         charge: '1.00',
@@ -121,7 +161,20 @@ export class MockProvider implements BaseProvider {
     return result;
   }
 
-  async cancelOrder(_orderId: string | number): Promise<ProviderCancelResultDto> {
+  async cancelOrder(orderId: string | number): Promise<ProviderCancelResultDto> {
+    const idStr = String(orderId);
+    const existing = MockProvider.orderStore.get(idStr);
+    if (existing) {
+      existing.status = 'Canceled';
+    } else {
+      MockProvider.orderStore.set(idStr, {
+        order: idStr,
+        status: 'Canceled',
+        charge: '0.00',
+        start_count: '0',
+        remains: '0',
+      });
+    }
     return { success: true };
   }
 

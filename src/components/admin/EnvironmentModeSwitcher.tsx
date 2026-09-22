@@ -48,8 +48,8 @@ const MODES: ModeConfig[] = [
     badgeClass: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30',
     icon: Zap,
     paymentDesc: 'Тестовая оплата (0 ₽)',
-    providerDesc: 'Реальный SMM-поставщик',
-    note: 'Идеально для тестов: бесплатный заказ на сайте отправляется реальному поставщику.'
+    providerDesc: 'Тест провайдера',
+    note: 'Идеально для тестов: бесплатный заказ на сайте отправляется на тест провайдера.'
   },
   {
     id: 'ACQUIRING_TEST',
@@ -231,6 +231,7 @@ export function EnvironmentModeSwitcher({
                   key={modeConfig.id}
                   type="button"
                   onClick={() => handleSelectMode(modeConfig.id)}
+                  title={modeConfig.note}
                   className={`w-full text-left p-2 rounded-lg transition-all text-xs flex flex-col gap-1 cursor-pointer ${
                     isSelected
                       ? 'bg-primary/10 border border-primary/30 text-foreground font-medium'
@@ -279,7 +280,7 @@ export function EnvironmentModeSwitcher({
             <p className="text-xs text-muted-foreground leading-relaxed">
               {confirmModalMode === 'HYBRID' && (
                 <>
-                  В <b>Гибридном режиме</b> оплата на чекауте останется тестовой (0 ₽), но заказы будут отправляться к <b>реальному SMM-поставщику</b> со списанием вашего реального баланса поставщика.
+                  В <b>Гибридном режиме</b> оплата на чекауте останется тестовой (0 ₽), а заказы будут отправляться на <b>тест провайдера</b>.
                 </>
               )}
               {confirmModalMode === 'PRODUCTION' && (

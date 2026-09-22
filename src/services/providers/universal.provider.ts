@@ -72,9 +72,9 @@ export class UniversalProvider implements BaseProvider {
       const action = String(paramsOrPayload.action || '');
       if (action === 'services') {
         return [
-          { service: 'mock_boost_7d', name: 'Telegram Бусты для каналов — На 7 дней (Тест)', category: 'Бусты для каналов', rate: '1.00', min: '1', max: '1000' },
-          { service: 'mock_boost_14d', name: 'Telegram Бусты для каналов — На 14 дней (Тест)', category: 'Бусты для каналов', rate: '1.00', min: '1', max: '1000' },
-          { service: 'mock_boost_30d', name: 'Telegram Бусты для каналов — На 30 дней (Тест)', category: 'Бусты для каналов', rate: '1.00', min: '1', max: '1000' },
+          { service: 'mock_boost_7d', name: 'Telegram Бусты для каналов — На 7 дней (Тест)', category: 'Бусты для каналов', rate: '1.00', min: '1', max: '100000', dripfeed: true, cancel: true, refill: false },
+          { service: 'mock_boost_14d', name: 'Telegram Бусты для каналов — На 14 дней (Тест)', category: 'Бусты для каналов', rate: '1.00', min: '1', max: '100000', dripfeed: true, cancel: true, refill: false },
+          { service: 'mock_boost_30d', name: 'Telegram Бусты для каналов — На 30 дней (Тест)', category: 'Бусты для каналов', rate: '1.00', min: '1', max: '100000', dripfeed: true, cancel: true, refill: false },
         ] as unknown as T;
       }
       if (action === 'balance') {
@@ -84,7 +84,16 @@ export class UniversalProvider implements BaseProvider {
         return { order: `mock_${Date.now()}_${Math.floor(Math.random() * 10000)}` } as unknown as T;
       }
       if (action === 'status') {
-        return { status: 'Completed', charge: '1.00', start_count: '100', remains: '0', currency: 'RUB' } as unknown as T;
+        if (paramsOrPayload.orders) {
+          const ids = String(paramsOrPayload.orders).split(',').map(s => s.trim()).filter(Boolean);
+          const multi: Record<string, unknown> = {};
+          for (const id of ids) {
+            multi[id] = { order: id, status: 'Completed', charge: '1.00', start_count: '100', remains: '0', currency: 'RUB' };
+          }
+          return multi as unknown as T;
+        }
+        const orderId = String(paramsOrPayload.order || '');
+        return { order: orderId, status: 'Completed', charge: '1.00', start_count: '100', remains: '0', currency: 'RUB' } as unknown as T;
       }
       return { success: true } as unknown as T;
     }

@@ -47090,7 +47090,7 @@ var init_tenant_context = __esm({
 // src/lib/prisma-tenant-enforcer.ts
 function applyTenantWhereClause(where, activeTenantId, model) {
   if (!where.tenantId) {
-    if (model === "category" || model === "service") {
+    if (model === "category" || model === "service" || model === "network" || model === "shadowService") {
       where.tenantId = { in: [activeTenantId, "all"] };
     } else {
       where.tenantId = activeTenantId;
@@ -47282,7 +47282,38 @@ var init_prisma_tenant_enforcer = __esm({
       "category",
       "customerGroup",
       "ticketFeedback",
-      "ledgerEntry"
+      "ledgerEntry",
+      "page",
+      "article",
+      "promoCode",
+      "featureFlag",
+      "supportTemplate",
+      "contentCategory",
+      "contentItem",
+      "network",
+      "shadowService",
+      "serviceDraft",
+      "storefrontKey",
+      "staffRole",
+      "staffPermission",
+      "telegramBotInstance",
+      "telegramButton",
+      "telegramTemplate",
+      "telegramProxy",
+      "telegramErrorLog",
+      "telegramDailyStat",
+      "adminAuditLog",
+      "securityEvent",
+      "supportFinancialAction",
+      "supportLimitUsage",
+      "supportHourlyUsage",
+      "employeeResponsibilityConsent",
+      "legalDocumentVersion",
+      "economicOptimizationSnapshot",
+      "preLaunchLead",
+      "bonusRedemptionLog",
+      "loginLog",
+      "authToken"
     ];
   }
 });
@@ -108869,7 +108900,7 @@ var init_target_type = __esm({
 var link_service_compatibility_exports = {};
 __export2(link_service_compatibility_exports, {
   LinkType: () => LinkType2,
-  ServiceTargetType: () => ServiceTargetType,
+  TargetTypeEnum: () => TargetTypeEnum,
   getCompatibilityError: () => getCompatibilityError2,
   isLinkServiceCompatible: () => isLinkServiceCompatible2,
   normalizeLinkType: () => normalizeLinkType,
@@ -108887,13 +108918,12 @@ function isLinkServiceCompatible2(rawLinkType, rawTargetType) {
 function getCompatibilityError2(rawLinkType, rawTargetType, serviceName) {
   return getCompatibilityError(rawLinkType, rawTargetType, serviceName);
 }
-var LinkType2, ServiceTargetType;
+var LinkType2;
 var init_link_service_compatibility = __esm({
   "src/constants/link-service-compatibility.ts"() {
     "use strict";
     init_target_type();
     LinkType2 = TargetTypeEnum;
-    ServiceTargetType = TargetTypeEnum;
   }
 });
 
@@ -127233,6 +127263,35 @@ var init_universal_provider = __esm({
         return current;
       }
       async request(paramsOrPayload, retries = 2) {
+        if (this.apiUrl.includes("mock-provider") || this.apiUrl.includes("mock.smmplan.internal")) {
+          const action = String(paramsOrPayload.action || "");
+          if (action === "services") {
+            return [
+              { service: "mock_boost_7d", name: "Telegram \u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432 \u2014 \u041D\u0430 7 \u0434\u043D\u0435\u0439 (\u0422\u0435\u0441\u0442)", category: "\u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432", rate: "1.00", min: "1", max: "100000", dripfeed: true, cancel: true, refill: false },
+              { service: "mock_boost_14d", name: "Telegram \u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432 \u2014 \u041D\u0430 14 \u0434\u043D\u0435\u0439 (\u0422\u0435\u0441\u0442)", category: "\u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432", rate: "1.00", min: "1", max: "100000", dripfeed: true, cancel: true, refill: false },
+              { service: "mock_boost_30d", name: "Telegram \u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432 \u2014 \u041D\u0430 30 \u0434\u043D\u0435\u0439 (\u0422\u0435\u0441\u0442)", category: "\u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432", rate: "1.00", min: "1", max: "100000", dripfeed: true, cancel: true, refill: false }
+            ];
+          }
+          if (action === "balance") {
+            return { balance: "999999.00", currency: "RUB" };
+          }
+          if (action === "add") {
+            return { order: `mock_${Date.now()}_${Math.floor(Math.random() * 1e4)}` };
+          }
+          if (action === "status") {
+            if (paramsOrPayload.orders) {
+              const ids = String(paramsOrPayload.orders).split(",").map((s) => s.trim()).filter(Boolean);
+              const multi = {};
+              for (const id of ids) {
+                multi[id] = { order: id, status: "Completed", charge: "1.00", start_count: "100", remains: "0", currency: "RUB" };
+              }
+              return multi;
+            }
+            const orderId = String(paramsOrPayload.order || "");
+            return { order: orderId, status: "Completed", charge: "1.00", start_count: "100", remains: "0", currency: "RUB" };
+          }
+          return { success: true };
+        }
         await assertSafeUrl(this.apiUrl);
         await CircuitBreaker.check(this.apiUrl);
         let httpMethod = "POST";
@@ -127539,6 +127598,166 @@ var init_universal_provider = __esm({
   }
 });
 
+// src/services/providers/mock.provider.ts
+var MockProvider;
+var init_mock_provider = __esm({
+  "src/services/providers/mock.provider.ts"() {
+    "use strict";
+    MockProvider = class _MockProvider {
+      name;
+      apiUrl;
+      apiKey;
+      static orderStore = /* @__PURE__ */ new Map();
+      constructor(name = "Mock Provider (\u041F\u0435\u0441\u043E\u0447\u043D\u0438\u0446\u0430 API)", apiUrl = "https://mock-provider.internal/api/v2", apiKey = "dev_mock_provider_secret_key_2026") {
+        this.name = name;
+        this.apiUrl = apiUrl;
+        this.apiKey = apiKey;
+      }
+      /**
+       * Clears in-memory mock order storage (for test teardowns)
+       */
+      static resetOrderStore() {
+        _MockProvider.orderStore.clear();
+      }
+      async getBalance() {
+        return {
+          balance: "999999.00",
+          currency: "RUB"
+        };
+      }
+      async getServices() {
+        return [
+          {
+            service: "mock_boost_7d",
+            name: "Telegram \u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432 \u2014 \u041D\u0430 7 \u0434\u043D\u0435\u0439 (\u0422\u0435\u0441\u0442)",
+            category: "\u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432",
+            rate: "1.00",
+            min: "1",
+            max: "100000",
+            type: "Default",
+            desc: "\u0411\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u044B\u0439 \u0442\u0435\u0441\u0442\u043E\u0432\u044B\u0439 \u0431\u0443\u0441\u0442 \u043D\u0430 7 \u0434\u043D\u0435\u0439 \u0434\u043B\u044F \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438 \u0432\u0438\u0442\u0440\u0438\u043D\u044B \u0438 \u0447\u0435\u043A\u0430\u0443\u0442\u0430.",
+            dripfeed: true,
+            cancel: true,
+            refill: false
+          },
+          {
+            service: "mock_boost_14d",
+            name: "Telegram \u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432 \u2014 \u041D\u0430 14 \u0434\u043D\u0435\u0439 (\u0422\u0435\u0441\u0442)",
+            category: "\u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432",
+            rate: "1.00",
+            min: "1",
+            max: "100000",
+            type: "Default",
+            desc: "\u0411\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u044B\u0439 \u0442\u0435\u0441\u0442\u043E\u0432\u044B\u0439 \u0431\u0443\u0441\u0442 \u043D\u0430 14 \u0434\u043D\u0435\u0439 \u0434\u043B\u044F \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438 \u0432\u0438\u0442\u0440\u0438\u043D\u044B \u0438 \u0447\u0435\u043A\u0430\u0443\u0442\u0430.",
+            dripfeed: true,
+            cancel: true,
+            refill: false
+          },
+          {
+            service: "mock_boost_30d",
+            name: "Telegram \u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432 \u2014 \u041D\u0430 30 \u0434\u043D\u0435\u0439 (\u0422\u0435\u0441\u0442)",
+            category: "\u0411\u0443\u0441\u0442\u044B \u0434\u043B\u044F \u043A\u0430\u043D\u0430\u043B\u043E\u0432",
+            rate: "1.00",
+            min: "1",
+            max: "100000",
+            type: "Default",
+            desc: "\u0411\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u044B\u0439 \u0442\u0435\u0441\u0442\u043E\u0432\u044B\u0439 \u0431\u0443\u0441\u0442 \u043D\u0430 30 \u0434\u043D\u0435\u0439 \u0434\u043B\u044F \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438 \u0432\u0438\u0442\u0440\u0438\u043D\u044B \u0438 \u0447\u0435\u043A\u0430\u0443\u0442\u0430.",
+            dripfeed: true,
+            cancel: true,
+            refill: false
+          },
+          {
+            service: "mock_subscribers_std",
+            name: "Telegram \u041F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438 (\u0422\u0435\u0441\u0442)",
+            category: "\u041F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438",
+            rate: "0.10",
+            min: "10",
+            max: "100000",
+            type: "Default",
+            desc: "\u0422\u0435\u0441\u0442\u043E\u0432\u044B\u0435 \u043F\u043E\u0434\u043F\u0438\u0441\u0447\u0438\u043A\u0438 \u0434\u043B\u044F \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438 \u043E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u0438\u044F \u0437\u0430\u043A\u0430\u0437\u0430.",
+            dripfeed: true,
+            cancel: true,
+            refill: false
+          }
+        ];
+      }
+      async createOrder(params) {
+        const link = params.link || "";
+        if (link.includes("fail-create")) {
+          return { error: "Mock Provider: Simulated order creation failure" };
+        }
+        if (link.includes("timeout")) {
+          throw new Error("Mock Provider: Simulated network timeout");
+        }
+        const externalOrderId = `mock_${Date.now()}_${Math.floor(Math.random() * 1e4)}`;
+        const initialStatus = {
+          order: externalOrderId,
+          status: "Completed",
+          charge: "1.00",
+          start_count: "100",
+          remains: "0"
+        };
+        _MockProvider.orderStore.set(externalOrderId, initialStatus);
+        return {
+          order: externalOrderId,
+          status: "pending"
+        };
+      }
+      async getOrderStatus(orderId) {
+        const idStr = String(orderId);
+        const existing = _MockProvider.orderStore.get(idStr);
+        if (existing) {
+          return existing;
+        }
+        return {
+          order: idStr,
+          status: "Completed",
+          charge: "1.00",
+          start_count: "100",
+          remains: "0"
+        };
+      }
+      async getMultiOrderStatus(orderIds) {
+        const result = {};
+        for (const id of orderIds) {
+          const idStr = String(id);
+          const existing = _MockProvider.orderStore.get(idStr);
+          result[idStr] = existing || {
+            order: idStr,
+            status: "Completed",
+            charge: "1.00",
+            start_count: "100",
+            remains: "0"
+          };
+        }
+        return result;
+      }
+      async cancelOrder(orderId) {
+        const idStr = String(orderId);
+        const existing = _MockProvider.orderStore.get(idStr);
+        if (existing) {
+          existing.status = "Canceled";
+        } else {
+          _MockProvider.orderStore.set(idStr, {
+            order: idStr,
+            status: "Canceled",
+            charge: "0.00",
+            start_count: "0",
+            remains: "0"
+          });
+        }
+        return { success: true };
+      }
+      async refill(orderId) {
+        return { refill: `mock_refill_${orderId}_${Date.now()}` };
+      }
+      async getRefillStatus(refillId) {
+        return { status: "Completed" };
+      }
+    };
+  }
+});
+
 // src/services/providers/provider.service.ts
 var ProviderService, providerService;
 var init_provider_service = __esm({
@@ -127547,6 +127766,7 @@ var init_provider_service = __esm({
     init_db();
     init_settings();
     init_universal_provider();
+    init_mock_provider();
     init_vault();
     init_redis();
     ProviderService = class {
@@ -127606,17 +127826,9 @@ var init_provider_service = __esm({
         } catch {
           decryptedKey = config2.apiKey;
         }
-        if (apiUrl.includes("mock.smmplan.internal") || apiUrl.includes("mock-provider") || config2.name.toLowerCase().includes("mock provider")) {
-          const port = process.env.PORT || "3000";
-          const internalBase = process.env.INTERNAL_WEB_URL || (process.env.NODE_ENV === "production" ? "http://web:3000" : `http://127.0.0.1:${port}`);
-          const internalUrl = `${internalBase}/api/dev/mock-provider`;
-          decryptedKey = process.env.MOCK_PROVIDER_KEY || decryptedKey || "mock_master_key_2026";
-          return new UniversalProvider(
-            internalUrl,
-            decryptedKey,
-            config2.metadata,
-            null
-          );
+        const lowerName = (config2.name || "").toLowerCase();
+        if (apiUrl.includes("mock.smmplan.internal") || apiUrl.includes("mock-provider") || apiUrl.includes("mock") || lowerName.includes("mock") || lowerName.includes("\u0442\u0435\u0441\u0442") || lowerName.includes("\u043F\u0435\u0441\u043E\u0447\u043D\u0438\u0446")) {
+          return new MockProvider(config2.name, config2.apiUrl, decryptedKey || config2.apiKey);
         }
         const proxyConfig = await this.resolveProxyConfig(config2);
         return new UniversalProvider(
@@ -127656,9 +127868,29 @@ var init_provider_service = __esm({
        * This protects real provider balance from being charged during QA testing.
        */
       async getWorkerProviderInstance(config2, tenantId) {
-        const isMockProvider = await SettingsManager.isMockProviderEnabled(tenantId);
+        let decryptedKey;
+        try {
+          decryptedKey = VaultService.decrypt(config2.apiKey);
+        } catch {
+          decryptedKey = config2.apiKey;
+        }
+        const lowerName = (config2.name || "").toLowerCase();
+        const isMockConfig = config2.apiUrl.includes("mock.smmplan.internal") || config2.apiUrl.includes("mock-provider") || config2.apiUrl.includes("mock") || lowerName.includes("mock") || lowerName.includes("\u0442\u0435\u0441\u0442") || lowerName.includes("\u043F\u0435\u0441\u043E\u0447\u043D\u0438\u0446");
+        if (isMockConfig) {
+          return new MockProvider(config2.name, config2.apiUrl, decryptedKey || config2.apiKey);
+        }
+        let isMockProvider = false;
+        try {
+          if (typeof SettingsManager?.isMockProviderEnabled === "function") {
+            isMockProvider = await SettingsManager.isMockProviderEnabled(tenantId);
+          } else if (typeof SettingsManager?.isTestMode === "function") {
+            isMockProvider = await SettingsManager.isTestMode(tenantId);
+          }
+        } catch {
+          isMockProvider = false;
+        }
         if (isMockProvider) {
-          const mockKey = process.env.MOCK_PROVIDER_KEY || "mock_master_key_2026";
+          const mockKey = process.env.MOCK_PROVIDER_KEY || "dev_mock_provider_secret_key_2026";
           const port = process.env.PORT || "3000";
           const internalBase = process.env.INTERNAL_WEB_URL || (process.env.NODE_ENV === "production" ? "http://web:3000" : `http://127.0.0.1:${port}`);
           return new UniversalProvider(
@@ -127666,12 +127898,6 @@ var init_provider_service = __esm({
             mockKey,
             config2.metadata
           );
-        }
-        let decryptedKey;
-        try {
-          decryptedKey = VaultService.decrypt(config2.apiKey);
-        } catch {
-          decryptedKey = config2.apiKey;
         }
         const proxyConfig = await this.resolveProxyConfig(config2);
         return new UniversalProvider(
@@ -128999,6 +129225,17 @@ var init_provider_balance_service = __esm({
         }
         return summary;
       }
+      /**
+       * Invalidates cached global liquidity summary so toggles, creations,
+       * and deletions immediately reflect in the liquidity dashboard without stale cache.
+       */
+      async invalidateGlobalLiquidityCache() {
+        try {
+          await redis.del("providers:global:liquidity");
+        } catch (err) {
+          console.warn("[ProviderBalanceService] Failed to invalidate liquidity cache:", err);
+        }
+      }
     };
     providerBalanceService = new ProviderBalanceService();
   }
@@ -129465,10 +129702,11 @@ var init_promo_automation_service = __esm({
               const uniqueHash = import_crypto5.default.createHmac("sha256", secret).update(userId + rule.percent).digest("hex").substring(0, 8).toUpperCase();
               const deterministicCode = `VIP${rule.percent}-${uniqueHash}`;
               await db.promoCode.upsert({
-                where: { code: deterministicCode },
+                where: { tenantId_code: { tenantId: user.tenantId, code: deterministicCode } },
                 update: {},
                 // Do nothing if it exists
                 create: {
+                  tenantId: user.tenantId,
                   code: deterministicCode,
                   discountPercent: rule.percent,
                   maxUses: 1,
@@ -139214,6 +139452,7 @@ var MarketingService, marketingService;
 var init_marketing_service = __esm({
   "src/services/marketing.service.ts"() {
     "use strict";
+    init_tenant_resolver_edge();
     init_db();
     init_financial_constants();
     init_settings();
@@ -139306,7 +139545,13 @@ var init_marketing_service = __esm({
         let promoDiscountPercent = 0;
         const promoFixedDiscountCents = 0;
         if (promoCodeStr) {
-          const promo = await db.promoCode.findUnique({ where: { code: promoCodeStr } });
+          const normalizedTenant = normalizeTenantId(service.tenantId);
+          const promo = await db.promoCode.findFirst({
+            where: {
+              code: promoCodeStr,
+              tenantId: normalizedTenant
+            }
+          });
           if (promo && promo.isActive && (promo.maxUses === 0 || promo.uses < promo.maxUses)) {
             if (!promo.expiresAt || promo.expiresAt > /* @__PURE__ */ new Date()) {
               if (promo.type === "VOUCHER") {
@@ -139353,10 +139598,11 @@ var init_marketing_service = __esm({
       /**
        * Applies the use of a promo code atomically if required.
        */
-      async consumePromoCode(tx, promoCodeStr) {
+      async consumePromoCode(tx, promoCodeStr, tenantId = "smmplan") {
         if (!promoCodeStr) return;
         const normalizedCode = promoCodeStr.trim().toUpperCase();
-        const promo = await tx.promoCode.findUnique({ where: { code: normalizedCode } });
+        const normalizedTenant = normalizeTenantId(tenantId);
+        const promo = await tx.promoCode.findFirst({ where: { code: normalizedCode, tenantId: normalizedTenant } });
         if (!promo || !promo.isActive) {
           throw new Error("\u041F\u0440\u043E\u043C\u043E\u043A\u043E\u0434 \u043D\u0435\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u0435\u043D");
         }
@@ -158787,13 +159033,24 @@ var OrderPreflightGuard = class {
       return { order: null, redisKey: "" };
     }
     const envMode = order.environmentMode;
-    const isMockProvider = envMode === "SANDBOX" || envMode === "ACQUIRING_TEST";
+    const { SettingsManager: SettingsManager2 } = await Promise.resolve().then(() => (init_settings(), settings_exports));
+    let isTestModeActive = false;
+    try {
+      if (typeof SettingsManager2?.isTestMode === "function") {
+        isTestModeActive = await SettingsManager2.isTestMode(order.tenantId || void 0);
+      } else if (typeof SettingsManager2?.isMockProviderEnabled === "function") {
+        isTestModeActive = await SettingsManager2.isMockProviderEnabled(order.tenantId || void 0);
+      }
+    } catch {
+      isTestModeActive = false;
+    }
+    const isMockProvider = envMode === "SANDBOX" || envMode === "ACQUIRING_TEST" || isTestModeActive;
     if (order.isTest && !isMockProvider && envMode !== "HYBRID") {
       log4.error(`[OrderProcessor] CRITICAL: Test order ${orderId} picked up in production mode. Failing safely.`);
       const { orderService: orderService2 } = await Promise.resolve().then(() => (init_order_service(), order_service_exports));
       await orderService2.failOrderTerminal(
         orderId,
-        "SYSTEM_GUARD: \u041F\u043E\u043F\u044B\u0442\u043A\u0430 \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0438 \u0442\u0435\u0441\u0442\u043E\u0432\u043E\u0433\u043E \u0437\u0430\u043A\u0430\u0437\u0430 \u0440\u0435\u0430\u043B\u044C\u043D\u043E\u043C\u0443 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0443 \u0432 \u0431\u043E\u0435\u0432\u043E\u043C \u0440\u0435\u0436\u0438\u043C\u0435 \u043F\u0440\u0435\u0440\u0432\u0430\u043D\u0430."
+        "SYSTEM_GUARD: \u041F\u043E\u043F\u044B\u0442\u043A\u0430 \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0438 \u0442\u0435\u0441\u0442\u043E\u0432\u043E\u0433\u043E \u0437\u0430\u043A\u0430\u0437\u0430 \u0440\u0435\u0430\u043B\u044C\u043D\u043E\u043C\u0443 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0443 \u043F\u0440\u0435\u0440\u0432\u0430\u043D\u0430."
       );
       return { order: null, redisKey: "" };
     }
@@ -159208,6 +159465,13 @@ var OrderDispatchExecutor = class {
         const originalError = error instanceof Error ? error.message : String(error);
         lastError = originalError;
         if (route.failoverMode !== "automatic") {
+          if (order.isTest) {
+            const { orderService: orderService2 } = await Promise.resolve().then(() => (init_order_service(), order_service_exports));
+            await orderService2.failOrderTerminal(order.id, originalError);
+            await connection2.del(redisKey).catch(() => {
+            });
+            throw new import_bullmq5.UnrecoverableError(`Test order failed: ${originalError}`);
+          }
           const { OrderTriageAlertService: OrderTriageAlertService2 } = await Promise.resolve().then(() => (init_order_triage_alert_service(), order_triage_alert_service_exports));
           const classification = OrderTriageAlertService2.classifyError(originalError);
           const formattedError = OrderTriageAlertService2.formatOrderErrorMessage(classification, originalError, route.provider.name);

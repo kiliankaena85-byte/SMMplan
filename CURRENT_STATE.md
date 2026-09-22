@@ -1,3 +1,77 @@
+- [x] 🚀 [TELEGRAM-BOOST-MOCK-PROVIDER-2026] Замена реального Vexboost на безопасный тест-провайдер для /boost (#2203, #2204, #2205) (100% COMPLETE & VERIFIED):
+  * 🧪 **Безопасный MockProvider (`mock.provider.ts` & `universal.provider.ts`):**
+    - Реализован `MockProvider` без внешних HTTP-запросов и списания депозитного баланса (эмулирует баланс 999 999 ₽).
+    - Добавлен in-memory orderStore с сохранением статуса, поддержкой отмены (`cancelOrder` переводит в `Canceled`), проверкой лимитов (`max: 100000`).
+    - Исправлен формат ответа мульти-статусов `UniversalProvider` mock simulation: возвращает словарь `{ [orderId]: { order, status, ... } }`, совместимый с `sync.processor.ts`.
+  * 🗄️ **Маршрутизация & БД (`scripts/seed-mock-shadow-services.ts`):**
+    - Создан и активирован провайдер `Mock Provider (Песочница API)` (`cmuc3mk6o000041wzbug0o4hf`).
+    - Созданы записи `ShadowService` для `mock_boost_7d`, `mock_boost_14d`, `mock_boost_30d`, `mock_subscribers_std`.
+    - Услуги бустов #2203, #2204, #2205 переведены на mock provider с первичными маршрутами приоритета 1.
+  * 🛡️ **Защита фоновых воркеров (`order-preflight-guard.ts` & `order-dispatch-executor.ts`):**
+    - Поддержана проверка `SettingsManager.isTestMode` / `isMockProviderEnabled` в guard тестовых заказов.
+    - Изолирована обработка ошибок тестовых заказов (`isTest: true`) с переводом в `CANCELED` без ложных алертов операторам.
+    - Пересобраны бандлы воркера (`dist/worker.js`) и бота (`dist/bot.js`).
+  * 🧪 **Контроль качества & Тестирование:**
+    - `src/__tests__/services/telegram-boost-link-recognition.test.ts`: 34/34 PASS.
+    - `src/__tests__/test-vs-live-provider-system.test.ts`: 7/7 PASS.
+    - `src/actions/admin/__tests__/routing-comparison.test.ts`: 4/4 PASS.
+    - `npx tsc --noEmit`: 0 ошибок TypeScript (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+- [x] ⚡ [PROVIDERS-LIVE-UPDATE-OPTIMISTIC-FIX-2026] Исправление race condition live-обновления и статусов провайдеров (/admin/providers) (100% COMPLETE & VERIFIED):
+  * 🔄 **Устранение сброса оптимистичного состояния (`client-table.tsx`):**
+    - Исправлен `useEffect` синхронизации `localProviders`: убрана зависимость от `pendingIds`, ссылка переведена на `pendingIdsRef.current`.
+    - Устранен баг, при котором после завершения серверного экшена очистка `pendingIds` вызывала эффект со старыми пропсами `providers` и сбрасывала переключатель активности обратно в «ВЫКЛ».
+    - Добавлена подписка на событие `window.addEventListener('providers:changed')` с вызовом `router.refresh()`.
+    - Сохранен лимит декомпозиции: ровно 197 строк ($\le 200$ строк).
+  * ⚡ **Отключение кэширования маршрута (`page.tsx`):**
+    - Добавлен `export const revalidate = 0;` вместе с `export const dynamic = 'force-dynamic'`, гарантирующий отдачу свежих данных из БД при вызовах `router.refresh()`.
+  * 🧪 **Контроль качества & Тестирование:**
+    - `src/__tests__/unit/providers-live-update.test.ts`: 12/12 тестов PASS (включая проверку сохранения оптимистичного статуса при очистке `pendingIds` и корректный откат при ошибке).
+    - `npx tsc --noEmit`: 0 ошибок компиляции (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+- [x] 🔒 [SETTINGS-TENANT-ISOLATION-HARDENING-2026] Полное устранение утечек изоляции тенантов в разделе настроек (/admin/settings/*) (100% COMPLETE & VERIFIED):
+  * 💳 **Платежные шлюзы и интеграции (P0 Critical):**
+    - Проброшен `tenantId` из `IntegrationsSettings` во все 7 дочерних компонентов (`YooKassaSettings`, `RobokassaSettings`, `AlfaBankSettings`, `CryptoBotSettings`, `SmtpSettings`, `GeminiSettings`, `WebhookSettings`).
+    - В пропсы всех 7 компонентов добавлен `tenantId?: string` с дефолтом `'smmplan'`.
+    - В тело каждой карточки `<SettingsCard>` внедрен скрытый `<input type="hidden" name="tenantId" value={tenantId} />`.
+    - Все кнопки тестирования соединений передают активный `tenantId` в соответствующие Server Actions.
+  * 🩺 **Серверные экшены диагностики (`settings-diagnostics.action.ts`):**
+    - `testSmtpConnectionAction`, `testGeminiAiConnectionAction`, `testYooKassaConnectionAction`, `testAlfaBankConnectionAction`, `testTelegramBotConnectionAction` и `disconnectTelegramBotAction` строго изолированы по `tenantId` с fallback-цепочкой `normalizeTenantId(targetTenantId || await SettingsProvider.getTenantId()) || 'smmplan'`.
+    - Исключена утечка системного бота: fallback на `process.env.TELEGRAM_BOT_TOKEN` ограничен исключительно тенантом `smmplan`.
+  * 🎨 **Загрузка брендинга (`upload-branding/route.ts` & `general-settings.tsx`):**
+    - `handleBrandingUpload` передает `tenantId` в `FormData`.
+    - API-роут считывает `tenantId` с fallback на `x-tenant-id`, изолирует чтение и запись настроек и инвалидирует теги `settings` и `settings-${activeTenantId}`.
+    - Добавлена проверка на наличие ссылок у других брендов перед физическим удалением старых файлов с диска.
+  * 💬 **Шаблоны саппорта (`support-templates/page.tsx`, `support-templates.tsx`, `template.ts`):**
+    - Внедрена изоляция по тенантам в запросах к БД `db.supportTemplate.findMany({ where: { tenantId: activeTenantId } })`.
+    - В `upsertTemplate` и `deleteTemplate` добавлены IDOR-барьеры, запрещающие мутацию шаблонов другого бренда без роли `OWNER`.
+    - Аудит действий переведен на `await auditAdminAwaitable` с фиксацией `tenantId`.
+  * 🤖 **Telegram-бот и настройки безопасности:**
+    - `sendTelegramTestAlertAction` считывает `tenantId` из формы/контекста и получает токен соответствующего бренда.
+    - В `SecurityPanel` и `updateTelegramSecurityAction` проброшен `targetTenantId`, изоляция параметров безопасности (Webhook HMAC, IP Whitelist, Rate Limits) и инвалидация кэша `BotSettingsService.invalidate(tenantId)`.
+  * 📊 **Журнал аудита настроек и авто-курс ЦБ:**
+    - `settings-audit-logger.ts` передает `tenantId: activeTenantId` в `auditAdminAwaitable`.
+    - `settings-form-mapper.ts` передает `activeTenantId` при синхронизации курса ЦБ РФ.
+    - `src/app/admin/settings/audit/page.tsx` фильтрует логи по активному бренду `where: { tenantId: activeTenantId }`.
+  * 🧪 **Контроль качества & CI-Gates:**
+    - `npx tsc --noEmit`: 0 ошибок по всему проекту (Strict mode).
+    - `npx vitest run src/__tests__/settings/admin-settings-tenant-isolation.test.ts`: 34/34 PASS.
+    - `npx vitest run src/__tests__/multitenant-isolation.test.ts`: 4/4 PASS.
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+- [x] 🚀 [TELEGRAM-BOOST-TEST-PROVIDER-INTEGRATION-2026] Замена реального upstream-провайдера (Vexboost) на безопасный Тест-провайдер (MockProvider) для /boost и услуг бустов (#2203, #2204, #2205) (100% COMPLETE & VERIFIED):
+  * 🛡️ **Безопасная архитектура Mock-провайдера (`src/services/providers/mock.provider.ts`):**
+    - Реализован in-memory `MockProvider` без внешних сетевых вызовов и без уязвимых HTTP dev-роутов.
+    - Реализует интерфейс `BaseProvider`: мгновенная генерация заказов (`mock_<timestamp>_<rand>`), реалистичный возврат баланса (999 999 ₽), безопасные статусы (`Completed`), отмена и refill.
+    - В `provider.service.ts` и `universal.provider.ts` интегрирован автоматический роутинг на `MockProvider` для тестовых и песочных провайдеров.
+  * 🗄️ **Миграция услуг бустов в БД PostgreSQL:**
+    - Услуги #2203, #2204, #2205 переключены с внешнего SMM Prime / Vexboost на «Mock Provider (Песочница API)».
+    - Тарифы и себестоимость скорректированы до безопасных тестовых значений (1.00 ₽), обновлены записи `ServiceRoute` (primary: true).
+  * 🌐 **Редирект и отображение витрины /boost:**
+    - В `src/app/services/[network]/[category]/page.tsx` добавлена поддержка синонимов слагов (`busty`, `boost`, `boosts`), автоматически разрешающих категорию `Бусты для каналов` (`telegram-busty-dlya-kanalov`).
+  * 🧪 **Контроль качества & CI-Gates:**
+    - Строгая проверка типов `tsc --noEmit`: 0 ошибок.
+    - Сканирование секретов `node scripts/check-bundle-secrets.mjs`: 0 утечек.
+    - Автотесты `src/__tests__/services/telegram-boost-link-recognition.test.ts`: 32/32 PASS.
 - [x] 💳 [TRANSACTIONS-LEDGER-FULL-WIDTH-AND-RESPONSIVE-2026] Адаптация вкладки «Транзакции» (Ledger) на 100% ширину экрана (Viewport 100% Width Fit) и мобильный карточный стек (100% COMPLETE & VERIFIED):
   * 📐 **Устранение ограничения ширины (Viewport 100% Width Fit):**
     - В `src/app/admin/transactions/page.tsx` и `loading.tsx` удален ограничитель `max-w-7xl mx-auto` (1280px), установлен стандартный адаптивный контейнер `w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10` — таблица и метрики занимают 100% полезного пространства экрана как на вкладках «Заказы» и «Клиенты».

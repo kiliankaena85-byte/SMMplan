@@ -89,11 +89,23 @@ export async function POST(req: NextRequest) {
     const oldUrl = type === 'logo' ? settings.siteLogoUrl : settings.siteFaviconUrl;
     if (oldUrl && oldUrl.startsWith('/uploads/site/')) {
       const oldFilename = path.basename(oldUrl);
-      // Delete only if it is a different file
+      // Delete only if it is a different file and not referenced by another brand
       if (oldFilename !== filename) {
         const oldFilePath = path.join(uploadsDir, oldFilename);
         try {
-          await fs.unlink(oldFilePath);
+          const { db } = await import('@/lib/db');
+          const isReferencedByOtherTenant = await db.systemSettings.findFirst({
+            where: {
+              id: { not: activeTenantId },
+              OR: [
+                { siteLogoUrl: oldUrl },
+                { siteFaviconUrl: oldUrl },
+              ],
+            },
+          });
+          if (!isReferencedByOtherTenant) {
+            await fs.unlink(oldFilePath);
+          }
         } catch (unlinkErr) {
           // Log and continue, maybe file was already deleted manually
           console.warn('[BrandingUpload] Failed to delete old branding file:', oldFilePath, unlinkErr);

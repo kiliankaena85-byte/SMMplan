@@ -5,7 +5,7 @@ import { requireStaffPermission } from '@/lib/server/rbac';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getClientIp } from '@/utils/ip';
-import { auditAdmin } from '@/lib/admin-audit';
+import { auditAdmin, auditAdminAwaitable } from '@/lib/admin-audit';
 import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 const templateSchema = z.object({
@@ -100,7 +100,7 @@ export async function upsertTemplate(formData: FormData) {
           }
         });
 
-        auditAdmin({
+        await auditAdminAwaitable({
           adminId: admin.id,
           adminEmail: admin.email,
           action: 'SUPPORT_TEMPLATE_UPDATE',
@@ -124,7 +124,7 @@ export async function upsertTemplate(formData: FormData) {
           }
         });
 
-        auditAdmin({
+        await auditAdminAwaitable({
           adminId: admin.id,
           adminEmail: admin.email,
           action: 'SUPPORT_TEMPLATE_CREATE',
@@ -170,12 +170,19 @@ export async function deleteTemplate(formData: FormData) {
         return { success: false, error: 'Шаблон не найден' };
       }
 
+      const formTenant = formData.get('tenantId') as string | null;
+      const activeTenantId = normalizeTenantId(formTenant || admin.tenantId || 'smmplan') || 'smmplan';
+
+      if (oldTemplate.tenantId !== activeTenantId && admin.role !== 'OWNER') {
+        return { success: false, error: 'Запрещено удалять шаблон другого бренда' };
+      }
+
       await db.supportTemplate.delete({
         where: { id }
       });
 
       const ipAddress = await getClientIp('unknown');
-      auditAdmin({
+      await auditAdminAwaitable({
         adminId: admin.id,
         adminEmail: admin.email,
         action: 'SUPPORT_TEMPLATE_DELETE',
@@ -183,7 +190,7 @@ export async function deleteTemplate(formData: FormData) {
         targetType: 'SETTINGS',
         oldValue: oldTemplate,
         ipAddress,
-        tenantId: oldTemplate.tenantId || 'smmplan',
+        tenantId: oldTemplate.tenantId || activeTenantId,
       });
 
       revalidatePath('/admin/settings');

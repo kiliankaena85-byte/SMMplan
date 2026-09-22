@@ -115,7 +115,7 @@ class SettingsService {
     const result = await db.systemSettings.upsert({
       where: { id: activeTenantId },
       update: data,
-      create: { id: activeTenantId, ...(data as any) }
+      create: ({ id: activeTenantId, ...data } as unknown as Prisma.SystemSettingsUncheckedCreateInput)
     });
 
     SettingsProvider.clearMemoryCache(activeTenantId);

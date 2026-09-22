@@ -82,7 +82,7 @@ export class ProviderService {
       lowerName.includes('тест') ||
       lowerName.includes('песочниц')
     ) {
-      return new MockProvider(config.name);
+      return new MockProvider(config.name, config.apiUrl, decryptedKey || config.apiKey);
     }
 
     const proxyConfig = await this.resolveProxyConfig(config);
@@ -134,7 +134,13 @@ export class ProviderService {
    * This protects real provider balance from being charged during QA testing.
    */
   async getWorkerProviderInstance(config: Provider, tenantId?: string): Promise<BaseProvider> {
-    const isMockProvider = await SettingsManager.isMockProviderEnabled(tenantId);
+    let decryptedKey: string;
+    try {
+      decryptedKey = VaultService.decrypt(config.apiKey);
+    } catch {
+      decryptedKey = config.apiKey;
+    }
+
     const lowerName = (config.name || '').toLowerCase();
     const isMockConfig =
       config.apiUrl.includes('mock.smmplan.internal') ||
@@ -144,15 +150,30 @@ export class ProviderService {
       lowerName.includes('тест') ||
       lowerName.includes('песочниц');
 
-    if (isMockProvider || isMockConfig) {
-      return new MockProvider(config.name);
+    if (isMockConfig) {
+      return new MockProvider(config.name, config.apiUrl, decryptedKey || config.apiKey);
     }
 
-    let decryptedKey: string;
+    let isMockProvider = false;
     try {
-      decryptedKey = VaultService.decrypt(config.apiKey);
+      if (typeof SettingsManager?.isMockProviderEnabled === 'function') {
+        isMockProvider = await SettingsManager.isMockProviderEnabled(tenantId);
+      } else if (typeof (SettingsManager as any)?.isTestMode === 'function') {
+        isMockProvider = await (SettingsManager as any).isTestMode(tenantId);
+      }
     } catch {
-      decryptedKey = config.apiKey;
+      isMockProvider = false;
+    }
+
+    if (isMockProvider) {
+      const mockKey = process.env.MOCK_PROVIDER_KEY || 'dev_mock_provider_secret_key_2026';
+      const port = process.env.PORT || '3000';
+      const internalBase = process.env.INTERNAL_WEB_URL || (process.env.NODE_ENV === 'production' ? 'http://web:3000' : `http://127.0.0.1:${port}`);
+      return new UniversalProvider(
+        `${internalBase}/api/dev/mock-provider`,
+        mockKey,
+        (config.metadata as Record<string, unknown> | undefined),
+      );
     }
 
     const proxyConfig = await this.resolveProxyConfig(config);

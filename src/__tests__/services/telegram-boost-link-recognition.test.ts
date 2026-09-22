@@ -207,4 +207,94 @@ describe('Telegram Boost Link Recognition, Validation & Canonicalization Suite',
       expect(res4.headers.get('location')).toBe('https://smmplan.pro/services/telegram/busty');
     });
   });
+
+  describe('5. Test Provider & Mock Provider Integration for /boost', () => {
+    it('verifies MockProvider returns safe test boost services and RUB balance', async () => {
+      const { MockProvider } = await import('@/services/providers/mock.provider');
+      const mock = new MockProvider();
+
+      const balance = await mock.getBalance();
+      expect(balance.currency).toBe('RUB');
+      expect(parseFloat(balance.balance)).toBeGreaterThan(0);
+
+      const services = await mock.getServices();
+      expect(services.length).toBeGreaterThanOrEqual(3);
+      const boost7d = services.find(s => s.service === 'mock_boost_7d');
+      expect(boost7d).toBeDefined();
+      expect(boost7d?.category).toBe('Бусты для каналов');
+      expect(boost7d?.rate).toBe('1.00');
+    });
+
+    it('verifies MockProvider handles order lifecycle safely without external charges', async () => {
+      const { MockProvider } = await import('@/services/providers/mock.provider');
+      const mock = new MockProvider();
+
+      const created = await mock.createOrder({
+        service: 'mock_boost_7d',
+        link: 'https://t.me/boost/testchannel',
+        quantity: 10,
+      });
+      expect(created.order).toBeDefined();
+      expect(String(created.order)).toContain('mock_');
+
+      const status = await mock.getOrderStatus(created.order!);
+      expect(status.status).toBe('Completed');
+      expect(status.remains).toBe('0');
+
+      const multi = await mock.getMultiOrderStatus([created.order!]);
+      expect((multi[String(created.order)] as any).status).toBe('Completed');
+
+      const canceled = await mock.cancelOrder!(created.order!);
+      expect(canceled.success).toBe(true);
+
+      // Verify that after cancellation, getOrderStatus and getMultiOrderStatus report Canceled!
+      const statusAfterCancel = await mock.getOrderStatus(created.order!);
+      expect(statusAfterCancel.status).toBe('Canceled');
+
+      const multiAfterCancel = await mock.getMultiOrderStatus([created.order!]);
+      expect((multiAfterCancel[String(created.order)] as any).status).toBe('Canceled');
+    });
+
+    it('verifies MockProvider maxQty is 100,000 to match Telegram boost requirements', async () => {
+      const { MockProvider } = await import('@/services/providers/mock.provider');
+      const mock = new MockProvider();
+      const services = await mock.getServices();
+      for (const s of services) {
+        expect(parseInt(s.max, 10)).toBe(100000);
+      }
+    });
+
+    it('verifies UniversalProvider mock simulation returns correct multi-status dictionary', async () => {
+      const { UniversalProvider } = await import('@/services/providers/universal.provider');
+      const provider = new UniversalProvider(
+        'http://127.0.0.1:3000/api/dev/mock-provider',
+        'dev_mock_provider_secret_key_2026'
+      );
+      const multi = await provider.getMultiOrderStatus(['mock_101', 'mock_102']);
+      expect(multi).toBeDefined();
+      expect(multi['mock_101']).toBeDefined();
+      expect((multi['mock_101'] as any).status).toBe('Completed');
+      expect(multi['mock_102']).toBeDefined();
+      expect((multi['mock_102'] as any).status).toBe('Completed');
+    });
+
+    it('verifies simulated failure behavior for test assertions', async () => {
+      const { MockProvider } = await import('@/services/providers/mock.provider');
+      const mock = new MockProvider();
+
+      const res = await mock.createOrder({
+        service: 'mock_boost_7d',
+        link: 'https://t.me/fail-create',
+        quantity: 10,
+      });
+      expect(res.error).toBeDefined();
+      expect(res.order).toBeUndefined();
+
+      await expect(mock.createOrder({
+        service: 'mock_boost_7d',
+        link: 'https://t.me/timeout',
+        quantity: 10,
+      })).rejects.toThrow('Simulated network timeout');
+    });
+  });
 });

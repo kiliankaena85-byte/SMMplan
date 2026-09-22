@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
 import { db } from '@/lib/db';
 import { settingsService } from '@/services/admin/settings.service';
-import { updateGlobalSettings, disconnectTelegramBotAction } from '@/actions/admin/settings';
+import { updateGlobalSettings, disconnectTelegramBotAction, testTelegramBotConnectionAction } from '@/actions/admin/settings';
 import { toggleTenantMaintenanceAction } from '@/actions/admin/tenants';
 import { generateStorefrontKeyAction, revokeStorefrontKeyAction, listStorefrontKeysAction } from '@/actions/admin/storefront-keys';
+import { updateTelegramSecurityAction } from '@/actions/admin/telegram-bot';
+import { upsertTemplate, deleteTemplate, getTemplates } from '@/actions/support/template';
 import { SettingsProvider } from '@/lib/settings';
 
 // Mock active user session for RBAC testing
@@ -11,6 +13,7 @@ let mockUser = {
   id: 'usr_admin_test_1',
   email: 'owner@smmplan.pro',
   role: 'OWNER',
+  tenantId: 'smmplan',
 };
 
 vi.mock('@/lib/server/rbac', () => ({
@@ -36,8 +39,10 @@ vi.mock('@/lib/notifications', () => ({
   sendAdminAlert: vi.fn().mockResolvedValue(true),
 }));
 
+const mockAuditAdminAwaitable = vi.fn().mockResolvedValue(true);
 vi.mock('@/lib/admin-audit', () => ({
-  auditAdminAwaitable: vi.fn().mockResolvedValue(true),
+  auditAdminAwaitable: vi.fn((...args: any[]) => mockAuditAdminAwaitable(...args)),
+  auditAdmin: vi.fn((...args: any[]) => mockAuditAdminAwaitable(...args)),
 }));
 
 describe('Admin Settings Multi-Tenant Isolation & Validation Suite', () => {
@@ -62,6 +67,7 @@ describe('Admin Settings Multi-Tenant Isolation & Validation Suite', () => {
       id: 'usr_admin_test_1',
       email: 'owner@smmplan.pro',
       role: 'OWNER',
+      tenantId: 'smmplan',
     };
 
     // 2. Clean/Reset systemSettings for both tenants
@@ -853,4 +859,209 @@ describe('Admin Settings Multi-Tenant Isolation & Validation Suite', () => {
       expect(errorsSsrf?.geminiProxy?.[0]).toContain('локальные и приватные адреса запрещены');
     });
   });
+
+  describe('7. React useActionState Invocation & SettingsCard Dual Signature', () => {
+    it('successfully processes updateGlobalSettings called with (prevState, formData)', async () => {
+      mockUser.role = 'OWNER';
+
+      const formData = new FormData();
+      formData.set('tenantId', 'flux');
+      formData.set('siteDescription', 'SMMflux updated via useActionState');
+      formData.set('contactSupportEmail', 'support-state@smmflux.ru');
+
+      // Simulates React 19 useActionState calling the action with (prevState, formData)
+      const prevState = { success: true };
+      const res = await updateGlobalSettings(prevState, formData);
+      expect(res.success).toBe(true);
+
+      const updated = await db.systemSettings.findUnique({ where: { id: 'flux' } });
+      expect(updated?.siteDescription).toBe('SMMflux updated via useActionState');
+      expect(updated?.contactSupportEmail).toBe('support-state@smmflux.ru');
+
+      // smmplan is untouched
+      const plan = await db.systemSettings.findUnique({ where: { id: 'smmplan' } });
+      expect(plan?.siteDescription).not.toBe('SMMflux updated via useActionState');
+    });
+
+    it('rejects invalid or empty invocation with proper error', async () => {
+      const resNull = await updateGlobalSettings(null, null);
+      expect(resNull.success).toBe(false);
+      expect((resNull as any).errors?._form?.[0]).toBe('Некорректные данные формы');
+    });
+  });
+
+  describe('8. Support Templates Multi-Tenant CRUD Isolation & IDOR Guards', () => {
+    beforeEach(async () => {
+      // Clean up templates for test repeatability
+      await db.supportTemplate.deleteMany({});
+    });
+
+    it('creates support templates strictly isolated by tenantId', async () => {
+      mockUser.role = 'SUPPORT';
+      mockUser.tenantId = 'smmplan';
+
+      const formPlan = new FormData();
+      formPlan.set('tenantId', 'smmplan');
+      formPlan.set('shortcut', 'hello-plan');
+      formPlan.set('label', 'Приветствие SMMplan');
+      formPlan.set('text', 'Здравствуйте! Чем помочь на smmplan?');
+
+      const resPlan = await upsertTemplate(formPlan);
+      expect(resPlan.success).toBe(true);
+      expect((resPlan as any).data?.tenantId).toBe('smmplan');
+
+      // Create template for flux
+      mockUser.tenantId = 'flux';
+      const formFlux = new FormData();
+      formFlux.set('tenantId', 'flux');
+      formFlux.set('shortcut', 'hello-flux');
+      formFlux.set('label', 'Приветствие SMMflux');
+      formFlux.set('text', 'Здравствуйте! Чем помочь на smmflux?');
+
+      const resFlux = await upsertTemplate(formFlux);
+      expect(resFlux.success).toBe(true);
+      expect((resFlux as any).data?.tenantId).toBe('flux');
+
+      // getTemplates('smmplan') must only return smmplan template
+      const planTemplates = await getTemplates('smmplan');
+      expect(Array.isArray(planTemplates)).toBe(true);
+      if (Array.isArray(planTemplates)) {
+        expect(planTemplates.length).toBe(1);
+        expect(planTemplates[0].shortcut).toBe('hello-plan');
+        expect(planTemplates[0].tenantId).toBe('smmplan');
+      }
+
+      // getTemplates('flux') must only return flux template
+      const fluxTemplates = await getTemplates('flux');
+      expect(Array.isArray(fluxTemplates)).toBe(true);
+      if (Array.isArray(fluxTemplates)) {
+        expect(fluxTemplates.length).toBe(1);
+        expect(fluxTemplates[0].shortcut).toBe('hello-flux');
+        expect(fluxTemplates[0].tenantId).toBe('flux');
+      }
+    });
+
+    it('prevents IDOR: non-OWNER cannot edit or delete template belonging to another brand', async () => {
+      // Seed template in smmplan
+      const planTemplate = await db.supportTemplate.create({
+        data: {
+          tenantId: 'smmplan',
+          shortcut: 'plan-secret',
+          label: 'Секрет Plan',
+          text: 'Текст шаблона smmplan',
+        }
+      });
+
+      // Operator on flux tries to overwrite smmplan template
+      mockUser.role = 'SUPPORT';
+      mockUser.tenantId = 'flux';
+
+      const attackForm = new FormData();
+      attackForm.set('id', planTemplate.id);
+      attackForm.set('tenantId', 'flux');
+      attackForm.set('shortcut', 'hacked-shortcut');
+      attackForm.set('label', 'Взлом шаблона');
+      attackForm.set('text', 'Текст переписан');
+
+      const editRes = await upsertTemplate(attackForm);
+      expect(editRes.success).toBe(false);
+      expect((editRes as any).error).toContain('Запрещено изменять шаблон другого бренда');
+
+      // Verify template was not modified
+      const intact = await db.supportTemplate.findUnique({ where: { id: planTemplate.id } });
+      expect(intact?.shortcut).toBe('plan-secret');
+
+      // Operator on flux tries to delete smmplan template
+      const deleteForm = new FormData();
+      deleteForm.set('id', planTemplate.id);
+      deleteForm.set('tenantId', 'flux');
+
+      const deleteRes = await deleteTemplate(deleteForm);
+      expect(deleteRes.success).toBe(false);
+      expect((deleteRes as any).error).toContain('Запрещено удалять шаблон другого бренда');
+
+      // Verify template still exists in DB
+      const stillExists = await db.supportTemplate.findUnique({ where: { id: planTemplate.id } });
+      expect(stillExists).not.toBeNull();
+    });
+  });
+
+  describe('9. Telegram Security Isolation (updateTelegramSecurityAction)', () => {
+    it('isolates telegram security config per tenant and logs audit with tenantId', async () => {
+      mockUser.role = 'OWNER';
+      mockAuditAdminAwaitable.mockClear();
+
+      const resFlux = await updateTelegramSecurityAction({
+        webhookSecret: 'flux-secret-999_strong_key',
+        allowedIps: ['195.201.10.1'],
+        rateLimitPerMin: 45,
+        maxMessageLength: 2048,
+        telegramMaintenanceMode: true,
+        telegramLogErrors: true,
+        telegramEnableCsat: true,
+        telegramEnableSmartBind: false,
+      }, 'flux');
+
+      expect(resFlux.success).toBe(true);
+
+      const fluxSettings = await db.systemSettings.findUnique({ where: { id: 'flux' } });
+      expect(fluxSettings?.telegramRateLimitPerMin).toBe(45);
+      expect(fluxSettings?.telegramMaintenanceMode).toBe(true);
+
+      // smmplan settings MUST remain unchanged
+      const planSettings = await db.systemSettings.findUnique({ where: { id: 'smmplan' } });
+      expect(planSettings?.telegramRateLimitPerMin).not.toBe(45);
+      expect(planSettings?.telegramMaintenanceMode).toBe(false);
+
+      // Verify audit call recorded tenantId: 'flux'
+      expect(mockAuditAdminAwaitable).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: 'flux',
+          target: 'security_config_flux',
+        })
+      );
+    });
+  });
+
+  describe('10. Telegram Bot Diagnostics & Disconnect Tenant Scoping', () => {
+    it('disconnectTelegramBotAction passes tenantId to audit log', async () => {
+      mockUser.role = 'OWNER';
+      mockAuditAdminAwaitable.mockClear();
+
+      const res = await disconnectTelegramBotAction('flux');
+      expect(res.success).toBe(true);
+
+      expect(mockAuditAdminAwaitable).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'TELEGRAM_BOT_DISCONNECTED',
+          target: 'flux',
+          tenantId: 'flux',
+        })
+      );
+    });
+
+    it('testTelegramBotConnectionAction does not use smmplan env token when testing flux', async () => {
+      mockUser.role = 'SUPPORT';
+      // Ensure flux has no bot token in DB
+      await db.systemSettings.update({
+        where: { id: 'flux' },
+        data: { telegramBotToken: null }
+      });
+
+      // Mock process.env.TELEGRAM_BOT_TOKEN
+      const origEnv = process.env.TELEGRAM_BOT_TOKEN;
+      process.env.TELEGRAM_BOT_TOKEN = '987654321:AABbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqR';
+
+      try {
+        const resFlux = await testTelegramBotConnectionAction('flux');
+        // Because flux has no token and env fallback is restricted to smmplan,
+        // it must report not configured for SMMflux, not attempt to use smmplan's token
+        expect(resFlux.success).toBe(false);
+        expect((resFlux as any).message).toContain('Токен Telegram-бота для бренда SMMflux не настроен');
+      } finally {
+        process.env.TELEGRAM_BOT_TOKEN = origEnv;
+      }
+    });
+  });
 });
+

@@ -75,6 +75,42 @@ describe('Admin Switchers Portal Interaction (Zero Unmount on Mousedown)', () =>
       });
     });
 
+    it('renders "Тест провайдера" for HYBRID mode and shows updated confirmation modal', async () => {
+      mockGetEnvironmentModeAction.mockResolvedValueOnce({ success: true, mode: 'SANDBOX' });
+      render(<EnvironmentModeSwitcher initialMode="SANDBOX" readOnly={false} />);
+
+      const trigger = await screen.findByRole('button', { name: /Песочница/i });
+      fireEvent.click(trigger);
+
+      // Verify HYBRID mode option is present with "Тест провайдера" and correct tooltip note
+      const hybridOption = await screen.findByText('Гибридный тест (Live SMM)');
+      expect(hybridOption).toBeDefined();
+
+      const hybridButton = hybridOption.closest('button');
+      expect(hybridButton?.getAttribute('title')).toBe(
+        'Идеально для тестов: бесплатный заказ на сайте отправляется на тест провайдера.'
+      );
+
+      const testProviderText = await screen.findByText(/Тест провайдера/i);
+      expect(testProviderText).toBeDefined();
+
+      // Click HYBRID option to trigger confirmation modal
+      fireEvent.click(hybridOption);
+
+      // Confirmation modal should open with updated text
+      expect(await screen.findByText('Подтверждение смены режима')).toBeDefined();
+      expect(screen.getByText(/заказы будут отправляться на/i)).toBeDefined();
+      expect(screen.getByText('тест провайдера')).toBeDefined();
+
+      // Cancel to close modal
+      const cancelBtn = screen.getByRole('button', { name: /Отмена/i });
+      fireEvent.click(cancelBtn);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Подтверждение смены режима')).toBeNull();
+      });
+    });
+
     it('closes on outside click', async () => {
       render(
         <div>

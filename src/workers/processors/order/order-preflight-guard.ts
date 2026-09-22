@@ -46,13 +46,25 @@ export class OrderPreflightGuard {
 
     // TEST ORDER GUARD
     const envMode = order.environmentMode;
-    const isMockProvider = envMode === 'SANDBOX' || envMode === 'ACQUIRING_TEST';
+    const { SettingsManager } = await import('../../../lib/settings');
+    let isTestModeActive = false;
+    try {
+      if (typeof SettingsManager?.isTestMode === 'function') {
+        isTestModeActive = await SettingsManager.isTestMode(order.tenantId || undefined);
+      } else if (typeof SettingsManager?.isMockProviderEnabled === 'function') {
+        isTestModeActive = await SettingsManager.isMockProviderEnabled(order.tenantId || undefined);
+      }
+    } catch {
+      isTestModeActive = false;
+    }
+
+    const isMockProvider = envMode === 'SANDBOX' || envMode === 'ACQUIRING_TEST' || isTestModeActive;
     if (order.isTest && !isMockProvider && envMode !== 'HYBRID') {
       log.error(`[OrderProcessor] CRITICAL: Test order ${orderId} picked up in production mode. Failing safely.`);
       const { orderService } = await import('../../../services/core/order.service');
       await orderService.failOrderTerminal(
         orderId,
-        'SYSTEM_GUARD: Попытка отправки тестового заказа реальному провайдеру в боевом режиме прервана.'
+        'SYSTEM_GUARD: Попытка отправки тестового заказа реальному провайдеру прервана.'
       );
       return { order: null, redisKey: '' };
     }

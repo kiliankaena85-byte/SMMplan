@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition, useMemo, useEffect } from 'react';
+import React, { useState, useTransition, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import type { ProviderListDTO } from '@/services/admin/provider.service';
@@ -26,20 +26,24 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
   const [deleteInfo, setDeleteInfo] = useState<ProviderDeleteInfo | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [isDeleting, startDeleteTransition] = useTransition();
+  const pendingIdsRef = useRef<Set<string>>(pendingIds);
+  pendingIdsRef.current = pendingIds;
 
   useEffect(() => {
-    setLocalProviders((prev) => (pendingIds.size === 0 ? providers : providers.map((p) => {
-      if (!pendingIds.has(p.id)) return p;
+    setLocalProviders((prev) => (pendingIdsRef.current.size === 0 ? providers : providers.map((p) => {
+      if (!pendingIdsRef.current.has(p.id)) return p;
       const cur = prev.find((lp) => lp.id === p.id);
       return cur ? { ...p, isActive: cur.isActive, errorCount5m: cur.errorCount5m } : p;
     })));
-  }, [providers, pendingIds]);
+  }, [providers]);
 
   useEffect(() => {
     const interval = setInterval(() => router.refresh(), 30000);
     const onFocus = () => router.refresh();
+    const onProvidersChanged = () => router.refresh();
     window.addEventListener('focus', onFocus);
-    return () => { clearInterval(interval); window.removeEventListener('focus', onFocus); };
+    window.addEventListener('providers:changed', onProvidersChanged);
+    return () => { clearInterval(interval); window.removeEventListener('focus', onFocus); window.removeEventListener('providers:changed', onProvidersChanged); };
   }, [router]);
 
   const handleDeleteRequest = async (providerId: string) => {
@@ -145,9 +149,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
         toast.success(res.message);
         router.refresh();
         window.dispatchEvent(new CustomEvent('providers:changed'));
-      } else {
-        toast.error('Не удалось развернуть Mock Sandbox', { description: res.error });
-      }
+      } else toast.error('Не удалось развернуть Mock Sandbox', { description: res.error });
     });
   };
 
@@ -189,10 +191,7 @@ export function ProvidersTable({ providers }: { providers: ProviderListDTO[] }) 
         )}
       </div>
 
-      <ProviderDeleteDialog
-        deleteInfo={deleteInfo} isDeleting={isDeleting}
-        onClose={() => setDeleteInfo(null)} onConfirm={handleConfirmDelete}
-      />
+      <ProviderDeleteDialog deleteInfo={deleteInfo} isDeleting={isDeleting} onClose={() => setDeleteInfo(null)} onConfirm={handleConfirmDelete} />
     </div>
   );
 }

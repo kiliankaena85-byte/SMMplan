@@ -132,6 +132,13 @@ export class OrderDispatchExecutor {
         lastError = originalError;
 
         if (route.failoverMode !== 'automatic') {
+          if (order.isTest) {
+            const { orderService } = await import('../../../services/core/order.service');
+            await orderService.failOrderTerminal(order.id, originalError);
+            await connection.del(redisKey).catch(() => {});
+            throw new UnrecoverableError(`Test order failed: ${originalError}`);
+          }
+
           const { OrderTriageAlertService } = await import('@/services/orders/order-triage-alert.service');
           const classification = OrderTriageAlertService.classifyError(originalError);
           const formattedError = OrderTriageAlertService.formatOrderErrorMessage(classification, originalError, route.provider.name);
