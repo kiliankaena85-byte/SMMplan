@@ -12,6 +12,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ExactMath } from '@/lib/financial/exact-math';
 import { formatKopecksAsRubString, toSafePaymentContextLog } from '@/services/financial/payment-gateway.service';
 import { validateCrossTenantLegalIndependence } from '@/utils/tax-validators';
+import { CircuitBreaker as ResilienceCircuitBreaker, ProviderUnavailableError } from '@/lib/resilience/circuit-breaker';
+import { CircuitBreaker as DistributedCircuitBreaker } from '@/lib/circuit-breaker';
+import { BulkheadSemaphore } from '@/lib/resilience/bulkhead';
+import { MutexManager } from '@/lib/redis-lock';
+import { dlqQueue, type DLQJobPayload } from '@/lib/queue-manager';
+import { handleDeadLetter } from '@/workers/dead-letter';
+import { orderService } from '@/services/core/order.service';
+import { db } from '@/lib/db';
 
 // ════════════════════════════════════════════════════════════════════════════
 // 1. ТРАНЗАКЦИОННЫЕ ГРАНИЦЫ (TRANSACTIONAL BOUNDARIES & CAS ATOMICITY)
@@ -117,112 +125,125 @@ describe('1. 🏛️ Transactional Boundaries & CAS Concurrency (ACID & ExactMat
 // ════════════════════════════════════════════════════════════════════════════
 describe('2. 🛡️ Per-Tenant Bulkhead Architecture (NIST SP 800-207 & Resilience)', () => {
   
-  interface TenantCircuitState {
-    state: 'CLOSED' | 'OPEN' | 'HALF_OPEN';
-    failureCount: number;
-    lastFailureTime: number | null;
-  }
-
-  class PerTenantBulkheadSimulator {
-    private circuits: Map<string, TenantCircuitState> = new Map();
-    private activeRequests: Map<string, number> = new Map();
-    private readonly MAX_CONCURRENT_PER_TENANT = 5;
-    private readonly FAILURE_THRESHOLD = 5;
-
-    getCircuit(tenantId: string): TenantCircuitState {
-      if (!this.circuits.has(tenantId)) {
-        this.circuits.set(tenantId, { state: 'CLOSED', failureCount: 0, lastFailureTime: null });
-      }
-      return this.circuits.get(tenantId)!;
-    }
-
-    async executeRequest<T>(tenantId: string, task: () => Promise<T>): Promise<{ success: boolean; data?: T; error?: string; status: string }> {
-      const circuit = this.getCircuit(tenantId);
-
-      // Check Circuit Breaker
-      if (circuit.state === 'OPEN') {
-        return { success: false, error: `Tenant ${tenantId} KKT gateway is OPEN (temporarily suspended)`, status: 'CIRCUIT_OPEN' };
-      }
-
-      // Check Concurrency Bulkhead Limit
-      const currentActive = this.activeRequests.get(tenantId) || 0;
-      if (currentActive >= this.MAX_CONCURRENT_PER_TENANT) {
-        return { success: false, error: `Tenant ${tenantId} concurrency limit reached (5 max)`, status: 'BULKHEAD_FULL' };
-      }
-
-      // Increment active requests
-      this.activeRequests.set(tenantId, currentActive + 1);
-
-      try {
-        const res = await task();
-        // Success resets failure count
-        circuit.failureCount = 0;
-        return { success: true, data: res, status: 'OK' };
-      } catch (err) {
-        circuit.failureCount++;
-        circuit.lastFailureTime = Date.now();
-        if (circuit.failureCount >= this.FAILURE_THRESHOLD) {
-          circuit.state = 'OPEN';
-        }
-        return { success: false, error: (err as Error).message, status: 'FAILED' };
-      } finally {
-        this.activeRequests.set(tenantId, (this.activeRequests.get(tenantId) || 1) - 1);
-      }
-    }
-  }
-
-  it('Isolates failure: Tenant A consecutive failures trip Tenant A circuit, Tenant B remains 100% operational', async () => {
-    const bulkhead = new PerTenantBulkheadSimulator();
-
-    // Cause 5 consecutive failures on Tenant 'smmplan'
-    for (let i = 0; i < 5; i++) {
-      await bulkhead.executeRequest('smmplan', async () => {
-        throw new Error('YooKassa KKT 502 Bad Gateway');
-      });
-    }
-
-    // Tenant 'smmplan' circuit should now be OPEN
-    const planReq = await bulkhead.executeRequest('smmplan', async () => 'ok');
-    expect(planReq.success).toBe(false);
-    expect(planReq.status).toBe('CIRCUIT_OPEN');
-
-    // Tenant 'smmflux' must remain CLOSED and successfully process requests!
-    const fluxReq = await bulkhead.executeRequest('smmflux', async () => 'flux_payment_ok');
-    expect(fluxReq.success).toBe(true);
-    expect(fluxReq.data).toBe('flux_payment_ok');
-    expect(fluxReq.status).toBe('OK');
+  beforeEach(async () => {
+    await ResilienceCircuitBreaker.forceReset('tenant_smmplan');
+    await ResilienceCircuitBreaker.forceReset('tenant_smmflux');
+    await BulkheadSemaphore.reset('tenant_smmplan');
+    await BulkheadSemaphore.reset('tenant_smmflux');
+    await DistributedCircuitBreaker.recordSuccess('https://api.unstable-provider.com/v2');
+    await DistributedCircuitBreaker.recordSuccess('https://api.stable-provider.com/v2');
   });
 
-  it('Enforces Concurrency Bulkhead Limit: One tenant cannot starve the worker pool of another tenant', async () => {
-    const bulkhead = new PerTenantBulkheadSimulator();
-
-    // Saturate Tenant 'smmplan' with 5 hanging requests
-    const hangingTasks: Promise<any>[] = [];
-    let resolveHanging: () => void;
-    const hangPromise = new Promise<void>((r) => { resolveHanging = r; });
-
+  it('Isolates failure: Tenant/Provider A consecutive failures trip its circuit to OPEN, Tenant/Provider B remains 100% operational', async () => {
+    // Cause 5 consecutive failures on 'tenant_smmplan' using production ResilienceCircuitBreaker
     for (let i = 0; i < 5; i++) {
-      hangingTasks.push(
-        bulkhead.executeRequest('smmplan', async () => {
-          await hangPromise;
-          return 'done';
-        })
+      try {
+        await ResilienceCircuitBreaker.execute('tenant_smmplan', 'SMMplan KKT Gateway', async () => {
+          throw new Error('YooKassa KKT 502 Bad Gateway');
+        });
+      } catch {
+        // Expected failures during trip window
+      }
+    }
+
+    // Tenant 'tenant_smmplan' status must be OPEN
+    const planStatus = await ResilienceCircuitBreaker.getStatus('tenant_smmplan');
+    expect(planStatus.state).toBe('OPEN');
+    expect(planStatus.failureCount).toBeGreaterThanOrEqual(5);
+
+    // Any further request to 'tenant_smmplan' must fail-fast with ProviderUnavailableError
+    await expect(
+      ResilienceCircuitBreaker.execute('tenant_smmplan', 'SMMplan KKT Gateway', async () => 'ok')
+    ).rejects.toThrow(ProviderUnavailableError);
+
+    // Tenant 'tenant_smmflux' must remain CLOSED and successfully process requests
+    const fluxStatus = await ResilienceCircuitBreaker.getStatus('tenant_smmflux');
+    expect(fluxStatus.state).toBe('CLOSED');
+
+    const fluxResult = await ResilienceCircuitBreaker.execute('tenant_smmflux', 'SMMflux Gateway', async () => 'flux_payment_ok');
+    expect(fluxResult).toBe('flux_payment_ok');
+  });
+
+  it('Distributed Circuit Breaker (Redis-based): Trips at threshold and prevents cascading provider outages', async () => {
+    const unstableUrl = 'https://api.unstable-provider.com/v2';
+    const stableUrl = 'https://api.stable-provider.com/v2';
+
+    // Initial check is clean
+    await expect(DistributedCircuitBreaker.check(unstableUrl)).resolves.not.toThrow();
+
+    // Accumulate 5 failures
+    for (let i = 0; i < 5; i++) {
+      await DistributedCircuitBreaker.recordFailure(unstableUrl);
+    }
+
+    // Check must now throw CircuitBreakerOpenException
+    await expect(DistributedCircuitBreaker.check(unstableUrl)).rejects.toThrow('Circuit breaker is OPEN');
+
+    // Independent stable provider host is completely unaffected
+    await expect(DistributedCircuitBreaker.check(stableUrl)).resolves.not.toThrow();
+
+    // Success resets the circuit
+    await DistributedCircuitBreaker.recordSuccess(unstableUrl);
+    await expect(DistributedCircuitBreaker.check(unstableUrl)).resolves.not.toThrow();
+  });
+
+  it('Enforces Concurrency Bulkhead Compartment Limit (BulkheadSemaphore): Saturated tenant does not starve other tenants', async () => {
+    // SMMplan compartment allows up to 5 concurrent tasks
+    const runningTasks: Promise<any>[] = [];
+    let releaseHold: () => void;
+    const holdPromise = new Promise<void>((resolve) => { releaseHold = resolve; });
+
+    // Saturate all 5 slots of 'tenant_smmplan'
+    for (let i = 0; i < 5; i++) {
+      runningTasks.push(
+        BulkheadSemaphore.execute('tenant_smmplan', async () => {
+          await holdPromise;
+          return `plan_task_${i}`;
+        }, 5)
       );
     }
 
-    // 6th request for Tenant 'smmplan' must be rejected due to BULKHEAD_FULL
-    const overflowPlanReq = await bulkhead.executeRequest('smmplan', async () => 'fast');
-    expect(overflowPlanReq.success).toBe(false);
-    expect(overflowPlanReq.status).toBe('BULKHEAD_FULL');
+    // 6th request to 'tenant_smmplan' must immediately fail with BULKHEAD_FULL
+    const planOverflow = await BulkheadSemaphore.execute('tenant_smmplan', async () => 'fast', 5);
+    expect(planOverflow.success).toBe(false);
+    if (!planOverflow.success) {
+      expect(planOverflow.status).toBe('BULKHEAD_FULL');
+    }
 
-    // Meanwhile, Tenant 'smmflux' has zero active requests and processes immediately!
-    const fluxReq = await bulkhead.executeRequest('smmflux', async () => 'instant_flux_success');
-    expect(fluxReq.success).toBe(true);
-    expect(fluxReq.data).toBe('instant_flux_success');
+    // Meanwhile, 'tenant_smmflux' compartment has zero active tasks and succeeds immediately
+    const fluxResult = await BulkheadSemaphore.execute('tenant_smmflux', async () => 'flux_instant_success', 5);
+    expect(fluxResult.success).toBe(true);
+    if (fluxResult.success) {
+      expect(fluxResult.data).toBe('flux_instant_success');
+    }
 
-    // Clean up hanging tasks
-    resolveHanging!();
-    await Promise.all(hangingTasks);
+    // Release held tasks and verify smmplan recovers
+    releaseHold!();
+    await Promise.all(runningTasks);
+
+    const postRecovery = await BulkheadSemaphore.execute('tenant_smmplan', async () => 'recovered', 5);
+    expect(postRecovery.success).toBe(true);
+  });
+
+  it('Enforces Concurrency Bulkhead Limit: MutexManager locks per-tenant compartments without cross-tenant starvation', async () => {
+    const planLockKey = 'tenant:smmplan:checkout:mutex';
+    const fluxLockKey = 'tenant:smmflux:checkout:mutex';
+
+    // Acquire lock for Tenant 'smmplan'
+    const planToken = await MutexManager.acquireLock(planLockKey, 5000, 100);
+    expect(planToken).toBeTruthy();
+
+    // Attempting to acquire duplicate lock on same resource fails (bulkhead saturated)
+    const duplicatePlanToken = await MutexManager.acquireLock(planLockKey, 5000, 50);
+    expect(duplicatePlanToken).toBeNull();
+
+    // Meanwhile, Tenant 'smmflux' operates in its isolated compartment and acquires immediately
+    const fluxToken = await MutexManager.acquireLock(fluxLockKey, 5000, 100);
+    expect(fluxToken).toBeTruthy();
+
+    // Clean up
+    await MutexManager.releaseLock(planLockKey, planToken!);
+    await MutexManager.releaseLock(fluxLockKey, fluxToken!);
   });
 
   it('Enforces Legal Independence Barrier (ст. 54.1 НК РФ): Cross-tenant attribute sharing is blocked', () => {
@@ -282,110 +303,88 @@ describe('2. 🛡️ Per-Tenant Bulkhead Architecture (NIST SP 800-207 & Resilie
 // 3. DEAD-LETTER QUEUE (DLQ) & RESILIENCE SLA (54-ФЗ)
 // ════════════════════════════════════════════════════════════════════════════
 describe('3. 📬 Dead-Letter Queue (DLQ) & Fiscalization SLA Invariants', () => {
-
-  interface DLQEntry {
-    originalQueue: string;
-    jobId: string;
-    payload: any;
-    error: string;
-    failedAt: string;
-    attemptsMade: number;
-  }
-
-  class DLQManagerSimulator {
-    public dlqItems: DLQEntry[] = [];
-    public parkedOrdersForTriage: string[] = [];
-    public refundedOrders: string[] = [];
-
-    async handleFailure(
-      queueName: string,
-      job: { id: string; data: any; attemptsMade: number; maxAttempts: number },
-      err: Error
-    ) {
-      if (job.attemptsMade >= job.maxAttempts || err.name === 'UnrecoverableError') {
-        // 1. Store in DLQ
-        this.dlqItems.push({
-          originalQueue: queueName,
-          jobId: job.id,
-          payload: job.data,
-          error: err.message,
-          failedAt: new Date().toISOString(),
-          attemptsMade: job.attemptsMade,
-        });
-
-        // 2. Safe State Handling: Orders in PENDING_CHECK / IN_PROGRESS are parked for operator triage
-        if (queueName === 'ordersQueue') {
-          const status = job.data.orderStatus;
-          if (status === 'PENDING_CHECK' || status === 'IN_PROGRESS') {
-            this.parkedOrdersForTriage.push(job.data.orderId);
-          } else {
-            this.refundedOrders.push(job.data.orderId);
-          }
-        }
-      }
-    }
-  }
-
-  it('Routes exhausted jobs to DLQ without data loss', async () => {
-    const manager = new DLQManagerSimulator();
-
-    const failedJob = {
-      id: 'job_fiscal_999',
-      data: {
+  it('Routes exhausted jobs to DLQ without data loss (production dlqQueue)', async () => {
+    const deadLetterPayload: DLQJobPayload = {
+      originalQueue: 'fiscalQueue',
+      jobId: 'job_fiscal_999',
+      payload: {
         receiptId: 'rcpt_123',
         tenantId: 'smmplan',
         amountKopecks: 150000,
         vatCode: 10,
       },
-      attemptsMade: 10,
-      maxAttempts: 10,
+      error: 'KKT OFD Network Timeout (24h SLA breached)',
+      failedAt: new Date().toISOString(),
     };
 
-    await manager.handleFailure('fiscalQueue', failedJob, new Error('KKT OFD Network Timeout (24h SLA breached)'));
+    const job = await dlqQueue.add('dead-letter', deadLetterPayload);
 
-    expect(manager.dlqItems.length).toBe(1);
-    expect(manager.dlqItems[0].jobId).toBe('job_fiscal_999');
-    expect(manager.dlqItems[0].originalQueue).toBe('fiscalQueue');
-    expect(manager.dlqItems[0].error).toContain('KKT OFD Network Timeout');
+    expect(dlqQueue.name).toBe('dead-letter-queue');
+    expect(job).toBeDefined();
+    expect(job.data.jobId).toBe('job_fiscal_999');
+    expect(job.data.originalQueue).toBe('fiscalQueue');
+    expect(job.data.error).toContain('KKT OFD Network Timeout');
+    expect(dlqQueue.defaultJobOptions?.attempts).toBe(1); // Invariant: DLQ jobs should not retry themselves
   });
 
-  it('Preserves PENDING_CHECK orders in safe triage parking instead of premature destructive auto-fail', async () => {
-    const manager = new DLQManagerSimulator();
+  it('Preserves PENDING_CHECK / IN_PROGRESS orders in safe triage parking instead of premature destructive auto-fail (handleDeadLetter)', async () => {
+    vi.spyOn(db.order, 'findUnique').mockResolvedValueOnce({
+      status: 'PENDING_CHECK',
+      numericId: 101,
+    } as any);
 
-    const inProgressOrderJob = {
-      id: 'job_order_555',
-      data: {
-        orderId: 'ord_active_123',
-        orderStatus: 'PENDING_CHECK',
+    const failOrderTerminalSpy = vi.spyOn(orderService, 'failOrderTerminal').mockResolvedValueOnce();
+
+    const result = await handleDeadLetter(
+      'ordersQueue',
+      {
+        id: 'job_order_555',
+        name: 'process-order',
+        data: { orderId: 'ord_active_123' },
+        attemptsMade: 3,
+        opts: { attempts: 3 },
       },
-      attemptsMade: 5,
-      maxAttempts: 5,
-    };
+      new Error('Provider API temporary lag')
+    );
 
-    await manager.handleFailure('ordersQueue', inProgressOrderJob, new Error('Provider API temporary lag'));
-
-    // Must be parked for triage, NOT immediately refunded
-    expect(manager.parkedOrdersForTriage).toContain('ord_active_123');
-    expect(manager.refundedOrders).not.toContain('ord_active_123');
+    // Invariant: Order in PENDING_CHECK must be parked for operator triage, NOT auto-refunded
+    expect(result.dlqStored).toBe(true);
+    expect(result.parkedForTriage).toBe(true);
+    expect(result.refunded).toBe(false);
+    expect(failOrderTerminalSpy).not.toHaveBeenCalled();
   });
 
-  it('Auto-refunds terminal failed orders that were not in progress', async () => {
-    const manager = new DLQManagerSimulator();
+  it('Auto-refunds terminal failed orders idempotently via orderService.failOrderTerminal (handleDeadLetter)', async () => {
+    vi.spyOn(db.order, 'findUnique').mockResolvedValueOnce({
+      status: 'FAILED_VALIDATION',
+      numericId: 777,
+    } as any);
 
-    const terminalOrderJob = {
-      id: 'job_order_777',
-      data: {
-        orderId: 'ord_terminal_456',
-        orderStatus: 'FAILED_VALIDATION',
+    const failOrderTerminalSpy = vi.spyOn(orderService, 'failOrderTerminal').mockResolvedValueOnce();
+
+    const result = await handleDeadLetter(
+      'ordersQueue',
+      {
+        id: 'job_order_777',
+        name: 'process-order',
+        data: { orderId: 'ord_terminal_456' },
+        attemptsMade: 3,
+        opts: { attempts: 3 },
       },
-      attemptsMade: 5,
-      maxAttempts: 5,
-    };
+      new Error('Invalid target link format')
+    );
 
-    await manager.handleFailure('ordersQueue', terminalOrderJob, new Error('Invalid target link'));
+    expect(result.dlqStored).toBe(true);
+    expect(result.parkedForTriage).toBe(false);
+    expect(result.refunded).toBe(true);
+    expect(failOrderTerminalSpy).toHaveBeenCalledWith('ord_terminal_456', 'Invalid target link format');
+  });
 
-    expect(manager.refundedOrders).toContain('ord_terminal_456');
-    expect(manager.parkedOrdersForTriage).not.toContain('ord_terminal_456');
+  it('Auto-refunds terminal failed orders idempotently via orderService.failOrderTerminal', async () => {
+    vi.spyOn(db.order, 'findUnique').mockResolvedValueOnce(null);
+    await expect(
+      orderService.failOrderTerminal('non-existent-order-id', 'Test failure reason')
+    ).resolves.not.toThrow();
   });
 });
 

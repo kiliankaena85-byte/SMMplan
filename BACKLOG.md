@@ -57,7 +57,7 @@
 | **TECH-002** | Убрать eslint-disable без TODO | Tech Debt | P2 | M (3-5ч) | ⏳ IN_BACKLOG |
 | **TECH-003** | Убрать console.log из production | Tech Debt | P2 | M (3-5ч) | 🟡 IN_PROGRESS |
 | **TECH-004** | CryptoBot — решение по 54-ФЗ | Tech Debt | P1 | M (3-5ч) | ⏳ IN_BACKLOG |
-| **TECH-005** | Переименовать Lovable в UI | Tech Debt | P2 | S (1-2ч) | 🟡 IN_PROGRESS (95% готово) |
+| **TECH-005** | Переименовать Lovable в UI | Tech Debt | P2 | S (1-2ч) | ✅ **DONE** (Все компоненты Lovable* переименованы в Flux*, UI очищен) |
 | **TECH-006** | Content filter (запрещенные слова) | Tech Debt | P1 | M (3-5ч) | ⏳ IN_BACKLOG |
 | **SEC-001** | Redis Auth & TLS Hardening (REDIS_PASSWORD, rediss://) | Security | **P0 (Prod Gate)** | S (1-2ч) | ✅ **DONE** (validateRedisUrl + Fail-Closed) |
 | **SEC-002** | CSP Strict-Dynamic Migration (Устранение unsafe-inline/eval) | Security | **P0 (Prod Gate)** | M (3-5ч) | ✅ **DONE** (buildCspHeader + Nonce + 0 unsafe) |

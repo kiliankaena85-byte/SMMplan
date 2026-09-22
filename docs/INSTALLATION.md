@@ -93,7 +93,7 @@ npm run worker
 
 Проект обслуживает два разных бренда из одной кодовой базы:
 1. **SMMplan (API SaaS стиль):** Откройте `http://localhost:3000`
-2. **SMMflux (Prism Cyberpunk стиль):** Добавьте в URL параметр `?tenant=flux` или откройте тестовый роут `http://localhost:3000/ab-lovable` (алиас SMMflux).
+2. **SMMflux (Prism Cyberpunk стиль):** Добавьте в URL параметр `?tenant=flux` (или откройте `http://localhost:3000?tenant=flux`).
 
 ---
 

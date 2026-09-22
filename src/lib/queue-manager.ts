@@ -77,6 +77,7 @@ export const createQueue = <PayloadType>(name: string, defaultOptions?: Partial<
   // Dummy object to prevent Redis connection during Vercel/Next build step and unit tests
   if (isBuildOrTest) {
     const targetObj: any = {
+      name,
       add: async (jobName?: string, data?: any, opts?: any) => ({ id: opts?.jobId || 'mock-id', name: jobName, data }),
       close: async () => {},
       disconnect: async () => {},
@@ -85,7 +86,8 @@ export const createQueue = <PayloadType>(name: string, defaultOptions?: Partial<
       count: async () => 0,
       defaultJobOptions: {
         attempts: 3,
-        backoff: { type: 'exponential', delay: 5000 }
+        backoff: { type: 'exponential', delay: 5000 },
+        ...defaultOptions,
       }
     };
     return new Proxy(targetObj, {

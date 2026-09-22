@@ -40,35 +40,35 @@ async function main() {
     }
   });
 
-  // 2. Create Lovable Tenant & settings
-  const lovableSalt = crypto.randomBytes(32).toString('hex');
-  const lovableTenant = await prisma.tenant.upsert({
-    where: { id: 'lovable' },
+  // 2. Create SMMflux Tenant & settings
+  const fluxSalt = crypto.randomBytes(32).toString('hex');
+  const fluxTenant = await prisma.tenant.upsert({
+    where: { id: 'flux' },
     update: {},
     create: {
-      id: 'lovable',
-      name: 'Lovable Boost',
-      slug: 'lovable',
-      domain: 'lovable.pro',
-      vaultSalt: lovableSalt,
+      id: 'flux',
+      name: 'SMMflux',
+      slug: 'flux',
+      domain: 'smmflux.ru',
+      vaultSalt: fluxSalt,
       isActive: true
     }
   });
 
   await prisma.systemSettings.upsert({
-    where: { id: 'lovable' },
+    where: { id: 'flux' },
     update: {},
     create: {
-      id: 'lovable',
-      siteName: 'Lovable Boost',
-      siteDescription: 'Premium Social Growth Platform',
+      id: 'flux',
+      siteName: 'SMMflux',
+      siteDescription: 'Платформа продвижения SMMflux',
       taxRate: 6.0,
       exchangeRateUSD: 95.0,
-      contactSupportEmail: 'support@lovable.pro',
-      contactPrivacyEmail: 'privacy@lovable.pro',
-      contactTelegramBot: 'lovable_support_bot',
-      contactTelegramChannel: 'lovable_support',
-      legalCompanyName: 'Lovable Inc',
+      contactSupportEmail: 'support@smmflux.ru',
+      contactPrivacyEmail: 'privacy@smmflux.ru',
+      contactTelegramBot: 'smmflux_support_bot',
+      contactTelegramChannel: 'smmflux_support',
+      legalCompanyName: 'ИП Соколов Артём Андреевич',
     }
   });
 

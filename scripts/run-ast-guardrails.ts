@@ -528,6 +528,48 @@ export class AstGuardrailsEngine {
 
     return { violations: this.violations, passed };
   }
+
+  /**
+   * Dedicated AST audit for Server Actions Zero-Throw invariant (AGENTS.md Section 2).
+   * Scans src/actions for raw unhandled throw statements and validates typed return patterns.
+   */
+  public auditServerActionsZeroThrow(targetDir = 'src/actions'): {
+    scannedCount: number;
+    violations: GuardrailViolation[];
+    compliantFiles: string[];
+    violatingFiles: string[];
+    hasBlockers: boolean;
+  } {
+    const fullTarget = path.resolve(this.projectRoot, targetDir);
+    const files = this.getSourceFiles(fullTarget);
+    const startViolationIdx = this.violations.length;
+
+    for (const file of files) {
+      try {
+        this.analyzeFile(file);
+      } catch (e) {
+        console.error(`Error parsing action file ${file}:`, e);
+      }
+    }
+
+    const actionViolations = this.violations.slice(startViolationIdx).filter(
+      (v) => v.ruleId === 'server-action-typed-return'
+    );
+
+    const violatingFileSet = new Set(actionViolations.map((v) => v.file));
+    const violatingFiles = Array.from(violatingFileSet);
+    const compliantFiles = files
+      .map((f) => path.relative(this.projectRoot, f).replace(/\\/g, '/'))
+      .filter((f) => !violatingFileSet.has(f));
+
+    return {
+      scannedCount: files.length,
+      violations: actionViolations,
+      compliantFiles,
+      violatingFiles,
+      hasBlockers: actionViolations.some((v) => v.severity === 'BLOCKER'),
+    };
+  }
 }
 
 // CLI Execution

@@ -5426,7 +5426,7 @@ var require_node = __commonJS({
     var tty = require("tty");
     var util2 = require("util");
     exports2.init = init;
-    exports2.log = log34;
+    exports2.log = log35;
     exports2.formatArgs = formatArgs;
     exports2.save = save;
     exports2.load = load;
@@ -5561,7 +5561,7 @@ var require_node = __commonJS({
       }
       return (/* @__PURE__ */ new Date()).toISOString() + " ";
     }
-    function log34(...args) {
+    function log35(...args) {
       return process.stderr.write(util2.formatWithOptions(exports2.inspectOpts, ...args) + "\n");
     }
     function save(namespaces) {
@@ -42248,6 +42248,7 @@ var init_queue_manager = __esm({
       const isBuildOrTest = process.env.NEXT_PHASE === "phase-production-build" || !!process.env.CI || process.env.NODE_ENV === "test";
       if (isBuildOrTest) {
         const targetObj = {
+          name,
           add: async (jobName, data, opts) => ({ id: opts?.jobId || "mock-id", name: jobName, data }),
           close: async () => {
           },
@@ -42258,7 +42259,8 @@ var init_queue_manager = __esm({
           count: async () => 0,
           defaultJobOptions: {
             attempts: 3,
-            backoff: { type: "exponential", delay: 5e3 }
+            backoff: { type: "exponential", delay: 5e3 },
+            ...defaultOptions2
           }
         };
         return new Proxy(targetObj, {
@@ -50359,11 +50361,11 @@ var require_tools = __commonJS({
         }
       }
     }
-    function buildFormatters(level, bindings, log34) {
+    function buildFormatters(level, bindings, log35) {
       return {
         level,
         bindings,
-        log: log34
+        log: log35
       };
     }
     function normalizeDestFileDescriptor(destination) {
@@ -50744,11 +50746,11 @@ var require_proto = __commonJS({
         }
       } else instance[serializersSym] = serializers;
       if (options.hasOwnProperty("formatters")) {
-        const { level, bindings: chindings, log: log34 } = options.formatters;
+        const { level, bindings: chindings, log: log35 } = options.formatters;
         instance[formattersSym] = buildFormatters(
           level || formatters.level,
           chindings || resetChildingsFormatter,
-          log34 || formatters.log
+          log35 || formatters.log
         );
       } else {
         instance[formattersSym] = buildFormatters(
@@ -51819,7 +51821,7 @@ var require_pino = __commonJS({
 
 // src/lib/logger.ts
 function createLoggerFromBase(pinoInstance) {
-  const log34 = (level) => (message, context) => {
+  const log35 = (level) => (message, context) => {
     const store = logContextStorage.getStore();
     const extra = typeof context === "object" && context !== null && !Array.isArray(context) ? context : context !== void 0 ? { detail: context } : {};
     const merged = {
@@ -51833,10 +51835,10 @@ function createLoggerFromBase(pinoInstance) {
     pinoInstance[level](safeContext, safeMessage);
   };
   return {
-    info: log34("info"),
-    warn: log34("warn"),
-    error: log34("error"),
-    debug: log34("debug"),
+    info: log35("info"),
+    warn: log35("warn"),
+    error: log35("error"),
+    debug: log35("debug"),
     child: (bindings) => createLoggerFromBase(pinoInstance.child(bindings))
   };
 }
@@ -58944,14 +58946,14 @@ var require_mailer = __commonJS({
           this.getVersionString()
         );
         if (typeof this.transporter.on === "function") {
-          this.transporter.on("log", (log34) => {
+          this.transporter.on("log", (log35) => {
             this.logger.debug(
               {
                 tnx: "transport"
               },
               "%s: %s",
-              log34.type,
-              log34.message
+              log35.type,
+              log35.message
             );
           });
           this.transporter.on("error", (err) => {
@@ -82142,13 +82144,13 @@ var require_mock_call_history = __commonJS({
     function makeFilterCalls(parameterName) {
       return (parameterValue, logs) => {
         if (typeof parameterValue === "string" || parameterValue == null) {
-          return logs.filter((log34) => {
-            return log34[parameterName] === parameterValue;
+          return logs.filter((log35) => {
+            return log35[parameterName] === parameterValue;
           });
         }
         if (parameterValue instanceof RegExp) {
-          return logs.filter((log34) => {
-            return parameterValue.test(log34[parameterName]);
+          return logs.filter((log35) => {
+            return parameterValue.test(log35[parameterName]);
           });
         }
         throw new InvalidArgumentError(`${parameterName} parameter should be one of string, regexp, undefined or null`);
@@ -82243,8 +82245,8 @@ var require_mock_call_history = __commonJS({
           return this.logs.filter(criteria);
         }
         if (criteria instanceof RegExp) {
-          return this.logs.filter((log34) => {
-            return criteria.test(log34.toString());
+          return this.logs.filter((log35) => {
+            return criteria.test(log35.toString());
           });
         }
         if (typeof criteria === "object" && criteria !== null) {
@@ -82294,13 +82296,13 @@ var require_mock_call_history = __commonJS({
         this.logs = [];
       }
       [kMockCallHistoryAddLog](requestInit) {
-        const log34 = new MockCallHistoryLog(requestInit);
-        this.logs.push(log34);
-        return log34;
+        const log35 = new MockCallHistoryLog(requestInit);
+        this.logs.push(log35);
+        return log35;
       }
       *[Symbol.iterator]() {
-        for (const log34 of this.calls()) {
-          yield log34;
+        for (const log35 of this.calls()) {
+          yield log35;
         }
       }
     };
@@ -108339,7 +108341,7 @@ var init_wallet_ops = __esm({
         if (rawCents < BigInt(0)) {
           const absCents = -rawCents;
           const updatedUserBatch = await tx.user.updateMany({
-            where: { id: userId, balance: { gte: absCents } },
+            where: { id: userId, tenantId: resolvedTenantId, balance: { gte: absCents } },
             data: { balance: { increment: rawCents } }
           });
           if (updatedUserBatch.count === 0) {
@@ -125274,8 +125276,8 @@ var init_order_service = __esm({
         } catch (e) {
           console.error(`[OrderService] failOrderTerminal failed for ${orderId}:`, e instanceof Error ? e.message : String(e));
           try {
-            const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-            sendAdminAlert2(
+            const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+            sendAdminAlert3(
               `\u{1F6A8} failOrderTerminal ERROR
 
 orderId: ${orderId}
@@ -125338,8 +125340,8 @@ error: ${e instanceof Error ? e.message : String(e)}`,
           });
           if (txResult) {
             try {
-              const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-              await sendAdminAlert2(
+              const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+              await sendAdminAlert3(
                 `\u{1F6A8} [FAIL-FAST] \u0417\u0430\u043A\u0430\u0437 #${txResult.numericId} \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043E\u0442\u043C\u0435\u043D\u0435\u043D!
 \u0423\u0441\u043B\u0443\u0433\u0430: ${txResult.serviceName}
 \u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430: ${reason}`,
@@ -125366,8 +125368,8 @@ error: ${e instanceof Error ? e.message : String(e)}`,
         } catch (e) {
           console.error(`[OrderService] failOrderTerminalFast failed for ${orderId}:`, e instanceof Error ? e.message : String(e));
           try {
-            const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-            sendAdminAlert2(
+            const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+            sendAdminAlert3(
               `\u{1F6A8} failOrderTerminalFast CRITICAL ERROR
 
 orderId: ${orderId}
@@ -129016,7 +129018,7 @@ var init_provider_balance_service = __esm({
             try {
               const alreadyAlerted = await redis.get(alertKey);
               if (!alreadyAlerted) {
-                const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+                const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
                 const emoji = status === "critical" ? "\u{1F6A8}" : "\u26A0\uFE0F";
                 const level = status === "critical" ? "CRITICAL" : "WARNING";
                 const thresholdUsd = status === "critical" ? 10 : 50;
@@ -129036,7 +129038,7 @@ var init_provider_balance_service = __esm({
                   formattedBalance = `${numBalance.toFixed(2)} ${currency} (~$${balanceUsd.toFixed(2)} / ~${balanceRub.toFixed(2)} \u20BD)`;
                   formattedThreshold = `$${thresholdUsd}.00 (~${thresholdRub.toLocaleString("ru-RU")} \u20BD)`;
                 }
-                await sendAdminAlert2(
+                await sendAdminAlert3(
                   `${emoji} \u0411\u0430\u043B\u0430\u043D\u0441 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 "${provider.name}" = ${formattedBalance} \u2014 \u043D\u0438\u0436\u0435 \u043F\u043E\u0440\u043E\u0433\u0430 ${formattedThreshold}. \u041F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435 \u0434\u0435\u043F\u043E\u0437\u0438\u0442!`,
                   level
                 );
@@ -129119,8 +129121,8 @@ var init_provider_balance_service = __esm({
                 where: { id: provider.id },
                 data: { isActive: false }
               });
-              const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-              await sendAdminAlert2(
+              const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+              await sendAdminAlert3(
                 `\u{1F534} \u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 "${provider.name}" \u0410\u0412\u0422\u041E\u041C\u0410\u0422\u0418\u0427\u0415\u0421\u041A\u0418 \u041E\u0422\u041A\u041B\u042E\u0427\u0401\u041D: ${updated.errorCount5m} \u043E\u0448\u0438\u0431\u043E\u043A \u043F\u043E\u0434\u0440\u044F\u0434. \u0412\u043A\u043B\u044E\u0447\u0438\u0442\u0435 \u0432\u0440\u0443\u0447\u043D\u0443\u044E \u0432 /admin/providers \u043F\u043E\u0441\u043B\u0435 \u0443\u0441\u0442\u0440\u0430\u043D\u0435\u043D\u0438\u044F.`,
                 "CRITICAL"
               );
@@ -129129,8 +129131,8 @@ var init_provider_balance_service = __esm({
               const alertKey = `provider:${provider.id}:error_alert`;
               const alreadyAlerted = await redis.get(alertKey).catch(() => null);
               if (!alreadyAlerted) {
-                const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-                await sendAdminAlert2(
+                const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+                await sendAdminAlert3(
                   `\u26A0\uFE0F \u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 "${provider.name}" \u043D\u0430\u043A\u043E\u043F\u0438\u043B ${updated.errorCount5m} \u043E\u0448\u0438\u0431\u043E\u043A \u0437\u0430 5 \u043C\u0438\u043D. \u0422\u0440\u0435\u0431\u0443\u0435\u0442 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438. \u0410\u0432\u0442\u043E-\u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435 \u0412\u042B\u041A\u041B\u042E\u0427\u0415\u041D\u041E \u2014 \u0434\u0435\u0439\u0441\u0442\u0432\u0443\u0439 \u0432\u0440\u0443\u0447\u043D\u0443\u044E \u0432 /admin/providers.`,
                   "WARNING"
                 );
@@ -140392,8 +140394,8 @@ var init_unified_payment_service = __esm({
           const msg = e instanceof Error ? e.message : String(e);
           console.error("[UnifiedPayment] System error:", msg);
           try {
-            const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-            sendAdminAlert2(
+            const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+            sendAdminAlert3(
               `\u{1F4B3} <b>[FINANCE ALERT: \u041E\u0448\u0438\u0431\u043A\u0430 \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u044F \u043F\u043B\u0430\u0442\u0435\u0436\u0430]</b>
 
 \u{1F464} <b>\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C:</b> <code>${userId}</code>
@@ -140655,9 +140657,10 @@ var init_deposit_wizard = __esm({
     import_telegraf = __toESM(require_lib4());
     init_db();
     init_unified_payment_service();
+    init_tenant_resolver_edge();
     init_menu_navigation();
     DEPOSIT_WIZARD = "deposit-wizard";
-    botTenantId = process.env.BOT_TENANT_ID || "smmplan";
+    botTenantId = normalizeTenantId(process.env.BOT_TENANT_ID) || "smmplan";
     depositWizard = new import_telegraf.Scenes.WizardScene(
       DEPOSIT_WIZARD,
       // ШАГ 1: Запрос суммы
@@ -140758,7 +140761,7 @@ var init_deposit_wizard = __esm({
           return ctx.scene.leave();
         }
         await ctx.editMessageText("\u{1F504} \u0421\u043E\u0437\u0434\u0430\u044E \u043F\u043B\u0430\u0442\u0435\u0436, \u043F\u043E\u0434\u043E\u0436\u0434\u0438\u0442\u0435...");
-        const siteName = botTenantId === "flux" || botTenantId === "lovable" ? "SMMflux" : "SMMplan";
+        const siteName = botTenantId === "flux" ? "SMMflux" : "SMMplan";
         const res = await UnifiedPaymentService.createPayment(
           void 0,
           user.id,
@@ -140800,8 +140803,8 @@ ${errorText}
             }
           );
           try {
-            const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-            sendAdminAlert2(
+            const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+            sendAdminAlert3(
               `\u{1F4B3} <b>[BOT ALERT: \u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u0431\u0430\u043B\u0430\u043D\u0441]</b>
 
 \u{1F464} <b>TG ID:</b> <code>${tgId}</code> (@${ctx.from.username || "\u2014"})
@@ -140829,8 +140832,8 @@ ${errorText}
           }
         );
         try {
-          const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-          sendAdminAlert2(
+          const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+          sendAdminAlert3(
             `\u{1F4A5} <b>[BOT CRITICAL: \u0418\u0441\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435 \u0432 DepositWizard]</b>
 
 \u{1F464} <b>TG ID:</b> <code>${ctx.from?.id || "\u2014"}</code> (@${ctx.from?.username || "\u2014"})
@@ -140899,9 +140902,10 @@ var init_referral_wizard = __esm({
     "use strict";
     import_telegraf2 = __toESM(require_lib4());
     init_get_base_url();
+    init_tenant_resolver_edge();
     init_db();
     REFERRAL_WIZARD = "referral-wizard";
-    botTenantId2 = process.env.BOT_TENANT_ID || "smmplan";
+    botTenantId2 = normalizeTenantId(process.env.BOT_TENANT_ID) || "smmplan";
     referralWizard = new import_telegraf2.Scenes.WizardScene(
       REFERRAL_WIZARD,
       // ШАГ 1: Показать статистику и ссылку
@@ -140927,7 +140931,7 @@ var init_referral_wizard = __esm({
             });
             user.referralCode = newCode;
           }
-          const host = botTenantId2 === "flux" || botTenantId2 === "lovable" ? process.env.FLUX_APP_URL || "https://smmflux.ru" : getBaseUrlSync();
+          const host = botTenantId2 === "flux" ? process.env.FLUX_APP_URL || "https://smmflux.ru" : getBaseUrlSync();
           const link = `${host}/?ref=${user.referralCode}`;
           const earned = (user.referralBalance ?? 0) / 100;
           const refsCount = user._count?.referrals ?? 0;
@@ -140959,7 +140963,7 @@ var init_referral_wizard = __esm({
           return ctx.scene.leave();
         }
       },
-      async (ctx) => {
+      async () => {
         return;
       }
     );
@@ -142762,8 +142766,8 @@ ${errMsg}
           ).catch(() => {
           });
           try {
-            const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-            sendAdminAlert2(
+            const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+            sendAdminAlert3(
               `\u{1F4E6} <b>[BOT ALERT: \u041E\u0448\u0438\u0431\u043A\u0430 \u043E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u0438\u044F \u0437\u0430\u043A\u0430\u0437\u0430]</b>
 
 \u{1F464} <b>\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C:</b> TG ID <code>${tgId}</code> (@${ctx.from.username || "\u2014"})
@@ -142839,8 +142843,8 @@ ${errMsg}
         ).catch(() => {
         });
         try {
-          const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-          sendAdminAlert2(
+          const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+          sendAdminAlert3(
             `\u{1F4B3} <b>[BOT ALERT: \u041E\u0448\u0438\u0431\u043A\u0430 \u0444\u043E\u0440\u043C\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F \u0434\u043E\u043F\u043B\u0430\u0442\u044B \u0437\u0430 \u0437\u0430\u043A\u0430\u0437]</b>
 
 \u{1F464} <b>\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C:</b> TG ID <code>${tgId}</code> (@${ctx.from.username || "\u2014"})
@@ -144336,6 +144340,7 @@ var init_ticket_service = __esm({
     init_settings();
     init_sse_service();
     init_mime();
+    init_tenant_resolver_edge();
     TicketService = class {
       /**
        * Create a new ticket from an incoming customer email.
@@ -144347,9 +144352,7 @@ var init_ticket_service = __esm({
         if (!resolvedTenant && params.toEmail) {
           resolvedTenant = params.toEmail.toLowerCase().includes("flux") ? "flux" : "smmplan";
         }
-        if (!resolvedTenant) {
-          resolvedTenant = "smmplan";
-        }
+        resolvedTenant = normalizeTenantId(resolvedTenant) || "smmplan";
         let user = await db.user.findFirst({
           where: {
             email: { equals: normalizedEmail, mode: "insensitive" },
@@ -144423,7 +144426,7 @@ var init_ticket_service = __esm({
             where: { id: userId },
             select: { tenantId: true }
           });
-          const resolvedTenant = tenantId || user.tenantId || "smmplan";
+          const resolvedTenant = normalizeTenantId(tenantId || user.tenantId) || "smmplan";
           const existing = await tx.ticket.findFirst({
             where: { userId, tenantId: resolvedTenant, status: { not: "CLOSED" } },
             orderBy: { updatedAt: "desc" }
@@ -144489,8 +144492,8 @@ var init_ticket_service = __esm({
         }
         const resolvedMediaUrl = mediaUrl || attachmentsToCreate[0]?.url || null;
         const resolvedMediaType = mediaType || attachmentsToCreate[0]?.type || null;
-        let telegramError = null;
         if (sender === "STAFF" && ticketToUpdate.user.telegramId) {
+          let telegramError;
           try {
             const { supportBotService: supportBotService2 } = await Promise.resolve().then(() => (init_support_bot_service(), support_bot_service_exports));
             let replyToTgMsgId = void 0;
@@ -144506,7 +144509,7 @@ var init_ticket_service = __esm({
               replyToTgMsgId,
               resolvedMediaUrl || void 0,
               resolvedMediaType || void 0,
-              ticketToUpdate.tenantId || "smmplan"
+              normalizeTenantId(ticketToUpdate.tenantId) || "smmplan"
             );
             if (tgId) {
               telegramMsgId = tgId;
@@ -144554,7 +144557,7 @@ var init_ticket_service = __esm({
             ...sender === "STAFF" && !ticketToUpdate.firstRespondedAt ? { firstRespondedAt: /* @__PURE__ */ new Date() } : {}
           }
         });
-        if (sender === "STAFF" && message.ticket.user.email && !message.ticket.user.telegramId) {
+        if (sender === "STAFF" && ticketToUpdate.user?.email && !ticketToUpdate.user?.telegramId) {
           const actionText = `
         <p style="color: #4f46e5; font-size: 14px; font-weight: bold; margin-top: 20px;">
           \u270D\uFE0F \u0412\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u043E\u0442\u0432\u0435\u0442\u0438\u0442\u044C \u043D\u0430 \u044D\u0442\u043E \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u043F\u0440\u044F\u043C\u043E \u0447\u0435\u0440\u0435\u0437 \u043F\u043E\u0447\u0442\u0443 \u2014 \u043F\u0440\u043E\u0441\u0442\u043E \u043D\u0430\u043F\u0438\u0448\u0438\u0442\u0435 \u043E\u0442\u0432\u0435\u0442\u043D\u043E\u0435 \u043F\u0438\u0441\u044C\u043C\u043E.
@@ -144563,9 +144566,10 @@ var init_ticket_service = __esm({
           \u0418\u043B\u0438 \u0432\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u0432\u043E\u0439\u0442\u0438 \u0432 \u043F\u0430\u043D\u0435\u043B\u044C \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F (Dashboard) \u0434\u043B\u044F \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u0430 \u0432\u0441\u0435\u0439 \u043F\u0435\u0440\u0435\u043F\u0438\u0441\u043A\u0438.
         </p>
       `;
-          const supportDomain = await SettingsProvider.getSupportEmailDomain();
-          const settings = await SettingsProvider.getContactAndLegalSettings();
-          const companyName = settings.COMPANY_NAME || "SMMplan";
+          const ticketTenant = normalizeTenantId(ticketToUpdate.tenantId) || "smmplan";
+          const supportDomain = await SettingsProvider.getSupportEmailDomain(ticketTenant);
+          const settings = await SettingsProvider.getContactAndLegalSettings(ticketTenant);
+          const companyName = settings.COMPANY_NAME || (ticketTenant === "flux" ? "SMMflux" : "SMMplan");
           const replyToAddress = `support+${message.ticket.id}@${supportDomain}`;
           const escapeHtml4 = (unsafe) => (unsafe ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\n/g, "<br>");
           const previousMessages = await db.ticketMessage.findMany({
@@ -145270,7 +145274,7 @@ async function sendUserTransactions(ctx) {
   await ctx.reply(text, { parse_mode: "HTML" });
 }
 async function sendBindInstructions(ctx) {
-  const host = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (botTenantId4 === "flux" || botTenantId4 === "lovable" ? "https://smmflux.ru" : "https://test.smmplan.pro");
+  const host = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (botTenantId4 === "flux" ? "https://smmflux.ru" : "https://test.smmplan.pro");
   await ctx.reply(
     `\u{1F517} <b>\u0421\u0432\u044F\u0437\u044B\u0432\u0430\u043D\u0438\u0435 \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430 ${botSiteName}</b>
 
@@ -145622,6 +145626,7 @@ var init_bot = __esm({
     init_db();
     init_wallet_ops();
     init_admin_audit();
+    init_tenant_resolver_edge();
     init_order_wizard();
     init_deposit_wizard();
     init_referral_wizard();
@@ -145651,8 +145656,8 @@ var init_bot = __esm({
         agent
       }
     });
-    botTenantId4 = process.env.BOT_TENANT_ID || "smmplan";
-    botSiteName = botTenantId4 === "flux" || botTenantId4 === "lovable" ? "SMMflux" : "SMMplan";
+    botTenantId4 = normalizeTenantId(process.env.BOT_TENANT_ID) || "smmplan";
+    botSiteName = botTenantId4 === "flux" ? "SMMflux" : "SMMplan";
     stage = new import_telegraf5.Scenes.Stage([
       orderWizard,
       depositWizard,
@@ -145707,8 +145712,8 @@ var init_bot = __esm({
         } catch {
         }
         try {
-          const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-          sendAdminAlert2(
+          const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+          sendAdminAlert3(
             `\u{1F916} <b>[BOT ERROR: \u041D\u0435\u043E\u0431\u0440\u0430\u0431\u043E\u0442\u0430\u043D\u043D\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430 \u0431\u043E\u0442\u0430]</b>
 
 \u{1F464} <b>TG ID:</b> <code>${contextObj?.from?.id || "\u2014"}</code>
@@ -158980,6 +158985,11 @@ var init_subscription_sync_service = __esm({
 });
 
 // src/workers/index.ts
+var index_exports = {};
+__export2(index_exports, {
+  handleDeadLetter: () => handleDeadLetter
+});
+module.exports = __toCommonJS(index_exports);
 var import_bullmq7 = __toESM(require_cjs());
 init_queue_manager();
 init_db();
@@ -159092,8 +159102,8 @@ var OrderPreflightGuard = class {
         }
       });
       try {
-        const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-        await sendAdminAlert2(
+        const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+        await sendAdminAlert3(
           `\u{1F6E1}\uFE0F [\u0417\u0410\u0429\u0418\u0422\u0410 \u041E\u0422 \u0414\u0412\u041E\u0419\u041D\u041E\u0413\u041E \u0421\u041F\u0418\u0421\u0410\u041D\u0418\u042F] \u0417\u0430\u043A\u0430\u0437 #${order.numericId} (\u0423\u0441\u043B\u0443\u0433\u0430: ${order.service.name})
 \u0421\u0438\u0441\u0442\u0435\u043C\u0430 \u043F\u0440\u0435\u0434\u043E\u0442\u0432\u0440\u0430\u0442\u0438\u043B\u0430 \u043F\u043E\u0432\u0442\u043E\u0440\u043D\u0443\u044E \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0443 \u0437\u0430\u043A\u0430\u0437\u0430 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0443.
 \u0417\u0430\u043A\u0430\u0437 \u043F\u0435\u0440\u0435\u0432\u0435\u0434\u0451\u043D \u0432 \u0441\u0442\u0430\u0442\u0443\u0441 \xAB\u041D\u0430 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0435\xBB (PENDING_CHECK). \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0432 \u043A\u0430\u0431\u0438\u043D\u0435\u0442\u0435 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430, \u0431\u044B\u043B \u043B\u0438 \u0441\u043E\u0437\u0434\u0430\u043D \u0437\u0430\u043A\u0430\u0437, \u0447\u0442\u043E\u0431\u044B \u043D\u0435 \u043F\u043B\u0430\u0442\u0438\u0442\u044C \u0434\u0432\u0430\u0436\u0434\u044B.`,
@@ -159480,8 +159490,8 @@ var OrderDispatchExecutor = class {
             data: { status: "PENDING_CHECK", error: `\u0421\u0435\u0442\u0435\u0432\u043E\u0439 \u0442\u0430\u0439\u043C\u0430\u0443\u0442 \u043F\u0440\u0438 \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0435: ${error instanceof Error ? error.message : String(error)}` }
           });
           try {
-            const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-            sendAdminAlert2(
+            const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+            sendAdminAlert3(
               `\u26A0\uFE0F [\u0422\u0410\u0419\u041C\u0410\u0423\u0422 \u0421\u0412\u042F\u0417\u0418 \u0421 \u041F\u041E\u0421\u0422\u0410\u0412\u0429\u0418\u041A\u041E\u041C] \u0417\u0430\u043A\u0430\u0437 #${order.numericId} (\u0423\u0441\u043B\u0443\u0433\u0430: ${order.service?.name || ""})
 \u041F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A ${route.provider.name} \u043D\u0435 \u043E\u0442\u0432\u0435\u0442\u0438\u043B \u0432\u043E\u0432\u0440\u0435\u043C\u044F. \u0417\u0430\u043A\u0430\u0437 \u043F\u0435\u0440\u0435\u0432\u0435\u0434\u0451\u043D \u0432 \u0441\u0442\u0430\u0442\u0443\u0441 PENDING_CHECK.`,
               "WARNING"
@@ -162748,8 +162758,8 @@ ${anomalies.join("\n")}`,
             reason: `Exchange rate fluctuation: Retail price ${pricePerUnitRub.toFixed(4)} < Cost ${purchaseCostPerUnitRub.toFixed(4)}`
           }
         });
-        const { sendAdminAlert: sendAdminAlert2 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
-        await sendAdminAlert2(alertMsg, "CRITICAL");
+        const { sendAdminAlert: sendAdminAlert3 } = await Promise.resolve().then(() => (init_notifications(), notifications_exports));
+        await sendAdminAlert3(alertMsg, "CRITICAL");
       } else {
         const newPriceCents = Math.round(pricePer1kRubRounded * 100);
         updatesBatch.push(
@@ -165871,9 +165881,6 @@ async function indexNowProcessor(job) {
   }
 }
 
-// src/workers/index.ts
-init_order_service();
-
 // src/workers/eta-alerts.ts
 init_notifications();
 init_logger();
@@ -165902,8 +165909,118 @@ function trackEtaFailure(job, err) {
 
 // src/workers/index.ts
 init_queue_manager();
-var log33 = logger.child({ component: "WorkerManager" });
-log33.info("\u{1F680} Starting BullMQ workers...");
+
+// src/workers/dead-letter.ts
+init_queue_manager();
+init_db();
+init_logger();
+init_order_service();
+init_notifications();
+var log33 = logger.child({ component: "DeadLetterHandler" });
+var MAX_ATTEMPTS = 3;
+async function handleDeadLetter(queueName, job, err) {
+  if (!job) return {};
+  const maxAttempts = job.opts?.attempts ?? MAX_ATTEMPTS;
+  log33.error(`Job failed`, {
+    queue: queueName,
+    jobId: job.id,
+    attemptsMade: job.attemptsMade,
+    error: err.message
+  });
+  if (job.attemptsMade >= maxAttempts || err.name === "UnrecoverableError") {
+    if (job.attemptsMade >= maxAttempts) {
+      console.error(
+        `[WORKER][ACTION REQUIRED] Job ${job.id} (${job.name}) exhausted all ${job.attemptsMade} attempts. Last error: ${err.message}`
+      );
+    }
+    let isParkedForTriage = false;
+    let isRefunded = false;
+    try {
+      await dlqQueue.add("dead-letter", {
+        originalQueue: queueName,
+        jobId: job.id || "unknown",
+        payload: job.data,
+        error: err.message,
+        failedAt: (/* @__PURE__ */ new Date()).toISOString()
+      });
+      if (queueName === "ordersQueue") {
+        const payload = job.data;
+        if (payload?.orderId) {
+          const currentOrder = await db.order.findUnique({
+            where: { id: payload.orderId },
+            select: { status: true, numericId: true }
+          }).catch(() => null);
+          if (currentOrder && (currentOrder.status === "PENDING_CHECK" || currentOrder.status === "IN_PROGRESS")) {
+            log33.info(`[WORKER] Order #${currentOrder.numericId} (${payload.orderId}) is in '${currentOrder.status}'. Skipping auto-fail to allow operator triage / balance autoflush.`);
+            isParkedForTriage = true;
+          } else {
+            await orderService.failOrderTerminal(payload.orderId, err.message).catch((e) => {
+              log33.error("Failed to terminal-fail order", { error: e.message });
+            });
+            log33.info(`Auto-refunded dead-letter order ${payload.orderId}`);
+            isRefunded = true;
+          }
+        }
+      }
+      if (queueName === "refillQueue") {
+        const payload = job.data;
+        if (payload?.refillId) {
+          await db.refill.update({
+            where: { id: payload.refillId },
+            data: { status: "ERROR" }
+          }).catch(() => null);
+          log33.info(`Marked dead-letter refill ${payload.refillId} as ERROR`);
+        }
+      }
+      const isFinancialQueue = ["ordersQueue", "paymentSyncQueue", "paymentGatewayQueue"].includes(queueName);
+      if (isFinancialQueue && !isParkedForTriage) {
+        try {
+          sendAdminAlert(
+            `\u{1FAA6} *Dead Letter Job (P0 \u0424\u0438\u043D\u0430\u043D\u0441\u043E\u0432\u044B\u0439)*
+
+\u041E\u0447\u0435\u0440\u0435\u0434\u044C: \`${queueName}\`
+Job ID: \`${job.id}\`
+\u041F\u043E\u043F\u044B\u0442\u043E\u043A: ${job.attemptsMade}/${maxAttempts}
+
+\u041E\u0448\u0438\u0431\u043A\u0430: ${err.message}`,
+            "CRITICAL"
+          );
+        } catch {
+        }
+      } else if (!isParkedForTriage) {
+        try {
+          const { P0AlertDebouncer: P0AlertDebouncer2 } = await Promise.resolve().then(() => (init_p0_alert_debouncer(), p0_alert_debouncer_exports));
+          const errKey = `dlq:${queueName}:${err.name || "Error"}`;
+          const { shouldSend, occurrences } = await P0AlertDebouncer2.checkDeduplicatedAlert(errKey, 7200);
+          if (shouldSend) {
+            const occInfo = occurrences > 1 ? ` (\u041F\u043E\u0432\u0442\u043E\u0440\u043E\u0432 \u0437\u0430 2\u0447: ${occurrences})` : "";
+            sendAdminAlert(
+              `\u26A0\uFE0F *\u0424\u043E\u043D\u043E\u0432\u0430\u044F \u0437\u0430\u0434\u0430\u0447\u0430 \u0432 DLQ (P1 \u041E\u0431\u0441\u043B\u0443\u0436\u0438\u0432\u0430\u043D\u0438\u0435)*${occInfo}
+
+\u041E\u0447\u0435\u0440\u0435\u0434\u044C: \`${queueName}\`
+Job ID: \`${job.id}\`
+\u041E\u0448\u0438\u0431\u043A\u0430: ${err.message}`,
+              "WARNING"
+            );
+          } else {
+            log33.info(`Suppressed duplicate DLQ alert for ${queueName} (${occurrences} occurrences in window)`);
+          }
+        } catch {
+        }
+      }
+      log33.error("Job dead-lettered", { queue: queueName, jobId: job.id });
+      return { dlqStored: true, parkedForTriage: isParkedForTriage, refunded: isRefunded };
+    } catch (dlqErr) {
+      log33.error("Failed to write to DLQ", { error: dlqErr.message });
+      return { dlqStored: false, parkedForTriage: isParkedForTriage, refunded: isRefunded };
+    }
+  }
+  return {};
+}
+
+// src/workers/index.ts
+var log34 = logger.child({ component: "WorkerManager" });
+log34.info("\u{1F680} Starting BullMQ workers...");
 var connection = getRedisConnection();
 var workerConfig = {
   connection,
@@ -165959,93 +166076,6 @@ var aiObserverWorker = new import_bullmq7.Worker("aiObserverQueue", aiObserverPr
 var aiEconomicOptimizerWorker = new import_bullmq7.Worker("aiEconomicOptimizerQueue", aiEconomicOptimizerProcessor, workerConfig);
 var geoAvailabilityWorker = new import_bullmq7.Worker("geoAvailabilityQueue", geo_availability_processor_default, workerConfig);
 var indexNowWorker = new import_bullmq7.Worker("indexnow-queue", indexNowProcessor, workerConfig);
-var MAX_ATTEMPTS = 3;
-async function handleDeadLetter(queueName, job, err) {
-  if (!job) return;
-  const maxAttempts = job.opts?.attempts ?? MAX_ATTEMPTS;
-  log33.error(`Job failed`, {
-    queue: queueName,
-    jobId: job.id,
-    attemptsMade: job.attemptsMade,
-    error: err.message
-  });
-  if (job.attemptsMade >= maxAttempts || err.name === "UnrecoverableError") {
-    if (job.attemptsMade >= maxAttempts) {
-      console.error(
-        `[WORKER][ACTION REQUIRED] Job ${job.id} (${job.name}) exhausted all ${job.attemptsMade} attempts. Last error: ${err.message}`
-      );
-    }
-    try {
-      await dlqQueue.add("dead-letter", {
-        originalQueue: queueName,
-        jobId: job.id,
-        payload: job.data,
-        error: err.message,
-        failedAt: (/* @__PURE__ */ new Date()).toISOString()
-      });
-      let isParkedForTriage = false;
-      if (queueName === "ordersQueue") {
-        const payload = job.data;
-        if (payload?.orderId) {
-          const currentOrder = await db.order.findUnique({
-            where: { id: payload.orderId },
-            select: { status: true, numericId: true }
-          });
-          if (currentOrder && (currentOrder.status === "PENDING_CHECK" || currentOrder.status === "IN_PROGRESS")) {
-            log33.info(`[WORKER] Order #${currentOrder.numericId} (${payload.orderId}) is in '${currentOrder.status}'. Skipping auto-fail to allow operator triage / balance autoflush.`);
-            isParkedForTriage = true;
-          } else {
-            await orderService.failOrderTerminal(payload.orderId, err.message);
-            log33.info(`Auto-refunded dead-letter order ${payload.orderId}`);
-          }
-        }
-      }
-      if (queueName === "refillQueue") {
-        const payload = job.data;
-        if (payload?.refillId) {
-          await db.refill.update({
-            where: { id: payload.refillId },
-            data: { status: "ERROR" }
-          });
-          log33.info(`Marked dead-letter refill ${payload.refillId} as ERROR`);
-        }
-      }
-      const isFinancialQueue = ["ordersQueue", "paymentSyncQueue", "paymentGatewayQueue"].includes(queueName);
-      if (isFinancialQueue && !isParkedForTriage) {
-        await sendAdminAlert(
-          `\u{1FAA6} *Dead Letter Job (P0 \u0424\u0438\u043D\u0430\u043D\u0441\u043E\u0432\u044B\u0439)*
-
-\u041E\u0447\u0435\u0440\u0435\u0434\u044C: \`${queueName}\`
-Job ID: \`${job.id}\`
-\u041F\u043E\u043F\u044B\u0442\u043E\u043A: ${job.attemptsMade}/${maxAttempts}
-
-\u041E\u0448\u0438\u0431\u043A\u0430: ${err.message}`,
-          "CRITICAL"
-        );
-      } else if (!isParkedForTriage) {
-        const { P0AlertDebouncer: P0AlertDebouncer2 } = await Promise.resolve().then(() => (init_p0_alert_debouncer(), p0_alert_debouncer_exports));
-        const errKey = `dlq:${queueName}:${err.name || "Error"}`;
-        const { shouldSend, occurrences } = await P0AlertDebouncer2.checkDeduplicatedAlert(errKey, 7200);
-        if (shouldSend) {
-          const occInfo = occurrences > 1 ? ` (\u041F\u043E\u0432\u0442\u043E\u0440\u043E\u0432 \u0437\u0430 2\u0447: ${occurrences})` : "";
-          await sendAdminAlert(
-            `\u26A0\uFE0F *\u0424\u043E\u043D\u043E\u0432\u0430\u044F \u0437\u0430\u0434\u0430\u0447\u0430 \u0432 DLQ (P1 \u041E\u0431\u0441\u043B\u0443\u0436\u0438\u0432\u0430\u043D\u0438\u0435)*${occInfo}
-
-\u041E\u0447\u0435\u0440\u0435\u0434\u044C: \`${queueName}\`
-Job ID: \`${job.id}\`
-\u041E\u0448\u0438\u0431\u043A\u0430: ${err.message}`,
-            "WARNING"
-          );
-        } else {
-          log33.info(`Suppressed duplicate DLQ alert for ${queueName} (${occurrences} occurrences in window)`);
-        }
-      }
-      log33.error("Job dead-lettered", { queue: queueName, jobId: job.id });
-    } catch (dlqErr) {
-      log33.error("Failed to write to DLQ", { error: dlqErr.message });
-    }
-  }
-}
 orderWorker.on("failed", (job, err) => {
   handleDeadLetter("ordersQueue", job, err);
 });
@@ -166056,10 +166086,10 @@ catalogWorker.on("failed", (job, err) => {
   handleDeadLetter("catalogQueue", job, err);
 });
 cleanupWorker.on("failed", (job, err) => {
-  log33.error("Cleanup job failed", { error: err.message });
+  log34.error("Cleanup job failed", { error: err.message });
 });
 telegramWorker.on("failed", (job, err) => {
-  log33.error("Telegram notification failed", { error: err.message });
+  log34.error("Telegram notification failed", { error: err.message });
 });
 paymentSyncWorker.on("failed", (job, err) => {
   handleDeadLetter("paymentSyncQueue", job, err);
@@ -166097,28 +166127,28 @@ async function updateHeartbeat() {
   try {
     await connection.set(HEARTBEAT_KEY, Date.now().toString(), "EX", HEARTBEAT_TTL);
   } catch {
-    log33.warn("Heartbeat update failed (Redis connection issue)");
+    log34.warn("Heartbeat update failed (Redis connection issue)");
   }
 }
 updateHeartbeat();
 var heartbeatInterval = setInterval(updateHeartbeat, 6e4);
-ensureSyncCron().catch((e) => log33.error("Failed to setup Sync Cron", { error: e.message }));
-ensureCleanupCron().catch((e) => log33.error("Failed to setup Cleanup Cron", { error: e.message }));
-ensureETACron().catch((e) => log33.error("Failed to setup ETA Cron", { error: e.message }));
-ensureCatalogSyncCron().catch((e) => log33.error("Failed to setup Catalog Sync Cron", { error: e.message }));
-ensureOrphanSweepCron().catch((e) => log33.error("Failed to setup Orphan Sweep Cron", { error: e.message }));
-ensurePaymentSyncCron().catch((e) => log33.error("Failed to setup Payment Sync Cron", { error: e.message }));
-ensureDripfeedCron().catch((e) => log33.error("Failed to setup Dripfeed Cron", { error: e.message }));
-ensureArticlePublishCron().catch((e) => log33.error("Failed to setup Article Publish Cron", { error: e.message }));
-ensurePendingCheckCron().catch((e) => log33.error("Failed to setup PendingCheck Cron", { error: e.message }));
-ensureAiObserverCron().catch((e) => log33.error("Failed to setup AI Observer Cron", { error: e.message }));
-ensureAiEconomicOptimizerCron().catch((e) => log33.error("Failed to setup AI Economic Optimizer Cron", { error: e.message }));
-ensureGeoAvailabilityCron().catch((e) => log33.error("Failed to setup Geo Availability Cron", { error: e.message }));
-ensureCBRSyncCron().catch((e) => log33.error("Failed to setup CBR Rate Sync Cron", { error: e.message }));
-ensureProxySubscriptionSyncCron().catch((e) => log33.error("Failed to setup Proxy Subscription Sync Cron", { error: e.message }));
-log33.info("All workers started", { queues: ["ordersQueue", "refillQueue", "syncQueue", "catalogQueue", "cleanup", "paymentSyncQueue", "articlePublishQueue", "aiObserverQueue", "aiEconomicOptimizerQueue", "geoAvailabilityQueue"] });
+ensureSyncCron().catch((e) => log34.error("Failed to setup Sync Cron", { error: e.message }));
+ensureCleanupCron().catch((e) => log34.error("Failed to setup Cleanup Cron", { error: e.message }));
+ensureETACron().catch((e) => log34.error("Failed to setup ETA Cron", { error: e.message }));
+ensureCatalogSyncCron().catch((e) => log34.error("Failed to setup Catalog Sync Cron", { error: e.message }));
+ensureOrphanSweepCron().catch((e) => log34.error("Failed to setup Orphan Sweep Cron", { error: e.message }));
+ensurePaymentSyncCron().catch((e) => log34.error("Failed to setup Payment Sync Cron", { error: e.message }));
+ensureDripfeedCron().catch((e) => log34.error("Failed to setup Dripfeed Cron", { error: e.message }));
+ensureArticlePublishCron().catch((e) => log34.error("Failed to setup Article Publish Cron", { error: e.message }));
+ensurePendingCheckCron().catch((e) => log34.error("Failed to setup PendingCheck Cron", { error: e.message }));
+ensureAiObserverCron().catch((e) => log34.error("Failed to setup AI Observer Cron", { error: e.message }));
+ensureAiEconomicOptimizerCron().catch((e) => log34.error("Failed to setup AI Economic Optimizer Cron", { error: e.message }));
+ensureGeoAvailabilityCron().catch((e) => log34.error("Failed to setup Geo Availability Cron", { error: e.message }));
+ensureCBRSyncCron().catch((e) => log34.error("Failed to setup CBR Rate Sync Cron", { error: e.message }));
+ensureProxySubscriptionSyncCron().catch((e) => log34.error("Failed to setup Proxy Subscription Sync Cron", { error: e.message }));
+log34.info("All workers started", { queues: ["ordersQueue", "refillQueue", "syncQueue", "catalogQueue", "cleanup", "paymentSyncQueue", "articlePublishQueue", "aiObserverQueue", "aiEconomicOptimizerQueue", "geoAvailabilityQueue"] });
 var shutdown = async () => {
-  log33.info("Gracefully shutting down workers...");
+  log34.info("Gracefully shutting down workers...");
   clearInterval(heartbeatInterval);
   await connection.del(HEARTBEAT_KEY);
   await Promise.all([
@@ -166139,14 +166169,14 @@ var shutdown = async () => {
   ]);
   await db.$disconnect();
   if (connection) await connection.quit();
-  log33.info("Workers stopped successfully");
+  log34.info("Workers stopped successfully");
   process.exit(0);
 };
 process.on("unhandledRejection", (reason, promise) => {
-  log33.error("Unhandled Rejection in Worker process:", { reason, promise });
+  log34.error("Unhandled Rejection in Worker process:", { reason, promise });
 });
 process.on("uncaughtException", (error) => {
-  log33.error("Uncaught Exception in Worker process:", { error: error.message, stack: error.stack });
+  log34.error("Uncaught Exception in Worker process:", { error: error.message, stack: error.stack });
 });
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
@@ -166161,6 +166191,10 @@ process.stdin.on("data", (data) => {
   if (data.toString().trim() === "shutdown") {
     shutdown();
   }
+});
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  handleDeadLetter
 });
 /*! Bundled license information:
 

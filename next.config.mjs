@@ -137,6 +137,16 @@ const nextConfig = {
         destination: '/services/vk',
         permanent: true,
       },
+      {
+        source: '/ab-lovable',
+        destination: '/?tenant=flux',
+        permanent: true,
+      },
+      {
+        source: '/ab-lovable/:path*',
+        destination: '/?tenant=flux',
+        permanent: true,
+      },
     ];
   },
   async headers() {

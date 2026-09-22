@@ -1,3 +1,25 @@
+- [x] 🧹 [CLEANUP-LOVABLE-SMMFLUX-2026] Полная зачистка остаточных упоминаний фантомного бренда Lovable и консолидация на SMMflux (100% COMPLETE & VERIFIED):
+  * 🌐 **[BRAND-01: Дебрандинг и роутинг (`next.config.mjs`, `src/app/ab-lovable`)]:**
+    - Удалена устаревшая страница-дубликат `src/app/ab-lovable/page.tsx`.
+    - В `next.config.mjs` настроен перманентный 308-редирект с `/ab-lovable` и `/ab-lovable/:path*` на `/?tenant=flux`.
+    - Все компоненты витрины строго переведены на префикс `Flux*` (`FluxOrderClient`, `FluxTrustBar`, `FluxWhyUs`, `FluxReviews`, `FluxFAQ`, `FluxDashboardShell`, `FluxDashboardHome`, `FluxOrdersView`, `FluxOrdersKanban`, `FluxOrdersList`, `FluxDashboardOrderWizard`).
+  * 🛡️ **[BRAND-02: Инварианты AGENTS.md и обратная совместимость]:**
+    - Сохранен алиас обратной совместимости `normalizeTenantId('lovable') -> 'flux'` в `src/lib/tenant-resolver-edge.ts`, `src/lib/tenant-scope.ts`, `src/lib/seo-helpers.ts` и `src/tenants/registry.ts`.
+    - `src/proxy.ts`: сохранен безопасный 302-редирект с `lovable.pro`, `www.lovable.pro`, `flux.lovable.pro` на `https://smmflux.ru`.
+    - Обновлены вызовы в ботах (`src/bot/index.ts`, `deposit.wizard.ts`, `referral.wizard.ts`, `role-handlers.ts`) и в дев-панели (`FloatingQADock.tsx`) для безопасного использования `normalizeTenantId`.
+  * 🗄️ **[BRAND-03: БД, Скрипты и Документация]:**
+    - `prisma/schema.prisma`: обновлен комментарий `preferredDashboard` на `// "CLASSIC" or "FLUX"`.
+    - `scripts/seed-tenants.ts`, `scripts/gen-magic.ts`, `scripts/migrate-system-settings.ts`: переведены на сидирование и работу со строго каноническим тенантом `flux` (`SMMflux`, `smmflux.ru`).
+    - `scripts/pack-project-in-5-files.ts`, `scripts/build-flux-dump.ts`, `scripts/build-recon-package.ts`, `scripts/build-w1-finance-package.ts`, `scripts/build-w2-orders-package.ts`, `scripts/generate-5-volumes.js`, `scripts/generate-audit-package-rev1.ts`, `scripts/build-final-audit-package.ts`: полностью очищены от остаточных ссылок на `Lovable*` и переведены на `Flux*` и `OmniSMM 1.0 (SMMplan / SMMflux)`.
+    - `Design.md`, `docs/INSTALLATION.md`, `BACKLOG.md` (TECH-005 закрыт), `docs/audits/GOOGLE_SEARCH_CONSOLE_SETUP.md`, `docs/audits/YANDEX_WEBMASTER_SETUP.md`: очищены от упоминаний Lovable.
+  * 🧪 **Контроль качества & Тестирование (DoD 100% PASS):**
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+    - `npx eslint`: 0 ошибок / 0 ворнингов на измененных компонентах.
+    - `npx tsx scripts/check-clean-architecture.ts`: 0 layer violations, 0 circular cycles.
+    - `npx tsx scripts/lint-tenant-isolation.ts`: 0 blockers.
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+    - `npm run check:domains`: 0 нарушений.
+    - Vitest тесты: 32/32 PASS (100%): `seo-opengraph-and-vitals.test.ts` (9/9), `tenant-isolation-ast.test.ts` (8/8), `admin-tenants-integrity.test.ts` (5/5), `multitenant-security.test.ts` (5/5), `production-preflight-master.test.ts` (5/5).
 - [x] 🛡️ [MULTI-TENANT-PACKAGE-3-BLIND-SPOTS-2026] Устранение 8 слепых зон межтенантной изоляции (100% COMPLETE & VERIFIED):
   * 💳 **[PAY-01: Payment Status Polling IDOR & Identity (`src/app/api/payments/[id]/status/route.ts`)]:**
     - `findUnique` обогащен связью `user: { select: { id, email, tenantId } }`.

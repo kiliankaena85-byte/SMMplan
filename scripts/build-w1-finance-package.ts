@@ -36,7 +36,7 @@ const supplementItems = [
 let markdown = `# 💰 AUDIT_PACKAGE_2_W1_FINANCE.md
 ## Аудиторский пакет ВОЛНЫ 1: Финансовое ядро (Деньги, Платежи, Вебхуки, Балансы)
 
-**Проект:** Multi-Tenant SMM Platform (Flux / SMMplan / Lovable)  
+**Проект:** Multi-Tenant SMM Platform (OmniSMM 1.0: SMMplan / SMMflux)  
 **Дата:** 28 июля 2026 г.  
 **Инженер:** Senior Frontend & Financial Systems Engineer (Antigravity AI)  
 **Предмет:** Полный исходный код финансового контура платформы без сокращений.

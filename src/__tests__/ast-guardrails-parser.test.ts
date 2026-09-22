@@ -313,5 +313,77 @@ describe('AST Guardrails Parser Invariant Tests', () => {
       );
       expect(violations).toHaveLength(0);
     });
+
+    it('should verify modernized ticket.ts actions (changeTicketStatus, editTicketMessage, bulkRefill, bulkRefund, telegram bind) have zero unhandled throw violations', () => {
+      const engine = new AstGuardrailsEngine();
+      engine.analyzeFile(path.resolve(process.cwd(), 'src/actions/support/ticket.ts'));
+
+      const violations = (engine as any).violations.filter(
+        (v: any) =>
+          v.ruleId === 'server-action-typed-return' &&
+          (v.snippet.includes('bulkRefillOrdersAction') ||
+           v.snippet.includes('bulkRefundOrdersAction') ||
+           v.snippet.includes('changeTicketStatus') ||
+           v.snippet.includes('editTicketMessage') ||
+           v.snippet.includes('adminManualTelegramBind') ||
+           v.snippet.includes('requestTelegramBind') ||
+           v.snippet.includes('Не удалось изменить статус тикета') ||
+           v.snippet.includes('Не удалось привязать Telegram') ||
+           v.snippet.includes('Ошибка массового перезапуска'))
+      );
+      expect(violations).toHaveLength(0);
+    });
+
+    it('should scan server actions and classify compliant vs violating files with auditServerActionsZeroThrow', () => {
+      const engine = new AstGuardrailsEngine();
+      const audit = engine.auditServerActionsZeroThrow('src/actions/user');
+
+      expect(audit.scannedCount).toBeGreaterThan(0);
+      expect(Array.isArray(audit.compliantFiles)).toBe(true);
+      // Top-up and referral actions must be in compliant files
+      const hasCompliantTopUp = audit.compliantFiles.some((f) => f.includes('top-up.action.ts'));
+      expect(hasCompliantTopUp).toBe(true);
+    });
+
+    it('should accurately detect unhandled throw in synthetic action and mark compliant in safe-action', () => {
+      const actionsDir = path.join(tempDir, 'src/actions/test-domain');
+      fs.mkdirSync(actionsDir, { recursive: true });
+
+      // File 1: Unhandled throw
+      const badActionPath = path.join(actionsDir, 'bad.action.ts');
+      fs.writeFileSync(
+        badActionPath,
+        `
+        'use server';
+        export async function badAction(id: string) {
+          if (!id) throw new Error('Missing ID');
+          return { success: true };
+        }
+        `
+      );
+
+      // File 2: Safe action returning typed error
+      const goodActionPath = path.join(actionsDir, 'good.action.ts');
+      fs.writeFileSync(
+        goodActionPath,
+        `
+        'use server';
+        export async function goodAction(id: string) {
+          if (!id) return { success: false, error: 'Missing ID' };
+          return { success: true };
+        }
+        `
+      );
+
+      const engine = new AstGuardrailsEngine(tempDir);
+      const audit = engine.auditServerActionsZeroThrow('src/actions/test-domain');
+
+      expect(audit.scannedCount).toBe(2);
+      expect(audit.violations.length).toBeGreaterThanOrEqual(1);
+      expect(audit.violatingFiles.some((f) => f.includes('bad.action.ts'))).toBe(true);
+      expect(audit.compliantFiles.some((f) => f.includes('good.action.ts'))).toBe(true);
+      expect(audit.violations[0].snippet).toContain("throw new Error('Missing ID')");
+    });
   });
 });
+

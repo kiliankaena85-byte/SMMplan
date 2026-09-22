@@ -11,8 +11,8 @@ async function buildBothPrototypes() {
   await page.goto('http://localhost:3000/', { waitUntil: 'networkidle' });
   await page.screenshot({ path: path.join(brainDir, 'smmplan_live_page_capture.png'), fullPage: true });
 
-  console.log('2. Navigating to FLux Landing: http://localhost:3000/ab-lovable');
-  await page.goto('http://localhost:3000/ab-lovable', { waitUntil: 'networkidle' });
+  console.log('2. Navigating to FLux Landing: http://localhost:3000/?tenant=flux');
+  await page.goto('http://localhost:3000/?tenant=flux', { waitUntil: 'networkidle' });
   await page.screenshot({ path: path.join(brainDir, 'flux_live_page_capture.png'), fullPage: true });
 
   await browser.close();

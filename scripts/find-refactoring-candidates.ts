@@ -20,7 +20,7 @@ const all = getFiles('src')
     const lines = content.split('\n').length;
     const rel = f.replace(/\\/g, '/');
     let scope: 'SMMplan' | 'SMMflux' | 'OmniSMM Core / Admin' = 'OmniSMM Core / Admin';
-    if (rel.toLowerCase().includes('flux') || rel.includes('ab-lovable')) {
+    if (rel.toLowerCase().includes('flux')) {
       scope = 'SMMflux';
     } else if (rel.includes('landing') || rel.includes('PreLaunch') || rel.includes('plan-')) {
       scope = 'SMMplan';

@@ -2,13 +2,13 @@ import { db } from "../src/lib/db";
 import crypto from "crypto";
 
 async function main() {
-  let user = await db.user.findFirst({ where: { tenantId: "lovable" } });
+  let user = await db.user.findFirst({ where: { tenantId: "flux" } });
   if (!user) {
     user = await db.user.create({
       data: {
         email: "demo@smmflux.com",
         role: "USER",
-        tenantId: "lovable",
+        tenantId: "flux",
       },
     });
   }

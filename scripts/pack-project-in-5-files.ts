@@ -58,28 +58,17 @@ const corePriorityFiles = [
   'src/utils/status-helpers.ts',
   'src/hooks/useOrderWizard.ts',
   'src/app/globals.css',
-  'src/app/ab-lovable/page.tsx',
-  'src/app/api/auth/logout/route.ts',
-  'src/app/dashboard/layout.tsx',
-  'src/app/dashboard/new-order/page.tsx',
-  'src/app/dashboard/orders/page.tsx',
-  'src/app/dashboard/page.tsx',
-  'src/components/dashboard/order-wizard/WizardStepIndicator.tsx',
-  'src/components/dashboard/order-wizard/WizardNetworkStep.tsx',
-  'src/components/dashboard/order-wizard/WizardCategoryStep.tsx',
-  'src/components/dashboard/order-wizard/WizardServiceStep.tsx',
-  'src/components/dashboard/LovableNewOrderWorkspace.tsx',
-  'src/components/dashboard/LovableDock.tsx',
-  'src/components/dashboard/LovableOrdersKanban.tsx',
-  'src/components/dashboard/LovableOrdersList.tsx',
-  'src/components/dashboard/lovable/LovableDashboardShell.tsx',
-  'src/components/dashboard/lovable/LovableDashboardHome.tsx',
-  'src/components/dashboard/lovable/LovableOrdersView.tsx',
-  'src/components/ab-test/LovableOrderClient.tsx',
-  'src/components/ab-test/LovableTrustBar.tsx',
-  'src/components/ab-test/LovableWhyUs.tsx',
-  'src/components/ab-test/LovableFAQ.tsx',
-  'src/components/ab-test/LovableReviews.tsx',
+  'src/components/dashboard/flux/FluxDashboardOrderWizard.tsx',
+  'src/components/dashboard/FluxOrdersKanban.tsx',
+  'src/components/dashboard/FluxOrdersList.tsx',
+  'src/components/dashboard/flux/FluxDashboardShell.tsx',
+  'src/components/dashboard/flux/FluxDashboardHome.tsx',
+  'src/components/dashboard/flux/FluxOrdersView.tsx',
+  'src/components/ab-test/FluxOrderClient.tsx',
+  'src/components/ab-test/FluxTrustBar.tsx',
+  'src/components/ab-test/FluxWhyUs.tsx',
+  'src/components/ab-test/FluxFAQ.tsx',
+  'src/components/ab-test/FluxReviews.tsx',
   'src/components/landing/Header.tsx',
   'src/components/landing/MegaFooter.tsx',
   'src/components/landing/TrustBar.tsx',
@@ -137,7 +126,6 @@ allSourceFiles.forEach((relPath) => {
   } else if (
     relPath.includes('components/ab-test') ||
     relPath.includes('components/landing') ||
-    relPath.includes('app/ab-lovable') ||
     relPath.includes('components/orders')
   ) {
     part3Files.push(relPath);
@@ -193,7 +181,7 @@ function getLang(relPath: string): string {
 }
 
 volumes.forEach((vol) => {
-  let content = `# СБОРКА ИСХОДНОГО КОДА ПРОЕКТА SMMplan / Flux / Lovable\n`;
+  let content = `# СБОРКА ИСХОДНОГО КОДА ПРОЕКТА OmniSMM 1.0 (SMMplan / SMMflux)\n`;
   content += `## ${vol.title}\n\n`;
   content += `**Дата сборки:** 28 июля 2026  \n`;
   content += `**Файл:** \`${vol.filename}\`  \n`;

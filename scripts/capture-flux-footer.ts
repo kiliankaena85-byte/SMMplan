@@ -6,7 +6,7 @@ async function main() {
   const page = await context.newPage();
 
   console.log("Navigating to SMMflux page on port 3001...");
-  await page.goto("http://127.0.0.1:3001/ab-lovable", { waitUntil: "networkidle", timeout: 30000 });
+  await page.goto("http://127.0.0.1:3001/?tenant=flux", { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForTimeout(1500);
 
   const footer = page.locator("footer");

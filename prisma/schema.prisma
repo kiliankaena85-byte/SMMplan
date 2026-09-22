@@ -13,7 +13,7 @@ model User {
   email              String
   passwordHash       String?
   role               String    @default("USER") // USER, SUPPORT, MANAGER, OWNER
-  preferredDashboard String    @default("CLASSIC") // "CLASSIC" or "LOVABLE"
+  preferredDashboard String    @default("CLASSIC") // "CLASSIC" or "FLUX"
   balance            BigInt    @default(0)
   quarantineBalance  BigInt    @default(0) // Funds pending Owner approval (Escrow)
   totalSpent         BigInt    @default(0) // Lifetime value in Cents

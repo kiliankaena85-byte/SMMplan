@@ -2,8 +2,8 @@
 
 > **Reviewer Model:** `cohere/north-mini-code:free` (OpenRouter Free Tier)  
 > **Verdict:** **APPROVED**  
-> **Score:** **8 / 10**  
-> **Date:** 2026-09-11T09:47:33.813Z  
+> **Score:** **9 / 10**  
+> **Date:** 2026-09-22T13:27:41.401Z  
 > **Target Specification:** `docs/specs/SPEC-2026-09-11-automatic-prisma-tenant-enforcer.md`
 
 ---
@@ -22,20 +22,22 @@
 ## 2. Reviewer Feedback & Analysis
 
 ### Strengths:
-- Automatic tenantId injection across all Prisma operations eliminates manual filtering errors and enforces zero‑trust isolation at the ORM layer.
-- Fail‑closed context with explicit SECURITY_TENANT_UNRESOLVED prevents accidental data leaks and provides a clear security boundary.
-- Auditable bypass via runWithTenantBypass ensures controlled admin/system access while maintaining traceability.
-- Comprehensive TDD plan validates auto‑scoping, IDOR protection, and bypass functionality before production rollout.
+- Automatic tenantId injection across all Prisma operations eliminates manual filtering errors
+- Fail‑closed context with SECURITY_TENANT_UNRESOLVED prevents silent leaks
+- Auditable bypass via runWithTenantBypass with mandatory reason logging
+- Clear invariants and TDD plan ensure consistent implementation
 
 ### Concerns & Edge Cases:
-- Raw Prisma queries ($queryRaw/$executeRaw) and ad‑hoc SQL via extensions bypass the tenant enforcer unless explicitly wrapped; migrations/workers must use bypass and be audited.
-- Reliance on AsyncLocalStorage requires disciplined usage; any async hand‑off outside a runWithTenant context can lose tenant isolation.
-- Conversion of findUnique to findFirst({ where: { id, tenantId } }) may affect behavior for composite unique keys or when super‑admin queries need global visibility without bypass.
+- AsyncLocalStorage may lose context across separate event‑loop ticks (setImmediate, setTimeout) unless callbacks are wrapped
+- Raw queries ($queryRaw, $executeRaw) and custom client methods bypass the enforcer
+- Prisma $transaction and nested async operations need explicit context propagation
+- Upsert, connect/disconnect, and other less common operations must be verified for tenant scoping
+- System tasks (migrations, seeds, background workers) require disciplined use of bypass
 
 ### Architectural Recommendation:
-> 1. Enforce tenant context setting at every request entry point (proxy.ts) and ensure all internal services (workers, cron jobs, migrations) invoke runWithTenantBypass with logged reasons. 2. Extend the Prisma enforcer to intercept $queryRaw, $executeRaw, and any custom client methods to maintain uniform filtering. 3. Add monitoring/alerting for SECURITY_TENANT_UNRESOLVED events to detect mis‑configured calls. 4. Integrate the tenant‑context state with existing audit logging to capture bypass reasons and tenant resolution sources. 5. Run a phased rollout: enable the enforcer in read‑only mode, then gradually enforce writes, while updating admin UI flows to use bypass where global visibility is required. 6. Validate that the extension is applied to all Prisma client instances (including test seeds) to avoid accidental data leakage in non‑production environments.
+> Adopt a request‑scoped DI container that injects tenantId into service layers, keep the Prisma enforcer as the final safety net, add middleware to reject un‑scoped raw queries, enforce bypass logging and rate‑limits, and run comprehensive integration tests covering $transaction, batch ops, and edge cases before production rollout.
 
 ---
 
 ## 3. Official Statement of Approval:
-> "The Automatic Prisma Tenant Enforcer specification demonstrates a robust, zero‑trust approach to multi‑tenant isolation, addressing BOLA/IDOR risks through automatic scoping and a fail‑closed security model. While the design is sound, careful attention to raw query interception, AsyncLocalStorage usage, and proper bypass adoption is required to maintain isolation across all execution paths. With the recommended safeguards and a disciplined rollout, the architecture is ready for production deployment, ensuring data integrity, regulatory compliance (including GDPR and Russian NK 54.1), and brand‑level separation for SMMplan and SMMflux."
+> "The specification provides a robust, automated foundation for multi‑tenant isolation and BOLA prevention. While the core security guarantees are strong, careful attention to context propagation, raw query protection, and migration strategy is required. I APPROVE the design for execution with the outlined mitigations and recommend a phased rollout backed by extensive testing."

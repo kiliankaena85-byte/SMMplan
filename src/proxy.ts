@@ -444,7 +444,7 @@ export async function proxy(request: NextRequest) {
     return new URL(target, originBase);
   };
 
-  const LOVABLE_HOSTS = new Set(['lovable.pro', 'www.lovable.pro', 'flux.lovable.pro']);
+  const LOVABLE_HOSTS = new Set(['lovable.pro', 'www.lovable.pro', 'flux.lovable.pro']); // audit-ignore: legacy host redirects
   const cleanHost = host.split(':')[0].toLowerCase();
   if (LOVABLE_HOSTS.has(cleanHost)) {
     const targetUrl = new URL(request.nextUrl.pathname + request.nextUrl.search, 'https://smmflux.ru');

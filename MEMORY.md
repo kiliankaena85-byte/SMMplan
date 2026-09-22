@@ -66,6 +66,14 @@ onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); ... }}
 
 ## 1. 🏗️ Архитектурные решения (ADR)
 
+- **ADR-2026-33: Complete Debranding of Phantom Brand 'Lovable' & SMMflux Brand Consolidation:**
+  - *Решение:*
+    1. **Зачистка маршрутизации и страниц:** Удален устаревший роут `src/app/ab-lovable/page.tsx`, в `next.config.mjs` настроен постоянный 308-редирект с `/ab-lovable` на `/`. Вся кодовая база витрины и дашборда использует префикс `Flux*`.
+    2. **Соблюдение инварианта обратной совместимости (AGENTS.md):** Сохранен единственный нормализующий алиас `normalizeTenantId('lovable') -> 'flux'` в `src/lib/tenant-resolver-edge.ts`, `src/lib/tenant-scope.ts`, `src/lib/seo-helpers.ts` и `src/tenants/registry.ts`, а также безопасный редирект с `lovable.pro` на `smmflux.ru` в `src/proxy.ts`. Все прямые проверки `'lovable'` в ботах и виджетах заменены на `normalizeTenantId`.
+    3. **БД, скрипты и документация:** Обновлен комментарий в `prisma/schema.prisma` (`// "CLASSIC" or "FLUX"`), скрипты `seed-tenants.ts`, `gen-magic.ts`, `migrate-system-settings.ts` переведены на сидирование `flux` (`smmflux.ru`). Документация (`Design.md`, `INSTALLATION.md`, `BACKLOG.md` — TECH-005) полностью зачищена от устаревших упоминаний Lovable.
+    4. **Верификация:** `npx tsc --noEmit` (0 ошибок), `npx eslint` (0 ошибок на измененных файлах), `node scripts/check-bundle-secrets.mjs` (0 утечек), `npx tsx scripts/lint-tenant-isolation.ts` (0 блокеров), 32/32 Vitest тестов PASS.
+  - *Причина:* Полная ликвидация концептуального дефекта Brand Ghosting (фантомных брендов Lovable / SMMboost) в платформе OmniSMM 1.0 в соответствии со стандартами RAC-2026.
+
 - **ADR-2026-32: Multi-Tenant Balance Isolation (ст. 54.1 НК РФ) & SMMflux Personal Cabinet Branding Continuity:**
   - *Решение:*
     1. **Изоляция балансов и аккаунтов (ст. 54.1 НК РФ):** Разработаны безопасные резолверы `resolveTenantUser` и `resolveTenantUserBalance` (`src/lib/tenant-user-resolver.ts`), исключающие отображение и списание баланса чужого тенанта при кросс-тенантной сессии.

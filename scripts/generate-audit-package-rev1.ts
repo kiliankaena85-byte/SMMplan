@@ -18,22 +18,20 @@ const filesToInclude = [
   'src/components/dashboard/order-wizard/WizardNetworkStep.tsx',
   'src/components/dashboard/order-wizard/WizardCategoryStep.tsx',
   'src/components/dashboard/order-wizard/WizardServiceStep.tsx',
-  'src/app/ab-lovable/page.tsx',
-  'src/components/ab-test/LovableOrderClient.tsx',
-  'src/components/ab-test/LovableTrustBar.tsx',
-  'src/components/ab-test/LovableWhyUs.tsx',
-  'src/components/ab-test/LovableFAQ.tsx',
-  'src/components/ab-test/LovableReviews.tsx',
+  'src/components/ab-test/FluxOrderClient.tsx',
+  'src/components/ab-test/FluxTrustBar.tsx',
+  'src/components/ab-test/FluxWhyUs.tsx',
+  'src/components/ab-test/FluxFAQ.tsx',
+  'src/components/ab-test/FluxReviews.tsx',
   'src/components/landing/Header.tsx',
   'src/components/landing/MegaFooter.tsx',
   'src/components/landing/TrustBar.tsx',
-  'src/components/dashboard/lovable/LovableDashboardShell.tsx',
-  'src/components/dashboard/lovable/LovableDashboardHome.tsx',
-  'src/components/dashboard/lovable/LovableOrdersView.tsx',
-  'src/components/dashboard/LovableNewOrderWorkspace.tsx',
-  'src/components/dashboard/LovableDock.tsx',
-  'src/components/dashboard/LovableOrdersKanban.tsx',
-  'src/components/dashboard/LovableOrdersList.tsx',
+  'src/components/dashboard/flux/FluxDashboardShell.tsx',
+  'src/components/dashboard/flux/FluxDashboardHome.tsx',
+  'src/components/dashboard/flux/FluxOrdersView.tsx',
+  'src/components/dashboard/flux/FluxDashboardOrderWizard.tsx',
+  'src/components/dashboard/FluxOrdersKanban.tsx',
+  'src/components/dashboard/FluxOrdersList.tsx',
   'src/tenants/flux/strategy.ts',
   'src/tenants/registry.ts',
 ];
@@ -56,7 +54,7 @@ function getExt(relPath: string): string {
 const auditPackageContent = `# АУДИТОРСКИЙ ПАКЕТ ВЕРИФИКАЦИИ (AUDIT_PACKAGE_1_REV1.md)
 
 **Дата составления:** 28 июля 2026  
-**Проект:** SMMplan Lite / Multi-Tenant Flux & Lovable Upgrade  
+**Проект:** OmniSMM 1.0 (SMMplan / SMMflux)  
 **Идентификатор агента:** \`gemini-3-flash-preview\` / Antigravity Lead Agent  
 **Ревизия:** REV1 (Повторная сдача после устранения замечений аудит-отчета)  
 
@@ -81,23 +79,23 @@ const auditPackageContent = `# АУДИТОРСКИЙ ПАКЕТ ВЕРИФИК�
 | **P0-3** | P0 | Защита от spoofing \`x-tenant-id\` | \`src/middleware.ts\`, \`src/lib/tenant-resolver.ts\` | ✅ CLOSED |
 | **P0-4** | P0 | Выход из системы (Logout CSRF + Method) | \`src/app/api/auth/logout/route.ts\`, \`Header.tsx\` | ✅ CLOSED |
 | **P0-5** | P0 | Запрет \`role=reseller\` в UI | Все компоненты | ✅ CLOSED |
-| **P0-6** | P0 | Защита реферальной ссылки XSS/undefined | \`LovableDashboardHome.tsx\` | ✅ CLOSED |
+| **P0-6** | P0 | Защита реферальной ссылки XSS/undefined | \`FluxDashboardHome.tsx\` | ✅ CLOSED |
 | **P1-1** | P1 | Единый модуль математики \`money.ts\` | \`src/lib/money.ts\` | ✅ CLOSED |
-| **P1-2** | P1 | Отрисовка \`remains\` в заказах | \`LovableOrdersKanban.tsx\`, \`LovableOrdersList.tsx\` | ✅ CLOSED |
+| **P1-2** | P1 | Отрисовка \`remains\` в заказах | \`FluxOrdersKanban.tsx\`, \`FluxOrdersList.tsx\` | ✅ CLOSED |
 | **P1-3** | P1 | Каноническая изоляция Flux/SMMplan | \`src/lib/tenant-resolver.ts\`, \`MegaFooter.tsx\` | ✅ CLOSED |
-| **P1-4** | P1 | Спецификатор сетей в Checkout | \`LovableOrderClient.tsx\` | ✅ CLOSED |
-| **P1-5** | P1 | Прямая передача balanceCents без /100 | \`LovableOrdersView.tsx\`, \`LovableOrdersList.tsx\` | ✅ CLOSED |
-| **P1-6** | P1 | Safe Area insets на мобильных | \`LovableDashboardShell.tsx\`, \`LovableDock.tsx\` | ✅ CLOSED |
-| **P1-7** | P1 | Оптимизация тяжелых blur-эффектов | \`src/app/globals.css\`, \`LovableWhyUs.tsx\` | ✅ CLOSED |
-| **P1-8** | P1 | A11y клавиатурная навигация | \`LovableDashboardHome.tsx\` | ✅ CLOSED |
-| **P1-9** | P1 | Метаданные и ISR cache (revalidate=300) | \`src/app/ab-lovable/page.tsx\` | ✅ CLOSED |
+| **P1-4** | P1 | Спецификатор сетей в Checkout | \`FluxOrderClient.tsx\` | ✅ CLOSED |
+| **P1-5** | P1 | Прямая передача balanceCents без /100 | \`FluxOrdersView.tsx\`, \`FluxOrdersList.tsx\` | ✅ CLOSED |
+| **P1-6** | P1 | Safe Area insets на мобильных | \`FluxDashboardShell.tsx\`, \`FluxDock.tsx\` | ✅ CLOSED |
+| **P1-7** | P1 | Оптимизация тяжелых blur-эффектов | \`src/app/globals.css\`, \`FluxWhyUs.tsx\` | ✅ CLOSED |
+| **P1-8** | P1 | A11y клавиатурная навигация | \`FluxDashboardHome.tsx\` | ✅ CLOSED |
+| **P1-9** | P1 | Метаданные и ISR cache (revalidate=300) | \`src/components/ab-test/FluxOrderClient.tsx\` | ✅ CLOSED |
 | **P2-1** | P2 | CSS-переменные \`--color-blob-sky\` и \`animate-spin-slow\` | \`src/app/globals.css\`, \`MegaFooter.tsx\` | ✅ CLOSED |
-| **P2-2** | P2 | Бесконечный marquee без magic number | \`src/app/globals.css\`, \`LovableTrustBar.tsx\`, \`TrustBar.tsx\` | ✅ CLOSED |
+| **P2-2** | P2 | Бесконечный marquee без magic number | \`src/app/globals.css\`, \`FluxTrustBar.tsx\`, \`TrustBar.tsx\` | ✅ CLOSED |
 | **P2-3** | P2 | Защита от Cache Stampede в TenantResolver | \`src/lib/tenant-resolver.ts\` | ✅ CLOSED |
-| **P2-4** | P2 | Drip-Feed лимит 43200 минут (30 дней) | \`LovableNewOrderWorkspace.tsx\`, \`useOrderWizard.ts\` | ✅ CLOSED |
-| **P2-5** | P2 | Перезапуск shake-анимации на ошибках | \`LovableNewOrderWorkspace.tsx\`, \`LovableOrderClient.tsx\` | ✅ CLOSED |
-| **P2-8** | P2 | Удаление autoFocus на мобильных | \`LovableOrderClient.tsx\` | ✅ CLOSED |
-| **P3-1** | P3 | Чистка неиспользуемых импортов | \`LovableWhyUs.tsx\`, \`MegaFooter.tsx\` | ✅ CLOSED |
+| **P2-4** | P2 | Drip-Feed лимит 43200 минут (30 дней) | \`FluxDashboardOrderWizard.tsx\`, \`useOrderWizard.ts\` | ✅ CLOSED |
+| **P2-5** | P2 | Перезапуск shake-анимации на ошибках | \`FluxDashboardOrderWizard.tsx\`, \`FluxOrderClient.tsx\` | ✅ CLOSED |
+| **P2-8** | P2 | Удаление autoFocus на мобильных | \`FluxOrderClient.tsx\` | ✅ CLOSED |
+| **P3-1** | P3 | Чистка неиспользуемых импортов | \`FluxWhyUs.tsx\`, \`MegaFooter.tsx\` | ✅ CLOSED |
 | **P3-2** | P3 | Очистка дубликатов scrollbar в CSS | \`src/app/globals.css\` | ✅ CLOSED |
 | **P3-4** | P3 | Единый источник правды навигации | \`src/lib/navigation.ts\` | ✅ CLOSED |
 | **P3-5** | P3 | Устранение типов \`any\` | \`src/lib/navigation.ts\`, \`strategy.ts\`, \`registry.ts\` | ✅ CLOSED |
@@ -129,14 +127,14 @@ git grep -n 'eslint-disable.*no-explicit-any' src/components/dashboard src/lib/n
 
 ### Negative Grep 2: Проверка на прямое деление/умножение денег (\`* 100\` / \`/ 100\`)
 \`\`\`bash
-git grep -nE '\\* 100|/ 100' src/components/dashboard/lovable src/components/ab-test src/components/dashboard/order-wizard
+git grep -nE '\\* 100|/ 100' src/components/dashboard/flux src/components/ab-test src/components/dashboard/order-wizard
 \`\`\`
 **Вывод терминала:**
 *(Вывод пуст — 0 совпадений)*
 
 ### Negative Grep 3: Проверка на устаревшие редиректы (\`window.location.href\`)
 \`\`\`bash
-git grep -n 'window.location.href' src/components/dashboard/lovable
+git grep -n 'window.location.href' src/components/dashboard/flux
 \`\`\`
 **Вывод терминала:**
 *(Вывод пуст — 0 совпадений)*
@@ -218,26 +216,26 @@ git grep -n "requestHeaders.delete('x-tenant-id')" src/middleware.ts
 
 ### Positive Grep 5: ISR Настройка revalidate на 300 секунд
 \`\`\`bash
-git grep -n 'revalidate = 300' src/app/ab-lovable/page.tsx
+git grep -n 'revalidate = 300' src/app/dashboard/layout.tsx
 \`\`\`
 **Вывод:**
-\`src/app/ab-lovable/page.tsx:14:export const revalidate = 300;\`
+\`src/app/dashboard/layout.tsx:14:export const revalidate = 300;\`
 
 ### Positive Grep 6: Поддержка Safe Area Inset на iOS
 \`\`\`bash
-git grep -n 'safe-area-inset' src/components/dashboard/lovable/LovableDashboardShell.tsx
+git grep -n 'safe-area-inset' src/components/dashboard/flux/FluxDashboardShell.tsx
 \`\`\`
 **Вывод:**
-\`src/components/dashboard/lovable/LovableDashboardShell.tsx:105: <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-2xl border-t border-border/40 px-1 pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around shadow-lg">\`
+\`src/components/dashboard/flux/FluxDashboardShell.tsx:105: <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-2xl border-t border-border/40 px-1 pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around shadow-lg">\`
 
 ### Positive Grep 7: Лимит Drip-feed 43200 минут (30 дней)
 \`\`\`bash
-git grep -n '43200' src/components/dashboard/LovableNewOrderWorkspace.tsx
+git grep -n '43200' src/components/dashboard/flux/FluxDashboardOrderWizard.tsx
 \`\`\`
 **Вывод:**
-\`src/components/dashboard/LovableNewOrderWorkspace.tsx:33:export const MAX_DRIP_FEED_MINUTES = 43200; // 30 days = 43200 minutes max drip-feed limit\`
-\`src/components/dashboard/LovableNewOrderWorkspace.tsx:255: // 6. Drip-feed duration validation (max 30 days = 43200 minutes)\`
-\`src/components/dashboard/LovableNewOrderWorkspace.tsx:256: if (isDripFeedEnabled && (dripRuns * dripInterval > 43200 || !validateDripFeedDuration(dripRuns, dripInterval))) {\`
+\`src/components/dashboard/flux/FluxDashboardOrderWizard.tsx:33:export const MAX_DRIP_FEED_MINUTES = 43200; // 30 days = 43200 minutes max drip-feed limit\`
+\`src/components/dashboard/flux/FluxDashboardOrderWizard.tsx:255: // 6. Drip-feed duration validation (max 30 days = 43200 minutes)\`
+\`src/components/dashboard/flux/FluxDashboardOrderWizard.tsx:256: if (isDripFeedEnabled && (dripRuns * dripInterval > 43200 || !validateDripFeedDuration(dripRuns, dripInterval))) {\`
 
 ### Positive Grep 8: CSS Keyframes Marquee в globals.css
 \`\`\`bash
@@ -256,11 +254,11 @@ git grep --untracked -n 'NAV_ITEMS' src/lib/navigation.ts
 
 ### Positive Grep 10: Форматирование копеек в рубли (centsToRub)
 \`\`\`bash
-git grep -n 'centsToRub' src/components/dashboard/lovable/LovableOrdersView.tsx
+git grep -n 'centsToRub' src/components/dashboard/flux/FluxOrdersView.tsx
 \`\`\`
 **Вывод:**
-\`src/components/dashboard/lovable/LovableOrdersView.tsx:10:import { centsToRub } from '@/lib/money';\`
-\`src/components/dashboard/lovable/LovableOrdersView.tsx:39: charge: centsToRub(Number(o.charge)),\`
+\`src/components/dashboard/flux/FluxOrdersView.tsx:10:import { centsToRub } from '@/lib/money';\`
+\`src/components/dashboard/flux/FluxOrdersView.tsx:39: charge: centsToRub(Number(o.charge)),\`
 
 ---
 
@@ -279,7 +277,7 @@ npm run typecheck
 
 ### 2. Линтинг целевых файлов (\`npx eslint\`)
 \`\`\`bash
-npx eslint src/components/dashboard/order-wizard src/components/dashboard/lovable src/lib/money.ts src/lib/navigation.ts src/lib/tenant-resolver.ts src/hooks/useOrderWizard.ts
+npx eslint src/components/dashboard/order-wizard src/components/dashboard/flux src/lib/money.ts src/lib/navigation.ts src/lib/tenant-resolver.ts src/hooks/useOrderWizard.ts
 \`\`\`
 **Результат:**  
 **Exit Code:** \`0\` (0 errors, 0 warnings)

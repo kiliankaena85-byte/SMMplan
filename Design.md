@@ -80,35 +80,35 @@
 
 ```mermaid
 graph TD
-    A[App Root /ab-lovable & /dashboard] --> B[Tenant Strategy: FluxTenantStrategy]
-    B --> C[Public Landing /ab-lovable]
-    B --> D[Dashboard Shell: LovableDashboardShell]
+    A[App Root / & /dashboard] --> B[Tenant Strategy: FluxTenantStrategy]
+    B --> C[Public Landing / (tenant=flux)]
+    B --> D[Dashboard Shell: FluxDashboardShell]
     
     C --> C1[Header with Dynamic Auth State]
-    C --> C2[LovableTrustBar & Hero Section]
-    C --> C3[Bento-Grid: LovableWhyUs]
-    C --> C4[Order Wizard: LovableOrderClient]
-    C --> C5[Reviews Carousel: LovableReviews]
-    C --> C6[Accordion FAQ: LovableFAQ]
+    C --> C2[FluxTrustBar & Hero Section]
+    C --> C3[Bento-Grid: FluxWhyUs]
+    C --> C4[Order Wizard: FluxOrderClient]
+    C --> C5[Reviews Carousel: FluxReviews]
+    C --> C6[Accordion FAQ: FluxFAQ]
     C --> C7[MegaFooter]
     
     D --> D1[Sidebar Navigation / Active State]
     D --> D2[Top Navigation Bar + Quick Balance]
-    D --> D3[Home View: LovableDashboardHome]
-    D --> D4[New Order View: LovableNewOrderWorkspace]
-    D --> D5[Orders View: LovableOrdersView]
+    D --> D3[Home View: FluxDashboardHome]
+    D --> D4[New Order View: FluxDashboardOrderWizard]
+    D --> D5[Orders View: FluxOrdersView]
     
-    D5 --> D5A[LovableOrdersKanban - Drag/Drop status columns]
-    D5 --> D5B[LovableOrdersList - Filterable Table view]
-    D --> D6[Floating Action Bar: LovableDock]
+    D5 --> D5A[FluxOrdersKanban - Drag/Drop status columns]
+    D5 --> D5B[FluxOrdersList - Filterable Table view]
+    D --> D6[Floating Action Bar: FluxDock]
 ```
 
-### 4.1. Публичный Лендинг (`/ab-lovable`)
+### 4.1. Публичный Лендинг (SMMflux)
 1. **Header (`Header.tsx`):** Адаптивная шапка с логотипом, прозрачным стеклянным фоном (`backdrop-blur-md`), динамическим отображением баланса и профиля пользователя.
-2. **TrustBar (`LovableTrustBar.tsx`):** Счётчики доверия в реальном времени (выполненные заказы, оценки, скорость).
-3. **Bento-Grid WhyUs (`LovableWhyUs.tsx`):** Карточная сетка преимуществ с анимацией наведения (`hover:scale-[1.02]`).
-4. **Order Wizard Client (`LovableOrderClient.tsx`):** Пошаговый визард на лендинге.
-5. **FAQ Accordion (`LovableFAQ.tsx`):** Вопросы и ответы с плавными переходами разворачивания.
+2. **TrustBar (`FluxTrustBar.tsx`):** Счётчики доверия в реальном времени (выполненные заказы, оценки, скорость).
+3. **Bento-Grid WhyUs (`FluxWhyUs.tsx`):** Карточная сетка преимуществ с анимацией наведения (`hover:scale-[1.02]`).
+4. **Order Wizard Client (`FluxOrderClient.tsx`):** Пошаговый визард на лендинге.
+5. **FAQ Accordion (`FluxFAQ.tsx`):** Вопросы и ответы с плавными переходами разворачивания.
 6. **MegaFooter (`MegaFooter.tsx`):** Подвал с навигацией, юридическими документами (152-ФЗ), логотипами платежных систем (МИР, СБП).
 
 ### 4.2. Мастер Оформления Заказа (Order Wizard Sequence)
@@ -123,10 +123,10 @@ graph TD
    * **Поле "Ссылка":** Валидируется с учетом `targetType` категории (`CHANNEL`, `POST`, `STORY`).
 
 ### 4.3. Личный Кабинет Дашборда Flux
-* **`LovableDashboardShell.tsx`:** Макет личного кабинета с убирающимся сайдбаром, переключателем тем (Sky, Emerald, Violet, Warm) и кнопкой быстрого пополнения.
-* **`LovableDashboardHome.tsx`:** Главная страница с графиком расходов, последними заказами и быстрым стартом.
-* **`LovableOrdersView.tsx`:** Экраны управления заказами с возможностью переключения в 1 клик между Табличным видом (`LovableOrdersList`) и Канбан-доской по статусам (`LovableOrdersKanban`).
-* **`LovableDock.tsx`:** Нижний плавающий стек быстрых действий (Linear Floating Dock) для быстрого перехода к созданию заказа, поддержке и балансу.
+* **`FluxDashboardShell.tsx`:** Макет личного кабинета с убирающимся сайдбаром, переключателем тем (Sky, Emerald, Violet, Warm) и кнопкой быстрого пополнения.
+* **`FluxDashboardHome.tsx`:** Главная страница с графиком расходов, последними заказами и быстрым стартом.
+* **`FluxOrdersView.tsx`:** Экраны управления заказами с возможностью переключения в 1 клик между Табличным видом (`FluxOrdersList`) и Канбан-доской по статусам (`FluxOrdersKanban`).
+* **`FluxOrdersKanban.tsx` / `FluxOrdersList.tsx`:** Компоненты просмотра и фильтрации заказов.
 
 ---
 
