@@ -216,9 +216,12 @@ export class EscrowService {
   /**
    * Fetch all pending quarantine transactions for the dashboard
    */
-  async getQuarantineEntries() {
+  async getQuarantineEntries(tenantId?: string) {
     const entries = await db.ledgerEntry.findMany({
-      where: { status: 'QUARANTINE' },
+      where: {
+        status: 'QUARANTINE',
+        ...(tenantId && tenantId !== 'all' ? { tenantId } : {}),
+      },
       orderBy: { createdAt: 'desc' },
     });
 

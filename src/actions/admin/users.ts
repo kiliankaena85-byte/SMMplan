@@ -283,7 +283,10 @@ export async function requestCardRefundAction(formData: FormData) {
       }
     });
     const alreadyRefundedOrPendingKopecks = existingRefunds.reduce((acc, r) => acc + r.amount, BigInt(0));
-    const availableForRefundKopecks = payment.amount - alreadyRefundedOrPendingKopecks;
+    const paymentTotalKopecks = typeof payment.amount === 'bigint'
+      ? payment.amount
+      : BigInt(payment.amount);
+    const availableForRefundKopecks = paymentTotalKopecks - alreadyRefundedOrPendingKopecks;
 
     if (amountKopecks > availableForRefundKopecks) {
       return { 
@@ -295,8 +298,13 @@ export async function requestCardRefundAction(formData: FormData) {
     // 2. Verify target user balance
     const user = await db.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { id: true, balance: true, email: true },
+      select: { id: true, balance: true, email: true, tenantId: true },
     });
+
+    const refundTenant = payment.tenantId || user.tenantId || 'smmplan';
+    if (!isTenantAllowedForUser(admin, refundTenant)) {
+      return { success: false as const, error: 'У вас нет доступа к возвратам платежей данного сайта/бренда' };
+    }
 
     if (user.balance < amountKopecks) {
       return { 
@@ -307,15 +315,15 @@ export async function requestCardRefundAction(formData: FormData) {
 
     const ipAddress = await getClientIp('unknown');
     const clientKey = (formData.get('idempotencyKey') as string)?.trim();
-    const idempotencyKey = clientKey || `card-refund-${userId}-${paymentId}`;
-
-    const checkKey = clientKey || idempotencyKey;
-    const existingAdj = await db.manualBalanceAdjustment.findFirst({
-      where: { idempotencyKey: checkKey }
-    });
-    if (existingAdj) {
-      return { success: true as const, message: 'Заявка на возврат уже создана (защита от двойного клика)' };
+    if (clientKey) {
+      const existingAdj = await db.manualBalanceAdjustment.findFirst({
+        where: { idempotencyKey: clientKey }
+      });
+      if (existingAdj) {
+        return { success: true as const, message: 'Заявка на возврат уже создана (защита от двойного клика)' };
+      }
     }
+    const idempotencyKey = clientKey || `card-refund-${userId}-${paymentId}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
 
     const gwName = (payment.gateway || 'эквайринг').toUpperCase();
     const isAutomatedGateway = payment.gateway.toLowerCase() === 'yookassa';
@@ -328,13 +336,14 @@ export async function requestCardRefundAction(formData: FormData) {
         userId,
         -amountKopecks,
         `REFUND_TO_CARD: Запрос на возврат через ${gwName} (${payment.gatewayId || payment.id})`,
-        { idempotencyKey, adminId: admin.id, transactionType: 'REFUND', allowElevatedCap: admin.role === 'OWNER' || admin.role === 'ADMIN' }
+        { idempotencyKey, adminId: admin.id, transactionType: 'REFUND', allowElevatedCap: admin.role === 'OWNER' || admin.role === 'ADMIN', tenantId: refundTenant }
       );
 
       // Step B: Create adjustment / refund ticket for financier
       const adj = await tx.manualBalanceAdjustment.create({
         data: {
           userId,
+          tenantId: refundTenant,
           requestedBy: admin.id,
           direction: 'DEBIT',
           amount: amountKopecks,
@@ -366,6 +375,7 @@ export async function requestCardRefundAction(formData: FormData) {
         isAutomatedGateway,
       },
       ipAddress,
+      tenantId: refundTenant,
     });
 
     revalidatePath(`/admin/clients/${userId}`);
@@ -649,6 +659,16 @@ export async function approveQuarantineAction(formData: FormData) {
       return { success: false as const, error: 'Только Владелец и Админ могут одобрять карантин' };
     }
 
+    const entry = await db.ledgerEntry.findUnique({
+      where: { id: entryId },
+      select: { tenantId: true }
+    });
+    if (!entry) return { success: false as const, error: 'Запись карантина не найдена' };
+    const entryTenant = entry.tenantId || 'smmplan';
+    if (!isTenantAllowedForUser(admin, entryTenant)) {
+      return { success: false as const, error: 'У вас нет прав на подтверждение карантина данного бренда' };
+    }
+
     const ipAddress = await getClientIp('unknown');
 
     await escrowService.resolveQuarantine(entryId, 'APPROVE', {
@@ -669,6 +689,16 @@ export async function rejectQuarantineAction(formData: FormData) {
 
     if (!['OWNER', 'ADMIN'].includes(admin.role)) {
       return { success: false as const, error: 'Только Владелец и Админ могут отклонять карантин' };
+    }
+
+    const entry = await db.ledgerEntry.findUnique({
+      where: { id: entryId },
+      select: { tenantId: true }
+    });
+    if (!entry) return { success: false as const, error: 'Запись карантина не найдена' };
+    const entryTenant = entry.tenantId || 'smmplan';
+    if (!isTenantAllowedForUser(admin, entryTenant)) {
+      return { success: false as const, error: 'У вас нет прав на отклонение карантина данного бренда' };
     }
 
     const ipAddress = await getClientIp('unknown');

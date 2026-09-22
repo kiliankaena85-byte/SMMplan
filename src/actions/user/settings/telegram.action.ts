@@ -45,6 +45,7 @@ export async function getTelegramBindDetailsAction(): Promise<TelegramBindDetail
       data: {
         token: tokenStr,
         userId: session.userId,
+        tenantId: tenantId,
         expiresAt,
       },
     });

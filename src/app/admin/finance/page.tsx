@@ -53,7 +53,7 @@ export default async function FinanceDashboard({ searchParams }: Props) {
   const [metrics, settings, quarantineList, ledgerResult, paymentsResult, reconciliationSummaryResult] = await Promise.all([
     accountingService.getMetrics(periodStart, periodStart ? new Date() : undefined, activeTenantId),
     accountingService.getSettings(activeTenantId),
-    escrowService.getQuarantineEntries(),
+    escrowService.getQuarantineEntries(activeTenantId),
     getLedgerAction({ period, pageSize: 50, tenantId: activeTenantId }),
     getPaymentsAction({ period, pageSize: 50, tenantId: activeTenantId }),
     getReconciliationSummaryAction(activeTenantId),

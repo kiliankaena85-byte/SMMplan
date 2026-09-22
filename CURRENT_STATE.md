@@ -1,3 +1,27 @@
+- [x] 🛡️ [MULTI-TENANT-PACKAGE-2-P1-FINANCIAL-ISOLATION-2026] Комплексная финансовая изоляция P1: Telegram Smart Bind, Escrow-карантин, ManualBalanceAdjustment (100% COMPLETE & VERIFIED):
+  * 🤖 **[VULN-03: Telegram Smart Bind Cross-Tenant Merge Protection (`src/actions/user/settings/telegram.action.ts` & `src/bot/constructors/role-handlers.ts`)]:**
+    - `telegram.action.ts`: `db.authToken.create` явно сохраняет `tenantId: tenantId`.
+    - `role-handlers.ts:705-745`: внедрена строгая проверка `if (tempUser && webUser && tempUser.tenantId !== webUser.tenantId) throw new Error('КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО объединять аккаунты разных брендов (SMMplan / SMMflux)');` и `if (webUser && webUser.tenantId !== tenantId) ...`.
+    - При попытке межтенантного слияния транзакция откатывается, `WalletOps.charge` и `WalletOps.credit` не вызываются, баланс клиента остается в сохранности, бот выводит понятное сообщение об ошибке.
+  * 🛡️ **[VULN-05: Escrow Quarantine Multi-Tenant Filtering (`src/services/admin/escrow.service.ts` & `src/app/admin/finance/page.tsx`)]:**
+    - `escrow.service.ts`: метод `getQuarantineEntries(tenantId?: string)` принимает `tenantId` и фильтрует `where: { status: 'QUARANTINE', ...(tenantId && tenantId !== 'all' ? { tenantId } : {}) }`.
+    - `admin/finance/page.tsx:56`: передает `activeTenantId` в `escrowService.getQuarantineEntries(activeTenantId)`. Карантинные записи изолированы контекстом выбранного тенанта.
+  * ⚖️ **[VULN-04: ManualBalanceAdjustment Tenant Isolation (`prisma/schema.prisma`, `src/actions/admin/balance-adjustments.ts` & `src/actions/admin/users.ts`)]:**
+    - `schema.prisma`: добавлено поле `tenantId String @default("smmplan")` и индекс `@@index([tenantId])` в модель `ManualBalanceAdjustment`. Сгенерирован Prisma Client (`npx prisma generate`) и применена миграция БД.
+    - `balance-adjustments.ts`:
+      - `createBalanceAdjustmentRequestAction`: извлекает `targetUser.tenantId`, блокирует операторов без прав на данный бренд (`isTenantAllowedForUser`), сохраняет `tenantId: targetTenant`.
+      - `approveBalanceAdjustmentAction`: проверяет доступ аппрувера (`isTenantAllowedForUser(approver, adjTenant)`), передает `tenantId: adjTenant` в `WalletOps.credit` и `WalletOps.adminAdjust`.
+      - `cancelBalanceAdjustmentRequestAction` & `rejectBalanceAdjustmentAction`: проверяют права оператора и передают `tenantId: adjTenant` в `WalletOps.credit` при откате.
+      - `getBalanceAdjustmentsAction` & `getBalanceAdjustmentStatsAction`: фильтруют по `tenantId: resolvedTenant` через `resolveAdminTenantAsync(staffUser, requestedTenant)`.
+      - Экспортированы алиасы `requestManualBalanceAdjustmentAction` и `getManualBalanceAdjustmentsAction`.
+    - `src/actions/admin/users.ts`: `requestCardRefundAction` сохраняет `tenantId: refundTenant`, использует уникальный fallback для идемпотентности частичных возвратов, передает `tenantId: refundTenant` в `WalletOps.adminAdjust`.
+  * 🧪 **Контроль качества & Тестирование (DoD 100% PASS):**
+    - Создана спецификация: `docs/specs/SPEC-2026-09-22-financial-isolation-package-2.md`.
+    - Создан сьют тестов: `src/__tests__/unit/financial-isolation-package-2.test.ts` (**12/12 PASS**).
+    - Регрессионный сьют: `yookassa-e2e-qa-master.test.ts` (**11/11 PASS**), `pre-production-step3-robokassa-refund-guard-and-cbr.test.ts` (**4/4 PASS**), `multitenant-staff-isolation.test.ts` (**15/15 PASS**), `settings-extra.test.ts` (**15/15 PASS**) — суммарно **57/57 PASS (100%)**.
+    - `npx tsc --noEmit`: 0 ошибок компиляции TypeScript (Strict mode).
+    - `npx eslint`: 0 ошибок на измененных файлах.
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
 - [x] 🛡️ [MULTI-TENANT-PACKAGE-1-P0-GATEWAYS-&-SUPPORT-2026] Устранение утечек возврата шлюзов оплаты и изоляция тикетов поддержки (100% COMPLETE & VERIFIED):
   * 💳 **[VULN-01: Payment Gateway Return URLs (`src/services/orders/checkout-payment.service.ts`)]:**
     - Устранен вызов `getBaseUrlSync()` без передачи `tenantId`.

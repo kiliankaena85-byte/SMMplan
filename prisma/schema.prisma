@@ -1577,6 +1577,8 @@ model BalanceAdjustmentPolicy {
 model ManualBalanceAdjustment {
   id String @id @default(cuid())
 
+  tenantId String @default("smmplan")
+
   userId      String
   requestedBy String
 
@@ -1623,6 +1625,7 @@ model ManualBalanceAdjustment {
   @@index([direction, status, createdAt])
   @@index([ticketId])
   @@index([createdAt(sort: Desc), id(sort: Desc)])
+  @@index([tenantId])
 }
 
 // ── Financial Policy & Audit Engine ──

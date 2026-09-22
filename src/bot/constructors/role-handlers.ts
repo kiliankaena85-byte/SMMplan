@@ -706,20 +706,51 @@ function setupStorePipeline(bot: Telegraf<BotContext>, opts: BotHandlerOptions):
       if (bindToken && !bindToken.used && bindToken.expiresAt > new Date()) {
         const webUserId = bindToken.userId;
         try {
+          if (bindToken.tenantId && bindToken.tenantId !== tenantId) {
+            throw new Error('КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО объединять аккаунты разных брендов (SMMplan / SMMflux)');
+          }
+
           await db.$transaction(async (tx) => {
-            await tx.authToken.updateMany({ where: { id: bindToken.id, used: false }, data: { used: true } });
             const tempUser = await tx.user.findFirst({ where: { telegramId: tgId, tenantId } });
+            const webUser = await tx.user.findUnique({ where: { id: webUserId } });
+
+            if (!webUser) {
+              throw new Error('Пользователь веб-кабинета не найден');
+            }
+
+            if (tempUser && tempUser.role && tempUser.role !== 'USER') {
+              throw new Error('Запрещено объединять служебные аккаунты персонала');
+            }
+
+            if (tempUser && tempUser.tenantId !== webUser.tenantId) {
+              throw new Error('КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО объединять аккаунты разных брендов (SMMplan / SMMflux)');
+            }
+            if (webUser.tenantId !== tenantId) {
+              throw new Error('КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО объединять аккаунты разных брендов (SMMplan / SMMflux)');
+            }
+
+            // Atomic token invalidation with race-condition guard
+            const tokenUpdateResult = await tx.authToken.updateMany({
+              where: { id: bindToken.id, used: false },
+              data: { used: true, usedAt: new Date() }
+            });
+            if (!tokenUpdateResult || tokenUpdateResult.count === 0) {
+              throw new Error('Токен привязки уже был использован или обрабатывается другим запросом');
+            }
+
             if (tempUser && tempUser.id !== webUserId) {
               await tx.ticket.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
               await tx.order.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
               await tx.payment.updateMany({ where: { userId: tempUser.id }, data: { userId: webUserId } });
               if (tempUser.balance > BigInt(0)) {
-                const amount = Number(tempUser.balance);
+                const amount = tempUser.balance;
                 await WalletOps.charge(tx, tempUser.id, amount, `Слияние Telegram с ${webUserId}`, {
-                  idempotencyKey: `merge-debit-bot-${tempUser.id}-${webUserId}`
+                  idempotencyKey: `merge-debit-bot-${tempUser.id}-${webUserId}-${bindToken.id}`,
+                  tenantId: tempUser.tenantId || tenantId
                 });
                 await WalletOps.credit(tx, webUserId, amount, `Перенос баланса с Telegram ${tempUser.email}`, {
-                  idempotencyKey: `merge-credit-bot-${tempUser.id}-${webUserId}`
+                  idempotencyKey: `merge-credit-bot-${tempUser.id}-${webUserId}-${bindToken.id}`,
+                  tenantId: webUser.tenantId || tenantId
                 });
               }
               await tx.user.update({ where: { id: tempUser.id }, data: { telegramId: null } });
@@ -733,7 +764,14 @@ function setupStorePipeline(bot: Telegraf<BotContext>, opts: BotHandlerOptions):
           );
         } catch (err) {
           console.error('[StorePipeline Bind] Error:', err);
+          const errMsg = err instanceof Error ? err.message : 'Ошибка привязки аккаунта';
+          return ctx.reply(`❌ <b>Не удалось привязать аккаунт:</b>\n${errMsg}`, { parse_mode: 'HTML' });
         }
+      } else {
+        return ctx.reply(
+          '❌ <b>Ссылка для привязки недействительна или срок её действия истёк.</b>\n\nПожалуйста, сгенерируйте новую ссылку в настройках профиля на сайте.',
+          { parse_mode: 'HTML', ...replyKeyboard }
+        );
       }
     }
 
