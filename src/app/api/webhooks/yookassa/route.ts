@@ -123,15 +123,19 @@ export async function POST(req: NextRequest) {
     // Zero-Trust Database Resolution: determine tenant strictly from DB payment record first
     let webhookTenantId: string | undefined;
     if (internalPaymentId || gatewayId) {
-      const p = await db.payment.findFirst({
-        where: {
-          OR: [
-            ...(internalPaymentId ? [{ id: internalPaymentId }] : []),
-            ...(gatewayId ? [{ gatewayId }] : [])
-          ]
-        },
-        select: { tenantId: true }
-      });
+      let p = null;
+      if (internalPaymentId) {
+        p = await db.payment.findUnique({
+          where: { id: internalPaymentId },
+          select: { tenantId: true }
+        });
+      }
+      if (!p && gatewayId) {
+        p = await db.payment.findFirst({
+          where: { gatewayId },
+          select: { tenantId: true }
+        });
+      }
       if (p?.tenantId) webhookTenantId = p.tenantId;
     }
     webhookTenantId = webhookTenantId || metadataTenantId || 'smmplan';

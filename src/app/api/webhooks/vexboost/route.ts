@@ -116,16 +116,23 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Zero-Trust Verification: Find order and fetch genuine status from Provider API
-    const order = await db.order.findFirst({
+    let order = await db.order.findFirst({
       where: {
         status: { in: ['IN_PROGRESS', 'PENDING_CHECK'] },
-        OR: [
-          { externalId },
-          { dripExternalIds: { has: externalId } }
-        ]
+        externalId
       },
       include: { service: true, user: { select: { email: true } } }
     });
+
+    if (!order) {
+      order = await db.order.findFirst({
+        where: {
+          status: { in: ['IN_PROGRESS', 'PENDING_CHECK'] },
+          dripExternalIds: { has: externalId }
+        },
+        include: { service: true, user: { select: { email: true } } }
+      });
+    }
 
     if (!order) {
       return NextResponse.json({ message: 'Order not found or not active' }, { status: 200 });

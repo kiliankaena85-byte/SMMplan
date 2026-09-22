@@ -115,17 +115,33 @@ export async function POST(
     }
 
     // 4. Zero-Trust Verification: Query Provider Instance directly
-    const order = await db.order.findFirst({
+    let order = await db.order.findFirst({
       where: {
         status: { in: ['IN_PROGRESS', 'PENDING_CHECK'] },
-        OR: [
-          { externalId },
-          { id: externalId },
-          { dripExternalIds: { has: externalId } }
-        ]
+        externalId
       },
       include: { service: true, user: { select: { email: true } } }
     });
+
+    if (!order) {
+      order = await db.order.findFirst({
+        where: {
+          status: { in: ['IN_PROGRESS', 'PENDING_CHECK'] },
+          id: externalId
+        },
+        include: { service: true, user: { select: { email: true } } }
+      });
+    }
+
+    if (!order) {
+      order = await db.order.findFirst({
+        where: {
+          status: { in: ['IN_PROGRESS', 'PENDING_CHECK'] },
+          dripExternalIds: { has: externalId }
+        },
+        include: { service: true, user: { select: { email: true } } }
+      });
+    }
 
     if (!order) {
       return NextResponse.json({ message: 'Order not found or not active' }, { status: 200 });

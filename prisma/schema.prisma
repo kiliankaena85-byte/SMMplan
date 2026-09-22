@@ -581,6 +581,7 @@ model Order {
   @@index([tenantId, createdAt(sort: Desc)]) // Brand admin sorted
   @@index([tenantId, userId, status, createdAt])
   @@index([paymentId]) // Fast lookup for orders by payment (Order.paymentId foreign key)
+  @@index([dripExternalIds], type: Gin)
   userNotes UserNote[]
   orderRecoveryIncidents OrderRecoveryIncident[]
   cxCompensations        CxApologyCompensation[]
