@@ -30,7 +30,7 @@ model User {
   referredById    String?
   referralBalance Int     @default(0)
   telegramId      String? // Telegram user ID for omnichannel support routing
-  phoneHash       String? @unique // SHA-256 hash of verified Telegram contact
+  phoneHash       String? // SHA-256 hash of verified Telegram contact
   isKycVerified   Boolean @default(false)
   isEmailVerified Boolean @default(true)
   isBotOnly       Boolean @default(false)
@@ -119,6 +119,7 @@ model User {
   allowedTenants String[] @default(["smmplan"])
 
   @@unique([email, tenantId])
+  @@unique([phoneHash, tenantId])
   @@index([tenantId])
   @@index([customerGroupId])
   @@index([createdAt(sort: Desc), id(sort: Desc)])
@@ -1086,7 +1087,7 @@ model LedgerEntry {
 model SupportTemplate {
   id        String   @id @default(cuid())
   tenantId  String   @default("smmplan")
-  shortcut  String?  @unique // unique keyboard command e.g. "delay", "refund"
+  shortcut  String?  // unique keyboard command e.g. "delay", "refund" (scoped to tenantId via @@unique below)
   label     String
   text      String
   category  String   @default("GENERAL")

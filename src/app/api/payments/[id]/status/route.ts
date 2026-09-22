@@ -29,9 +29,12 @@ export async function GET(
       return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
     }
 
-    // 3. Guest-Proof IDOR Check: If payment belongs to a user, strictly require matching session or staff
+    // 3. Guest-Proof IDOR Check: If payment belongs to a user, strictly require matching session or staff of the same tenant
+    const isOwner = session?.role === 'OWNER';
     const isStaff = Boolean(session?.role && ['ADMIN', 'OWNER', 'MANAGER', 'SUPPORT'].includes(session.role));
-    if (payment.userId && (!session || payment.userId !== session.userId) && !isStaff) {
+    const isSameTenantStaff = isStaff && (isOwner || payment.tenantId === ((session as any)?.tenantId || 'smmplan'));
+
+    if (payment.userId && (!session || payment.userId !== session.userId) && !isSameTenantStaff) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

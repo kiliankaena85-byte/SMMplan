@@ -54,9 +54,10 @@ import { enforceSectionAccess } from '@/lib/server/rbac';
 
 import { unstable_cache } from 'next/cache';
 
-const getCachedNetworks = unstable_cache(
+const getCachedNetworks = (tenantId?: string) => unstable_cache(
   async () => {
     return db.network.findMany({
+      where: tenantId ? { OR: [{ tenantId }, { tenantId: 'all' }] } : undefined,
       select: { 
         id: true, 
         name: true, 
@@ -69,9 +70,9 @@ const getCachedNetworks = unstable_cache(
       orderBy: { sort: 'asc' }
     });
   },
-  ['admin_orders_networks_list'],
-  { revalidate: 60, tags: ['catalog', 'networks'] }
-);
+  [`admin_orders_networks_list_${tenantId || 'all'}`],
+  { revalidate: 60, tags: ['catalog', 'networks', `catalog-${tenantId || 'all'}`] }
+)();
 
 const getCachedProviders = unstable_cache(
   async () => {
@@ -110,7 +111,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   const resolvedTenant = resolveAdminTenantContext(user, effectiveParamTenant, cookieTenant || headerTenant);
   const tenantFilter = resolvedTenant !== 'all' ? resolvedTenant : undefined;
 
-  const networks = await getCachedNetworks();
+  const networks = await getCachedNetworks(tenantFilter);
   const providers = await getCachedProviders();
 
   const isDripFeed = params.isDripFeed === 'true';

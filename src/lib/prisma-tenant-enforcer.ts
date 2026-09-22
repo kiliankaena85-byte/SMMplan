@@ -27,13 +27,37 @@ export const TENANT_SCOPED_MODELS = [
   'supportTemplate',
   'contentCategory',
   'contentItem',
+  'network',
+  'shadowService',
+  'serviceDraft',
+  'storefrontKey',
+  'staffRole',
+  'staffPermission',
+  'telegramBotInstance',
+  'telegramButton',
+  'telegramTemplate',
+  'telegramProxy',
+  'telegramErrorLog',
+  'telegramDailyStat',
+  'adminAuditLog',
+  'securityEvent',
+  'supportFinancialAction',
+  'supportLimitUsage',
+  'supportHourlyUsage',
+  'employeeResponsibilityConsent',
+  'legalDocumentVersion',
+  'economicOptimizationSnapshot',
+  'preLaunchLead',
+  'bonusRedemptionLog',
+  'loginLog',
+  'authToken',
 ] as const;
 
 export type TenantScopedModel = (typeof TENANT_SCOPED_MODELS)[number];
 
 function applyTenantWhereClause(where: Record<string, any>, activeTenantId: string, model: string) {
   if (!where.tenantId) {
-    if (model === 'category' || model === 'service') {
+    if (model === 'category' || model === 'service' || model === 'network' || model === 'shadowService') {
       where.tenantId = { in: [activeTenantId, 'all'] };
     } else {
       where.tenantId = activeTenantId;

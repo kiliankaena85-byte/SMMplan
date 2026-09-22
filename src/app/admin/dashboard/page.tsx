@@ -11,12 +11,13 @@ import { cookies, headers } from 'next/headers';
 import { unstable_cache } from 'next/cache';
 import nextDynamic from 'next/dynamic';
 
-const getCachedHealthData = unstable_cache(
+const getCachedHealthData = (tenantId?: string) => unstable_cache(
   async () => {
     return db.service.groupBy({
       by: ['isQuarantined', 'cooldownReason'],
       _count: true,
       where: {
+        ...(tenantId && tenantId !== 'all' ? { OR: [{ tenantId }, { tenantId: 'all' }] } : {}),
         OR: [
           { isQuarantined: true },
           { cooldownReason: 'ZOMBIE_AUTO_DISABLED' },
@@ -25,11 +26,11 @@ const getCachedHealthData = unstable_cache(
       }
     });
   },
-  ['admin_dashboard_catalog_health'],
-  { revalidate: 60, tags: ['catalog', 'health'] }
-);
+  [`admin_dashboard_catalog_health_${tenantId || 'all'}`],
+  { revalidate: 60, tags: ['catalog', 'health', `catalog-${tenantId || 'all'}`] }
+)();
 
-import { 
+import {
   Check, 
   Clock, 
   ChevronDown, 
@@ -211,7 +212,7 @@ export default async function AdminDashboardPage({
         action={<PeriodSelector period={period} />}
       />
 
-      <SystemHealthBanner />
+      <SystemHealthBanner tenantFilter={tenantFilter} />
 
       {/* ── 1. HERO SECTION: COLLAPSIBLE FULL-WIDTH WAVE CHART ── */}
       <CollapsibleWaveChart data={timeseries} step={step} />
@@ -503,8 +504,8 @@ export default async function AdminDashboardPage({
   );
 }
 
-async function SystemHealthBanner() {
-  const healthData = await getCachedHealthData();
+async function SystemHealthBanner({ tenantFilter }: { tenantFilter?: string }) {
+  const healthData = await getCachedHealthData(tenantFilter);
 
   if (!healthData || healthData.length === 0) return null;
 

@@ -50,7 +50,12 @@ export function SettingsCard({
     } else if (formState?.error) {
       toast.error(formState.error);
     } else if (formState?.errors) {
-      toast.error('Ошибка валидации формы');
+      const messages = Object.entries(formState.errors)
+        .flatMap(([field, errs]) =>
+          (errs || []).map((e) => (field === '_form' ? e : `${field}: ${e}`))
+        )
+        .filter(Boolean);
+      toast.error(messages.length > 0 ? messages.join('; ') : 'Ошибка валидации формы');
     }
   }, [formState, title]);
 
