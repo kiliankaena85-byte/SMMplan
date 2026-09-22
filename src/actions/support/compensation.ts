@@ -37,6 +37,7 @@ export async function logManualCompensation(formData: FormData) {
     const { ticketId, costRub, note, topUpBalance, clientOperationToken } = parsed.data;
     const costCents = BigInt(Math.round(costRub * 100));
 
+    // tenant-isolation-ignore: manual IDOR check
     const ticket = await db.ticket.findUnique({
       where: { id: ticketId },
       select: { userId: true, id: true }

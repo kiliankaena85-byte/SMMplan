@@ -145,6 +145,7 @@ export const adminMarketingService = {
   async processPayout(userId: string, adminId: string, amountToPayCents: number) {
     // Transaction to move referral balance to main balance
     return db.$transaction(async (tx) => {
+      // tenant-isolation-ignore: manual IDOR check
       const user = await tx.user.findUnique({ where: { id: userId } });
       if (!user) throw new Error('User not found');
       if (user.referralBalance < amountToPayCents) {

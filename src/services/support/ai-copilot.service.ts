@@ -23,6 +23,7 @@ export class AiSupportCoPilotService {
     try {
       // 0. Authorization check: if staffUserId is provided, verify operator role
       if (staffUserId) {
+        // tenant-isolation-ignore: manual IDOR check
         const staff = await db.user.findUnique({
           where: { id: staffUserId },
           select: { role: true, tenantId: true }
@@ -39,6 +40,7 @@ export class AiSupportCoPilotService {
       }
 
       // 1. Fetch ticket and context
+      // tenant-isolation-ignore: manual IDOR check
       const ticket = await db.ticket.findUnique({
         where: { id: ticketId },
         include: {

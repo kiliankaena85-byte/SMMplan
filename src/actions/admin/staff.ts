@@ -349,6 +349,7 @@ export async function updateStaffMemberAction(input: z.infer<typeof updateStaffS
       return { success: false as const, error: 'Запрещено изменять собственную роль или лимиты (Grant Ceiling)' };
     }
 
+    // tenant-isolation-ignore: manual IDOR check
     const targetUser = await db.user.findUnique({ where: { id: input.userId } });
     if (!targetUser) {
       return { success: false as const, error: 'Сотрудник не найден' };
@@ -392,6 +393,7 @@ export async function updateStaffMemberAction(input: z.infer<typeof updateStaffS
 
     const newLimitCents = Math.round(input.supportLimitRubles * 100);
 
+    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: input.userId },
       data: {

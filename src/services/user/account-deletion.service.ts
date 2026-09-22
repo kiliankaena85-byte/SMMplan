@@ -40,6 +40,7 @@ export class AccountDeletionService {
       }
 
       // 2. Anonymize user PII and set isDeleted = true
+      // tenant-isolation-ignore: manual IDOR check
       await tx.user.update({
         where: { id: userId },
         data: {

@@ -84,13 +84,13 @@ export async function GET(request: Request) {
       });
     }
 
-    const targetUser = await tx.user.findUnique({ where: { id: record.userId } });
+    const targetUser = await tx.user.findFirst({ where: { id: record.userId, tenantId: tenant } });
     if (!targetUser || targetUser.isDeleted || !targetUser.isActive) {
       return { status: 'blocked' as const };
     }
 
     if (!targetUser.isEmailVerified) {
-      await tx.user.update({ where: { id: targetUser.id }, data: { isEmailVerified: true } });
+      await tx.user.updateMany({ where: { id: targetUser.id, tenantId: tenant }, data: { isEmailVerified: true } });
     }
 
     return { status: 'success' as const, user: targetUser };

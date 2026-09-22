@@ -79,6 +79,7 @@ export async function updateTaxRequisitesAction(
   const legalAddress = parsed.data.legalAddress?.trim() || null;
 
   try {
+    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: session.userId },
       data: {
@@ -186,6 +187,7 @@ export async function confirm152FzConsentAction(): Promise<Confirm152FzConsentRe
   const now = new Date();
 
   try {
+    // tenant-isolation-ignore: manual IDOR check
     const updatedUser = await db.user.update({
       where: { id: session.userId },
       data: {
@@ -224,6 +226,7 @@ export async function generateApiKeyAction(): Promise<ApiKeyActionResult> {
   const hashedKey = crypto.createHash('sha256').update(rawKey).digest('hex');
 
   try {
+    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: session.userId },
       data: { apiKeyHash: hashedKey },
@@ -256,6 +259,7 @@ export async function revokeApiKeyAction(): Promise<{ success: boolean; error?: 
   }
 
   try {
+    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: session.userId },
       data: { apiKeyHash: null },
@@ -336,6 +340,7 @@ export async function updateTelegramNotificationSettingsAction(
   }
 
   try {
+    // tenant-isolation-ignore: manual IDOR check
     const updatedUser = await db.user.update({
       where: { id: session.userId },
       data: {
@@ -374,6 +379,7 @@ export async function unbindTelegramAction(): Promise<UnbindTelegramResult> {
   }
 
   try {
+    // tenant-isolation-ignore: manual IDOR check
     const user = await db.user.findUnique({
       where: { id: session.userId },
       select: { telegramId: true, email: true },
@@ -385,6 +391,7 @@ export async function unbindTelegramAction(): Promise<UnbindTelegramResult> {
 
     const previousTgId = user.telegramId;
 
+    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: session.userId },
       data: { telegramId: null },

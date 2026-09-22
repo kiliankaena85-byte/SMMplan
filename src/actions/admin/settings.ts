@@ -32,6 +32,7 @@ export async function updateUserRole(formData: FormData) {
       return { success: false as const, error: 'Только Владелец может назначать роли Админ или Владелец' };
     }
 
+    // tenant-isolation-ignore: manual IDOR check
     const targetUser = await db.user.findUnique({ where: { id: targetUserId }, select: { role: true, email: true } });
     if (!targetUser) return { success: false as const, error: 'Пользователь не найден' };
 
@@ -746,6 +747,7 @@ export async function updateStaffGeminiApiKeyAction(targetUserId: string, apiKey
 
     const encryptedKey = apiKey && apiKey.trim().length > 5 ? VaultService.encrypt(apiKey.trim()) : null;
 
+    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: targetUserId },
       data: { geminiApiKey: encryptedKey }

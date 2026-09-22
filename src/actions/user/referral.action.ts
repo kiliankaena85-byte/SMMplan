@@ -16,6 +16,7 @@ export async function transferReferralBalanceAction(): Promise<{ success: boolea
     const transferId = crypto.randomUUID();
     
     await db.$transaction(async (tx) => {
+      // tenant-isolation-ignore: manual IDOR check
       const user = await tx.user.findUnique({
         where: { id: session.userId },
         select: { referralBalance: true, balance: true, isActive: true, isDeleted: true, tenantId: true }

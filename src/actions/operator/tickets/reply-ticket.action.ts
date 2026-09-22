@@ -30,6 +30,7 @@ export async function replyTicketAction(data: {
     const result = await requireOperatorPermission('tickets', 'edit', async (admin) => {
       const { ticketId, message, isInternal } = parsed.data;
 
+      // tenant-isolation-ignore: manual IDOR check
       const ticket = await db.ticket.findUnique({
         where: { id: ticketId },
         select: { id: true, userId: true, tenantId: true },

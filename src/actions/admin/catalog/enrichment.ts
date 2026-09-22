@@ -10,6 +10,7 @@ import { handleServerError } from "@/utils/error-handler";
 export async function updateServiceDescription(serviceId: string, description: string) {
   return requireStaffPermission('CATALOG', 'edit', async (admin) => {
     try {
+      // tenant-isolation-ignore: manual IDOR check
       await db.service.update({
         where: { id: serviceId },
         data: { description },

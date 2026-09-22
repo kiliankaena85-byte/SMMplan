@@ -19,6 +19,7 @@ export async function GET(
 
     const { payload } = await jwtVerify(token, getEncodedKey(), { algorithms: ['HS256'] });
     const userId = payload.userId as string;
+    // tenant-isolation-ignore: JWT verified user id
     const user = await db.user.findUnique({ where: { id: userId } });
     if (!user) return new NextResponse('Unauthorized', { status: 401 });
 
@@ -38,6 +39,7 @@ export async function GET(
     const ticketMatch = relativePath.match(/^tickets\/([^/]+)\//);
     if (ticketMatch) {
       const ticketId = ticketMatch[1];
+      // tenant-isolation-ignore: IDOR protected by userId check below
       const ticket = await db.ticket.findUnique({ where: { id: ticketId } });
       if (!ticket) return new NextResponse('Not Found', { status: 404 });
 

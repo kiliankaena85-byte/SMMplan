@@ -51,6 +51,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (orderId) {
+      // tenant-isolation-ignore: isolated by session.userId or secure capability token
       let order = await db.order.findUnique({
         where: session ? { id: orderId, userId: session.userId } : { id: orderId },
         include: {
@@ -129,6 +130,7 @@ export async function GET(req: NextRequest) {
             'order'
           );
 
+          // tenant-isolation-ignore: isolated by session.userId or secure capability token
           const updatedOrder = await db.order.findUnique({
             where: session ? { id: orderId, userId: session.userId } : { id: orderId },
             include: {
@@ -150,6 +152,7 @@ export async function GET(req: NextRequest) {
       });
 
     } else if (paymentId) {
+      // tenant-isolation-ignore: isolated by session.userId or secure capability token
       let payment = await db.payment.findUnique({
         where: session ? { id: paymentId, userId: session.userId } : { id: paymentId },
       });
@@ -219,6 +222,7 @@ export async function GET(req: NextRequest) {
             'order'
           );
 
+          // tenant-isolation-ignore: isolated by session.userId or secure capability token
           const updatedPayment = await db.payment.findUnique({
             where: session ? { id: paymentId, userId: session.userId } : { id: paymentId },
           });

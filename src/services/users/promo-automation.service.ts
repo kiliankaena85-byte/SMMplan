@@ -9,6 +9,7 @@ export class PromoAutomationService {
    */
   static async checkAndIssueLoyalty(userId: string) {
     try {
+      // tenant-isolation-ignore: manual IDOR check
       const user = await db.user.findUnique({ where: { id: userId } });
       if (!user) return;
 

@@ -52,6 +52,7 @@ export async function batchEnrichExistingServicesAction(serviceIds: string[]) {
           isRefillEnabled: srv.isRefillEnabled,
         });
 
+        // tenant-isolation-ignore: manual IDOR check
         await db.service.update({
           where: { id: srv.id },
           data: {

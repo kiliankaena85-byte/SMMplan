@@ -41,6 +41,7 @@ export async function setPasswordAction(formData: FormData) {
   const { password } = parsed.data;
 
   try {
+    // tenant-isolation-ignore: manual IDOR check
     const user = await db.user.findUnique({
       where: { id: session.userId },
       select: { passwordHash: true }
@@ -56,6 +57,7 @@ export async function setPasswordAction(formData: FormData) {
 
     const hashed = await hashPassword(password);
 
+    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: session.userId },
       data: { passwordHash: hashed }
@@ -94,6 +96,7 @@ export async function changePasswordAction(formData: FormData) {
   }
 
   try {
+    // tenant-isolation-ignore: manual IDOR check
     const user = await db.user.findUnique({
       where: { id: session.userId },
       select: { passwordHash: true }
@@ -116,6 +119,7 @@ export async function changePasswordAction(formData: FormData) {
 
     const hashed = await hashPassword(newPassword);
 
+    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: session.userId },
       data: { passwordHash: hashed }

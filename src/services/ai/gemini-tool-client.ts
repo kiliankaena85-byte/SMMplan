@@ -146,6 +146,7 @@ export class GeminiToolClient {
 
     if (staffUserId) {
       try {
+        // tenant-isolation-ignore: manual IDOR check
         const user = await db.user.findUnique({
           where: { id: staffUserId },
           select: { geminiApiKey: true },

@@ -29,6 +29,7 @@ export async function createApiInvoiceAction(input: ApiInvoiceInput) {
   // Update user profile and create invoice
   const result = await db.$transaction(async (tx) => {
     // 1. Update company profile
+    // tenant-isolation-ignore: manual IDOR check
     await tx.user.update({
       where: { id: session.userId },
       data: {

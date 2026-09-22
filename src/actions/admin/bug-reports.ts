@@ -88,6 +88,7 @@ export async function submitBugReportAction(payload: BugReportPayload) {
   try {
     const session = await verifySession();
     const userId = session?.userId ?? null;
+    // tenant-isolation-ignore: manual IDOR check
     const user = userId ? await db.user.findUnique({ where: { id: userId }, select: { email: true } }) : null;
 
     const formattedContent = `

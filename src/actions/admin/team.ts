@@ -35,6 +35,7 @@ export async function updateSupportLimit(formData: FormData) {
       return { success: false as const, error: 'Запрещено изменять собственный лимит доверия' };
     }
 
+    // tenant-isolation-ignore: manual IDOR check
     const target = await db.user.findUnique({ where: { id: userId } });
     if (!target) return { success: false as const, error: 'Пользователь не найден' };
 
@@ -46,6 +47,7 @@ export async function updateSupportLimit(formData: FormData) {
       return { success: false as const, error: 'Только Владелец может изменять параметры Администратора' };
     }
 
+    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: userId },
       data: { supportLimitCents: limitCents },
@@ -261,6 +263,7 @@ export async function removeStaffMemberAction(formData: FormData) {
       return { success: false as const, error: 'Нельзя разжаловать самого себя' };
     }
 
+    // tenant-isolation-ignore: manual IDOR check
     const target = await db.user.findUnique({
       where: { id: userId },
       select: { id: true, email: true, role: true, staffRoleId: true },
@@ -282,6 +285,7 @@ export async function removeStaffMemberAction(formData: FormData) {
 
     const ipAddress = await getClientIp('unknown');
 
+    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: userId },
       data: {

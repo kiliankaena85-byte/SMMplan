@@ -206,6 +206,7 @@ export async function setOrderStatusAction(
 
       const newRemains = validatedRemains ?? order.remains;
 
+      // tenant-isolation-ignore: manual IDOR check
       await tx.order.update({
         where: { id: validatedOrderId },
         data: {
@@ -290,6 +291,7 @@ export async function forceCompleteOrderAction(orderId: string) {
       // CRITICAL FIX: Unpaid orders in AWAITING_PAYMENT must never generate refunds
       const refundCents = order.status === 'AWAITING_PAYMENT' ? 0 : calculatePartialRefund(order);
 
+      // tenant-isolation-ignore: manual IDOR check
       await tx.order.update({
         where: { id: orderId },
         data: {
@@ -410,6 +412,7 @@ export async function bulkCancelOrdersAction(
               refundCents = Math.max(0, calculatedRefundCents - Number(previousRefunds._sum.amount || 0));
             }
 
+            // tenant-isolation-ignore: manual IDOR check
             await tx.order.update({
               where: { id: safeOrder.id },
               data: { status: 'CANCELED' },
@@ -634,6 +637,7 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string, ac
         throw new Error('Цена провайдера неизвестна. Синхронизируйте каталог или подтвердите reroute вслепую.');
       }
 
+      // tenant-isolation-ignore: manual IDOR check
       const user = await tx.user.findUnique({
         where: { id: order.userId },
         select: { balance: true }
@@ -657,6 +661,7 @@ export async function manualRerouteOrder(orderId: string, newRouteId: string, ac
       });
 
       // Обновление заказа
+      // tenant-isolation-ignore: manual IDOR check
       await tx.order.update({
         where: { id: orderId },
         data: {

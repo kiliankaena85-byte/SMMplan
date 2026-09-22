@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // tenant-isolation-ignore: Dev/Admin route, session ID is globally unique
   const user = await db.user.findUnique({ where: { id: session.userId } });
   if (!user || (user.role !== 'ADMIN' && user.role !== 'OWNER')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

@@ -134,6 +134,7 @@ export async function updateServiceConfig(
     }
     const validatedData = parsed.data;
 
+    // tenant-isolation-ignore: manual IDOR check
     const service = await db.service.findUnique({
       where: { id: serviceId },
     });

@@ -15,6 +15,7 @@ export async function globalOmniSearch(query: string): Promise<SearchHit[]> {
   const session = await verifySession();
   if (!session) return [];
 
+  // tenant-isolation-ignore: manual IDOR check
   const user = await db.user.findUnique({
     where: { id: session.userId },
     include: { staffRole: { include: { permissions: true } } },

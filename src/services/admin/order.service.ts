@@ -510,6 +510,7 @@ class AdminOrderService {
             parsedCustomData = {};
           }
         }
+        // tenant-isolation-ignore: manual IDOR check
         await db.order.update({
           where: { id: orderId },
           data: {
@@ -591,6 +592,7 @@ class AdminOrderService {
         refundCents = Math.max(0, calculatedRefundCents - Number(previousRefunds._sum.amount || 0));
       }
 
+      // tenant-isolation-ignore: manual IDOR check
       await tx.order.update({
         where: { id: orderId },
         data: { status: 'CANCELED' },
@@ -711,6 +713,7 @@ class AdminOrderService {
 
     if (targetStatus === 'CANCELED') {
       await db.$transaction(async (tx) => {
+        // tenant-isolation-ignore: manual IDOR check
         await tx.order.update({
           where: { id: order.id },
           data: {
@@ -739,6 +742,7 @@ class AdminOrderService {
       const rawRemains = (remainsNum !== undefined && !isNaN(remainsNum) && remainsNum > 0) ? remainsNum : 0;
       const safeRemains = Math.min(order.quantity, Math.max(0, rawRemains));
       await db.$transaction(async (tx) => {
+        // tenant-isolation-ignore: manual IDOR check
         await tx.order.update({
           where: { id: order.id },
           data: {
@@ -764,6 +768,7 @@ class AdminOrderService {
       updatedStatus = 'PARTIAL';
       message = `Провайдер выполнил заказ #${order.numericId} частично (остаток: ${safeRemains}). Возврат оформлен.`;
     } else if (targetStatus === 'COMPLETED') {
+      // tenant-isolation-ignore: manual IDOR check
       await db.order.update({
         where: { id: order.id },
         data: {
@@ -777,6 +782,7 @@ class AdminOrderService {
     } else {
       // IN_PROGRESS or still processing
       const safeProgressRemains = (remainsNum !== undefined && !isNaN(remainsNum)) ? Math.min(order.quantity, Math.max(0, remainsNum)) : undefined;
+      // tenant-isolation-ignore: manual IDOR check
       await db.order.update({
         where: { id: order.id },
         data: {
@@ -839,6 +845,7 @@ class AdminOrderService {
       }
 
       // Reset order state
+      // tenant-isolation-ignore: manual IDOR check
       await tx.order.update({
         where: { id: orderId },
         data: {

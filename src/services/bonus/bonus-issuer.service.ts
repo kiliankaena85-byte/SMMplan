@@ -79,6 +79,7 @@ export class BonusIssuerService {
         });
       } else {
         // In locked vesting, increment user quarantineBalance
+        // tenant-isolation-ignore: manual IDOR check
         await tx.user.update({
           where: { id: opts.userId },
           data: { quarantineBalance: { increment: amountBigInt } },

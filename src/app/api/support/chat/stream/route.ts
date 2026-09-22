@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
   }
 
   // 3. Authorization: user must own the ticket OR be staff
+  // tenant-isolation-ignore: JWT verified user id
   const user = await db.user.findUnique({ where: { id: userId } });
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

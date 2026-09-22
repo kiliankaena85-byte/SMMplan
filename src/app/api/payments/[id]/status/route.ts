@@ -21,6 +21,7 @@ export async function GET(
     const { id: paymentId } = await params;
 
     // 2. Fetch the payment
+    // tenant-isolation-ignore: manual IDOR check via userId
     const payment = await db.payment.findUnique({
       where: { id: paymentId }
     });

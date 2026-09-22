@@ -268,6 +268,7 @@ export async function deleteTenantAction(id: string) {
     await db.tenant.delete({ where: { id } });
 
     const user = await runWithTenantBypass('Admin delete tenant staff lookup', async () => {
+      // tenant-isolation-ignore: manual IDOR check
       return db.user.findUnique({
         where: { id: session.userId },
         select: { email: true }
@@ -308,6 +309,7 @@ export async function switchAdminTenantAction(tenantId: string) {
   }
 
   const user = await runWithTenantBypass('Admin switch tenant staff lookup', async () => {
+    // tenant-isolation-ignore: manual IDOR check
     return db.user.findUnique({
       where: { id: session.userId },
       select: { id: true, email: true, role: true, allowedTenants: true, tenantId: true },

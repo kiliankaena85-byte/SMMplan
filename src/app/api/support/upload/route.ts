@@ -19,6 +19,7 @@ export async function POST(req: NextRequest) {
 
     const { payload } = await jwtVerify(token, getEncodedKey(), { algorithms: ['HS256'] });
     const userId = payload.userId as string;
+    // tenant-isolation-ignore: JWT verified user id
     const user = await db.user.findUnique({ where: { id: userId } });
     if (!user) return new NextResponse('Unauthorized', { status: 401 });
 

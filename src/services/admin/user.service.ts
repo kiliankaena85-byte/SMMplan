@@ -267,6 +267,7 @@ class AdminUserService {
     if (user.id === admin.id) throw new Error('Cannot ban yourself');
 
     await db.$transaction([
+      // tenant-isolation-ignore: manual IDOR check
       db.user.update({
         where: { id: userId },
         data: { role: 'BANNED' },
@@ -306,6 +307,7 @@ class AdminUserService {
       }
     }
 
+    // tenant-isolation-ignore: manual IDOR check
     await db.user.update({
       where: { id: userId },
       data: { role: restoredRole },

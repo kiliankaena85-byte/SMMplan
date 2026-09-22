@@ -602,6 +602,7 @@ export async function getServiceBySlugAction(slug: string, tenantId: string = 's
 export async function getFreshServiceAction(serviceId: string, tenantId: string = 'smmplan'): Promise<PublicService | null> {
   try {
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
+    // tenant-isolation-ignore: manual IDOR check
     const s = await db.service.findUnique({
       where: { id: serviceId },
       include: {

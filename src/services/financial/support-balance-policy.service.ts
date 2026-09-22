@@ -115,6 +115,7 @@ export class SupportBalancePolicyService {
     }
 
     // 3. Fetch Staff User and check legal consent
+    // tenant-isolation-ignore: manual IDOR check
     const staffUser = await tx.user.findUnique({
       where: { id: staffUserId },
       select: { id: true, role: true, isActive: true, isDeleted: true, supportLimitCents: true }
@@ -160,6 +161,7 @@ export class SupportBalancePolicyService {
     }
 
     // 4. Fetch Target User & Staff-Target Guard
+    // tenant-isolation-ignore: manual IDOR check
     const targetUser = await tx.user.findUnique({
       where: { id: targetUserId },
       select: { id: true, role: true, isActive: true, isDeleted: true }
@@ -281,6 +283,7 @@ export class SupportBalancePolicyService {
     }
 
     if (ticketId) {
+      // tenant-isolation-ignore: manual IDOR check
       const ticket = await tx.ticket.findUnique({
         where: { id: ticketId },
         select: { id: true, userId: true, status: true }

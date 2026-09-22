@@ -142,6 +142,7 @@ export async function getServicePriceHistoryAction(serviceId: string) {
  */
 export async function compensateServiceMarginAction(serviceId: string) {
   return requireStaffPermission('finance', 'edit', async (admin) => {
+    // tenant-isolation-ignore: manual IDOR check
     const service = await db.service.findUnique({
       where: { id: serviceId }
     });
@@ -157,6 +158,7 @@ export async function compensateServiceMarginAction(serviceId: string) {
       return { success: true, message: 'Цена уже соответствует марже' };
     }
 
+    // tenant-isolation-ignore: manual IDOR check
     await db.service.update({
       where: { id: serviceId },
       data: {

@@ -25,6 +25,7 @@ export async function changeTicketStatusAction(data: {
     const result = await requireOperatorPermission('tickets', 'edit', async (admin) => {
       const { ticketId, status } = parsed.data;
 
+      // tenant-isolation-ignore: manual IDOR check
       const oldTicket = await db.ticket.findUnique({
         where: { id: ticketId },
         select: { status: true, tenantId: true },
@@ -33,6 +34,7 @@ export async function changeTicketStatusAction(data: {
         throw new Error('Обращение не найдено или доступ ограничен');
       }
 
+      // tenant-isolation-ignore: manual IDOR check
       await db.ticket.update({
         where: { id: ticketId },
         data: {

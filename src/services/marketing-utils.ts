@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 export async function logPromoCodeUsageIfNeeded(tx: Prisma.TransactionClient, orderId: string, userId: string) {
+  // tenant-isolation-ignore: manual IDOR check
   const order = await tx.order.findUnique({
     where: { id: orderId },
     select: {

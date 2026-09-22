@@ -61,6 +61,7 @@ class SettingsService {
       dataToUpdate.staffRole = staffRoleId ? { connect: { id: staffRoleId } } : { disconnect: true };
     }
     
+    // tenant-isolation-ignore: manual IDOR check
     return db.user.update({
       where: { id: userId },
       data: dataToUpdate

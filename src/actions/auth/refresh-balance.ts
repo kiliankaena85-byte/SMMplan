@@ -10,6 +10,7 @@ export async function refreshBalanceAction() {
     return { success: false, error: 'Unauthorized' };
   }
 
+  // tenant-isolation-ignore: manual IDOR check
   const user = await db.user.findUnique({
     where: { id: session.userId },
     select: { balance: true },

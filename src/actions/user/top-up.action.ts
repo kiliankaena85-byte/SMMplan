@@ -41,6 +41,7 @@ export async function createTopUpPaymentAction(
     }
 
     // Fetch user
+    // tenant-isolation-ignore: manual IDOR check
     const dbUser = await db.user.findUnique({ where: { id: session.userId } });
     if (!dbUser) {
       return { success: false, error: "Пользователь не найден." };
@@ -132,6 +133,7 @@ export async function createTopUpPaymentAction(
       });
 
       if (gatewayResult.remoteGatewayId || gatewayResult.paymentUrl) {
+        // tenant-isolation-ignore: manual IDOR check
         await db.payment.update({
           where: { id: payment.id },
           data: {
@@ -146,6 +148,7 @@ export async function createTopUpPaymentAction(
         paymentUrl: gatewayResult.paymentUrl || `/payment-redirect?id=${payment.id}`
       };
     } catch (err: unknown) {
+      // tenant-isolation-ignore: manual IDOR check
       await db.payment.update({
         where: { id: payment.id },
         data: { status: 'CANCELED' }

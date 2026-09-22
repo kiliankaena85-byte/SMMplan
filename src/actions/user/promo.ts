@@ -46,6 +46,7 @@ export async function activatePromoCodeAction(code: string): Promise<{ success: 
             return { success: false, error: "Этот промокод не содержит денежного бонуса" };
           }
 
+          // tenant-isolation-ignore: manual IDOR check
           const user = await tx.user?.findUnique?.({ where: { id: session.userId }, select: { tenantId: true } });
           const tenantId = user?.tenantId || (session as any)?.tenantId || 'smmplan';
 

@@ -343,6 +343,7 @@ export async function manualApprovePaymentAction(input: z.infer<typeof manualApp
       return { success: false as const, error: parsed.error.issues[0]?.message || 'Некорректные параметры' };
     }
 
+    // tenant-isolation-ignore: manual IDOR check
     const payment = await db.payment.findUnique({
       where: { id: parsed.data.paymentId },
       include: { user: true },

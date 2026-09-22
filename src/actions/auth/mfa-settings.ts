@@ -14,6 +14,7 @@ export async function getTwoFactorStatusAction() {
   const session = await verifySession();
   if (!session) return { success: false, error: 'Unauthorized' };
 
+  // tenant-isolation-ignore: manual IDOR check
   const user = await db.user.findUnique({
     where: { id: session.userId },
     select: {
@@ -43,6 +44,7 @@ export async function generateTwoFactorSetupAction() {
   const session = await verifySession();
   if (!session) return { success: false, error: 'Unauthorized' };
 
+  // tenant-isolation-ignore: manual IDOR check
   const user = await db.user.findUnique({
     where: { id: session.userId },
     select: { email: true, role: true, twoFactorEnabled: true },
@@ -56,6 +58,7 @@ export async function generateTwoFactorSetupAction() {
   const hashedCodes = plainCodes.map(hashBackupCode);
 
   // Store the pending secret and hashed backup codes (twoFactorEnabled remains false until verified)
+  // tenant-isolation-ignore: manual IDOR check
   await db.user.update({
     where: { id: session.userId },
     data: {
@@ -85,6 +88,7 @@ export async function confirmTwoFactorAction(totpCode: string) {
     return { success: false, error: 'Введите корректный 6-значный код' };
   }
 
+  // tenant-isolation-ignore: manual IDOR check
   const user = await db.user.findUnique({
     where: { id: session.userId },
     select: { id: true, email: true, role: true, twoFactorSecret: true },
@@ -99,6 +103,7 @@ export async function confirmTwoFactorAction(totpCode: string) {
     return { success: false, error: 'Неверный код подтверждения. Проверьте время на устройстве.' };
   }
 
+  // tenant-isolation-ignore: manual IDOR check
   await db.user.update({
     where: { id: session.userId },
     data: { twoFactorEnabled: true },
@@ -132,6 +137,7 @@ export async function disableTwoFactorAction(password: string, totpCode: string)
   const session = await verifySession();
   if (!session) return { success: false, error: 'Unauthorized' };
 
+  // tenant-isolation-ignore: manual IDOR check
   const user = await db.user.findUnique({
     where: { id: session.userId },
     select: { id: true, email: true, role: true, passwordHash: true, twoFactorSecret: true, twoFactorEnabled: true },
@@ -154,6 +160,7 @@ export async function disableTwoFactorAction(password: string, totpCode: string)
     return { success: false, error: 'Неверный код 2FA' };
   }
 
+  // tenant-isolation-ignore: manual IDOR check
   await db.user.update({
     where: { id: session.userId },
     data: {

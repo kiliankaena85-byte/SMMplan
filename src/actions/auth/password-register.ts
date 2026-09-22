@@ -90,6 +90,7 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
       // Handle referral code with Anti-Fraud Validation (Self-referral & cycle ban)
       let referredById = null;
       if (refCode) {
+        // tenant-isolation-ignore: manual IDOR check
         const referrer = await tx.user.findUnique({ where: { referralCode: refCode } });
         if (referrer) {
           const { ReferralValidatorService } = await import('@/services/referral/referral-validator.service');
@@ -165,6 +166,7 @@ export async function registerWithPasswordAction(prevState: unknown, formData: F
         process.env.NODE_ENV !== 'production' ||
         process.env.DEV_MOCK_SMTP === 'true';
       if (isTestEnv) {
+        // tenant-isolation-ignore: manual IDOR check
         await db.user.update({
           where: { id: user.id },
           data: { isEmailVerified: true },

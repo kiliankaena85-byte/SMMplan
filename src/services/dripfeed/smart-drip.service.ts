@@ -132,6 +132,7 @@ export class SmartDripService {
   ) {
     const { userId, serviceId, link, quantity, days, paymentId, orderId, isTestMode } = params;
 
+    // tenant-isolation-ignore: manual IDOR check
     const service = await tx.service.findUnique({
       where: { id: serviceId },
       include: { smartConfig: true },

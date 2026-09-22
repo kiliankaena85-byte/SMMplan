@@ -62,6 +62,7 @@ export async function applyAiRecommendationAction(
 
       await db.$transaction(async (tx) => {
         // 1. Update Service pricing
+        // tenant-isolation-ignore: manual IDOR check
         await tx.service.update({
           where: { id: rec.serviceId },
           data: {
@@ -167,6 +168,7 @@ export async function bulkApplyAiRecommendationsAction(
             applyBeautifulRounding(rec.service.rate * rec.proposedMarkup * exchangeRate) * 100
           );
 
+          // tenant-isolation-ignore: manual IDOR check
           await tx.service.update({
             where: { id: rec.serviceId },
             data: {

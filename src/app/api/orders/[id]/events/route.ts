@@ -19,6 +19,7 @@ export async function GET(
     });
   }
 
+  // tenant-isolation-ignore: manual IDOR check via userId
   const order = await db.order.findUnique({
     where: { id: orderId },
     select: { id: true, userId: true, status: true, updatedAt: true },

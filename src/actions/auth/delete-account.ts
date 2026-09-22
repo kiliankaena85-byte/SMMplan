@@ -40,6 +40,7 @@ export async function deleteAccountAction(prevState: unknown, formData: FormData
 
   try {
     const userId = session.userId;
+    // tenant-isolation-ignore: manual IDOR check
     const user = await db.user.findUnique({
       where: { id: userId },
       select: { passwordHash: true, email: true }

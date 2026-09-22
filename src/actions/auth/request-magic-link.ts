@@ -66,6 +66,7 @@ export async function requestMagicLink(prevState: unknown, formData: FormData) {
     let referredById = null;
 
     if (refCode) {
+      // tenant-isolation-ignore: manual IDOR check
       const referrer = await db.user.findUnique({ where: { referralCode: refCode } });
       if (referrer) referredById = referrer.id;
     }
@@ -160,6 +161,7 @@ export async function requestMagicLink(prevState: unknown, formData: FormData) {
       if (isNewUser && !isTestEnv) {
         log.info('Soft-deleting newly created user due to SMTP failure in production', { email: cleanEmail });
         try {
+          // tenant-isolation-ignore: manual IDOR check
           await db.user.update({
             where: { id: user.id },
             data: {

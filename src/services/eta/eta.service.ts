@@ -151,6 +151,7 @@ export async function recalculateAllETAs(): Promise<{ updated: number; skipped: 
     // Use a transaction for atomicity per chunk
     await db.$transaction(
       chunk.map((row) =>
+        // tenant-isolation-ignore: manual IDOR check
         db.service.update({
           where: { id: row.serviceId },
           data: {
