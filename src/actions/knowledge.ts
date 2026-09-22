@@ -1,5 +1,5 @@
-import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 'use server';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 import { db as prisma } from "@/lib/db";
 import { requireStaffPermission } from "@/lib/server/rbac";
@@ -716,3 +716,4 @@ export async function deleteArticle(id: string) {
     }
   });
 }
+

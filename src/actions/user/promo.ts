@@ -1,5 +1,5 @@
-import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 'use server';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 import { Prisma } from '@prisma/client';
 
 import { db } from "@/lib/db";
@@ -107,3 +107,4 @@ export async function activatePromoCodeAction(code: string): Promise<{ success: 
     return { success: false, error: errorMsg };
   }
 }
+
