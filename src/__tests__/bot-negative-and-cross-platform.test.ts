@@ -128,7 +128,7 @@ describe("Variant 3: Negative & Cross-Platform Bot Ordering Tests", () => {
     it("verifies subscribers (CHANNEL) are strictly REJECTED for a post link", () => {
       const isCompatible = isLinkServiceCompatible(
         LinkType.POST,
-        ServiceTargetType.CHANNEL
+        LinkType.CHANNEL
       );
       expect(isCompatible).toBe(false);
     });
@@ -137,7 +137,7 @@ describe("Variant 3: Negative & Cross-Platform Bot Ordering Tests", () => {
       // 5 last posts is for channel URL, NOT single post URL
       const isCompatible = isLinkServiceCompatible(
         LinkType.POST,
-        ServiceTargetType.CHANNEL_POSTS
+        LinkType.CHANNEL_POSTS
       );
       expect(isCompatible).toBe(false);
 
@@ -157,19 +157,19 @@ describe("Variant 3: Negative & Cross-Platform Bot Ordering Tests", () => {
     it("verifies single post views/reactions (POST_INTERACTION) are ACCEPTED for a post link", () => {
       const isViewsCompatible = isLinkServiceCompatible(
         LinkType.POST,
-        ServiceTargetType.POST_INTERACTION
+        LinkType.POST_INTERACTION
       );
       expect(isViewsCompatible).toBe(true);
 
       const isCommentsCompatible = isLinkServiceCompatible(
         LinkType.POST,
-        ServiceTargetType.COMMENTS
+        LinkType.COMMENTS
       );
       expect(isCommentsCompatible).toBe(true);
 
       const isPollCompatible = isLinkServiceCompatible(
         LinkType.POST,
-        ServiceTargetType.POLL_VOTES
+        LinkType.POLL_VOTES
       );
       expect(isPollCompatible).toBe(true);
     });

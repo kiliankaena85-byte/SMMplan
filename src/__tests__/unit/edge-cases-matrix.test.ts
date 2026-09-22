@@ -63,50 +63,50 @@ describe('OmniSMM Link Edge Cases & Taxonomic Matrix Test Vector Suite (M4)', ()
       expect(res.suggestedCategories.length).toBeGreaterThanOrEqual(4);
     });
 
-    it('TV-02: Public Telegram Channel is compatible with ServiceTargetType.CHANNEL (Subscribers)', () => {
-      const compatible = isLinkServiceCompatible('channel', ServiceTargetType.CHANNEL);
+    it('TV-02: Public Telegram Channel is compatible with LinkType.CHANNEL (Subscribers)', () => {
+      const compatible = isLinkServiceCompatible('channel', LinkType.CHANNEL);
       expect(compatible).toBe(true);
     });
 
-    it('TV-03: Public Telegram Channel is compatible with ServiceTargetType.CHANNEL_POSTS (Auto-views)', () => {
-      const compatible = isLinkServiceCompatible('channel', ServiceTargetType.CHANNEL_POSTS);
+    it('TV-03: Public Telegram Channel is compatible with LinkType.CHANNEL_POSTS (Auto-views)', () => {
+      const compatible = isLinkServiceCompatible('channel', LinkType.CHANNEL_POSTS);
       expect(compatible).toBe(true);
     });
 
-    it('TV-04: Public Telegram Channel is incompatible with ServiceTargetType.POST_INTERACTION and provides user guidance', async () => {
+    it('TV-04: Public Telegram Channel is incompatible with LinkType.POST_INTERACTION and provides user guidance', async () => {
       const res = await unifiedLinkEngine.validateForService('https://t.me/durov', tgPostViewService);
       expect(res.isValid).toBe(false);
       expect(res.errorCode).toBe('INCOMPATIBLE_TARGET_TYPE');
       expect(res.error).toContain('отдельный пост в канале');
     });
 
-    it('TV-05: VK Public Group is compatible with ServiceTargetType.CHANNEL and PROFILE', () => {
-      expect(isLinkServiceCompatible('channel', ServiceTargetType.CHANNEL)).toBe(true);
-      expect(isLinkServiceCompatible('channel', ServiceTargetType.PROFILE)).toBe(true);
+    it('TV-05: VK Public Group is compatible with LinkType.CHANNEL and PROFILE', () => {
+      expect(isLinkServiceCompatible('channel', LinkType.CHANNEL)).toBe(true);
+      expect(isLinkServiceCompatible('channel', LinkType.PROFILE)).toBe(true);
     });
 
-    it('TV-06: VK Public Group is incompatible with ServiceTargetType.POST_INTERACTION', () => {
-      expect(isLinkServiceCompatible('channel', ServiceTargetType.POST_INTERACTION)).toBe(false);
-      const errMsg = getCompatibilityError('channel', ServiceTargetType.POST_INTERACTION, 'Лайки на стену');
+    it('TV-06: VK Public Group is incompatible with LinkType.POST_INTERACTION', () => {
+      expect(isLinkServiceCompatible('channel', LinkType.POST_INTERACTION)).toBe(false);
+      const errMsg = getCompatibilityError('channel', LinkType.POST_INTERACTION, 'Лайки на стену');
       expect(errMsg).toContain('применяется к конкретным записям');
     });
 
     it('TV-07: YouTube Channel (@handle) is compatible with CHANNEL target', () => {
-      expect(isLinkServiceCompatible('channel', ServiceTargetType.CHANNEL)).toBe(true);
+      expect(isLinkServiceCompatible('channel', LinkType.CHANNEL)).toBe(true);
     });
 
     it('TV-08: YouTube Channel is incompatible with VIDEO_INTERACTION', () => {
-      expect(isLinkServiceCompatible('channel', ServiceTargetType.VIDEO_INTERACTION)).toBe(false);
+      expect(isLinkServiceCompatible('channel', LinkType.VIDEO_INTERACTION)).toBe(false);
     });
 
     it('TV-09: Instagram Profile is compatible with PROFILE and CHANNEL target types', () => {
-      expect(isLinkServiceCompatible('profile', ServiceTargetType.PROFILE)).toBe(true);
-      expect(isLinkServiceCompatible('profile', ServiceTargetType.CHANNEL)).toBe(true);
+      expect(isLinkServiceCompatible('profile', LinkType.PROFILE)).toBe(true);
+      expect(isLinkServiceCompatible('profile', LinkType.CHANNEL)).toBe(true);
     });
 
     it('TV-10: Instagram Profile is incompatible with POST_INTERACTION and yields educational error', () => {
-      expect(isLinkServiceCompatible('profile', ServiceTargetType.POST_INTERACTION)).toBe(false);
-      const err = getCompatibilityError('profile', ServiceTargetType.POST_INTERACTION, 'Лайки Instagram');
+      expect(isLinkServiceCompatible('profile', LinkType.POST_INTERACTION)).toBe(false);
+      const err = getCompatibilityError('profile', LinkType.POST_INTERACTION, 'Лайки Instagram');
       expect(err).toContain('укажите прямую ссылку на конкретный пост или фото');
     });
   });
@@ -218,12 +218,12 @@ describe('OmniSMM Link Edge Cases & Taxonomic Matrix Test Vector Suite (M4)', ()
       const liveUrl = 'https://youtube.com/live/dQw4w9WgXcQ';
       const canonical = canonicalizeUrl(liveUrl, IntelligencePlatform.YOUTUBE, 'VIDEO');
       expect(canonical).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-      expect(isLinkServiceCompatible('video', ServiceTargetType.VIDEO_INTERACTION)).toBe(true);
+      expect(isLinkServiceCompatible('video', LinkType.VIDEO_INTERACTION)).toBe(true);
     });
 
     it('TV-21: Twitch channel is compatible with VIDEO_INTERACTION (live viewers) and CHANNEL (followers)', () => {
       // Twitch channels support both stream interaction and follower acquisition
-      expect(isLinkServiceCompatible('channel', ServiceTargetType.CHANNEL)).toBe(true);
+      expect(isLinkServiceCompatible('channel', LinkType.CHANNEL)).toBe(true);
     });
   });
 
@@ -300,7 +300,7 @@ describe('OmniSMM Link Edge Cases & Taxonomic Matrix Test Vector Suite (M4)', ()
       const invite = 'https://discord.gg/coolServer123';
       const canonical = canonicalizeUrl(invite, IntelligencePlatform.DISCORD, 'CHANNEL');
       expect(canonical).toBe('https://discord.gg/coolServer123');
-      expect(isLinkServiceCompatible('channel', ServiceTargetType.CHANNEL)).toBe(true);
+      expect(isLinkServiceCompatible('channel', LinkType.CHANNEL)).toBe(true);
     });
 
     it('TV-29: Discord web invite (discord.com/invite/code) canonicalizes to discord.gg/code', () => {
