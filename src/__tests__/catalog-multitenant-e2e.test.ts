@@ -23,7 +23,7 @@ describe('Admin Catalog Multi-Tenant & Numbers Audit E2E Suite', () => {
 
     // 2. Setup Category with tenant 'all'
     const cat = await db.category.upsert({
-      where: { slug: 'e2e-catalog-multitenant-cat' },
+      where: { tenantId_slug: { tenantId: 'smmplan', slug: 'e2e-catalog-multitenant-cat' } },
       update: { tenantId: 'all' },
       create: {
         name: 'E2E Multi-Tenant Category',

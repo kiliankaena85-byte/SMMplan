@@ -35,9 +35,10 @@ export class PromoAutomationService {
 
           // Idempotency check: Upsert to gracefully handle race conditions without throwing unique constraint error
           await db.promoCode.upsert({
-            where: { code: deterministicCode },
+            where: { tenantId_code: { tenantId: user.tenantId, code: deterministicCode } },
             update: {}, // Do nothing if it exists
             create: {
+              tenantId: user.tenantId,
               code: deterministicCode,
               discountPercent: rule.percent,
               maxUses: 1, // One-time use reward

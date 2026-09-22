@@ -52,7 +52,7 @@ class AnalyticsService {
     // Step 2: Fetch service metadata in one query
     const serviceIds = grouped.map(g => g.serviceId);
     const services = await db.service.findMany({
-      where: { id: { in: serviceIds } },
+      where: { id: { in: serviceIds }, ...(isSingleTenant ? { tenantId } : {}) },
       select: {
         id: true,
         name: true,
@@ -166,6 +166,7 @@ class AnalyticsService {
       bucketThresholds.map((threshold, i) => {
         const gte = i === 0 ? BigInt(0) : BigInt(bucketThresholds[i - 1]);
         const lt = BigInt(threshold);
+        // tenant-isolation-ignore: filtered via userFilter
         return db.user.count({
           where: { ...userFilter, totalSpent: { gte, lt } },
         });
@@ -173,6 +174,7 @@ class AnalyticsService {
     );
 
     // Last bucket: >= max threshold
+    // tenant-isolation-ignore: filtered via userFilter
     const lastBucketCount = await db.user.count({
       where: { ...userFilter, totalSpent: { gte: BigInt(bucketThresholds[bucketThresholds.length - 1]) } },
     });

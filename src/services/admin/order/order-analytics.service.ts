@@ -121,7 +121,7 @@ export class OrderAnalyticsService {
     // Step 2: Fetch service metadata in one query
     const serviceIds = grouped.map(g => g.serviceId);
     const services = await db.service.findMany({
-      where: { id: { in: serviceIds } },
+      where: { id: { in: serviceIds }, ...(isSingleTenant ? { tenantId } : {}) },
       select: {
         id: true,
         name: true,

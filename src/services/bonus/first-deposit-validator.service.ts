@@ -32,12 +32,15 @@ export class FirstDepositValidatorService {
       return { eligible: true };
     }
 
+    const normalizedTenant = tenantId ? tenantId : 'smmplan';
+
     // 1. Check if user already claimed first deposit bonus
     const userClaimed = await db.bonusRedemptionLog.findFirst({
       where: {
         userId,
         bonusType: 'FIRST_DEPOSIT',
         status: { in: ['GRANTED', 'LOCKED'] },
+        tenantId: normalizedTenant,
       },
     });
 
@@ -52,6 +55,7 @@ export class FirstDepositValidatorService {
         bonusType: 'FIRST_DEPOSIT',
         status: { in: ['GRANTED', 'LOCKED'] },
         userId: { not: userId },
+        tenantId: normalizedTenant,
       },
     });
 

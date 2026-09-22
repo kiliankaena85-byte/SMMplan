@@ -1,3 +1,4 @@
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 'use server';
 
 import { db as prisma } from "@/lib/db";
@@ -162,8 +163,9 @@ export async function getArticles(
  */
 export async function getArticleBySlug(slug: string, tenantId?: string) {
   try {
-    const article = await prisma.article.findUnique({
-      where: { slug }
+    const normalizedTenant = normalizeTenantId(tenantId) || 'smmplan';
+    const article = await prisma.article.findFirst({
+      where: { slug, tenantId: normalizedTenant }
     });
 
     const isFlux = tenantId === 'flux' || tenantId === 'smmflux';

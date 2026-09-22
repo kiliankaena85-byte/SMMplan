@@ -24,6 +24,7 @@ export const adminMarketingService = {
         utmCampaign: true,
         budgetCents: true,
         isSuspicious: true,
+        tenantId: true,
         _count: { select: { usages: true } },
       },
     });

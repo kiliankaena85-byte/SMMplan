@@ -19,8 +19,8 @@ export async function generateMetadata({ params }: PageProps) {
   const tenantId = normalizeTenantId(reqHeaders.get('x-tenant-id'));
   const siteName = getTenantSiteName(tenantId);
 
-  const post = await prisma.contentItem.findUnique({
-    where: { slug: resolvedParams.slug },
+  const post = await prisma.contentItem.findFirst({
+    where: { slug: resolvedParams.slug, tenantId },
     select: { title: true, metaTitle: true, metaDescription: true, coverImage: true },
   });
 
@@ -75,8 +75,8 @@ export default async function CMSPage({ params }: PageProps) {
   const isFlux = tenantId === 'flux';
   const siteName = getTenantSiteName(tenantId);
 
-  const post = await prisma.contentItem.findUnique({
-    where: { slug: resolvedParams.slug },
+  const post = await prisma.contentItem.findFirst({
+    where: { slug: resolvedParams.slug, tenantId },
   });
 
   if (!post) {

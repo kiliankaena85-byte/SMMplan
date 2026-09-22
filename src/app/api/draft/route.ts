@@ -20,9 +20,11 @@ export async function GET(request: Request) {
     return new Response("Missing slug", { status: 400 });
   }
 
+  const tenantId = searchParams.get("tenantId") || "smmplan";
+
   // Проверяем существование статьи
-  const post = await prisma.contentItem.findUnique({
-    where: { slug },
+  const post = await prisma.contentItem.findFirst({
+    where: { slug, tenantId },
   });
 
   if (!post) {

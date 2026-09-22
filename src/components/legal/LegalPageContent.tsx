@@ -22,8 +22,8 @@ export async function LegalPageContent({ slug }: LegalPageContentProps) {
 
   // 1. Пробуем из БД
   try {
-    const post = await db.contentItem.findUnique({
-      where: { slug },
+    const post = await db.contentItem.findFirst({
+      where: { slug, tenantId },
       select: { title: true, contentHtml: true, isPublished: true },
     });
     if (post && post.isPublished && post.contentHtml) {

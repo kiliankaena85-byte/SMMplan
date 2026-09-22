@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { notFound, redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,15 +11,20 @@ export default async function AdminPageEditorRedirect({ params }: { params: Prom
     redirect('/admin/cms/new');
   }
 
+  const cookieStore = await cookies();
+  const cookieTenant = cookieStore.get('x_admin_tenant')?.value;
+  const { normalizeTenantId } = await import('@/lib/tenant-resolver-edge');
+  const tenantId = normalizeTenantId(cookieTenant);
+
   // Find the page in ContentItem by slug
   const contentItem = await db.contentItem.findFirst({
-    where: { slug }
+    where: { slug, tenantId }
   });
 
   if (!contentItem) {
     // Check legacy Page table just in case
-    const legacyPage = await db.page.findUnique({
-      where: { slug }
+    const legacyPage = await db.page.findFirst({
+      where: { slug, tenantId }
     });
     if (legacyPage) {
       // Legacy page found, we redirect to CMS list or notFound

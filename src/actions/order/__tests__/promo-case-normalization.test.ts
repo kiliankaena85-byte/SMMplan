@@ -130,7 +130,7 @@ describe('D1.2: Promo Code Case Normalization (CHK-07)', () => {
     }
 
     // 4. Assert that promo uses counter was incremented
-    const updatedPromo = await db.promoCode.findUnique({ where: { code: promoCode } });
+    const updatedPromo = await db.promoCode.findFirst({ where: { code: promoCode, tenantId: "smmplan" } });
     expect(updatedPromo?.uses).toBe(1);
 
     // 5. Non-existent promo code should not apply discount in calculatePriceAction

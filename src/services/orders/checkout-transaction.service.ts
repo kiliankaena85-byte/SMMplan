@@ -1,3 +1,4 @@
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 /**
  * (c) 2024-2026 SMMplan. All rights reserved.
  * Order checkout transaction execution and idempotency engine.
@@ -138,8 +139,9 @@ export class CheckoutTransactionService {
         throw new Error("Слишком много попыток ввода промокода. Подождите минуту.");
       }
 
-      const promo = await db.promoCode.findUnique({
-        where: { code: normalizedPromo },
+      const normalizedTenant = normalizeTenantId(tenantId);
+      const promo = await db.promoCode.findFirst({
+        where: { code: normalizedPromo, tenantId: normalizedTenant },
         select: { id: true, isActive: true, expiresAt: true, maxUses: true, uses: true }
       });
       if (!promo || !promo.isActive) throw new Error("Промокод недействителен или не существует");
@@ -267,7 +269,7 @@ export class CheckoutTransactionService {
         }
 
         if (normalizedPromo) {
-          await marketingService.consumePromoCode(tx, normalizedPromo);
+          await marketingService.consumePromoCode(tx, normalizedPromo, tenantId);
         }
 
         const payment = await tx.payment.create({

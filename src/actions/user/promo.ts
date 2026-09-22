@@ -1,3 +1,4 @@
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 'use server';
 import { Prisma } from '@prisma/client';
 
@@ -32,7 +33,9 @@ export async function activatePromoCodeAction(code: string): Promise<{ success: 
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const result = await db.$transaction(async (tx) => {
-          const promo = await tx.promoCode.findUnique({ where: { code: cleanCode } });
+          const user = await tx.user.findUnique({ where: { id: session.userId } });
+          const tenantId = normalizeTenantId(user?.tenantId) || 'smmplan';
+          const promo = await tx.promoCode.findFirst({ where: { code: cleanCode, tenantId } });
 
           if (!promo || !promo.isActive) {
             return { success: false, error: "Промокод недействителен или не существует" };
@@ -49,9 +52,6 @@ export async function activatePromoCodeAction(code: string): Promise<{ success: 
           if (promo.amount <= 0) {
             return { success: false, error: "Этот промокод не содержит денежного бонуса" };
           }
-
-          const user = await tx.user?.findUnique?.({ where: { id: session.userId }, select: { tenantId: true } });
-          const tenantId = user?.tenantId || (session as any)?.tenantId || 'smmplan';
 
           // Check if user already used this promo code (using DB-level idempotency key)
           const idempotencyKey = `promo-${cleanCode}-${session.userId}`;

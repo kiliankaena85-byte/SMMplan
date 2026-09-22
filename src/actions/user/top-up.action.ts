@@ -83,12 +83,12 @@ export async function createTopUpPaymentAction(
     const consentIp = await getClientIp();
     const consentUserAgent = reqHeaders.get("user-agent") || "Unknown";
 
-    const termsDoc = await db.contentItem.findUnique({
-      where: { slug: 'terms' },
+    const targetTenantId = dbUser.tenantId || 'smmplan';
+    const termsDoc = await db.contentItem.findFirst({
+      where: { slug: 'terms', tenantId: targetTenantId },
       select: { updatedAt: true }
     });
     const { SettingsProvider } = await import('@/lib/settings');
-    const targetTenantId = dbUser.tenantId || 'smmplan';
     const legalSettings = await SettingsProvider.getContactAndLegalSettings(targetTenantId);
     const legalInn = legalSettings.COMPANY_INN || 'default_inn';
     const consentVersion = termsDoc 
