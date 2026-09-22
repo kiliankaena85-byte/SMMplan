@@ -42,13 +42,12 @@ import {
   type FilterProviderItem,
   type FilterNetworkItem,
   formatCleanCategoryName,
-  formatCleanActivityName,
 } from './catalog/catalog-filters';
 
 const SAFETY_MULTIPLIER = (1 + SAFETY_FLOOR_MARKUP) / (1 - TOTAL_MANDATORY_DEDUCTIONS);
 
 export type { FilterCategoryItem as CatalogTableCategory, FilterProviderItem as CatalogTableProvider, FilterNetworkItem as CatalogTableNetwork };
-export { formatCleanCategoryName, formatCleanActivityName, calcDisplayPrice, calcDisplayCost, ArchiveButton };
+export { formatCleanCategoryName, calcDisplayPrice, calcDisplayCost, ArchiveButton };
 
 export function CreateServiceButton() {
   return (
