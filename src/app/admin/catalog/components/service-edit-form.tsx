@@ -11,6 +11,7 @@ import { applyBeautifulRounding, SAFETY_FLOOR_MARKUP } from '@/lib/financial-con
 import { IconPicker } from '@/components/admin/icon-picker/IconPicker';
 import { ProviderServiceSearchModal } from '@/components/admin/catalog/provider-service-search-modal';
 import { ServiceIdBadge } from '@/components/ui/service-id-badge';
+import { resolveServiceTargetType } from '@/utils/target-type-mapper';
 import {
   TargetTypeEnum,
   inferTargetTypeFromName,
@@ -110,7 +111,7 @@ export function ServiceEditForm({
   const [icon, setIcon] = useState<string | null>(initialData.icon || null);
   const [categoryId, setCategoryId] = useState(initialData.categoryId);
   const [targetType, setTargetType] = useState<string>(
-    initialData.targetType || inferTargetTypeFromName(initialData.name)
+    resolveServiceTargetType(initialData)
   );
   const [linkPlaceholder, setLinkPlaceholder] = useState(initialData.linkPlaceholder || '');
   const [linkHint, setLinkHint] = useState(initialData.linkHint || '');

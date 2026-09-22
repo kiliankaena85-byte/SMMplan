@@ -269,6 +269,27 @@ vi.mock('@/lib/admin-audit', async (importOriginal) => {
   };
 });
 
+// Mock Next.js Cache invalidation methods to prevent 'static generation store missing' errors natively
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+  unstable_cache: (fn: any) => fn
+}));
+
+// Mock next/headers to avoid 'headers called outside request scope' errors in server actions
+vi.mock('next/headers', () => ({
+  headers: vi.fn().mockResolvedValue({
+    get: vi.fn().mockImplementation((key: string) => {
+      if (key === 'user-agent') return 'vitest';
+      if (key === 'x-forwarded-for') return '127.0.0.1';
+      return null;
+    }),
+  }),
+  cookies: vi.fn().mockResolvedValue({
+    get: vi.fn().mockReturnValue(null),
+  }),
+}));
+
 beforeAll(async () => {
   // OMNI-AUDIT: Block accidental truncation of the development database
   const dbUrl = process.env.DATABASE_URL || '';
@@ -289,58 +310,39 @@ beforeAll(async () => {
   // Use the default Docker port for Redis
   process.env.REDIS_URL = 'redis://127.0.0.1:6379';
 
-  // Patch block_ledger_mutation trigger function to use IS NOT DISTINCT FROM for nullable fields
-  try {
-    await db.$executeRawUnsafe(`
-      CREATE OR REPLACE FUNCTION block_ledger_mutation()
-      RETURNS TRIGGER AS $$
-      BEGIN
-        IF (TG_OP = 'UPDATE' AND OLD.status = 'QUARANTINE') THEN
-          -- Strict security check: only the "status" field may change
-          IF (NEW.id = OLD.id AND
-              NEW."userId" = OLD."userId" AND
-              NEW."adminId" IS NOT DISTINCT FROM OLD."adminId" AND
-              NEW.amount = OLD.amount AND
-              NEW.reason = OLD.reason AND
-              NEW."idempotencyKey" IS NOT DISTINCT FROM OLD."idempotencyKey" AND
-              NEW."transactionType" = OLD."transactionType" AND
-              NEW."createdAt" = OLD."createdAt") THEN
-            RETURN NEW;
-          ELSE
-            RAISE EXCEPTION 'Financial Ledger is immutable. When status is QUARANTINE, only status updates are permitted.';
+  // Patch block_ledger_mutation trigger function to use IS NOT DISTINCT FROM for nullable fields (Node environment only)
+  if (typeof window === 'undefined') {
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE OR REPLACE FUNCTION block_ledger_mutation()
+        RETURNS TRIGGER AS $$
+        BEGIN
+          IF (TG_OP = 'UPDATE' AND OLD.status = 'QUARANTINE') THEN
+            -- Strict security check: only the "status" field may change
+            IF (NEW.id = OLD.id AND
+                NEW."userId" = OLD."userId" AND
+                NEW."adminId" IS NOT DISTINCT FROM OLD."adminId" AND
+                NEW.amount = OLD.amount AND
+                NEW.reason = OLD.reason AND
+                NEW."idempotencyKey" IS NOT DISTINCT FROM OLD."idempotencyKey" AND
+                NEW."transactionType" = OLD."transactionType" AND
+                NEW."createdAt" = OLD."createdAt") THEN
+              RETURN NEW;
+            ELSE
+              RAISE EXCEPTION 'Financial Ledger is immutable. When status is QUARANTINE, only status updates are permitted.';
+            END IF;
           END IF;
-        END IF;
-        RAISE EXCEPTION 'Financial Ledger is immutable. UPDATE and DELETE actions are strictly forbidden.';
-      END;
-      $$ LANGUAGE plpgsql;
-    `);
-  } catch (err) {
-    console.error('[setup.ts] Failed to patch block_ledger_mutation function:', err);
+          RAISE EXCEPTION 'Financial Ledger is immutable. UPDATE and DELETE actions are strictly forbidden.';
+        END;
+        $$ LANGUAGE plpgsql;
+      `);
+    } catch (err) {
+      console.error('[setup.ts] Failed to patch block_ledger_mutation function:', err);
+    }
   }
   
   // Mock external fetch to avoid real network requests to YooKassa/CryptoBot
   vi.stubGlobal('fetch', vi.fn());
-
-  // Mock Next.js Cache invalidation methods to prevent 'static generation store missing' errors natively
-  vi.mock('next/cache', () => ({
-    revalidatePath: vi.fn(),
-    revalidateTag: vi.fn(),
-    unstable_cache: (fn: any) => fn
-  }));
-
-  // Mock next/headers to avoid 'headers called outside request scope' errors in server actions
-  vi.mock('next/headers', () => ({
-    headers: vi.fn().mockResolvedValue({
-      get: vi.fn().mockImplementation((key: string) => {
-        if (key === 'user-agent') return 'vitest';
-        if (key === 'x-forwarded-for') return '127.0.0.1';
-        return null;
-      }),
-    }),
-    cookies: vi.fn().mockResolvedValue({
-      get: vi.fn().mockReturnValue(null),
-    }),
-  }));
 });
 
 async function sleep(ms: number) {
@@ -408,7 +410,7 @@ async function resetTestDb() {
 
 beforeEach(async () => {
   mockRedisStore.clear();
-  let shouldReset = true;
+  let shouldReset = typeof window === 'undefined';
   try {
     const testPath = expect.getState().testPath;
     if (testPath) {

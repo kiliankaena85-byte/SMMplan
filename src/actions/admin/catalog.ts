@@ -130,7 +130,7 @@ async function getMarkupAnalyticsAction() {
   });
 
   if (result && typeof result === 'object' && 'success' in result && !result.success) {
-    throw new Error(result.error);
+    return { success: false, error: result.error };
   }
   return result;
 }

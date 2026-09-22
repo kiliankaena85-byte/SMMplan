@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, CreditCard, Wallet, ChevronRight, Loader2, Coins, Lock } from "lucide-react";

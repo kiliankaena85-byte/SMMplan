@@ -1,3 +1,5 @@
+'use client';
+
 import type { ChatInputOrder } from './ChatInput';
 // audit-disable STR-002
 import { useEffect, useRef, useState } from 'react';

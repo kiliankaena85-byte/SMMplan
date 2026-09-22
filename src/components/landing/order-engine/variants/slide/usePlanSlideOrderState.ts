@@ -7,7 +7,7 @@ import type { PricingResult } from "@/services/marketing.service";
 import { detectNetworkByUrl } from "@/hooks/useOrderWizard";
 import { analyzeUrl } from "@/actions/order/analyze-url";
 import { isLinkServiceCompatible } from "@/constants/link-service-compatibility";
-import { inferTargetTypeFromName } from "@/utils/target-type";
+import { resolveServiceTargetType } from "@/utils/target-type-mapper";
 import { toast } from "sonner";
 import type { Step } from "./types";
 
@@ -322,7 +322,7 @@ export function usePlanSlideOrderState({
       let srvList: PublicService[] = fetched || [];
       if (detectedType) {
         const compatible = srvList.filter(s =>
-          isLinkServiceCompatible(detectedType, s.targetType || inferTargetTypeFromName(s.name))
+          isLinkServiceCompatible(detectedType, resolveServiceTargetType(s))
         );
         if (compatible.length > 0) srvList = compatible;
       }

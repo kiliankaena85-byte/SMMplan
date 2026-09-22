@@ -24,6 +24,20 @@ import {
 import { db } from '@/lib/db';
 
 describe('Admin Tenants Management (White-Label) Integration Tests', () => {
+  beforeEach(async () => {
+    await db.user.upsert({
+      where: { id: 'test-admin-id' },
+      update: { role: 'OWNER', email: 'admin@smmplan.pro', tenantId: 'smmplan' },
+      create: {
+        id: 'test-admin-id',
+        email: 'admin@smmplan.pro',
+        role: 'OWNER',
+        tenantId: 'smmplan',
+        balance: 0n,
+      }
+    });
+  });
+
   it('should list existing tenants', async () => {
     const res = await listTenantsAction();
     expect(res.success).toBe(true);

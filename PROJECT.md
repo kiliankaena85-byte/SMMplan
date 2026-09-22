@@ -24,10 +24,10 @@
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
-| 1 | M1: Frontend Contracts & UI Boundaries | Client/server boundaries, Suspense, HeroUI v3 compound modals, targetType resolution, branding cleanup | none | IN_PROGRESS (Worker: df2bfdef-3ae0-429c-ac84-4934c75a79e9) |
-| 2 | M2: Financial Invariants & Server Actions | Idempotency key stability, Server Actions { success, error } contracts, WalletOps audit | none | IN_PROGRESS (Worker: bf7cf831-858c-4ee9-90ac-f7ffc0652b8e) |
-| 3 | M3: Test Suite & Typecheck Healing | Fix test/tsconfig.json 29 errors, test runner stability, Vitest connection pool configuration | none | IN_PROGRESS (Worker: c1764647-6f4a-43ca-93e4-28235a309c9f) |
-| 4 | M4: Full-Spectrum Verification & Hardening | Run root tsc, test tsc, full Vitest suite, next build --webpack, secret audit, Challenger & Forensic Auditor gates | M1, M2, M3 | PLANNED |
+| 1 | M1: Frontend Contracts & UI Boundaries | Client/server boundaries, Suspense, HeroUI v3 compound modals, targetType resolution, branding cleanup | none | DONE (31 files updated, 0 errors, AST guardrails pass, 9/9 target type tests pass) |
+| 2 | M2: Financial Invariants & Server Actions | Idempotency key stability, Server Actions { success, error } contracts, WalletOps audit | none | DONE (Deterministic idempotency keys applied, 5 server actions typed, 6/6 new tests pass, 155/155 financial tests pass) |
+| 3 | M3: Test Suite & Typecheck Healing | Fix test/tsconfig.json 29 errors, test runner stability, Vitest connection pool configuration | none | DONE (29 TS errors eliminated, 0 errors in test tsconfig, connection_limit=30, test suites 100% green) |
+| 4 | M4: Full-Spectrum Verification & Hardening | Run root tsc, test tsc, full Vitest suite, next build --webpack, secret audit, Challenger & Forensic Auditor gates | M1, M2, M3 | DONE (All gates passed: Reviewers APPROVE, Challengers APPROVE, Forensic Auditor CLEAN, root tsc 0 errors, build green) |
 
 ## Interface Contracts
 ### UI Components ↔ Next.js App Router

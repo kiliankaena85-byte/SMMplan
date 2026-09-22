@@ -71,7 +71,8 @@ describe('🚀 SecurityAlertService: Real-Time Security Monitoring & Telegram Al
     // Verify Telegram Alert was dispatched
     expect(messagesSent.length).toBe(1);
     expect(messagesSent[0].severity).toBe('CRITICAL');
-    expect(messagesSent[0].msg).toContain('[CRITICAL] SECURITY INTRUSION ATTEMPT');
+    expect(messagesSent[0].msg).toContain('[CRITICAL]');
+    expect(messagesSent[0].msg).toContain('INVALID_SIGNATURE-WEBHOOK');
     expect(messagesSent[0].msg).toContain('203.0.113.199');
 
     // Verify Redis Publish

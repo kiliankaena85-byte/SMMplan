@@ -16,11 +16,12 @@ const financeSettingsSchema = z.object({
   opexMonthly: z.coerce.number().min(0, "OPEX не может быть отрицательным").max(10000000, "Максимальный лимит OPEX - 10,000,000 ₽").optional().default(0)
 });
 
-export async function updateSystemSettings(formData: FormData) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function updateSystemSettings(formData: FormData): Promise<{ success: boolean; error?: string }> {
   const result = await requireStaffPermission('finance', 'edit', async (admin) => {
     const parsed = financeSettingsSchema.safeParse(Object.fromEntries(formData.entries()));
-    if (!parsed.success) throw new Error('Validation error');
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message || 'Ошибка валидации параметров учёта' };
+    }
     const { taxRate, opexMonthly: opexRubles } = parsed.data;
     const opexMonthly = Math.round(opexRubles * 100);
 
@@ -43,5 +44,8 @@ export async function updateSystemSettings(formData: FormData) {
     });
 
     revalidatePath('/admin/finance');
+    return { success: true };
   });
+
+  return result;
 }

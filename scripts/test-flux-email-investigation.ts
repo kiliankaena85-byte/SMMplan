@@ -93,6 +93,36 @@ async function main() {
     });
   }
 
+  console.log("\n=== 5. Inspecting Owners and Users ===");
+  const owners = await db.user.findMany({
+    where: { role: 'OWNER' },
+    select: { id: true, email: true, role: true, tenantId: true, createdAt: true }
+  });
+  console.log("Owners:", owners);
+
+  console.log("\n=== 6. Testing Actual sendMail via Transporter for Flux ===");
+  const { sendMagicLink, sendMail } = await import('../src/lib/smtp');
+  
+  // Test transporter sending to a safe test target or self (smtpUser)
+  const testTarget = fluxSettings.smtpUser || 'support@smmplan.pro';
+  console.log(`Sending test email to ${testTarget}...`);
+  try {
+    const info = await transporterFlux.sendMail({
+      from: fromAddress,
+      to: testTarget,
+      subject: "OmniSMM Test: SMMflux Delivery Check",
+      html: "<p>This is an automated delivery test for SMMflux.</p>"
+    });
+    console.log("✅ transporterFlux.sendMail SUCCESS! MessageId:", info.messageId, info.response);
+  } catch (sendErr: any) {
+    console.error("❌ transporterFlux.sendMail FAILED:", sendErr.message, {
+      code: sendErr.code,
+      response: sendErr.response,
+      responseCode: sendErr.responseCode,
+      command: sendErr.command
+    });
+  }
+
   process.exit(0);
 }
 

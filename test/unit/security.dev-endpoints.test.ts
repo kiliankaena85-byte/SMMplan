@@ -193,12 +193,12 @@ describe('🔒 SEC-001: Dev Endpoints — Production Guard & Purged Backdoors', 
   });
 
   describe('GET /api/debug', () => {
-    it('SEC-DEBUG-001: Returns 404 in production (route purged)', async () => {
+    it('SEC-DEBUG-001: Returns 404 in production', async () => {
       vi.stubEnv('NODE_ENV', 'production');
-      expect(checkDevRoutePurged('api/debug')).toBe(true);
 
+      const { GET } = await import('@/app/api/debug/route');
       const req = new NextRequest('http://localhost:3000/api/debug');
-      const response = purgedRouteHandler(req);
+      const response = await GET(req);
       expect(response.status).toBe(404);
     });
   });

@@ -1,3 +1,4 @@
+'use client';
 // audit-disable STR-002
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';

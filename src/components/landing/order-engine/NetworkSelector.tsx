@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useMemo, useState, useEffect } from "react";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 import { SocialIcon } from "@/components/ui/SocialIcon";

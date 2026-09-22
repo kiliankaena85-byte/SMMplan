@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ShieldCheck, AlertTriangle, Loader2 } from 'lucide-react';
 import { FluxCard, FluxButton, FluxBadge } from '@/components/ui';
 
-export default function PaymentRedirectPage() {
+function PaymentRedirectContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const paymentId = searchParams.get('id');
@@ -181,5 +181,31 @@ export default function PaymentRedirectPage() {
         )}
       </FluxCard>
     </div>
+  );
+}
+
+export default function PaymentRedirectPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
+          <FluxCard variant="glass" padding="xl" className="max-w-md w-full flex flex-col items-center text-center shadow-[0_20px_60px_rgba(0,0,0,0.08)] relative z-10">
+            <div className="space-y-6">
+              <div className="w-16 h-16 rounded-3xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mx-auto">
+                <Loader2 className="w-8 h-8 text-purple-600 animate-spin" />
+              </div>
+              <div className="space-y-2">
+                <h1 className="text-2xl font-black text-foreground">Устанавливаем соединение...</h1>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  Генерируем защищенную платежную сессию для вашего заказа.
+                </p>
+              </div>
+            </div>
+          </FluxCard>
+        </div>
+      }
+    >
+      <PaymentRedirectContent />
+    </Suspense>
   );
 }

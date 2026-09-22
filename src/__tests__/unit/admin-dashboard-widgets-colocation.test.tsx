@@ -55,7 +55,7 @@ describe('Admin Dashboard Widgets Colocation & Suspense Skeletons Suite', () => 
   });
 
   describe('RecentOrdersFeedWidget', () => {
-    it('renders passed orders prop directly without querying database', async () => {
+    it('renders recent orders returned from service', async () => {
       const mockOrders = [
         {
           id: 'ord-1',
@@ -75,15 +75,19 @@ describe('Admin Dashboard Widgets Colocation & Suspense Skeletons Suite', () => 
         },
       ];
 
-      const jsx = await RecentOrdersFeedWidget({ orders: mockOrders });
+      vi.mocked(adminOrderService.getRecentOrders).mockResolvedValueOnce(
+        mockOrders as unknown as Awaited<ReturnType<typeof adminOrderService.getRecentOrders>>
+      );
+
+      const jsx = await RecentOrdersFeedWidget({ limit: 6 });
       render(jsx);
 
       expect(screen.getByText('#101')).toBeDefined();
       expect(screen.getByText('client@example.com')).toBeDefined();
-      expect(adminOrderService.getRecentOrders).not.toHaveBeenCalled();
+      expect(adminOrderService.getRecentOrders).toHaveBeenCalledWith(6, undefined);
     });
 
-    it('fetches its own data when orders prop is omitted', async () => {
+    it('passes tenantFilter to adminOrderService', async () => {
       vi.mocked(adminOrderService.getRecentOrders).mockResolvedValueOnce([
         {
           id: 'ord-2',
@@ -101,9 +105,9 @@ describe('Admin Dashboard Widgets Colocation & Suspense Skeletons Suite', () => 
             },
           },
         },
-      ] as any);
+      ] as unknown as Awaited<ReturnType<typeof adminOrderService.getRecentOrders>>);
 
-      const jsx = await RecentOrdersFeedWidget({ tenantId: 'flux' });
+      const jsx = await RecentOrdersFeedWidget({ tenantFilter: 'flux' });
       render(jsx);
 
       expect(adminOrderService.getRecentOrders).toHaveBeenCalledWith(6, 'flux');
@@ -113,28 +117,32 @@ describe('Admin Dashboard Widgets Colocation & Suspense Skeletons Suite', () => 
   });
 
   describe('TopSpendersWidget', () => {
-    it('renders passed clients prop directly without querying database', async () => {
+    it('renders top spenders returned from service', async () => {
       const mockClients = [
         {
           id: 'usr-1',
           email: 'vip@example.com',
           role: 'USER',
-          balance: BigInt(250000),
-          totalSpent: BigInt(1000000),
+          balance: 250000,
+          totalSpent: 1000000,
           tenantId: 'smmplan',
           createdAt: new Date(),
           _count: { orders: 42 },
         },
       ];
 
-      const jsx = await TopSpendersWidget({ clients: mockClients });
+      vi.mocked(adminUserService.getTopSpenders).mockResolvedValueOnce(
+        mockClients as unknown as Awaited<ReturnType<typeof adminUserService.getTopSpenders>>
+      );
+
+      const jsx = await TopSpendersWidget({ limit: 6 });
       render(jsx);
 
       expect(screen.getByText('vip@example.com')).toBeDefined();
-      expect(adminUserService.getTopSpenders).not.toHaveBeenCalled();
+      expect(adminUserService.getTopSpenders).toHaveBeenCalledWith(6, undefined);
     });
 
-    it('fetches its own data when clients prop is omitted', async () => {
+    it('passes tenantFilter to adminUserService', async () => {
       vi.mocked(adminUserService.getTopSpenders).mockResolvedValueOnce([
         {
           id: 'usr-2',
@@ -146,9 +154,9 @@ describe('Admin Dashboard Widgets Colocation & Suspense Skeletons Suite', () => 
           createdAt: new Date(),
           _count: { orders: 15 },
         },
-      ] as any);
+      ] as unknown as Awaited<ReturnType<typeof adminUserService.getTopSpenders>>);
 
-      const jsx = await TopSpendersWidget({ tenantId: 'flux' });
+      const jsx = await TopSpendersWidget({ tenantFilter: 'flux' });
       render(jsx);
 
       expect(adminUserService.getTopSpenders).toHaveBeenCalledWith(6, 'flux');
@@ -157,7 +165,7 @@ describe('Admin Dashboard Widgets Colocation & Suspense Skeletons Suite', () => 
   });
 
   describe('TopServicesWidget', () => {
-    it('renders passed services prop directly without querying database', async () => {
+    it('renders top services returned from service', async () => {
       const mockServices = [
         {
           id: 'srv-1',
@@ -171,19 +179,23 @@ describe('Admin Dashboard Widgets Colocation & Suspense Skeletons Suite', () => 
         },
       ];
 
-      const jsx = await TopServicesWidget({ services: mockServices });
+      vi.mocked(adminOrderService.getTopServices).mockResolvedValueOnce(
+        mockServices as unknown as Awaited<ReturnType<typeof adminOrderService.getTopServices>>
+      );
+
+      const jsx = await TopServicesWidget({ limit: 6 });
       render(jsx);
 
       expect(screen.getByText('Super Telegram Views')).toBeDefined();
-      expect(adminOrderService.getTopServices).not.toHaveBeenCalled();
+      expect(adminOrderService.getTopServices).toHaveBeenCalledWith(6, undefined, undefined, undefined);
     });
 
-    it('fetches its own data when services prop is omitted', async () => {
+    it('passes date filters and tenantFilter to adminOrderService', async () => {
       vi.mocked(adminOrderService.getTopServices).mockResolvedValueOnce([]);
 
       const start = new Date('2026-01-01');
       const end = new Date('2026-01-31');
-      const jsx = await TopServicesWidget({ startDate: start, endDate: end, tenantId: 'smmplan' });
+      const jsx = await TopServicesWidget({ filterStart: start, filterEnd: end, tenantFilter: 'smmplan' });
       render(jsx);
 
       expect(adminOrderService.getTopServices).toHaveBeenCalledWith(6, start, end, 'smmplan');
@@ -192,7 +204,7 @@ describe('Admin Dashboard Widgets Colocation & Suspense Skeletons Suite', () => 
   });
 
   describe('PaymentGatewaysWidget', () => {
-    it('renders passed gateways prop directly without querying database', async () => {
+    it('renders payment gateways returned from accounting service', async () => {
       const mockGateways = [
         {
           gateway: 'yookassa',
@@ -208,19 +220,23 @@ describe('Admin Dashboard Widgets Colocation & Suspense Skeletons Suite', () => 
         },
       ];
 
-      const jsx = await PaymentGatewaysWidget({ gateways: mockGateways });
+      vi.mocked(accountingService.getGatewayBreakdown).mockResolvedValueOnce(
+        mockGateways as unknown as Awaited<ReturnType<typeof accountingService.getGatewayBreakdown>>
+      );
+
+      const jsx = await PaymentGatewaysWidget({});
       render(jsx);
 
       expect(screen.getByText('ЮKassa')).toBeDefined();
-      expect(accountingService.getGatewayBreakdown).not.toHaveBeenCalled();
+      expect(accountingService.getGatewayBreakdown).toHaveBeenCalledWith(undefined, undefined, undefined);
     });
 
-    it('fetches its own data when gateways prop is omitted', async () => {
+    it('passes date filters and tenantFilter to accountingService', async () => {
       vi.mocked(accountingService.getGatewayBreakdown).mockResolvedValueOnce([]);
 
       const start = new Date('2026-01-01');
       const end = new Date('2026-01-31');
-      const jsx = await PaymentGatewaysWidget({ startDate: start, endDate: end, tenantId: 'flux' });
+      const jsx = await PaymentGatewaysWidget({ filterStart: start, filterEnd: end, tenantFilter: 'flux' });
       render(jsx);
 
       expect(accountingService.getGatewayBreakdown).toHaveBeenCalledWith(start, end, 'flux');
@@ -229,7 +245,7 @@ describe('Admin Dashboard Widgets Colocation & Suspense Skeletons Suite', () => 
   });
 
   describe('RefundMonitorWidget', () => {
-    it('renders passed stats prop directly without querying database', async () => {
+    it('renders refund and failure statistics returned from service', async () => {
       const mockStats = {
         totalOrders: 100,
         canceledOrders: 2,
@@ -241,14 +257,18 @@ describe('Admin Dashboard Widgets Colocation & Suspense Skeletons Suite', () => 
         topFailingServices: [],
       };
 
-      const jsx = await RefundMonitorWidget({ stats: mockStats });
+      vi.mocked(adminOrderService.getRefundAndFailureStats).mockResolvedValueOnce(
+        mockStats as unknown as Awaited<ReturnType<typeof adminOrderService.getRefundAndFailureStats>>
+      );
+
+      const jsx = await RefundMonitorWidget({});
       render(jsx);
 
       expect(screen.getByText('3.0% сбоев / отмен')).toBeDefined();
-      expect(adminOrderService.getRefundAndFailureStats).not.toHaveBeenCalled();
+      expect(adminOrderService.getRefundAndFailureStats).toHaveBeenCalledWith(undefined, undefined, undefined);
     });
 
-    it('fetches its own data when stats prop is omitted', async () => {
+    it('passes date filters and tenantFilter to adminOrderService', async () => {
       vi.mocked(adminOrderService.getRefundAndFailureStats).mockResolvedValueOnce({
         totalOrders: 50,
         canceledOrders: 5,
@@ -258,11 +278,11 @@ describe('Admin Dashboard Widgets Colocation & Suspense Skeletons Suite', () => 
         failureRate: '16.0',
         totalRefundsKopecks: BigInt(24000),
         topFailingServices: [{ name: 'Failing Svc', network: 'Telegram', count: 5 }],
-      });
+      } as unknown as Awaited<ReturnType<typeof adminOrderService.getRefundAndFailureStats>>);
 
       const start = new Date('2026-02-01');
       const end = new Date('2026-02-28');
-      const jsx = await RefundMonitorWidget({ startDate: start, endDate: end, tenantId: 'smmplan' });
+      const jsx = await RefundMonitorWidget({ filterStart: start, filterEnd: end, tenantFilter: 'smmplan' });
       render(jsx);
 
       expect(adminOrderService.getRefundAndFailureStats).toHaveBeenCalledWith(start, end, 'smmplan');

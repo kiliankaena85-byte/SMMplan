@@ -356,7 +356,9 @@ export async function changeTicketStatus(formData: FormData) {
   });
 }
 
-export const adminChangeTicketStatus = changeTicketStatus;
+export async function adminChangeTicketStatus(formData: FormData) {
+  return changeTicketStatus(formData);
+}
 
 const editMessageSchema = z.object({
   messageId: z.string().min(1),
