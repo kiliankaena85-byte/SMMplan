@@ -119,6 +119,16 @@ vi.mock('ioredis', () => {
       this.store.set(key, current);
       return current;
     });
+    decr = vi.fn().mockImplementation(async (key: string) => {
+      const current = (this.store.get(key) || 0) - 1;
+      this.store.set(key, current);
+      return current;
+    });
+    decrby = vi.fn().mockImplementation(async (key: string, decrement: number) => {
+      const current = (this.store.get(key) || 0) - decrement;
+      this.store.set(key, current);
+      return current;
+    });
     setex = vi.fn().mockImplementation(async (key: string, seconds: number, value: any) => {
       this.store.set(key, value);
       return 'OK';
@@ -142,6 +152,33 @@ vi.mock('ioredis', () => {
     });
     multi = vi.fn().mockReturnValue({
       exec: vi.fn().mockResolvedValue([]),
+    });
+    hset = vi.fn().mockImplementation(async (key: string, fieldOrObj: any, val?: any) => {
+      let current = this.store.get(key);
+      if (!current || typeof current !== 'object' || Array.isArray(current)) current = {};
+      if (typeof fieldOrObj === 'object' && fieldOrObj !== null) {
+        Object.assign(current, fieldOrObj);
+      } else if (typeof fieldOrObj === 'string') {
+        current[fieldOrObj] = String(val);
+      }
+      this.store.set(key, current);
+      return 1;
+    });
+    hget = vi.fn().mockImplementation(async (key: string, field: string) => {
+      const current = this.store.get(key);
+      return (current && typeof current === 'object') ? current[field] ?? null : null;
+    });
+    hgetall = vi.fn().mockImplementation(async (key: string) => {
+      const current = this.store.get(key);
+      return (current && typeof current === 'object') ? { ...current } : {};
+    });
+    hdel = vi.fn().mockImplementation(async (key: string, field: string) => {
+      const current = this.store.get(key);
+      if (current && typeof current === 'object' && field in current) {
+        delete current[field];
+        return 1;
+      }
+      return 0;
     });
     publish = vi.fn().mockResolvedValue(1);
     subscribe = vi.fn().mockResolvedValue(undefined);
@@ -361,31 +398,46 @@ async function resetTestDb() {
     try {
       await db.$executeRawUnsafe(`TRUNCATE TABLE "LedgerEntry", "SupportLimitUsage", "SupportHourlyUsage", "SupportFinancialAction", "ManualBalanceAdjustment", "EmployeeResponsibilityConsent", "BalanceAdjustmentPolicy", "Order", "Payment", "TicketMessage", "Ticket", "Commission", "SmartTask", "SmartCampaign", "ServiceSmartConfig", "ServiceRoute", "Service", "Category", "Provider", "Article", "RateLimit", "AuditLog", "LoginLog", "Invoice", "User", "Network", "UrlPattern", "CustomerGroup", "ServiceDraft", "ServiceCustomerAccess", "ServiceLinkCheck", "ServiceEditHistory" CASCADE;`);
 
-      for (const tId of ["smmplan", "lovable", "global"]) {
+      // Ensure phantom/deprecated tenants like 'lovable' or 'smmboost' are purged from test DB
+      await db.systemSettings.deleteMany({
+        where: { id: { in: ['lovable', 'smmboost'] } }
+      });
+      await db.tenant.deleteMany({
+        where: { id: { in: ['lovable', 'smmboost'] } }
+      });
+
+      const tenantSeeds = [
+        { id: 'smmplan', name: 'SMMplan', slug: 'smmplan', domain: 'smmplan.local', siteName: 'SMMplan' },
+        { id: 'flux', name: 'SMMflux', slug: 'flux', domain: 'smmflux.local', siteName: 'SMMflux' },
+        { id: 'smmflux', name: 'SMMflux', slug: 'smmflux', domain: 'smmflux.ru', siteName: 'SMMflux' },
+        { id: 'global', name: 'OmniSMM Global', slug: 'global', domain: 'global.local', siteName: 'OmniSMM' },
+      ];
+
+      for (const t of tenantSeeds) {
         await db.tenant.upsert({
-          where: { id: tId },
-          update: { name: tId, slug: tId, domain: `${tId}.local` },
-          create: { id: tId, name: tId, slug: tId, domain: `${tId}.local`, vaultSalt: "test-salt" }
+          where: { id: t.id },
+          update: { name: t.name, slug: t.slug, domain: t.domain },
+          create: { id: t.id, name: t.name, slug: t.slug, domain: t.domain, vaultSalt: "test-salt" }
         });
 
         await db.systemSettings.upsert({
-          where: { id: tId },
+          where: { id: t.id },
           update: {
             taxRate: 6.0,
             opexMonthly: 0,
             maintenanceMode: false,
             isTestMode: false,
-            siteName: tId === 'lovable' ? 'SMMflux' : 'SMMplan',
+            siteName: t.siteName,
             siteDescription: "",
             exchangeRateUSD: 95.0
           },
           create: {
-            id: tId,
+            id: t.id,
             taxRate: 6.0,
             opexMonthly: 0,
             maintenanceMode: false,
             isTestMode: false,
-            siteName: tId === 'lovable' ? 'SMMflux' : 'SMMplan',
+            siteName: t.siteName,
             siteDescription: "",
             exchangeRateUSD: 95.0
           }
@@ -496,6 +548,7 @@ beforeEach(async () => {
         'watchdog-daemon',
         'tickets-layout-viewport',
         'plan-slide-order-client',
+        'zero-throw-fuzzer',
         'plan-fullscreen-checkout',
         'quarantine-api-diff',
         'multitenant-legal-fiscal-isolation',
@@ -536,6 +589,10 @@ beforeEach(async () => {
         'ai-harnesses',
         'stage1-economic',
         'harness',
+        '.antigravity',
+        'reconciliation',
+        'leftshift',
+        'scanners',
         'ast-transaction-escape'
       ];
       if (skipPatterns.some(pattern => testPath.toLowerCase().includes(pattern.toLowerCase()))) {

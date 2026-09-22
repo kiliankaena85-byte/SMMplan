@@ -9,13 +9,14 @@ import type { BotContext } from '../types/bot-context';
 import { Scenes, Markup } from 'telegraf';
 import { db } from '@/lib/db';
 import { UnifiedPaymentService } from '@/services/financial/unified-payment.service';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 export const DEPOSIT_WIZARD = 'deposit-wizard';
 
 /**
  * Resolve Lite User from Telegram context.
  */
-const botTenantId = process.env.BOT_TENANT_ID || 'smmplan';
+const botTenantId = normalizeTenantId(process.env.BOT_TENANT_ID) || 'smmplan';
 
 async function resolveUser(tgId: number) {
   return db.user.findFirst({
@@ -145,7 +146,7 @@ depositWizard.action(/pay_(yookassa|cryptobot)/, async (ctx: BotContext) => {
 
     await ctx.editMessageText('🔄 Создаю платеж, подождите...');
 
-    const siteName = (botTenantId === 'flux' || botTenantId === 'lovable') ? 'SMMflux' : 'SMMplan';
+    const siteName = botTenantId === 'flux' ? 'SMMflux' : 'SMMplan';
     const res = await UnifiedPaymentService.createPayment(
       undefined,
       user.id,

@@ -29,6 +29,7 @@ import { Scenes, session, Telegraf, Markup } from 'telegraf';
 import { db } from '@/lib/db';
 import { WalletOps } from '@/services/financial/wallet-ops';
 import { auditAdminAwaitable } from '@/lib/admin-audit';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 import type { BotContext } from './types/bot-context';
 
 function sanitizeTelegramTemplate(template: string): string {
@@ -62,8 +63,8 @@ export const bot = new Telegraf<BotContext>(TOKEN || 'dummy_token', {
   },
 });
 
-const botTenantId = process.env.BOT_TENANT_ID || 'smmplan';
-const botSiteName = (botTenantId === 'flux' || botTenantId === 'lovable') ? 'SMMflux' : 'SMMplan';
+const botTenantId = normalizeTenantId(process.env.BOT_TENANT_ID) || 'smmplan';
+const botSiteName = botTenantId === 'flux' ? 'SMMflux' : 'SMMplan';
 
 // ── STAGE ──
 const stage = new Scenes.Stage<BotContext>([
@@ -80,7 +81,7 @@ bot.use(stage.middleware());
 // Security & Maintenance policy middleware
 bot.use(async (ctx, next) => {
   if (!ctx.from) return next();
-  const isOwner = await isOwnerOrAdmin(ctx.from.id);
+  const isOwner = await isOwnerOrAdmin(ctx.from.id, botTenantId);
 
   // 1. Maintenance mode check
   if (!isOwner) {
@@ -214,6 +215,23 @@ bot.start(async (ctx: BotContext) => {
           }
 
           const tempUser = await tx.user.findFirst({ where: { telegramId: tgId, tenantId: botTenantId } });
+          const webUser = await tx.user.findUnique({ where: { id: webUserId } });
+
+          if (!webUser) {
+            throw new Error('Пользователь веб-кабинета не найден');
+          }
+
+          if (tempUser && tempUser.role && tempUser.role !== 'USER') {
+            throw new Error('Запрещено объединять служебные аккаунты персонала');
+          }
+
+          if (tempUser && tempUser.tenantId !== webUser.tenantId) {
+            throw new Error('Нельзя объединять аккаунты разных брендов. Пожалуйста, используйте бота, соответствующего сайту.');
+          }
+
+          if (webUser.tenantId !== botTenantId) {
+            throw new Error('Этот токен выпущен для другого бренда. Пожалуйста, используйте соответствующего бота.');
+          }
           
           if (tempUser && tempUser.id !== webUserId) {
             // Merge: move tickets to main account
@@ -230,7 +248,7 @@ bot.start(async (ctx: BotContext) => {
             
             // 1.5. Balance Transfer to preserve financial integrity and keep ledger immutable
             if (tempUser.balance > BigInt(0)) {
-              const amount = Number(tempUser.balance);
+              const amount = tempUser.balance;
               const reasonDebit = `Списание баланса при авто-слиянии Telegram ${tempUser.email} с ${webUserId}`;
               const reasonCredit = `Перенос баланса со старого аккаунта Telegram ${tempUser.email}`;
               
@@ -470,7 +488,7 @@ export async function sendMainMenu(ctx: BotContext, isEdit = false) {
 }
 
 async function getDynamicInlineKeyboard(tgId?: string | number) {
-  const isOwner = tgId ? await isOwnerOrAdmin(tgId) : false;
+  const isOwner = tgId ? await isOwnerOrAdmin(tgId, botTenantId) : false;
 
   let baseRows: any[][] = [
     [Markup.button.callback('🚀 Быстрый заказ по ссылке', 'start_fast_order')],
@@ -746,7 +764,7 @@ export async function sendUserProfile(ctx: BotContext) {
     `👥 Реферальный код: <code>${user.referralCode || '—'}</code>\n\n` +
     `<i>Управляйте балансом, заказами и рефералами:</i>`;
 
-  const isOwner = await isOwnerOrAdmin(tgId);
+  const isOwner = await isOwnerOrAdmin(tgId, botTenantId);
   const profileRows = [
     [Markup.button.callback('💰 Пополнить баланс', 'deposit'), Markup.button.callback('📦 Мои заказы', 'my_orders')],
     [Markup.button.callback('📜 История операций', 'my_tx'), Markup.button.callback('👥 Рефералы', 'referral')],
@@ -820,7 +838,7 @@ bot.command('id', async (ctx: BotContext) => {
   const tgId = String(ctx.from.id);
   const user = await db.user.findFirst({ where: { telegramId: tgId } });
   const role = user?.role || 'Гость (не привязан)';
-  const isOwner = await isOwnerOrAdmin(ctx.from.id);
+  const isOwner = await isOwnerOrAdmin(ctx.from.id, botTenantId);
   await ctx.reply(
     `🆔 <b>Ваш Telegram ID:</b> <code>${tgId}</code>\n` +
     `👤 <b>Привязанный аккаунт:</b> ${user?.email || 'Не привязан'}\n` +
@@ -835,7 +853,7 @@ bot.command('whoami', async (ctx: BotContext) => {
   const tgId = String(ctx.from.id);
   const user = await db.user.findFirst({ where: { telegramId: tgId } });
   const role = user?.role || 'Гость (не привязан)';
-  const isOwner = await isOwnerOrAdmin(ctx.from.id);
+  const isOwner = await isOwnerOrAdmin(ctx.from.id, botTenantId);
   await ctx.reply(
     `🆔 <b>Ваш Telegram ID:</b> <code>${tgId}</code>\n` +
     `👤 <b>Email:</b> ${user?.email || 'Не привязан'}\n` +
@@ -883,7 +901,7 @@ bot.action('my_tx', async (ctx: BotContext) => {
 bot.command('transactions', sendUserTransactions);
 
 async function sendBindInstructions(ctx: BotContext) {
-  const host = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (botTenantId === 'flux' || botTenantId === 'lovable' ? 'https://smmflux.ru' : 'https://test.smmplan.pro');
+  const host = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (botTenantId === 'flux' ? 'https://smmflux.ru' : 'https://test.smmplan.pro');
   await ctx.reply(
     `🔗 <b>Связывание аккаунта ${botSiteName}</b>\n\n` +
     `Привяжите Telegram к сайту, чтобы синхронизировать баланс, получать уведомления о заказах и обращаться в поддержку без задержек.\n\n` +

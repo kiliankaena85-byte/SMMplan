@@ -8,11 +8,12 @@ import type { BotContext } from '../types/bot-context';
  */
 import { Scenes, Markup } from 'telegraf';
 import { getBaseUrlSync } from '@/utils/get-base-url';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 import { db } from '@/lib/db';
 
 export const REFERRAL_WIZARD = 'referral-wizard';
 
-const botTenantId = process.env.BOT_TENANT_ID || 'smmplan';
+const botTenantId = normalizeTenantId(process.env.BOT_TENANT_ID) || 'smmplan';
 
 async function resolveUser(tgId: number) {
   let user = await db.user.findFirst({
@@ -75,7 +76,7 @@ export const referralWizard = new Scenes.WizardScene<BotContext>(
         user.referralCode = newCode;
       }
 
-      const host = (botTenantId === 'flux' || botTenantId === 'lovable')
+      const host = botTenantId === 'flux'
         ? (process.env.FLUX_APP_URL || 'https://smmflux.ru')
         : getBaseUrlSync();
       const link = `${host}/?ref=${user.referralCode}`;
@@ -106,7 +107,7 @@ export const referralWizard = new Scenes.WizardScene<BotContext>(
     }
   },
 
-  async (ctx: BotContext) => {
+  async () => {
     return;
   }
 );

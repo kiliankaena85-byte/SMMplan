@@ -8,11 +8,12 @@ import { BalanceVerifier } from '@/utils/balance-verifier';
 import { P0ThreatSensorService } from '@/services/telemetry/p0-threat-sensor.service';
 import { GeoAvailabilityService } from '@/services/telemetry/geo-availability.service';
 import { providerService } from '@/services/providers/provider.service';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 /**
  * Checks if the user is authorized to access the Owner DevOps Hub
  */
-export async function isOwnerOrAdmin(tgId: string | number): Promise<boolean> {
+export async function isOwnerOrAdmin(tgId: string | number, specificTenantId?: string): Promise<boolean> {
   const strId = String(tgId);
   const adminChatId = process.env.ADMIN_ALERT_CHAT_ID;
 
@@ -20,10 +21,13 @@ export async function isOwnerOrAdmin(tgId: string | number): Promise<boolean> {
     return true;
   }
 
+  const tenantToUse = specificTenantId || normalizeTenantId(process.env.BOT_TENANT_ID) || 'smmplan';
+
   try {
     const user = await db.user.findFirst({
       where: { 
         telegramId: strId,
+        tenantId: tenantToUse,
         role: { in: ['OWNER', 'ADMIN', 'SUPER_ADMIN', 'DEVELOPER'] }
       },
       select: { role: true }

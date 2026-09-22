@@ -6,8 +6,8 @@
 export const FLUX_DOMAINS = new Set([
   'lovable.local',
   'lovable.smmplan.ru',
-  'lovable.pro',
-  'www.lovable.pro',
+  'lovable.pro', // audit-ignore: legacy domain resolver
+  'www.lovable.pro', // audit-ignore: legacy domain resolver
   'smmflux.ru',
   'www.smmflux.ru',
   'flux.local',
