@@ -3,7 +3,7 @@
 import * as React from 'react';
 import type { SystemSettings } from '@prisma/client';
 import { YooKassaSettings, AlfaBankSettings, SmtpSettings, GeminiSettings, WebhookSettings, CryptoBotSettings, RobokassaSettings } from './components/integrations';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface IntegrationsSettingsProps {
   settings: SystemSettings;
@@ -11,6 +11,8 @@ interface IntegrationsSettingsProps {
 }
 
 export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: IntegrationsSettingsProps) {
+  const [activePaymentGateway, setActivePaymentGateway] = React.useState('yookassa');
+
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
     if (el) {
@@ -21,7 +23,7 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
   const navItems = [
     { id: 'payments', label: 'Платежные шлюзы' },
     { id: 'smtp', label: 'Почта (SMTP)' },
-    { id: 'gemini', label: 'Gemini AI' },
+    { id: 'gemini', label: 'ИИ (Gemini)' },
     { id: 'webhooks', label: 'Webhooks' },
   ];
 
@@ -43,39 +45,35 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
         <div id="payments" className="space-y-4">
           <div className="flex items-center justify-between">
              <h2 className="text-lg font-bold text-foreground">Платежные шлюзы</h2>
+             <Select value={activePaymentGateway} onValueChange={setActivePaymentGateway}>
+               <SelectTrigger className="w-[180px]">
+                 <SelectValue placeholder="Выберите шлюз" />
+               </SelectTrigger>
+               <SelectContent>
+                 <SelectItem value="yookassa">ЮKassa</SelectItem>
+                 <SelectItem value="robokassa">Robokassa</SelectItem>
+                 <SelectItem value="alfabank">Альфа-Банк</SelectItem>
+                 <SelectItem value="cryptobot">CryptoBot</SelectItem>
+               </SelectContent>
+             </Select>
           </div>
-          <Tabs defaultValue="yookassa" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="yookassa">YooKassa</TabsTrigger>
-              <TabsTrigger value="alfabank">Alfa-Bank</TabsTrigger>
-              <TabsTrigger value="robokassa">Robokassa</TabsTrigger>
-              <TabsTrigger value="cryptobot">CryptoBot</TabsTrigger>
-            </TabsList>
-            <div className="mt-4">
-              <TabsContent value="yookassa" className="mt-0">
-                <YooKassaSettings settings={settings} />
-              </TabsContent>
-              <TabsContent value="alfabank" className="mt-0">
-                <AlfaBankSettings settings={settings} />
-              </TabsContent>
-              <TabsContent value="robokassa" className="mt-0">
-                <RobokassaSettings settings={settings} />
-              </TabsContent>
-              <TabsContent value="cryptobot" className="mt-0">
-                <CryptoBotSettings settings={settings} />
-              </TabsContent>
-            </div>
-          </Tabs>
+          
+          <div className="mt-4">
+            {activePaymentGateway === 'yookassa' && <YooKassaSettings settings={settings} />}
+            {activePaymentGateway === 'robokassa' && <RobokassaSettings settings={settings} />}
+            {activePaymentGateway === 'alfabank' && <AlfaBankSettings settings={settings} />}
+            {activePaymentGateway === 'cryptobot' && <CryptoBotSettings settings={settings} />}
+          </div>
         </div>
         
         <div className="space-y-8">
           <div id="smtp" className="space-y-4">
-            <h2 className="text-lg font-bold text-foreground">Почта и Рассылки (Критично)</h2>
+            <h2 className="text-lg font-bold text-foreground">Почта (SMTP)</h2>
             <SmtpSettings settings={settings} />
           </div>
           
           <div id="gemini" className="space-y-4">
-             <h2 className="text-lg font-bold text-foreground">Дополнительно (Второстепенно)</h2>
+             <h2 className="text-lg font-bold text-foreground">Нейросеть (Gemini)</h2>
              <GeminiSettings settings={settings} />
           </div>
 
