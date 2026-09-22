@@ -182,28 +182,28 @@ export default async function AdminSettingsPage({
         {activeTab === 'system' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
             <TestModePanel initialIsTestMode={sanitizedSettings.isTestMode} isTestEnvironment={SettingsProvider.isTestEnvironment()} />
-            <GeneralSettings settings={sanitizedSettings} tenantId={activeTenantId} />
+            <GeneralSettings key={activeTenantId} settings={sanitizedSettings} tenantId={activeTenantId} />
           </div>
         )}
 
         {/* ── TAB 1.5: CATALOG ── */}
         {activeTab === 'catalog' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
-            <CatalogSettings settings={sanitizedSettings} tenantId={activeTenantId} />
+            <CatalogSettings key={activeTenantId} settings={sanitizedSettings} tenantId={activeTenantId} />
           </div>
         )}
 
         {/* ── TAB 2: INTEGRATIONS ── */}
         {activeTab === 'integrations' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
-            <IntegrationsSettings settings={sanitizedSettings} tenantId={activeTenantId} />
+            <IntegrationsSettings key={activeTenantId} settings={sanitizedSettings} tenantId={activeTenantId} />
           </div>
         )}
 
         {/* ── TAB 2.5: TELEGRAM BOT ── */}
         {activeTab === 'telegram' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
-            <TelegramBotSettings settings={sanitizedSettings} tenantId={activeTenantId} />
+            <TelegramBotSettings key={activeTenantId} settings={sanitizedSettings} tenantId={activeTenantId} />
           </div>
         )}
 
@@ -224,7 +224,7 @@ export default async function AdminSettingsPage({
         {/* ── TAB 3: TEAM ── */}
         {activeTab === 'team' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
-            <TeamManagement 
+            <TeamManagement key={activeTenantId} 
               staffUsers={staffUsers} 
               regularUsers={regularUsers} 
               searchQuery={searchQuery} 
@@ -258,4 +258,5 @@ export default async function AdminSettingsPage({
     </div>
   );
 }
+
 
