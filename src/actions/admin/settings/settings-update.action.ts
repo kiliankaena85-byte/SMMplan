@@ -7,6 +7,7 @@ import { settingsService } from '@/services/admin/settings.service';
 import { SettingsProvider } from '@/lib/settings';
 import { catalogQueue } from '@/lib/queue-manager';
 import { getClientIp } from '@/utils/ip';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 import {
   validateSettingsSecurity,
   mapSettingsFormData,
@@ -15,7 +16,16 @@ import {
 } from './helpers';
 
 // ── System Settings Update ──
-export async function updateGlobalSettings(formData: FormData) {
+export async function updateGlobalSettings(
+  formDataOrPrevState: FormData | unknown,
+  maybeFormData?: FormData | unknown
+) {
+  const formData = (maybeFormData && typeof (maybeFormData as { entries?: unknown }).entries === 'function')
+    ? (maybeFormData as FormData)
+    : (formDataOrPrevState && typeof (formDataOrPrevState as { entries?: unknown }).entries === 'function')
+      ? (formDataOrPrevState as FormData)
+      : null;
+
   if (!formData || typeof formData.entries !== 'function') {
     return { success: false, errors: { _form: ['Некорректные данные формы'] } };
   }
@@ -32,7 +42,7 @@ export async function updateGlobalSettings(formData: FormData) {
     // ── CRITICAL: Resolve active tenantId from formData or x-tenant-id header ──
     const formTenant = formData.get('tenantId') as string | null;
     const headerTenant = await SettingsProvider.getTenantId();
-    const activeTenantId = (formTenant && formTenant.trim()) || headerTenant || 'smmplan';
+    const activeTenantId = normalizeTenantId(formTenant || headerTenant || 'smmplan') || 'smmplan';
 
     // 1. Security & RBAC Guard
     const securityCheck = await validateSettingsSecurity(parsed.data, formData, user.role);
@@ -49,12 +59,13 @@ export async function updateGlobalSettings(formData: FormData) {
     const { dataToUpdate, isRateChanged, finalExchangeRate } = await mapSettingsFormData(
       formData,
       parsed.data,
-      oldSettings
+      oldSettings,
+      activeTenantId
     );
 
     // 3. Database Persistence
     await settingsService.updateSystemSettings(
-      dataToUpdate as Parameters<typeof settingsService.updateSystemSettings>[0],
+      dataToUpdate,
       activeTenantId
     );
 

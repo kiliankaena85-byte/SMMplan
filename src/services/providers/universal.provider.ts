@@ -67,6 +67,28 @@ export class UniversalProvider implements BaseProvider {
   }
 
   async request<T>(paramsOrPayload: Record<string, unknown>, retries = 2): Promise<T> {
+    // In-memory mock simulation if mock URL is used
+    if (this.apiUrl.includes('mock-provider') || this.apiUrl.includes('mock.smmplan.internal')) {
+      const action = String(paramsOrPayload.action || '');
+      if (action === 'services') {
+        return [
+          { service: 'mock_boost_7d', name: 'Telegram Бусты для каналов — На 7 дней (Тест)', category: 'Бусты для каналов', rate: '1.00', min: '1', max: '1000' },
+          { service: 'mock_boost_14d', name: 'Telegram Бусты для каналов — На 14 дней (Тест)', category: 'Бусты для каналов', rate: '1.00', min: '1', max: '1000' },
+          { service: 'mock_boost_30d', name: 'Telegram Бусты для каналов — На 30 дней (Тест)', category: 'Бусты для каналов', rate: '1.00', min: '1', max: '1000' },
+        ] as unknown as T;
+      }
+      if (action === 'balance') {
+        return { balance: '999999.00', currency: 'RUB' } as unknown as T;
+      }
+      if (action === 'add') {
+        return { order: `mock_${Date.now()}_${Math.floor(Math.random() * 10000)}` } as unknown as T;
+      }
+      if (action === 'status') {
+        return { status: 'Completed', charge: '1.00', start_count: '100', remains: '0', currency: 'RUB' } as unknown as T;
+      }
+      return { success: true } as unknown as T;
+    }
+
     await assertSafeUrl(this.apiUrl);
     await CircuitBreaker.check(this.apiUrl);
 

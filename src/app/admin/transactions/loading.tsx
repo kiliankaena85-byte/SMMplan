@@ -7,7 +7,7 @@ import { ArrowLeftRight } from "lucide-react";
 
 export default function TransactionsLoading() {
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto pb-12 animate-in fade-in duration-500 ease-out" role="status" aria-busy="true" aria-live="polite">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10" role="status" aria-busy="true" aria-live="polite">
       <span className="sr-only">Загрузка реестра транзакций платформы...</span>
       
       <AdminTabbedHeader

@@ -93,16 +93,16 @@ describe('Admin Settings Integrity & Contracts Suite (SIL-2026 Step 15)', () => 
   });
 
   describe('SYSTEM_TABS Navigation Cluster Integrity', () => {
-    it('contains global settings and system configurations', () => {
-      const settingsTab = SYSTEM_TABS.find(t => t.href === '/admin/settings');
-      expect(settingsTab).toBeDefined();
-      expect(settingsTab?.label).toBe('Глобальные настройки');
+    it('contains system domain tabs', () => {
+      const tenantsTab = SYSTEM_TABS.find(t => t.href === '/admin/tenants');
+      expect(tenantsTab).toBeDefined();
+      expect(tenantsTab?.label).toBe('Бренды & Домены');
 
-      const telegramTab = SYSTEM_TABS.find(t => t.href === '/admin/settings?tab=telegram');
-      expect(telegramTab).toBeDefined();
+      const pagesTab = SYSTEM_TABS.find(t => t.href === '/admin/pages');
+      expect(pagesTab).toBeDefined();
 
-      const proxyTab = SYSTEM_TABS.find(t => t.href === '/admin/settings?tab=proxy');
-      expect(proxyTab).toBeDefined();
+      const featuresTab = SYSTEM_TABS.find(t => t.href === '/admin/system/features');
+      expect(featuresTab).toBeDefined();
     });
   });
 

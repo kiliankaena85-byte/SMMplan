@@ -157,8 +157,9 @@ export async function sendTelegramTestAlertAction(formData: FormData): Promise<T
     if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message || 'Некорректные параметры' };
 
     const { chatId, message, parseMode } = parsed.data;
-    const token = await getBotToken();
-    if (!token) return { success: false, error: 'TELEGRAM_BOT_TOKEN не задан' };
+    const tenantId = (formData.get('tenantId') as string) || await getTenantId();
+    const token = await getBotToken(tenantId);
+    if (!token) return { success: false, error: `TELEGRAM_BOT_TOKEN для бренда ${tenantId === 'flux' ? 'SMMflux' : 'SMMplan'} не задан` };
 
     const sanitizedMsg = parseMode === 'HTML' ? sanitizeTelegramHtml(message) : message;
 
@@ -179,6 +180,7 @@ export async function sendTelegramTestAlertAction(formData: FormData): Promise<T
           adminId: admin.id, adminEmail: admin.email,
           action: 'TELEGRAM_TEST_MESSAGE_SENT',
           target: chatId, targetType: 'SYSTEM_SETTINGS', ipAddress,
+          tenantId,
         });
         return { success: true, message: `Сообщение отправлено в чат ${chatId}` };
       }

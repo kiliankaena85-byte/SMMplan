@@ -475,6 +475,18 @@ export class ProviderBalanceService {
 
     return summary;
   }
+
+  /**
+   * Invalidates cached global liquidity summary so toggles, creations,
+   * and deletions immediately reflect in the liquidity dashboard without stale cache.
+   */
+  async invalidateGlobalLiquidityCache(): Promise<void> {
+    try {
+      await redis.del('providers:global:liquidity');
+    } catch (err) {
+      console.warn('[ProviderBalanceService] Failed to invalidate liquidity cache:', err);
+    }
+  }
 }
 
 export const providerBalanceService = new ProviderBalanceService();

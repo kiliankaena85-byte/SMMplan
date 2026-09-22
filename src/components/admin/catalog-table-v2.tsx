@@ -266,26 +266,27 @@ export function CatalogTable({
         selectedTenant={selectedTenant}
       />
 
-      {/* ─── TOP CONTROLS & BATCH ACTION BAR ─── */}
+      {/* ─── DEDICATED FULL-WIDTH BATCH ACTION BAR ─── */}
+      {selectedIds.length > 0 && canEdit && (
+        <BatchActionBar
+          selectedIds={selectedIds}
+          categories={categories}
+          canEditFinance={canEditFinance}
+          onClear={() => setSelectedIds([])}
+          onDeleted={(ids) => {
+            setDeletedIds(prev => [...prev, ...ids]);
+            setSelectedIds([]);
+          }}
+        />
+      )}
+
+      {/* ─── TOP CONTROLS (Stats & Currency Switches) ─── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-card/60 backdrop-blur-md border border-border p-2.5 sm:p-3 rounded-xl shadow-2xs">
-        <div className="flex items-center gap-2">
-          {selectedIds.length > 0 && canEdit && (
-            <BatchActionBar
-              selectedIds={selectedIds}
-              categories={categories}
-              canEditFinance={canEditFinance}
-              onClear={() => setSelectedIds([])}
-              onDeleted={(ids) => {
-                setDeletedIds(prev => [...prev, ...ids]);
-                setSelectedIds([]);
-              }}
-            />
-          )}
-          {selectedIds.length === 0 && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
-              <Layers className="w-3.5 h-3.5 text-primary" />
-              <span>Показано: <strong className="text-foreground">{visibleServices.length}</strong> услуг</span>
-            </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+          <Layers className="w-3.5 h-3.5 text-primary shrink-0" />
+          <span>Показано: <strong className="text-foreground">{visibleServices.length}</strong> услуг</span>
+          {selectedIds.length > 0 && (
+            <span className="text-primary font-bold">· Выбрано {selectedIds.length}</span>
           )}
         </div>
 

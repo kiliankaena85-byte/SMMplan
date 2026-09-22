@@ -200,7 +200,7 @@ export function DataTable<TData, TValue>({
             Выбрано: {table.getFilteredSelectedRowModel().rows.length} из{' '}
             {table.getFilteredRowModel().rows.length} строк.
           </div>
-          <div className="space-x-2">
+          <div className="flex items-center space-x-1">
             <Button
               intent="outline"
               size="sm"
@@ -209,6 +209,42 @@ export function DataTable<TData, TValue>({
             >
               Пред
             </Button>
+            
+            {(() => {
+              const pageCount = table.getPageCount();
+              const current = table.getState().pagination.pageIndex + 1;
+              
+              if (pageCount <= 1) return null;
+
+              const pages: (number | string)[] = [];
+              
+              for (let i = 1; i <= pageCount; i++) {
+                if (i === 1 || i === pageCount || (i >= current - 1 && i <= current + 1)) {
+                  pages.push(i);
+                } else if (pages[pages.length - 1] !== "...") {
+                  pages.push("...");
+                }
+              }
+
+              return pages.map((page, index) => {
+                if (page === "...") {
+                  return <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground text-sm">...</span>;
+                }
+                const pageIndex = (page as number) - 1;
+                return (
+                  <Button
+                    key={`page-${page}`}
+                    intent={current === page ? "primary" : "outline"}
+                    size="sm"
+                    onClick={() => table.setPageIndex(pageIndex)}
+                    className={current === page ? "pointer-events-none min-w-[2rem]" : "min-w-[2rem]"}
+                  >
+                    {page}
+                  </Button>
+                );
+              });
+            })()}
+
             <Button
               intent="outline"
               size="sm"

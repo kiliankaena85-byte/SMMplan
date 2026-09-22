@@ -16,7 +16,8 @@ export interface MappedSettingsResult {
 export async function mapSettingsFormData(
   formData: FormData,
   data: GlobalSettingsData,
-  oldSettings: SystemSettings | null
+  oldSettings: SystemSettings | null,
+  activeTenantId: string = 'smmplan'
 ): Promise<MappedSettingsResult> {
   const dataToUpdate: Prisma.SystemSettingsUpdateInput = {};
 
@@ -62,11 +63,11 @@ export async function mapSettingsFormData(
   let isRateChanged = false;
   let finalExchangeRate = data.exchangeRateUSD;
 
-  if (data.exchangeRateUSD !== undefined && data.exchangeRateUSD >= 0) {
+  if (formData.has('exchangeRateUSD') && data.exchangeRateUSD !== undefined && data.exchangeRateUSD >= 0) {
     if (data.exchangeRateUSD === 0) {
       try {
         const { CBRRateService } = await import('@/services/system/cbr-rate.service');
-        const syncResult = await CBRRateService.syncCBRExchangeRate();
+        const syncResult = await CBRRateService.syncCBRExchangeRate(activeTenantId);
         if (syncResult.updated) {
           finalExchangeRate = syncResult.systemRate;
           dataToUpdate.exchangeRateUSD = finalExchangeRate;

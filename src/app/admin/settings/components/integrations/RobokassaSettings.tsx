@@ -8,13 +8,14 @@ import { CreditCard } from 'lucide-react';
 import { updateGlobalSettings } from '@/actions/admin/settings';
 import type { SystemSettings } from '@prisma/client';
 
-export function RobokassaSettings({ settings }: { settings: SystemSettings }) {
+export function RobokassaSettings({ settings, tenantId = 'smmplan' }: { settings: SystemSettings; tenantId?: string }) {
   return (
     <SettingsCard
       id="robokassa"
       title="Robokassa"
       icon={<CreditCard className="w-5 h-5 text-blue-500" />}
       action={updateGlobalSettings}
+      tenantId={tenantId}
       statusBadge={
         settings.robokassaLogin && settings.robokassaPassword ? (
           <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-medium border border-emerald-500/20">Настроено</span>
@@ -23,6 +24,7 @@ export function RobokassaSettings({ settings }: { settings: SystemSettings }) {
         )
       }
     >
+      <input type="hidden" name="tenantId" value={tenantId} />
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label>Идентификатор магазина (Login)</Label>

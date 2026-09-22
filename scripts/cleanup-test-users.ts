@@ -16,9 +16,12 @@ async function main() {
     select: { id: true, email: true, role: true, balance: true },
   });
 
-  if (keepUsers.length !== 2) {
+  const foundEmails = new Set(keepUsers.map((u) => u.email.toLowerCase()));
+  const missingEmails = KEEP_EMAILS.filter((e) => !foundEmails.has(e.toLowerCase()));
+
+  if (missingEmails.length > 0) {
     throw new Error(
-      `ОШИБКА: Ожидалось ровно 2 сохраняемых пользователя, найдено: ${keepUsers.length}. Отмена операции для безопасности!`
+      `ОШИБКА: Не найдены сохраняемые пользователи: ${missingEmails.join(', ')}. Найдено записей: ${keepUsers.length}. Отмена операции для безопасности!`
     );
   }
 

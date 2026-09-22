@@ -10,6 +10,9 @@ export interface StaffUser {
   createdAt: Date;
   staffRoleId: string | null;
   staffRole?: { id: string; name: string } | null;
+  isActive?: boolean;
+  allowedTenants?: string[];
+  tenantId?: string;
   _count: { orders: number; tickets: number };
 }
 

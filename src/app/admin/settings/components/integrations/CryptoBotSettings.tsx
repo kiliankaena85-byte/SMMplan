@@ -8,13 +8,14 @@ import { Landmark } from 'lucide-react';
 import { updateGlobalSettings } from '@/actions/admin/settings';
 import type { SystemSettings } from '@prisma/client';
 
-export function CryptoBotSettings({ settings }: { settings: SystemSettings }) {
+export function CryptoBotSettings({ settings, tenantId = 'smmplan' }: { settings: SystemSettings; tenantId?: string }) {
   return (
     <SettingsCard
       id="cryptobot"
       title="CryptoBot (Telegram)"
       icon={<Landmark className="w-5 h-5" />}
       action={updateGlobalSettings}
+      tenantId={tenantId}
       statusBadge={
         settings.cryptoBotToken ? (
           <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-medium border border-emerald-500/20">Настроено</span>
@@ -23,6 +24,7 @@ export function CryptoBotSettings({ settings }: { settings: SystemSettings }) {
         )
       }
     >
+      <input type="hidden" name="tenantId" value={tenantId} />
       <div className="space-y-4">
         <div className="space-y-2">
           <Label>Crypto Pay API Token</Label>

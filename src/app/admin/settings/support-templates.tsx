@@ -24,9 +24,10 @@ export type TemplateWithUseCount = SupportTemplate;
 
 interface SupportTemplatesSettingsProps {
   initialTemplates: TemplateWithUseCount[];
+  tenantId?: string;
 }
 
-export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesSettingsProps) {
+export function SupportTemplatesSettings({ initialTemplates, tenantId = 'smmplan' }: SupportTemplatesSettingsProps) {
   const [templates, setTemplates] = useState<TemplateWithUseCount[]>(initialTemplates);
   const [editingTemplate, setEditingTemplate] = useState<TemplateWithUseCount | null>(null);
   const [templateToDelete, setTemplateToDelete] = useState<TemplateWithUseCount | null>(null);
@@ -80,6 +81,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
         if (editingTemplate) {
           formData.append('id', editingTemplate.id);
         }
+        formData.append('tenantId', tenantId);
         formData.append('label', label.trim());
         formData.append('text', text.trim());
         formData.append('shortcut', shortcut.trim().toLowerCase().replace(/[^a-z0-9_-]/g, ''));
@@ -134,6 +136,7 @@ export function SupportTemplatesSettings({ initialTemplates }: SupportTemplatesS
       try {
         const formData = new FormData();
         formData.append('id', id);
+        formData.append('tenantId', tenantId);
         const res = await deleteTemplate(formData);
         if (!res.success) {
           toast.error(res.error || 'Ошибка удаления шаблона');

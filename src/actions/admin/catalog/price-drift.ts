@@ -27,7 +27,9 @@ export type DriftCandidate = {
 export async function getDriftCandidatesAction(): Promise<{ success: true; data: DriftCandidate[] } | { success: false; error: string }> {
   return requireStaffPermission('catalog', 'view', async (admin) => {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const tenantFilter = admin.tenantId ? { tenantId: admin.tenantId } : {};
+    const tenantFilter = (admin.role === 'OWNER' || admin.role === 'ADMIN')
+      ? {}
+      : { tenantId: { in: [admin.tenantId || 'smmplan', 'all'] } };
 
     const services = await db.service.findMany({
       where: {

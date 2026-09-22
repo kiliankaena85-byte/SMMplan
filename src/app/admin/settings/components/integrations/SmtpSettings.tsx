@@ -11,14 +11,16 @@ import type { SystemSettings } from '@prisma/client';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-export function SmtpSettings({ settings }: { settings: SystemSettings }) {
+export function SmtpSettings({ settings, tenantId = 'smmplan' }: { settings: SystemSettings; tenantId?: string }) {
   const [testing, setTesting] = useState(false);
   
   const handleTest = async () => {
     setTesting(true);
     try {
-      const res = await testSmtpConnectionAction();
-      const message = 'message' in res ? res.message : (res as any).error;
+      const res = await testSmtpConnectionAction(undefined, undefined, undefined, undefined, tenantId);
+      const message = ('message' in res && typeof res.message === 'string')
+        ? res.message
+        : ('error' in res && typeof res.error === 'string' ? res.error : 'Ошибка связи');
       if (res.success) toast.success(message);
       else toast.error(message);
     } catch (err) {
@@ -34,6 +36,7 @@ export function SmtpSettings({ settings }: { settings: SystemSettings }) {
       title="Почтовый сервер (SMTP)"
       icon={<Mail className="w-5 h-5" />}
       action={updateGlobalSettings}
+      tenantId={tenantId}
       testButton={
         <Button type="button" variant="outline" size="sm" onClick={handleTest} disabled={testing}>
           {testing ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <Send className="w-3 h-3 mr-2" />}
@@ -48,6 +51,7 @@ export function SmtpSettings({ settings }: { settings: SystemSettings }) {
         )
       }
     >
+      <input type="hidden" name="tenantId" value={tenantId} />
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label>SMTP Host</Label>

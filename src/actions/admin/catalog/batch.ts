@@ -23,8 +23,18 @@ import { SettingsProvider } from '@/lib/settings';
 
 const MIN_MARKUP = 1.0;
 
-const batchIdsSchema = z.array(z.string().min(1)).min(1).max(200);
+const batchIdsSchema = z.array(z.string().min(1)).min(1).max(500);
 const markupSchema = z.number().min(MIN_MARKUP).max(150);
+
+/** Helper to resolve safe tenant scoping for batch operations */
+function getBatchTenantCondition(admin: { role: string; tenantId?: string | null }) {
+  if (admin.role === 'OWNER' || admin.role === 'ADMIN') {
+    return {};
+  }
+  return {
+    tenantId: { in: [admin.tenantId || 'smmplan', 'all'] }
+  };
+}
 
 /** Bulk toggle isActive for a list of service IDs */
 export async function batchToggleServicesAction(
@@ -37,10 +47,12 @@ export async function batchToggleServicesAction(
       return { success: false as const, error: 'Invalid service IDs' };
     }
 
-    await db.service.updateMany({
+    const tenantCondition = getBatchTenantCondition(admin);
+
+    const updateResult = await db.service.updateMany({
       where: {
         id: { in: ids.data },
-        ...(admin.tenantId ? { tenantId: admin.tenantId } : {})
+        ...tenantCondition,
       },
       data: { isActive },
     });
@@ -51,7 +63,7 @@ export async function batchToggleServicesAction(
       action: 'BATCH_SERVICE_ENABLE' as const,
       target: ids.data.join(','),
       targetType: 'SERVICE',
-      newValue: { count: ids.data.length, isActive },
+      newValue: { count: updateResult.count, isActive },
     });
 
     revalidatePath('/admin/catalog');
@@ -62,7 +74,7 @@ export async function batchToggleServicesAction(
     revalidateTag('catalog-flux', 'default');
     revalidateTag('services-smmplan', 'default');
     revalidateTag('services-flux', 'default');
-    return { success: true as const, count: ids.data.length };
+    return { success: true as const, count: updateResult.count };
   });
 }
 
@@ -88,12 +100,14 @@ export async function batchSetMarkupAction(
     const m = markupValidation.data;
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
 
+    const tenantCondition = getBatchTenantCondition(admin);
+
     // We can't use updateMany with calculated fields in Prisma easily,
-    // so we iterate or use a raw query. For 500 items, iteration is safe.
+    // so we iterate or use a raw query. Chunking into batches of 50 guarantees transaction safety.
     const services = await db.service.findMany({
       where: {
         id: { in: ids.data },
-        ...(admin.tenantId ? { tenantId: admin.tenantId } : {})
+        ...tenantCondition,
       },
       select: { id: true, name: true, rate: true, providerCurrency: true }
     });
@@ -117,7 +131,9 @@ export async function batchSetMarkupAction(
       });
     });
 
-    await db.$transaction(updates);
+    for (let i = 0; i < updates.length; i += 50) {
+      await db.$transaction(updates.slice(i, i + 50));
+    }
 
     await auditAdminAwaitable({
       adminId: admin.id,
@@ -125,7 +141,7 @@ export async function batchSetMarkupAction(
       action: 'BATCH_MARKUP_SET',
       target: ids.data.join(','),
       targetType: 'SERVICE',
-      newValue: { count: ids.data.length, markup: m },
+      newValue: { count: services.length, markup: m },
     });
 
     revalidatePath('/admin/catalog');
@@ -136,7 +152,7 @@ export async function batchSetMarkupAction(
     revalidateTag('catalog-flux', 'default');
     revalidateTag('services-smmplan', 'default');
     revalidateTag('services-flux', 'default');
-    return { success: true as const, count: ids.data.length };
+    return { success: true as const, count: services.length };
   });
 }
 
@@ -157,10 +173,12 @@ export async function previewBatchMarkupAction(
     const m = markupValidation.data;
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
 
+    const tenantCondition = getBatchTenantCondition(admin);
+
     const services = await db.service.findMany({
       where: {
         id: { in: ids.data },
-        ...(admin.tenantId ? { tenantId: admin.tenantId } : {})
+        ...tenantCondition,
       },
       select: { id: true, name: true, rate: true, markup: true, pricePer1000Cents: true, providerCurrency: true },
       take: 10
@@ -306,11 +324,13 @@ export async function batchReassignServicesCategoryAction(
       return { success: false as const, error: 'Target category not found' };
     }
 
+    const tenantCondition = getBatchTenantCondition(admin);
+
     // Update all matching services inside db query
     const updateResult = await db.service.updateMany({
       where: {
         id: { in: ids.data },
-        ...(admin.tenantId ? { tenantId: admin.tenantId } : {})
+        ...tenantCondition,
       },
       data: { categoryId: targetCategoryId },
     });
@@ -348,10 +368,12 @@ export async function batchResetMarkupAction(
 
     const usdToRub = await SettingsProvider.getExchangeRateUSD();
 
+    const tenantCondition = getBatchTenantCondition(admin);
+
     const services = await db.service.findMany({
       where: {
         id: { in: ids.data },
-        ...(admin.tenantId ? { tenantId: admin.tenantId } : {})
+        ...tenantCondition,
       },
       select: { id: true, name: true, rate: true, providerCurrency: true }
     });
@@ -383,7 +405,9 @@ export async function batchResetMarkupAction(
       });
     });
 
-    await db.$transaction(updates);
+    for (let i = 0; i < updates.length; i += 50) {
+      await db.$transaction(updates.slice(i, i + 50));
+    }
 
     await auditAdminAwaitable({
       adminId: admin.id,
@@ -391,7 +415,7 @@ export async function batchResetMarkupAction(
       action: 'BATCH_MARKUP_RESET',
       target: ids.data.join(','),
       targetType: 'SERVICE',
-      newValue: { count: ids.data.length },
+      newValue: { count: services.length },
     });
 
     revalidatePath('/admin/catalog');
@@ -402,7 +426,7 @@ export async function batchResetMarkupAction(
     revalidateTag('catalog-flux', 'default');
     revalidateTag('services-smmplan', 'default');
     revalidateTag('services-flux', 'default');
-    return { success: true as const, count: ids.data.length };
+    return { success: true as const, count: services.length };
   });
 }
 

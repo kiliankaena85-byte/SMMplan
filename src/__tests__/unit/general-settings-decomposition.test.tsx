@@ -40,11 +40,11 @@ describe('General Settings Unit Tests', () => {
         onToggleMaintenance={vi.fn()}
       />
     );
-    expect(screen.getByText(/Maintenance Kill-Switch/i)).toBeDefined();
+    expect(screen.getByText(/Режим техработ/i)).toBeDefined();
   });
 
   it('renders GeneralSettings full orchestrator without crashing', () => {
     render(<GeneralSettings settings={mockSettings} tenantId="smmplan" />);
-    expect(screen.getByText(/Брендинг/i)).toBeDefined();
+    expect(screen.getAllByText(/Брендинг/i).length).toBeGreaterThanOrEqual(1);
   });
 });

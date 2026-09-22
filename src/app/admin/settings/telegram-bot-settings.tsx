@@ -489,6 +489,7 @@ export function TelegramBotSettings({ settings, tenantId = 'smmplan' }: Telegram
                   settings={settings} 
                   diagnostics={diagnostics} 
                   onRefresh={fetchDiagnostics} 
+                  tenantId={tenantId}
                 />
               )}
             </>

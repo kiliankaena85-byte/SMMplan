@@ -6,9 +6,11 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getClientIp } from '@/utils/ip';
 import { auditAdmin } from '@/lib/admin-audit';
+import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
 const templateSchema = z.object({
   id: z.string().optional(),
+  tenantId: z.string().optional(),
   shortcut: z.string()
     .min(1, 'Шорткат обязателен')
     .regex(/^[a-zA-Z0-9_-]+$/, 'Шорткат может содержать только латинские буквы, цифры, дефис и подчеркивание')
@@ -21,9 +23,13 @@ const templateSchema = z.object({
   sort: z.number().int().default(0)
 });
 
-export async function getTemplates() {
+export async function getTemplates(targetTenantId?: string) {
   return requireStaffPermission('tickets', 'view', async () => {
+    const { SettingsProvider } = await import('@/lib/settings');
+    const headerTenant = await SettingsProvider.getTenantId();
+    const tenantId = normalizeTenantId(targetTenantId || headerTenant || 'smmplan') || 'smmplan';
     return db.supportTemplate.findMany({
+      where: { tenantId },
       orderBy: { sort: 'asc' }
     });
   });
@@ -47,8 +53,12 @@ export async function incrementTemplateUsage(id: string) {
 export async function upsertTemplate(formData: FormData) {
   return requireStaffPermission('tickets', 'edit', async (admin) => {
     try {
+      const formTenant = formData.get('tenantId') as string | null;
+      const activeTenantId = normalizeTenantId(formTenant || admin.tenantId || 'smmplan') || 'smmplan';
+
       const parsed = templateSchema.safeParse({
         id: formData.get('id') || undefined,
+        tenantId: activeTenantId,
         shortcut: formData.get('shortcut') || null,
         label: formData.get('label'),
         text: formData.get('text'),
@@ -70,6 +80,14 @@ export async function upsertTemplate(formData: FormData) {
           where: { id: data.id }
         });
 
+        if (!oldTemplate) {
+          return { success: false, error: 'Шаблон не найден' };
+        }
+
+        if (oldTemplate.tenantId !== activeTenantId && admin.role !== 'OWNER') {
+          return { success: false, error: 'Запрещено изменять шаблон другого бренда' };
+        }
+
         resultTemplate = await db.supportTemplate.update({
           where: { id: data.id },
           data: {
@@ -90,11 +108,13 @@ export async function upsertTemplate(formData: FormData) {
           targetType: 'SETTINGS',
           oldValue: oldTemplate,
           newValue: resultTemplate,
-          ipAddress
+          ipAddress,
+          tenantId: resultTemplate.tenantId || activeTenantId,
         });
       } else {
         resultTemplate = await db.supportTemplate.create({
           data: {
+            tenantId: data.tenantId || activeTenantId || 'smmplan',
             shortcut: data.shortcut,
             label: data.label,
             text: data.text,
@@ -111,7 +131,8 @@ export async function upsertTemplate(formData: FormData) {
           target: resultTemplate.id,
           targetType: 'SETTINGS',
           newValue: resultTemplate,
-          ipAddress
+          ipAddress,
+          tenantId: resultTemplate.tenantId || activeTenantId,
         });
       }
 
@@ -161,7 +182,8 @@ export async function deleteTemplate(formData: FormData) {
         target: id,
         targetType: 'SETTINGS',
         oldValue: oldTemplate,
-        ipAddress
+        ipAddress,
+        tenantId: oldTemplate.tenantId || 'smmplan',
       });
 
       revalidatePath('/admin/settings');

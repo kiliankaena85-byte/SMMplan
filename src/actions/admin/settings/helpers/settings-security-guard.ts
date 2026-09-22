@@ -21,17 +21,26 @@ export async function validateSettingsSecurity(
     cryptoBotToken: rawCryptoBotToken,
     alfaBankApiKey: rawAlfaBankApiKey,
     alfaBankClientSecret: rawAlfaBankClientSecret,
+    telegramBotToken: rawTelegramBotToken,
+    resendApiKey: rawResendApiKey,
+    inboundEmailWebhookSecret: rawInboundEmailWebhookSecret,
+    geminiApiKeys: rawGeminiApiKeys,
     smtpHost,
     geminiProxy,
   } = data;
 
-  // SECURITY RBAC (P0): Only OWNER can change critical financial gateways, safety floors, and payment credentials
+  // SECURITY RBAC (P0): Only OWNER can change critical financial gateways, safety floors, payment credentials, and security secrets
   const isOwnerOnlyChange = Boolean(
     rawYookassaSecret ||
     rawYookassaTestSecret ||
     rawRobokassaPassword ||
     rawRobokassaWebhookPassword ||
     rawCryptoBotToken ||
+    rawTelegramBotToken ||
+    rawResendApiKey ||
+    rawInboundEmailWebhookSecret ||
+    rawGeminiApiKeys ||
+    formData.has('telegramBotToken') ||
     formData.has('yookassaShopId') ||
     formData.has('yookassaTestShopId') ||
     formData.has('robokassaLogin') ||

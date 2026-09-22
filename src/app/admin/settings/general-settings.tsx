@@ -106,6 +106,7 @@ export function GeneralSettings({ settings, tenantId = 'smmplan' }: GeneralSetti
     const formData = new FormData();
     formData.append('file', file);
     formData.append('type', type);
+    formData.append('tenantId', tenantId);
 
     try {
       const res = await fetch('/api/admin/upload-branding', { method: 'POST', body: formData });

@@ -66,7 +66,8 @@ export async function getTelegramStatsAction(
 }
 
 export async function updateTelegramSecurityAction(
-  raw: z.infer<typeof securityConfigSchema>
+  raw: z.infer<typeof securityConfigSchema>,
+  targetTenantId?: string
 ): Promise<TelegramActionResponse> {
   return requireOwnerPermission(async (admin) => {
     const parsed = securityConfigSchema.safeParse(raw);
@@ -74,7 +75,7 @@ export async function updateTelegramSecurityAction(
       return { success: false, error: parsed.error.issues[0]?.message || 'Ошибка валидации' };
     }
     const data = parsed.data;
-    const tenantId = await getTenantId();
+    const tenantId = await getTenantId(targetTenantId);
 
     let encryptedSecret: string | null | undefined;
     if (data.webhookSecret !== undefined) {
@@ -108,7 +109,8 @@ export async function updateTelegramSecurityAction(
     await auditAdminAwaitable({
       adminId: admin.id, adminEmail: admin.email,
       action: 'TELEGRAM_SECURITY_UPDATE',
-      target: 'security_config', targetType: 'SYSTEM_SETTINGS', ipAddress,
+      target: `security_config_${tenantId}`, targetType: 'SYSTEM_SETTINGS', ipAddress,
+      tenantId,
       newValue: JSON.stringify({
         webhookSecretSet: !!encryptedSecret,
         allowedIpsCount: data.allowedIps.length,

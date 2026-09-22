@@ -75,7 +75,7 @@ export default async function TransactionsPage({ searchParams }: Props) {
   const canExport = ['OWNER', 'ADMIN'].includes(user.role);
 
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto pb-12">
+    <div className="space-y-6 w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10">
       <AdminTabbedHeader
         icon={ArrowLeftRight}
         title="Транзакции платформы (Ledger)"

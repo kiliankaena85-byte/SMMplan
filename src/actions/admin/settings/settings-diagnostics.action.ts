@@ -10,10 +10,11 @@ import { getClientIp } from '@/utils/ip';
 import { sendAdminAlert } from '@/lib/notifications';
 import { normalizeTenantId } from '@/lib/tenant-resolver-edge';
 
-export async function testSmtpConnectionAction(host?: string, port?: number, user?: string, pass?: string) {
+export async function testSmtpConnectionAction(host?: string, port?: number, user?: string, pass?: string, targetTenantId?: string) {
   return requireStaffPermission('settings', 'view', async () => {
     const { isPublicHost } = await import('@/lib/ssrf-guard');
-    const tenantId = await SettingsProvider.getTenantId();
+    const rawTenant = targetTenantId || await SettingsProvider.getTenantId();
+    const tenantId = normalizeTenantId(rawTenant) || 'smmplan';
     const settings = await settingsService.getSystemSettings(tenantId);
 
     const targetHost = host || settings.smtpHost;
@@ -52,10 +53,11 @@ export async function testSmtpConnectionAction(host?: string, port?: number, use
   });
 }
 
-export async function testGeminiAiConnectionAction(apiKey?: string, proxy?: string) {
+export async function testGeminiAiConnectionAction(apiKey?: string, proxy?: string, targetTenantId?: string) {
   return requireStaffPermission('settings', 'view', async () => {
     const { isPublicHost } = await import('@/lib/ssrf-guard');
-    const tenantId = await SettingsProvider.getTenantId();
+    const rawTenant = targetTenantId || await SettingsProvider.getTenantId();
+    const tenantId = normalizeTenantId(rawTenant) || 'smmplan';
     const settings = await settingsService.getSystemSettings(tenantId);
 
     let targetKey = apiKey;
@@ -106,14 +108,15 @@ export async function testGeminiAiConnectionAction(apiKey?: string, proxy?: stri
 
 export async function testTelegramBotConnectionAction(targetTenantId?: string) {
   return requireStaffPermission('settings', 'view', async () => {
-    const tenantId = targetTenantId || 'smmplan';
+    const rawTenant = targetTenantId || await SettingsProvider.getTenantId();
+    const tenantId = normalizeTenantId(rawTenant) || 'smmplan';
     let token: string | null = null;
     try {
       const { BotSettingsService } = await import('@/bot/services/bot-settings.service');
       token = await BotSettingsService.getBotToken(tenantId);
     } catch { /* ignore */ }
 
-    if (!token) {
+    if (!token && tenantId === 'smmplan') {
       const envToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
       if (envToken && /^\d{8,11}:[A-Za-z0-9_-]{35}$/.test(envToken) && !envToken.includes('YOUR_') && envToken !== 'dummy_token') {
         token = envToken;
@@ -253,7 +256,8 @@ export async function disconnectTelegramBotAction(tenantId?: string) {
       targetType: 'SETTINGS',
       oldValue: { action: 'DISCONNECT_BOT' },
       newValue: { contactTelegramBot: null, telegramBotToken: null },
-      ipAddress
+      ipAddress,
+      tenantId: activeTenantId,
     });
 
     sendAdminAlert(

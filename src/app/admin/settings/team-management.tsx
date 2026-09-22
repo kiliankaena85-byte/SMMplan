@@ -8,6 +8,12 @@ import {
   deleteStaffRoleAction,
   removeStaffMemberAction,
 } from '@/actions/admin/team';
+import {
+  toggleStaffActiveStatusAction,
+  generateStaffMagicLinkAction,
+  resetStaffPasswordAction,
+  updateStaffMemberAction,
+} from '@/actions/admin/staff';
 import { updateUserRole, updateStaffGeminiApiKeyAction } from '@/actions/admin/settings';
 import { updateRoleAction } from '@/actions/admin/roles';
 import { toast } from 'sonner';
@@ -22,6 +28,8 @@ import {
   DemoteStaffModal,
   EditStaffModal,
   RolePermissionsModal,
+  AddStaffModal,
+  StaffLogsDrawer,
   StaffTableSection,
   CustomRolesSection,
   PromoteUserSection,
@@ -39,6 +47,8 @@ export function TeamManagement({
   const [isPending, startTransition] = useTransition();
 
   // Modals state (hoisted to component top level per AGENTS.md Modal Hoisting rule)
+  const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
+  const [viewingLogsUser, setViewingLogsUser] = useState<StaffUser | null>(null);
   const [roleToDelete, setRoleToDelete] = useState<{ id: string; name: string } | null>(null);
   const [staffToRemove, setStaffToRemove] = useState<{ id: string; email: string; role: string } | null>(null);
   const [editingUser, setEditingUser] = useState<StaffUser | null>(null);
@@ -48,6 +58,9 @@ export function TeamManagement({
   const [editStaffRoleId, setEditStaffRoleId] = useState('NONE');
   const [editGeminiKey, setEditGeminiKey] = useState('');
   const [editLimit, setEditLimit] = useState('');
+  const [editAllowedTenants, setEditAllowedTenants] = useState<string[]>(['smmplan']);
+  const [editIsActive, setEditIsActive] = useState(true);
+  const [newPassword, setNewPassword] = useState('');
   const [isSavingEdit, setSavingEdit] = useState(false);
 
   // Full 16-section permissions editor modal state
@@ -68,6 +81,9 @@ export function TeamManagement({
     setEditStaffRoleId(u.staffRoleId || 'NONE');
     setEditGeminiKey('');
     setEditLimit(String((u.supportLimitCents || 0) / 100));
+    setEditAllowedTenants(u.allowedTenants && u.allowedTenants.length > 0 ? u.allowedTenants : ['smmplan']);
+    setEditIsActive(u.isActive !== false);
+    setNewPassword('');
   }, []);
 
   const openRolePermissionsModal = useCallback((role: StaffRole & { permissions: StaffPermission[] }) => {
@@ -88,22 +104,79 @@ export function TeamManagement({
     });
   }, []);
 
+  const handleGenerateMagicLink = async (userId: string) => {
+    try {
+      const res = await generateStaffMagicLinkAction({
+        userId,
+        redirectUrl: '/admin/dashboard',
+      });
+      if (res.success) {
+        const fullUrl = `${window.location.origin}${res.relativeLink}`;
+        await navigator.clipboard.writeText(fullUrl);
+        toast.success(`Ссылка для входа (${res.staffEmail}) скопирована в буфер обмена! Действует 24 часа.`);
+      } else {
+        toast.error(res.error || 'Ошибка при генерации ссылки');
+      }
+    } catch {
+      toast.error('Не удалось сгенерировать ссылку для входа');
+    }
+  };
+
+  const handleToggleStatus = (u: StaffUser) => {
+    const nextStatus = u.isActive === false ? true : false;
+    startTransition(async () => {
+      const res = await toggleStaffActiveStatusAction({
+        userId: u.id,
+        isActive: nextStatus,
+      });
+      if (res.success) {
+        toast.success(`Сотрудник ${u.email} ${nextStatus ? 'активирован' : 'приостановлен'}`);
+      } else {
+        toast.error(res.error || 'Ошибка смены статуса');
+      }
+    });
+  };
+
   const handleSaveEdit = async () => {
     if (!editingUser) return;
     setSavingEdit(true);
     try {
-      const roleForm = new FormData();
-      roleForm.append('userId', editingUser.id);
-      roleForm.append('role', editRole);
-      roleForm.append('staffRoleId', editStaffRoleId === 'NONE' ? '' : editStaffRoleId);
-      await updateUserRole(roleForm);
+      // 1. Update basic role, limits and allowed tenants
+      const updateRes = await updateStaffMemberAction({
+        userId: editingUser.id,
+        role: editRole as any,
+        staffRoleId: editStaffRoleId === 'NONE' ? null : editStaffRoleId,
+        supportLimitRubles: parseFloat(editLimit || '0'),
+        allowedTenants: editAllowedTenants,
+      });
 
-      const limitCents = Math.round(parseFloat(editLimit || '0') * 100);
-      const limitForm = new FormData();
-      limitForm.append('userId', editingUser.id);
-      limitForm.append('limit', String(limitCents));
-      await updateSupportLimit(limitForm);
+      if (!updateRes.success) {
+        toast.error(updateRes.error || 'Ошибка обновления профиля');
+        return;
+      }
 
+      // 2. Update active status if changed
+      if ((editingUser.isActive !== false) !== editIsActive) {
+        await toggleStaffActiveStatusAction({
+          userId: editingUser.id,
+          isActive: editIsActive,
+        });
+      }
+
+      // 3. Reset password if entered
+      if (newPassword.trim()) {
+        const pwdRes = await resetStaffPasswordAction({
+          userId: editingUser.id,
+          newPassword: newPassword.trim(),
+        });
+        if (pwdRes.success) {
+          toast.success('Пароль сотрудника успешно изменён');
+        } else {
+          toast.error(pwdRes.error || 'Ошибка смены пароля');
+        }
+      }
+
+      // 4. Update Gemini API key if entered
       if (editGeminiKey.trim()) {
         const res = await updateStaffGeminiApiKeyAction(editingUser.id, editGeminiKey.trim());
         if (!res.success) toast.error(res.error || 'Ошибка сохранения Gemini ключа');
@@ -216,6 +289,19 @@ export function TeamManagement({
   return (
     <div className="space-y-6">
       {/* ── MODALS ── */}
+      <AddStaffModal
+        isOpen={isAddStaffOpen}
+        onClose={() => setIsAddStaffOpen(false)}
+        staffRoles={staffRoles}
+        currentAdminRole={currentAdminRole}
+        onSuccess={() => setIsAddStaffOpen(false)}
+      />
+
+      <StaffLogsDrawer
+        user={viewingLogsUser}
+        onClose={() => setViewingLogsUser(null)}
+      />
+
       <DeleteRoleModal
         roleToDelete={roleToDelete}
         onClose={() => setRoleToDelete(null)}
@@ -241,8 +327,16 @@ export function TeamManagement({
         setEditGeminiKey={setEditGeminiKey}
         editLimit={editLimit}
         setEditLimit={setEditLimit}
+        editAllowedTenants={editAllowedTenants}
+        setEditAllowedTenants={setEditAllowedTenants}
+        editIsActive={editIsActive}
+        setEditIsActive={setEditIsActive}
+        newPassword={newPassword}
+        setNewPassword={setNewPassword}
         isSavingEdit={isSavingEdit}
         onSave={handleSaveEdit}
+        onGenerateMagicLink={handleGenerateMagicLink}
+        onViewLogs={(u) => setViewingLogsUser(u)}
         staffRoles={staffRoles}
         currentAdminRole={currentAdminRole}
         canDemote={canDemote}
@@ -265,8 +359,12 @@ export function TeamManagement({
       <StaffTableSection
         staffUsers={staffUsers}
         staffRoles={staffRoles}
+        onOpenAddStaff={() => setIsAddStaffOpen(true)}
         onOpenEdit={openEdit}
         onOpenDemote={(u) => setStaffToRemove({ id: u.id, email: u.email, role: u.role })}
+        onToggleStatus={handleToggleStatus}
+        onGenerateMagicLink={handleGenerateMagicLink}
+        onViewLogs={(u) => setViewingLogsUser(u)}
         canDemote={canDemote}
         isPending={isPending}
       />

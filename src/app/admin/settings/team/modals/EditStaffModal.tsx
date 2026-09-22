@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -17,7 +17,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Settings2, ShieldCheck, Key, DollarSign, UserMinus, Loader2, Check } from 'lucide-react';
+import {
+  Settings2,
+  ShieldCheck,
+  Key,
+  DollarSign,
+  UserMinus,
+  Loader2,
+  Check,
+  Globe,
+  Lock,
+  Sparkles,
+  Link as LinkIcon,
+  History,
+  ShieldAlert,
+} from 'lucide-react';
 import type { StaffRole, StaffPermission } from '@prisma/client';
 import type { StaffUser } from '../types';
 import { getAllowedRoles, ROLE_LABELS } from '../ui-helpers';
@@ -33,8 +47,16 @@ interface EditStaffModalProps {
   setEditGeminiKey: (v: string) => void;
   editLimit: string;
   setEditLimit: (v: string) => void;
+  editAllowedTenants?: string[];
+  setEditAllowedTenants?: React.Dispatch<React.SetStateAction<string[]>>;
+  editIsActive?: boolean;
+  setEditIsActive?: (v: boolean) => void;
+  newPassword?: string;
+  setNewPassword?: (v: string) => void;
   isSavingEdit: boolean;
   onSave: () => Promise<void>;
+  onGenerateMagicLink?: (userId: string) => Promise<void>;
+  onViewLogs?: (u: StaffUser) => void;
   staffRoles: (StaffRole & { permissions: StaffPermission[] })[];
   currentAdminRole?: string;
   canDemote: (role: string) => boolean;
@@ -53,45 +75,122 @@ export function EditStaffModal({
   setEditGeminiKey,
   editLimit,
   setEditLimit,
+  editAllowedTenants = ['smmplan'],
+  setEditAllowedTenants,
+  editIsActive = true,
+  setEditIsActive,
+  newPassword = '',
+  setNewPassword,
   isSavingEdit,
   onSave,
+  onGenerateMagicLink,
+  onViewLogs,
   staffRoles,
   currentAdminRole,
   canDemote,
   onDemoteClick,
   onOpenRolePermissions,
 }: EditStaffModalProps) {
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+
+  const toggleTenant = (t: string) => {
+    if (!setEditAllowedTenants) return;
+    setEditAllowedTenants((prev) => {
+      if (prev.includes(t)) {
+        if (prev.length === 1) return prev;
+        return prev.filter((x) => x !== t);
+      }
+      return [...prev, t];
+    });
+  };
+
+  const generateRandomPassword = () => {
+    if (!setNewPassword) return;
+    const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%&*';
+    let res = '';
+    for (let i = 0; i < 14; i++) {
+      res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setNewPassword(res);
+  };
+
   return (
     <Dialog open={!!editingUser} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg bg-card border-border">
+      <DialogContent className="sm:max-w-xl bg-card border-border max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center gap-3 pb-1">
-            <div className="p-2 bg-primary/10 rounded-xl border border-primary/20">
-              <Settings2 className="w-4 h-4 text-primary" />
+          <div className="flex items-center justify-between gap-3 pb-1">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-xl border border-primary/20 shrink-0">
+                <Settings2 className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold">Настройки сотрудника</DialogTitle>
+                <p className="text-[11px] text-muted-foreground font-mono mt-0.5 truncate max-w-[280px]">
+                  {editingUser?.email}
+                </p>
+              </div>
             </div>
-            <div>
-              <DialogTitle className="text-base font-bold">Настройки сотрудника</DialogTitle>
-              <p className="text-[11px] text-muted-foreground font-mono mt-0.5 truncate max-w-[300px]">
-                {editingUser?.email}
-              </p>
-            </div>
+
+            {/* Quick Actions Header */}
+            {editingUser && (
+              <div className="flex items-center gap-1.5 shrink-0">
+                {onViewLogs && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const fn = onViewLogs;
+                      if (fn) fn(editingUser);
+                    }}
+                    className="h-8 px-2.5 text-xs font-bold gap-1 border-border/80"
+                    title="Журнал действий сотрудника"
+                  >
+                    <History className="w-3.5 h-3.5 text-primary" />
+                    Логи
+                  </Button>
+                )}
+                {onGenerateMagicLink && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isGeneratingLink}
+                    onClick={async () => {
+                      const fn = onGenerateMagicLink;
+                      if (!fn) return;
+                      setIsGeneratingLink(true);
+                      await fn(editingUser.id);
+                      setIsGeneratingLink(false);
+                    }}
+                    className="h-8 px-2.5 text-xs font-bold gap-1 border-border/80"
+                    title="Сгенерировать ссылку для входа"
+                  >
+                    <LinkIcon className="w-3.5 h-3.5 text-primary" />
+                    Magic Link
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </DialogHeader>
 
-        <div className="space-y-5 py-2">
+        <div className="space-y-4 py-2">
           {/* Row 1: Role + Staff Role Group */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
                 Системная роль
               </label>
               <Select value={editRole} onValueChange={(v: string | null) => setEditRole(v || '')}>
-                <SelectTrigger className="h-10 bg-background text-xs font-bold rounded-xl">
+                <SelectTrigger className="h-9 bg-background text-xs font-bold rounded-xl">
                   <SelectValue>{ROLE_LABELS[editRole] || editRole}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {getAllowedRoles(currentAdminRole).map(r => (
-                    <SelectItem key={r} value={r}>{ROLE_LABELS[r] || r}</SelectItem>
+                  {getAllowedRoles(currentAdminRole).map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {ROLE_LABELS[r] || r}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -102,23 +201,25 @@ export function EditStaffModal({
                 Группа прав (RBAC)
               </label>
               {editRole === 'OWNER' ? (
-                <div className="h-10 px-3 flex items-center bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl text-xs font-bold">
+                <div className="h-9 px-3 flex items-center bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl text-xs font-bold">
                   Полный доступ (OWNER)
                 </div>
               ) : (
                 <>
                   <Select value={editStaffRoleId} onValueChange={(v: string | null) => setEditStaffRoleId(v || 'NONE')}>
-                    <SelectTrigger className="h-10 bg-background text-xs font-bold rounded-xl">
+                    <SelectTrigger className="h-9 bg-background text-xs font-bold rounded-xl">
                       <SelectValue>
                         {editStaffRoleId === 'NONE'
                           ? `Базовые права (${editRole || 'роли'})`
-                          : (staffRoles.find(r => r.id === editStaffRoleId)?.name ?? editStaffRoleId)}
+                          : (staffRoles.find((r) => r.id === editStaffRoleId)?.name ?? editStaffRoleId)}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="NONE">Базовые права ({editRole || 'роли'})</SelectItem>
-                      {staffRoles.map(role => (
-                        <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                      {staffRoles.map((role) => (
+                        <SelectItem key={role.id} value={role.id}>
+                          {role.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -128,12 +229,12 @@ export function EditStaffModal({
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        const selected = staffRoles.find(r => r.id === editStaffRoleId);
+                        const selected = staffRoles.find((r) => r.id === editStaffRoleId);
                         if (selected) onOpenRolePermissions(selected);
                       }}
-                      className="w-full h-8 text-[11px] font-bold gap-1.5 border-primary/30 text-primary hover:bg-primary/10 mt-1 cursor-pointer"
+                      className="w-full h-7 text-[10px] font-bold gap-1 border-primary/30 text-primary hover:bg-primary/10 mt-1 cursor-pointer"
                     >
-                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <ShieldCheck className="w-3 h-3" />
                       Настроить права группы
                     </Button>
                   )}
@@ -142,7 +243,89 @@ export function EditStaffModal({
             </div>
           </div>
 
-          {/* Row 2: Gemini Key */}
+          {/* Row 2: Active Status Toggle */}
+          <div className="p-3 bg-muted/20 border border-border/70 rounded-xl flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-foreground">Статус доступа сотрудника</p>
+              <p className="text-[11px] text-muted-foreground">
+                {editIsActive ? 'Сотрудник активен и может работать в панели' : 'Доступ временно приостановлен (блокировка входа)'}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant={editIsActive ? 'outline' : 'destructive'}
+              size="sm"
+              onClick={() => {
+                const fn = setEditIsActive;
+                if (fn) fn(!editIsActive);
+              }}
+              className={`h-8 px-3 text-xs font-bold transition-all ${
+                editIsActive
+                  ? 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10'
+                  : ''
+              }`}
+            >
+              {editIsActive ? 'Активен (Вкл)' : 'Приостановлен'}
+            </Button>
+          </div>
+
+          {/* Row 3: Multi-tenant Allowed Brands */}
+          <div className="p-3 bg-muted/20 border border-border/70 rounded-xl space-y-2">
+            <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <Globe className="w-3.5 h-3.5 text-primary" />
+              Доступ к брендам / витринам:
+            </label>
+            <div className="flex items-center gap-4 text-xs font-medium">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={editAllowedTenants.includes('smmplan')}
+                  onChange={() => toggleTenant('smmplan')}
+                  className="w-4 h-4 rounded text-primary border-border focus:ring-primary cursor-pointer"
+                />
+                <span>SMMplan (smmplan.pro)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={editAllowedTenants.includes('flux')}
+                  onChange={() => toggleTenant('flux')}
+                  className="w-4 h-4 rounded text-primary border-border focus:ring-primary cursor-pointer"
+                />
+                <span>SMMflux (smmflux.ru)</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Row 4: Reset Password */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Lock className="w-3 h-3" />
+                Сменить пароль (опционально)
+              </label>
+              <button
+                type="button"
+                onClick={generateRandomPassword}
+                className="text-[10px] text-primary hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+              >
+                <Sparkles className="w-2.5 h-2.5" />
+                Сгенерировать
+              </button>
+            </div>
+            <Input
+              type="text"
+              placeholder="Оставьте пустым, если менять пароль не требуется..."
+              value={newPassword}
+              onChange={(e) => {
+                const fn = setNewPassword;
+                if (fn) fn(e.target.value);
+              }}
+              className="h-9 font-mono text-xs rounded-xl"
+            />
+          </div>
+
+          {/* Row 5: Gemini Key */}
           <div className="space-y-1.5">
             <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
               <Key className="w-3 h-3 shrink-0" />
@@ -155,14 +338,14 @@ export function EditStaffModal({
             </label>
             <Input
               type="password"
-              placeholder={editingUser?.geminiApiKey ? '••••••••••••••••••••' : 'AIzaSy... (оставьте пустым — будет общий пул)'}
+              placeholder={editingUser?.geminiApiKey ? '••••••••••••••••••••' : 'AIzaSy... (оставьте пустым — общий пул)'}
               value={editGeminiKey}
-              onChange={e => setEditGeminiKey(e.target.value)}
-              className="h-10 font-mono text-xs rounded-xl"
+              onChange={(e) => setEditGeminiKey(e.target.value)}
+              className="h-9 font-mono text-xs rounded-xl"
             />
           </div>
 
-          {/* Row 3: Daily Limit */}
+          {/* Row 6: Daily Limit */}
           <div className="space-y-1.5">
             <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
               <DollarSign className="w-3 h-3 shrink-0" />
@@ -173,15 +356,15 @@ export function EditStaffModal({
               step="0.01"
               min="0"
               value={editLimit}
-              onChange={e => setEditLimit(e.target.value)}
-              className="h-10 font-mono text-xs rounded-xl"
+              onChange={(e) => setEditLimit(e.target.value)}
+              className="h-9 font-mono text-xs rounded-xl"
             />
             <p className="text-[10px] text-muted-foreground">
               Максимальная сумма, которую сотрудник может зачислить клиенту за день.
             </p>
           </div>
 
-          {/* Row 4: Danger zone */}
+          {/* Danger zone */}
           {editingUser && canDemote(editingUser.role) && (
             <div className="pt-2 border-t border-border/60">
               <p className="text-[10px] text-muted-foreground mb-2 font-semibold uppercase tracking-wider">Опасная зона</p>
@@ -190,7 +373,7 @@ export function EditStaffModal({
                 variant="outline"
                 size="sm"
                 onClick={() => onDemoteClick(editingUser)}
-                className="h-9 text-xs font-bold border-amber-500/30 text-amber-600 hover:bg-amber-500/10 gap-1.5"
+                className="h-8 text-xs font-bold border-amber-500/30 text-amber-600 hover:bg-amber-500/10 gap-1.5"
               >
                 <UserMinus className="w-3.5 h-3.5" />
                 Разжаловать до USER
@@ -199,13 +382,15 @@ export function EditStaffModal({
           )}
         </div>
 
-        <DialogFooter className="flex gap-2 pt-2">
-          <Button variant="outline" size="sm" onClick={onClose}>Отмена</Button>
+        <DialogFooter className="flex gap-2 pt-2 border-t border-border/60">
+          <Button variant="outline" size="sm" onClick={onClose} className="text-xs font-semibold">
+            Отмена
+          </Button>
           <Button
             size="sm"
             onClick={onSave}
             disabled={isSavingEdit}
-            className="font-bold gap-1.5 min-w-[110px] max-w-full"
+            className="font-bold gap-1.5 min-w-[110px] text-xs"
           >
             {isSavingEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
             Сохранить

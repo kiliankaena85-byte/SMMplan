@@ -15,6 +15,8 @@ const PAYMENT_KEYS = [
   'yookassaShopId', 'yookassaSecretKey', 'yookassaWebhookSecret',
   'yookassaTestShopId', 'yookassaTestSecretKey', 'cryptoBotToken',
   'robokassaLogin', 'robokassaPassword', 'robokassaWebhookPassword',
+  'alfaBankAccountNumber', 'alfaBankApiKey', 'alfaBankClientSecret',
+  'alfaBankApiBaseUrl', 'alfaBankIsSandbox',
   'safetyFloor', 'globalMarkup'
 ];
 

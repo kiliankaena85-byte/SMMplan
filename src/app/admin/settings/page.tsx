@@ -164,7 +164,7 @@ export default async function AdminSettingsPage({
         {activeTab === 'templates' && (
           <div className="space-y-8 animate-in slide-in-from-bottom-2 duration-300">
             <Suspense fallback={<TabSkeleton />}>
-              <TemplatesTabWrapper />
+              <TemplatesTabWrapper activeTenantId={activeTenantId} />
             </Suspense>
           </div>
         )}
@@ -172,7 +172,11 @@ export default async function AdminSettingsPage({
         {/* ── TAB 4: AUDIT ── */}
         {activeTab === 'audit' && (
           <Suspense fallback={<TabSkeleton />}>
-            <AuditTabWrapper />
+            <AuditTabWrapper 
+              activeTenantId={activeTenantId} 
+              isOwner={admin.role === 'OWNER'} 
+              hasExplicitTenant={Boolean(params.tenant || cookieStore.get('x_admin_tenant')?.value)} 
+            />
           </Suspense>
         )}
 
@@ -245,12 +249,21 @@ async function TeamTabWrapper({ activeTenantId, searchQuery, admin }: { activeTe
   );
 }
 
-async function TemplatesTabWrapper() {
-  const templates = await db.supportTemplate.findMany({ orderBy: { sort: 'asc' } });
-  return <SupportTemplatesSettings initialTemplates={templates} />;
+async function TemplatesTabWrapper({ activeTenantId }: { activeTenantId: string }) {
+  const templates = await db.supportTemplate.findMany({
+    where: { tenantId: activeTenantId },
+    orderBy: { sort: 'asc' },
+  });
+  return <SupportTemplatesSettings initialTemplates={templates} tenantId={activeTenantId} />;
 }
 
-async function AuditTabWrapper() {
-  const recentLogs = await db.adminAuditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 50 });
+async function AuditTabWrapper({ activeTenantId, isOwner, hasExplicitTenant }: { activeTenantId: string; isOwner: boolean; hasExplicitTenant: boolean }) {
+  const where = (!isOwner || hasExplicitTenant) ? { tenantId: activeTenantId } : {};
+  const recentLogs = await db.adminAuditLog.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  });
   return <AuditLogsTab logs={recentLogs} />;
 }
+

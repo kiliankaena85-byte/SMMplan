@@ -6,6 +6,8 @@ import { auditAdminAwaitable } from '@/lib/admin-audit';
 import { getClientIp } from '@/utils/ip';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import crypto from 'crypto';
+import { hashPassword } from '@/lib/auth/password';
 
 export interface StaffActivityHour {
   hour: number; // 0..23
@@ -422,3 +424,254 @@ export async function updateStaffMemberAction(input: z.infer<typeof updateStaffS
     return { success: true as const };
   });
 }
+
+// ── Create New Staff Member or Promote Existing ──
+const createStaffSchema = z.object({
+  email: z.string().email('Некорректный email адрес'),
+  role: z.enum(['SUPPORT', 'OPERATOR', 'MANAGER', 'ADMIN', 'OWNER']),
+  staffRoleId: z.string().nullable().optional(),
+  password: z.string().min(8, 'Пароль должен содержать минимум 8 символов').optional().or(z.literal('')),
+  supportLimitRubles: z.number().min(0).max(100000).default(500),
+  allowedTenants: z.array(z.string()).min(1, 'Выберите хотя бы один бренд').default(['smmplan', 'flux']),
+});
+
+export async function createStaffMemberAction(input: z.infer<typeof createStaffSchema>) {
+  return requireStaffPermission('settings', 'edit', async (admin) => {
+    const parsed = createStaffSchema.safeParse(input);
+    if (!parsed.success) {
+      return { success: false as const, error: parsed.error.issues[0]?.message || 'Некорректные параметры' };
+    }
+
+    const cleanEmail = parsed.data.email.toLowerCase().trim();
+
+    // Grant Ceiling: only OWNER can create ADMIN or OWNER
+    if (['ADMIN', 'OWNER'].includes(parsed.data.role) && admin.role !== 'OWNER') {
+      return { success: false as const, error: 'Только Владелец платформы может назначать Администраторов и Владельцев' };
+    }
+
+    // Tenant grant ceiling check
+    if (admin.role !== 'OWNER') {
+      const adminAllowed = (admin.allowedTenants && admin.allowedTenants.length > 0)
+        ? admin.allowedTenants
+        : [admin.tenantId || 'smmplan'];
+      const hasUnauthorized = parsed.data.allowedTenants.some((t) => !adminAllowed.includes(t));
+      if (hasUnauthorized) {
+        return { success: false as const, error: 'Запрещено выдавать доступ к брендам вне ваших полномочий' };
+      }
+    }
+
+    const limitCents = Math.round(parsed.data.supportLimitRubles * 100);
+    const passwordHash = parsed.data.password ? await hashPassword(parsed.data.password) : null;
+
+    // Check if user already exists
+    const existing = await db.user.findFirst({
+      where: { email: cleanEmail },
+    });
+
+    let userId: string;
+
+    if (existing) {
+      if (existing.role === 'OWNER' && admin.role !== 'OWNER') {
+        return { success: false as const, error: 'Запрещено изменять профиль Владельца' };
+      }
+
+      await db.user.update({
+        where: { id: existing.id },
+        data: {
+          role: parsed.data.role,
+          staffRoleId: parsed.data.staffRoleId || null,
+          supportLimitCents: limitCents,
+          allowedTenants: parsed.data.allowedTenants,
+          isActive: true,
+          isDeleted: false,
+          ...(passwordHash ? { passwordHash } : {}),
+        },
+      });
+      userId = existing.id;
+    } else {
+      const newUser = await db.user.create({
+        data: {
+          email: cleanEmail,
+          role: parsed.data.role,
+          staffRoleId: parsed.data.staffRoleId || null,
+          supportLimitCents: limitCents,
+          allowedTenants: parsed.data.allowedTenants,
+          tenantId: parsed.data.allowedTenants[0] || 'smmplan',
+          passwordHash,
+          isActive: true,
+          isDeleted: false,
+          isEmailVerified: true,
+          tosAcceptedAt: new Date(),
+        },
+      });
+      userId = newUser.id;
+    }
+
+    const ipAddress = await getClientIp('unknown');
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: existing ? 'STAFF_PROMOTED' : 'STAFF_CREATED',
+      target: userId,
+      targetType: 'USER',
+      newValue: { email: cleanEmail, role: parsed.data.role, limit: limitCents },
+      ipAddress,
+    });
+
+    revalidatePath('/admin/staff');
+    revalidatePath('/admin/settings');
+
+    return { success: true as const, userId };
+  });
+}
+
+// ── Toggle Active / Suspended Status ──
+const toggleActiveSchema = z.object({
+  userId: z.string().min(1),
+  isActive: z.boolean(),
+});
+
+export async function toggleStaffActiveStatusAction(input: z.infer<typeof toggleActiveSchema>) {
+  return requireStaffPermission('settings', 'edit', async (admin) => {
+    const parsed = toggleActiveSchema.safeParse(input);
+    if (!parsed.success) {
+      return { success: false as const, error: 'Некорректные параметры' };
+    }
+
+    if (admin.id === parsed.data.userId) {
+      return { success: false as const, error: 'Запрещено блокировать собственный аккаунт' };
+    }
+
+    const target = await db.user.findUnique({ where: { id: parsed.data.userId } });
+    if (!target) {
+      return { success: false as const, error: 'Сотрудник не найден' };
+    }
+
+    if (target.role === 'OWNER') {
+      return { success: false as const, error: 'Запрещено изменять статус Владельца платформы' };
+    }
+    if (target.role === 'ADMIN' && admin.role !== 'OWNER') {
+      return { success: false as const, error: 'Только Владелец может изменять статус Администраторов' };
+    }
+
+    await db.user.update({
+      where: { id: parsed.data.userId },
+      data: { isActive: parsed.data.isActive },
+    });
+
+    const ipAddress = await getClientIp('unknown');
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: parsed.data.isActive ? 'STAFF_ACTIVATED' : 'STAFF_SUSPENDED',
+      target: parsed.data.userId,
+      targetType: 'USER',
+      oldValue: { isActive: target.isActive },
+      newValue: { isActive: parsed.data.isActive },
+      ipAddress,
+    });
+
+    revalidatePath('/admin/staff');
+    revalidatePath('/admin/settings');
+
+    return { success: true as const };
+  });
+}
+
+// ── Generate One-Time Magic Link for Staff ──
+const staffMagicLinkSchema = z.object({
+  userId: z.string().min(1),
+  redirectUrl: z.string().optional().default('/admin/dashboard'),
+});
+
+export async function generateStaffMagicLinkAction(input: z.infer<typeof staffMagicLinkSchema>) {
+  return requireStaffPermission('settings', 'edit', async (admin) => {
+    const parsed = staffMagicLinkSchema.safeParse(input);
+    if (!parsed.success) {
+      return { success: false as const, error: 'Некорректные параметры' };
+    }
+
+    const target = await db.user.findUnique({ where: { id: parsed.data.userId } });
+    if (!target) {
+      return { success: false as const, error: 'Сотрудник не найден' };
+    }
+
+    if (target.role === 'OWNER' && admin.role !== 'OWNER') {
+      return { success: false as const, error: 'Только Владелец может генерировать ссылки для Владельца' };
+    }
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours TTL
+    const clientIp = await getClientIp('127.0.0.1');
+
+    await db.authToken.create({
+      data: {
+        userId: target.id,
+        token: hashedToken,
+        tenantId: target.tenantId || 'smmplan',
+        expiresAt,
+        ipIssued: clientIp,
+        userAgentIssued: 'Staff Hub Generator',
+      },
+    });
+
+    const redirectPath = parsed.data.redirectUrl || '/admin/dashboard';
+    const relativeLink = `/api/auth/verify?token=${rawToken}&redirect=${encodeURIComponent(redirectPath)}`;
+
+    return {
+      success: true as const,
+      relativeLink,
+      rawToken,
+      expiresAt: expiresAt.toISOString(),
+      staffEmail: target.email,
+    };
+  });
+}
+
+// ── Reset / Set Staff Password ──
+const resetPasswordSchema = z.object({
+  userId: z.string().min(1),
+  newPassword: z.string().min(8, 'Пароль должен быть не менее 8 символов'),
+});
+
+export async function resetStaffPasswordAction(input: z.infer<typeof resetPasswordSchema>) {
+  return requireStaffPermission('settings', 'edit', async (admin) => {
+    const parsed = resetPasswordSchema.safeParse(input);
+    if (!parsed.success) {
+      return { success: false as const, error: parsed.error.issues[0]?.message || 'Некорректные параметры' };
+    }
+
+    const target = await db.user.findUnique({ where: { id: parsed.data.userId } });
+    if (!target) {
+      return { success: false as const, error: 'Сотрудник не найден' };
+    }
+
+    if (target.role === 'OWNER' && admin.role !== 'OWNER') {
+      return { success: false as const, error: 'Только Владелец может сбрасывать пароль Владельца' };
+    }
+    if (target.role === 'ADMIN' && admin.role !== 'OWNER') {
+      return { success: false as const, error: 'Только Владелец может изменять пароли Администраторов' };
+    }
+
+    const passwordHash = await hashPassword(parsed.data.newPassword);
+
+    await db.user.update({
+      where: { id: parsed.data.userId },
+      data: { passwordHash },
+    });
+
+    const ipAddress = await getClientIp('unknown');
+    await auditAdminAwaitable({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: 'STAFF_PASSWORD_RESET',
+      target: parsed.data.userId,
+      targetType: 'USER',
+      ipAddress,
+    });
+
+    return { success: true as const };
+  });
+}
+

@@ -50,6 +50,8 @@ class SettingsService {
           }
         },
         geminiApiKey: true,
+        isActive: true,
+        allowedTenants: true,
         createdAt: true,
         _count: { select: { orders: true, tickets: true } }
       }
@@ -108,52 +110,12 @@ class SettingsService {
     return settings;
   }
 
-  async updateSystemSettings(data: {
-    taxRate?: number;
-    opexMonthly?: number;
-    maintenanceMode?: boolean;
-    siteName?: string;
-    siteDescription?: string;
-    welcomeMessage?: string | null;
-    yookassaShopId?: string | null;
-    yookassaSecretKey?: string | null;
-    yookassaTestShopId?: string | null;
-    yookassaTestSecretKey?: string | null;
-    cryptoBotToken?: string | null;
-    exchangeRateUSD?: number;
-    smtpHost?: string | null;
-    smtpPort?: number;
-    smtpUser?: string | null;
-    smtpPassword?: string | null;
-    supportEmailDomain?: string | null;
-    inboundEmailWebhookSecret?: string | null;
-    contactSupportEmail?: string | null;
-    contactPrivacyEmail?: string | null;
-    contactTelegramBot?: string | null;
-    contactTelegramChannel?: string | null;
-    contactWhatsApp?: string | null;
-    contactVk?: string | null;
-    legalCompanyName?: string | null;
-    legalCompanyInn?: string | null;
-    legalCompanyOgrnip?: string | null;
-    legalCompanyAddress?: string | null;
-    quarantineThreshold?: number;
-    globalMarkup?: number;
-    safetyFloor?: number;
-    siteLogoUrl?: string | null;
-    siteFaviconUrl?: string | null;
-    robokassaLogin?: string | null;
-    robokassaPassword?: string | null;
-    robokassaWebhookPassword?: string | null;
-    emailProvider?: string;
-    resendApiKey?: string | null;
-    usnScheme?: UsnScheme;
-  }, tenantId?: string) {
+  async updateSystemSettings(data: Prisma.SystemSettingsUpdateInput, tenantId?: string) {
     const activeTenantId = tenantId || await SettingsProvider.getTenantId();
     const result = await db.systemSettings.upsert({
       where: { id: activeTenantId },
       update: data,
-      create: { id: activeTenantId, ...data }
+      create: { id: activeTenantId, ...(data as any) }
     });
 
     SettingsProvider.clearMemoryCache(activeTenantId);

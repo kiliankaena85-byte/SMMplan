@@ -156,6 +156,7 @@ describe('Sidebar domain isolation — consolidated ADMIN_NAVIGATION (domain roo
     const ghostRoutes: [string, string][] = [
       ['/admin/refills', '/admin/orders'],
       ['/admin/marketing', '/admin/finance'],
+      ['/admin/promocodes', '/admin/finance'],
       ['/admin/tenants', '/admin/settings'],
       ['/admin/pages', '/admin/settings'],
       ['/admin/knowledge', '/admin/settings'],

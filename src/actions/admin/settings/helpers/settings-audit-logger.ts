@@ -53,5 +53,6 @@ export async function logSettingsAudit({
     oldValue: oldValueToLog,
     newValue: safeDataToUpdate,
     ipAddress,
+    tenantId: activeTenantId,
   });
 }

@@ -4,6 +4,8 @@ export * from './modals/DeleteRoleModal';
 export * from './modals/DemoteStaffModal';
 export * from './modals/EditStaffModal';
 export * from './modals/RolePermissionsModal';
+export * from './modals/AddStaffModal';
+export * from './modals/StaffLogsDrawer';
 export * from './sections/StaffTableSection';
 export * from './sections/CustomRolesSection';
 export * from './sections/PromoteUserSection';

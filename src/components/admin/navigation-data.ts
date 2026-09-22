@@ -10,8 +10,10 @@ export const SIDEBAR_DOMAIN_ALIASES: Record<string, string> = {
   // Operations domain
   '/admin/refills':            '/admin/orders',
   '/admin/smart':              '/admin/orders',
+  '/admin/docs':               '/admin/orders',
   // Finance domain
   '/admin/marketing':          '/admin/finance',
+  '/admin/promocodes':         '/admin/finance',
   '/admin/fraud-monitor':      '/admin/finance',
   // Catalog domain — все суб-маршруты каталога
   '/admin/services':           '/admin/catalog',
@@ -120,7 +122,8 @@ export const FINANCE_TABS = [
   { label: 'Касса & P&L', href: '/admin/finance' },
   { label: 'Казначейство & Вывод', href: '/admin/finance/treasury' },
   { label: 'Запросы баланса', href: '/admin/finance/balance-requests' },
-  { label: 'Маркетинг & Промо', href: '/admin/marketing' },
+  { label: 'Партнерская программа', href: '/admin/marketing' },
+  { label: 'Промокоды', href: '/admin/promocodes' },
   { label: 'Fraud Monitor', href: '/admin/fraud-monitor' },
 ];
 
@@ -147,6 +150,7 @@ export const PROVIDERS_TABS = [
 
 export const SYSTEM_TABS = [
   { label: 'Бренды & Домены', href: '/admin/tenants' },
+  { label: 'Сотрудники & Смены', href: '/admin/staff' },
   { label: 'CMS Страницы', href: '/admin/pages' },
   { label: 'Статьи блога', href: '/admin/knowledge' },
   { label: 'Фичи (Flags)', href: '/admin/system/features' },
@@ -203,6 +207,14 @@ export const ONBOARDING_CONFIGS = {
     docLink: '/admin/manual#4-платёжная-система'
   },
   marketing: {
+    description: 'Управление партнерской программой. Отслеживайте балансы рефералов, статистику по выплатам и LTV привлеченных пользователей.',
+    faqs: [
+      { q: 'Как начисляются партнерские выплаты?', a: 'Система автоматически зачисляет % от всех трат привлеченного пользователя на партнерский счет рефовода.' },
+      { q: 'Где увидеть график выплат?', a: 'На главном экране раздела отображается аналитика распределения комиссий по месяцам.' },
+    ],
+    docLink: '/admin/manual#10-внутренние-процессы'
+  },
+  promocodes: {
     description: 'Управление маркетинговыми инструментами: создание купонов на скидку (DISCOUNT) или ваучеров на баланс (VOUCHER).',
     faqs: [
       { q: 'В чем разница между ваучером и скидкой?', a: 'Ваучер начисляет фиксированную сумму в рублях на баланс клиента при активации. Скидка снижает розничную цену на услуги на заданный процент.' },

@@ -13,8 +13,9 @@ interface SettingsCardProps {
   icon: React.ReactNode;
   statusBadge?: React.ReactNode;
   children: React.ReactNode;
-  action: (prevState: any, formData: FormData) => Promise<any>;
+  action: (prevState: unknown, formData: FormData) => Promise<unknown>;
   testButton?: React.ReactNode;
+  tenantId?: string;
 }
 
 export function SettingsCard({
@@ -25,6 +26,7 @@ export function SettingsCard({
   children,
   action,
   testButton,
+  tenantId,
 }: SettingsCardProps) {
   const [state, formAction, isPending] = useActionState(
     async (prevState: unknown, formData: FormData) => {
@@ -62,6 +64,7 @@ export function SettingsCard({
   return (
     <Card id={id} className="scroll-mt-24 border border-border/50 rounded-2xl overflow-hidden shadow-sm flex flex-col transition-colors focus-within:border-primary/50">
       <form action={formAction} className="flex flex-col h-full">
+        {tenantId && <input type="hidden" name="tenantId" value={tenantId} />}
         <div className="flex items-center justify-between px-6 py-4 bg-muted/10 border-b border-border/30">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 text-primary rounded-lg">

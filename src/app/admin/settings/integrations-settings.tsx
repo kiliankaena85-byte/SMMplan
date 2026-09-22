@@ -36,16 +36,16 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
           {/* Фиксируем минимальную высоту, чтобы предотвратить прыжки верстки при смене шлюза */}
           <div className="mt-4 min-h-[550px] relative">
             <div className={activePaymentGateway === 'yookassa' ? 'block animate-in fade-in zoom-in-95 duration-200' : 'hidden'}>
-              <YooKassaSettings settings={settings} />
+              <YooKassaSettings settings={settings} tenantId={tenantId} />
             </div>
             <div className={activePaymentGateway === 'robokassa' ? 'block animate-in fade-in zoom-in-95 duration-200' : 'hidden'}>
-              <RobokassaSettings settings={settings} />
+              <RobokassaSettings settings={settings} tenantId={tenantId} />
             </div>
             <div className={activePaymentGateway === 'alfabank' ? 'block animate-in fade-in zoom-in-95 duration-200' : 'hidden'}>
-              <AlfaBankSettings settings={settings} />
+              <AlfaBankSettings settings={settings} tenantId={tenantId} />
             </div>
             <div className={activePaymentGateway === 'cryptobot' ? 'block animate-in fade-in zoom-in-95 duration-200' : 'hidden'}>
-              <CryptoBotSettings settings={settings} />
+              <CryptoBotSettings settings={settings} tenantId={tenantId} />
             </div>
           </div>
         </div>
@@ -54,16 +54,16 @@ export function IntegrationsSettings({ settings, tenantId = 'smmplan' }: Integra
         <div className="space-y-8">
           <div id="smtp" className="space-y-4">
             <h2 className="text-lg font-bold text-foreground">Почта (SMTP)</h2>
-            <SmtpSettings settings={settings} />
+            <SmtpSettings settings={settings} tenantId={tenantId} />
           </div>
           
           <div id="gemini" className="space-y-4">
              <h2 className="text-lg font-bold text-foreground">Нейросеть (Gemini)</h2>
-             <GeminiSettings settings={settings} />
+             <GeminiSettings settings={settings} tenantId={tenantId} />
           </div>
 
           <div id="webhooks" className="space-y-4">
-             <WebhookSettings settings={settings} />
+             <WebhookSettings settings={settings} tenantId={tenantId} />
           </div>
         </div>
       </div>

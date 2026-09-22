@@ -18,6 +18,7 @@ interface Props {
   settings: SystemSettings;
   diagnostics: TelegramBotDiagnostics | null;
   onRefresh: () => void;
+  tenantId?: string;
 }
 
 interface SecurityFormData {
@@ -31,7 +32,7 @@ interface SecurityFormData {
   telegramEnableSmartBind: boolean;
 }
 
-export function SecurityPanel({ settings, diagnostics, onRefresh }: Props) {
+export function SecurityPanel({ settings, diagnostics, onRefresh, tenantId = 'smmplan' }: Props) {
   const [showSecret, setShowSecret] = useState(false);
   const [newIp, setNewIp] = useState('');
   const [isPending, startTransition] = useTransition();
@@ -58,7 +59,7 @@ export function SecurityPanel({ settings, diagnostics, onRefresh }: Props) {
         telegramLogErrors: form.telegramLogErrors,
         telegramEnableCsat: form.telegramEnableCsat,
         telegramEnableSmartBind: form.telegramEnableSmartBind,
-      });
+      }, tenantId);
       toast[res.success ? 'success' : 'error'](res.success ? res.message! : res.error!);
       if (res.success) onRefresh();
     });

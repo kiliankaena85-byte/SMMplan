@@ -1,3 +1,44 @@
+- [x] 💳 [TRANSACTIONS-LEDGER-FULL-WIDTH-AND-RESPONSIVE-2026] Адаптация вкладки «Транзакции» (Ledger) на 100% ширину экрана (Viewport 100% Width Fit) и мобильный карточный стек (100% COMPLETE & VERIFIED):
+  * 📐 **Устранение ограничения ширины (Viewport 100% Width Fit):**
+    - В `src/app/admin/transactions/page.tsx` и `loading.tsx` удален ограничитель `max-w-7xl mx-auto` (1280px), установлен стандартный адаптивный контейнер `w-full animate-in fade-in duration-500 ease-out sm:px-2 md:px-0 min-h-full pb-10` — таблица и метрики занимают 100% полезного пространства экрана как на вкладках «Заказы» и «Клиенты».
+  * 🖥️ **Десктопная таблица (`hidden md:block`):**
+    - Колонка «Основание» (Reason) переведена на гибкую ширину (`w-full min-w-[200px]` с `line-clamp-2` и `title`), ликвидировано жесткое искусственное ограничение `max-w-[200px]`, текст больше не обрезается на 15 символах, таблица естественно распределяется без пустых белых зон справа.
+    - Устранено усечение текста в бейджах типов (`whitespace-nowrap`, убран `max-w-[90px]`).
+    - В ячейку клиента интегрирован индикатор бренда `TenantBrandBadge` (`SMMplan` / `SMMflux`) для мгновенной идентификации тенанта проводки.
+  * 📱 **Мобильная адаптивность (Rule 9 — Zero Horizontal Scroll):**
+    - В `src/app/admin/transactions/transactions-client.tsx` внедрен адаптивный карточный стек для смартфонов и планшетов (`block md:hidden`): клиент, бренд, сумма с цветовой индикацией знака (+/–), статус проводки, блок основания/причины с указанием инициатора (`👤 Оператор` / `⚙️ Система`), дата и UUID/IdempotencyKey с копированием.
+    - Исключен горизонтальный скролл на мобильных устройствах, тач-таргеты приведены к стандарту WCAG 2.2 AA ($\ge 44\text{px}$).
+  * 🧪 **Контроль качества:**
+    - Строгая проверка типов `npx tsc --noEmit` — 0 ошибок по всей кодовой базе (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs` — 0 утечек секретов.
+    - Автотесты `src/__tests__/unit/staff-actions-management.test.ts` (12/12 PASS).
+    - Живой контейнер отвечает 200 OK (`/api/health` status: healthy).
+- [x] 👥 [STAFF-MANAGEMENT-AND-OWNER-PROVISIONING-2026] Расширение управления сотрудниками в Настройках (`/admin/settings?tab=team`) и провижининг Владельца nikita8888@inbox.ru (100% COMPLETE & VERIFIED):
+  * 👑 **Провижининг Владельца (`nikita8888@inbox.ru`):**
+    - Аккаунты созданы/обновлены с ролью `OWNER` и доступом ко всем тенантам (`allowedTenants: ['smmplan', 'flux']`) на `smmplan` (ID: `cmu1ce9m20000xabyny9dnb51`) и `flux` (ID: `cmuc20mvh0000ut0ee2jos14q`).
+    - Скрипты `scripts/set-owner.ts`, `scripts/check-owner-users.ts`, `scripts/cleanup-test-users.ts` обновлены с защитой профилей нового Владельца.
+    - Сгенерирована прямая ссылка входа (Magic Link, 24h).
+  * 🛡️ **Комплексные Server Actions для управления персоналом (`src/actions/admin/staff.ts`):**
+    - `createStaffMemberAction`: прямое создание сотрудника без необходимости предварительной регистрации; выбор системной роли (`SUPPORT`, `OPERATOR`, `MANAGER`, `ADMIN`, `OWNER`), кастомной роли, суточного лимита компенсаций, пароля (scrypt-хэш) и доступных витрин (`allowedTenants`). Защищено Grant Ceiling (только OWNER создает ADMIN/OWNER) и Tenant Boundary.
+    - `toggleStaffActiveStatusAction`: блокировка/активация аккаунта сотрудника (`isActive: boolean`) с защитой от самоблокировки и неприкосновенностью Владельца.
+    - `generateStaffMagicLinkAction`: мгновенная генерация 24-часовой одноразовой ссылки прямого входа с криптографическим хэшированием SHA-256 в `db.authToken`.
+    - `resetStaffPasswordAction`: прямой сброс пароля сотрудника администратором с проверкой прав, scrypt-хэшированием и записью в журнал безопасности `auditAdminAwaitable`.
+  * 🎨 **Полнофункциональный UI в Настройках (`/admin/settings?tab=team`):**
+    - `StaffTableSection.tsx`: добавлена кнопка `+ Добавить сотрудника`, бейджи витрин (`Plan` / `Flux`), статусы (`Активен` / `Приостановлен`), быстрые ссылки в график смен и статистику (`/admin/staff`), кнопки действий: ⚙️ Редактировать, 🔗 Ссылка входа, 📋 Логи действий, 🚫 Приостановить/Активировать, 👤 Разжаловать.
+    - `AddStaffModal.tsx`: модальное окно создания сотрудника с генератором надежного пароля, мультиселектом брендов, суточным бюджетом и моментальным выводом сгенерированной Magic Link.
+    - `EditStaffModal.tsx`: расширен тумблером статуса активности, чекбоксами брендов, кнопкой генерации Magic Link, сбросом пароля и переходом к журналу аудита.
+    - `StaffLogsDrawer.tsx`: просмотр последних 50 действий сотрудника с понятным переводом на русский язык, метками ночных смен и фиксацией IP.
+    - `navigation-data.ts`: пункт «Сотрудники & Смены» (`/admin/staff`) интегрирован в единое меню системы `SYSTEM_TABS`.
+  * 🧪 **Автотесты и верификация:**
+    - Разработан сьют `src/__tests__/unit/staff-actions-management.test.ts` (12/12 PASS).
+    - `src/__tests__/unit/team-management-decomposition.test.tsx` (6/6 PASS).
+    - `npx tsc --noEmit`: 0 ошибок компиляции (Strict mode).
+    - `node scripts/check-bundle-secrets.mjs`: 0 утечек секретов.
+- [x] ⚡ [CATALOG-BATCH-ACTIONS-AND-TENANT-ALL-FIX-2026] Устранение сбоя массовых действий каталога админ-панели (наценка, включение/отключение, перенос категорий, сброс цен) (100% COMPLETE & LIVE VERIFIED):
+  * 🛡️ **Multi-Tenant Invariant (`batch.ts` & `price-drift.ts`):** в `src/actions/admin/catalog/batch.ts` и `price-drift.ts` устранена некорректная фильтрация `admin.tenantId`. Внедрен хелпер `getBatchTenantCondition`: для ролей `OWNER` и `ADMIN` сняты ограничения, позволяя управлять общими услугами (`tenantId: 'all'`) и услугами любых тенантов; для персонала разрешено управление услугами своего тенанта и общими (`'all'`). Схема `batchIdsSchema` расширена до 500 ID, транзакции расчета наценок разбиты на безопасные чанки по 50 записей.
+  * 🔄 **Синхронизация данных UI (`batch-action-bar.tsx`):** добавлен вызов `router.refresh()` после каждого успешного массового действия (включение, отключение, применение наценки, сброс наценки, удаление, перенос категорий); добавлены индикаторы загрузки `Loader2` на кнопках во время мутаций.
+  * 📐 **Responsive Layout & WCAG 2.2 AA (`catalog-table-v2.tsx`):** панель массовых действий вынесена в выделенный полноширинный контейнер над таблицей с `flex-wrap gap-2.5`, ликвидированы риски горизонтального скролла и обрезки кнопок.
+  * 🧪 **Автотесты и верификация:** разработан юнит-сьют `src/__tests__/unit/catalog-batch-actions.test.ts` (7/7 PASS), подтверждено реальное применение изменений к услугам в БД PostgreSQL, пройден аудит безопасности `check-bundle-secrets.mjs` (0 утечек).
 - [x] 🧹 [KNIP-CLEANUP-AND-SETTINGS-STABILITY-2026] Очистка мертвого кода Knip (73 файла), устранение дублирования навигации и React Suspense для страницы настроек админ-панели (100% COMPLETE & LIVE VERIFIED):
   * ⚙️ **Админ-панель (Вкладка «Настройки»):** в `src/app/admin/settings/integrations-settings.tsx` удален дублирующий третий уровень навигации (`navItems`), зафиксирован контейнер платежных шлюзов (`min-h-[550px]`) для предотвращения прыжков верстки.
   * ⚡ **React Suspense & Non-blocking SSR:** в `src/app/admin/settings/page.tsx` тяжелые запросы БД вынесены из верхнеуровневого `Promise.all` в изолированные асинхронные микро-компоненты (`TeamTabWrapper`, `ProxyTabWrapper`, `StorefrontTabWrapper`, `TemplatesTabWrapper`, `AuditTabWrapper`), обернутые в `<Suspense fallback={<TabSkeleton />}>` — мгновенный отклик UI при смене вкладок.

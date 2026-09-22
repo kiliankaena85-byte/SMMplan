@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { createProvider, updateProvider } from '@/actions/admin/providers/crud';
@@ -22,6 +22,19 @@ export function useProviderFormState(initialData?: ProviderDetailDTO) {
     balanceCurrency: initialData?.balanceCurrency || 'USD',
     ticketUrl: initialData?.ticketUrl || '',
   });
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData(prev => ({
+        ...prev,
+        name: initialData.name,
+        apiUrl: initialData.apiUrl,
+        isActive: initialData.isActive,
+        balanceCurrency: initialData.balanceCurrency,
+        ticketUrl: initialData.ticketUrl || '',
+      }));
+    }
+  }, [initialData]);
 
   const {
     integrationMode,

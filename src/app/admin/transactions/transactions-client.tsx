@@ -25,6 +25,7 @@ import {
   Shield,
   User
 } from 'lucide-react';
+import { TenantBrandBadge } from '@/app/admin/orders/components/columns';
 import { resolveLedgerTypeForDisplay, LEDGER_TYPE_CONFIG } from '@/lib/financial/ledger-types';
 
 interface TransactionsClientProps {
@@ -586,19 +587,19 @@ export function TransactionsClient({
           )}
         </div>
 
-        {/* Dense Responsive Table — STRICT ZERO HORIZONTAL SCROLL */}
-        <div className="w-full">
+        {/* Desktop Dense Semantic Table (md+) — STRICT ZERO HORIZONTAL SCROLL & Full Viewport Width */}
+        <div className="hidden md:block w-full overflow-hidden">
           <table className="w-full text-xs text-left border-collapse table-auto">
             <thead>
               <tr className="border-b border-border/70 bg-muted/30 text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-                <th className="px-2.5 py-2.5">Клиент</th>
-                <th className="px-2 py-2.5">UUID / Шлюз ID</th>
-                <th className="px-2 py-2.5">Дата / Время</th>
-                <th className="px-2 py-2.5">Тип</th>
-                <th className="px-2.5 py-2.5 text-right">Сумма</th>
-                <th className="px-2.5 py-2.5">Основание</th>
-                <th className="px-2 py-2.5 text-center">Инициатор</th>
-                <th className="px-2.5 py-2.5 text-center">Статус</th>
+                <th className="px-3 py-2.5 w-[180px] lg:w-[220px]">Клиент</th>
+                <th className="px-2.5 py-2.5 w-[130px] lg:w-[150px]">UUID / Шлюз ID</th>
+                <th className="px-2.5 py-2.5 w-[115px] lg:w-[130px]">Дата / Время</th>
+                <th className="px-2.5 py-2.5 w-[140px] lg:w-[160px]">Тип</th>
+                <th className="px-2.5 py-2.5 text-right w-[110px] lg:w-[130px]">Сумма</th>
+                <th className="px-3 py-2.5">Основание</th>
+                <th className="px-2 py-2.5 text-center w-[95px] lg:w-[110px]">Инициатор</th>
+                <th className="px-2.5 py-2.5 text-center w-[105px] lg:w-[120px]">Статус</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40 font-medium">
@@ -620,18 +621,21 @@ export function TransactionsClient({
 
                   return (
                     <tr key={entry.id} className="hover:bg-muted/20 transition-colors">
-                      {/* 1. Client Email & ID */}
-                      <td className="px-2.5 py-2">
-                        <div className="flex flex-col min-w-0 max-w-[140px]">
-                          <Link
-                            href={`/admin/clients/${entry.userId}`}
-                            className="text-primary hover:underline font-mono text-xs font-bold truncate flex items-center gap-0.5 min-w-0"
-                            title={entry.userEmail}
-                          >
-                            <span className="truncate min-w-0">{entry.userEmail}</span>
-                            <ExternalLink className="w-2.5 h-2.5 shrink-0 opacity-60" />
-                          </Link>
-                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono">
+                      {/* 1. Client Email & ID + Tenant */}
+                      <td className="px-3 py-2 align-top">
+                        <div className="flex flex-col min-w-0 max-w-[220px]">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <Link
+                              href={`/admin/clients/${entry.userId}`}
+                              className="text-primary hover:underline font-mono text-xs font-bold truncate flex items-center gap-0.5 min-w-0"
+                              title={entry.userEmail}
+                            >
+                              <span className="truncate min-w-0">{entry.userEmail}</span>
+                              <ExternalLink className="w-2.5 h-2.5 shrink-0 opacity-60" />
+                            </Link>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono mt-0.5 flex-wrap">
+                            <TenantBrandBadge tenantId={entry.tenantId} />
                             <span>ID: {entry.userId.slice(0, 7)}...</span>
                             <CopyBtn text={entry.userId} />
                           </div>
@@ -639,11 +643,11 @@ export function TransactionsClient({
                       </td>
 
                       {/* 2. ID / UUID проводки & Gateway Key */}
-                      <td className="px-2 py-2 font-mono text-[11px] whitespace-nowrap">
+                      <td className="px-2.5 py-2 align-top font-mono text-[11px] whitespace-nowrap">
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-1">
                             <span
-                              className="px-1.5 py-0.5 rounded bg-muted/60 text-foreground border border-border/50 text-[10px] font-bold truncate max-w-[110px] inline-block select-all min-w-0"
+                              className="px-1.5 py-0.5 rounded bg-muted/60 text-foreground border border-border/50 text-[10px] font-bold truncate max-w-[120px] inline-block select-all min-w-0"
                               title={displayUuid}
                             >
                               {displayUuid.startsWith('gateway-credit-')
@@ -659,7 +663,7 @@ export function TransactionsClient({
                           {entry.gatewayId && (
                             <div className="flex items-center gap-1">
                               <span
-                                className="px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold truncate max-w-[110px] inline-block select-all min-w-0"
+                                className="px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 text-[9px] font-bold truncate max-w-[120px] inline-block select-all min-w-0"
                                 title={`ID платежа в шлюзе: ${entry.gatewayId}`}
                               >
                                 {entry.gatewayId.startsWith('test_') ? 'test:' : 'yoo:'}
@@ -672,20 +676,20 @@ export function TransactionsClient({
                       </td>
 
                       {/* 3. Date */}
-                      <td className="px-2 py-2 text-muted-foreground whitespace-nowrap font-mono text-[11px]">
+                      <td className="px-2.5 py-2 align-top text-muted-foreground whitespace-nowrap font-mono text-[11px]">
                         <ClientDate date={entry.createdAt} format="datetime" />
                       </td>
 
                       {/* 4. Type Badge */}
-                      <td className="px-2 py-2 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase border ${cfg.badgeClass}`}>
+                      <td className="px-2.5 py-2 align-top whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border ${cfg.badgeClass}`}>
                           <span>{cfg.emoji}</span>
-                          <span className="truncate max-w-[90px] min-w-0">{cfg.label}</span>
+                          <span className="whitespace-nowrap">{cfg.label}</span>
                         </span>
                       </td>
 
                       {/* 5. Amount */}
-                      <td className="px-2.5 py-2 text-right font-mono font-bold whitespace-nowrap text-xs">
+                      <td className="px-2.5 py-2 align-top text-right font-mono font-bold whitespace-nowrap text-xs">
                         <span className={
                           isPositive
                             ? 'text-emerald-600 dark:text-emerald-400'
@@ -697,13 +701,15 @@ export function TransactionsClient({
                         </span>
                       </td>
 
-                      {/* 6. Reason / Justification (Smart truncate, full tooltip) */}
-                      <td className="px-2.5 py-2 text-foreground text-xs max-w-[150px] lg:max-w-[200px] truncate" title={entry.reason}>
-                        {entry.reason || '—'}
+                      {/* 6. Reason / Justification (Flexible width — stretches across the viewport!) */}
+                      <td className="px-3 py-2 align-top text-foreground text-xs leading-relaxed" title={entry.reason}>
+                        <div className="line-clamp-2 max-w-full font-medium break-words">
+                          {entry.reason || '—'}
+                        </div>
                       </td>
 
                       {/* 7. Initiator */}
-                      <td className="px-2 py-2 text-center whitespace-nowrap">
+                      <td className="px-2 py-2 align-top text-center whitespace-nowrap">
                         {entry.adminId ? (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-700 dark:text-purple-300 font-mono text-[10px] font-bold border border-purple-500/20">
                             <Shield className="w-2.5 h-2.5" />
@@ -717,7 +723,7 @@ export function TransactionsClient({
                       </td>
 
                       {/* 8. Status */}
-                      <td className="px-2.5 py-2 text-center whitespace-nowrap">
+                      <td className="px-2.5 py-2 align-top text-center whitespace-nowrap">
                         {entry.status === 'APPROVED' ? (
                           <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
                             <CheckCircle2 className="w-2.5 h-2.5" />
@@ -741,6 +747,109 @@ export function TransactionsClient({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View: Dense Responsive Card Stack (< md) — Zero horizontal scroll */}
+        <div className="block md:hidden divide-y divide-border/40">
+          {data.items.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground p-4">
+              <ArrowLeftRight className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />
+              <p className="text-sm font-semibold">Финансовых записей не найдено</p>
+              <p className="text-xs text-muted-foreground/70 mt-0.5">Попробуйте изменить период или сбросить фильтры</p>
+            </div>
+          ) : (
+            data.items.map((entry) => {
+              const resolvedType = resolveLedgerTypeForDisplay(entry.transactionType, entry.amount, entry.adminId);
+              const cfg = LEDGER_TYPE_CONFIG[resolvedType] || LEDGER_TYPE_CONFIG.TOPUP;
+              const isPositive = entry.amount > 0;
+              const isNegative = entry.amount < 0;
+              const displayUuid = entry.idempotencyKey || entry.id;
+
+              return (
+                <article key={entry.id} className="p-3.5 space-y-2.5 bg-card/50 hover:bg-muted/10 transition-colors">
+                  {/* Top: Client + Tenant + Amount + Status */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/admin/clients/${entry.userId}`}
+                        className="text-primary hover:underline font-mono text-xs font-bold truncate block min-w-0"
+                        title={entry.userEmail}
+                      >
+                        {entry.userEmail}
+                      </Link>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <TenantBrandBadge tenantId={entry.tenantId} />
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          ID: {entry.userId.slice(0, 7)}...
+                        </span>
+                        <CopyBtn text={entry.userId} />
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0 flex flex-col items-end gap-1">
+                      <span className={`font-mono font-bold text-xs tabular-nums ${
+                        isPositive
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : isNegative
+                          ? 'text-rose-600 dark:text-rose-400'
+                          : 'text-muted-foreground'
+                      }`}>
+                        {fmtRub(entry.amount, true)}
+                      </span>
+
+                      {entry.status === 'APPROVED' ? (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                          <CheckCircle2 className="w-2.5 h-2.5" />
+                          <span>Исполнено</span>
+                        </span>
+                      ) : entry.status === 'QUARANTINE' ? (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                          <Clock className="w-2.5 h-2.5" />
+                          <span>Карантин</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20">
+                          <Ban className="w-2.5 h-2.5" />
+                          <span>{entry.status}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Middle: Reason + Initiator */}
+                  <div className="bg-muted/30 px-2.5 py-1.5 rounded-lg border border-border/40 text-xs space-y-1">
+                    <p className="text-foreground font-medium break-words leading-relaxed">
+                      {entry.reason || '—'}
+                    </p>
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-0.5 border-t border-border/30">
+                      <span>Инициатор:</span>
+                      {entry.adminId ? (
+                        <span className="font-semibold text-purple-600 dark:text-purple-400">👤 Оператор</span>
+                      ) : (
+                        <span>⚙️ Система</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bottom: Date + Type + UUID */}
+                  <div className="flex items-center justify-between gap-2 text-[11px] pt-1 flex-wrap">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${cfg.badgeClass}`}>
+                      <span>{cfg.emoji}</span>
+                      <span>{cfg.label}</span>
+                    </span>
+
+                    <div className="flex items-center gap-2 text-muted-foreground font-mono text-[10px]">
+                      <ClientDate date={entry.createdAt} format="datetime" />
+                      <div className="flex items-center gap-0.5">
+                        <span title={displayUuid}>#{displayUuid.slice(0, 8)}...</span>
+                        <CopyBtn text={displayUuid} />
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              );
+            })
+          )}
         </div>
 
         {/* Bottom Pagination & Footer Bar */}
