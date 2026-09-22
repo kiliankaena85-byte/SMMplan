@@ -477,17 +477,28 @@ export class CatalogSyncService {
     }
 
     const ZOMBIE_BATCH_SIZE = 50;
-    for (let i = 0; i < zombieIds.length; i += ZOMBIE_BATCH_SIZE) {
-      const batch = zombieIds.slice(i, i + ZOMBIE_BATCH_SIZE);
-      await db.service.updateMany({
-        where: {
-          id: { in: batch },
-          ...(tenantId && tenantId !== 'all' ? { tenantId: { in: [tenantId, 'all'] } } : {}),
-        },
-        data: {
-          isActive: false,
-          cooldownReason: 'ZOMBIE_AUTO_DISABLED',
-        },
+    // ⚠️ Guard: Do not auto-disable curated services unless explicitly enabled.
+    // In production, automatic mass-deactivation due to upstream provider API ID shifts
+    // causes storefront disruption. Candidates are logged for manual admin review in /admin/catalog.
+    const ENABLE_ZOMBIE_AUTO_DEACTIVATION = false;
+    if (ENABLE_ZOMBIE_AUTO_DEACTIVATION) {
+      for (let i = 0; i < zombieIds.length; i += ZOMBIE_BATCH_SIZE) {
+        const batch = zombieIds.slice(i, i + ZOMBIE_BATCH_SIZE);
+        await db.service.updateMany({
+          where: {
+            id: { in: batch },
+            ...(tenantId && tenantId !== 'all' ? { tenantId: { in: [tenantId, 'all'] } } : {}),
+          },
+          data: {
+            isActive: false,
+            cooldownReason: 'ZOMBIE_AUTO_DISABLED',
+          },
+        });
+      }
+    } else if (zombieIds.length > 0) {
+      logger.warn(`[CatalogSync] Found ${zombieIds.length} zombie candidates for provider ${providerId}. Auto-deactivation DISABLED to protect catalog.`, {
+        providerId,
+        zombieCount: zombieIds.length,
       });
     }
 
