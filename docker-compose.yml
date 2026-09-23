@@ -180,7 +180,7 @@ services:
 
       - HOSTNAME=0.0.0.0
       - PORT=3000
-      - ALLOWED_ORIGINS=http://26.178.208.222:3000,http://localhost:3000,http://127.0.0.1:3000
+      - ALLOWED_ORIGINS=http://26.178.208.222:3000,http://localhost:3000,http://127.0.0.1:3000,https://smmplan.tailbb9d28.ts.net,smmplan.tailbb9d28.ts.net,https://smmplan.pro,https://smmflux.ru
     volumes:
       - lite_uploads_data:/app/private/uploads
     ports:

@@ -262,6 +262,8 @@ export function useOrderEngine(
   // Data states - initialized with SSR pre-fetched services to prevent client waterfall
   const [catalog, setCatalog] = useState<PublicNetwork[]>(sortedInitialCatalog);
   const [services, setServices] = useState<PublicService[]>(initialServices);
+  const servicesRef = useRef(services);
+  servicesRef.current = services;
   const isInitialServicesMount = useRef(initialServices.length > 0);
   const [platform, setPlatform] = useState<IntelligencePlatform | null>(null);
   const [manualPlatform, setManualPlatform] = useState<IntelligencePlatform | null>(null);
@@ -569,8 +571,7 @@ export function useOrderEngine(
       return;
     }
 
-    // Clear and set loading state for fresh category fetch (preserve selectedService if user is checking out)
-    setServices([]);
+    // Preserve existing services while fetching to prevent layout collapse and flickering skeletons (Stale-While-Revalidate)
     if (!selectedServiceRef.current) {
       setSelectedService(null);
     }
@@ -578,7 +579,10 @@ export function useOrderEngine(
     const currentRequestId = ++serviceRequestIdRef.current;
 
     const loadServices = async () => {
-      setIsLoading(true);
+      // If we don't have any services yet (e.g. cold start), show primary loading state
+      if (servicesRef.current.length === 0) {
+        setIsLoading(true);
+      }
       setIsServicesLoading(true);
       try {
         const svcs = await getServicesByCategoryAction(categoryId);

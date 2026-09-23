@@ -1,7 +1,7 @@
 'use client';
 
 import React from "react";
-import { Box } from "lucide-react";
+import { Box, Loader2 } from "lucide-react";
 import { PublicNetwork } from "@/actions/order/catalog";
 import { OrderEngine } from "@/hooks/useOrderEngine";
 
@@ -128,6 +128,12 @@ export function LandingCatalogContent({
                 <div className="flex items-center justify-between mb-4 md:mb-6 shrink-0">
                   <h3 className="font-extrabold text-foreground text-xl md:text-2xl tracking-tight flex items-center gap-3">
                     Выберите тариф {services.length > 0 && <span className="text-sm font-bold bg-primary/10 text-primary px-3 py-1 rounded-full">{services.length}</span>}
+                    {engine.isServicesLoading && (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground animate-pulse ml-2">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                        <span>Обновление...</span>
+                      </span>
+                    )}
                   </h3>
                 </div>
 
@@ -156,7 +162,7 @@ export function LandingCatalogContent({
                     </div>
                   </div>
                 ) : (
-                  <div className={`pb-8 pt-4 transition-opacity duration-300 hidden md:block ${isLoading && services.length === 0 ? 'opacity-50' : 'opacity-100'}`}>
+                  <div className={`pb-8 pt-4 transition-opacity duration-200 hidden md:block ${engine.isServicesLoading ? 'opacity-60 pointer-events-none' : 'opacity-100'}`}>
                     <ServiceGrid 
                       engine={engine} 
                       checkoutProps={checkoutVariantProps}
