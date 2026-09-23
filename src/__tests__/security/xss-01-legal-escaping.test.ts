@@ -1,29 +1,36 @@
 import { describe, it, expect, vi } from 'vitest';
-import { getLegalDocument } from '@/actions/order/legal';
+import { getLegalDocumentAction } from '@/actions/order/legal';
 import { escapeHtml } from '@/lib/sanitize';
 
 vi.mock('@/lib/db', () => ({
   db: {
-    post: {
-      findFirst: vi.fn().mockResolvedValue({
+    contentItem: {
+      findUnique: vi.fn().mockResolvedValue({
         id: 'post-1',
         title: 'Условия обслуживания',
         contentHtml: '<p>Компания: {{COMPANY_NAME}}, ИНН: {{COMPANY_INN}}, ОГРНИП: {{COMPANY_OGRNIP}}, Адрес: {{COMPANY_ADDRESS}}</p>',
+        isPublished: true,
       }),
     },
   },
 }));
 
 vi.mock('@/lib/settings', () => ({
-  getTenantSettings: vi.fn().mockResolvedValue({
-    COMPANY_NAME: '<img src=x onerror=alert(1)>ООО "Рога и Копыта"',
-    COMPANY_INN: '7701234567<script>alert(2)</script>',
-    COMPANY_OGRN: '1027700132195" onmouseover="alert(3)',
-    COMPANY_ADDRESS: 'г. Москва<svg onload=alert(4)>',
-    SUPPORT_EMAIL: 'support@smmplan.pro',
-    PRIVACY_EMAIL: 'privacy@smmplan.pro',
-    SITE_NAME: 'SMMplan',
-  }),
+  SettingsProvider: {
+    getContactAndLegalSettings: vi.fn().mockResolvedValue({
+      COMPANY_NAME: '<img src=x onerror=alert(1)>ООО "Рога и Копыта"',
+      COMPANY_INN: '7701234567<script>alert(2)</script>',
+      COMPANY_OGRN: '1027700132195" onmouseover="alert(3)',
+      COMPANY_ADDRESS: 'г. Москва<svg onload=alert(4)>',
+      SUPPORT_EMAIL: 'support@smmplan.pro',
+      PRIVACY_EMAIL: 'privacy@smmplan.pro',
+      SITE_NAME: 'SMMplan',
+    }),
+  },
+}));
+
+vi.mock('next/headers', () => ({
+  headers: vi.fn().mockResolvedValue(new Headers({ 'x-tenant-id': 'smmplan' })),
 }));
 
 describe('XSS-01: Company Settings Escaping in Legal Documents', () => {
@@ -34,9 +41,9 @@ describe('XSS-01: Company Settings Escaping in Legal Documents', () => {
   });
 
   it('escapes injected malicious HTML tags in legal document settings', async () => {
-    const res = await getLegalDocument('terms', 'smmplan');
+    const res = await getLegalDocumentAction('terms');
     expect(res.success).toBe(true);
-    if (!res.success) return;
+    if (!res.success || !res.data) return;
 
     const html = res.data.html;
     // Malicious tags must NOT be present as raw HTML elements
