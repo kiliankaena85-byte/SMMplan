@@ -1,3 +1,18 @@
+- [x] ⚡ [ROLLBACK-PRE-DECOMPOSITION-STABLE-2026] Успешный откат платформы до состояния до декомпозиции и AST-вьювера (100% COMPLETE & LIVE IN PROD):
+  * 🎯 **Откат к стабильному коммиту `2c7368c0` (tag: `backup-pre-waves-15-24`):**
+    - Создана изолированная ветка `stable-pre-decomposition`.
+    - Все 32 файла рабочей директории зафиксированы в страховочной ветке `backup/wip-current-2026-09-23`.
+    - Устранены: переусложненные визарды, 7 дублирующих чекаутов, AST-вьювер и скрипты нарезки файлов по 200 строк.
+    - Восстановлены надежные монолитные сервисы `order.processor.ts`, `telegram-bot.ts`, `order.service.ts`.
+  * 🗄️ **Сохранение и гармонизация базы данных (Вариант Б):**
+    - PostgreSQL база `smmplan_lite` полностью сохранена со всеми пользователями (14) и услугами (284).
+    - `npx prisma migrate status` — `Database schema is up to date!` (31 миграция).
+    - `npx prisma generate` — Prisma Client v5.22.0 сгенерирован успешно.
+  * 🚀 **Сборка и выкатка в Docker-контейнеры (Production-Stable):**
+    - `next build --webpack` — чистая компиляция standalone бандла (0 ошибок).
+    - Контейнеры `smmplan_web`, `smmplan_lite_worker`, `smmplan_bot` пересобраны и запущены.
+    - Все контейнеры в статусе `healthy`.
+    - HTTP Healthcheck: `/api/health` 200 OK, `/` 200 OK, `/services` 200 OK, `/login` 200 OK, `/dashboard` 307 Redirect.
 - [x] ⚡ [AUTH-COOKIE-CONSENT-AUTOCONFIRM-2026] Автоматическое подтверждение Cookie (152-ФЗ) при авторизации и устранение плашки в /dashboard (100% COMPLETE & VERIFIED):
   * 🍪 **Серверная авто-установка (`src/lib/session.ts` & `/api/auth/verify/route.ts`):**
     - При входе / регистрации / Magic Link сервер вместе с `session_token` выставляет `cookie_consent=true` (1 год, SameSite=Lax, httpOnly=false).
