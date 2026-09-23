@@ -1,0 +1,212 @@
+{
+  "audit": {
+    "date": "2026-09-23",
+    "target": "main @ c691e8b2",
+    "method": "static analysis in detached worktree + project linters + schema parsing + GitHub Actions metadata",
+    "not_verified": [
+      "runtime performance",
+      "browser visual checks",
+      "e2e",
+      "tenant leak attempts"
+    ],
+    "supersedes_note": "retract money findings from 54b8a77f audit, see CORRECTION-2026-09-23.md"
+  },
+  "ci_status": {
+    "workflow": "CI",
+    "latest_run": "35757056292",
+    "conclusion": "failure",
+    "steps": {
+      "tsc": "success",
+      "eslint": "success (but || true)",
+      "vitest": "failure",
+      "next_build": "skipped",
+      "e2e": "not present in workflow"
+    },
+    "consecutive_failures": 4
+  },
+  "metrics": {
+    "pages": 115,
+    "force_dynamic_pages": 81,
+    "client_components": 595,
+    "heavy_client_framer_motion": 58,
+    "find_many_without_take": 253,
+    "files_with_await_in_loop": 31,
+    "raw_sql_calls": 33,
+    "tenant_linter_warnings": 347,
+    "prisma_models": 87,
+    "models_without_tenantId": 46,
+    "high_risk_models_without_tenantId": 16,
+    "raw_hex_tsx": 1080,
+    "arbitrary_tailwind": 4363,
+    "inline_styles": 93,
+    "dark_variants": 701,
+    "snapshot_source_text_tests": 39,
+    "files_over_200_lines": 345,
+    "img_tags": 24,
+    "next_image_imports": 0,
+    "suspense_usages": 19,
+    "loading_files": 27,
+    "dynamic_imports": 1,
+    "e2e_spec_files": 68
+  },
+  "findings": [
+    {
+      "id": "CI-01",
+      "priority": "P0",
+      "title": "Vitest красный 4 прогона подряд; сборка в CI никогда не выполняется",
+      "evidence": "run 35757056292: Run Vitest Suite failure, Next.js build skipped",
+      "impact": "регрессии в рантайме и сборке не отлавливаются"
+    },
+    {
+      "id": "CI-02",
+      "priority": "P0",
+      "title": "ESLint-гейт отключён (|| true)",
+      "evidence": ".github/workflows/ci.yml:67",
+      "impact": "линт-долг растёт бесконтрольно"
+    },
+    {
+      "id": "CI-03",
+      "priority": "P0",
+      "title": "E2E не запускается в CI при 68 спек-файлах",
+      "evidence": "ci.yml + find e2e -name '*.spec.ts' = 68"
+    },
+    {
+      "id": "PERF-01",
+      "priority": "P0",
+      "title": "81/115 страниц force-dynamic, почти нет ISR",
+      "evidence": "подсчёт page.tsx",
+      "impact": "нет кэша страниц → медленные ответы под нагрузкой"
+    },
+    {
+      "id": "PERF-02",
+      "priority": "P1",
+      "title": "Каталог: жёсткий лимит 500 услуг + unstable_cache",
+      "evidence": "src/actions/order/catalog.ts:100-115",
+      "impact": "усечение каталога и «догрузка» на клиенте"
+    },
+    {
+      "id": "PERF-03",
+      "priority": "P1",
+      "title": "Медиа: JWT+DB на каждое изображение, next/image не используется",
+      "evidence": "src/app/api/media/[...path]/route.ts:23-28; 0 импортов next/image, 24 <img>",
+      "impact": "LCP и лишние запросы к БД"
+    },
+    {
+      "id": "PERF-04",
+      "priority": "P1",
+      "title": "Нет индексов: User.telegramId (22 фильтрации), Provider (0 индексов)",
+      "evidence": "prisma/schema.prisma + подсчёт фильтраций",
+      "impact": "seq scan на горячих путях (бот, админ)"
+    },
+    {
+      "id": "PERF-05",
+      "priority": "P1",
+      "title": "253 findMany без take/cursor, 31 файл с await в цикле",
+      "evidence": "статический подсчёт",
+      "impact": "деградация с ростом данных"
+    },
+    {
+      "id": "PERF-06",
+      "priority": "P2",
+      "title": "Middleware 756 строк с Redis-проверками на каждый запрос",
+      "evidence": "src/proxy.ts:358-394",
+      "impact": "постоянный оверхед латентности"
+    },
+    {
+      "id": "PERF-07",
+      "priority": "P2",
+      "title": "595 клиентских компонентов, 58 с framer-motion, 1 динамический импорт",
+      "evidence": "подсчёт",
+      "impact": "крупные бандлы, медленный TTI"
+    },
+    {
+      "id": "TEN-01",
+      "priority": "P0",
+      "title": "33 raw SQL вызова обходят tenant-enforcer (вкл. финансовые сервисы)",
+      "evidence": "grep $queryRaw/$executeRaw; src/lib/db.ts:118",
+      "impact": "потенциальные кросс-тенантные утечки"
+    },
+    {
+      "id": "TEN-02",
+      "priority": "P1",
+      "title": "Кэш провайдеров без tenant-скоупа, модель Provider без tenantId",
+      "evidence": "src/app/admin/orders/page.tsx:77-88",
+      "impact": "админ видит провайдеров всех тенантов"
+    },
+    {
+      "id": "TEN-03",
+      "priority": "P1",
+      "title": "46 моделей без tenantId, 16 высокорисковых",
+      "evidence": "разбор schema",
+      "impact": "изоляция только на уровне кода и связей"
+    },
+    {
+      "id": "TEN-04",
+      "priority": "P1",
+      "title": "347 предупреждений tenant-линтера на main, гейт не блокирует",
+      "evidence": "node scripts/lint-tenant-isolation.ts",
+      "impact": "метрика изоляции недостоверна"
+    },
+    {
+      "id": "VIS-01",
+      "priority": "P2",
+      "title": "1080 raw HEX / 4363 arbitrary / 93 inline стилей",
+      "evidence": "grep по tsx",
+      "impact": "расхождения интерфейса, тёмная тема"
+    },
+    {
+      "id": "VIS-02",
+      "priority": "P3",
+      "title": "Тёмная тема: secondary-foreground на secondary = 4.42:1",
+      "evidence": "расчёт по токенам .dark",
+      "impact": "ниже WCAG AA для мелкого текста"
+    },
+    {
+      "id": "VIS-03",
+      "priority": "P1",
+      "title": "Визуальные доказательства устарели (июнь/август против main от 22.09)",
+      "evidence": "git log по visual_audit_assets, .planning/screenshots",
+      "impact": "визуальная приёмка не отражает текущее состояние"
+    },
+    {
+      "id": "ARCH-01",
+      "priority": "P2",
+      "title": "Godfiles на main: academy-client 2134, bot/index 1680, staff-schedule-tab 1281, plan-views 1279",
+      "evidence": "wc -l"
+    },
+    {
+      "id": "ARCH-02",
+      "priority": "P2",
+      "title": "345 файлов > 200 строк при контракте ≤200",
+      "evidence": "подсчёт"
+    },
+    {
+      "id": "ARCH-03",
+      "priority": "P1",
+      "title": "Дубли: 4 normalizeTenantId, 2 cancel/restartOrderAction (разные контракты), 3 журнала транзакций",
+      "evidence": "grep экспортов"
+    },
+    {
+      "id": "ARCH-04",
+      "priority": "P2",
+      "title": "39 снапшот-тестов по тексту исходников",
+      "evidence": "grep readFileSync",
+      "impact": "не защищают поведение"
+    },
+    {
+      "id": "CODE-01",
+      "priority": "P2",
+      "title": "Кандидат: promocode-columns LTV/ROMI смешивает number и bigint (3 места)",
+      "evidence": "src/app/admin/marketing/promocode-columns.tsx:219,232,272",
+      "impact": "потенциальный TypeError в админ-маркетинге",
+      "status": "candidate"
+    },
+    {
+      "id": "CODE-02",
+      "priority": "P3",
+      "title": "Кандидат: policyCheck.allowed при union с null",
+      "evidence": "src/actions/admin/users.ts:129",
+      "status": "candidate"
+    }
+  ]
+}
