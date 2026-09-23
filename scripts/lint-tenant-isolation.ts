@@ -330,7 +330,42 @@ if (process.argv[1] && (process.argv[1].endsWith('lint-tenant-isolation.ts') || 
   console.log('\x1b[36m%s\x1b[0m', '═══════════════════════════════════════════════════════════════\n');
 
   const result = linter.run();
+  const strict = process.argv.includes('--strict');
   console.log(`Проверено файлов: ${result.filesChecked}`);
+
+  // Учёт подавлений: без этой цифры вердикт "100% PASS" вводит в заблуждение,
+  // потому что часть проверок отключена вручную маркером tenant-isolation-ignore.
+  const suppressionStats = (() => {
+    const marker = 'tenant-isolation-ignore';
+    let files = 0;
+    let occurrences = 0;
+    const walk = (dir: string) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue;
+          walk(full);
+          continue;
+        }
+        if (!/\.(ts|tsx)$/.test(entry.name)) continue;
+        const content = fs.readFileSync(full, 'utf-8');
+        const hits = content.split(marker).length - 1;
+        if (hits > 0) {
+          files++;
+          occurrences += hits;
+        }
+      }
+    };
+    walk('src');
+    return { files, occurrences };
+  })();
+
+  if (suppressionStats.occurrences > 0) {
+    console.log(
+      `\x1b[33m%s\x1b[0m`,
+      `Подавлений (tenant-isolation-ignore): ${suppressionStats.occurrences} в ${suppressionStats.files} файлах — эти проверки отключены вручную.`
+    );
+  }
 
   if (result.violations.length === 0) {
     console.log('\x1b[32m%s\x1b[0m', '\n✅ 100% PASS: Все запросы к БД, кэши и контракты строго изолированы по tenantId!');
@@ -349,8 +384,11 @@ if (process.argv[1] && (process.argv[1].endsWith('lint-tenant-isolation.ts') || 
     if (result.blockersCount > 0) {
       console.log('\x1b[31m%s\x1b[0m', '❌ Сборка заблокирована из-за наличия нарушений изоляции уровня BLOCKER.');
       process.exit(1);
+    } else if (strict) {
+      console.log('\x1b[31m%s\x1b[0m', '❌ --strict: предупреждения трактуются как ошибка (для изменяемых файлов).');
+      process.exit(1);
     } else {
-      console.log('\x1b[33m%s\x1b[0m', '⚠️  Обнаружены некритические предупреждения.');
+      console.log('\x1b[33m%s\x1b[0m', '⚠️  Обнаружены некритические предупреждения (для строгого режима: --strict).');
       process.exit(0);
     }
   }

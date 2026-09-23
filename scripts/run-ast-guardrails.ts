@@ -519,11 +519,19 @@ export class AstGuardrailsEngine {
     }
 
     const passed = blockers.length === 0;
+    const majorCount = majors.length;
+    const warningCount = warnings.length;
+    const summary = `blockers=${blockers.length}, MAJOR=${majorCount}, WARNING=${warningCount}`;
 
-    if (passed) {
+    if (passed && majorCount + warningCount === 0) {
       console.log('\n🟢 [AST Guardrails PASS] Zero blockers found! Architecture is clean.');
+    } else if (passed) {
+      // Честный вердикт: нулевой бюджет по замечаниям ещё не достигнут, поэтому
+      // "Architecture is clean" здесь печатать нельзя (см. AUDIT-2026-09-23, REPO-04).
+      console.log(`\n🟡 [AST Guardrails PASS WITH FINDINGS] Zero blockers, но есть замечания (${summary}).`);
+      console.log('   Вердикт «clean» не выставляется: см. список выше. Для строгого режима: --strict');
     } else {
-      console.log('\n🔴 [AST Guardrails FAIL] Critical architectural violations must be fixed.');
+      console.log(`\n🔴 [AST Guardrails FAIL] Critical architectural violations must be fixed (${summary}).`);
     }
 
     return { violations: this.violations, passed };
@@ -575,8 +583,14 @@ export class AstGuardrailsEngine {
 // CLI Execution
 if (process.argv[1]?.includes('run-ast-guardrails.ts')) {
   const engine = new AstGuardrailsEngine();
-  const { passed } = engine.run('src');
-  if (!passed) {
+  const strict = process.argv.includes('--strict');
+  const { passed, violations } = engine.run('src');
+
+  // --strict: ненулевой код возврата не только на BLOCKER, но и на MAJOR.
+  // По умолчанию режим неблокирующий (обратная совместимость с существующим CI).
+  const hasMajor = violations.some((v) => v.severity === 'MAJOR');
+
+  if (!passed || (strict && hasMajor)) {
     process.exit(1);
   }
 }
